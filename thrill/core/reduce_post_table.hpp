@@ -127,17 +127,9 @@ public:
     }
 };
 
-// REVIEW(ms): these two external classes make things complex, are they really
-// needed? or can one move them into the main class and just do a if() switch?
-// Or is there some type access reason that this cannot work?  On second
-// thought: there probably is a reason. If so, please write a comment explaining
-// why.
-// COMMENT(tb): Type of Flushing needs be externally configurable as we have different flushes:
-// currently for default reduce and for reduce to index. We use them same approach in the
-// corresponding pre tables. Since the approach is templated, there are no explicit function calls.
 template <typename Key,
           typename ReduceFunction,
-          const bool ClearAfterFlush = false,
+          const bool Consume = false,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class PostReduceFlushToDefault
@@ -157,7 +149,7 @@ public:
 
         using BucketBlock = typename ReducePostTable::BucketBlock;
 
-        size_t block_size = typename ReducePostTable::block_size_;
+        size_t block_size = ht->BlockSize();
 
         std::vector<BucketBlock*>& buckets = ht->Items();
 
@@ -171,16 +163,18 @@ public:
 
         size_t max_num_blocks_per_table = ht->MaxNumBlocksPerTable();
 
-        size_t num_blocks_per_table = ht->NumBlocksPerTable();
+        size_t num_buckets_per_table = ht->NumBucketsPerTable();
 
-        std::vector<BucketBlock*> buckets_second_;
+        size_t num_buckets_per_frame = ht->NumBucketsPerFrame();
+
+        std::vector<BucketBlock*> buckets_second;
 
         // TODO: start with largest frame instead of iteration from left to right
         for (size_t frame_id = 0; frame_id < ht->NumFrames(); frame_id++) {
 
             // compute frame offset of current frame
-            size_t offset = frame_id * ht->FrameSize();
-            size_t length = std::min<size_t>(offset + ht->FrameSize(), ht->NumBuckets());
+            size_t offset = frame_id * num_buckets_per_frame;
+            size_t length = std::min<size_t>(offset + num_buckets_per_frame, num_buckets_per_table);
 
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
@@ -191,39 +185,39 @@ public:
             // process a second reduce
             if (file.num_items() > 0) {
 
-                // calculate size
-                size_t num_buckets_second = (size_t) std::max<size_t>(
+                // compute how much blocks are needed
+                size_t num_blocks = std::max<size_t>(
                         (size_t) std::ceil(static_cast<double>(file.num_items())
-                                           / static_cast<double>(block_size) * bucket_rate), 1);
+                                           / static_cast<double>(block_size)), 1);
 
-                // compute how much memory we need
-                size_t num_blocks = (size_t) std::max<size_t>(
-                        (size_t) std::ceil(static_cast<double>(file.num_items())
-                                           / static_cast<double>(block_size) * bucket_rate), 1);
+                // calculate num buckets in second reduce table
+                size_t num_buckets_second = std::max<size_t>((size_t)(static_cast<double>(num_blocks)
+                                                                      * bucket_rate), 1);
 
+                // keep enough memory for pointers
                 num_blocks += std::max<size_t>((size_t)(std::ceil(
                         static_cast<double>(num_buckets_second * sizeof(BucketBlock*))
                         / static_cast<double>(sizeof(BucketBlock)))), 0);
 
                 // ensure we have enough memory left to process the frame
-                while ((max_num_blocks_per_table - num_blocks_per_table) < num_blocks) {
+                while ((max_num_blocks_per_table - ht->NumBlocksPerTable()) < num_blocks) {
+                    if (ht->NumBlocksPerTable() == 0) {
+                        throw std::invalid_argument("not enough memory to process second reduce");
+                    }
                     ht->SpillLargestFrame();
                 }
 
                 // set up size of second reduce table
-                buckets_second_.resize(num_buckets_second, nullptr);
+                buckets_second.resize(num_buckets_second, nullptr);
 
-                // ensure
+                // flag used when item is reduced to advance to next item
+                bool reduced = false;
 
                 /////
                 // reduce data from spilled files
                 /////
 
-                bool consume = false;
-                data::File::Reader reader = file.GetReader(consume);
-
-                // flag used when item is reduced to advance to next item
-                bool reduced = false;
+                data::File::Reader reader = file.GetReader(Consume);
 
                 // get the items and insert them in secondary
                 // table
@@ -231,9 +225,9 @@ public:
 
                     KeyValuePair kv = reader.Next<KeyValuePair>();
 
-                    size_t global_index = index_function_(kv.first, ht, ht->NumBucketsSecond());
+                    size_t global_index = index_function_(kv.first, ht, num_buckets_second);
 
-                    BucketBlock* current = buckets_second_[global_index];
+                    BucketBlock* current = buckets_second[global_index];
                     while (current != nullptr)
                     {
                         // iterate over valid items in a block
@@ -243,10 +237,15 @@ public:
                             // if item and key equals, then reduce.
                             if (equal_to_function_(kv.first, bi->first))
                             {
-                                bi->second = ht->reduce_function_(bi->second, kv.second);
+                                bi->second = ht->reduce_function_(bi->second, kv.second); // TODO: reduce_function must be provided inlined
                                 reduced = true;
                                 break;
                             }
+                        }
+
+                        if (reduced)
+                        {
+                            break;
                         }
 
                         current = current->next;
@@ -258,7 +257,7 @@ public:
                         continue;
                     }
 
-                    current = buckets_second_[global_index];
+                    current = buckets_second[global_index];
 
                     // have an item that needs to be added.
                     if (current == nullptr ||
@@ -268,8 +267,8 @@ public:
                         current = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
 
                         current->size = 0;
-                        current->next = buckets_second_[global_index];
-                        buckets_second_[global_index] = current;
+                        current->next = buckets_second[global_index];
+                        buckets_second[global_index] = current;
                     }
 
                     // in-place construct/insert new item in current bucket block
@@ -289,8 +288,8 @@ public:
                              from != current->items + current->size; ++from)
                         {
                             // insert in second reduce table
-                            size_t global_index = index_function_(from->first, ht, ht->NumBucketsSecond());
-                            BucketBlock* current_second = buckets_second_[global_index];
+                            size_t global_index = index_function_(from->first, ht, num_buckets_second);
+                            BucketBlock* current_second = buckets_second[global_index];
                             while (current_second != nullptr)
                             {
                                 // iterate over valid items in a block
@@ -320,9 +319,12 @@ public:
                                 continue;
                             }
 
-                            current_second = buckets_second_[global_index];
+                            current_second = buckets_second[global_index];
 
+                            //////
                             // have an item that needs to be added.
+                            //////
+
                             if (current_second == nullptr ||
                                 current_second->size == ht->block_size_)
                             {
@@ -330,8 +332,8 @@ public:
                                 current_second = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
 
                                 current_second->size = 0;
-                                current_second->next = buckets_second_[global_index];
-                                buckets_second_[global_index] = current_second;
+                                current_second->next = buckets_second[global_index];
+                                buckets_second[global_index] = current_second;
                             }
 
                             // in-place construct/insert new item in current bucket block
@@ -339,7 +341,7 @@ public:
                         }
 
                         // advance to next
-                        if (ClearAfterFlush)
+                        if (Consume)
                         {
                             BucketBlock* next = current->next;
                             // destroy block
@@ -352,30 +354,25 @@ public:
                         }
                     }
 
-                    if (ClearAfterFlush)
+                    if (Consume)
                     {
                         buckets[i] = nullptr;
                     }
                 }
 
-                if (ClearAfterFlush)
-                {
-                    num_blocks_per_frame[frame_id] = 0;
-                }
-
                 /////
                 // emit data
                 /////
-                for (size_t i = 0; i < ht->NumBucketsSecond(); i++)
+                for (size_t i = 0; i < num_buckets_second; i++)
                 {
-                    BucketBlock* current = buckets_second_[i];
+                    BucketBlock* current = buckets_second[i];
 
                     while (current != nullptr)
                     {
                         for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi)
                         {
-                            ht->EmitAll(std::make_pair(bi->first, bi->second));
+                            ht->EmitAll(std::make_pair(bi->first, bi->second)); // TODO: create the pair later, only if sendpair = true
                         }
 
                         // destroy block and advance to next
@@ -385,11 +382,11 @@ public:
                         current = next;
                     }
 
-                    buckets_second_[i] = nullptr;
+                    buckets_second[i] = nullptr;
                 }
 
-                // no spilled items, just flush already reduced
-                // data in primary table in current frame
+            // no spilled items, just flush already reduced
+            // data in primary table in current frame
             }
             else
             {
@@ -405,11 +402,11 @@ public:
                         for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi)
                         {
-                            ht->EmitAll(std::make_pair(bi->first, bi->second));
+                            ht->EmitAll(std::make_pair(bi->first, bi->second)); // TODO: create the pair later, only if sendpair = true
                         }
 
                         // advance to next
-                        if (ClearAfterFlush)
+                        if (Consume)
                         {
                             BucketBlock* next = current->next;
                             // destroy block
@@ -422,49 +419,24 @@ public:
                         }
                     }
 
-                    if (ClearAfterFlush)
+                    if (Consume)
                     {
                         buckets[i] = nullptr;
                     }
                 }
             }
+
+            // set num blocks for frame to zero
+            if (Consume)
+            {
+                ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - num_blocks_per_frame[frame_id]);
+                num_blocks_per_frame[frame_id] = 0;
+            }
         }
 
-        // REVIEW(ms): this resets the reduce table. I think we disagree about
-        // what FlushData() does: in my view it should read and emit all data
-        // from the external files, but LEAVE EVERYTHING in place, such that
-        // this procedure can be REPEATED. Why? because that is what
-        // DIANode::PushData() requires us to do: repeatable data emitting. Is
-        // that too costly? Maybe, but then the user can append a .Cache() node
-        // to the ReduceTable which will create an actual storage File.  But
-        // then we cannot keep the Buckets in "memory", since they would always
-        // take precious RAM while other stages are executed.
-
-        // COMMENT(tb): In Spark, computed data is NOT kept in memory by default.
-        // In Spark, Cache() keeps computed data IN memory (in memory by default, but
-        // there are flags to store to disk and other targets as well).
-        // What you suggest is actually the opposite way of how Spark handles it, keeping
-        // stuff in memory by default, no matter what...
-        // I am not saying its wrong, I just don't know. I suggest we just benchmark this using
-        // some big data.
-        //
-        // As I implemented it, I assumed that we do not have a caching mechanism by now,
-        // so I required data to be recomputed if necessary and free memory after
-        // each flush.
-        //
-        // Just a thought: If you want to keep data in memory by default, and provide
-        // a method for memory -> disk transfer, calling that method Spill() would probably more
-        // suitable.
-        //
-        // We may have some intelligent, implicit memory -> disk transfer, using LRU or whatever.
-        //
-        // To come to and end, I added a template parameter so that the table can be configured
-        // whether or not to free memory after each flush. It defaults to "keep all in memory".
-
-        if (ClearAfterFlush)
+        if (Consume)
         {
-            ht->SetNumBlocks(0);
-            ht->SetNumItems(0);
+            ht->SetNumItemsPerTable(0);
         }
     }
 
@@ -475,7 +447,7 @@ private:
 };
 
 template <typename Value>
-class PostReduceFlushToIndex
+class PostReduceFlushToIndex // TODO: no spilling here
 {
 public:
     template <typename ReducePostTable>
@@ -491,7 +463,7 @@ public:
         std::vector<Value> elements_to_emit
             (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
 
-        for (size_t i = 0; i < ht->NumBuckets(); i++)
+        for (size_t i = 0; i < ht->NumBucketsPerTable(); i++)
         {
             BucketBlock* current = buckets_[i];
 
@@ -520,8 +492,9 @@ public:
         }
         assert(index == ht->EndLocalIndex());
 
-        ht->SetNumBlocks(0);
-        ht->SetNumItems(0);
+        ht->SetNumBlocksPerTable(0);
+        ht->SetNumItemsPerTable(0);
+
     }
 };
 
@@ -546,11 +519,11 @@ struct EmitImpl<false, EmitterType, ValueType, SendType>{
     }
 };
 
-template <typename ValueType, typename Key, typename Value,
+template <typename ValueType, typename Key, typename Value, // TODO: dont need both ValueType and Value
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          const bool ClearAfterFlush = false,
-          typename FlushFunction = PostReduceFlushToDefault<Key, ReduceFunction, ClearAfterFlush>,
+          const bool Consume = false,
+          typename FlushFunction = PostReduceFlushToDefault<Key, ReduceFunction, Consume>,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           size_t TargetBlockSize = 16*16
@@ -640,9 +613,9 @@ public:
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
-        assert(frame_rate >= 0.0 && frame_rate <= 1.0);
+        assert(frame_rate > 0.0 && frame_rate <= 1.0);
         assert(byte_size > 0 && "byte_size must be greater than 0");
-        assert(bucket_rate > 0.0 && bucket_rate <= 1.0);
+        assert(bucket_rate >= 0.0 && bucket_rate <= 1.0);
         assert(begin_local_index >= 0);
         assert(end_local_index >= 0);
 
@@ -652,21 +625,15 @@ public:
                                                           / static_cast<double>(sizeof(BucketBlock))), 1);
         max_num_blocks_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
                                                                   / static_cast<double>(num_frames_)), 1);
-
-        num_buckets_per_frame_ = std::max<size_t>((size_t)((static_cast<double>(max_num_blocks_per_table_)
-                                                                / static_cast<double>(num_frames_)) * bucket_rate), 1);
-
+        num_buckets_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_frame_)
+                                                           * bucket_rate), 1);
         num_buckets_per_table_ = num_buckets_per_frame_ * num_frames_;
-        
+
         // reduce number of blocks once we know how many buckets we have, thus
         // knowing the size of pointers in the bucket vector
         max_num_blocks_per_table_ -= std::max<size_t>((size_t)(std::ceil(
                 static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
                 / static_cast<double>(sizeof(BucketBlock)))), 0);
-
-        frame_size_ = std::min<size_t>(num_buckets_per_table_,
-                                       (size_t)(std::ceil(static_cast<double>(num_buckets_per_table_)
-                                                          / static_cast<double>(num_frames_))));
 
         buckets_.resize(num_buckets_per_table_, nullptr);
         num_blocks_per_frame_.resize(num_frames_, 0);
@@ -728,7 +695,7 @@ public:
 
         assert(global_index >= 0 && global_index < num_buckets_per_table_);
 
-        size_t frame_id = global_index / frame_size_;
+        size_t frame_id = global_index / num_buckets_per_frame_;
 
         LOG << "key: " << kv.first << " to bucket id: " << global_index;
 
@@ -770,7 +737,7 @@ public:
             // new block needed.
             //////
 
-            // spill current frame if max partition fill rate
+            // spill current frame if max frame fill rate
             // reached
             if (static_cast<double>(num_blocks_per_frame_[frame_id] + 1)
                 / static_cast<double>(max_num_blocks_per_frame_)
@@ -835,6 +802,10 @@ public:
             }
         }
 
+        if (p_size_max == 0) {
+            return;
+        }
+
         SpillFrame(p_idx);
     }
 
@@ -846,8 +817,8 @@ public:
     void SpillFrame(size_t frame_id) {
         data::File::Writer& writer = frame_writers_[frame_id];
 
-        for (size_t i = frame_id * frame_size_;
-             i < frame_id * frame_size_ + frame_size_; i++)
+        for (size_t i = frame_id * num_buckets_per_frame_;
+             i < frame_id * num_buckets_per_frame_ + num_buckets_per_frame_; i++)
         {
             BucketBlock* current = buckets_[i];
 
@@ -866,14 +837,14 @@ public:
                 current->destroy_items();
                 operator delete (current);
                 current = next;
-
-                num_blocks_per_table_--;
             }
 
             buckets_[i] = nullptr;
         }
 
-        // reset partition specific counter
+        // reset table specific counter
+        num_blocks_per_table_ -= num_blocks_per_frame_[frame_id];
+        // reset frame specific counter
         num_blocks_per_frame_[frame_id] = 0;
         // increase spill counter
         num_spills_++;
@@ -892,8 +863,17 @@ public:
      *
      * \return Number of buckets in the table.
      */
-    size_t NumBuckets() const {
+    size_t NumBucketsPerTable() const {
         return num_buckets_per_table_;
+    }
+
+    /*!
+     * Returns the total num of buckets in the table.
+     *
+     * \return Number of buckets in the table.
+     */
+    size_t NumBucketsPerFrame() const {
+        return num_buckets_per_frame_;
     }
 
     /*!
@@ -915,10 +895,29 @@ public:
     }
 
     /*!
+     * Sets the maximum number of blocks of the hash table. We don't want to push 2vt
+     * elements before flush happens.
+     *
+     * \param size The maximal number of blocks the table may hold.
+     */
+    void SetMaxNumBlocksTable(const size_t& size) {
+        max_num_blocks_per_table_ = size;
+    }
+
+    /*!
      * Sets the total num of blocks in the table.
      */
-    void SetNumBlocks(const size_t& num_blocks) {
+    void SetNumBlocksPerTable(const size_t& num_blocks) {
         num_blocks_per_table_ = num_blocks;
+    }
+
+    /*!
+     * Returns the number of items.
+     *
+     * \return Number of items.
+     */
+    size_t NumItemsPerTable() const {
+        return num_items_per_table_;
     }
 
     /*!
@@ -927,7 +926,7 @@ public:
      *
      * \return Number of items in the table.
      */
-    void SetNumItems(size_t num_items) {
+    void SetNumItemsPerTable(size_t num_items) {
         num_items_per_table_ = num_items;
     }
 
@@ -947,16 +946,6 @@ public:
      */
     double MaxFrameFillRate() const {
         return max_frame_fill_rate_;
-    }
-
-    /*!
-     * Sets the maximum number of blocks of the hash table. We don't want to push 2vt
-     * elements before flush happens.
-     *
-     * \param size The maximal number of blocks the table may hold.
-     */
-    void SetMaxNumBlocksTable(const size_t& size) {
-        max_num_blocks_per_table_ = size;
     }
 
     /*!
@@ -1014,15 +1003,6 @@ public:
     }
 
     /*!
-     * Returns the frame size.
-     *
-     * \return Frame size.
-     */
-    size_t FrameSize() const {
-        return frame_size_;
-    }
-
-    /*!
      * Returns the number of frames.
      *
      * \return Number of frames.
@@ -1041,12 +1021,12 @@ public:
     }
 
     /*!
-     * Returns the number of items.
+     * Returns the bucket rate.
      *
-     * \return Number of items.
+     * \return Bucket rate.
      */
-    size_t NumItems() const {
-        return num_items_per_table_;
+    double BucketRate() const {
+        return bucket_rate_;
     }
 
     /*!
@@ -1054,8 +1034,8 @@ public:
      *
      * \return Bucket rate.
      */
-    double BucketRate() const {
-        return bucket_rate_;
+    size_t BlockSize() const {
+        return block_size_;
     }
 
     /*!
@@ -1149,9 +1129,6 @@ protected:
 
     //! Number of frames.
     size_t num_frames_ = 0;
-
-    //! Frame size in main table.
-    size_t frame_size_ = 0;
 
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;

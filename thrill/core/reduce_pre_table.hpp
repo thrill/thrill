@@ -129,7 +129,7 @@ public:
 
         using index_result = typename ReducePreTable::index_result;
 
-        size_t global_index = k * ht->NumBuckets() / size_;
+        size_t global_index = k * ht->NumBucketsPerTable() / size_;
         size_t partition_id = k * ht->NumPartitions() / size_;
         size_t local_index = global_index -
                              partition_id * ht->NumBucketsPerPartition();
@@ -236,8 +236,8 @@ public:
                                                           / static_cast<double>(sizeof(BucketBlock))), 1);
         max_num_blocks_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
                                                              / static_cast<double>(num_partitions_)), 1);
-        num_buckets_per_partition_ = std::max<size_t>((size_t)((static_cast<double>(max_num_blocks_per_table_)
-                                                                / static_cast<double>(num_partitions_)) * bucket_rate), 1);
+        num_buckets_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_partition_)
+                                                               * bucket_rate), 1);
         num_buckets_per_table_ = num_buckets_per_partition_ * num_partitions_;
 
         // reduce number of blocks once we know how many buckets we have, thus
@@ -427,6 +427,10 @@ public:
         LOG << "Largest patition id: "
             << p_idx;
 
+        if (p_size_max == 0) {
+            return;
+        }
+
         FlushPartition(p_idx);
 
         LOG << "Flushed items of largest partition";
@@ -470,13 +474,13 @@ public:
                 current->destroy_items();
                 operator delete (current);
                 current = next;
-
-                num_blocks_per_table_--;
             }
 
             buckets_[i] = nullptr;
         }
 
+        // reset table specific counter
+        num_blocks_per_table_ -= num_blocks_per_partition_[partition_id];
         // reset partition specific counter
         num_blocks_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
@@ -493,7 +497,7 @@ public:
      *
      * \return Number of buckets in the table.
      */
-    size_t NumBuckets() const {
+    size_t NumBucketsPerTable() const {
         return num_buckets_per_table_;
     }
 
@@ -502,7 +506,7 @@ public:
      *
      * \return Number of items in the table.
      */
-    size_t NumItems() const {
+    size_t NumItemsPerTable() const {
         return num_items_per_table_;
     }
 
@@ -540,7 +544,7 @@ public:
      *                  items to be returned..
      * \return The number of items in the partitions.
      */
-    size_t PartitionNumBlocks(size_t partition_id) {
+    size_t NumBlocksPerPartition(size_t partition_id) {
         return num_blocks_per_partition_[partition_id];
     }
 
@@ -562,7 +566,7 @@ public:
     void Print() {
         LOG << "Printing";
 
-        for (int i = 0; i < num_buckets_; i++)
+        for (int i = 0; i < num_buckets_per_table_; i++)
         {
             if (buckets_[i] == nullptr)
             {
