@@ -59,7 +59,6 @@ namespace merge_local {
             width[i] = std::min(len, k);
         }
 
-        LOG << "#################################";
         LOG << "Searching for element with rank " << k;
         
         //Assert check wether k is in bounds of all files. 
