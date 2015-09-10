@@ -251,6 +251,7 @@ private:
             for (const auto& e : v) {
                 w(e);
             }
+            w.Close();
         }
 
         files_.push_back(f);
@@ -259,7 +260,7 @@ private:
     //! Receive elements from other workers.
     auto MainOp() {
         using Iterator = thrill::core::StxxlFileWrapper<ValueIn>;
-        using OIterator = thrill::core::StxxlFileOutputWrapper<int>;
+        using OIterator = thrill::core::StxxlFileOutputWrapper<ValueIn>;
         using File = data::File;
         using Reader = File::Reader;
         using Writer = File::Writer;
@@ -288,20 +289,26 @@ private:
             // store incoming element
             const auto elem = reader.template Next<ValueIn>();
             incoming.push_back(elem);
-            // LOG << "received " << elem << " with key " << key_extractor_(incoming.back());
             ++totalsize;
         }
         FlushVectorToFile(incoming);
 
-        const auto num_elems = files_.size();
+        const auto num_runs = files_.size();
+
         // if there's only one run, store it
-        if (num_elems == 1) {
-            sorted_elems_ = std::move(files_[0]);
+        if (num_runs == 1) {
+            auto w = sorted_elems_.GetWriter();
+            auto r = files_[0].GetReader();
+            {
+                while(r.HasNext()) {
+                    w(r.template Next<ValueIn>());
+                }
+            }
         } // otherwise sort all runs using multiway merge
         else {
             std::vector<std::pair<Iterator, Iterator> > seq;
-            seq.reserve(num_elems);
-            for (std::size_t t = 0; t < num_elems; ++t) {
+            seq.reserve(num_runs);
+            for (std::size_t t = 0; t < num_runs; ++t) {
                 auto reader = std::make_shared<Reader>(files_[t].GetReader());
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].NumItems(), false);
