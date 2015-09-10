@@ -17,6 +17,7 @@
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/data/serialization.hpp>
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>

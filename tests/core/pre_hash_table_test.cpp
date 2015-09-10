@@ -505,7 +505,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     auto key_ex = [](const MyStruct& in) {
-                      return in.key;
+                      return static_cast<int>(in.key);
                   };
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {

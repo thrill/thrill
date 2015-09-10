@@ -379,7 +379,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
             ASSERT_EQ(0u, table.NumBlocks());
 
             for (size_t i = 0; i < block_size; ++i) {
-                table.Insert(i);
+                table.Insert(static_cast<int>(i));
                 ASSERT_EQ(1u, table.NumBlocks());
             }
 
@@ -433,13 +433,13 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate2) {
             ASSERT_EQ(0u, writer1.size());
 
             for (size_t i = 0; i < block_size; ++i) {
-                table.Insert(i);
+                table.Insert(static_cast<int>(i));
                 ASSERT_EQ(1u, table.NumBlocks());
             }
             ASSERT_EQ(block_size * 0.5, table.NumItems());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
-                table.Insert(i);
+                table.Insert(static_cast<int>(i));
                 ASSERT_EQ(1u, table.NumBlocks());
             }
             ASSERT_EQ(block_size * 0.5, table.NumItems());
@@ -493,13 +493,13 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate) {
             ASSERT_EQ(0u, table.NumBlocks());
 
             for (size_t i = 0; i < block_size; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
                 ASSERT_EQ(1u, table.NumBlocks());
             }
             ASSERT_EQ(block_size, table.NumItems());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
                 ASSERT_EQ(2u, table.NumBlocks());
             }
             ASSERT_EQ(block_size * 2, table.NumItems());
@@ -553,13 +553,13 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate2) {
             ASSERT_EQ(0u, table.NumBlocks());
 
             for (size_t i = 0; i < block_size * 2; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
                 ASSERT_EQ(1u, table.NumBlocks());
             }
             ASSERT_EQ(block_size, table.NumItems());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
                 ASSERT_EQ(1u, table.NumBlocks());
             }
             ASSERT_EQ(block_size, table.NumItems());
@@ -613,13 +613,13 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
             ASSERT_EQ(0u, table.NumBlocks());
 
             for (size_t i = 0; i < block_size; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
             ASSERT_EQ(2u, table.NumBlocks());
             // ASSERT_EQ(block_size, table.NumItems());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
                 ASSERT_EQ(2u, table.NumBlocks());
             }
             // ASSERT_EQ(block_size * 2, table.NumItems());
@@ -673,13 +673,13 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
             ASSERT_EQ(0u, table.NumBlocks());
 
             for (size_t i = 0; i < block_size * 2; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
             ASSERT_EQ(2u, table.NumBlocks());
             // ASSERT_EQ(block_size, table.NumItems());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
             // ASSERT_EQ(block_size, table.NumItems());
 
@@ -732,7 +732,7 @@ TEST_F(PostTable, MaxTableBlocks) {
             ASSERT_EQ(0u, table.NumBlocks());
 
             for (size_t i = 0; i < num_items; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
                 ASSERT_TRUE(table.NumBlocks() <= max_blocks);
             }
 

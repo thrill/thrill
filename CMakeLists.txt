@@ -107,8 +107,13 @@ elseif(MSVC)
   else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
   endif()
+  # raise warnings as errors
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
   ### disable verbose warnings:
-  # warning C4127: conditional expression is constant
+  # warning C4589: Constructor of abstract class '...' ignores initializer for
+  # virtual base class '...' (false positive warnings)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4589")
+    # warning C4127: conditional expression is constant
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4127")
   # disable lots of warnings about "unsecure" C runtime function
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
