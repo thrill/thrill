@@ -22,8 +22,8 @@ using namespace thrill::common;
 TEST(ThreadPool1, LoopUntilEmpty) {
     size_t job_num = 256;
 
-    std::vector<unsigned> result1(job_num, 0);
-    std::vector<unsigned> result2(job_num, 0);
+    std::vector<size_t> result1(job_num, 0);
+    std::vector<size_t> result2(job_num, 0);
 
     {
         ThreadPool pool(8);

@@ -97,15 +97,14 @@ public:
     //! Get channel with given id, if it does not exist, create it.
     ChannelPtr GetOrCreateChannel(size_t id, size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return std::move(_GetOrCreateChannel(id, local_worker_id));
+        return _GetOrCreateChannel(id, local_worker_id);
     }
 
     //! Request next channel.
     ChannelPtr GetNewChannel(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return std::move(
-            _GetOrCreateChannel(
-                channels_.AllocateId(local_worker_id), local_worker_id));
+        return _GetOrCreateChannel(
+            channels_.AllocateId(local_worker_id), local_worker_id);
     }
 
 private:

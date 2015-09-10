@@ -70,7 +70,7 @@ public:
         manager_->add(n * sizeof(Type));
 
         if (debug) {
-            printf("allocate() n=%lu sizeof(T)=%lu total=%lu\n",
+            printf("allocate() n=%zu sizeof(T)=%zu total=%zu\n",
                    n, sizeof(Type), manager_->total());
         }
 
@@ -84,7 +84,7 @@ public:
         manager_->subtract(n * sizeof(Type));
 
         if (debug) {
-            printf("deallocate() n=%lu sizeof(T)=%lu total=%lu\n",
+            printf("deallocate() n=%zu sizeof(T)=%zu total=%zu\n",
                    n, sizeof(Type), manager_->total());
         }
 

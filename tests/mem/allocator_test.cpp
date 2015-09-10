@@ -26,7 +26,7 @@ TEST(Allocator, Test1) {
             mem::Allocator<int>(mem_manager)
         };
 
-        for (size_t i = 0; i < 100; ++i) {
+        for (int i = 0; i < 100; ++i) {
             my_vector.push_back(i);
         }
     }
@@ -36,7 +36,7 @@ TEST(Allocator, Test1) {
             mem::Allocator<size_t>(mem_manager)
         };
 
-        for (size_t i = 0; i < 100; ++i) {
+        for (int i = 0; i < 100; ++i) {
             my_deque.push_back(i);
         }
     }
