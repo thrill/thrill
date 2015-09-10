@@ -79,10 +79,12 @@ public:
     //! \name Send Functions
     //! \{
 
-    void SyncSend(const void* data, size_t size, int /* flags */ = 0) final;
+    void SyncSend(
+        const void* data, size_t size, Flags /* flags */ = NoFlags) final;
 
-    ssize_t SendOne(const void* data, size_t size) final {
-        SyncSend(data, size);
+    ssize_t SendOne(
+        const void* data, size_t size, Flags flags = NoFlags) final {
+        SyncSend(data, size, flags);
         return size;
     }
 

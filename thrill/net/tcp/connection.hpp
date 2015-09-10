@@ -37,6 +37,11 @@ enum ConnectionState : unsigned {
     HelloSent, WaitingForHello, Connected, Disconnected
 };
 
+// Because Mac OSX does not know MSG_MORE.
+#ifndef MSG_MORE
+#define MSG_MORE 0
+#endif
+
 /*!
  * Connection is a rich point-to-point socket connection to another client
  * (worker, master, or whatever). Messages are fixed-length integral items or
@@ -172,13 +177,17 @@ public:
         }
     }
 
-    void SyncSend(const void* data, size_t size, int flags) final {
-        if (socket_.send(data, size, flags) != static_cast<ssize_t>(size))
+    void SyncSend(const void* data, size_t size, Flags flags) final {
+        int f = 0;
+        if (flags & MsgMore) f |= MSG_MORE;
+        if (socket_.send(data, size, f) != static_cast<ssize_t>(size))
             throw Exception("Error during SyncSend", errno);
     }
 
-    ssize_t SendOne(const void* data, size_t size) final {
-        return socket_.send_one(data, size);
+    ssize_t SendOne(const void* data, size_t size, Flags flags) final {
+        int f = 0;
+        if (flags & MsgMore) f |= MSG_MORE;
+        return socket_.send_one(data, size, f);
     }
 
     void SyncRecv(void* out_data, size_t size) final {

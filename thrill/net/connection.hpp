@@ -35,11 +35,6 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
-// Because Mac OSX does not know MSG_MORE.
-// #ifndef MSG_MORE
-// #define MSG_MORE 0
-// #endif
-
 /*!
  * A Connection represents a link to another peer in a network group. The link
  * need not be an actual stateful TCP connection, but may be reliable and
@@ -55,8 +50,19 @@ public:
     //! this increases network volume.
     static const bool self_verify_ = common::g_self_verify;
 
-    //! TODO(tb): fixup later: add MSG_MORE flag to send.
-    static const int MsgMore = 0;
+    //! Additional flags for sending or receiving.
+    enum Flags : unsigned {
+        NoFlags = 0,
+        //! indicate that more data is coming, hence, sending a packet may be
+        //! delayed. currently only applies to TCP.
+        MsgMore = 1
+    };
+
+    //! operator to combine flags
+    friend inline Flags operator | (const Flags &a, const Flags& b) {
+        return static_cast<Flags>(
+            static_cast<unsigned>(a) | static_cast<unsigned>(b));
+    }
 
     //! \name Base Status Functions
     //! \{
@@ -77,13 +83,16 @@ public:
 
     //! Synchronous blocking send of the (data,size) packet. if sending fails, a
     //! net::Exception is thrown.
-    virtual void SyncSend(const void* data, size_t size, int flags = 0) = 0;
+    virtual void SyncSend(const void* data, size_t size,
+                          Flags flags = NoFlags) = 0;
 
     //! Non-blocking send of a (data,size) message. returns number of bytes
     //! possible to send. check errno for errors.
-    virtual ssize_t SendOne(const void* data, size_t size) = 0;
+    virtual ssize_t SendOne(const void* data, size_t size,
+                            Flags flags = NoFlags) = 0;
 
-    //! Send any serializable item T.
+    //! Send any serializable item T. if sending fails, a net::Exception is
+    //! thrown.
     template <typename T>
     void Send(const T& value) {
         if (self_verify_) {
