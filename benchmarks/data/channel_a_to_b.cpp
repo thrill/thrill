@@ -91,6 +91,8 @@ int main(int argc, const char** argv) {
         });
     connect_pool.LoopUntilEmpty();
 
+    mem::Manager mem_manager(nullptr, "Global");
+
     data::BlockPool blockpool1(nullptr);
     data::BlockPool blockpool2(nullptr);
 
@@ -100,8 +102,10 @@ int main(int argc, const char** argv) {
     net::FlowControlChannelManager flow_manager1(net_manager1->GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager2(net_manager2->GetFlowGroup(), 1);
 
-    api::Context ctx1(*net_manager1, flow_manager1, blockpool1, datamp1, 1, 0);
-    api::Context ctx2(*net_manager2, flow_manager2, blockpool2, datamp2, 1, 0);
+    api::Context ctx1(mem_manager, *net_manager1, flow_manager1,
+                      blockpool1, datamp1, 1, 0);
+    api::Context ctx2(mem_manager, *net_manager2, flow_manager2,
+                      blockpool2, datamp2, 1, 0);
 
     common::NameThisThread("benchmark");
 
