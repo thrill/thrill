@@ -26,10 +26,11 @@ ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
 
     mem_manager_.add(block_size);
     // we store a raw pointer --> does not increase ref count
-    if(!pinned) {
+    if (!pinned) {
         victim_blocks_.push_back(block); //implicit converts to raw
         LOG << "allocating unpinned block @" << block;
-    } else {
+    }
+    else {
         LOG << "allocating pinned block @" << block;
         num_pinned_blocks_++;
     }
@@ -37,7 +38,7 @@ ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
     LOG << "AllocateBlock() total_count=" << block_count()
         << " total_size=" << mem_manager_.total();
 
-    //pack and ship as ref-counting pointer
+    // pack and ship as ref-counting pointer
     return result;
 }
 
@@ -58,7 +59,7 @@ ByteBlockPtr BlockPool::PinBlock(const ByteBlockPtr& block_ptr) {
     std::lock_guard<std::mutex> lock(list_mutex_);
     LOG << "pinning block @" << &*block_ptr;
 
-    //first check, then increment
+    // first check, then increment
     if ((block_ptr->pin_count_)++ > 0) {
         sLOG << "already pinned - return ptr";
         return block_ptr;
@@ -68,7 +69,8 @@ ByteBlockPtr BlockPool::PinBlock(const ByteBlockPtr& block_ptr) {
     // in memory & not pinned -> is in victim
     if (block_ptr->in_memory()) {
         victim_blocks_.erase(std::find(victim_blocks_.begin(), victim_blocks_.end(), block_ptr));
-    } else { //we need to swap it in
+    }
+    else {      //we need to swap it in
         page_mapper_.SwapIn(block_ptr->swap_token_);
         num_swapped_blocks_--;
         ext_mem_manager_.subtract(block_ptr->size());
@@ -82,7 +84,6 @@ size_t BlockPool::block_count() const noexcept {
     return num_pinned_blocks_ + victim_blocks_.size() + num_swapped_blocks_;
 }
 
-
 void BlockPool::DestroyBlock(ByteBlock* block) {
     std::lock_guard<std::mutex> lock(list_mutex_);
 
@@ -95,13 +96,14 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
     if (!block->in_memory()) {
         num_swapped_blocks_--;
         ext_mem_manager_.subtract(block->size());
-    } else {
+    }
+    else {
         const auto pos = std::find(victim_blocks_.begin(), victim_blocks_.end(), block);
         assert(pos != victim_blocks_.end());
         victim_blocks_.erase(pos);
         mem_manager_.subtract(block->size());
 
-        //'free' block's data and release token
+        // 'free' block's data and release token
         page_mapper_.SwapOut(block->data_, false);
         page_mapper_.ReleaseToken(block->swap_token_);
     }

@@ -20,8 +20,8 @@ TEST(PageMapper, AllocateReturnsAccessibleMemoryArea) {
     size_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
 
-    //write into memory area to see if we get a segfault
-    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
+    // write into memory area to see if we get a segfault
+    for (unsigned int i = 0; i* sizeof(int) < 4096; i++) {
         array[i] = i;
     }
 
@@ -35,7 +35,8 @@ TEST(PageMapper, SwapOutLeavesAreaInaccessible) {
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
     mapper.SwapOut(reinterpret_cast<uint8_t*>(array));
 
-    ASSERT_DEATH({ array[1] = 42; }, "");
+    ASSERT_DEATH({ array[1] = 42;
+                 }, "");
     mapper.ReleaseToken(token);
 }
 
@@ -47,8 +48,8 @@ TEST(PageMapper, SwapInLeavesMakesAreaAccessible) {
     mapper.SwapOut(reinterpret_cast<uint8_t*>(array));
     array = reinterpret_cast<int*>(mapper.SwapIn(token));
 
-    //write into memory area to see if we get a segfault
-    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
+    // write into memory area to see if we get a segfault
+    for (unsigned int i = 0; i* sizeof(int) < 4096; i++) {
         array[i] = i;
     }
 
@@ -58,31 +59,31 @@ TEST(PageMapper, SwapInLeavesMakesAreaAccessible) {
 TEST(PageMapper, SwappingMultiplePagesDoesNotAlterContent) {
     mem::PageMapper<4096> mapper;
 
-    //write ascending numbers into array 1 & swap out
+    // write ascending numbers into array 1 & swap out
     size_t token1;
     int* array1 = reinterpret_cast<int*>(mapper.Allocate(token1));
-    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
+    for (unsigned int i = 0; i* sizeof(int) < 4096; i++) {
         array1[i] = i;
     }
     mapper.SwapOut(reinterpret_cast<uint8_t*>(array1));
 
-    //write descending numbers into array 2 & swap out
+    // write descending numbers into array 2 & swap out
     size_t token2;
     int* array2 = reinterpret_cast<int*>(mapper.Allocate(token2));
-    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
+    for (unsigned int i = 0; i* sizeof(int) < 4096; i++) {
         array2[i] = 4096 - i;
     }
     mapper.SwapOut(reinterpret_cast<uint8_t*>(array2));
 
-    //read array1
+    // read array1
     array1 = reinterpret_cast<int*>(mapper.SwapIn(token1));
-    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
+    for (unsigned int i = 0; i* sizeof(int) < 4096; i++) {
         ASSERT_EQ(i, array1[i]);
     }
 
-    //read array2
+    // read array2
     array2 = reinterpret_cast<int*>(mapper.SwapIn(token2));
-    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
+    for (unsigned int i = 0; i* sizeof(int) < 4096; i++) {
         ASSERT_EQ(4096 - i, array2[i]);
     }
 
