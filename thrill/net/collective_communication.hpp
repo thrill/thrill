@@ -6,6 +6,8 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Robert Hangu <robert.hangu@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -15,11 +17,10 @@
 #define THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
 
 #include <thrill/common/functional.hpp>
+#include <thrill/common/math.hpp>
 #include <thrill/net/group.hpp>
 
-#include <condition_variable>
 #include <functional>
-#include <mutex>
 
 namespace thrill {
 namespace net {
@@ -109,24 +110,44 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     }
 }
 
-#if DISABLE_MAYBE_REMOVE
-
-//! \brief   Broadcasts the value of the worker with index 0 to all the others.
-//!
-//! \param   net The current worker onto which to apply the operation
-//! \param   value The value to be added to the aggregation
+/*!
+ * Broadcasts the value of the worker with index 0 to all the others. This is a
+ * binomial tree broadcast method.
+ *
+ * \param net The current worker onto which to apply the operation
+ *
+ * \param value The value to be broadcast / receive into.
+ */
 template <typename T>
 void Broadcast(Group& net, T& value) {
-    if (net.my_host_rank() > 0) {
-        size_t from;
-        net.ReceiveFromAny(&from, &value);
+    static const bool debug = false;
+
+    size_t my_rank = net.my_host_rank();
+    size_t r = 0, d = 1;
+    // receive from predecessor
+    if (my_rank > 0) {
+        // our predecessor is p with the lowest one bit flipped to zero. this
+        // also counts the number of rounds we have to send out messages later.
+        while ((my_rank & d) == 0) d <<= 1, ++r;
+        size_t from = my_rank ^ d;
+        sLOG << "Broadcast: rank" << my_rank << "receiving from" << from
+             << "in round" << r;
+        net.ReceiveFrom(from, &value);
     }
-    for (size_t d = 1, i = 0; ((net.my_host_rank() >> i) & 1) == 0 && d < net.num_hosts(); d <<= 1, ++i) {
-        if (net.my_host_rank() + d < net.num_hosts()) {
-            net.connection(net.my_host_rank() + d).Send(value);
+    else {
+        d = common::RoundUpToPowerOfTwo(net.num_hosts());
+    }
+    // send to successors
+    for (d >>= 1; d > 0; d >>= 1, ++r) {
+        if (my_rank + d < net.num_hosts()) {
+            sLOG << "Broadcast: rank" << my_rank << "round" << r << "sending to"
+                 << my_rank + d;
+            net.SendTo(my_rank + d, value);
         }
     }
 }
+
+#if DISABLE_MAYBE_REMOVE
 
 //! \brief   Perform an All-Reduce on the workers.
 //! \details This is done by aggregating all values according to a summation

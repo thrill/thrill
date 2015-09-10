@@ -22,6 +22,7 @@ using namespace thrill;      // NOLINT
 
 void MockTestOne(size_t num_hosts,
                  const std::function<void(net::mock::Group*)>& thread_function) {
+    sLOG0 << "MockTestOne num_hosts" << num_hosts;
     // construct mock network mesh and run threads
     net::ExecuteGroupThreads(
         net::mock::Group::ConstructLocalMesh(num_hosts),
@@ -79,6 +80,9 @@ TEST(MockGroup, ReduceToRoot) {
 }
 TEST(MockGroup, ReduceToRootString) {
     MockTest(TestReduceToRootString);
+}
+TEST(MockGroup, Broadcast) {
+    MockTest(TestBroadcast);
 }
 TEST(MockGroup, DispatcherLaunchAndTerminate) {
     MockTest(TestDispatcherLaunchAndTerminate);
