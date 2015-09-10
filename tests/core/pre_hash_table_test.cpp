@@ -120,11 +120,11 @@ TEST_F(PreTable, AddIntegers) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(3u, table.NumItemsPerTable());
 
     table.Insert(2);
 
-    ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(3u, table.NumItemsPerTable());
 }
 
 TEST_F(PreTable, CreateEmptyTable) {
@@ -149,11 +149,11 @@ TEST_F(PreTable, CreateEmptyTable) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(3u, table.NumItemsPerTable());
 
     table.Insert(2);
 
-    ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(3u, table.NumItemsPerTable());
 }
 
 TEST_F(PreTable, PopIntegers) {
@@ -189,11 +189,11 @@ TEST_F(PreTable, PopIntegers) {
     table.Insert(6);
     table.Insert(7);
 
-    ASSERT_EQ(8u, table.NumItems());
+    ASSERT_EQ(8u, table.NumItemsPerTable());
 
     table.Insert(9);
 
-    ASSERT_EQ(1u, table.NumItems());
+    ASSERT_EQ(1u, table.NumItemsPerTable());
 }
 
 // Manually flush all items in table,
@@ -222,10 +222,10 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     table.Insert(3);
     table.Insert(4);
 
-    ASSERT_EQ(5u, table.NumItems());
+    ASSERT_EQ(5u, table.NumItemsPerTable());
 
     table.Flush();
-    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(0u, table.NumItemsPerTable());
 
     auto it = output.GetKeepReader();
     int c = 0;
@@ -264,10 +264,10 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     table.Insert(3);
     table.Insert(4);
 
-    ASSERT_EQ(5u, table.NumItems());
+    ASSERT_EQ(5u, table.NumItemsPerTable());
 
     table.Flush();
-    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(0u, table.NumItemsPerTable());
 
     auto it1 = output1.GetKeepReader();
     int c1 = 0;
@@ -318,10 +318,14 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
     table.Insert(1);
     table.Insert(2);
     table.Insert(3);
-
-    ASSERT_EQ(4u, table.NumItems());
-
     table.Insert(4);
+    table.Insert(5);
+    table.Insert(6);
+    table.Insert(7);
+
+    ASSERT_EQ(8u, table.NumItemsPerTable());
+
+    table.Insert(8);
 
     auto it = output.GetKeepReader();
     int c = 0;
@@ -330,7 +334,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
         c++;
     }
 
-    ASSERT_EQ(4, c);
+    ASSERT_EQ(8, c);
 }
 
 //// Partial flush of items in table due to
@@ -360,7 +364,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(4u, table.NumItems());
+    ASSERT_EQ(4u, table.NumItemsPerTable());
 
     table.Insert(4);
     table.Flush();
@@ -383,7 +387,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     }
 
     ASSERT_EQ(2, c2);
-    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(0u, table.NumItemsPerTable());
 }
 
 TEST_F(PreTable, ComplexType) {
@@ -408,17 +412,17 @@ TEST_F(PreTable, ComplexType) {
     table.Insert(std::make_pair("hello", 2));
     table.Insert(std::make_pair("bonjour", 3));
 
-    ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(3u, table.NumItemsPerTable());
 
     table.Insert(std::make_pair("hello", 5));
 
-    ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(3u, table.NumItemsPerTable());
 
     table.Insert(std::make_pair("baguette", 42));
 
     table.Flush();
 
-    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(0u, table.NumItemsPerTable());
 }
 
 TEST_F(PreTable, MultipleWorkers) {
@@ -447,14 +451,14 @@ TEST_F(PreTable, MultipleWorkers) {
                          core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
     table(2, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
 
-    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(0u, table.NumItemsPerTable());
 
     for (int i = 0; i < 6; i++) {
         table.Insert(i * 35001);
     }
 
-    ASSERT_LE(table.NumItems(), 3u);
-    ASSERT_GT(table.NumItems(), 0u);
+    ASSERT_LE(table.NumItemsPerTable(), 6u);
+    ASSERT_GT(table.NumItemsPerTable(), 0u);
 }
 
 // Insert several items with same key and test application of local reduce
@@ -541,11 +545,11 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
         }
     }
 
-    ASSERT_EQ(nitems, table.NumItems());
+    ASSERT_EQ(nitems, table.NumItemsPerTable());
 
     table.Flush();
 
-    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(0u, table.NumItemsPerTable());
 
     auto it1 = output.GetKeepReader();
     while (it1.HasNext()) {
@@ -601,7 +605,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
 
     table.Flush();
 
-    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(0u, table.NumItemsPerTable());
 
     auto it1 = output.GetKeepReader();
     while (it1.HasNext()) {

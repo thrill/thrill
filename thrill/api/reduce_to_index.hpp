@@ -155,7 +155,7 @@ public:
                           1024 * 1024 * 128 * 5,
                           0.001,
                           0.5,
-                          64);
+                          0.01);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
