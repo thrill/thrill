@@ -283,14 +283,15 @@ private:
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
+                totalsize += FIXED_VECTOR_SIZE;
                 FlushVectorToFile(incoming);
                 incoming.clear();
             }
             // store incoming element
             const auto elem = reader.template Next<ValueIn>();
             incoming.push_back(elem);
-            ++totalsize;
         }
+        totalsize += incoming.size();
         FlushVectorToFile(incoming);
 
         const auto num_runs = files_.size();
