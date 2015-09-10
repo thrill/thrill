@@ -24,7 +24,19 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
     // copy select fdset
     Select fdset = *this;
 
-    if (self_verify_ || debug)
+    if (self_verify_)
+    {
+         for (size_t fd = 3; fd < watch_.size(); ++fd) {
+            Watch& w = watch_[fd];
+
+            if (!w.active) continue;
+
+            assert((w.read_cb.size() == 0) != Select::InRead(fd));
+            assert((w.write_cb.size() == 0) != Select::InWrite(fd));
+        }
+    }
+
+    if (debug)
     {
         std::ostringstream oss;
         oss << "| ";
@@ -33,9 +45,6 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
             Watch& w = watch_[fd];
 
             if (!w.active) continue;
-
-            assert((w.read_cb.size() == 0) != Select::InRead(fd));
-            assert((w.write_cb.size() == 0) != Select::InWrite(fd));
 
             if (Select::InRead(fd))
                 oss << "r" << fd << " ";
