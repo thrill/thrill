@@ -48,7 +48,7 @@ protected:
     Byte* data_;
 
     //! the allocated size of the buffer in bytes, excluding the size_ field
-    size_t   size_;
+    size_t size_;
 
     //! reference to BlockPool for deletion.
     BlockPool* block_pool_;
@@ -56,21 +56,20 @@ protected:
     //! counts the number of pins in this block
     //! this is not atomic since a) head would not be a POD and
     //! b) the count is only modified by BlockPool which is thread-safe
-    size_t   pin_count_;
+    size_t pin_count_;
 
     //! token that is used with mem::PageMapper
-    size_t   swap_token_;
-
+    size_t swap_token_;
 
     // BlockPool is a friend to modify the head's pin_count_
     friend class BlockPool;
 
     //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
     //! use BlockPoolAllocate() for construction.
-    //!\param memory the memory address of the byte-blocks data. nullptr if swapped out
-    //!\param size the size of the block in bytes
-    //!\param block_pool the block pool that manages this ByteBlock
-    //!\param pinned whether the block was created in pinned state
+    //! \param memory the memory address of the byte-blocks data. nullptr if swapped out
+    //! \param size the size of the block in bytes
+    //! \param block_pool the block pool that manages this ByteBlock
+    //! \param pinned whether the block was created in pinned state
     explicit ByteBlock(Byte* memory, size_t size, BlockPool* block_pool, bool pinned, size_t swap_token);
 
     //! No default construction of Byteblock
@@ -101,9 +100,9 @@ public:
     }
 };
 
-#endif // !THRILL_DATA_BYTE_BLOCK_HEADER
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;
 } //namespace data
+#endif // !THRILL_DATA_BYTE_BLOCK_HEADER
 } //namespace thrill
 
 /******************************************************************************/

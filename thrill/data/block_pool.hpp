@@ -37,7 +37,7 @@ public:
 
     ByteBlockPtr AllocateBlock(size_t block_size, bool pinned = false);
 
-    //TODO make this async
+    // TODO make this async
     void UnpinBlock(const ByteBlockPtr& block_ptr);
 
     // TODO make this a future + Async
@@ -59,14 +59,12 @@ protected:
     // list of all blocks that are not swapped but are not pinned
     std::deque<ByteBlock*> victim_blocks_;
 
-
     size_t num_swapped_blocks_ = { 0 };
     size_t num_pinned_blocks_ = { 0 };
 
     std::mutex list_mutex_;
 
     friend class ByteBlock;
-
 
     //! Mechanism to swap block to disk. Blocking call.
     void SwapBlockOut(const ByteBlockPtr& block_ptr);

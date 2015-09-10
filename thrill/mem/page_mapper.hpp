@@ -12,22 +12,22 @@
 #ifndef THRILL_MEM_PAGE_MAPPER_HEADER
 #define THRILL_MEM_PAGE_MAPPER_HEADER
 
-#include <sys/types.h> //open
-#include <sys/stat.h>  //open
-#include <fcntl.h>     //open
-#include <unistd.h>    //sysconfig
-#include <stdio.h>     //remove file
-#include <sys/mman.h>  //mappings + advice
+#include <fcntl.h>           //open
+#include <stdio.h>           //remove file
+#include <sys/mman.h>        //mappings + advice
+#include <sys/stat.h>        //open
+#include <sys/types.h>       //open
+#include <unistd.h>          //sysconfig
 
 #ifdef USE_EXPLAIN
-#include <libexplain/mmap.h> // explain mmap errors
 #include <libexplain/lseek.h>
+#include <libexplain/mmap.h> // explain mmap errors
 #endif
 
 #include <queue>
 
-#include <thrill/common/logger.hpp>
 #include <thrill/common/concurrent_queue.hpp>
+#include <thrill/common/logger.hpp>
 #include <thrill/data/byte_block.hpp>
 
 namespace thrill {
@@ -38,7 +38,7 @@ namespace mem {
  *
  * OBJECT_SIZE must be divideable by page size
  */
-template<size_t OBJECT_SIZE>
+template <size_t OBJECT_SIZE>
 class PageMapper
 {
 public:
@@ -53,10 +53,10 @@ public:
     //! Removes and creates a temporal file (PageMapper::swap_file_path)
     //! Checks if the object size is valid
     PageMapper() {
-        //runtime check if OBJECT_SIZE is correct
+        // runtime check if OBJECT_SIZE is correct
         die_unless(OBJECT_SIZE % page_size() == 0);
 
-        //create our swapfile
+        // create our swapfile
         //- read + write access
         //- create the file
         //- delete content if file exists
@@ -75,12 +75,11 @@ public:
     //! Allocates a memory region of OBJECT_SIZE with a
     //! file-backing. Returns the memory address of this region and a
     //! result_token that can be used to address the memory region.
-    uint8_t* Allocate(size_t& result_token) {
+    uint8_t * Allocate(size_t& result_token) {
         sLOG << "allocate memory w/ disk backing";
         result_token = next_free_token();
         return SwapIn(result_token, false /*prefetch*/);
     }
-
 
     //! Releases an allocated token.
     //!
@@ -88,7 +87,7 @@ public:
     //! instead. Make sure to call this only when the matching memory region
     //! has been writen back before (PageMapper::SwapOut).
     //!
-    //!\param token that was returned from Allocate before
+    //! \param token that was returned from Allocate before
     void ReleaseToken(size_t token) {
         sLOG << "free swap token" << token;
         free_tokens_.push(token);
@@ -102,9 +101,9 @@ public:
     //! \param write_back set to false if memory region's content may be
     //!        dismissed
     void SwapOut(uint8_t* addr, bool write_back = true) {
-        //we might sometimes not write back, if we want to unmap a block but
-        //don't care about the content (block for net send operation)
-        if(write_back) {
+        // we might sometimes not write back, if we want to unmap a block but
+        // don't care about the content (block for net send operation)
+        if (write_back) {
             sLOG << "writing back" << static_cast<void*>(addr);
             die_unless(msync(static_cast<void*>(addr), OBJECT_SIZE, MS_SYNC) == 0);
         }
@@ -115,17 +114,17 @@ public:
     //! Swaps in a given memory region.
     //! \param token that was returned from Allocate before
     //! \returns pointer to memory region
-    uint8_t* SwapIn(size_t token, bool prefetch = true) const {
-        //Flags exaplained:
+    uint8_t * SwapIn(size_t token, bool prefetch = true) const {
+        // Flags exaplained:
         //- readable
         //- writeable
         static const int protection_flags = PROT_READ | PROT_WRITE;
         //- not shared with other processes -> no automatic writebacks
         //- no swap space reserved (we like to live dangerously)
-        //TODO we want MAP_HUGE_2MB
+        // TODO we want MAP_HUGE_2MB
         int flags = MAP_SHARED | MAP_NORESERVE;
 
-        //we don't want to prefetch when we allocate a fresh mapping
+        // we don't want to prefetch when we allocate a fresh mapping
         if (prefetch)
             flags |= MAP_POPULATE;
 
@@ -159,7 +158,7 @@ private:
     static const bool debug = false;
     int fd_;
     size_t next_token_ = { 0 };
-    common::ConcurrentQueue<size_t, std::allocator<size_t>> free_tokens_;
+    common::ConcurrentQueue<size_t, std::allocator<size_t> > free_tokens_;
 
     //! Returns the next free token and eventually streches the swapfile if
     //! required
@@ -170,19 +169,19 @@ private:
             return result;
         }
 
-        //remember result
+        // remember result
         result = next_token_;
 
-        //+1 since result is 0-based
+        // +1 since result is 0-based
         size_t file_size = (1 + min_growth_delta + result) * OBJECT_SIZE;
         sLOG << "streching swap file to" << file_size;
 
-        //seek to end - 1 of file and write one zero-byte to 'strech' file
+        // seek to end - 1 of file and write one zero-byte to 'strech' file
         die_unless(lseek64(fd_, file_size - 1, SEEK_SET) != -1);
         die_unless(write(fd_, "\0", 1) == 1); //expect 1byte written
 
-        //push remaining allocated ids into free-queue
-        for(size_t token = result + 1; token <= next_token_ + min_growth_delta ; token++) {
+        // push remaining allocated ids into free-queue
+        for (size_t token = result + 1; token <= next_token_ + min_growth_delta; token++) {
             sLOG << "create new swap token" << token;
             free_tokens_.push(token);
         }
@@ -196,6 +195,6 @@ private:
 } // namespace mem
 } // namespace thrill
 
-#endif // ! THRILL_MEM_PAGE_MAPPER_HEADER
+#endif // !THRILL_MEM_PAGE_MAPPER_HEADER
 
 /******************************************************************************/
