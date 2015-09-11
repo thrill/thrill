@@ -265,7 +265,7 @@ private:
         LOG << "running group by main op";
 
         const bool consume = true;
-        const std::size_t FIXED_VECTOR_SIZE = 99999;
+        const std::size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
 
