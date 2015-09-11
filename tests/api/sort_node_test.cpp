@@ -31,19 +31,19 @@ TEST(Sort, SortKnownIntegers) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) -> int {
+                [](const size_t& index) -> size_t {
                     return index;
                 },
                 100);
 
             auto sorted = integers.Sort();
 
-            std::vector<int> out_vec;
+            std::vector<size_t> out_vec;
 
             sorted.AllGather(&out_vec);
 
             for (size_t i = 0; i < out_vec.size() - 1; i++) {
-                ASSERT_EQ((int)i, out_vec[i]);
+                ASSERT_EQ(i, out_vec[i]);
             }
 
             ASSERT_EQ(100u, out_vec.size());
