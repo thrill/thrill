@@ -18,6 +18,8 @@
 
 #include <thrill/common/functional.hpp>
 #include <thrill/common/math.hpp>
+
+
 #include <thrill/net/group.hpp>
 
 #include <functional>
@@ -180,7 +182,7 @@ void BroadcastBinomialTree(Group& net, T& value) {
  */
 template <typename T>
 void Broadcast(Group& net, T& value) {
-    return BroadcastBinomialTree(net, value);
+    BroadcastBinomialTree(net, value);
 }
 
 #if DISABLE_MAYBE_REMOVE
