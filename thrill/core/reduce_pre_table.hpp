@@ -148,8 +148,6 @@ class ReducePreTable
 {
     static const bool debug = false;
 
-    using KeyValuePair = std::pair<Key, Value>;
-
 public:
     struct index_result
     {
@@ -167,6 +165,8 @@ public:
             global_index = g_id;
         }
     };
+
+    using KeyValuePair = std::pair<Key, Value>;
 
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
@@ -285,9 +285,7 @@ public:
      * inserts the pair into the hashtable.
      */
     void Insert(const Value& p) {
-        Key key = key_extractor_(p);
-
-        Insert(std::make_pair(key, p));
+        Insert(std::make_pair(key_extractor_(p), p));
     }
 
     /*!

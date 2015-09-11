@@ -152,7 +152,9 @@ public:
 
         std::vector<BucketBlock*>& buckets = ht->Items();
 
-        std::vector<size_t>& num_blocks_per_frame = ht->NumBlocksPerFrame();
+        std::vector<size_t>& num_blocks_mem_per_frame = ht->NumBlocksMemPerFrame();
+
+        std::vector<size_t>& num_blocks_ext_per_frame = ht->NumBlocksExtPerFrame();
 
         std::vector<data::File>& frame_files = ht->FrameFiles();
 
@@ -168,16 +170,49 @@ public:
 
         std::vector<BucketBlock*> buckets_second;
 
-        // get a vector of frame indices, sort by frame sizes asc
-        std::vector<size_t> frames_asc(num_blocks_per_frame.size());
-        for (size_t i = 0; i != frames_asc.size(); ++i) {
-            frames_asc[i] = i;
-        }
-        std::sort(frames_asc.begin(), frames_asc.end(), [&num_blocks_per_frame](size_t i1, size_t i2) {
-            return num_blocks_per_frame[i1] < num_blocks_per_frame[i2];
-        });
+        // in worst case, sum of number of blocks in internal and external memory
+        // per frame needed
+        size_t num_blocks_needed = 0;
 
-        for (size_t frame_id : frames_asc) {
+        // get maximal number of blocks in frame in internal memory
+        size_t num_blocks_max = 0;
+        for (size_t i = 0; i < num_blocks_mem_per_frame.size(); i++)
+        {
+            if (num_blocks_mem_per_frame[i] > num_blocks_max)
+            {
+                num_blocks_max = num_blocks_mem_per_frame[i];
+            }
+        }
+        num_blocks_needed += num_blocks_max;
+
+        // get maximal number of blocks in frame in external memory
+        num_blocks_max = 0;
+        for (size_t i = 0; i < num_blocks_ext_per_frame.size(); i++)
+        {
+            if (num_blocks_ext_per_frame[i] > num_blocks_max)
+            {
+                num_blocks_max = num_blocks_ext_per_frame[i];
+            }
+        }
+        num_blocks_needed += num_blocks_max;
+
+        // add equivalent number of blocks to memory needed for pointers
+        num_blocks_needed += std::max<size_t>((size_t)(std::ceil(
+                static_cast<double>(std::max<size_t>((size_t)(static_cast<double>(num_blocks_needed)
+                                                              * bucket_rate), 1) * sizeof(BucketBlock*))
+                / static_cast<double>(sizeof(BucketBlock)))), 0);
+
+        // spilled more frames to ensure to have enough memory to process frames
+        while ((max_num_blocks_per_table - ht->NumBlocksPerTable()) < num_blocks_needed) {
+            if (ht->NumBlocksPerTable() == 0) {
+                throw std::invalid_argument("not enough memory to process second reduce");
+            }
+            ht->SpillLargestFrame();
+        }
+
+        // from now on, it is ensured enough internal memory is available to process
+        // every frame
+        for (size_t frame_id = 0; frame_id !=  ht->NumFrames(); frame_id++) {
 
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
@@ -205,14 +240,6 @@ public:
                 num_blocks += std::max<size_t>((size_t)(std::ceil(
                         static_cast<double>(num_buckets_second * sizeof(BucketBlock*))
                         / static_cast<double>(sizeof(BucketBlock)))), 0);
-
-                // ensure we have enough memory left to process the frame
-                while ((max_num_blocks_per_table - ht->NumBlocksPerTable()) < num_blocks) {
-                    if (ht->NumBlocksPerTable() == 0) {
-                        throw std::invalid_argument("not enough memory to process second reduce");
-                    }
-                    ht->SpillLargestFrame();
-                }
 
                 // set up size of second reduce table
                 buckets_second.resize(num_buckets_second, nullptr);
@@ -436,8 +463,9 @@ public:
             // set num blocks for frame to zero
             if (consume)
             {
-                ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - num_blocks_per_frame[frame_id]);
-                num_blocks_per_frame[frame_id] = 0;
+                ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - num_blocks_mem_per_frame[frame_id]);
+                num_blocks_mem_per_frame[frame_id] = 0;
+                num_blocks_ext_per_frame[frame_id] = 0;
             }
         }
 
@@ -631,9 +659,9 @@ public:
 
         max_num_blocks_per_table_ = std::max<size_t>((size_t)(static_cast<double>(byte_size_)
                                                           / static_cast<double>(sizeof(BucketBlock))), 1);
-        max_num_blocks_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
+        max_num_blocks_mem_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
                                                                   / static_cast<double>(num_frames_)), 1);
-        num_buckets_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_frame_)
+        num_buckets_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_mem_per_frame_)
                                                            * bucket_rate), 1);
         num_buckets_per_table_ = num_buckets_per_frame_ * num_frames_;
 
@@ -645,12 +673,13 @@ public:
 
         assert(num_frames_ > 0);
         assert(max_num_blocks_per_table_ > 0);
-        assert(max_num_blocks_per_frame_ > 0);
+        assert(max_num_blocks_mem_per_frame_ > 0);
         assert(num_buckets_per_frame_ > 0);
         assert(num_buckets_per_table_ > 0);
 
         buckets_.resize(num_buckets_per_table_, nullptr);
-        num_blocks_per_frame_.resize(num_frames_, 0);
+        num_blocks_mem_per_frame_.resize(num_frames_, 0);
+        num_blocks_ext_per_frame_.resize(num_frames_, 0);
 
         for (size_t i = 0; i < num_frames_; i++) {
             frame_files_.push_back(ctx.GetFile());
@@ -686,9 +715,7 @@ public:
      * inserts the pair into the hashtable.
      */
     void Insert(const Value& p) {
-        Key key = key_extractor_(p);
-
-        Insert(std::make_pair(key, p));
+        Insert(std::make_pair(key_extractor_(p), p));
     }
 
     /*!
@@ -753,8 +780,8 @@ public:
 
             // spill current frame if max frame fill rate
             // reached
-            if (static_cast<double>(num_blocks_per_frame_[frame_id] + 1)
-                / static_cast<double>(max_num_blocks_per_frame_)
+            if (static_cast<double>(num_blocks_mem_per_frame_[frame_id] + 1)
+                / static_cast<double>(max_num_blocks_mem_per_frame_)
                 > max_frame_fill_rate_)
             {
                 SpillFrame(frame_id);
@@ -776,7 +803,7 @@ public:
             buckets_[global_index] = current;
 
             // Number of blocks per frame.
-            num_blocks_per_frame_[frame_id]++;
+            num_blocks_mem_per_frame_[frame_id]++;
             // Total number of blocks
             num_blocks_per_table_++;
         }
@@ -809,9 +836,9 @@ public:
         size_t p_idx = 0;
         for (size_t i = 0; i < num_frames_; i++)
         {
-            if (num_blocks_per_frame_[i] > p_size_max)
+            if (num_blocks_mem_per_frame_[i] > p_size_max)
             {
-                p_size_max = num_blocks_per_frame_[i];
+                p_size_max = num_blocks_mem_per_frame_[i];
                 p_idx = i;
             }
         }
@@ -856,10 +883,12 @@ public:
             buckets_[i] = nullptr;
         }
 
-        // reset table specific counter
-        num_blocks_per_table_ -= num_blocks_per_frame_[frame_id];
-        // reset frame specific counter
-        num_blocks_per_frame_[frame_id] = 0;
+        // adjust number of blocks in table
+        num_blocks_per_table_ -= num_blocks_mem_per_frame_[frame_id];
+        // adjust number of blocks in external memory
+        num_blocks_ext_per_frame_[frame_id] += num_blocks_mem_per_frame_[frame_id];
+        // reset number of blocks in external memory
+        num_blocks_mem_per_frame_[frame_id] = 0;
         // increase spill counter
         num_spills_++;
     }
@@ -1007,12 +1036,21 @@ public:
     }
 
     /*!
-     * Returns the vector of number of blocks per frame.
+     * Returns the vector of number of blocks per frame in internal memory.
      *
-     * \return Vector of number of blocks per frame.
+     * \return Vector of number of blocks per frame in internal memory.
      */
-    std::vector<size_t> & NumBlocksPerFrame() {
-        return num_blocks_per_frame_;
+    std::vector<size_t> & NumBlocksMemPerFrame() {
+        return num_blocks_mem_per_frame_;
+    }
+
+    /*!
+     * Returns the vector of number of blocks per frame in external memory.
+     *
+     * \return Vector of number of blocks per frame in external memory.
+     */
+    std::vector<size_t> & NumBlocksExtPerFrame() {
+        return num_blocks_ext_per_frame_;
     }
 
     /*!
@@ -1158,8 +1196,11 @@ protected:
     //! Keeps the total number of items in the table.
     size_t num_items_per_table_ = 0;
 
-    //! Number of items per frame.
-    std::vector<size_t> num_blocks_per_frame_;
+    //! Number of items per frame in internal memory.
+    std::vector<size_t> num_blocks_mem_per_frame_;
+
+    //! Number of items per frame in external memory.
+    std::vector<size_t> num_blocks_ext_per_frame_;
 
     //! Total num of spills.
     size_t num_spills_;
@@ -1169,7 +1210,7 @@ protected:
 
     //! Maximal number of blocks before some items
     //! are spilled.
-    size_t max_num_blocks_per_frame_;
+    size_t max_num_blocks_mem_per_frame_;
 
 public:
     //! Reduce function for reducing two values.
