@@ -12,8 +12,6 @@
 #ifndef THRILL_COMMON_MATH_HEADER
 #define THRILL_COMMON_MATH_HEADER
 
-#include <thrill/api/context.hpp>
-
 #include <algorithm>
 #include <tuple>
 
@@ -76,14 +74,6 @@ std::tuple<size_t, size_t> CalculateLocalRange(
         std::min(static_cast<size_t>(
                      std::ceil(static_cast<double>(i + 1) * per_pe)),
                  global_size));
-}
-
-//! given a global range [0,global_size) and p PEs to split the range, calculate
-//! the [local_begin,local_end) index range assigned to the PE i. Takes the
-//! information from the Context.
-std::tuple<size_t, size_t> CalculateLocalRange(
-    size_t global_size, const Context& ctx) {
-    return CalculateLocalRange(global_size, ctx.num_workers(), ctx.my_rank());
 }
 
 /******************************************************************************/
