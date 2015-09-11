@@ -47,7 +47,7 @@ protected:
     /**
      * The group associated with this channel.
      */
-    net::Group& group;
+    Group& group;
     /**
      * The local id.
      */
@@ -136,7 +136,7 @@ public:
     /**
      * \brief Creates a new instance of this class, wrapping a group.
      */
-    explicit FlowControlChannel(net::Group& group,
+    explicit FlowControlChannel(Group& group,
                                 size_t threadId, size_t threadCount,
                                 common::ThreadBarrier& barrier,
                                 void** shmem)

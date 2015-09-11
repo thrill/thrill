@@ -43,25 +43,20 @@ namespace api {
 class HostContext
 {
 public:
+    //! Construct one real host connected via TCP to others.
     HostContext(size_t my_host_rank,
                 const std::vector<std::string>& endpoints,
-                size_t workers_per_host)
-        : workers_per_host_(workers_per_host),
-          net_manager_(my_host_rank, endpoints),
-          flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-          data_multiplexer_(block_pool_, workers_per_host,
-                            net_manager_.GetDataGroup())
-    { }
+                size_t workers_per_host);
 
 #ifndef SWIG
     //! constructor from existing net Groups for use from ConstructLocalMock().
-    HostContext(size_t my_host_rank,
-                std::array<net::Group, net::Manager::kGroupCount>&& groups,
+    HostContext(std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host)
         : workers_per_host_(workers_per_host),
-          net_manager_(my_host_rank, std::move(groups)),
+          net_manager_(std::move(groups)),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-          data_multiplexer_(block_pool_, workers_per_host,
+          data_multiplexer_(mem_manager_,
+                            block_pool_, workers_per_host,
                             net_manager_.GetDataGroup())
     { }
 
@@ -74,7 +69,7 @@ public:
     size_t workers_per_host() const { return workers_per_host_; }
 
     //! host-global memory manager
-    mem::Manager& mem_manager() { return mem_manager_; }
+    mem::Manager & mem_manager() { return mem_manager_; }
 
     //! net manager constructs communication groups to other hosts.
     net::Manager & net_manager() { return net_manager_; }
@@ -250,7 +245,7 @@ public:
     }
 
     //! returns the host-global memory manager
-    mem::Manager& mem_manager() { return mem_manager_; }
+    mem::Manager & mem_manager() { return mem_manager_; }
 
 private:
     //! host-global memory manager
@@ -290,7 +285,7 @@ static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
  */
 void
 RunLocalMock(size_t host_count, size_t local_host_count,
-             const std::function<void(api::Context&)>& job_startpoint);
+             const std::function<void(Context&)>& job_startpoint);
 
 /*!
  * Helper Function to execute tests using mock networks in test suite for many

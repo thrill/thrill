@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/manager.cpp
+ * thrill/net/tcp/construct.cpp
  *
  * Part of Project Thrill.
  *
@@ -9,8 +9,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/net/dispatcher.hpp>
-#include <thrill/net/manager.hpp>
+#include <thrill/net/tcp/connection.hpp>
+#include <thrill/net/tcp/construct.hpp>
+#include <thrill/net/tcp/group.hpp>
+#include <thrill/net/tcp/select_dispatcher.hpp>
 
 #include <deque>
 #include <map>
@@ -20,6 +22,7 @@
 
 namespace thrill {
 namespace net {
+namespace tcp {
 
 //! \addtogroup net Network Communication
 //! \{
@@ -28,11 +31,10 @@ class Construction
 {
     static const bool debug = false;
 
-    static const size_t kGroupCount = Manager::kGroupCount;
-
 public:
-    explicit Construction(Manager& mgr)
-        : mgr_(mgr)
+    Construction(std::unique_ptr<Group>* groups, size_t group_count)
+        : groups_(groups),
+          group_count_(group_count)
     { }
 
     /**
@@ -57,8 +59,8 @@ public:
             throw new Exception("This net manager has already been initialized.");
         }
 
-        for (size_t i = 0; i < kGroupCount; i++) {
-            mgr_.groups_[i].Initialize(my_rank_, endpoints.size());
+        for (size_t i = 0; i < group_count_; i++) {
+            groups_[i] = std::make_unique<Group>(my_rank_, endpoints.size());
         }
 
         // Parse endpoints.
@@ -72,21 +74,21 @@ public:
 
             SocketAddress& lsa = address_list[my_rank_];
 
-            if (listen_socket.bind(lsa) != 0)
+            if (!listen_socket.bind(lsa))
                 throw Exception("Could not bind listen socket to "
                                 + lsa.ToStringHostPort(), errno);
 
-            if (listen_socket.listen() != 0)
+            if (!listen_socket.listen())
                 throw Exception("Could not listen on socket "
                                 + lsa.ToStringHostPort(), errno);
 
-            listener_ = Connection(listen_socket);
+            listener_ = Connection(std::move(listen_socket));
         }
 
         LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
 
         // Initiate connections to all hosts with higher id.
-        for (uint32_t g = 0; g < kGroupCount; g++) {
+        for (uint32_t g = 0; g < group_count_; g++) {
             for (size_t id = my_rank_ + 1; id < address_list.size(); ++id) {
                 AsyncConnect(g, id, address_list[id]);
             }
@@ -110,28 +112,28 @@ public:
 
         LOG << "Client " << my_rank_ << " done";
 
-        for (size_t j = 0; j < kGroupCount; j++) {
+        for (size_t j = 0; j < group_count_; j++) {
             // output list of file descriptors connected to partners
             for (size_t i = 0; i != address_list.size(); ++i) {
                 if (i == my_rank_) continue;
                 LOG << "Group " << j
                     << " link " << my_rank_ << " -> " << i << " = fd "
-                    << groups_[j].connection(i).GetSocket().fd();
+                    << groups_[j]->tcp_connection(i).GetSocket().fd();
 
-                groups_[j].connection(i).GetSocket().SetNonBlocking(true);
+                groups_[j]->tcp_connection(i).GetSocket().SetNonBlocking(true);
             }
         }
     }
 
 protected:
-    //! Link to manager being initialized
-    Manager& mgr_;
-
     //! Temporary Manager for construction
     mem::Manager mem_manager_ { nullptr, "Construction" };
 
-    //! Link to manager's groups to initialize
-    std::array<Group, kGroupCount>& groups_ = mgr_.groups_;
+    //! Link to groups to initialize
+    std::unique_ptr<Group>* groups_;
+
+    //! number of groups to initialize
+    size_t group_count_;
 
     /**
      * The rank associated with the local worker.
@@ -148,12 +150,9 @@ protected:
      * The dispatcher instance used by this Manager
      * to perform async operations.
      */
-    Dispatcher dispatcher_ { mem_manager_ };
+    SelectDispatcher dispatcher_ { mem_manager_ };
 
     // Some definitions for convenience
-    using Socket = lowlevel::Socket;
-    using SocketAddress = lowlevel::SocketAddress;
-    using IPv4Address = lowlevel::IPv4Address;
     using GroupNodeIdPair = std::pair<size_t, size_t>;
 
     //! Array of opened connections that are not assigned to any (group,id)
@@ -172,24 +171,17 @@ protected:
     //! time is about 2 * final_timeout_ (in millisec).
     const size_t final_timeout_ = 40960;
 
-    /**
-     * \brief Represents a welcome message.
-     * \details Represents a welcome message that is exchanged by Connections during
-     * network initialization.
-     */
+    //! Represents a welcome message that is exchanged by Connections during
+    //! network initialization.
     struct WelcomeMsg
     {
-        /**
-         * The Thrill signature flag.
-         */
+        //! the Thrill signature flag.
         uint64_t thrill_sign;
-        /**
-         * The id of the Group associated with the sending Connection.
-         */
+
+        //! the id of the Group associated with the sending Connection.
         size_t   group_id;
-        /**
-         * The id of the worker associated with the sending Connection.
-         */
+
+        //! the id of the worker associated with the sending Connection.
         size_t   id;
     };
 
@@ -231,14 +223,14 @@ protected:
      */
     bool IsInitializationFinished() {
 
-        for (size_t g = 0; g < kGroupCount; g++) {
+        for (size_t g = 0; g < group_count_; g++) {
 
-            for (size_t id = 0; id < groups_[g].num_hosts(); ++id) {
+            for (size_t id = 0; id < groups_[g]->num_hosts(); ++id) {
                 if (id == my_rank_) continue;
 
                 // Just checking the state works since this implicitey checks the
                 // size. Unset connections have state ConnectionState::Invalid.
-                if (groups_[g].connection(id).state()
+                if (groups_[g]->tcp_connection(id).state()
                     != ConnectionState::Connected)
                     return false;
             }
@@ -255,36 +247,39 @@ protected:
      * \param nc The connection to connect.
      * \param address The address of the endpoint to connect to.
      */
-    void AsyncConnect(Connection& nc, const SocketAddress& address) {
-        // Start asynchronous connect.
-        nc.GetSocket().SetNonBlocking(true);
-        int res = nc.GetSocket().connect(address);
+    void AsyncConnect(net::Connection& nc, const SocketAddress& address) {
+        assert(dynamic_cast<Connection*>(&nc));
+        Connection& tcp = static_cast<Connection&>(nc);
 
-        nc.set_state(ConnectionState::Connecting);
+        // Start asynchronous connect.
+        tcp.GetSocket().SetNonBlocking(true);
+        int res = tcp.GetSocket().connect(address);
+
+        tcp.set_state(ConnectionState::Connecting);
 
         if (res == 0) {
             LOG << "Early connect success. This should not happen.";
             // connect() already successful? this should not be.
-            OnConnected(nc, address);
+            OnConnected(tcp, address);
         }
         else if (errno == EINPROGRESS) {
             // connect is in progress, will wait for completion.
-            dispatcher_.AddWrite(nc, [this, &address, &nc]() {
-                                     return OnConnected(nc, address);
+            dispatcher_.AddWrite(tcp, [this, &address, &tcp]() {
+                                     return OnConnected(tcp, address);
                                  });
         }
         else if (errno == ECONNREFUSED) {
             LOG << "Early connect refused.";
             // connect() already refused connection?
-            OnConnected(nc, address, errno);
+            OnConnected(tcp, address, errno);
         }
         else {
             // Failed to even try the connection - this might be a permanent
             // error.
-            nc.set_state(ConnectionState::Invalid);
+            tcp.set_state(ConnectionState::Invalid);
 
             throw Exception("Error starting async connect client "
-                            + std::to_string(nc.peer_id()) + " via "
+                            + std::to_string(tcp.peer_id()) + " via "
                             + address.ToStringHostPort(), errno);
         }
     }
@@ -302,7 +297,7 @@ protected:
         size_t group, size_t id, const SocketAddress& address) {
 
         // Construct a new socket (old one is destroyed)
-        Connection& nc = groups_[group].connection(id);
+        Connection& nc = groups_[group]->tcp_connection(id);
         if (nc.IsValid()) nc.Close();
 
         nc = Connection(Socket::Create());
@@ -319,15 +314,18 @@ protected:
      *
      * \param conn The connection for which the hello is sent.
      */
-    void OnHelloSent(Connection& conn) {
-        if (conn.state() == ConnectionState::TransportConnected) {
-            conn.set_state(ConnectionState::HelloSent);
+    void OnHelloSent(net::Connection& conn) {
+        assert(dynamic_cast<Connection*>(&conn));
+        Connection& tcp = static_cast<Connection&>(conn);
+
+        if (tcp.state() == ConnectionState::TransportConnected) {
+            tcp.set_state(ConnectionState::HelloSent);
         }
-        else if (conn.state() == ConnectionState::HelloReceived) {
-            conn.set_state(ConnectionState::Connected);
+        else if (tcp.state() == ConnectionState::HelloReceived) {
+            tcp.set_state(ConnectionState::Connected);
         }
         else {
-            die("State mismatch: " + std::to_string(conn.state()));
+            die("State mismatch: " + std::to_string(tcp.state()));
         }
     }
 
@@ -366,16 +364,18 @@ protected:
      *
      * \return A bool indicating wether this callback should stay registered.
      */
-    bool OnConnected(Connection& conn, const SocketAddress& address,
+    bool OnConnected(net::Connection& conn, const SocketAddress& address,
                      int _err = 0) {
+        assert(dynamic_cast<Connection*>(&conn));
+        Connection& tcp = static_cast<Connection&>(conn);
 
         // First, check if everything went well.
-        int err = _err ? _err : conn.GetSocket().GetError();
+        int err = _err ? _err : tcp.GetSocket().GetError();
 
-        if (conn.state() != ConnectionState::Connecting) {
+        if (tcp.state() != ConnectionState::Connecting) {
             LOG << "Client " << my_rank_
                 << " expected connection state " << ConnectionState::Connecting
-                << " but got " << conn.state();
+                << " but got " << tcp.state();
             die("FAULTY STATE DETECTED");
         }
 
@@ -384,10 +384,10 @@ protected:
             // Connection refused. The other workers might not be online yet.
 
             size_t next_timeout = NextConnectTimeout(
-                conn.group_id(), conn.peer_id(), address);
+                tcp.group_id(), tcp.peer_id(), address);
 
             LOG << "Connect to " << address.ToStringHostPort()
-                << " fd=" << conn.GetSocket().fd()
+                << " fd=" << tcp.GetSocket().fd()
                 << " timed out or refused with error " << err << "."
                 << " Attempting reconnect in " << next_timeout << "msec";
 
@@ -396,7 +396,7 @@ protected:
                 [&]() {
                     // Construct a new connection since the socket might not be
                     // reusable.
-                    AsyncConnect(conn.group_id(), conn.peer_id(), address);
+                    AsyncConnect(tcp.group_id(), tcp.peer_id(), address);
                     return false;
                 });
 
@@ -404,36 +404,36 @@ protected:
         }
         else if (err != 0) {
             // Other failure. Fail hard.
-            conn.set_state(ConnectionState::Invalid);
+            tcp.set_state(ConnectionState::Invalid);
 
             throw Exception("Error connecting asynchronously to client "
-                            + std::to_string(conn.peer_id()) + " via "
+                            + std::to_string(tcp.peer_id()) + " via "
                             + address.ToStringHostPort(), err);
         }
 
-        die_unless(conn.GetSocket().IsValid());
+        die_unless(tcp.GetSocket().IsValid());
 
-        conn.set_state(ConnectionState::TransportConnected);
+        tcp.set_state(ConnectionState::TransportConnected);
 
         LOG << "OnConnected() " << my_rank_ << " connected"
-            << " fd=" << conn.GetSocket().fd()
-            << " to=" << conn.GetSocket().GetPeerAddress()
+            << " fd=" << tcp.GetSocket().fd()
+            << " to=" << tcp.GetSocket().GetPeerAddress()
             << " err=" << err
-            << " group=" << conn.group_id();
+            << " group=" << tcp.group_id();
 
         // send welcome message
-        const WelcomeMsg hello = { thrill_sign, conn.group_id(), my_rank_ };
+        const WelcomeMsg hello = { thrill_sign, tcp.group_id(), my_rank_ };
 
         dispatcher_.AsyncWriteCopy(
-            conn, &hello, sizeof(hello),
+            tcp, &hello, sizeof(hello),
             AsyncWriteCallback::from<
                 Construction, & Construction::OnHelloSent>(this));
 
         LOG << "Client " << my_rank_ << " sent active hello to "
-            << "client " << conn.peer_id() << " group id " << conn.group_id();
+            << "client " << tcp.peer_id() << " group id " << tcp.group_id();
 
         dispatcher_.AsyncRead(
-            conn, sizeof(hello),
+            tcp, sizeof(hello),
             AsyncReadCallback::from<
                 Construction, & Construction::OnIncomingWelcome>(this));
 
@@ -449,29 +449,31 @@ protected:
      *
      * \return A boolean indicating wether this handler should stay attached.
      */
-    void OnIncomingWelcome(Connection& conn, Buffer&& buffer) {
+    void OnIncomingWelcome(net::Connection& conn, Buffer&& buffer) {
+        assert(dynamic_cast<Connection*>(&conn));
+        Connection& tcp = static_cast<Connection&>(conn);
 
-        die_unless(conn.GetSocket().IsValid());
+        die_unless(tcp.GetSocket().IsValid());
         die_unequal(buffer.size(), sizeof(WelcomeMsg));
-        die_unequal(conn.state(), ConnectionState::HelloSent);
+        die_unequal(tcp.state(), ConnectionState::HelloSent);
 
         const WelcomeMsg* msg
             = reinterpret_cast<const WelcomeMsg*>(buffer.data());
         die_unequal(msg->thrill_sign, thrill_sign);
         // We already know those values since we connected actively. So, check
         // for any errors.
-        if (conn.peer_id() != msg->id) {
+        if (tcp.peer_id() != msg->id) {
             LOG << "FAULTY ID DETECTED";
         }
 
         LOG << "client " << my_rank_ << " expected signature from client "
-            << conn.peer_id() << " and  got signature "
+            << tcp.peer_id() << " and  got signature "
             << "from client " << msg->id;
 
-        die_unequal(conn.peer_id(), msg->id);
-        die_unequal(conn.group_id(), msg->group_id);
+        die_unequal(tcp.peer_id(), msg->id);
+        die_unequal(tcp.group_id(), msg->group_id);
 
-        conn.set_state(ConnectionState::Connected);
+        tcp.set_state(ConnectionState::Connected);
     }
 
     /**
@@ -483,10 +485,12 @@ protected:
      *
      * \return A boolean indicating wether this handler should stay attached.
      */
-    void OnIncomingWelcomeAndReply(Connection& conn, Buffer&& buffer) {
+    void OnIncomingWelcomeAndReply(net::Connection& conn, Buffer&& buffer) {
+        assert(dynamic_cast<Connection*>(&conn));
+        Connection& tcp = static_cast<Connection&>(conn);
 
-        die_unless(conn.GetSocket().IsValid());
-        die_unless(conn.state() != ConnectionState::TransportConnected);
+        die_unless(tcp.GetSocket().IsValid());
+        die_unless(tcp.state() != ConnectionState::TransportConnected);
 
         const WelcomeMsg* msg_in = reinterpret_cast<const WelcomeMsg*>(buffer.data());
         die_unequal(msg_in->thrill_sign, thrill_sign);
@@ -495,19 +499,19 @@ protected:
             << " group " << msg_in->group_id
             << " id " << msg_in->id;
 
-        die_unless(msg_in->group_id < kGroupCount);
-        die_unless(msg_in->id < groups_[msg_in->group_id].num_hosts());
+        die_unless(msg_in->group_id < group_count_);
+        die_unless(msg_in->id < groups_[msg_in->group_id]->num_hosts());
 
-        die_unequal(groups_[msg_in->group_id].connection(msg_in->id).state(),
+        die_unequal(groups_[msg_in->group_id]->tcp_connection(msg_in->id).state(),
                     ConnectionState::Invalid);
 
         // move connection into Group.
 
-        conn.set_state(ConnectionState::HelloReceived);
-        conn.set_peer_id(msg_in->id);
-        conn.set_group_id(msg_in->group_id);
+        tcp.set_state(ConnectionState::HelloReceived);
+        tcp.set_peer_id(msg_in->id);
+        tcp.set_group_id(msg_in->group_id);
 
-        Connection& c = groups_[msg_in->group_id].AssignConnection(conn);
+        Connection& c = groups_[msg_in->group_id]->AssignConnection(tcp);
 
         // send welcome message (via new connection's place)
 
@@ -529,12 +533,15 @@ protected:
      * \param conn The listener connection.
      * \return A boolean indicating wether this handler should stay attached.
      */
-    bool OnIncomingConnection(Connection& conn) {
+    bool OnIncomingConnection(net::Connection& conn) {
+        assert(dynamic_cast<Connection*>(&conn));
+        Connection& tcp = static_cast<Connection&>(conn);
+
         // accept listening socket
-        connections_.emplace_back(conn.GetSocket().accept());
+        connections_.emplace_back(tcp.GetSocket().accept());
         die_unless(connections_.back().GetSocket().IsValid());
 
-        conn.set_state(ConnectionState::TransportConnected);
+        tcp.set_state(ConnectionState::TransportConnected);
 
         LOG << "OnIncomingConnection() " << my_rank_ << " accepted connection"
             << " fd=" << connections_.back().GetSocket().fd()
@@ -551,54 +558,29 @@ protected:
     }
 };
 
-Manager::Manager(size_t my_rank,
-                 const std::vector<std::string>& endpoints)
-    : my_rank_(my_rank) {
-    try {
-        Construction(*this).Initialize(my_rank_, endpoints);
-    }
-    catch (std::exception& e) {
-        LOG1 << "Exception: " << e.what();
-        throw;
-    }
+//! Connect to peers via endpoints using TCP sockets. Construct a group_count
+//! tcp::Group objects at once. Within each Group this host has my_rank.
+void Construct(size_t my_rank,
+               const std::vector<std::string>& endpoints,
+               std::unique_ptr<Group>* groups, size_t group_count) {
+    Construction(groups, group_count).Initialize(my_rank, endpoints);
 }
 
-Manager::Manager(size_t my_rank,
-                 std::array<Group, kGroupCount>&& groups)
-    : my_rank_(my_rank),
-      groups_(std::move(groups)) { }
-
-//! Construct a mock network, consisting of host_count compute
-//! hosts. Delivers this number of net::Manager objects, which are
-//! internally connected.
-std::vector<std::unique_ptr<Manager> >
-Manager::ConstructLocalMesh(size_t host_count) {
-
-    // construct three full mesh connection cliques, deliver net::Groups.
-    std::array<std::vector<Group>, kGroupCount> group;
-
-    for (size_t g = 0; g < kGroupCount; ++g) {
-        group[g] = Group::ConstructLocalMesh(host_count);
-    }
-
-    // construct list of uninitialized net::Manager objects.
-    std::vector<std::unique_ptr<Manager> > nmlist(host_count);
-
-    for (size_t h = 0; h < host_count; ++h) {
-        std::array<Group, kGroupCount> host_group = {
-            { std::move(group[0][h]),
-              std::move(group[1][h]),
-              std::move(group[2][h]) },
-        };
-
-        nmlist[h] = std::make_unique<Manager>(h, std::move(host_group));
-    }
-
-    return nmlist;
+//! Connect to peers via endpoints using TCP sockets. Construct a group_count
+//! net::Group objects at once. Within each Group this host has my_rank.
+std::vector<std::unique_ptr<net::Group> >
+Construct(size_t my_rank, const std::vector<std::string>& endpoints,
+          size_t group_count) {
+    std::vector<std::unique_ptr<tcp::Group> > tcp_groups(group_count);
+    Construction(&tcp_groups[0], tcp_groups.size()).Initialize(my_rank, endpoints);
+    std::vector<std::unique_ptr<net::Group> > groups(group_count);
+    std::move(tcp_groups.begin(), tcp_groups.end(), groups.begin());
+    return groups;
 }
 
 //! \}
 
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 
