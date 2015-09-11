@@ -51,6 +51,7 @@ namespace merge_local {
         thrill::common::StatsTimer<stats_enabled> PivotSelectionTimer;
         thrill::common::StatsTimer<stats_enabled> PivotLocationTimer;
         thrill::common::StatsTimer<stats_enabled> OffsetCalculationTimer;
+        thrill::common::StatsTimer<stats_enabled> CommTimer;
     };
 
     
@@ -68,6 +69,7 @@ namespace merge_local {
                 LOG << "Offset Calculation: " << OffsetCalculationTimer.Microseconds() << " mms";
                 LOG << "Index Of: " << IndexOfTimer.Microseconds() << " mms";
                 LOG << "Get at Index: " << GetAtIndexTimer.Microseconds() << " mms";
+                LOG << "Communication Timer: " << CommTimer.Microseconds() << " mms";
             }
         }
     };
@@ -392,7 +394,9 @@ private:
         };
 
         //Global size off aaaalll data.
+        stats.CommTimer.Start();
         size_t globalSize = flowControl.AllReduce(dataSize);
+        stats.CommTimer.Stop();
 
         LOG << "Global size: " << globalSize;
 
@@ -410,7 +414,9 @@ private:
             for(size_t r = 0; r < p - 1; r++) { 
                 LOG << "Search Rank " << r << ": " << srank[r];
 
+                stats.CommTimer.Start();
                 size_t res = flowControl.Broadcast(srank[r]);
+                stats.CommTimer.Stop();
                 assert(res == srank[r]);
             }
         }
@@ -421,8 +427,10 @@ private:
 
         std::fill(left.begin(), left.end(), 0);
         std::fill(width.begin(), width.end(), dataSize);
-       
+        
+        stats.CommTimer.Start();
         prefixSize = flowControl.PrefixSum(dataSize, std::plus<ValueType>(), false); 
+        stats.CommTimer.Stop();
 
         LOG << "Data count left of me: " << prefixSize;
 
@@ -440,11 +448,13 @@ private:
         //Partition loop 
         
         while(1) {
+
             stats.PivotSelectionTimer.Start();
 
-
+            stats.CommTimer.Start();
             flowControl.ArrayPrefixSum(width, widthscan, std::plus<ValueType>(), false);
             flowControl.ArrayAllReduce(width, widthsum, std::plus<ValueType>());
+            stats.CommTimer.Stop();
              
             size_t done = 0;
 
@@ -500,7 +510,8 @@ private:
             }
 
             LOG << "Pivots: " << VToStr(pivots);
-
+            
+            stats.CommTimer.Start();
             flowControl.ArrayAllReduce(pivots, pivots, 
             [this] (const Pivot a, const Pivot b) { 
                     if(!a.valid) {
@@ -517,6 +528,7 @@ private:
                         return b;
                     }
             }); //Return maximal pivot (Is this  OK?);
+            stats.CommTimer.Stop();
 
             LOG << "Final Pivots: " << VToStr(pivots);
 
@@ -531,7 +543,9 @@ private:
                 }
             }
 
+            stats.CommTimer.Start();
             flowControl.ArrayAllReduce(split, splitsum, std::plus<ValueType>());
+            stats.CommTimer.Stop();
 
             LOG << "Splitters: " << VToStr(split);
 
