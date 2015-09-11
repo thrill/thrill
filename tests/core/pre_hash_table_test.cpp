@@ -178,7 +178,7 @@ TEST_F(PreTable, PopIntegers) {
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
                          core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 1.0);
+    table(1, key_ex, red_fn, writers, bucket_block_size * 2, 0.5, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -312,7 +312,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
                          core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
+    table(1, key_ex, red_fn, writers, bucket_block_size * 2, 0.5, 0.5);
 
     table.Insert(0);
     table.Insert(1);
@@ -449,7 +449,7 @@ TEST_F(PreTable, MultipleWorkers) {
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
                          core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(2, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
+    table(2, key_ex, red_fn, writers, bucket_block_size * 2, 1.0, 0.5);
 
     ASSERT_EQ(0u, table.NumItemsPerTable());
 

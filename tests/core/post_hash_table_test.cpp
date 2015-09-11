@@ -711,16 +711,21 @@ TEST_F(PostTable, MaxTableBlocks) {
                     writer1.push_back(value);
                 });
 
-            const size_t TargetBlockSize = 16 * 1024;
+            const size_t TargetBlockSize = 8 * 1024;
+            const size_t bucket_block_size = sizeof(core::ReducePostTable<int, int, int,
+                    decltype(key_ex), decltype(red_fn), false,
+                    core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                    core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+
             using KeyValuePair = std::pair<int, int>;
-            size_t max_blocks = 128;
+            size_t max_blocks = 8;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
                                   core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(),
-                  0, 0, 0, 1024 * 16, 0.001, 1.0, 1.0,
+                  0, 0, 0, bucket_block_size * max_blocks * 2, 0.5, 1.0, 0.1,
                   std::equal_to<int>());
 
             size_t block_size = common::max<size_t>(8, TargetBlockSize /
@@ -732,7 +737,7 @@ TEST_F(PostTable, MaxTableBlocks) {
 
             for (size_t i = 0; i < num_items; ++i) {
                 table.Insert(pair(i));
-                ASSERT_TRUE(table.NumBlocksPerTable() <= max_blocks);
+                ASSERT_TRUE(table.NumBlocksPerTable() <= max_blocks * 2);
             }
 
             ASSERT_EQ(0u, writer1.size());
