@@ -97,14 +97,14 @@ protected:
     std::shared_ptr<IterStats<ArrayItem> > stats_;
 
 public:
-    typedef std::iterator<std::random_access_iterator_tag, ArrayItem> base_type;
+    using base_type = std::iterator<std::random_access_iterator_tag, ArrayItem>;
 
-    typedef std::random_access_iterator_tag iterator_category;
+    using iterator_category = std::random_access_iterator_tag;
 
-    typedef typename base_type::value_type value_type;
-    typedef typename base_type::difference_type difference_type;
-    typedef typename base_type::reference reference;
-    typedef typename base_type::pointer pointer;
+    using value_type = typename base_type::value_type;
+    using difference_type = typename base_type::difference_type;
+    using reference = typename base_type::reference;
+    using pointer = typename base_type::pointer;
 
     void GetItem() const {
         assert(reader_->HasNext());
@@ -314,14 +314,14 @@ protected:
     size_t m_pos;
 
 public:
-    typedef std::iterator<std::random_access_iterator_tag, ArrayItem> base_type;
+    using base_type = std::iterator<std::random_access_iterator_tag, ArrayItem>;
 
-    typedef std::random_access_iterator_tag iterator_category;
+    using iterator_category = std::random_access_iterator_tag;
 
-    typedef typename base_type::value_type value_type;
-    typedef typename base_type::difference_type difference_type;
-    typedef typename base_type::reference reference;
-    typedef typename base_type::pointer pointer;
+    using value_type = typename base_type::value_type;
+    using difference_type = typename base_type::difference_type;
+    using reference = typename base_type::reference;
+    using pointer = typename base_type::pointer;
 
     StxxlVectorWrapper() : m_array(nullptr), m_pos(0) { }
 
@@ -393,6 +393,6 @@ public:
 #endif // !THRILL_CORE_ITERATOR_WRAPPER_HEADER
 } //end namespace thrill
 
-#endif // ITERATOR_WRAPPER_HEADER
+#endif // !THRILL_CORE_ITERATOR_WRAPPER_HEADER
 
 /******************************************************************************/
