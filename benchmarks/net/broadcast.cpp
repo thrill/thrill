@@ -1,7 +1,11 @@
 /*******************************************************************************
  * benchmarks/page_rank/page_rank.cpp
  *
+ * Minimalistic broadcast benchmark to test different net implementations. 
+ *
  * Part of Project Thrill.
+ *
+ * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -20,8 +24,7 @@
 #include <utility>
 #include <vector>
 
-size_t iterations = 200;
-size_t workers = 1;
+unsigned int iterations = 200;
 
 void PrintSQLPlotTool(std::string datatype, size_t workers, int iterations, int time) {
     static const bool debug = true;
@@ -46,7 +49,13 @@ void net_test(thrill::api::Context& ctx) {
         t.Stop(); 
     }
 
-    PrintSQLPlotTool("size_t", workers, iterations, t.Microseconds()); 
+    size_t n = ctx.num_workers();
+    size_t time = t.Microseconds();
+    time = flow.AllReduce(time);
+    time = time / n; 
+
+    if(ctx.my_rank() == 0)
+        PrintSQLPlotTool("size_t", n, iterations, time); 
 }
 
 int main(int argc, char** argv) {
@@ -54,6 +63,9 @@ int main(int argc, char** argv) {
     thrill::common::CmdlineParser clp;
 
     clp.SetVerboseProcess(false);
+    
+    clp.AddUInt('i', "iterations", iterations,
+                       "Count of iterations");
 
     if (!clp.Process(argc, argv)) {
         return -1;
