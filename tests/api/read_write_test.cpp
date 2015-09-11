@@ -68,6 +68,9 @@ TEST(IO, ReadFolder) {
 }
 
 TEST(IO, ReadPartOfFolderCompressed) {
+#if defined(_MSC_VER)
+    return;
+#endif
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
             // folder read_ints contains compressed and non-compressed files
@@ -179,6 +182,10 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
 }
 
 TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
+#if defined(_MSC_VER)
+    return;
+#endif
+
     core::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(

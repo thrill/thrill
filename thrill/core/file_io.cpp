@@ -13,6 +13,7 @@
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
+#include <thrill/core/simple-glob.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -83,27 +84,13 @@ std::string FillFilePattern(const std::string& pathbase,
 std::vector<std::string> GlobFilePattern(const std::string& path) {
 
     std::vector<std::string> files;
+
 #if defined(_MSC_VER)
-    WIN32_FIND_DATA ff_data;
-    HANDLE h = FindFirstFile(path.c_str(), &ff_data);
-
-    if (h == INVALID_HANDLE_VALUE) {
-        throw common::SystemException(
-            "FindFirstFile failed:" + std::to_string(GetLastError()));
+    glob_local::CSimpleGlob sglob;
+    sglob.Add(path.c_str());
+    for (int n = 0; n < sglob.FileCount(); ++n) {
+        files.emplace_back(sglob.File(n));
     }
-
-    do {
-        if (!(ff_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-            files.emplace_back(ff_data.cFileName);
-    } while (FindNextFile(h, &ff_data) != 0);
-
-    DWORD e = GetLastError();
-    if (e != ERROR_NO_MORE_FILES) {
-        throw common::SystemException(
-            "FindFirstFile failed:" + std::to_string(GetLastError()));
-    }
-    FindClose(h);
-
 #else
     glob_t glob_result;
     glob(path.c_str(), GLOB_TILDE, nullptr, &glob_result);
