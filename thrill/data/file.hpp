@@ -263,7 +263,7 @@ protected:
     const File& file_;
 
     //! index of current block.
-    size_t current_block_ = -1;
+    size_t current_block_ = size_t(-1);
 
     //! number of the first block
     size_t first_block_;
