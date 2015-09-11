@@ -26,6 +26,7 @@
 
 namespace thrill {
 namespace net {
+namespace collective_communication {
 
 //! \addtogroup net Network Communication
 //! \{
@@ -185,8 +186,6 @@ void Broadcast(Group& net, T& value) {
     BroadcastBinomialTree(net, value);
 }
 
-#if DISABLE_MAYBE_REMOVE
-
 //! \brief   Perform an All-Reduce on the workers.
 //! \details This is done by aggregating all values according to a summation
 //!          operator and sending them backto all workers.
@@ -265,8 +264,10 @@ void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_worker
 //! \param   value The value to be summed up
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp(), bool inclusive = true) {
     static const bool debug = false;
+
+    bool first = true;
 
     // This is based on the pointer-doubling algorithm presented in the ParAlg
     // script, which is used for list ranking.
@@ -279,15 +280,19 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
             sLOG << "Worker" << net.my_host_rank() << ": receiving from" << net.my_host_rank() - d;
             T recv_value;
             net.ReceiveFrom(net.my_host_rank() - d, &recv_value);
-            value = sumOp(value, recv_value);
+            if(!first || inclusive) {
+                value = sumOp(value, recv_value);
+            } else {
+                value = recv_value;
+                first = false;
+            }
         }
     }
 }
 
-#endif  // DISABLE_MAYBE_REMOVE
-
 //! \}
 
+} // namespace collective_communication
 } // namespace net
 } // namespace thrill
 
