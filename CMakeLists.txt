@@ -113,8 +113,14 @@ elseif(MSVC)
   # warning C4589: Constructor of abstract class '...' ignores initializer for
   # virtual base class '...' (false positive warnings)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4589")
-    # warning C4127: conditional expression is constant
+  # warning C4127: conditional expression is constant
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4127")
+  # warning C4458: declaration of '...' hides class member
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4458")
+  # warning C4459: declaration of '...' hides global declaration
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4459")
+  # warning C4702: unreachable code
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4702")
   # disable lots of warnings about "unsecure" C runtime function
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
   # disable "The POSIX name for this item is deprecated. Instead, use the ISO C
