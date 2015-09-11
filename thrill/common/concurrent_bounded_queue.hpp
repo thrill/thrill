@@ -19,6 +19,7 @@
 #endif // THRILL_HAVE_INTELTBB
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
@@ -123,6 +124,21 @@ public:
         cv_.wait(lock, [=]() { return !queue_.empty(); });
         destination = std::move(queue_.front());
         queue_.pop();
+    }
+
+    //! If value is available, pops it from the queue, move it to
+    //! destination. If no item is in the queue, wait until there is one, or
+    //! timeout and return false. NOTE: not available in TBB!
+    template <class Rep, class Period>
+    bool pop_for(T& destination,
+                 const std::chrono::duration<Rep, Period>& timeout) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (!cv_.wait_for(lock, timeout, [=]() { return !queue_.empty(); })) {
+            return false;
+        }
+        destination = std::move(queue_.front());
+        queue_.pop();
+        return true;
     }
 
     //! return number of items available in the queue (tbb says "can return

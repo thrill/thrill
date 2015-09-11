@@ -210,10 +210,10 @@ TEST(IO, GenerateFromFileRandomIntegers) {
 
 TEST(IO, WriteBinaryPatternFormatter) {
 
-    std::string str1 = core::make_path("test-$$$$-########", 42, 10);
+    std::string str1 = core::FillFilePattern("test-$$$$-########", 42, 10);
     ASSERT_EQ("test-0042-00000010", str1);
 
-    std::string str2 = core::make_path("test", 42, 10);
+    std::string str2 = core::FillFilePattern("test", 42, 10);
     ASSERT_EQ("test00420000000010", str2);
 }
 
@@ -307,7 +307,8 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
 
 // make weird test strings of different lengths
 std::string test_string(size_t index) {
-    return std::string('0' + index % 100, (index * index) % 20);
+    return std::string((index * index) % 20,
+                       '0' + static_cast<char>(index) % 100);
 }
 
 TEST(IO, GenerateStringWriteBinary) {

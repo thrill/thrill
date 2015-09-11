@@ -44,10 +44,9 @@ public:
                        StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_pathbase_(path_out),
-          file_(core::SysFile::OpenForWrite(core::make_path(
-                                                out_pathbase_,
-                                                context_.my_rank(),
-                                                0))),
+          file_(core::SysFile::OpenForWrite(
+                    core::FillFilePattern(
+                        out_pathbase_, context_.my_rank(), 0))),
           target_file_size_(target_file_size)
     {
         sLOG << "Creating write node.";
@@ -81,7 +80,7 @@ public:
             if (THRILL_UNLIKELY(current_file_size_ >= target_file_size_)) {
                 LOG << "Closing file" << out_serial_;
                 file_.close();
-                std::string new_path = core::make_path(
+                std::string new_path = core::FillFilePattern(
                     out_pathbase_, context_.my_rank(), out_serial_++);
                 file_ = core::SysFile::OpenForWrite(new_path);
                 LOG << "Opening file: " << new_path;

@@ -98,7 +98,7 @@ public:
         }
 
         std::default_random_engine generator(std::random_device { } ());
-        std::uniform_int_distribution<int> distribution(0, elements_.size() - 1);
+        std::uniform_int_distribution<size_t> distribution(0, elements_.size() - 1);
 
         for (size_t i = 0; i < local_elements; i++) {
             size_t rand_element = distribution(generator);

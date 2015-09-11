@@ -143,7 +143,7 @@ public:
     }
 
     //! Return the Context's memory manager
-    mem::Manager& mem_manager() {
+    mem::Manager & mem_manager() {
         return context_.mem_manager();
     }
 
