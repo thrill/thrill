@@ -202,7 +202,8 @@ public:
      * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
      * \param byte_size Maximal size of the table in byte. In case size of table exceeds that value, items
      *                  are flushed.
-     * \param max_partition_fill_rate Maximal number of items per partition relative to number of slots allowed
+     * \param bucket_rate Ratio of number of blocks to number of buckets in the table.
+     * \param max_partition_fill_rate Maximal number of blocks per partition relative to number of slots allowed
      *                                to be filled. It the rate is exceeded, items get flushed.
      * \param index_function Function to be used for computing the bucket the item to be inserted.
      * \param equal_to_function Function for checking equality fo two keys.
@@ -233,9 +234,9 @@ public:
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
 
         max_num_blocks_per_table_ = std::max<size_t>((size_t)(static_cast<double>(byte_size_)
-                                                          / static_cast<double>(sizeof(BucketBlock))), 1);
+                                                              / static_cast<double>(sizeof(BucketBlock))), 1);
         max_num_blocks_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
-                                                             / static_cast<double>(num_partitions_)), 1);
+                                                                  / static_cast<double>(num_partitions_)), 1);
         num_buckets_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_partition_)
                                                                * bucket_rate), 1);
         num_buckets_per_table_ = num_buckets_per_partition_ * num_partitions_;
@@ -244,8 +245,8 @@ public:
         // knowing the size of pointers in the bucket vector
 
         max_num_blocks_per_table_ -= std::max<size_t>((size_t)(std::ceil(
-                static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
-                / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                                   static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
+                                                                   / static_cast<double>(sizeof(BucketBlock)))), 0);
 
         assert(max_num_blocks_per_table_ > 0);
         assert(max_num_blocks_per_partition_ > 0);
@@ -496,7 +497,7 @@ public:
     }
 
     /*!
-     * Returns the total num of buckets in the table in all partitions.
+     * Returns the total num of buckets in the table.
      *
      * \return Number of buckets in the table.
      */
@@ -505,7 +506,7 @@ public:
     }
 
     /*!
-     * Returns the total num of items in the table in all partitions.
+     * Returns the total num of items in the table.
      *
      * \return Number of items in the table.
      */
@@ -514,9 +515,9 @@ public:
     }
 
     /*!
-     * Returns the number of buckets any partition can hold.
+     * Returns the number of buckets per partition.
      *
-     * \return Number of buckets a partition can hold.
+     * \return Number of buckets per partition.
      */
     size_t NumBucketsPerPartition() const {
         return num_buckets_per_partition_;
@@ -541,11 +542,11 @@ public:
     }
 
     /*!
-     * Returns the number of items of a partition.
+     * Returns the number of blocks of a partition.
      *
      * \param partition_id The id of the partition the number of
-     *                  items to be returned..
-     * \return The number of items in the partitions.
+     *                  blocks to be returned..
+     * \return The number of blocks in the partitions.
      */
     size_t NumBlocksPerPartition(size_t partition_id) {
         return num_blocks_per_partition_[partition_id];
@@ -643,31 +644,30 @@ protected:
     //! Comparator function for keys.
     EqualToFunction equal_to_function_;
 
-    //! Number of buckets.
+    //! Number of buckets in teh table.
     size_t num_buckets_per_table_;
 
-    //! Keeps the total number of blocks in the table.
+    //! Total number of blocks in the table.
     size_t num_blocks_per_table_ = 0;
 
-    //! Number of items per partition.
+    //! Number of blocks per partition.
     std::vector<size_t> num_blocks_per_partition_;
 
     //! Emitter stats.
     std::vector<int> emit_stats_;
 
-    //! Data structure for actually storing the items.
+    //! Storing the items.
     std::vector<BucketBlock*> buckets_;
 
-    //! Keeps the expected number of items per partition.
+    //! Maximal number of blocks per partition.
     size_t max_num_blocks_per_partition_ = 0;
 
-    //! Keeps the total number of items in the table.
+    //! Total number of items in the table.
     size_t num_items_per_table_ = 0;
 
     //! Number of flushes.
     size_t num_flushes_ = 0;
 };
-
 } // namespace core
 } // namespace thrill
 

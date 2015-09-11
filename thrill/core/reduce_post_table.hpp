@@ -198,9 +198,9 @@ public:
 
         // add equivalent number of blocks to memory needed for pointers
         num_blocks_needed += std::max<size_t>((size_t)(std::ceil(
-                static_cast<double>(std::max<size_t>((size_t)(static_cast<double>(num_blocks_needed)
-                                                              * bucket_rate), 1) * sizeof(BucketBlock*))
-                / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                           static_cast<double>(std::max<size_t>((size_t)(static_cast<double>(num_blocks_needed)
+                                                                                                         * bucket_rate), 1) * sizeof(BucketBlock*))
+                                                           / static_cast<double>(sizeof(BucketBlock)))), 0);
 
         // spilled more frames to ensure to have enough memory to process frames
         while ((max_num_blocks_per_table - ht->NumBlocksPerTable()) < num_blocks_needed) {
@@ -212,7 +212,7 @@ public:
 
         // from now on, it is ensured enough internal memory is available to process
         // every frame
-        for (size_t frame_id = 0; frame_id !=  ht->NumFrames(); frame_id++) {
+        for (size_t frame_id = 0; frame_id != ht->NumFrames(); frame_id++) {
 
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
@@ -229,8 +229,8 @@ public:
 
                 // compute how much blocks are needed
                 size_t num_blocks = std::max<size_t>(
-                        (size_t) std::ceil(static_cast<double>(file.num_items())
-                                           / static_cast<double>(block_size)), 1);
+                    (size_t)std::ceil(static_cast<double>(file.num_items())
+                                      / static_cast<double>(block_size)), 1);
 
                 // calculate num buckets in second reduce table
                 size_t num_buckets_second = std::max<size_t>((size_t)(static_cast<double>(num_blocks)
@@ -238,8 +238,8 @@ public:
 
                 // keep enough memory for pointers
                 num_blocks += std::max<size_t>((size_t)(std::ceil(
-                        static_cast<double>(num_buckets_second * sizeof(BucketBlock*))
-                        / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                            static_cast<double>(num_buckets_second * sizeof(BucketBlock*))
+                                                            / static_cast<double>(sizeof(BucketBlock)))), 0);
 
                 // set up size of second reduce table
                 buckets_second.resize(num_buckets_second, nullptr);
@@ -419,8 +419,8 @@ public:
                     buckets_second[i] = nullptr;
                 }
 
-            // no spilled items, just flush already reduced
-            // data in primary table in current frame
+                // no spilled items, just flush already reduced
+                // data in primary table in current frame
             }
             else
             {
@@ -612,12 +612,12 @@ public:
      * \param begin_local_index Begin index for reduce to index.
      * \param end_local_index End index for reduce to index.
      * \param neutral element Neutral element for reduce to index.
-     * \param num_frames Number of frames in the table.
-     * \param max_frame_fill_rate Maximal number of items relative to maximal number of items in a frame.
-     *        It the number is exceeded, no more blocks are added to a bucket, instead, items get spilled to disk.
      * \param byte_size Maximal size of the table in byte. In case size of table exceeds that value, items
      *                  are flushed.
-     * \param frame_rate Number of blocks to number of frames rate one file writer to be used for.
+     * \param bucket_rate Ratio of number of blocks to number of buckets in the table.
+     * \param max_frame_fill_rate Maximal number of items relative to maximal number of items in a frame.
+     *        It the number is exceeded, no more blocks are added to a bucket, instead, items get spilled to disk.
+     * \param frame_rate Rate of number of buckets to number of frames. There is one file writer per frame.
      * \param equal_to_function Function for checking equality of two keys.
      */
     ReducePostTable(Context& ctx,
@@ -658,7 +658,7 @@ public:
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
 
         max_num_blocks_per_table_ = std::max<size_t>((size_t)(static_cast<double>(byte_size_)
-                                                          / static_cast<double>(sizeof(BucketBlock))), 1);
+                                                              / static_cast<double>(sizeof(BucketBlock))), 1);
         max_num_blocks_mem_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
                                                                   / static_cast<double>(num_frames_)), 1);
         num_buckets_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_mem_per_frame_)
@@ -668,8 +668,8 @@ public:
         // reduce number of blocks once we know how many buckets we have, thus
         // knowing the size of pointers in the bucket vector
         max_num_blocks_per_table_ -= std::max<size_t>((size_t)(std::ceil(
-                static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
-                / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                                   static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
+                                                                   / static_cast<double>(sizeof(BucketBlock)))), 0);
 
         assert(num_frames_ > 0);
         assert(max_num_blocks_per_table_ > 0);
@@ -901,7 +901,7 @@ public:
     }
 
     /*!
-     * Returns the total num of buckets in the table.
+     * Returns the num of buckets in the table.
      *
      * \return Number of buckets in the table.
      */
@@ -910,16 +910,16 @@ public:
     }
 
     /*!
-     * Returns the total num of buckets in the table.
+     * Returns the num of buckets in a frame.
      *
-     * \return Number of buckets in the table.
+     * \return Number of buckets in a frame.
      */
     size_t NumBucketsPerFrame() const {
         return num_buckets_per_frame_;
     }
 
     /*!
-     * Returns the total num of blocks in the table.
+     * Returns the num of blocks in the table.
      *
      * \return Number of blocks in the table.
      */
@@ -928,43 +928,42 @@ public:
     }
 
     /*!
-     * Returns the total num of blocks in the table.
+     * Returns the maximal num of blocks in the table.
      *
-     * \return Number of blocks in the table.
+     * \return Maximal number of blocks in the table.
      */
     size_t MaxNumBlocksPerTable() const {
         return max_num_blocks_per_table_;
     }
 
     /*!
-     * Sets the maximum number of blocks of the hash table. We don't want to push 2vt
-     * elements before flush happens.
+     * Sets the maximum number of blocks of the table.
      *
-     * \param size The maximal number of blocks the table may hold.
+     * \param size The maximal number of blocks the table.
      */
     void SetMaxNumBlocksTable(const size_t& size) {
         max_num_blocks_per_table_ = size;
     }
 
     /*!
-     * Sets the total num of blocks in the table.
+     * Sets the num of blocks in the table.
      */
     void SetNumBlocksPerTable(const size_t& num_blocks) {
         num_blocks_per_table_ = num_blocks;
     }
 
     /*!
-     * Returns the number of items.
+     * Returns the number of items in the table.
      *
-     * \return Number of items.
+     * \return Number of items in the table.
      */
     size_t NumItemsPerTable() const {
         return num_items_per_table_;
     }
 
     /*!
-     * Sets the total num of items in the table.
-     * Returns the total num of items in the table.
+     * Sets the num of items in the table.
+     * Returns the num of items in the table.
      *
      * \return Number of items in the table.
      */
@@ -982,9 +981,9 @@ public:
     }
 
     /*!
-     * Returns the maximal fill rate.
+     * Returns the maximal frame fill rate.
      *
-     * \return Maximal fill rate.
+     * \return Maximal frame fill rate.
      */
     double MaxFrameFillRate() const {
         return max_frame_fill_rate_;
@@ -1081,9 +1080,9 @@ public:
     }
 
     /*!
-     * Returns the bucket rate.
+     * Returns the block size.
      *
-     * \return Bucket rate.
+     * \return Block size.
      */
     size_t BlockSize() const {
         return block_size_;
@@ -1138,26 +1137,26 @@ public:
     }
 
 protected:
-    //! Number of buckets.
+    //! Number of buckets per table.
     size_t num_buckets_per_table_;
 
     // Maximal frame fill rate.
     double max_frame_fill_rate_;
 
-    //! Maximal number of blocks before some items
+    //! Maximal number of blocks in the table before some items
     //! are spilled.
     size_t max_num_blocks_per_table_;
 
-    //! Keeps the total number of blocks in the table.
+    //! Total number of blocks in the table.
     size_t num_blocks_per_table_ = 0;
 
     //! Set of emitters, one per partition.
     std::vector<EmitterFunction> emit_;
 
-    //! Size of the table in bytes
+    //! Size of the table in bytes.
     size_t byte_size_ = 0;
 
-    //! Bucket rate
+    //! Bucket rate.
     double bucket_rate_ = 0.0;
 
     //! Store the items.
@@ -1193,30 +1192,28 @@ protected:
     //! Flush function.
     FlushFunction flush_function_;
 
-    //! Keeps the total number of items in the table.
+    //! Number of items in the table.
     size_t num_items_per_table_ = 0;
 
-    //! Number of items per frame in internal memory.
+    //! Number of blocks per frame in internal memory.
     std::vector<size_t> num_blocks_mem_per_frame_;
 
-    //! Number of items per frame in external memory.
+    //! Number of blocks per frame in external memory.
     std::vector<size_t> num_blocks_ext_per_frame_;
 
-    //! Total num of spills.
+    //! Number of spills.
     size_t num_spills_;
 
-    //! Number of buckets in second table.
+    //! Number of buckets per frame.
     size_t num_buckets_per_frame_;
 
-    //! Maximal number of blocks before some items
-    //! are spilled.
+    //! Maximal number of blocks per frame.
     size_t max_num_blocks_mem_per_frame_;
 
 public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
-
 } // namespace core
 } // namespace thrill
 
