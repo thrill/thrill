@@ -7,4 +7,4 @@ set -e
 
 time ${build}/cache_count ${build}/headwords ${build}/output
 time ${build}/collapse_count ${build}/headwords ${build}/output
-# time ${build}/chain_count ${build}/headwords ${build}/output
+time ${build}/chain_count ${build}/headwords ${build}/output

@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
             std::string word;
             // word.reserve(1024);
             auto word_pairs = input_dia;
-            for (size_t i = 0; i < 1000; ++i) {
+            for (size_t i = 0; i < 10; ++i) {
                 word_pairs = word_pairs.Map([](const std::string& line) {
                         return line;
                     }).Cache();

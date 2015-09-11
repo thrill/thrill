@@ -39,32 +39,16 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
+    #define map Map([](const std::string& line) { return line; })
     auto start_func =
         [&input, &output](api::Context& ctx) {
             auto input_dia = ReadLines(ctx, input);
 
-            std::string word;
-            word.reserve(1024);
-            for (size_t i = 0; i < 10000; ++i) {
-                auto word_pairs = input_dia.template FlatMap<WordCountPair>(
-                    [&word](const std::string& line, auto emit) -> void {
-                        /* map lambda: emit each word */
-                        word.clear();
-                        for (auto it = line.begin(); it != line.end(); it++) {
-                            if (*it == ' ') {
-                                emit(WordCountPair(word, 1));
-                                emit(WordCountPair(word, 1));
-                                word.clear();
-                            }
-                            else {
-                                word.push_back(*it);
-                            }
-                        }
-                        emit(WordCountPair(word, 1));
-                        emit(WordCountPair(word, 1));
-                    });
-            }
+            auto word_pairs = input_dia
+                .map.map.map.map.map.map.map.map.map.map;
+            word_pairs.WriteLinesMany(output);
         };
+
     LOG1 << "Done";
 
     return api::Run(start_func);
