@@ -60,7 +60,7 @@ HostContext::ConstructLocalMock(size_t host_count, size_t workers_per_host) {
 /*!
  * Starts n hosts with multiple workers each, all running on this machine.
  * The hosts communicate via Sockets created by the socketpair call and do
- * not share a data::Multiplexer or net::FlowControlChannel. The workers withing
+ * not share a data::Multiplexer or net::FlowControlChannel. The workers within
  * the same host do share these components though.
  */
 void
@@ -95,7 +95,6 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
     }
 
     // join worker threads
-
     for (size_t i = 0; i < host_count * workers_per_host; i++) {
         threads[i].join();
     }
