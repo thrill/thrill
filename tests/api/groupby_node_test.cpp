@@ -78,7 +78,6 @@ TEST(GroupByNode, Compile_and_Sum) {
     api::RunLocalTests(start_func);
 }
 
-
 TEST(GroupByNode, Median) {
 
     std::function<void(Context&)> start_func =
@@ -105,7 +104,7 @@ TEST(GroupByNode, Median) {
                     for (auto c : all) {
                         LOG << c;
                     }
-                    return static_cast<int>(all[all.size()/2 - 1]);
+                    return static_cast<int>(all[all.size() / 2 - 1]);
                 };
 
             // group by to compute sum and gather results
@@ -113,14 +112,14 @@ TEST(GroupByNode, Median) {
             std::vector<int> out_vec = reduced.AllGather();
 
             // compute vector with expected results
-            std::vector<std::vector<unsigned>> res_vecvec(m);
+            std::vector<std::vector<unsigned> > res_vecvec(m);
             std::vector<unsigned> res_vec(m, 0);
             for (unsigned t = 1; t <= n; ++t) {
                 res_vecvec[t % m].push_back(t);
             }
             for (std::size_t i = 0; i < res_vecvec.size(); ++i) {
                 std::sort(std::begin(res_vecvec[i]), std::end(res_vecvec[i]));
-                res_vec[i] = res_vecvec[i][res_vecvec[i].size()/2 - 1];
+                res_vec[i] = res_vecvec[i][res_vecvec[i].size() / 2 - 1];
             }
 
             std::sort(out_vec.begin(), out_vec.end());
