@@ -2,13 +2,17 @@
 
 set -e
 
-./slurmCheck.sh
+slurm="`dirname "$0"`"
+slurm="`cd "$cluster"; pwd`"
+cluster=${slurm}/../cluster
+
+${slurm}/slurmCheck.sh
 
 ip addr list
 
 # set and export environment for Thrill
-THRILL_HOSTLIST=$(./getSlurmHostlist.sh | awk -f map_ib0.awk)
-THRILL_RANK=$(./getSlurmRank.sh)
+THRILL_HOSTLIST=$(${slurm}/getSlurmHostlist.sh | awk -f map_ib0.awk)
+THRILL_RANK=$(${slurm}/getSlurmRank.sh)
 
 export THRILL_HOSTLIST THRILL_RANK
 
@@ -22,7 +26,6 @@ echo "THRILL_RANK:     $THRILL_RANK"
 # this enables continuation if one of the commands fails
 set +e
 
-# --- Commands to run ----------------------------------------------------------
 
-../../build/benchmarks/data_channel -b 1000mi AllPairs size_t
-../../build/benchmarks/data_channel -b 1000mi Full size_t
+. ${cluster}/thrill-env.sh
+. ${THRILL_TASK}
