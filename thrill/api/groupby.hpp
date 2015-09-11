@@ -179,14 +179,14 @@ public:
         MainOp();
     }
 
-    void ProcessGroup(data::File& f) {
-        auto r = f.GetReader();
-        std::vector<std::function<void(const ValueType&)> > cbs;
-        DIANode<ValueType>::callback_functions(cbs);
-    }
+    // void ProcessGroup(data::File& f) {
+    //     auto r = f.GetReader();
+    //     std::vector<std::function<void(const ValueType&)> > cbs;
+    //     DIANode<ValueType>::callback_functions(cbs);
+    // }
 
-    void PushData() override {
-        auto r = sorted_elems_.GetReader();
+    void PushData(bool consume) final {
+        auto r = sorted_elems_.GetReader(consume);
         if (r.HasNext()) {
             // create iterator to pass to user_function
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor>(r, key_extractor_);
@@ -267,6 +267,7 @@ private:
 
         LOG << ToString() << " running group by main op";
 
+        const bool consume = true;
         const std::size_t FIXED_VECTOR_SIZE = 99999;
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
@@ -279,7 +280,7 @@ private:
         std::size_t totalsize = 0;
 
         // get incoming elements
-        auto reader = channel_->OpenReader();
+        auto reader = channel_->OpenConcatReader(consume);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
@@ -293,13 +294,14 @@ private:
         }
         totalsize += incoming.size();
         FlushVectorToFile(incoming);
+        std::vector<ValueIn>().swap(incoming);
 
         const auto num_runs = files_.size();
 
         // if there's only one run, store it
         if (num_runs == 1) {
             auto w = sorted_elems_.GetWriter();
-            auto r = files_[0].GetReader();
+            auto r = files_[0].GetReader(consume);
             {
                 while(r.HasNext()) {
                     w(r.template Next<ValueIn>());
@@ -310,7 +312,7 @@ private:
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
             for (std::size_t t = 0; t < num_runs; ++t) {
-                auto reader = std::make_shared<Reader>(files_[t].GetReader());
+                auto reader = std::make_shared<Reader>(files_[t].GetReader(consume));
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].NumItems(), false);
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));

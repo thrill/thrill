@@ -169,7 +169,7 @@ TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
     }
 
     for (std::size_t t = 0; t < in.size(); ++t) {
-        auto reader = std::make_shared<Reader>(in[t].GetReader());
+        auto reader = std::make_shared<Reader>(in[t].GetReader(true));
         Iterator s(&in[t], reader, 0, true);
         Iterator e(&in[t], reader, in[t].NumItems(), false);
         seq.push_back(std::make_pair(s, e));
@@ -188,7 +188,7 @@ TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
                                                                      std::less<int>());
     }
 
-    auto r = output_file.GetReader();
+    auto r = output_file.GetReader(true);
     for (std::size_t i = 0; i < total; ++i) {
         auto e = r.Next<int>();
         // sLOG << std::setw(3) << ref[i] << std::setw(3) << e;
@@ -239,7 +239,7 @@ TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
     }
 
     for (std::size_t t = 0; t < in.size(); ++t) {
-        auto reader = std::make_shared<Reader>(in[t].GetReader());
+        auto reader = std::make_shared<Reader>(in[t].GetReader(true));
         Iterator s(&in[t], reader, 0, true);
         Iterator e(&in[t], reader, in[t].NumItems(), false);
         seq.push_back(std::make_pair(s, e));
@@ -257,7 +257,7 @@ TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
                                                                      std::less<int>());
     }
 
-    auto r = output_file.GetReader();
+    auto r = output_file.GetReader(true);
     for (std::size_t i = 0; i < total; ++i) {
         auto e = r.Next<int>();
         // sLOG << std::setw(3) << ref[i] << std::setw(3) << e;
