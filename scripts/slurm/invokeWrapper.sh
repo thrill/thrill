@@ -1,3 +1,3 @@
 #!/bin/bash
 
-srun invoke.sh
+srun ${slurm}/invoke.sh
