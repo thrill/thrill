@@ -97,7 +97,15 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
 
                     LOG << "Starting job on host " << ctx.host_rank();
                     auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
-                    job_startpoint(ctx);
+                    try {
+                        job_startpoint(ctx);
+                    }
+                    catch (std::exception& e) {
+                        LOG1 << "Worker " << worker
+                             << " threw " << typeid(e).name();
+                        LOG1 << "  what(): " << e.what();
+                        throw;
+                    }
                     STOP_TIMER(overall_timer)
                     LOG << "Worker " << worker << " done!";
                     ctx.Barrier();
