@@ -64,7 +64,7 @@ public:
 
     ValueIn Next() {
         assert(!is_reader_empty);
-        auto elem = elem_;
+        ValueIn elem = elem_;
         GetNextElem();
         return elem;
     }
@@ -114,8 +114,12 @@ class GroupByNode : public DOpNode<ValueType>
     using ValueOut = ValueType;
     using GroupIterator = typename common::FunctionTraits<GroupFunction>
                       ::template arg<0>;
-    using ValueIn = typename std::remove_reference<GroupIterator>::type::ValueIn;
-    using Reader = typename data::File::Reader;
+    using ValueIn = typename common::FunctionTraits<KeyExtractor>
+                      ::template arg<0>;
+
+    using File = data::File;
+    using Reader = typename File::Reader;
+    using Writer = typename File::Writer;
 
     struct ValueComparator
     {
@@ -179,14 +183,8 @@ public:
         MainOp();
     }
 
-    // void ProcessGroup(data::File& f) {
-    //     auto r = f.GetReader();
-    //     std::vector<std::function<void(const ValueType&)> > cbs;
-    //     DIANode<ValueType>::callback_functions(cbs);
-    // }
-
     void PushData(bool consume) final {
-        auto r = sorted_elems_.GetReader(consume);
+        Reader r = sorted_elems_.GetReader(consume);
         if (r.HasNext()) {
             // create iterator to pass to user_function
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor>(r, key_extractor_);
@@ -245,10 +243,10 @@ private:
     void FlushVectorToFile(std::vector<ValueIn>& v) {
         // sort run and sort to file
         std::sort(v.begin(), v.end(), ValueComparator(*this));
-        auto f = context_.GetFile();
+        File f = context_.GetFile();
         {
-            auto w = f.GetWriter();
-            for (const auto& e : v) {
+            Writer w = f.GetWriter();
+            for (const ValueIn& e : v) {
                 w(e);
             }
             w.Close();
@@ -261,9 +259,6 @@ private:
     auto MainOp() {
         using Iterator = thrill::core::StxxlFileWrapper<ValueIn>;
         using OIterator = thrill::core::StxxlFileOutputWrapper<ValueIn>;
-        using File = data::File;
-        using Reader = File::Reader;
-        using Writer = File::Writer;
 
         LOG << "running group by main op";
 
@@ -289,19 +284,19 @@ private:
                 incoming.clear();
             }
             // store incoming element
-            const auto elem = reader.template Next<ValueIn>();
+            const ValueIn elem = reader.template Next<ValueIn>();
             incoming.push_back(elem);
         }
         totalsize += incoming.size();
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
 
-        const auto num_runs = files_.size();
+        const std::size_t num_runs = files_.size();
 
         // if there's only one run, store it
         if (num_runs == 1) {
-            auto w = sorted_elems_.GetWriter();
-            auto r = files_[0].GetReader(consume);
+            Writer w = sorted_elems_.GetWriter();
+            Reader r = files_[0].GetReader(consume);
             {
                 while(r.HasNext()) {
                     w(r.template Next<ValueIn>());
@@ -312,7 +307,7 @@ private:
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
             for (std::size_t t = 0; t < num_runs; ++t) {
-                auto reader = std::make_shared<Reader>(files_[t].GetReader(consume));
+                std::shared_ptr<Reader> reader = std::make_shared<Reader>(files_[t].GetReader(consume));
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
