@@ -114,7 +114,7 @@ public:
         for (size_type i = 0; i < (2 * k); ++i)
             losers[i].~Loser();
 
-        delete losers;
+        delete[] losers;
     }
 
     void print(std::ostream& os)
