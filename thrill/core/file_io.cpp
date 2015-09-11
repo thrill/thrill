@@ -347,6 +347,71 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
 /******************************************************************************/
 
+#if defined(_MSC_VER)
+
+std::string TemporaryDirectory::make_directory(const char* sample) {
+
+    char temp_file_path[MAX_PATH + 1] = { 0 };
+    unsigned success = ::GetTempFileName(".", sample, 0, temp_file_path);
+    if (!success) {
+        throw common::ErrnoException(
+            "Could not allocate temporary directory "
+            + std::string(temp_file_path));
+    }
+
+    if (!DeleteFile(temp_file_path)) {
+        throw common::ErrnoException(
+            "Could not create temporary directory "
+            + std::string(temp_file_path));
+    }
+
+    if (!CreateDirectory(temp_file_path, NULL)) {
+        throw common::ErrnoException(
+            "Could not create temporary directory "
+            + std::string(temp_file_path));
+    }
+
+    return temp_file_path;
+}
+
+void TemporaryDirectory::wipe_directory(
+    const std::string& tmp_dir, bool do_rmdir) {
+
+    WIN32_FIND_DATA ff_data;
+    HANDLE h = FindFirstFile((tmp_dir + "\\*").c_str(), &ff_data);
+
+    if (h == INVALID_HANDLE_VALUE) {
+        throw common::ErrnoException(
+            "FindFirstFile failed:" + std::to_string(GetLastError()));
+    }
+
+    do {
+        if (!(ff_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            std::string path = tmp_dir + "\\" + ff_data.cFileName;
+
+            if (!DeleteFile(path.c_str())) {
+                sLOG1 << "Could not unlink temporary file" << path
+                      << ":" << strerror(errno);
+            }
+        }
+    } while (FindNextFile(h, &ff_data) != 0);
+
+    DWORD e = GetLastError();
+    if (e != ERROR_NO_MORE_FILES) {
+        throw common::ErrnoException(
+            "FindFirstFile failed:" + std::to_string(GetLastError()));
+    }
+
+    if (!do_rmdir) return;
+
+    if (!RemoveDirectory(tmp_dir.c_str())) {
+        throw common::ErrnoException(
+            "Could not remove temporary directory " + tmp_dir);
+    }
+}
+
+#else
+
 std::string TemporaryDirectory::make_directory(const char* sample) {
 
     std::string tmp_dir = std::string(sample) + "XXXXXX";
