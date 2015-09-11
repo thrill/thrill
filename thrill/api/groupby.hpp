@@ -34,29 +34,30 @@ template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode;
 
-
 template <typename ValueType, typename KeyExtractor>
-class GroupByIterator {
-template <typename T1,
-          typename T2,
-          typename T3,
-          typename T4,
-          typename T5> friend class GroupByNode;
+class GroupByIterator
+{
+    template <typename T1,
+              typename T2,
+              typename T3,
+              typename T4,
+              typename T5>
+    friend class GroupByNode;
+
 public:
     static const bool debug = false;
     using ValueIn = ValueType;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using Reader = typename data::File::Reader;
 
-    GroupByIterator(Reader& reader, KeyExtractor &key_extractor)
-                  : reader_(reader),
-                    key_extractor_(key_extractor),
-                    is_first_elem_(true),
-                    is_reader_empty(false),
-                    elem_(reader.template Next<ValueIn>()),
-                    old_key_(key_extractor_(elem_)),
-                    new_key_(old_key_) {
-    }
+    GroupByIterator(Reader& reader, KeyExtractor& key_extractor)
+        : reader_(reader),
+          key_extractor_(key_extractor),
+          is_first_elem_(true),
+          is_reader_empty(false),
+          elem_(reader.template Next<ValueIn>()),
+          old_key_(key_extractor_(elem_)),
+          new_key_(old_key_) { }
 
     bool HasNext() {
         return (!is_reader_empty && old_key_ == new_key_) || is_first_elem_;
@@ -90,13 +91,14 @@ private:
             elem_ = reader_.template Next<ValueIn>();
             old_key_ = new_key_;
             new_key_ = key_extractor_(elem_);
-        } else {
+        }
+        else {
             is_reader_empty = true;
         }
     }
 
     void SetFirstElem() {
-        assert (reader_.HasNext());
+        assert(reader_.HasNext());
         is_first_elem_ = true;
         elem_ = reader_.template Next<ValueIn>();
         old_key_ = key_extractor_(elem_);
@@ -113,9 +115,9 @@ class GroupByNode : public DOpNode<ValueType>
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
     using GroupIterator = typename common::FunctionTraits<GroupFunction>
-                      ::template arg<0>;
+                          ::template arg<0>;
     using ValueIn = typename common::FunctionTraits<KeyExtractor>
-                      ::template arg<0>;
+                    ::template arg<0>;
 
     using File = data::File;
     using Reader = typename File::Reader;
@@ -188,7 +190,7 @@ public:
         if (r.HasNext()) {
             // create iterator to pass to user_function
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor>(r, key_extractor_);
-            while(user_iterator.HasNextForReal()){
+            while (user_iterator.HasNextForReal()) {
                 // call user function
                 const ValueOut res = groupby_function_(user_iterator);
                 // push result to callback functions
@@ -298,11 +300,11 @@ private:
             Writer w = sorted_elems_.GetWriter();
             Reader r = files_[0].GetReader(consume);
             {
-                while(r.HasNext()) {
+                while (r.HasNext()) {
                     w(r.template Next<ValueIn>());
                 }
             }
-        } // otherwise sort all runs using multiway merge
+        }       // otherwise sort all runs using multiway merge
         else {
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
