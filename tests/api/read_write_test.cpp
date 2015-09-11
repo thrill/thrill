@@ -32,6 +32,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <fstream>
 
 using namespace thrill;
 using thrill::api::Context;
@@ -299,6 +300,8 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
                                      return std::stoi(line);
                                  });
 
+            ASSERT_EQ(16u, integers.Size());
+
             integers.WriteBinary(tmpdir.get() + "/output_");
 
             std::string path = "outputs/testsf.out";
@@ -318,7 +321,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
             // still writing to output file.
             ctx.Barrier();
 
-            std::ifstream file(path);
+            std::ifstream file(path, std::ios::binary);
             size_t begin = file.tellg();
             file.seekg(0, std::ios::end);
             size_t end = file.tellg();

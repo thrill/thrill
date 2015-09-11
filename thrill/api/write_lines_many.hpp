@@ -20,7 +20,6 @@
 #include <thrill/core/stage_builder.hpp>
 #include <thrill/net/buffer_builder.hpp>
 
-#include <fstream>
 #include <string>
 
 namespace thrill {

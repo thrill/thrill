@@ -20,7 +20,6 @@
 #include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
 
-#include <fstream>
 #include <random>
 #include <string>
 #include <type_traits>

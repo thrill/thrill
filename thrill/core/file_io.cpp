@@ -25,6 +25,10 @@
 #include <unistd.h>
 #include <dirent.h>
 
+#if !defined(O_BINARY)
+#define O_BINARY 0
+#endif
+
 #else
 
 #include <windows.h>
@@ -181,7 +185,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
     // first open the file and see if it exists at all.
 
-    int fd = open(path.c_str(), O_RDONLY, 0);
+    int fd = open(path.c_str(), O_RDONLY | O_BINARY, 0);
     if (fd < 0) {
         throw common::ErrnoException("Cannot open file " + path);
     }
@@ -265,7 +269,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     // first create the file and see if we can write it at all.
 
-    int fd = open(path.c_str(), O_CREAT | O_WRONLY, 0666);
+    int fd = open(path.c_str(), O_CREAT | O_WRONLY | O_BINARY, 0666);
     if (fd < 0) {
         throw common::ErrnoException("Cannot create file " + path);
     }
@@ -443,8 +447,8 @@ void TemporaryDirectory::wipe_directory(
         std::string path = tmp_dir + "/" + de->d_name;
         int r = unlink(path.c_str());
         if (r != 0)
-            sLOG1 << "Could not unlink temporary file " << path
-                  << ": " << strerror(errno);
+            sLOG1 << "Could not unlink temporary file" << path
+                  << ":" << strerror(errno);
     }
 
     closedir(d);
@@ -452,10 +456,12 @@ void TemporaryDirectory::wipe_directory(
     if (!do_rmdir) return;
 
     if (rmdir(tmp_dir.c_str()) != 0) {
-        sLOG1 << "Could not unlink temporary directory " << tmp_dir
-              << ": " << strerror(errno);
+        sLOG1 << "Could not unlink temporary directory" << tmp_dir
+              << ":" << strerror(errno);
     }
 }
+
+#endif
 
 } // namespace core
 } // namespace thrill
