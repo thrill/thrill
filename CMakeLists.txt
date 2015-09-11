@@ -173,7 +173,7 @@ endif(USE_GCOV)
 enable_testing()
 
 # google test + mock - enable "make test" and add_test()
-add_subdirectory(extlib/gtest)
+add_subdirectory(extlib/googletest/googletest)
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 # general valgrind setting, if run with USE_VALGRIND=ON.

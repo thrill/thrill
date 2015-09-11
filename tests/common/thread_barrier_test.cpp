@@ -10,9 +10,8 @@
 #include <gtest/gtest.h>
 #include <thrill/common/thread_barrier.hpp>
 
-#include <unistd.h>
-
 #include <atomic>
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <random>
@@ -41,10 +40,12 @@ static void TestWaitFor(int count, int slowThread = -1) {
                 rng();
 
                 if (slowThread == -1) {
-                    usleep(rng() % maxWaitTime);
+                    std::this_thread::sleep_for(
+                        std::chrono::microseconds(rng() % maxWaitTime));
                 }
                 else if (i == slowThread) {
-                    usleep(rng() % maxWaitTime);
+                    std::this_thread::sleep_for(
+                        std::chrono::microseconds(rng() % maxWaitTime));
                 }
 
                 flags[i] = true;

@@ -43,12 +43,12 @@ std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
             sp.first.SetNonBlocking(true);
             sp.second.SetNonBlocking(true);
 
-            group[i].connections_[j] = std::move(Connection(sp.first));
-            group[j].connections_[i] = std::move(Connection(sp.second));
+            group[i].connections_[j] = Connection(sp.first);
+            group[j].connections_[i] = Connection(sp.second);
         }
     }
 
-    return std::move(group);
+    return group;
 }
 
 void Group::ExecuteLocalMock(

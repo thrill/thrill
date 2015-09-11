@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "0123456789";
 
-    std::default_random_engine rng({ std::random_device()() });
+    std::default_random_engine rng(std::random_device { } ());
     std::uniform_int_distribution<> dist(l, u);
 
     std::vector<std::string> strings;
