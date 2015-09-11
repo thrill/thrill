@@ -323,7 +323,7 @@ auto DIARef<ValueType, Stack>::ReducePair(
         "ReduceFunction has the wrong output type");
 
     using Key = typename ValueType::first_type;
-	using Value = typename ValueType::second_type;
+    using Value = typename ValueType::second_type;
 
     StatsNode* stats_node = AddChildStatsNode("ReducePair", DIANodeType::DOP);
     using ReduceResultNode

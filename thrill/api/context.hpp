@@ -69,7 +69,7 @@ public:
     size_t workers_per_host() const { return workers_per_host_; }
 
     //! host-global memory manager
-    mem::Manager& mem_manager() { return mem_manager_; }
+    mem::Manager & mem_manager() { return mem_manager_; }
 
     //! net manager constructs communication groups to other hosts.
     net::Manager & net_manager() { return net_manager_; }
@@ -242,7 +242,7 @@ public:
     }
 
     //! returns the host-global memory manager
-    mem::Manager& mem_manager() { return mem_manager_; }
+    mem::Manager & mem_manager() { return mem_manager_; }
 
 private:
     //! host-global memory manager
