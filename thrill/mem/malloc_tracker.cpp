@@ -123,7 +123,7 @@ size_t malloc_tracker_total_allocs() {
 
 //! user function which prints current and peak allocation to stderr
 void malloc_tracker_print_status() {
-    fprintf(stderr, PPREFIX "current %lu, peak %lu\n",
+    fprintf(stderr, PPREFIX "current %zu, peak %zu\n",
             curr, peak);
 }
 
@@ -172,8 +172,8 @@ static __attribute__ ((constructor)) void init() { // NOLINT
 ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((destructor)) void finish() { // NOLINT
     fprintf(stderr, PPREFIX
-            "exiting, total: %lu, peak: %lu, current: %lu, "
-            "allocs: %lu, unfreed: %lu\n",
+            "exiting, total: %zu, peak: %zu, current: %zu, "
+            "allocs: %zu, unfreed: %zu\n",
             total, peak, curr,
             total_allocs, current_allocs);
 }
@@ -208,7 +208,7 @@ static void * preinit_malloc(size_t size) noexcept {
     inc_count(aligned_size);
 
     if (log_operations_init_heap) {
-        fprintf(stderr, PPREFIX "malloc(%lu / %lu) = %p   on init heap\n",
+        fprintf(stderr, PPREFIX "malloc(%zu / %zu) = %p   on init heap\n",
                 size, aligned_size, ret + padding);
     }
 
@@ -264,7 +264,7 @@ static void preinit_free(void* ptr) {
     dec_count(size);
 
     if (log_operations_init_heap) {
-        fprintf(stderr, PPREFIX "free(%p) -> %lu   on init heap\n", ptr, size);
+        fprintf(stderr, PPREFIX "free(%p) -> %zu   on init heap\n", ptr, size);
     }
 }
 
@@ -287,6 +287,9 @@ static void preinit_free(void* ptr) {
 #define NOEXCEPT noexcept
 #define MALLOC_USABLE_SIZE malloc_usable_size
 #include <malloc.h>
+
+#include <execinfo.h>
+#include <unistd.h>
 
 #endif
 
@@ -312,8 +315,28 @@ void * malloc(size_t size) NOEXCEPT {
     inc_count(size_used);
 
     if (log_operations && size_used >= log_operations_threshold) {
-        fprintf(stderr, PPREFIX "malloc(%lu / %lu) = %p   (current %lu)\n",
+        fprintf(stderr, PPREFIX "malloc(%zu / %zu) = %p   (current %zu)\n",
                 size, size_used, ret, curr);
+
+#if __linux__ && 0
+        static thread_local bool recursive = false;
+
+        if (!recursive) {
+            recursive = true;
+
+            // storage array for stack trace address data
+            void* addrlist[64 + 1];
+
+            // retrieve current stack addresses
+            int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
+
+            fprintf(stderr, "--- begin stack -------------------------------\n");
+            backtrace_symbols_fd(addrlist, addrlen, STDERR_FILENO);
+            fprintf(stderr, "--- end stack ---------------------------------\n");
+
+            recursive = false;
+        }
+#endif
     }
 
     return ret;
@@ -341,7 +364,7 @@ void free(void* ptr) NOEXCEPT {
     dec_count(size_used);
 
     if (log_operations && size_used >= log_operations_threshold) {
-        fprintf(stderr, PPREFIX "free(%p) -> %lu   (current %lu)\n",
+        fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu)\n",
                 ptr, size_used, curr);
     }
 
@@ -389,11 +412,11 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     {
         if (newptr == ptr)
             fprintf(stderr, PPREFIX
-                    "realloc(%lu -> %lu / %lu) = %p   (current %lu)\n",
+                    "realloc(%zu -> %zu / %zu) = %p   (current %zu)\n",
                     oldsize_used, size, newsize_used, newptr, curr);
         else
             fprintf(stderr, PPREFIX
-                    "realloc(%lu -> %lu / %lu) = %p -> %p   (current %lu)\n",
+                    "realloc(%zu -> %zu / %zu) = %p -> %p   (current %zu)\n",
                     oldsize_used, size, newsize_used, ptr, newptr, curr);
     }
 
@@ -421,7 +444,7 @@ void * malloc(size_t size) NOEXCEPT {
 
     inc_count(size);
     if (log_operations && size >= log_operations_threshold) {
-        fprintf(stderr, PPREFIX "malloc(%lu) = %p   (current %lu)\n",
+        fprintf(stderr, PPREFIX "malloc(%zu) = %p   (current %zu)\n",
                 size, static_cast<char*>(ret) + padding, curr);
     }
 
@@ -463,7 +486,7 @@ void free(void* ptr) NOEXCEPT {
     dec_count(size);
 
     if (log_operations && size >= log_operations_threshold) {
-        fprintf(stderr, PPREFIX "free(%p) -> %lu   (current %lu)\n",
+        fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu)\n",
                 ptr, size, curr);
     }
 
@@ -519,11 +542,11 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     {
         if (newptr == ptr)
             fprintf(stderr, PPREFIX
-                    "realloc(%lu -> %lu) = %p   (current %lu)\n",
+                    "realloc(%zu -> %zu) = %p   (current %zu)\n",
                     oldsize, size, newptr, curr);
         else
             fprintf(stderr, PPREFIX
-                    "realloc(%lu -> %lu) = %p -> %p   (current %lu)\n",
+                    "realloc(%zu -> %zu) = %p -> %p   (current %zu)\n",
                     oldsize, size, ptr, newptr, curr);
     }
 

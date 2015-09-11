@@ -73,6 +73,9 @@ public:
     //! number of workers per host (all have the same).
     size_t workers_per_host() const { return workers_per_host_; }
 
+    //! host-global memory manager
+    mem::Manager& mem_manager() { return mem_manager_; }
+
     //! net manager constructs communication groups to other hosts.
     net::Manager & net_manager() { return net_manager_; }
 
@@ -116,12 +119,14 @@ protected:
 class Context
 {
 public:
-    Context(net::Manager& net_manager,
+    Context(mem::Manager& mem_manager,
+            net::Manager& net_manager,
             net::FlowControlChannelManager& flow_manager,
             data::BlockPool& block_pool,
             data::Multiplexer& multiplexer,
             size_t workers_per_host, size_t local_worker_id)
-        : net_manager_(net_manager),
+        : mem_manager_(mem_manager),
+          net_manager_(net_manager),
           flow_manager_(flow_manager),
           block_pool_(block_pool),
           multiplexer_(multiplexer),
@@ -131,7 +136,8 @@ public:
     }
 
     Context(HostContext& host_context, size_t local_worker_id)
-        : net_manager_(host_context.net_manager()),
+        : mem_manager_(host_context.mem_manager()),
+          net_manager_(host_context.net_manager()),
           flow_manager_(host_context.flow_manager()),
           block_pool_(host_context.block_pool()),
           multiplexer_(host_context.data_multiplexer()),
@@ -222,7 +228,7 @@ public:
     //! the context and must be called on all Workers to ensure correct
     //! communication coordination.
     data::ChannelPtr GetNewChannel() {
-        return std::move(multiplexer_.GetNewChannel(local_worker_id_));
+        return multiplexer_.GetNewChannel(local_worker_id_);
     }
 
     //! the block manager keeps all data blocks moving through the system.
@@ -240,7 +246,13 @@ public:
         return stats_graph_;
     }
 
+    //! returns the host-global memory manager
+    mem::Manager& mem_manager() { return mem_manager_; }
+
 private:
+    //! host-global memory manager
+    mem::Manager& mem_manager_;
+
     //! net::Manager instance that is shared among workers
     net::Manager& net_manager_;
 
@@ -275,19 +287,19 @@ static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
  */
 void
 RunLocalMock(size_t host_count, size_t local_host_count,
-             std::function<void(api::Context&)> job_startpoint);
+             const std::function<void(api::Context&)>& job_startpoint);
 
 /*!
  * Helper Function to execute tests using mock networks in test suite for many
  * different numbers of workers and hosts as independent threads in one program.
  */
-void RunLocalTests(std::function<void(Context&)> job_startpoint);
+void RunLocalTests(const std::function<void(Context&)>& job_startpoint);
 
 /*!
  * Runs the given job_startpoint within the same thread -->
  * one host with one thread
  */
-void RunSameThread(std::function<void(Context&)> job_startpoint);
+void RunSameThread(const std::function<void(Context&)>& job_startpoint);
 
 /*!
  * Runs the given job startpoint with a context instance.  Startpoints may be
@@ -303,7 +315,7 @@ void RunSameThread(std::function<void(Context&)> job_startpoint);
  * non-zero return value of any thread is returned.
  */
 int Run(
-    std::function<void(Context&)> job_startpoint,
+    const std::function<void(Context&)>& job_startpoint,
     const std::string& log_prefix = std::string());
 
 //! \}

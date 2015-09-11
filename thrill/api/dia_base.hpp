@@ -102,7 +102,7 @@ public:
     virtual void Execute() = 0;
 
     //! Virtual method for pushing data. Triggers actual pushing in sub-classes.
-    virtual void PushData() = 0;
+    virtual void PushData(bool consume) = 0;
 
     //! Virtual clear method. Triggers actual disposing in sub-classes.
     virtual void Dispose() = 0;
@@ -116,37 +116,43 @@ public:
         return stats_node_->label();
     }
 
+    //! Virtual SetConsume flag which is called by the user via .Keep() or
+    //! .Consume() to set consumption.
+    virtual void SetConsume(bool consume) {
+        consume_on_push_data_ = consume;
+    }
+
     const DIANodeType & type() const {
         assert(stats_node_);
         return stats_node_->type();
     }
 
     //! Returns the children of this DIABase.
-    //! \return A vector of all children
     const std::vector<DIABase*> & children() {
         return children_;
     }
 
     //! Returns the parents of this DIABase.
-    //! \return A vector of all parents
     const std::vector<std::shared_ptr<DIABase> > & parents() {
         return parents_;
     }
 
     //! Returns the api::Context of this DIABase.
-    //! \return The api::Context of this DIABase.
     Context & context() {
         return context_;
     }
 
+    //! Return the Context's memory manager
+    mem::Manager& mem_manager() {
+        return context_.mem_manager();
+    }
+
     //! Adds a child to the vector of children. This method is called in the constructor.
-    //! \param child The child to add.
     void add_child(DIABase* child) {
         children_.push_back(child);
     }
 
     //! Returns the unique ID of this DIABase.
-    //! \return The unique ID of this DIABase.
     size_t id() const {
         assert(stats_node_);
         return stats_node_->id();
@@ -158,6 +164,10 @@ public:
 
     DIAState set_state(DIAState state) {
         return state_ = state;
+    }
+
+    bool consume_on_push_data() const {
+        return consume_on_push_data_;
     }
 
     // Why are these stupid functions here?
@@ -225,6 +235,9 @@ protected:
 
     //! Timer that tracks the lifetime of this object
     api::StatsNode* stats_node_;
+
+    //! General consumption flag: set to true by default.
+    bool consume_on_push_data_ = true;
 };
 
 //! \}

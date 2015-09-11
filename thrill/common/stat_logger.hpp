@@ -55,7 +55,8 @@ public:
         if (elements_ > 0) {
             if (elements_ % 2 == 0) {
                 oss_ << ",";
-            } else {
+            }
+            else {
                 oss_ << ":";
             }
         }

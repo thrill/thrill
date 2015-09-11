@@ -69,8 +69,8 @@ public:
         }
     }
 
-    void PushData() final {
-        data::Channel::CachingConcatReader readers = channel_->OpenCachingReader();
+    void PushData(bool consume) final {
+        data::Channel::ConcatReader readers = channel_->OpenConcatReader(consume);
 
         while (readers.HasNext()) {
             this->PushItem(readers.Next<ValueType>());

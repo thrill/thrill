@@ -131,7 +131,7 @@ public:
         manager_.add(n * sizeof(Type));
 
         if (debug) {
-            printf("allocate() n=%lu sizeof(T)=%lu total=%lu\n",
+            printf("allocate() n=%zu sizeof(T)=%zu total=%zu\n",
                    n, sizeof(Type), manager_.total());
         }
 
@@ -145,7 +145,7 @@ public:
         manager_.subtract(n * sizeof(Type));
 
         if (debug) {
-            printf("deallocate() n=%lu sizeof(T)=%lu total=%lu\n",
+            printf("deallocate() n=%zu sizeof(T)=%zu total=%zu\n",
                    n, sizeof(Type), manager_.total());
         }
 
@@ -242,6 +242,13 @@ static inline by_string to_string(long val) {
 static inline by_string to_string(unsigned long val) {
     return common::str_snprintf<by_string>(4 * sizeof(long), "%lu", val);
 }
+
+#if defined(_MSC_VER)
+//! convert to string
+static inline by_string to_string(size_t val) {
+    return common::str_snprintf<by_string>(4 * sizeof(long), "%zu", val);
+}
+#endif
 
 } // namespace mem
 } // namespace thrill
