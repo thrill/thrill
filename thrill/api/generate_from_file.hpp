@@ -74,7 +74,7 @@ public:
     void PushData(bool /* consume */) final {
         LOG << "GENERATING data to file " << this->id();
 
-        std::ifstream file(path_in_);
+        std::ifstream file(path_in_, std::ios::binary);
         assert(file.good());
 
         std::string line;
