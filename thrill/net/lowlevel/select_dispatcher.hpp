@@ -110,7 +110,7 @@ public:
         Watch& w = watch_[fd];
         w.read_cb.clear();
         w.write_cb.clear();
-        w.except_cb = nullptr;
+        w.except_cb = Callback();
         w.active = false;
     }
 

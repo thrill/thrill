@@ -153,7 +153,7 @@ protected:
 };
 
 inline
-typename BlockQueue::ConsumeReader BlockQueue::GetConsumeReader() {
+BlockQueue::ConsumeReader BlockQueue::GetConsumeReader() {
     assert(!read_closed_);
     return ConsumeReader(ConsumeBlockQueueSource(*this));
 }
@@ -233,7 +233,7 @@ DynBlockSource BlockQueue::GetBlockSource(bool consume) {
 }
 
 inline
-typename BlockQueue::Reader BlockQueue::GetReader(bool consume) {
+BlockQueue::Reader BlockQueue::GetReader(bool consume) {
     return DynBlockReader(GetBlockSource(consume));
 }
 

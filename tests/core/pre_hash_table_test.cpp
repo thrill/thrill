@@ -530,7 +530,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
     const size_t bucket_block_size = sizeof(core::ReducePreTable<int, MyStruct,
                                                                  decltype(key_ex), decltype(red_fn), true,
                                                                  core::PreReduceByHashKey<int>, std::equal_to<int>,
-            TargetBlockSize>::BucketBlock);
+                                                                 TargetBlockSize>::BucketBlock);
 
     core::ReducePreTable<int, MyStruct, decltype(key_ex), decltype(red_fn), true,
                          core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>

@@ -121,12 +121,12 @@ void SysFile::close() {
         pid_t p = waitpid(pid_, &status, 0);
         if (p != pid_) {
             throw common::SystemException(
-                      "SysFile: waitpid() failed to return child", errno);
+                      "SysFile: waitpid() failed to return child");
         }
         if (WIFEXITED(status)) {
             // child program exited normally
             if (WEXITSTATUS(status) != 0) {
-                throw common::SystemException(
+                throw common::ErrnoException(
                           "SysFile: child failed with return code "
                           + std::to_string(WEXITSTATUS(status)));
             }
@@ -135,13 +135,13 @@ void SysFile::close() {
             }
         }
         else if (WIFSIGNALED(status)) {
-            throw common::SystemException(
+            throw common::ErrnoException(
                       "SysFile: child killed by signal "
                       + std::to_string(WTERMSIG(status)));
         }
         else {
-            throw common::SystemException(
-                      "SysFile: child failed with an unknown error", errno);
+            throw common::ErrnoException(
+                      "SysFile: child failed with an unknown error");
         }
         pid_ = 0;
     }
@@ -153,7 +153,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
     int fd = open(path.c_str(), O_RDONLY, 0);
     if (fd < 0) {
-        throw common::SystemException("Cannot open file " + path, errno);
+        throw common::ErrnoException("Cannot open file " + path);
     }
 
     // then figure out whether we need to pipe it through a decompressor.
@@ -178,8 +178,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
     else {
         // not a compressed file
         if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::SystemException(
-                      "Error setting FD_CLOEXEC on SysFile", errno);
+            throw common::ErrnoException("Error setting FD_CLOEXEC on SysFile");
         }
 
         sLOG << "SysFile::OpenForRead(): filefd" << fd;
@@ -214,7 +213,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
         exit(-1);
     }
     else if (pid < 0) {
-        throw common::SystemException("Error creating child process", errno);
+        throw common::ErrnoException("Error creating child process");
     }
 
     sLOG << "SysFile::OpenForRead(): pipefd" << pipefd[0] << "to pid" << pid;
@@ -234,7 +233,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     int fd = open(path.c_str(), O_CREAT | O_WRONLY, 0666);
     if (fd < 0) {
-        throw common::SystemException("Cannot create file " + path, errno);
+        throw common::ErrnoException("Cannot create file " + path);
     }
 
     // then figure out whether we need to pipe it through a compressor.
@@ -259,8 +258,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
     else {
         // not a compressed file
         if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::SystemException(
-                      "Error setting FD_CLOEXEC on SysFile", errno);
+            throw common::ErrnoException("Error setting FD_CLOEXEC on SysFile");
         }
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;
@@ -295,7 +293,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
         exit(-1);
     }
     else if (pid < 0) {
-        throw common::SystemException("Error creating child process", errno);
+        throw common::ErrnoException("Error creating child process");
     }
 
     sLOG << "SysFile::OpenForWrite(): pipefd" << pipefd[0] << "to pid" << pid;

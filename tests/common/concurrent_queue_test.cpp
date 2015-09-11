@@ -20,7 +20,7 @@ using namespace thrill::common;
 TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     ThreadPool pool(8);
 
-    ConcurrentQueue<int, std::allocator<int> > queue;
+    ConcurrentQueue<size_t, std::allocator<size_t> > queue;
     std::atomic<size_t> count(0);
     std::atomic<size_t> total_sum(0);
 
@@ -42,7 +42,7 @@ TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     for (size_t i = 0; i != num_threads; ++i) {
         pool.Enqueue([&]() {
                          while (count != num_threads * num_pushes) {
-                             int item;
+                             size_t item;
                              while (queue.try_pop(item)) {
                                  total_sum += item;
                                  ++count;

@@ -211,7 +211,7 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
-                   size_t byte_size = 1024 * 1024 * 128 * 4,
+                   size_t byte_size = 1024* 1024* 128* 4,
                    double bucket_rate = 0.9,
                    double max_partition_fill_rate = 0.6,
                    const IndexFunction& index_function = IndexFunction(),
