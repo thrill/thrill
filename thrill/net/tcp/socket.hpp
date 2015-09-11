@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/socket.hpp
+ * thrill/net/tcp/socket.hpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -11,13 +11,13 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_NET_LOWLEVEL_SOCKET_HEADER
-#define THRILL_NET_LOWLEVEL_SOCKET_HEADER
+#ifndef THRILL_NET_TCP_SOCKET_HEADER
+#define THRILL_NET_TCP_SOCKET_HEADER
 
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/net/lowlevel/socket_address.hpp>
+#include <thrill/net/tcp/socket_address.hpp>
 
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -32,9 +32,9 @@
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
-//! \addtogroup netsock Low Level Socket API
+//! \addtogroup net_tcp TCP Socket API
 //! \ingroup net
 //! \{
 
@@ -56,17 +56,29 @@ public:
     //! \name Creation
     //! \{
 
-    //! Construct new Socket object from existing file descriptor.
-    explicit Socket(int fd)
-        : fd_(fd)
-    { }
+    //! construct new Socket object from existing file descriptor.
+    explicit Socket(int fd) : fd_(fd) { }
 
-    Socket()
-        : fd_(-1) { }
+    //! default constructor: invalid socket.
+    Socket() : fd_(-1) { }
 
-    //! Release this socket fd, make the Socket invalid.
-    void Release() {
-        fd_ = -1;
+    //! non-copyable: delete copy-constructor
+    Socket(const Socket&) = delete;
+    //! non-copyable: delete assignment operator
+    Socket& operator = (const Socket&) = delete;
+    //! move-constructor: move file descriptor
+    Socket(Socket&& s) : fd_(s.fd_) { s.fd_ = -1; }
+    //! move-assignment operator: move file descriptor
+    Socket& operator = (Socket&& s) {
+        if (this == &s) return *this;
+        if (fd_ >= 0) close();
+        fd_ = s.fd_;
+        s.fd_ = -1;
+        return *this;
+    }
+
+    ~Socket() {
+        if (fd_ >= 0) close();
     }
 
     //! Create a new stream socket.
@@ -101,8 +113,8 @@ public:
         int r = ::socketpair(PF_UNIX, SOCK_STREAM, 0, fds);
 #endif
         if (r != 0) {
-            LOG << "Socket::CreatePair()"
-                << " error=" << strerror(errno);
+            LOG1 << "Socket::CreatePair()"
+                 << " error=" << strerror(errno);
             abort();
         }
 
@@ -262,7 +274,7 @@ public:
                 << " error=" << strerror(errno);
         }
 
-        return r;
+        return (r == 0);
     }
 
     //! Initial socket connection to address
@@ -301,7 +313,7 @@ public:
                 << " fd_=" << fd_
                 << " error=" << strerror(errno);
         }
-        return r;
+        return (r == 0);
     }
 
     //! Wait on socket until a new connection comes in.
@@ -669,21 +681,21 @@ protected:
     //! the file descriptor of the socket.
     int fd_;
 
-    //! return hexdump or just <data> if not debugging
+    //! return hexdump or just [data] if not debugging
     static std::string maybe_hexdump(const void* data, size_t size) {
         if (debug_data)
             return common::hexdump(data, size);
         else
-            return "<data>";
+            return "[data]";
     }
 };
 
 // \}
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 
-#endif // !THRILL_NET_LOWLEVEL_SOCKET_HEADER
+#endif // !THRILL_NET_TCP_SOCKET_HEADER
 
 /******************************************************************************/

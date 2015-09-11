@@ -138,7 +138,7 @@ protected:
         sink_.reset();
 
         // construct path from pattern containing ### and $$$
-        std::string out_path = core::make_path(
+        std::string out_path = core::FillFilePattern(
             out_pathbase_, context_.my_rank(), out_serial_++);
 
         sLOG << "OpenNextFile() out_path" << out_path;
