@@ -249,7 +249,7 @@ public:
     //! the [local_begin,local_end) index range assigned to the PE i. Takes the
     //! information from the Context.
     std::tuple<size_t, size_t> CalculateLocalRange(size_t global_size) {
-        return CalculateLocalRange(global_size, num_workers(), my_rank());
+        return common::CalculateLocalRange(global_size, num_workers(), my_rank());
     }
 
 private:

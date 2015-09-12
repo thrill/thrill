@@ -145,13 +145,20 @@ static void TestMultiThreadPrefixSum(net::Group* net) {
         net, count, [=](net::FlowControlChannel& channel, size_t id) {
             size_t myRank = net->my_host_rank() * count + id;
 
-            size_t res = channel.PrefixSum(myRank);
-            size_t expected = 0;
+            size_t resInclusive = channel.PrefixSum(myRank, std::plus<size_t>, true);
+            size_t resExclusive = channel.PrefixSum(myRank, std::plus<size_t>, false);
+            size_t expectedInclusive = 0;
+            size_t expectedInclusive = 0;
+
             for (size_t i = 0; i <= net->my_host_rank() * count + id; i++) {
-                expected += i;
+                expectedInclusive += i;
+            }
+            for (size_t i = 0; i < net->my_host_rank() * count + id; i++) {
+                expectedExclusive += i;
             }
 
-            ASSERT_EQ(res, expected);
+            ASSERT_EQ(resInclusive, expectedInclusive);
+            ASSERT_EQ(resExclusive, expectedExclusive);
         });
 }
 

@@ -26,7 +26,7 @@
 
 namespace thrill {
 namespace net {
-namespace collective_communication {
+namespace collective {
 
 //! \addtogroup net Network Communication
 //! \{
@@ -292,7 +292,7 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp(), b
 
 //! \}
 
-} // namespace collective_communication
+} // namespace collective
 } // namespace net
 } // namespace thrill
 
