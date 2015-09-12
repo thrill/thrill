@@ -402,6 +402,7 @@ private:
         //Environment
         size_t me = context_.my_rank(); //Local rank. 
         size_t p = context_.num_workers(); //Count of all workers (and count of target partitions)
+        size_t zero_t = 0;
 
         LOG << "Splitting to " << p << " workers";
 
@@ -447,12 +448,14 @@ private:
         //Partition borders. Let there by binary search. 
         std::vector<size_t> left(p - 1);
         std::vector<size_t> width(p - 1);
+        std::vector<size_t> zero_v;
 
         std::fill(left.begin(), left.end(), 0);
+        std::fill(zero_v.begin(), zero_v.end(), 0);
         std::fill(width.begin(), width.end(), dataSize);
         
         stats.CommTimer.Start();
-        prefixSize = flowControl.PrefixSum(dataSize, std::plus<ValueType>(), false); 
+        prefixSize = flowControl.PrefixSum(dataSize, zero_t, std::plus<size_t>(), false); 
         stats.CommTimer.Stop();
 
         LOG << "Data count left of me: " << prefixSize;
@@ -468,6 +471,15 @@ private:
         Pivot zero = CreatePivot(merge_local::GetAt<ValueType>(0, files_, comperator_, &stats.GetAtIndexTimer), 0);
         zero.valid = false;
 
+        auto addSizeTVectors = [] 
+            (const std::vector<size_t> &a, const std::vector<size_t> &b) {
+                std::vector<size_t> res(a.size());
+                for(size_t i = 0; i < a.size(); i++) {
+                   res[i] = a[i] + b[i]; 
+                }
+                return res;
+            };
+
         //Partition loop 
         
         while(1) {
@@ -475,8 +487,8 @@ private:
             stats.PivotSelectionTimer.Start();
 
             stats.CommTimer.Start();
-            flowControl.ArrayPrefixSum(width, widthscan, std::plus<ValueType>(), false);
-            flowControl.ArrayAllReduce(width, widthsum, std::plus<ValueType>());
+            widthscan = flowControl.PrefixSum(width, zero_v, addSizeTVectors, false);
+            widthsum = flowControl.AllReduce(width, addSizeTVectors);
             stats.CommTimer.Stop();
              
             size_t done = 0;
@@ -533,10 +545,8 @@ private:
             }
 
             LOG << "Pivots: " << VToStr(pivots);
-            
-            stats.CommTimer.Start();
-            flowControl.ArrayAllReduce(pivots, pivots, 
-            [this] (const Pivot a, const Pivot b) { 
+           
+           auto reducePivots = [this] (const Pivot a, const Pivot b) { 
                     if(!a.valid) {
                         return b; 
                     } else if(!b.valid) {
@@ -549,8 +559,18 @@ private:
                         return a;
                     } else {
                         return b;
+                    }}; //Return maximal pivot (Is this  OK?)
+
+            stats.CommTimer.Start();
+            pivots = flowControl.AllReduce(pivots, 
+                [reducePivots]
+                (const std::vector<Pivot> &a, const std::vector<Pivot> &b) {
+                    std::vector<Pivot> res(a.size());
+                    for(size_t i = 0; i < a.size(); i++) {
+                       res[i] = reducePivots(a[i], b[i]); 
                     }
-            }); //Return maximal pivot (Is this  OK?);
+                    return res;
+                }); 
             stats.CommTimer.Stop();
 
             LOG << "Final Pivots: " << VToStr(pivots);
@@ -567,7 +587,7 @@ private:
             }
 
             stats.CommTimer.Start();
-            flowControl.ArrayAllReduce(split, splitsum, std::plus<ValueType>());
+            splitsum = flowControl.AllReduce(split, addSizeTVectors);
             stats.CommTimer.Stop();
 
             LOG << "Splitters: " << VToStr(split);
