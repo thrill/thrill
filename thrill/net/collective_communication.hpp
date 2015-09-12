@@ -18,8 +18,6 @@
 
 #include <thrill/common/functional.hpp>
 #include <thrill/common/math.hpp>
-
-
 #include <thrill/net/group.hpp>
 
 #include <functional>
