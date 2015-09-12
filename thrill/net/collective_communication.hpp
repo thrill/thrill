@@ -21,6 +21,8 @@
 #include <thrill/net/group.hpp>
 
 #include <functional>
+#include <mutex>
+#include <condition_variable>
 
 namespace thrill {
 namespace net {
@@ -232,6 +234,7 @@ static inline void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sum
     sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value << "\n";
 }
 
+#if DISABLE_MAYBE_REMOVE
 //! \brief   Perform a barrier for all workers.
 //! \details All workers synchronize to this point. This operation can be used if
 //!          one wants to be sure that all workers continue their operation
@@ -251,6 +254,7 @@ static inline void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, i
         cv.notify_all();
     }
 }
+#endif
 
 //! \brief   Calculate for every worker his prefix sum.
 //! \details The prefix sum is the aggregatation of the values of all workers
@@ -295,7 +299,6 @@ static inline void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySum
         }
     }
 }
-
 //! \}
 
 } // namespace collective
