@@ -54,6 +54,7 @@ namespace merge_local {
         thrill::common::StatsTimer<stats_enabled> OffsetCalculationTimer;
         thrill::common::StatsTimer<stats_enabled> CommTimer;
         size_t result_size = 0;
+        size_t iterations = 0;
     };
 
     
@@ -91,6 +92,7 @@ namespace merge_local {
                     PrintToSQLPlotTool("getIndexOf", p, indexOf); 
                     PrintToSQLPlotTool("getAtIndex", p, getAtIndex); 
                     PrintToSQLPlotTool("communication", p, comm); 
+                    PrintToSQLPlotTool("iterations", p, iterations); 
                 }
             }
         }
@@ -193,10 +195,7 @@ namespace merge_local {
         LOG << "Looking for element " << element << " with tie " << tie;
 
         for(size_t i = 0; i < files.size(); i++) {
-            //LOG << "Found " << element << " at " << idx;
-            //auto reader = files[i].GetKeepReader();
-            //LOG << "File " << i << ": " << VToStr(reader.ReadComplete<size_t>());
-            
+            auto reader = files[i].GetKeepReader();
             lidx += files[i].GetIndexOf(element, 0, comperator);
             hidx += files[i].GetIndexOf(element, std::numeric_limits<size_t>::max(), comperator);
         }
@@ -388,7 +387,7 @@ private:
 
         return ss.str();
     }
-
+    
     //! Receive elements from other workers.
     void MainOp() {
         for (size_t i = 0; i != writers_.size(); ++i) {
@@ -484,9 +483,7 @@ private:
         //Partition loop 
         
         while(1) {
-
             stats.PivotSelectionTimer.Start();
-
             stats.CommTimer.Start();
             widthscan = flowControl.PrefixSum(width, zero_v, addSizeTVectors, false);
             widthsum = flowControl.AllReduce(width, addSizeTVectors);
@@ -508,6 +505,7 @@ private:
 
             if(done == p - 1) {
                 LOG << "Finished";
+                stats.PivotSelectionTimer.Stop();
                 break;
             } else {
                 LOG << "Continue";
@@ -545,7 +543,7 @@ private:
                 }
             }
 
-            LOG << "Pivots: " << VToStr(pivots);
+           LOG << "Pivots: " << VToStr(pivots);
            
            auto reducePivots = [this] (const Pivot a, const Pivot b) { 
                     if(!a.valid) {
@@ -613,6 +611,7 @@ private:
                 }
             } 
             stats.PivotLocationTimer.Stop();
+            stats.iterations++;
         }
 
         //Cool, parts contains the global splitters now. But we need
