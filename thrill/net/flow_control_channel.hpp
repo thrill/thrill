@@ -154,14 +154,19 @@ public:
      * are the values of workers 0, 2, 3.
      *
      * \param value The local value of this worker.
+     * \param zero The zero-element for the body defined by T and sumOp
      * \param sumOp The operation to use for
      * calculating the prefix sum. The default operation is a normal addition.
      * \param inclusive Whether the prefix sum is inclusive or exclusive.
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T PrefixSum(const T& value, BinarySumOp sumOp = BinarySumOp(),
+    T PrefixSum(const T& value, const T& zero, BinarySumOp sumOp = BinarySumOp(),
                 bool inclusive = true) {
+
+        static const bool debug = false;
+
+        assert(sumOp(zero, zero) == zero);
 
         std::vector<T> localPrefixBuffer(threadCount);
 
@@ -180,21 +185,33 @@ public:
                 localPrefixBuffer[i] = sumOp(localPrefixBuffer[i - 1], localPrefixBuffer[i]);
             }
 
-            T prefixSumBase = localPrefixBuffer[threadCount - 1];
+            for (size_t i = 0; i < threadCount; i++) {
+                LOG << id << ", " << i << ", " << inclusive << ": me: " << localPrefixBuffer[i];
+            }
 
+            T prefixSumBase = localPrefixBuffer[threadCount - 1];
             collective::PrefixSum(group, prefixSumBase, sumOp, false);
+           
+            if(id == 0) {
+                prefixSumBase = zero;
+            }
+
+            LOG << id << ", m, " << inclusive << ": base: " << prefixSumBase;
 
             if(inclusive) {
                 for (size_t i = 0; i < threadCount; i++) {
                     localPrefixBuffer[i] = sumOp(prefixSumBase, localPrefixBuffer[i]);
                 }
             } else {
-                localPrefixBuffer[0] = prefixSumBase;
-                for (size_t i = 1; i < threadCount; i++) {
+                for (size_t i = threadCount - 1; i > 0; i--) {
                     localPrefixBuffer[i] = sumOp(prefixSumBase, localPrefixBuffer[i - 1]);
                 }
+                localPrefixBuffer[0] = prefixSumBase;
             }
-
+            
+            for (size_t i = 0; i < threadCount; i++) {
+                LOG << id << ", " << i << ", " << inclusive << ": res: " << localPrefixBuffer[i];
+            }
         } else {
             // Master allocate memory.
             barrier.Await();
@@ -203,8 +220,10 @@ public:
             barrier.Await();
         }
         barrier.Await();
+        T res = (*GetLocalShared<std::vector<T> >())[threadId];
+        barrier.Await();
         
-        return localPrefixBuffer[threadId];
+        return res;
     }
 
     /**
@@ -217,12 +236,13 @@ public:
      *
      * \param value The local value of this worker.
      * \param sumOp The operation to use for
+     * \param zero The neutral element of the body defined by T and SumOp
      * calculating the prefix sum. The default operation is a normal addition.
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T ExPrefixSum(const T& value, BinarySumOp sumOp = BinarySumOp()) {
-        return PrefixSum(value, sumOp, false);
+    T ExPrefixSum(const T& value, const T& zero, BinarySumOp sumOp = BinarySumOp()) {
+        return PrefixSum(value, zero, sumOp, false);
     }
 
     /**

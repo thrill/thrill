@@ -290,7 +290,8 @@ private:
     void MainOp() {
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        size_t prefix_elem = channel.PrefixSum(data_.size());
+        size_t zero = 0;
+        size_t prefix_elem = channel.PrefixSum(data_.size(), zero);
         size_t total_elem = channel.AllReduce(data_.size());
 
         size_t num_total_workers = context_.num_workers();
