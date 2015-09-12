@@ -448,7 +448,7 @@ private:
         //Partition borders. Let there by binary search. 
         std::vector<size_t> left(p - 1);
         std::vector<size_t> width(p - 1);
-        std::vector<size_t> zero_v;
+        std::vector<size_t> zero_v(p - 1);
 
         std::fill(left.begin(), left.end(), 0);
         std::fill(zero_v.begin(), zero_v.end(), 0);
@@ -473,6 +473,7 @@ private:
 
         auto addSizeTVectors = [] 
             (const std::vector<size_t> &a, const std::vector<size_t> &b) {
+                assert(a.size() == b.size());
                 std::vector<size_t> res(a.size());
                 for(size_t i = 0; i < a.size(); i++) {
                    res[i] = a[i] + b[i]; 
@@ -565,6 +566,7 @@ private:
             pivots = flowControl.AllReduce(pivots, 
                 [reducePivots]
                 (const std::vector<Pivot> &a, const std::vector<Pivot> &b) {
+                    assert(a.size() == b.size());
                     std::vector<Pivot> res(a.size());
                     for(size_t i = 0; i < a.size(); i++) {
                        res[i] = reducePivots(a[i], b[i]); 
