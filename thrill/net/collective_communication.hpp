@@ -18,14 +18,13 @@
 
 #include <thrill/common/functional.hpp>
 #include <thrill/common/math.hpp>
-
-
 #include <thrill/net/group.hpp>
 
 #include <functional>
 
 namespace thrill {
 namespace net {
+namespace collective {
 
 //! \addtogroup net Network Communication
 //! \{
@@ -182,10 +181,8 @@ void BroadcastBinomialTree(Group& net, T& value) {
  */
 template <typename T>
 void Broadcast(Group& net, T& value) {
-    BroadcastBinomialTree(net, value);
+   return BroadcastBinomialTree(net, value);
 }
-
-#if DISABLE_MAYBE_REMOVE
 
 //! \brief   Perform an All-Reduce on the workers.
 //! \details This is done by aggregating all values according to a summation
@@ -265,29 +262,44 @@ void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_worker
 //! \param   value The value to be summed up
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp(), bool inclusive = true) {
     static const bool debug = false;
+
+    bool first = true;
+    //Use a copy, in case of exclusive, we have to forward 
+    //something that's not our result. 
+    T toForward = value;  
 
     // This is based on the pointer-doubling algorithm presented in the ParAlg
     // script, which is used for list ranking.
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
+
         if (net.my_host_rank() + d < net.num_hosts()) {
             sLOG << "Worker" << net.my_host_rank() << ": sending to" << net.my_host_rank() + d;
-            net.SendTo(net.my_host_rank() + d, value);
+            net.SendTo(net.my_host_rank() + d, toForward);
         }
+
         if (net.my_host_rank() >= d) {
-            sLOG << "Worker" << net.my_host_rank() << ": receiving from" << net.my_host_rank() - d;
             T recv_value;
             net.ReceiveFrom(net.my_host_rank() - d, &recv_value);
-            value = sumOp(value, recv_value);
+            sLOG << "Worker" << net.my_host_rank() << ": receiving " << recv_value << " from" << net.my_host_rank() - d;
+
+            //Take care of order, so we don't break associativity. 
+            toForward = sumOp(recv_value, toForward);
+
+            if(!first || inclusive) {
+                value = sumOp(recv_value, value);
+            } else {
+                value = recv_value;
+                first = false;
+            }
         }
     }
 }
 
-#endif  // DISABLE_MAYBE_REMOVE
-
 //! \}
 
+} // namespace collective
 } // namespace net
 } // namespace thrill
 

@@ -265,10 +265,11 @@ private:
             //! number of elements of this worker
             size_t dia_local_size = files_[in].num_items();
             sLOG << "input" << in << "dia_local_size" << dia_local_size;
+            size_t zero = 0; //Force type. 
 
             //! inclusive prefixsum of number of elements: we have items from
             //! [dia_size_prefixsum - local_size, dia_size_prefixsum).
-            dia_size_prefixsum_[in] = channel.PrefixSum(dia_local_size);
+            dia_size_prefixsum_[in] = channel.PrefixSum(dia_local_size, zero);
 
             //! total number of elements, over all worker. TODO(tb): use a
             //! Broadcast from the last node instead.

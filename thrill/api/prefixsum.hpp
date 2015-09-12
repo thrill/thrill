@@ -111,7 +111,7 @@ private:
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        ValueType sum = channel.PrefixSum(local_sum_, sum_function_, false);
+        ValueType sum = channel.PrefixSum(local_sum_, neutral_element_, sum_function_, false);
 
         if (context_.my_rank() == 0) {
             sum = neutral_element_;

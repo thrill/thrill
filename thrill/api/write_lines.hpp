@@ -72,7 +72,8 @@ public:
                        << "TotalLines" << stats_total_elements_;
 
         // (Portable) allocation of output file, setting individual file pointers.
-        size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_);
+        size_t zero = 0;
+        size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_, zero);
         if (context_.my_rank() == context_.num_workers() - 1) {
             file_.seekp(prefix_elem + size_ - 1);
             file_.put('\0');
