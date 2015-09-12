@@ -41,7 +41,7 @@ namespace api {
 
 namespace merge_local {
     
-    static const bool stats_enabled = false;
+    static const bool stats_enabled = true;
 
     class MergeStatsBase {
         public:
