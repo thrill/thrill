@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <thrill/mem/manager.hpp>
+#include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/tcp/group.hpp>
 #include <thrill/net/tcp/select_dispatcher.hpp>
 

@@ -266,20 +266,29 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp(), b
     static const bool debug = false;
 
     bool first = true;
+    //Use a copy, in case of exclusive, we have to forward 
+    //something that's not our result. 
+    T toForward = value;  
 
     // This is based on the pointer-doubling algorithm presented in the ParAlg
     // script, which is used for list ranking.
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
+
         if (net.my_host_rank() + d < net.num_hosts()) {
             sLOG << "Worker" << net.my_host_rank() << ": sending to" << net.my_host_rank() + d;
-            net.SendTo(net.my_host_rank() + d, value);
+            net.SendTo(net.my_host_rank() + d, toForward);
         }
+
         if (net.my_host_rank() >= d) {
-            sLOG << "Worker" << net.my_host_rank() << ": receiving from" << net.my_host_rank() - d;
             T recv_value;
             net.ReceiveFrom(net.my_host_rank() - d, &recv_value);
+            sLOG << "Worker" << net.my_host_rank() << ": receiving " << recv_value << " from" << net.my_host_rank() - d;
+
+            //Take care of order, so we don't break associativity. 
+            toForward = sumOp(recv_value, toForward);
+
             if(!first || inclusive) {
-                value = sumOp(value, recv_value);
+                value = sumOp(recv_value, value);
             } else {
                 value = recv_value;
                 first = false;
