@@ -182,7 +182,7 @@ public:
 
             T prefixSumBase = localPrefixBuffer[threadCount - 1];
 
-            collective_communication::PrefixSum(group, prefixSumBase, sumOp, false);
+            collective::PrefixSum(group, prefixSumBase, sumOp, false);
 
             if(inclusive) {
                 for (size_t i = 0; i < threadCount; i++) {
@@ -244,7 +244,7 @@ public:
         if (threadId == 0) {
             SetLocalShared(&res);
 
-            collective_communication::Broadcast(group, res);
+            collective::Broadcast(group, res);
         }
 
         barrier.Await();
@@ -293,7 +293,7 @@ public:
                 res = sumOp(res, localReduceBuffer[i]);
             }
 
-            collective_communication::AllReduce(group, res, sumOp);
+            collective::AllReduce(group, res, sumOp);
 
             ClearLocalShared();
             SetLocalShared(&res);
