@@ -49,6 +49,12 @@ static inline Integral RoundUpToPowerOfTwo(Integral n) {
     return n;
 }
 
+//! does what it says.
+template <typename Integral>
+static inline Integral RoundDownToPowerOfTwo(Integral n) {
+    return RoundUpToPowerOfTwo(n + 1) >> 1;
+}
+
 /******************************************************************************/
 
 //! calculate n div k with rounding up
@@ -66,8 +72,9 @@ std::tuple<size_t, size_t> CalculateLocalRange(
 
     double per_pe = static_cast<double>(global_size) / static_cast<double>(p);
     return std::make_tuple(
-        std::ceil(i * per_pe),
-        std::min(static_cast<size_t>(std::ceil((i + 1) * per_pe)),
+        static_cast<size_t>(std::ceil(static_cast<double>(i) * per_pe)),
+        std::min(static_cast<size_t>(
+                     std::ceil(static_cast<double>(i + 1) * per_pe)),
                  global_size));
 }
 

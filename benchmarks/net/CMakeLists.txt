@@ -1,5 +1,5 @@
 ################################################################################
-# benchmarks/page_rank/CMakeLists.txt
+# benchmarks/net/CMakeLists.txt
 #
 # CMake file for Thrill benchmark programs.
 ################################################################################

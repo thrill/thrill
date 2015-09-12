@@ -113,6 +113,17 @@ endif()
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 ###############################################################################
+
+# set_join(VAR "foo" "bar" "abc") sets VAR="foo bar abc"
+macro(set_join var)
+  set(${var})
+  foreach(v ${ARGN})
+    set(${var} "${${var}} ${v}")
+  endforeach()
+  string(STRIP ${var} "${${var}}")
+endmacro(set_join)
+
+###############################################################################
 # enable gcov coverage analysis with gcc
 
 if(USE_GCOV)

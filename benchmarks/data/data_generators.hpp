@@ -59,7 +59,7 @@ public:
     std::string Next() {
         size_t next_size = std::min<size_t>(uniform_dist_(randomness_), bytes_);
         bytes_ -= next_size;
-        return std::string('f', next_size);
+        return std::string(next_size, 'f');
     }
 
 protected:
@@ -134,7 +134,7 @@ std::vector<std::string> generate(size_t bytes, size_t min_size, size_t max_size
     while (remaining > 0) {
         size_t next_size = std::min(uniform_dist(randomness), remaining);
         remaining -= next_size;
-        result.emplace_back(std::string('f', next_size));
+        result.emplace_back(std::string(next_size, 'f'));
     }
     return result;
 }
@@ -152,7 +152,7 @@ std::vector<Tuple> generate(size_t bytes, size_t min_size, size_t max_size) {
         remaining -= sizeof(int);
         size_t next_size = std::min(uniform_dist(randomness), remaining);
         remaining -= next_size;
-        result.push_back(Tuple(std::string('f', next_size), 42));
+        result.push_back(Tuple(std::string(next_size, 'f'), 42));
     }
     return result;
 }
@@ -172,7 +172,8 @@ std::vector<Triple> generate(size_t bytes, size_t min_size, size_t max_size) {
         remaining -= next_size1;
         size_t next_size2 = std::min(uniform_dist(randomness), remaining);
         remaining -= next_size2;
-        result.push_back(Triple(std::string('f', next_size1), 42, std::string('g', next_size2)));
+        result.push_back(Triple(std::string(next_size1, 'f'), 42,
+                                std::string(next_size2, 'g')));
     }
     return result;
 }

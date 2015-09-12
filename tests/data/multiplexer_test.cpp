@@ -29,8 +29,9 @@ struct Multiplexer : public::testing::Test {
 
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
-        data::BlockPool block_pool(nullptr);
-        data::Multiplexer multiplexer(block_pool, 1, *group);
+        mem::Manager mem_manager(nullptr, "MultiplexerTest");
+        data::BlockPool block_pool(&mem_manager);
+        data::Multiplexer multiplexer(mem_manager, block_pool, 1, *group);
         switch (group->my_host_rank()) {
         case 0:
             common::NameThisThread("t0");
@@ -50,7 +51,7 @@ struct Multiplexer : public::testing::Test {
     static void Execute(WorkerThread f1 = nullptr,
                         WorkerThread f2 = nullptr,
                         WorkerThread f3 = nullptr) {
-        net::Group::ExecuteLocalMock(
+        net::RunGroupTest(
             // calculate number of threads
             (f1 ? 1 : 0) + (f2 ? 1 : 0) + (f3 ? 1 : 0),
             [=](net::Group* g) {
@@ -66,20 +67,22 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
     unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
-        send_buffer[i] = i;
+        send_buffer[i] = static_cast<unsigned char>(i);
 
     static const size_t iterations = 1000;
     size_t my_local_worker_id = 0;
     size_t num_workers_per_node = 1;
 
-    data::BlockPool block_pool(nullptr);
-    data::Multiplexer multiplexer(block_pool, num_workers_per_node, *net);
+    mem::Manager mem_manager(nullptr, "Benchmark");
+    data::BlockPool block_pool(&mem_manager);
+    data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_node, *net);
     {
         data::ChannelId id = multiplexer.AllocateChannelId(my_local_worker_id);
 
         // open Writers and send a message to all workers
 
-        auto writers = multiplexer.GetOrCreateChannel(id, my_local_worker_id)->OpenWriters(test_block_size);
+        auto writers = multiplexer.GetOrCreateChannel(
+            id, my_local_worker_id)->OpenWriters(test_block_size);
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
             writers[tgt]("hello I am " + std::to_string(net->my_host_rank())
@@ -97,7 +100,8 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
         // open Readers and receive message from all workers
 
-        auto readers = multiplexer.GetOrCreateChannel(id, my_local_worker_id)->OpenReaders();
+        auto readers = multiplexer.GetOrCreateChannel(
+            id, my_local_worker_id)->OpenReaders();
 
         for (size_t src = 0; src != readers.size(); ++src) {
             std::string msg = readers[src].Next<std::string>();
@@ -123,10 +127,10 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
 TEST_F(Multiplexer, TalkAllToAllViaChannelForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 9:
-    net::Group::ExecuteLocalMock(1, TalkAllToAllViaChannel);
-    net::Group::ExecuteLocalMock(2, TalkAllToAllViaChannel);
-    net::Group::ExecuteLocalMock(5, TalkAllToAllViaChannel);
-    net::Group::ExecuteLocalMock(9, TalkAllToAllViaChannel);
+    net::RunGroupTest(1, TalkAllToAllViaChannel);
+    net::RunGroupTest(2, TalkAllToAllViaChannel);
+    net::RunGroupTest(5, TalkAllToAllViaChannel);
+    net::RunGroupTest(9, TalkAllToAllViaChannel);
 }
 
 TEST_F(Multiplexer, ReadCompleteChannel) {
