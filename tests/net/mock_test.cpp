@@ -101,6 +101,9 @@ TEST(MockGroup, DispatcherSyncSendAsyncRead) {
 TEST(FlowControlMockGroup, SingleThreadPrefixSum) {
     MockTestLess(TestSingleThreadPrefixSum);
 }
+TEST(FlowControlMockGroup, SingleThreadVectorPrefixSum) {
+    MockTestLess(TestSingleThreadVectorPrefixSum);
+}
 TEST(FlowControlMockGroup, SingleThreadBroadcast) {
     MockTestLess(TestSingleThreadBroadcast);
 }
