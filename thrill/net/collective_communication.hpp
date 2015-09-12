@@ -183,7 +183,7 @@ void BroadcastBinomialTree(Group& net, T& value) {
  */
 template <typename T>
 void Broadcast(Group& net, T& value) {
-    BroadcastBinomialTree(net, value);
+   return BroadcastBinomialTree(net, value);
 }
 
 //! \brief   Perform an All-Reduce on the workers.
