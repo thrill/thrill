@@ -41,9 +41,10 @@ namespace api {
 
 namespace merge_local {
     
-    static const bool stats_enabled = true;
+    static const bool stats_enabled = false;
 
-    struct MergeStatsBase {
+    class MergeStatsBase {
+        public:
         thrill::common::StatsTimer<stats_enabled> IndexOfTimer;
         thrill::common::StatsTimer<stats_enabled> GetAtIndexTimer;
         thrill::common::StatsTimer<stats_enabled> MergeTimer;
@@ -52,24 +53,45 @@ namespace merge_local {
         thrill::common::StatsTimer<stats_enabled> PivotLocationTimer;
         thrill::common::StatsTimer<stats_enabled> OffsetCalculationTimer;
         thrill::common::StatsTimer<stats_enabled> CommTimer;
+        size_t result_size = 0;
     };
 
     
-    struct MergeStats : public MergeStatsBase {
-        void Print() { 
+    class MergeStats : public MergeStatsBase {
+    public:
+
+        void PrintToSQLPlotTool(std::string label, size_t p, size_t value) {
+            static const bool debug = true;
+
+            LOG << "RESULT " << label << "=" << value << " workers=" << p << " result_size=" << result_size; 
+        }
+
+        void Print(Context &ctx) { 
             if(stats_enabled) {
-                static const bool debug = true;
 
-                LOG << "Merge Statistics: ";
+                net::FlowControlChannel &flow = ctx.flow_control_channel();
+                size_t p = ctx.num_workers();
 
-                LOG << "Merging: " << MergeTimer.Microseconds() << " mms";
-                LOG << "Balancing: " << BalancingTimer.Microseconds() << " mms";
-                LOG << "Pivot Selection: " << PivotSelectionTimer.Microseconds() << " mms";
-                LOG << "Pivot Localization: " << PivotLocationTimer.Microseconds() << " mms";
-                LOG << "Offset Calculation: " << OffsetCalculationTimer.Microseconds() << " mms";
-                LOG << "Index Of: " << IndexOfTimer.Microseconds() << " mms";
-                LOG << "Get at Index: " << GetAtIndexTimer.Microseconds() << " mms";
-                LOG << "Communication Timer: " << CommTimer.Microseconds() << " mms";
+                size_t merge = flow.AllReduce(MergeTimer.Microseconds()) / p;
+                size_t balance = flow.AllReduce(BalancingTimer.Microseconds()) / p;
+                size_t pivotSelection = flow.AllReduce(PivotSelectionTimer.Microseconds()) / p;
+                size_t pivotLocation = flow.AllReduce(PivotLocationTimer.Microseconds()) / p;
+                size_t offsetCalculation = flow.AllReduce(OffsetCalculationTimer.Microseconds()) / p;
+                size_t indexOf = flow.AllReduce(IndexOfTimer.Microseconds()) / p;
+                size_t getAtIndex = flow.AllReduce(GetAtIndexTimer.Microseconds()) / p;
+                size_t comm = flow.AllReduce(CommTimer.Microseconds()) / p;
+                result_size = flow.AllReduce(result_size);
+
+                if(ctx.my_rank() == 0) {
+                    PrintToSQLPlotTool("merge", p, merge); 
+                    PrintToSQLPlotTool("balance", p, balance); 
+                    PrintToSQLPlotTool("pivotSelection", p, pivotSelection); 
+                    PrintToSQLPlotTool("pivotLocation", p, pivotLocation); 
+                    PrintToSQLPlotTool("offsetCalculation", p, offsetCalculation); 
+                    PrintToSQLPlotTool("getIndexOf", p, indexOf); 
+                    PrintToSQLPlotTool("getAtIndex", p, getAtIndex); 
+                    PrintToSQLPlotTool("communication", p, comm); 
+                }
             }
         }
     };
@@ -293,7 +315,8 @@ public:
         
         sLOG << "Merge: result_count" << result_count;
 
-        stats.Print();
+        stats.result_size = result_count;
+        stats.Print(context_);
     }
 
     void Dispose() final { }
