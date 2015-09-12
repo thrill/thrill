@@ -16,6 +16,7 @@
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
 #include <thrill/common/stats.hpp>
+#include <thrill/common/math.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/channel.hpp>
 #include <thrill/data/file.hpp>
@@ -243,6 +244,13 @@ public:
 
     //! returns the host-global memory manager
     mem::Manager & mem_manager() { return mem_manager_; }
+
+    //! given a global range [0,global_size) and p PEs to split the range, calculate
+    //! the [local_begin,local_end) index range assigned to the PE i. Takes the
+    //! information from the Context.
+    std::tuple<size_t, size_t> CalculateLocalRange(size_t global_size) {
+        return CalculateLocalRange(global_size, num_workers(), my_rank());
+    }
 
 private:
     //! host-global memory manager

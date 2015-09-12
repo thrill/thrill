@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include <thrill/api/allgather.hpp>
+#include <thrill/api/context.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
