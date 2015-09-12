@@ -145,14 +145,6 @@ public:
           threadId(threadId), threadCount(threadCount),
           barrier(barrier), shmem(shmem) { }
 
-    //Yes, I know its ugly, but it will work for now. 
-    template <typename T, typename BinarySumOp = std::plus<T>> 
-    void ArrayPrefixSum(const std::vector<T> &in, std::vector<T> &out, BinarySumOp sumOp = BinarySumOp(), bool inclusive = true) {
-        for(size_t i = 0; i < in.size(); i++) {
-            out[i] = PrefixSum(in[i], sumOp, inclusive);
-        }
-    }
-
     /**
      * \brief Calculates the prefix sum over all workers, given a certain sum
      * operation.
@@ -252,13 +244,6 @@ public:
         return PrefixSum(value, zero, sumOp, false);
     }
     
-    template <typename T>
-    void ArrayBroadcast(const std::vector<T> &in, std::vector<T> &out) {
-        for(size_t i = 0; i < in.size(); i++) {
-            out[i] = Broadcast(in[i]);
-        }
-    }
-
     /**
      * \brief Broadcasts a value of an integral type T from the master
      * (the worker with the id 0) to all other workers.
@@ -295,13 +280,6 @@ public:
         barrier.Await();
 
         return res;
-    }
-
-    template <typename T, typename BinarySumOp = std::plus<T> > 
-    void ArrayAllReduce(const std::vector<T> &in, std::vector<T> &out, BinarySumOp sumOp = BinarySumOp()) {
-        for(size_t i = 0; i < in.size(); i++) {
-            out[i] = AllReduce(in[i], sumOp);
-        }
     }
 
     /**
