@@ -14,10 +14,10 @@
 #define THRILL_API_READ_BINARY_HEADER
 
 #include <thrill/api/dia.hpp>
+#include <thrill/api/context.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/core/file_io.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
@@ -66,9 +66,7 @@ public:
 
         size_t my_start, my_end;
         std::tie(my_start, my_end) =
-            common::CalculateLocalRange(filelist_[filelist_.size() - 1].second,
-                                        context_.num_workers(),
-                                        context_.my_rank());
+            context_.CalculateLocalRange(filelist_[filelist_.size() - 1].second);
         size_t first_file = 0;
         size_t last_file = 0;
 

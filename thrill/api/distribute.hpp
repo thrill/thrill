@@ -15,7 +15,6 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
 
 #include <string>
 #include <vector>
@@ -50,7 +49,7 @@ public:
     void PushData(bool /* consume */) final {
         size_t local_begin, local_end;
         std::tie(local_begin, local_end) =
-            common::CalculateLocalRange(in_vector_.size(), context_);
+            context_.CalculateLocalRange(in_vector_.size());
 
         for (size_t i = local_begin; i < local_end; ++i) {
             this->PushItem(in_vector_[i]);

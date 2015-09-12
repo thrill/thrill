@@ -15,9 +15,9 @@
 #define THRILL_API_SORT_HEADER
 
 #include <thrill/api/dia.hpp>
+#include <thrill/api/context.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/group.hpp>
@@ -290,7 +290,8 @@ private:
     void MainOp() {
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        size_t prefix_elem = channel.PrefixSum(data_.size());
+        size_t zero = 0;
+        size_t prefix_elem = channel.PrefixSum(data_.size(), zero);
         size_t total_elem = channel.AllReduce(data_.size());
 
         size_t num_total_workers = context_.num_workers();
