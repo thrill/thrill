@@ -44,7 +44,7 @@ namespace collective {
  * \param sum_op A custom summation operator
  */
 template <typename T, typename BinarySumOp = std::plus<T> >
-static void PrefixSumForPowersOfTwo(
+static inline void PrefixSumForPowersOfTwo(
     Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     T total_sum = value;
 
@@ -94,7 +94,7 @@ static void PrefixSumForPowersOfTwo(
  * \param sum_op A custom summation operator
  */
 template <typename T, typename BinarySumOp = std::plus<T> >
-void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
+static inline void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     bool active = true;
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
         if (active) {
@@ -120,7 +120,7 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
  * \param value The value to be broadcast / receive into.
  */
 template <typename T>
-void BroadcastTrivial(Group& net, T& value) {
+static inline void BroadcastTrivial(Group& net, T& value) {
 
     if (net.my_host_rank() == 0) {
         // send value to all peers
@@ -192,7 +192,7 @@ void Broadcast(Group& net, T& value) {
 //! \param   value The value to be added to the aggregation
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static inline void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     ReduceToRoot(net, value, sumOp);
     Broadcast(net, value);
 }
@@ -204,7 +204,7 @@ void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //! \param   value The value to be added to the aggregation
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static inline void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
@@ -240,8 +240,7 @@ void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySum
 //! \param   mtx A common mutex onto which to lock
 //! \param   cv  A condition variable which locks on the given mutex
 //! \param   num_workers The total number of workers in the network
-static inline
-void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_workers) {
+static inline void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_workers) {
     std::unique_lock<std::mutex> lck(mtx);
     if (num_workers > 1) {
         --num_workers;
@@ -262,7 +261,7 @@ void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_worker
 //! \param   value The value to be summed up
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp(), bool inclusive = true) {
+static inline void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp(), bool inclusive = true) {
     static const bool debug = false;
 
     bool first = true;

@@ -136,6 +136,9 @@ TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
 TEST(FlowControlLocalTcpGroup, SingleThreadPrefixSum) {
     LocalGroupTest(TestSingleThreadPrefixSum);
 }
+TEST(FlowControlLocalTcpGroup, SingleThreadVectorPrefixSum) {
+    LocalGroupTest(TestSingleThreadVectorPrefixSum);
+}
 TEST(FlowControlLocalTcpGroup, SingleThreadBroadcast) {
     LocalGroupTest(TestSingleThreadBroadcast);
 }
