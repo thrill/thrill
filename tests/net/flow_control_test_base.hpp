@@ -52,6 +52,44 @@ static void TestSingleThreadPrefixSum(net::Group* net) {
     ASSERT_EQ(expectedExclusive, resExclusive);
 }
 
+static void TestSingleThreadVectorPrefixSum(net::Group* net) {
+    net::FlowControlChannelManager manager(*net, 1);
+    net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
+    size_t size = 3;
+    size_t myRank = net->my_host_rank();
+    std::vector<size_t> zero(size);
+    std::fill(zero.begin(), zero.end(), 0);
+    std::vector<size_t> val(size);
+    std::fill(val.begin(), val.end(), myRank);
+        
+    auto addSizeTVectors = [] 
+        (const std::vector<size_t> &a, const std::vector<size_t> &b) {
+            std::vector<size_t> res(a.size());
+            for(size_t i = 0; i < a.size(); i++) {
+               res[i] = a[i] + b[i]; 
+            }
+            return res;
+        };
+
+    std::vector<size_t> resInclusive = channel.PrefixSum(val, zero, addSizeTVectors, true);
+    std::vector<size_t> resExclusive = channel.PrefixSum(val, zero, addSizeTVectors, false);
+    size_t expectedInclusive = 0;
+    size_t expectedExclusive = 0;
+
+    for (size_t i = 0; i <= myRank; i++) {
+        expectedInclusive += i;
+    }
+
+    for (size_t i = 0; i < myRank; i++) { 
+        expectedExclusive += i;
+    }
+
+    for (size_t i = 0; i < size; i++) {
+        ASSERT_EQ(expectedInclusive, resInclusive[i]);
+        ASSERT_EQ(expectedExclusive, resExclusive[i]);
+    }
+}
+
 /**
  * Broadcasts the ID of the master, which is 0.
  */
