@@ -1,5 +1,4 @@
 # bechmarks
-
 benchmarks/hashtable/bench_bucket_hashtable/**
 benchmarks/hashtable/bench_probing_hashtable/**
 
@@ -12,6 +11,7 @@ __pycache__
 
 #libs that are downloaded through setup.sh
 lib/*
+extlib/*
 
 # Compiled Object files
 *.slo
