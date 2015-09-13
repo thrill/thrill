@@ -302,7 +302,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
 
 protected:
-    static const bool debug = true;
+    static const bool debug = false;
 
     ChannelId id_;
 
