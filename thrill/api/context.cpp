@@ -114,7 +114,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
  */
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     int num_hosts[] = { 1, 2, 5, 8 };
-    int num_workers[] = { 1 };//, 2, 3};
+    int num_workers[] = {1, 3};
 
     for (auto& hosts : num_hosts) {
         for (auto& workers : num_workers) {
