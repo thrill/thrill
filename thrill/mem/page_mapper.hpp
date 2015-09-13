@@ -25,6 +25,7 @@
 #endif
 
 #include <queue>
+#include <mutex>
 
 #include <thrill/common/concurrent_queue.hpp>
 #include <thrill/common/logger.hpp>
@@ -158,6 +159,7 @@ private:
     static const bool debug = false;
     int fd_;
     size_t next_token_ = { 0 };
+    std::mutex mutex_;
     common::ConcurrentQueue<size_t, std::allocator<size_t> > free_tokens_;
 
     //! Returns the next free token and eventually streches the swapfile if
@@ -168,6 +170,7 @@ private:
             sLOG << "reuse swap token" << result;
             return result;
         }
+        std::lock_guard<std::mutex>lock(mutex_);
 
         // remember result
         result = next_token_;
