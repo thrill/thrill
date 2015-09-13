@@ -16,6 +16,9 @@
 #ifdef __APPLE__
 #define lseek64 lseek
 #define open64 open
+#define mmap64 mmap
+#define off64_t off_t
+#define O_NOATIME 0
 #define O_LARGEFILE 0
 #define MAP_POPULATE 0
 #endif
@@ -68,7 +71,7 @@ public:
         //- delete content if file exists
         //- this is gonna be a large file-> use 64bit ptrs
         //- don't update access time
-        static const int flags = O_RDWR | O_CREAT | O_TRUNC | O_LARGEFILE | O_NOATIME;
+        static int flags = O_RDWR | O_CREAT | O_TRUNC | O_LARGEFILE | O_NOATIME;
 
         // user can read+write, group may read
         static const int permission = S_IRUSR | S_IWUSR | S_IRGRP;
