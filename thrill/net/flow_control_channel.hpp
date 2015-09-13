@@ -14,6 +14,7 @@
 
 #include <thrill/common/functional.hpp>
 #include <thrill/common/thread_barrier.hpp>
+#include <thrill/net/collective_communication.hpp>
 #include <thrill/net/group.hpp>
 
 #include <functional>
@@ -149,22 +150,22 @@ public:
      * \brief Calculates the prefix sum over all workers, given a certain sum
      * operation.
      * \details This method blocks until the sum is caluclated. Values
-     * are applied in order, that means sumOp(sumOp(a, b), c) if a, b, c
-     * are the values of workers 0, 2, 3.
+     * are applied in order, that means sum_op(sum_op(a, b), c) if a, b, c
+     * are the values of workers 0, 1, 2.
      *
      * \param value The local value of this worker.
-     * \param sumOp The operation to use for
+     * \param initial The initial element for the body defined by T and sum_op
+     * \param sum_op The operation to use for
      * calculating the prefix sum. The default operation is a normal addition.
      * \param inclusive Whether the prefix sum is inclusive or exclusive.
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T PrefixSum(const T& value, BinarySumOp sumOp = BinarySumOp(),
+    T PrefixSum(const T& value, const T& initial = T(), BinarySumOp sum_op = BinarySumOp(),
                 bool inclusive = true) {
 
-        T res = value;
-        // return value when computing non-exclusive prefix sum
-        T exclusiveRes = T();
+        static const bool debug = false;
+
         std::vector<T> localPrefixBuffer(threadCount);
 
         // Local Reduce
@@ -178,29 +179,38 @@ public:
 
             // Global Prefix
 
-            // Everyone except the first one needs
-            // to receive and add.
-            if (id != 0) {
-                ReceiveFrom(id - 1, &res);
-                exclusiveRes = res;
+            for (size_t i = 1; i < threadCount; i++) {
+                localPrefixBuffer[i] = sum_op(localPrefixBuffer[i - 1], localPrefixBuffer[i]);
             }
 
-            for (size_t i = id == 0 ? 1 : 0; i < threadCount; i++) {
-                localPrefixBuffer[i] = sumOp(res, localPrefixBuffer[i]);
-                res = localPrefixBuffer[i];
+            for (size_t i = 0; i < threadCount; i++) {
+                LOG << id << ", " << i << ", " << inclusive << ": me: " << localPrefixBuffer[i];
             }
 
-            // Everyone except the last one needs to forward.
-            if (id + 1 != count) {
-                SendTo(id + 1, res);
+            T prefixSumBase = localPrefixBuffer[threadCount - 1];
+            collective::PrefixSum(group, prefixSumBase, sum_op, false);
+
+            if (id == 0) {
+                prefixSumBase = initial;
             }
 
-            barrier.Await();
-            // Slave get result
-            barrier.Await();
-            ClearLocalShared();
+            LOG << id << ", m, " << inclusive << ": base: " << prefixSumBase;
 
-            res = localPrefixBuffer[threadId];
+            if (inclusive) {
+                for (size_t i = 0; i < threadCount; i++) {
+                    localPrefixBuffer[i] = sum_op(prefixSumBase, localPrefixBuffer[i]);
+                }
+            }
+            else {
+                for (size_t i = threadCount - 1; i > 0; i--) {
+                    localPrefixBuffer[i] = sum_op(prefixSumBase, localPrefixBuffer[i - 1]);
+                }
+                localPrefixBuffer[0] = prefixSumBase;
+            }
+
+            for (size_t i = 0; i < threadCount; i++) {
+                LOG << id << ", " << i << ", " << inclusive << ": res: " << localPrefixBuffer[i];
+            }
         }
         else {
             // Master allocate memory.
@@ -208,23 +218,12 @@ public:
             // Slave store values.
             (*GetLocalShared<std::vector<T> >())[threadId] = value;
             barrier.Await();
-            // Global Prefix
-            barrier.Await();
-            // Slave get result
-            if (inclusive) {
-                res = (*GetLocalShared<std::vector<T> >())[threadId];
-            }
-            else {
-                res = (*GetLocalShared<std::vector<T> >())[threadId - 1];
-            }
-            barrier.Await();
         }
-        if (inclusive) {
-            return res;
-        }
-        else {
-            return exclusiveRes;
-        }
+        barrier.Await();
+        T res = (*GetLocalShared<std::vector<T> >())[threadId];
+        barrier.Await();
+
+        return res;
     }
 
     /**
@@ -232,17 +231,19 @@ public:
      * certain sum operation.
      *
      * \details This method blocks until the sum is caluclated. Values
-     * are applied in order, that means sumOp(sumOp(a, b), c) if a, b, c
-     * are the values of workers 0, 2, 3.
+     * are applied in order, that means sum_op(sum_op(a, b), c) if a, b, c
+     * are the values of workers 0, 1, 2.
      *
      * \param value The local value of this worker.
-     * \param sumOp The operation to use for
+     * \param sum_op The operation to use for
+     * \param initial The initial element of the body defined by T and SumOp
      * calculating the prefix sum. The default operation is a normal addition.
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T ExPrefixSum(const T& value, BinarySumOp sumOp = BinarySumOp()) {
-        return PrefixSum(value, sumOp, false);
+    T ExPrefixSum(const T& value,
+                  const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+        return PrefixSum(value, initial, sum_op, false);
     }
 
     /**
@@ -264,17 +265,7 @@ public:
         if (threadId == 0) {
             SetLocalShared(&res);
 
-            if (id == 0) {
-                // Master has to send to all.
-                for (size_t i = 1; i < count; i++) {
-                    SendTo(i, value);
-                    res = value;
-                }
-            }
-            else {
-                // Every other node has to receive.
-                ReceiveFrom(0, &res);
-            }
+            collective::Broadcast(group, res);
         }
 
         barrier.Await();
@@ -300,12 +291,12 @@ public:
      * prefix sum. The operation is assumed to be associative.
      *
      * \param value The value to use for the reduce operation.
-     * \param sumOp The operation to use for
+     * \param sum_op The operation to use for
      * calculating the reduced value. The default operation is a normal addition.
      * \return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
+    T AllReduce(const T& value, BinarySumOp sum_op = BinarySumOp()) {
         T res = value;
         std::vector<T> localReduceBuffer(threadCount);
 
@@ -320,27 +311,10 @@ public:
 
             // Master reduce
             for (size_t i = 1; i < threadCount; i++) {
-                res = sumOp(res, localReduceBuffer[i]);
+                res = sum_op(res, localReduceBuffer[i]);
             }
 
-            // Global Reduce
-            // The master receives from evereyone else.
-            if (id == 0) {
-                T msg;
-                for (size_t i = 1; i < count; i++) {
-                    ReceiveFrom(i, &msg);
-                    res = sumOp(msg, res);
-                }
-                // Finally, the result is broadcasted.
-                for (size_t i = 1; i < count; i++) {
-                    SendTo(i, res);
-                }
-            }
-            else {
-                // Each othe worker just sends the value to the master.
-                SendTo(0, res);
-                ReceiveFrom(0, &res);
-            }
+            collective::AllReduce(group, res, sum_op);
 
             ClearLocalShared();
             SetLocalShared(&res);
@@ -371,7 +345,7 @@ public:
      */
     void Barrier() {
         size_t i = 0;
-        i = AllReduce(i);
+        AllReduce(i);
     }
 };
 

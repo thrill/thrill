@@ -141,6 +141,7 @@ public:
 
 //! Creates a common::StatLogger with {"WorkerID":my rank in the beginning
 #define STAT(ctx) ::thrill::common::StatLogger<::thrill::common::stats_enabled>(ctx)
+#define STATC ::thrill::common::StatLogger<::thrill::common::stats_enabled>(context_)
 
 } // namespace common
 } // namespace thrill

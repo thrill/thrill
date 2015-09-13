@@ -24,6 +24,7 @@
 
 namespace thrill {
 namespace net {
+namespace collective {
 
 //! \addtogroup net Network Communication
 //! \{
@@ -43,7 +44,7 @@ namespace net {
  * \param sum_op A custom summation operator
  */
 template <typename T, typename BinarySumOp = std::plus<T> >
-static void PrefixSumForPowersOfTwo(
+static inline void PrefixSumForPowersOfTwo(
     Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     T total_sum = value;
 
@@ -93,7 +94,7 @@ static void PrefixSumForPowersOfTwo(
  * \param sum_op A custom summation operator
  */
 template <typename T, typename BinarySumOp = std::plus<T> >
-void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
+static inline void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     bool active = true;
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
         if (active) {
@@ -119,7 +120,7 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
  * \param value The value to be broadcast / receive into.
  */
 template <typename T>
-void BroadcastTrivial(Group& net, T& value) {
+static inline void BroadcastTrivial(Group& net, T& value) {
 
     if (net.my_host_rank() == 0) {
         // send value to all peers
@@ -183,8 +184,6 @@ void Broadcast(Group& net, T& value) {
     return BroadcastBinomialTree(net, value);
 }
 
-#if DISABLE_MAYBE_REMOVE
-
 //! \brief   Perform an All-Reduce on the workers.
 //! \details This is done by aggregating all values according to a summation
 //!          operator and sending them backto all workers.
@@ -193,7 +192,7 @@ void Broadcast(Group& net, T& value) {
 //! \param   value The value to be added to the aggregation
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static inline void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     ReduceToRoot(net, value, sumOp);
     Broadcast(net, value);
 }
@@ -205,7 +204,7 @@ void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //! \param   value The value to be added to the aggregation
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static inline void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
@@ -233,6 +232,7 @@ void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySum
     sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value << "\n";
 }
 
+#if DISABLE_MAYBE_REMOVE
 //! \brief   Perform a barrier for all workers.
 //! \details All workers synchronize to this point. This operation can be used if
 //!          one wants to be sure that all workers continue their operation
@@ -241,8 +241,7 @@ void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySum
 //! \param   mtx A common mutex onto which to lock
 //! \param   cv  A condition variable which locks on the given mutex
 //! \param   num_workers The total number of workers in the network
-static inline
-void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_workers) {
+static inline void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_workers) {
     std::unique_lock<std::mutex> lck(mtx);
     if (num_workers > 1) {
         --num_workers;
@@ -253,6 +252,7 @@ void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_worker
         cv.notify_all();
     }
 }
+#endif
 
 //! \brief   Calculate for every worker his prefix sum.
 //! \details The prefix sum is the aggregatation of the values of all workers
@@ -263,29 +263,46 @@ void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_worker
 //! \param   value The value to be summed up
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static inline void PrefixSum(
+    Group& net, T& value,
+    BinarySumOp sumOp = BinarySumOp(), bool inclusive = true) {
     static const bool debug = false;
+
+    bool first = true;
+    // Use a copy, in case of exclusive, we have to forward
+    // something that's not our result.
+    T toForward = value;
 
     // This is based on the pointer-doubling algorithm presented in the ParAlg
     // script, which is used for list ranking.
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
+
         if (net.my_host_rank() + d < net.num_hosts()) {
             sLOG << "Worker" << net.my_host_rank() << ": sending to" << net.my_host_rank() + d;
-            net.SendTo(net.my_host_rank() + d, value);
+            net.SendTo(net.my_host_rank() + d, toForward);
         }
+
         if (net.my_host_rank() >= d) {
-            sLOG << "Worker" << net.my_host_rank() << ": receiving from" << net.my_host_rank() - d;
             T recv_value;
             net.ReceiveFrom(net.my_host_rank() - d, &recv_value);
-            value = sumOp(value, recv_value);
+            sLOG << "Worker" << net.my_host_rank() << ": receiving " << recv_value << " from" << net.my_host_rank() - d;
+
+            // Take care of order, so we don't break associativity.
+            toForward = sumOp(recv_value, toForward);
+
+            if (!first || inclusive) {
+                value = sumOp(recv_value, value);
+            }
+            else {
+                value = recv_value;
+                first = false;
+            }
         }
     }
 }
-
-#endif  // DISABLE_MAYBE_REMOVE
-
 //! \}
 
+} // namespace collective
 } // namespace net
 } // namespace thrill
 
