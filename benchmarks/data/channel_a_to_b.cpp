@@ -79,29 +79,20 @@ int main(int argc, const char** argv) {
     std::vector<std::string> endpoints;
     endpoints.push_back("127.0.0.1:8000");
     endpoints.push_back("127.0.0.1:8001");
-    std::unique_ptr<net::Manager> net_manager1, net_manager2;
+    std::unique_ptr<api::HostContext> host_ctx1, host_ctx2;
     connect_pool.Enqueue(
-        [&net_manager1, &endpoints]() {
-            net_manager1 = std::make_unique<net::Manager>(0, endpoints);
+        [&host_ctx1, &endpoints]() {
+            host_ctx1 = std::make_unique<api::HostContext>(0, endpoints, 1);
         });
 
     connect_pool.Enqueue(
-        [&net_manager2, &endpoints]() {
-            net_manager2 = std::make_unique<net::Manager>(1, endpoints);
+        [&host_ctx2, &endpoints]() {
+            host_ctx2 = std::make_unique<api::HostContext>(1, endpoints, 1);
         });
     connect_pool.LoopUntilEmpty();
 
-    data::BlockPool blockpool1(nullptr);
-    data::BlockPool blockpool2(nullptr);
-
-    data::Multiplexer datamp1(blockpool1, 1, net_manager1->GetDataGroup());
-    data::Multiplexer datamp2(blockpool2, 1, net_manager2->GetDataGroup());
-
-    net::FlowControlChannelManager flow_manager1(net_manager1->GetFlowGroup(), 1);
-    net::FlowControlChannelManager flow_manager2(net_manager2->GetFlowGroup(), 1);
-
-    api::Context ctx1(*net_manager1, flow_manager1, blockpool1, datamp1, 1, 0);
-    api::Context ctx2(*net_manager2, flow_manager2, blockpool2, datamp2, 1, 0);
+    api::Context ctx1(*host_ctx1, 0);
+    api::Context ctx2(*host_ctx2, 0);
 
     common::NameThisThread("benchmark");
 

@@ -13,7 +13,9 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/math.hpp>
 #include <thrill/common/stats.hpp>
+#include <thrill/net/tcp/construct.hpp>
 
 #include <atomic>
 #include <memory>
@@ -31,18 +33,18 @@ std::vector<std::unique_ptr<HostContext> >
 HostContext::ConstructLocalMock(size_t host_count, size_t workers_per_host) {
     static const size_t kGroupCount = net::Manager::kGroupCount;
 
-    // construct three full mesh connection cliques, deliver net::Groups.
-    std::array<std::vector<net::Group>, kGroupCount> group;
+    // construct three full mesh connection cliques, deliver net::tcp::Groups.
+    std::array<std::vector<std::unique_ptr<net::tcp::Group> >, kGroupCount> group;
 
     for (size_t g = 0; g < kGroupCount; ++g) {
-        group[g] = std::move(net::Group::ConstructLocalMesh(host_count));
+        group[g] = net::tcp::Group::ConstructLocalMesh(host_count);
     }
 
     // construct host context
     std::vector<std::unique_ptr<HostContext> > host_context;
 
     for (size_t h = 0; h < host_count; h++) {
-        std::array<net::Group, kGroupCount> host_group = {
+        std::array<net::GroupPtr, kGroupCount> host_group = {
             { std::move(group[0][h]),
               std::move(group[1][h]),
               std::move(group[2][h]) }
@@ -50,21 +52,28 @@ HostContext::ConstructLocalMock(size_t host_count, size_t workers_per_host) {
 
         host_context.emplace_back(
             std::make_unique<HostContext>(
-                h, std::move(host_group), workers_per_host));
+                std::move(host_group), workers_per_host));
     }
 
     return host_context;
 }
 
+//! given a global range [0,global_size) and p PEs to split the range, calculate
+//! the [local_begin,local_end) index range assigned to the PE i. Takes the
+//! information from the Context.
+std::tuple<size_t, size_t> Context::CalculateLocalRange(size_t global_size) {
+    return common::CalculateLocalRange(global_size, num_workers(), my_rank());
+}
+
 /*!
  * Starts n hosts with multiple workers each, all running on this machine.
  * The hosts communicate via Sockets created by the socketpair call and do
- * not share a data::Multiplexer or net::FlowControlChannel. The workers withing
+ * not share a data::Multiplexer or net::FlowControlChannel. The workers within
  * the same host do share these components though.
  */
 void
 RunLocalMock(size_t host_count, size_t workers_per_host,
-             std::function<void(api::Context&)> job_startpoint) {
+             const std::function<void(Context&)>& job_startpoint) {
     static const bool debug = false;
 
     // construct a mock network of hosts
@@ -75,7 +84,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
     std::vector<std::thread> threads(host_count * workers_per_host);
 
     for (size_t host = 0; host < host_count; host++) {
-        mem::string log_prefix = "host " + mem::to_string(host);
+        mem::by_string log_prefix = "host " + mem::to_string(host);
         for (size_t worker = 0; worker < workers_per_host; worker++) {
             threads[host * workers_per_host + worker] = std::thread(
                 [&host_contexts, &job_startpoint, host, worker, log_prefix] {
@@ -94,7 +103,6 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
     }
 
     // join worker threads
-
     for (size_t i = 0; i < host_count * workers_per_host; i++) {
         threads[i].join();
     }
@@ -104,7 +112,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
  * Helper Function to execute tests using mock networks in test suite for many
  * different numbers of host and workers as independent threads in one program.
  */
-void RunLocalTests(std::function<void(Context&)> job_startpoint) {
+void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     int num_hosts[] = { 1, 2, 5, 8 };
     int num_workers[] = { 1 };//, 2, 3};
 
@@ -115,7 +123,19 @@ void RunLocalTests(std::function<void(Context&)> job_startpoint) {
     }
 }
 
-void RunSameThread(std::function<void(Context&)> job_startpoint) {
+HostContext::HostContext(size_t my_host_rank,
+                         const std::vector<std::string>& endpoints,
+                         size_t workers_per_host)
+    : workers_per_host_(workers_per_host),
+      net_manager_(net::tcp::Construct(my_host_rank,
+                                       endpoints, net::Manager::kGroupCount)),
+      flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
+      data_multiplexer_(mem_manager_,
+                        block_pool_, workers_per_host,
+                        net_manager_.GetDataGroup())
+{ }
+
+void RunSameThread(const std::function<void(Context&)>& job_startpoint) {
 
     size_t my_host_rank = 0;
     size_t workers_per_host = 1;
@@ -132,8 +152,8 @@ void RunSameThread(std::function<void(Context&)> job_startpoint) {
 int RunDistributedTCP(
     size_t my_host_rank,
     const std::vector<std::string>& endpoints,
-    std::function<void(Context&)> job_startpoint,
-    const mem::string& log_prefix) {
+    const std::function<void(Context&)>& job_startpoint,
+    const mem::by_string& log_prefix) {
 
     // TODO pull this out of ENV
     const size_t workers_per_host = 1;
@@ -181,7 +201,7 @@ int RunDistributedTCP(
  * non-zero return value of any thread is returned.
  */
 int Run(
-    std::function<void(Context&)> job_startpoint,
+    const std::function<void(Context&)>& job_startpoint,
     const std::string& /*log_prefix*/) {
 
     char* endptr;

@@ -29,8 +29,9 @@ struct Multiplexer : public::testing::Test {
 
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
-        data::BlockPool block_pool(nullptr);
-        data::Multiplexer multiplexer(block_pool, 1, *group);
+        mem::Manager mem_manager(nullptr, "MultiplexerTest");
+        data::BlockPool block_pool(&mem_manager);
+        data::Multiplexer multiplexer(mem_manager, block_pool, 1, *group);
         switch (group->my_host_rank()) {
         case 0:
             common::NameThisThread("t0");
@@ -50,7 +51,7 @@ struct Multiplexer : public::testing::Test {
     static void Execute(WorkerThread f1 = nullptr,
                         WorkerThread f2 = nullptr,
                         WorkerThread f3 = nullptr) {
-        net::Group::ExecuteLocalMock(
+        net::RunGroupTest(
             // calculate number of threads
             (f1 ? 1 : 0) + (f2 ? 1 : 0) + (f3 ? 1 : 0),
             [=](net::Group* g) {
@@ -66,20 +67,22 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
     unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
-        send_buffer[i] = i;
+        send_buffer[i] = static_cast<unsigned char>(i);
 
     static const size_t iterations = 1000;
     size_t my_local_worker_id = 0;
     size_t num_workers_per_host = 1;
 
-    data::BlockPool block_pool(nullptr);
-    data::Multiplexer multiplexer(block_pool, num_workers_per_host, *net);
+    mem::Manager mem_manager(nullptr, "Benchmark");
+    data::BlockPool block_pool(&mem_manager);
+    data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
     {
         data::ChannelId id = multiplexer.AllocateChannelId(my_local_worker_id);
 
         // open Writers and send a message to all workers
 
-        auto writers = multiplexer.GetOrCreateChannel(id, my_local_worker_id)->OpenWriters(test_block_size);
+        auto writers = multiplexer.GetOrCreateChannel(
+            id, my_local_worker_id)->OpenWriters(test_block_size);
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
             writers[tgt]("hello I am " + std::to_string(net->my_host_rank())
@@ -97,7 +100,8 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
         // open Readers and receive message from all workers
 
-        auto readers = multiplexer.GetOrCreateChannel(id, my_local_worker_id)->OpenReaders();
+        auto readers = multiplexer.GetOrCreateChannel(
+            id, my_local_worker_id)->OpenReaders();
 
         for (size_t src = 0; src != readers.size(); ++src) {
             std::string msg = readers[src].Next<std::string>();
@@ -123,10 +127,10 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
 TEST_F(Multiplexer, TalkAllToAllViaChannelForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 9:
-    net::Group::ExecuteLocalMock(1, TalkAllToAllViaChannel);
-    net::Group::ExecuteLocalMock(2, TalkAllToAllViaChannel);
-    net::Group::ExecuteLocalMock(5, TalkAllToAllViaChannel);
-    net::Group::ExecuteLocalMock(9, TalkAllToAllViaChannel);
+    net::RunGroupTest(1, TalkAllToAllViaChannel);
+    net::RunGroupTest(2, TalkAllToAllViaChannel);
+    net::RunGroupTest(5, TalkAllToAllViaChannel);
+    net::RunGroupTest(9, TalkAllToAllViaChannel);
 }
 
 TEST_F(Multiplexer, ReadCompleteChannel) {
@@ -164,7 +168,7 @@ TEST_F(Multiplexer, ReadCompleteChannel) {
                       w.Close();
                   }
 
-                  auto reader = c->OpenReader();
+                  auto reader = c->OpenConcatReader(true);
                   ASSERT_EQ("I came from worker 0", reader.Next<std::string>());
                   ASSERT_EQ("I am another message from worker 0", reader.Next<std::string>());
                   ASSERT_EQ("I came from worker 1", reader.Next<std::string>());
@@ -208,7 +212,7 @@ TEST_F(Multiplexer, ReadCompleteChannelTwice) {
                   }
 
                   {
-                      auto reader = c->OpenCachingReader();
+                      auto reader = c->OpenConcatReader(false);
                       ASSERT_EQ("I came from worker 0",
                                 reader.Next<std::string>());
                       ASSERT_EQ("I am another message from worker 0",
@@ -218,7 +222,7 @@ TEST_F(Multiplexer, ReadCompleteChannelTwice) {
                       ASSERT_TRUE(!reader.HasNext());
                   }
                   {
-                      auto reader = c->OpenCachingReader();
+                      auto reader = c->OpenConcatReader(true);
                       ASSERT_EQ("I came from worker 0",
                                 reader.Next<std::string>());
                       ASSERT_EQ("I am another message from worker 0",
@@ -250,7 +254,7 @@ TEST_F(Multiplexer, Scatter_OneWorker) {
             ch->Scatter<std::string>(file, { 2 });
 
             // check that got items
-            auto reader = ch->OpenReader();
+            auto reader = ch->OpenConcatReader(true);
             ASSERT_TRUE(reader.HasNext());
             ASSERT_EQ(reader.Next<std::string>(), "foo");
             ASSERT_TRUE(reader.HasNext());
@@ -277,7 +281,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             ch->Scatter<std::string>(file, { 2, 2 });
 
             // check that got items
-            auto res = ch->OpenReader().ReadComplete<std::string>();
+            auto res = ch->OpenConcatReader(true).ReadComplete<std::string>();
             ASSERT_EQ(res, (std::vector<std::string>{ "foo", "bar" }));
         };
     auto w1 =
@@ -297,7 +301,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             ch->Scatter<std::string>(file, { 0, 3 });
 
             // check that got items
-            auto res = ch->OpenReader().ReadComplete<std::string>();
+            auto res = ch->OpenConcatReader(true).ReadComplete<std::string>();
             ASSERT_EQ(res, (std::vector<std::string>{ "hello", "world", "." }));
         };
     Execute(w0, w1);
@@ -319,7 +323,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
-                  auto res = ch->OpenReader().ReadComplete<std::string>();
+                  auto res = ch->OpenConcatReader(true).ReadComplete<std::string>();
                   ASSERT_EQ(res, (std::vector<std::string>{ "foo", "hello" }));
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
@@ -338,7 +342,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
-                  auto res = ch->OpenReader().ReadComplete<std::string>();
+                  auto res = ch->OpenConcatReader(true).ReadComplete<std::string>();
                   ASSERT_EQ(res, (std::vector<std::string>{ "bar", "world" }));
               };
     Execute(w0, w1);
@@ -360,7 +364,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   ch->Scatter<int>(file, { 2, 2, 2 });
 
                   // check that got items
-                  auto res = ch->OpenReader().ReadComplete<int>();
+                  auto res = ch->OpenConcatReader(true).ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 1, 2 }));
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
@@ -380,7 +384,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   ch->Scatter<int>(file, { 0, 2, 4 });
 
                   // check that got items
-                  auto res = ch->OpenReader().ReadComplete<int>();
+                  auto res = ch->OpenConcatReader(true).ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 3, 4 }));
               };
     auto w2 = [](data::Multiplexer& multiplexer) {
@@ -393,7 +397,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   ch->Scatter<int>(file, { 0, 0, 0 });
 
                   // check that got items
-                  auto res = ch->OpenReader().ReadComplete<int>();
+                  auto res = ch->OpenConcatReader(true).ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 5, 6 }));
               };
     Execute(w0, w1, w2);

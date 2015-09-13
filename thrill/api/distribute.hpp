@@ -13,9 +13,8 @@
 #define THRILL_API_DISTRIBUTE_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
 
 #include <string>
 #include <vector>
@@ -27,32 +26,30 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class DistributeNode : public DOpNode<ValueType>
+class DistributeNode : public SourceNode<ValueType>
 {
 public:
-    using Super = DOpNode<ValueType>;
+    using Super = SourceNode<ValueType>;
     using Super::context_;
 
     DistributeNode(Context& ctx,
                    const std::vector<ValueType>& in_vector,
                    StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "Distribute", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(in_vector)
     { }
 
     DistributeNode(Context& ctx,
                    std::vector<ValueType>&& in_vector,
                    StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "Distribute", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(std::move(in_vector))
     { }
 
-    void Execute() final { }
-
-    void PushData() final {
+    void PushData(bool /* consume */) final {
         size_t local_begin, local_end;
         std::tie(local_begin, local_end) =
-            common::CalculateLocalRange(in_vector_.size(), context_);
+            context_.CalculateLocalRange(in_vector_.size());
 
         for (size_t i = local_begin; i < local_end; ++i) {
             this->PushItem(in_vector_[i]);
@@ -65,17 +62,13 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    std::string ToString() final {
-        return "[Distribute] Id: " + std::to_string(this->id());
-    }
-
 private:
     //! Vector pointer to read elements from.
     std::vector<ValueType> in_vector_;
 };
 
 /*!
- * Distribute is an Initial-DOp, which takes a vector of data EQUAL on all
+ * Distribute is a Source-DOp, which takes a vector of data EQUAL on all
  * workers, and returns the data in a DIA. Use DistributeFrom to actually
  * distribute data from a single worker, Distribute is more a ToDIA wrapper if
  * the data is already distributed.

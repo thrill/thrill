@@ -14,10 +14,12 @@
 #ifndef THRILL_API_SORT_HEADER
 #define THRILL_API_SORT_HEADER
 
+#include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/group.hpp>
@@ -60,7 +62,7 @@ public:
     SortNode(const ParentDIARef& parent,
              CompareFunction compare_function,
              StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Sort", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           compare_function_(compare_function),
           channel_id_samples_(parent.ctx().GetNewChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
@@ -83,14 +85,20 @@ public:
         MainOp();
     }
 
-    void PushData() final {
+    void PushData(bool consume) final {
 
         for (size_t i = 0; i < data_.size(); i++) {
             this->PushItem(data_[i]);
         }
+
+        if (consume) {
+            std::vector<ValueType>().swap(data_);
+        }
     }
 
-    void Dispose() final { }
+    void Dispose() final {
+        std::vector<ValueType>().swap(data_);
+    }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -100,14 +108,6 @@ public:
      */
     auto ProduceStack() {
         return FunctionStack<ValueType>();
-    }
-
-    /*!
-     * Returns "[SortNode]" as a string.
-     * \return "[SortNode]"
-     */
-    std::string ToString() final {
-        return "[SortNode] Id:" + std::to_string(this->id());
     }
 
 private:
@@ -138,7 +138,8 @@ private:
 
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
-        auto reader = channel_id_samples_->OpenReader();
+        // TODO(tb): OpenConsumeReader
+        auto reader = channel_id_samples_->OpenConcatReader(true);
 
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
@@ -263,6 +264,7 @@ private:
                    && (prefix_elem + i) * actual_k >= b0 * total_elem) {
                 b0--;
             }
+
             assert(emitters_data_[b0].IsValid());
             emitters_data_[b0](el0);
 
@@ -307,8 +309,8 @@ private:
 
         LOG << prefix_elem << " elements, out of " << total_elem;
 
-        std::default_random_engine generator({ std::random_device()() });
-        std::uniform_int_distribution<int> distribution(0, data_.size() - 1);
+        std::default_random_engine generator(std::random_device { } ());
+        std::uniform_int_distribution<size_t> distribution(0, data_.size() - 1);
 
         // Send samples to worker 0
         for (size_t i = 0; i < sample_size; i++) {
@@ -333,7 +335,8 @@ private:
             for (size_t j = 1; j < num_total_workers; j++) {
                 emitters_samples_[j].Close();
             }
-            auto reader = channel_id_samples_->OpenReader();
+            bool consume = false;
+            auto reader = channel_id_samples_->OpenConcatReader(consume);
             while (reader.HasNext()) {
                 splitters.push_back(reader.template Next<ValueType>());
             }
@@ -371,7 +374,8 @@ private:
 
         data_.clear();
 
-        auto reader = channel_id_data_->OpenReader();
+        bool consume = false;
+        auto reader = channel_id_data_->OpenConcatReader(consume);
 
         while (reader.HasNext()) {
             data_.push_back(reader.template Next<ValueType>());

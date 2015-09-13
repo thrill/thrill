@@ -7,6 +7,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -96,7 +97,8 @@ public:
                const ParentDIARef1& parent1,
                ZipFunction zip_function,
                StatsNode* stats_node)
-        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "ZipNode", stats_node),
+        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() },
+                             stats_node),
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
@@ -126,14 +128,14 @@ public:
         MainOp();
     }
 
-    void PushData() final {
+    void PushData(bool consume) final {
         size_t result_count = 0;
 
         if (result_size_ != 0) {
             // get inbound readers from all Channels
-            std::vector<data::Channel::CachingConcatReader> readers;
-            readers.emplace_back(channels_[0]->OpenCachingReader());
-            readers.emplace_back(channels_[1]->OpenCachingReader());
+            std::vector<data::Channel::ConcatReader> readers;
+            readers.emplace_back(channels_[0]->OpenConcatReader(consume));
+            readers.emplace_back(channels_[1]->OpenConcatReader(consume));
 
             while (readers[0].HasNext() && readers[1].HasNext()) {
                 ZipArg0 i0 = readers[0].Next<ZipArg0>();
@@ -141,16 +143,6 @@ public:
                 this->PushItem(zip_function_(i0, i1));
                 ++result_count;
             }
-
-            // Empty out readers. If they have additional items, this is
-            // necessary for the CachingBlockQueueSource, as it has to cache the
-            // additional blocks -tb. TODO(tb): this is weird behaviour.
-            // yes ... weird - ts
-            while (readers[0].HasNext())
-                readers[0].Next<ZipArg0>();
-
-            while (readers[1].HasNext())
-                readers[1].Next<ZipArg1>();
 
             channels_[0]->Close();
             channels_[1]->Close();
@@ -169,14 +161,6 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         return FunctionStack<ZipResult>();
-    }
-
-    /*!
-     * Returns "[ZipNode]" as a string.
-     * \return "[ZipNode]"
-     */
-    std::string ToString() final {
-        return "[ZipNode]";
     }
 
 private:

@@ -72,7 +72,7 @@ void page_rank(Context& ctx) {
                 [](Page page, auto emit) {
                     std::vector<int> urls = std::get<2>(page);
                     double rank = std::get<1>(page);
-                    double num_urls = urls.size();
+                    double num_urls = static_cast<double>(urls.size());
                     for (int url : urls) {
                         emit(std::make_pair(url, rank / num_urls));
                     }

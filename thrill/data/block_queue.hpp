@@ -29,7 +29,7 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-class BlockQueueSource;
+class ConsumeBlockQueueSource;
 
 /*!
  * A BlockQueue is a thread-safe queue used to hand-over Block objects between
@@ -44,15 +44,16 @@ class BlockQueueSource;
  */
 class BlockQueue final : public BlockSink
 {
+    static const bool debug = false;
+
 public:
-    using BlockSource = BlockQueueSource;
     using Writer = BlockWriter<BlockQueue>;
-    using Reader = BlockReader<BlockQueueSource>;
-    using DynReader = DynBlockReader;
+    using Reader = DynBlockReader;
+    using ConsumeReader = BlockReader<ConsumeBlockQueueSource>;
 
     //! Constructor from BlockPool
     explicit BlockQueue(BlockPool& block_pool)
-        : BlockSink(block_pool)
+        : BlockSink(block_pool), file_(block_pool)
     { }
 
     //! non-copyable: delete copy-constructor
@@ -80,7 +81,7 @@ public:
     enum { allocate_can_fail_ = false };
 
     Block Pop() {
-        assert(!read_closed_);
+        if (read_closed_) return Block();
         Block b;
         queue_.pop(b);
         read_closed_ = !b.IsValid();
@@ -104,29 +105,39 @@ public:
     }
 
     //! return BlockReader specifically for a BlockQueue
-    Reader GetReader();
+    ConsumeReader GetConsumeReader();
+
+    //! return polymorphic BlockSource variant
+    DynBlockSource GetBlockSource(bool consume);
 
     //! return polymorphic BlockReader variant
-    DynReader GetDynReader();
+    Reader GetReader(bool consume);
 
 private:
     common::ConcurrentBoundedQueue<Block> queue_;
 
     common::AtomicMovable<bool> write_closed_ = { false };
 
-    //! whether Pop() has returned a closing Block.
+    //! whether Pop() has returned a closing Block; hence, if we received the
+    //! close message from the writer
     bool read_closed_ = false;
+
+    //! File to cache blocks for implementing ConstBlockQueueSource.
+    File file_;
+
+    //! for access to file_
+    friend class CacheBlockQueueSource;
 };
 
 /*!
  * A BlockSource to read Block from a BlockQueue using a BlockReader. Each Block
  * is *taken* from the BlockQueue, hence the BlockQueue can be read only once!
  */
-class BlockQueueSource
+class ConsumeBlockQueueSource
 {
 public:
     //! Start reading from a BlockQueue
-    explicit BlockQueueSource(BlockQueue& queue)
+    explicit ConsumeBlockQueueSource(BlockQueue& queue)
         : queue_(queue)
     { }
 
@@ -136,23 +147,15 @@ public:
         return queue_.Pop();
     }
 
-    bool closed() const {
-        return queue_.read_closed();
-    }
-
 protected:
     //! BlockQueue that blocks are retrieved from
     BlockQueue& queue_;
 };
 
 inline
-typename BlockQueue::Reader BlockQueue::GetReader() {
-    return BlockQueue::Reader(BlockQueueSource(*this));
-}
-
-inline
-typename BlockQueue::DynReader BlockQueue::GetDynReader() {
-    return ConstructDynBlockReader<BlockQueueSource>(*this);
+BlockQueue::ConsumeReader BlockQueue::GetConsumeReader() {
+    assert(!read_closed_);
+    return ConsumeReader(ConsumeBlockQueueSource(*this));
 }
 
 /*!
@@ -161,47 +164,78 @@ typename BlockQueue::DynReader BlockQueue::GetDynReader() {
  * are saved in the cache File. If the cache BlockQueue is initially already
  * closed, then Blocks are read from the File instead.
  */
-class CachingBlockQueueSource
+class CacheBlockQueueSource
 {
 public:
     //! Start reading from a BlockQueue
-    CachingBlockQueueSource(BlockQueue& queue, File& file)
-        : queue_src_(queue), file_src_(file), file_(file) {
-        // determinate whether we read from the Queue or from the File.
-        from_queue_ = !queue_src_.closed();
-    }
+    explicit CacheBlockQueueSource(BlockQueue* queue)
+        : queue_(queue) { }
 
-    //! Return next block for BlockReader.
+    //! non-copyable: delete copy-constructor
+    CacheBlockQueueSource(const CacheBlockQueueSource&) = delete;
+    //! non-copyable: delete assignment operator
+    CacheBlockQueueSource& operator = (const CacheBlockQueueSource&) = delete;
+    //! move-constructor: default
+    CacheBlockQueueSource(CacheBlockQueueSource&& s)
+        : queue_(s.queue_) { s.queue_ = nullptr; }
+
+    //! Return next block for BlockQueue, store into caching File and return it.
     Block NextBlock() {
-        if (from_queue_) {
-            Block b = queue_src_.NextBlock();
-            // cache block in file_
-            if (b.IsValid())
-                file_.AppendBlock(b);
-            return b;
-        }
-        else {
-            return file_src_.NextBlock();
-        }
+        Block b = queue_->Pop();
+
+        // cache block in file_ (but not the termination block from the queue)
+        if (b.IsValid())
+            queue_->file_.AppendBlock(b);
+
+        return b;
     }
 
-    bool closed() const {
-        return from_queue_ ? queue_src_.closed() : file_src_.closed();
+    //! Consume remaining blocks and cache them in the File.
+    ~CacheBlockQueueSource() {
+        if (queue_ && !queue_->read_closed()) {
+            while (NextBlock().IsValid()) { }
+        }
     }
 
 protected:
-    //! whether we read from BlockQueue or from the File.
-    bool from_queue_;
-
-    //! BlockQueueSource
-    BlockQueueSource queue_src_;
-
-    //! FileBlockSource if the queue was already read.
-    FileBlockSource file_src_;
-
-    //! Reference to file for caching Blocks
-    File& file_;
+    //! Reference to BlockQueue
+    BlockQueue* queue_;
 };
+
+inline
+DynBlockSource BlockQueue::GetBlockSource(bool consume) {
+    if (consume && !read_closed_) {
+        // set to consume, and BlockQueue has not been read.
+        sLOG << "BlockQueue::GetBlockSource() consume, from queue.";
+        return ConstructDynBlockSource<ConsumeBlockQueueSource>(*this);
+    }
+    else if (consume && read_closed_) {
+        // consume the File, BlockQueue was already read.
+        sLOG << "BlockQueue::GetBlockSource() consume, from cache:"
+             << file_.num_items();
+        return ConstructDynBlockSource<ConsumeFileBlockSource>(&file_);
+    }
+    else if (!consume && !read_closed_) {
+        // non-consumer but the BlockQueue has not been read.
+        sLOG << "BlockQueue::GetBlockSource() non-consume, from queue.";
+        return ConstructDynBlockSource<CacheBlockQueueSource>(this);
+    }
+    else if (!consume && read_closed_) {
+        // non-consumer: reread the file that was cached.
+        sLOG << "BlockQueue::GetBlockSource() non-consume, from cache:"
+             << file_.num_items();
+        return ConstructDynBlockSource<KeepFileBlockSource>(file_, 0);
+    }
+    else {
+        // impossible
+        abort();
+    }
+}
+
+inline
+BlockQueue::Reader BlockQueue::GetReader(bool consume) {
+    return DynBlockReader(GetBlockSource(consume));
+}
 
 //! \}
 

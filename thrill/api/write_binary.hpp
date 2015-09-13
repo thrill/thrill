@@ -14,8 +14,9 @@
 #define THRILL_API_WRITE_BINARY_HEADER
 
 #include <thrill/api/action_node.hpp>
+#include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/common/math.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/core/file_io.hpp>
 #include <thrill/core/stage_builder.hpp>
@@ -46,8 +47,7 @@ public:
                     const std::string& path_out,
                     size_t max_file_size,
                     StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() },
-                     "WriteBinary", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_pathbase_(path_out),
           max_file_size_(max_file_size)
     {
@@ -71,50 +71,12 @@ public:
         sLOG << "closing file" << out_pathbase_;
         writer_.reset();
         sink_.reset();
+        STAT(context_) << "NodeType" << "WriteBinary"
+                       << "TotalElements" << stats_total_elements_
+                       << "TotalWrites" << stats_total_writes_;
     }
 
     void Dispose() final { }
-
-    std::string ToString() final {
-        return "[WriteBinaryNode] Id:" + std::to_string(this->id());
-    }
-
-    //! function which takes pathbase and replaces $$$ with worker and ### with
-    //! the file_part values.
-    static std::string make_path(const std::string& pathbase,
-                                 size_t worker, size_t file_part) {
-
-        using size_type = std::string::size_type;
-
-        std::string out_path = pathbase;
-        {
-            // replace dollar
-            size_type dollar_end = out_path.rfind('$');
-            size_type dollar_begin = out_path.find_last_not_of('$', dollar_end);
-
-            int dollar_length = dollar_end - dollar_begin;
-            if (dollar_length <= 0) dollar_length = 4;
-
-            sLOG << "dollar_length" << dollar_length;
-            out_path.replace(dollar_begin + 1, dollar_length,
-                             common::str_snprintf<>(dollar_length + 2, "%0*lu",
-                                                    dollar_length, worker));
-        }
-        {
-            // replace hash signs
-            size_type hash_end = out_path.rfind('#');
-            size_type hash_begin = out_path.find_last_not_of('#', hash_end);
-
-            int hash_length = hash_end - hash_begin;
-            if (hash_length <= 0) hash_length = 10;
-
-            sLOG << "hash_length" << hash_length;
-            out_path.replace(hash_begin + 1, hash_length,
-                             common::str_snprintf<>(hash_length + 2, "%0*lu",
-                                                    hash_length, file_part));
-        }
-        return out_path;
-    }
 
 protected:
     //! Implements BlockSink class writing to files with size limit.
@@ -122,13 +84,18 @@ protected:
     {
     public:
         SysFileSink(data::BlockPool& block_pool,
-                    const std::string& path, size_t max_file_size)
+                    const std::string& path, size_t max_file_size,
+                    size_t& stats_total_elements,
+                    size_t& stats_total_writes)
             : BlockSink(block_pool),
               BoundedBlockSink(block_pool, max_file_size),
-              file_(core::SysFile::OpenForWrite(path)) { }
+              file_(core::SysFile::OpenForWrite(path)),
+              stats_total_elements_(stats_total_elements),
+              stats_total_writes_(stats_total_writes) { }
 
         void AppendBlock(const data::Block& b) final {
             sLOG << "SysFileSink::AppendBlock()" << b;
+            stats_total_writes_++;
             file_.write(b.data_begin(), b.size());
         }
 
@@ -138,6 +105,8 @@ protected:
 
     protected:
         core::SysFile file_;
+        size_t& stats_total_elements_;
+        size_t& stats_total_writes_;
     };
 
     using Writer = data::BlockWriter<SysFileSink>;
@@ -160,25 +129,31 @@ protected:
     //! BlockWriter to sink.
     std::unique_ptr<Writer> writer_;
 
+    size_t stats_total_elements_ = 0;
+    size_t stats_total_writes_ = 0;
+
     //! Function to create sink_ and writer_ for next file
     void OpenNextFile() {
         writer_.reset();
         sink_.reset();
 
         // construct path from pattern containing ### and $$$
-        std::string out_path = make_path(
+        std::string out_path = core::FillFilePattern(
             out_pathbase_, context_.my_rank(), out_serial_++);
 
         sLOG << "OpenNextFile() out_path" << out_path;
 
         sink_ = std::make_unique<SysFileSink>(
-            context_.block_pool(), out_path, max_file_size_);
+            context_.block_pool(), out_path, max_file_size_,
+            stats_total_elements_, stats_total_writes_);
 
         writer_ = std::make_unique<Writer>(sink_.get(), block_size_);
     }
 
     //! writer preop: put item into file, create files as needed.
     void PreOp(const ValueType& input) {
+        stats_total_elements_++;
+
         if (!sink_) OpenNextFile();
 
         try {

@@ -78,7 +78,7 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
 
     table.Flush();
 
-    auto it = output.GetReader();
+    auto it = output.GetKeepReader();
     int c = 0;
     while (it.HasNext()) {
         it.Next<int>();
@@ -206,7 +206,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
 
     table.Flush();
 
-    auto it = output.GetReader();
+    auto it = output.GetKeepReader();
     int c = 0;
     while (it.HasNext()) {
         it.Next<int>();
@@ -248,7 +248,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
 
     table.Flush();
 
-    auto it1 = output1.GetReader();
+    auto it1 = output1.GetKeepReader();
     int c1 = 0;
     while (it1.HasNext()) {
         it1.Next<int>();
@@ -257,7 +257,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
 
     ASSERT_EQ(3, c1);
 
-    auto it2 = output2.GetReader();
+    auto it2 = output2.GetKeepReader();
     int c2 = 0;
     while (it2.HasNext()) {
         it2.Next<int>();
@@ -297,7 +297,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
 
     table.Insert(4);
 
-    auto it = output.GetReader();
+    auto it = output.GetKeepReader();
     int c = 0;
     while (it.HasNext()) {
         it.Next<int>();
@@ -339,7 +339,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     table.Insert(4);
     table.Flush();
 
-    auto it1 = output1.GetReader();
+    auto it1 = output1.GetKeepReader();
     int c1 = 0;
     while (it1.HasNext()) {
         it1.Next<int>();
@@ -349,7 +349,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     ASSERT_EQ(3, c1);
     table.Flush();
 
-    auto it2 = output2.GetReader();
+    auto it2 = output2.GetKeepReader();
     int c2 = 0;
     while (it2.HasNext()) {
         it2.Next<int>();
@@ -456,7 +456,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
 
     table.Flush();
 
-    auto it1 = output.GetReader();
+    auto it1 = output.GetKeepReader();
     while (it1.HasNext()) {
         auto n = it1.Next<IntPair>();
         total_count++;
@@ -491,7 +491,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
     table(1, key_ex, red_fn, writers, -1, nitems * 16, 1.0);
 
     // insert lots of items
-    int sum = 0;
+    size_t sum = 0;
     for (size_t i = 0; i != nitems_per_key; ++i) {
         sum += i;
         for (size_t j = 0; j != nitems; ++j) {
@@ -505,7 +505,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
 
     ASSERT_EQ(0u, table.NumItems());
 
-    auto it1 = output.GetReader();
+    auto it1 = output.GetKeepReader();
     while (it1.HasNext()) {
         auto n = it1.Next<IntPair>();
         ASSERT_EQ(sum, n.second);
@@ -549,7 +549,7 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
     table(1, key_ex, red_fn, writers, "", nitems * kv_size, 1.0);
 
     // insert lots of items
-    int sum = 0;
+    size_t sum = 0;
     for (size_t j = 0; j != nitems; ++j) {
         sum = 0;
         std::string str;
@@ -566,7 +566,7 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
 
     ASSERT_EQ(0u, table.NumItems());
 
-    auto it1 = output.GetReader();
+    auto it1 = output.GetKeepReader();
     while (it1.HasNext()) {
         auto n = it1.Next<StringPair>();
         ASSERT_EQ(sum, n.second);

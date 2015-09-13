@@ -20,11 +20,6 @@
 #include <thrill/mem/allocator.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
-#include <thrill/net/lowlevel/select_dispatcher.hpp>
-#include <thrill/net/lowlevel/socket.hpp>
-
-// TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
-// #include <thrill/net/lowlevel/epoll-dispatcher.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -66,13 +61,6 @@ class Dispatcher
     static const bool debug = false;
 
 protected:
-    //! switch between different low-level dispatchers
-    using SubDispatcher = lowlevel::SelectDispatcher;
-    // using SubDispatcher =  lowlevel::EPollDispatcher ;
-
-    //! import into class namespace
-    using Socket = lowlevel::Socket;
-
     //! import into class namespace
     using steady_clock = std::chrono::steady_clock;
 
@@ -92,6 +80,9 @@ public:
     //! non-copyable: delete assignment operator
     Dispatcher& operator = (const Dispatcher&) = delete;
 
+    //! virtual destructor
+    virtual ~Dispatcher() { }
+
     //! \name Timeout Callbacks
     //! \{
 
@@ -109,19 +100,13 @@ public:
     //! \{
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, const AsyncCallback& read_cb) {
-        return dispatcher_.AddRead(c.GetSocket().fd(), read_cb);
-    }
+    virtual void AddRead(Connection& c, const AsyncCallback& read_cb) = 0;
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, const AsyncCallback& write_cb) {
-        return dispatcher_.AddWrite(c.GetSocket().fd(), write_cb);
-    }
+    virtual void AddWrite(Connection& c, const AsyncCallback& write_cb) = 0;
 
     //! Cancel all callbacks on a given connection.
-    void Cancel(int fd) {
-        return dispatcher_.Cancel(fd);
-    }
+    virtual void Cancel(Connection& c) = 0;
 
     //! \}
 
@@ -130,7 +115,7 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
-        assert(c.GetSocket().IsValid());
+        assert(c.IsValid());
 
         LOG << "async read on read dispatcher";
         if (n == 0) {
@@ -150,7 +135,7 @@ public:
     //! asynchronously read the full ByteBlock and deliver it to the callback
     void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
                    AsyncReadByteBlockCallback done_cb) {
-        assert(c.GetSocket().IsValid());
+        assert(c.IsValid());
 
         LOG << "async read on read dispatcher";
         if (block->size() == 0) {
@@ -170,8 +155,8 @@ public:
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = nullptr) {
-        assert(c.GetSocket().IsValid());
+                    AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+        assert(c.IsValid());
 
         if (buffer.size() == 0) {
             if (done_cb) done_cb(c);
@@ -190,8 +175,8 @@ public:
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, const data::Block& block,
-                    AsyncWriteCallback done_cb = nullptr) {
-        assert(c.GetSocket().IsValid());
+                    AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+        assert(c.IsValid());
 
         if (block.size() == 0) {
             if (done_cb) done_cb(c);
@@ -210,14 +195,14 @@ public:
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
-                        AsyncWriteCallback done_cb = nullptr) {
+                        AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const std::string& str,
-                        AsyncWriteCallback done_cb = nullptr) {
+                        AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
     }
 
@@ -249,7 +234,7 @@ public:
         // calculate time until next timer event
         if (timer_pq_.empty()) {
             LOG << "Dispatch(): empty timer queue - selecting for 10s";
-            dispatcher_.Dispatch(milliseconds(10000));
+            DispatchOne(milliseconds(10000));
         }
         else {
             auto diff = std::chrono::duration_cast<milliseconds>(
@@ -258,7 +243,7 @@ public:
             if (diff < milliseconds(1)) diff = milliseconds(1);
 
             sLOG << "Dispatch(): waiting" << diff.count() << "ms";
-            dispatcher_.Dispatch(diff);
+            DispatchOne(diff);
         }
 
         // clean up finished AsyncRead/Writes
@@ -284,6 +269,9 @@ public:
         }
     }
 
+    //! Interrupt current dispatch
+    virtual void Interrupt() = 0;
+
     //! Causes the dispatcher to break out after the next timeout occurred
     //! Does not interrupt the currently running read/write operation, but
     //! breaks after the operation finished or timed out.
@@ -299,14 +287,13 @@ public:
     //! \}
 
 protected:
+    virtual void DispatchOne(const std::chrono::milliseconds& timeout) = 0;
+
     //! true if dispatcher needs to stop
     std::atomic<bool> terminate_ { false };
 
     //! superior memory manager
     mem::Manager& mem_manager_;
-
-    //! low-level file descriptor async processing
-    SubDispatcher dispatcher_ { mem_manager_ };
 
     //! struct for timer callbacks
     struct Timer
@@ -355,7 +342,7 @@ protected:
 
         //! Should be called when the socket is readable
         bool operator () () {
-            int r = conn_.GetSocket().recv_one(
+            ssize_t r = conn_.RecvOne(
                 buffer_.data() + size_, buffer_.size() - size_);
 
             if (r <= 0) {
@@ -370,9 +357,8 @@ protected:
                     if (callback_) callback_(conn_, Buffer());
                     return false;
                 }
-                throw Exception("AsyncReadBuffer() error in recv () on fd "
-                                + std::to_string(conn_.GetSocket().fd()),
-                                errno);
+                throw Exception("AsyncReadBuffer() error in recv () on "
+                                "connection " + conn_.ToString(), errno);
             }
 
             size_ += r;
@@ -423,7 +409,7 @@ protected:
 
         //! Should be called when the socket is writable
         bool operator () () {
-            int r = conn_.GetSocket().send_one(
+            ssize_t r = conn_.SendOne(
                 buffer_.data() + size_, buffer_.size() - size_);
 
             if (r <= 0) {
@@ -488,7 +474,7 @@ protected:
 
         //! Should be called when the socket is readable
         bool operator () () {
-            int r = conn_.GetSocket().recv_one(
+            ssize_t r = conn_.RecvOne(
                 block_->data() + size_, block_->size() - size_);
 
             if (r <= 0) {
@@ -555,9 +541,8 @@ protected:
 
         //! Should be called when the socket is writable
         bool operator () () {
-            int r = conn_.GetSocket().send_one(
-                block_.data_begin() + size_,
-                block_.size() - size_);
+            ssize_t r = conn_.SendOne(
+                block_.data_begin() + size_, block_.size() - size_);
 
             if (r <= 0) {
                 if (errno == EINTR || errno == EAGAIN) return true;
@@ -608,11 +593,11 @@ protected:
     /**************************************************************************/
 
     //! Default exception handler
-    static bool ExceptionCallback(Connection& s) {
+    static bool ExceptionCallback(Connection& c) {
         // exception on listen socket ?
         throw Exception(
                   "Dispatcher() exception on socket fd "
-                  + std::to_string(s.GetSocket().fd()) + "!", errno);
+                  + c.ToString() + "!", errno);
     }
 };
 
