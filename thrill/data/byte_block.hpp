@@ -11,6 +11,7 @@
 #ifndef THRILL_DATA_BYTE_BLOCK_HEADER
 #define THRILL_DATA_BYTE_BLOCK_HEADER
 #include <thrill/common/counting_ptr.hpp>
+#include <limits>       // std::numeric_limits
 
 namespace thrill {
 namespace data {
@@ -97,6 +98,11 @@ public:
     //! true if block resides in memory
     bool in_memory() const {
         return data_ != nullptr;
+    }
+
+    //! indicates if this block can be swapped to disk or not
+    bool swapable() const {
+        return swap_token_ != std::numeric_limits<uint32_t>::max();
     }
 };
 

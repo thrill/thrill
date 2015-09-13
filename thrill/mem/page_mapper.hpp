@@ -89,6 +89,7 @@ public:
     //! Allocates a memory region of OBJECT_SIZE with a
     //! file-backing. Returns the memory address of this region and a
     //! result_token that can be used to address the memory region.
+    //! \param result_token is the will be filled with the token associated with the block
     uint8_t * Allocate(uint32_t & result_token) {
         sLOG << "allocate memory w/ disk backing";
         result_token = next_free_token();

@@ -12,16 +12,25 @@
 
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block_pool.hpp>
+#include <limits>
 
 namespace thrill {
 namespace data {
 
-ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
+ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool swapable, bool pinned) {
     assert(block_size <= default_block_size);
     uint32_t swap_token;
     std::lock_guard<std::mutex> lock(list_mutex_);
 
-    Byte* block_memory = static_cast<Byte*>(page_mapper_.Allocate(swap_token));
+    Byte* block_memory;
+    if (swapable) {
+        block_memory = static_cast<Byte*>(page_mapper_.Allocate(swap_token));
+    } else {
+        //malloc should use mmap internally if required
+        block_memory = static_cast<Byte*>(malloc(block_size));
+        swap_token = std::numeric_limits<uint32_t>::max();
+    }
+
     ByteBlock* block = new ByteBlock(block_memory, block_size, this, pinned, swap_token);
     ByteBlockPtr result(block);
 
@@ -97,6 +106,11 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
     if (!block->in_memory()) {
         num_swapped_blocks_--;
         ext_mem_manager_.subtract(block->size());
+    } else if (!block->swapable()) {
+        //there is no mmap'ed region - simply free the memory
+        mem_manager_.subtract(block->size());
+        free(static_cast<void*>(block->data_));
+        block->data_ = nullptr;
     }
     else {
         const auto pos = std::find(victim_blocks_.begin(), victim_blocks_.end(), block);

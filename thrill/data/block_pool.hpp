@@ -36,7 +36,12 @@ public:
           page_mapper_("/tmp/thrill.swapfile" + swap_file_suffix)
     { }
 
-    ByteBlockPtr AllocateBlock(size_t block_size, bool pinned = false);
+    //! Allocates a block
+    //! the size that is requested
+    //! \param swapable indicates whether the block can be swapped to disk
+    //! pinned indicates whether the block :q
+    //
+    ByteBlockPtr AllocateBlock(size_t block_size, bool swapable = true, bool pinned = false);
 
     // TODO make this async
     void UnpinBlock(const ByteBlockPtr& block_ptr);
@@ -45,6 +50,7 @@ public:
     //! Pins a block by swapping it in if required.
     ByteBlockPtr PinBlock(const ByteBlockPtr& block_ptr);
 
+    //! Total number of allocated blocks of this block pool
     size_t block_count() const noexcept;
 
 protected:
