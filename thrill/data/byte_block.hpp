@@ -56,10 +56,10 @@ protected:
     //! counts the number of pins in this block
     //! this is not atomic since a) head would not be a POD and
     //! b) the count is only modified by BlockPool which is thread-safe
-    size_t pin_count_;
+    uint8_t pin_count_;
 
     //! token that is used with mem::PageMapper
-    size_t swap_token_;
+    uint32_t swap_token_;
 
     // BlockPool is a friend to modify the head's pin_count_
     friend class BlockPool;

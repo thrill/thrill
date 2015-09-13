@@ -17,7 +17,7 @@ using namespace thrill;
 TEST(PageMapper, AllocateReturnsAccessibleMemoryArea) {
     mem::PageMapper<4096> mapper("/tmp/thrill.swapfile");
 
-    size_t token;
+    uint32_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
 
     // write into memory area to see if we get a segfault
@@ -31,7 +31,7 @@ TEST(PageMapper, AllocateReturnsAccessibleMemoryArea) {
 TEST(PageMapper, SwapOutLeavesAreaInaccessible) {
     mem::PageMapper<4096> mapper("/tmp/thrill.swapfile");
 
-    size_t token;
+    uint32_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
     mapper.SwapOut(reinterpret_cast<uint8_t*>(array));
 
@@ -43,7 +43,7 @@ TEST(PageMapper, SwapOutLeavesAreaInaccessible) {
 TEST(PageMapper, SwapInLeavesMakesAreaAccessible) {
     mem::PageMapper<4096> mapper("/tmp/thrill.swapfile");
 
-    size_t token;
+    uint32_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
     mapper.SwapOut(reinterpret_cast<uint8_t*>(array));
     array = reinterpret_cast<int*>(mapper.SwapIn(token));
@@ -60,7 +60,7 @@ TEST(PageMapper, SwappingMultiplePagesDoesNotAlterContent) {
     mem::PageMapper<4096> mapper("/tmp/thrill.swapfile");
 
     // write ascending numbers into array 1 & swap out
-    size_t token1;
+    uint32_t token1;
     int* array1 = reinterpret_cast<int*>(mapper.Allocate(token1));
     for (unsigned int i = 0; i* sizeof(int) < 4096; i++) {
         array1[i] = i;
@@ -68,7 +68,7 @@ TEST(PageMapper, SwappingMultiplePagesDoesNotAlterContent) {
     mapper.SwapOut(reinterpret_cast<uint8_t*>(array1));
 
     // write descending numbers into array 2 & swap out
-    size_t token2;
+    uint32_t token2;
     int* array2 = reinterpret_cast<int*>(mapper.Allocate(token2));
     for (unsigned int i = 0; i* sizeof(int) < 4096; i++) {
         array2[i] = 4096 - i;

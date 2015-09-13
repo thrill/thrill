@@ -45,7 +45,7 @@ class PageMapper
 public:
     //! when swap file is streched, it will be streched
     //! for min(1, min_growth_delta) objects
-    static const size_t min_growth_delta = 0;
+    static const uint32_t min_growth_delta = 0;
 
     //! Creates a PageMapper for objects of given size.
     //! Removes and creates a temporal file (PageMapper::swap_file_name)
@@ -78,7 +78,7 @@ public:
     //! Allocates a memory region of OBJECT_SIZE with a
     //! file-backing. Returns the memory address of this region and a
     //! result_token that can be used to address the memory region.
-    uint8_t * Allocate(size_t& result_token) {
+    uint8_t * Allocate(uint32_t & result_token) {
         sLOG << "allocate memory w/ disk backing";
         result_token = next_free_token();
         return SwapIn(result_token, false /*prefetch*/);
@@ -91,7 +91,7 @@ public:
     //! has been writen back before (PageMapper::SwapOut).
     //!
     //! \param token that was returned from Allocate before
-    void ReleaseToken(size_t token) {
+    void ReleaseToken(uint32_t token) {
         sLOG << "free swap token" << token;
         free_tokens_.push(token);
     }
@@ -117,7 +117,7 @@ public:
     //! Swaps in a given memory region.
     //! \param token that was returned from Allocate before
     //! \returns pointer to memory region
-    uint8_t * SwapIn(size_t token, bool prefetch = true) const {
+    uint8_t * SwapIn(uint32_t token, bool prefetch = true) const {
         // Flags exaplained:
         //- readable
         //- writeable
@@ -163,12 +163,12 @@ private:
     int fd_;
     size_t next_token_ = { 0 };
     std::mutex mutex_;
-    common::ConcurrentQueue<size_t, std::allocator<size_t> > free_tokens_;
+    common::ConcurrentQueue<uint32_t, std::allocator<uint32_t> > free_tokens_;
 
     //! Returns the next free token and eventually streches the swap file if
     //! required
-    size_t next_free_token() {
-        size_t result = 0;
+    uint32_t next_free_token() {
+        uint32_t result = 0;
         if (free_tokens_.try_pop(result)) {
             sLOG << "reuse swap token" << result;
             return result;
@@ -187,7 +187,7 @@ private:
         die_unless(write(fd_, "\0", 1) == 1); //expect 1byte written
 
         // push remaining allocated ids into free-queue
-        for (size_t token = result + 1; token <= next_token_ + min_growth_delta; token++) {
+        for (uint32_t token = result + 1; token <= next_token_ + min_growth_delta; token++) {
             sLOG << "create new swap token" << token;
             free_tokens_.push(token);
         }
