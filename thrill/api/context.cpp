@@ -14,6 +14,7 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/net/tcp/construct.hpp>
 
@@ -114,7 +115,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
  */
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     int num_hosts[] = { 1, 2, 5, 8 };
-    int num_workers[] = { 1 };//, 2, 3};
+    int num_workers[] = { 1, 3 };
 
     for (auto& hosts : num_hosts) {
         for (auto& workers : num_workers) {
@@ -151,14 +152,13 @@ void RunSameThread(const std::function<void(Context&)>& job_startpoint) {
 
 int RunDistributedTCP(
     size_t my_host_rank,
+    size_t workers_per_host,
     const std::vector<std::string>& endpoints,
     const std::function<void(Context&)>& job_startpoint,
     const mem::by_string& log_prefix) {
-
-    // TODO pull this out of ENV
-    const size_t workers_per_host = 1;
-
-    static const bool debug = false;
+    STAT_NO_RANK << "event" << "RunDistributedTCP"
+                 << "my_host_rank" << my_host_rank
+                 << "workers_per_host" << workers_per_host;
 
     HostContext host_context(my_host_rank, endpoints, workers_per_host);
 
@@ -171,11 +171,12 @@ int RunDistributedTCP(
                 common::NameThisThread(
                     log_prefix + " worker " + mem::to_string(i));
 
-                LOG << "Starting job on worker " << ctx.my_rank() << " (" << ctx << ")";
+                STAT(ctx) << "event" << "jobStart";
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 job_startpoint(ctx);
                 STOP_TIMER(overall_timer)
-                LOG << "Worker " << ctx.my_rank() << " done!";
+                if (overall_timer)
+                    STAT(ctx) << "event" << "jobDone" << "time" << overall_timer->Milliseconds();
 
                 ctx.Barrier();
             });
@@ -209,6 +210,22 @@ int Run(
     // parse environment
     const char* env_rank = getenv("THRILL_RANK");
     const char* env_hostlist = getenv("THRILL_HOSTLIST");
+    const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
+
+    // check if #workers is set
+    size_t workers_per_host = 1;
+    if (env_workers_per_host) {
+        workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
+        if (!endptr || *endptr != 0 || workers_per_host == 0) {
+            std::cerr << "environment variable THRILL_WORKERS_PER_HOST=" << env_workers_per_host
+                      << " is not a valid number of workers per host."
+                      << std::endl;
+            return -1;
+        }
+    }
+    else {
+        // TODO: someday, set workers_per_host = std::thread::hardware_concurrency().
+    }
 
     if (!env_rank || !env_hostlist) {
         size_t test_hosts = std::thread::hardware_concurrency();
@@ -229,7 +246,6 @@ int Run(
         std::cerr << "Thrill: executing locally with " << test_hosts
                   << " test hosts in a local socket network." << std::endl;
 
-        const size_t workers_per_host = 1;
         RunLocalMock(test_hosts, workers_per_host, job_startpoint);
 
         return 0;
@@ -281,7 +297,7 @@ int Run(
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
-    return RunDistributedTCP(my_host_rank, endpoints, job_startpoint, "");
+    return RunDistributedTCP(my_host_rank, workers_per_host, endpoints, job_startpoint, "");
 }
 
 } // namespace api
