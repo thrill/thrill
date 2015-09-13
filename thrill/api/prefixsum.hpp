@@ -39,12 +39,12 @@ class PrefixSumNode : public DOpNode<ValueType>
 public:
     PrefixSumNode(const ParentDIARef& parent,
                   SumFunction sum_function,
-                  ValueType neutral_element,
+                  ValueType initial_element,
                   StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           sum_function_(sum_function),
-          local_sum_(neutral_element),
-          neutral_element_(neutral_element)
+          local_sum_(initial_element),
+          initial_element_(initial_element)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType& input) {
@@ -90,8 +90,8 @@ private:
     SumFunction sum_function_;
     //! Local sum to be used in all reduce operation.
     ValueType local_sum_;
-    //! Neutral element.
-    ValueType neutral_element_;
+    //! Initial element.
+    ValueType initial_element_;
 
     //! Local data file
     data::File file_ { context_.GetFile() };
@@ -111,10 +111,11 @@ private:
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        ValueType sum = channel.PrefixSum(local_sum_, neutral_element_, sum_function_, false);
+        ValueType sum = channel.PrefixSum(local_sum_, initial_element_,
+                                          sum_function_, false);
 
         if (context_.my_rank() == 0) {
-            sum = neutral_element_;
+            sum = initial_element_;
         }
 
         local_sum_ = sum;
@@ -126,7 +127,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::PrefixSum(
-    const SumFunction &sum_function, ValueType neutral_element) const {
+    const SumFunction &sum_function, ValueType initial_element) const {
     assert(IsValid());
 
     using SumResultNode
@@ -155,7 +156,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
     auto shared_node
         = std::make_shared<SumResultNode>(*this,
                                           sum_function,
-                                          neutral_element,
+                                          initial_element,
                                           stats_node);
 
     auto sum_stack = shared_node->ProduceStack();

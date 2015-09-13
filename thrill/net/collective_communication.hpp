@@ -265,7 +265,9 @@ static inline void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, i
 //! \param   value The value to be summed up
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-static inline void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp(), bool inclusive = true) {
+static inline void PrefixSum(
+    Group& net, T& value,
+    BinarySumOp sumOp = BinarySumOp(), bool inclusive = true) {
     static const bool debug = false;
 
     bool first = true;
