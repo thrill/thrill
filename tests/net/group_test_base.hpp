@@ -111,27 +111,18 @@ static void TestPrefixSumForPowersOfTwo(net::Group* net) {
 static void TestPrefixSumForPowersOfTwoString(net::Group* net) {
     // only for powers of two
 
+    static const bool debug = false;
+
     if (net->num_hosts() != common::RoundUpToPowerOfTwo(net->num_hosts()))
         return;
 
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
 
-    // TODO(rh): associativity of Prefixsum is broken!
-
-    // rank 0 hosts 8 value a
-    // rank 1 hosts 8 value ba
-    // rank 2 hosts 8 value cab
-    // rank 3 hosts 8 value dcba
-    // rank 4 hosts 8 value eabcd
-    // rank 5 hosts 8 value febadc
-    // rank 6 hosts 8 value gefcdab
-    // rank 7 hosts 8 value hgfedcba
-
     std::string local_value = result.substr(net->my_host_rank(), 1);
     PrefixSumForPowersOfTwo(*net, local_value);
-    // sLOG1 << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
-    //      << "value" << local_value;
-    // ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
+    sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
+          << "value" << local_value;
+    ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
 }
 
 // let group of p hosts perform an ReduceToRoot collective
