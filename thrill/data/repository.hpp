@@ -13,10 +13,11 @@
 #ifndef THRILL_DATA_REPOSITORY_HEADER
 #define THRILL_DATA_REPOSITORY_HEADER
 
+#include <thrill/common/logger.hpp>
+
 #include <cassert>
 #include <map>
 #include <memory>
-#include <thrill/common/logger.hpp>
 #include <utility>
 #include <vector>
 
