@@ -11,9 +11,13 @@ verbose=1
 dir=
 user=$(whoami)
 
-while getopts "u:h:cvC:" opt; do
+while getopts "u:h:H:cvC:" opt; do
     case "$opt" in
     h)
+        # this overrides the user environment variable
+        THRILL_SSHLIST=$OPTARG
+        ;;
+    H)
         # this overrides the user environment variable
         THRILL_HOSTLIST=$OPTARG
         ;;
@@ -25,6 +29,7 @@ while getopts "u:h:cvC:" opt; do
     u)  user=$OPTARG
         ;;
     c)  copy=1
+        dir=/tmp/
         ;;
     C)  dir=$OPTARG
         ;;
@@ -46,8 +51,9 @@ if [ -z "$cmd" ]; then
     echo "Usage: $0 [-h hostlist] thrill_executable [args...]"
     echo "More Options:"
     echo "  -c         copy program to hosts and execute"
-    echo "  -C <path>  remove directory to change into"
+    echo "  -C <path>  remote directory to change into (else: exe's dir)"
     echo "  -h <list>  list of nodes with port numbers"
+    echo "  -H <list>  list of internal IPs passed to thrill exe (else: -h list)"
     echo "  -u <name>  ssh user name"
     echo "  -v         verbose output"
     exit 1
@@ -62,8 +68,11 @@ fi
 cmd=`readlink -f "$cmd"`
 
 if [ -z "$THRILL_HOSTLIST" ]; then
-    echo "No host list specified and THRILL_HOSTLIST variable is empty." >&2
-    exit 1
+    if [ -z "$THRILL_SSHLIST" ]; then
+        echo "No host list specified and THRILL_SSHLIST/HOSTLIST variable is empty." >&2
+        exit 1
+    fi
+    THRILL_HOSTLIST="$THRILL_SSHLIST"
 fi
 
 if [ -z "$dir" ]; then
@@ -72,6 +81,9 @@ fi
 
 if [ $verbose -ne 0 ]; then
     echo "Hosts: $THRILL_HOSTLIST"
+    if [ "$THRILL_HOSTLIST" != "$THRILL_SSHLIST" ]; then
+        echo "ssh Hosts: $THRILL_SSHLIST"
+    fi
     echo "Command: $cmd"
 fi
 
@@ -92,23 +104,23 @@ done
 rank=0
 THRILL_HOSTLIST="${hostlist[@]}"
 
-for hostport in $THRILL_HOSTLIST; do
+for hostport in $THRILL_SSHLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   if [ $verbose -ne 0 ]; then
     echo "Connecting to $host to invoke $cmd"
   fi
   if [ "$copy" == "1" ]; then
       cmdbase=`basename "$cmd"`
-      REMOTENAME="/tmp/$cmdbase.$hostport"
+      REMOTENAME="/tmp/$cmdbase.$hostport.$$"
       # pipe the program though the ssh pipe, save and execute it at the remote end.
       ( cat $cmd | \
               ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
                   $host \
-                  "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cat - > \"$REMOTENAME\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
+                  "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cat - > \"$REMOTENAME\" && chmod +x \"$REMOTENAME\" && shopt -s huponexit && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
       ) &
   else
       ssh \
-          -o BatchMode=yes -o StrictHostKeyChecking=no \
+          -o BatchMode=yes -o StrictHostKeyChecking=no -t \
           $host \
           "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $*" &
   fi
