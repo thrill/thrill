@@ -31,7 +31,8 @@ struct Multiplexer : public::testing::Test {
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         mem::Manager ext_mem_manager(nullptr, "MultiplexerTestExt");
         mem::Manager mem_manager(nullptr, "MultiplexerTest");
-        data::BlockPool block_pool(&mem_manager, &ext_mem_manager);
+        std::string swapfile_name = "/tmp/swapfile.thrill." + std::to_string(group->my_host_rank());
+        data::BlockPool block_pool(&mem_manager, &ext_mem_manager, swapfile_name);
         data::Multiplexer multiplexer(mem_manager, block_pool, 1, *group);
         switch (group->my_host_rank()) {
         case 0:
@@ -76,7 +77,8 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
     mem::Manager mem_manager(nullptr, "Benchmark");
     mem::Manager ext_mem_manager(nullptr, "BenchmarkExt");
-    data::BlockPool block_pool(&mem_manager, &ext_mem_manager);
+    std::string swapfile_name = "/tmp/thrill.swap." + std::to_string(net->my_host_rank()) + "-" + std::to_string(my_local_worker_id);
+    data::BlockPool block_pool(&mem_manager, &ext_mem_manager, swapfile_name);
     data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_node, *net);
     {
         data::ChannelId id = multiplexer.AllocateChannelId(my_local_worker_id);
