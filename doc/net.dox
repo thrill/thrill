@@ -19,29 +19,33 @@ The Thrill Network Layer consists of sublayers:
 
 ## Group & Connection layer
 
-The Group object is similar to an MPI communicator: it has socket connections to k partners/clients/workers in the group. The net clients have immediate  relation to the master/worker concept of higher Thrill layers, though they will probably be implementing using a Group. This master/worker abstraction is done on higher levels.
+The Group object is similar to an MPI communicator: it has connections to *p* peers/clients/workers in a group. The network peers have only an indirect relation to the worker concept of higher Thrill layers, though they will probably be implementing using a Group.
 
 Group provides
-- a \ref Group::Size "Size()" and \ref Group::MyRank "MyRank()" function to describe the group.
-- a point-to-point Connection class with a rich set of Send, Receive methods to transfer raw data to another worker in the group: \ref Connection::Send "Send<T>", \ref Connection::SendString "SendString", \ref Connection::Receive "Receive<T>", \ref Connection::ReceiveString "ReceiveString".
-- \ref Group::ReceiveFromAny "ReceiveFromAny" functions to listen for messages from any worker in the group.
-- collective operations for **primitiv** datatypes: \ref net::AllReduce() "AllReduce".
+- a \ref Group::num_hosts "num_hosts()" and \ref Group::my_host_rank "my_host_rank()" function to describe the size of the group.
+- a point-to-point Connection class with a rich set of Send, Receive methods to transfer serializable items to another peer in the group: \ref Connection::Send "Send<T>" and \ref Connection::Receive "Receive<T>". For more low-level packet-based communication there are further methods available.
+- collective operations for any **serializable** datatypes: \ref net::PrefixSum() "PrefixSum".
 
-If any operation on a Connection fails, then a Exception is thrown.
+If any operation on a Connection fails, then an Exception is thrown.
 
 For testing purposes Group provides the function \ref Group::ExecuteLocalMock "ExecuteLocalMock" which creates a mock Group of k partners. The partners are connected via internal sockets (real kernel level sockets), and for each partner a std::thread is spawned. The thread executes a test function which gets a Group object that can communicate with the other partners. This is ideal for testing network protocols. See the test-net-group.cpp for more examples.
 
-## Low-level Socket API
+The network layer is designed to allow plugging in new network implementations by deriving from the main classes Group, Connection, and Dispatcher. The Group represents the set of connections, and provides synchronous communication, while the Dispatcher allows asynchronous callbacks.
+
+There are currently two network implementations:
+- a mock network, which does no real communication,
+- a TCP BSD socket implementation, which is used on Linux/FreeBSD/etc.
+
+An important design decision of the network layer is to support only sending and receiving of **whole packets**. The received packet size **must** be known by the receiver in advance, which necessitates pre-communication of sizes. This is because RDMA works in this manner.
+
+## TCP Socket API
 
 The BSD socket API is difficult to work with correctly, which is why the following classes provide convenience functions and **excessive** logging facilities.
 
-- Socket resembles a TCP socket, direct BSD socket API
-- SocketAddress for net address resolution to IPv4 and IPv6
-- Select for select()
+- tcp::Socket resembles a TCP socket, direct BSD socket API
+- tcp::SocketAddress for net address resolution to IPv4 and IPv6
+- tcp::Select for select()
 
-## High-level Data Channel API
-
-The channel API provides a mechanism to receive data from multiple sockets into a single data object which can be identified like a DIA. Low-level sockets are used to build connections between each worker pair. This connection can be shared by multiple communication procedures at the same time by multiplexing. Abstraction can be found in \ref data::Manager.
 */
 
 } // namespace net

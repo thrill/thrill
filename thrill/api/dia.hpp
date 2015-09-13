@@ -6,6 +6,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
@@ -23,11 +24,8 @@
 #include <thrill/common/functional.hpp>
 
 #include <cassert>
-#include <fstream>
 #include <functional>
-#include <iostream>
 #include <memory>
-#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,9 +35,6 @@ namespace api {
 
 //! \addtogroup api Interface
 //! \{
-
-template <typename T>
-class DIANode;
 
 /*!
  * DIARef is the interface between the user and the Thrill framework. A DIARef
@@ -159,19 +154,42 @@ public:
         return stack_;
     }
 
-    StatsNode * AddChildStatsNode(const std::string& label, const DIANodeType& type) const {
+    StatsNode * AddChildStatsNode(const char* label, const DIANodeType& type) const {
         StatsNode* node = node_->context().stats_graph().AddNode(label, type);
-        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
+        for (const auto& parent : stats_parents_)
+            node_->context().stats_graph().AddEdge(parent, node);
         return node;
     }
 
     void AppendChildStatsNode(StatsNode* stats_node) const {
-        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, stats_node);
+        for (const auto& parent : stats_parents_)
+            node_->context().stats_graph().AddEdge(parent, stats_node);
     }
 
     Context & ctx() const {
         assert(IsValid());
         return node_->context();
+    }
+
+    /*!
+     * Mark the referenced DIANode for keeping, which makes children not consume
+     * the data when executing. This does not create a new DIA, but returns the
+     * existing one.
+     */
+    DIARef & Keep() {
+        assert(IsValid());
+        node_->SetConsume(false);
+        return *this;
+    }
+
+    /*!
+     * Mark the referenced DIANode as consuming, which makes it only executable
+     * once. This does not create a new DIA, but returns the existing one.
+     */
+    DIARef & Consume() {
+        assert(IsValid());
+        node_->SetConsume(true);
+        return *this;
     }
 
     /*!
@@ -493,11 +511,11 @@ public:
      *
      * \param sum_function Sum function (any associative function).
      *
-     * \param neutral_element Neutral element of the sum function.
+     * \param initial_element Initial element of the sum function.
      */
     template <typename SumFunction = std::plus<ValueType> >
     auto PrefixSum(const SumFunction& sum_function = SumFunction(),
-                   ValueType neutral_element = ValueType()) const;
+                   ValueType initial_element = ValueType()) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
@@ -542,9 +560,16 @@ public:
      * files. Strings are written using fstream with a newline after each
      * entry. Each worker creates its individual file.
      *
-     * \param filepath Destination of the output file.
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param target_file_size target size of each individual file.
      */
-    void WriteLinesMany(const std::string& filepath) const;
+    void WriteLinesMany(const std::string& filepath,
+                        size_t target_file_size = 128* 1024* 1024) const;
 
     /*!
      * WriteBinary is a function, which writes a DIA to many files per

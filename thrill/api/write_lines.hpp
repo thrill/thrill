@@ -40,8 +40,7 @@ public:
     WriteLinesNode(const ParentDIARef& parent,
                    const std::string& path_out,
                    StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() },
-                     "WriteSingleFile", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           path_out_(path_out),
           file_(path_out_),
           temp_file_(context_.GetFile()),
@@ -61,11 +60,16 @@ public:
     void PreOp(const ValueType& input) {
         writer_(input);
         size_ += input.size() + 1;
+        stats_total_elements_++;
     }
 
     //! Closes the output file
     void Execute() override {
         writer_.Close();
+
+        STAT(context_) << "NodeType" << "WriteLines"
+                       << "TotalBytes" << size_
+                       << "TotalLines" << stats_total_elements_;
 
         // (Portable) allocation of output file, setting individual file pointers.
         size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_);
@@ -76,7 +80,7 @@ public:
         file_.seekp(prefix_elem);
         context_.Barrier();
 
-        data::File::Reader reader = temp_file_.GetReader();
+        data::File::ConsumeReader reader = temp_file_.GetConsumeReader();
 
         for (size_t i = 0; i < temp_file_.num_items(); ++i) {
             file_ << reader.Next<ValueType>() << "\n";
@@ -86,14 +90,6 @@ public:
     }
 
     void Dispose() override { }
-
-    /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
-     */
-    std::string ToString() override {
-        return "[WriteNode] Id:" + std::to_string(this->id());
-    }
 
 private:
     //! Path of the output file.
@@ -110,6 +106,8 @@ private:
 
     //! File writer used.
     data::File::Writer writer_;
+
+    size_t stats_total_elements_ = 0;
 };
 
 template <typename ValueType, typename Stack>
@@ -122,7 +120,7 @@ void DIARef<ValueType, Stack>::WriteLines(
 
     using WriteResultNode = WriteLinesNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Write", DIANodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("WriteLines", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,

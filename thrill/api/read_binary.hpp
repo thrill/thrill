@@ -13,11 +13,11 @@
 #ifndef THRILL_API_READ_BINARY_HEADER
 #define THRILL_API_READ_BINARY_HEADER
 
+#include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/core/file_io.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
@@ -39,12 +39,12 @@ namespace api {
  * the file system and emits it as a DIA.
  */
 template <typename ValueType>
-class ReadBinaryNode : public DOpNode<ValueType>
+class ReadBinaryNode : public SourceNode<ValueType>
 {
     static const bool debug = false;
 
 public:
-    using Super = DOpNode<ValueType>;
+    using Super = SourceNode<ValueType>;
     using Super::context_;
 
     using FileSizePair = std::pair<std::string, size_t>;
@@ -59,16 +59,14 @@ public:
     ReadBinaryNode(Context& ctx,
                    const std::string& filepath,
                    StatsNode* stats_node)
-        : Super(ctx, { }, "ReadBinary", stats_node),
+        : Super(ctx, { }, stats_node),
           filepath_(filepath)
     {
         filelist_ = core::GlobFileSizePrefixSum(filepath_);
 
         size_t my_start, my_end;
         std::tie(my_start, my_end) =
-            common::CalculateLocalRange(filelist_[filelist_.size() - 1].second,
-                                        context_.num_workers(),
-                                        context_.my_rank());
+            context_.CalculateLocalRange(filelist_[filelist_.size() - 1].second);
         size_t first_file = 0;
         size_t last_file = 0;
 
@@ -94,7 +92,7 @@ public:
     //! and emmits it after applyung the read function.
     void Execute() final { }
 
-    void PushData() final {
+    void PushData(bool /* consume */) final {
         static const bool debug = false;
         LOG << "READING data " << std::to_string(this->id());
 
@@ -103,12 +101,18 @@ public:
             LOG << "OPENING FILE " << file.first;
 
             data::BlockReader<SysFileBlockSource> br(
-                SysFileBlockSource(file.first, context_));
+                SysFileBlockSource(file.first, context_,
+                                   stats_total_bytes, stats_total_reads));
 
             while (br.HasNext()) {
                 this->PushItem(br.template NextNoSelfVerify<ValueType>());
             }
         }
+
+        STAT(context_) << "NodeType" << "ReadBinary"
+                       << "TotalBytes" << stats_total_bytes
+                       << "TotalReads" << stats_total_reads;
+
         LOG << "DONE!";
     }
 
@@ -124,10 +128,6 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    std::string ToString() final {
-        return "[ReadBinaryNode] Id: " + std::to_string(this->id());
-    }
-
 private:
     //! Path of the input file.
     std::string filepath_;
@@ -135,14 +135,21 @@ private:
     std::vector<FileSizePair> filelist_;
     std::vector<FileSizePair> my_files_;
 
+    size_t stats_total_bytes = 0;
+    size_t stats_total_reads = 0;
+
     class SysFileBlockSource
     {
     public:
         const size_t block_size = data::default_block_size;
 
-        SysFileBlockSource(std::string path, Context& ctx)
+        SysFileBlockSource(std::string path, Context& ctx,
+                           size_t& stats_total_bytes,
+                           size_t& stats_total_reads)
             : context_(ctx),
-              sysfile_(core::SysFile::OpenForRead(path)) { }
+              sysfile_(core::SysFile::OpenForRead(path)),
+              stats_total_bytes_(stats_total_bytes),
+              stats_total_reads_(stats_total_reads) { }
 
         data::Block NextBlock() {
             if (done_) return data::Block();
@@ -151,11 +158,14 @@ private:
                 = data::ByteBlock::Allocate(block_size, context_.block_pool());
 
             ssize_t size = sysfile_.read(bytes->data(), block_size);
+            stats_total_bytes_ += size;
+            stats_total_reads_++;
+
             if (size > 0) {
                 return data::Block(bytes, 0, size, 0, 0);
             }
             else if (size < 0) {
-                throw common::SystemException("File reading error", errno);
+                throw common::ErrnoException("File reading error");
             }
             else {
                 // size == 0 -> read finished
@@ -168,6 +178,8 @@ private:
     protected:
         Context& context_;
         core::SysFile sysfile_;
+        size_t& stats_total_bytes_;
+        size_t& stats_total_reads_;
         bool done_ = false;
     };
 };

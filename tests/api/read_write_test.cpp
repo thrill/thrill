@@ -20,6 +20,7 @@
 #include <thrill/api/write_lines_many.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
+#include <thrill/core/file_io.hpp>
 
 #include <gtest/gtest.h>
 
@@ -57,8 +58,8 @@ public:
         char* p = mkdtemp(const_cast<char*>(tmp_dir.c_str()));
 
         if (p == nullptr) {
-            throw common::SystemException(
-                      "Could create temporary directory " + tmp_dir, errno);
+            throw common::ErrnoException(
+                      "Could create temporary directory " + tmp_dir);
         }
 
         return tmp_dir;
@@ -68,8 +69,8 @@ public:
     static void wipe_directory(const std::string& tmp_dir, bool do_rmdir) {
         DIR* d = opendir(tmp_dir.c_str());
         if (d == nullptr) {
-            throw common::SystemException(
-                      "Could open temporary directory " + tmp_dir, errno);
+            throw common::ErrnoException(
+                      "Could open temporary directory " + tmp_dir);
         }
 
         struct dirent* de, entry;
@@ -176,7 +177,7 @@ TEST(IO, ReadPartOfFolderCompressed) {
 TEST(IO, GenerateFromFileRandomIntegers) {
     api::RunSameThread(
         [](api::Context& ctx) {
-            std::default_random_engine generator({ std::random_device()() });
+            std::default_random_engine generator(std::random_device { } ());
             std::uniform_int_distribution<int> distribution(1000, 10000);
 
             size_t generate_size = distribution(generator);
@@ -200,7 +201,7 @@ TEST(IO, GenerateFromFileRandomIntegers) {
                     writer_size++;
                     return std::to_string(item) + "\n";
                 })
-            .WriteLinesMany("outputs/out1_");
+            .WriteLinesMany("outputs/generated", 8 * 1024);
 
             // DIA contains as many elements as we wanted to generate
             ASSERT_EQ(generate_size, writer_size);
@@ -209,12 +210,10 @@ TEST(IO, GenerateFromFileRandomIntegers) {
 
 TEST(IO, WriteBinaryPatternFormatter) {
 
-    using WriteBinaryNode = api::WriteBinaryNode<int, int>;
-
-    std::string str1 = WriteBinaryNode::make_path("test-$$$$-########", 42, 10);
+    std::string str1 = core::FillFilePattern("test-$$$$-########", 42, 10);
     ASSERT_EQ("test-0042-00000010", str1);
 
-    std::string str2 = WriteBinaryNode::make_path("test", 42, 10);
+    std::string str2 = core::FillFilePattern("test", 42, 10);
     ASSERT_EQ("test00420000000010", str2);
 }
 
@@ -308,11 +307,12 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
 
 // make weird test strings of different lengths
 std::string test_string(size_t index) {
-    return std::string('0' + index % 100, (index * index) % 20);
+    return std::string((index * index) % 20,
+                       '0' + static_cast<char>(index) % 100);
 }
 
 TEST(IO, GenerateStringWriteBinary) {
-    
+
     TemporaryDirectory tmpdir;
 
     // use pairs for easier checking and stranger string sizes.
@@ -361,7 +361,7 @@ TEST(IO, GenerateStringWriteBinary) {
         });
 }
 
-TEST(IO, WriteAndReadBinaryEqualDIAS) {    
+TEST(IO, WriteAndReadBinaryEqualDIAS) {
     TemporaryDirectory tmpdir;
 
     std::function<void(Context&)> start_func =

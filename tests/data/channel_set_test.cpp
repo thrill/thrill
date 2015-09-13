@@ -10,7 +10,7 @@
 
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/channel.hpp>
-#include <thrill/net/group.hpp>
+#include <thrill/net/mock/group.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <gtest/gtest.h>
 
@@ -26,9 +26,11 @@ static const size_t test_block_size = 1024;
 TEST(ChannelSet, TestLoopbacks) {
     size_t workers_per_host = 3;
     size_t hosts = 1;
-    auto groups = net::Group::ConstructLocalMesh(hosts);
-    data::BlockPool block_pool(nullptr);
-    data::Multiplexer multiplexer(block_pool, workers_per_host, groups[0]);
+    auto groups = net::mock::Group::ConstructLocalMesh(hosts);
+    net::Group* group = groups[0].get();
+    mem::Manager mem_manager(nullptr, "Benchmark");
+    data::BlockPool block_pool(&mem_manager);
+    data::Multiplexer multiplexer(mem_manager, block_pool, workers_per_host, *group);
 
     auto producer = [workers_per_host](std::shared_ptr<data::Channel> channel, size_t my_id){
         common::NameThisThread("worker " + mem::to_string(my_id));

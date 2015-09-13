@@ -8,6 +8,7 @@ build/**
 docs/**
 doxygen-html/**
 doxygen_sqlite3.db
+__pycache__
 
 #libs that are downloaded through setup.sh
 lib/*

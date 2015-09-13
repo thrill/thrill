@@ -14,7 +14,7 @@
 #ifndef THRILL_COMMON_LOGGER_HEADER
 #define THRILL_COMMON_LOGGER_HEADER
 
-#include <thrill/mem/allocator_base.hpp>
+#include <thrill/mem/allocator.hpp>
 
 #include <sstream>
 #include <stdexcept>
@@ -23,8 +23,14 @@
 namespace thrill {
 namespace common {
 
-//! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const mem::string& name);
+//! memory manager singleton for Logger
+extern mem::Manager g_logger_mem_manager;
+
+template <typename Type>
+using LoggerAllocator = mem::FixedAllocator<Type, g_logger_mem_manager>;
+
+//! Defines a name for the current thread.
+void NameThisThread(const mem::by_string& name);
 
 //! Returns the name of the current thread or 'unknown [id]'
 std::string GetNameForThisThread();
@@ -97,11 +103,9 @@ template <>
 class Logger<true>
 {
 protected:
-    //! stringbuf without malloc tracking
-    mem::stringbuf buf_;
-
     //! collector stream
-    std::ostream oss_;
+    std::basic_ostringstream<
+        char, std::char_traits<char>, LoggerAllocator<char> > oss_;
 
 public:
     //! Real active flag
@@ -149,11 +153,9 @@ protected:
     //! true until the first element it outputted.
     bool first_ = true;
 
-    //! stringbuf without malloc tracking
-    mem::stringbuf buf_;
-
     //! collector stream
-    std::ostream oss_;
+    std::basic_ostringstream<
+        char, std::char_traits<char>, LoggerAllocator<char> > oss_;
 
 public:
     //! Real active flag

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/select_dispatcher.cpp
+ * thrill/net/tcp/select_dispatcher.cpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -10,45 +10,54 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/net/lowlevel/select_dispatcher.hpp>
+#include <thrill/net/tcp/select_dispatcher.hpp>
 
 #include <sstream>
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
 //! Run one iteration of dispatching select().
-void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
+void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
 
     // copy select fdset
-    Select fdset = *this;
+    Select fdset = select_;
 
-    if (self_verify_ || debug)
+    if (self_verify_)
     {
-        std::ostringstream oss;
-        oss << "| ";
-
         for (size_t fd = 3; fd < watch_.size(); ++fd) {
             Watch& w = watch_[fd];
 
             if (!w.active) continue;
 
-            assert((w.read_cb.size() == 0) != Select::InRead(fd));
-            assert((w.write_cb.size() == 0) != Select::InWrite(fd));
+            assert((w.read_cb.size() == 0) != select_.InRead(fd));
+            assert((w.write_cb.size() == 0) != select_.InWrite(fd));
+        }
+    }
 
-            if (Select::InRead(fd))
+    if (debug)
+    {
+        std::ostringstream oss;
+        oss << "| ";
+
+        for (int fd = 3; fd < static_cast<int>(watch_.size()); ++fd) {
+            Watch& w = watch_[fd];
+
+            if (!w.active) continue;
+
+            if (select_.InRead(fd))
                 oss << "r" << fd << " ";
-            if (Select::InWrite(fd))
+            if (select_.InWrite(fd))
                 oss << "w" << fd << " ";
-            if (Select::InException(fd))
+            if (select_.InException(fd))
                 oss << "e" << fd << " ";
         }
 
         LOG << "Performing select() on " << oss.str();
     }
 
-    int r = fdset.select_timeout(timeout.count());
+    int r = fdset.select_timeout(static_cast<double>(timeout.count()));
 
     if (r < 0) {
         // if we caught a signal, this is intended to interrupt a select().
@@ -64,7 +73,7 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
     // start running through the table at fd 3. 0 = stdin, 1 = stdout, 2 =
     // stderr.
 
-    for (size_t fd = 3; fd < watch_.size(); ++fd)
+    for (int fd = 3; fd < static_cast<int>(watch_.size()); ++fd)
     {
         // we use a pointer into the watch_ table. however, since the
         // std::vector may regrow when callback handlers are called, this
@@ -87,12 +96,12 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
 
                 if (w->read_cb.size() == 0) {
                     // if all read callbacks are done, listen no longer.
-                    Select::ClearRead(fd);
+                    select_.ClearRead(fd);
                     if (w->write_cb.size() == 0 && !w->except_cb) {
                         // if also all write callbacks are done, stop
                         // listening.
-                        Select::ClearWrite(fd);
-                        Select::ClearException(fd);
+                        select_.ClearWrite(fd);
+                        select_.ClearException(fd);
                         w->active = false;
                     }
                 }
@@ -101,7 +110,7 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
                 LOG << "SelectDispatcher: got read event for fd "
                     << fd << " without a read handler.";
 
-                Select::ClearRead(fd);
+                select_.ClearRead(fd);
             }
         }
 
@@ -119,12 +128,12 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
 
                 if (w->write_cb.size() == 0) {
                     // if all write callbacks are done, listen no longer.
-                    Select::ClearWrite(fd);
+                    select_.ClearWrite(fd);
                     if (w->read_cb.size() == 0 && !w->except_cb) {
                         // if also all write callbacks are done, stop
                         // listening.
-                        Select::ClearRead(fd);
-                        Select::ClearException(fd);
+                        select_.ClearRead(fd);
+                        select_.ClearException(fd);
                         w->active = false;
                     }
                 }
@@ -133,7 +142,7 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
                 LOG << "SelectDispatcher: got write event for fd "
                     << fd << " without a write handler.";
 
-                Select::ClearWrite(fd);
+                select_.ClearWrite(fd);
             }
         }
 
@@ -143,7 +152,7 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
                 if (!w->except_cb()) {
                     w = &watch_[fd];
                     // callback returned false: remove fd from set
-                    Select::ClearException(fd);
+                    select_.ClearException(fd);
                 }
                 w = &watch_[fd];
             }
@@ -154,7 +163,7 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
     }
 }
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 

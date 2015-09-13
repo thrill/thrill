@@ -51,10 +51,12 @@ struct ChannelBlockHeader;
 class Multiplexer
 {
 public:
-    explicit Multiplexer(data::BlockPool& block_pool,
+    explicit Multiplexer(mem::Manager& mem_manager,
+                         data::BlockPool& block_pool,
                          size_t num_workers_per_host, net::Group& group)
-        : block_pool_(block_pool),
-          dispatcher_("multiplexer"),
+        : mem_manager_(mem_manager),
+          block_pool_(block_pool),
+          dispatcher_(mem_manager, group, "multiplexer"),
           group_(group),
           num_workers_per_host_(num_workers_per_host),
           channel_sets_(num_workers_per_host) {
@@ -99,7 +101,7 @@ public:
     //! Get channel with given id, if it does not exist, create it.
     ChannelPtr GetOrCreateChannel(size_t id, size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return std::move(_GetOrCreateChannel(id, local_worker_id));
+        return _GetOrCreateChannel(id, local_worker_id);
     }
 
     //! Request next channel.
@@ -110,8 +112,11 @@ public:
                 channel_sets_.AllocateId(local_worker_id), local_worker_id));
     }
 
-private:
+protected:
     static const bool debug = false;
+
+    //! reference to host-global memory manager
+    mem::Manager& mem_manager_;
 
     //! reference to host-global BlockPool.
     data::BlockPool& block_pool_;

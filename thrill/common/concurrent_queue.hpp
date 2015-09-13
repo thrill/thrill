@@ -12,11 +12,11 @@
 #ifndef THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 #define THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 
-#if HAVE_INTELTBB
+#if THRILL_HAVE_INTELTBB
 
 #include <tbb/concurrent_queue.h>
 
-#endif // HAVE_INTELTBB
+#endif // THRILL_HAVE_INTELTBB
 
 #include <atomic>
 #include <deque>
@@ -104,17 +104,17 @@ public:
     }
 };
 
-#if HAVE_INTELTBB
+#if THRILL_HAVE_INTELTBB
 
 template <typename T, typename Allocator>
 using ConcurrentQueue = tbb::concurrent_queue<T, Allocator>;
 
-#else   // !HAVE_INTELTBB
+#else   // !THRILL_HAVE_INTELTBB
 
 template <typename T, typename Allocator>
 using ConcurrentQueue = OurConcurrentQueue<T, Allocator>;
 
-#endif // !HAVE_INTELTBB
+#endif // !THRILL_HAVE_INTELTBB
 
 } // namespace common
 } // namespace thrill

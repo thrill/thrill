@@ -74,6 +74,7 @@ build_test_group(common/tests
   common/cmdline_parser_test.cpp
   common/concurrent_bounded_queue_test.cpp
   common/concurrent_queue_test.cpp
+  common/counting_ptr_test.cpp
   common/delegate_test.cpp
   common/function_traits_test.cpp
   common/future_queue_test.cpp
@@ -85,16 +86,13 @@ build_test_group(common/tests
   common/timed_counter_test.cpp
   )
 
-build_test(common/counting_ptr_test)
-
 build_test(mem/allocator_test)
 build_test(mem/malloc_tracker_test)
 
 build_test(net/binary_builder_test)
 build_test(net/buffer_test)
-build_test(net/dispatcher_thread_test)
-build_test(net/flow_control_test)
-build_test(net/group_test)
+build_test(net/mock_test)
+build_test(net/tcp_test)
 
 build_test(data/block_queue_test)
 build_test(data/file_test)

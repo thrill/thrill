@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -27,16 +28,19 @@ class ActionNode : public DIABase
 public:
     ActionNode(Context& ctx,
                const std::vector<std::shared_ptr<DIABase> >& parents,
-               const std::string& stats_tag,
                StatsNode* stats_node)
-        : DIABase(ctx, parents, stats_tag, stats_node)
+        : DIABase(ctx, parents, stats_node)
     { }
 
     //! ActionNodes do not have children.
     void UnregisterChilds() final { }
 
     //! Actionnodes do not push data, they only Execute.
-    void PushData() final { }
+    void PushData(bool /* consume */) final { }
+
+    void SetConsume(bool /* consume */) final {
+        die("Setting .Keep() or .Consume() on Actions does not make sense.");
+    }
 };
 
 //! \}

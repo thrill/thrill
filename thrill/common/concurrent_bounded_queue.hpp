@@ -12,13 +12,14 @@
 #ifndef THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 #define THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 
-#if HAVE_INTELTBB
+#if THRILL_HAVE_INTELTBB
 
 #include <tbb/concurrent_queue.h>
 
-#endif // HAVE_INTELTBB
+#endif // THRILL_HAVE_INTELTBB
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
@@ -125,6 +126,21 @@ public:
         queue_.pop();
     }
 
+    //! If value is available, pops it from the queue, move it to
+    //! destination. If no item is in the queue, wait until there is one, or
+    //! timeout and return false. NOTE: not available in TBB!
+    template <class Rep, class Period>
+    bool pop_for(T& destination,
+                 const std::chrono::duration<Rep, Period>& timeout) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (!cv_.wait_for(lock, timeout, [=]() { return !queue_.empty(); })) {
+            return false;
+        }
+        destination = std::move(queue_.front());
+        queue_.pop();
+        return true;
+    }
+
     //! return number of items available in the queue (tbb says "can return
     //! negative size", due to pending pop()s, but we ignore that here).
     size_t size() {
@@ -133,17 +149,17 @@ public:
     }
 };
 
-#if HAVE_INTELTBB
+#if THRILL_HAVE_INTELTBB
 
 template <typename T>
 using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
 
-#else   // !HAVE_INTELTBB
+#else   // !THRILL_HAVE_INTELTBB
 
 template <typename T>
 using ConcurrentBoundedQueue = OurConcurrentBoundedQueue<T>;
 
-#endif // !HAVE_INTELTBB
+#endif // !THRILL_HAVE_INTELTBB
 
 } // namespace common
 } // namespace thrill

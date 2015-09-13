@@ -57,7 +57,7 @@ void ExperimentAllPairs(
             // read phase
             StatsTimer<true> read_timer(true);
             {
-                auto reader = channel->OpenReader();
+                auto reader = channel->OpenConcatReader(true);
 
                 while (reader.HasNext()) {
                     reader.Next<Type>();
@@ -82,9 +82,9 @@ void ExperimentAllPairs(
                     << " write_time=" << write_microsecs
                     << " read_time=" << read_microsecs
                     << " write_speed_MiBs="
-                    << (g_bytes / write_microsecs * 1e6 / 1024 / 1024)
+                    << (g_bytes / write_microsecs * 1000000 / 1024 / 1024)
                     << " read_speed_MiBs="
-                    << (g_bytes / read_microsecs * 1e6 / 1024 / 1024)
+                    << (g_bytes / read_microsecs * 1000000 / 1024 / 1024)
                     << std::endl;
             }
         }
@@ -117,7 +117,7 @@ void ExperimentFull(
     // read phase
     StatsTimer<true> read_timer(true);
     {
-        auto reader = channel->OpenReader();
+        auto reader = channel->OpenConcatReader(true);
 
         while (reader.HasNext()) {
             reader.Next<Type>();
@@ -144,17 +144,17 @@ void ExperimentFull(
             << " write_time=" << write_microsecs
             << " read_time=" << read_microsecs
             << " write_speed_MiBs="
-            << (g_bytes / write_microsecs * 1e6 / 1024 / 1024)
+            << (g_bytes / write_microsecs * 1000000 / 1024 / 1024)
             << " read_speed_MiBs="
-            << (g_bytes / read_microsecs * 1e6 / 1024 / 1024)
+            << (g_bytes / read_microsecs * 1000000 / 1024 / 1024)
             << " host_write_speed_MiBs="
-            << (host_volume / write_microsecs * 1e6 / 1024 / 1024)
+            << (host_volume / write_microsecs * 1000000 / 1024 / 1024)
             << " host_read_speed_MiBs="
-            << (host_volume / read_microsecs * 1e6 / 1024 / 1024)
+            << (host_volume / read_microsecs * 1000000 / 1024 / 1024)
             << " total_write_speed_MiBs="
-            << (total_volume / write_microsecs * 1e6 / 1024 / 1024)
+            << (total_volume / write_microsecs * 1000000 / 1024 / 1024)
             << " total_read_speed_MiBs="
-            << (total_volume / read_microsecs * 1e6 / 1024 / 1024)
+            << (total_volume / read_microsecs * 1000000 / 1024 / 1024)
             << std::endl;
     }
 }

@@ -60,7 +60,8 @@ public:
                  const ParentDIARef1& parent1,
                  MergeFunction merge_function,
                  StatsNode* stats_node)
-        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "MergeNode", stats_node),
+        : DOpNode<ValueType>(parent0.ctx(),
+                             { parent0.node(), parent1.node() }, stats_node),
           merge_function_(merge_function)
     {
         // Hook PreOp(s)
@@ -90,15 +91,15 @@ public:
         MainOp();
     }
 
-    void PushData() final {
+    void PushData(bool consume) final {
         size_t result_count = 0;
         // TODO(ej) - call WriteChannelStats() for each channel when these
         // when they are closed ( = you read all data + called Close() on the
         // channels).
         if (result_size_ != 0) {
             // get inbound readers from all Channels
-            std::vector<data::Channel::CachingConcatReader> readers {
-                channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
+            std::vector<data::Channel::ConcatReader> readers {
+                channels_[0]->OpenConcatReader(consume), channels_[1]->OpenConcatReader(consume)
             };
 
             while (readers[0].HasNext() && readers[1].HasNext()) {
@@ -129,14 +130,6 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         return FunctionStack<MergeResult>();
-    }
-
-    /*!
-     * Returns "[MergeNode]" as a string.
-     * \return "[MergeNode]"
-     */
-    std::string ToString() final {
-        return "[MergeNode]";
     }
 
 private:

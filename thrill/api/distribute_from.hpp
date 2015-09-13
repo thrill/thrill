@@ -13,9 +13,8 @@
 #define THRILL_API_DISTRIBUTE_FROM_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
 
 #include <string>
 #include <vector>
@@ -27,17 +26,17 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class DistributeFromNode : public DOpNode<ValueType>
+class DistributeFromNode : public SourceNode<ValueType>
 {
 public:
-    using Super = DOpNode<ValueType>;
+    using Super = SourceNode<ValueType>;
     using Super::context_;
 
     DistributeFromNode(Context& ctx,
                        const std::vector<ValueType>& in_vector,
                        size_t source_id,
                        StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "DistributeFrom", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(in_vector),
           source_id_(source_id),
           channel_(ctx.GetNewChannel()),
@@ -69,8 +68,8 @@ public:
         }
     }
 
-    void PushData() final {
-        data::Channel::CachingConcatReader readers = channel_->OpenCachingReader();
+    void PushData(bool consume) final {
+        data::Channel::ConcatReader readers = channel_->OpenConcatReader(consume);
 
         while (readers.HasNext()) {
             this->PushItem(readers.Next<ValueType>());
@@ -86,14 +85,6 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[AllGatherNode]" and its id as a string.
-     * \return "[AllGatherNode]"
-     */
-    std::string ToString() final {
-        return "[DistributeFrom] Id: " + std::to_string(this->id());
-    }
-
 private:
     //! Vector pointer to read elements from.
     const std::vector<ValueType>& in_vector_;
@@ -105,8 +96,9 @@ private:
 };
 
 /*!
- * DistributeFrom is an initial DOp, which scatters the vector data from the source_id
- * to all workers, partitioning equally, and returning the data in a DIA.
+ * DistributeFrom is a Source DOp, which scatters the vector data from the
+ * source_id to all workers, partitioning equally, and returning the data in a
+ * DIA.
  */
 template <typename ValueType>
 auto DistributeFrom(

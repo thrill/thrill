@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -31,27 +32,32 @@ class Stage
 {
 public:
     explicit Stage(DIABase* node) : node_(node) {
-        LOG << "CREATING stage" << node_->ToString() << "node" << node_;
+        sLOG << "CREATING stage" << node_->label() << "id" << node_->id()
+             << "node" << node_;
     }
 
     void Execute() {
-        LOG << "EXECUTING stage " << node_->ToString() << "node" << node_;
+        sLOG << "EXECUTING stage " << node_->label() << "id" << node_->id()
+             << "node" << node_;
         node_->StartExecutionTimer();
         node_->Execute();
         node_->StopExecutionTimer();
 
-        node_->PushData();
+        node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
     }
 
     void PushData() {
-        LOG << "PUSHING stage " << node_->ToString() << "node" << node_;
-        node_->PushData();
+        sLOG << "PUSHING stage " << node_->label() << "id" << node_->id()
+             << "node" << node_;
+        die_unless(!node_->consume_on_push_data());
+        node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
     }
 
     void Dispose() {
-        LOG << "DISPOSING stage " << node_->ToString() << "node" << node_;
+        sLOG << "DISPOSING stage " << node_->label() << "id" << node_->id()
+             << "node" << node_;
         node_->Dispose();
         node_->set_state(api::DIAState::DISPOSED);
     }
@@ -68,17 +74,24 @@ private:
 class StageBuilder
 {
 public:
-    void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
+    template <typename T>
+    using mm_set = std::set<T, std::less<T>, mem::Allocator<T> >;
+
+    void FindStages(DIABase* action, mem::mm_vector<Stage>& stages_result) {
         LOG << "FINDING stages:";
-        std::set<const DIABase*> stages_found;
+        mm_set<const DIABase*> stages_found(
+            mem::Allocator<const DIABase*>(action->mem_manager()));
+
         // Do a reverse DFS and find all stages
-        std::stack<DIABase*> dia_stack;
-        dia_stack.push(action);
+        mem::mm_deque<DIABase*> dia_stack(
+            mem::Allocator<DIABase*>(action->mem_manager()));
+
+        dia_stack.push_back(action);
         stages_found.insert(action);
         stages_result.push_back(Stage(action));
         while (!dia_stack.empty()) {
-            DIABase* curr = dia_stack.top();
-            dia_stack.pop();
+            DIABase* curr = dia_stack.front();
+            dia_stack.pop_front();
             const auto parents = curr->parents();
             for (size_t i = 0; i < parents.size(); ++i) {
                 // Check if parent was already added
@@ -90,7 +103,7 @@ public:
                     // If parent was not executed push it to the DFS
                     if (p->state() != api::DIAState::EXECUTED ||
                         p->type() == api::DIANodeType::COLLAPSE) {
-                        dia_stack.push(p);
+                        dia_stack.push_back(p);
                     }
                 }
             }
@@ -100,7 +113,9 @@ public:
     }
 
     void RunScope(DIABase* action) {
-        std::vector<Stage> result;
+        mem::mm_vector<Stage> result(
+            mem::Allocator<Stage>(action->mem_manager()));
+
         FindStages(action, result);
         for (auto s : result)
         {

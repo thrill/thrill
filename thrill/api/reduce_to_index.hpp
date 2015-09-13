@@ -6,6 +6,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -14,11 +15,11 @@
 #ifndef THRILL_API_REDUCE_TO_INDEX_HEADER
 #define THRILL_API_REDUCE_TO_INDEX_HEADER
 
+#include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/core/reduce_post_table.hpp>
 #include <thrill/core/reduce_pre_table.hpp>
 
@@ -73,7 +74,7 @@ public:
     using Emitter = data::DynBlockWriter;
     using PreHashTable = typename core::ReducePreTable<
               Key, Value,
-              KeyExtractor, ReduceFunction, RobustKey, core::PreReduceByIndex>;
+              KeyExtractor, ReduceFunction, RobustKey, core::PreReduceByIndex, std::equal_to<Key>, 16*16>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
@@ -92,13 +93,13 @@ public:
                       size_t result_size,
                       Value neutral_element,
                       StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "ReduceToIndex", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 1024 * 1024 * 128 * 5, 0.001, 0.5,
+                            reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
           neutral_element_(neutral_element)
@@ -124,7 +125,7 @@ public:
         MainOp();
     }
 
-    void PushData() final {
+    void PushData(bool consume) final {
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
@@ -132,15 +133,14 @@ public:
                                           KeyExtractor,
                                           ReduceFunction,
                                           SendPair,
-                                          false,
                                           core::PostReduceFlushToIndex<Value>,
                                           core::PostReduceByIndex,
                                           std::equal_to<Key>,
-                                          16*1024>;
+                                          16*16>;
 
         size_t local_begin, local_end;
 
-        std::tie(local_begin, local_end) = common::CalculateLocalRange(result_size_, context_);
+        std::tie(local_begin, local_end) = context_.CalculateLocalRange(result_size_);
 
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
@@ -151,28 +151,28 @@ public:
                           local_begin,
                           local_end,
                           neutral_element_,
-                          1024 * 1024 * 128 * 5,
-                          0.001,
-                          0.5,
-                          64);
+                          1024 * 1024 * 128 * 8,
+                          0.9,
+                          0.6,
+                          0.01);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            auto reader = channel_->OpenReader();
+            auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
-            table.Flush();
+            table.Flush(consume);
         }
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            auto reader = channel_->OpenReader();
+            auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
             }
-            table.Flush();
+            table.Flush(consume);
         }
     }
 
@@ -191,14 +191,6 @@ public:
                          };
 
                          return MakeFunctionStack<ValueType>(post_op_fn);*/
-    }
-
-    /*!
-     * Returns "[ReduceToIndexNode]" and its id as a string.
-     * \return "[ReduceToIndexNode]"
-     */
-    std::string ToString() final {
-        return "[ReduceToIndexNode] Id: " + std::to_string(this->id());
     }
 
 private:
@@ -226,7 +218,7 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        LOG << ToString() << " running main op";
+        LOG << this->label() << " running main op";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
@@ -291,7 +283,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
                                   KeyExtractor, ReduceFunction,
                                   false, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", DIANodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndexByKey", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,

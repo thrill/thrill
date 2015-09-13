@@ -39,11 +39,11 @@ int BenchmarkSerialization(T t, int iterations) {
             auto w = f.GetWriter();
             w(t);
         }
-        auto r = f.GetReader();
+        auto r = f.GetConsumeReader();
         r.Next<T>();
         timer.Stop();
     }
-    return timer.Microseconds() / iterations;
+    return static_cast<int>(timer.Microseconds() / iterations);
 }
 
 //! serializes the test string and measures its time

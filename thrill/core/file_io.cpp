@@ -25,6 +25,47 @@
 namespace thrill {
 namespace core {
 
+std::string FillFilePattern(const std::string& pathbase,
+                            size_t worker, size_t file_part) {
+
+    static const bool debug = false;
+
+    using size_type = std::string::size_type;
+
+    std::string out_path = pathbase;
+    {
+        // replace dollar
+        size_type dollar_end = out_path.rfind('$');
+        size_type dollar_begin = out_path.find_last_not_of('$', dollar_end);
+
+        size_type dollar_length =
+            dollar_end != std::string::npos && dollar_end > dollar_begin
+            ? dollar_end - dollar_begin : 4;
+
+        sLOG << "dollar_length" << dollar_length;
+        out_path.replace(dollar_begin + 1, dollar_length,
+                         common::str_snprintf<>(dollar_length + 2, "%0*zu",
+                                                static_cast<int>(dollar_length),
+                                                worker));
+    }
+    {
+        // replace hash signs
+        size_type hash_end = out_path.rfind('#');
+        size_type hash_begin = out_path.find_last_not_of('#', hash_end);
+
+        size_type hash_length =
+            hash_end != std::string::npos && hash_end > hash_begin
+            ? hash_end - hash_begin : 10;
+
+        sLOG << "hash_length" << hash_length;
+        out_path.replace(hash_begin + 1, hash_length,
+                         common::str_snprintf<>(hash_length + 2, "%0*zu",
+                                                static_cast<int>(hash_length),
+                                                file_part));
+    }
+    return out_path;
+}
+
 std::vector<std::string> GlobFilePattern(const std::string& path) {
 
     std::vector<std::string> files;
@@ -82,12 +123,12 @@ void SysFile::close() {
         pid_t p = waitpid(pid_, &status, 0);
         if (p != pid_) {
             throw common::SystemException(
-                      "SysFile: waitpid() failed to return child", errno);
+                      "SysFile: waitpid() failed to return child");
         }
         if (WIFEXITED(status)) {
             // child program exited normally
             if (WEXITSTATUS(status) != 0) {
-                throw common::SystemException(
+                throw common::ErrnoException(
                           "SysFile: child failed with return code "
                           + std::to_string(WEXITSTATUS(status)));
             }
@@ -96,13 +137,13 @@ void SysFile::close() {
             }
         }
         else if (WIFSIGNALED(status)) {
-            throw common::SystemException(
+            throw common::ErrnoException(
                       "SysFile: child killed by signal "
                       + std::to_string(WTERMSIG(status)));
         }
         else {
-            throw common::SystemException(
-                      "SysFile: child failed with an unknown error", errno);
+            throw common::ErrnoException(
+                      "SysFile: child failed with an unknown error");
         }
         pid_ = 0;
     }
@@ -114,7 +155,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
     int fd = open(path.c_str(), O_RDONLY, 0);
     if (fd < 0) {
-        throw common::SystemException("Cannot open file " + path, errno);
+        throw common::ErrnoException("Cannot open file " + path);
     }
 
     // then figure out whether we need to pipe it through a decompressor.
@@ -139,8 +180,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
     else {
         // not a compressed file
         if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::SystemException(
-                      "Error setting FD_CLOEXEC on SysFile", errno);
+            throw common::ErrnoException("Error setting FD_CLOEXEC on SysFile");
         }
 
         sLOG << "SysFile::OpenForRead(): filefd" << fd;
@@ -175,7 +215,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
         exit(-1);
     }
     else if (pid < 0) {
-        throw common::SystemException("Error creating child process", errno);
+        throw common::ErrnoException("Error creating child process");
     }
 
     sLOG << "SysFile::OpenForRead(): pipefd" << pipefd[0] << "to pid" << pid;
@@ -195,7 +235,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     int fd = open(path.c_str(), O_CREAT | O_WRONLY, 0666);
     if (fd < 0) {
-        throw common::SystemException("Cannot create file " + path, errno);
+        throw common::ErrnoException("Cannot create file " + path);
     }
 
     // then figure out whether we need to pipe it through a compressor.
@@ -220,8 +260,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
     else {
         // not a compressed file
         if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::SystemException(
-                      "Error setting FD_CLOEXEC on SysFile", errno);
+            throw common::ErrnoException("Error setting FD_CLOEXEC on SysFile");
         }
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;
@@ -256,7 +295,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
         exit(-1);
     }
     else if (pid < 0) {
-        throw common::SystemException("Error creating child process", errno);
+        throw common::ErrnoException("Error creating child process");
     }
 
     sLOG << "SysFile::OpenForWrite(): pipefd" << pipefd[0] << "to pid" << pid;

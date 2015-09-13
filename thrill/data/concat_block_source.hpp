@@ -33,8 +33,8 @@ class ConcatBlockSource
 {
 public:
     //! Construct a BlockSource which concatenates many other BlockSources.
-    explicit ConcatBlockSource(const std::vector<BlockSource>& sources)
-        : sources_(sources) { }
+    explicit ConcatBlockSource(std::vector<BlockSource>&& sources)
+        : sources_(std::move(sources)) { }
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.

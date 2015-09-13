@@ -86,11 +86,17 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
             auto zip_input2 = input2.Filter(
                 [](size_t i) { return i >= 2 * test_size - test_size / 10; });
 
+            // map to shorts
+            auto zip_input2_short = zip_input2.Map(
+                [](size_t index) { return static_cast<short>(index); });
+
             // zip
             auto zip_result = zip_input1.Zip(
-                zip_input2, [](size_t a, short b) -> MyStruct {
+                zip_input2_short, [](size_t a, short b) -> MyStruct {
                     return { static_cast<int>(a), b };
                 });
+
+            zip_result.Keep();
 
             // check result
             std::vector<MyStruct> res = zip_result.AllGather();
@@ -103,7 +109,6 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
                 ASSERT_EQ(static_cast<long>(2 * test_size - test_size / 10 + i), res[i].b);
             }
 
-            // TODO(sl): make this work!
             // check size of zip (recalculates ZipNode)
             ASSERT_EQ(100u, zip_result.Size());
         };
@@ -128,9 +133,13 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
                 [](size_t index) { return index; },
                 0);
 
+            // map to shorts
+            auto input2_short = input2.Map(
+                [](size_t index) { return static_cast<short>(index); });
+
             // zip
             auto zip_result = input1.Zip(
-                input2, [](size_t a, short b) -> long { return a + b; });
+                input2_short, [](size_t a, short b) -> long { return a + b; });
 
             // check result
             std::vector<long> res = zip_result.AllGather();

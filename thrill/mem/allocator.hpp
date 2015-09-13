@@ -70,7 +70,7 @@ public:
         manager_->add(n * sizeof(Type));
 
         if (debug) {
-            printf("allocate() n=%lu sizeof(T)=%lu total=%lu\n",
+            printf("allocate() n=%zu sizeof(T)=%zu total=%zu\n",
                    n, sizeof(Type), manager_->total());
         }
 
@@ -84,12 +84,55 @@ public:
         manager_->subtract(n * sizeof(Type));
 
         if (debug) {
-            printf("deallocate() n=%lu sizeof(T)=%lu total=%lu\n",
+            printf("deallocate() n=%zu sizeof(T)=%zu total=%zu\n",
                    n, sizeof(Type), manager_->total());
         }
 
         bypass_free(p);
     }
+
+    //! pointer to common Manager object. If we use a reference here, then
+    //! the allocator cannot be default move/assigned anymore.
+    Manager* manager_;
+
+    //! Compare to another allocator of same type
+    template <class Other>
+    bool operator == (const Allocator<Other>& other) const noexcept {
+        return (manager_ == other.manager_);
+    }
+
+    //! Compare to another allocator of same type
+    template <class Other>
+    bool operator != (const Allocator<Other>& other) const noexcept {
+        return (manager_ != other.manager_);
+    }
+};
+
+template <>
+class Allocator<void>
+{
+public:
+    using pointer = void*;
+    using const_pointer = const void*;
+    using value_type = void;
+
+    //! C++11 type flag
+    using is_always_equal = std::false_type;
+
+    template <class U>
+    struct rebind { using other = Allocator<U>; };
+
+    //! Construct Allocator with Manager object
+    explicit Allocator(Manager& manager) noexcept
+        : manager_(&manager) { }
+
+    //! copy-constructor
+    Allocator(const Allocator&) noexcept = default;
+
+    //! copy-constructor from a rebound allocator
+    template <typename OtherType>
+    Allocator(const Allocator<OtherType>& other) noexcept
+        : manager_(other.manager_) { }
 
     //! pointer to common Manager object. If we use a reference here, then
     //! the allocator cannot be default move/assigned anymore.

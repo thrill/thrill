@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
+#include <thrill/common/logger.hpp>
 #include <thrill/mem/allocator.hpp>
 
 #include <deque>
@@ -17,7 +18,7 @@
 using namespace thrill;
 
 TEST(Allocator, Test1) {
-    mem::Manager mem_manager(nullptr);
+    mem::Manager mem_manager(nullptr, "TestAllocator");
 
     LOG1 << "vector";
     {
@@ -25,7 +26,7 @@ TEST(Allocator, Test1) {
             mem::Allocator<int>(mem_manager)
         };
 
-        for (size_t i = 0; i < 100; ++i) {
+        for (int i = 0; i < 100; ++i) {
             my_vector.push_back(i);
         }
     }
@@ -35,7 +36,7 @@ TEST(Allocator, Test1) {
             mem::Allocator<size_t>(mem_manager)
         };
 
-        for (size_t i = 0; i < 100; ++i) {
+        for (int i = 0; i < 100; ++i) {
             my_deque.push_back(i);
         }
     }
@@ -45,7 +46,7 @@ namespace thrill {
 namespace mem {
 
 // forced instantiations
-template class BypassAllocator<int>;
+template class FixedAllocator<int, g_bypass_manager>;
 template class Allocator<int>;
 
 } // namespace mem

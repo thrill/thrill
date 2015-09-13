@@ -15,9 +15,9 @@
 #define THRILL_API_GENERATE_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
+#include <thrill/common/stat_logger.hpp>
 
 #include <fstream>
 #include <random>
@@ -39,10 +39,10 @@ namespace api {
  * \tparam GenerateNode Type of the generate function.
  */
 template <typename ValueType, typename GeneratorFunction>
-class GenerateNode : public DOpNode<ValueType>
+class GenerateNode : public SourceNode<ValueType>
 {
 public:
-    using Super = DOpNode<ValueType>;
+    using Super = SourceNode<ValueType>;
     using Super::context_;
 
     /*!
@@ -59,23 +59,20 @@ public:
                  GeneratorFunction generator_function,
                  size_t size,
                  StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "Generate", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           generator_function_(generator_function),
           size_(size)
     { }
 
-    //! Executes the generate operation. Does nothing.
-    void Execute() final { }
-
-    void PushData() final {
-
+    void PushData(bool /* consume */) final {
         size_t local_begin, local_end;
-        std::tie(local_begin, local_end) =
-            common::CalculateLocalRange(size_, context_);
+        std::tie(local_begin, local_end) = context_.CalculateLocalRange(size_);
 
         for (size_t i = local_begin; i < local_end; i++) {
             this->PushItem(generator_function_(i));
         }
+
+        STAT(context_) << "NodeType" << "Generate";
     }
 
     void Dispose() final { }
@@ -88,14 +85,6 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns information about the GeneratorNode as a string.
-     * \return Stringified node.
-     */
-    std::string ToString() final {
-        return "[GeneratorNode] Id: " + std::to_string(this->id());
-    }
-
 private:
     //! The generator function which is applied to every index.
     GeneratorFunction generator_function_;
@@ -104,7 +93,7 @@ private:
 };
 
 /*!
- * Generate is an Initial-DOp, which creates a DIA of given size using a
+ * Generate is a Source-DOp, which creates a DIA of given size using a
  * generator function. The generator function called for each index in the range
  * of `[0,size)` and must output exactly one item.
  *

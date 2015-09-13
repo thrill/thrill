@@ -8,13 +8,12 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/common/porting.hpp>
 #include <thrill/net/dispatcher.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
+#include <thrill/net/group.hpp>
 
 #include <unistd.h>
 
-#include <csignal>
 #include <deque>
 #include <string>
 #include <vector>
@@ -22,20 +21,24 @@
 namespace thrill {
 namespace net {
 
-DispatcherThread::DispatcherThread(const mem::string& thread_name)
-    : dispatcher_(mem::mm_make_unique<Dispatcher>(mem_manager_, mem_manager_)),
+DispatcherThread::DispatcherThread(
+    mem::Manager& mem_manager,
+    mem::mm_unique_ptr<class Dispatcher>&& dispatcher,
+    const mem::by_string& thread_name)
+    : mem_manager_(&mem_manager, "DispatcherThread"),
+      dispatcher_(std::move(dispatcher)),
       name_(thread_name) {
-    // allocate self-pipe
-    common::make_pipe(self_pipe_);
     // start thread
     thread_ = std::thread(&DispatcherThread::Work, this);
 }
 
+DispatcherThread::DispatcherThread(
+    mem::Manager& mem_manager, Group& group, const mem::by_string& thread_name)
+    : DispatcherThread(mem_manager,
+                       group.ConstructDispatcher(mem_manager), thread_name) { }
+
 DispatcherThread::~DispatcherThread() {
     Terminate();
-
-    close(self_pipe_[0]);
-    close(self_pipe_[1]);
 }
 
 //! Terminate the dispatcher thread (if now already done).
@@ -79,9 +82,8 @@ void DispatcherThread::AddWrite(
 
 //! Cancel all callbacks on a given connection.
 void DispatcherThread::Cancel(Connection& c) {
-    int fd = c.GetSocket().fd();
-    Enqueue([this, fd]() {
-                dispatcher_->Cancel(fd);
+    Enqueue([this, &c]() {
+                dispatcher_->Cancel(c);
             });
     WakeUpThread();
 }
@@ -154,20 +156,6 @@ void DispatcherThread::Enqueue(Job&& job) {
 void DispatcherThread::Work() {
     common::NameThisThread(name_);
 
-    // Ignore PIPE signals (received when writing to closed sockets)
-    signal(SIGPIPE, SIG_IGN);
-
-    // wait interrupts via self-pipe.
-    dispatcher_->dispatcher_.AddRead(
-        self_pipe_[0], [this]() {
-            ssize_t rb;
-            while ((rb = read(self_pipe_[0], &self_pipe_buffer_, 1)) == 0) {
-                LOG1 << "Work: error reading from self-pipe: " << errno;
-            }
-            die_unless(rb == 1);
-            return true;
-        });
-
     while (!terminate_ ||
            dispatcher_->HasAsyncWrites() || !jobqueue_.empty())
     {
@@ -185,21 +173,7 @@ void DispatcherThread::Work() {
 
 //! wake up select() in dispatching thread.
 void DispatcherThread::WakeUpThread() {
-    // there are multiple very platform-dependent ways to do this. we'll try
-    // to use the self-pipe trick for now. The select() method waits on
-    // another fd, which we write one byte to when we need to interrupt the
-    // select().
-
-    // another method would be to send a signal() via pthread_kill() to the
-    // select thread, but that had a race condition for waking up the other
-    // thread. -tb
-
-    // send one byte to wake up the select() handler.
-    ssize_t wb;
-    while ((wb = write(self_pipe_[1], this, 1)) == 0) {
-        LOG1 << "WakeUp: error sending to self-pipe: " << errno;
-    }
-    die_unless(wb == 1);
+    dispatcher_->Interrupt();
 }
 
 } // namespace net

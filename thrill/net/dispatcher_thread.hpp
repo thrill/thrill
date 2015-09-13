@@ -20,6 +20,7 @@
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/mem/allocator.hpp>
+#include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
 
 #include <string>
@@ -54,19 +55,18 @@ class DispatcherThread
     static const bool debug = false;
 
 public:
-    //! \name Imported Typedefs
-    //! \{
-
     //! Signature of async jobs to be run by the dispatcher thread.
     using Job = common::ThreadPool::Job;
 
-    //! \}
+    DispatcherThread(
+        mem::Manager& mem_manager,
+        mem::mm_unique_ptr<class Dispatcher>&& dispatcher,
+        const mem::by_string& thread_name);
 
-    //! common global memory stats, should become a HostContext member.
-    mem::Manager mem_manager_ { nullptr };
+    DispatcherThread(
+        mem::Manager& mem_manager,
+        class Group& group, const mem::by_string& thread_name);
 
-public:
-    explicit DispatcherThread(const mem::string& thread_name);
     ~DispatcherThread();
 
     //! non-copyable: delete copy-constructor
@@ -115,22 +115,22 @@ public:
     //! header and a payload Buffers that are hereby guaranteed to be written in
     //! order.
     void AsyncWrite(Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = nullptr);
+                    AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! asynchronously write byte and block and callback when delivered. The
     //! block is reference counted by the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer, const data::Block& block,
-                    AsyncWriteCallback done_cb = nullptr);
+                    AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
-                        AsyncWriteCallback done_cb = nullptr);
+                        AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const std::string& str,
-                        AsyncWriteCallback done_cb = nullptr);
+                        AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! \}
 
@@ -145,6 +145,9 @@ protected:
     void WakeUpThread();
 
 private:
+    //! common memory stats, should become a HostContext member.
+    mem::Manager mem_manager_;
+
     //! Queue of jobs to be run by dispatching thread at its discretion.
     common::ConcurrentQueue<Job, mem::Allocator<Job> > jobqueue_ {
         mem::Allocator<Job>(mem_manager_)
@@ -160,13 +163,7 @@ private:
     std::atomic<bool> terminate_ { false };
 
     //! thread name for logging
-    mem::string name_;
-
-    //! self-pipe to wake up thread.
-    int self_pipe_[2];
-
-    //! buffer to receive one byte from self-pipe
-    int self_pipe_buffer_;
+    mem::by_string name_;
 };
 
 //! \}

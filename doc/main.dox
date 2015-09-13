@@ -28,12 +28,12 @@ namespace thrill {
     Distributed data structures and algorithms used to build API: Shuffle/Reduce Table, StageBuilder.</td>
   </tr>
   <tr>
-    <td colspan="2"><div style="text-align: center">\ref data "data: Data Layer"</div>
-    Manages transfer of large amounts of data between workers. Contains Serialization, File, BlockWriter, Channel, and Multiplexer.</td>
-  </tr>
-  <tr>
-    <td colspan="2"><div style="text-align: center">\ref net "net: Network Layer"</div>
-    Controls connections between compute nodes, contains collective communication primitives like Broadcast, AllReduce for simple datatypes.</td>
+    <td style="width: 50%">
+      <div style="text-align: center">\ref net "net: Network Layer"</div>
+      Controls connections between compute nodes, contains collective communication primitives like Broadcast, AllReduce for simple datatypes.</td>
+    <td style="width: 50%">
+      <div style="text-align: center">\ref data "data: Data Layer"</div>
+      Manages transfer of large amounts of data between workers. Contains Serialization, File, BlockWriter, Channel, and Multiplexer.</td>
   </tr>
   <tr>
     <td style="width: 50%">

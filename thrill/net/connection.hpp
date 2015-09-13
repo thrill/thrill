@@ -16,9 +16,11 @@
 #define THRILL_NET_CONNECTION_HEADER
 
 #include <thrill/common/config.hpp>
-#include <thrill/net/buffer.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/serialization.hpp>
+#include <thrill/net/buffer_builder.hpp>
+#include <thrill/net/buffer_reader.hpp>
 #include <thrill/net/exception.hpp>
-#include <thrill/net/lowlevel/socket.hpp>
 
 #include <cassert>
 #include <cerrno>
@@ -33,180 +35,90 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
-enum ConnectionState : unsigned {
-    Invalid, Connecting, TransportConnected, HelloReceived,
-    HelloSent, WaitingForHello, Connected, Disconnected
-};
-
-// Because Mac OSX does not know MSG_MORE.
-#ifndef MSG_MORE
-#define MSG_MORE 0
-#endif
-
 /*!
- * Connection is a rich point-to-point socket connection to another client
- * (worker, master, or whatever). Messages are fixed-length integral items or
- * opaque byte strings with a length.
+ * A Connection represents a link to another peer in a network group. The link
+ * need not be an actual stateful TCP connection, but may be reliable and
+ * stateless.
  *
- * If any function fails to send or receive, then a NetException is thrown
- * instead of explicit error handling. If ever an error occurs, we probably have
- * to rebuild the whole network explicitly.
+ * The Connection class is abstract, and subclasses must exist for every network
+ * implementation.
  */
 class Connection
 {
-    static const bool debug = false;
-
+public:
+    //! flag which enables transmission of verification bytes for debugging,
+    //! this increases network volume.
     static const bool self_verify_ = common::g_self_verify;
 
-    using Socket = lowlevel::Socket;
+    //! Additional flags for sending or receiving.
+    enum Flags : unsigned {
+        NoFlags = 0,
+        //! indicate that more data is coming, hence, sending a packet may be
+        //! delayed. currently only applies to TCP.
+        MsgMore = 1
+    };
 
-public:
-    //! default construction, contains invalid socket
-    Connection() = default;
-
-    //! Construct Connection from a Socket
-    explicit Connection(const Socket& s)
-        : socket_(s)
-    { }
-
-    //! Construct Connection from a Socket, with immediate
-    //! initialization. (Currently used by tests).
-    Connection(const Socket& s, size_t group_id, size_t peer_id)
-        : socket_(s),
-          group_id_(group_id), peer_id_(peer_id)
-    { }
-
-    //! move-constructor
-    Connection(Connection&& other)
-        : socket_(other.socket_),
-          state_(other.state_),
-          group_id_(other.group_id_),
-          peer_id_(other.peer_id_) {
-        other.socket_.Release();
-        other.state_ = ConnectionState::Invalid;
+    //! operator to combine flags
+    friend inline Flags operator | (const Flags& a, const Flags& b) {
+        return static_cast<Flags>(
+            static_cast<unsigned>(a) | static_cast<unsigned>(b));
     }
 
-    //! move assignment-operator
-    Connection& operator = (Connection&& other) {
-        if (IsValid()) {
-            sLOG1 << "Assignment-destruction of valid Connection" << this;
-            Close();
-        }
-        socket_ = other.socket_;
-        state_ = other.state_;
-        group_id_ = other.group_id_;
-        peer_id_ = other.peer_id_;
+    //! \name Base Status Functions
+    //! \{
 
-        other.socket_.Release();
-        other.state_ = ConnectionState::Invalid;
-        return *this;
-    }
+    //! check whether the connection is (still) valid.
+    virtual bool IsValid() const = 0;
 
-    /**
-     * \brief Gets the state of this connection.
-     */
-    ConnectionState state() const {
-        return state_;
-    }
+    //! return a string representation of this connection, for user output.
+    virtual std::string ToString() const = 0;
 
-    /**
-     * \brief Gets the id of the net group this connection is associated with.
-     */
-    size_t group_id() const {
-        return group_id_;
-    }
+    //! virtual method to output to a std::ostream
+    virtual std::ostream & output_ostream(std::ostream& os) const = 0;
 
-    /**
-     * \brief Gets the id of the worker this connection is connected to.
-     */
-    size_t peer_id() const {
-        return peer_id_;
-    }
-
-    // TODO(ej) Make setters internal/friend NetManager
-
-    /**
-     * \brief Sets the state of this connection.
-     */
-    void set_state(ConnectionState state) {
-        this->state_ = state;
-    }
-
-    /**
-     * \brief Sets the group id of this connection.
-     */
-    void set_group_id(size_t groupId) {
-        this->group_id_ = groupId;
-    }
-
-    /**
-     * \brief Sets the id of the worker this connection is connected to.
-     */
-    void set_peer_id(size_t peerId) {
-        this->peer_id_ = peerId;
-    }
-
-    //! Check whether the contained file descriptor is valid.
-    bool IsValid() const
-    { return socket_.IsValid(); }
-
-    //! Return the raw socket object for more low-level network programming.
-    Socket & GetSocket()
-    { return socket_; }
-
-    //! Return the raw socket object for more low-level network programming.
-    const Socket & GetSocket() const
-    { return socket_; }
-
-    //! Return the associated socket error
-    int GetError() const
-    { return socket_.GetError(); }
-
-    //! Set socket to non-blocking
-    int SetNonBlocking(bool non_blocking) const
-    { return socket_.SetNonBlocking(non_blocking); }
-
-    //! Return the socket peer address
-    std::string GetPeerAddress() const
-    { return socket_.GetPeerAddress().ToStringHostPort(); }
-
-    //! Checks wether two connections have the same underlying socket or not.
-    bool operator == (const Connection& c) const
-    { return GetSocket().fd() == c.GetSocket().fd(); }
+    //! \}
 
     //! \name Send Functions
     //! \{
 
-    //! Send a fixed-length type T (possibly without length header).
+    //! Synchronous blocking send of the (data,size) packet. if sending fails, a
+    //! net::Exception is thrown.
+    virtual void SyncSend(const void* data, size_t size,
+                          Flags flags = NoFlags) = 0;
+
+    //! Non-blocking send of a (data,size) message. returns number of bytes
+    //! possible to send. check errno for errors.
+    virtual ssize_t SendOne(const void* data, size_t size,
+                            Flags flags = NoFlags) = 0;
+
+    //! Send any serializable item T. if sending fails, a net::Exception is
+    //! thrown.
     template <typename T>
     void Send(const T& value) {
-        static_assert(std::is_pod<T>::value,
-                      "You only want to send POD types as raw values.");
-
         if (self_verify_) {
-            // for communication verification, send sizeof.
-            size_t len = sizeof(value);
-            if (socket_.send(&len, sizeof(len), MSG_MORE) != sizeof(len))
-                throw Exception("Error during Send", errno);
+            // for communication verification, send hash_code.
+            size_t hash_code = typeid(T).hash_code();
+            SyncSend(&hash_code, sizeof(hash_code));
         }
-
-        if (socket_.send(&value, sizeof(value))
-            != static_cast<ssize_t>(sizeof(value)))
-            throw Exception("Error during Send", errno);
-    }
-
-    //! Send a string buffer
-    void SendString(const void* data, size_t len) {
-        if (socket_.send(&len, sizeof(len), MSG_MORE) != sizeof(len))
-            throw Exception("Error during SendString", errno);
-
-        if (socket_.send(data, len) != static_cast<ssize_t>(len))
-            throw Exception("Error during SendString", errno);
-    }
-
-    //! Send a string message.
-    void SendString(const std::string& message) {
-        SendString(message.data(), message.size());
+        if (std::is_pod<T>::value) {
+            // send PODs directly from memory.
+            SyncSend(&value, sizeof(value));
+        }
+        else if (data::Serialization<BufferBuilder, T>::is_fixed_size) {
+            // fixed_size items can be sent without size header
+            // TODO(tb): make bb allocate on stack.
+            BufferBuilder bb;
+            data::Serialization<BufferBuilder, T>::Serialize(value, bb);
+            SyncSend(bb.data(), bb.size());
+        }
+        else {
+            // variable length items must be prefixed with size header
+            BufferBuilder bb;
+            data::Serialization<BufferBuilder, T>::Serialize(value, bb);
+            size_t size = bb.size();
+            SyncSend(&size, sizeof(size), MsgMore);
+            SyncSend(bb.data(), bb.size());
+        }
     }
 
     //! \}
@@ -214,84 +126,59 @@ public:
     //! \name Receive Functions
     //! \{
 
-    //! Receive a fixed-length type, possibly without length header.
+    //! Synchronous blocking receive a message of given size. The size must
+    //! match the SyncSend size for some network layers may only support
+    //! matching messages (read: RDMA!, but also true for the mock net). Throws
+    //! a net::Exception on errors.
+    virtual void SyncRecv(void* out_data, size_t size) = 0;
+
+    //! Non-blocking receive of at most size data. returns number of bytes
+    //! actually received. check errno for errors.
+    virtual ssize_t RecvOne(void* out_data, size_t size) = 0;
+
+    //! Receive any serializable item T.
     template <typename T>
     void Receive(T* out_value) {
-        static_assert(std::is_pod<T>::value,
-                      "You only want to receive POD types as raw values.");
-
         if (self_verify_) {
-            // for communication verification, receive sizeof.
-            size_t len = 0;
-            if (socket_.recv(&len, sizeof(len)) != sizeof(len))
-                throw Exception("Error during Receive", errno);
-
-            // if this fails, then fixed-length type communication desynced.
-            die_unequal(len, sizeof(*out_value));
+            // for communication verification, receive hash_code.
+            size_t hash_code;
+            SyncRecv(&hash_code, sizeof(hash_code));
+            if (hash_code != typeid(T).hash_code()) {
+                throw std::runtime_error(
+                          "Connection::Receive() attempted to receive item "
+                          "with different typeid!");
+            }
         }
-
-        if (socket_.recv(out_value, sizeof(*out_value))
-            != static_cast<ssize_t>(sizeof(*out_value)))
-            throw Exception("Error during Receive", errno);
-    }
-
-    //! Blocking receive string message from the connected socket.
-    void ReceiveString(std::string* outdata) {
-        size_t len = 0;
-
-        if (socket_.recv(&len, sizeof(len)) != sizeof(len))
-            throw Exception("Error during ReceiveString", errno);
-
-        if (len == 0)
-            return;
-
-        outdata->resize(len);
-
-        ssize_t ret = socket_.recv(const_cast<char*>(outdata->data()), len);
-
-        if (ret != static_cast<ssize_t>(len))
-            throw Exception("Error during ReceiveString", errno);
+        if (std::is_pod<T>::value) {
+            // receive PODs directly into memory.
+            SyncRecv(out_value, sizeof(*out_value));
+        }
+        else if (data::Serialization<BufferBuilder, T>::is_fixed_size) {
+            // fixed_size items can be received without size header
+            // TODO(tb): make bb allocate on stack.
+            Buffer b(data::Serialization<BufferBuilder, T>::fixed_size);
+            SyncRecv(b.data(), b.size());
+            BufferReader br(b);
+            *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+        }
+        else {
+            // variable length items are prefixed with size header
+            size_t size;
+            SyncRecv(&size, sizeof(size));
+            // receives message
+            Buffer b(size);
+            SyncRecv(b.data(), size);
+            BufferReader br(b);
+            *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+        }
     }
 
     //! \}
 
-    //! Destruction of Connection should be explicitly done by a NetGroup or
-    //! other network class.
-    ~Connection() {
-        if (IsValid()) {
-            Close();
-        }
-    }
-
-    //! Close this Connection
-    void Close() {
-        socket_.close();
-    }
-
     //! make ostreamable
     friend std::ostream& operator << (std::ostream& os, const Connection& c) {
-        os << "[Connection"
-           << " fd=" << c.GetSocket().fd();
-
-        if (c.IsValid())
-            os << " peer=" << c.GetPeerAddress();
-
-        return os << "]";
+        return c.output_ostream(os);
     }
-
-protected:
-    //! Underlying socket.
-    Socket socket_;
-
-    //! The connection state of this connection in the Thrill network state
-    //! machine.
-    ConnectionState state_ = ConnectionState::Invalid;
-
-    //! The id of the group this connection is associated with.
-    size_t group_id_ = -1;
-
-    //! The id of the worker this connection is connected to.
-    size_t peer_id_ = -1;
 };
 
 // \}
