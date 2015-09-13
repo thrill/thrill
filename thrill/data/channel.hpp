@@ -375,8 +375,9 @@ using ChannelPtr = std::shared_ptr<Channel>;
 /*! Simple structure that holds a all channel instances for the workers on the
  *! local host for a given channel id.
  */
-struct ChannelSet {
-
+class ChannelSet
+{
+public:
     //! Creates a ChannelSet with the given number of channels (num workers per host).
     ChannelSet(data::Multiplexer& multiplexer, ChannelId id, size_t num_workers_per_host) {
         for (size_t i = 0; i < num_workers_per_host; i++)
@@ -385,12 +386,12 @@ struct ChannelSet {
 
     //! Returns the channel that will be consumed by the worker with the given
     //! local id
-    ChannelPtr              peer(size_t local_worker_id) {
+    ChannelPtr peer(size_t local_worker_id) {
         assert(local_worker_id < channels_.size());
         return channels_[local_worker_id];
     }
 
-    void                    Close() {
+    void Close() {
         for (auto& c : channels_)
             c->Close();
     }

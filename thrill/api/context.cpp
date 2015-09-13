@@ -223,6 +223,9 @@ int Run(
             return -1;
         }
     }
+    else {
+        // TODO: someday, set workers_per_host = std::thread::hardware_concurrency().
+    }
 
     if (!env_rank || !env_hostlist) {
         size_t test_hosts = std::thread::hardware_concurrency();
