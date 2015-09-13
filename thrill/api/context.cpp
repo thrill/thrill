@@ -13,6 +13,7 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/net/tcp/construct.hpp>
@@ -154,9 +155,9 @@ int RunDistributedTCP(
     const std::vector<std::string>& endpoints,
     const std::function<void(Context&)>& job_startpoint,
     const mem::by_string& log_prefix) {
-
-    // TODO pull this out of ENV
-    const size_t workers_per_host = 1;
+        STAT_NO_RANK << "event" << "RunDistributedTCP"
+                     << "my_host_rank" << my_host_rank
+                     << "workers_per_host" << workers_per_host;
 
     static const bool debug = false;
 
@@ -171,11 +172,12 @@ int RunDistributedTCP(
                 common::NameThisThread(
                     log_prefix + " worker " + mem::to_string(i));
 
-                LOG << "Starting job on worker " << ctx.my_rank() << " (" << ctx << ")";
+                STAT(ctx) << "event" << "jobStart";
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 job_startpoint(ctx);
                 STOP_TIMER(overall_timer)
-                LOG << "Worker " << ctx.my_rank() << " done!";
+                if (overall_timer)
+                    STAT(ctx) << "event" << "jobDone" << "time" << overall_timer->Milliseconds();
 
                 ctx.Barrier();
             });
