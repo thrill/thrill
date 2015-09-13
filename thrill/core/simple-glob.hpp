@@ -235,8 +235,8 @@ class SimpleGlobUtil
 {
 public:
     static const char * strchr(const char* s, char c) {
-        return static_cast<const char*>(
-            sg_strchr(static_cast<const SOCHAR_T*>(s), c));
+        return reinterpret_cast<const char*>(
+            sg_strchr(reinterpret_cast<const SOCHAR_T*>(s), c));
     }
     static const wchar_t * strchr(const wchar_t* s, wchar_t c) {
         return ::wcschr(s, c);
@@ -248,8 +248,8 @@ public:
 #endif
 
     static const char * strrchr(const char* s, char c) {
-        return static_cast<const char*>(
-            sg_strrchr(static_cast<const SOCHAR_T*>(s), c));
+        return reinterpret_cast<const char*>(
+            sg_strrchr(reinterpret_cast<const SOCHAR_T*>(s), c));
     }
     static const wchar_t * strrchr(const wchar_t* s, wchar_t c) {
         return ::wcsrchr(s, c);
@@ -269,8 +269,8 @@ public:
 
     static void strcpy_s(char* dst, size_t n, const char* src) {
         (void)n;
-        sg_strcpy_s(static_cast<SOCHAR_T*>(dst), n,
-                    static_cast<const SOCHAR_T*>(src));
+        sg_strcpy_s(reinterpret_cast<SOCHAR_T*>(dst), n,
+                    reinterpret_cast<const SOCHAR_T*>(src));
     }
     static void strcpy_s(wchar_t* dst, size_t n, const wchar_t* src) {
 # if __STDC_WANT_SECURE_LIB__
@@ -875,7 +875,7 @@ CSimpleGlobTempl<SOCHAR>::SetArgvArrayType(
     if (a_nNewType == POINTERS) {
         SG_ASSERT(m_nArgArrayType == OFFSETS);
         for (int n = 0; n < m_nArgsLen; ++n) {
-            m_rgpArgs[n] = (m_rgpArgs[n] == static_cast<SOCHAR*>(-1)) ?
+            m_rgpArgs[n] = (m_rgpArgs[n] == reinterpret_cast<SOCHAR*>(-1)) ?
                            nullptr : m_pBuffer + (size_t)m_rgpArgs[n];
         }
     }

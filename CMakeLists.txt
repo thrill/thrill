@@ -108,7 +108,8 @@ elseif(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
   endif()
   # raise warnings as errors
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
+
   ### disable verbose warnings:
   # warning C4589: Constructor of abstract class '...' ignores initializer for
   # virtual base class '...' (false positive warnings)
