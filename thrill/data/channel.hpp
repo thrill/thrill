@@ -362,7 +362,7 @@ protected:
     }
 
     //! Returns the loopback queue for the worker of this channel.
-    BlockQueue* loopback_queue(size_t from_worker_id) {
+    BlockQueue * loopback_queue(size_t from_worker_id) {
         assert(from_worker_id < multiplexer_.num_workers_per_host_);
         size_t global_worker_rank = multiplexer_.num_workers_per_host_ * multiplexer_.my_host_rank() + from_worker_id;
         sLOG << "expose loopback queue for" << from_worker_id << "->" << my_local_worker_id_;
@@ -385,15 +385,16 @@ struct ChannelSet {
 
     //! Returns the channel that will be consumed by the worker with the given
     //! local id
-    ChannelPtr peer(size_t local_worker_id) {
+    ChannelPtr              peer(size_t local_worker_id) {
         assert(local_worker_id < channels_.size());
         return channels_[local_worker_id];
     }
 
-    void Close() {
+    void                    Close() {
         for (auto& c : channels_)
             c->Close();
     }
+
 private:
     //! 'owns' all channels belonging to one channel id for all local workers.
     std::vector<ChannelPtr> channels_;

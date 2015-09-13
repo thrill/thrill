@@ -95,7 +95,6 @@ void Multiplexer::OnChannelBlock(
     AsyncReadChannelBlockHeader(s);
 }
 
-
 BlockQueue* Multiplexer::loopback(size_t channel_id, size_t from_worker_id, size_t to_worker_id) {
     return channel_sets_.GetOrDie(channel_id)->peer(to_worker_id)->loopback_queue(from_worker_id);
 }

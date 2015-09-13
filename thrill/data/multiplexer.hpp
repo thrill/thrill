@@ -146,7 +146,7 @@ protected:
     //! the same host.
     //! \param from_worker_id is the id of the sending worker
     //! \param to_worker_id is the id of the receiving worker, that owns the queue
-    BlockQueue* loopback(size_t channel_id, size_t from_worker_id, size_t to_worker_id);
+    BlockQueue * loopback(size_t channel_id, size_t from_worker_id, size_t to_worker_id);
 
     /**************************************************************************/
 
