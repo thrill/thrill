@@ -44,11 +44,11 @@ void net_test(thrill::api::Context& ctx) {
     for (size_t r = 0; r < repeats; ++r) {
         thrill::common::StatsTimer<true> t;
 
-        size_t dummy = +4915221495089;
+        size_t dummy = r + ctx.my_rank();
 
         t.Start();
         for (size_t i = 0; i < iterations; i++) {
-            dummy = flow.Broadcast(dummy);
+            dummy = flow.PrefixSum(dummy);
         }
         t.Stop();
 
