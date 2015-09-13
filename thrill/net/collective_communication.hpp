@@ -66,10 +66,16 @@ static inline void PrefixSumForPowersOfTwo(
         T recv_data;
         if (peer < net.num_hosts()) {
             net.ReceiveFrom(peer, &recv_data);
-            total_sum = sum_op(total_sum, recv_data);
+            // The order of addition is important. The total sum of the smaller
+            // hypercube always comes first.
+            if (net.my_host_rank() & d)
+                total_sum = sum_op(recv_data, total_sum);
+            else
+                total_sum = sum_op(total_sum, recv_data);
             // Variable 'value' represents the prefix sum of this worker
             if (net.my_host_rank() & d)
-                value = sum_op(value, recv_data);
+                // The order of addition is respected the same way as above.
+                value = sum_op(recv_data, value);
             sLOG << "PREFIX_SUM: host" << net.my_host_rank() << ": received" << recv_data
                  << "from peer" << peer
                  << "value =" << value;
