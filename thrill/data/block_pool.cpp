@@ -18,7 +18,7 @@ namespace data {
 
 ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
     assert(block_size <= default_block_size);
-    size_t swap_token;
+    uint32_t swap_token;
     std::lock_guard<std::mutex> lock(list_mutex_);
 
     Byte* block_memory = static_cast<Byte*>(page_mapper_.Allocate(swap_token));
