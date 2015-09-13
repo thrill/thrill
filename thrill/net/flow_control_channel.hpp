@@ -14,8 +14,8 @@
 
 #include <thrill/common/functional.hpp>
 #include <thrill/common/thread_barrier.hpp>
-#include <thrill/net/group.hpp>
 #include <thrill/net/collective_communication.hpp>
+#include <thrill/net/group.hpp>
 
 #include <functional>
 #include <string>
@@ -189,28 +189,30 @@ public:
 
             T prefixSumBase = localPrefixBuffer[threadCount - 1];
             collective::PrefixSum(group, prefixSumBase, sum_op, false);
-           
-            if(id == 0) {
+
+            if (id == 0) {
                 prefixSumBase = initial;
             }
 
             LOG << id << ", m, " << inclusive << ": base: " << prefixSumBase;
 
-            if(inclusive) {
+            if (inclusive) {
                 for (size_t i = 0; i < threadCount; i++) {
                     localPrefixBuffer[i] = sum_op(prefixSumBase, localPrefixBuffer[i]);
                 }
-            } else {
+            }
+            else {
                 for (size_t i = threadCount - 1; i > 0; i--) {
                     localPrefixBuffer[i] = sum_op(prefixSumBase, localPrefixBuffer[i - 1]);
                 }
                 localPrefixBuffer[0] = prefixSumBase;
             }
-            
+
             for (size_t i = 0; i < threadCount; i++) {
                 LOG << id << ", " << i << ", " << inclusive << ": res: " << localPrefixBuffer[i];
             }
-        } else {
+        }
+        else {
             // Master allocate memory.
             barrier.Await();
             // Slave store values.
@@ -220,7 +222,7 @@ public:
         barrier.Await();
         T res = (*GetLocalShared<std::vector<T> >())[threadId];
         barrier.Await();
-        
+
         return res;
     }
 

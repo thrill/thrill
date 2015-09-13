@@ -21,8 +21,6 @@
 #include <thrill/net/group.hpp>
 
 #include <functional>
-#include <mutex>
-#include <condition_variable>
 
 namespace thrill {
 namespace net {
@@ -183,7 +181,7 @@ void BroadcastBinomialTree(Group& net, T& value) {
  */
 template <typename T>
 void Broadcast(Group& net, T& value) {
-   return BroadcastBinomialTree(net, value);
+    return BroadcastBinomialTree(net, value);
 }
 
 //! \brief   Perform an All-Reduce on the workers.
@@ -271,9 +269,9 @@ static inline void PrefixSum(
     static const bool debug = false;
 
     bool first = true;
-    //Use a copy, in case of exclusive, we have to forward 
-    //something that's not our result. 
-    T toForward = value;  
+    // Use a copy, in case of exclusive, we have to forward
+    // something that's not our result.
+    T toForward = value;
 
     // This is based on the pointer-doubling algorithm presented in the ParAlg
     // script, which is used for list ranking.
@@ -289,12 +287,13 @@ static inline void PrefixSum(
             net.ReceiveFrom(net.my_host_rank() - d, &recv_value);
             sLOG << "Worker" << net.my_host_rank() << ": receiving " << recv_value << " from" << net.my_host_rank() - d;
 
-            //Take care of order, so we don't break associativity. 
+            // Take care of order, so we don't break associativity.
             toForward = sumOp(recv_value, toForward);
 
-            if(!first || inclusive) {
+            if (!first || inclusive) {
                 value = sumOp(recv_value, value);
-            } else {
+            }
+            else {
                 value = recv_value;
                 first = false;
             }

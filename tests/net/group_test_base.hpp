@@ -129,7 +129,7 @@ static void TestPrefixSumForPowersOfTwoString(net::Group* net) {
 
     std::string local_value = result.substr(net->my_host_rank(), 1);
     PrefixSumForPowersOfTwo(*net, local_value);
-    //sLOG1 << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
+    // sLOG1 << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
     //      << "value" << local_value;
     // ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
 }
