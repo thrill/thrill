@@ -89,6 +89,11 @@ public:
         return num_hosts() * num_workers_per_host_;
     }
 
+    //! number of workers per host
+    size_t num_workers_per_host() const {
+        return num_workers_per_host_;
+    }
+
     //! Get the used BlockPool
     BlockPool & block_pool() { return block_pool_; }
 
