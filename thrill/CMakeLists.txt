@@ -4,35 +4,21 @@
 # CMake file for Thrill library
 ################################################################################
 
+# glob general sources
+file(GLOB SRCS
+  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*/mock/*.[ch]pp
+  )
+
+# add net/tcp on all platforms except Windows
 if(NOT MSVC)
-  file(GLOB_RECURSE SRCS
+  file(GLOB NET_TCP_SRCS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/*/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/*/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/net/tcp/*.[ch]pp
     )
-else()
-  set(SRCS
-    api/context.cpp
-    common/cmdline_parser.cpp
-    common/logger.cpp
-    common/porting.cpp
-    common/string.cpp
-    common/thread_pool.cpp
-    core/file_io.cpp
-    data/multiplexer.cpp
-    mem/malloc_tracker.cpp
-    mem/manager.cpp
-    net/group.cpp
-    net/dispatcher_thread.cpp
-    net/flow_control_channel.cpp
-    net/system_control_channel.cpp
-    net/mock/group.cpp
-    #net/lowlevel/select_dispatcher.cpp
-    #net/lowlevel/socket.cpp
-    #net/lowlevel/socket_address.cpp
-    )
+  list(APPEND SRCS ${NET_TCP_SRCS})
 endif()
 
 add_library(thrill ${SRCS})
