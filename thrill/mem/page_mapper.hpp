@@ -13,11 +13,11 @@
 #define THRILL_MEM_PAGE_MAPPER_HEADER
 
 #include <fcntl.h>           //open
-#include <stdio.h>           //remove file
 #include <sys/mman.h>        //mappings + advice
 #include <sys/stat.h>        //open
 #include <sys/types.h>       //open
 #include <unistd.h>          //sysconfig
+#include <stdio.h>            //remove
 
 #ifdef USE_EXPLAIN
 #include <libexplain/lseek.h>
@@ -50,7 +50,7 @@ public:
     //! Creates a PageMapper for objects of given size.
     //! Removes and creates a temporal file (PageMapper::swap_file_name)
     //! Checks if the object size is valid
-    PageMapper(std::string swap_file_name) {
+    PageMapper(std::string swap_file_name) : swap_file_name_(swap_file_name) {
         // runtime check if OBJECT_SIZE is correct
         die_unless(OBJECT_SIZE % page_size() == 0);
 
@@ -68,6 +68,11 @@ public:
         sLOG << "creating swapfile" << swap_file_name;
         fd_ = open64(swap_file_name.c_str(), flags, permission);
         die_unless(fd_ != -1);
+    }
+
+    //! Removes the swap file
+    ~PageMapper() {
+        remove(swap_file_name_.c_str());
     }
 
     //! Allocates a memory region of OBJECT_SIZE with a
@@ -154,6 +159,7 @@ public:
 
 private:
     static const bool debug = false;
+    std::string swap_file_name_;
     int fd_;
     size_t next_token_ = { 0 };
     std::mutex mutex_;
