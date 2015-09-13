@@ -55,6 +55,7 @@ public:
         : workers_per_host_(workers_per_host),
           net_manager_(std::move(groups)),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
+          block_pool_(&mem_manager_, &mem_manager_external_, std::to_string(net_manager_.my_host_rank())),
           data_multiplexer_(mem_manager_,
                             block_pool_, workers_per_host,
                             net_manager_.GetDataGroup())
@@ -100,7 +101,7 @@ protected:
     net::FlowControlChannelManager flow_manager_;
 
     //! data block pool
-    data::BlockPool block_pool_ { &mem_manager_, &mem_manager_external_ };
+    data::BlockPool block_pool_;
 
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer data_multiplexer_;

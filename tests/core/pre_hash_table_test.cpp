@@ -24,7 +24,7 @@ using StringPairPair = std::pair<std::string, std::pair<std::string, int> >;
 using StringPair = std::pair<std::string, int>;
 
 struct PreTable : public::testing::Test {
-    PreTable() : block_pool(nullptr, nullptr), output(block_pool) { }
+    PreTable() : block_pool(nullptr, nullptr, "pre-table"), output(block_pool) { }
     data::BlockPool block_pool;
     data::File output;
 };
