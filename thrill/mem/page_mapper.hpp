@@ -47,17 +47,14 @@ public:
     //! for min(1, min_growth_delta) objects
     static const size_t min_growth_delta = 0;
 
-    //! temporal swap file
-    static constexpr const char* swap_file_path = "/tmp/thrill.swap";
-
     //! Creates a PageMapper for objects of given size.
-    //! Removes and creates a temporal file (PageMapper::swap_file_path)
+    //! Removes and creates a temporal file (PageMapper::swap_file_name)
     //! Checks if the object size is valid
-    PageMapper() {
+    PageMapper(std::string swap_file_name) {
         // runtime check if OBJECT_SIZE is correct
         die_unless(OBJECT_SIZE % page_size() == 0);
 
-        // create our swapfile
+        // create our swap file
         //- read + write access
         //- create the file
         //- delete content if file exists
@@ -68,8 +65,8 @@ public:
         // user can read+write, group may read
         static const int permission = S_IRUSR | S_IWUSR | S_IRGRP;
 
-        std::remove(swap_file_path);
-        fd_ = open64(swap_file_path, flags, permission);
+        sLOG << "creating swapfile" << swap_file_name;
+        fd_ = open64(swap_file_name.c_str(), flags, permission);
         die_unless(fd_ != -1);
     }
 
@@ -162,7 +159,7 @@ private:
     std::mutex mutex_;
     common::ConcurrentQueue<size_t, std::allocator<size_t> > free_tokens_;
 
-    //! Returns the next free token and eventually streches the swapfile if
+    //! Returns the next free token and eventually streches the swap file if
     //! required
     size_t next_free_token() {
         size_t result = 0;
