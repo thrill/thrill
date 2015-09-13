@@ -209,7 +209,7 @@ static void * preinit_malloc(size_t size) noexcept {
 
     if (log_operations_init_heap) {
         fprintf(stderr, PPREFIX "malloc(%zu / %zu) = %p   on init heap\n",
-                size, aligned_size, ret + padding);
+                size, aligned_size, static_cast<void*>(ret + padding));
     }
 
     return ret + padding;

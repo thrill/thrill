@@ -146,10 +146,10 @@ protected:
     net::DispatcherThread* dispatcher_ = nullptr;
     net::Connection* connection_ = nullptr;
 
-    size_t id_ = -1;
-    size_t my_rank_ = -1;
-    size_t my_local_worker_id_ = -1;
-    size_t partners_local_worker_id_ = -1;
+    size_t id_ = size_t(-1);
+    size_t my_rank_ = size_t(-1);
+    size_t my_local_worker_id_ = size_t(-1);
+    size_t partners_local_worker_id_ = size_t(-1);
     bool closed_ = false;
 
     StatsCounterPtr byte_counter_;

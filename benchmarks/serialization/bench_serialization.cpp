@@ -43,7 +43,7 @@ int BenchmarkSerialization(T t, int iterations) {
         r.Next<T>();
         timer.Stop();
     }
-    return timer.Microseconds() / iterations;
+    return static_cast<int>(timer.Microseconds() / iterations);
 }
 
 //! serializes the test string and measures its time
