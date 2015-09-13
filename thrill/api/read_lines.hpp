@@ -13,8 +13,8 @@
 #ifndef THRILL_API_READ_LINES_HEADER
 #define THRILL_API_READ_LINES_HEADER
 
-#include <thrill/api/dia.hpp>
 #include <thrill/api/context.hpp>
+#include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>

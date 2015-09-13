@@ -713,9 +713,9 @@ TEST_F(PostTable, MaxTableBlocks) {
 
             const size_t TargetBlockSize = 8 * 1024;
             const size_t bucket_block_size = sizeof(core::ReducePostTable<int, int, int,
-                    decltype(key_ex), decltype(red_fn), false,
-                    core::PostReduceFlushToDefault<int, decltype(red_fn)>,
-                    core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+                                                                          decltype(key_ex), decltype(red_fn), false,
+                                                                          core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                                                          core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
 
             using KeyValuePair = std::pair<int, int>;
             size_t max_blocks = 8;

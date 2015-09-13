@@ -61,12 +61,12 @@ static void TestSingleThreadVectorPrefixSum(net::Group* net) {
     std::fill(initial.begin(), initial.end(), 0);
     std::vector<size_t> val(size);
     std::fill(val.begin(), val.end(), myRank);
-        
-    auto addSizeTVectors = [] 
-        (const std::vector<size_t> &a, const std::vector<size_t> &b) {
+
+    auto addSizeTVectors =
+        [](const std::vector<size_t>& a, const std::vector<size_t>& b) {
             std::vector<size_t> res(a.size());
-            for(size_t i = 0; i < a.size(); i++) {
-               res[i] = a[i] + b[i]; 
+            for (size_t i = 0; i < a.size(); i++) {
+                res[i] = a[i] + b[i];
             }
             return res;
         };
@@ -80,7 +80,7 @@ static void TestSingleThreadVectorPrefixSum(net::Group* net) {
         expectedInclusive += i;
     }
 
-    for (size_t i = 0; i < myRank; i++) { 
+    for (size_t i = 0; i < myRank; i++) {
         expectedExclusive += i;
     }
 

@@ -668,6 +668,7 @@ protected:
     //! Number of flushes.
     size_t num_flushes_ = 0;
 };
+
 } // namespace core
 } // namespace thrill
 

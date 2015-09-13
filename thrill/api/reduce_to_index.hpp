@@ -15,8 +15,8 @@
 #ifndef THRILL_API_REDUCE_TO_INDEX_HEADER
 #define THRILL_API_REDUCE_TO_INDEX_HEADER
 
-#include <thrill/api/dia.hpp>
 #include <thrill/api/context.hpp>
+#include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>

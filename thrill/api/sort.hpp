@@ -14,8 +14,8 @@
 #ifndef THRILL_API_SORT_HEADER
 #define THRILL_API_SORT_HEADER
 
-#include <thrill/api/dia.hpp>
 #include <thrill/api/context.hpp>
+#include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/net/flow_control_channel.hpp>
