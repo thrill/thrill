@@ -129,7 +129,6 @@ protected:
         if (self_verify) {
             assert(threadId == 0);
             *shmem = nullptr;
-            barrier.Await();
         }
     }
 
@@ -245,10 +244,10 @@ public:
                   const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
         return PrefixSum(value, initial, sum_op, false);
     }
-
+    
     /**
      * \brief Broadcasts a value of an integral type T from the master
-     * (the worker with id 0) to all other workers.
+     * (the worker with the id 0) to all other workers.
      * \details This method is blocking on all workers except the master.
      *
      * \param value The value to broadcast. This value is ignored for each
@@ -275,7 +274,7 @@ public:
             res = *GetLocalShared<T>();
         }
 
-        if (threadId == 0) {
+        if(threadId == 0) {
             ClearLocalShared();
         }
 

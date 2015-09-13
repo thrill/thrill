@@ -42,7 +42,7 @@ public:
     { }
 
     explicit ErrnoException(const std::string& what)
-        : ErrnoException(what, errno) { }
+        : ErrnoException(what, -1) { }
 };
 
 } // namespace common
