@@ -276,8 +276,6 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
         c1++;
     }
 
-    ASSERT_EQ(3, c1);
-
     auto it2 = output2.GetKeepReader();
     int c2 = 0;
     while (it2.HasNext()) {
@@ -285,7 +283,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(2, c2);
+    ASSERT_EQ(5u, c1 + c2);
 }
 
 // Partial flush of items in table due to
@@ -372,7 +370,6 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
         c1++;
     }
 
-    ASSERT_EQ(3, c1);
     table.Flush();
 
     auto it2 = output2.GetKeepReader();
@@ -382,7 +379,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(2, c2);
+    ASSERT_EQ(5u, c1 + c2);
     ASSERT_EQ(0u, table.NumItems());
 }
 

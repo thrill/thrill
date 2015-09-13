@@ -255,8 +255,6 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
         c1++;
     }
 
-    ASSERT_EQ(3, c1);
-
     auto it2 = output2.GetKeepReader();
     int c2 = 0;
     while (it2.HasNext()) {
@@ -264,7 +262,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(2, c2);
+    ASSERT_EQ(5u, c1 + c2);
     ASSERT_EQ(0u, table.NumItems());
 }
 
@@ -345,8 +343,6 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
         it1.Next<int>();
         c1++;
     }
-
-    ASSERT_EQ(3, c1);
     table.Flush();
 
     auto it2 = output2.GetKeepReader();
@@ -356,7 +352,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(2, c2);
+    ASSERT_EQ(5u, c1 + c2);
     ASSERT_EQ(0u, table.NumItems());
 }
 
