@@ -60,7 +60,7 @@ public:
     };
 
     //! operator to combine flags
-    friend inline Flags operator | (const Flags &a, const Flags& b) {
+    friend inline Flags operator | (const Flags& a, const Flags& b) {
         return static_cast<Flags>(
             static_cast<unsigned>(a) | static_cast<unsigned>(b));
     }

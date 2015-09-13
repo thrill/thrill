@@ -9,6 +9,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/generate_from_file.hpp>
@@ -21,18 +22,17 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
-#include <gtest/gtest.h>
 
 #include <sys/stat.h>
 
 #include <algorithm>
 #include <cstdlib>
+#include <fstream>
 #include <functional>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
-#include <fstream>
 
 using namespace thrill;
 using thrill::api::Context;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/file_io.hpp
+ * thrill/core/simple-glob.hpp
  *
  * A sane, simple, portable implementation of glob(). Used only on Windows.
  *
@@ -14,8 +14,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_FILE_IO_HEADERX
-#define THRILL_CORE_FILE_IO_HEADERX
+#ifndef THRILL_CORE_SIMPLE_GLOB_HEADER
+#define THRILL_CORE_SIMPLE_GLOB_HEADER
 
 // ---------------------------------------------------------------------------
 // Platform dependent implementations
@@ -42,30 +42,30 @@
 # define sg_strrchr         ::_mbsrchr
 # define sg_strlen          ::_mbslen
 # if __STDC_WANT_SECURE_LIB__
-#  define sg_strcpy_s(a,n,b) ::_mbscpy_s(a,n,b)
+#  define sg_strcpy_s(a, n, b) ::_mbscpy_s(a, n, b)
 # else
-#  define sg_strcpy_s(a,n,b) ::_mbscpy(a,b)
+#  define sg_strcpy_s(a, n, b) ::_mbscpy(a, b)
 # endif
 # define sg_strcmp          ::_mbscmp
 # define sg_strcasecmp      ::_mbsicmp
 # define SOCHAR_T           unsigned char
 #else
-# include <sys/types.h>
-# include <sys/stat.h>
+# include <climits>
 # include <glob.h>
-# include <limits.h>
+# include <sys/stat.h>
+# include <sys/types.h>
 # define MAX_PATH           PATH_MAX
 # define sg_strchr          ::strchr
 # define sg_strrchr         ::strrchr
 # define sg_strlen          ::strlen
-# define sg_strcpy_s(a,n,b) ::strcpy(a,b)
+# define sg_strcpy_s(a, n, b) ::strcpy(a, b)
 # define sg_strcmp          ::strcmp
 # define sg_strcasecmp      ::strcasecmp
 # define SOCHAR_T           char
 #endif
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 #include <wchar.h>
 
 // use assertions to test the input data
@@ -74,7 +74,7 @@
 #  include <crtdbg.h>
 #  define SG_ASSERT(b)    _ASSERTE(b)
 # else
-#  include <assert.h>
+#  include <cassert>
 #  define SG_ASSERT(b)    assert(b)
 # endif
 #else
@@ -85,17 +85,17 @@ namespace thrill {
 namespace core {
 namespace glob_local {
 
-/*! @file SimpleGlob.h
+/*! \file SimpleGlob.h
 
-    @version 3.6
+    \version 3.6
 
-    @brief A cross-platform file globbing library providing the ability to
+    \brief A cross-platform file globbing library providing the ability to
     expand wildcards in command-line arguments to a list of all matching
     files. It is designed explicitly to be portable to any platform and has
     been tested on Windows and Linux. See CSimpleGlobTempl for the class
     definition.
 
-    @section features FEATURES
+    \section features FEATURES
     -   MIT Licence allows free use in all software (including GPL and
         commercial)
     -   multi-platform (Windows 95/98/ME/NT/2K/XP, Linux, Unix)
@@ -108,7 +108,7 @@ namespace glob_local {
     -   compiles cleanly at warning level 4 (Windows/VC.NET 2003),
         warning level 3 (Windows/VC6) and -Wall (Linux/gcc)
 
-    @section usage USAGE
+    \section usage USAGE
     The SimpleGlob class is used by following these steps:
     <ol>
     <li> Include the SimpleGlob.h header file
@@ -120,7 +120,7 @@ namespace glob_local {
    <li> Instantiate a CSimpleGlob object supplying the appropriate flags.
 
         <pre>
-        @link CSimpleGlobTempl CSimpleGlob @endlink glob(FLAGS);
+        \link CSimpleGlobTempl CSimpleGlob \endlink glob(FLAGS);
         </pre>
 
    <li> Add all file specifications to the glob class.
@@ -140,7 +140,7 @@ namespace glob_local {
 
     </ol>
 
-    @section licence MIT LICENCE
+    \section licence MIT LICENCE
 <pre>
     The licence text below is the boilerplate "MIT Licence" used from:
     http://www.opensource.org/licenses/mit-license.php
@@ -167,26 +167,26 @@ namespace glob_local {
 </pre>
 */
 
-/*! @brief The operation of SimpleGlob is fine-tuned via the use of a
+/*! \brief The operation of SimpleGlob is fine-tuned via the use of a
     combination of the following flags.
 
     The flags may be passed at initialization of the class and used for every
     filespec added, or alternatively they may optionally be specified in the
     call to Add() and be different for each filespec.
 
-    @param SG_GLOB_ERR
+    \param SG_GLOB_ERR
         Return upon read error (e.g. directory does not have read permission)
 
-    @param SG_GLOB_MARK
+    \param SG_GLOB_MARK
         Append a slash (backslash in Windows) to every path which corresponds
         to a directory
 
-    @param SG_GLOB_NOSORT
+    \param SG_GLOB_NOSORT
         By default, files are returned in sorted into string order. With this
         flag, no sorting is done. This is not compatible with
         SG_GLOB_FULLSORT.
 
-    @param SG_GLOB_FULLSORT
+    \param SG_GLOB_FULLSORT
         By default, files are sorted in groups belonging to each filespec that
         was added. For example if the filespec "b*" was added before the
         filespec "a*" then the argv array will contain all b* files sorted in
@@ -194,117 +194,120 @@ namespace glob_local {
         specified, the entire array will be sorted ignoring the filespec
         groups.
 
-    @param SG_GLOB_NOCHECK
+    \param SG_GLOB_NOCHECK
         If the pattern doesn't match anything, return the original pattern.
 
-    @param SG_GLOB_TILDE
+    \param SG_GLOB_TILDE
         Tilde expansion is carried out (on Unix platforms)
 
-    @param SG_GLOB_ONLYDIR
+    \param SG_GLOB_ONLYDIR
         Return only directories which match (not compatible with
         SG_GLOB_ONLYFILE)
 
-    @param SG_GLOB_ONLYFILE
+    \param SG_GLOB_ONLYFILE
         Return only files which match (not compatible with SG_GLOB_ONLYDIR)
 
-    @param SG_GLOB_NODOT
+    \param SG_GLOB_NODOT
         Do not return the "." or ".." special directories.
  */
 enum SG_Flags {
-    SG_GLOB_ERR         = 1 << 0,
-    SG_GLOB_MARK        = 1 << 1,
-    SG_GLOB_NOSORT      = 1 << 2,
-    SG_GLOB_NOCHECK     = 1 << 3,
-    SG_GLOB_TILDE       = 1 << 4,
-    SG_GLOB_ONLYDIR     = 1 << 5,
-    SG_GLOB_ONLYFILE    = 1 << 6,
-    SG_GLOB_NODOT       = 1 << 7,
-    SG_GLOB_FULLSORT    = 1 << 8
+    SG_GLOB_ERR = 1 << 0,
+    SG_GLOB_MARK = 1 << 1,
+    SG_GLOB_NOSORT = 1 << 2,
+    SG_GLOB_NOCHECK = 1 << 3,
+    SG_GLOB_TILDE = 1 << 4,
+    SG_GLOB_ONLYDIR = 1 << 5,
+    SG_GLOB_ONLYFILE = 1 << 6,
+    SG_GLOB_NODOT = 1 << 7,
+    SG_GLOB_FULLSORT = 1 << 8
 };
 
-/*! @brief Error return codes */
+/*! \brief Error return codes */
 enum SG_Error {
-    SG_SUCCESS          =  0,
-    SG_ERR_NOMATCH      =  1,
-    SG_ERR_MEMORY       = -1,
-    SG_ERR_FAILURE      = -2
+    SG_SUCCESS = 0,
+    SG_ERR_NOMATCH = 1,
+    SG_ERR_MEMORY = -1,
+    SG_ERR_FAILURE = -2
 };
 
-/*! @brief String manipulation functions. */
+/*! \brief String manipulation functions. */
 class SimpleGlobUtil
 {
 public:
-    static const char * strchr(const char *s, char c) {
-        return (char *) sg_strchr((const SOCHAR_T *)s, c);
+    static const char * strchr(const char* s, char c) {
+        return static_cast<const char*>(
+            sg_strchr(static_cast<const SOCHAR_T*>(s), c));
     }
-    static const wchar_t * strchr(const wchar_t *s, wchar_t c) {
+    static const wchar_t * strchr(const wchar_t* s, wchar_t c) {
         return ::wcschr(s, c);
     }
 #if SG_HAVE_ICU
-    static const UChar * strchr(const UChar *s, UChar c) {
+    static const UChar * strchr(const UChar* s, UChar c) {
         return ::u_strchr(s, c);
     }
 #endif
 
-    static const char * strrchr(const char *s, char c) {
-        return (char *) sg_strrchr((const SOCHAR_T *)s, c);
+    static const char * strrchr(const char* s, char c) {
+        return static_cast<const char*>(
+            sg_strrchr(static_cast<const SOCHAR_T*>(s), c));
     }
-    static const wchar_t * strrchr(const wchar_t *s, wchar_t c) {
+    static const wchar_t * strrchr(const wchar_t* s, wchar_t c) {
         return ::wcsrchr(s, c);
     }
 #if SG_HAVE_ICU
-    static const UChar * strrchr(const UChar *s, UChar c) {
+    static const UChar * strrchr(const UChar* s, UChar c) {
         return ::u_strrchr(s, c);
     }
 #endif
 
     // Note: char strlen returns number of bytes, not characters
-    static size_t strlen(const char *s) { return ::strlen(s); }
-    static size_t strlen(const wchar_t *s) { return ::wcslen(s); }
+    static size_t strlen(const char* s) { return ::strlen(s); }
+    static size_t strlen(const wchar_t* s) { return ::wcslen(s); }
 #if SG_HAVE_ICU
-    static size_t strlen(const UChar *s) { return ::u_strlen(s); }
+    static size_t strlen(const UChar* s) { return ::u_strlen(s); }
 #endif
 
-    static void strcpy_s(char *dst, size_t n, const char *src)  {
-        (void) n;
-        sg_strcpy_s((SOCHAR_T *)dst, n, (const SOCHAR_T *)src);
+    static void strcpy_s(char* dst, size_t n, const char* src) {
+        (void)n;
+        sg_strcpy_s(static_cast<SOCHAR_T*>(dst), n,
+                    static_cast<const SOCHAR_T*>(src));
     }
-    static void strcpy_s(wchar_t *dst, size_t n, const wchar_t *src) {
+    static void strcpy_s(wchar_t* dst, size_t n, const wchar_t* src) {
 # if __STDC_WANT_SECURE_LIB__
         ::wcscpy_s(dst, n, src);
 #else
-        (void) n;
+        (void)n;
         ::wcscpy(dst, src);
 #endif
     }
 #if SG_HAVE_ICU
-    static void strcpy_s(UChar *dst, size_t n, const UChar *src)  {
+    static void strcpy_s(UChar* dst, size_t n, const UChar* src) {
         ::u_strncpy(dst, src, n);
     }
 #endif
 
-    static int strcmp(const char *s1, const char *s2) {
-        return sg_strcmp((const SOCHAR_T *)s1, (const SOCHAR_T *)s2);
+    static int strcmp(const char* s1, const char* s2) {
+        return sg_strcmp((const SOCHAR_T*)s1, (const SOCHAR_T*)s2);
     }
-    static int strcmp(const wchar_t *s1, const wchar_t *s2) {
+    static int strcmp(const wchar_t* s1, const wchar_t* s2) {
         return ::wcscmp(s1, s2);
     }
 #if SG_HAVE_ICU
-    static int strcmp(const UChar *s1, const UChar *s2) {
+    static int strcmp(const UChar* s1, const UChar* s2) {
         return ::u_strcmp(s1, s2);
     }
 #endif
 
-    static int strcasecmp(const char *s1, const char *s2) {
-        return sg_strcasecmp((const SOCHAR_T *)s1, (const SOCHAR_T *)s2);
+    static int strcasecmp(const char* s1, const char* s2) {
+        return sg_strcasecmp((const SOCHAR_T*)s1, (const SOCHAR_T*)s2);
     }
 #if _WIN32
-    static int strcasecmp(const wchar_t *s1, const wchar_t *s2) {
+    static int strcasecmp(const wchar_t* s1, const wchar_t* s2) {
         return ::_wcsicmp(s1, s2);
     }
-#endif // _WIN32
+#endif          // _WIN32
 #if SG_HAVE_ICU
-    static int strcasecmp(const UChar *s1, const UChar *s2) {
+    static int strcasecmp(const UChar* s1, const UChar* s2) {
         return u_strcasecmp(s1, s2, 0);
     }
 #endif
@@ -324,13 +327,14 @@ enum SG_FileType {
 
 #define SG_PATH_CHAR    '\\'
 
-/*! @brief Windows glob implementation. */
-template<class SOCHAR>
-struct SimpleGlobBase
+/*! \brief Windows glob implementation. */
+template <class SOCHAR>
+class SimpleGlobBase
 {
+public:
     SimpleGlobBase() : m_hFind(INVALID_HANDLE_VALUE) { }
 
-    int FindFirstFileS(const char * a_pszFileSpec, unsigned int) {
+    int FindFirstFileS(const char* a_pszFileSpec, unsigned int) {
         m_hFind = FindFirstFileA(a_pszFileSpec, &m_oFindDataA);
         if (m_hFind != INVALID_HANDLE_VALUE) {
             return SG_SUCCESS;
@@ -341,7 +345,7 @@ struct SimpleGlobBase
         }
         return SG_ERR_FAILURE;
     }
-    int FindFirstFileS(const wchar_t * a_pszFileSpec, unsigned int) {
+    int FindFirstFileS(const wchar_t* a_pszFileSpec, unsigned int) {
         m_hFind = FindFirstFileW(a_pszFileSpec, &m_oFindDataW);
         if (m_hFind != INVALID_HANDLE_VALUE) {
             return SG_SUCCESS;
@@ -353,10 +357,10 @@ struct SimpleGlobBase
         return SG_ERR_FAILURE;
     }
 
-    bool FindNextFileS(char) {
+    bool FindNextFileS(char) {    // NOLINT
         return FindNextFileA(m_hFind, &m_oFindDataA) != FALSE;
     }
-    bool FindNextFileS(wchar_t) {
+    bool FindNextFileS(wchar_t) { // NOLINT
         return FindNextFileW(m_hFind, &m_oFindDataW) != FALSE;
     }
 
@@ -364,24 +368,24 @@ struct SimpleGlobBase
         FindClose(m_hFind);
     }
 
-    const char * GetFileNameS(char) const {
+    const char * GetFileNameS(char) const {       // NOLINT
         return m_oFindDataA.cFileName;
     }
-    const wchar_t * GetFileNameS(wchar_t) const {
+    const wchar_t * GetFileNameS(wchar_t) const { // NOLINT
         return m_oFindDataW.cFileName;
     }
 
-    bool IsDirS(char) const {
+    bool IsDirS(char) const {                     // NOLINT
         return this->GetFileTypeS(m_oFindDataA.dwFileAttributes) == SG_FILETYPE_DIR;
     }
-    bool IsDirS(wchar_t) const {
+    bool IsDirS(wchar_t) const {                  // NOLINT
         return this->GetFileTypeS(m_oFindDataW.dwFileAttributes) == SG_FILETYPE_DIR;
     }
 
-    SG_FileType GetFileTypeS(const char * a_pszPath) {
+    SG_FileType GetFileTypeS(const char* a_pszPath) {
         return this->GetFileTypeS(GetFileAttributesA(a_pszPath));
     }
-    SG_FileType GetFileTypeS(const wchar_t * a_pszPath)  {
+    SG_FileType GetFileTypeS(const wchar_t* a_pszPath) {
         return this->GetFileTypeS(GetFileAttributesW(a_pszPath));
     }
     SG_FileType GetFileTypeS(DWORD a_dwAttribs) const {
@@ -395,19 +399,20 @@ struct SimpleGlobBase
     }
 
 private:
-    HANDLE              m_hFind;
-    WIN32_FIND_DATAA    m_oFindDataA;
-    WIN32_FIND_DATAW    m_oFindDataW;
+    HANDLE m_hFind;
+    WIN32_FIND_DATAA m_oFindDataA;
+    WIN32_FIND_DATAW m_oFindDataW;
 };
 
-#else // !_WIN32
+#else       // !_WIN32
 
 #define SG_PATH_CHAR    '/'
 
-/*! @brief Unix glob implementation. */
-template<class SOCHAR>
-struct SimpleGlobBase
+/*! \brief Unix glob implementation. */
+template <class SOCHAR>
+class SimpleGlobBase
 {
+public:
     SimpleGlobBase() {
         memset(&m_glob, 0, sizeof(m_glob));
         m_uiCurr = (size_t)-1;
@@ -420,17 +425,17 @@ struct SimpleGlobBase
     void FilePrep() {
         m_bIsDir = false;
         size_t len = strlen(m_glob.gl_pathv[m_uiCurr]);
-        if (m_glob.gl_pathv[m_uiCurr][len-1] == '/') {
+        if (m_glob.gl_pathv[m_uiCurr][len - 1] == '/') {
             m_bIsDir = true;
-            m_glob.gl_pathv[m_uiCurr][len-1] = 0;
+            m_glob.gl_pathv[m_uiCurr][len - 1] = 0;
         }
     }
 
-    int FindFirstFileS(const char * a_pszFileSpec, unsigned int a_uiFlags) {
+    int FindFirstFileS(const char* a_pszFileSpec, unsigned int a_uiFlags) {
         int nFlags = GLOB_MARK | GLOB_NOSORT;
-        if (a_uiFlags & SG_GLOB_ERR)    nFlags |= GLOB_ERR;
-        if (a_uiFlags & SG_GLOB_TILDE)  nFlags |= GLOB_TILDE;
-        int rc = glob(a_pszFileSpec, nFlags, NULL, &m_glob);
+        if (a_uiFlags & SG_GLOB_ERR) nFlags |= GLOB_ERR;
+        if (a_uiFlags & SG_GLOB_TILDE) nFlags |= GLOB_TILDE;
+        int rc = glob(a_pszFileSpec, nFlags, nullptr, &m_glob);
         if (rc == GLOB_NOSPACE) return SG_ERR_MEMORY;
         if (rc == GLOB_ABORTED) return SG_ERR_FAILURE;
         if (rc == GLOB_NOMATCH) return SG_ERR_NOMATCH;
@@ -440,16 +445,16 @@ struct SimpleGlobBase
     }
 
 #if SG_HAVE_ICU
-    int FindFirstFileS(const UChar * a_pszFileSpec, unsigned int a_uiFlags) {
+    int FindFirstFileS(const UChar* a_pszFileSpec, unsigned int a_uiFlags) {
         char buf[PATH_MAX] = { 0 };
         UErrorCode status = U_ZERO_ERROR;
-        u_strToUTF8(buf, sizeof(buf), NULL, a_pszFileSpec, -1, &status);
+        u_strToUTF8(buf, sizeof(buf), nullptr, a_pszFileSpec, -1, &status);
         if (U_FAILURE(status)) return SG_ERR_FAILURE;
         return this->FindFirstFileS(buf, a_uiFlags);
     }
 #endif
 
-    bool FindNextFileS(char) {
+    bool FindNextFileS(char) { // NOLINT
         SG_ASSERT(m_uiCurr != (size_t)-1);
         if (++m_uiCurr >= m_glob.gl_pathc) {
             return false;
@@ -459,7 +464,7 @@ struct SimpleGlobBase
     }
 
 #if SG_HAVE_ICU
-    bool FindNextFileS(UChar) {
+    bool FindNextFileS(UChar) { // NOLINT
         return this->FindNextFileS((char)0);
     }
 #endif
@@ -470,35 +475,35 @@ struct SimpleGlobBase
         m_uiCurr = (size_t)-1;
     }
 
-    const char * GetFileNameS(char) const {
+    const char * GetFileNameS(char) const { // NOLINT
         SG_ASSERT(m_uiCurr != (size_t)-1);
         return m_glob.gl_pathv[m_uiCurr];
     }
 
 #if SG_HAVE_ICU
-    const UChar * GetFileNameS(UChar) const {
-        const char * pszFile = this->GetFileNameS((char)0);
-        if (!pszFile) return NULL;
+    const UChar * GetFileNameS(UChar) const { // NOLINT
+        const char* pszFile = this->GetFileNameS((char)0);
+        if (!pszFile) return nullptr;
         UErrorCode status = U_ZERO_ERROR;
         memset(m_szBuf, 0, sizeof(m_szBuf));
-        u_strFromUTF8(m_szBuf, PATH_MAX, NULL, pszFile, -1, &status);
-        if (U_FAILURE(status)) return NULL;
+        u_strFromUTF8(m_szBuf, PATH_MAX, nullptr, pszFile, -1, &status);
+        if (U_FAILURE(status)) return nullptr;
         return m_szBuf;
     }
 #endif
 
-    bool IsDirS(char) const {
+    bool IsDirS(char) const { // NOLINT
         SG_ASSERT(m_uiCurr != (size_t)-1);
         return m_bIsDir;
     }
 
 #if SG_HAVE_ICU
-    bool IsDirS(UChar) const {
+    bool IsDirS(UChar) const { // NOLINT
         return this->IsDirS((char)0);
     }
 #endif
 
-    SG_FileType GetFileTypeS(const char * a_pszPath) const {
+    SG_FileType GetFileTypeS(const char* a_pszPath) const {
         struct stat sb;
         if (0 != stat(a_pszPath, &sb)) {
             return SG_FILETYPE_INVALID;
@@ -513,19 +518,19 @@ struct SimpleGlobBase
     }
 
 #if SG_HAVE_ICU
-    SG_FileType GetFileTypeS(const UChar * a_pszPath) const {
+    SG_FileType GetFileTypeS(const UChar* a_pszPath) const {
         char buf[PATH_MAX] = { 0 };
         UErrorCode status = U_ZERO_ERROR;
-        u_strToUTF8(buf, sizeof(buf), NULL, a_pszPath, -1, &status);
+        u_strToUTF8(buf, sizeof(buf), nullptr, a_pszPath, -1, &status);
         if (U_FAILURE(status)) return SG_FILETYPE_INVALID;
         return this->GetFileTypeS(buf);
     }
 #endif
 
 private:
-    glob_t  m_glob;
-    size_t  m_uiCurr;
-    bool    m_bIsDir;
+    glob_t m_glob;
+    size_t m_uiCurr;
+    bool m_bIsDir;
 #if SG_HAVE_ICU
     mutable UChar m_szBuf[PATH_MAX];
 #endif
@@ -539,187 +544,183 @@ private:
 //                              MAIN TEMPLATE CLASS
 // ---------------------------------------------------------------------------
 
-/*! @brief Implementation of the SimpleGlob class */
-template<class SOCHAR>
+/*! \brief Implementation of the SimpleGlob class */
+template <class SOCHAR>
 class CSimpleGlobTempl : private SimpleGlobBase<SOCHAR>
 {
 public:
-    /*! @brief Initialize the class.
+    /*! \brief Initialize the class.
 
-        @param a_uiFlags            Combination of SG_GLOB flags.
-        @param a_nReservedSlots     Number of slots in the argv array that
+        \param a_uiFlags            Combination of SG_GLOB flags.
+        \param a_nReservedSlots     Number of slots in the argv array that
             should be reserved. In the returned array these slots
             argv[0] ... argv[a_nReservedSlots-1] will be left empty for
             the caller to fill in.
      */
-    CSimpleGlobTempl(unsigned int a_uiFlags = 0, int a_nReservedSlots = 0);
+    explicit CSimpleGlobTempl(unsigned int a_uiFlags = 0, int a_nReservedSlots = 0);
 
-    /*! @brief Deallocate all memory buffers. */
+    /*! \brief Deallocate all memory buffers. */
     ~CSimpleGlobTempl();
 
-    /*! @brief Initialize (or re-initialize) the class in preparation for
+    /*! \brief Initialize (or re-initialize) the class in preparation for
         adding new filespecs.
 
         All existing files are cleared. Note that allocated memory is only
         deallocated at object destruction.
 
-        @param a_uiFlags            Combination of SG_GLOB flags.
-        @param a_nReservedSlots     Number of slots in the argv array that
+        \param a_uiFlags            Combination of SG_GLOB flags.
+        \param a_nReservedSlots     Number of slots in the argv array that
             should be reserved. In the returned array these slots
             argv[0] ... argv[a_nReservedSlots-1] will be left empty for
             the caller to fill in.
      */
     int Init(unsigned int a_uiFlags = 0, int a_nReservedSlots = 0);
 
-    /*! @brief Add a new filespec to the glob.
+    /*! \brief Add a new filespec to the glob.
 
         The filesystem will be immediately scanned for all matching files and
         directories and they will be added to the glob.
 
-        @param a_pszFileSpec    Filespec to add to the glob.
+        \param a_pszFileSpec    Filespec to add to the glob.
 
-        @return SG_SUCCESS      Matching files were added to the glob.
-        @return SG_ERR_NOMATCH  Nothing matched the pattern. To ignore this
+        \return SG_SUCCESS      Matching files were added to the glob.
+        \return SG_ERR_NOMATCH  Nothing matched the pattern. To ignore this
                                 error compare return value to >= SG_SUCCESS.
-        @return SG_ERR_MEMORY   Out of memory failure.
-        @return SG_ERR_FAILURE  General failure.
+        \return SG_ERR_MEMORY   Out of memory failure.
+        \return SG_ERR_FAILURE  General failure.
      */
-    int Add(const SOCHAR *a_pszFileSpec);
+    int Add(const SOCHAR* a_pszFileSpec);
 
-    /*! @brief Add an array of filespec to the glob.
+    /*! \brief Add an array of filespec to the glob.
 
         The filesystem will be immediately scanned for all matching files and
         directories in each filespec and they will be added to the glob.
 
-        @param a_nCount         Number of filespec in the array.
-        @param a_rgpszFileSpec  Array of filespec to add to the glob.
+        \param a_nCount         Number of filespec in the array.
+        \param a_rgpszFileSpec  Array of filespec to add to the glob.
 
-        @return SG_SUCCESS      Matching files were added to the glob.
-        @return SG_ERR_NOMATCH  Nothing matched the pattern. To ignore this
+        \return SG_SUCCESS      Matching files were added to the glob.
+        \return SG_ERR_NOMATCH  Nothing matched the pattern. To ignore this
                                 error compare return value to >= SG_SUCCESS.
-        @return SG_ERR_MEMORY   Out of memory failure.
-        @return SG_ERR_FAILURE  General failure.
+        \return SG_ERR_MEMORY   Out of memory failure.
+        \return SG_ERR_FAILURE  General failure.
      */
-    int Add(int a_nCount, const SOCHAR * const * a_rgpszFileSpec);
+    int Add(int a_nCount, const SOCHAR* const* a_rgpszFileSpec);
 
-    /*! @brief Return the number of files in the argv array.
+    /*! \brief Return the number of files in the argv array.
      */
     inline int FileCount() const { return m_nArgsLen; }
 
-    /*! @brief Return the full argv array. */
+    /*! \brief Return the full argv array. */
     inline SOCHAR ** Files() {
         SetArgvArrayType(POINTERS);
         return m_rgpArgs;
     }
 
-    /*! @brief Return the a single file. */
+    /*! \brief Return the a single file. */
     inline SOCHAR * File(int n) {
         SG_ASSERT(n >= 0 && n < m_nArgsLen);
         return Files()[n];
     }
 
 private:
-    CSimpleGlobTempl(const CSimpleGlobTempl &); // disabled
-    CSimpleGlobTempl & operator=(const CSimpleGlobTempl &); // disabled
+    CSimpleGlobTempl(const CSimpleGlobTempl&);              // disabled
+    CSimpleGlobTempl& operator = (const CSimpleGlobTempl&); // disabled
 
-    /*! @brief The argv array has it's members stored as either an offset into
+    /*! \brief The argv array has it's members stored as either an offset into
         the string buffer, or as pointers to their string in the buffer. The
         offsets are used because if the string buffer is dynamically resized,
         all pointers into that buffer would become invalid.
      */
     enum ARG_ARRAY_TYPE { OFFSETS, POINTERS };
 
-    /*! @brief Change the type of data stored in the argv array. */
+    /*! \brief Change the type of data stored in the argv array. */
     void SetArgvArrayType(ARG_ARRAY_TYPE a_nNewType);
 
-    /*! @brief Add a filename to the array if it passes all requirements. */
-    int AppendName(const SOCHAR *a_pszFileName, bool a_bIsDir);
+    /*! \brief Add a filename to the array if it passes all requirements. */
+    int AppendName(const SOCHAR* a_pszFileName, bool a_bIsDir);
 
-    /*! @brief Grow the argv array to the required size. */
+    /*! \brief Grow the argv array to the required size. */
     bool GrowArgvArray(int a_nNewLen);
 
-    /*! @brief Grow the string buffer to the required size. */
+    /*! \brief Grow the string buffer to the required size. */
     bool GrowStringBuffer(size_t a_uiMinSize);
 
-    /*! @brief Compare two (possible NULL) strings */
-    static int fileSortCompare(const void *a1, const void *a2);
+    /*! \brief Compare two (possible nullptr) strings */
+    static int fileSortCompare(const void* a1, const void* a2);
 
 private:
-    unsigned int        m_uiFlags;
-    ARG_ARRAY_TYPE      m_nArgArrayType;    //!< argv is indexes or pointers
-    SOCHAR **           m_rgpArgs;          //!< argv
-    int                 m_nReservedSlots;   //!< # client slots in argv array
-    int                 m_nArgsSize;        //!< allocated size of array
-    int                 m_nArgsLen;         //!< used length
-    SOCHAR *            m_pBuffer;          //!< argv string buffer
-    size_t              m_uiBufferSize;     //!< allocated size of buffer
-    size_t              m_uiBufferLen;      //!< used length of buffer
-    SOCHAR              m_szPathPrefix[MAX_PATH]; //!< wildcard path prefix
+    unsigned int m_uiFlags;
+    ARG_ARRAY_TYPE m_nArgArrayType;         //!< argv is indexes or pointers
+    SOCHAR** m_rgpArgs;                     //!< argv
+    int m_nReservedSlots;                   //!< # client slots in argv array
+    int m_nArgsSize;                        //!< allocated size of array
+    int m_nArgsLen;                         //!< used length
+    SOCHAR* m_pBuffer;                      //!< argv string buffer
+    size_t m_uiBufferSize;                  //!< allocated size of buffer
+    size_t m_uiBufferLen;                   //!< used length of buffer
+    SOCHAR m_szPathPrefix[MAX_PATH];        //!< wildcard path prefix
 };
 
 // ---------------------------------------------------------------------------
 //                                  IMPLEMENTATION
 // ---------------------------------------------------------------------------
 
-template<class SOCHAR>
+template <class SOCHAR>
 CSimpleGlobTempl<SOCHAR>::CSimpleGlobTempl(
-    unsigned int    a_uiFlags,
-    int             a_nReservedSlots
-    )
-{
-    m_rgpArgs           = NULL;
-    m_nArgsSize         = 0;
-    m_pBuffer           = NULL;
-    m_uiBufferSize      = 0;
+    unsigned int a_uiFlags,
+    int a_nReservedSlots
+    ) {
+    m_rgpArgs = nullptr;
+    m_nArgsSize = 0;
+    m_pBuffer = nullptr;
+    m_uiBufferSize = 0;
 
     Init(a_uiFlags, a_nReservedSlots);
 }
 
-template<class SOCHAR>
-CSimpleGlobTempl<SOCHAR>::~CSimpleGlobTempl()
-{
+template <class SOCHAR>
+CSimpleGlobTempl<SOCHAR>::~CSimpleGlobTempl() {
     if (m_rgpArgs) free(m_rgpArgs);
     if (m_pBuffer) free(m_pBuffer);
 }
 
-template<class SOCHAR>
+template <class SOCHAR>
 int
 CSimpleGlobTempl<SOCHAR>::Init(
-    unsigned int    a_uiFlags,
-    int             a_nReservedSlots
-    )
-{
-    m_nArgArrayType     = POINTERS;
-    m_uiFlags           = a_uiFlags;
-    m_nArgsLen          = a_nReservedSlots;
-    m_nReservedSlots    = a_nReservedSlots;
-    m_uiBufferLen       = 0;
+    unsigned int a_uiFlags,
+    int a_nReservedSlots
+    ) {
+    m_nArgArrayType = POINTERS;
+    m_uiFlags = a_uiFlags;
+    m_nArgsLen = a_nReservedSlots;
+    m_nReservedSlots = a_nReservedSlots;
+    m_uiBufferLen = 0;
 
     if (m_nReservedSlots > 0) {
         if (!GrowArgvArray(m_nReservedSlots)) {
             return SG_ERR_MEMORY;
         }
         for (int n = 0; n < m_nReservedSlots; ++n) {
-            m_rgpArgs[n] = NULL;
+            m_rgpArgs[n] = nullptr;
         }
     }
 
     return SG_SUCCESS;
 }
 
-template<class SOCHAR>
+template <class SOCHAR>
 int
 CSimpleGlobTempl<SOCHAR>::Add(
-    const SOCHAR *a_pszFileSpec
-    )
-{
+    const SOCHAR* a_pszFileSpec
+    ) {
 #ifdef _WIN32
     // Windows FindFirst/FindNext recognizes forward slash as the same as
     // backward slash and follows the directories. We need to do the same
     // when calculating the prefix and when we have no wildcards.
     SOCHAR szFileSpec[MAX_PATH];
     SimpleGlobUtil::strcpy_s(szFileSpec, MAX_PATH, a_pszFileSpec);
-    const SOCHAR * pszPath = SimpleGlobUtil::strchr(szFileSpec, '/');
+    const SOCHAR* pszPath = SimpleGlobUtil::strchr(szFileSpec, '/');
     while (pszPath) {
         szFileSpec[pszPath - szFileSpec] = SG_PATH_CHAR;
         pszPath = SimpleGlobUtil::strchr(pszPath + 1, '/');
@@ -746,7 +747,7 @@ CSimpleGlobTempl<SOCHAR>::Add(
     // Windows doesn't return the directory with the filename, so we need to
     // extract the path from the search string ourselves and prefix it to the
     // filename we get back.
-    const SOCHAR * pszFilename =
+    const SOCHAR* pszFilename =
         SimpleGlobUtil::strrchr(a_pszFileSpec, SG_PATH_CHAR);
     if (pszFilename) {
         SimpleGlobUtil::strcpy_s(m_szPathPrefix, MAX_PATH, a_pszFileSpec);
@@ -789,13 +790,12 @@ CSimpleGlobTempl<SOCHAR>::Add(
     return nError;
 }
 
-template<class SOCHAR>
+template <class SOCHAR>
 int
 CSimpleGlobTempl<SOCHAR>::Add(
-    int                     a_nCount,
-    const SOCHAR * const *  a_rgpszFileSpec
-    )
-{
+    int a_nCount,
+    const SOCHAR* const* a_rgpszFileSpec
+    ) {
     int nResult;
     for (int n = 0; n < a_nCount; ++n) {
         nResult = Add(a_rgpszFileSpec[n]);
@@ -806,13 +806,12 @@ CSimpleGlobTempl<SOCHAR>::Add(
     return SG_SUCCESS;
 }
 
-template<class SOCHAR>
+template <class SOCHAR>
 int
 CSimpleGlobTempl<SOCHAR>::AppendName(
-    const SOCHAR *  a_pszFileName,
-    bool            a_bIsDir
-    )
-{
+    const SOCHAR* a_pszFileName,
+    bool a_bIsDir
+    ) {
     // we need the argv array as offsets in case we resize it
     SetArgvArrayType(OFFSETS);
 
@@ -852,101 +851,97 @@ CSimpleGlobTempl<SOCHAR>::AppendName(
     // add this entry. m_uiBufferLen is offset from beginning of buffer.
     m_rgpArgs[m_nArgsLen++] = (SOCHAR*)m_uiBufferLen;
     SimpleGlobUtil::strcpy_s(m_pBuffer + m_uiBufferLen,
-        m_uiBufferSize - m_uiBufferLen, m_szPathPrefix);
+                             m_uiBufferSize - m_uiBufferLen, m_szPathPrefix);
     SimpleGlobUtil::strcpy_s(m_pBuffer + m_uiBufferLen + uiPrefixLen,
-        m_uiBufferSize - m_uiBufferLen - uiPrefixLen, a_pszFileName);
+                             m_uiBufferSize - m_uiBufferLen - uiPrefixLen, a_pszFileName);
     m_uiBufferLen += uiLen;
 
     // add the directory slash if desired
     if (a_bIsDir && (m_uiFlags & SG_GLOB_MARK) == SG_GLOB_MARK) {
-        const static SOCHAR szDirSlash[] = { SG_PATH_CHAR, 0 };
+        static const SOCHAR szDirSlash[] = { SG_PATH_CHAR, 0 };
         SimpleGlobUtil::strcpy_s(m_pBuffer + m_uiBufferLen - 2,
-            m_uiBufferSize - (m_uiBufferLen - 2), szDirSlash);
+                                 m_uiBufferSize - (m_uiBufferLen - 2), szDirSlash);
     }
 
     return SG_SUCCESS;
 }
 
-template<class SOCHAR>
+template <class SOCHAR>
 void
 CSimpleGlobTempl<SOCHAR>::SetArgvArrayType(
-    ARG_ARRAY_TYPE  a_nNewType
-    )
-{
+    ARG_ARRAY_TYPE a_nNewType
+    ) {
     if (m_nArgArrayType == a_nNewType) return;
     if (a_nNewType == POINTERS) {
         SG_ASSERT(m_nArgArrayType == OFFSETS);
         for (int n = 0; n < m_nArgsLen; ++n) {
-            m_rgpArgs[n] = (m_rgpArgs[n] == (SOCHAR*)-1) ?
-                NULL : m_pBuffer + (size_t) m_rgpArgs[n];
+            m_rgpArgs[n] = (m_rgpArgs[n] == static_cast<SOCHAR*>(-1)) ?
+                           nullptr : m_pBuffer + (size_t)m_rgpArgs[n];
         }
     }
     else {
         SG_ASSERT(a_nNewType == OFFSETS);
         SG_ASSERT(m_nArgArrayType == POINTERS);
         for (int n = 0; n < m_nArgsLen; ++n) {
-            m_rgpArgs[n] = (m_rgpArgs[n] == NULL) ?
-                (SOCHAR*) -1 : (SOCHAR*) (m_rgpArgs[n] - m_pBuffer);
+            m_rgpArgs[n] = (m_rgpArgs[n] == nullptr) ?
+                           (SOCHAR*)-1 : (SOCHAR*)(m_rgpArgs[n] - m_pBuffer);
         }
     }
     m_nArgArrayType = a_nNewType;
 }
 
-template<class SOCHAR>
+template <class SOCHAR>
 bool
 CSimpleGlobTempl<SOCHAR>::GrowArgvArray(
     int a_nNewLen
-    )
-{
+    ) {
     if (a_nNewLen >= m_nArgsSize) {
         static const int SG_ARGV_INITIAL_SIZE = 32;
         int nNewSize = (m_nArgsSize > 0) ?
-            m_nArgsSize * 2 : SG_ARGV_INITIAL_SIZE;
+                       m_nArgsSize * 2 : SG_ARGV_INITIAL_SIZE;
         while (a_nNewLen >= nNewSize) {
             nNewSize *= 2;
         }
-        void * pNewBuffer = realloc(m_rgpArgs, nNewSize * sizeof(SOCHAR*));
+        void* pNewBuffer = realloc(m_rgpArgs, nNewSize * sizeof(SOCHAR*));
         if (!pNewBuffer) return false;
         m_nArgsSize = nNewSize;
-        m_rgpArgs = (SOCHAR**) pNewBuffer;
+        m_rgpArgs = (SOCHAR**)pNewBuffer;
     }
     return true;
 }
 
-template<class SOCHAR>
+template <class SOCHAR>
 bool
 CSimpleGlobTempl<SOCHAR>::GrowStringBuffer(
     size_t a_uiMinSize
-    )
-{
+    ) {
     if (a_uiMinSize >= m_uiBufferSize) {
         static const int SG_BUFFER_INITIAL_SIZE = 1024;
         size_t uiNewSize = (m_uiBufferSize > 0) ?
-            m_uiBufferSize * 2 : SG_BUFFER_INITIAL_SIZE;
+                           m_uiBufferSize * 2 : SG_BUFFER_INITIAL_SIZE;
         while (a_uiMinSize >= uiNewSize) {
             uiNewSize *= 2;
         }
-        void * pNewBuffer = realloc(m_pBuffer, uiNewSize * sizeof(SOCHAR));
+        void* pNewBuffer = realloc(m_pBuffer, uiNewSize * sizeof(SOCHAR));
         if (!pNewBuffer) return false;
         m_uiBufferSize = uiNewSize;
-        m_pBuffer = (SOCHAR*) pNewBuffer;
+        m_pBuffer = (SOCHAR*)pNewBuffer;
     }
     return true;
 }
 
-template<class SOCHAR>
+template <class SOCHAR>
 int
 CSimpleGlobTempl<SOCHAR>::fileSortCompare(
-    const void *a1,
-    const void *a2
-    )
-{
-    const SOCHAR * s1 = *(const SOCHAR **)a1;
-    const SOCHAR * s2 = *(const SOCHAR **)a2;
+    const void* a1,
+    const void* a2
+    ) {
+    const SOCHAR* s1 = *(const SOCHAR**)a1;
+    const SOCHAR* s2 = *(const SOCHAR**)a2;
     if (s1 && s2) {
         return SimpleGlobUtil::strcasecmp(s1, s2);
     }
-    // NULL sorts first
+    // nullptr sorts first
     return s1 == s2 ? 0 : (s1 ? 1 : -1);
 }
 
@@ -954,26 +949,26 @@ CSimpleGlobTempl<SOCHAR>::fileSortCompare(
 //                                  TYPE DEFINITIONS
 // ---------------------------------------------------------------------------
 
-/*! @brief ASCII/MBCS version of CSimpleGlob */
-typedef CSimpleGlobTempl<char>    CSimpleGlobA;
+/*! \brief ASCII/MBCS version of CSimpleGlob */
+using CSimpleGlobA = CSimpleGlobTempl<char>;
 
-/*! @brief wchar_t version of CSimpleGlob */
-typedef CSimpleGlobTempl<wchar_t> CSimpleGlobW;
+/*! \brief wchar_t version of CSimpleGlob */
+using CSimpleGlobW = CSimpleGlobTempl<wchar_t>;
 
 #if SG_HAVE_ICU
-/*! @brief UChar version of CSimpleGlob */
-typedef CSimpleGlobTempl<UChar> CSimpleGlobU;
+/*! \brief UChar version of CSimpleGlob */
+using CSimpleGlobU = CSimpleGlobTempl<UChar>;
 #endif
 
 #ifdef _UNICODE
-/*! @brief TCHAR version dependent on if _UNICODE is defined */
+/*! \brief TCHAR version dependent on if _UNICODE is defined */
 # if SG_HAVE_ICU
 #  define CSimpleGlob CSimpleGlobU
 # else
 #  define CSimpleGlob CSimpleGlobW
 # endif
 #else
-/*! @brief TCHAR version dependent on if _UNICODE is defined */
+/*! \brief TCHAR version dependent on if _UNICODE is defined */
 # define CSimpleGlob CSimpleGlobA
 #endif
 
@@ -981,6 +976,6 @@ typedef CSimpleGlobTempl<UChar> CSimpleGlobU;
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_FILE_IO_HEADER
+#endif // !THRILL_CORE_SIMPLE_GLOB_HEADER
 
 /******************************************************************************/
