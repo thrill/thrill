@@ -91,14 +91,14 @@ public:
             this->PushItem(data_[i]);
         }
 
-		if (consume) {
-			std::vector<ValueType>().swap(data_);
-		}
+        if (consume) {
+            std::vector<ValueType>().swap(data_);
+        }
     }
 
     void Dispose() final {
-		std::vector<ValueType>().swap(data_);
-	}
+        std::vector<ValueType>().swap(data_);
+    }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -264,7 +264,7 @@ private:
                    && (prefix_elem + i) * actual_k >= b0 * total_elem) {
                 b0--;
             }
-			
+
             assert(emitters_data_[b0].IsValid());
             emitters_data_[b0](el0);
 
