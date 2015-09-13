@@ -130,6 +130,7 @@ HostContext::HostContext(size_t my_host_rank,
       net_manager_(net::tcp::Construct(my_host_rank,
                                        endpoints, net::Manager::kGroupCount)),
       flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
+      block_pool_(&mem_manager_, &mem_manager_external_, std::to_string(net_manager_.my_host_rank())),
       data_multiplexer_(mem_manager_,
                         block_pool_, workers_per_host,
                         net_manager_.GetDataGroup())

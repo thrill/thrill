@@ -23,7 +23,7 @@ using StringPair = std::pair<std::string, int>;
 using IntPair = std::pair<int, int>;
 
 struct ReducePreProbingTable : public::testing::Test {
-    ReducePreProbingTable() : block_pool(nullptr, nullptr), output(block_pool) { }
+    ReducePreProbingTable() : block_pool(nullptr, nullptr, "pre-probing-table"), output(block_pool) { }
 
     data::BlockPool block_pool;
     data::File output;

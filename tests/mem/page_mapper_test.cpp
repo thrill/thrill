@@ -15,7 +15,7 @@
 using namespace thrill;
 
 TEST(PageMapper, AllocateReturnsAccessibleMemoryArea) {
-    mem::PageMapper<4096> mapper("/tmp/test");
+    mem::PageMapper<4096> mapper("/tmp/thrill.swapfile");
 
     size_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
@@ -29,7 +29,7 @@ TEST(PageMapper, AllocateReturnsAccessibleMemoryArea) {
 }
 
 TEST(PageMapper, SwapOutLeavesAreaInaccessible) {
-    mem::PageMapper<4096> mapper("/tmp/test");
+    mem::PageMapper<4096> mapper("/tmp/thrill.swapfile");
 
     size_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
@@ -41,7 +41,7 @@ TEST(PageMapper, SwapOutLeavesAreaInaccessible) {
 }
 
 TEST(PageMapper, SwapInLeavesMakesAreaAccessible) {
-    mem::PageMapper<4096> mapper("/tmp/test");
+    mem::PageMapper<4096> mapper("/tmp/thrill.swapfile");
 
     size_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
@@ -57,7 +57,7 @@ TEST(PageMapper, SwapInLeavesMakesAreaAccessible) {
 }
 
 TEST(PageMapper, SwappingMultiplePagesDoesNotAlterContent) {
-    mem::PageMapper<4096> mapper("/tmp/test");
+    mem::PageMapper<4096> mapper("/tmp/thrill.swapfile");
 
     // write ascending numbers into array 1 & swap out
     size_t token1;
