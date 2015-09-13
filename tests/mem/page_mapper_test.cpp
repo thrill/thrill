@@ -80,12 +80,14 @@ TEST(PageMapper, SwappingMultiplePagesDoesNotAlterContent) {
     for (unsigned int i = 0; i* sizeof(int) < 4096; i++) {
         ASSERT_EQ(i, array1[i]);
     }
+    mapper.SwapOut(reinterpret_cast<uint8_t*>(array1));
 
     // read array2
     array2 = reinterpret_cast<int*>(mapper.SwapIn(token2));
     for (unsigned int i = 0; i* sizeof(int) < 4096; i++) {
         ASSERT_EQ(4096 - i, array2[i]);
     }
+    mapper.SwapOut(reinterpret_cast<uint8_t*>(array2));
 
     mapper.ReleaseToken(token1);
     mapper.ReleaseToken(token2);
