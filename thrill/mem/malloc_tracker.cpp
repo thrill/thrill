@@ -14,7 +14,11 @@
 
 #include <thrill/mem/malloc_tracker.hpp>
 
+#if __linux__ || __APPLE__ || __FreeBSD__
+
 #include <dlfcn.h>
+
+#endif
 
 #include <atomic>
 #include <cstdio>
@@ -52,10 +56,25 @@ static realloc_type real_realloc = nullptr;
 //! a sentinel value prefixed to each allocation
 static const size_t sentinel = 0xDEADC0DE;
 
+//! CounterType is used for atomic counters, and get to retrieve their contents
+#if defined(_MSC_VER)
+using CounterType = std::atomic<size_t>;
+size_t get(const CounterType& a) {
+    return a.load();
+}
+#else
+// we cannot use std::atomic on gcc/clang because only real atomic instructions
+// work with the Sanitizers
+using CounterType = size_t;
+size_t get(const CounterType& a) {
+    return a;
+}
+#endif
+
 //! a simple memory heap for allocations prior to dlsym loading
 #define INIT_HEAP_SIZE 1024 * 1024
 static char init_heap[INIT_HEAP_SIZE];
-static size_t init_heap_use = 0;
+static CounterType init_heap_use = 0;
 static const int log_operations_init_heap = 0;
 
 //! align allocations to init_heap to this number by rounding up allocations
@@ -68,16 +87,20 @@ static const size_t init_alignment = sizeof(size_t);
 /* run-time memory allocation statistics */
 /*****************************************/
 
-static size_t peak = 0;
-static size_t curr = 0;
-static size_t total = 0;
-static size_t total_allocs = 0;
-static size_t current_allocs = 0;
+static CounterType peak = 0;
+static CounterType curr = 0;
+static CounterType total = 0;
+static CounterType total_allocs = 0;
+static CounterType current_allocs = 0;
 
 //! add allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void inc_count(size_t inc) {
+#if defined(_MSC_VER)
+    size_t mycurr = (curr += inc);
+#else
     size_t mycurr = __sync_add_and_fetch(&curr, inc);
+#endif
     if (mycurr > peak) peak = mycurr;
     total += inc;
     ++total_allocs;
@@ -93,12 +116,20 @@ static void dec_count(size_t dec) {
 
 //! bypass malloc tracker and access malloc() directly
 void * bypass_malloc(size_t size) noexcept {
+#if defined(_MSC_VER)
+    return malloc(size);
+#else
     return real_malloc(size);
+#endif
 }
 
 //! bypass malloc tracker and access free() directly
 void bypass_free(void* ptr) noexcept {
+#if defined(_MSC_VER)
+    return free(ptr);
+#else
     return real_free(ptr);
+#endif
 }
 
 //! user function to return the currently allocated amount of memory
@@ -113,7 +144,7 @@ size_t malloc_tracker_peak() {
 
 //! user function to reset the peak allocation to current
 void malloc_tracker_reset_peak() {
-    peak = curr;
+    peak = get(curr);
 }
 
 //! user function to return total number of allocations
@@ -124,8 +155,10 @@ size_t malloc_tracker_total_allocs() {
 //! user function which prints current and peak allocation to stderr
 void malloc_tracker_print_status() {
     fprintf(stderr, PPREFIX "current %zu, peak %zu\n",
-            curr, peak);
+            get(curr), get(peak));
 }
+
+#if __linux__ || __APPLE__ || __FreeBSD__
 
 ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((constructor)) void init() { // NOLINT
@@ -174,9 +207,11 @@ static __attribute__ ((destructor)) void finish() { // NOLINT
     fprintf(stderr, PPREFIX
             "exiting, total: %zu, peak: %zu, current: %zu, "
             "allocs: %zu, unfreed: %zu\n",
-            total, peak, curr,
-            total_allocs, current_allocs);
+            get(total), get(peak), get(curr),
+            get(total_allocs), get(current_allocs));
 }
+
+#endif
 
 } // namespace mem
 } // namespace thrill
@@ -192,7 +227,11 @@ static void * preinit_malloc(size_t size) noexcept {
 
     size_t aligned_size = size + (init_alignment - size % init_alignment);
 
+#if defined(_MSC_VER)
+    size_t offset = (init_heap_use += (padding + aligned_size));
+#else
     size_t offset = __sync_fetch_and_add(&init_heap_use, padding + aligned_size);
+#endif
 
     if (offset > INIT_HEAP_SIZE) {
         fprintf(stderr, PPREFIX "init heap full !!!\n");
@@ -268,8 +307,6 @@ static void preinit_free(void* ptr) {
     }
 }
 
-#define HAVE_MALLOC_USABLE_SIZE 1
-
 #if __APPLE__
 
 #define NOEXCEPT
@@ -282,7 +319,7 @@ static void preinit_free(void* ptr) {
 #define MALLOC_USABLE_SIZE malloc_usable_size
 #include <malloc_np.h>
 
-#else
+#elif __linux__
 
 #define NOEXCEPT noexcept
 #define MALLOC_USABLE_SIZE malloc_usable_size
@@ -290,7 +327,7 @@ static void preinit_free(void* ptr) {
 
 #endif
 
-#if HAVE_MALLOC_USABLE_SIZE
+#if defined(MALLOC_USABLE_SIZE)
 
 /*
  * This is a malloc() tracker implementation which uses an available system call
@@ -326,7 +363,7 @@ void free(void* ptr) NOEXCEPT {
     if (!ptr) return;   //! free(nullptr) is no operation
 
     if (static_cast<char*>(ptr) >= init_heap &&
-        static_cast<char*>(ptr) <= init_heap + init_heap_use)
+        static_cast<char*>(ptr) <= init_heap + get(init_heap_use))
     {
         return preinit_free(ptr);
     }
@@ -363,7 +400,7 @@ ATTRIBUTE_NO_SANITIZE
 void * realloc(void* ptr, size_t size) NOEXCEPT {
 
     if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
-        static_cast<char*>(ptr) <= static_cast<char*>(init_heap) + init_heap_use)
+        static_cast<char*>(ptr) <= static_cast<char*>(init_heap) + get(init_heap_use))
     {
         return preinit_realloc(ptr, size);
     }
@@ -400,7 +437,7 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     return newptr;
 }
 
-#else // GENERIC IMPLEMENTATION
+#elif !defined(_MSC_VER) // GENERIC IMPLEMENTATION for Unix
 
 /*
  * This is a generic implementation to count memory allocation by prefixing
@@ -422,7 +459,7 @@ void * malloc(size_t size) NOEXCEPT {
     inc_count(size);
     if (log_operations && size >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "malloc(%zu) = %p   (current %zu)\n",
-                size, static_cast<char*>(ret) + padding, curr);
+                size, static_cast<char*>(ret) + padding, get(curr));
     }
 
     //! prepend allocation size and check sentinel
@@ -440,7 +477,7 @@ void free(void* ptr) NOEXCEPT {
     if (!ptr) return;   //! free(nullptr) is no operation
 
     if (static_cast<char*>(ptr) >= init_heap &&
-        static_cast<char*>(ptr) <= init_heap + init_heap_use)
+        static_cast<char*>(ptr) <= init_heap + get(init_heap_use))
     {
         return preinit_free(ptr);
     }
@@ -464,7 +501,7 @@ void free(void* ptr) NOEXCEPT {
 
     if (log_operations && size >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu)\n",
-                ptr, size, curr);
+                ptr, size, get(curr));
     }
 
     (*real_free)(ptr);
@@ -486,7 +523,7 @@ ATTRIBUTE_NO_SANITIZE
 void * realloc(void* ptr, size_t size) NOEXCEPT {
 
     if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
-        static_cast<char*>(ptr) <= static_cast<char*>(init_heap) + init_heap_use)
+        static_cast<char*>(ptr) <= static_cast<char*>(init_heap) + get(init_heap_use))
     {
         return preinit_realloc(ptr, size);
     }
@@ -520,17 +557,21 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
         if (newptr == ptr)
             fprintf(stderr, PPREFIX
                     "realloc(%zu -> %zu) = %p   (current %zu)\n",
-                    oldsize, size, newptr, curr);
+                    oldsize, size, newptr, get(curr));
         else
             fprintf(stderr, PPREFIX
                     "realloc(%zu -> %zu) = %p -> %p   (current %zu)\n",
-                    oldsize, size, ptr, newptr, curr);
+                    oldsize, size, ptr, newptr, get(curr));
     }
 
     *reinterpret_cast<size_t*>(newptr) = size;
 
     return static_cast<char*>(newptr) + padding;
 }
+
+#else // if defined(_MSC_VER)
+
+// TODO(tb): dont know how to override malloc/free.
 
 #endif // IMPLEMENTATION SWITCH
 
