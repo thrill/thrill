@@ -137,11 +137,11 @@ public:
     }
 };
 
-#define STAT_NO_RANK ::thrill::common::StatLogger<::thrill::common::stats_enabled>()
+#define STAT_NO_RANK ::thrill::common::StatLogger<:: thrill::common::stats_enabled > ()
 
 //! Creates a common::StatLogger with {"WorkerID":my rank in the beginning
-#define STAT(ctx) ::thrill::common::StatLogger<::thrill::common::stats_enabled>(ctx)
-#define STATC ::thrill::common::StatLogger<::thrill::common::stats_enabled>(context_)
+#define STAT(ctx) ::thrill::common::StatLogger<:: thrill::common::stats_enabled > (ctx)
+#define STATC ::thrill::common::StatLogger<:: thrill::common::stats_enabled > (context_)
 
 } // namespace common
 } // namespace thrill

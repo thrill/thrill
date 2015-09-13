@@ -13,8 +13,8 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/net/tcp/construct.hpp>
 
@@ -115,7 +115,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
  */
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     int num_hosts[] = { 1, 2, 5, 8 };
-    int num_workers[] = {1, 3};
+    int num_workers[] = { 1, 3 };
 
     for (auto& hosts : num_hosts) {
         for (auto& workers : num_workers) {
@@ -156,11 +156,9 @@ int RunDistributedTCP(
     const std::vector<std::string>& endpoints,
     const std::function<void(Context&)>& job_startpoint,
     const mem::by_string& log_prefix) {
-        STAT_NO_RANK << "event" << "RunDistributedTCP"
-                     << "my_host_rank" << my_host_rank
-                     << "workers_per_host" << workers_per_host;
-
-    static const bool debug = false;
+    STAT_NO_RANK << "event" << "RunDistributedTCP"
+                 << "my_host_rank" << my_host_rank
+                 << "workers_per_host" << workers_per_host;
 
     HostContext host_context(my_host_rank, endpoints, workers_per_host);
 
@@ -214,7 +212,7 @@ int Run(
     const char* env_hostlist = getenv("THRILL_HOSTLIST");
     const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
 
-    //check if #workers is set
+    // check if #workers is set
     size_t workers_per_host = 1;
     if (env_workers_per_host) {
         workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
