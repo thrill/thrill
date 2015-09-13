@@ -247,6 +247,11 @@ public:
     //! returns the host-global memory manager
     mem::Manager & mem_manager() { return mem_manager_; }
 
+    //! given a global range [0,global_size) and p PEs to split the range, calculate
+    //! the [local_begin,local_end) index range assigned to the PE i. Takes the
+    //! information from the Context.
+    std::tuple<size_t, size_t> CalculateLocalRange(size_t global_size);
+
 private:
     //! host-global memory manager
     mem::Manager& mem_manager_;

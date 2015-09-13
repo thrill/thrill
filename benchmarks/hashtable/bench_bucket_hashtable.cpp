@@ -12,6 +12,7 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/core/reduce_pre_table.hpp>
 #include <thrill/data/discard_sink.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -23,7 +24,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <thrill/data/file.hpp>
 
 using IntPair = std::pair<int, int>;
 
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
 
     double bucket_rate = 0.5;
     clp.AddDouble('b', "bucket_rate", "B", bucket_rate,
-                "bucket_rate, default = 0.5.");
+                  "bucket_rate, default = 0.5.");
 
     double max_partition_fill_rate = 0.5;
     clp.AddDouble('f', "max_partition_fill_rate", "F", max_partition_fill_rate,

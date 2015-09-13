@@ -14,10 +14,12 @@
 #ifndef THRILL_API_SORT_HEADER
 #define THRILL_API_SORT_HEADER
 
+#include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/group.hpp>
@@ -83,14 +85,20 @@ public:
         MainOp();
     }
 
-    void PushData(bool /* consume */) final {
+    void PushData(bool consume) final {
 
         for (size_t i = 0; i < data_.size(); i++) {
             this->PushItem(data_[i]);
         }
+
+        if (consume) {
+            std::vector<ValueType>().swap(data_);
+        }
     }
 
-    void Dispose() final { }
+    void Dispose() final {
+        std::vector<ValueType>().swap(data_);
+    }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -256,6 +264,7 @@ private:
                    && (prefix_elem + i) * actual_k >= b0 * total_elem) {
                 b0--;
             }
+
             assert(emitters_data_[b0].IsValid());
             emitters_data_[b0](el0);
 

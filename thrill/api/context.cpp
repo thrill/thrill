@@ -13,6 +13,7 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/math.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/net/tcp/construct.hpp>
 
@@ -55,6 +56,13 @@ HostContext::ConstructLocalMock(size_t host_count, size_t workers_per_host) {
     }
 
     return host_context;
+}
+
+//! given a global range [0,global_size) and p PEs to split the range, calculate
+//! the [local_begin,local_end) index range assigned to the PE i. Takes the
+//! information from the Context.
+std::tuple<size_t, size_t> Context::CalculateLocalRange(size_t global_size) {
+    return common::CalculateLocalRange(global_size, num_workers(), my_rank());
 }
 
 /*!

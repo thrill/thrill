@@ -1214,6 +1214,7 @@ public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
+
 } // namespace core
 } // namespace thrill
 

@@ -15,11 +15,11 @@
 #ifndef THRILL_API_REDUCE_TO_INDEX_HEADER
 #define THRILL_API_REDUCE_TO_INDEX_HEADER
 
+#include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/core/reduce_post_table.hpp>
 #include <thrill/core/reduce_pre_table.hpp>
 
@@ -140,7 +140,7 @@ public:
 
         size_t local_begin, local_end;
 
-        std::tie(local_begin, local_end) = common::CalculateLocalRange(result_size_, context_);
+        std::tie(local_begin, local_end) = context_.CalculateLocalRange(result_size_);
 
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);

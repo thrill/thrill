@@ -23,6 +23,7 @@
 #include <vector>
 
 using namespace thrill;      // NOLINT
+using namespace thrill::net::collective;
 
 //! do nothing but terminate, this check construction and destruction.
 static void TestNoOperation(net::Group*) { }
@@ -128,8 +129,8 @@ static void TestPrefixSumForPowersOfTwoString(net::Group* net) {
 
     std::string local_value = result.substr(net->my_host_rank(), 1);
     PrefixSumForPowersOfTwo(*net, local_value);
-    sLOG1 << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
-          << "value" << local_value;
+    // sLOG1 << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
+    //      << "value" << local_value;
     // ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
 }
 
@@ -208,7 +209,6 @@ static void DispatcherTestSyncSendAsyncRead(net::Group* net) {
 //! sleep for a new ticks until the dispatcher thread reaches select().
 static void TestDispatcherLaunchAndTerminate(net::Group* net) {
     mem::Manager mem_manager_(nullptr, "DispatcherTest");
-
     net::DispatcherThread disp(mem_manager_, *net, "dispatcher");
 
     // sleep for a new ticks until the dispatcher thread reaches select().
