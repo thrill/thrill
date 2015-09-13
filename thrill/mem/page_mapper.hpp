@@ -12,6 +12,14 @@
 #ifndef THRILL_MEM_PAGE_MAPPER_HEADER
 #define THRILL_MEM_PAGE_MAPPER_HEADER
 
+//aliases - MAC supports 64bit files naturally
+#ifdef __APPLE__
+#define lseek64 lseek
+#define open64 open
+#define O_LARGEFILE 0
+#define MAP_POPULATE 0
+#endif
+
 #include <fcntl.h>           //open
 #include <sys/mman.h>        //mappings + advice
 #include <sys/stat.h>        //open
