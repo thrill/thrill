@@ -30,9 +30,10 @@ class BlockPool
     static const bool debug = false;
 
 public:
-    explicit BlockPool(mem::Manager* mem_manager, mem::Manager* mem_manager_external)
+    explicit BlockPool(mem::Manager* mem_manager, mem::Manager* mem_manager_external, std::string swapfile_name = "/tmp/thrill.swap")
         : mem_manager_(mem_manager, "BlockPool"),
-          ext_mem_manager_(mem_manager_external, "BlockPool")
+          ext_mem_manager_(mem_manager_external, "BlockPool"),
+          page_mapper_(swapfile_name)
     { }
 
     ByteBlockPtr AllocateBlock(size_t block_size, bool pinned = false);
