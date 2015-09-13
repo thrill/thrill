@@ -59,70 +59,51 @@ public:
     Manager& operator = (const Manager&) = delete;
 
     /*!
-     * \brief Initializes this Manager and initializes all Groups.
-     * \details Initializes this Manager and initializes all Groups.
-     * When this method returns, the network system is ready to use.
-     *
-     * \param my_rank_ The rank of the worker that owns this Manager.
-     * \param endpoints The ordered list of all endpoints, including the local worker,
-     * where the endpoint at position i corresponds to the worker with id i.
-     */
-    Manager(size_t my_rank_,
-            const std::vector<std::string>& endpoints);
-
-    /*!
      * Construct Manager from already initialized net::Groups.
      */
-    Manager(size_t my_rank_,
-            std::array<Group, kGroupCount>&& groups);
+    Manager(std::array<GroupPtr, kGroupCount>&& groups)
+        : groups_(std::move(groups)) { }
 
-    //! Construct a mock network, consisting of node_count compute
-    //! nodes. Delivers this number of net::Manager objects, which are
-    //! internally connected.
-    static std::vector<std::unique_ptr<Manager> >
-    ConstructLocalMesh(size_t node_count);
+    /*!
+      * Construct Manager from already initialized net::Groups.
+      */
+    Manager(std::vector<GroupPtr>&& groups) {
+        assert(groups.size() == kGroupCount);
+        std::move(groups.begin(), groups.end(), groups_.begin());
+    }
 
     /**
      * \brief Returns the net group for the system control channel.
      */
     Group & GetSystemGroup() {
-        return groups_[0];
+        return *groups_[0];
     }
 
     /**
      * \brief Returns the net group for the flow control channel.
      */
     Group & GetFlowGroup() {
-        return groups_[1];
+        return *groups_[1];
     }
 
     /**
      * \brief Returns the net group for the data manager.
      */
     Group & GetDataGroup() {
-        return groups_[2];
+        return *groups_[2];
     }
 
     void Close() {
         for (size_t i = 0; i < kGroupCount; i++) {
-            groups_[i].Close();
+            groups_[i]->Close();
         }
     }
 
 private:
     /**
-     * The rank associated with the local worker.
+     * The Groups initialized and managed by this Manager.
      */
-    size_t my_rank_;
-
-    /**
-     * The Groups initialized and managed
-     * by this Manager.
-     */
-    std::array<Group, kGroupCount> groups_;
-
-    //! for initialization of members
-    friend class Construction;
+    std::array<GroupPtr, kGroupCount> groups_;
 };
 
 //! \}

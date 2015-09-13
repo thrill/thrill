@@ -14,8 +14,8 @@
 #define THRILL_API_WRITE_BINARY_HEADER
 
 #include <thrill/api/action_node.hpp>
+#include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/core/file_io.hpp>
@@ -138,7 +138,7 @@ protected:
         sink_.reset();
 
         // construct path from pattern containing ### and $$$
-        std::string out_path = core::make_path(
+        std::string out_path = core::FillFilePattern(
             out_pathbase_, context_.my_rank(), out_serial_++);
 
         sLOG << "OpenNextFile() out_path" << out_path;

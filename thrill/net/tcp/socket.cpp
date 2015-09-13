@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/socket.cpp
+ * thrill/net/tcp/socket.cpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -10,7 +10,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/net/lowlevel/socket.hpp>
+#include <thrill/net/tcp/socket.hpp>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -18,7 +18,7 @@
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
 void Socket::SetKeepAlive(bool activate) {
     assert(IsValid());
@@ -78,7 +78,7 @@ void Socket::SetNoDelay(bool activate) {
 #endif
 }
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/socket_address.hpp
+ * thrill/net/tcp/socket_address.hpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER
-#define THRILL_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER
+#ifndef THRILL_NET_TCP_SOCKET_ADDRESS_HEADER
+#define THRILL_NET_TCP_SOCKET_ADDRESS_HEADER
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -25,9 +25,9 @@
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
-//! \addtogroup netsock Low Level Socket API
+//! \addtogroup net_tcp TCP Socket API
 //! \{
 
 /*!
@@ -87,8 +87,10 @@ public:
 
     //! Return total length of enclosed sockaddr structure.
     socklen_t socklen() const {
-        return sockaddr()->sa_family == AF_INET ? sizeof(sockaddr_.in) :
-               sockaddr()->sa_family == AF_INET6 ? sizeof(sockaddr_.in6) : 0;
+        return socklen_t(
+            sockaddr()->sa_family == AF_INET ? sizeof(sockaddr_.in) :
+            sockaddr()->sa_family == AF_INET6 ? sizeof(sockaddr_.in6) :
+            0);
     }
 
     //! Returns true if the enclosed socket address is a valid IPv4 or IPv6
@@ -277,10 +279,10 @@ public:
 
 // \}
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 
-#endif // !THRILL_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER
+#endif // !THRILL_NET_TCP_SOCKET_ADDRESS_HEADER
 
 /******************************************************************************/

@@ -511,11 +511,11 @@ public:
      *
      * \param sum_function Sum function (any associative function).
      *
-     * \param neutral_element Neutral element of the sum function.
+     * \param initial_element Initial element of the sum function.
      */
     template <typename SumFunction = std::plus<ValueType> >
     auto PrefixSum(const SumFunction& sum_function = SumFunction(),
-                   ValueType neutral_element = ValueType()) const;
+                   ValueType initial_element = ValueType()) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.

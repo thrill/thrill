@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/select.hpp
+ * thrill/net/tcp/select.hpp
  *
  * Lightweight wrapper around select()
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_NET_LOWLEVEL_SELECT_HEADER
-#define THRILL_NET_LOWLEVEL_SELECT_HEADER
+#ifndef THRILL_NET_TCP_SELECT_HEADER
+#define THRILL_NET_TCP_SELECT_HEADER
 
 #include <sys/select.h>
 
@@ -22,9 +22,9 @@
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
-//! \addtogroup netsock Low Level Socket API
+//! \addtogroup net_tcp TCP Socket API
 //! \{
 
 /**
@@ -67,15 +67,15 @@ public:
 
     //! Check if a file descriptor is in the resulting read set.
     bool InRead(int fd) const
-    { return FD_ISSET(fd, &read_set_); }
+    { return FD_ISSET(fd, &read_set_) != 0; }
 
     //! Check if a file descriptor is in the resulting Write set.
     bool InWrite(int fd) const
-    { return FD_ISSET(fd, &write_set_); }
+    { return FD_ISSET(fd, &write_set_) != 0; }
 
     //! Check if a file descriptor is in the resulting exception set.
     bool InException(int fd) const
-    { return FD_ISSET(fd, &except_set_); }
+    { return FD_ISSET(fd, &except_set_) != 0; }
 
     //! Clear a file descriptor from the read set
     Select & ClearRead(int fd)
@@ -105,8 +105,9 @@ public:
             return select(nullptr);
         else {
             struct timeval tv;
-            tv.tv_sec = static_cast<long>(timeout / 1000);
-            tv.tv_usec = ((timeout / 1000) - tv.tv_sec) * 1e6;
+            tv.tv_sec = static_cast<time_t>(timeout / 1000);
+            tv.tv_usec = static_cast<time_t>(
+                (timeout / 1000.0 - static_cast<double>(tv.tv_sec)) * 1000000);
             return select(&tv);
         }
     }
@@ -127,10 +128,10 @@ protected:
 
 //! \}
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 
-#endif // !THRILL_NET_LOWLEVEL_SELECT_HEADER
+#endif // !THRILL_NET_TCP_SELECT_HEADER
 
 /******************************************************************************/

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/socket_address.cpp
+ * thrill/net/tcp/socket_address.cpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *
@@ -11,7 +11,7 @@
  ******************************************************************************/
 
 #include <thrill/common/logger.hpp>
-#include <thrill/net/lowlevel/socket_address.hpp>
+#include <thrill/net/tcp/socket_address.hpp>
 
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -23,7 +23,7 @@
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
 /******************************************************************************/
 
@@ -206,7 +206,7 @@ IPv6Address::IPv6Address(const char* ipstring, uint16_t port)
     sin6->sin6_port = htons(port);
 }
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 

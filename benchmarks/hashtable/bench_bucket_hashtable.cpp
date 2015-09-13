@@ -12,6 +12,7 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/core/reduce_pre_table.hpp>
 #include <thrill/data/discard_sink.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -34,7 +35,7 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    unsigned int size = 10000000;
+    unsigned int size = 1500000000;
     clp.AddUInt('s', "size", "S", size,
                 "Load in byte to be inserted");
 
@@ -42,31 +43,27 @@ int main(int argc, char* argv[]) {
     clp.AddUInt('w', "workers", "W", workers,
                 "Open hashtable with W workers, default = 1.");
 
-    unsigned int l = 25;
+    unsigned int l = 5;
     clp.AddUInt('l', "num_buckets_init_scale", "L", l,
                 "Lower string length, default = 5.");
 
-    unsigned int u = 35;
+    unsigned int u = 15;
     clp.AddUInt('u', "num_buckets_resize_scale", "U", u,
                 "Upper string length, default = 15.");
 
-    unsigned int num_buckets_per_partition = 1;
-    clp.AddUInt('b', "num_buckets_per_partition", "B", num_buckets_per_partition,
-                "Num buckets per partition, default = 1024.");
+    double bucket_rate = 0.5;
+    clp.AddDouble('b', "bucket_rate", "B", bucket_rate,
+                  "bucket_rate, default = 0.5.");
 
     double max_partition_fill_rate = 0.5;
     clp.AddDouble('f', "max_partition_fill_rate", "F", max_partition_fill_rate,
                   "Open hashtable with max_partition_fill_rate, default = 0.5.");
 
-    unsigned int max_num_blocks_table = 1;
-    clp.AddUInt('n', "max_num_blocks_table", "N", max_num_blocks_table,
-                "Max num blocks table, default = 1024 * 16.");
-
     const unsigned int target_block_size = 4 * 16;
 //    clp.AddUInt('z', "target_block_size", "Z", target_block_size,
 //                "Target block size, default = 1024 * 16.");
 
-    unsigned int table_size = 500000000;
+    unsigned int table_size = 2000000000;
     clp.AddUInt('t', "table_size", "T", table_size,
                 "Table size, default = 500000000.");
 
@@ -102,6 +99,7 @@ int main(int argc, char* argv[]) {
         std::string str;
         for (size_t i = 0; i < length; ++i)
         {
+
             str += alphanum[rand() % sizeof(alphanum)];
         }
         strings.push_back(str);
@@ -118,7 +116,7 @@ int main(int argc, char* argv[]) {
 
     core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,
                          core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>
-    table(workers, key_ex, red_fn, writers, table_size, 0.001, max_partition_fill_rate);
+    table(workers, key_ex, red_fn, writers, table_size, bucket_rate, max_partition_fill_rate);
 
     common::StatsTimer<true> timer(true);
 
