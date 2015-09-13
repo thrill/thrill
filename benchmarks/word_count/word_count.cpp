@@ -52,14 +52,15 @@ int main(int argc, char* argv[]) {
                     for (auto it = line.begin(); it != line.end(); it++) {
                         if (*it == ' ') {
                             emit(WordCountPair(word, 1));
-							word.clear();
-							word.reserve(40);
-                        } else {
-							word.push_back(*it);
-						}
+                            word.clear();
+                            word.reserve(40);
+                        }
+                        else {
+                            word.push_back(*it);
+                        }
                     }
                     emit(WordCountPair(word, 1));
-					word.reserve(40);
+                    word.reserve(40);
                 }).ReducePair(
                 [](const size_t& a, const size_t& b) {
                     /* associative reduction operator: add counters */
@@ -67,9 +68,9 @@ int main(int argc, char* argv[]) {
                 });
 
             word_pairs.Map(
-					[](const WordCountPair& wc) {
-						return wc.first + ": " + std::to_string(wc.second);
-					}).WriteLinesMany(output);
+                [](const WordCountPair& wc) {
+                    return wc.first + ": " + std::to_string(wc.second);
+                }).WriteLinesMany(output);
         };
 
     return api::Run(start_func);
