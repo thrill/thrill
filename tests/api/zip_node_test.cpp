@@ -47,7 +47,8 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
             // zip
             auto zip_result = zip_input1.Zip(
                 zip_input2, [](size_t a, short b) -> long {
-                    return static_cast<long>(a) + b; });
+                    return static_cast<long>(a) + b;
+                });
 
             // check result
             std::vector<long> res = zip_result.AllGather();
@@ -141,7 +142,8 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
             // zip
             auto zip_result = input1.Zip(
                 input2_short, [](size_t a, short b) -> long {
-                    return static_cast<long>(a) + b; });
+                    return static_cast<long>(a) + b;
+                });
 
             // check result
             std::vector<long> res = zip_result.AllGather();

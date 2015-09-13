@@ -20,10 +20,10 @@
 
 #if !defined(_MSC_VER)
 
+#include <dirent.h>
 #include <glob.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <dirent.h>
 
 #if !defined(O_BINARY)
 #define O_BINARY 0
@@ -31,13 +31,14 @@
 
 #else
 
-#include <windows.h>
 #include <io.h>
+#include <windows.h>
 
 #define S_ISREG(m)       (((m) & _S_IFMT) == _S_IFREG)
 
 #endif
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -220,8 +221,8 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
 #if defined(_MSC_VER)
     throw common::SystemException(
-        "Reading compressed files is not supported on windows, yet. "
-        "Please submit a patch.");
+              "Reading compressed files is not supported on windows, yet. "
+              "Please submit a patch.");
 #else
     // if decompressor: fork a child program which calls the decompressor and
     // connect file descriptors via a pipe.
@@ -304,8 +305,8 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
 #if defined(_MSC_VER)
     throw common::SystemException(
-        "Reading compressed files is not supported on windows, yet. "
-        "Please submit a patch.");
+              "Reading compressed files is not supported on windows, yet. "
+              "Please submit a patch.");
 #else
     // if compressor: fork a child program which calls the compressor and
     // connect file descriptors via a pipe.
@@ -359,20 +360,20 @@ std::string TemporaryDirectory::make_directory(const char* sample) {
     unsigned success = ::GetTempFileName(".", sample, 0, temp_file_path);
     if (!success) {
         throw common::ErrnoException(
-            "Could not allocate temporary directory "
-            + std::string(temp_file_path));
+                  "Could not allocate temporary directory "
+                  + std::string(temp_file_path));
     }
 
     if (!DeleteFile(temp_file_path)) {
         throw common::ErrnoException(
-            "Could not create temporary directory "
-            + std::string(temp_file_path));
+                  "Could not create temporary directory "
+                  + std::string(temp_file_path));
     }
 
-    if (!CreateDirectory(temp_file_path, NULL)) {
+    if (!CreateDirectory(temp_file_path, nullptr)) {
         throw common::ErrnoException(
-            "Could not create temporary directory "
-            + std::string(temp_file_path));
+                  "Could not create temporary directory "
+                  + std::string(temp_file_path));
     }
 
     return temp_file_path;
@@ -386,7 +387,7 @@ void TemporaryDirectory::wipe_directory(
 
     if (h == INVALID_HANDLE_VALUE) {
         throw common::ErrnoException(
-            "FindFirstFile failed:" + std::to_string(GetLastError()));
+                  "FindFirstFile failed:" + std::to_string(GetLastError()));
     }
 
     do {
@@ -403,14 +404,14 @@ void TemporaryDirectory::wipe_directory(
     DWORD e = GetLastError();
     if (e != ERROR_NO_MORE_FILES) {
         throw common::ErrnoException(
-            "FindFirstFile failed:" + std::to_string(GetLastError()));
+                  "FindFirstFile failed:" + std::to_string(GetLastError()));
     }
 
     if (!do_rmdir) return;
 
     if (!RemoveDirectory(tmp_dir.c_str())) {
         throw common::ErrnoException(
-            "Could not remove temporary directory " + tmp_dir);
+                  "Could not remove temporary directory " + tmp_dir);
     }
 }
 
@@ -425,7 +426,7 @@ std::string TemporaryDirectory::make_directory(const char* sample) {
 
     if (p == nullptr) {
         throw common::ErrnoException(
-            "Could create temporary directory " + tmp_dir);
+                  "Could create temporary directory " + tmp_dir);
     }
 
     return tmp_dir;
@@ -436,7 +437,7 @@ void TemporaryDirectory::wipe_directory(
     DIR* d = opendir(tmp_dir.c_str());
     if (d == nullptr) {
         throw common::ErrnoException(
-            "Could open temporary directory " + tmp_dir);
+                  "Could open temporary directory " + tmp_dir);
     }
 
     struct dirent* de, entry;
