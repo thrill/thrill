@@ -239,12 +239,10 @@ public:
             sinks_[i].Close();
         }
 
-        // close self-loop queues
-        for (size_t my_worker = 0; my_worker < multiplexer_.num_workers_per_host_; my_worker++) {
-            size_t local_worker_id = multiplexer_.my_host_rank() + my_worker;
-            if (!queues_[local_worker_id].write_closed())
-                queues_[local_worker_id].Close();
-        }
+        // close loop-back queue from this worker to itself
+        auto my_global_worker_id = multiplexer_.my_host_rank() * multiplexer_.num_workers_per_host() + my_local_worker_id_;
+        if (!queues_[my_global_worker_id].write_closed())
+            queues_[my_global_worker_id].Close();
 
         // wait for close packets to arrive (this is a busy waiting loop, try to
         // do it better -tb)
