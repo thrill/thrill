@@ -86,6 +86,7 @@ public:
         : tx_lifetime_(true), rx_lifetime_(true),
           tx_timespan_(), rx_timespan_(),
           id_(id),
+          my_local_worker_id_(my_local_worker_id),
           multiplexer_(multiplexer),
           expected_closing_blocks_(
               (multiplexer_.num_hosts() - 1) * multiplexer_.num_workers_per_host_),
@@ -135,11 +136,12 @@ public:
 
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
             for (size_t local_worker_id = 0; local_worker_id < multiplexer_.num_workers_per_host_; ++local_worker_id) {
-                size_t worker_id = host * multiplexer_.num_workers_per_host_ + local_worker_id;
                 if (host == multiplexer_.my_host_rank()) {
-                    result.emplace_back(&queues_[worker_id], block_size);
+                    auto target_queue_ptr = multiplexer_.loopback(id_, my_local_worker_id_, local_worker_id);
+                    result.emplace_back(target_queue_ptr, block_size);
                 }
                 else {
+                    size_t worker_id = host * multiplexer_.num_workers_per_host_ + local_worker_id;
                     result.emplace_back(&sinks_[worker_id], block_size);
                 }
             }
@@ -157,8 +159,11 @@ public:
 
         std::vector<BlockQueueReader> result;
 
-        for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
-            result.emplace_back(BlockQueueSource(queues_[worker]));
+        for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
+            for (size_t local_worker_id = 0; local_worker_id < multiplexer_.num_workers_per_host_; ++local_worker_id) {
+                size_t worker_id = host * multiplexer_.num_workers_per_host_ + local_worker_id;
+                result.emplace_back(BlockQueueSource(queues_[worker_id]));
+            }
         }
 
         assert(result.size() == multiplexer_.num_workers());
@@ -234,12 +239,10 @@ public:
             sinks_[i].Close();
         }
 
-        // close self-loop queues
-        for (size_t my_worker = 0; my_worker < multiplexer_.num_workers_per_host_; my_worker++) {
-            size_t local_worker_id = multiplexer_.my_host_rank() + my_worker;
-            if (!queues_[local_worker_id].write_closed())
-                queues_[local_worker_id].Close();
-        }
+        // close loop-back queue from this worker to itself
+        auto my_global_worker_id = multiplexer_.my_host_rank() * multiplexer_.num_workers_per_host() + my_local_worker_id_;
+        if (!queues_[my_global_worker_id].write_closed())
+            queues_[my_global_worker_id].Close();
 
         // wait for close packets to arrive (this is a busy waiting loop, try to
         // do it better -tb)
@@ -301,6 +304,8 @@ protected:
 
     ChannelId id_;
 
+    size_t my_local_worker_id_;
+
     //! reference to multiplexer
     data::Multiplexer& multiplexer_;
 
@@ -355,9 +360,46 @@ protected:
             CallClosedCallbacksEventually();
         }
     }
+
+    //! Returns the loopback queue for the worker of this channel.
+    BlockQueue * loopback_queue(size_t from_worker_id) {
+        assert(from_worker_id < multiplexer_.num_workers_per_host_);
+        size_t global_worker_rank = multiplexer_.num_workers_per_host_ * multiplexer_.my_host_rank() + from_worker_id;
+        sLOG << "expose loopback queue for" << from_worker_id << "->" << my_local_worker_id_;
+        return &(queues_[global_worker_rank]);
+    }
 };
 
 using ChannelPtr = std::shared_ptr<Channel>;
+
+/*! Simple structure that holds a all channel instances for the workers on the
+ *! local host for a given channel id.
+ */
+class ChannelSet
+{
+public:
+    //! Creates a ChannelSet with the given number of channels (num workers per host).
+    ChannelSet(data::Multiplexer& multiplexer, ChannelId id, size_t num_workers_per_host) {
+        for (size_t i = 0; i < num_workers_per_host; i++)
+            channels_.push_back(std::make_shared<Channel>(multiplexer, id, i));
+    }
+
+    //! Returns the channel that will be consumed by the worker with the given
+    //! local id
+    ChannelPtr peer(size_t local_worker_id) {
+        assert(local_worker_id < channels_.size());
+        return channels_[local_worker_id];
+    }
+
+    void Close() {
+        for (auto& c : channels_)
+            c->Close();
+    }
+
+private:
+    //! 'owns' all channels belonging to one channel id for all local workers.
+    std::vector<ChannelPtr> channels_;
+};
 
 //! \}
 
