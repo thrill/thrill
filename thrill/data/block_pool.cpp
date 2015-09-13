@@ -17,6 +17,7 @@ namespace thrill {
 namespace data {
 
 ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
+    assert(block_size <= default_block_size);
     size_t swap_token;
     std::lock_guard<std::mutex> lock(list_mutex_);
 
