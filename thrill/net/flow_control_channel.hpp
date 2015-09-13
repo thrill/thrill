@@ -150,23 +150,21 @@ public:
      * \brief Calculates the prefix sum over all workers, given a certain sum
      * operation.
      * \details This method blocks until the sum is caluclated. Values
-     * are applied in order, that means sumOp(sumOp(a, b), c) if a, b, c
-     * are the values of workers 0, 2, 3.
+     * are applied in order, that means sum_op(sum_op(a, b), c) if a, b, c
+     * are the values of workers 0, 1, 2.
      *
      * \param value The local value of this worker.
-     * \param zero The zero-element for the body defined by T and sumOp
-     * \param sumOp The operation to use for
+     * \param initial The initial element for the body defined by T and sum_op
+     * \param sum_op The operation to use for
      * calculating the prefix sum. The default operation is a normal addition.
      * \param inclusive Whether the prefix sum is inclusive or exclusive.
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T PrefixSum(const T& value, const T& zero, BinarySumOp sumOp = BinarySumOp(),
+    T PrefixSum(const T& value, const T& initial = T(), BinarySumOp sum_op = BinarySumOp(),
                 bool inclusive = true) {
 
         static const bool debug = false;
-
-        assert(sumOp(zero, zero) == zero);
 
         std::vector<T> localPrefixBuffer(threadCount);
 
@@ -182,7 +180,7 @@ public:
             // Global Prefix
 
             for (size_t i = 1; i < threadCount; i++) {
-                localPrefixBuffer[i] = sumOp(localPrefixBuffer[i - 1], localPrefixBuffer[i]);
+                localPrefixBuffer[i] = sum_op(localPrefixBuffer[i - 1], localPrefixBuffer[i]);
             }
 
             for (size_t i = 0; i < threadCount; i++) {
@@ -190,21 +188,21 @@ public:
             }
 
             T prefixSumBase = localPrefixBuffer[threadCount - 1];
-            collective::PrefixSum(group, prefixSumBase, sumOp, false);
+            collective::PrefixSum(group, prefixSumBase, sum_op, false);
            
             if(id == 0) {
-                prefixSumBase = zero;
+                prefixSumBase = initial;
             }
 
             LOG << id << ", m, " << inclusive << ": base: " << prefixSumBase;
 
             if(inclusive) {
                 for (size_t i = 0; i < threadCount; i++) {
-                    localPrefixBuffer[i] = sumOp(prefixSumBase, localPrefixBuffer[i]);
+                    localPrefixBuffer[i] = sum_op(prefixSumBase, localPrefixBuffer[i]);
                 }
             } else {
                 for (size_t i = threadCount - 1; i > 0; i--) {
-                    localPrefixBuffer[i] = sumOp(prefixSumBase, localPrefixBuffer[i - 1]);
+                    localPrefixBuffer[i] = sum_op(prefixSumBase, localPrefixBuffer[i - 1]);
                 }
                 localPrefixBuffer[0] = prefixSumBase;
             }
@@ -231,18 +229,19 @@ public:
      * certain sum operation.
      *
      * \details This method blocks until the sum is caluclated. Values
-     * are applied in order, that means sumOp(sumOp(a, b), c) if a, b, c
-     * are the values of workers 0, 2, 3.
+     * are applied in order, that means sum_op(sum_op(a, b), c) if a, b, c
+     * are the values of workers 0, 1, 2.
      *
      * \param value The local value of this worker.
-     * \param sumOp The operation to use for
-     * \param zero The neutral element of the body defined by T and SumOp
+     * \param sum_op The operation to use for
+     * \param initial The initial element of the body defined by T and SumOp
      * calculating the prefix sum. The default operation is a normal addition.
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T ExPrefixSum(const T& value, const T& zero, BinarySumOp sumOp = BinarySumOp()) {
-        return PrefixSum(value, zero, sumOp, false);
+    T ExPrefixSum(const T& value,
+                  const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+        return PrefixSum(value, initial, sum_op, false);
     }
 
     /**
@@ -290,12 +289,12 @@ public:
      * prefix sum. The operation is assumed to be associative.
      *
      * \param value The value to use for the reduce operation.
-     * \param sumOp The operation to use for
+     * \param sum_op The operation to use for
      * calculating the reduced value. The default operation is a normal addition.
      * \return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
+    T AllReduce(const T& value, BinarySumOp sum_op = BinarySumOp()) {
         T res = value;
         std::vector<T> localReduceBuffer(threadCount);
 
@@ -310,10 +309,10 @@ public:
 
             // Master reduce
             for (size_t i = 1; i < threadCount; i++) {
-                res = sumOp(res, localReduceBuffer[i]);
+                res = sum_op(res, localReduceBuffer[i]);
             }
 
-            collective::AllReduce(group, res, sumOp);
+            collective::AllReduce(group, res, sum_op);
 
             ClearLocalShared();
             SetLocalShared(&res);
