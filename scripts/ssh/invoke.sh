@@ -101,6 +101,7 @@ for hostport in $THRILL_HOSTLIST; do
   rank=$((rank+1))
 done
 
+cmdbase=`basename "$cmd"`
 rank=0
 THRILL_HOSTLIST="${hostlist[@]}"
 
@@ -109,23 +110,38 @@ for hostport in $THRILL_SSHLIST; do
   if [ $verbose -ne 0 ]; then
     echo "Connecting to $host to invoke $cmd"
   fi
+  REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
   if [ "$copy" == "1" ]; then
-      cmdbase=`basename "$cmd"`
       REMOTENAME="/tmp/$cmdbase.$hostport.$$"
-      # pipe the program though the ssh pipe, save and execute it at the remote end.
-      ( cat $cmd | \
-              ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
-                  $host \
-                  "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cat - > \"$REMOTENAME\" && chmod +x \"$REMOTENAME\" && shopt -s huponexit && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
+      # copy the program to the remote, and execute it at the remote end.
+      ( scp -o BatchMode=yes -o StrictHostKeyChecking=no \
+            "$cmd" "$host:$REMOTENAME" &&
+        ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
+            $host \
+            "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
       ) &
   else
       ssh \
-          -o BatchMode=yes -o StrictHostKeyChecking=no -t \
+          -o BatchMode=yes -o StrictHostKeyChecking=no \
           $host \
-          "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $*" &
+          "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $* &" &
   fi
   rank=$((rank+1))
 done
+
+# on Ctrl+C kill remote programs
+function killcommand() {
+    echo "Killing remote programs, please wait."
+    for hostport in $THRILL_SSHLIST; do
+        host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
+        REMOTENAME="$cmdbase.$hostport.$$"
+
+        ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
+            $host "killall \"$REMOTENAME\"" || true
+    done
+}
+
+trap "killcommand" SIGINT
 
 echo "Waiting for execution to finish."
 for hostport in $THRILL_HOSTLIST; do
