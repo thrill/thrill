@@ -84,6 +84,10 @@ void PrefixSum(
             }
         }
     }
+
+    // set worker 0's value for exclusive prefixsums
+    if (!inclusive && net.my_host_rank() == 0)
+        value = T();
 }
 
 /*!
@@ -324,6 +328,39 @@ void AllReduceHypercube(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()
 //! \}
 
 } // namespace collective
+
+/******************************************************************************/
+// Definitions for Forwarders from net::Group
+
+template <typename T, typename BinarySumOp>
+void Group::PrefixSum(T& value, BinarySumOp sum_op, bool inclusive) {
+    return collective::PrefixSum(*this, value, sum_op, inclusive);
+}
+
+//! Calculate exclusive prefix sum
+template <typename T, typename BinarySumOp>
+void Group::ExPrefixSum(T& value, BinarySumOp sum_op) {
+    return collective::PrefixSum(*this, value, sum_op, false);
+}
+
+//! Broadcast a value from the worker 0
+template <typename T>
+void Group::Broadcast(T& value) {
+    return collective::Broadcast(*this, value);
+}
+
+//! Reduce a value from all workers to the worker 0
+template <typename T, typename BinarySumOp>
+void Group::ReduceToRoot(T& value, BinarySumOp sum_op) {
+    return collective::ReduceToRoot(*this, value, sum_op);
+}
+
+//! Reduce a value from all workers to all workers
+template <typename T, typename BinarySumOp>
+void Group::AllReduce(T& value, BinarySumOp sum_op) {
+    return collective::AllReduce(*this, value, sum_op);
+}
+
 } // namespace net
 } // namespace thrill
 
