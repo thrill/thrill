@@ -5,6 +5,7 @@
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -19,6 +20,7 @@
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/concat_channel.hpp>
 #include <thrill/data/file.hpp>
+#include <thrill/data/mixed_channel.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
@@ -219,11 +221,18 @@ public:
         return data::File(block_pool_);
     }
 
-    //! Returns a reference to a new Channel.  This method alters the state of
+    //! Returns a reference to a new ConcatChannel.  This method alters the state of
     //! the context and must be called on all Workers to ensure correct
     //! communication coordination.
     data::ConcatChannelPtr GetNewConcatChannel() {
         return multiplexer_.GetNewConcatChannel(local_worker_id_);
+    }
+
+    //! Returns a reference to a new MixedChannel.  This method alters the state of
+    //! the context and must be called on all Workers to ensure correct
+    //! communication coordination.
+    data::MixedChannelPtr GetNewMixedChannel() {
+        return multiplexer_.GetNewMixedChannel(local_worker_id_);
     }
 
     //! the block manager keeps all data blocks moving through the system.

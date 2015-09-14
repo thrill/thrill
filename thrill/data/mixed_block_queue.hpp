@@ -208,6 +208,8 @@ protected:
  * as the first. This is because once items are cached inside the BlockQueues of
  * MixedBlockQueue, we use a plain ConcatReader to deliver them again (which is
  * probably faster as it has a sequential access pattern).
+ *
+ * See \ref MixedBlockQueue for more information on how items are read.
  */
 class MixedBlockQueueReader
 {
@@ -362,7 +364,7 @@ protected:
                     available_ = available_at_[src_blk.src];
                     available_at_[src_blk.src] -= available_;
                 }
-                else if (open_ == 0) break;
+                else if (open_ == 0) return false;
             }
         }
 
