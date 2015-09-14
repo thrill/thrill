@@ -26,8 +26,16 @@ echo "THRILL_RANK:     $THRILL_RANK"
 # this enables continuation if one of the commands fails
 set +e
 
-
 . ${cluster}/thrill-env.sh
 
-#sleep $timer
-. ${cluster}/${THRILL_TASK}
+if [ "$THRILL_RANK" == "0" ]
+    then
+        if [ -f ${bench_conf}/hostlist.conf ]
+            then
+                > ${bench_conf}/hostlist.conf
+        fi
+        echo "#!/bin/bash -x" >> ${bench_conf}/hostlist.conf
+        echo "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\"" >> ${bench_conf}/hostlist.conf
+fi
+
+sleep $WORKER_TIMER
