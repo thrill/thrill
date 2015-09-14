@@ -11,7 +11,7 @@ OPTIND=1
 
 # Initialize default vals
 copy=0
-bwcluster=1
+bwcluster=0
 verbose=1
 dir=
 user=$(whoami)
@@ -127,19 +127,20 @@ for hostport in $THRILL_SSHLIST; do
             "$cmd" "$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
             $host \
-            if [ $bwcluster -ne 0 ]; then
-                "module load compiler/gnu/5.2 && export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
-            fi
             "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
       ) &
   else
-      ssh \
-          -o BatchMode=yes -o StrictHostKeyChecking=no \
-          $host \
-          if [ $bwcluster -ne 0 ]; then
+      if [ $bwcluster -ne 0 ]; then
+          ssh \
+              -o BatchMode=yes -o StrictHostKeyChecking=no \
+              $host \
               "module load compiler/gnu/5.2 && export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\" && cd $dir && $cmd $* &" &
-          fi
-          "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $* &" &
+      else
+          ssh \
+              -o BatchMode=yes -o StrictHostKeyChecking=no \
+              $host \
+              "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $* &" &
+      fi
   fi
   rank=$((rank+1))
 done
