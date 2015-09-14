@@ -133,11 +133,20 @@ static void TestPrefixSum(net::Group* net) {
 
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
 
-    std::string local_value = result.substr(net->my_host_rank(), 1);
-    net::collective::PrefixSum(*net, local_value);
-    sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
-         << "value" << local_value;
-    ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
+    {
+        std::string local_value = result.substr(net->my_host_rank(), 1);
+        net::collective::PrefixSum(*net, local_value, std::plus<std::string>(), true);
+        sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
+             << "value" << local_value;
+        ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
+    }
+    {
+        std::string local_value = result.substr(net->my_host_rank(), 1);
+        net::collective::PrefixSum(*net, local_value, std::plus<std::string>(), false);
+        sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
+             << "value" << local_value;
+        ASSERT_EQ(result.substr(0, net->my_host_rank()), local_value);
+    }
 }
 
 //! construct group of p workers which perform an Broadcast collective
@@ -148,7 +157,7 @@ static void TestBroadcast(net::Group* net) {
     ASSERT_EQ(42u, local_value);
     // repeat with a different value.
     local_value = net->my_host_rank() == 0 ? 6 * 9 : 0;
-    net::collective::Broadcast(*net, local_value);
+    net::collective::BroadcastBinomialTree(*net, local_value);
     ASSERT_EQ(6 * 9u, local_value);
     // check trivial broadcast
     local_value = net->my_host_rank() == 0 ? 5 : 0;
