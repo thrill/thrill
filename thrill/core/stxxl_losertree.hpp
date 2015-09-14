@@ -19,9 +19,11 @@
 
 #include <functional>
 
-namespace stxxl {
+namespace thrill {
 
-namespace parallel {
+namespace core {
+
+namespace stxxl {
 
 class noncopyable
 {
@@ -1086,8 +1088,10 @@ public:
     }
 };
 
-} // namespace parallel
+} // namespace stxxl
 
-} // end namespace stxxl
+} // namespace core
+
+} // end namespace thrill
 
 #endif // !STXXL_PARALLEL_LOSERTREE_HEADER

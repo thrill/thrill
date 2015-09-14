@@ -61,7 +61,7 @@ TEST(MultiwayMerge, Basic) {
     }
 
     std::sort(std::begin(ref), std::end(ref));
-    stxxl::parallel::sequential_multiway_merge<true, false>(std::begin(seq),
+    core::stxxl::sequential_multiway_merge<true, false>(std::begin(seq),
                                                             std::end(seq),
                                                             std::begin(output),
                                                             total,
@@ -106,7 +106,7 @@ TEST(MultiwayMerge, Vector_Wrapper) {
     }
 
     std::sort(std::begin(ref), std::end(ref));
-    stxxl::parallel::sequential_multiway_merge<true, false>(std::begin(seq),
+    core::stxxl::sequential_multiway_merge<true, false>(std::begin(seq),
                                                             std::end(seq),
                                                             std::begin(output),
                                                             total,
@@ -181,7 +181,7 @@ TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
         OIterator oiter(std::make_shared<Writer>(output_file.GetWriter()));
 
         std::sort(std::begin(ref), std::end(ref));
-        stxxl::parallel::sequential_file_multiway_merge<true, false>(std::begin(seq),
+        core::stxxl::sequential_file_multiway_merge<true, false>(std::begin(seq),
                                                                      std::end(seq),
                                                                      oiter,
                                                                      total,
@@ -250,7 +250,7 @@ TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
         OIterator oiter(std::make_shared<Writer>(output_file.GetWriter()));
 
         std::sort(std::begin(ref), std::end(ref));
-        stxxl::parallel::sequential_file_multiway_merge<true, false>(std::begin(seq),
+        core::stxxl::sequential_file_multiway_merge<true, false>(std::begin(seq),
                                                                      std::end(seq),
                                                                      oiter,
                                                                      total,

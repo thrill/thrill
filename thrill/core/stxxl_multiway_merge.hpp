@@ -24,9 +24,11 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/core/stxxl_losertree.hpp>
 
-namespace stxxl {
+namespace thrill {
 
-namespace parallel {
+namespace core {
+
+namespace stxxl {
 
 static const bool debug = true;
 typedef int thread_index_t;
@@ -2056,8 +2058,10 @@ multiway_merge_stable_sentinels(RandomAccessIteratorPairIterator seqs_begin,
 
 #endif // STXXL_PARALLEL
 
-} // namespace parallel
-
 } // end namespace stxxl
+
+} // namespace core
+
+} // namespace thrill
 
 #endif // !STXXL_PARALLEL_MULTIWAY_MERGE_HEADER

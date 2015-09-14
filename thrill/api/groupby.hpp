@@ -318,7 +318,7 @@ private:
             {
                 OIterator oiter(std::make_shared<Writer>(sorted_elems_.GetWriter()));
 
-                stxxl::parallel::sequential_file_multiway_merge<true, false>(
+                core::stxxl::sequential_file_multiway_merge<true, false>(
                     std::begin(seq),
                     std::end(seq),
                     oiter,
