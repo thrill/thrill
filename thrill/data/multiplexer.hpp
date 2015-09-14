@@ -27,6 +27,8 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
+class ChannelSetBase;
+
 template <typename Channel>
 class ChannelSet;
 
@@ -34,6 +36,11 @@ class ConcatChannel;
 using ConcatChannelPtr = std::shared_ptr<ConcatChannel>;
 using ConcatChannelSet = ChannelSet<ConcatChannel>;
 using ConcatChannelSetPtr = std::shared_ptr<ConcatChannelSet>;
+
+class MixedChannel;
+using MixedChannelPtr = std::shared_ptr<MixedChannel>;
+using MixedChannelSet = ChannelSet<MixedChannel>;
+using MixedChannelSetPtr = std::shared_ptr<MixedChannelSet>;
 
 class BlockQueue;
 
@@ -64,7 +71,7 @@ public:
           dispatcher_(mem_manager, group, "multiplexer"),
           group_(group),
           num_workers_per_host_(num_workers_per_host),
-          concat_channel_sets_(num_workers_per_host) {
+          channel_sets_(num_workers_per_host) {
         for (size_t id = 0; id < group_.num_hosts(); id++) {
             if (id == group_.my_host_rank()) continue;
             AsyncReadBlockHeader(group_.connection(id));
@@ -102,10 +109,13 @@ public:
     //! Get the used BlockPool
     BlockPool & block_pool() { return block_pool_; }
 
+    //! \name ConcatChannel
+    //! \{
+
     //! Allocate the next channel
     size_t AllocateConcatChannelId(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return concat_channel_sets_.AllocateId(local_worker_id);
+        return channel_sets_.AllocateId(local_worker_id);
     }
 
     //! Get channel with given id, if it does not exist, create it.
@@ -118,8 +128,34 @@ public:
     ConcatChannelPtr GetNewConcatChannel(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
         return _GetOrCreateConcatChannel(
-            concat_channel_sets_.AllocateId(local_worker_id), local_worker_id);
+            channel_sets_.AllocateId(local_worker_id), local_worker_id);
     }
+
+    //! \}
+
+    //! \name MixedChannel
+    //! \{
+
+    //! Allocate the next channel
+    size_t AllocateMixedChannelId(size_t local_worker_id) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return channel_sets_.AllocateId(local_worker_id);
+    }
+
+    //! Get channel with given id, if it does not exist, create it.
+    MixedChannelPtr GetOrCreateMixedChannel(size_t id, size_t local_worker_id) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return _GetOrCreateMixedChannel(id, local_worker_id);
+    }
+
+    //! Request next channel.
+    MixedChannelPtr GetNewMixedChannel(size_t local_worker_id) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return _GetOrCreateMixedChannel(
+            channel_sets_.AllocateId(local_worker_id), local_worker_id);
+    }
+
+    //! \}
 
 protected:
     static const bool debug = false;
@@ -145,28 +181,30 @@ protected:
 
     //! friends for access to network components
     friend class ConcatChannel;
+    friend class MixedChannel;
 
     //! Pointer to queue that is used for communication between two workers on
     //! the same host.
     //! \param from_worker_id is the id of the sending worker
     //! \param to_worker_id is the id of the receiving worker, that owns the queue
-    BlockQueue * loopback(size_t channel_id, size_t from_worker_id, size_t to_worker_id);
+    BlockQueue * ConcatLoopback(size_t channel_id, size_t from_worker_id, size_t to_worker_id);
 
     /**************************************************************************/
 
-    //! ConcatChannels have an ID in block headers. (worker id, channel id)
-    Repository<ConcatChannelSet> concat_channel_sets_;
+    //! Channels have an ID in block headers. (worker id, channel id)
+    Repository<ChannelSetBase> channel_sets_;
 
     ConcatChannelPtr _GetOrCreateConcatChannel(size_t id, size_t local_worker_id);
+    MixedChannelPtr _GetOrCreateMixedChannel(size_t id, size_t local_worker_id);
 
     /**************************************************************************/
 
     using Connection = net::Connection;
 
-    //! expects the next ChannelBlockHeader from a socket and passes to
-    //! OnChannelBlockHeader
+    //! expects the next BlockHeader from a socket and passes to OnBlockHeader
     void AsyncReadBlockHeader(Connection& s);
 
+    //! parses BlockHeader and decides whether to receive Block or close Channel
     void OnBlockHeader(Connection& s, net::Buffer&& buffer);
 
     void OnConcatChannelBlock(
