@@ -62,10 +62,10 @@ TEST(MultiwayMerge, Basic) {
 
     std::sort(std::begin(ref), std::end(ref));
     core::stxxl::sequential_multiway_merge<true, false>(std::begin(seq),
-                                                            std::end(seq),
-                                                            std::begin(output),
-                                                            total,
-                                                            std::less<int>());
+                                                        std::end(seq),
+                                                        std::begin(output),
+                                                        total,
+                                                        std::less<int>());
     for (std::size_t i = 0; i < total; ++i) {
         ASSERT_EQ(ref[i], output[i]);
     }
@@ -107,10 +107,10 @@ TEST(MultiwayMerge, Vector_Wrapper) {
 
     std::sort(std::begin(ref), std::end(ref));
     core::stxxl::sequential_multiway_merge<true, false>(std::begin(seq),
-                                                            std::end(seq),
-                                                            std::begin(output),
-                                                            total,
-                                                            std::less<int>());
+                                                        std::end(seq),
+                                                        std::begin(output),
+                                                        total,
+                                                        std::less<int>());
     for (std::size_t i = 0; i < total; ++i) {
         ASSERT_EQ(ref[i], output[i]);
     }
@@ -182,10 +182,10 @@ TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
 
         std::sort(std::begin(ref), std::end(ref));
         core::stxxl::sequential_file_multiway_merge<true, false>(std::begin(seq),
-                                                                     std::end(seq),
-                                                                     oiter,
-                                                                     total,
-                                                                     std::less<int>());
+                                                                 std::end(seq),
+                                                                 oiter,
+                                                                 total,
+                                                                 std::less<int>());
     }
 
     auto r = output_file.GetReader(true);
@@ -251,10 +251,10 @@ TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
 
         std::sort(std::begin(ref), std::end(ref));
         core::stxxl::sequential_file_multiway_merge<true, false>(std::begin(seq),
-                                                                     std::end(seq),
-                                                                     oiter,
-                                                                     total,
-                                                                     std::less<int>());
+                                                                 std::end(seq),
+                                                                 oiter,
+                                                                 total,
+                                                                 std::less<int>());
     }
 
     auto r = output_file.GetReader(true);
