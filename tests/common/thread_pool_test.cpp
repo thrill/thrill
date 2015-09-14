@@ -117,6 +117,6 @@ TEST_P(ThreadPool2, LoopUntilTerminate) {
 }
 
 INSTANTIATE_TEST_CASE_P(
-    ThreadPoolTerminate, ThreadPool2, ::testing::Values(1, 10));
+    ThreadPoolTerminate, ThreadPool2, ::testing::Values(1, 10), );
 
 /******************************************************************************/

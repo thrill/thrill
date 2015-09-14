@@ -26,9 +26,20 @@
 #include <cstring>
 
 #if defined(__clang__) || defined (__GNUC__)
-#define ATTRIBUTE_NO_SANITIZE                          \
-    __attribute__ ((no_sanitize_address)) /* NOLINT */ \
+
+#define ATTRIBUTE_NO_SANITIZE_ADDRESS \
+    __attribute__ ((no_sanitize_address)) /* NOLINT */
+
+#if defined (__GNUC__) && __GNUC__ >= 5
+#define ATTRIBUTE_NO_SANITIZE_THREAD \
     __attribute__ ((no_sanitize_thread))  /* NOLINT */
+#else
+#define ATTRIBUTE_NO_SANITIZE_THREAD
+#endif
+
+#define ATTRIBUTE_NO_SANITIZE \
+    ATTRIBUTE_NO_SANITIZE_ADDRESS ATTRIBUTE_NO_SANITIZE_THREAD
+
 #else
 #define ATTRIBUTE_NO_SANITIZE
 #endif
