@@ -10,7 +10,6 @@
 
 #include <gtest/gtest.h>
 #include <thrill/common/logger.hpp>
-#include <thrill/net/collective_communication.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/mock/group.hpp>
 

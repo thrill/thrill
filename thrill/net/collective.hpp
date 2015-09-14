@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/collective_communication.hpp
+ * thrill/net/collective.hpp
  *
  * This file provides collective communication primitives, which are to be used
  * with net::Groups.
@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
-#define THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
+#ifndef THRILL_NET_COLLECTIVE_HEADER
+#define THRILL_NET_COLLECTIVE_HEADER
 
 #include <thrill/common/functional.hpp>
 #include <thrill/common/math.hpp>
@@ -327,6 +327,6 @@ void AllReduceHypercube(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()
 } // namespace net
 } // namespace thrill
 
-#endif // !THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
+#endif // !THRILL_NET_COLLECTIVE_HEADER
 
 /******************************************************************************/
