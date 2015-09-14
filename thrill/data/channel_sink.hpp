@@ -44,7 +44,9 @@ public:
     explicit ChannelSink(BlockPool& block_pool)
         : BlockSink(block_pool), closed_(true) { }
 
-    /*! ChannelSink sending out to network.
+    /*!
+     * ChannelSink sending out to network.
+     *
      * \param dispatcher used for sending data via a socket
      * \param connection the socket (aka conneciton) used for the channel
      * \param channel_id the ID that identifies the channel
@@ -92,6 +94,7 @@ public:
         header.Serialize(bb);
 
         net::Buffer buffer = bb.ToBuffer();
+        assert(buffer.size() == BlockHeader::total_size);
 
         (*byte_counter_) += buffer.size();
         (*byte_counter_) += block.size();
@@ -126,6 +129,7 @@ public:
         header.Serialize(bb);
 
         net::Buffer buffer = bb.ToBuffer();
+        assert(buffer.size() == BlockHeader::total_size);
 
         (*byte_counter_) += buffer.size();
 

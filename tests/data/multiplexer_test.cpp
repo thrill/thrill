@@ -10,7 +10,7 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
-#include <thrill/data/channel.hpp>
+#include <thrill/data/concat_channel.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/group.hpp>
@@ -62,7 +62,7 @@ struct Multiplexer : public::testing::Test {
 
 // open a Channel via data::Multiplexer, and send a short message to all workers,
 // receive and check the message.
-void TalkAllToAllViaChannel(net::Group* net) {
+void TalkAllToAllViaConcatChannel(net::Group* net) {
     common::NameThisThread("chmp" + mem::to_string(net->my_host_rank()));
 
     unsigned char send_buffer[123];
@@ -77,11 +77,11 @@ void TalkAllToAllViaChannel(net::Group* net) {
     data::BlockPool block_pool(&mem_manager);
     data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
     {
-        data::ChannelId id = multiplexer.AllocateChannelId(my_local_worker_id);
+        data::ChannelId id = multiplexer.AllocateConcatChannelId(my_local_worker_id);
 
         // open Writers and send a message to all workers
 
-        auto writers = multiplexer.GetOrCreateChannel(
+        auto writers = multiplexer.GetOrCreateConcatChannel(
             id, my_local_worker_id)->OpenWriters(test_block_size);
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
@@ -100,7 +100,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
         // open Readers and receive message from all workers
 
-        auto readers = multiplexer.GetOrCreateChannel(
+        auto readers = multiplexer.GetOrCreateConcatChannel(
             id, my_local_worker_id)->OpenReaders();
 
         for (size_t src = 0; src != readers.size(); ++src) {
@@ -125,18 +125,18 @@ void TalkAllToAllViaChannel(net::Group* net) {
     }
 }
 
-TEST_F(Multiplexer, TalkAllToAllViaChannelForManyNetSizes) {
+TEST_F(Multiplexer, TalkAllToAllViaConcatChannelForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 9:
-    net::RunGroupTest(1, TalkAllToAllViaChannel);
-    net::RunGroupTest(2, TalkAllToAllViaChannel);
-    net::RunGroupTest(5, TalkAllToAllViaChannel);
-    net::RunGroupTest(9, TalkAllToAllViaChannel);
+    net::RunGroupTest(1, TalkAllToAllViaConcatChannel);
+    net::RunGroupTest(2, TalkAllToAllViaConcatChannel);
+    net::RunGroupTest(5, TalkAllToAllViaConcatChannel);
+    net::RunGroupTest(9, TalkAllToAllViaConcatChannel);
 }
 
-TEST_F(Multiplexer, ReadCompleteChannel) {
+TEST_F(Multiplexer, ReadCompleteConcatChannel) {
     auto w0 = [](data::Multiplexer& multiplexer) {
-                  auto id = multiplexer.AllocateChannelId(0);
-                  auto c = multiplexer.GetOrCreateChannel(id, 0);
+                  auto id = multiplexer.AllocateConcatChannelId(0);
+                  auto c = multiplexer.GetOrCreateConcatChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
@@ -149,8 +149,8 @@ TEST_F(Multiplexer, ReadCompleteChannel) {
                   }
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
-                  auto id = multiplexer.AllocateChannelId(0);
-                  auto c = multiplexer.GetOrCreateChannel(id, 0);
+                  auto id = multiplexer.AllocateConcatChannelId(0);
+                  auto c = multiplexer.GetOrCreateConcatChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2](msg1);
@@ -160,8 +160,8 @@ TEST_F(Multiplexer, ReadCompleteChannel) {
                   }
               };
     auto w2 = [](data::Multiplexer& multiplexer) {
-                  auto id = multiplexer.AllocateChannelId(0);
-                  auto c = multiplexer.GetOrCreateChannel(id, 0);
+                  auto id = multiplexer.AllocateConcatChannelId(0);
+                  auto c = multiplexer.GetOrCreateConcatChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
@@ -176,10 +176,10 @@ TEST_F(Multiplexer, ReadCompleteChannel) {
     Execute(w0, w1, w2);
 }
 
-TEST_F(Multiplexer, ReadCompleteChannelTwice) {
+TEST_F(Multiplexer, ReadCompleteConcatChannelTwice) {
     auto w0 = [](data::Multiplexer& multiplexer) {
-                  auto id = multiplexer.AllocateChannelId(0);
-                  auto c = multiplexer.GetOrCreateChannel(id, 0);
+                  auto id = multiplexer.AllocateConcatChannelId(0);
+                  auto c = multiplexer.GetOrCreateConcatChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
@@ -192,8 +192,8 @@ TEST_F(Multiplexer, ReadCompleteChannelTwice) {
                   }
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
-                  auto id = multiplexer.AllocateChannelId(0);
-                  auto c = multiplexer.GetOrCreateChannel(id, 0);
+                  auto id = multiplexer.AllocateConcatChannelId(0);
+                  auto c = multiplexer.GetOrCreateConcatChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2](msg1);
@@ -203,8 +203,8 @@ TEST_F(Multiplexer, ReadCompleteChannelTwice) {
                   }
               };
     auto w2 = [](data::Multiplexer& multiplexer) {
-                  auto id = multiplexer.AllocateChannelId(0);
-                  auto c = multiplexer.GetOrCreateChannel(id, 0);
+                  auto id = multiplexer.AllocateConcatChannelId(0);
+                  auto c = multiplexer.GetOrCreateConcatChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
@@ -249,8 +249,8 @@ TEST_F(Multiplexer, Scatter_OneWorker) {
             }
 
             // scatter File contents via channel: only items [0,3) are sent
-            data::ChannelId id = multiplexer.AllocateChannelId(0);
-            auto ch = multiplexer.GetOrCreateChannel(id, 0);
+            data::ChannelId id = multiplexer.AllocateConcatChannelId(0);
+            auto ch = multiplexer.GetOrCreateConcatChannel(id, 0);
             ch->Scatter<std::string>(file, { 2 });
 
             // check that got items
@@ -276,8 +276,8 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             }
 
             // scatter File contents via channel: only items [0,2) are to local worker
-            data::ChannelId id = multiplexer.AllocateChannelId(0);
-            auto ch = multiplexer.GetOrCreateChannel(id, 0);
+            data::ChannelId id = multiplexer.AllocateConcatChannelId(0);
+            auto ch = multiplexer.GetOrCreateConcatChannel(id, 0);
             ch->Scatter<std::string>(file, { 2, 2 });
 
             // check that got items
@@ -296,8 +296,8 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             }
 
             // scatter File contents via channel: only items [0,3) are to local worker
-            data::ChannelId id = multiplexer.AllocateChannelId(0);
-            auto ch = multiplexer.GetOrCreateChannel(id, 0);
+            data::ChannelId id = multiplexer.AllocateConcatChannelId(0);
+            auto ch = multiplexer.GetOrCreateConcatChannel(id, 0);
             ch->Scatter<std::string>(file, { 0, 3 });
 
             // check that got items
@@ -318,8 +318,8 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   }
 
                   // scatter File contents via channel.
-                  data::ChannelId id = multiplexer.AllocateChannelId(0);
-                  auto ch = multiplexer.GetOrCreateChannel(id, 0);
+                  data::ChannelId id = multiplexer.AllocateConcatChannelId(0);
+                  auto ch = multiplexer.GetOrCreateConcatChannel(id, 0);
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
@@ -337,8 +337,8 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   }
 
                   // scatter File contents via channel.
-                  data::ChannelId id = multiplexer.AllocateChannelId(0);
-                  auto ch = multiplexer.GetOrCreateChannel(id, 0);
+                  data::ChannelId id = multiplexer.AllocateConcatChannelId(0);
+                  auto ch = multiplexer.GetOrCreateConcatChannel(id, 0);
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
@@ -359,8 +359,8 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   }
 
                   // scatter File contents via channel.
-                  data::ChannelId id = multiplexer.AllocateChannelId(0);
-                  auto ch = multiplexer.GetOrCreateChannel(id, 0);
+                  data::ChannelId id = multiplexer.AllocateConcatChannelId(0);
+                  auto ch = multiplexer.GetOrCreateConcatChannel(id, 0);
                   ch->Scatter<int>(file, { 2, 2, 2 });
 
                   // check that got items
@@ -379,8 +379,8 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   }
 
                   // scatter File contents via channel.
-                  data::ChannelId id = multiplexer.AllocateChannelId(0);
-                  auto ch = multiplexer.GetOrCreateChannel(id, 0);
+                  data::ChannelId id = multiplexer.AllocateConcatChannelId(0);
+                  auto ch = multiplexer.GetOrCreateConcatChannel(id, 0);
                   ch->Scatter<int>(file, { 0, 2, 4 });
 
                   // check that got items
@@ -392,8 +392,8 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   data::File file(multiplexer.block_pool());
 
                   // scatter File contents via channel.
-                  data::ChannelId id = multiplexer.AllocateChannelId(0);
-                  auto ch = multiplexer.GetOrCreateChannel(id, 0);
+                  data::ChannelId id = multiplexer.AllocateConcatChannelId(0);
+                  auto ch = multiplexer.GetOrCreateConcatChannel(id, 0);
                   ch->Scatter<int>(file, { 0, 0, 0 });
 
                   // check that got items

@@ -39,7 +39,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::
     for (int i = 0; i < iterations; i++) {
         StatsTimer<true> write_timer;
         pool.Enqueue([&data, &ctx1, &write_timer]() {
-                         auto channel = ctx1.GetNewChannel();
+                         auto channel = ctx1.GetNewConcatChannel();
                          auto writers = channel->OpenWriters();
                          assert(writers.size() == 2);
                          write_timer.Start();
@@ -54,7 +54,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::
 
         StatsTimer<true> read_timer;
         pool.Enqueue([&ctx2, &read_timer]() {
-                         auto channel = ctx2.GetNewChannel();
+                         auto channel = ctx2.GetNewConcatChannel();
                          auto readers = channel->OpenReaders();
                          assert(readers.size() == 2);
                          auto& reader = readers[0];

@@ -39,7 +39,7 @@ public:
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           target_id_(target_id),
           out_vector_(out_vector),
-          channel_(parent.ctx().GetNewChannel()),
+          channel_(parent.ctx().GetNewConcatChannel()),
           emitters_(channel_->OpenWriters())
     {
         assert(target_id_ < context_.num_workers());
@@ -80,8 +80,8 @@ private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::ChannelPtr channel_;
-    std::vector<data::Channel::Writer> emitters_;
+    data::ConcatChannelPtr channel_;
+    std::vector<data::ConcatChannel::Writer> emitters_;
 };
 
 /*!

@@ -8,7 +8,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/data/channel.hpp>
+#include <thrill/data/channel_base.hpp>
+#include <thrill/data/concat_channel.hpp>
 #include <thrill/data/multiplexer.hpp>
 
 #include <algorithm>
@@ -16,12 +17,9 @@
 namespace thrill {
 namespace data {
 
-class ChannelSet;
-using ChannelSetPtr = std::shared_ptr<ChannelSet>;
-
 Multiplexer::~Multiplexer() {
     // close all still open Channels
-    for (auto& ch : channel_sets_.map())
+    for (auto& ch : concat_channel_sets_.map())
         ch.second->Close();
 
     // terminate dispatcher, this waits for unfinished AsyncWrites.
@@ -30,8 +28,10 @@ Multiplexer::~Multiplexer() {
     group_.Close();
 }
 
-ChannelPtr Multiplexer::_GetOrCreateChannel(size_t id, size_t local_worker_id) {
-    ChannelSetPtr set = channel_sets_.GetOrCreate(id, *this, id, num_workers_per_host_);
+ConcatChannelPtr
+Multiplexer::_GetOrCreateConcatChannel(size_t id, size_t local_worker_id) {
+    ConcatChannelSetPtr set =
+        concat_channel_sets_.GetOrCreate(id, *this, id, num_workers_per_host_);
     return set->peer(local_worker_id);
 }
 
@@ -39,14 +39,14 @@ ChannelPtr Multiplexer::_GetOrCreateChannel(size_t id, size_t local_worker_id) {
 
 //! expects the next ChannelBlockHeader from a socket and passes to
 //! OnChannelBlockHeader
-void Multiplexer::AsyncReadChannelBlockHeader(Connection& s) {
+void Multiplexer::AsyncReadBlockHeader(Connection& s) {
     dispatcher_.AsyncRead(
-        s, sizeof(ChannelBlockHeader),
+        s, BlockHeader::total_size,
         net::AsyncReadCallback::from<
-            Multiplexer, & Multiplexer::OnChannelBlockHeader>(this));
+            Multiplexer, & Multiplexer::OnBlockHeader>(this));
 }
 
-void Multiplexer::OnChannelBlockHeader(Connection& s, net::Buffer&& buffer) {
+void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
 
     // received invalid Buffer: the connection has closed?
     if (!buffer.IsValid()) return;
@@ -58,14 +58,14 @@ void Multiplexer::OnChannelBlockHeader(Connection& s, net::Buffer&& buffer) {
     // received channel id
     auto id = header.channel_id;
     auto local_worker = header.receiver_local_worker_id;
-    ChannelPtr channel = GetOrCreateChannel(id, local_worker);
+    ConcatChannelPtr channel = GetOrCreateConcatChannel(id, local_worker);
 
     size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
     if (header.IsEnd()) {
         sLOG << "end of stream on" << s << "in channel" << id << "from worker" << sender_worker_rank;
         channel->OnCloseChannel(sender_worker_rank);
 
-        AsyncReadChannelBlockHeader(s);
+        AsyncReadBlockHeader(s);
     }
     else {
         sLOG << "stream header from" << s << "on channel" << id
@@ -76,14 +76,14 @@ void Multiplexer::OnChannelBlockHeader(Connection& s, net::Buffer&& buffer) {
         dispatcher_.AsyncRead(
             s, bytes,
             [this, header, channel, bytes](Connection& s) {
-                OnChannelBlock(s, header, channel, bytes);
+                OnConcatChannelBlock(s, header, channel, bytes);
             });
     }
 }
 
-void Multiplexer::OnChannelBlock(
-    Connection& s, const ChannelBlockHeader& header, const ChannelPtr& channel,
-    const ByteBlockPtr& bytes) {
+void Multiplexer::OnConcatChannelBlock(
+    Connection& s, const ChannelBlockHeader& header,
+    const ConcatChannelPtr& channel, const ByteBlockPtr& bytes) {
 
     size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
     sLOG << "got block on" << s << "in channel" << header.channel_id << "from worker" << sender_worker_rank;
@@ -92,11 +92,13 @@ void Multiplexer::OnChannelBlock(
         sender_worker_rank,
         Block(bytes, 0, header.size, header.first_item, header.num_items));
 
-    AsyncReadChannelBlockHeader(s);
+    AsyncReadBlockHeader(s);
 }
 
-BlockQueue* Multiplexer::loopback(size_t channel_id, size_t from_worker_id, size_t to_worker_id) {
-    return channel_sets_.GetOrDie(channel_id)->peer(to_worker_id)->loopback_queue(from_worker_id);
+BlockQueue* Multiplexer::loopback(
+    size_t channel_id, size_t from_worker_id, size_t to_worker_id) {
+    return concat_channel_sets_.GetOrDie(channel_id)
+           ->peer(to_worker_id)->loopback_queue(from_worker_id);
 }
 
 } // namespace data
