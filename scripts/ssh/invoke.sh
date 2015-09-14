@@ -11,14 +11,13 @@ OPTIND=1
 
 # Initialize default vals
 copy=0
-bwcluster=0
 verbose=1
 dir=
 user=$(whoami)
 
 . ${cluster}/thrill-env.sh
 
-while getopts "u:h:H:cvC:p:" opt; do
+while getopts "u:h:H:cvC" opt; do
     case "$opt" in
     h)
         # this overrides the user environment variable
@@ -39,8 +38,6 @@ while getopts "u:h:H:cvC:p:" opt; do
         dir=/tmp/
         ;;
     C)  dir=$OPTARG
-        ;;
-    p)  bwcluster=1
         ;;
     :)
         echo "Option -$OPTARG requires an argument." >&2
@@ -130,17 +127,10 @@ for hostport in $THRILL_SSHLIST; do
             "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
       ) &
   else
-      if [ $bwcluster -ne 0 ]; then
-          ssh \
-              -o BatchMode=yes -o StrictHostKeyChecking=no \
-              $host \
-              "module load compiler/gnu/5.2 && export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\" && cd $dir && $cmd $* &" &
-      else
-          ssh \
-              -o BatchMode=yes -o StrictHostKeyChecking=no \
-              $host \
-              "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $* &" &
-      fi
+      ssh \
+          -o BatchMode=yes -o StrictHostKeyChecking=no \
+          $host \
+          "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $* &" &
   fi
   rank=$((rank+1))
 done
