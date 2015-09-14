@@ -55,7 +55,14 @@ struct Multiplexer : public::testing::Test {
             // calculate number of threads
             (f1 ? 1 : 0) + (f2 ? 1 : 0) + (f3 ? 1 : 0),
             [=](net::Group* g) {
-                FunctionSelect(g, f1, f2, f3);
+                try {
+                    FunctionSelect(g, f1, f2, f3);
+                }
+                catch (std::exception& e) {
+                    LOG1 << "Caught exception " << typeid(e).name();
+                    LOG1 << "  what(): " << e.what();
+                    throw;
+                }
             });
     }
 };
@@ -96,6 +103,7 @@ void TalkAllToAllViaConcatChannel(net::Group* net) {
             }
 
             writers[tgt].Flush();
+            writers[tgt].Close();
         }
 
         // open Readers and receive message from all workers
