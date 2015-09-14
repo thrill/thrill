@@ -23,7 +23,6 @@
 #include <vector>
 
 using namespace thrill;      // NOLINT
-using namespace thrill::net::collective;
 
 //! do nothing but terminate, this check construction and destruction.
 static void TestNoOperation(net::Group*) { }
@@ -93,22 +92,25 @@ static void TestSendReceiveAll2All(net::Group* net) {
     }
 }
 
+/******************************************************************************/
+// Collective Tests
+
 //! let group of p hosts perform a PrefixSum collective
-static void TestPrefixSumForPowersOfTwo(net::Group* net) {
+static void TestPrefixSumHypercube(net::Group* net) {
     // only for powers of two
 
 // if (net->num_hosts() != common::RoundUpToPowerOfTwo(net->num_hosts()))
 //    return;
 
     size_t local_value = 10 + net->my_host_rank();
-    PrefixSumForPowersOfTwo(*net, local_value);
+    net::collective::PrefixSumHypercube(*net, local_value);
     ASSERT_EQ(
         (net->my_host_rank() + 1) * 10 +
         net->my_host_rank() * (net->my_host_rank() + 1) / 2, local_value);
 }
 
 //! let group of p hosts perform a PrefixSum collective on std::string
-static void TestPrefixSumForPowersOfTwoString(net::Group* net) {
+static void TestPrefixSumHypercubeString(net::Group* net) {
     // only for powers of two
 
     static const bool debug = false;
@@ -119,43 +121,10 @@ static void TestPrefixSumForPowersOfTwoString(net::Group* net) {
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
 
     std::string local_value = result.substr(net->my_host_rank(), 1);
-    PrefixSumForPowersOfTwo(*net, local_value);
+    net::collective::PrefixSumHypercube(*net, local_value);
     sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
          << "value" << local_value;
     ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
-}
-
-// let group of p hosts perform an ReduceToRoot collective
-static void TestReduceToRoot(net::Group* net) {
-    size_t local_value = net->my_host_rank();
-    ReduceToRoot(*net, local_value);
-    if (net->my_host_rank() == 0)
-        ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
-}
-
-//! let group of p hosts perform a ReduceToRoot collective on std::string
-static void TestReduceToRootString(net::Group* net) {
-    const std::string result = "abcdefghijklmnopqrstuvwxyz";
-    std::string local_value = result.substr(net->my_host_rank(), 1);
-    ReduceToRoot(*net, local_value);
-    if (net->my_host_rank() == 0)
-        ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
-}
-
-//! construct group of p workers which perform an Broadcast collective
-static void TestBroadcast(net::Group* net) {
-    size_t local_value;
-    if (net->my_host_rank() == 0) local_value = 42;
-    Broadcast(*net, local_value);
-    ASSERT_EQ(42u, local_value);
-    // repeat with a different value.
-    local_value = net->my_host_rank() == 0 ? 6 * 9 : 0;
-    Broadcast(*net, local_value);
-    ASSERT_EQ(6 * 9u, local_value);
-    // check trivial broadcast
-    local_value = net->my_host_rank() == 0 ? 5 : 0;
-    BroadcastTrivial(*net, local_value);
-    ASSERT_EQ(5u, local_value);
 }
 
 //! let group of p hosts perform a PrefixSum collective on std::string
@@ -165,10 +134,62 @@ static void TestPrefixSum(net::Group* net) {
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
 
     std::string local_value = result.substr(net->my_host_rank(), 1);
-    PrefixSum(*net, local_value);
+    net::collective::PrefixSum(*net, local_value);
     sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
          << "value" << local_value;
     ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
+}
+
+//! construct group of p workers which perform an Broadcast collective
+static void TestBroadcast(net::Group* net) {
+    size_t local_value;
+    if (net->my_host_rank() == 0) local_value = 42;
+    net::collective::Broadcast(*net, local_value);
+    ASSERT_EQ(42u, local_value);
+    // repeat with a different value.
+    local_value = net->my_host_rank() == 0 ? 6 * 9 : 0;
+    net::collective::Broadcast(*net, local_value);
+    ASSERT_EQ(6 * 9u, local_value);
+    // check trivial broadcast
+    local_value = net->my_host_rank() == 0 ? 5 : 0;
+    net::collective::BroadcastTrivial(*net, local_value);
+    ASSERT_EQ(5u, local_value);
+}
+
+// let group of p hosts perform an ReduceToRoot collective
+static void TestReduceToRoot(net::Group* net) {
+    size_t local_value = net->my_host_rank();
+    net::collective::ReduceToRoot(*net, local_value);
+    if (net->my_host_rank() == 0)
+        ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
+}
+
+//! let group of p hosts perform a ReduceToRoot collective on std::string
+static void TestReduceToRootString(net::Group* net) {
+    const std::string result = "abcdefghijklmnopqrstuvwxyz";
+    std::string local_value = result.substr(net->my_host_rank(), 1);
+    net::collective::ReduceToRoot(*net, local_value);
+    if (net->my_host_rank() == 0)
+        ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
+}
+
+//! let group of p hosts perform a AllReduce collective on std::string
+static void TestAllReduceString(net::Group* net) {
+    const std::string result = "abcdefghijklmnopqrstuvwxyz";
+    std::string local_value = result.substr(net->my_host_rank(), 1);
+    net::collective::AllReduce(*net, local_value);
+    ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
+}
+
+//! let group of p hosts perform a AllReduce collective on std::string
+static void TestAllReduceHypercubeString(net::Group* net) {
+    if (net->num_hosts() != common::RoundUpToPowerOfTwo(net->num_hosts()))
+        return;
+
+    const std::string result = "abcdefghijklmnopqrstuvwxyz";
+    std::string local_value = result.substr(net->my_host_rank(), 1);
+    net::collective::AllReduceHypercube(*net, local_value);
+    ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
 }
 
 /******************************************************************************/

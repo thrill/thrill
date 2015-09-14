@@ -29,6 +29,63 @@ namespace collective {
 //! \addtogroup net Network Communication
 //! \{
 
+/******************************************************************************/
+// Prefixsum Algorithms
+
+/*!
+ * Calculate for every worker his prefix sum.
+ *
+ * The prefix sum is the aggregation of the values of all workers with lesser
+ * index, including himself, according to a summation operator. The run-time is
+ * in O(log n).
+ *
+ * \param net The current worker onto which to apply the operation
+ * \param value The value to be summed up
+ * \param sum_op A custom summation operator
+ */
+template <typename T, typename BinarySumOp = std::plus<T> >
+static inline
+void PrefixSum(
+    Group& net, T& value,
+    BinarySumOp sum_op = BinarySumOp(), bool inclusive = true) {
+    static const bool debug = false;
+
+    bool first = true;
+    // Use a copy, in case of exclusive, we have to forward
+    // something that's not our result.
+    T to_forward = value;
+
+    // This is based on the pointer-doubling algorithm presented in the ParAlg
+    // script, which is used for list ranking.
+    for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
+
+        if (net.my_host_rank() + d < net.num_hosts()) {
+            sLOG << "Worker" << net.my_host_rank()
+                 << ": sending to" << net.my_host_rank() + d;
+            net.SendTo(net.my_host_rank() + d, to_forward);
+        }
+
+        if (net.my_host_rank() >= d) {
+            T recv_value;
+            net.ReceiveFrom(net.my_host_rank() - d, &recv_value);
+            sLOG << "Worker" << net.my_host_rank()
+                 << ": receiving " << recv_value
+                 << " from" << net.my_host_rank() - d;
+
+            // Take care of order, so we don't break associativity.
+            to_forward = sum_op(recv_value, to_forward);
+
+            if (!first || inclusive) {
+                value = sum_op(recv_value, value);
+            }
+            else {
+                value = recv_value;
+                first = false;
+            }
+        }
+    }
+}
+
 /*!
  * \brief Calculate for every worker his prefix sum. Works only for worker
  * numbers which are powers of two.
@@ -44,7 +101,8 @@ namespace collective {
  * \param sum_op A custom summation operator
  */
 template <typename T, typename BinarySumOp = std::plus<T> >
-static inline void PrefixSumForPowersOfTwo(
+static inline
+void PrefixSumHypercube(
     Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     T total_sum = value;
 
@@ -86,36 +144,8 @@ static inline void PrefixSumForPowersOfTwo(
          << ": value after prefix sum =" << value;
 }
 
-/*!
- * \brief Perform a reduce to the worker with index 0.
- *
- * \details This function aggregates the values of all workers according to a
- * summation operator and sends the aggregate to the root, which is the worker
- * with index 0.
- *
- * \param net The current worker onto which to apply the operation
- *
- * \param value The value to be added to the aggregation
- *
- * \param sum_op A custom summation operator
- */
-template <typename T, typename BinarySumOp = std::plus<T> >
-static inline void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
-    bool active = true;
-    for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
-        if (active) {
-            if (net.my_host_rank() & d) {
-                net.SendTo(net.my_host_rank() - d, value);
-                active = false;
-            }
-            else if (net.my_host_rank() + d < net.num_hosts()) {
-                T recv_data;
-                net.ReceiveFrom(net.my_host_rank() + d, &recv_data);
-                value = sum_op(value, recv_data);
-            }
-        }
-    }
-}
+/******************************************************************************/
+// Broadcast Algorithms
 
 /*!
  * Broadcasts the value of the peer with index 0 to all the others. This is a
@@ -126,7 +156,8 @@ static inline void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = Binar
  * \param value The value to be broadcast / receive into.
  */
 template <typename T>
-static inline void BroadcastTrivial(Group& net, T& value) {
+static inline
+void BroadcastTrivial(Group& net, T& value) {
 
     if (net.my_host_rank() == 0) {
         // send value to all peers
@@ -149,6 +180,7 @@ static inline void BroadcastTrivial(Group& net, T& value) {
  * \param value The value to be broadcast / receive into.
  */
 template <typename T>
+static inline
 void BroadcastBinomialTree(Group& net, T& value) {
     static const bool debug = false;
 
@@ -186,9 +218,48 @@ void BroadcastBinomialTree(Group& net, T& value) {
  * \param value The value to be broadcast / receive into.
  */
 template <typename T>
+static inline
 void Broadcast(Group& net, T& value) {
     return BroadcastBinomialTree(net, value);
 }
+
+/******************************************************************************/
+// Reduce Algorithms
+
+/*!
+ * \brief Perform a reduce to the worker with index 0.
+ *
+ * \details This function aggregates the values of all workers according to a
+ * summation operator and sends the aggregate to the root, which is the worker
+ * with index 0.
+ *
+ * \param net The current worker onto which to apply the operation
+ *
+ * \param value The value to be added to the aggregation
+ *
+ * \param sum_op A custom summation operator
+ */
+template <typename T, typename BinarySumOp = std::plus<T> >
+static inline
+void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
+    bool active = true;
+    for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
+        if (active) {
+            if (net.my_host_rank() & d) {
+                net.SendTo(net.my_host_rank() - d, value);
+                active = false;
+            }
+            else if (net.my_host_rank() + d < net.num_hosts()) {
+                T recv_data;
+                net.ReceiveFrom(net.my_host_rank() + d, &recv_data);
+                value = sum_op(value, recv_data);
+            }
+        }
+    }
+}
+
+/******************************************************************************/
+// AllReduce Algorithms
 
 //! \brief   Perform an All-Reduce on the workers.
 //! \details This is done by aggregating all values according to a summation
@@ -198,7 +269,8 @@ void Broadcast(Group& net, T& value) {
 //! \param   value The value to be added to the aggregation
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-static inline void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static inline
+void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     ReduceToRoot(net, value, sumOp);
     Broadcast(net, value);
 }
@@ -210,7 +282,8 @@ static inline void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySum
 //! \param   value The value to be added to the aggregation
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-static inline void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static inline
+void AllReduceHypercube(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
@@ -220,7 +293,8 @@ static inline void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sum
         // Send value to worker with id id ^ d
         if ((net.my_host_rank() ^ d) < net.num_hosts()) {
             net.connection(net.my_host_rank() ^ d).Send(value);
-            sLOG << "ALL_REDUCE_HYPERCUBE: Worker" << net.my_host_rank() << ": Sending" << value
+            sLOG << "ALL_REDUCE_HYPERCUBE: Worker" << net.my_host_rank()
+                 << ": Sending" << value
                  << "to worker" << (net.my_host_rank() ^ d) << "\n";
         }
 
@@ -229,85 +303,14 @@ static inline void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sum
         if ((net.my_host_rank() ^ d) < net.num_hosts()) {
             net.connection(net.my_host_rank() ^ d).Receive(&recv_data);
             value = sumOp(value, recv_data);
-            sLOG << "ALL_REDUCE_HYPERCUBE: Worker " << net.my_host_rank() << ": Received " << recv_data
+            sLOG << "ALL_REDUCE_HYPERCUBE: Worker " << net.my_host_rank()
+                 << ": Received " << recv_data
                  << " from worker " << (net.my_host_rank() ^ d)
                  << " value = " << value << "\n";
         }
     }
 
     sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value << "\n";
-}
-
-#if DISABLE_MAYBE_REMOVE
-//! \brief   Perform a barrier for all workers.
-//! \details All workers synchronize to this point. This operation can be used if
-//!          one wants to be sure that all workers continue their operation
-//!          synchronously after this point.
-//!
-//! \param   mtx A common mutex onto which to lock
-//! \param   cv  A condition variable which locks on the given mutex
-//! \param   num_workers The total number of workers in the network
-static inline void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_workers) {
-    std::unique_lock<std::mutex> lck(mtx);
-    if (num_workers > 1) {
-        --num_workers;
-        while (num_workers > 0) cv.wait(lck);
-    }
-    else {
-        --num_workers;
-        cv.notify_all();
-    }
-}
-#endif
-
-//! \brief   Calculate for every worker his prefix sum.
-//! \details The prefix sum is the aggregatation of the values of all workers
-//!          with lesser index, including himself, according to a summation
-//!          operator. The run-time is in O(log n).
-//!
-//! \param   net The current worker onto which to apply the operation
-//! \param   value The value to be summed up
-//! \param   sum_op A custom summation operator
-template <typename T, typename BinarySumOp = std::plus<T> >
-static inline void PrefixSum(
-    Group& net, T& value,
-    BinarySumOp sum_op = BinarySumOp(), bool inclusive = true) {
-    static const bool debug = false;
-
-    bool first = true;
-    // Use a copy, in case of exclusive, we have to forward
-    // something that's not our result.
-    T to_forward = value;
-
-    // This is based on the pointer-doubling algorithm presented in the ParAlg
-    // script, which is used for list ranking.
-    for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
-
-        if (net.my_host_rank() + d < net.num_hosts()) {
-            sLOG << "Worker" << net.my_host_rank()
-                 << ": sending to" << net.my_host_rank() + d;
-            net.SendTo(net.my_host_rank() + d, to_forward);
-        }
-
-        if (net.my_host_rank() >= d) {
-            T recv_value;
-            net.ReceiveFrom(net.my_host_rank() - d, &recv_value);
-            sLOG << "Worker" << net.my_host_rank()
-                 << ": receiving " << recv_value
-                 << " from" << net.my_host_rank() - d;
-
-            // Take care of order, so we don't break associativity.
-            to_forward = sum_op(recv_value, to_forward);
-
-            if (!first || inclusive) {
-                value = sum_op(recv_value, value);
-            }
-            else {
-                value = recv_value;
-                first = false;
-            }
-        }
-    }
 }
 
 //! \}
