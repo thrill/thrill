@@ -184,7 +184,7 @@ TEST_F(Multiplexer, ReadCompleteConcatChannel) {
     Execute(w0, w1, w2);
 }
 
-TEST_F(Multiplexer, ReadCompleteConcatChannelTwice) {
+TEST_F(Multiplexer, ReadCompleteConcatChannelManyTimes) {
     auto w0 = [](data::Multiplexer& multiplexer) {
                   auto id = multiplexer.AllocateConcatChannelId(0);
                   auto c = multiplexer.GetOrCreateConcatChannel(id, 0);
@@ -218,7 +218,16 @@ TEST_F(Multiplexer, ReadCompleteConcatChannelTwice) {
                       sLOG << "close worker";
                       w.Close();
                   }
-
+                  {
+                      auto reader = c->OpenConcatReader(false);
+                      ASSERT_EQ("I came from worker 0",
+                                reader.Next<std::string>());
+                      ASSERT_EQ("I am another message from worker 0",
+                                reader.Next<std::string>());
+                      ASSERT_EQ("I came from worker 1",
+                                reader.Next<std::string>());
+                      ASSERT_TRUE(!reader.HasNext());
+                  }
                   {
                       auto reader = c->OpenConcatReader(false);
                       ASSERT_EQ("I came from worker 0",

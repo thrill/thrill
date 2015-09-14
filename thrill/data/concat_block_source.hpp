@@ -32,9 +32,21 @@ template <typename BlockSource>
 class ConcatBlockSource
 {
 public:
+    //! default constructor
+    ConcatBlockSource() = default;
+
     //! Construct a BlockSource which concatenates many other BlockSources.
     explicit ConcatBlockSource(std::vector<BlockSource>&& sources)
         : sources_(std::move(sources)) { }
+
+    //! non-copyable: delete copy-constructor
+    ConcatBlockSource(const ConcatBlockSource&) = delete;
+    //! non-copyable: delete assignment operator
+    ConcatBlockSource& operator = (const ConcatBlockSource&) = delete;
+    //! move-constructor: default
+    ConcatBlockSource(ConcatBlockSource&&) = default;
+    //! move-assignment operator: default
+    ConcatBlockSource& operator = (ConcatBlockSource&&) = default;
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
