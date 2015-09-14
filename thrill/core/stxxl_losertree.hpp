@@ -25,17 +25,6 @@ namespace core {
 
 namespace stxxl {
 
-class noncopyable
-{
-protected:
-    noncopyable() { }
-
-private:
-    // copying and assignment is not allowed
-    noncopyable(const noncopyable&);
-    const noncopyable& operator = (const noncopyable&);
-};
-
 
 template <typename Integral>
 static inline Integral round_up_to_power_of_two(Integral n)
@@ -740,7 +729,7 @@ public:
  * This is a very fast variant.
  */
 template <typename ValueType, typename Comparator = std::less<ValueType> >
-class LoserTreeCopyUnguardedBase : private noncopyable
+class LoserTreeCopyUnguardedBase
 {
 protected:
     //! Internal representation of a loser tree player/node
@@ -780,6 +769,11 @@ public:
     {
         delete[] losers;
     }
+
+    // non construction-copyable
+    LoserTreeCopyUnguardedBase( const LoserTreeCopyUnguardedBase& other ) = delete;
+    // non copyable
+    LoserTreeCopyUnguardedBase& operator=( const LoserTreeCopyUnguardedBase& ) = delete;
 
     void print(std::ostream& os)
     {
@@ -919,7 +913,7 @@ public:
  * This is a very fast variant.
  */
 template <typename ValueType, typename Comparator = std::less<ValueType> >
-class LoserTreePointerUnguardedBase : private noncopyable
+class LoserTreePointerUnguardedBase
 {
 protected:
     //! Internal representation of a loser tree player/node
@@ -959,6 +953,12 @@ public:
     {
         delete[] losers;
     }
+
+    // non construction-copyable
+    LoserTreePointerUnguardedBase( const LoserTreePointerUnguardedBase& other ) = delete;
+    // non copyable
+    LoserTreePointerUnguardedBase& operator=( const LoserTreePointerUnguardedBase& ) = delete;
+
 
     void print(std::ostream& os)
     {
