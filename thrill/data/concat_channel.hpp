@@ -155,7 +155,7 @@ public:
     ConcatBlockReader OpenConcatReader(bool consume) {
         rx_timespan_.StartEventually();
 
-        // construct vector of CachingBlockQueueSources to read from queues_.
+        // construct vector of BlockSources to read from queues_.
         std::vector<DynBlockSource> result;
         for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
             result.emplace_back(queues_[worker].GetBlockSource(consume));
@@ -282,8 +282,8 @@ protected:
     //! \param from the worker rank (host rank * num_workers/host + worker id)
     void OnCloseChannel(size_t from) {
         assert(from < queues_.size());
-        assert(!queues_[from].write_closed());
         queues_[from].Close();
+
         if (expected_closing_blocks_ == ++received_closing_blocks_) {
             rx_lifetime_.StopEventually();
             rx_timespan_.StopEventually();
