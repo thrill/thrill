@@ -267,11 +267,11 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
 //!
 //! \param   net The current worker onto which to apply the operation
 //! \param   value The value to be added to the aggregation
-//! \param   sumOp A custom summation operator
+//! \param   sum_op A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
 static inline
-void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
-    ReduceToRoot(net, value, sumOp);
+void AllReduce(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
+    ReduceToRoot(net, value, sum_op);
     Broadcast(net, value);
 }
 
@@ -280,37 +280,45 @@ void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //!
 //! \param   net The current worker onto which to apply the operation
 //! \param   value The value to be added to the aggregation
-//! \param   sumOp A custom summation operator
+//! \param   sum_op A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
 static inline
-void AllReduceHypercube(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+void AllReduceHypercube(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
     static const bool debug = false;
 
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
+        // communication peer for this round (hypercube dimension)
+        size_t peer = net.my_host_rank() ^ d;
+
         // Send value to worker with id id ^ d
-        if ((net.my_host_rank() ^ d) < net.num_hosts()) {
-            net.connection(net.my_host_rank() ^ d).Send(value);
+        if (peer < net.num_hosts()) {
+            net.connection(peer).Send(value);
             sLOG << "ALL_REDUCE_HYPERCUBE: Worker" << net.my_host_rank()
-                 << ": Sending" << value
-                 << "to worker" << (net.my_host_rank() ^ d) << "\n";
+                 << ": Sending" << value << "to worker" << peer;
         }
 
         // Receive value from worker with id id ^ d
         T recv_data;
-        if ((net.my_host_rank() ^ d) < net.num_hosts()) {
-            net.connection(net.my_host_rank() ^ d).Receive(&recv_data);
-            value = sumOp(value, recv_data);
+        if (peer < net.num_hosts()) {
+            net.connection(peer).Receive(&recv_data);
+
+            // The order of addition is important. The total sum of the smaller
+            // hypercube always comes first.
+            if (net.my_host_rank() & d)
+                value = sum_op(recv_data, value);
+            else
+                value = sum_op(value, recv_data);
+
             sLOG << "ALL_REDUCE_HYPERCUBE: Worker " << net.my_host_rank()
                  << ": Received " << recv_data
-                 << " from worker " << (net.my_host_rank() ^ d)
-                 << " value = " << value << "\n";
+                 << " from worker " << peer << " value = " << value;
         }
     }
 
-    sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value << "\n";
+    sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value;
 }
 
 //! \}
