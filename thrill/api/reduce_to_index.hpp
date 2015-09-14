@@ -96,7 +96,7 @@ public:
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(parent.ctx().GetNewConcatChannel()),
+          channel_(parent.ctx().GetNewMixedChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6,
@@ -158,7 +158,7 @@ public:
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            auto reader = channel_->OpenConcatReader(consume);
+            auto reader = channel_->OpenMixedReader(consume);
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
@@ -167,7 +167,7 @@ public:
         }
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            auto reader = channel_->OpenConcatReader(consume);
+            auto reader = channel_->OpenMixedReader(consume);
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
@@ -199,9 +199,9 @@ private:
     //! Reduce function
     ReduceFunction reduce_function_;
 
-    data::ConcatChannelPtr channel_;
+    data::MixedChannelPtr channel_;
 
-    std::vector<data::ConcatChannel::Writer> emitters_;
+    std::vector<data::MixedChannel::Writer> emitters_;
 
     PreHashTable reduce_pre_table_;
 
