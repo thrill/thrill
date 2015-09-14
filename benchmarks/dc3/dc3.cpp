@@ -340,23 +340,31 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
         .template FlatWindow<IndexChars>(
             3, [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 if (index % 3 != 0)
-                    emit(IndexChars { index, { rb[0], rb[1], rb[2] }
+                    emit(IndexChars { index, {
+                                          { rb[0], rb[1], rb[2] }
+                                      }
                          });
 
                 if (index == input_size - 3) {
                     // emit last sentinel items.
                     if ((index + 1) % 3 != 0)
-                        emit(IndexChars { index + 1, { rb[1], rb[2], Char() }
+                        emit(IndexChars { index + 1, {
+                                              { rb[1], rb[2], Char() }
+                                          }
                              });
                     if ((index + 2) % 3 != 0)
-                        emit(IndexChars { index + 2, { rb[2], Char(), Char() }
+                        emit(IndexChars { index + 2, {
+                                              { rb[2], Char(), Char() }
+                                          }
                              });
 
                     if (input_size % 3 == 1) {
                         // emit a sentinel tuple for inputs n % 3 == 1 to
                         // separate mod1 and mod2 strings in recursive
                         // subproblem. example which needs this: aaaaaaaaaa.
-                        emit(IndexChars { index + 3, { Char(), Char(), Char() }
+                        emit(IndexChars { index + 3, {
+                                              { Char(), Char(), Char() }
+                                          }
                              });
                     }
                 }

@@ -523,7 +523,7 @@ private:
                 }
 
                 if (debug) {
-                    assert(old_width >= width[s][p]);
+                    die_unless(old_width >= width[s][p]);
                 }
             }
         }

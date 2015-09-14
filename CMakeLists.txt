@@ -246,8 +246,12 @@ enable_testing()
 
 # this fixes compilation with static libs on MSVC
 set(gtest_force_shared_crt ON CACHE BOOL "on" FORCE)
+# silence some warnings
+set(GTEST_SAVE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated")
 add_subdirectory(extlib/googletest/googletest)
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+set(CMAKE_CXX_FLAGS "${GTEST_SAVE_CXX_FLAGS}")
 
 ### general valgrind setting, if run with USE_VALGRIND=ON.
 
@@ -268,7 +272,7 @@ endif()
 ###############################################################################
 # add cereal
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
+include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
 ################################################################################
 ### Find Required Libraries
@@ -296,7 +300,7 @@ elseif(TBB_INTERFACE_VERSION LESS 8000)
     "No problem, using slower replacements.")
   add_definitions(-DTHRILL_HAVE_INTELTBB=0)
 else(NOT TBB_FOUND)
-  include_directories(${TBB_INCLUDE_DIRS})
+  include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
   link_directories(${TBB_LIBRARY_DIRS})
   set(ALL_LIBRARIES ${TBB_LIBRARIES} ${ALL_LIBRARIES})
   add_definitions(-DTHRILL_HAVE_INTELTBB=1)
@@ -310,7 +314,7 @@ if(THRILL_USE_MPI)
   if(NOT MPI_FOUND)
     message(STATUS "No MPI library found. No problem, it is optional.")
   else()
-    include_directories(${MPI_INCLUDE_PATH})
+    include_directories(SYSTEM ${MPI_INCLUDE_PATH})
     set(ALL_LIBRARIES ${MPI_LIBRARIES} ${ALL_LIBRARIES})
     add_definitions(-DTHRILL_HAVE_NET_MPI=1)
   endif()
@@ -319,7 +323,7 @@ endif()
 # example: use Boost libraries:
 
 #find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
-#include_directories(${Boost_INCLUDE_DIRS})
+#include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
