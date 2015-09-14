@@ -17,7 +17,7 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/data/block_pool.hpp>
-#include <thrill/data/channel.hpp>
+#include <thrill/data/concat_channel.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/net/flow_control_channel.hpp>
@@ -222,8 +222,8 @@ public:
     //! Returns a reference to a new Channel.  This method alters the state of
     //! the context and must be called on all Workers to ensure correct
     //! communication coordination.
-    data::ChannelPtr GetNewChannel() {
-        return multiplexer_.GetNewChannel(local_worker_id_);
+    data::ConcatChannelPtr GetNewConcatChannel() {
+        return multiplexer_.GetNewConcatChannel(local_worker_id_);
     }
 
     //! the block manager keeps all data blocks moving through the system.

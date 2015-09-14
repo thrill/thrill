@@ -67,10 +67,10 @@ void ConductExperiment(uint64_t bytes, int iterations,
     offsets.push_back({ 0, (size_t)(data1.size() / 3), data1.size() });
     offsets.push_back({ 0, 0, 0 });
 
-    std::vector<std::shared_ptr<data::Channel> > channels;
-    channels.push_back(ctx0.GetNewChannel());
-    channels.push_back(ctx1.GetNewChannel());
-    channels.push_back(ctx2.GetNewChannel());
+    std::vector<std::shared_ptr<data::ConcatChannel> > channels;
+    channels.push_back(ctx0.GetNewConcatChannel());
+    channels.push_back(ctx1.GetNewConcatChannel());
+    channels.push_back(ctx2.GetNewConcatChannel());
 
     std::vector<StatsTimer<true> > read_timers(3);
     std::vector<StatsTimer<true> > write_timers(3);

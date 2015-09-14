@@ -39,7 +39,7 @@ public:
         : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(in_vector),
           source_id_(source_id),
-          channel_(ctx.GetNewChannel()),
+          channel_(ctx.GetNewConcatChannel()),
           emitters_(channel_->OpenWriters())
     { }
 
@@ -69,7 +69,7 @@ public:
     }
 
     void PushData(bool consume) final {
-        data::Channel::ConcatReader readers = channel_->OpenConcatReader(consume);
+        data::ConcatChannel::ConcatReader readers = channel_->OpenConcatReader(consume);
 
         while (readers.HasNext()) {
             this->PushItem(readers.Next<ValueType>());
@@ -91,8 +91,8 @@ private:
     //! source worker id, which sends vector
     size_t source_id_;
 
-    data::ChannelPtr channel_;
-    std::vector<data::Channel::Writer> emitters_;
+    data::ConcatChannelPtr channel_;
+    std::vector<data::ConcatChannel::Writer> emitters_;
 };
 
 /*!

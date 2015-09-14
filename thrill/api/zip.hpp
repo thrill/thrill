@@ -133,7 +133,7 @@ public:
 
         if (result_size_ != 0) {
             // get inbound readers from all Channels
-            std::vector<data::Channel::ConcatReader> readers;
+            std::vector<data::ConcatChannel::ConcatReader> readers;
             readers.emplace_back(channels_[0]->OpenConcatReader(consume));
             readers.emplace_back(channels_[1]->OpenConcatReader(consume));
 
@@ -180,8 +180,8 @@ private:
         { files_[0].GetWriter(), files_[1].GetWriter() }
     };
 
-    //! Array of inbound Channels
-    std::array<data::ChannelPtr, num_inputs_> channels_;
+    //! Array of inbound ConcatChannels
+    std::array<data::ConcatChannelPtr, num_inputs_> channels_;
 
     //! \name Variables for Calculating Exchange
     //! \{
@@ -242,7 +242,7 @@ private:
         }
 
         //! target channel id
-        channels_[in] = context_.GetNewChannel();
+        channels_[in] = context_.GetNewConcatChannel();
 
         //! scatter elements to other workers, if necessary
         channels_[in]->template Scatter<ZipArgNum>(files_[in], offsets);

@@ -64,9 +64,9 @@ public:
              StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           compare_function_(compare_function),
-          channel_id_samples_(parent.ctx().GetNewChannel()),
+          channel_id_samples_(parent.ctx().GetNewConcatChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
-          channel_id_data_(parent.ctx().GetNewChannel()),
+          channel_id_data_(parent.ctx().GetNewConcatChannel()),
           emitters_data_(channel_id_data_->OpenWriters())
     {
         // Hook PreOp(s)
@@ -117,12 +117,12 @@ private:
     std::vector<ValueType> data_;
 
     //! Emitter to send samples to process 0
-    data::ChannelPtr channel_id_samples_;
-    std::vector<data::Channel::Writer> emitters_samples_;
+    data::ConcatChannelPtr channel_id_samples_;
+    std::vector<data::ConcatChannel::Writer> emitters_samples_;
 
     //! Emitters to send data to other workers specified by splitters.
-    data::ChannelPtr channel_id_data_;
-    std::vector<data::Channel::Writer> emitters_data_;
+    data::ConcatChannelPtr channel_id_data_;
+    std::vector<data::ConcatChannel::Writer> emitters_data_;
 
     // epsilon
     static constexpr double desired_imbalance_ = 0.25;

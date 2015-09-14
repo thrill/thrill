@@ -36,7 +36,7 @@ void ExperimentAllPairs(
             // transmit data from worker src -> tgt: only send data if we are
             // tgt, but as tgt receive from all.
 
-            auto channel = ctx.GetNewChannel();
+            auto channel = ctx.GetNewConcatChannel();
 
             // write phase
             StatsTimer<true> write_timer(true);
@@ -97,7 +97,7 @@ void ExperimentFull(
 
     // transmit data to all workers.
 
-    auto channel = ctx.GetNewChannel();
+    auto channel = ctx.GetNewConcatChannel();
 
     // write phase
     StatsTimer<true> write_timer(true);

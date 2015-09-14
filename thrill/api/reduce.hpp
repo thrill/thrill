@@ -89,7 +89,7 @@ public:
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(parent.ctx().GetNewChannel()),
+          channel_(parent.ctx().GetNewConcatChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6)
@@ -175,9 +175,9 @@ private:
     //! Reduce function
     ReduceFunction reduce_function_;
 
-    data::ChannelPtr channel_;
+    data::ConcatChannelPtr channel_;
 
-    std::vector<data::Channel::Writer> emitters_;
+    std::vector<data::ConcatChannel::Writer> emitters_;
 
     core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey,
                          core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;

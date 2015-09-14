@@ -27,9 +27,14 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-class Channel;
-using ChannelPtr = std::shared_ptr<Channel>;
+template <typename Channel>
 class ChannelSet;
+
+class ConcatChannel;
+using ConcatChannelPtr = std::shared_ptr<ConcatChannel>;
+using ConcatChannelSet = ChannelSet<ConcatChannel>;
+using ConcatChannelSetPtr = std::shared_ptr<ConcatChannelSet>;
+
 class BlockQueue;
 
 struct ChannelBlockHeader;
@@ -59,10 +64,10 @@ public:
           dispatcher_(mem_manager, group, "multiplexer"),
           group_(group),
           num_workers_per_host_(num_workers_per_host),
-          channel_sets_(num_workers_per_host) {
+          concat_channel_sets_(num_workers_per_host) {
         for (size_t id = 0; id < group_.num_hosts(); id++) {
             if (id == group_.my_host_rank()) continue;
-            AsyncReadChannelBlockHeader(group_.connection(id));
+            AsyncReadBlockHeader(group_.connection(id));
         }
     }
 
@@ -98,22 +103,22 @@ public:
     BlockPool & block_pool() { return block_pool_; }
 
     //! Allocate the next channel
-    size_t AllocateChannelId(size_t local_worker_id) {
+    size_t AllocateConcatChannelId(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return channel_sets_.AllocateId(local_worker_id);
+        return concat_channel_sets_.AllocateId(local_worker_id);
     }
 
     //! Get channel with given id, if it does not exist, create it.
-    ChannelPtr GetOrCreateChannel(size_t id, size_t local_worker_id) {
+    ConcatChannelPtr GetOrCreateConcatChannel(size_t id, size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateChannel(id, local_worker_id);
+        return _GetOrCreateConcatChannel(id, local_worker_id);
     }
 
     //! Request next channel.
-    ChannelPtr GetNewChannel(size_t local_worker_id) {
+    ConcatChannelPtr GetNewConcatChannel(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateChannel(
-            channel_sets_.AllocateId(local_worker_id), local_worker_id);
+        return _GetOrCreateConcatChannel(
+            concat_channel_sets_.AllocateId(local_worker_id), local_worker_id);
     }
 
 protected:
@@ -139,7 +144,7 @@ protected:
     std::mutex mutex_;
 
     //! friends for access to network components
-    friend class Channel;
+    friend class ConcatChannel;
 
     //! Pointer to queue that is used for communication between two workers on
     //! the same host.
@@ -149,10 +154,10 @@ protected:
 
     /**************************************************************************/
 
-    //! Channels have an ID in block headers. (worker id, channel id)
-    Repository<ChannelSet> channel_sets_;
+    //! ConcatChannels have an ID in block headers. (worker id, channel id)
+    Repository<ConcatChannelSet> concat_channel_sets_;
 
-    ChannelPtr _GetOrCreateChannel(size_t id, size_t local_worker_id);
+    ConcatChannelPtr _GetOrCreateConcatChannel(size_t id, size_t local_worker_id);
 
     /**************************************************************************/
 
@@ -160,13 +165,13 @@ protected:
 
     //! expects the next ChannelBlockHeader from a socket and passes to
     //! OnChannelBlockHeader
-    void AsyncReadChannelBlockHeader(Connection& s);
+    void AsyncReadBlockHeader(Connection& s);
 
-    void OnChannelBlockHeader(Connection& s, net::Buffer&& buffer);
+    void OnBlockHeader(Connection& s, net::Buffer&& buffer);
 
-    void OnChannelBlock(
-        Connection& s, const ChannelBlockHeader& header, const ChannelPtr& channel,
-        const ByteBlockPtr& bytes);
+    void OnConcatChannelBlock(
+        Connection& s, const ChannelBlockHeader& header,
+        const ConcatChannelPtr& channel, const ByteBlockPtr& bytes);
 };
 
 //! \}
