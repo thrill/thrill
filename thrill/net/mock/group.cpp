@@ -95,7 +95,16 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
             c_lock.unlock();
             d_lock.unlock();
 
-            bool ret = w.read_cb.front()();
+            bool ret = true;
+            try {
+                ret = w.read_cb.front()();
+            }
+            catch (std::exception& e) {
+                LOG1 << "Dispatcher: exception " << typeid(e).name()
+                     << "in read callback.";
+                LOG1 << "  what(): " << e.what();
+                throw;
+            }
 
             d_lock.lock();
             c_lock.lock();
@@ -119,7 +128,16 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
             c_lock.unlock();
             d_lock.unlock();
 
-            bool ret = w.write_cb.front()();
+            bool ret = true;
+            try {
+                ret = w.write_cb.front()();
+            }
+            catch (std::exception& e) {
+                LOG1 << "Dispatcher: exception " << typeid(e).name()
+                     << "in write callback.";
+                LOG1 << "  what(): " << e.what();
+                throw;
+            }
 
             d_lock.lock();
             c_lock.lock();
