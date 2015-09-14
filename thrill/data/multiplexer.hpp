@@ -43,6 +43,7 @@ using MixedChannelSet = ChannelSet<MixedChannel>;
 using MixedChannelSetPtr = std::shared_ptr<MixedChannelSet>;
 
 class BlockQueue;
+class MixedBlockQueueSink;
 
 struct ChannelBlockHeader;
 
@@ -187,7 +188,11 @@ protected:
     //! the same host.
     //! \param from_worker_id is the id of the sending worker
     //! \param to_worker_id is the id of the receiving worker, that owns the queue
-    BlockQueue * ConcatLoopback(size_t channel_id, size_t from_worker_id, size_t to_worker_id);
+    BlockQueue * ConcatLoopback(
+        size_t channel_id, size_t from_worker_id, size_t to_worker_id);
+
+    MixedBlockQueueSink * MixedLoopback(
+        size_t channel_id, size_t from_worker_id, size_t to_worker_id);
 
     /**************************************************************************/
 
@@ -207,9 +212,15 @@ protected:
     //! parses BlockHeader and decides whether to receive Block or close Channel
     void OnBlockHeader(Connection& s, net::Buffer&& buffer);
 
+    //! Receives and dispatches a Block to a ConcatChannel
     void OnConcatChannelBlock(
         Connection& s, const ChannelBlockHeader& header,
         const ConcatChannelPtr& channel, const ByteBlockPtr& bytes);
+
+    //! Receives and dispatches a Block to a MixedChannel
+    void OnMixedChannelBlock(
+        Connection& s, const ChannelBlockHeader& header,
+        const MixedChannelPtr& channel, const ByteBlockPtr& bytes);
 };
 
 //! \}

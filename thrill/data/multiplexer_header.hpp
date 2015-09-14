@@ -29,34 +29,38 @@ namespace data {
 //! \{
 
 enum class MagicByte : uint8_t {
-    CHANNEL_BLOCK, PARTITION_BLOCK
+    INVALID, CONCAT_CHANNEL_BLOCK, MIXED_CHANNEL_BLOCK, PARTITION_BLOCK
 };
 
 struct BlockHeader {
 public:
+    MagicByte           magic = MagicByte::INVALID;
     size_t              size = 0;
     size_t              first_item = 0;
     size_t              num_items = 0;
 
     BlockHeader() = default;
 
-    explicit BlockHeader(const Block& b)
-        : size(b.size()),
+    explicit BlockHeader(MagicByte m, const Block& b)
+        : magic(m),
+          size(b.size()),
           first_item(b.first_item_relative()),
           num_items(b.num_items())
     { }
 
-    static const size_t header_size = 3 * sizeof(size_t);
+    static const size_t header_size = sizeof(MagicByte) + 3 * sizeof(size_t);
 
     static const size_t total_size = header_size + 4 * sizeof(size_t);
 
     void                SerializeBlockHeader(net::BufferBuilder& bb) const {
+        bb.Put<MagicByte>(magic);
         bb.Put<size_t>(size);
         bb.Put<size_t>(first_item);
         bb.Put<size_t>(num_items);
     }
 
     void                ParseBlockHeader(net::BufferReader& br) {
+        magic = br.Get<MagicByte>();
         size = br.Get<size_t>();
         first_item = br.Get<size_t>();
         num_items = br.Get<size_t>();
@@ -77,8 +81,8 @@ struct ChannelBlockHeader : public BlockHeader {
 
     ChannelBlockHeader() = default;
 
-    explicit ChannelBlockHeader(const Block& b)
-        : BlockHeader(b)
+    explicit ChannelBlockHeader(MagicByte m, const Block& b)
+        : BlockHeader(m, b)
     { }
 
     //! Serializes the whole block struct into a buffer
@@ -115,7 +119,7 @@ struct PartitionBlockHeader : public BlockHeader {
     PartitionBlockHeader() = default;
 
     explicit PartitionBlockHeader(const Block& b)
-        : BlockHeader(b)
+        : BlockHeader(MagicByte::PARTITION_BLOCK, b)
     { }
 
     //! Serializes the whole block struct into a buffer

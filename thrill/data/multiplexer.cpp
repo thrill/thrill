@@ -66,28 +66,63 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     header.ParseHeader(br);
 
     // received channel id
-    auto id = header.channel_id;
-    auto local_worker = header.receiver_local_worker_id;
-    ConcatChannelPtr channel = GetOrCreateConcatChannel(id, local_worker);
+    ChannelId id = header.channel_id;
+    size_t local_worker = header.receiver_local_worker_id;
+    size_t sender_worker_rank =
+        header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
 
-    size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
-    if (header.IsEnd()) {
-        sLOG << "end of stream on" << s << "in channel" << id << "from worker" << sender_worker_rank;
-        channel->OnCloseChannel(sender_worker_rank);
+    if (header.magic == MagicByte::CONCAT_CHANNEL_BLOCK)
+    {
+        ConcatChannelPtr channel = GetOrCreateConcatChannel(id, local_worker);
 
-        AsyncReadBlockHeader(s);
+        if (header.IsEnd()) {
+            sLOG << "end of stream on" << s << "in concat channel" << id
+                 << "from worker" << sender_worker_rank;
+
+            channel->OnCloseChannel(sender_worker_rank);
+
+            AsyncReadBlockHeader(s);
+        }
+        else {
+            sLOG << "stream header from" << s << "on concat channel" << id
+                 << "from worker" << sender_worker_rank;
+
+            ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
+
+            dispatcher_.AsyncRead(
+                s, bytes,
+                [this, header, channel, bytes](Connection& s) {
+                    OnConcatChannelBlock(s, header, channel, bytes);
+                });
+        }
+    }
+    else if (header.magic == MagicByte::MIXED_CHANNEL_BLOCK)
+    {
+        MixedChannelPtr channel = GetOrCreateMixedChannel(id, local_worker);
+
+        if (header.IsEnd()) {
+            sLOG << "end of stream on" << s << "in mixed channel" << id
+                 << "from worker" << sender_worker_rank;
+
+            channel->OnCloseChannel(sender_worker_rank);
+
+            AsyncReadBlockHeader(s);
+        }
+        else {
+            sLOG << "stream header from" << s << "on mixed channel" << id
+                 << "from worker" << sender_worker_rank;
+
+            ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
+
+            dispatcher_.AsyncRead(
+                s, bytes,
+                [this, header, channel, bytes](Connection& s) {
+                    OnMixedChannelBlock(s, header, channel, bytes);
+                });
+        }
     }
     else {
-        sLOG << "stream header from" << s << "on channel" << id
-             << "from" << header.sender_rank;
-
-        ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
-
-        dispatcher_.AsyncRead(
-            s, bytes,
-            [this, header, channel, bytes](Connection& s) {
-                OnConcatChannelBlock(s, header, channel, bytes);
-            });
+        die("Invalid magic byte in BlockHeader");
     }
 }
 
@@ -96,7 +131,21 @@ void Multiplexer::OnConcatChannelBlock(
     const ConcatChannelPtr& channel, const ByteBlockPtr& bytes) {
 
     size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
-    sLOG << "got block on" << s << "in channel" << header.channel_id << "from worker" << sender_worker_rank;
+    sLOG << "got block on" << s << "in concat channel" << header.channel_id << "from worker" << sender_worker_rank;
+
+    channel->OnChannelBlock(
+        sender_worker_rank,
+        Block(bytes, 0, header.size, header.first_item, header.num_items));
+
+    AsyncReadBlockHeader(s);
+}
+
+void Multiplexer::OnMixedChannelBlock(
+    Connection& s, const ChannelBlockHeader& header,
+    const MixedChannelPtr& channel, const ByteBlockPtr& bytes) {
+
+    size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
+    sLOG << "got block on" << s << "in mixed channel" << header.channel_id << "from worker" << sender_worker_rank;
 
     channel->OnChannelBlock(
         sender_worker_rank,
@@ -108,6 +157,12 @@ void Multiplexer::OnConcatChannelBlock(
 BlockQueue* Multiplexer::ConcatLoopback(
     size_t channel_id, size_t from_worker_id, size_t to_worker_id) {
     return channel_sets_.GetOrDie<ConcatChannelSet>(channel_id)
+           ->peer(to_worker_id)->loopback_queue(from_worker_id);
+}
+
+MixedBlockQueueSink* Multiplexer::MixedLoopback(
+    size_t channel_id, size_t from_worker_id, size_t to_worker_id) {
+    return channel_sets_.GetOrDie<MixedChannelSet>(channel_id)
            ->peer(to_worker_id)->loopback_queue(from_worker_id);
 }
 

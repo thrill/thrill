@@ -57,10 +57,12 @@ public:
     ChannelSink(BlockPool& block_pool,
                 net::DispatcherThread* dispatcher,
                 net::Connection* connection,
+                MagicByte magic,
                 ChannelId channel_id, size_t my_rank, size_t my_local_worker_id, size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
         : BlockSink(block_pool),
           dispatcher_(dispatcher),
           connection_(connection),
+          magic_(magic),
           id_(channel_id),
           my_rank_(my_rank),
           my_local_worker_id_(my_local_worker_id),
@@ -79,7 +81,7 @@ public:
         tx_timespan_->StartEventually();
         sLOG << "ChannelSink::AppendBlock" << block;
 
-        ChannelBlockHeader header(block);
+        ChannelBlockHeader header(magic_, block);
         header.channel_id = id_;
         header.sender_rank = my_rank_;
         header.sender_local_worker_id = my_local_worker_id_;
@@ -119,6 +121,7 @@ public:
              << "channel" << id_;
 
         ChannelBlockHeader header;
+        header.magic = magic_;
         header.channel_id = id_;
         header.sender_rank = my_rank_;
         header.sender_local_worker_id = my_local_worker_id_;
@@ -150,6 +153,7 @@ protected:
     net::DispatcherThread* dispatcher_ = nullptr;
     net::Connection* connection_ = nullptr;
 
+    MagicByte magic_ = MagicByte::INVALID;
     size_t id_ = size_t(-1);
     size_t my_rank_ = size_t(-1);
     size_t my_local_worker_id_ = size_t(-1);
