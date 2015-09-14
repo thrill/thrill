@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/data/concat_channel.hpp
+ * thrill/data/mixed_channel.hpp
  *
  * Part of Project Thrill.
  *
@@ -10,13 +10,12 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_DATA_CONCAT_CHANNEL_HEADER
-#define THRILL_DATA_CONCAT_CHANNEL_HEADER
+#ifndef THRILL_DATA_MIXED_CHANNEL_HEADER
+#define THRILL_DATA_MIXED_CHANNEL_HEADER
 
 #include <thrill/data/block_queue.hpp>
 #include <thrill/data/channel_base.hpp>
 #include <thrill/data/channel_sink.hpp>
-#include <thrill/data/concat_block_source.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
@@ -57,22 +56,22 @@ using ChannelId = size_t;
  * expected streams is reached, the channel is marked as finished and no more
  * data will arrive.
  */
-class ConcatChannel : public ChannelBase
+class MixedChannel : public ChannelBase
 {
 public:
     using BlockQueueSource = ConsumeBlockQueueSource;
     using BlockQueueReader = BlockReader<BlockQueueSource>;
 
-    using ConcatBlockSource = data::ConcatBlockSource<DynBlockSource>;
-    using ConcatBlockReader = BlockReader<ConcatBlockSource>;
+    // using MixedBlockSource = data::MixedBlockSource<DynBlockSource>;
+    // using MixedBlockReader = BlockReader<MixedBlockSource>;
 
     using Writer = DynBlockWriter;
     using Reader = BlockQueueReader;
-    using ConcatReader = ConcatBlockReader;
+    // using MixedReader = MixedBlockReader;
 
     //! Creates a new channel instance
-    ConcatChannel(Multiplexer& multiplexer, const ChannelId& id,
-                  size_t my_local_worker_id)
+    MixedChannel(Multiplexer& multiplexer, const ChannelId& id,
+                 size_t my_local_worker_id)
         : ChannelBase(multiplexer, id, my_local_worker_id) {
 
         sinks_.reserve(multiplexer_.num_workers());
@@ -100,12 +99,13 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    ConcatChannel(const ConcatChannel&) = delete;
+    MixedChannel(const MixedChannel&) = delete;
     //! non-copyable: delete assignment operator
-    ConcatChannel& operator = (const ConcatChannel&) = delete;
+    MixedChannel& operator = (const MixedChannel&) = delete;
     //! move-constructor: default
-    ConcatChannel(ConcatChannel&&) = default;
+    MixedChannel(MixedChannel&&) = default;
 
+#if 0
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<Writer> OpenWriters(size_t block_size = default_block_size) {
@@ -116,7 +116,7 @@ public:
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
             for (size_t local_worker_id = 0; local_worker_id < multiplexer_.num_workers_per_host_; ++local_worker_id) {
                 if (host == multiplexer_.my_host_rank()) {
-                    auto target_queue_ptr = multiplexer_.ConcatLoopback(id_, my_local_worker_id_, local_worker_id);
+                    auto target_queue_ptr = multiplexer_.loopback(id_, my_local_worker_id_, local_worker_id);
                     result.emplace_back(target_queue_ptr, block_size);
                 }
                 else {
@@ -149,10 +149,10 @@ public:
         return result;
     }
 
-    //! Creates a BlockReader which concatenates items from all workers in
+    //! Creates a BlockReader which mixedenates items from all workers in
     //! worker rank order. The BlockReader is attached to one \ref
-    //! ConcatBlockSource which includes all incoming queues of this channel.
-    ConcatBlockReader OpenConcatReader(bool consume) {
+    //! MixedBlockSource which includes all incoming queues of this channel.
+    MixedBlockReader OpenMixedReader(bool consume) {
         rx_timespan_.StartEventually();
 
         // construct vector of CachingBlockQueueSources to read from queues_.
@@ -160,8 +160,8 @@ public:
         for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
             result.emplace_back(queues_[worker].GetBlockSource(consume));
         }
-        // move BlockQueueSources into concatenation BlockSource, and to Reader.
-        return ConcatBlockReader(ConcatBlockSource(std::move(result)));
+        // move BlockQueueSources into mixedenation BlockSource, and to Reader.
+        return MixedBlockReader(MixedBlockSource(std::move(result)));
     }
 
     /*!
@@ -209,9 +209,11 @@ public:
 
         tx_timespan_.Stop();
     }
+#endif
 
     //! shuts the channel down.
     void Close() {
+#if 0
         // close all sinks, this should emit sentinel to all other worker.
         for (size_t i = 0; i != sinks_.size(); ++i) {
             if (sinks_[i].closed()) continue;
@@ -234,6 +236,7 @@ public:
         tx_lifetime_.StopEventually();
         tx_timespan_.StopEventually();
         CallClosedCallbacksEventually();
+#endif
     }
 
     //! Indicates if the channel is closed - meaning all remaining streams have
@@ -257,7 +260,7 @@ protected:
 
     //! for calling methods to deliver blocks
     friend class Multiplexer;
-
+#if 0
     //! called from Multiplexer when there is a new Block on a
     //! Channel.
     //! \param from the worker rank (host rank * num_workers/host + worker id)
@@ -267,7 +270,7 @@ protected:
         incoming_bytes_ += b.size();
         incoming_blocks_++;
 
-        sLOG << "OnConcatChannelBlock" << b;
+        sLOG << "OnMixedChannelBlock" << b;
 
         if (debug) {
             sLOG << "channel" << id_ << "receive from" << from << ":"
@@ -277,7 +280,7 @@ protected:
         queues_[from].AppendBlock(b);
     }
 
-    //! called from Multiplexer when a ConcatChannel closed notification was
+    //! called from Multiplexer when a MixedChannel closed notification was
     //! received.
     //! \param from the worker rank (host rank * num_workers/host + worker id)
     void OnCloseChannel(size_t from) {
@@ -298,18 +301,19 @@ protected:
         sLOG << "expose loopback queue for" << from_worker_id << "->" << my_local_worker_id_;
         return &(queues_[global_worker_rank]);
     }
+#endif
 };
 
-using ConcatChannelPtr = std::shared_ptr<ConcatChannel>;
+using MixedChannelPtr = std::shared_ptr<MixedChannel>;
 
-using ConcatChannelSet = ChannelSet<ConcatChannel>;
-using ConcatChannelSetPtr = std::shared_ptr<ConcatChannelSet>;
+using MixedChannelSet = ChannelSet<MixedChannel>;
+using MixedChannelSetPtr = std::shared_ptr<MixedChannelSet>;
 
 //! \}
 
 } // namespace data
 } // namespace thrill
 
-#endif // !THRILL_DATA_CONCAT_CHANNEL_HEADER
+#endif // !THRILL_DATA_MIXED_CHANNEL_HEADER
 
 /******************************************************************************/

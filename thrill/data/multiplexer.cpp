@@ -10,6 +10,7 @@
 
 #include <thrill/data/channel_base.hpp>
 #include <thrill/data/concat_channel.hpp>
+#include <thrill/data/mixed_channel.hpp>
 #include <thrill/data/multiplexer.hpp>
 
 #include <algorithm>
@@ -19,7 +20,7 @@ namespace data {
 
 Multiplexer::~Multiplexer() {
     // close all still open Channels
-    for (auto& ch : concat_channel_sets_.map())
+    for (auto& ch : channel_sets_.map())
         ch.second->Close();
 
     // terminate dispatcher, this waits for unfinished AsyncWrites.
@@ -31,7 +32,16 @@ Multiplexer::~Multiplexer() {
 ConcatChannelPtr
 Multiplexer::_GetOrCreateConcatChannel(size_t id, size_t local_worker_id) {
     ConcatChannelSetPtr set =
-        concat_channel_sets_.GetOrCreate(id, *this, id, num_workers_per_host_);
+        channel_sets_.GetOrCreate<ConcatChannelSet>(
+            id, *this, id, num_workers_per_host_);
+    return set->peer(local_worker_id);
+}
+
+MixedChannelPtr
+Multiplexer::_GetOrCreateMixedChannel(size_t id, size_t local_worker_id) {
+    MixedChannelSetPtr set =
+        channel_sets_.GetOrCreate<MixedChannelSet>(
+            id, *this, id, num_workers_per_host_);
     return set->peer(local_worker_id);
 }
 
@@ -95,9 +105,9 @@ void Multiplexer::OnConcatChannelBlock(
     AsyncReadBlockHeader(s);
 }
 
-BlockQueue* Multiplexer::loopback(
+BlockQueue* Multiplexer::ConcatLoopback(
     size_t channel_id, size_t from_worker_id, size_t to_worker_id) {
-    return concat_channel_sets_.GetOrDie(channel_id)
+    return channel_sets_.GetOrDie<ConcatChannelSet>(channel_id)
            ->peer(to_worker_id)->loopback_queue(from_worker_id);
 }
 

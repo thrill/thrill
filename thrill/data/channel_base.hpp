@@ -116,16 +116,29 @@ protected:
 using ChannelBasePtr = std::shared_ptr<ChannelBase>;
 
 /*!
+ * Base class for ChannelSet.
+ */
+class ChannelSetBase
+{
+public:
+    virtual ~ChannelSetBase() { }
+
+    //! Close all channels in the set.
+    virtual void Close() = 0;
+};
+
+/*!
  * Simple structure that holds a all channel instances for the workers on the
  * local host for a given channel id.
  */
 template <typename Channel>
-class ChannelSet
+class ChannelSet : public ChannelSetBase
 {
 public:
     using ChannelPtr = std::shared_ptr<Channel>;
 
-    //! Creates a ChannelSet with the given number of channels (num workers per host).
+    //! Creates a ChannelSet with the given number of channels (num workers per
+    //! host).
     ChannelSet(data::Multiplexer& multiplexer, ChannelId id,
                size_t num_workers_per_host) {
         for (size_t i = 0; i < num_workers_per_host; i++)
@@ -139,7 +152,7 @@ public:
         return channels_[local_worker_id];
     }
 
-    void Close() {
+    void Close() final {
         for (auto& c : channels_)
             c->Close();
     }
