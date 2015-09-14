@@ -85,6 +85,9 @@ TEST(MockGroup, ReduceToRootString) {
 TEST(MockGroup, Broadcast) {
     MockTest(TestBroadcast);
 }
+TEST(MockGroup, PrefixSum) {
+    MockTest(TestPrefixSum);
+}
 TEST(MockGroup, DispatcherLaunchAndTerminate) {
     MockTest(TestDispatcherLaunchAndTerminate);
 }
