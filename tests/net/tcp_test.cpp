@@ -80,6 +80,9 @@ TEST(RealTcpGroup, ReduceToRootString) {
 TEST(RealTcpGroup, Broadcast) {
     RealGroupTest(TestBroadcast);
 }
+TEST(RealTcpGroup, PrefixSum) {
+    RealGroupTest(TestPrefixSum);
+}
 TEST(RealTcpGroup, DispatcherLaunchAndTerminate) {
     RealGroupTest(TestDispatcherLaunchAndTerminate);
 }
@@ -119,6 +122,9 @@ TEST(LocalTcpGroup, ReduceToRootString) {
 }
 TEST(LocalTcpGroup, Broadcast) {
     LocalGroupTest(TestBroadcast);
+}
+TEST(LocalTcpGroup, PrefixSum) {
+    LocalGroupTest(TestPrefixSum);
 }
 TEST(LocalTcpGroup, DispatcherLaunchAndTerminate) {
     LocalGroupTest(TestDispatcherLaunchAndTerminate);

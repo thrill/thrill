@@ -121,7 +121,7 @@ static void TestPrefixSumForPowersOfTwoString(net::Group* net) {
     std::string local_value = result.substr(net->my_host_rank(), 1);
     PrefixSumForPowersOfTwo(*net, local_value);
     sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
-          << "value" << local_value;
+         << "value" << local_value;
     ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
 }
 
@@ -156,6 +156,19 @@ static void TestBroadcast(net::Group* net) {
     local_value = net->my_host_rank() == 0 ? 5 : 0;
     BroadcastTrivial(*net, local_value);
     ASSERT_EQ(5u, local_value);
+}
+
+//! let group of p hosts perform a PrefixSum collective on std::string
+static void TestPrefixSum(net::Group* net) {
+    static const bool debug = false;
+
+    const std::string result = "abcdefghijklmnopqrstuvwxyz";
+
+    std::string local_value = result.substr(net->my_host_rank(), 1);
+    PrefixSum(*net, local_value);
+    sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
+         << "value" << local_value;
+    ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
 }
 
 /******************************************************************************/

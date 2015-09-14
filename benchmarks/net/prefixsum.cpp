@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/net/broadcast.cpp
+ * benchmarks/net/prefixsum.cpp
  *
  * Minimalistic broadcast benchmark to test different net implementations.
  *
