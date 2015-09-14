@@ -212,8 +212,10 @@ protected:
     void Send(size_t tgt, net::Buffer&& msg) {
         assert(tgt < peers_.size());
 
-        sLOG << "Sending" << my_rank_ << "->" << tgt
-             << "msg" << maybe_hexdump(msg.data(), msg.size());
+        if (debug) {
+            sLOG << "Sending" << my_rank_ << "->" << tgt
+                 << "msg" << maybe_hexdump(msg.data(), msg.size());
+        }
 
         peers_[tgt]->conns_[my_rank_].InboundMsg(std::move(msg));
     }
