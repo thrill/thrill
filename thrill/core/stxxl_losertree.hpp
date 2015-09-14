@@ -30,21 +30,13 @@
 #define STXXL_PARALLEL_LOSERTREE_HEADER
 
 #include <functional>
+#include <thrill/common/math.hpp>
 
 namespace thrill {
 
 namespace core {
 
 namespace stxxl {
-
-template <typename Integral>
-static inline Integral round_up_to_power_of_two(Integral n) {
-    --n;
-    for (int k = 1; !(k & (2 << sizeof(n))); k <<= 1)
-        n |= n >> k;
-    ++n;
-    return n;
-}
 
 /**
  * Guarded loser tree/tournament tree, either copying the whole element into
@@ -95,7 +87,7 @@ public:
     LoserTreeCopyBase(size_type _k,
                       Comparator _comp = std::less<ValueType>())
         : ik(_k),
-          k(round_up_to_power_of_two(ik)),
+          k(common::RoundUpToPowerOfTwo(ik)),
           comp(_comp),
           first_insert(true) {
         // avoid default-constructing losers[].key
@@ -330,7 +322,7 @@ private:
 public:
     LoserTreeReference(unsigned int _k, Comparator _comp = std::less<T>()) : comp(_comp) {
         ik = _k;
-        k = round_up_to_power_of_two(ik);
+        k = common::RoundUpToPowerOfTwo(ik);
         losers = new Loser[k * 2];
 #ifndef COPY
         keys = new T[ik];
@@ -522,7 +514,7 @@ public:
     LoserTreePointerBase(size_type _k,
                          Comparator _comp = std::less<ValueType>())
         : ik(_k),
-          k(round_up_to_power_of_two(ik)),
+          k(common::RoundUpToPowerOfTwo(ik)),
           losers(new Loser[k * 2]),
           comp(_comp) {
         for (size_type i = ik - 1; i < k; i++)
@@ -733,7 +725,7 @@ public:
     LoserTreeCopyUnguardedBase(unsigned int _k, const ValueType& _sentinel,
                                Comparator _comp = std::less<ValueType>())
         : ik(_k),
-          k(round_up_to_power_of_two(ik)),
+          k(common::RoundUpToPowerOfTwo(ik)),
           losers(new Loser[k * 2]),
           comp(_comp) {
         for (unsigned int i = 0; i < 2 * k; i++)
@@ -908,7 +900,7 @@ public:
     LoserTreePointerUnguardedBase(unsigned int _k, const ValueType& _sentinel,
                                   Comparator _comp = std::less<ValueType>())
         : ik(_k),
-          k(round_up_to_power_of_two(ik)),
+          k(common::RoundUpToPowerOfTwo(ik)),
           losers(new Loser[k * 2]),
           comp(_comp) {
         for (unsigned int i = ik - 1; i < k; i++)
