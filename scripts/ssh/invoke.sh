@@ -1,5 +1,9 @@
 #!/bin/bash
 
+ssh_dir="`dirname "$0"`"
+ssh_dir="`cd "$ssh_dir"; pwd`"
+cluster=${ssh_dir}/../cluster
+
 set -e
 
 # Reset in case getopts has been used previously in the shell.
