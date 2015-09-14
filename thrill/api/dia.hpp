@@ -8,6 +8,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
