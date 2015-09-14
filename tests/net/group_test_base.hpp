@@ -14,7 +14,7 @@
 
 #include <thrill/common/future.hpp>
 #include <thrill/common/math.hpp>
-#include <thrill/net/collective_communication.hpp>
+#include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
 
 #include <future>

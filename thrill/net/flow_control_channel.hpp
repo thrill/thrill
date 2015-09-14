@@ -14,7 +14,7 @@
 
 #include <thrill/common/functional.hpp>
 #include <thrill/common/thread_barrier.hpp>
-#include <thrill/net/collective_communication.hpp>
+#include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
 
 #include <functional>
