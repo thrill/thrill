@@ -15,6 +15,7 @@
 
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/data/block_queue.hpp>
 #include <thrill/data/channel_sink.hpp>
 #include <thrill/data/concat_block_source.hpp>
@@ -229,6 +230,13 @@ public:
         }
 
         tx_timespan_.Stop();
+        STAT_NO_RANK << "worker_id" << my_global_worker_id()
+                     << "event" << "scatter_send_done"
+                     << "channel_id" << id_
+                     << "tx_time_μs" << tx_timespan_.Microseconds()
+                     << "tx_lifetime_μs" << tx_lifetime_.Microseconds()
+                     << "bytes_sent" << outgoing_bytes_
+                     << "blocks_sent" << outgoing_blocks_;
     }
 
     //! shuts the channel down.
@@ -240,9 +248,8 @@ public:
         }
 
         // close loop-back queue from this worker to itself
-        auto my_global_worker_id = multiplexer_.my_host_rank() * multiplexer_.num_workers_per_host() + my_local_worker_id_;
-        if (!queues_[my_global_worker_id].write_closed())
-            queues_[my_global_worker_id].Close();
+        if (!queues_[my_global_worker_id()].write_closed())
+            queues_[my_global_worker_id()].Close();
 
         // wait for close packets to arrive (this is a busy waiting loop, try to
         // do it better -tb)
@@ -357,6 +364,17 @@ protected:
         if (expected_closing_blocks_ == ++received_closing_blocks_) {
             rx_lifetime_.StopEventually();
             rx_timespan_.StopEventually();
+            STAT_NO_RANK << "worker_id" << my_global_worker_id()
+                        << "event" << "channel_closed"
+                        << "channel_id" << id_
+                        << "tx_time_μs" << tx_timespan_.Microseconds()
+                        << "rx_time_μs" << rx_timespan_.Microseconds()
+                        << "tx_lifetime_μs" << tx_lifetime_.Microseconds()
+                        << "rx_lifetime_μs" << rx_lifetime_.Microseconds()
+                        << "bytes_sent" << outgoing_bytes_
+                        << "blocks_sent" << outgoing_blocks_
+                        << "bytes_incoming" << incoming_bytes_
+                        << "blocks_sent" << incoming_blocks_;
             CallClosedCallbacksEventually();
         }
     }
@@ -367,6 +385,11 @@ protected:
         size_t global_worker_rank = multiplexer_.num_workers_per_host_ * multiplexer_.my_host_rank() + from_worker_id;
         sLOG << "expose loopback queue for" << from_worker_id << "->" << my_local_worker_id_;
         return &(queues_[global_worker_rank]);
+    }
+private:
+    //TODO maybe use context as memer reference instead ?
+    size_t my_global_worker_id() const {
+        return multiplexer_.my_host_rank() * multiplexer_.num_workers_per_host() + my_local_worker_id_;
     }
 };
 
