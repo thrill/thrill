@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
