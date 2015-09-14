@@ -66,7 +66,6 @@ public:
     using ConcatBlockSource = data::ConcatBlockSource<DynBlockSource>;
     using ConcatBlockReader = BlockReader<ConcatBlockSource>;
 
-    using Writer = DynBlockWriter;
     using Reader = BlockQueueReader;
     using ConcatReader = ConcatBlockReader;
 
@@ -89,6 +88,7 @@ public:
                         multiplexer_.block_pool_,
                         &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
+                        MagicByte::CONCAT_CHANNEL_BLOCK,
                         id,
                         multiplexer_.my_host_rank(), my_local_worker_id, worker,
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);

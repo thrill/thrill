@@ -15,6 +15,7 @@
 
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <thrill/data/block_writer.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
 
@@ -41,6 +42,8 @@ public:
     using StatsTimer = common::StatsTimer<common::g_enable_stats>;
 
     using ClosedCallback = std::function<void()>;
+
+    using Writer = DynBlockWriter;
 
     ChannelBase(Multiplexer& multiplexer, const ChannelId& id,
                 size_t my_local_worker_id)

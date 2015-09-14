@@ -11,10 +11,12 @@
 
 #include <gtest/gtest.h>
 #include <thrill/data/concat_channel.hpp>
+#include <thrill/data/mixed_channel.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/group.hpp>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -251,6 +253,190 @@ TEST_F(Multiplexer, ReadCompleteConcatChannelManyTimes) {
               };
     Execute(w0, w1, w2);
 }
+
+/******************************************************************************/
+// MixedChannel Tests
+
+TEST_F(Multiplexer, ReadCompleteMixedChannelManyTimes) {
+    auto w0 = [](data::Multiplexer& multiplexer) {
+                  auto id = multiplexer.AllocateMixedChannelId(0);
+                  auto c = multiplexer.GetOrCreateMixedChannel(id, 0);
+                  auto writers = c->OpenWriters(test_block_size);
+                  std::string msg1 = "I came from worker 0";
+                  std::string msg2 = "I am another message from worker 0";
+                  writers[2](msg1);
+                  // writers[2].Flush();
+                  writers[2](msg2);
+                  for (auto& w : writers) {
+                      sLOG << "close worker";
+                      w.Close();
+                  }
+              };
+    auto w1 = [](data::Multiplexer& multiplexer) {
+                  auto id = multiplexer.AllocateMixedChannelId(0);
+                  auto c = multiplexer.GetOrCreateMixedChannel(id, 0);
+                  auto writers = c->OpenWriters(test_block_size);
+                  std::string msg1 = "I came from worker 1";
+                  writers[2](msg1);
+                  for (auto& w : writers) {
+                      sLOG << "close worker";
+                      w.Close();
+                  }
+              };
+    auto w2 = [](data::Multiplexer& multiplexer) {
+                  auto id = multiplexer.AllocateMixedChannelId(0);
+                  auto c = multiplexer.GetOrCreateMixedChannel(id, 0);
+                  auto writers = c->OpenWriters(test_block_size);
+                  for (auto& w : writers) {
+                      sLOG << "close worker";
+                      w.Close();
+                  }
+                  {
+                      auto reader = c->OpenMixedReader(false);
+                      // receive three std::string items
+                      std::vector<std::string> recv;
+
+                      for (size_t i = 0; i < 3; ++i) {
+                          recv.emplace_back(reader.Next<std::string>());
+                      }
+                      ASSERT_TRUE(!reader.HasNext());
+
+                      // check sorted strings
+                      std::sort(recv.begin(), recv.end());
+
+                      ASSERT_EQ(3u, recv.size());
+                      ASSERT_EQ("I am another message from worker 0", recv[0]);
+                      ASSERT_EQ("I came from worker 0", recv[1]);
+                      ASSERT_EQ("I came from worker 1", recv[2]);
+                  }
+                  {
+                      auto reader = c->OpenMixedReader(false);
+                      // receive three std::string items
+                      std::vector<std::string> recv;
+
+                      for (size_t i = 0; i < 3; ++i) {
+                          recv.emplace_back(reader.Next<std::string>());
+                      }
+                      ASSERT_TRUE(!reader.HasNext());
+
+                      // check sorted strings
+                      std::sort(recv.begin(), recv.end());
+
+                      ASSERT_EQ(3u, recv.size());
+                      ASSERT_EQ("I am another message from worker 0", recv[0]);
+                      ASSERT_EQ("I came from worker 0", recv[1]);
+                      ASSERT_EQ("I came from worker 1", recv[2]);
+                  }
+                  {
+                      auto reader = c->OpenMixedReader(true);
+                      // receive three std::string items
+                      std::vector<std::string> recv;
+
+                      for (size_t i = 0; i < 3; ++i) {
+                          recv.emplace_back(reader.Next<std::string>());
+                      }
+                      ASSERT_TRUE(!reader.HasNext());
+
+                      // check sorted strings
+                      std::sort(recv.begin(), recv.end());
+
+                      ASSERT_EQ(3u, recv.size());
+                      ASSERT_EQ("I am another message from worker 0", recv[0]);
+                      ASSERT_EQ("I came from worker 0", recv[1]);
+                      ASSERT_EQ("I came from worker 1", recv[2]);
+                  }
+              };
+    Execute(w0, w1, w2);
+}
+
+// open a Channel via data::Multiplexer, and send a short message to all workers,
+// receive and check the message.
+void TalkAllToAllViaMixedChannel(net::Group* net) {
+    common::NameThisThread("chmp" + mem::to_string(net->my_host_rank()));
+
+    char send_buffer[123];
+    for (size_t i = 0; i != sizeof(send_buffer); ++i)
+        send_buffer[i] = static_cast<char>(i);
+
+    std::string send_string(send_buffer, sizeof(send_buffer));
+
+    static const size_t iterations = 1000;
+    size_t my_local_worker_id = 0;
+    size_t num_workers_per_host = 1;
+
+    mem::Manager mem_manager(nullptr, "Benchmark");
+    data::BlockPool block_pool(&mem_manager);
+    data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
+    {
+        data::ChannelId id = multiplexer.AllocateMixedChannelId(my_local_worker_id);
+
+        // open Writers and send a message to all workers
+
+        auto writers = multiplexer.GetOrCreateMixedChannel(
+            id, my_local_worker_id)->OpenWriters(test_block_size);
+
+        for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
+            std::string txt =
+                "hello I am " + std::to_string(net->my_host_rank())
+                + " calling " + std::to_string(tgt)
+                + send_string;
+
+            writers[tgt].PutItem(txt);
+            // try a Flush.
+            writers[tgt].Flush();
+
+            // write a few MiBs of oddly sized data
+            for (size_t r = 1; r < iterations; ++r) {
+                writers[tgt].PutItem(txt);
+            }
+
+            writers[tgt].Flush();
+            writers[tgt].Close();
+        }
+
+        // open mixed Reader and receive messages from all workers
+
+        auto reader = multiplexer.GetOrCreateMixedChannel(
+            id, my_local_worker_id)->OpenMixedReader(true);
+
+        std::vector<std::string> recv;
+
+        while (reader.HasNext())
+            recv.emplace_back(reader.Next<std::string>());
+
+        // sort messages and check them
+
+        std::sort(recv.begin(), recv.end());
+
+        ASSERT_EQ(iterations * net->num_hosts(), recv.size());
+
+        size_t i = 0;
+
+        for (size_t src = 0; src < net->num_hosts(); ++src) {
+            std::string txt =
+                "hello I am " + std::to_string(src)
+                + " calling " + std::to_string(net->my_host_rank())
+                + send_string;
+
+            for (size_t iter = 0; iter < iterations; ++iter) {
+                ASSERT_EQ(txt, recv[i]);
+                ++i;
+            }
+        }
+    }
+}
+
+TEST_F(Multiplexer, DISABLED_TalkAllToAllViaMixedChannelForManyNetSizes) {
+    // test for all network mesh sizes 1, 2, 5, 9:
+    net::RunGroupTest(1, TalkAllToAllViaMixedChannel);
+    net::RunGroupTest(2, TalkAllToAllViaMixedChannel);
+    net::RunGroupTest(5, TalkAllToAllViaMixedChannel);
+    net::RunGroupTest(9, TalkAllToAllViaMixedChannel);
+    // the test does not work for two digit #workers (due to sorting digits)
+}
+
+/******************************************************************************/
+// Scatter Tests
 
 TEST_F(Multiplexer, Scatter_OneWorker) {
     auto w0 =
