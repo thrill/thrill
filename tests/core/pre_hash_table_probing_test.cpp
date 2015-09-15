@@ -34,10 +34,10 @@ public:
     { }
 
     template <typename ReducePreProbingTable>
-    typename ReducePreProbingTable::index_result
+    typename ReducePreProbingTable::IndexResult
     operator () (const Key& v, ReducePreProbingTable* ht) const {
 
-        using index_result = typename ReducePreProbingTable::index_result;
+        using IndexResult = typename ReducePreProbingTable::IndexResult;
 
         size_t global_index = v / 2;
         size_t partition_id = 0;
@@ -45,7 +45,7 @@ public:
 
         (void)ht;
 
-        return index_result(partition_id, local_index, global_index);
+        return IndexResult(partition_id, local_index, global_index);
     }
 
 private:
