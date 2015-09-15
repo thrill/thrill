@@ -99,14 +99,14 @@ public:
         if (std::is_integral<AnyType>::value || std::is_floating_point<AnyType>::value) {
             oss_ << at;
         }
-        // else if (std::is_same<AnyType, bool>::value) {
-        //     if (at) {
-        //         oss_ << "true";
-        //     }
-        //     else {
-        //         oss_ << "false";
-        //     }
-        // }
+        else if (std::is_same<AnyType, bool>::value) {
+            if (at) {
+                oss_ << "true";
+            }
+            else {
+                oss_ << "false";
+            }
+        }
         else {
             oss_ << "\"" << at << "\"";
         }
