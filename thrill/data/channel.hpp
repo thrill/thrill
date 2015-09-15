@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/data/channel_base.hpp
+ * thrill/data/channel.hpp
  *
  * Part of Project Thrill.
  *
@@ -10,12 +10,13 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_DATA_CHANNEL_BASE_HEADER
-#define THRILL_DATA_CHANNEL_BASE_HEADER
+#ifndef THRILL_DATA_CHANNEL_HEADER
+#define THRILL_DATA_CHANNEL_HEADER
 
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/data/block_writer.hpp>
+#include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
 
@@ -35,7 +36,7 @@ using ChannelId = size_t;
  * also a virtual base class use by Multiplexer to pass blocks to channels!
  * Instead, it contains common items like stats.
  */
-class ChannelBase
+class Channel
 {
 public:
     using StatsCounter = common::StatsCounter<size_t, common::g_enable_stats>;
@@ -45,8 +46,8 @@ public:
 
     using Writer = DynBlockWriter;
 
-    ChannelBase(Multiplexer& multiplexer, const ChannelId& id,
-                size_t my_local_worker_id)
+    Channel(Multiplexer& multiplexer, const ChannelId& id,
+            size_t my_local_worker_id)
         : tx_lifetime_(true), rx_lifetime_(true),
           tx_timespan_(), rx_timespan_(),
           id_(id),
@@ -56,7 +57,7 @@ public:
               (multiplexer_.num_hosts() - 1) * multiplexer_.num_workers_per_host()),
           received_closing_blocks_(0) { }
 
-    virtual ~ChannelBase() { }
+    virtual ~Channel() { }
 
     const ChannelId & id() const {
         return id_;
@@ -71,12 +72,66 @@ public:
         }
     }
 
+    //! shuts the channel down.
+    virtual void Close() = 0;
+
     //! Adds a Callback that is called when the channel is closed (r+w)
     void OnClose(const ClosedCallback& cb) {
         closed_callbacks_.push_back(cb);
     }
 
     virtual bool closed() const = 0;
+
+    //! Creates BlockWriters for each worker. BlockWriter can only be opened
+    //! once, otherwise the block sequence is incorrectly interleaved!
+    virtual std::vector<Writer>
+    OpenWriters(size_t block_size = default_block_size) = 0;
+
+    /*!
+     * Scatters a File to many worker
+     *
+     * elements from 0..offset[0] are sent to the first worker,
+     * elements from (offset[0] + 1)..offset[1] are sent to the second worker.
+     * elements from (offset[my_rank - 1] + 1)..(offset[my_rank]) are copied
+     * The offset values range from 0..Manager::GetNumElements().
+     * The number of given offsets must be equal to the net::Group::num_workers() * workers_per_host_.
+     *
+     * /param source File containing the data to be scattered.
+     *
+     * /param offsets - as described above. offsets.size must be equal to group.size
+     */
+    template <typename ItemType>
+    void Scatter(const File& source, const std::vector<size_t>& offsets) {
+        tx_timespan_.StartEventually();
+
+        // current item offset in Reader
+        size_t current = 0;
+        File::KeepReader reader = source.GetKeepReader();
+
+        std::vector<Writer> writers = OpenWriters();
+
+        for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
+            // write [current,limit) to this worker
+            size_t limit = offsets[worker];
+            assert(current <= limit);
+#if 0
+            for ( ; current < limit; ++current) {
+                assert(reader.HasNext());
+                // move over one item (with deserialization and serialization)
+                writers[worker](reader.template Next<ItemType>());
+            }
+#else
+            if (current != limit) {
+                writers[worker].AppendBlocks(
+                    reader.template GetItemBatch<ItemType>(limit - current));
+                current = limit;
+            }
+#endif
+            writers[worker].Close();
+        }
+
+        tx_timespan_.Stop();
+    }
 
     ///////// expose these members - getters would be too java-ish /////////////
 
@@ -116,7 +171,7 @@ protected:
     std::mutex mutex_;
 };
 
-using ChannelBasePtr = std::shared_ptr<ChannelBase>;
+using ChannelPtr = std::shared_ptr<Channel>;
 
 /*!
  * Base class for ChannelSet.
@@ -170,6 +225,6 @@ private:
 } // namespace data
 } // namespace thrill
 
-#endif // !THRILL_DATA_CHANNEL_BASE_HEADER
+#endif // !THRILL_DATA_CHANNEL_HEADER
 
 /******************************************************************************/

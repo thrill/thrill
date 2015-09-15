@@ -13,9 +13,8 @@
 #ifndef THRILL_DATA_MIXED_CHANNEL_HEADER
 #define THRILL_DATA_MIXED_CHANNEL_HEADER
 
-#include <thrill/data/channel_base.hpp>
+#include <thrill/data/channel.hpp>
 #include <thrill/data/channel_sink.hpp>
-#include <thrill/data/file.hpp>
 #include <thrill/data/mixed_block_queue.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
@@ -28,8 +27,6 @@ namespace data {
 
 //! \addtogroup data Data Subsystem
 //! \{
-
-using ChannelId = size_t;
 
 /*!
  * A Channel is a virtual set of connections to all other worker instances,
@@ -46,7 +43,7 @@ using ChannelId = size_t;
  * The MixedChannel allows reading of items from all workers in an unordered
  * sequence, without waiting for any of the workers to complete sending items.
  */
-class MixedChannel : public ChannelBase
+class MixedChannel final : public Channel
 {
 public:
     using MixedReader = MixedBlockQueueReader;
@@ -54,7 +51,7 @@ public:
     //! Creates a new channel instance
     MixedChannel(Multiplexer& multiplexer, const ChannelId& id,
                  size_t my_local_worker_id)
-        : ChannelBase(multiplexer, id, my_local_worker_id),
+        : Channel(multiplexer, id, my_local_worker_id),
           queue_(multiplexer_.block_pool_, multiplexer_.num_workers()) {
 
         sinks_.reserve(multiplexer_.num_workers());
@@ -98,7 +95,8 @@ public:
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    std::vector<Writer> OpenWriters(size_t block_size = default_block_size) {
+    std::vector<Writer>
+    OpenWriters(size_t block_size = default_block_size) final {
         tx_timespan_.StartEventually();
 
         std::vector<Writer> result;
@@ -128,54 +126,8 @@ public:
         return MixedReader(queue_, consume);
     }
 
-    /*!
-     * Scatters a File to many worker
-     *
-     * elements from 0..offset[0] are sent to the first worker,
-     * elements from (offset[0] + 1)..offset[1] are sent to the second worker.
-     * elements from (offset[my_rank - 1] + 1)..(offset[my_rank]) are copied
-     * The offset values range from 0..Manager::GetNumElements().
-     * The number of given offsets must be equal to the net::Group::num_workers() * workers_per_host_.
-     *
-     * /param source File containing the data to be scattered.
-     *
-     * /param offsets - as described above. offsets.size must be equal to group.size
-     */
-    template <typename ItemType>
-    void Scatter(const File& source, const std::vector<size_t>& offsets) {
-        tx_timespan_.StartEventually();
-
-        // current item offset in Reader
-        size_t current = 0;
-        File::KeepReader reader = source.GetKeepReader();
-
-        std::vector<Writer> writers = OpenWriters();
-
-        for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
-            // write [current,limit) to this worker
-            size_t limit = offsets[worker];
-            assert(current <= limit);
-#if 0
-            for ( ; current < limit; ++current) {
-                assert(reader.HasNext());
-                // move over one item (with deserialization and serialization)
-                writers[worker](reader.template Next<ItemType>());
-            }
-#else
-            if (current != limit) {
-                writers[worker].AppendBlocks(
-                    reader.template GetItemBatch<ItemType>(limit - current));
-                current = limit;
-            }
-#endif
-            writers[worker].Close();
-        }
-
-        tx_timespan_.Stop();
-    }
-
     //! shuts the channel down.
-    void Close() {
+    void Close() final {
         // close all sinks, this should emit sentinel to all other worker.
         for (size_t i = 0; i != sinks_.size(); ++i) {
             if (sinks_[i].closed()) continue;
