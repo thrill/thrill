@@ -87,6 +87,7 @@ build_test_group(common/tests
   )
 
 build_test(mem/allocator_test)
+build_test(mem/stack_allocator_test)
 if(NOT MSVC)
   build_test(mem/malloc_tracker_test)
 endif()
