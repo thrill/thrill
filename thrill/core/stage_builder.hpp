@@ -39,49 +39,69 @@ public:
     explicit Stage(DIABase* node) : node_(node) { }
 
     void Execute() {
+        //time_t tt;
+        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         //STAT(node_->context()) 
-        //    << "START(EXECUTING) stage" << node_->label();
-        timer.Start();
+        //    << "START (EXECUTING) stage" << node_->label()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
+        //timer.Start();
         node_->Execute();
-        timer.Stop();
-        //time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        //timer.Stop();
+        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         //STAT(node_->context()) 
         //    << "FINISH (EXECUTING) stage" << node_->label() 
-        //    << "took (ms)" << timer.Milliseconds();
-        //LOG1 << "Current Time: " << std::put_time(std::localtime(&tt), "%T");
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
 
+        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        //STAT(node_->context()) 
+        //    << "START (PUSHING) stage" << node_->label()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
+        //timer.Start();
         node_->PushData(node_->consume_on_push_data());
+        //timer.Stop();
         node_->set_state(api::DIAState::EXECUTED);
+        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        //STAT(node_->context()) 
+        //    << "FINISH (PUSHING) stage" << node_->label()
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
 
     void PushData() {
+        //time_t tt;
+        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         //STAT(node_->context()) 
-        //    << "START (PUSHING) stage" << node_->label();
-        timer.Start();
+        //    << "START (PUSHING) stage" << node_->label()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
         die_unless(!node_->consume_on_push_data());
+        //timer.Start();
         node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
-        timer.Stop();
-        //time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        //timer.Stop();
+        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         //STAT(node_->context()) 
         //    << "FINISH (PUSHING) stage" 
         //    << node_->label() 
-        //    << "took (ms)" << timer.Milliseconds();
-        // LOG1 << "Current Time: " << std::put_time(std::localtime(&tt), "%T");
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time: " << std::put_time(std::localtime(&tt), "%T");
     }
 
     void Dispose() {
+        //time_t tt;
+        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         //STAT(node_->context()) 
-        //    << "START (DISPOSING) stage" << node_->label();
-        timer.Start();
+        //    << "START (DISPOSING) stage" << node_->label()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
+        //timer.Start();
         node_->Dispose();
+        //timer.Stop();
         node_->set_state(api::DIAState::DISPOSED);
-        timer.Stop();
-        //time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         //STAT(node_->context())
         //    << "FINISH (DISPOSING) stage" << node_->label() 
-        //    << "took (ms)" << timer.Milliseconds();
-        //LOG1 << "Current Time: " << std::put_time(std::localtime(&tt), "%T");
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
 
     DIABase * node() {
