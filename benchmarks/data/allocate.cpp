@@ -85,6 +85,7 @@ int main(int argc, const char** argv) {
             << "RESULT"
             << " experiment=" << experiment
             << " allocations=" << g_allocations
+            << " growth=" << g_swapfile_growth
             << " time(us)=" << wall_time.Microseconds()
             << std::endl;
     }
