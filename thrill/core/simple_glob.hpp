@@ -885,7 +885,7 @@ CSimpleGlobTempl<SOCHAR>::SetArgvArrayType(
         SG_ASSERT(m_nArgArrayType == POINTERS);
         for (int n = 0; n < m_nArgsLen; ++n) {
             m_rgpArgs[n] = (m_rgpArgs[n] == nullptr) ?
-                           static_cast<SOCHAR*>(-1) :
+                           reinterpret_cast<SOCHAR*>(-1) :
                            reinterpret_cast<SOCHAR*>(m_rgpArgs[n] - m_pBuffer);
         }
     }
