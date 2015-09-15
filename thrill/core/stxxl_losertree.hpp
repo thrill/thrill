@@ -20,9 +20,6 @@
 #ifndef THRILL_CORE_STXXL_LOSERTREE_HEADER
 #define THRILL_CORE_STXXL_LOSERTREE_HEADER
 
-#ifndef STXXL_PARALLEL_LOSERTREE_HEADER
-#define STXXL_PARALLEL_LOSERTREE_HEADER
-
 #include <functional>
 #include <thrill/common/math.hpp>
 
@@ -1037,9 +1034,8 @@ public:
 } // namespace stxxl
 } // namespace core
 
-#endif // !THRILL_CORE_STXXL_LOSERTREE_HEADER
 } // end namespace thrill
 
-#endif // !STXXL_PARALLEL_LOSERTREE_HEADER
+#endif // !THRILL_CORE_STXXL_LOSERTREE_HEADER
 
 /******************************************************************************/

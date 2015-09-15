@@ -20,9 +20,6 @@
 #ifndef THRILL_CORE_STXXL_MULTIWAY_MERGE_HEADER
 #define THRILL_CORE_STXXL_MULTIWAY_MERGE_HEADER
 
-#ifndef STXXL_PARALLEL_MULTIWAY_MERGE_HEADER
-#define STXXL_PARALLEL_MULTIWAY_MERGE_HEADER
-
 #include <algorithm>
 #include <iterator>
 #include <vector>
@@ -2032,10 +2029,9 @@ multiway_merge_stable_sentinels(RandomAccessIteratorPairIterator seqs_begin,
 
 } // namespace stxxl
 
-#endif // !THRILL_CORE_STXXL_MULTIWAY_MERGE_HEADER
 
 } // namespace core
 
-#endif // !STXXL_PARALLEL_MULTIWAY_MERGE_HEADER
+#endif // !THRILL_CORE_STXXL_MULTIWAY_MERGE_HEADER
 
 /******************************************************************************/
