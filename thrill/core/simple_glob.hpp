@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/simple-glob.hpp
+ * thrill/core/simple_glob.hpp
  *
  * A sane, simple, portable implementation of glob(). Used only on Windows.
  *

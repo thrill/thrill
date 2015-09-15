@@ -13,7 +13,7 @@
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
-#include <thrill/core/simple-glob.hpp>
+#include <thrill/core/simple_glob.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>

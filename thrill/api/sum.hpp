@@ -98,7 +98,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::Sum(
-    const SumFunction &sum_function, const ValueType& initial_value) const {
+    const SumFunction &sum_function, const ValueType &initial_value) const {
     assert(IsValid());
 
     using SumResultNode
