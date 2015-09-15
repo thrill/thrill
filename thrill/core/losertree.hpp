@@ -1,12 +1,14 @@
 /*******************************************************************************
- * thrill/core/stxxl_losertree.hpp
+ * thrill/core/losertree.hpp
  *
  * Part of Project Thrill.
  *
  * Many generic loser tree variants.
  *
- * Extracted and modified from MCSTL
+ * Extracted from MCSTL
  * http://algo2.iti.uni-karlsruhe.de/singler/mcstl/
+ * Copied and Modified from STXXL
+ * https://github.com/stxxl/stxxl
  *
  * Copyright (C) 2007 Johannes Singler <singler@ira.uka.de>
  * Copyright (C) 2014-2015 Timo Bingmann <tb@panthema.net>
@@ -17,8 +19,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_STXXL_LOSERTREE_HEADER
-#define THRILL_CORE_STXXL_LOSERTREE_HEADER
+#ifndef THRILL_CORE_LOSERTREE_HEADER
+#define THRILL_CORE_LOSERTREE_HEADER
 
 #include <functional>
 #include <thrill/common/math.hpp>
@@ -26,8 +28,6 @@
 namespace thrill {
 
 namespace core {
-
-namespace stxxl {
 
 /**
  * Guarded loser tree/tournament tree, either copying the whole element into
@@ -1031,11 +1031,10 @@ public:
     }
 };
 
-} // namespace stxxl
 } // namespace core
 
 } // end namespace thrill
 
-#endif // !THRILL_CORE_STXXL_LOSERTREE_HEADER
+#endif // !THRILL_CORE_LOSERTREE_HEADER
 
 /******************************************************************************/

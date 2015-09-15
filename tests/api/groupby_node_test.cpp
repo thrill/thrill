@@ -16,7 +16,7 @@
 #include <thrill/data/file.hpp>
 
 #include <gtest/gtest.h>
-#include <thrill/core/stxxl_multiway_merge.hpp>
+#include <thrill/core/multiway_merge.hpp>
 
 #include <algorithm>
 #include <cstdlib>

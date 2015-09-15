@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/stxxl_multiway_merge_test.cpp
+ * tests/core/multiway_merge_test.cpp
  *
  * Part of Project Thrill.
  *
@@ -12,7 +12,7 @@
 #include <thrill/thrill.hpp>
 
 #include <thrill/core/iterator_wrapper.hpp>
-#include <thrill/core/stxxl_multiway_merge.hpp>
+#include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
 
 #include <thrill/common/logger.hpp>
@@ -62,7 +62,7 @@ TEST(MultiwayMerge, Basic) {
     }
 
     std::sort(std::begin(ref), std::end(ref));
-    core::stxxl::sequential_multiway_merge<true, false>(std::begin(seq),
+    core::sequential_multiway_merge<true, false>(std::begin(seq),
                                                         std::end(seq),
                                                         std::begin(output),
                                                         total,
@@ -78,7 +78,7 @@ TEST(MultiwayMerge, Vector_Wrapper) {
     std::size_t b = 50;
     std::size_t total = 2 * 5;
 
-    using iterator = thrill::core::StxxlVectorWrapper<int>;
+    using iterator = thrill::core::VectorIteratorWrapper<int>;
     std::vector<std::vector<int> > in;
     std::vector<int> ref;
     std::vector<int> output;
@@ -102,12 +102,12 @@ TEST(MultiwayMerge, Vector_Wrapper) {
     }
 
     for (auto& vec : in) {
-        seq.push_back(std::make_pair(thrill::core::StxxlVectorWrapper<int>(&vec, 0),
-                                     thrill::core::StxxlVectorWrapper<int>(&vec, b)));
+        seq.push_back(std::make_pair(thrill::core::VectorIteratorWrapper<int>(&vec, 0),
+                                     thrill::core::VectorIteratorWrapper<int>(&vec, b)));
     }
 
     std::sort(std::begin(ref), std::end(ref));
-    core::stxxl::sequential_multiway_merge<true, false>(std::begin(seq),
+    core::sequential_multiway_merge<true, false>(std::begin(seq),
                                                         std::end(seq),
                                                         std::begin(output),
                                                         total,
@@ -133,8 +133,8 @@ TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
         total += t;
     }
 
-    using Iterator = thrill::core::StxxlFileWrapper<int>;
-    using OIterator = thrill::core::StxxlFileOutputWrapper<int>;
+    using Iterator = thrill::core::FileIteratorWrapper<int>;
+    using OIterator = thrill::core::FileOutputIteratorWrapper<int>;
     using File = data::File;
     using Reader = File::Reader;
     using Writer = File::Writer;
@@ -182,7 +182,7 @@ TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
         OIterator oiter(std::make_shared<Writer>(output_file.GetWriter()));
 
         std::sort(std::begin(ref), std::end(ref));
-        core::stxxl::sequential_file_multiway_merge<true, false>(std::begin(seq),
+        core::sequential_file_multiway_merge<true, false>(std::begin(seq),
                                                                  std::end(seq),
                                                                  oiter,
                                                                  total,
@@ -203,8 +203,8 @@ TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
     std::size_t b = 100;
     std::size_t total = a * b;
 
-    using Iterator = thrill::core::StxxlFileWrapper<int>;
-    using OIterator = thrill::core::StxxlFileOutputWrapper<int>;
+    using Iterator = thrill::core::FileIteratorWrapper<int>;
+    using OIterator = thrill::core::FileOutputIteratorWrapper<int>;
     using File = data::File;
     using Reader = File::Reader;
     using Writer = File::Writer;
@@ -251,7 +251,7 @@ TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
         OIterator oiter(std::make_shared<Writer>(output_file.GetWriter()));
 
         std::sort(std::begin(ref), std::end(ref));
-        core::stxxl::sequential_file_multiway_merge<true, false>(std::begin(seq),
+        core::sequential_file_multiway_merge<true, false>(std::begin(seq),
                                                                  std::end(seq),
                                                                  oiter,
                                                                  total,
