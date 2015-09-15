@@ -106,8 +106,8 @@ public:
           reduce_post_table_(context_, key_extractor_, reduce_function_,
                              [this](const ValueType& item) { return this->PushItem(item); },
                              core::PostReduceByIndex(), core::PostReduceFlushToIndex<Value>(),
-                             std::get<0>(common::CalculateLocalRange(result_size_, context_)),
-                             std::get<1>(common::CalculateLocalRange(result_size_, context_)),
+                             std::get<0>(common::CalculateLocalRange(result_size_, context_.num_workers(), context_.my_rank())),
+                             std::get<1>(common::CalculateLocalRange(result_size_, context_.num_workers(), context_.my_rank())),
                              neutral_element_, 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
     {
         // Hook PreOp
