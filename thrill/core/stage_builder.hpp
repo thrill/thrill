@@ -20,6 +20,9 @@
 
 #include <algorithm>
 #include <set>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 #include <stack>
 #include <string>
 #include <utility>
@@ -33,47 +36,52 @@ using api::DIABase;
 class Stage
 {
 public:
-    explicit Stage(DIABase* node) : node_(node) {
-        STAT(node_->context()) << "CREATING stage" << node_->label() << "id" << node_->id()
-                     << "node" << node_;
-    }
+    explicit Stage(DIABase* node) : node_(node) { }
 
     void Execute() {
-        STAT(node_->context()) << "START(EXECUTING) stage" << node_->label() << "id" << node_->id()
-                     << "node" << node_;
+        //STAT(node_->context()) 
+        //    << "START(EXECUTING) stage" << node_->label();
         timer.Start();
-        // node_->StartExecutionTimer();
         node_->Execute();
-        // node_->StopExecutionTimer();
         timer.Stop();
-        STAT(node_->context()) << "FINISH (EXECUTING) stage" << node_->label() << "id" << node_->id() 
-                     << "node" << node_ << "took" << timer.Microseconds();
+        //time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        //STAT(node_->context()) 
+        //    << "FINISH (EXECUTING) stage" << node_->label() 
+        //    << "took (ms)" << timer.Milliseconds();
+        //LOG1 << "Current Time: " << std::put_time(std::localtime(&tt), "%T");
 
         node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
     }
 
     void PushData() {
-        STAT(node_->context()) << "START (PUSHING) stage" << node_->label() << "id" << node_->id()
-                     << "node" << node_;
+        //STAT(node_->context()) 
+        //    << "START (PUSHING) stage" << node_->label();
         timer.Start();
         die_unless(!node_->consume_on_push_data());
         node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
         timer.Stop();
-        STAT(node_->context()) << "FINISH (PUSHING) stage" << node_->label() << "id" << node_->id()
-                     << "node" << node_ << "took" << timer.Microseconds();
+        //time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        //STAT(node_->context()) 
+        //    << "FINISH (PUSHING) stage" 
+        //    << node_->label() 
+        //    << "took (ms)" << timer.Milliseconds();
+        // LOG1 << "Current Time: " << std::put_time(std::localtime(&tt), "%T");
     }
 
     void Dispose() {
-        STAT(node_->context()) << "START (DISPOSING) stage" << node_->label() << "id" << node_->id()
-                     << "node" << node_;
+        //STAT(node_->context()) 
+        //    << "START (DISPOSING) stage" << node_->label();
         timer.Start();
         node_->Dispose();
         node_->set_state(api::DIAState::DISPOSED);
         timer.Stop();
-        STAT(node_->context()) << "FINISH (DISPOSING) stage" << node_->label() << "id" << node_->id()
-                     << "node" << node_ << "took" << timer.Microseconds();
+        //time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        //STAT(node_->context())
+        //    << "FINISH (DISPOSING) stage" << node_->label() 
+        //    << "took (ms)" << timer.Milliseconds();
+        //LOG1 << "Current Time: " << std::put_time(std::localtime(&tt), "%T");
     }
 
     DIABase * node() {
