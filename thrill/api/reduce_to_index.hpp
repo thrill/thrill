@@ -102,7 +102,13 @@ public:
                             reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
-          neutral_element_(neutral_element)
+          neutral_element_(neutral_element),
+          reduce_post_table_(context_, key_extractor_, reduce_function_,
+                             [this](const ValueType& item) { return this->PushItem(item); },
+                             core::PostReduceByIndex(), core::PostReduceFlushToIndex<Value>(),
+                             std::get<0>(common::CalculateLocalRange(result_size_, context_)),
+                             std::get<1>(common::CalculateLocalRange(result_size_, context_)),
+                             neutral_element_, 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
     {
         // Hook PreOp
         auto pre_op_fn = [=](ValueType input) {
@@ -126,54 +132,31 @@ public:
     }
 
     void PushData(bool consume) final {
-        // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
-        using ReduceTable
-                  = core::ReducePostTable<ValueType, Key, Value,
-                                          KeyExtractor,
-                                          ReduceFunction,
-                                          SendPair,
-                                          core::PostReduceFlushToIndex<Value>,
-                                          core::PostReduceByIndex,
-                                          std::equal_to<Key>,
-                                          16*16>;
-
-        size_t local_begin, local_end;
-
-        std::tie(local_begin, local_end) = common::CalculateLocalRange(result_size_, context_);
-
-        std::vector<std::function<void(const ValueType&)> > cbs;
-        DIANode<ValueType>::callback_functions(cbs);
-
-        ReduceTable table(context_, key_extractor_, reduce_function_, cbs,
-                          core::PostReduceByIndex(),
-                          core::PostReduceFlushToIndex<Value>(),
-                          local_begin,
-                          local_end,
-                          neutral_element_,
-                          1024 * 1024 * 128 * 8,
-                          0.9,
-                          0.6,
-                          0.01);
+        if (reduced) {
+            reduce_post_table_.Flush(consume);
+            return;
+        }
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                table.Insert(reader.template Next<Value>());
+                reduce_post_table_.Insert(reader.template Next<Value>());
             }
-            table.Flush(consume);
         }
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                table.Insert(reader.template Next<KeyValuePair>());
+                reduce_post_table_.Insert(reader.template Next<KeyValuePair>());
             }
-            table.Flush(consume);
         }
+
+        reduced = true;
+        reduce_post_table_.Flush(consume);
     }
 
     void Dispose() final { }
@@ -208,6 +191,12 @@ private:
     size_t result_size_;
 
     Value neutral_element_;
+
+    core::ReducePostTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
+            core::PostReduceFlushToIndex<Value>, core::PostReduceByIndex,
+            std::equal_to<Key>, 16*16> reduce_post_table_;
+
+    bool reduced = false;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given

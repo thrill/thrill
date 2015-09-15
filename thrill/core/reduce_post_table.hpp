@@ -534,25 +534,21 @@ public:
     }
 };
 
-template <bool, typename EmitterType, typename Key, typename Value, typename SendType>
+template <bool, typename EmitterFunction, typename Key, typename Value, typename SendType>
 struct EmitImpl;
 
-template <typename EmitterType, typename Key, typename Value, typename SendType>
-struct EmitImpl<true, EmitterType, Key, Value, SendType>{
-    void EmitElement(const Key& k, const Value& v, const std::vector<EmitterType>& emitters) {
-        for (auto& emitter : emitters) {
-            emitter(std::make_pair(k, v));
-        }
+template <typename EmitterFunction, typename Key, typename Value, typename SendType>
+struct EmitImpl<true, EmitterFunction, Key, Value, SendType>{
+    void EmitElement(const Key& k, const Value& v, EmitterFunction emit) {
+        emit(std::make_pair(k, v));
     }
 };
 
-template <typename EmitterType, typename Key, typename Value, typename SendType>
-struct EmitImpl<false, EmitterType, Key, Value, SendType>{
-    void EmitElement(const Key& k, const Value& v, const std::vector<EmitterType>& emitters) {
-        for (auto& emitter : emitters) {
-            (void)k;
-            emitter(v);
-        }
+template <typename EmitterFunction, typename Key, typename Value, typename SendType>
+struct EmitImpl<false, EmitterFunction, Key, Value, SendType>{
+    void EmitElement(const Key& k, const Value& v, EmitterFunction emit) {
+        (void)k;
+        emit(v);
     }
 };
 
@@ -623,7 +619,7 @@ public:
     ReducePostTable(Context& ctx,
                     KeyExtractor key_extractor,
                     ReduceFunction reduce_function,
-                    std::vector<EmitterFunction>& emit,
+                    EmitterFunction emit,
                     const IndexFunction& index_function = IndexFunction(),
                     const FlushFunction& flush_function = FlushFunction(),
                     size_t begin_local_index = 0,
@@ -635,7 +631,7 @@ public:
                     double frame_rate = 0.01,
                     const EqualToFunction& equal_to_function = EqualToFunction())
         : max_frame_fill_rate_(max_frame_fill_rate),
-          emit_(std::move(emit)),
+          emit_(emit),
           byte_size_(byte_size),
           bucket_rate_(bucket_rate),
           begin_local_index_(begin_local_index),
@@ -646,7 +642,7 @@ public:
           equal_to_function_(equal_to_function),
           flush_function_(flush_function),
           reduce_function_(reduce_function) {
-        sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
+        //sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
         assert(frame_rate > 0.0 && frame_rate <= 1.0);
@@ -1150,8 +1146,8 @@ protected:
     //! Total number of blocks in the table.
     size_t num_blocks_per_table_ = 0;
 
-    //! Set of emitters, one per partition.
-    std::vector<EmitterFunction> emit_;
+    //! Emitter function.
+    EmitterFunction emit_;
 
     //! Size of the table in bytes.
     size_t byte_size_ = 0;
