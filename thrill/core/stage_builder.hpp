@@ -15,6 +15,8 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia_base.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stat_logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <algorithm>
 #include <set>
@@ -32,34 +34,46 @@ class Stage
 {
 public:
     explicit Stage(DIABase* node) : node_(node) {
-        sLOG << "CREATING stage" << node_->label() << "id" << node_->id()
-             << "node" << node_;
+        STAT(node_->context()) << "CREATING stage" << node_->label() << "id" << node_->id()
+                     << "node" << node_;
     }
 
     void Execute() {
-        sLOG << "EXECUTING stage " << node_->label() << "id" << node_->id()
-             << "node" << node_;
-        node_->StartExecutionTimer();
+        STAT(node_->context()) << "START(EXECUTING) stage" << node_->label() << "id" << node_->id()
+                     << "node" << node_;
+        timer.Start();
+        // node_->StartExecutionTimer();
         node_->Execute();
-        node_->StopExecutionTimer();
+        // node_->StopExecutionTimer();
+        timer.Stop();
+        STAT(node_->context()) << "FINISH (EXECUTING) stage" << node_->label() << "id" << node_->id() 
+                     << "node" << node_ << "took" << timer.Microseconds();
 
         node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
     }
 
     void PushData() {
-        sLOG << "PUSHING stage " << node_->label() << "id" << node_->id()
-             << "node" << node_;
+        STAT(node_->context()) << "START (PUSHING) stage" << node_->label() << "id" << node_->id()
+                     << "node" << node_;
+        timer.Start();
         die_unless(!node_->consume_on_push_data());
         node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
+        timer.Stop();
+        STAT(node_->context()) << "FINISH (PUSHING) stage" << node_->label() << "id" << node_->id()
+                     << "node" << node_ << "took" << timer.Microseconds();
     }
 
     void Dispose() {
-        sLOG << "DISPOSING stage " << node_->label() << "id" << node_->id()
-             << "node" << node_;
+        STAT(node_->context()) << "START (DISPOSING) stage" << node_->label() << "id" << node_->id()
+                     << "node" << node_;
+        timer.Start();
         node_->Dispose();
         node_->set_state(api::DIAState::DISPOSED);
+        timer.Stop();
+        STAT(node_->context()) << "FINISH (DISPOSING) stage" << node_->label() << "id" << node_->id()
+                     << "node" << node_ << "took" << timer.Microseconds();
     }
 
     DIABase * node() {
@@ -68,6 +82,7 @@ public:
 
 private:
     static const bool debug = false;
+    common::StatsTimer<true> timer;
     DIABase* node_;
 };
 
