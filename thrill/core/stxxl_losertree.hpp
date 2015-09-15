@@ -3,28 +3,22 @@
  *
  * Part of Project Thrill.
  *
+ * Many generic loser tree variants.
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * Extracted and modified from MCSTL
+ * http://algo2.iti.uni-karlsruhe.de/singler/mcstl/
+ *
+ * Copyright (C) 2007 Johannes Singler <singler@ira.uka.de>
+ * Copyright (C) 2014-2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
+ *
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See http://www.boost.org/LICENSE_1_0.txt)
  ******************************************************************************/
 
 #pragma once
 #ifndef THRILL_CORE_STXXL_LOSERTREE_HEADER
 #define THRILL_CORE_STXXL_LOSERTREE_HEADER
-/***************************************************************************
- *  include/stxxl/bits/parallel/losertree.h
- *
- *  Many generic loser tree variants.
- *  Extracted from MCSTL - http://algo2.iti.uni-karlsruhe.de/singler/mcstl/
- *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
- *
- *  Copyright (C) 2007 Johannes Singler <singler@ira.uka.de>
- *  Copyright (C) 2014-2015 Timo Bingmann <tb@panthema.net>
- *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
 
 #ifndef STXXL_PARALLEL_LOSERTREE_HEADER
 #define STXXL_PARALLEL_LOSERTREE_HEADER

@@ -3,14 +3,20 @@
  *
  * Part of Project Thrill.
  *
- * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
+ * Provides iterator wrapper for files
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * Extracted and modified from Sound of Sorting (SortAlgo.h)
+ * http://panthema.net/2013/sound-of-sorting/
+ * https://github.com/bingmann/sound-of-sorting
+ *
+ * Copyright (C) 2013-2014 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  ******************************************************************************/
 
 #pragma once
 #ifndef THRILL_CORE_ITERATOR_WRAPPER_HEADER
 #define THRILL_CORE_ITERATOR_WRAPPER_HEADER
+<<<<<<< HEAD
 /******************************************************************************
  * src/SortAlgo.h
  *
@@ -27,6 +33,8 @@
  * Copyright (C) 2013-2014 Timo Bingmann <tb@panthema.net>
  *
  *****************************************************************************/
+=======
+>>>>>>> edf6ec2... add proper copyright and license info
 
 #ifndef ITERATOR_WRAPPER_HEADER
 #define ITERATOR_WRAPPER_HEADER
@@ -41,6 +49,12 @@ namespace thrill {
 namespace core {
 
 static const bool debug = false;
+
+// *****************************************************************************
+// *** Outpur Iterator Adapter for file writers
+// iterator based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
+// *****************************************************************************
+
 
 template <typename ArrayItem>
 class StxxlFileOutputWrapper
@@ -66,10 +80,10 @@ struct IterStats {
     ArrayItem item_;
 };
 
-// ****************************************************************************
+// *****************************************************************************
 // *** Iterator Adapter for file readers
-
 // iterator based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
+// *****************************************************************************
 
 template <typename ArrayItem>
 class StxxlFileWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
