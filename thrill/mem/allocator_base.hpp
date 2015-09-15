@@ -70,6 +70,10 @@ public:
 
     //! Destroys in-place the object pointed by p.
     void destroy(pointer p) const noexcept {
+#if defined(_MSC_VER)
+        // disable false-positive warning C4100: 'p': unreferenced formal parameter
+#pragma warning(suppress:4100)
+#endif
         p->~Type();
     }
 

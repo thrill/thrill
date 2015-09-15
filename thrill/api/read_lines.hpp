@@ -13,11 +13,11 @@
 #ifndef THRILL_API_READ_LINES_HEADER
 #define THRILL_API_READ_LINES_HEADER
 
+#include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
@@ -180,7 +180,7 @@ private:
             // Go to start of 'local part'.
             size_t my_start;
             std::tie(my_start, my_end_) =
-                common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
+                context_.CalculateLocalRange(files[NumFiles()].second);
 
             while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;
@@ -196,7 +196,8 @@ private:
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
-            offset_ = file_.lseek(my_start - files_[current_file_].second);
+            offset_ = file_.lseek(
+                static_cast<off_t>(my_start - files_[current_file_].second));
             buffer_.Reserve(read_size);
             ReadBlock(file_, buffer_);
 
@@ -300,7 +301,7 @@ private:
             // Go to start of 'local part'.
             size_t my_start;
             std::tie(my_start, my_end_) =
-                common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
+                context_.CalculateLocalRange(files[NumFiles()].second);
 
             while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;

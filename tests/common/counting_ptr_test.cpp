@@ -73,8 +73,8 @@ TEST(CountingPtr, RunTest) {
         // check number of objects destructed
         ASSERT_EQ(2, count_deletes);
 
-        // create a const pointer from a normal ptr.
-        IntegerCPtr i4 = MakeIntegerPtr();
+        // get a pointer from a function
+        IntegerPtr i4 = MakeIntegerPtr();
 
         // quitting the block will release the ptr
     }
