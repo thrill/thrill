@@ -42,7 +42,7 @@ public:
                    StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           path_out_(path_out),
-          file_(path_out_),
+          file_(path_out_, std::ios::binary),
           temp_file_(context_.GetFile()),
           writer_(&temp_file_)
     {

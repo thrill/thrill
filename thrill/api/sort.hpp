@@ -305,7 +305,7 @@ private:
         size_t num_total_workers = context_.num_workers();
         size_t sample_size =
             common::IntegerLog2Ceil(total_elem) *
-            (1 / (desired_imbalance_ * desired_imbalance_));
+            static_cast<size_t>(1 / (desired_imbalance_ * desired_imbalance_));
 
         LOG << prefix_elem << " elements, out of " << total_elem;
 

@@ -16,7 +16,12 @@
 #include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats.hpp>
+
+#if defined(_MSC_VER)
+#include <thrill/net/mock/group.hpp>
+#else
 #include <thrill/net/tcp/construct.hpp>
+#endif
 
 #include <atomic>
 #include <memory>
@@ -29,16 +34,22 @@
 namespace thrill {
 namespace api {
 
+#if defined(_MSC_VER)
+using TestGroup = net::mock::Group;
+#else
+using TestGroup = net::tcp::Group;
+#endif
+
 //! Construct a number of mock hosts running in this process.
 std::vector<std::unique_ptr<HostContext> >
 HostContext::ConstructLocalMock(size_t host_count, size_t workers_per_host) {
     static const size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three full mesh connection cliques, deliver net::tcp::Groups.
-    std::array<std::vector<std::unique_ptr<net::tcp::Group> >, kGroupCount> group;
+    std::array<std::vector<std::unique_ptr<TestGroup> >, kGroupCount> group;
 
     for (size_t g = 0; g < kGroupCount; ++g) {
-        group[g] = net::tcp::Group::ConstructLocalMesh(host_count);
+        group[g] = TestGroup::ConstructLocalMesh(host_count);
     }
 
     // construct host context
@@ -132,6 +143,35 @@ void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     }
 }
 
+void RunSameThread(const std::function<void(Context&)>& job_startpoint) {
+
+    size_t my_host_rank = 0;
+    size_t workers_per_host = 1;
+    size_t host_count = 1;
+    static const size_t kGroupCount = net::Manager::kGroupCount;
+
+    // construct three full mesh connection cliques, deliver net::tcp::Groups.
+    std::array<std::vector<std::unique_ptr<TestGroup> >, kGroupCount> group;
+
+    for (size_t g = 0; g < kGroupCount; ++g) {
+        group[g] = TestGroup::ConstructLocalMesh(host_count);
+    }
+
+    std::array<net::GroupPtr, kGroupCount> host_group = {
+        { std::move(group[0][0]),
+          std::move(group[1][0]),
+          std::move(group[2][0]) }
+    };
+
+    HostContext host_context(std::move(host_group), workers_per_host);
+
+    Context ctx(host_context, 0);
+    common::NameThisThread("worker " + mem::to_string(my_host_rank));
+
+    job_startpoint(ctx);
+}
+
+#if !defined(_MSC_VER)
 HostContext::HostContext(size_t my_host_rank,
                          const std::vector<std::string>& endpoints,
                          size_t workers_per_host)
@@ -143,20 +183,6 @@ HostContext::HostContext(size_t my_host_rank,
                         block_pool_, workers_per_host,
                         net_manager_.GetDataGroup())
 { }
-
-void RunSameThread(const std::function<void(Context&)>& job_startpoint) {
-
-    size_t my_host_rank = 0;
-    size_t workers_per_host = 1;
-
-    HostContext host_context(
-        my_host_rank, { "127.0.0.1:12345" }, workers_per_host);
-
-    Context ctx(host_context, 0);
-    common::NameThisThread("worker " + mem::to_string(my_host_rank));
-
-    job_startpoint(ctx);
-}
 
 int RunDistributedTCP(
     size_t my_host_rank,
@@ -199,6 +225,7 @@ int RunDistributedTCP(
 
     return global_result;
 }
+#endif
 
 /*!
  * Runs the given job startpoint with a context instance.  Startpoints may be
@@ -259,6 +286,10 @@ int Run(
         return 0;
     }
 
+#if defined(_MSC_VER)
+    die("Real network not supported on windows, yet.");
+#else
+
     size_t my_host_rank = std::strtoul(env_rank, &endptr, 10);
 
     if (!endptr || *endptr != 0) {
@@ -306,6 +337,7 @@ int Run(
     std::cerr << std::endl;
 
     return RunDistributedTCP(my_host_rank, workers_per_host, endpoints, job_startpoint, "");
+#endif
 }
 
 } // namespace api
