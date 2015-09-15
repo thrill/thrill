@@ -134,9 +134,11 @@ template <typename Key,
 class PostReduceFlushToDefault
 {
 public:
-    PostReduceFlushToDefault(const IndexFunction& index_function = IndexFunction(),
+    PostReduceFlushToDefault(ReduceFunction reduce_function,
+                             const IndexFunction& index_function = IndexFunction(),
                              const EqualToFunction& equal_to_function = EqualToFunction())
-        : index_function_(index_function),
+        : reduce_function_(reduce_function),
+          index_function_(index_function),
           equal_to_function_(equal_to_function)
     { }
 
@@ -271,7 +273,7 @@ public:
                             // if item and key equals, then reduce.
                             if (equal_to_function_(kv.first, bi->first))
                             {
-                                bi->second = ht->reduce_function_(bi->second, kv.second); // TODO: reduce_function must be provided inlined
+                                bi->second = reduce_function_(bi->second, kv.second);
                                 reduced = true;
                                 break;
                             }
@@ -333,7 +335,7 @@ public:
                                     // if item and key equals, then reduce.
                                     if (equal_to_function_(from->first, bi->first))
                                     {
-                                        bi->second = ht->reduce_function_(bi->second, from->second);
+                                        bi->second = reduce_function_(bi->second, from->second);
                                         reduced = true;
                                         break;
                                     }
@@ -476,7 +478,7 @@ public:
     }
 
 private:
-    // ReduceFunction reduce_function_;
+    ReduceFunction reduce_function_;
     IndexFunction index_function_;
     EqualToFunction equal_to_function_;
 };
@@ -620,12 +622,12 @@ public:
                     KeyExtractor key_extractor,
                     ReduceFunction reduce_function,
                     EmitterFunction emit,
-                    const IndexFunction& index_function = IndexFunction(),
-                    const FlushFunction& flush_function = FlushFunction(),
+                    const IndexFunction& index_function,
+                    const FlushFunction& flush_function,
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
                     Value neutral_element = Value(),
-                    size_t byte_size = 1024* 1024* 128* 4,
+                    size_t byte_size = 1024 * 1024 * 128 * 4,
                     double bucket_rate = 0.9,
                     double max_frame_fill_rate = 0.6,
                     double frame_rate = 0.01,
@@ -684,6 +686,11 @@ public:
             frame_writers_.push_back(frame_files_[i].GetWriter());
         }
     }
+
+    ReducePostTable(Context& ctx, KeyExtractor key_extractor,
+                    ReduceFunction reduce_function, EmitterFunction emit)
+            : ReducePostTable(ctx, key_extractor, reduce_function, emit, IndexFunction(),
+                              FlushFunction(reduce_function)) {}
 
     //! non-copyable: delete copy-constructor
     ReducePostTable(const ReducePostTable&) = delete;
@@ -1206,7 +1213,6 @@ protected:
     //! Maximal number of blocks per frame.
     size_t max_num_blocks_mem_per_frame_;
 
-public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
