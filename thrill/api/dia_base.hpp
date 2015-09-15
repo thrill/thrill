@@ -182,7 +182,7 @@ public:
         if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms", LogType::EXECUTION);
     }
 
-    inline void WriteChannelStats(const data::ChannelBasePtr& c) {
+    inline void WriteChannelStats(const data::ChannelPtr& c) {
         if (common::g_enable_stats) {
             assert(!c->rx_lifetime_.running());
             assert(!c->tx_lifetime_.running());

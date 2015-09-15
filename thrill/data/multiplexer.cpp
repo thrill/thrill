@@ -8,7 +8,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/data/channel_base.hpp>
+#include <thrill/data/channel.hpp>
 #include <thrill/data/concat_channel.hpp>
 #include <thrill/data/mixed_channel.hpp>
 #include <thrill/data/multiplexer.hpp>
