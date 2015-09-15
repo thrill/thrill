@@ -62,7 +62,7 @@ void Connection::InboundMsg(net::Buffer&& msg) {
 
 void Dispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
 
-    Connection* c;
+    Connection* c = nullptr;
     if (!notify_.pop_for(c, timeout)) {
         sLOG << "DispatchOne timeout";
         return;

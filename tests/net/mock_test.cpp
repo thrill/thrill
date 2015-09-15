@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <thrill/common/logger.hpp>
-#include <thrill/net/collective_communication.hpp>
+#include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/mock/group.hpp>
 
 #include <thread>
@@ -69,11 +69,17 @@ TEST(MockGroup, BroadcastIntegral) {
 TEST(MockGroup, SendReceiveAll2All) {
     MockTest(TestSendReceiveAll2All);
 }
-TEST(MockGroup, PrefixSumForPowersOfTwo) {
-    MockTest(TestPrefixSumForPowersOfTwo);
+TEST(MockGroup, PrefixSumHypercube) {
+    MockTest(TestPrefixSumHypercube);
 }
-TEST(MockGroup, PrefixSumForPowersOfTwoString) {
-    MockTest(TestPrefixSumForPowersOfTwoString);
+TEST(MockGroup, PrefixSumHypercubeString) {
+    MockTest(TestPrefixSumHypercubeString);
+}
+TEST(MockGroup, PrefixSum) {
+    MockTest(TestPrefixSum);
+}
+TEST(MockGroup, Broadcast) {
+    MockTest(TestBroadcast);
 }
 TEST(MockGroup, ReduceToRoot) {
     MockTest(TestReduceToRoot);
@@ -81,8 +87,11 @@ TEST(MockGroup, ReduceToRoot) {
 TEST(MockGroup, ReduceToRootString) {
     MockTest(TestReduceToRootString);
 }
-TEST(MockGroup, Broadcast) {
-    MockTest(TestBroadcast);
+TEST(MockGroup, AllReduceString) {
+    MockTest(TestAllReduceString);
+}
+TEST(MockGroup, AllReduceHypercubeString) {
+    MockTest(TestAllReduceHypercubeString);
 }
 TEST(MockGroup, DispatcherLaunchAndTerminate) {
     MockTest(TestDispatcherLaunchAndTerminate);
@@ -99,6 +108,9 @@ TEST(MockGroup, DispatcherSyncSendAsyncRead) {
 }
 TEST(FlowControlMockGroup, SingleThreadPrefixSum) {
     MockTestLess(TestSingleThreadPrefixSum);
+}
+TEST(FlowControlMockGroup, SingleThreadVectorPrefixSum) {
+    MockTestLess(TestSingleThreadVectorPrefixSum);
 }
 TEST(FlowControlMockGroup, SingleThreadBroadcast) {
     MockTestLess(TestSingleThreadBroadcast);

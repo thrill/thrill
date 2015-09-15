@@ -373,7 +373,7 @@ TEST_F(PostTable, WithinTableItemsLimit) {
             size_t num_items = (size_t)(static_cast<double>(total_items) * fill_rate);
 
             for (size_t i = 0; i < num_items; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
             ASSERT_EQ(num_items, table.NumItems());
 
@@ -424,7 +424,7 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
             size_t num_items = (size_t)(static_cast<double>(total_items) * fill_rate);
 
             for (size_t i = 0; i < num_items; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
             ASSERT_EQ(num_items - 1, table.NumItems());
 
@@ -476,7 +476,7 @@ TEST_F(PostTable, AboveTableItemsLimit) {
             ASSERT_EQ(0u, table.NumItems());
 
             for (size_t i = 0; i < num_items; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
 
             ASSERT_EQ(num_items, table.NumItems());
@@ -484,7 +484,7 @@ TEST_F(PostTable, AboveTableItemsLimit) {
             size_t on_top = 10;
 
             for (size_t i = num_items; i < num_items + on_top; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
 
             ASSERT_TRUE(table.NumItems() <= num_items);

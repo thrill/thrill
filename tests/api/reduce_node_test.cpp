@@ -48,7 +48,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
 
             std::sort(out_vec.begin(), out_vec.end());
 
-            int i = 1;
+            size_t i = 1;
 
             for (const size_t& element : out_vec) {
                 ASSERT_EQ(element, 56 + (8 * i++));

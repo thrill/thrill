@@ -20,7 +20,6 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
-#include <thrill/net/collective_communication.hpp>
 
 #include <algorithm>
 #include <functional>

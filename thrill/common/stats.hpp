@@ -158,8 +158,9 @@ private:
     const TimeStamp program_start_;
 
     //! relative duration in microseconds to creation of this instance.
-    inline long Relative(const TimeStamp& time_point) {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(time_point - program_start_).count();
+    std::chrono::milliseconds::rep Relative(const TimeStamp& time_point) {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            time_point - program_start_).count();
     }
 };
 
