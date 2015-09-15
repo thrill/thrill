@@ -124,13 +124,13 @@ for hostport in $THRILL_SSHLIST; do
             "$cmd" "$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
             $host \
-            "export THRILL_WORKERS_PER_HOST=\"THRILL_WORKERS_PER_HOST\" THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
+            "export THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\" THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
       ) &
   else
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
           $host \
-          "export THRILL_WORKERS_PER_HOST=\"THRILL_WORKERS_PER_HOST\" THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $*" &
+          "export THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\" THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $*" &
   fi
   rank=$((rank+1))
 done
