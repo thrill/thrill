@@ -19,7 +19,7 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/iterator_wrapper.hpp>
-#include <thrill/core/stxxl_multiway_merge.hpp>
+#include <thrill/core/multiway_merge.hpp>
 
 #include <functional>
 #include <string>
@@ -260,8 +260,8 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        using Iterator = thrill::core::StxxlFileWrapper<ValueIn>;
-        using OIterator = thrill::core::StxxlFileOutputWrapper<ValueIn>;
+        using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
+        using OIterator = thrill::core::FileOutputIteratorWrapper<ValueIn>;
 
         LOG << ToString() << " running group by main op";
 
@@ -319,7 +319,7 @@ private:
             {
                 OIterator oiter(std::make_shared<Writer>(sorted_elems_.GetWriter()));
 
-                core::stxxl::sequential_file_multiway_merge<true, false>(
+                core::sequential_file_multiway_merge<true, false>(
                     std::begin(seq),
                     std::end(seq),
                     oiter,
