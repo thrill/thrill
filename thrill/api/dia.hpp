@@ -482,8 +482,7 @@ public:
     /*!
      * GroupBy is a DOp, which groups elements of the DIARef by its key.
      * After having grouped all elements of one key, all elements of one key
-     * will be processed according to the GroupByFunction and arbitrary
-     * results may be emitted as output.
+     * will be processed according to the GroupByFunction and returns an output
      * Contrary to Reduce, GroupBy allows usage of functions that require all
      * elements of one key at once as GroupByFunction will be applied _after_
      * all elements with the same key have been grouped. However because of this
@@ -506,7 +505,6 @@ public:
      * \param groupby_function Reduce function, which defines how the key
      * buckets are grouped and processed.
      *      input param: api::GroupByReader with functions HasNext() and Next()
-     *      input param: api::GroupByEmitter with function Emit()
      */
     template <typename KeyExtractor,
               typename GroupByFunction,

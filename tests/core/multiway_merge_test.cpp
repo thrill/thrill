@@ -34,7 +34,7 @@ TEST(MultiwayMerge, Basic) {
     std::size_t b = 5;
     std::size_t total = 2 * 5;
 
-    using iterator = typename std::vector<int>::iterator;
+    using iterator = std::vector<int>::iterator;
     std::vector<std::vector<int> > in;
     std::vector<int> ref;
     std::vector<int> output;
@@ -119,7 +119,7 @@ TEST(MultiwayMerge, Vector_Wrapper) {
 
 TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
     std::mt19937 gen(0);
-    // get _a_ different runs with _b[i]_ number of elements
+    // get _a_ different runs with _a_ number of elements
     std::size_t a = 400;
     std::vector<std::size_t> b;
     b.reserve(a);
@@ -192,7 +192,7 @@ TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
     auto r = output_file.GetReader(true);
     for (std::size_t i = 0; i < total; ++i) {
         auto e = r.Next<int>();
-        // sLOG << std::setw(3) << ref[i] << std::setw(3) << e;
+        sLOG << std::setw(3) << ref[i] << std::setw(3) << e;
         ASSERT_EQ(ref[i], e);
     }
 }
@@ -261,7 +261,7 @@ TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
     auto r = output_file.GetReader(true);
     for (std::size_t i = 0; i < total; ++i) {
         auto e = r.Next<int>();
-        // sLOG << std::setw(3) << ref[i] << std::setw(3) << e;
+        sLOG << std::setw(3) << ref[i] << std::setw(3) << e;
         ASSERT_EQ(ref[i], e);
     }
 }

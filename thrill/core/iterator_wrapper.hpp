@@ -299,16 +299,16 @@ public:
     }
 };
 
-// ****************************************************************************
+// *****************************************************************************
 // *** Iterator Adapter for vectors
-
 // iterator based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
+// *****************************************************************************
+
 
 template <typename ArrayItem>
 class VectorIteratorWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
 {
 protected:
-    // SortArray*  m_array;
     std::vector<ArrayItem>* m_array;
     size_t m_pos;
 

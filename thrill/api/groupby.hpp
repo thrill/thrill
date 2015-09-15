@@ -193,6 +193,10 @@ public:
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor>(r, key_extractor_);
             while (user_iterator.HasNextForReal()) {
                 // call user function
+
+                // TODO(cn): call groupby function while doing multiway merge
+                // TODO(cn): give key of current elements as parameter in
+                //           groupfunction
                 const ValueOut res = groupby_function_(user_iterator);
                 // push result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
@@ -211,14 +215,6 @@ public:
      */
     auto ProduceStack() {
         return FunctionStack<ValueType>();
-    }
-
-    /*!
-     * Returns "[GroupByNode]" and its id as a string.
-     * \return "[GroupByNode]"
-     */
-    std::string ToString() override {
-        return "[GroupByNode] Id: " + result_file_.ToString();
     }
 
 private:
