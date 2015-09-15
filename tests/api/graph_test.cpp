@@ -10,6 +10,7 @@
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
+#include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/generate_from_file.hpp>
@@ -17,7 +18,6 @@
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/stats_graph.hpp>
-#include <thrill/api/write_lines_many.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/logger.hpp>
 

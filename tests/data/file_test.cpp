@@ -398,6 +398,10 @@ TEST_F(File, SeekReadSlicesOfFiles) {
 }
 
 //! A derivative of File which only contains a limited amount of Blocks
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4250)
+#endif
 class BoundedFile : public virtual data::BoundedBlockSink,
                     public virtual data::File
 {
@@ -411,6 +415,9 @@ public:
 
     enum { allocate_can_fail_ = true };
 };
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 TEST_F(File, BoundedFilePutIntegerUntilFull) {
 
@@ -424,7 +431,7 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
         }
         FAIL();
     }
-    catch (data::FullException& e) {
+    catch (data::FullException&) {
         // good: we got the exception
     }
 

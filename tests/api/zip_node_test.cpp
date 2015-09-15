@@ -46,7 +46,9 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
 
             // zip
             auto zip_result = zip_input1.Zip(
-                zip_input2, [](size_t a, short b) -> long { return a + b; });
+                zip_input2, [](size_t a, short b) -> long {
+                    return static_cast<long>(a) + b;
+                });
 
             // check result
             std::vector<long> res = zip_result.AllGather();
@@ -139,7 +141,9 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
 
             // zip
             auto zip_result = input1.Zip(
-                input2_short, [](size_t a, short b) -> long { return a + b; });
+                input2_short, [](size_t a, short b) -> long {
+                    return static_cast<long>(a) + b;
+                });
 
             // check result
             std::vector<long> res = zip_result.AllGather();
@@ -160,8 +164,9 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
             auto input_gen = Generate(
                 ctx,
                 [](size_t index) -> std::string {
-                    std::default_random_engine rng(123456 + index);
-                    std::uniform_int_distribution<int> length(10, 20);
+                    std::default_random_engine rng(
+                        123456 + static_cast<unsigned>(index));
+                    std::uniform_int_distribution<size_t> length(10, 20);
                     rng(); // skip one number
 
                     return common::RandomString(

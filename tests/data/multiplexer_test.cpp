@@ -71,11 +71,11 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
     static const size_t iterations = 1000;
     size_t my_local_worker_id = 0;
-    size_t num_workers_per_node = 1;
+    size_t num_workers_per_host = 1;
 
     mem::Manager mem_manager(nullptr, "Benchmark");
     data::BlockPool block_pool(&mem_manager);
-    data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_node, *net);
+    data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
     {
         data::ChannelId id = multiplexer.AllocateChannelId(my_local_worker_id);
 
