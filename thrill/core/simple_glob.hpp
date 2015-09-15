@@ -51,22 +51,23 @@
 # define SOCHAR_T           unsigned char
 #else
 # include <climits>
-# include <glob.h>
-# include <sys/stat.h>
-# include <sys/types.h>
+# include <glob.h>      // NOLINT
+# include <sys/stat.h>  // NOLINT
+# include <sys/types.h> // NOLINT
 # define MAX_PATH           PATH_MAX
 # define sg_strchr          ::strchr
 # define sg_strrchr         ::strrchr
 # define sg_strlen          ::strlen
-# define sg_strcpy_s(a, n, b) ::strcpy(a, b)
+# define sg_strcpy_s(a, n, b) ::strcpy(a, b) // NOLINT
 # define sg_strcmp          ::strcmp
 # define sg_strcasecmp      ::strcasecmp
 # define SOCHAR_T           char
 #endif
 
+#include <wchar.h>
+
 #include <cstdlib>
 #include <cstring>
-#include <wchar.h>
 
 // use assertions to test the input data
 #ifdef _DEBUG
@@ -465,7 +466,7 @@ public:
 
 #if SG_HAVE_ICU
     bool FindNextFileS(UChar) { // NOLINT
-        return this->FindNextFileS((char)0);
+        return this->FindNextFileS(static_cast<char>(0));
     }
 #endif
 
@@ -482,7 +483,7 @@ public:
 
 #if SG_HAVE_ICU
     const UChar * GetFileNameS(UChar) const { // NOLINT
-        const char* pszFile = this->GetFileNameS((char)0);
+        const char* pszFile = this->GetFileNameS(static_cast<char>(0));
         if (!pszFile) return nullptr;
         UErrorCode status = U_ZERO_ERROR;
         memset(m_szBuf, 0, sizeof(m_szBuf));
@@ -499,7 +500,7 @@ public:
 
 #if SG_HAVE_ICU
     bool IsDirS(UChar) const { // NOLINT
-        return this->IsDirS((char)0);
+        return this->IsDirS(static_cast<char>(0));
     }
 #endif
 
@@ -772,7 +773,7 @@ CSimpleGlobTempl<SOCHAR>::Add(
         nError = AppendName(this->GetFileNameS((SOCHAR)0), this->IsDirS((SOCHAR)0));
         bSuccess = this->FindNextFileS((SOCHAR)0);
     }
-    while (nError == SG_SUCCESS && bSuccess);
+    while (nError == SG_SUCCESS && bSuccess); // NOLINT
     SimpleGlobBase<SOCHAR>::FindDone();
 
     // sort these files if required
@@ -849,7 +850,7 @@ CSimpleGlobTempl<SOCHAR>::AppendName(
     }
 
     // add this entry. m_uiBufferLen is offset from beginning of buffer.
-    m_rgpArgs[m_nArgsLen++] = (SOCHAR*)m_uiBufferLen;
+    m_rgpArgs[m_nArgsLen++] = reinterpret_cast<SOCHAR*>(m_uiBufferLen);
     SimpleGlobUtil::strcpy_s(m_pBuffer + m_uiBufferLen,
                              m_uiBufferSize - m_uiBufferLen, m_szPathPrefix);
     SimpleGlobUtil::strcpy_s(m_pBuffer + m_uiBufferLen + uiPrefixLen,
@@ -884,7 +885,8 @@ CSimpleGlobTempl<SOCHAR>::SetArgvArrayType(
         SG_ASSERT(m_nArgArrayType == POINTERS);
         for (int n = 0; n < m_nArgsLen; ++n) {
             m_rgpArgs[n] = (m_rgpArgs[n] == nullptr) ?
-                           (SOCHAR*)-1 : (SOCHAR*)(m_rgpArgs[n] - m_pBuffer);
+                           static_cast<SOCHAR*>(-1) :
+                           reinterpret_cast<SOCHAR*>(m_rgpArgs[n] - m_pBuffer);
         }
     }
     m_nArgArrayType = a_nNewType;
@@ -905,7 +907,7 @@ CSimpleGlobTempl<SOCHAR>::GrowArgvArray(
         void* pNewBuffer = realloc(m_rgpArgs, nNewSize * sizeof(SOCHAR*));
         if (!pNewBuffer) return false;
         m_nArgsSize = nNewSize;
-        m_rgpArgs = (SOCHAR**)pNewBuffer;
+        m_rgpArgs = reinterpret_cast<SOCHAR**>(pNewBuffer);
     }
     return true;
 }
@@ -925,7 +927,7 @@ CSimpleGlobTempl<SOCHAR>::GrowStringBuffer(
         void* pNewBuffer = realloc(m_pBuffer, uiNewSize * sizeof(SOCHAR));
         if (!pNewBuffer) return false;
         m_uiBufferSize = uiNewSize;
-        m_pBuffer = (SOCHAR*)pNewBuffer;
+        m_pBuffer = reinterpret_cast<SOCHAR*>(pNewBuffer);
     }
     return true;
 }

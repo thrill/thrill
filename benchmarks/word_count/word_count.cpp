@@ -16,6 +16,9 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/thrill.hpp>
 
+#include <string>
+#include <utility>
+
 using WordCountPair = std::pair<std::string, size_t>;
 using namespace thrill; // NOLINT
 

@@ -15,6 +15,8 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 
+#include <string>
+
 using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {

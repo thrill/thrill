@@ -17,6 +17,7 @@
 #include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
 
+#include <functional>
 #include <future>
 #include <string>
 #include <tuple>

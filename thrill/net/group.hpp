@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <functional>
 #include <thread>
 #include <vector>
 
