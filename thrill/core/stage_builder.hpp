@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <chrono>
 #include <ctime>
+#include <functional>
 #include <iomanip>
 #include <set>
 #include <stack>
