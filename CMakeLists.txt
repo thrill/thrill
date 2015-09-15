@@ -331,10 +331,8 @@ add_subdirectory(thrill)
 # descend into testsuite
 add_subdirectory(tests)
 
-if(NOT MSVC)
-  # descend into benchmarks and examples programs
-  add_subdirectory(benchmarks)
-endif()
+# descend into benchmarks and examples programs
+add_subdirectory(benchmarks)
 
 if(SWIG_FOUND)
   # build swig frontends

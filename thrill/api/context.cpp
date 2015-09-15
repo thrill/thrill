@@ -217,6 +217,7 @@ int RunDistributedTCP(
 
     return global_result;
 }
+#endif
 
 /*!
  * Runs the given job startpoint with a context instance.  Startpoints may be
@@ -261,6 +262,10 @@ int Run(
 
         return 0;
     }
+
+#if defined(_MSC_VER)
+    die("Real network not supported on windows, yet.");
+#else
 
     size_t my_host_rank = std::strtoul(env_rank, &endptr, 10);
 
@@ -309,9 +314,8 @@ int Run(
     std::cerr << std::endl;
 
     return RunDistributedTCP(my_host_rank, endpoints, job_startpoint, "");
-}
-
 #endif
+}
 
 } // namespace api
 } // namespace thrill
