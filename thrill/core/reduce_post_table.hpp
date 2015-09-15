@@ -134,7 +134,7 @@ template <typename Key,
 class PostReduceFlushToDefault
 {
 public:
-    PostReduceFlushToDefault(ReduceFunction reduce_function,
+    PostReduceFlushToDefault(const ReduceFunction& reduce_function,
                              const IndexFunction& index_function = IndexFunction(),
                              const EqualToFunction& equal_to_function = EqualToFunction())
         : reduce_function_(reduce_function),
@@ -623,11 +623,11 @@ public:
      * \param equal_to_function Function for checking equality of two keys.
      */
     ReducePostTable(Context& ctx,
-                    KeyExtractor key_extractor,
-                    ReduceFunction reduce_function,
+                    const KeyExtractor& key_extractor,
+                    const ReduceFunction& reduce_function,
                     std::vector<EmitterFunction>& emit,
                     const IndexFunction& index_function,
-                    FlushFunction flush_function,
+                    const FlushFunction& flush_function,
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
                     Value neutral_element = Value(),
@@ -691,8 +691,8 @@ public:
         }
     }
 
-    ReducePostTable(Context& ctx, KeyExtractor key_extractor,
-                    ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
+    ReducePostTable(Context& ctx, const KeyExtractor& key_extractor,
+                    const ReduceFunction& reduce_function, std::vector<EmitterFunction>& emit)
             : ReducePostTable(ctx, key_extractor, reduce_function, emit, IndexFunction(),
                               FlushFunction(reduce_function)) {}
 
