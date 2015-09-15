@@ -135,7 +135,7 @@ public:
 
         ReduceTable table(context_, key_extractor_, reduce_function_, cbs,
                           core::PostReduceByHashKey<Key>(),
-                          core::PostReduceFlushToDefault<Key, ReduceFunction>(),
+                          core::PostReduceFlushToDefault<Key, ReduceFunction>(reduce_function_),
                           0, 0, Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01);
 
         if (RobustKey) {
