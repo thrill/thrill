@@ -12,12 +12,8 @@
 #ifndef THRILL_MEM_PAGE_MAPPER_HEADER
 #define THRILL_MEM_PAGE_MAPPER_HEADER
 
-//aliases - MAC supports 64bit files naturally
+//aliases - MAC does not support these flags
 #ifdef __APPLE__
-#define lseek64 lseek
-#define open64 open
-#define mmap64 mmap
-#define off64_t off_t
 #define O_NOATIME 0
 #define O_LARGEFILE 0
 #define MAP_POPULATE 0
@@ -77,7 +73,7 @@ public:
         static const int permission = S_IRUSR | S_IWUSR | S_IRGRP;
 
         sLOG << "creating swapfile" << swap_file_name;
-        fd_ = open64(swap_file_name.c_str(), flags, permission);
+        fd_ = open(swap_file_name.c_str(), flags, permission);
         die_unless(fd_ != -1);
     }
 
@@ -144,9 +140,9 @@ public:
             flags |= MAP_POPULATE;
 
         static void* addr_hint = nullptr; //we give no hint - kernel decides alone
-        off64_t offset = token * OBJECT_SIZE;
+        off_t offset = token * OBJECT_SIZE;
 
-        void* result = mmap64(addr_hint, OBJECT_SIZE, protection_flags, flags, fd_, offset);
+        void* result = mmap(addr_hint, OBJECT_SIZE, protection_flags, flags, fd_, offset);
         sLOG << "swapping in token" << token << "to address" << result << "into offset" << offset << "prefetch?" << prefetch;
         die_unless(result != MAP_FAILED);
         return static_cast<uint8_t*>(result);
@@ -195,7 +191,7 @@ private:
         sLOG << "streching swap file to" << file_size;
 
         // seek to end - 1 of file and write one zero-byte to 'strech' file
-        die_unless(lseek64(fd_, file_size - 1, SEEK_SET) != -1);
+        die_unless(lseek(fd_, file_size - 1, SEEK_SET) != -1);
         die_unless(write(fd_, "\0", 1) == 1); //expect 1byte written
 
         // push remaining allocated ids into free-queue
