@@ -354,7 +354,8 @@ void * malloc(size_t size) NOEXCEPT {
     if (log_operations && size_used >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "malloc(%zu / %zu) = %p   (current %zu)\n",
                 size, size_used, ret, curr);
-
+    }
+    {
 #if __linux__ && 0
         static thread_local bool recursive = false;
 
@@ -362,14 +363,27 @@ void * malloc(size_t size) NOEXCEPT {
             recursive = true;
 
             // storage array for stack trace address data
-            void* addrlist[64 + 1];
+            void* addrlist[6 + 1];
 
             // retrieve current stack addresses
             int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
 
-            fprintf(stderr, "--- begin stack -------------------------------\n");
-            backtrace_symbols_fd(addrlist, addrlen, STDERR_FILENO);
-            fprintf(stderr, "--- end stack ---------------------------------\n");
+            fprintf(stdout, PPREFIX "caller %p %p %p size %zu\n",
+                    addrlist[0], addrlist[1], addrlist[2], size);
+
+            fprintf(stdout, PPREFIX "caller %p %p %p %p size %zu\n",
+                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], size);
+
+            fprintf(stdout, PPREFIX "caller %p %p %p %p %p size %zu\n",
+                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], size);
+
+            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p size %zu\n",
+                    addrlist[0], addrlist[1], addrlist[2],
+                    addrlist[3], addrlist[4], addrlist[5], size);
+
+            //fprintf(stderr, "--- begin stack -------------------------------\n");
+            //backtrace_symbols_fd(addrlist, addrlen, STDERR_FILENO);
+            //fprintf(stderr, "--- end stack ---------------------------------\n");
 
             recursive = false;
         }
