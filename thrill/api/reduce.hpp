@@ -83,25 +83,31 @@ public:
      * \param reduce_function Reduce function
      */
     ReduceNode(const ParentDIARef& parent,
-               KeyExtractor key_extractor,
-               ReduceFunction reduce_function,
+               const KeyExtractor& key_extractor,
+               const ReduceFunction& reduce_function,
                StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6),
-          reduce_post_table_(context_, key_extractor_, reduce_function_,
-                                [this](const ValueType& item) { return this->PushItem(item); },
-                                core::PostReduceByHashKey<Key>(), core::PostReduceFlushToDefault<Key,
-                                ReduceFunction>(reduce_function),
-                                0, 0, Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
+          reduce_pre_table_(
+              parent.ctx().num_workers(), key_extractor,
+              reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6),
+          reduce_post_table_(
+              context_, key_extractor_, reduce_function_,
+              [this](const ValueType& item) { return this->PushItem(item); },
+              core::PostReduceByHashKey<Key>(),
+              core::PostReduceFlushToDefault<Key,
+                                             ReduceFunction>(reduce_function),
+              0, 0, Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
     {
-        // Hook PreOp
+        // Hook PreOp: Locally hash elements of the current DIA onto buckets and
+        // reduce each bucket to a single value, afterwards send data to another
+        // worker given by the shuffle algorithm.
+
         auto pre_op_fn = [=](const ValueType& input) {
-                             PreOp(input);
+                             reduce_pre_table_.Insert(input);
                          };
         // close the function stack with our pre op and register it at
         // parent node for output
@@ -112,15 +118,15 @@ public:
                           });
     }
 
-    //! Virtual destructor for a ReduceNode.
-    virtual ~ReduceNode() { }
-
     /*!
-     * Actually executes the reduce operation. Uses the member functions PreOp,
-     * MainOp and PostOp.
+     * Actually executes the reduce operation.
      */
     void Execute() final {
-        MainOp();
+        LOG << this->label() << " running main op";
+        // Flush hash table before the postOp
+        reduce_pre_table_.Flush();
+        reduce_pre_table_.CloseEmitter();
+        channel_->Close();
     }
 
     void PushData(bool consume) final {
@@ -132,16 +138,16 @@ public:
 
         if (RobustKey) {
             auto reader = channel_->OpenConcatReader(consume);
-            sLOG << "reading data from" << channel_->id() <<
-                "to push into post table which flushes to" << this->id();
+            sLOG << "reading data from" << channel_->id()
+                 << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 reduce_post_table_.Insert(reader.template Next<Value>());
             }
         }
         else {
             auto reader = channel_->OpenConcatReader(consume);
-            sLOG << "reading data from" << channel_->id() <<
-                "to push into post table which flushes to" << this->id();
+            sLOG << "reading data from" << channel_->id()
+                 << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 reduce_post_table_.Insert(reader.template Next<KeyValuePair>());
             }
@@ -153,11 +159,7 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Produces a function stack, which only contains the PostOp function.
-     * \return PostOp function stack
-     */
-    auto ProduceStack() {
+    FunctionStack<ValueType> ProduceStack() {
         return FunctionStack<ValueType>();
     }
 
@@ -172,30 +174,16 @@ private:
 
     std::vector<data::Channel::Writer> emitters_;
 
-    core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-                         core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;
+    core::ReducePreTable<
+        Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+        core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;
 
-    core::ReducePostTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-            core::PostReduceFlushToDefault<Key, ReduceFunction>, core::PostReduceByHashKey<Key>,
-            std::equal_to<Key>, 16*16> reduce_post_table_;
+    core::ReducePostTable<
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
+        core::PostReduceFlushToDefault<Key, ReduceFunction>, core::PostReduceByHashKey<Key>,
+        std::equal_to<Key>, 16*16> reduce_post_table_;
 
     bool reduced = false;
-
-    //! Locally hash elements of the current DIA onto buckets and reduce each
-    //! bucket to a single value, afterwards send data to another worker given
-    //! by the shuffle algorithm.
-    void PreOp(const ValueType& input) {
-        reduce_pre_table_.Insert(input);
-    }
-
-    //! Receive elements from other workers.
-    auto MainOp() {
-        LOG << this->label() << " running main op";
-        // Flush hash table before the postOp
-        reduce_pre_table_.Flush();
-        reduce_pre_table_.CloseEmitter();
-        channel_->Close();
-    }
 };
 
 template <typename ValueType, typename Stack>

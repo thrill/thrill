@@ -38,8 +38,8 @@ class PrefixSumNode : public DOpNode<ValueType>
 
 public:
     PrefixSumNode(const ParentDIARef& parent,
-                  SumFunction sum_function,
-                  ValueType initial_element,
+                  const SumFunction& sum_function,
+                  const ValueType& initial_element,
                   StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           sum_function_(sum_function),
@@ -54,8 +54,6 @@ public:
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
     }
-
-    virtual ~PrefixSumNode() { }
 
     //! Executes the sum operation.
     void Execute() final {
@@ -120,14 +118,12 @@ private:
 
         local_sum_ = sum;
     }
-
-    void PostOp() { }
 };
 
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::PrefixSum(
-    const SumFunction &sum_function, ValueType initial_element) const {
+    const SumFunction &sum_function, const ValueType& initial_element) const {
     assert(IsValid());
 
     using SumResultNode
