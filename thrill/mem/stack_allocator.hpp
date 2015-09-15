@@ -20,6 +20,8 @@
 #ifndef THRILL_MEM_STACK_ALLOCATOR_HEADER
 #define THRILL_MEM_STACK_ALLOCATOR_HEADER
 
+#include <thrill/mem/allocator_base.hpp>
+
 #include <cassert>
 #include <cstddef>
 
@@ -91,7 +93,7 @@ public:
 };
 
 template <class Type, size_t Size>
-class StackAllocator
+class StackAllocator : public AllocatorBase<Type>
 {
 public:
     using value_type = Type;
@@ -104,12 +106,13 @@ public:
 
     //! C++11 type flag
     using is_always_equal = std::false_type;
-    //! C++11 type flag
-    using propagate_on_container_move_assignment = std::true_type;
 
     //! required rebind.
     template <class Other>
     struct rebind { using other = StackAllocator<Other, Size>; };
+
+    //! default constructor to invalid arena
+    StackAllocator() : arena_(nullptr) { }
 
     //! constructor with explicit arena reference
     explicit StackAllocator(Arena<Size>& arena) noexcept
@@ -119,6 +122,9 @@ public:
     template <class Other>
     StackAllocator(const StackAllocator<Other, Size>& other) noexcept
         : arena_(other.arena_) { }
+
+    //! copy-constructor
+    StackAllocator(const StackAllocator&) noexcept = default;
 
     //! allocate method: get memory from arena
     pointer allocate(size_t n) {
@@ -131,12 +137,12 @@ public:
     }
 
     template <typename Other, size_t OtherSize>
-    bool operator == (const StackAllocator<Other, OtherSize>& other) noexcept {
+    bool operator == (const StackAllocator<Other, OtherSize>& other) const noexcept {
         return Size == OtherSize && arena_ == other.arena_;
     }
 
     template <typename Other, size_t OtherSize>
-    bool operator != (const StackAllocator<Other, OtherSize>& other) noexcept {
+    bool operator != (const StackAllocator<Other, OtherSize>& other) const noexcept {
         return Size != OtherSize || arena_ != other.arena_;
     }
 
