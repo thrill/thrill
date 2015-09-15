@@ -619,14 +619,14 @@ public:
      * \param equal_to_function Function for checking equality of two keys.
      */
     ReducePostTable(Context& ctx,
-                    KeyExtractor key_extractor,
-                    ReduceFunction reduce_function,
-                    EmitterFunction emit,
+                    const KeyExtractor& key_extractor,
+                    const ReduceFunction& reduce_function,
+                    const EmitterFunction& emit,
                     const IndexFunction& index_function,
                     const FlushFunction& flush_function,
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
-                    Value neutral_element = Value(),
+                    const Value& neutral_element = Value(),
                     size_t byte_size = 1024 * 1024 * 128 * 4,
                     double bucket_rate = 0.9,
                     double max_frame_fill_rate = 0.6,
@@ -774,15 +774,13 @@ public:
         current = buckets_[global_index];
 
         // have an item that needs to be added.
-        if (current == nullptr ||
-            current->size == block_size_)
+        if (current == nullptr || current->size == block_size_)
         {
             //////
             // new block needed.
             //////
 
-            // spill current frame if max frame fill rate
-            // reached
+            // spill current frame if max frame fill rate reached
             if (static_cast<double>(num_blocks_mem_per_frame_[frame_id] + 1)
                 / static_cast<double>(max_num_blocks_mem_per_frame_)
                 > max_frame_fill_rate_)
@@ -790,14 +788,13 @@ public:
                 SpillFrame(frame_id);
             }
 
-            // spill largest frame if max number of blocks
-            // reached
+            // spill largest frame if max number of blocks reached
             if (num_blocks_per_table_ == max_num_blocks_per_table_)
             {
                 SpillLargestFrame();
             }
 
-            // allocate a new block of uninitialized items, postpend to bucket
+            // allocate a new block of uninitialized items, prepend to bucket
             current =
                 static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
 
@@ -812,7 +809,7 @@ public:
         }
 
         // in-place construct/insert new item in current bucket block
-        new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
+        new (current->items + current->size++)KeyValuePair(kv);
         // Increase total item count
         num_items_per_table_++;
     }
@@ -862,7 +859,7 @@ public:
         data::File::Writer& writer = frame_writers_[frame_id];
 
         for (size_t i = frame_id * num_buckets_per_frame_;
-             i < frame_id * num_buckets_per_frame_ + num_buckets_per_frame_; i++)
+             i < (frame_id + 1) * num_buckets_per_frame_; i++)
         {
             BucketBlock* current = buckets_[i];
 
@@ -871,10 +868,10 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    writer(*bi);
-
-                    num_items_per_table_--;
+                    writer.PutItem(*bi);
                 }
+
+                num_items_per_table_ -= current->size;
 
                 // destroy block and advance to next
                 BucketBlock* next = current->next;

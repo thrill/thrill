@@ -43,10 +43,10 @@ public:
     { }
 
     template <typename ReducePreTable>
-    typename ReducePreTable::index_result
+    typename ReducePreTable::IndexResult
     operator () (const Key& k, ReducePreTable* ht) const {
 
-        using index_result = typename ReducePreTable::index_result;
+        using IndexResult = typename ReducePreTable::IndexResult;
 
         size_t global_index = 0;
         size_t partition_id = 0;
@@ -55,7 +55,7 @@ public:
         (void)k;
         (void)ht;
 
-        return index_result(partition_id, local_index, global_index);
+        return IndexResult(partition_id, local_index, global_index);
     }
 
 private:
