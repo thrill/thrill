@@ -4,14 +4,23 @@
 # CMake file for Thrill library
 ################################################################################
 
-file(GLOB_RECURSE SRCS
+# glob general sources
+file(GLOB SRCS
   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*/*.hpp
-)
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*/mock/*.[ch]pp
+  )
 
-add_library(thrill STATIC ${SRCS})
+# add net/tcp on all platforms except Windows
+if(NOT MSVC)
+  file(GLOB NET_TCP_SRCS
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/net/tcp/*.[ch]pp
+    )
+  list(APPEND SRCS ${NET_TCP_SRCS})
+endif()
+
+add_library(thrill ${SRCS})
 
 ################################################################################

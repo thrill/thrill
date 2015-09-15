@@ -17,10 +17,8 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
 
-#include <fstream>
 #include <random>
 #include <string>
 #include <type_traits>
@@ -67,8 +65,7 @@ public:
 
     void PushData(bool /* consume */) final {
         size_t local_begin, local_end;
-        std::tie(local_begin, local_end) =
-            common::CalculateLocalRange(size_, context_);
+        std::tie(local_begin, local_end) = context_.CalculateLocalRange(size_);
 
         for (size_t i = local_begin; i < local_end; i++) {
             this->PushItem(generator_function_(i));

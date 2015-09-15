@@ -14,8 +14,8 @@
 #define THRILL_API_WRITE_BINARY_HEADER
 
 #include <thrill/api/action_node.hpp>
+#include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/core/file_io.hpp>
@@ -159,14 +159,14 @@ protected:
         try {
             writer_->PutItemNoSelfVerify(input);
         }
-        catch (data::FullException& e) {
+        catch (data::FullException&) {
             // sink is full. flush it. and repeat, which opens new file.
             OpenNextFile();
 
             try {
                 writer_->PutItemNoSelfVerify(input);
             }
-            catch (data::FullException& e) {
+            catch (data::FullException&) {
                 throw std::runtime_error(
                           "Error in WriteBinary: "
                           "an item is larger than the file size limit");

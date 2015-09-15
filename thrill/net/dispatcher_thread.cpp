@@ -12,8 +12,6 @@
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/group.hpp>
 
-#include <unistd.h>
-
 #include <deque>
 #include <string>
 #include <vector>
