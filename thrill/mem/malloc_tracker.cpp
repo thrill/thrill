@@ -381,9 +381,9 @@ void * malloc(size_t size) NOEXCEPT {
                     addrlist[0], addrlist[1], addrlist[2],
                     addrlist[3], addrlist[4], addrlist[5], size);
 
-            //fprintf(stderr, "--- begin stack -------------------------------\n");
-            //backtrace_symbols_fd(addrlist, addrlen, STDERR_FILENO);
-            //fprintf(stderr, "--- end stack ---------------------------------\n");
+            // fprintf(stderr, "--- begin stack -------------------------------\n");
+            // backtrace_symbols_fd(addrlist, addrlen, STDERR_FILENO);
+            // fprintf(stderr, "--- end stack ---------------------------------\n");
 
             recursive = false;
         }

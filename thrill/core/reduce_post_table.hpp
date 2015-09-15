@@ -627,7 +627,7 @@ public:
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
                     const Value& neutral_element = Value(),
-                    size_t byte_size = 1024 * 1024 * 128 * 4,
+                    size_t byte_size = 1024* 1024* 128* 4,
                     double bucket_rate = 0.9,
                     double max_frame_fill_rate = 0.6,
                     double frame_rate = 0.01,
@@ -644,7 +644,7 @@ public:
           equal_to_function_(equal_to_function),
           flush_function_(flush_function),
           reduce_function_(reduce_function) {
-        //sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
+        // sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
         assert(frame_rate > 0.0 && frame_rate <= 1.0);
@@ -689,8 +689,8 @@ public:
 
     ReducePostTable(Context& ctx, KeyExtractor key_extractor,
                     ReduceFunction reduce_function, EmitterFunction emit)
-            : ReducePostTable(ctx, key_extractor, reduce_function, emit, IndexFunction(),
-                              FlushFunction(reduce_function)) {}
+        : ReducePostTable(ctx, key_extractor, reduce_function, emit, IndexFunction(),
+                          FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
     ReducePostTable(const ReducePostTable&) = delete;

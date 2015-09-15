@@ -19,10 +19,10 @@
 #include <thrill/common/stats_timer.hpp>
 
 #include <algorithm>
-#include <set>
 #include <chrono>
 #include <ctime>
 #include <iomanip>
+#include <set>
 #include <stack>
 #include <string>
 #include <utility>
@@ -39,67 +39,67 @@ public:
     explicit Stage(DIABase* node) : node_(node) { }
 
     void Execute() {
-        //time_t tt;
-        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        //STAT(node_->context()) 
+        // time_t tt;
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
         //    << "START (EXECUTING) stage" << node_->label()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
-        //timer.Start();
+        // timer.Start();
         node_->Execute();
-        //timer.Stop();
-        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        //STAT(node_->context()) 
-        //    << "FINISH (EXECUTING) stage" << node_->label() 
+        // timer.Stop();
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (EXECUTING) stage" << node_->label()
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
 
-        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        //STAT(node_->context()) 
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
         //    << "START (PUSHING) stage" << node_->label()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
-        //timer.Start();
+        // timer.Start();
         node_->PushData(node_->consume_on_push_data());
-        //timer.Stop();
+        // timer.Stop();
         node_->set_state(api::DIAState::EXECUTED);
-        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        //STAT(node_->context()) 
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
         //    << "FINISH (PUSHING) stage" << node_->label()
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
 
     void PushData() {
-        //time_t tt;
-        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        //STAT(node_->context()) 
+        // time_t tt;
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
         //    << "START (PUSHING) stage" << node_->label()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
         die_unless(!node_->consume_on_push_data());
-        //timer.Start();
+        // timer.Start();
         node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
-        //timer.Stop();
-        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        //STAT(node_->context()) 
-        //    << "FINISH (PUSHING) stage" 
-        //    << node_->label() 
+        // timer.Stop();
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (PUSHING) stage"
+        //    << node_->label()
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time: " << std::put_time(std::localtime(&tt), "%T");
     }
 
     void Dispose() {
-        //time_t tt;
-        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        //STAT(node_->context()) 
+        // time_t tt;
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
         //    << "START (DISPOSING) stage" << node_->label()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
-        //timer.Start();
+        // timer.Start();
         node_->Dispose();
-        //timer.Stop();
+        // timer.Stop();
         node_->set_state(api::DIAState::DISPOSED);
-        //tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        //STAT(node_->context())
-        //    << "FINISH (DISPOSING) stage" << node_->label() 
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (DISPOSING) stage" << node_->label()
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
