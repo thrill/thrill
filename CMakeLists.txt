@@ -37,6 +37,10 @@ option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
 
+# BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
+# make it prominent in the GUI.
+option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." OFF)
+
 option(ENABLE_STATS "enable stats" OFF)
 if(ENABLE_STATS)
     message(STATUS "Add Stats support")
@@ -45,54 +49,88 @@ else()
     add_definitions(-DENABLE_STATS=0)
 endif()
 
-# enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
+if(NOT MSVC)
+  # enable warnings
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
 
-# enable more warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
+  # enable more warnings
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
 
-# enable AddressSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+  # enable AddressSanitizer
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
-# enable ThreadSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+  # enable ThreadSanitizer
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
 
-# enable UndefinedBehaviorSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+  # enable UndefinedBehaviorSanitizer
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-qual")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Winit-self -Wnoexcept")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wredundant-decls")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wstrict-overflow=5")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wtautological-compare")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fipa-pure-const -Wsuggest-attribute=const")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-conversion")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-promo")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
-endif()
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR ON)
-  # Clang < 3.6 0 (?) does not support debug output for auto return types yet
-  # try compiling a program with auto return types
-  include(CheckCXXSourceCompiles)
-  set(OLD_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
-  set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -g")
-
-  check_cxx_source_compiles(
-    "template <typename T> struct A { auto func(int i) { return 42 + i; } };
-     int main() { A<int> a; return 0; }"
-    THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
-
-  if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
-    message(STATUS "compiler does not support -g debug info with auto returns")
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+  # enable extra warnings on gcc
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-qual")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Winit-self -Wnoexcept")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wredundant-decls")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wstrict-overflow=5")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wtautological-compare")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fipa-pure-const -Wsuggest-attribute=const")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-conversion")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-promo")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
   endif()
 
-  set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")
+  # Clang < 3.6 0 (?) does not support debug output for auto return types yet.
+  # try compiling a platform test for auto return types
+  if(ON)
+    include(CheckCXXSourceCompiles)
+    set(OLD_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+    set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
+    check_cxx_source_compiles(
+      "template <typename T> struct A { auto func(int i) { return 42 + i; } };
+     int main() { A<int> a; return 0; }"
+      THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
+
+    if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
+      message(STATUS "compiler does not support -g debug info with auto returns")
+      string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+      string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+    endif()
+
+    set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")
+  endif()
+elseif(MSVC)
+  # Force to always compile with W4
+  if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+    string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+  endif()
+  # raise warnings as errors
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
+
+  ### disable verbose warnings:
+  # warning C4589: Constructor of abstract class '...' ignores initializer for
+  # virtual base class '...' (false positive warnings)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4589")
+  # warning C4127: conditional expression is constant
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4127")
+  # warning C4458: declaration of '...' hides class member
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4458")
+  # warning C4459: declaration of '...' hides global declaration
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4459")
+  # warning C4702: unreachable code
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4702")
+  # disable lots of warnings about "unsecure" C runtime function
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  # disable "The POSIX name for this item is deprecated. Instead, use the ISO C
+  # and C++ conformant name.", Nope. We will not.
+  add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
+  # disable lots of warnings about "unsecure" STL functions
+  add_definitions(-D_SCL_SECURE_NO_WARNINGS)
+  # windef.h bizzarly defines min and max as macros, unless this is defined.
+  add_definitions(-DNOMINMAX)
 endif()
 
 if(USE_IWYU)
@@ -183,11 +221,15 @@ endif(USE_GCOV)
 
 enable_testing()
 
-# google test + mock - enable "make test" and add_test()
+### google test + mock - enable "make test" and add_test()
+
+# this fixes compilation with static libs on MSVC
+set(gtest_force_shared_crt ON CACHE BOOL "on" FORCE)
 add_subdirectory(extlib/googletest/googletest)
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-# general valgrind setting, if run with USE_VALGRIND=ON.
+### general valgrind setting, if run with USE_VALGRIND=ON.
+
 set(THRILL_VALGRIND_OPTS
   --leak-check=full --track-origins=yes)
 #  --error-exitcode=1)

@@ -81,7 +81,7 @@ public:
     { }
 
     //! Return whether the DIARef is valid.
-    bool IsValid() const { return node_.get(); }
+    bool IsValid() const { return node_.get() != nullptr; }
 
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
@@ -131,7 +131,7 @@ public:
     __attribute__ ((warning(     // NOLINT
                         "Casting to DIARef creates LOpNode instead of inline chaining.\n"
                         "Consider whether you can use auto instead of DIARef.")))
-#else
+#elif __GNUC__ && __clang__
     __attribute__ ((deprecated)) // NOLINT
 #endif
     ;                            // NOLINT
@@ -471,12 +471,10 @@ public:
      * each array cell.
      */
     template <typename ReduceFunction>
-    auto ReducePairToIndex(const ReduceFunction &reduce_function,
-                           size_t size,
-                           typename common::FunctionTraits<ReduceFunction>
-                           ::result_type neutral_element =
-                               typename common::FunctionTraits<ReduceFunction>
-                               ::result_type()) const;
+    auto ReducePairToIndex(
+        const ReduceFunction &reduce_function, size_t size,
+        typename FunctionTraits<ReduceFunction>::result_type
+        neutral_element = typename FunctionTraits<ReduceFunction>::result_type()) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The

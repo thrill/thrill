@@ -184,7 +184,7 @@ public:
             try {
                 Flush(), AllocateBlock();
             }
-            catch (FullException& e) {
+            catch (FullException&) {
                 // non-fatal allocation error: will be handled below.
             }
         }
@@ -218,7 +218,7 @@ public:
 
             return *this;
         }
-        catch (FullException& e) {
+        catch (FullException&) {
             // if BlockSink signaled full, then unwind adding of the item.
 
             while (!sink_queue_.empty()) {
@@ -260,7 +260,7 @@ public:
             }
             Serialization<BlockWriter, T>::Serialize(x, *this);
         }
-        catch (FullException& e) {
+        catch (FullException&) {
             throw std::runtime_error(
                       "BlockSink was full even though declared infinite");
         }
