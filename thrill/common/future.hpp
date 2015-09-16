@@ -57,12 +57,12 @@ public:
         std::unique_lock<std::mutex> lock(mutex_);
     }
 
-    //! This is the callback to be called to fulfill the future.
-    void Callback(T&& data) {
+    //! Fills future with the given data and wakes up waiting parties
+    void operator<<(T&& data) {
         std::unique_lock<std::mutex> lock(mutex_);
         value_ = std::move(data);
         triggered_ = true;
-        cv_.notify_one();
+        cv_.notify_all();
     }
 
     //! Blocks until value is available and returns it
