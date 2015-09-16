@@ -1,21 +1,24 @@
 /*******************************************************************************
  * thrill/core/losertree.hpp
  *
- * Part of Project Thrill.
- *
  * Many generic loser tree variants.
  *
  * Extracted from MCSTL
  * http://algo2.iti.uni-karlsruhe.de/singler/mcstl/
- * Copied and Modified from STXXL
+ * Copyright (C) 2007 Johannes Singler <singler@ira.uka.de>
+ *
+ * copied and modified from STXXL
  * https://github.com/stxxl/stxxl
  *
- * Copyright (C) 2007 Johannes Singler <singler@ira.uka.de>
+ * which are both distributed under the Boost Software License, Version 1.0.
+ * (See http://www.boost.org/LICENSE_1_0.txt)
+ *
+ * Part of Project Thrill.
+ *
  * Copyright (C) 2014-2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
- * Distributed under the Boost Software License, Version 1.0.
- * (See http://www.boost.org/LICENSE_1_0.txt)
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #pragma once
@@ -26,7 +29,6 @@
 #include <thrill/common/math.hpp>
 
 namespace thrill {
-
 namespace core {
 
 /**
@@ -1032,8 +1034,7 @@ public:
 };
 
 } // namespace core
-
-} // end namespace thrill
+} // namespace thrill
 
 #endif // !THRILL_CORE_LOSERTREE_HEADER
 

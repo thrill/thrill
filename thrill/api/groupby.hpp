@@ -357,9 +357,7 @@ auto DIARef<ValueType, Stack>::GroupBy(
     auto groupby_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(groupby_stack)>(
-        shared_node,
-        groupby_stack,
-        { stats_node });
+        shared_node, groupby_stack, { stats_node });
 }
 
 } // namespace api
