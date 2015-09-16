@@ -41,7 +41,7 @@ TEST(GroupByNode, CompileAndSum) {
                 },
                 n);
 
-            auto modulo_keyfn = [m](size_t in) { return (in % m); };
+            auto modulo_keyfn = [](size_t in) { return (in % m); };
 
             auto sum_fn =
                 [](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r) {
@@ -92,7 +92,7 @@ TEST(GroupByNode, Median) {
                 },
                 n);
 
-            auto modulo_keyfn = [m](size_t in) { return (in % m); };
+            auto modulo_keyfn = [](size_t in) { return (in % m); };
 
             auto median_fn =
                 [](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r) {
