@@ -58,8 +58,8 @@ template <typename ArrayItem>
 class FileOutputIteratorWrapper
 {
     static const bool debug = false;
-    using File = typename data::File;
-    using Writer = typename File::Writer;
+    using File = data::File;
+    using Writer = File::Writer;
 
 protected:
     std::shared_ptr<Writer> writer_;
@@ -83,8 +83,8 @@ template <typename ArrayItem>
 class FileIteratorWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
 {
     static const bool debug = false;
-    using File = typename data::File;
-    using Reader = typename File::Reader;
+    using File = data::File;
+    using Reader = File::Reader;
 
 protected:
     File* file_;
