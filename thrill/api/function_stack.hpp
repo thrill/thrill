@@ -38,7 +38,7 @@ namespace api {
  * \param lambda Lambda function that represents the chain end.
  */
 template <typename Lambda>
-auto run_emitter(const Lambda& lambda)
+auto run_emitter(const Lambda &lambda)
 {
     return [=](const auto & input)->void {
                lambda(input);
@@ -56,7 +56,7 @@ auto run_emitter(const Lambda& lambda)
  * \param rest Remaining lambda functions.
  */
 template <typename Lambda, typename ... MoreLambdas>
-auto run_emitter(const Lambda& lambda, const MoreLambdas& ... rest)
+auto run_emitter(const Lambda &lambda, const MoreLambdas &... rest)
 {
     return [=](const auto & input)->void {
                lambda(input, run_emitter(rest ...));
@@ -99,7 +99,7 @@ public:
      * \return New chain containing the previous and new lambda function(s).
      */
     template <typename Function>
-    auto push(const Function& append_func) const
+    auto push(const Function &append_func) const
     {
         // append to function stack's type the new function: we prepend it to
         // the type line because later we will
@@ -138,7 +138,7 @@ private:
 };
 
 template <typename Input, typename Lambda>
-static inline auto MakeFunctionStack(const Lambda& lambda) {
+static inline auto MakeFunctionStack(const Lambda &lambda) {
     return FunctionStack<Input, Lambda>(std::make_tuple(lambda));
 }
 

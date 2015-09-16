@@ -684,6 +684,8 @@ foreach my $file (@filelist)
     }
     elsif ($file =~ m!^misc/!) {
     }
+    elsif ($file =~ m!^tests/inputs/!) {
+    }
     elsif ($file =~ m!CPPLINT\.cfg$!) {
     }
     elsif ($file =~ m!^doxygen-html/!) {
