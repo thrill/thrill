@@ -41,10 +41,6 @@ public:
 
     void Execute() {
         // time_t tt;
-        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "START (EXECUTING) stage" << node_->label()
-        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
         // timer.Start();
         node_->Execute();
         // timer.Stop();
@@ -55,9 +51,6 @@ public:
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
 
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "START (PUSHING) stage" << node_->label()
-        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
         // timer.Start();
         node_->PushData(node_->consume_on_push_data());
         // timer.Stop();
@@ -71,10 +64,6 @@ public:
 
     void PushData() {
         // time_t tt;
-        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "START (PUSHING) stage" << node_->label()
-        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
         die_unless(!node_->consume_on_push_data());
         // timer.Start();
         node_->PushData(node_->consume_on_push_data());
@@ -90,10 +79,6 @@ public:
 
     void Dispose() {
         // time_t tt;
-        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "START (DISPOSING) stage" << node_->label()
-        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
         // timer.Start();
         node_->Dispose();
         // timer.Stop();
