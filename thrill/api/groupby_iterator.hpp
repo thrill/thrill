@@ -29,6 +29,10 @@ template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode;
 
+template <typename ValueType, typename ParentDIARef,
+          typename KeyExtractor, typename GroupFunction, typename HashFunction>
+class GroupByIndexNode;
+
 template <typename ValueType, typename KeyExtractor>
 class GroupByIterator
 {
@@ -38,6 +42,13 @@ class GroupByIterator
               typename T4,
               typename T5>
     friend class GroupByNode;
+
+    template <typename T1,
+              typename T2,
+              typename T3,
+              typename T4,
+              typename T5>
+    friend class GroupByIndexNode;
 
 public:
     static const bool debug = false;
@@ -69,6 +80,10 @@ protected:
     bool HasNextForReal() {
         is_first_elem_ = true;
         return !is_reader_empty;
+    }
+
+    Key GetNextKey() {
+        return new_key_;
     }
 
 private:

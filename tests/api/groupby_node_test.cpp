@@ -11,6 +11,7 @@
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/groupby.hpp>
+#include <thrill/api/groupby_index.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>
@@ -133,6 +134,52 @@ TEST(GroupByNode, Median) {
         };
 
     api::RunLocalTests(start_func);
+}
+
+
+TEST(GroupByNode, GroupByIndexCorrectResults) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) {
+                    return index;
+                },
+                5);
+
+            static size_t result_size = 6;
+
+            auto key = [](size_t in) {
+                           return in % 6;
+                       };
+
+            auto add_function = [](api::GroupByIterator<std::size_t, decltype(key)>& r) {
+                                    std::size_t res = 4;
+                                    while(r.HasNext()) {
+                                        res += r.Next();
+                                    }
+                                    return res;
+                                };
+
+
+            auto reduced = integers.GroupByIndex(key, add_function, result_size);
+
+
+            std::vector<size_t> out_vec = reduced.AllGather();
+            // ASSERT_EQ(9u, out_vec.size());
+
+            int i = 4;
+            for (size_t element : out_vec) {
+                LOG << element;
+                ASSERT_EQ(i, element);
+                ++i;
+            }
+        };
+
+    // api::RunLocalTests(start_func);
+    RunLocalMock(2, 1, start_func);
 }
 
 /******************************************************************************/
