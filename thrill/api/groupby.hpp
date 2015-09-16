@@ -120,9 +120,8 @@ public:
                 // call user function
 
                 // TODO(cn): call groupby function while doing multiway merge
-                // TODO(cn): give key of current elements as parameter in
-                //           groupfunction
-                const ValueOut res = groupby_function_(user_iterator);
+                const ValueOut res = groupby_function_(user_iterator,
+                    user_iterator.GetNextKey());
                 // push result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
                     LOG << "grouped to value " << res;
