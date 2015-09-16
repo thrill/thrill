@@ -15,8 +15,10 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/thrill.hpp>
+#include <benchmarks/chaining/helper.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/common/stat_logger.hpp>
 
-using WordCountPair = std::pair<std::string, size_t>;
 using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
@@ -27,11 +29,7 @@ int main(int argc, char* argv[]) {
 
     std::string input;
     clp.AddParamString("input", input,
-                       "input file pattern");
-
-    std::string output;
-    clp.AddParamString("output", output,
-                       "output file pattern");
+                       "number of elements");
 
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -39,19 +37,25 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
-    #define map Map([](const std::string& line) { return line; })
-    auto start_func =
-        [&input, &output](api::Context& ctx) {
-            auto input_dia = ReadLines(ctx, input);
+    size_t count = std::stoi(input);
 
-            auto word_pairs = input_dia
-                .map.map.map.map.map.map.map.map.map.map;
-            word_pairs.WriteLinesMany(output);
+    auto start_func =
+        [&count](api::Context& ctx) {
+            auto key_value = Generate(ctx, [](const size_t& index) {
+                    return KeyValue{index, index + 10};
+                }, count);
+            //auto result = key_value.map10;
+            auto result = key_value.map.map.map.map.map.map.map.map.map.map;
+            result.Size();  
         };
 
-    LOG1 << "Done";
+    common::StatsTimer<true> timer;
+    timer.Start();
+    api::Run(start_func);
+    timer.Stop();
+    STAT_NO_RANK << "took" << timer.Microseconds();
 
-    return api::Run(start_func);
+    return 0;
 }
 
 /******************************************************************************/
