@@ -44,8 +44,8 @@ int main(int argc, char* argv[]) {
             auto key_value = Generate(ctx, [](const size_t& index) {
                     return KeyValue{index, index + 10};
                 }, count);
-            //auto result = key_value.map10;
-            auto result = key_value.map.map.map.map.map.map.map.map.map.map;
+            auto result = key_value.map10;
+            // auto result = key_value.map.map.map.map.map.map.map.map.map.map;
             result.Size();  
         };
 

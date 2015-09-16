@@ -44,12 +44,12 @@ int main(int argc, char* argv[]) {
             auto key_value = Generate(ctx, [](const size_t& index) {
                     return KeyValue{index, index + 10};
                 }, count);
-            // auto result = key_value.map10;
-            auto result = key_value;
-            for (size_t i = 0; i < 10; ++i) {
-                result = result.map.Collapse();
-            }
-            result.Size();  
+            auto result = key_value.map10;
+            // auto result = key_value;
+            // for (size_t i = 0; i < 10; ++i) {
+            //     result = result.map.Collapse();
+            // }
+            // result.Size();  
         };
 
     common::StatsTimer<true> timer;
