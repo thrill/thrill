@@ -178,8 +178,8 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
             }
         };
 
-    // api::RunLocalTests(start_func);
-    RunLocalMock(2, 1, start_func);
+    api::RunLocalTests(start_func);
+    // RunLocalMock(2, 1, start_func);
 }
 
 /******************************************************************************/
