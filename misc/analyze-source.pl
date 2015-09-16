@@ -185,10 +185,16 @@ sub process_cpp {
     }
 
     # put all #include lines into the includemap
-    foreach my $ln (@data)
+    for my $i (0...@data-1)
     {
-        if ($ln =~ m!\s*#\s*include\s*([<"]\S+[">])!) {
+        if ($data[$i] =~ m!\s*#\s*include\s*([<"]\S+[">])!) {
             $includemap{$1}{$path} = 1;
+
+            if ($1 eq "<thrill/thrill.hpp>" && $path !~ /\.dox$/) {
+                print "\n";
+                print "$path:$i: NEVER NEVER NEVER use thrill/thrill.hpp in our sources.\n";
+                print "\n";
+            }
         }
     }
 
