@@ -45,11 +45,13 @@ TEST(GroupByNode, CompileAndSum) {
             auto modulo_keyfn = [](size_t in) { return (in % m); };
 
             auto sum_fn =
-                [](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r) {
+                [](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r,
+                   std::size_t key) {
                     auto res = 0;
                     int k = 0;
                     while (r.HasNext()) {
                         auto n = r.Next();
+                        assert(n%m == key);
                         k = n % m;
                         res += n;
                     }
@@ -96,7 +98,8 @@ TEST(GroupByNode, Median) {
             auto modulo_keyfn = [](size_t in) { return (in % m); };
 
             auto median_fn =
-                [](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r) {
+                [](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r,
+                    std::size_t) {
                     std::vector<std::size_t> all;
                     while (r.HasNext()) {
                         all.push_back(r.Next());
@@ -155,20 +158,21 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
                            return in % 6;
                        };
 
-            auto add_function = [](api::GroupByIterator<std::size_t, decltype(key)>& r) {
-                                    std::size_t res = 4;
-                                    while(r.HasNext()) {
-                                        res += r.Next();
-                                    }
-                                    return res;
-                                };
+            auto add_function =
+                [](api::GroupByIterator<std::size_t, decltype(key)>& r,
+                    std::size_t) {
+                        std::size_t res = 4;
+                        while(r.HasNext()) {
+                            res += r.Next();
+                        }
+                        return res;
+                    };
 
 
             auto reduced = integers.GroupByIndex(key, add_function, result_size);
 
 
             std::vector<size_t> out_vec = reduced.AllGather();
-            // ASSERT_EQ(9u, out_vec.size());
 
             int i = 4;
             for (size_t element : out_vec) {
