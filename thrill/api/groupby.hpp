@@ -85,7 +85,9 @@ public:
           groupby_function_(groupby_function),
           hash_function_(hash_function),
           channel_(parent.ctx().GetNewChannel()),
-          emitter_(channel_->OpenWriters())
+          emitter_(channel_->OpenWriters()),
+          sorted_elems_(context_.GetFile()),
+          totalsize_(0)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -111,21 +113,68 @@ public:
         MainOp();
     }
 
-    void PushData(bool consume) final {
-        Reader r = sorted_elems_.GetReader(consume);
+    void RunUserFunc(File& f, bool consume) {
+        Reader r = f.GetReader(consume);
         if (r.HasNext()) {
             // create iterator to pass to user_function
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor>(r, key_extractor_);
             while (user_iterator.HasNextForReal()) {
                 // call user function
-
-                // TODO(cn): call groupby function while doing multiway merge
                 const ValueOut res = groupby_function_(user_iterator,
                     user_iterator.GetNextKey());
                 // push result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
                     LOG << "grouped to value " << res;
                     func(res);
+                }
+            }
+        }
+    }
+
+    void PushData(bool consume) final {
+        using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
+        using OIterator = thrill::core::FileOutputIteratorWrapper<ValueIn>;
+
+        const std::size_t num_runs = files_.size();
+        // if there's only one run, call user funcs
+        if (num_runs == 1) {
+            RunUserFunc(files_[0], consume);
+        } // otherwise sort all runs using multiway merge
+        else {
+            std::vector<std::pair<Iterator, Iterator> > seq;
+            seq.reserve(num_runs);
+            for (std::size_t t = 0; t < num_runs; ++t) {
+                std::shared_ptr<Reader> reader = std::make_shared<Reader>(files_[t].GetReader(consume));
+                Iterator s = Iterator(&files_[t], reader, 0, true);
+                Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
+                seq.push_back(std::make_pair(std::move(s), std::move(e)));
+            }
+
+            {
+                OIterator oiter(std::make_shared<Writer>(sorted_elems_.GetWriter()));
+
+                core::sequential_file_multiway_merge<true, false>(
+                    std::begin(seq),
+                    std::end(seq),
+                    oiter,
+                    totalsize_,
+                    ValueComparator(*this));
+            }
+
+
+            Reader r = sorted_elems_.GetReader(consume);
+            if (r.HasNext()) {
+                // create iterator to pass to user_function
+                auto user_iterator = GroupByIterator<ValueIn, KeyExtractor>(r, key_extractor_);
+                while (user_iterator.HasNextForReal()) {
+                    // call user function
+                    const ValueOut res = groupby_function_(user_iterator,
+                        user_iterator.GetNextKey());
+                    // push result to callback functions
+                    for (auto func : DIANode<ValueType>::callbacks_) {
+                        LOG << "grouped to value " << res;
+                        func(res);
+                    }
                 }
             }
         }
@@ -150,6 +199,7 @@ private:
     std::vector<data::BlockWriter> emitter_;
     std::vector<data::File> files_;
     data::File sorted_elems_;
+    std::size_t totalsize_;
 
     /*
      * Send all elements to their designated PEs
@@ -180,10 +230,7 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
-        using OIterator = thrill::core::FileOutputIteratorWrapper<ValueIn>;
-
-        LOG << ToString() << " running group by main op";
+        LOG << "running group by main op";
 
         const bool consume = true;
         const std::size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
@@ -195,14 +242,12 @@ private:
             e.Close();
         }
 
-        std::size_t totalsize = 0;
-
         // get incoming elements
         auto reader = channel_->OpenConcatReader(consume);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
-                totalsize += FIXED_VECTOR_SIZE;
+                totalsize_ += FIXED_VECTOR_SIZE;
                 FlushVectorToFile(incoming);
                 incoming.clear();
             }
@@ -210,43 +255,9 @@ private:
             const ValueIn elem = reader.template Next<ValueIn>();
             incoming.push_back(elem);
         }
-        totalsize += incoming.size();
+        totalsize_ += incoming.size();
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
-
-        const std::size_t num_runs = files_.size();
-
-        // if there's only one run, store it
-        if (num_runs == 1) {
-            Writer w = sorted_elems_.GetWriter();
-            Reader r = files_[0].GetReader(consume);
-            {
-                while (r.HasNext()) {
-                    w(r.template Next<ValueIn>());
-                }
-            }
-        }       // otherwise sort all runs using multiway merge
-        else {
-            std::vector<std::pair<Iterator, Iterator> > seq;
-            seq.reserve(num_runs);
-            for (std::size_t t = 0; t < num_runs; ++t) {
-                std::shared_ptr<Reader> reader = std::make_shared<Reader>(files_[t].GetReader(consume));
-                Iterator s = Iterator(&files_[t], reader, 0, true);
-                Iterator e = Iterator(&files_[t], reader, files_[t].NumItems(), false);
-                seq.push_back(std::make_pair(std::move(s), std::move(e)));
-            }
-
-            {
-                OIterator oiter(std::make_shared<Writer>(sorted_elems_.GetWriter()));
-
-                core::sequential_file_multiway_merge<true, false>(
-                    std::begin(seq),
-                    std::end(seq),
-                    oiter,
-                    totalsize,
-                    ValueComparator(*this));
-            }
-        }
     }
 };
 
