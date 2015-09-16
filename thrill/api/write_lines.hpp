@@ -42,7 +42,7 @@ public:
                    StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           path_out_(path_out),
-          file_(path_out_),
+          file_(path_out_, std::ios::binary),
           temp_file_(context_.GetFile()),
           writer_(&temp_file_)
     {
@@ -72,8 +72,7 @@ public:
                        << "TotalLines" << stats_total_elements_;
 
         // (Portable) allocation of output file, setting individual file pointers.
-        size_t zero = 0;
-        size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_, zero);
+        size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_);
         if (context_.my_rank() == context_.num_workers() - 1) {
             file_.seekp(prefix_elem + size_ - 1);
             file_.put('\0');

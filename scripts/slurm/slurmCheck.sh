@@ -17,10 +17,10 @@ if [ -z $SLURM_NNODES ]; then
   exit -1
 fi
 
-if [ $SLURM_NNODES -ne $SLURM_NTASKS ]; then 
-  echo "Error: Multiple Thrill instances running on a single node."
-  exit -1
-fi
+#if [ $SLURM_NNODES -ne $SLURM_NTASKS ]; then 
+#  echo "Error: Multiple Thrill instances running on a single node."
+#  exit -1
+#fi
 
 echo "More SLURM Environment:"
 set | grep ^SLURM

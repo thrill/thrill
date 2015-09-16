@@ -40,8 +40,8 @@ class SumNode : public ActionNode
 
 public:
     SumNode(const ParentDIARef& parent,
-            SumFunction sum_function,
-            ValueType initial_value,
+            const SumFunction& sum_function,
+            const ValueType& initial_value,
             StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           sum_function_(sum_function),
@@ -98,7 +98,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::Sum(
-    const SumFunction &sum_function, ValueType initial_value) const {
+    const SumFunction &sum_function, const ValueType &initial_value) const {
     assert(IsValid());
 
     using SumResultNode

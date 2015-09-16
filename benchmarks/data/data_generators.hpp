@@ -186,7 +186,7 @@ std::vector<int> generate(size_t bytes, size_t /*min_size*/, size_t /*max_size*/
     result.reserve((bytes + sizeof(int) - 1) / sizeof(int));
 
     for (size_t current = 0; current < bytes; current += sizeof(int)) {
-        result.emplace_back(42 + current);
+        result.emplace_back(static_cast<int>(42 + current));
     }
     return result;
 }
@@ -199,7 +199,7 @@ std::vector<size_t> generate(size_t bytes, size_t /*min_size*/, size_t /*max_siz
     result.reserve((bytes + sizeof(size_t) - 1) / sizeof(size_t));
 
     for (size_t current = 0; current < bytes; current += sizeof(size_t)) {
-        result.emplace_back(42 + current);
+        result.emplace_back(static_cast<int>(42 + current));
     }
     return result;
 }

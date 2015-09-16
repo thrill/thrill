@@ -134,9 +134,11 @@ template <typename Key,
 class PostReduceFlushToDefault
 {
 public:
-    PostReduceFlushToDefault(const IndexFunction& index_function = IndexFunction(),
+    PostReduceFlushToDefault(ReduceFunction reduce_function,
+                             const IndexFunction& index_function = IndexFunction(),
                              const EqualToFunction& equal_to_function = EqualToFunction())
-        : index_function_(index_function),
+        : reduce_function_(reduce_function),
+          index_function_(index_function),
           equal_to_function_(equal_to_function)
     { }
 
@@ -271,7 +273,7 @@ public:
                             // if item and key equals, then reduce.
                             if (equal_to_function_(kv.first, bi->first))
                             {
-                                bi->second = ht->reduce_function_(bi->second, kv.second); // TODO: reduce_function must be provided inlined
+                                bi->second = reduce_function_(bi->second, kv.second);
                                 reduced = true;
                                 break;
                             }
@@ -333,7 +335,7 @@ public:
                                     // if item and key equals, then reduce.
                                     if (equal_to_function_(from->first, bi->first))
                                     {
-                                        bi->second = ht->reduce_function_(bi->second, from->second);
+                                        bi->second = reduce_function_(bi->second, from->second);
                                         reduced = true;
                                         break;
                                     }
@@ -476,7 +478,7 @@ public:
     }
 
 private:
-    // ReduceFunction reduce_function_;
+    ReduceFunction reduce_function_;
     IndexFunction index_function_;
     EqualToFunction equal_to_function_;
 };
@@ -534,25 +536,21 @@ public:
     }
 };
 
-template <bool, typename EmitterType, typename Key, typename Value, typename SendType>
+template <bool, typename EmitterFunction, typename Key, typename Value, typename SendType>
 struct EmitImpl;
 
-template <typename EmitterType, typename Key, typename Value, typename SendType>
-struct EmitImpl<true, EmitterType, Key, Value, SendType>{
-    void EmitElement(const Key& k, const Value& v, const std::vector<EmitterType>& emitters) {
-        for (auto& emitter : emitters) {
-            emitter(std::make_pair(k, v));
-        }
+template <typename EmitterFunction, typename Key, typename Value, typename SendType>
+struct EmitImpl<true, EmitterFunction, Key, Value, SendType>{
+    void EmitElement(const Key& k, const Value& v, EmitterFunction emit) {
+        emit(std::make_pair(k, v));
     }
 };
 
-template <typename EmitterType, typename Key, typename Value, typename SendType>
-struct EmitImpl<false, EmitterType, Key, Value, SendType>{
-    void EmitElement(const Key& k, const Value& v, const std::vector<EmitterType>& emitters) {
-        for (auto& emitter : emitters) {
-            (void)k;
-            emitter(v);
-        }
+template <typename EmitterFunction, typename Key, typename Value, typename SendType>
+struct EmitImpl<false, EmitterFunction, Key, Value, SendType>{
+    void EmitElement(const Key& k, const Value& v, EmitterFunction emit) {
+        (void)k;
+        emit(v);
     }
 };
 
@@ -621,21 +619,21 @@ public:
      * \param equal_to_function Function for checking equality of two keys.
      */
     ReducePostTable(Context& ctx,
-                    KeyExtractor key_extractor,
-                    ReduceFunction reduce_function,
-                    std::vector<EmitterFunction>& emit,
-                    const IndexFunction& index_function = IndexFunction(),
-                    const FlushFunction& flush_function = FlushFunction(),
+                    const KeyExtractor& key_extractor,
+                    const ReduceFunction& reduce_function,
+                    const EmitterFunction& emit,
+                    const IndexFunction& index_function,
+                    const FlushFunction& flush_function,
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
-                    Value neutral_element = Value(),
+                    const Value& neutral_element = Value(),
                     size_t byte_size = 1024* 1024* 128* 4,
                     double bucket_rate = 0.9,
                     double max_frame_fill_rate = 0.6,
                     double frame_rate = 0.01,
                     const EqualToFunction& equal_to_function = EqualToFunction())
         : max_frame_fill_rate_(max_frame_fill_rate),
-          emit_(std::move(emit)),
+          emit_(emit),
           byte_size_(byte_size),
           bucket_rate_(bucket_rate),
           begin_local_index_(begin_local_index),
@@ -646,7 +644,7 @@ public:
           equal_to_function_(equal_to_function),
           flush_function_(flush_function),
           reduce_function_(reduce_function) {
-        sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
+        // sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
         assert(frame_rate > 0.0 && frame_rate <= 1.0);
@@ -688,6 +686,11 @@ public:
             frame_writers_.push_back(frame_files_[i].GetWriter());
         }
     }
+
+    ReducePostTable(Context& ctx, KeyExtractor key_extractor,
+                    ReduceFunction reduce_function, EmitterFunction emit)
+        : ReducePostTable(ctx, key_extractor, reduce_function, emit, IndexFunction(),
+                          FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
     ReducePostTable(const ReducePostTable&) = delete;
@@ -771,15 +774,13 @@ public:
         current = buckets_[global_index];
 
         // have an item that needs to be added.
-        if (current == nullptr ||
-            current->size == block_size_)
+        if (current == nullptr || current->size == block_size_)
         {
             //////
             // new block needed.
             //////
 
-            // spill current frame if max frame fill rate
-            // reached
+            // spill current frame if max frame fill rate reached
             if (static_cast<double>(num_blocks_mem_per_frame_[frame_id] + 1)
                 / static_cast<double>(max_num_blocks_mem_per_frame_)
                 > max_frame_fill_rate_)
@@ -787,14 +788,13 @@ public:
                 SpillFrame(frame_id);
             }
 
-            // spill largest frame if max number of blocks
-            // reached
+            // spill largest frame if max number of blocks reached
             if (num_blocks_per_table_ == max_num_blocks_per_table_)
             {
                 SpillLargestFrame();
             }
 
-            // allocate a new block of uninitialized items, postpend to bucket
+            // allocate a new block of uninitialized items, prepend to bucket
             current =
                 static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
 
@@ -809,7 +809,7 @@ public:
         }
 
         // in-place construct/insert new item in current bucket block
-        new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
+        new (current->items + current->size++)KeyValuePair(kv);
         // Increase total item count
         num_items_per_table_++;
     }
@@ -859,7 +859,7 @@ public:
         data::File::Writer& writer = frame_writers_[frame_id];
 
         for (size_t i = frame_id * num_buckets_per_frame_;
-             i < frame_id * num_buckets_per_frame_ + num_buckets_per_frame_; i++)
+             i < (frame_id + 1) * num_buckets_per_frame_; i++)
         {
             BucketBlock* current = buckets_[i];
 
@@ -868,10 +868,10 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    writer(*bi);
-
-                    num_items_per_table_--;
+                    writer.PutItem(*bi);
                 }
+
+                num_items_per_table_ -= current->size;
 
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -1150,8 +1150,8 @@ protected:
     //! Total number of blocks in the table.
     size_t num_blocks_per_table_ = 0;
 
-    //! Set of emitters, one per partition.
-    std::vector<EmitterFunction> emit_;
+    //! Emitter function.
+    EmitterFunction emit_;
 
     //! Size of the table in bytes.
     size_t byte_size_ = 0;
@@ -1210,10 +1210,10 @@ protected:
     //! Maximal number of blocks per frame.
     size_t max_num_blocks_mem_per_frame_;
 
-public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
+
 } // namespace core
 } // namespace thrill
 

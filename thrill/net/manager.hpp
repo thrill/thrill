@@ -61,13 +61,13 @@ public:
     /*!
      * Construct Manager from already initialized net::Groups.
      */
-    Manager(std::array<GroupPtr, kGroupCount>&& groups)
+    explicit Manager(std::array<GroupPtr, kGroupCount>&& groups)
         : groups_(std::move(groups)) { }
 
     /*!
       * Construct Manager from already initialized net::Groups.
       */
-    Manager(std::vector<GroupPtr>&& groups) {
+    explicit Manager(std::vector<GroupPtr>&& groups) {
         assert(groups.size() == kGroupCount);
         std::move(groups.begin(), groups.end(), groups_.begin());
     }

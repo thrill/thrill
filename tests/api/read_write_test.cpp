@@ -9,6 +9,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/generate_from_file.hpp>
@@ -22,14 +23,11 @@
 #include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
 
-#include <gtest/gtest.h>
-
-#include <dirent.h>
-#include <glob.h>
 #include <sys/stat.h>
 
 #include <algorithm>
 #include <cstdlib>
+#include <fstream>
 #include <functional>
 #include <random>
 #include <string>
@@ -39,86 +37,6 @@
 using namespace thrill;
 using thrill::api::Context;
 using thrill::api::DIARef;
-
-/*!
- * A class which creates a temporary directory in /tmp/ and returns it via
- * get(). When the object is destroyed the temporary directory is wiped
- * non-recursively.
- */
-class TemporaryDirectory
-{
-public:
-    //! Create a temporary directory, returns its name without trailing /.
-    static std::string make_directory(
-        const char* sample = "thrill-testsuite-") {
-
-        std::string tmp_dir = std::string(sample) + "XXXXXX";
-        // evil const_cast, but mkdtemp replaces the XXXXXX with something
-        // unique. it also mkdirs.
-        char* p = mkdtemp(const_cast<char*>(tmp_dir.c_str()));
-
-        if (p == nullptr) {
-            throw common::ErrnoException(
-                      "Could create temporary directory " + tmp_dir);
-        }
-
-        return tmp_dir;
-    }
-
-    //! wipe temporary directory NON RECURSIVELY!
-    static void wipe_directory(const std::string& tmp_dir, bool do_rmdir) {
-        DIR* d = opendir(tmp_dir.c_str());
-        if (d == nullptr) {
-            throw common::ErrnoException(
-                      "Could open temporary directory " + tmp_dir);
-        }
-
-        struct dirent* de, entry;
-        while (readdir_r(d, &entry, &de) == 0 && de != nullptr) {
-            // skip ".", "..", and also hidden files (don't create them).
-            if (de->d_name[0] == '.') continue;
-
-            std::string path = tmp_dir + "/" + de->d_name;
-            int r = unlink(path.c_str());
-            if (r != 0)
-                sLOG1 << "Could not unlink temporary file " << path
-                      << ": " << strerror(errno);
-        }
-
-        closedir(d);
-
-        if (!do_rmdir) return;
-
-        if (rmdir(tmp_dir.c_str()) != 0) {
-            sLOG1 << "Could not unlink temporary directory " << tmp_dir
-                  << ": " << strerror(errno);
-        }
-    }
-
-    TemporaryDirectory()
-        : dir_(make_directory())
-    { }
-
-    ~TemporaryDirectory() {
-        wipe_directory(dir_, true);
-    }
-
-    //! non-copyable: delete copy-constructor
-    TemporaryDirectory(const TemporaryDirectory&) = delete;
-    //! non-copyable: delete assignment operator
-    TemporaryDirectory& operator = (const TemporaryDirectory&) = delete;
-
-    //! return the temporary directory name
-    const std::string & get() const { return dir_; }
-
-    //! wipe contents of directory
-    void wipe() const {
-        wipe_directory(dir_, false);
-    }
-
-protected:
-    std::string dir_;
-};
 
 TEST(IO, ReadSingleFile) {
     std::function<void(Context&)> start_func =
@@ -151,6 +69,9 @@ TEST(IO, ReadFolder) {
 }
 
 TEST(IO, ReadPartOfFolderCompressed) {
+#if defined(_MSC_VER)
+    return;
+#endif
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
             // folder read_ints contains compressed and non-compressed files
@@ -218,7 +139,7 @@ TEST(IO, WriteBinaryPatternFormatter) {
 }
 
 TEST(IO, GenerateIntegerWriteReadBinary) {
-    TemporaryDirectory tmpdir;
+    core::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {
@@ -262,7 +183,11 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
 }
 
 TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
-    TemporaryDirectory tmpdir;
+#if defined(_MSC_VER)
+    return;
+#endif
+
+    core::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {
@@ -312,8 +237,7 @@ std::string test_string(size_t index) {
 }
 
 TEST(IO, GenerateStringWriteBinary) {
-
-    TemporaryDirectory tmpdir;
+    core::TemporaryDirectory tmpdir;
 
     // use pairs for easier checking and stranger string sizes.
     using Item = std::pair<size_t, std::string>;
@@ -362,7 +286,7 @@ TEST(IO, GenerateStringWriteBinary) {
 }
 
 TEST(IO, WriteAndReadBinaryEqualDIAS) {
-    TemporaryDirectory tmpdir;
+    core::TemporaryDirectory tmpdir;
 
     std::function<void(Context&)> start_func =
         [&tmpdir](Context& ctx) {
@@ -375,6 +299,8 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
                                  });
+
+            ASSERT_EQ(16u, integers.Size());
 
             integers.WriteBinary(tmpdir.get() + "/output_");
 
@@ -395,7 +321,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
             // still writing to output file.
             ctx.Barrier();
 
-            std::ifstream file(path);
+            std::ifstream file(path, std::ios::binary);
             size_t begin = file.tellg();
             file.seekg(0, std::ios::end);
             size_t end = file.tellg();

@@ -159,14 +159,14 @@ protected:
         try {
             writer_->PutItemNoSelfVerify(input);
         }
-        catch (data::FullException& e) {
+        catch (data::FullException&) {
             // sink is full. flush it. and repeat, which opens new file.
             OpenNextFile();
 
             try {
                 writer_->PutItemNoSelfVerify(input);
             }
-            catch (data::FullException& e) {
+            catch (data::FullException&) {
                 throw std::runtime_error(
                           "Error in WriteBinary: "
                           "an item is larger than the file size limit");

@@ -13,6 +13,7 @@
 #define THRILL_COMMON_MATH_HEADER
 
 #include <algorithm>
+#include <cmath>
 #include <tuple>
 
 namespace thrill {

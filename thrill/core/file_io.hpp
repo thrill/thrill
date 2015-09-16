@@ -14,9 +14,18 @@
 #define THRILL_CORE_FILE_IO_HEADER
 
 #include <thrill/common/logger.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
 
+#if defined(_MSC_VER)
+
+#include <io.h>
+
+#else
+
 #include <unistd.h>
+
+#endif
 
 #include <string>
 #include <utility>
@@ -106,13 +115,21 @@ public:
     //! POSIX write function.
     ssize_t write(const void* data, size_t count) {
         assert(fd_ >= 0);
+#if defined(_MSC_VER)
+        return ::_write(fd_, data, static_cast<unsigned>(count));
+#else
         return ::write(fd_, data, count);
+#endif
     }
 
     //! POSIX read function.
     ssize_t read(void* data, size_t count) {
         assert(fd_ >= 0);
+#if defined(_MSC_VER)
+        return ::_read(fd_, data, static_cast<unsigned>(count));
+#else
         return ::read(fd_, data, count);
+#endif
     }
 
     //! POSIX lseek function from current position.
@@ -136,8 +153,51 @@ protected:
     //! file descriptor
     int fd_ = -1;
 
+#if defined(_MSC_VER)
+    using pid_t = int;
+#endif
+
     //! pid of child process to wait for
     pid_t pid_ = 0;
+};
+
+/*!
+ * A class which creates a temporary directory in the current directory and
+ * returns it via get(). When the object is destroyed the temporary directory is
+ * wiped non-recursively.
+ */
+class TemporaryDirectory
+{
+public:
+    //! Create a temporary directory, returns its name without trailing /.
+    static std::string make_directory(const char* sample = "thrill-testsuite-");
+
+    //! wipe temporary directory NON RECURSIVELY!
+    static void wipe_directory(const std::string& tmp_dir, bool do_rmdir);
+
+    TemporaryDirectory()
+        : dir_(make_directory())
+    { }
+
+    ~TemporaryDirectory() {
+        wipe_directory(dir_, true);
+    }
+
+    //! non-copyable: delete copy-constructor
+    TemporaryDirectory(const TemporaryDirectory&) = delete;
+    //! non-copyable: delete assignment operator
+    TemporaryDirectory& operator = (const TemporaryDirectory&) = delete;
+
+    //! return the temporary directory name
+    const std::string & get() const { return dir_; }
+
+    //! wipe contents of directory
+    void wipe() const {
+        wipe_directory(dir_, false);
+    }
+
+protected:
+    std::string dir_;
 };
 
 } // namespace core

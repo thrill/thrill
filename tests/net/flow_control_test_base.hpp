@@ -17,7 +17,6 @@
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/group.hpp>
-#include <thrill/net/tcp/group.hpp>
 
 #include <functional>
 #include <string>
@@ -33,10 +32,10 @@ static void TestSingleThreadPrefixSum(net::Group* net) {
     net::FlowControlChannelManager manager(*net, 1);
     net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     size_t myRank = net->my_host_rank();
-    size_t zero = 0;
+    size_t initial = 0;
 
-    size_t resInclusive = channel.PrefixSum(myRank, zero, std::plus<size_t>(), true);
-    size_t resExclusive = channel.PrefixSum(myRank, zero, std::plus<size_t>(), false);
+    size_t resInclusive = channel.PrefixSum(myRank, initial, std::plus<size_t>(), true);
+    size_t resExclusive = channel.PrefixSum(myRank, initial, std::plus<size_t>(), false);
     size_t expectedInclusive = 0;
     size_t expectedExclusive = 0;
 
@@ -57,22 +56,22 @@ static void TestSingleThreadVectorPrefixSum(net::Group* net) {
     net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     size_t size = 3;
     size_t myRank = net->my_host_rank();
-    std::vector<size_t> zero(size);
-    std::fill(zero.begin(), zero.end(), 0);
+    std::vector<size_t> initial(size);
+    std::fill(initial.begin(), initial.end(), 0);
     std::vector<size_t> val(size);
     std::fill(val.begin(), val.end(), myRank);
-        
-    auto addSizeTVectors = [] 
-        (const std::vector<size_t> &a, const std::vector<size_t> &b) {
+
+    auto addSizeTVectors =
+        [](const std::vector<size_t>& a, const std::vector<size_t>& b) {
             std::vector<size_t> res(a.size());
-            for(size_t i = 0; i < a.size(); i++) {
-               res[i] = a[i] + b[i]; 
+            for (size_t i = 0; i < a.size(); i++) {
+                res[i] = a[i] + b[i];
             }
             return res;
         };
 
-    std::vector<size_t> resInclusive = channel.PrefixSum(val, zero, addSizeTVectors, true);
-    std::vector<size_t> resExclusive = channel.PrefixSum(val, zero, addSizeTVectors, false);
+    std::vector<size_t> resInclusive = channel.PrefixSum(val, initial, addSizeTVectors, true);
+    std::vector<size_t> resExclusive = channel.PrefixSum(val, initial, addSizeTVectors, false);
     size_t expectedInclusive = 0;
     size_t expectedExclusive = 0;
 
@@ -80,7 +79,7 @@ static void TestSingleThreadVectorPrefixSum(net::Group* net) {
         expectedInclusive += i;
     }
 
-    for (size_t i = 0; i < myRank; i++) { 
+    for (size_t i = 0; i < myRank; i++) {
         expectedExclusive += i;
     }
 
@@ -190,10 +189,10 @@ static void TestMultiThreadPrefixSum(net::Group* net) {
     ExecuteMultiThreads(
         net, count, [=](net::FlowControlChannel& channel, size_t id) {
             size_t myRank = net->my_host_rank() * count + id;
-            size_t zero = 0;
+            size_t initial = 0;
 
-            size_t resInclusive = channel.PrefixSum(myRank, zero, std::plus<size_t>(), true);
-            size_t resExclusive = channel.PrefixSum(myRank, zero, std::plus<size_t>(), false);
+            size_t resInclusive = channel.PrefixSum(myRank, initial, std::plus<size_t>(), true);
+            size_t resExclusive = channel.PrefixSum(myRank, initial, std::plus<size_t>(), false);
             size_t expectedInclusive = 0;
             size_t expectedExclusive = 0;
 
@@ -220,13 +219,13 @@ static void TestHardcoreRaceConditionTest(net::Group* net) {
     ExecuteMultiThreads(
         net, count, [=](net::FlowControlChannel& channel, size_t id) {
             size_t myRank = net->my_host_rank() * count + id;
-            size_t zero = 0;
+            size_t initial = 0;
             std::vector<size_t> pres;
             std::vector<size_t> rres;
 
             for (int i = 0; i < 20; i++) {
                 // Make a prefix sum and push res
-                pres.push_back(channel.PrefixSum(myRank, zero));
+                pres.push_back(channel.PrefixSum(myRank, initial));
                 // Make an all reduce and push res.
                 rres.push_back(channel.AllReduce(myRank));
 

@@ -15,8 +15,14 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia_base.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stat_logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <algorithm>
+#include <chrono>
+#include <ctime>
+#include <functional>
+#include <iomanip>
 #include <set>
 #include <stack>
 #include <string>
@@ -31,35 +37,72 @@ using api::DIABase;
 class Stage
 {
 public:
-    explicit Stage(DIABase* node) : node_(node) {
-        sLOG << "CREATING stage" << node_->label() << "id" << node_->id()
-             << "node" << node_;
-    }
+    explicit Stage(DIABase* node) : node_(node) { }
 
     void Execute() {
-        sLOG << "EXECUTING stage " << node_->label() << "id" << node_->id()
-             << "node" << node_;
-        node_->StartExecutionTimer();
+        // time_t tt;
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "START (EXECUTING) stage" << node_->label()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
+        // timer.Start();
         node_->Execute();
-        node_->StopExecutionTimer();
+        // timer.Stop();
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (EXECUTING) stage" << node_->label()
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
 
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "START (PUSHING) stage" << node_->label()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
+        // timer.Start();
         node_->PushData(node_->consume_on_push_data());
+        // timer.Stop();
         node_->set_state(api::DIAState::EXECUTED);
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (PUSHING) stage" << node_->label()
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
 
     void PushData() {
-        sLOG << "PUSHING stage " << node_->label() << "id" << node_->id()
-             << "node" << node_;
+        // time_t tt;
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "START (PUSHING) stage" << node_->label()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
         die_unless(!node_->consume_on_push_data());
+        // timer.Start();
         node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
+        // timer.Stop();
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (PUSHING) stage"
+        //    << node_->label()
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time: " << std::put_time(std::localtime(&tt), "%T");
     }
 
     void Dispose() {
-        sLOG << "DISPOSING stage " << node_->label() << "id" << node_->id()
-             << "node" << node_;
+        // time_t tt;
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "START (DISPOSING) stage" << node_->label()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
+        // timer.Start();
         node_->Dispose();
+        // timer.Stop();
         node_->set_state(api::DIAState::DISPOSED);
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (DISPOSING) stage" << node_->label()
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
 
     DIABase * node() {
@@ -68,6 +111,7 @@ public:
 
 private:
     static const bool debug = false;
+    common::StatsTimer<true> timer;
     DIABase* node_;
 };
 

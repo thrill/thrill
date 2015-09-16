@@ -16,6 +16,9 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/thrill.hpp>
 
+#include <string>
+#include <utility>
+
 using WordCountPair = std::pair<std::string, size_t>;
 using namespace thrill; // NOLINT
 
@@ -44,7 +47,7 @@ int main(int argc, char* argv[]) {
             auto input_dia = ReadLines(ctx, input);
 
             std::string word;
-            word.reserve(1024);
+            word.reserve(24);
             auto word_pairs = input_dia.template FlatMap<WordCountPair>(
                 [&word](const std::string& line, auto emit) -> void {
                     /* map lambda: emit each word */
@@ -53,23 +56,21 @@ int main(int argc, char* argv[]) {
                         if (*it == ' ') {
                             emit(WordCountPair(word, 1));
                             word.clear();
+                            word.reserve(40);
                         }
                         else {
-                            if (*it != ',' && *it != '.') {
-                                word.push_back(*it);
-                            }
+                            word.push_back(*it);
                         }
                     }
                     emit(WordCountPair(word, 1));
+                    word.reserve(40);
                 }).ReducePair(
                 [](const size_t& a, const size_t& b) {
                     /* associative reduction operator: add counters */
                     return a + b;
                 });
 
-            word_pairs.Sort([](const WordCountPair& wc1, const WordCountPair& wc2) {
-                                return wc1.second < wc2.second;
-                            }).Map(
+            word_pairs.Map(
                 [](const WordCountPair& wc) {
                     return wc.first + ": " + std::to_string(wc.second);
                 }).WriteLinesMany(output);

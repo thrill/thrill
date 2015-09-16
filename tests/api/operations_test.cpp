@@ -317,7 +317,7 @@ TEST(Operations, FilterResultsCorrectly) {
             size_t i = 1;
 
             for (size_t element : out_vec) {
-                ASSERT_DOUBLE_EQ(element, (i++ *2));
+                ASSERT_EQ(element, (i++ *2));
             }
 
             ASSERT_EQ(8u, out_vec.size());
@@ -349,7 +349,7 @@ TEST(Operations, DIARefCasting) {
             size_t i = 1;
 
             for (size_t element : out_vec) {
-                ASSERT_DOUBLE_EQ(element, (i++ *2));
+                ASSERT_EQ(element, (i++ *2));
             }
 
             ASSERT_EQ(8u, out_vec.size());
