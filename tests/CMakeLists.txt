@@ -76,6 +76,7 @@ build_test_group(common/tests
   common/concurrent_queue_test.cpp
   common/counting_ptr_test.cpp
   common/delegate_test.cpp
+  common/fast_string_test.cpp
   common/function_traits_test.cpp
   common/future_queue_test.cpp
   common/future_test.cpp
@@ -114,16 +115,16 @@ build_test(core/post_hash_table_probing_test)
 
 build_test(core/stage_builder_test)
 
-build_test(api/function_stack_test)
-build_test(api/graph_test)
-build_test(api/operations_test)
-build_test(api/read_write_test)
-build_test(api/reduce_node_test)
-build_test(api/sort_node_test)
-build_test(api/sum_node_test)
-build_test(api/zip_node_test)
+#build_test(api/function_stack_test)
+#build_test(api/graph_test)
+#build_test(api/operations_test)
+#build_test(api/read_write_test)
+#build_test(api/reduce_node_test)
+#build_test(api/sort_node_test)
+#build_test(api/sum_node_test)
+#build_test(api/zip_node_test)
 
-build_test(examples/wordcount_test)
+#build_test(examples/wordcount_test)
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
 
