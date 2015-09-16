@@ -32,7 +32,7 @@ TEST_F(FutureTest, GetReturnsCorrectValue) {
                  });
 
     pool.Enqueue([&f]() {
-                     f.Callback(42);
+                     f << 42;
                  });
 
     pool.LoopUntilEmpty();
@@ -49,7 +49,7 @@ TEST_F(FutureTest, IsFinishedIsSetAfterCallback) {
 
     pool.Enqueue([&f]() {
                      ASSERT_FALSE(f.is_finished());
-                     f.Callback(42);
+                     f << 42;
 
                      // let other thread run, but that one will wait 100ms
                      std::this_thread::sleep_for(10ns);
