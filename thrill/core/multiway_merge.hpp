@@ -3,19 +3,24 @@
  *
  * Part of Project Thrill.
  *
- * Implementation of sequential and parallel multiway merge.
+ * Implementation of sequential multiway merge.
  *
  * Extracted from MCSTL
  * http://algo2.iti.uni-karlsruhe.de/singler/mcstl/
- * Copied and Modified from STXXL
+ * Copyright (C) 2007 Johannes Singler <singler@ira.uka.de>
+ *
+ * copied and modified from STXXL
  * https://github.com/stxxl/stxxl
  *
- * Copyright (C) 2007 Johannes Singler <singler@ira.uka.de>
+ * which are both distributed under the Boost Software License, Version 1.0.
+ * (See http://www.boost.org/LICENSE_1_0.txt)
+ *
+ * Part of Project Thrill.
+ *
  * Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
- * Distributed under the Boost Software License, Version 1.0.
- * (See http://www.boost.org/LICENSE_1_0.txt)
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
 #pragma once
@@ -2026,7 +2031,6 @@ multiway_merge_stable_sentinels(RandomAccessIteratorPairIterator seqs_begin,
 #endif // THRILL_PARALLEL
 
 } // namespace core
-
 } // namespace thrill
 
 #endif // !THRILL_CORE_MULTIWAY_MERGE_HEADER

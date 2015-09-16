@@ -1,16 +1,17 @@
 /*******************************************************************************
  * thrill/core/iterator_wrapper.hpp
  *
- * Part of Project Thrill.
- *
  * Provides iterator wrapper for files
  *
  * Extracted and modified from Sound of Sorting (SortAlgo.h)
  * http://panthema.net/2013/sound-of-sorting/
- * https://github.com/bingmann/sound-of-sorting
+ *
+ * Part of Project Thrill.
  *
  * Copyright (C) 2013-2014 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
+ *
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
 #pragma once
@@ -46,10 +47,12 @@ namespace thrill {
 namespace core {
 
 // *****************************************************************************
-// *** Outpur Iterator Adapter for file writers
-// iterator based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
+// *** Output Iterator Adapter for file writers
+// based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
 // *****************************************************************************
 
+// REVIEW(ch): there are no doxygen comments in this file. Please describe with
+// the classes do.
 
 template <typename ArrayItem>
 class FileOutputIteratorWrapper
@@ -75,11 +78,6 @@ struct IterStats {
     bool      is_valid_ = true;
     ArrayItem item_;
 };
-
-// *****************************************************************************
-// *** Iterator Adapter for file readers
-// iterator based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
-// *****************************************************************************
 
 template <typename ArrayItem>
 class FileIteratorWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
@@ -299,12 +297,6 @@ public:
     }
 };
 
-// *****************************************************************************
-// *** Iterator Adapter for vectors
-// iterator based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
-// *****************************************************************************
-
-
 template <typename ArrayItem>
 class VectorIteratorWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
 {
@@ -388,6 +380,7 @@ public:
     difference_type operator - (const VectorIteratorWrapper& r2) const
     { return (m_pos - r2.m_pos); }
 };
+
 } //end namespace core
 } //end namespace thrill
 

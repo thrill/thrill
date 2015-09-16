@@ -9,6 +9,8 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
+
+// REVIEW(ch): NEVER use thrill.hpp in a test.
 #include <thrill/thrill.hpp>
 
 #include <thrill/core/iterator_wrapper.hpp>
@@ -72,7 +74,7 @@ TEST(MultiwayMerge, Basic) {
     }
 }
 
-TEST(MultiwayMerge, Vector_Wrapper) {
+TEST_F(MultiwayMerge, VectorWrapper) {
     std::mt19937 gen(0);
     std::size_t a = 200;
     std::size_t b = 50;

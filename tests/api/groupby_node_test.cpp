@@ -14,7 +14,6 @@
 #include <thrill/api/sum.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>
-
 #include <gtest/gtest.h>
 #include <thrill/core/multiway_merge.hpp>
 
@@ -28,12 +27,12 @@ using namespace thrill; // NOLINT
 
 static const bool debug = false;
 
-TEST(GroupByNode, Compile_and_Sum) {
+TEST(GroupByNode, CompileAndSum) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
             unsigned n = 999999;
-            unsigned m = 4;
+            static const unsigned m = 4;
 
             auto sizets = Generate(
                 ctx,
@@ -45,7 +44,7 @@ TEST(GroupByNode, Compile_and_Sum) {
             auto modulo_keyfn = [m](size_t in) { return (in % m); };
 
             auto sum_fn =
-                [m](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r) {
+                [](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r) {
                     auto res = 0;
                     int k = 0;
                     while (r.HasNext()) {
@@ -84,7 +83,7 @@ TEST(GroupByNode, Median) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
             unsigned n = 999999;
-            unsigned m = 4;
+            static const unsigned m = 4;
 
             auto sizets = Generate(
                 ctx,
@@ -96,7 +95,7 @@ TEST(GroupByNode, Median) {
             auto modulo_keyfn = [m](size_t in) { return (in % m); };
 
             auto median_fn =
-                [m](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r) {
+                [](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r) {
                     std::vector<std::size_t> all;
                     while (r.HasNext()) {
                         all.push_back(r.Next());
