@@ -25,6 +25,14 @@ void ByteBlock::deleter(const ByteBlock* bb) {
     return deleter(const_cast<ByteBlock*>(bb));
 }
 
+common::Future<ByteBlockPtr>&& ByteBlock::Pin() {
+    return block_pool_->PinBlock(this);
+}
+
+void ByteBlock::DecreasePinCount() {
+    block_pool_->UnpinBlock(this);
+}
+
 ByteBlock::ByteBlock(Byte* data, size_t size, BlockPool* block_pool, bool pinned, size_t swap_token)
     : data_(data), size_(size), block_pool_(block_pool), pin_count_(pinned ? 1 : 0), swap_token_(swap_token) { }
 

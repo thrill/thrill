@@ -11,6 +11,7 @@
 #ifndef THRILL_DATA_BYTE_BLOCK_HEADER
 #define THRILL_DATA_BYTE_BLOCK_HEADER
 #include <thrill/common/counting_ptr.hpp>
+#include <thrill/common/future.hpp>
 #include <limits>       // std::numeric_limits
 
 namespace thrill {
@@ -62,8 +63,10 @@ protected:
     //! token that is used with mem::PageMapper
     uint32_t swap_token_;
 
-    // BlockPool is a friend to modify the head's pin_count_
+    // BlockPool is a friend to call ctor
     friend class BlockPool;
+    // Block is a friend to call {Increase,Reduce}PinCount()
+    friend class Block;
 
     //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
     //! use BlockPoolAllocate() for construction.
@@ -75,6 +78,12 @@ protected:
 
     //! No default construction of Byteblock
     ByteBlock() = delete;
+
+    //! Creates a copy of this ByteBlockPtr that is pinned
+    common::Future<ByteBlockPtr>&& Pin();
+
+    //! Decreases the pin count of this ByteBlock
+    void DecreasePinCount();
 
 public:
     //! mutable data accessor to memory block
