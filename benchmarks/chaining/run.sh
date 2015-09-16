@@ -10,8 +10,8 @@ if [ -f ${build}/bench.log ]; then
     > ${build}/bench.log
 fi
 
-setup="1in10.out"
-#setup="10in1.out"
+#setup="1in10.out"
+setup="10in1.out"
 
 for i in `seq 1 100`;
     do
