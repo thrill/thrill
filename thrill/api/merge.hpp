@@ -19,10 +19,7 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/data/multiplexer.hpp>
-#include <thrill/data/buffered_block_reader.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
-#include <thrill/net/collective_communication.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
 
@@ -172,6 +169,9 @@ namespace merge_local {
                 break;
 
         }
+
+        //TODO(ej) This function is broken here. 
+        //Best: Remove alltogether. 
         size_t j = remap[k];
         ItemType value = files[j].GetItemAt<ItemType>(mid[j]);
         LOG << "Selected value " << value; 

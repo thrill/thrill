@@ -43,10 +43,10 @@ public:
     { }
 
     template <typename ReducePreTable>
-    typename ReducePreTable::index_result
+    typename ReducePreTable::IndexResult
     operator () (const Key& k, ReducePreTable* ht) const {
 
-        using index_result = typename ReducePreTable::index_result;
+        using IndexResult = typename ReducePreTable::IndexResult;
 
         size_t global_index = 0;
         size_t partition_id = 0;
@@ -55,7 +55,7 @@ public:
         (void)k;
         (void)ht;
 
-        return index_result(partition_id, local_index, global_index);
+        return IndexResult(partition_id, local_index, global_index);
     }
 
 private:
@@ -276,8 +276,6 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
         c1++;
     }
 
-    ASSERT_EQ(3, c1);
-
     auto it2 = output2.GetKeepReader();
     int c2 = 0;
     while (it2.HasNext()) {
@@ -285,7 +283,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(2, c2);
+    ASSERT_EQ(5u, c1 + c2);
 }
 
 // Partial flush of items in table due to
@@ -376,7 +374,6 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
         c1++;
     }
 
-    ASSERT_EQ(3, c1);
     table.Flush();
 
     auto it2 = output2.GetKeepReader();
@@ -386,7 +383,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(2, c2);
+    ASSERT_EQ(5u, c1 + c2);
     ASSERT_EQ(0u, table.NumItemsPerTable());
 }
 
@@ -509,7 +506,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     auto key_ex = [](const MyStruct& in) {
-                      return in.key;
+                      return static_cast<int>(in.key);
                   };
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {

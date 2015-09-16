@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <functional>
 #include <thread>
 #include <vector>
 
@@ -103,6 +104,32 @@ public:
     void ReceiveFrom(size_t src, T* data) {
         connection(src).Receive(data);
     }
+
+    //! \}
+
+    //! \name Synchronous Collective Communication Functions
+    //! \{
+
+    //! Calculate inclusive prefix sum
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void PrefixSum(T& value, BinarySumOp sum_op = BinarySumOp(),
+                   bool inclusive = true);
+
+    //! Calculate exclusive prefix sum
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void ExPrefixSum(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    //! Broadcast a value from the worker 0
+    template <typename T>
+    void Broadcast(T& value);
+
+    //! Reduce a value from all workers to the worker 0
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void ReduceToRoot(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    //! Reduce a value from all workers to all workers
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void AllReduce(T& value, BinarySumOp sum_op = BinarySumOp());
 
     //! \}
 

@@ -13,8 +13,8 @@
 #ifndef THRILL_API_READ_BINARY_HEADER
 #define THRILL_API_READ_BINARY_HEADER
 
-#include <thrill/api/dia.hpp>
 #include <thrill/api/context.hpp>
+#include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
