@@ -11,7 +11,7 @@
 #ifndef THRILL_DATA_BYTE_BLOCK_HEADER
 #define THRILL_DATA_BYTE_BLOCK_HEADER
 #include <thrill/common/counting_ptr.hpp>
-#include <thrill/common/future.hpp>
+#include <thrill/common/signal.hpp>
 #include <limits>       // std::numeric_limits
 
 namespace thrill {
@@ -80,7 +80,8 @@ protected:
     ByteBlock() = delete;
 
     //! Creates a copy of this ByteBlockPtr that is pinned
-    common::Future<ByteBlockPtr>&& Pin();
+    //! \param signal for signaling the end of the async pin
+    void Pin(common::Signal& signal);
 
     //! Decreases the pin count of this ByteBlock
     void DecreasePinCount();

@@ -25,8 +25,8 @@ void ByteBlock::deleter(const ByteBlock* bb) {
     return deleter(const_cast<ByteBlock*>(bb));
 }
 
-common::Future<ByteBlockPtr>&& ByteBlock::Pin() {
-    return block_pool_->PinBlock(this);
+void ByteBlock::Pin(common::Signal& signal) {
+    block_pool_->PinBlock(this, signal);
 }
 
 void ByteBlock::DecreasePinCount() {
