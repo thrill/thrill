@@ -39,23 +39,25 @@ int main(int argc, char* argv[]) {
 
     size_t count = std::stoi(input);
 
+    common::StatsTimer<true> timer;
+
     auto start_func =
-        [&count](api::Context& ctx) {
+        [&count, &timer](api::Context& ctx) {
             auto key_value = Generate(ctx, [](const size_t& index) {
                     return KeyValue{index, index + 10};
                 }, count);
-            auto result = key_value.map10;
-            // auto result = key_value;
-            // for (size_t i = 0; i < 10; ++i) {
-            //     result = result.map.Cache();
-            // }
-            // result.Size();  
+
+            timer.Start();
+            // auto result = key_value.map10;
+            auto result = key_value;
+            for (size_t i = 0; i < 10; ++i) {
+                result = result.map.Cache();
+            }
+            result.Size();  
+            timer.Stop();
         };
 
-    common::StatsTimer<true> timer;
-    timer.Start();
     api::Run(start_func);
-    timer.Stop();
     STAT_NO_RANK << "took" << timer.Microseconds();
     return 0;
 }
