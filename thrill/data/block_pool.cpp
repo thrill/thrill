@@ -63,22 +63,17 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr) {
     }
 }
 
-// TODO make this a future + Async
 //! Pins a block by swapping it in if required.
-common::Future<ByteBlockPtr>&& BlockPool::PinBlock(ByteBlock* block_ptr) {
+void BlockPool::PinBlock(ByteBlock* block_ptr, common::Signal& signal) {
     std::lock_guard<std::mutex> lock(list_mutex_);
     LOG << "pinning block @" << block_ptr;
-
-    //create a future for the result
-    common::Future<ByteBlockPtr> future;
 
     // first check, then increment
     if ((block_ptr->pin_count_)++ > 0) {
         sLOG << "already pinned - return ptr";
 
-        // push the result directly into the future
-        future << ByteBlockPtr(block_ptr);
-        return std::move(future);
+        signal.Set();
+        return;
     }
     num_pinned_blocks_++;
 
@@ -86,9 +81,8 @@ common::Future<ByteBlockPtr>&& BlockPool::PinBlock(ByteBlock* block_ptr) {
     if (block_ptr->in_memory()) {
         victim_blocks_.erase(std::find(victim_blocks_.begin(), victim_blocks_.end(), block_ptr));
 
-        // push the result directly into the future
-        future << ByteBlockPtr(block_ptr);
-        return std::move(future);
+        signal.Set();
+        return;
     }
     else {      //we need to swap it in
         tasks_.Enqueue([&]() {
@@ -102,11 +96,9 @@ common::Future<ByteBlockPtr>&& BlockPool::PinBlock(ByteBlock* block_ptr) {
             std::lock_guard<std::mutex> lock(list_mutex_);
             num_swapped_blocks_--;
             ext_mem_manager_.subtract(block_ptr->size());
-            future << ByteBlockPtr(block_ptr);
+            signal.Set();
         });
     }
-
-    return std::move(future);
 }
 
 size_t BlockPool::block_count() const noexcept {

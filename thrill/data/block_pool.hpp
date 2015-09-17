@@ -15,8 +15,8 @@
 #include <thrill/data/byte_block.hpp>
 #include <thrill/mem/manager.hpp>
 #include <thrill/mem/page_mapper.hpp>
-#include <thrill/common/future.hpp>
 #include <thrill/common/thread_pool.hpp>
+#include <thrill/common/signal.hpp>
 
 #include <deque>
 #include <mutex>
@@ -113,8 +113,8 @@ protected:
 
     //! Pins a block by swapping it in if required.
     //! \param block_ptr the block to pin
-    //! \returns a future containing the ByteBlockPtr which is pinned
-    common::Future<ByteBlockPtr>&& PinBlock(ByteBlock* block_ptr);
+    //! \param signal for signaling end of async pin process
+    void PinBlock(ByteBlock* block_ptr, common::Signal& signal);
 
     //! Destroys the block. Only for internal purposes.
     //! Async call.
