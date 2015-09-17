@@ -1449,6 +1449,147 @@ sequential_file_multiway_merge(RandomAccessIteratorIterator seqs_begin,
     return return_target;
 }
 
+
+template <typename LoserTreeType,
+          typename RandomAccessIteratorIterator,
+          typename DiffType,
+          typename Comparator>
+struct MultiwayMergeTreePuller {
+
+    using source_type = typename LoserTreeType::source_type;
+    typedef typename std::iterator_traits<RandomAccessIteratorIterator>
+        ::value_type::first_type RandomAccessIterator;
+    typedef typename std::iterator_traits<RandomAccessIterator>
+        ::value_type value_type;
+
+    MultiwayMergeTreePuller (RandomAccessIteratorIterator seqs_begin_,
+                             RandomAccessIteratorIterator seqs_end_,
+                             DiffType length,
+                             Comparator comp_) :
+        seqs_begin(seqs_begin_),
+        seqs_end(seqs_end_),
+        comp(comp_),
+        k(static_cast<source_type>(seqs_end - seqs_begin)),
+        lt(k, comp),
+        counter(0),
+        total_length(0),
+        arbitrary_element(nullptr)
+    {
+        // find an arbitrary element to avoid default construction
+        for (source_type t = 0; t < k; ++t)
+        {
+            if (!arbitrary_element && iterpair_size(seqs_begin[t]) > 0)
+                arbitrary_element = &(*seqs_begin[t].first);
+
+            total_length += iterpair_size(seqs_begin[t]);
+        }
+
+        for (source_type t = 0; t < k; ++t)
+        {
+            if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
+                lt.insert_start(*arbitrary_element, t, true);
+            else
+                lt.insert_start(*seqs_begin[t].first, t, false);
+        }
+
+        lt.init();
+        total_length = std::min(total_length, length);
+
+    }
+
+    bool HasNext() {
+        return (counter < total_length);
+    }
+
+    value_type Next() {
+        assert(counter < total_length);
+
+        // take out
+        source_type source = lt.get_min_source();
+        value_type res = *seqs_begin[source].first;
+
+        ++seqs_begin[source].first;
+
+        // feed
+        if (seqs_begin[source].first == seqs_begin[source].second)
+            lt.delete_min_insert(*arbitrary_element, true);
+        else
+            // replace from same source
+            lt.delete_min_insert(*seqs_begin[source].first, false);
+
+        ++counter;
+
+        return res;
+    }
+
+    RandomAccessIteratorIterator seqs_begin;
+    RandomAccessIteratorIterator seqs_end;
+    Comparator comp;
+    source_type k;
+    LoserTreeType lt;
+    DiffType counter;
+    DiffType total_length;
+    const value_type* arbitrary_element;
+};
+
+
+
+/*!
+ * Sequential multi-way merging switch for a file writer as output
+ *
+ * The decision if based on the branching factor and runtime settings.
+ *
+ * \param seqs_begin Begin iterator of iterator pair input sequence.
+ * \param seqs_end End iterator of iterator pair input sequence.
+ * \param target Begin iterator out output sequence.
+ * \param length Maximum length to merge.
+ * \param comp Comparator.
+ * \tparam Stable Stable merging incurs a performance penalty.
+ * \tparam Sentinels The sequences have a sentinel element.
+ * \return End iterator of output sequence.
+ */
+template <bool Stable, bool Sentinels,
+          typename RandomAccessIteratorIterator,
+          typename DiffType, typename Comparator>
+// return type of hell
+MultiwayMergeTreePuller<
+            typename loser_tree_traits<Stable, typename std::iterator_traits<typename std::iterator_traits<RandomAccessIteratorIterator>
+                ::value_type::first_type>
+                ::value_type, Comparator>::LT,
+
+          RandomAccessIteratorIterator,
+          DiffType,
+          Comparator>
+// RandomAccessIterator3
+get_sequential_file_multiway_merge_tree(RandomAccessIteratorIterator seqs_begin,
+                                    RandomAccessIteratorIterator seqs_end,
+                                    DiffType length,
+                                    Comparator comp) {
+    typedef typename std::iterator_traits<RandomAccessIteratorIterator>
+        ::value_type::first_type RandomAccessIterator;
+    typedef typename std::iterator_traits<RandomAccessIterator>
+        ::value_type value_type;
+    typedef typename loser_tree_traits<Stable, value_type, Comparator>::LT
+        LoserTreeType;
+
+    int k = static_cast<int>(seqs_end - seqs_begin);
+    assert(k>1);
+
+    // auto tree = get_file_multiway_merge_loser_tree
+    //     <typename loser_tree_traits<Stable, value_type, Comparator>::LT,
+    //     RandomAccessIteratorIterator,
+    //     DiffType,
+    //     Comparator>(
+    //         seqs_begin, seqs_end, length, comp);
+
+    MultiwayMergeTreePuller<LoserTreeType,
+                            RandomAccessIteratorIterator,
+                            DiffType,
+                            Comparator> tree (seqs_begin, seqs_end, length, comp);
+
+    return tree;
+}
+
 /*!
  * Sequential multi-way merging switch.
  *
