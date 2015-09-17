@@ -73,9 +73,21 @@ public:
 			std::strncmp(start_, other.c_str(), size_) == 0;
 	}
 
+	bool operator != (std::string other) const {
+		return !(operator == (other));
+	}
+
 	bool operator == (const FastString& other) const {
 		return size_ == other.Size() &&
 			std::strncmp(start_, other.start_, size_) == 0;
+	}
+
+	bool operator != (const FastString& other) const {
+		return !(operator == (other));
+	}
+
+	friend std::ostream& operator << (std::ostream& os, const FastString& fs) {
+		return os.write(fs.Start(), fs.Size()); 
 	}
 
 
