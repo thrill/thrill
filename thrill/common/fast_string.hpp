@@ -18,8 +18,10 @@
 #include <cstring>
 
 #include <thrill/common/logger.hpp>
+#include <thrill/data/serialization.hpp>
 
 namespace thrill {
+
 namespace common {
 
 class FastString
@@ -28,27 +30,44 @@ public:
 
 	FastString() : size_(0) { };
 
-	FastString(const FastString& in_str) 
-		: FastString(in_str.Start(), in_str.Size(), true) { }
+	FastString(const FastString& in_str) {
+		void* begin = ::malloc(in_str.size_);
+		std::memcpy(begin, in_str.start_, in_str.size_);
+		start_ = reinterpret_cast<const char*>(begin);
+		size_ = in_str.size_;
+		has_data_ = true;
+	};
 
 	FastString(FastString&& other) {
-		start_ = std::move(other.start_);
-		size_ = other.Size();
+		start_ = other.start_;
+		size_ = other.size_;
+		has_data_ = other.has_data_;
+		other.has_data_ = false;
 	};
 
 	~FastString() {
-		if (has_data_) free(start_);
+		if (has_data_) std::free((void*)start_);
 	};
 
-	static FastString Ref(char* start, size_t size) {
+	static FastString Ref(const char* start, size_t size) {
 		return FastString(start, size, false);
 	}
 
-	static FastString Copy(char* start, size_t size) {
+	static FastString Take(const char* start, size_t size) {
 		return FastString(start, size, true);
 	}
 
-	char* Start() const {
+	static FastString Copy(const char* start, size_t size) {
+		void* mem = ::malloc(size);
+		std::memcpy(mem, start, size);
+		return FastString(reinterpret_cast<const char*>(mem), size, true);
+	}
+
+	static FastString Copy(const std::string& in_str) {
+		return Copy(in_str.c_str(), in_str.size());
+	}
+
+	const char* Start() const {
 		return start_;
 	}
 
@@ -57,14 +76,21 @@ public:
 	}
 
 	FastString& operator = (const FastString& other) {
-		start_ = other.Start();
-		size_ = other.Size();
+		if (has_data_) free((void*) start_);
+		void* mem = ::malloc(other.size_);
+		std::memcpy(mem, other.start_, other.size_);
+		start_ = reinterpret_cast<const char*>(mem);
+		size_ = other.size_;
+		has_data_ = true;
 		return *this;
 	}
 
 	FastString& operator = (FastString&& other) {
+		if (has_data_) free((void*) start_);
 		start_ = std::move(other.start_);
 		size_ = other.Size();
+		has_data_ = true;
+		other.has_data_ = false;
 		return *this;
 	}
 
@@ -90,26 +116,59 @@ public:
 		return os.write(fs.Start(), fs.Size()); 
 	}
 
+	std::string ToString() const {
+		return std::string(start_, size_);
+	}
+
 
 protected:
-	FastString(char* start, size_t size, bool copy)
-		: start_(start), size_(size) {
-		if (copy) {
-			start_ = reinterpret_cast<char*>(::malloc(size));
-			std::memcpy(start_, start, size);
-		}
-	};
+	FastString(const char* start, size_t size, bool copy) :
+		start_(start), size_(size), has_data_(copy) { };
 
-	bool has_data_ = false;
-
-	char* start_;
+	const char* start_;
 
 	size_t size_;
+
+	bool has_data_ = false;
 
 };
 
 } // namespace common
+
+namespace data {
+
+template<typename Archive>
+struct Serialization<Archive, common::FastString> 
+{
+	static void Serialize(const common::FastString& fs, Archive& ar) {
+		ar.PutVarint(fs.Size()).Append(fs.Start(), fs.Size());
+	}
+
+	static common::FastString Deserialize(Archive& ar) {
+		uint64_t size = ar.GetVarint();
+		void* outdata = ::malloc(size);
+		ar.Read(outdata, size);
+        return common::FastString::Take(reinterpret_cast<const char*>(outdata), size);
+    }
+
+};
+
+} //namespace data
 } // namespace thrill
+
+namespace std { //I am very sorry.
+	template <>
+	struct hash<thrill::common::FastString>
+	{
+		size_t operator ()(const thrill::common::FastString& fs) const {
+			unsigned int hash = 0xDEADC0DE;
+			for (size_t ctr = 0; ctr < fs.Size(); ctr++) {
+				hash = ((hash << 5) + hash) + *(fs.Start() + ctr); /* hash * 33 + c */
+			}
+			return hash;
+		}
+	};
+}
 
 #endif // !THRILL_COMMON_FAST_STRING_HEADER
 
