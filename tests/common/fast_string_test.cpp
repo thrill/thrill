@@ -21,29 +21,31 @@ TEST(FastStringTest, ConstructEmpty) {
 	ASSERT_EQ(empty.Size(), 0);
 }
 
-TEST(FastStringTest, AssignAndCompareWithStrings) {
+TEST(FastStringTest, AssignAndCompare) {
 
+	
 	std::string input = "This is a string which does things and is our input.";
 	std::string input2 = "is a string1";
 
 	FastString other_str;
-	
-	FastString fast_str = FastString::Ref(&input[5], 11);
+	FastString fast_str = FastString::Ref(&input[5], 11); //"is a string"
 	ASSERT_EQ(fast_str.Size(), 11); 
 	
 	std::string cmp = "is a string";
 	ASSERT_TRUE(fast_str == cmp);
 
-	std::string different = "is another string";
+	std::string different = "is another string"; 
 	ASSERT_FALSE(fast_str == different);
 
 	std::string subset = "is a strin";
 	ASSERT_FALSE(fast_str == subset);
 
-	other_str.Ref(&input[6], 11);
+	other_str.Ref(&input[6], 11); //"s a string "
 	ASSERT_FALSE(fast_str == other_str);
-	FastString equal_str = FastString::Ref(&input2[0], 11);
+	ASSERT_TRUE(fast_str != other_str);
+	FastString equal_str = FastString::Ref(&input2[0], 11); //"is a string"
 	ASSERT_TRUE(fast_str == equal_str);
+	ASSERT_FALSE(fast_str != equal_str);
 }
 
 TEST(FastStringTest, CopyFastString) {
@@ -65,10 +67,9 @@ TEST(FastStringTest, MoveFastString) {
 	std::string input = "input string";
 	FastString str2 = FastString::Ref(&input[0], 12);
 	str = std::move(str2);	
+	std::string().swap(input);
 	ASSERT_TRUE(str == "input string");
 	ASSERT_EQ(str.Size(), 12);
-	
-
 }
 
 /******************************************************************************/
