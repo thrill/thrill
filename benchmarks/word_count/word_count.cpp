@@ -24,6 +24,9 @@
 #include <utility>
 
 using namespace thrill; // NOLINT
+
+// REVIEW(an): add a using common::FastString
+
 using WordCountPair = std::pair<common::FastString, size_t>;
 
 int main(int argc, char* argv[]) {
@@ -56,7 +59,8 @@ int main(int argc, char* argv[]) {
 				auto last = line.begin();
 				for (auto it = line.begin(); it != line.end(); it++) {
 					if (*it == ' ') {
-						if (it > last) {
+                                                if (it > last) {
+                                                    // REVIEW(an): add a method to make this shorter!
 							emit(WordCountPair(common::FastString::Ref(&(*last), it - last), 1));
 						}
 						last = it + 1;

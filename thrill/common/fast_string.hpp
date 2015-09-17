@@ -30,15 +30,18 @@ public:
 
 	FastString() : size_(0) { };
 
-	FastString(const FastString& in_str) {
-		void* begin = ::malloc(in_str.size_);
-		std::memcpy(begin, in_str.start_, in_str.size_);
+        FastString(const FastString& in_str) {
+            // REVIEW(an): maybe use _new char []..._ / delete -> less casts
+                void* begin = ::malloc(in_str.size_);
+                // REVIEW(an): I am a big friend of std::copy instead of memcpy.
+                std::memcpy(begin, in_str.start_, in_str.size_);
 		start_ = reinterpret_cast<const char*>(begin);
 		size_ = in_str.size_;
 		has_data_ = true;
 	};
 
-	FastString(FastString&& other) {
+    // REVIEW(an): use ": field_()" _whenever_ possible!
+        FastString(FastString&& other) {
 		start_ = other.start_;
 		size_ = other.size_;
 		has_data_ = other.has_data_;
@@ -66,8 +69,8 @@ public:
 	static FastString Copy(const std::string& in_str) {
 		return Copy(in_str.c_str(), in_str.size());
 	}
-
-	const char* Start() const {
+            // REVIEW(an): rename to Data(), just like std::string.
+        const char* Start() const {
 		return start_;
 	}
 
@@ -94,7 +97,8 @@ public:
 		return *this;
 	}
 
-	bool operator == (std::string other) const {
+        bool operator == (std::string other) const {
+            // REVIEW(an): use std::equal()!
 		return size_ == other.size() &&
 			std::strncmp(start_, other.c_str(), size_) == 0;
 	}
@@ -125,7 +129,8 @@ protected:
 	FastString(const char* start, size_t size, bool copy) :
 		start_(start), size_(size), has_data_(copy) { };
 
-	const char* start_;
+    // REVIEW(an): rename to data_.
+        const char* start_;
 
 	size_t size_;
 
