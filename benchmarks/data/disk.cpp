@@ -4,6 +4,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -34,7 +35,7 @@ int main(int argc, const char** argv) {
     if (!clp.Process(argc, argv)) return -1;
 
     for (int i = 0; i < iterations; i++) {
-        api::RunSameThread([&input_file, &output_file](api::Context& ctx) {
+        api::Run([&input_file, &output_file](api::Context& ctx) {
                                StatsTimer<true> timer(true);
                                auto lines = ReadLines(ctx, input_file);
                                lines.WriteLinesMany(output_file);
