@@ -107,8 +107,8 @@ public:
 	}
 
 	bool operator == (std::string other) const {
-            // REVIEW(an): use std::equal()!
-		return std::equal(data_, data_ + size_, other.c_str(), other.c_str() + other.size());
+		return size_ == other.size() &&
+			std::equal(data_, data_ + size_, other.c_str());
 	}
 
 	bool operator != (std::string other) const {
@@ -116,7 +116,8 @@ public:
 	}
 
 	bool operator == (const FastString& other) const {
-		return std::equal(data_, data_ + size_, other.data_, other.data_ + other.size_); 
+		return size_ = other.size_ &&
+			std::equal(data_, data_ + size_, other.data_); 
 	}
 
 	bool operator != (const FastString& other) const {
