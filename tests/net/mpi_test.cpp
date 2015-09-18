@@ -22,6 +22,12 @@ void MpiTestOne(size_t num_hosts,
                 const std::function<void(net::mpi::Group*)>& thread_function) {
     sLOG0 << "MpiTestOne num_hosts" << num_hosts;
 
+    if (net::mpi::NumMpiProcesses() < num_hosts) {
+        sLOG1 << "Not running MpiTest with" << num_hosts << "."
+              << "Increase the number of MPI processes.";
+        return;
+    }
+
     // construct MPI network group and run program
     std::unique_ptr<net::mpi::Group> group;
 
@@ -42,7 +48,6 @@ void MpiTest(const std::function<void(net::Group*)>& thread_function) {
     MpiTestOne(3, thread_function);
     MpiTestOne(4, thread_function);
     MpiTestOne(5, thread_function);
-    MpiTestOne(6, thread_function);
     MpiTestOne(7, thread_function);
     MpiTestOne(8, thread_function);
 }

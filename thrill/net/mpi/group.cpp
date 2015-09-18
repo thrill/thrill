@@ -103,23 +103,14 @@ void Group::Barrier() {
 // mpi::Construct
 
 //! atexit() method to deinitialize the MPI library.
-static inline void Deconstruct() {
+static inline void Deinitialize() {
     std::unique_lock<std::mutex> lock(g_mutex);
 
     MPI_Finalize();
 }
 
-/*!
- * Construct Group which connects to peers using MPI. As the MPI environment
- * already defines the connections, no hosts or parameters can be
- * given. Constructs group_count mpi::Group objects at once. Within each Group
- * this host has its MPI rank.
- *
- * Returns true if this Thrill host participates in the Group.
- */
-bool Construct(size_t group_size,
-               std::unique_ptr<Group>* groups, size_t group_count) {
-    std::unique_lock<std::mutex> lock(g_mutex);
+//! run MPI_Init() if not already done (can be called multiple times).
+static inline void Initialize() {
 
     int flag;
     int r = MPI_Initialized(&flag);
@@ -138,11 +129,26 @@ bool Construct(size_t group_size,
             throw Exception("Error during MPI_Init_thread()", r);
 
         // register atexit method
-        atexit(&Deconstruct);
+        atexit(&Deinitialize);
     }
+}
+
+/*!
+ * Construct Group which connects to peers using MPI. As the MPI environment
+ * already defines the connections, no hosts or parameters can be
+ * given. Constructs group_count mpi::Group objects at once. Within each Group
+ * this host has its MPI rank.
+ *
+ * Returns true if this Thrill host participates in the Group.
+ */
+bool Construct(size_t group_size,
+               std::unique_ptr<Group>* groups, size_t group_count) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+
+    Initialize();
 
     int my_rank;
-    r = MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    int r = MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     if (r != MPI_SUCCESS)
         throw Exception("Error during MPI_Comm_rank()", r);
 
@@ -159,6 +165,19 @@ bool Construct(size_t group_size,
     }
 
     return (static_cast<size_t>(my_rank) < group_size);
+}
+
+size_t NumMpiProcesses() {
+    std::unique_lock<std::mutex> lock(g_mutex);
+
+    Initialize();
+
+    int num_mpi_hosts;
+    int r = MPI_Comm_size(MPI_COMM_WORLD, &num_mpi_hosts);
+    if (r != MPI_SUCCESS)
+        throw Exception("Error during MPI_Comm_size()", r);
+
+    return static_cast<size_t>(num_mpi_hosts);
 }
 
 } // namespace mpi

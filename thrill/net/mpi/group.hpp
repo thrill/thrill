@@ -190,6 +190,11 @@ protected:
 bool Construct(size_t group_size,
                std::unique_ptr<Group>* groups, size_t group_count);
 
+/*!
+ * Return the number of MPI processes. This is the maximum group size.
+ */
+size_t NumMpiProcesses();
+
 //! \}
 
 } // namespace mpi
