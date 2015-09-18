@@ -100,6 +100,8 @@ if(NOT MSVC)
 endif()
 if(MPI_FOUND)
   build_only(net/mpi_test)
+  # run test with mpirun
+  add_test(net_mpi_test ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8 net_mpi_test)
 endif()
 
 build_test(data/block_queue_test)
