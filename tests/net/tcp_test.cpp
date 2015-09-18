@@ -89,6 +89,9 @@ TEST(RealTcpGroup, AllReduceString) {
 TEST(RealTcpGroup, AllReduceHypercubeString) {
     RealGroupTest(TestAllReduceHypercubeString);
 }
+TEST(RealTcpGroup, DispatcherSyncSendAsyncRead) {
+    RealGroupTest(TestDispatcherSyncSendAsyncRead);
+}
 TEST(RealTcpGroup, DispatcherLaunchAndTerminate) {
     RealGroupTest(TestDispatcherLaunchAndTerminate);
 }
@@ -97,10 +100,6 @@ TEST(RealTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 }
 TEST(RealTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     RealGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
-}
-TEST(RealTcpGroup, DispatcherSyncSendAsyncRead) {
-    RealGroupTest(
-        DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
 }
 TEST(LocalTcpGroup, NoOperation) {
     LocalGroupTest(TestNoOperation);
@@ -138,6 +137,9 @@ TEST(LocalTcpGroup, AllReduceString) {
 TEST(LocalTcpGroup, AllReduceHypercubeString) {
     LocalGroupTest(TestAllReduceHypercubeString);
 }
+TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
+    LocalGroupTest(TestDispatcherSyncSendAsyncRead);
+}
 TEST(LocalTcpGroup, DispatcherLaunchAndTerminate) {
     LocalGroupTest(TestDispatcherLaunchAndTerminate);
 }
@@ -146,10 +148,6 @@ TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 }
 TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     LocalGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
-}
-TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
-    LocalGroupTest(
-        DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
 }
 TEST(FlowControlLocalTcpGroup, SingleThreadPrefixSum) {
     LocalGroupTest(TestSingleThreadPrefixSum);

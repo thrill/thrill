@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake)
 
 # project: we only use C++
-project(thrill CXX)
+project(thrill LANGUAGES CXX)
 
 # prohibit in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -279,6 +279,17 @@ else(NOT TBB_FOUND)
   link_directories(${TBB_LIBRARY_DIRS})
   set(ALL_LIBRARIES ${TBB_LIBRARIES} ${ALL_LIBRARIES})
   add_definitions(-DTHRILL_HAVE_INTELTBB=1)
+endif()
+
+# use MPI library (optional)
+
+find_package(MPI)
+
+if(NOT MPI_FOUND)
+  message(STATUS "No MPI library found. No problem, it is optional.")
+else()
+  include_directories(${MPI_INCLUDE_PATH})
+  set(ALL_LIBRARIES ${MPI_LIBRARIES} ${ALL_LIBRARIES})
 endif()
 
 # example: use Boost libraries:

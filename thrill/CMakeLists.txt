@@ -21,6 +21,15 @@ if(NOT MSVC)
   list(APPEND SRCS ${NET_TCP_SRCS})
 endif()
 
+# add net/mpi if MPI is wanted
+if(MPI_FOUND)
+  file(GLOB NET_MPI_SRCS
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/net/mpi/*.[ch]pp
+    )
+  list(APPEND SRCS ${NET_MPI_SRCS})
+endif()
+
 add_library(thrill ${SRCS})
 
 ################################################################################

@@ -93,6 +93,9 @@ TEST(MockGroup, AllReduceString) {
 TEST(MockGroup, AllReduceHypercubeString) {
     MockTest(TestAllReduceHypercubeString);
 }
+TEST(MockGroup, DispatcherSyncSendAsyncRead) {
+    MockTest(TestDispatcherSyncSendAsyncRead);
+}
 TEST(MockGroup, DispatcherLaunchAndTerminate) {
     MockTest(TestDispatcherLaunchAndTerminate);
 }
@@ -101,10 +104,6 @@ TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 }
 TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     MockTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
-}
-TEST(MockGroup, DispatcherSyncSendAsyncRead) {
-    MockTest(
-        DispatcherTestSyncSendAsyncRead<net::mock::Dispatcher>);
 }
 TEST(FlowControlMockGroup, SingleThreadPrefixSum) {
     MockTestLess(TestSingleThreadPrefixSum);
