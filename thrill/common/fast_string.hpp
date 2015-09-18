@@ -16,6 +16,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <bits/functional_hash.h>
 
 #include <thrill/common/logger.hpp>
 #include <thrill/data/serialization.hpp>
@@ -28,8 +29,15 @@ class FastString
 {
 public:
 
+	/**
+	 * Default constructor for a FastString.
+	 * Doesn't do anything.
+	 */
 	FastString() : size_(0) { };
 	
+	/**
+	 * 
+	 */
 	FastString(const FastString& in_str) {
 		char* begin = new char[in_str.size_];
 		std::copy(in_str.data_, in_str.data_ + in_str.size_, begin);
@@ -167,11 +175,10 @@ namespace std { //I am very sorry.
 	struct hash<thrill::common::FastString>
 	{
 		size_t operator ()(const thrill::common::FastString& fs) const {
-			unsigned int hash = 0xDEADC0DE;
-			for (size_t ctr = 0; ctr < fs.Size(); ctr++) {
-				hash = ((hash << 5) + hash) + *(fs.Data() + ctr); /* hash * 33 + c */
-			}
-			return hash;
+			//unsigned int hash = 0xDEADC0DE;
+			return std::_Hash_impl::hash(fs.Data(), fs.Size());
+			//	hash = ((hash << 5) + hash) + *(fs.Data() + ctr); /* hash * 33 + c */
+			//return hash;
 		}
 	};
 }
