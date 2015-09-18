@@ -54,7 +54,6 @@ void MockTestLess(const std::function<void(net::Group*)>& thread_function) {
 import tests.net.test_gen as m
 
 m.generate_group_tests('MockGroup', 'MockTest')
-m.generate_dispatcher_tests('MockGroup', 'MockTest', 'net::mock::Dispatcher')
 m.generate_flow_control_tests('MockGroup', 'MockTestLess')
   ]]]*/
 TEST(MockGroup, NoOperation) {

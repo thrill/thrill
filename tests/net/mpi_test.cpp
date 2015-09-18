@@ -13,8 +13,6 @@
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/mpi/group.hpp>
 
-#include <thread>
-
 #include "flow_control_test_base.hpp"
 #include "group_test_base.hpp"
 
@@ -53,7 +51,6 @@ void MpiTest(const std::function<void(net::Group*)>& thread_function) {
 import tests.net.test_gen as m
 
 m.generate_group_tests('MpiGroup', 'MpiTest')
-m.generate_dispatcher_tests('MpiGroup', 'MpiTest', 'net::mpi::Dispatcher')
 m.generate_flow_control_tests('MpiGroup', 'MpiTest')
   ]]]*/
 TEST(MpiGroup, NoOperation) {
