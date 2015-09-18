@@ -30,7 +30,7 @@ using common::FastString;
 using WordCountPair = std::pair<FastString, size_t>;
 
 WordCountPair CreateWCPair(std::string::const_iterator start, size_t length) {
-	return WordCountPair(FastString::Ref(start, length), 1);
+    return WordCountPair(FastString::Ref(start, length), 1);
 }
 
 int main(int argc, char* argv[]) {
@@ -55,33 +55,33 @@ int main(int argc, char* argv[]) {
 
     auto start_func =
         [&input, &output](api::Context& ctx) {
-		auto input_dia = ReadLines(ctx, input);
+            auto input_dia = ReadLines(ctx, input);
 
-		auto word_pairs = input_dia.template FlatMap<WordCountPair>(
-			[](const std::string& line, auto emit) -> void {
-				/* map lambda: emit each word */
-				auto last = line.begin();
-				for (auto it = line.begin(); it != line.end(); it++) {
-					if (*it == ' ') {
-						if (it > last) {
-							emit(CreateWCPair(last, it - last));
-						}
-						last = it + 1;
-					}
-				}
-					if (line.end() > last) {
-						emit(CreateWCPair(last, line.end() - last));
-					}
-			}).ReducePair(
+            auto word_pairs = input_dia.template FlatMap<WordCountPair>(
+                [](const std::string& line, auto emit) -> void {
+                    /* map lambda: emit each word */
+                    auto last = line.begin();
+                    for (auto it = line.begin(); it != line.end(); it++) {
+                        if (*it == ' ') {
+                            if (it > last) {
+                                emit(CreateWCPair(last, it - last));
+                            }
+                            last = it + 1;
+                        }
+                    }
+                    if (line.end() > last) {
+                        emit(CreateWCPair(last, line.end() - last));
+                    }
+                }).ReducePair(
                 [](const size_t& a, const size_t& b) {
-				    return a + b;
+                    return a + b;
                 });
 
-		word_pairs.Map(
-			[](const WordCountPair& wc) {
-				return wc.first.ToString() + ": " + std::to_string(wc.second);
-			}).WriteLinesMany(output);
-	};
+            word_pairs.Map(
+                [](const WordCountPair& wc) {
+                    return wc.first.ToString() + ": " + std::to_string(wc.second);
+                }).WriteLinesMany(output);
+        };
 
     return api::Run(start_func);
 }
