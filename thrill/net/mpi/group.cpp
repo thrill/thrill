@@ -137,9 +137,6 @@ bool Construct(size_t group_size,
         if (r != MPI_SUCCESS)
             throw Exception("Error during MPI_Init_thread()", r);
 
-        if (provided < MPI_THREAD_SERIALIZED)
-            throw Exception("MPI_Init_thread() provided less than MPI_THREAD_SERIALIZED");
-
         // register atexit method
         atexit(&Deconstruct);
     }
