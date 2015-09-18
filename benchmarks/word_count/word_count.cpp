@@ -7,6 +7,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -25,9 +26,15 @@
 
 using namespace thrill; // NOLINT
 
-// REVIEW(an): add a using common::FastString
 
-using WordCountPair = std::pair<common::FastString, size_t>;
+// REVIEW(an): add a using common::FastString
+using common::FastString;
+using WordCountPair = std::pair<FastString, size_t>;
+
+
+WordCountPair CreateWCPair(std::string::const_iterator start, size_t length) {
+	return WordCountPair(FastString::Ref(start, length), 1);
+}
 
 int main(int argc, char* argv[]) {
 
@@ -59,15 +66,14 @@ int main(int argc, char* argv[]) {
 				auto last = line.begin();
 				for (auto it = line.begin(); it != line.end(); it++) {
 					if (*it == ' ') {
-                                                if (it > last) {
-                                                    // REVIEW(an): add a method to make this shorter!
-							emit(WordCountPair(common::FastString::Ref(&(*last), it - last), 1));
+						if (it > last) {
+							emit(CreateWCPair(last, it - last));
 						}
 						last = it + 1;
 					}
 				}
 					if (line.end() > last) {
-						emit(WordCountPair(common::FastString::Ref(&(*last), line.end() - last), 1));
+						emit(CreateWCPair(last, line.end() - last));
 					}
 			}).ReducePair(
                 [](const size_t& a, const size_t& b) {

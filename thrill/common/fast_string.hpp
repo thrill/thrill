@@ -44,11 +44,17 @@ public:
 	};
 
 	~FastString() {
-		if (has_data_) delete[](data_);
+		if (has_data_) {
+			delete[](data_);
+		}
 	};
 
 	static FastString Ref(const char* data, size_t size) {
 		return FastString(data, size, false);
+	}
+
+	static FastString Ref(std::string::const_iterator data, size_t size) {
+		return FastString(&(*data), size, false);
 	}
 
 	static FastString Take(const char* data, size_t size) {
@@ -143,9 +149,9 @@ struct Serialization<Archive, common::FastString>
 
 	static common::FastString Deserialize(Archive& ar) {
 		uint64_t size = ar.GetVarint();
-		void* outdata = ::malloc(size);
+		char* outdata = new char[size];
 		ar.Read(outdata, size);
-        return common::FastString::Take(reinterpret_cast<const char*>(outdata), size);
+        return common::FastString::Take(outdata, size);
     }
 
 };
