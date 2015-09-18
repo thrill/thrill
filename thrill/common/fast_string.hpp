@@ -92,10 +92,9 @@ public:
 		return *this;
 	}
 
-        bool operator == (std::string other) const {
+	bool operator == (std::string other) const {
             // REVIEW(an): use std::equal()!
-		return size_ == other.size() &&
-			std::strncmp(data_, other.c_str(), size_) == 0;
+		return std::equal(data_, data_ + size_, other.c_str(), other.c_str() + other.size());
 	}
 
 	bool operator != (std::string other) const {
@@ -103,8 +102,7 @@ public:
 	}
 
 	bool operator == (const FastString& other) const {
-		return size_ == other.Size() &&
-			std::strncmp(data_, other.data_, size_) == 0;
+		return std::equal(data_, data_ + size_, other.data_, other.data_ + other.size_); 
 	}
 
 	bool operator != (const FastString& other) const {
