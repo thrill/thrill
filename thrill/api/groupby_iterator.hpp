@@ -16,6 +16,7 @@
 
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/function_traits.hpp>
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/losertree.hpp>
 #include <thrill/data/file.hpp>

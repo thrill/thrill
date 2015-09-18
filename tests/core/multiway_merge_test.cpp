@@ -10,12 +10,10 @@
 
 #include <gtest/gtest.h>
 
-// REVIEW(ch): NEVER use thrill.hpp in a test.
-#include <thrill/thrill.hpp>
-
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
+#include <thrill/common/function_traits.hpp>
 
 #include <thrill/common/logger.hpp>
 

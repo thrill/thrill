@@ -46,14 +46,16 @@
 namespace thrill {
 namespace core {
 
-// *****************************************************************************
-// *** Output Iterator Adapter for file writers
-// based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
-// *****************************************************************************
-
-// REVIEW(ch): there are no doxygen comments in this file. Please describe with
-// the classes do.
-
+/*!
+ * Output Iterator Adapter for file writers
+ * This adapter can be used to run sequential_file_multiway_merge from
+ * core/multiway_merge.hpp and have the result stored in a file.
+ *
+ * it implements all needed function of random access iterator for a file.
+ *
+ * based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
+ *
+ */
 template <typename ArrayItem>
 class FileOutputIteratorWrapper
 {
@@ -72,6 +74,10 @@ public:
     }
 };
 
+/*!
+ * Used as a state holder for FileIteratorWrapper, as FileIteratorWrapper
+ * need to be const for all functions.
+ */
 template <typename ArrayItem>
 struct IterStats {
     bool      has_elem_ = false;
@@ -79,6 +85,16 @@ struct IterStats {
     ArrayItem item_;
 };
 
+/*!
+ * Iterator Adapter for file readers
+ * This adapter can be used to run sequential_file_multiway_merge from
+ * core/multiway_merge.hpp when the runs to be merged are stored in a file.
+ *
+ * It implements all needed functions of random access iterator for a file.
+ *
+ * based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
+ *
+ */
 template <typename ArrayItem>
 class FileIteratorWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
 {
@@ -296,6 +312,14 @@ public:
         return (pos_ - r2.pos_);
     }
 };
+
+/*!
+ * Iterator Adapter for vectors
+ * This adapter is a reference on how to implement an adaptor of an object
+ * such that it can be used like a random access iterator
+ *
+ * based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
+ */
 
 template <typename ArrayItem>
 class VectorIteratorWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
