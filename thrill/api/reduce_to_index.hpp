@@ -109,7 +109,7 @@ public:
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostReduceByIndex(), core::PostReduceFlushToIndex<Value>(),
+              core::PostReduceByIndex(), core::PostReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
               std::get<0>(common::CalculateLocalRange(
                               result_size_, context_.num_workers(), context_.my_rank())),
               std::get<1>(common::CalculateLocalRange(
@@ -194,7 +194,7 @@ private:
     Value neutral_element_;
 
     core::ReducePostTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-                          core::PostReduceFlushToIndex<Value>, core::PostReduceByIndex,
+                          core::PostReduceFlushToIndex<Key, Value, ReduceFunction>, core::PostReduceByIndex,
                           std::equal_to<Key>, 16*16> reduce_post_table_;
 
     bool reduced = false;

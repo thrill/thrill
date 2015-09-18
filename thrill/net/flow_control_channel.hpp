@@ -45,39 +45,26 @@ class FlowControlChannel
 protected:
     static const bool self_verify = false;
 
-    /**
-     * The group associated with this channel.
-     */
-    Group& group;
-    /**
-     * The local id.
-     */
-    size_t id;
+    //! The group associated with this channel.
+    Group& group_;
 
-    /**
-     * The count of all workers connected to this group.
-     */
-    size_t count;
+    //! The local id.
+    size_t id_;
 
-    /**
-     * The id of the worker thread associated with this flow channel.
-     */
-    size_t threadId;
+    //! The count of all workers connected to this group.
+    size_t num_hosts_;
 
-    /**
-     * The count of all workers connected to this group.
-     */
-    size_t threadCount;
+    //! The id of the worker thread associated with this flow channel.
+    size_t thread_id_;
 
-    /**
-     * The shared barrier used to synchronize between worker threads on this node.
-     */
-    common::ThreadBarrier& barrier;
+    //! The count of all workers connected to this group.
+    size_t thread_count_;
 
-    /**
-     * A shared memory location to work upon.
-     */
-    void** shmem;
+    //! The shared barrier used to synchronize between worker threads on this node.
+    common::ThreadBarrier& barrier_;
+
+    //! A shared memory location to work upon.
+    void** shmem_;
 
     /**
      * \brief Sends a value of an integral type T to a certain other worker.
@@ -88,11 +75,11 @@ protected:
      * \param value The value to send.
      */
     template <typename T>
-    void SendTo(size_t destination, T value) {
+    void SendTo(size_t destination, const T& value) {
 
-        assert(threadId == 0); //Only primary thread might send/receive.
+        assert(thread_id_ == 0); //Only primary thread might send/receive.
 
-        group.connection(destination).Send(value);
+        group_.connection(destination).Send(value);
     }
 
     /**
@@ -100,36 +87,36 @@ protected:
      * \details This method blocks until the data is received. This method may only be called by thread with ID 0.
      *
      * \param source The id of the worker to receive the value from.
-     * \param value A pointer to a memory location where the
+     * \param out_value A pointer to a memory location where the
      * received value is stored.
      */
     template <typename T>
-    void ReceiveFrom(size_t source, T* value) {
+    void ReceiveFrom(size_t source, T* out_value) {
 
-        assert(threadId == 0); // Only primary thread might send/receive.
+        assert(thread_id_ == 0); // Only primary thread might send/receive.
 
-        group.connection(source).Receive(value);
+        group_.connection(source).Receive(out_value);
     }
 
     template <typename T>
     void SetLocalShared(T* value) {
         if (self_verify)
-            assert(*shmem == nullptr);
-        assert(threadId == 0);
-        *shmem = value;
+            assert(*shmem_ == nullptr);
+        assert(thread_id_ == 0);
+        *shmem_ = value;
     }
 
     template <typename T>
     T * GetLocalShared() {
-        assert(*shmem != nullptr);
-        return *(reinterpret_cast<T**>(shmem));
+        assert(*shmem_ != nullptr);
+        return *(reinterpret_cast<T**>(shmem_));
     }
 
     void ClearLocalShared() {
         if (self_verify) {
-            assert(threadId == 0);
-            *shmem = nullptr;
-            barrier.Await();
+            assert(thread_id_ == 0);
+            *shmem_ = nullptr;
+            barrier_.Await();
         }
     }
 
@@ -138,13 +125,16 @@ public:
      * \brief Creates a new instance of this class, wrapping a group.
      */
     explicit FlowControlChannel(Group& group,
-                                size_t threadId, size_t threadCount,
+                                size_t thread_id_, size_t thread_count_,
                                 common::ThreadBarrier& barrier,
                                 void** shmem)
-        : group(group),
-          id(group.my_host_rank()), count(group.num_hosts()),
-          threadId(threadId), threadCount(threadCount),
-          barrier(barrier), shmem(shmem) { }
+        : group_(group),
+          id_(group_.my_host_rank()), num_hosts_(group_.num_hosts()),
+          thread_id_(thread_id_), thread_count_(thread_count_),
+          barrier_(barrier), shmem_(shmem) { }
+
+    //! Return the associated net::Group. USE AT YOUR OWN RISK.
+    Group & group() { return group_; }
 
     /**
      * \brief Calculates the prefix sum over all workers, given a certain sum
@@ -166,62 +156,62 @@ public:
 
         static const bool debug = false;
 
-        std::vector<T> localPrefixBuffer(threadCount);
+        std::vector<T> localPrefixBuffer(thread_count_);
 
         // Local Reduce
-        if (threadId == 0) {
+        if (thread_id_ == 0) {
             // Master allocate memory.
-            localPrefixBuffer[threadId] = value;
+            localPrefixBuffer[thread_id_] = value;
             SetLocalShared(&localPrefixBuffer);
-            barrier.Await();
+            barrier_.Await();
             // Slave store values.
-            barrier.Await();
+            barrier_.Await();
 
             // Global Prefix
 
-            for (size_t i = 1; i < threadCount; i++) {
+            for (size_t i = 1; i < thread_count_; i++) {
                 localPrefixBuffer[i] = sum_op(localPrefixBuffer[i - 1], localPrefixBuffer[i]);
             }
 
-            for (size_t i = 0; i < threadCount; i++) {
-                LOG << id << ", " << i << ", " << inclusive << ": me: " << localPrefixBuffer[i];
+            for (size_t i = 0; i < thread_count_; i++) {
+                LOG << id_ << ", " << i << ", " << inclusive << ": me: " << localPrefixBuffer[i];
             }
 
-            T prefixSumBase = localPrefixBuffer[threadCount - 1];
-            group.PrefixSum(prefixSumBase, sum_op, false);
+            T prefixSumBase = localPrefixBuffer[thread_count_ - 1];
+            group_.PrefixSum(prefixSumBase, sum_op, false);
 
-            if (id == 0) {
+            if (id_ == 0) {
                 prefixSumBase = initial;
             }
 
-            LOG << id << ", m, " << inclusive << ": base: " << prefixSumBase;
+            LOG << id_ << ", m, " << inclusive << ": base: " << prefixSumBase;
 
             if (inclusive) {
-                for (size_t i = 0; i < threadCount; i++) {
+                for (size_t i = 0; i < thread_count_; i++) {
                     localPrefixBuffer[i] = sum_op(prefixSumBase, localPrefixBuffer[i]);
                 }
             }
             else {
-                for (size_t i = threadCount - 1; i > 0; i--) {
+                for (size_t i = thread_count_ - 1; i > 0; i--) {
                     localPrefixBuffer[i] = sum_op(prefixSumBase, localPrefixBuffer[i - 1]);
                 }
                 localPrefixBuffer[0] = prefixSumBase;
             }
 
-            for (size_t i = 0; i < threadCount; i++) {
-                LOG << id << ", " << i << ", " << inclusive << ": res: " << localPrefixBuffer[i];
+            for (size_t i = 0; i < thread_count_; i++) {
+                LOG << id_ << ", " << i << ", " << inclusive << ": res: " << localPrefixBuffer[i];
             }
         }
         else {
             // Master allocate memory.
-            barrier.Await();
+            barrier_.Await();
             // Slave store values.
-            (*GetLocalShared<std::vector<T> >())[threadId] = value;
-            barrier.Await();
+            (*GetLocalShared<std::vector<T> >())[thread_id_] = value;
+            barrier_.Await();
         }
-        barrier.Await();
-        T res = (*GetLocalShared<std::vector<T> >())[threadId];
-        barrier.Await();
+        barrier_.Await();
+        T res = (*GetLocalShared<std::vector<T> >())[thread_id_];
+        barrier_.Await();
 
         return res;
     }
@@ -262,24 +252,24 @@ public:
         T res = value;
 
         // The primary thread of each node has to handle IO
-        if (threadId == 0) {
+        if (thread_id_ == 0) {
             SetLocalShared(&res);
 
-            group.Broadcast(res);
+            group_.Broadcast(res);
         }
 
-        barrier.Await();
+        barrier_.Await();
 
         // other threads: read value from thread 0.
-        if (threadId != 0) {
+        if (thread_id_ != 0) {
             res = *GetLocalShared<T>();
         }
 
-        if (threadId == 0) {
+        if (thread_id_ == 0) {
             ClearLocalShared();
         }
 
-        barrier.Await();
+        barrier_.Await();
 
         return res;
     }
@@ -298,44 +288,44 @@ public:
     template <typename T, typename BinarySumOp = std::plus<T> >
     T AllReduce(const T& value, BinarySumOp sum_op = BinarySumOp()) {
         T res = value;
-        std::vector<T> localReduceBuffer(threadCount);
+        std::vector<T> localReduceBuffer(thread_count_);
 
         // Local Reduce
-        if (threadId == 0) {
+        if (thread_id_ == 0) {
             // Master allocate memory.
-            localReduceBuffer[threadId] = value;
+            localReduceBuffer[thread_id_] = value;
             SetLocalShared(&localReduceBuffer);
-            barrier.Await();
+            barrier_.Await();
             // Slave store values.
-            barrier.Await();
+            barrier_.Await();
 
             // Master reduce
-            for (size_t i = 1; i < threadCount; i++) {
+            for (size_t i = 1; i < thread_count_; i++) {
                 res = sum_op(res, localReduceBuffer[i]);
             }
 
-            group.AllReduce(res, sum_op);
+            group_.AllReduce(res, sum_op);
 
             ClearLocalShared();
             SetLocalShared(&res);
-            barrier.Await();
+            barrier_.Await();
             // Slave get result
             ClearLocalShared();
         }
         else {
             // Master allocate memory.
-            barrier.Await();
+            barrier_.Await();
             // Slave store values.
-            (*GetLocalShared<std::vector<T> >())[threadId] = value;
-            barrier.Await();
+            (*GetLocalShared<std::vector<T> >())[thread_id_] = value;
+            barrier_.Await();
             // Master Reduce
             // Global Reduce
-            barrier.Await();
+            barrier_.Await();
             // Slave get result
             res = *GetLocalShared<T>();
         }
 
-        barrier.Await();
+        barrier_.Await();
 
         return res;
     }
