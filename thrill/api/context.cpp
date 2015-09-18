@@ -428,9 +428,7 @@ RunNotSupported(const char* env_net) {
  * \returns 0 if execution was fine on all threads. Otherwise, the first
  * non-zero return value of any thread is returned.
  */
-int Run(
-    const std::function<void(Context&)>& job_startpoint,
-    const std::string& /*log_prefix*/) {
+int Run(const std::function<void(Context&)>& job_startpoint) {
 
     // parse environment.
     const char* env_net = getenv("THRILL_NET");
