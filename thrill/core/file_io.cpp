@@ -54,18 +54,18 @@ std::string FillFilePattern(const std::string& pathbase,
 
     std::string out_path = pathbase;
     {
-        // replace dollar
-        size_type dollar_end = out_path.rfind('$');
-        size_type dollar_begin = out_path.find_last_not_of('$', dollar_end);
+        // replace @
+        size_type at_end = out_path.rfind('@');
+        size_type at_begin = out_path.find_last_not_of('@', at_end);
 
-        size_type dollar_length =
-            dollar_end != std::string::npos && dollar_end > dollar_begin
-            ? dollar_end - dollar_begin : 4;
+        size_type at_length =
+            at_end != std::string::npos && at_end > at_begin
+            ? at_end - at_begin : 4;
 
-        sLOG << "dollar_length" << dollar_length;
-        out_path.replace(dollar_begin + 1, dollar_length,
-                         common::str_snprintf<>(dollar_length + 2, "%0*zu",
-                                                static_cast<int>(dollar_length),
+        sLOG << "at_length" << at_length;
+        out_path.replace(at_begin + 1, at_length,
+                         common::str_snprintf<>(at_length + 2, "%0*zu",
+                                                static_cast<int>(at_length),
                                                 worker));
     }
     {
