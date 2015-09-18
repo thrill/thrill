@@ -153,6 +153,9 @@ struct Serialization<Archive, common::FastString>
 		ar.Read(outdata, size);
         return common::FastString::Take(outdata, size);
     }
+	
+    static const bool   is_fixed_size = false;
+    static const size_t fixed_size = 0;
 
 };
 
