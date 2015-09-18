@@ -29,27 +29,25 @@ class FastString
 public:
 
 	FastString() : size_(0) { };
-
-        FastString(const FastString& in_str) {
-            // REVIEW(an): maybe use _new char []..._ / delete -> less casts
-                void* begin = ::malloc(in_str.size_);
-                // REVIEW(an): I am a big friend of std::copy instead of memcpy.
-                std::memcpy(begin, in_str.start_, in_str.size_);
-		start_ = reinterpret_cast<const char*>(begin);
+	
+	FastString(const FastString& in_str) {
+		// REVIEW(an): maybe use _new char []..._ / delete -> less casts
+		char* begin = new char[in_str.size_];
+		// REVIEW(an): I am a big friend of std::copy instead of memcpy.
+		std::copy(in_str.start_, in_str.start_ + in_str.size_, begin);
+		start_ = begin;
 		size_ = in_str.size_;
 		has_data_ = true;
 	};
 
     // REVIEW(an): use ": field_()" _whenever_ possible!
-        FastString(FastString&& other) {
-		start_ = other.start_;
-		size_ = other.size_;
-		has_data_ = other.has_data_;
+	FastString(FastString&& other) :
+		FastString(other.start_, other.size_, other.has_data_) {
 		other.has_data_ = false;
 	};
 
 	~FastString() {
-		if (has_data_) std::free((void*)start_);
+		if (has_data_) delete[](start_);
 	};
 
 	static FastString Ref(const char* start, size_t size) {
@@ -61,16 +59,17 @@ public:
 	}
 
 	static FastString Copy(const char* start, size_t size) {
-		void* mem = ::malloc(size);
-		std::memcpy(mem, start, size);
-		return FastString(reinterpret_cast<const char*>(mem), size, true);
+		char* mem = new char[size];
+		std::copy(start, start + size, mem);
+		return FastString(mem, size, true);
 	}
 
 	static FastString Copy(const std::string& in_str) {
 		return Copy(in_str.c_str(), in_str.size());
 	}
-            // REVIEW(an): rename to Data(), just like std::string.
-        const char* Start() const {
+	
+	// REVIEW(an): rename to Data(), just like std::string.
+	const char* Start() const {
 		return start_;
 	}
 
@@ -79,20 +78,20 @@ public:
 	}
 
 	FastString& operator = (const FastString& other) {
-		if (has_data_) free((void*) start_);
-		void* mem = ::malloc(other.size_);
-		std::memcpy(mem, other.start_, other.size_);
-		start_ = reinterpret_cast<const char*>(mem);
+		if (has_data_) delete[] (start_);
+		char* mem = new char[other.size_];
+		std::copy(other.start_, other.start_ + other.size_, mem);
+		start_ = mem;
 		size_ = other.size_;
 		has_data_ = true;
 		return *this;
 	}
 
 	FastString& operator = (FastString&& other) {
-		if (has_data_) free((void*) start_);
+		if (has_data_) delete[] (start_);
 		start_ = std::move(other.start_);
 		size_ = other.Size();
-		has_data_ = true;
+		has_data_ = other.has_data_;
 		other.has_data_ = false;
 		return *this;
 	}
@@ -130,7 +129,7 @@ protected:
 		start_(start), size_(size), has_data_(copy) { };
 
     // REVIEW(an): rename to data_.
-        const char* start_;
+	const char* start_ = 0;
 
 	size_t size_;
 
