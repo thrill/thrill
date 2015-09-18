@@ -107,6 +107,12 @@ public:
     //! Virtual clear method. Triggers actual disposing in sub-classes.
     virtual void Dispose() = 0;
 
+    //! Virtual method for signaling children on push start. 
+    virtual void StartPushFlow() { };
+
+    //! Virtual method for signaling children on push end. 
+    virtual void StopPushFlow() { };
+
     //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
     virtual void UnregisterChilds() = 0;
 
