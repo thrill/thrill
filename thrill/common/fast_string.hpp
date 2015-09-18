@@ -45,7 +45,7 @@ public:
 	 * Default constructor for a FastString.
 	 * Doesn't do anything.
 	 */
-	FastString() : size_(0) { };
+        FastString() : size_(0) { }
 	
 	/**
 	 * Copy constructor for a new FastString. Actually allocates memory.
@@ -57,25 +57,25 @@ public:
 		std::copy(input.data_, input.data_ + input.size_, begin);
 		data_ = begin;
 		size_ = input.size_;
-		has_data_ = true;
-	};
+                owns_data_ = true;
+        }
 
 	/**
 	 * Move constructor for a new FastString. Steals data ownership.
 	 */
-	FastString(FastString&& other) :
-		FastString(other.data_, other.size_, other.has_data_) {
-		other.has_data_ = false;
-	};
+        FastString(FastString&& other)
+            : FastString(other.data_, other.size_, other.owns_data_) {
+               other.owns_data_ = false;
+        }
 
 	/**
 	 * Destructor for a FastString. If it holds data, this data gets freed.
 	 */
 	~FastString() {
-		if (has_data_) {
+                if (owns_data_) {
 			delete[](data_);
 		}
-	};
+        }
 	
 	/**
 	 * Creates a new reference FastString, given a const char* and the size of the FastString.
@@ -94,7 +94,7 @@ public:
 	 * \param size Size of data in bytes.
 	 * \return New FastString object.
 	 */
-	static FastString Ref(std::string::const_iterator data, size_t size) {
+        static FastString Ref(const std::string::const_iterator& data, size_t size) {
 		return FastString(&(*data), size, false);
 	}
 
@@ -150,12 +150,12 @@ public:
 	 * \return reference to this FastString
 	 */
 	FastString& operator = (const FastString& other) {
-		if (has_data_) delete[] (data_);
+                if (owns_data_) delete[] (data_);
 		char* mem = new char[other.size_];
 		std::copy(other.data_, other.data_ + other.size_, mem);
 		data_ = mem;
 		size_ = other.size_;
-		has_data_ = true;
+                owns_data_ = true;
 		return *this;
 	}
 
@@ -165,11 +165,11 @@ public:
 	 * \return reference to this FastString
 	 */
 	FastString& operator = (FastString&& other) {
-		if (has_data_) delete[] (data_);
+                if (owns_data_) delete[] (data_);
 		data_ = std::move(other.data_);
 		size_ = other.Size();
-		has_data_ = other.has_data_;
-		other.has_data_ = false;
+                owns_data_ = other.owns_data_;
+                other.owns_data_ = false;
 		return *this;
 	}
 
@@ -234,17 +234,17 @@ protected:
 	 * Internal constructor, which creates a new FastString and sets parameters
 	 * \param data Pointer to data
 	 * \param size Size of data in bytes
-	 * \param has_data True, if this FastString has ownership of data
+         * \param owns_data True, if this FastString has ownership of data
 	 */
-	FastString(const char* data, size_t size, bool has_data) :
-		data_(data), size_(size), has_data_(has_data) { };
+        FastString(const char* data, size_t size, bool owns_data)
+            : data_(data), size_(size), owns_data_(owns_data) { }
 
-	// Pointer to data
+        //! Pointer to data
 	const char* data_ = 0;
-	// Size of data
+        //! Size of data
 	size_t size_;
-	// True, if this FastString has ownership of data
-	bool has_data_ = false;
+        //! True, if this FastString has ownership of data
+        bool owns_data_ = false;
 
 };
 
@@ -271,10 +271,10 @@ struct Serialization<Archive, common::FastString>
 
 };
 
-} //namespace data
+} // namespace data
 } // namespace thrill
 
-namespace std { //I am very sorry.
+namespace std {
 	template <>
 	struct hash<thrill::common::FastString>
 	{
@@ -290,11 +290,9 @@ namespace std { //I am very sorry.
 #else			
 			return std::_Hash_impl::hash(fs.Data(), fs.Size());
 #endif			
-			//	hash = ((hash << 5) + hash) + *(fs.Data() + ctr); /* hash * 33 + c */
-			//return hash;
-		}
+                }
 	};
-}
+} // namespace std
 
 #endif // !THRILL_COMMON_FAST_STRING_HEADER
 
