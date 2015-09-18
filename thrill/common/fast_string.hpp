@@ -17,9 +17,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/serialization.hpp>
 
-#if __APPLE__ || defined(_MSC_VER)
-// Apple does not have bits/functional_hash.h, using other hash function.
-#else
+#if __GNUC__ && !__clang__
 #include <bits/functional_hash.h>
 #endif
 
@@ -274,16 +272,17 @@ template <>
 struct hash<thrill::common::FastString>
 {
     size_t operator () (const thrill::common::FastString& fs) const {
-#if __APPLE__ || defined(_MSC_VER)
-        // Apple does not have bits/functional_hash.h, using other hash function.
+#if __GNUC__ && !__clang__
+        return std::_Hash_impl::hash(fs.Data(), fs.Size());
+#else
+        // Only gcc has bits/functional_hash.h, using other hash function.
         // taken from: http://www.cse.yorku.ca/~oz/hash.html
         unsigned int hash = 5381;
         for (size_t ctr = 0; ctr < fs.Size(); ctr++) {
-            hash = ((hash << 5) + hash) + *(fs.Data() + ctr);                     /* hash * 33 + c */
+            // hash * 33 + c
+            hash = ((hash << 5) + hash) + *(fs.Data() + ctr);
         }
         return hash;
-#else
-        return std::_Hash_impl::hash(fs.Data(), fs.Size());
 #endif
     }
 };
