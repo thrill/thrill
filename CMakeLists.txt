@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake)
 
 # project: we only use C++
-project(thrill LANGUAGES CXX)
+project(thrill CXX)
 
 # prohibit in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
