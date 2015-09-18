@@ -484,19 +484,19 @@ private:
 };
 
 template <typename Key,
-        typename Value,
-        typename ReduceFunction,
-        typename IndexFunction = PostReduceByHashKey<Key>,
-        typename EqualToFunction = std::equal_to<Key> >
+          typename Value,
+          typename ReduceFunction,
+          typename IndexFunction = PostReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key> >
 class PostReduceFlushToIndex
 {
 public:
     PostReduceFlushToIndex(ReduceFunction reduce_function,
-                            const IndexFunction& index_function = IndexFunction(),
-                            const EqualToFunction& equal_to_function = EqualToFunction())
-                            : reduce_function_(reduce_function),
-                index_function_(index_function),
-                equal_to_function_(equal_to_function)
+                           const IndexFunction& index_function = IndexFunction(),
+                           const EqualToFunction& equal_to_function = EqualToFunction())
+        : reduce_function_(reduce_function),
+          index_function_(index_function),
+          equal_to_function_(equal_to_function)
     { }
 
     template <typename ReducePostTable>
@@ -560,14 +560,14 @@ public:
 
         // add equivalent number of blocks to memory needed for pointers
         num_blocks_needed += std::max<size_t>((size_t)(std::ceil(
-                static_cast<double>(std::max<size_t>((size_t)(static_cast<double>(num_blocks_needed)
-                                                              * bucket_rate), 1) * sizeof(BucketBlock*))
-                / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                           static_cast<double>(std::max<size_t>((size_t)(static_cast<double>(num_blocks_needed)
+                                                                                                         * bucket_rate), 1) * sizeof(BucketBlock*))
+                                                           / static_cast<double>(sizeof(BucketBlock)))), 0);
 
         // add equivalent number of blocks to memory needed for elements_to_emit vector
         num_blocks_needed += std::max<size_t>((size_t)(std::ceil(
-                static_cast<double>(elements_to_emit.size() * sizeof(Value))
-                / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                           static_cast<double>(elements_to_emit.size() * sizeof(Value))
+                                                           / static_cast<double>(sizeof(BucketBlock)))), 0);
 
         // spilled more frames to ensure to have enough memory to process frames
         while ((max_num_blocks_per_table - ht->NumBlocksPerTable()) < num_blocks_needed) {
@@ -596,8 +596,8 @@ public:
 
                 // compute how much blocks are needed
                 size_t num_blocks = std::max<size_t>(
-                        (size_t)std::ceil(static_cast<double>(file.num_items())
-                                          / static_cast<double>(block_size)), 1);
+                    (size_t)std::ceil(static_cast<double>(file.num_items())
+                                      / static_cast<double>(block_size)), 1);
 
                 // calculate num buckets in second reduce table
                 size_t num_buckets_second = std::max<size_t>((size_t)(static_cast<double>(num_blocks)
@@ -605,8 +605,8 @@ public:
 
                 // keep enough memory for pointers
                 num_blocks += std::max<size_t>((size_t)(std::ceil(
-                        static_cast<double>(num_buckets_second * sizeof(BucketBlock*))
-                        / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                            static_cast<double>(num_buckets_second * sizeof(BucketBlock*))
+                                                            / static_cast<double>(sizeof(BucketBlock)))), 0);
 
                 // set up size of second reduce table
                 buckets_second.resize(num_buckets_second, nullptr);
