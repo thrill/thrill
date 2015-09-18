@@ -17,10 +17,6 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/serialization.hpp>
 
-#if __GNUC__ && !__clang__
-#include <bits/functional_hash.h>
-#endif
-
 #include <algorithm>
 #include <string>
 
@@ -37,6 +33,8 @@ namespace common {
 class FastString
 {
 public:
+    using iterator = const char*;
+
     /**
      * Default constructor for a FastString.
      * Doesn't do anything.
@@ -126,16 +124,22 @@ public:
         return Copy(input.c_str(), input.size());
     }
 
-    /**
-     * Returns a pointer to the start of the data.
-     */
+    //! Returns a pointer to the start of the data.
     const char * Data() const {
         return data_;
     }
 
-    /**
-     * Returns the size of this FastString
-     */
+    //! Returns a pointer to the beginning of the data.
+    iterator begin() const {
+        return data_;
+    }
+
+    //! Returns a pointer beyond the end of the data.
+    iterator end() const {
+        return data_ + size_;
+    }
+
+    //! Returns the size of this FastString
     size_t Size() const {
         return size_;
     }
@@ -272,18 +276,13 @@ template <>
 struct hash<thrill::common::FastString>
 {
     size_t operator () (const thrill::common::FastString& fs) const {
-#if __GNUC__ && !__clang__
-        return std::_Hash_impl::hash(fs.Data(), fs.Size());
-#else
-        // Only gcc has bits/functional_hash.h, using other hash function.
-        // taken from: http://www.cse.yorku.ca/~oz/hash.html
-        unsigned int hash = 5381;
-        for (size_t ctr = 0; ctr < fs.Size(); ctr++) {
+        // simple string hash taken from: http://www.cse.yorku.ca/~oz/hash.html
+        size_t hash = 5381;
+        for (const char* ctr = fs.begin(); ctr != fs.end(); ++ctr) {
             // hash * 33 + c
-            hash = ((hash << 5) + hash) + *(fs.Data() + ctr);
+            hash = ((hash << 5) + hash) + *ctr;
         }
         return hash;
-#endif
     }
 };
 
