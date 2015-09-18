@@ -547,12 +547,13 @@ public:
     template <typename ValueOut,
               typename KeyExtractor,
               typename GroupByFunction,
+              typename ValueType = typename common::FunctionTraits<KeyExtractor>::template arg<0>,
               typename HashFunction =
                 std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
     auto GroupByIndex(const KeyExtractor &key_extractor,
                       const GroupByFunction &reduce_function,
                       const std::size_t number_keys,
-                      const ValueOut neutral_element = ValueType()) const;
+                      const ValueType neutral_element = ValueType()) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The

@@ -313,12 +313,13 @@ template <typename ValueType, typename Stack>
 template <typename ValueOut,
           typename KeyExtractor,
           typename GroupFunction,
+          typename ValueIn,
           typename HashFunction>
 auto DIARef<ValueType, Stack>::GroupByIndex(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function,
     const std::size_t number_keys,
-    const ValueOut neutral_element) const {
+    const ValueIn neutral_element) const {
 
     using DOpResult
               = ValueOut;

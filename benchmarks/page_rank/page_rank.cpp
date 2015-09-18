@@ -15,10 +15,13 @@
 #include <thrill/api/size.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/write_lines.hpp>
+#include <thrill/api/groupby_index.hpp>
+#include <thrill/api/groupby.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/thrill.hpp>
+#include <thrill/core/multiway_merge.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -197,8 +200,111 @@ void page_rank_with_reduce_sort(Context& ctx) {
     WriteLines("pagerank.out");
 }
 
+
+
+//! The PageRank user program with group by
+void page_rank_with_groupbyindex(Context& ctx) {
+
+    static const double s = 0.85;
+    static const double f = 0.15;
+
+    using Key = std::size_t;
+    using Node = std::size_t;
+    using PageWithLinks = std::pair<std::size_t, std::vector<Node> >;
+    using PageWithRank = std::pair<std::size_t, double>;
+    using Link = std::pair<std::size_t, std::size_t>;
+
+    auto create_links_fn = [](const std::string& input) {
+        auto split = thrill::common::split(input, " ");
+        return std::make_pair((std::size_t)std::stoi(split[0]), (std::size_t)std::stoi(split[1]));
+    };
+
+    auto max_fn = [](const Link &in1, const Link &in2) {
+        return std::make_pair(((in1.first > in2.first) ? in1.first : in2.first), in2.second);
+    };
+
+    auto key_link_fn = [](const Link& p) { return p.first; };
+    auto key_page_with_ranks_fn = [](const PageWithRank& p) { return p.first; };
+
+    // auto group_fn = [](auto& r, Key k) {
+    //     std::vector<Node> all;
+    //     while (r.HasNext()) {
+    //         all.push_back(r.Next().second);
+    //     }
+    //     return std::make_pair(k, all);
+    // };
+
+    auto group_fn = [](auto& r, Key k) {
+        while (r.HasNext()) {
+            r.Next();
+        }
+        return 0;
+    };
+
+    auto set_rank_fn = [](PageWithLinks p) {
+        return std::make_pair(p.first, 1.0);
+    };
+
+    auto compute_rank_contrib_fn = [](const PageWithLinks& l, const PageWithRank& r){
+        return std::make_pair(l.first, r.second/(l.second.size()));
+    };
+
+    auto update_rank_fn = [](const PageWithRank& p1, const PageWithRank& p2) {
+        return std::make_pair(p1.first, f + s * (p1.second + p2.second));
+    };
+
+    PageWithLinks neutral_page = std::make_pair(0, std::vector<Node>());
+
+    //////////////////////// START OF COMPUTATION HERE /////////////////////////
+
+    // url linked_url
+    // url linked_url
+    // url linked_url
+    // ...
+    auto in = ReadLines(ctx, "pagerank_2.in");
+    auto input = in.Map(create_links_fn);
+
+    //  URL   OUTGOING
+    // (url, [linked_url, linked_url, ...])
+    // (url, [linked_url, linked_url, ...])
+    // (url, [linked_url, linked_url, ...])
+    // ...
+    auto number_nodes = input.Sum(max_fn).first;
+
+    auto links = input.GroupBy<int>(key_link_fn, group_fn);
+
+    // // (url, rank)
+    // // (url, rank)
+    // // (url, rank)
+    // // ...
+    // auto ranks = links.Map(set_rank_fn).Cache();
+
+    // // do iterations
+    // for (size_t i = 1; i <= 10; ++i) {
+    //     // (linked_url, rank / OUTGOING.size)
+    //     // (linked_url, rank / OUTGOING.size)
+    //     // (linked_url, rank / OUTGOING.size)
+    //     // ...
+    //     auto contribs = links.Zip(ranks, compute_rank_contrib_fn);
+
+    //     // (url, rank)
+    //     // (url, rank)
+    //     // (url, rank)
+    //     // ...
+    //     ranks = contribs.ReduceToIndex(key_page_with_ranks_fn, update_rank_fn, number_nodes);
+
+    //     // ranks = contribs.reduceByKey(_ + _).mapValues(0.15 + 0.85 * _)
+    // }
+
+    // ranks.Map([](PageWithRank item) {
+    //               return std::to_string(item.first)
+    //               + ": " + std::to_string(item.second);
+    //           }).
+    // WriteLines("pagerank.out");
+}
+
 int main(int, char**) {
-    return thrill::api::Run(page_rank_with_reduce_sort);
+    return thrill::api::Run(page_rank_with_groupbyindex);
 }
 
 /******************************************************************************/
