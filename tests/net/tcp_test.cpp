@@ -44,12 +44,8 @@ static void LocalGroupTest(
 import tests.net.test_gen as m
 
 m.generate_group_tests('RealTcpGroup', 'RealGroupTest')
-m.generate_dispatcher_tests('RealTcpGroup', 'RealGroupTest',
-                            'net::tcp::SelectDispatcher')
 
 m.generate_group_tests('LocalTcpGroup', 'LocalGroupTest')
-m.generate_dispatcher_tests('LocalTcpGroup', 'LocalGroupTest',
-                            'net::tcp::SelectDispatcher')
 m.generate_flow_control_tests('LocalTcpGroup', 'LocalGroupTest')
 
   ]]]*/
