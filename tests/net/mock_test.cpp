@@ -25,7 +25,7 @@ void MockTestOne(size_t num_hosts,
     sLOG0 << "MockTestOne num_hosts" << num_hosts;
     // construct mock network mesh and run threads
     net::ExecuteGroupThreads(
-        net::mock::Group::ConstructLocalMesh(num_hosts),
+        net::mock::Group::ConstructLoopbackMesh(num_hosts),
         thread_function);
 }
 
