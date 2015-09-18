@@ -506,7 +506,8 @@ public:
      * buckets are grouped and processed.
      *      input param: api::GroupByReader with functions HasNext() and Next()
      */
-    template <typename KeyExtractor,
+    template <typename ValueOut,
+              typename KeyExtractor,
               typename GroupByFunction,
               typename HashFunction =
                 std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >

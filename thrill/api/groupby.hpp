@@ -262,13 +262,16 @@ private:
 /******************************************************************************/
 
 template <typename ValueType, typename Stack>
-template <typename KeyExtractor, typename GroupFunction, typename HashFunction>
+template <typename ValueOut,
+          typename KeyExtractor,
+          typename GroupFunction,
+          typename HashFunction>
 auto DIARef<ValueType, Stack>::GroupBy(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function) const {
 
     using DOpResult
-              = typename common::FunctionTraits<GroupFunction>::result_type;
+              = ValueOut;
 
     static_assert(
         std::is_same<

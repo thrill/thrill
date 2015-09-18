@@ -45,7 +45,7 @@ TEST(GroupByNode, CompileAndSum) {
             auto modulo_keyfn = [](size_t in) { return (in % m); };
 
             auto sum_fn =
-                [](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r,
+                [](auto& r,
                    std::size_t key) {
                     auto res = 0;
                     int k = 0;
@@ -59,7 +59,7 @@ TEST(GroupByNode, CompileAndSum) {
                 };
 
             // group by to compute sum and gather results
-            auto reduced = sizets.GroupBy(modulo_keyfn, sum_fn);
+            auto reduced = sizets.GroupBy<int>(modulo_keyfn, sum_fn);
             std::vector<int> out_vec = reduced.AllGather();
 
             // compute vector with expected results
@@ -98,7 +98,7 @@ TEST(GroupByNode, Median) {
             auto modulo_keyfn = [](size_t in) { return (in % m); };
 
             auto median_fn =
-                [](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r,
+                [](auto& r,
                     std::size_t) {
                     std::vector<std::size_t> all;
                     while (r.HasNext()) {
@@ -112,7 +112,7 @@ TEST(GroupByNode, Median) {
                 };
 
             // group by to compute sum and gather results
-            auto reduced = sizets.GroupBy(modulo_keyfn, median_fn);
+            auto reduced = sizets.GroupBy<int>(modulo_keyfn, median_fn);
             std::vector<int> out_vec = reduced.AllGather();
 
             // compute vector with expected results

@@ -1482,8 +1482,6 @@ get_sequential_file_multiway_merge_tree(RandomAccessIteratorIterator seqs_begin,
         ::value_type::first_type RandomAccessIterator;
     typedef typename std::iterator_traits<RandomAccessIterator>
         ::value_type value_type;
-    typedef typename loser_tree_traits<Stable, value_type, Comparator>::LT
-        LoserTreeType;
 
     int k = static_cast<int>(seqs_end - seqs_begin);
     assert(k>1);
