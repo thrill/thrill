@@ -25,6 +25,13 @@ namespace thrill {
 
 namespace common {
 
+/**
+ * FastString is a fast implementation of a string, which is basically only
+ * a char pointer and a length. The FastString is defined by the char array given
+ * by those parameters. A copy assignment or copy constructor actually allocates
+ * memory for the data. This allows both non-allocating quick references and persistent
+ * storage of strings.
+ */
 class FastString
 {
 public:
