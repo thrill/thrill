@@ -33,7 +33,7 @@ void MpiTestOne(size_t num_hosts,
     }
 
     // needed for sync, otherwise independent tests run in parallel
-    MPI_Barrier(MPI_COMM_WORLD);
+    group->Barrier();
 }
 
 void MpiTest(const std::function<void(net::Group*)>& thread_function) {
