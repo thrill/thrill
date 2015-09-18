@@ -177,6 +177,12 @@ public:
         return local_worker_id_;
     }
 
+#ifndef SWIG
+    //! Outputs the context as [host id]:[local worker id] to an std::ostream
+    friend std::ostream& operator << (std::ostream& os, const Context& ctx) {
+        return os << ctx.host_rank() << ":" << ctx.local_worker_id();
+    }
+#endif
     //! \}
 
     //! \name Network Subsystem
@@ -248,7 +254,10 @@ public:
     //! given a global range [0,global_size) and p PEs to split the range, calculate
     //! the [local_begin,local_end) index range assigned to the PE i. Takes the
     //! information from the Context.
-    std::tuple<size_t, size_t> CalculateLocalRange(size_t global_size);
+    std::tuple<size_t, size_t> CalculateLocalRange(size_t global_size) {
+        return common::CalculateLocalRange(
+            global_size, num_workers(), my_rank());
+    }
 
 private:
     //! host-global memory manager
@@ -277,33 +286,33 @@ private:
     size_t workers_per_host_;
 };
 
-//! Outputs the context as [host id]:[local worker id] to an std::ostream
-static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
-    return os << ctx.host_rank() << ":" << ctx.local_worker_id();
-}
+//! \name Run Methods with Internal Networks for Testing
+//! \{
 
 /*!
  * Function to run a number of mock hosts as locally independent
  * threads, which communicate via internal stream sockets.
  */
-void
-RunLocalMock(size_t host_count, size_t local_host_count,
-             const std::function<void(Context&)>& job_startpoint);
+void RunLocalMock(size_t host_count, size_t local_host_count,
+                  const std::function<void(Context&)>& job_startpoint);
 
 /*!
- * Helper Function to execute tests using mock networks in test suite for many
- * different numbers of workers and hosts as independent threads in one program.
+ * Helper Function to execute RunLocalMock() tests using mock networks in test
+ * suite for many different numbers of workers and hosts as independent threads
+ * in one program. Use this function in most test cases.
  */
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint);
 
 /*!
- * Runs the given job_startpoint within the same thread -->
- * one host with one thread
+ * Runs the given job_startpoint within the same thread with a test network -->
+ * run test with one host and one thread.
  */
-void RunSameThread(const std::function<void(Context&)>& job_startpoint);
+void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint);
+
+//! \}
 
 /*!
- * Runs the given job startpoint with a context instance.  Startpoints may be
+ * Runs the given job startpoint with a Context instance.  Startpoints may be
  * called multiple times with concurrent threads and different context instances
  * across different workers.  The Thrill configuration is taken from environment
  * variables starting the THRILL_.
@@ -311,6 +320,8 @@ void RunSameThread(const std::function<void(Context&)>& job_startpoint);
  * THRILL_RANK contains the rank of this worker
  *
  * THRILL_HOSTLIST contains a space- or comma-separated list of host:ports to connect to.
+ *
+ * THRILL_WORKERS_PER_HOST is the number of workers (threads) per host.
  *
  * \returns 0 if execution was fine on all threads. Otherwise, the first
  * non-zero return value of any thread is returned.
