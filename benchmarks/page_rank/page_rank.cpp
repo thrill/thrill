@@ -7,8 +7,17 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/reduce_to_index.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/sum.hpp>
+#include <thrill/api/write_lines.hpp>
+#include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/string.hpp>
+#include <thrill/api/reduce.hpp>
 #include <thrill/thrill.hpp>
 
 #include <random>
