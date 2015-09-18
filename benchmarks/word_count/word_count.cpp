@@ -20,17 +20,14 @@
 #include <thrill/common/fast_string.hpp>
 #include <thrill/common/logger.hpp>
 
-
 #include <string>
 #include <utility>
 
 using namespace thrill; // NOLINT
 
-
-// REVIEW(an): add a using common::FastString
 using common::FastString;
-using WordCountPair = std::pair<FastString, size_t>;
 
+using WordCountPair = std::pair<FastString, size_t>;
 
 WordCountPair CreateWCPair(std::string::const_iterator start, size_t length) {
 	return WordCountPair(FastString::Ref(start, length), 1);
