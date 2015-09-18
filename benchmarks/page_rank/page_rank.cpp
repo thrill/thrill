@@ -51,6 +51,14 @@ void page_rank(Context& ctx) {
 
     size_t size = ranks.Size();
 
+//    std::vector<std::pair<size_t, double>> ranks_vec;
+//    ranks.AllGather(&ranks_vec);
+//    if (ctx.my_rank() == 0) {
+//        for (size_t i = 0; i < ranks_vec.size(); i++) {
+//            std::cout << ranks_vec[i].first << ": " << ranks_vec[i].second << std::endl;
+//        }
+//    }
+
     auto links = ReadLines(ctx, "pagerank.in")
                  .Map([](const std::string& line) {
                           auto splitted = thrill::common::split(line, " ");
@@ -61,6 +69,20 @@ void page_rank(Context& ctx) {
                           }
                           return std::make_pair(std::stoi(splitted[0]), links);
                       });
+
+//    std::vector<std::pair<int, std::vector<int>>> out_vec;
+//    links.AllGather(&out_vec);
+//    if (ctx.my_rank() == 2) {
+//        for (size_t i = 0; i < out_vec.size(); i++) {
+//            std::cout << out_vec[i].first << ": ";
+//
+//            for (size_t j = 0; j < out_vec[i].second.size(); j++) {
+//                std::cout << out_vec[i].second[j] << " ";
+//            }
+//
+//            std::cout << std::endl;
+//        }
+//    }
 
     for (size_t i = 1; i <= 10; ++i) {
         std::cout << "Iteration: " << i << std::endl;
@@ -119,14 +141,14 @@ void page_rank_with_reduce_sort(Context& ctx) {
     // ...
     auto in = ReadLines(ctx, "pagerank_2.in");
 
-    auto key_fn = [](const PageWithLinks& p) { return p.first; };
+    auto key_fn = [](const std::pair<int, std::vector<int>>& p) { return p.first; };
 
-    auto red_fn = [](const PageWithLinks& in1, const PageWithLinks& in2) {
+    auto red_fn = [](const std::pair<int, std::vector<int>>& in1, const std::pair<int, std::vector<int>>& in2) {
         std::vector<int> v;
         v.reserve(in1.second.size() + in2.second.size());
         v.insert(v.end(), in1.second.begin(), in1.second.end());
         v.insert(v.end(), in2.second.begin(), in2.second.end());
-        return PageWithLinks(in1.first, v);
+        return std::make_pair(in1.first, v);
     };
 
     //  URL   OUTGOING
@@ -137,23 +159,52 @@ void page_rank_with_reduce_sort(Context& ctx) {
     auto links = in.Map(
         [](const std::string& input) {
             auto split = thrill::common::split(input, " ");
-            return PageWithLinks((size_t)std::stoi(split[0]), std::vector<int>(1, std::stoi(split[1])));
+            return std::make_pair<int, std::vector<int>>(std::stoi(split[0]), std::vector<int>(1, std::stoi(split[1])));
         }).ReduceByKey(key_fn, red_fn);
 
-    auto compare_fn = [](const PageWithLinks& in1, const PageWithLinks& in2) {
+    auto compare_fn = [](const std::pair<int, std::vector<int>>& in1, const std::pair<int, std::vector<int>>& in2) {
         return in1.first < in2.first;
     };
 
     auto links_sorted = links.Sort(compare_fn);
+
+//    std::vector<std::pair<int, std::vector<int>>> out_vec;
+//    links_sorted.AllGather(&out_vec);
+//    if (ctx.my_rank() == 6) {
+//        for (size_t i = 0; i < out_vec.size(); i++) {
+//            std::cout << out_vec[i].first << ": ";
+//
+//            for (size_t j = 0; j < out_vec[i].second.size(); j++) {
+//                std::cout << out_vec[i].second[j] << " ";
+//            }
+//
+//            std::cout << std::endl;
+//        }
+//    }
 
     // (url, rank)
     // (url, rank)
     // (url, rank)
     // ...
     DIARef<PageWithRank> ranks = links_sorted.Map(
-        [](const PageWithLinks& l) {
+        [](const std::pair<int, std::vector<int>>& l) {
             return std::make_pair((size_t)l.first, 1.0);
         }).Cache();
+
+//    DIARef<PageWithRank> ranks =
+//            ReadLines(ctx, "pagerank.in")
+//                    .Map([](const std::string& input) {
+//                        auto splitted = thrill::common::split(input, " ");
+//                        return std::make_pair((size_t)std::stoi(splitted[0]), 1.0);
+//                    }).Cache();
+
+//    std::vector<std::pair<size_t, double>> ranks_vec;
+//    ranks.AllGather(&ranks_vec);
+//    if (ctx.my_rank() == 0) {
+//        for (size_t i = 0; i < ranks_vec.size(); i++) {
+//            std::cout << ranks_vec[i].first << ": " << ranks_vec[i].second << std::endl;
+//        }
+//    }
 
     size_t size = ranks.Size();
 
@@ -191,6 +242,14 @@ void page_rank_with_reduce_sort(Context& ctx) {
                         .Cache();
     }
 
+//    std::vector<std::pair<size_t, double>> ranks_vec;
+//    ranks.AllGather(&ranks_vec);
+//    if (ctx.my_rank() == 0) {
+//        for (size_t i = 0; i < ranks_vec.size(); i++) {
+//            std::cout << ranks_vec[i].first << ": " << ranks_vec[i].second << std::endl;
+//        }
+//    }
+
     ranks.Map([](PageWithRank item) {
         return std::to_string(item.first)
                + ": " + std::to_string(item.second);
@@ -200,6 +259,7 @@ void page_rank_with_reduce_sort(Context& ctx) {
 
 int main(int, char**) {
     return thrill::api::Run(page_rank);
+    //return thrill::api::Run(page_rank_with_reduce_sort);
 }
 
 /******************************************************************************/
