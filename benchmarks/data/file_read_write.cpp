@@ -79,13 +79,13 @@ int main(int argc, const char** argv) {
     using triple = std::tuple<std::string, size_t, std::string>;
 
     if (type == "size_t")
-        api::RunSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "string")
-        api::RunSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "pair")
-        api::RunSameThread(std::bind(ConductExperiment<pair>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<pair>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "triple")
-        api::RunSameThread(std::bind(ConductExperiment<triple>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<triple>, bytes, iterations, std::placeholders::_1, type));
     else
         abort();
 }

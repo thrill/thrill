@@ -46,18 +46,18 @@ public:
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
-        //    << "FINISH (EXECUTING) stage" << node_->label()
+        //    << "FINISH (EXECUTING) stage" << node_->label();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
 
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // timer.Start();
-        node_->PushData(node_->consume_on_push_data());
-        // timer.Stop();
+        node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
+        // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
-        //    << "FINISH (PUSHING) stage" << node_->label()
+        //    << "FINISH (PUSHING) stage" << node_->label();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
@@ -66,13 +66,12 @@ public:
         // time_t tt;
         die_unless(!node_->consume_on_push_data());
         // timer.Start();
-        node_->PushData(node_->consume_on_push_data());
+        node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
-        //    << "FINISH (PUSHING) stage"
-        //    << node_->label()
+        //    << "FINISH (PUSHING) stage" << node_->label();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time: " << std::put_time(std::localtime(&tt), "%T");
     }
