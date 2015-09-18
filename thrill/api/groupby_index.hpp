@@ -41,8 +41,6 @@ class GroupByIndexNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
-    using GroupIterator = typename common::FunctionTraits<GroupFunction>
-                          ::template arg<0>;
     using ValueIn = typename common::FunctionTraits<KeyExtractor>
                     ::template arg<0>;
 
@@ -116,11 +114,84 @@ public:
         MainOp();
     }
 
+    void RunUserFunc(File& f, bool consume) {
+        auto r = f.GetReader(consume);
+        if (r.HasNext()) {
+            // create iterator to pass to user_function
+            auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
+            while (user_iterator.HasNextForReal()) {
+                // call user function
+                const ValueOut res = groupby_function_(user_iterator,
+                    user_iterator.GetNextKey());
+                // push result to callback functions
+                for (auto func : DIANode<ValueType>::callbacks_) {
+                    LOG << "grouped to value " << res;
+                    func(res);
+                }
+            }
+        }
+    }
+
     void PushData(bool consume) final {
+        using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
+
+        const std::size_t num_runs = files_.size();
+        // if there's only one run, store it
+        if (num_runs == 1) {
+            RunUserFunc(files_[0], consume);
+        }       // otherwise sort all runs using multiway merge
+        else {
+            std::vector<std::pair<Iterator, Iterator> > seq;
+            seq.reserve(num_runs);
+            for (std::size_t t = 0; t < num_runs; ++t) {
+                std::shared_ptr<Reader> reader = std::make_shared<Reader>(files_[t].GetReader(consume));
+                Iterator s = Iterator(&files_[t], reader, 0, true);
+                Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
+                seq.push_back(std::make_pair(std::move(s), std::move(e)));
+            }
+
+            auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
+                std::begin(seq),
+                std::end(seq),
+                totalsize_,
+                ValueComparator(*this));
+
+            if (puller.HasNext()) {
+                std::size_t keyspace = number_keys_ /
+                    emitter_.size() + (number_keys_ % emitter_.size() != 0);
+                std::size_t curr_index = keyspace * context_.my_rank();
+                // create iterator to pass to user_function
+                auto user_iterator = GroupByMultiwayMergeIterator
+                    <ValueIn, KeyExtractor, ValueComparator>
+                    (puller, key_extractor_);
+
+                while (user_iterator.HasNextForReal()) {
+                    if (user_iterator.GetNextKey() != curr_index) {
+                        // push neutral element as result to callback functions
+                        for (auto func : DIANode<ValueType>::callbacks_) {
+                            func(neutral_element_);
+                        }
+                    } else {
+                        //call user function
+                        const ValueOut res = groupby_function_(user_iterator,
+                            user_iterator.GetNextKey());
+                        // push result to callback functions
+                        for (auto func : DIANode<ValueType>::callbacks_) {
+                            LOG << "grouped to value " << res;
+                            func(res);
+                        }
+                    }
+                    ++curr_index;
+                }
+            }
+        }
+
+
         Reader r = sorted_elems_.GetReader(consume);
         if (r.HasNext()) {
             // create iterator to pass to user_function
-            auto user_iterator = GroupByIterator<ValueIn, KeyExtractor>(r, key_extractor_);
+            auto user_iterator = GroupByIterator
+                <ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
             std::size_t keyspace = number_keys_ / emitter_.size() + (number_keys_ % emitter_.size() != 0);
             std::size_t curr_index = keyspace * context_.my_rank();
 
@@ -162,6 +233,7 @@ private:
     std::size_t number_keys_;
     ValueOut neutral_element_;
     HashFunction hash_function_;
+    std::size_t totalsize_ = 0;
 
     data::ChannelPtr channel_;
     std::vector<data::Channel::Writer> emitter_;
@@ -203,9 +275,6 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
-        using OIterator = thrill::core::FileOutputIteratorWrapper<ValueIn>;
-
         LOG << "running group by main op";
 
         const bool consume = true;
@@ -218,14 +287,13 @@ private:
             e.Close();
         }
 
-        std::size_t totalsize = 0;
 
         // get incoming elements
         auto reader = channel_->OpenConcatReader(consume);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
-                totalsize += FIXED_VECTOR_SIZE;
+                totalsize_ += FIXED_VECTOR_SIZE;
                 FlushVectorToFile(incoming);
                 incoming.clear();
             }
@@ -233,52 +301,18 @@ private:
             const ValueIn elem = reader.template Next<ValueIn>();
             incoming.push_back(elem);
         }
-        totalsize += incoming.size();
+        totalsize_ += incoming.size();
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
-
-        const std::size_t num_runs = files_.size();
-
-        // if there's only one run, store it
-        if (num_runs == 1) {
-            Writer w = sorted_elems_.GetWriter();
-            Reader r = files_[0].GetReader(consume);
-            {
-                while (r.HasNext()) {
-                    w(r.template Next<ValueIn>());
-                }
-            }
-        }       // otherwise sort all runs using multiway merge
-        else {
-            std::vector<std::pair<Iterator, Iterator> > seq;
-            seq.reserve(num_runs);
-            for (std::size_t t = 0; t < num_runs; ++t) {
-                std::shared_ptr<Reader> reader = std::make_shared<Reader>(files_[t].GetReader(consume));
-                Iterator s = Iterator(&files_[t], reader, 0, true);
-                Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
-                seq.push_back(std::make_pair(std::move(s), std::move(e)));
-            }
-
-            {
-                OIterator oiter(std::make_shared<Writer>(sorted_elems_.GetWriter()));
-
-                core::sequential_file_multiway_merge<true, false>(
-                    std::begin(seq),
-                    std::end(seq),
-                    oiter,
-                    totalsize,
-                    ValueComparator(*this));
-            }
-        }
     }
 };
 
 /******************************************************************************/
 
 template <typename ValueType, typename Stack>
-template <typename KeyExtractor,
+template <typename ValueOut,
+          typename KeyExtractor,
           typename GroupFunction,
-          typename ValueOut,
           typename HashFunction>
 auto DIARef<ValueType, Stack>::GroupByIndex(
     const KeyExtractor &key_extractor,
@@ -287,7 +321,7 @@ auto DIARef<ValueType, Stack>::GroupByIndex(
     const ValueOut neutral_element) const {
 
     using DOpResult
-              = typename common::FunctionTraits<GroupFunction>::result_type;
+              = ValueOut;
 
     static_assert(
         std::is_same<

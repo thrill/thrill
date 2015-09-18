@@ -82,7 +82,6 @@ struct MultiwayMergeTreePuller {
         // take out
         source_type source = lt.get_min_source();
         ValueIn res = *seqs_begin[source].first;
-
         ++seqs_begin[source].first;
 
         // feed
@@ -93,7 +92,6 @@ struct MultiwayMergeTreePuller {
             lt.delete_min_insert(*seqs_begin[source].first, false);
 
         ++counter;
-
         return res;
     }
 
@@ -109,7 +107,11 @@ struct MultiwayMergeTreePuller {
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
+
+//forward declarations for friend classes
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode;
@@ -118,7 +120,9 @@ template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByIndexNode;
 
-template <typename ValueType, typename KeyExtractor>
+////////////////////////////////////////////////////////////////////////////////
+
+template <typename ValueType, typename KeyExtractor, typename Comparator>
 class GroupByIterator
 {
     template <typename T1,
@@ -146,7 +150,7 @@ public:
           key_extractor_(key_extractor),
           is_first_elem_(true),
           is_reader_empty(false),
-          elem_(reader.template Next<ValueIn>()),
+          elem_(reader_.template Next<ValueIn>()),
           old_key_(key_extractor_(elem_)),
           new_key_(old_key_) { }
 
@@ -186,8 +190,7 @@ private:
             elem_ = reader_.template Next<ValueIn>();
             old_key_ = new_key_;
             new_key_ = key_extractor_(elem_);
-        }
-        else {
+        } else {
             is_reader_empty = true;
         }
     }
@@ -196,6 +199,90 @@ private:
         assert(reader_.HasNext());
         is_first_elem_ = true;
         elem_ = reader_.template Next<ValueIn>();
+        old_key_ = key_extractor_(elem_);
+        new_key_ = old_key_;
+    }
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+template <typename ValueType, typename KeyExtractor, typename Comparator>
+class GroupByMultiwayMergeIterator
+{
+    template <typename T1,
+              typename T2,
+              typename T3,
+              typename T4,
+              typename T5>
+    friend class GroupByNode;
+
+    template <typename T1,
+              typename T2,
+              typename T3,
+              typename T4,
+              typename T5>
+    friend class GroupByIndexNode;
+
+public:
+    static const bool debug = false;
+    using ValueIn = ValueType;
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
+    using Puller = MultiwayMergeTreePuller<ValueIn, Comparator>;
+
+    GroupByMultiwayMergeIterator(Puller& reader, KeyExtractor& key_extractor)
+        : reader_(reader),
+          key_extractor_(key_extractor),
+          is_first_elem_(true),
+          is_reader_empty(false),
+          elem_(reader_.Next()),
+          old_key_(key_extractor_(elem_)),
+          new_key_(old_key_) { }
+
+    bool HasNext() {
+        return (!is_reader_empty && old_key_ == new_key_) || is_first_elem_;
+    }
+
+    ValueIn Next() {
+        assert(!is_reader_empty);
+        ValueIn elem = elem_;
+        GetNextElem();
+        return elem;
+    }
+
+protected:
+    bool HasNextForReal() {
+        is_first_elem_ = true;
+        return !is_reader_empty;
+    }
+
+    Key GetNextKey() {
+        return new_key_;
+    }
+
+private:
+    Puller& reader_;
+    KeyExtractor& key_extractor_;
+    bool is_first_elem_;
+    bool is_reader_empty;
+    ValueIn elem_;
+    Key old_key_;
+    Key new_key_;
+
+    void GetNextElem() {
+        is_first_elem_ = false;
+        if (reader_.HasNext()) {
+            elem_ = reader_.Next();
+            old_key_ = new_key_;
+            new_key_ = key_extractor_(elem_);
+        } else {
+            is_reader_empty = true;
+        }
+    }
+
+    void SetFirstElem() {
+        assert(reader_.HasNext());
+        is_first_elem_ = true;
+        elem_ = reader_.Next();
         old_key_ = key_extractor_(elem_);
         new_key_ = old_key_;
     }
