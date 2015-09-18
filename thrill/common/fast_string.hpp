@@ -14,8 +14,8 @@
 #ifndef THRILL_COMMON_FAST_STRING_HEADER
 #define THRILL_COMMON_FAST_STRING_HEADER
 
-#include <cstdlib>
-#include <cstring>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/serialization.hpp>
 
 #if __APPLE__ || defined(_MSC_VER)
 // Apple does not have bits/functional_hash.h, using other hash function.
@@ -23,11 +23,10 @@
 #include <bits/functional_hash.h>
 #endif
 
-#include <thrill/common/logger.hpp>
-#include <thrill/data/serialization.hpp>
+#include <algorithm>
+#include <string>
 
 namespace thrill {
-
 namespace common {
 
 /**
