@@ -17,7 +17,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#if __APPLE__
+#if __APPLE__ || defined(_MSC_VER)
         // Apple does not have bits/functional_hash.h, using other hash function.
 #else
 #include <bits/functional_hash.h>
@@ -279,7 +279,7 @@ namespace std { //I am very sorry.
 	struct hash<thrill::common::FastString>
 	{
 		size_t operator ()(const thrill::common::FastString& fs) const {
-#if __APPLE__			
+#if __APPLE__ || defined(_MSC_VER)			
 			// Apple does not have bits/functional_hash.h, using other hash function.
 			// taken from: http://www.cse.yorku.ca/~oz/hash.html
 			unsigned int hash = 5381;
