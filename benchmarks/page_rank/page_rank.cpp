@@ -7,17 +7,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/api/cache.hpp>
-#include <thrill/api/collapse.hpp>
-#include <thrill/api/read_lines.hpp>
-#include <thrill/api/reduce_to_index.hpp>
-#include <thrill/api/size.hpp>
-#include <thrill/api/sum.hpp>
-#include <thrill/api/write_lines.hpp>
-#include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/string.hpp>
-#include <thrill/api/reduce.hpp>
 #include <thrill/thrill.hpp>
 
 #include <random>
@@ -51,14 +42,6 @@ void page_rank(Context& ctx) {
 
     size_t size = ranks.Size();
 
-//    std::vector<std::pair<size_t, double>> ranks_vec;
-//    ranks.AllGather(&ranks_vec);
-//    if (ctx.my_rank() == 0) {
-//        for (size_t i = 0; i < ranks_vec.size(); i++) {
-//            std::cout << ranks_vec[i].first << ": " << ranks_vec[i].second << std::endl;
-//        }
-//    }
-
     auto links = ReadLines(ctx, "pagerank.in")
                  .Map([](const std::string& line) {
                           auto splitted = thrill::common::split(line, " ");
@@ -69,20 +52,6 @@ void page_rank(Context& ctx) {
                           }
                           return std::make_pair(std::stoi(splitted[0]), links);
                       });
-
-//    std::vector<std::pair<int, std::vector<int>>> out_vec;
-//    links.AllGather(&out_vec);
-//    if (ctx.my_rank() == 2) {
-//        for (size_t i = 0; i < out_vec.size(); i++) {
-//            std::cout << out_vec[i].first << ": ";
-//
-//            for (size_t j = 0; j < out_vec[i].second.size(); j++) {
-//                std::cout << out_vec[i].second[j] << " ";
-//            }
-//
-//            std::cout << std::endl;
-//        }
-//    }
 
     for (size_t i = 1; i <= 10; ++i) {
         std::cout << "Iteration: " << i << std::endl;
@@ -168,20 +137,6 @@ void page_rank_with_reduce_sort(Context& ctx) {
 
     auto links_sorted = links.Sort(compare_fn).Keep();
 
-//    std::vector<std::pair<int, std::vector<int>>> out_vec;
-//    links_sorted.AllGather(&out_vec);
-//    if (ctx.my_rank() == 6) {
-//        for (size_t i = 0; i < out_vec.size(); i++) {
-//            std::cout << out_vec[i].first << ": ";
-//
-//            for (size_t j = 0; j < out_vec[i].second.size(); j++) {
-//                std::cout << out_vec[i].second[j] << " ";
-//            }
-//
-//            std::cout << std::endl;
-//        }
-//    }
-
     // (url, rank)
     // (url, rank)
     // (url, rank)
@@ -190,21 +145,6 @@ void page_rank_with_reduce_sort(Context& ctx) {
         [](const std::pair<int, std::vector<int>>& l) {
             return std::make_pair((size_t)l.first, 1.0);
         }).Cache();
-
-//    DIARef<PageWithRank> ranks =
-//            ReadLines(ctx, "pagerank.in")
-//                    .Map([](const std::string& input) {
-//                        auto splitted = thrill::common::split(input, " ");
-//                        return std::make_pair((size_t)std::stoi(splitted[0]), 1.0);
-//                    }).Cache();
-
-//    std::vector<std::pair<size_t, double>> ranks_vec;
-//    ranks.AllGather(&ranks_vec);
-//    if (ctx.my_rank() == 0) {
-//        for (size_t i = 0; i < ranks_vec.size(); i++) {
-//            std::cout << ranks_vec[i].first << ": " << ranks_vec[i].second << std::endl;
-//        }
-//    }
 
     size_t size = ranks.Size();
 
@@ -242,14 +182,6 @@ void page_rank_with_reduce_sort(Context& ctx) {
                         .Cache();
     }
 
-//    std::vector<std::pair<size_t, double>> ranks_vec;
-//    ranks.AllGather(&ranks_vec);
-//    if (ctx.my_rank() == 0) {
-//        for (size_t i = 0; i < ranks_vec.size(); i++) {
-//            std::cout << ranks_vec[i].first << ": " << ranks_vec[i].second << std::endl;
-//        }
-//    }
-
     ranks.Map([](PageWithRank item) {
         return std::to_string(item.first)
                + ": " + std::to_string(item.second);
@@ -258,7 +190,6 @@ void page_rank_with_reduce_sort(Context& ctx) {
 }
 
 int main(int, char**) {
-    // return thrill::api::Run(page_rank);
     return thrill::api::Run(page_rank_with_reduce_sort);
 }
 
