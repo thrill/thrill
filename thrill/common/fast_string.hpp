@@ -36,57 +36,107 @@ public:
 	FastString() : size_(0) { };
 	
 	/**
-	 * 
+	 * Copy constructor for a new FastString. Actually allocates memory.
+	 * \param input Input FastString
+	 * \return Copy of input
 	 */
-	FastString(const FastString& in_str) {
-		char* begin = new char[in_str.size_];
-		std::copy(in_str.data_, in_str.data_ + in_str.size_, begin);
+	FastString(const FastString& input) {
+		char* begin = new char[input.size_];
+		std::copy(input.data_, input.data_ + input.size_, begin);
 		data_ = begin;
-		size_ = in_str.size_;
+		size_ = input.size_;
 		has_data_ = true;
 	};
 
+	/**
+	 * Move constructor for a new FastString. Steals data ownership.
+	 */
 	FastString(FastString&& other) :
 		FastString(other.data_, other.size_, other.has_data_) {
 		other.has_data_ = false;
 	};
 
+	/**
+	 * Destructor for a FastString. If it holds data, this data gets freed.
+	 */
 	~FastString() {
 		if (has_data_) {
 			delete[](data_);
 		}
 	};
-
+	
+	/**
+	 * Creates a new reference FastString, given a const char* and the size of the FastString.
+	 * \param data Pointer to start of data
+	 * \param size Size of data in bytes.
+	 * \return New FastString object.
+	 */
 	static FastString Ref(const char* data, size_t size) {
 		return FastString(data, size, false);
 	}
 
+	/**
+	 * Creates a new reference FastString, given a const iterator to a std::string
+	 * and the size of the FastString.
+	 * \param data Pointer to start of data
+	 * \param size Size of data in bytes.
+	 * \return New FastString object.
+	 */
 	static FastString Ref(std::string::const_iterator data, size_t size) {
 		return FastString(&(*data), size, false);
 	}
 
+	/**
+	 * Creates a new FastString and takes data ownership,
+	 * given a const char* and the size of the FastString.
+	 * \param data Pointer to start of data
+	 * \param size Size of data in bytes.
+	 * \return New FastString object.
+	 */
 	static FastString Take(const char* data, size_t size) {
 		return FastString(data, size, true);
 	}
 
+	/**
+	 * Creates a new FastString and copies it's data.
+	 * \param data Pointer to start of data
+	 * \param size Size of data in bytes.
+	 * \return New FastString object.
+	 */
 	static FastString Copy(const char* data, size_t size) {
 		char* mem = new char[size];
 		std::copy(data, data + size, mem);
 		return FastString(mem, size, true);
 	}
 
-	static FastString Copy(const std::string& in_str) {
-		return Copy(in_str.c_str(), in_str.size());
+	/**
+	 * Creates a new FastString and copies it's data.
+	 * \param input Input string, which the new FastString is a copy of
+	 * \return New FastString object.
+	 */
+	static FastString Copy(const std::string& input) {
+		return Copy(input.c_str(), input.size());
 	}
 	
+	/**
+	 * Returns a pointer to the start of the data.
+	 */
 	const char* Data() const {
 		return data_;
 	}
-
+	
+	/**
+	 * Returns the size of this FastString
+	 */
 	size_t Size() const {
 		return size_;
 	}
 
+	/**
+	 * Copy assignment operator.
+	 * \param other copied FastString
+	 * \return reference to this FastString
+	 */
 	FastString& operator = (const FastString& other) {
 		if (has_data_) delete[] (data_);
 		char* mem = new char[other.size_];
@@ -97,6 +147,11 @@ public:
 		return *this;
 	}
 
+	/**
+	 * Move assignment operator
+	 * \param other moved FastString
+	 * \return reference to this FastString
+	 */
 	FastString& operator = (FastString&& other) {
 		if (has_data_) delete[] (data_);
 		data_ = std::move(other.data_);
@@ -106,41 +161,77 @@ public:
 		return *this;
 	}
 
+	/**
+	 * Equality operator to compare a FastString with an std::string
+	 * \param other Comparison string
+	 * \return true, if data is equal
+	 */
 	bool operator == (std::string other) const {
 		return size_ == other.size() &&
 			std::equal(data_, data_ + size_, other.c_str());
 	}
 
+	/**
+	 * Inequality operator to compare a FastString with an std::string
+	 * \param other Comparison string
+	 * \return false, if data is equal
+	 */
 	bool operator != (std::string other) const {
 		return !(operator == (other));
 	}
 
+	/**
+	 * Equality operator to compare a FastString with another FastString
+	 * \param other Comparison FastString
+	 * \return true, if data is equal
+	 */
 	bool operator == (const FastString& other) const {
-		return size_ = other.size_ &&
+		return size_ == other.size_ &&
 			std::equal(data_, data_ + size_, other.data_); 
 	}
 
+	/**
+	 * Inequality operator to compare a FastString with another FastString
+	 * \param other Comparison FastString
+	 * \return false, if data is equal
+	 */
 	bool operator != (const FastString& other) const {
 		return !(operator == (other));
 	}
 
+	/**
+	 * Make FastString ostreamable
+	 * \param os ostream
+	 * \param fs FastString to stream
+	 */
 	friend std::ostream& operator << (std::ostream& os, const FastString& fs) {
 		return os.write(fs.Data(), fs.Size()); 
 	}
 
+	/**
+	 * Returns the data of this FastString as an std::string
+	 * \return This FastString as an std::string
+	 */
 	std::string ToString() const {
 		return std::string(data_, size_);
 	}
 
 
 protected:
-	FastString(const char* data, size_t size, bool copy) :
-		data_(data), size_(size), has_data_(copy) { };
+	/**
+	 * Internal constructor, which creates a new FastString and sets parameters
+	 * \param data Pointer to data
+	 * \param size Size of data in bytes
+	 * \param has_data True, if this FastString has ownership of data
+	 */
+	FastString(const char* data, size_t size, bool has_data) :
+		data_(data), size_(size), has_data_(has_data) { };
 
+	// Pointer to data
 	const char* data_ = 0;
-
+	// Size of data
 	size_t size_;
-
+	// True, if this FastString has ownership of data
 	bool has_data_ = false;
 
 };
