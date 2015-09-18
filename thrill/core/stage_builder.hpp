@@ -46,7 +46,7 @@ public:
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
-        //    << "FINISH (EXECUTING) stage" << node_->label()
+        //    << "FINISH (EXECUTING) stage" << node_->label();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
 
@@ -57,7 +57,7 @@ public:
         node_->set_state(api::DIAState::EXECUTED);
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
-        //    << "FINISH (PUSHING) stage" << node_->label()
+        //    << "FINISH (PUSHING) stage" << node_->label();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
@@ -71,8 +71,7 @@ public:
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
-        //    << "FINISH (PUSHING) stage"
-        //    << node_->label()
+        //    << "FINISH (PUSHING) stage" << node_->label();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time: " << std::put_time(std::localtime(&tt), "%T");
     }

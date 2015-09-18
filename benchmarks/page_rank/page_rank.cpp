@@ -166,7 +166,7 @@ void page_rank_with_reduce_sort(Context& ctx) {
         return in1.first < in2.first;
     };
 
-    auto links_sorted = links.Sort(compare_fn);
+    auto links_sorted = links.Sort(compare_fn).Keep();
 
 //    std::vector<std::pair<int, std::vector<int>>> out_vec;
 //    links_sorted.AllGather(&out_vec);
@@ -258,8 +258,8 @@ void page_rank_with_reduce_sort(Context& ctx) {
 }
 
 int main(int, char**) {
-    return thrill::api::Run(page_rank);
-    //return thrill::api::Run(page_rank_with_reduce_sort);
+    // return thrill::api::Run(page_rank);
+    return thrill::api::Run(page_rank_with_reduce_sort);
 }
 
 /******************************************************************************/
