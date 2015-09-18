@@ -192,7 +192,7 @@ void page_rank_with_reduce_sort(Context& ctx) {
 
     ranks.Map([](PageWithRank item) {
                   return std::to_string(item.first)
-                      + ": " + std::to_string(item.second);
+                  + ": " + std::to_string(item.second);
               }).
     WriteLines("pagerank.out");
 }

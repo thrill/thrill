@@ -56,10 +56,10 @@ TEST(FastStringTest, CopyFastString) {
         str = str2;
         FastString str3 = FastString::Copy(str2.Data(), str2.Size());
         std::string().swap(input);
-        ASSERT_TRUE(str3 == "input string");
+        ASSERT_TRUE(str3 == "input string"); // NOLINT
     }
 
-    ASSERT_TRUE(str == "input string");
+    ASSERT_TRUE(str == "input string");      // NOLINT
     ASSERT_EQ(str.Size(), 12);
 }
 
@@ -69,7 +69,7 @@ TEST(FastStringTest, MoveFastString) {
     FastString str2 = FastString::Copy(&input[0], 12);
     str = std::move(str2);
     std::string().swap(input);
-    ASSERT_TRUE(str == "input string");
+    ASSERT_TRUE(str == "input string"); // NOLINT
     ASSERT_EQ(str.Size(), 12);
 }
 
