@@ -11,7 +11,6 @@
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
-#include <thrill/api/sum.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
@@ -30,7 +29,7 @@ unsigned int repeats = 1;
 using namespace thrill;
 
 //! Network benchmarking.
-void net_test(api::Context& ctx) {
+int net_test(api::Context& ctx) {
     if (ctx.workers_per_host() != 1) {
         die("Net benchmarks work only with one worker per host.");
     }
@@ -115,6 +114,8 @@ void net_test(api::Context& ctx) {
                  << " time_per_ping_pong[us]=" << static_cast<double>(time) / it;
         }
     }
+
+    return 0;
 }
 
 int main(int argc, char** argv) {

@@ -328,9 +328,7 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint);
  * \returns 0 if execution was fine on all threads. Otherwise, the first
  * non-zero return value of any thread is returned.
  */
-int Run(
-    const std::function<void(Context&)>& job_startpoint,
-    const std::string& log_prefix = std::string());
+int Run(const std::function<void(Context&)>& job_startpoint);
 
 //! \}
 
