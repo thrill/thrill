@@ -17,7 +17,7 @@ user=$(whoami)
 
 . ${cluster}/thrill-env.sh
 
-while getopts "u:h:H:cvC" opt; do
+while getopts "u:h:H:cvCw:" opt; do
     case "$opt" in
     h)
         # this overrides the user environment variable
@@ -38,6 +38,10 @@ while getopts "u:h:H:cvC" opt; do
         dir=/tmp/
         ;;
     C)  dir=$OPTARG
+        ;;
+    w)
+        # this overrides the user environment variable
+        THRILL_WORKERS_PER_HOST=$OPTARG
         ;;
     :)
         echo "Option -$OPTARG requires an argument." >&2
@@ -61,6 +65,7 @@ if [ -z "$cmd" ]; then
     echo "  -h <list>  list of nodes with port numbers"
     echo "  -H <list>  list of internal IPs passed to thrill exe (else: -h list)"
     echo "  -u <name>  ssh user name"
+    echo "  -w <num>   set thrill workers per host variable"
     echo "  -v         verbose output"
     exit 1
 fi
@@ -116,6 +121,8 @@ for hostport in $THRILL_SSHLIST; do
   if [ $verbose -ne 0 ]; then
     echo "Connecting to $host to invoke $cmd"
   fi
+  THRILL_EXPORTS="THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\""
+  THRILL_EXPORTS="$THRILL_EXPORTS THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\""
   REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
   if [ "$copy" == "1" ]; then
       REMOTENAME="/tmp/$cmdbase.$hostport.$$"
@@ -124,13 +131,13 @@ for hostport in $THRILL_SSHLIST; do
             "$cmd" "$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
             $host \
-            "export THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\" THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
+            "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
       ) &
   else
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
           $host \
-          "export THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\" THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $*" &
+          "export $THRILL_EXPORTS && cd $dir && $cmd $*" &
   fi
   rank=$((rank+1))
 done
