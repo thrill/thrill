@@ -40,8 +40,6 @@ class GroupByNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
-    using GroupIterator = typename common::FunctionTraits<GroupFunction>
-                          ::template arg<0>;
     using ValueIn = typename common::FunctionTraits<KeyExtractor>
                     ::template arg<0>;
 
