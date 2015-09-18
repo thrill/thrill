@@ -36,7 +36,7 @@ template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static const bool debug = true;
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
@@ -112,10 +112,10 @@ public:
     }
 
     void RunUserFunc(File& f, bool consume) {
-        Reader r = f.GetReader(consume);
+        auto r = f.GetReader(consume);
         if (r.HasNext()) {
             // create iterator to pass to user_function
-            auto user_iterator = GroupByIterator<ValueIn, KeyExtractor>(r, key_extractor_);
+            auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
             while (user_iterator.HasNextForReal()) {
                 // call user function
                 const ValueOut res = groupby_function_(user_iterator,
@@ -131,7 +131,6 @@ public:
 
     void PushData(bool consume) final {
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
-        using OIterator = thrill::core::FileOutputIteratorWrapper<ValueIn>;
 
         const std::size_t num_runs = files_.size();
         // if there's only one run, call user funcs
@@ -142,28 +141,23 @@ public:
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
             for (std::size_t t = 0; t < num_runs; ++t) {
-                std::shared_ptr<Reader> reader = std::make_shared<Reader>(files_[t].GetReader(consume));
+                std::shared_ptr<Reader> reader = std::make_shared<Reader>
+                    (files_[t].GetReader(consume));
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
             }
 
-            {
-                OIterator oiter(std::make_shared<Writer>(sorted_elems_.GetWriter()));
+            auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
+                std::begin(seq),
+                std::end(seq),
+                totalsize_,
+                ValueComparator(*this));
 
-                core::sequential_file_multiway_merge<true, false>(
-                    std::begin(seq),
-                    std::end(seq),
-                    oiter,
-                    totalsize_,
-                    ValueComparator(*this));
-            }
-
-
-            Reader r = sorted_elems_.GetReader(consume);
-            if (r.HasNext()) {
+            if (puller.HasNext()) {
                 // create iterator to pass to user_function
-                auto user_iterator = GroupByIterator<ValueIn, KeyExtractor>(r, key_extractor_);
+                auto user_iterator = GroupByMultiwayMergeIterator
+                    <ValueIn, KeyExtractor, ValueComparator>(puller, key_extractor_);
                 while (user_iterator.HasNextForReal()) {
                     // call user function
                     const ValueOut res = groupby_function_(user_iterator,
@@ -232,6 +226,7 @@ private:
 
         const bool consume = true;
         const std::size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
+        // const std::size_t FIXED_VECTOR_SIZE = 10;
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
 

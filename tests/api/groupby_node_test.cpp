@@ -32,7 +32,7 @@ TEST(GroupByNode, CompileAndSum) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            unsigned n = 99999;
+            unsigned n = 8;
             static const unsigned m = 4;
 
             auto sizets = Generate(
@@ -79,13 +79,14 @@ TEST(GroupByNode, CompileAndSum) {
         };
 
     api::RunLocalTests(start_func);
+    // RunLocalMock(1, 1, start_func);
 }
 
 TEST(GroupByNode, Median) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            unsigned n = 99999;
+            unsigned n = 9999;
             static const unsigned m = 4;
 
             auto sizets = Generate(
@@ -159,7 +160,7 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
                        };
 
             auto add_function =
-                [](api::GroupByIterator<std::size_t, decltype(key)>& r,
+                [](auto& r,
                     std::size_t) {
                         std::size_t res = 4;
                         while(r.HasNext()) {
@@ -169,7 +170,7 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
                     };
 
 
-            auto reduced = integers.GroupByIndex(key, add_function, result_size);
+            auto reduced = integers.GroupByIndex<std::size_t>(key, add_function, result_size);
 
 
             std::vector<size_t> out_vec = reduced.AllGather();
