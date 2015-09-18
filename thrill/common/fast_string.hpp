@@ -178,7 +178,7 @@ public:
 	 * \param other Comparison string
 	 * \return true, if data is equal
 	 */
-	bool operator == (std::string other) const {
+	bool operator == (const std::string& other) const {
 		return size_ == other.size() &&
 			std::equal(data_, data_ + size_, other.c_str());
 	}
@@ -188,7 +188,7 @@ public:
 	 * \param other Comparison string
 	 * \return false, if data is equal
 	 */
-	bool operator != (std::string other) const {
+	bool operator != (const std::string& other) const {
 		return !(operator == (other));
 	}
 
