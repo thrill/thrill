@@ -35,7 +35,7 @@ Group::ConstructDispatcher(mem::Manager& mem_manager) const {
         mem::Deleter<Dispatcher>(mem_manager));
 }
 
-std::vector<std::unique_ptr<Group> > Group::ConstructLocalMesh(
+std::vector<std::unique_ptr<Group> > Group::ConstructLoopbackMesh(
     size_t num_hosts) {
 
     // construct a group of num_hosts

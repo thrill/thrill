@@ -36,7 +36,7 @@ static void LocalGroupTest(
     const std::function<void(net::Group*)>& thread_function) {
     // execute local stream socket tests
     net::ExecuteGroupThreads(
-        net::tcp::Group::ConstructLocalMesh(6),
+        net::tcp::Group::ConstructLoopbackMesh(6),
         thread_function);
 }
 

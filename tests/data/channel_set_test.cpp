@@ -25,7 +25,7 @@ static const size_t test_block_size = 1024;
 TEST(ChannelSet, TestLoopbacks) {
     size_t workers_per_host = 3;
     size_t hosts = 1;
-    auto groups = net::mock::Group::ConstructLocalMesh(hosts);
+    auto groups = net::mock::Group::ConstructLoopbackMesh(hosts);
     net::Group* group = groups[0].get();
     mem::Manager mem_manager(nullptr, "Benchmark");
     data::BlockPool block_pool(&mem_manager);

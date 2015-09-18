@@ -21,12 +21,12 @@ void RunGroupTest(
     const std::function<void(Group*)>& thread_function) {
     // construct mock network mesh and run threads
     ExecuteGroupThreads(
-        mock::Group::ConstructLocalMesh(num_hosts),
+        mock::Group::ConstructLoopbackMesh(num_hosts),
         thread_function);
 #if 0
     // construct local tcp network mesh and run threads
     ExecuteGroupThreads(
-        tcp::Group::ConstructLocalMesh(num_hosts),
+        tcp::Group::ConstructLoopbackMesh(num_hosts),
         thread_function);
 #endif
 }
