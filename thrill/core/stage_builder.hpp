@@ -52,11 +52,9 @@ public:
 
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // timer.Start();
-        node_->StartPushFlow();
-        node_->PushData(node_->consume_on_push_data());
-        node_->StopPushFlow();
-        // timer.Stop();
+        node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
+        // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
         //    << "FINISH (PUSHING) stage" << node_->label();
@@ -68,9 +66,7 @@ public:
         // time_t tt;
         die_unless(!node_->consume_on_push_data());
         // timer.Start();
-        node_->StartPushFlow();
-        node_->PushData(node_->consume_on_push_data());
-        node_->StopPushFlow();
+        node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());

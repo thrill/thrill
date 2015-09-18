@@ -96,6 +96,12 @@ public:
                 callbacks_.begin(), callbacks_.end(),
                 [](const auto& cb) { return cb.type_ != DIANodeType::COLLAPSE; }),
             callbacks_.end());
+
+        children_.erase(
+            std::remove_if(
+                children_.begin(), children_.end(),
+                [](const auto& c) { return c->type() != DIANodeType::COLLAPSE; }),
+            children_.end());
     }
 
     std::vector<CallbackPair<ValueType> > & callbacks() {

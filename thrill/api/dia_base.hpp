@@ -107,11 +107,18 @@ public:
     //! Virtual clear method. Triggers actual disposing in sub-classes.
     virtual void Dispose() = 0;
 
-    //! Virtual method for signaling children on push start. 
-    virtual void StartPushFlow() { };
+    //! Virtual method for preparing start of data. 
+    virtual void StartPreOp() { };
 
-    //! Virtual method for signaling children on push end. 
-    virtual void StopPushFlow() { };
+    //! Virtual method for preparing end of data. 
+    virtual void StopPreOp() { };
+
+    //! Performing push operation. Notifies children and calls actual push method.
+    void DoPushData(bool consume) { 
+        for (DIABase* child : children_) child->StartPreOp();
+        PushData(consume);
+        for (DIABase* child : children_) child->StopPreOp();
+    };
 
     //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
     virtual void UnregisterChilds() = 0;
