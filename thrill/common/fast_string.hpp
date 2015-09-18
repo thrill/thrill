@@ -16,7 +16,12 @@
 
 #include <cstdlib>
 #include <cstring>
+
+#if __APPLE__
+        // Apple does not have bits/functional_hash.h, using other hash function.
+#else
 #include <bits/functional_hash.h>
+#endif
 
 #include <thrill/common/logger.hpp>
 #include <thrill/data/serialization.hpp>
@@ -274,8 +279,17 @@ namespace std { //I am very sorry.
 	struct hash<thrill::common::FastString>
 	{
 		size_t operator ()(const thrill::common::FastString& fs) const {
-			//unsigned int hash = 0xDEADC0DE;
+#if __APPLE__			
+			// Apple does not have bits/functional_hash.h, using other hash function.
+			// taken from: http://www.cse.yorku.ca/~oz/hash.html
+			unsigned int hash = 5381;
+			for (size_t ctr = 0; ctr < fs.Size(); ctr++) {
+				hash = ((hash << 5) + hash) + *(fs.Data() + ctr); /* hash * 33 + c */
+			}
+			return hash;
+#else			
 			return std::_Hash_impl::hash(fs.Data(), fs.Size());
+#endif			
 			//	hash = ((hash << 5) + hash) + *(fs.Data() + ctr); /* hash * 33 + c */
 			//return hash;
 		}
