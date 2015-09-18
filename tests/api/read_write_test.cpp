@@ -96,7 +96,7 @@ TEST(IO, ReadPartOfFolderCompressed) {
 }
 
 TEST(IO, GenerateFromFileRandomIntegers) {
-    api::RunSameThread(
+    api::RunLocalSameThread(
         [](api::Context& ctx) {
             std::default_random_engine generator(std::random_device { } ());
             std::uniform_int_distribution<int> distribution(1000, 10000);

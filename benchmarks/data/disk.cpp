@@ -34,7 +34,8 @@ int main(int argc, const char** argv) {
     if (!clp.Process(argc, argv)) return -1;
 
     for (int i = 0; i < iterations; i++) {
-        api::RunSameThread([&input_file, &output_file](api::Context& ctx) {
+        api::RunLocalSameThread(
+            [&input_file, &output_file](api::Context& ctx) {
                                StatsTimer<true> timer(true);
                                auto lines = ReadLines(ctx, input_file);
                                lines.WriteLinesMany(output_file);
