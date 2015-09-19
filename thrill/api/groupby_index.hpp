@@ -87,8 +87,7 @@ public:
           neutral_element_(neutral_element),
           hash_function_(hash_function),
           channel_(parent.ctx().GetNewChannel()),
-          emitter_(channel_->OpenWriters()),
-          sorted_elems_(context_.GetFile())
+          emitter_(channel_->OpenWriters())
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -114,27 +113,8 @@ public:
         MainOp();
     }
 
-    void RunUserFunc(File& f, bool consume) {
-        auto r = f.GetReader(consume);
-        if (r.HasNext()) {
-            // create iterator to pass to user_function
-            auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
-            while (user_iterator.HasNextForReal()) {
-                // call user function
-                const ValueOut res = groupby_function_(user_iterator,
-                    user_iterator.GetNextKey());
-                // push result to callback functions
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    // LOG << "grouped to value " << res;
-                    func(res);
-                }
-            }
-        }
-    }
-
     void PushData(bool consume) final {
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
-
         const std::size_t num_runs = files_.size();
         // if there's only one run, store it
         if (num_runs == 1) {
@@ -156,10 +136,13 @@ public:
                 totalsize_,
                 ValueComparator(*this));
 
+
+            std::size_t curr_index = std::get<0>(common::CalculateLocalRange(
+                number_keys_, context_.num_workers(), context_.my_rank()));
+            std::size_t max_index = std::min(std::get<1>(
+                common::CalculateLocalRange(number_keys_,
+                context_.num_workers(), context_.my_rank())), number_keys_);
             if (puller.HasNext()) {
-                std::size_t keyspace = number_keys_ /
-                    emitter_.size() + (number_keys_ % emitter_.size() != 0);
-                std::size_t curr_index = keyspace * context_.my_rank();
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator
                     <ValueIn, KeyExtractor, ValueComparator>
@@ -184,33 +167,10 @@ public:
                     ++curr_index;
                 }
             }
-        }
-
-
-        Reader r = sorted_elems_.GetReader(consume);
-        if (r.HasNext()) {
-            // create iterator to pass to user_function
-            auto user_iterator = GroupByIterator
-                <ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
-            std::size_t keyspace = number_keys_ / emitter_.size() + (number_keys_ % emitter_.size() != 0);
-            std::size_t curr_index = keyspace * context_.my_rank();
-
-            while (user_iterator.HasNextForReal()) {
-                if (user_iterator.GetNextKey() != curr_index) {
-                    // push neutral element as result to callback functions
-                    for (auto func : DIANode<ValueType>::callbacks_) {
-                        func(neutral_element_);
-                    }
-                } else {
-                    //call user function
-                    // TODO(cn): call groupby function while doing multiway merge
-                    const ValueOut res = groupby_function_(user_iterator,
-                        user_iterator.GetNextKey());
-                    // push result to callback functions
-                    for (auto func : DIANode<ValueType>::callbacks_) {
-                        // LOG << "grouped to value " << res;
-                        func(res);
-                    }
+            while (curr_index < max_index - 1) {
+                // push neutral element as result to callback functions
+                for (auto func : DIANode<ValueType>::callbacks_) {
+                    func(neutral_element_);
                 }
                 ++curr_index;
             }
@@ -238,7 +198,45 @@ private:
     data::ChannelPtr channel_;
     std::vector<data::Channel::Writer> emitter_;
     std::vector<data::File> files_;
-    data::File sorted_elems_;
+
+    void RunUserFunc(File& f, bool consume) {
+        auto r = f.GetReader(consume);
+        if (r.HasNext()) {
+            std::size_t curr_index = std::get<0>(common::CalculateLocalRange(
+                number_keys_, context_.num_workers(), context_.my_rank()));
+            std::size_t max_index = std::min(std::get<1>(
+                common::CalculateLocalRange(number_keys_,
+                context_.num_workers(), context_.my_rank())), number_keys_);
+            // create iterator to pass to user_function
+            auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
+            while (user_iterator.HasNextForReal()) {
+                if (user_iterator.GetNextKey() != curr_index) {
+                    // push neutral element as result to callback functions
+                    for (auto func : DIANode<ValueType>::callbacks_) {
+                        func(neutral_element_);
+                    }
+                } else {
+                    // call user function
+                    const ValueOut res = groupby_function_(user_iterator,
+                        user_iterator.GetNextKey());
+                    // push result to callback functions
+                    for (auto func : DIANode<ValueType>::callbacks_) {
+                        // LOG << "grouped to value " << res;
+                        func(res);
+                    }
+                }
+                ++curr_index;
+            }
+            while (curr_index < max_index - 1) {
+                // push neutral element as result to callback functions
+                for (auto func : DIANode<ValueType>::callbacks_) {
+                    func(neutral_element_);
+                }
+                ++curr_index;
+            }
+        }
+    }
+
 
     /*
      * Send all elements to their designated PEs
@@ -246,12 +244,8 @@ private:
     void PreOp(const ValueIn& v) {
         const Key k = key_extractor_(v);
         assert(k < number_keys_);
-        const auto recipient = k /
-                               (number_keys_ / emitter_.size()
-                                + (number_keys_ % emitter_.size() != 0)); //round up
-        // LOG << "sending " << v
-        //     << " with key " << k
-        //     << " to " << recipient << "/" << emitter_.size();
+        const auto recipient = k * emitter_.size() / number_keys_;
+        assert(recipient < emitter_.size());
         emitter_[recipient](v);
     }
 
@@ -304,6 +298,7 @@ private:
         totalsize_ += incoming.size();
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
+
     }
 };
 

@@ -111,24 +111,6 @@ public:
         MainOp();
     }
 
-    void RunUserFunc(File& f, bool consume) {
-        auto r = f.GetReader(consume);
-        if (r.HasNext()) {
-            // create iterator to pass to user_function
-            auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
-            while (user_iterator.HasNextForReal()) {
-                // call user function
-                const ValueOut res = groupby_function_(user_iterator,
-                    user_iterator.GetNextKey());
-                // push result to callback functions
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    // LOG << "grouped to value " << res;
-                    func(res);
-                }
-            }
-        }
-    }
-
     void PushData(bool consume) final {
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
 
@@ -192,6 +174,25 @@ private:
     std::vector<data::File> files_;
     data::File sorted_elems_;
     std::size_t totalsize_;
+
+    void RunUserFunc(File& f, bool consume) {
+        auto r = f.GetReader(consume);
+        if (r.HasNext()) {
+            // create iterator to pass to user_function
+            auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
+            while (user_iterator.HasNextForReal()) {
+                // call user function
+                const ValueOut res = groupby_function_(user_iterator,
+                    user_iterator.GetNextKey());
+                // push result to callback functions
+                for (auto func : DIANode<ValueType>::callbacks_) {
+                    // LOG << "grouped to value " << res;
+                    func(res);
+                }
+            }
+        }
+    }
+
 
     /*
      * Send all elements to their designated PEs
