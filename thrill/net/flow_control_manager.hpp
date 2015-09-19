@@ -13,6 +13,7 @@
 #define THRILL_NET_FLOW_CONTROL_MANAGER_HEADER
 
 #include <thrill/common/thread_barrier.hpp>
+#include <thrill/common/memory.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/group.hpp>
 
@@ -31,17 +32,17 @@ protected:
     /**
      * The shared barrier used to synchronize between worker threads on this node.
      */
-    common::ThreadBarrier barrier;
+    common::ThreadBarrier barrier_;
 
     /**
      * The flow control channels associated with this node.
      */
-    std::vector<FlowControlChannel> channels;
+    std::vector<FlowControlChannel> channels_;
 
     /**
      * Some shared memory to work upon (managed by thread 0).
      */
-    void* shmem;
+    common::AlignedPtr *shmem_;
 
 public:
     /**
@@ -52,10 +53,10 @@ public:
      *
      */
     explicit FlowControlChannelManager(Group& group, size_t local_worker_count)
-        : barrier(local_worker_count), shmem(nullptr) {
+        : barrier_(local_worker_count), shmem_(new common::AlignedPtr[local_worker_count]) {
 
         for (size_t i = 0; i < local_worker_count; i++) {
-            channels.emplace_back(group, i, local_worker_count, barrier, &shmem);
+            channels_.emplace_back(group, i, local_worker_count, barrier_, shmem_);
         }
     }
 
@@ -64,7 +65,7 @@ public:
      * \return A flow channel for each thread.
      */
     std::vector<FlowControlChannel> & GetFlowControlChannels() {
-        return channels;
+        return channels_;
     }
 
     /**
@@ -72,7 +73,7 @@ public:
      * \return The flow control channel for a certain thread.
      */
     FlowControlChannel & GetFlowControlChannel(size_t thread_id) {
-        return channels[thread_id];
+        return channels_[thread_id];
     }
 };
 
