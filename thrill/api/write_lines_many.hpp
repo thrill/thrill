@@ -52,7 +52,7 @@ public:
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [=](std::string input) {
+        auto pre_op_fn = [=](const std::string& input) {
                              PreOp(input);
                          };
 
@@ -67,7 +67,7 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    void PreOp(std::string input) {
+    void PreOp(const std::string& input) {
         stats_total_elements_++;
 
         if (THRILL_UNLIKELY(current_buffer_size_ + input.size() + 1
