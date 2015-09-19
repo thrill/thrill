@@ -325,8 +325,7 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint);
  *
  * THRILL_WORKERS_PER_HOST is the number of workers (threads) per host.
  *
- * \returns 0 if execution was fine on all threads. Otherwise, the first
- * non-zero return value of any thread is returned.
+ * \returns 0 if execution was fine on all threads.
  */
 int Run(const std::function<void(Context&)>& job_startpoint);
 

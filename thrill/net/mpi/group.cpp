@@ -40,6 +40,11 @@ void Connection::SyncSend(
     const void* data, size_t size, Flags /* flags */) {
     std::unique_lock<std::mutex> lock(g_mutex);
 
+    LOG << "MPI_Send()"
+        << " size=" << size
+        << " peer_=" << peer_
+        << " group_tag_=" << group_tag_;
+
     int r = MPI_Send(const_cast<void*>(data), size, MPI_BYTE,
                      peer_, group_tag_, MPI_COMM_WORLD);
 
@@ -65,6 +70,11 @@ ssize_t Connection::SendOne(
 
 void Connection::SyncRecv(void* out_data, size_t size) {
     std::unique_lock<std::mutex> lock(g_mutex);
+
+    LOG << "MPI_Recv()"
+        << " size=" << size
+        << " peer_=" << peer_
+        << " group_tag_=" << group_tag_;
 
     MPI_Status status;
     int r = MPI_Recv(out_data, size, MPI_BYTE,
@@ -178,6 +188,19 @@ size_t NumMpiProcesses() {
         throw Exception("Error during MPI_Comm_size()", r);
 
     return static_cast<size_t>(num_mpi_hosts);
+}
+
+size_t MpiRank() {
+    std::unique_lock<std::mutex> lock(g_mutex);
+
+    Initialize();
+
+    int mpi_rank;
+    int r = MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    if (r != MPI_SUCCESS)
+        throw Exception("Error during MPI_Comm_rank()", r);
+
+    return static_cast<size_t>(mpi_rank);
 }
 
 } // namespace mpi
