@@ -114,9 +114,10 @@ void BandwidthTest(api::Context& ctx) {
     size_t counter = 0;
 
     // data block to send or receive
-    static const size_t data_size = 1024 * 1024;
-    std::array<size_t, data_size / sizeof(size_t)> data_block;
-    static const size_t block_count = 64;
+    static const size_t block_count = 1024;
+    static const size_t block_size = 1024 * 1024;
+    std::array<size_t, block_size / sizeof(size_t)> data_block;
+    std::fill(data_block.begin(), data_block.end(), 42u);
 
     for (size_t outer_repeat = 0;
          outer_repeat < outer_repeats; ++outer_repeat) {
@@ -135,9 +136,12 @@ void BandwidthTest(api::Context& ctx) {
                       << "me" << ctx.host_rank() << "peer" << peer;
 
                 if (ctx.host_rank() < peer) {
+                    common::StatsTimer<true> bwtimer(true);
                     // send blocks to peer
                     for (size_t i = 0; i != block_count; ++i) {
-                        data_block[0] = counter++;
+                        data_block.front() = counter;
+                        data_block.back() = counter;
+                        ++counter;
                         group.SendTo(peer, data_block);
                     }
 
@@ -145,15 +149,23 @@ void BandwidthTest(api::Context& ctx) {
                     size_t value;
                     group.ReceiveFrom(peer, &value);
                     assert(value == counter);
+
+                    bwtimer.Stop();
+
+                    sLOG1 << "bandwidth" << ctx.host_rank() << "->" << peer
+                          << ((block_count * block_size) / (bwtimer.Microseconds() * 1e-6)
+                              / 1024.0 / 1024.0)
+                          << "MiB/s"
+                          << "time" << (bwtimer.Microseconds() * 1e-6);
                 }
                 else if (ctx.host_rank() > peer) {
                     // receive blocks from peer
                     for (size_t i = 0; i != block_count; ++i) {
                         group.ReceiveFrom(peer, &data_block);
-                        assert(data_block[0] == counter);
+                        die_unequal(data_block.front(), counter);
+                        die_unequal(data_block.back(), counter);
 
-                        // increment counters
-                        counter++;
+                        ++counter;
                     }
 
                     // send ping
