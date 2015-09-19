@@ -182,7 +182,7 @@ public:
 
     //! Close this Connection
     void Close() {
-        socket_.shutdown();
+        socket_.close();
     }
 
     //! make ostreamable
