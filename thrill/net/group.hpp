@@ -78,6 +78,29 @@ public:
     virtual mem::mm_unique_ptr<class Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const = 0;
 
+    //! Calculate the peer of this host in the k-th iteration (of 0..p-1) of a
+    //! 1-factor based network exchange algorithm.
+    size_t OneFactorPeer(size_t iteration) const {
+        size_t i = iteration;
+        size_t r = my_host_rank();
+        size_t p = num_hosts();
+
+        if (p % 2 == 0) {
+            // p is even
+            size_t idle = (i * p / 2) % (p - 1);
+            if (r == p - 1)
+                return idle;
+            else if (r == idle)
+                return p - 1;
+            else
+                return (i - r + p - 1) % (p - 1);
+        }
+        else {
+            // p is odd
+            return (i - r + p) % p;
+        }
+    }
+
     //! \}
 
     //! \name Convenience Functions
