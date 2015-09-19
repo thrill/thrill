@@ -13,15 +13,14 @@
 #include <thrill/api/reduce.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
+#include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/groupby_index.hpp>
-#include <thrill/api/groupby.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
-#include <thrill/common/string.hpp>
-#include <thrill/thrill.hpp>
-#include <thrill/core/multiway_merge.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -204,9 +203,11 @@ void page_rank_with_reduce_sort(Context& ctx) {
 
 //! The PageRank user program with group by
 void page_rank_with_groupbyindex(Context& ctx) {
-
+    thrill::common::StatsTimer<true> timer(false);
+    static const bool debug = true;
     static const double s = 0.85;
     static const double f = 0.15;
+    static const std::size_t iters = 10;
 
     using Key = std::size_t;
     using Node = std::size_t;
@@ -214,31 +215,30 @@ void page_rank_with_groupbyindex(Context& ctx) {
     using PageWithRank = std::pair<std::size_t, double>;
     using Link = std::pair<std::size_t, std::size_t>;
 
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////// ALL KINDS OF LAMBDAS ////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+
     auto create_links_fn = [](const std::string& input) {
         auto split = thrill::common::split(input, " ");
-        return std::make_pair((std::size_t)std::stoi(split[0]), (std::size_t)std::stoi(split[1]));
+        // set node ids base to zero
+        return std::make_pair((std::size_t)(std::stoi(split[0]) - 1),
+            (std::size_t)(std::stoi(split[1]) - 1));
     };
 
     auto max_fn = [](const Link &in1, const Link &in2) {
         return std::make_pair(((in1.first > in2.first) ? in1.first : in2.first), in2.second);
     };
 
-    auto key_link_fn = [](const Link& p) { return p.first; };
+    auto key_link_fn = [](Link p) { return p.first; };
     auto key_page_with_ranks_fn = [](const PageWithRank& p) { return p.first; };
 
-    // auto group_fn = [](auto& r, Key k) {
-    //     std::vector<Node> all;
-    //     while (r.HasNext()) {
-    //         all.push_back(r.Next().second);
-    //     }
-    //     return std::make_pair(k, all);
-    // };
-
     auto group_fn = [](auto& r, Key k) {
+        std::vector<Node> all;
         while (r.HasNext()) {
-            r.Next();
+            all.push_back(r.Next().second);
         }
-        return 0;
+        return std::make_pair(k, all);
     };
 
     auto set_rank_fn = [](PageWithLinks p) {
@@ -249,19 +249,25 @@ void page_rank_with_groupbyindex(Context& ctx) {
         return std::make_pair(l.first, r.second/(l.second.size()));
     };
 
+    //spark computation is:
+    // ranks = contribs.reduceByKey(_ + _).mapValues(0.15 + 0.85 * _)
     auto update_rank_fn = [](const PageWithRank& p1, const PageWithRank& p2) {
         return std::make_pair(p1.first, f + s * (p1.second + p2.second));
     };
 
     PageWithLinks neutral_page = std::make_pair(0, std::vector<Node>());
 
-    //////////////////////// START OF COMPUTATION HERE /////////////////////////
 
+    ////////////////////////////////////////////////////////////////////////////
+    //////////////////////// START OF COMPUTATION HERE /////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+
+    timer.Start();
     // url linked_url
     // url linked_url
     // url linked_url
     // ...
-    auto in = ReadLines(ctx, "pagerank_2.in");
+    auto in = ReadLines(ctx, "../../../bench_in/eu-2005.in");
     auto input = in.Map(create_links_fn);
 
     //  URL   OUTGOING
@@ -269,38 +275,48 @@ void page_rank_with_groupbyindex(Context& ctx) {
     // (url, [linked_url, linked_url, ...])
     // (url, [linked_url, linked_url, ...])
     // ...
-    auto number_nodes = input.Sum(max_fn).first;
+    auto number_nodes = input.Sum(max_fn).first + 1;
+    auto links = input.GroupByIndex<PageWithLinks>(key_link_fn, group_fn, number_nodes).Keep();
 
-    auto links = input.GroupBy<int>(key_link_fn, group_fn);
+    // (url, rank)
+    // (url, rank)
+    // (url, rank)
+    // ...
+    auto ranks = links.Map(set_rank_fn).Cache();
 
-    // // (url, rank)
-    // // (url, rank)
-    // // (url, rank)
-    // // ...
-    // auto ranks = links.Map(set_rank_fn).Cache();
+    // do iterations
+    for (size_t i = 1; i <= iters; ++i) {
+        // (linked_url, rank / OUTGOING.size)
+        // (linked_url, rank / OUTGOING.size)
+        // (linked_url, rank / OUTGOING.size)
+        // ...
+        auto contribs = links.Zip(ranks, compute_rank_contrib_fn);
 
-    // // do iterations
-    // for (size_t i = 1; i <= 10; ++i) {
-    //     // (linked_url, rank / OUTGOING.size)
-    //     // (linked_url, rank / OUTGOING.size)
-    //     // (linked_url, rank / OUTGOING.size)
-    //     // ...
-    //     auto contribs = links.Zip(ranks, compute_rank_contrib_fn);
+        // (url, rank)
+        // (url, rank)
+        // (url, rank)
+        // ...
+        ranks = contribs.ReduceToIndex(key_page_with_ranks_fn, update_rank_fn, number_nodes);
+    }
 
-    //     // (url, rank)
-    //     // (url, rank)
-    //     // (url, rank)
-    //     // ...
-    //     ranks = contribs.ReduceToIndex(key_page_with_ranks_fn, update_rank_fn, number_nodes);
+    ranks.Map([](PageWithRank item) {
+        return std::to_string(item.first + 1)
+        + ": " + std::to_string(item.second);
+    }).
+    WriteLines("pagerank.out");
+    timer.Stop();
 
-    //     // ranks = contribs.reduceByKey(_ + _).mapValues(0.15 + 0.85 * _)
-    // }
-
-    // ranks.Map([](PageWithRank item) {
-    //               return std::to_string(item.first)
-    //               + ": " + std::to_string(item.second);
-    //           }).
-    // WriteLines("pagerank.out");
+    auto number_edges = in.Size();
+    LOG << "FINISHED PAGERANK COMPUTATION"
+        << "\n"
+        << std::left << std::setfill(' ')
+        << std::setw(10) << "#nodes: " << number_nodes
+        << "\n"
+        << std::setw(10) << "#edges: " << number_edges
+        << "\n"
+        << std::setw(10) << "#iter: " << iters
+        << "\n"
+        << std::setw(10) << "time: " << timer.Seconds();
 }
 
 int main(int, char**) {
