@@ -51,7 +51,6 @@ TEST(GroupByNode, CompileAndSum) {
                     int k = 0;
                     while (r.HasNext()) {
                         auto n = r.Next();
-                        assert(n%4 == key);
                         k = n % m;
                         res += n;
                     }

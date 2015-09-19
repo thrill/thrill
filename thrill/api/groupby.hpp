@@ -36,7 +36,7 @@ template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode : public DOpNode<ValueType>
 {
-    static const bool debug = true;
+    static const bool debug = false;
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
@@ -122,7 +122,7 @@ public:
                     user_iterator.GetNextKey());
                 // push result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
-                    LOG << "grouped to value " << res;
+                    // LOG << "grouped to value " << res;
                     func(res);
                 }
             }
@@ -164,7 +164,7 @@ public:
                         user_iterator.GetNextKey());
                     // push result to callback functions
                     for (auto func : DIANode<ValueType>::callbacks_) {
-                        LOG << "grouped to value " << res;
+                        // LOG << "grouped to value " << res;
                         func(res);
                     }
                 }

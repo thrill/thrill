@@ -125,7 +125,7 @@ public:
                     user_iterator.GetNextKey());
                 // push result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
-                    LOG << "grouped to value " << res;
+                    // LOG << "grouped to value " << res;
                     func(res);
                 }
             }
@@ -177,7 +177,7 @@ public:
                             user_iterator.GetNextKey());
                         // push result to callback functions
                         for (auto func : DIANode<ValueType>::callbacks_) {
-                            LOG << "grouped to value " << res;
+                            // LOG << "grouped to value " << res;
                             func(res);
                         }
                     }
@@ -208,7 +208,7 @@ public:
                         user_iterator.GetNextKey());
                     // push result to callback functions
                     for (auto func : DIANode<ValueType>::callbacks_) {
-                        LOG << "grouped to value " << res;
+                        // LOG << "grouped to value " << res;
                         func(res);
                     }
                 }
@@ -249,9 +249,9 @@ private:
         const auto recipient = k /
                                (number_keys_ / emitter_.size()
                                 + (number_keys_ % emitter_.size() != 0)); //round up
-        LOG << "sending " << v
-            << " with key " << k
-            << " to " << recipient << "/" << emitter_.size();
+        // LOG << "sending " << v
+        //     << " with key " << k
+        //     << " to " << recipient << "/" << emitter_.size();
         emitter_[recipient](v);
     }
 
