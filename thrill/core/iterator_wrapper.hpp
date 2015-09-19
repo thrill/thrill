@@ -17,25 +17,6 @@
 #pragma once
 #ifndef THRILL_CORE_ITERATOR_WRAPPER_HEADER
 #define THRILL_CORE_ITERATOR_WRAPPER_HEADER
-<<<<<<< HEAD
-/******************************************************************************
- * src/SortAlgo.h
- *
- * Implementations of many sorting algorithms.
- *
- * Note that these implementations may not be as good/fast as possible. Some
- * are modified so that the visualization is more instructive.
- *
- * Futhermore, some algorithms are annotated using the mark() and watch()
- * functions from SortArray. These functions add colors to the illustratation
- * and thereby makes the algorithm's visualization easier to explain.
- *
- ******************************************************************************
- * Copyright (C) 2013-2014 Timo Bingmann <tb@panthema.net>
- *
- *****************************************************************************/
-=======
->>>>>>> edf6ec2... add proper copyright and license info
 
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>

@@ -61,7 +61,6 @@ class GroupByNode : public DOpNode<ValueType>
     };
 
     using Super::context_;
-    using Super::result_file_;
 
 public:
     /*!
@@ -78,7 +77,7 @@ public:
                 const GroupFunction& groupby_function,
                 StatsNode* stats_node,
                 const HashFunction& hash_function = HashFunction())
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "GroupBy", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           hash_function_(hash_function),
@@ -170,7 +169,7 @@ private:
     const HashFunction& hash_function_;
 
     data::ChannelPtr channel_;
-    std::vector<data::BlockWriter> emitter_;
+    std::vector<data::Channel::Writer> emitter_;
     std::vector<data::File> files_;
     data::File sorted_elems_;
     std::size_t totalsize_;
@@ -276,7 +275,7 @@ auto DIARef<ValueType, Stack>::GroupBy(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("GroupBy", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("GroupBy", DIANodeType::DOP);
     using GroupByResultNode
               = GroupByNode<DOpResult, DIARef, KeyExtractor,
                             GroupFunction, HashFunction>;
