@@ -115,8 +115,8 @@ void BandwidthTest(api::Context& ctx) {
 
     // data block to send or receive
     static const size_t block_count = 1024;
-    static const size_t block_size = 1024 * 1024;
-    std::array<size_t, block_size / sizeof(size_t)> data_block;
+    static const size_t block_size = 16 * 1024 * 1024;
+    std::vector<size_t> data_block(block_size / sizeof(size_t));
     std::fill(data_block.begin(), data_block.end(), 42u);
 
     for (size_t outer_repeat = 0;
@@ -130,38 +130,39 @@ void BandwidthTest(api::Context& ctx) {
             // perform 1-factor ping pongs (without barriers)
             for (size_t iter = 0; iter < ctx.num_hosts(); ++iter) {
 
-                size_t peer = group.OneFactorPeer(iter);
+                size_t peer_id = group.OneFactorPeer(iter);
+                net::Connection& peer = group.connection(peer_id);
 
                 sLOG0 << "round iter" << iter
                       << "me" << ctx.host_rank() << "peer" << peer;
 
-                if (ctx.host_rank() < peer) {
+                if (ctx.host_rank() < peer_id) {
                     common::StatsTimer<true> bwtimer(true);
                     // send blocks to peer
                     for (size_t i = 0; i != block_count; ++i) {
                         data_block.front() = counter;
                         data_block.back() = counter;
                         ++counter;
-                        group.SendTo(peer, data_block);
+                        peer.SyncSend(data_block.data(), block_size);
                     }
 
                     // wait for response pong
                     size_t value;
-                    group.ReceiveFrom(peer, &value);
+                    peer.Receive(&value);
                     assert(value == counter);
 
                     bwtimer.Stop();
 
-                    sLOG1 << "bandwidth" << ctx.host_rank() << "->" << peer
+                    sLOG1 << "bandwidth" << ctx.host_rank() << "->" << peer_id
                           << ((block_count * block_size) / (bwtimer.Microseconds() * 1e-6)
                               / 1024.0 / 1024.0)
                           << "MiB/s"
                           << "time" << (bwtimer.Microseconds() * 1e-6);
                 }
-                else if (ctx.host_rank() > peer) {
+                else if (ctx.host_rank() > peer_id) {
                     // receive blocks from peer
                     for (size_t i = 0; i != block_count; ++i) {
-                        group.ReceiveFrom(peer, &data_block);
+                        peer.SyncRecv(data_block.data(), block_size);
                         die_unequal(data_block.front(), counter);
                         die_unequal(data_block.back(), counter);
 
@@ -169,7 +170,7 @@ void BandwidthTest(api::Context& ctx) {
                     }
 
                     // send ping
-                    group.SendTo(peer, counter);
+                    peer.Send(counter);
                 }
                 else {
                     // not participating in this round
