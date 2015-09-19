@@ -168,10 +168,10 @@ void ExecuteGroupThreads(
     }
 }
 
-//! Construct a mock Group network and run a thread for each client. The
-//! selected network implementation is platform dependent and must run without
-//! further configuration.
-void RunGroupTest(
+//! Construct a mock or tcp-lookback Group network and run a thread for each
+//! client. The selected network implementation is platform dependent and must
+//! run without further configuration.
+void RunLoopbackGroupTest(
     size_t num_hosts,
     const std::function<void(Group*)>& thread_function);
 
