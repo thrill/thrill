@@ -12,6 +12,8 @@
 #ifndef THRILL_DATA_SERIALIZATION_HEADER
 #define THRILL_DATA_SERIALIZATION_HEADER
 
+#include <thrill/common/functional.hpp>
+
 #include <array>
 #include <string>
 #include <tuple>
@@ -36,7 +38,9 @@ template <typename Archive, typename T>
 struct Serialization<Archive, T,
                      typename std::enable_if<
                          // a POD, but not a pointer
-                         std::is_pod<T>::value&& !std::is_pointer<T>::value
+                         std::is_pod<T>::value
+                         && !std::is_pointer<T>::value
+                         && !common::is_std_array<T>::value
                          >::type>
 {
     static void Serialize(const T& x, Archive& ar) {
