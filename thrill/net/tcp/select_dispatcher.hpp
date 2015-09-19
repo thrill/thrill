@@ -26,6 +26,8 @@
 #include <thrill/net/tcp/select.hpp>
 #include <thrill/net/tcp/socket.hpp>
 
+#include <unistd.h>
+
 #include <cerrno>
 #include <chrono>
 #include <csignal>
