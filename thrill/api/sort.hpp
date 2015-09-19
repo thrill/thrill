@@ -382,6 +382,21 @@ private:
         }
         channel_id_data_->Close();
 
+		double balance = 0;
+		if (data_.size() > 0) {
+			balance = ((double) data_.size() * (double) num_total_workers) / (double) total_elem;
+		}
+
+		 if (balance > 1) {
+		 	balance = 1 / balance;
+		 }
+
+		STATC << "NodeType" << "Sort" 
+			  << "Workers" << num_total_workers
+			  << "LocalSize" << data_.size() 
+			  << "Balance Factor" << balance 
+			  << "Sample Size" << sample_size;  
+
         LOG << "node " << context_.my_rank() << " : " << data_.size();
 
         std::sort(data_.begin(), data_.end(), compare_function_);
