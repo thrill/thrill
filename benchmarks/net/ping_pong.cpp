@@ -51,24 +51,7 @@ int net_test(api::Context& ctx) {
             size_t me = ctx.host_rank();
             for (size_t i = 0; i < p; ++i) {
 
-                size_t peer;
-                if (p % 2 == 0) {
-                    // p is even
-                    size_t idle = (i * p / 2) % (p - 1);
-                    if (me == p - 1) {
-                        peer = idle;
-                    }
-                    else if (me == idle) {
-                        peer = p - 1;
-                    }
-                    else {
-                        peer = (i - me + p - 1) % (p - 1);
-                    }
-                }
-                else {
-                    // p is odd
-                    peer = (i - me + p) % p;
-                }
+                size_t peer = group.OneFactorPeer(i);
 
                 sLOG0 << "round i" << i << "me" << me << "peer" << peer;
 
