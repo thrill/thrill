@@ -214,6 +214,9 @@ int main(int argc, char* argv[]) {
     clp.AddParamString("output", output,
                        "output file pattern");
 
+    std::size_t iter;
+    clp.AddParamInt("n", iter, "Iterations");
+
     if (!clp.Process(argc, argv)) {
         return -1;
     }
@@ -221,12 +224,11 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func =
-        [&input, &output](api::Context& ctx) {
+        [&input, &output, & iter](api::Context& ctx) {
             thrill::common::StatsTimer<true> timer(false);
             static const bool debug = true;
             static const double s = 0.85;
             static const double f = 0.15;
-            static const std::size_t iters = 10;
 
             using Key = std::size_t;
             using Node = std::size_t;
@@ -304,7 +306,7 @@ int main(int argc, char* argv[]) {
             auto ranks = links.Map(set_rank_fn).Cache();
 
             // do iterations
-            for (size_t i = 1; i <= iters; ++i) {
+            for (size_t i = 1; i <= iter; ++i) {
                 // (linked_url, rank / OUTGOING.size)
                 // (linked_url, rank / OUTGOING.size)
                 // (linked_url, rank / OUTGOING.size)
