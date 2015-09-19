@@ -57,7 +57,12 @@ public:
     //! \{
 
     //! construct new Socket object from existing file descriptor.
-    explicit Socket(int fd) : fd_(fd) { }
+    explicit Socket(int fd)
+        : fd_(fd) {
+        SetNoDelay(true);
+        SetSndBuf(128 * 1024);
+        SetRcvBuf(128 * 1024);
+    }
 
     //! default constructor: invalid socket.
     Socket() : fd_(-1) { }
@@ -100,6 +105,7 @@ public:
                       "Error setting FD_CLOEXEC on network socket");
         }
 #endif
+
         return Socket(fd);
     }
 
@@ -656,6 +662,12 @@ public:
     //! If set, disable the Nagle algorithm. This means that segments are always
     //! sent as soon as possible, even if there is only a small amount of data.
     void SetNoDelay(bool activate = true);
+
+    //! Set SO_SNDBUF socket option.
+    void SetSndBuf(size_t size);
+
+    //! Set SO_RCVBUF socket option.
+    void SetRcvBuf(size_t size);
 
     //! \}
 
