@@ -57,6 +57,9 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLoopbackMesh(
 
             group[i]->connections_[j] = Connection(std::move(sp.first));
             group[j]->connections_[i] = Connection(std::move(sp.second));
+
+            group[i]->connections_[j].is_loopback_ = true;
+            group[j]->connections_[i].is_loopback_ = true;
         }
     }
 

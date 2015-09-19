@@ -53,6 +53,7 @@ public:
     void Initialize(Group* group, size_t peer) {
         group_ = group;
         peer_ = peer;
+        is_loopback_ = true;
     }
 
     //! Method which is called by other peers to enqueue a message.
