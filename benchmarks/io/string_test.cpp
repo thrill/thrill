@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 
 	for (int i = 0; i < iterations; i++) {
 
-		api::Run([&input, &output](api::Context& ctx) {
+		api::Run([&input](api::Context& ctx) {
 				auto input_dia = ReadLines(ctx, input);
 
 				common::StatsTimer<true> timer(true);
