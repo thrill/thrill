@@ -40,7 +40,6 @@ struct Serialization<Archive, T,
                          // a POD, but not a pointer
                          std::is_pod<T>::value
                          && !std::is_pointer<T>::value
-                         && !common::is_std_array<T>::value
                          >::type>
 {
     static void Serialize(const T& x, Archive& ar) {
@@ -211,7 +210,12 @@ struct Serialization<Archive, std::vector<T> >
 /*********************** Serialization of array *******************************/
 
 template <typename Archive, typename T, size_t N>
-struct Serialization<Archive, std::array<T, N> >
+struct Serialization<Archive, std::array<T, N>,
+                     typename std::enable_if<
+                         // sometimes std::array<T> is a POD, if T is a POD
+                         !std::is_pod<std::array<T, N> >::value
+                         >::type
+                     >
 {
     static void Serialize(const std::array<T, N>& x, Archive& ar) {
         for (typename std::array<T, N>::const_iterator it = x.begin();
