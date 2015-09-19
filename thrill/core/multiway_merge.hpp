@@ -1483,8 +1483,7 @@ get_sequential_file_multiway_merge_tree(RandomAccessIteratorIterator seqs_begin,
     typedef typename std::iterator_traits<RandomAccessIterator>
         ::value_type value_type;
 
-    int k = static_cast<int>(seqs_end - seqs_begin);
-    assert(k>1);
+    assert(static_cast<int>(seqs_end - seqs_begin)>1);
     api::MultiwayMergeTreePuller<value_type, Comparator> tree (seqs_begin, seqs_end, length, comp);
 
     return tree;
