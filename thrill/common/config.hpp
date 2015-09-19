@@ -42,8 +42,6 @@ static const bool g_enable_stats = false;
 #define THRILL_HAVE_NET_TCP 1
 #endif
 
-#define THRILL_HAVE_NET_MPI 1
-
 } // namespace common
 } // namespace thrill
 

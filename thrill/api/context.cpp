@@ -20,8 +20,6 @@
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>
 
-#define THRILL_HAVE_NET_MPI 1
-
 #if THRILL_HAVE_NET_TCP
 #include <thrill/net/tcp/construct.hpp>
 #endif
