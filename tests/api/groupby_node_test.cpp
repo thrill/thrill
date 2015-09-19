@@ -42,7 +42,7 @@ TEST(GroupByNode, CompileAndSum) {
                 },
                 n);
 
-            auto modulo_keyfn = [](size_t in) { return (in % m); };
+            auto modulo_keyfn = [](size_t in) { return (in % 4/*m*/); };
 
             auto sum_fn =
                 [](auto& r,
@@ -51,7 +51,7 @@ TEST(GroupByNode, CompileAndSum) {
                     int k = 0;
                     while (r.HasNext()) {
                         auto n = r.Next();
-                        k = n % m;
+                        k = n % 4/*m*/;
                         res += n;
                     }
                     return static_cast<int>(res);
@@ -95,7 +95,7 @@ TEST(GroupByNode, Median) {
                 },
                 n);
 
-            auto modulo_keyfn = [](size_t in) { return (in % m); };
+            auto modulo_keyfn = [](size_t in) { return (in % 4/*m*/); };
 
             auto median_fn =
                 [](auto& r,
