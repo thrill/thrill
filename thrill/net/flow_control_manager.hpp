@@ -75,6 +75,10 @@ public:
     FlowControlChannel & GetFlowControlChannel(size_t thread_id) {
         return channels_[thread_id];
     }
+
+    ~FlowControlChannelManager() {
+        delete shmem_;
+    }
 };
 
 //! \}
