@@ -131,7 +131,7 @@ TEST(IO, GenerateFromFileRandomIntegers) {
 
 TEST(IO, WriteBinaryPatternFormatter) {
 
-    std::string str1 = core::FillFilePattern("test-@@@@-########", 42, 10);
+    std::string str1 = core::FillFilePattern("test-$$$$-########", 42, 10);
     ASSERT_EQ("test-0042-00000010", str1);
 
     std::string str2 = core::FillFilePattern("test", 42, 10);
@@ -206,7 +206,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
                     [](const size_t index) { return index + 42; },
                     generate_size);
 
-                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary-@@@@-####.gz",
+                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary-$$$$-####.gz",
                                 16 * 1024);
             }
             ctx.Barrier();
