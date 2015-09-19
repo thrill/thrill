@@ -126,9 +126,8 @@ RunLoopbackThreads(size_t host_count, size_t workers_per_host,
 /******************************************************************************/
 // Runners using Mock Net Backend
 
-static inline void
-RunLoopbackMock(size_t host_count, size_t workers_per_host,
-             const std::function<void(Context&)>& job_startpoint) {
+void RunLoopbackMock(size_t host_count, size_t workers_per_host,
+                     const std::function<void(Context&)>& job_startpoint) {
 
     return RunLoopbackThreads<net::mock::Group>(
         host_count, workers_per_host, job_startpoint);
@@ -138,9 +137,8 @@ RunLoopbackMock(size_t host_count, size_t workers_per_host,
 // Runners using TCP Net Backend
 
 #if THRILL_HAVE_NET_TCP
-static inline void
-RunLoopbackTCP(size_t host_count, size_t workers_per_host,
-             const std::function<void(Context&)>& job_startpoint) {
+void RunLoopbackTCP(size_t host_count, size_t workers_per_host,
+                    const std::function<void(Context&)>& job_startpoint) {
 
     return RunLoopbackThreads<net::tcp::Group>(
         host_count, workers_per_host, job_startpoint);
@@ -494,8 +492,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 }
 #endif
 
-static inline int
-RunNotSupported(const char* env_net) {
+int RunNotSupported(const char* env_net) {
     std::cerr << "Thrill: network backend " << env_net
               << " is not supported by this binary." << std::endl;
     return -1;
