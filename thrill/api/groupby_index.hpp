@@ -41,8 +41,8 @@ class GroupByIndexNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
-    using ValueIn = typename common::FunctionTraits<KeyExtractor>
-                    ::template arg<0>;
+    using ValueIn = typename std::decay<typename common::FunctionTraits<KeyExtractor>
+                    ::template arg<0>>::type;
 
     using File = data::File;
     using Reader = typename File::Reader;
@@ -53,8 +53,8 @@ class GroupByIndexNode : public DOpNode<ValueType>
         ValueComparator(const GroupByIndexNode& info) : info_(info) { }
         const GroupByIndexNode& info_;
 
-        bool operator () (const ValueType& i,
-                          const ValueType& j) {
+        bool operator () (const ValueIn& i,
+                          const ValueIn& j) {
             auto i_cmp = info_.hash_function_(info_.key_extractor_(i));
             auto j_cmp = info_.hash_function_(info_.key_extractor_(j));
             return (i_cmp < j_cmp);
@@ -74,10 +74,10 @@ public:
      * \param reduce_function Reduce function
      */
     GroupByIndexNode(const ParentDIARef& parent,
-                KeyExtractor key_extractor,
-                GroupFunction groupby_function,
+                const KeyExtractor& key_extractor,
+                const GroupFunction& groupby_function,
                 std::size_t number_keys,
-                ValueOut neutral_element,
+                const ValueOut& neutral_element,
                 StatsNode* stats_node,
                 const HashFunction& hash_function = HashFunction())
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
@@ -228,10 +228,10 @@ public:
     }
 
 private:
-    KeyExtractor key_extractor_;
-    GroupFunction groupby_function_;
+    const KeyExtractor& key_extractor_;
+    const GroupFunction& groupby_function_;
     std::size_t number_keys_;
-    ValueOut neutral_element_;
+    const ValueOut& neutral_element_;
     HashFunction hash_function_;
     std::size_t totalsize_ = 0;
 
@@ -313,13 +313,12 @@ template <typename ValueType, typename Stack>
 template <typename ValueOut,
           typename KeyExtractor,
           typename GroupFunction,
-          typename ValueIn,
           typename HashFunction>
 auto DIARef<ValueType, Stack>::GroupByIndex(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function,
     const std::size_t number_keys,
-    const ValueIn neutral_element) const {
+    const ValueOut& neutral_element) const {
 
     using DOpResult
               = ValueOut;

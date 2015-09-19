@@ -46,12 +46,12 @@ TEST(GroupByNode, CompileAndSum) {
 
             auto sum_fn =
                 [](auto& r,
-                   std::size_t key) {
+                   std::size_t) {
                     auto res = 0;
                     int k = 0;
                     while (r.HasNext()) {
                         auto n = r.Next();
-                        assert(n%m == key);
+                        assert(n%4 == key);
                         k = n % m;
                         res += n;
                     }

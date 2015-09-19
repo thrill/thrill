@@ -40,8 +40,8 @@ class GroupByNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
-    using ValueIn = typename common::FunctionTraits<KeyExtractor>
-                    ::template arg<0>;
+    using ValueIn = typename std::decay<typename common::FunctionTraits<KeyExtractor>
+                    ::template arg<0>>::type;
 
     using File = data::File;
     using Reader = typename File::Reader;
@@ -52,8 +52,8 @@ class GroupByNode : public DOpNode<ValueType>
         ValueComparator(const GroupByNode& info) : info_(info) { }
         const GroupByNode& info_;
 
-        bool operator () (const ValueType& i,
-                          const ValueType& j) {
+        bool operator () (const ValueIn& i,
+                          const ValueIn& j) {
             auto i_cmp = info_.hash_function_(info_.key_extractor_(i));
             auto j_cmp = info_.hash_function_(info_.key_extractor_(j));
             return (i_cmp < j_cmp);
@@ -74,8 +74,8 @@ public:
      * \param reduce_function Reduce function
      */
     GroupByNode(const ParentDIARef& parent,
-                KeyExtractor key_extractor,
-                GroupFunction groupby_function,
+                const KeyExtractor& key_extractor,
+                const GroupFunction& groupby_function,
                 StatsNode* stats_node,
                 const HashFunction& hash_function = HashFunction())
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "GroupBy", stats_node),
@@ -183,9 +183,9 @@ public:
     }
 
 private:
-    KeyExtractor key_extractor_;
-    GroupFunction groupby_function_;
-    HashFunction hash_function_;
+    const KeyExtractor& key_extractor_;
+    const GroupFunction& groupby_function_;
+    const HashFunction& hash_function_;
 
     data::ChannelPtr channel_;
     std::vector<data::BlockWriter> emitter_;
@@ -226,7 +226,7 @@ private:
 
         const bool consume = true;
         const std::size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
-        // const std::size_t FIXED_VECTOR_SIZE = 10;
+        // const std::size_t FIXED_VECTOR_SIZE = 4;
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
 

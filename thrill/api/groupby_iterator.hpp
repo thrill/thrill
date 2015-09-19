@@ -146,7 +146,7 @@ public:
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using Reader = typename data::File::Reader;
 
-    GroupByIterator(Reader& reader, KeyExtractor& key_extractor)
+    GroupByIterator(Reader& reader, const KeyExtractor& key_extractor)
         : reader_(reader),
           key_extractor_(key_extractor),
           is_first_elem_(true),
@@ -178,7 +178,7 @@ protected:
 
 private:
     Reader& reader_;
-    KeyExtractor& key_extractor_;
+    const KeyExtractor& key_extractor_;
     bool is_first_elem_;
     bool is_reader_empty;
     ValueIn elem_;
@@ -230,7 +230,7 @@ public:
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using Puller = MultiwayMergeTreePuller<ValueIn, Comparator>;
 
-    GroupByMultiwayMergeIterator(Puller& reader, KeyExtractor& key_extractor)
+    GroupByMultiwayMergeIterator(Puller& reader, const KeyExtractor& key_extractor)
         : reader_(reader),
           key_extractor_(key_extractor),
           is_first_elem_(true),
@@ -262,7 +262,7 @@ protected:
 
 private:
     Puller& reader_;
-    KeyExtractor& key_extractor_;
+    const KeyExtractor& key_extractor_;
     bool is_first_elem_;
     bool is_reader_empty;
     ValueIn elem_;
