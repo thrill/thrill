@@ -16,36 +16,35 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
 
-#include <random>
 #include <string>
-#include <thread>
-#include <tuple>
 #include <utility>
 #include <vector>
+
+std::string benchmark;
 
 unsigned int iterations = 1000;
 unsigned int repeats = 1;
 
 using namespace thrill;
 
-//! Network benchmarking.
-int net_test(api::Context& ctx) {
-    if (ctx.workers_per_host() != 1) {
-        die("Net benchmarks work only with one worker per host.");
-    }
+//! perform a 1-factor ping pong latency test
+void PingPongLatencyTest(api::Context& ctx) {
 
-    auto& flow = ctx.flow_control_channel();
-    net::Group& group = flow.group();
+    // only work with first thread on this host.
+    if (ctx.local_worker_id() != 0) return;
 
-    for (size_t r = 0; r < repeats; ++r) {
-        //! a counter to count and match ping pongs.
-        size_t it = 0;
+    net::Group& group = ctx.flow_control_channel().group();
 
-        common::StatsTimer<true> t;
+    //! a counter to count and match ping pongs.
+    size_t it = 0;
+
+    for (size_t repeat = 0; repeat < repeats; ++repeat) {
+
+        common::StatsTimer<true> timer;
 
         size_t p = ctx.num_hosts();
 
-        t.Start();
+        timer.Start();
         for (size_t i = 0; i < iterations; i++) {
             // perform 1-factor ping pongs (without barriers)
             size_t me = ctx.host_rank();
@@ -82,23 +81,32 @@ int net_test(api::Context& ctx) {
                 }
             }
         }
-        t.Stop();
+        timer.Stop();
 
-        size_t time = t.Microseconds();
+        size_t time = timer.Microseconds();
         // calculate maximum time.
-        time = flow.AllReduce(time, common::maximum<size_t>());
+        group.AllReduce(time, common::maximum<size_t>());
 
         if (ctx.my_rank() == 0) {
             LOG1 << "RESULT"
-                 << " hosts=" << p
+                 << " hosts=" << ctx.num_hosts()
+                 << " repeat=" << repeat
                  << " iterations=" << iterations
                  << " ping_pongs=" << it
                  << " time[us]=" << time
                  << " time_per_ping_pong[us]=" << static_cast<double>(time) / it;
         }
     }
+}
 
-    return 0;
+//! Network benchmarking.
+void net_test(api::Context& ctx) {
+    if (benchmark == "pingpong") {
+        PingPongLatencyTest(ctx);
+    }
+    else {
+        die("Unknown benchmark " + benchmark);
+    }
 }
 
 int main(int argc, char** argv) {
@@ -112,6 +120,10 @@ int main(int argc, char** argv) {
 
     clp.AddUInt('r', "repeats", repeats,
                 "Repeat experiment a number of times.");
+
+    clp.AddParamString("benchmark", benchmark,
+                       "name of benchmark to run:\n"
+                       "  pingpong - latency test");
 
     if (!clp.Process(argc, argv)) {
         return -1;
