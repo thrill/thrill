@@ -538,7 +538,7 @@ public:
      *
      * \param initial_value Initial value of the sum.
      */
-    template <typename SumFunction>
+    template <typename SumFunction = std::plus<ValueType>>
     auto Sum(const SumFunction& sum_function = std::plus<ValueType>(),
              const ValueType& initial_value = ValueType()) const;
 
