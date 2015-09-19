@@ -54,6 +54,8 @@ class GroupByNode : public DOpNode<ValueType>
 
         bool operator () (const ValueIn& i,
                           const ValueIn& j) {
+            // REVIEW(ch): why is this a comparison by hash key? hash can have
+            // collisions.
             auto i_cmp = info_.hash_function_(info_.key_extractor_(i));
             auto j_cmp = info_.hash_function_(info_.key_extractor_(j));
             return (i_cmp < j_cmp);
@@ -113,7 +115,7 @@ public:
     void PushData(bool consume) final {
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
 
-        const std::size_t num_runs = files_.size();
+        const size_t num_runs = files_.size();
         // if there's only one run, call user funcs
         if (num_runs == 1) {
             RunUserFunc(files_[0], consume);
@@ -121,7 +123,7 @@ public:
         else {
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
-            for (std::size_t t = 0; t < num_runs; ++t) {
+            for (size_t t = 0; t < num_runs; ++t) {
                 std::shared_ptr<Reader> reader = std::make_shared<Reader>
                     (files_[t].GetReader(consume));
                 Iterator s = Iterator(&files_[t], reader, 0, true);
@@ -130,8 +132,8 @@ public:
             }
 
             auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-                std::begin(seq),
-                std::end(seq),
+                seq.begin(),
+                seq.end(),
                 totalsize_,
                 ValueComparator(*this));
 
@@ -172,7 +174,7 @@ private:
     std::vector<data::Channel::Writer> emitter_;
     std::vector<data::File> files_;
     data::File sorted_elems_;
-    std::size_t totalsize_;
+    size_t totalsize_;
 
     void RunUserFunc(File& f, bool consume) {
         auto r = f.GetReader(consume);
@@ -206,6 +208,8 @@ private:
      * Sort and store elements in a file
      */
     void FlushVectorToFile(std::vector<ValueIn>& v) {
+        totalsize_ += v.size();
+
         // sort run and sort to file
         std::sort(v.begin(), v.end(), ValueComparator(*this));
         File f = context_.GetFile();
@@ -217,16 +221,15 @@ private:
             w.Close();
         }
 
-        files_.push_back(f);
+        files_.emplace_back(std::move(f));
     }
 
     //! Receive elements from other workers.
     auto MainOp() {
         LOG << "running group by main op";
 
-        const bool consume = true;
-        const std::size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
-        // const std::size_t FIXED_VECTOR_SIZE = 4;
+        const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
+        // const size_t FIXED_VECTOR_SIZE = 4;
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
 
@@ -236,19 +239,16 @@ private:
         }
 
         // get incoming elements
-        auto reader = channel_->OpenConcatReader(consume);
+        auto reader = channel_->OpenConcatReader(true /* consume */);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
-                totalsize_ += FIXED_VECTOR_SIZE;
                 FlushVectorToFile(incoming);
                 incoming.clear();
             }
             // store incoming element
-            const ValueIn elem = reader.template Next<ValueIn>();
-            incoming.push_back(elem);
+            incoming.emplace_back(reader.template Next<ValueIn>());
         }
-        totalsize_ += incoming.size();
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
     }
@@ -265,8 +265,7 @@ auto DIARef<ValueType, Stack>::GroupBy(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function) const {
 
-    using DOpResult
-              = ValueOut;
+    using DOpResult = ValueOut;
 
     static_assert(
         std::is_same<
