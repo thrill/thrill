@@ -48,10 +48,8 @@ TEST(GroupByNode, CompileAndSum) {
                 [](auto& r,
                    std::size_t) {
                     auto res = 0;
-                    int k = 0;
                     while (r.HasNext()) {
                         auto n = r.Next();
-                        k = n % 4/*m*/;
                         res += n;
                     }
                     return static_cast<int>(res);
