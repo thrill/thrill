@@ -214,7 +214,7 @@ int main(int argc, char* argv[]) {
     clp.AddParamString("output", output,
                        "output file pattern");
 
-    std::size_t iter;
+    int iter;
     clp.AddParamInt("n", iter, "Iterations");
 
     if (!clp.Process(argc, argv)) {
@@ -306,7 +306,7 @@ int main(int argc, char* argv[]) {
             auto ranks = links.Map(set_rank_fn).Cache();
 
             // do iterations
-            for (size_t i = 1; i <= iter; ++i) {
+            for (int i = 1; i <= iter; ++i) {
                 // (linked_url, rank / OUTGOING.size)
                 // (linked_url, rank / OUTGOING.size)
                 // (linked_url, rank / OUTGOING.size)
@@ -336,7 +336,7 @@ int main(int argc, char* argv[]) {
                 << "\n"
                 << std::setw(10) << "#edges: " << number_edges
                 << "\n"
-                << std::setw(10) << "#iter: " << iters
+                << std::setw(10) << "#iter: " << iter
                 << "\n"
                 << std::setw(10) << "time: " << timer.Milliseconds() << "ms";
         };
