@@ -337,7 +337,6 @@ private:
             }
             buffer_.Reserve(read_size);
             ReadBlock(file_, buffer_);
-			last = buffer_.begin();
             data_.reserve(4 * 1024);
         }
 
@@ -349,45 +348,34 @@ private:
             data_.clear();
             while (true) {
                 while (current_ < buffer_.end()) {
-					LOG1 << *current_;
                     if (THRILL_UNLIKELY(*current_ == '\n')) {
-						data_.append(last, current_);
-						last = current_;
                         current_++;
-						LOG1 << data_;
-						return data_;
+                        return data_;
                     }
                     else {
-						current_++;
-                        //data_.push_back(*current_++);
+                        data_.push_back(*current_++);
                     }
-                } 
-				data_.append(last, current_);
+                }
 
                 if (!ReadBlock(file_, buffer_)) {
-					
-                    LOG1 << "Opening new file!";
+                    LOG << "Opening new file!";
                     file_.close();
                     current_file_++;
-					
 
                     if (current_file_ < NumFiles()) {
                         file_ = core::SysFile::OpenForRead(files_[current_file_].first);
                         ReadBlock(file_, buffer_);
-						last = buffer_.begin();
                     }
                     else {
                         LOG << "reached last file";
                         current_ = buffer_.begin();
-						last = buffer_.begin();
                     }
 
                     if (data_.length()) {
-						LOG << "end - returning string of length" << data_.length();
-						return data_;
-					}
+                        LOG << "end - returning string of length" << data_.length();
+                        return data_;
+                    }
                 }
-				last = buffer_.begin();
             }
         }
 
@@ -437,7 +425,6 @@ private:
     private:
         //! File handle to files_[current_file_]
         core::SysFile file_;
-		unsigned char* last;
     };
 };
 
