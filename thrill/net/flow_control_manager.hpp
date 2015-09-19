@@ -77,7 +77,7 @@ public:
     }
 
     ~FlowControlChannelManager() {
-        delete shmem_;
+        delete[] shmem_;
     }
 };
 
