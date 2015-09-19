@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include <cassert>
 #include <cerrno>
@@ -75,14 +76,14 @@ public:
     //! move-assignment operator: move file descriptor
     Socket& operator = (Socket&& s) {
         if (this == &s) return *this;
-        if (fd_ >= 0) shutdown();
+        if (fd_ >= 0) close();
         fd_ = s.fd_;
         s.fd_ = -1;
         return *this;
     }
 
     ~Socket() {
-        if (fd_ >= 0) shutdown();
+        if (fd_ >= 0) close();
     }
 
     //! Create a new stream socket.
@@ -218,20 +219,24 @@ public:
 
     //! \}
 
-    //! \name Shutdown / Close
+    //! \name Close
     //! \{
 
-    //! Shutdown one or both directions of socket.
-    bool shutdown(int how = SHUT_RDWR) {
+    //! Close socket.
+    bool close() {
         assert(IsValid());
 
-        if (::shutdown(fd_, how) != 0)
+        if (::close(fd_) != 0)
         {
-            LOG << "Socket::shutdown()"
+            LOG << "Socket::close()"
                 << " fd_=" << fd_
                 << " error=" << strerror(errno);
             return false;
         }
+
+        LOG << "Socket::close()"
+            << " fd_=" << fd_
+            << " closed";
 
         fd_ = -1;
 
