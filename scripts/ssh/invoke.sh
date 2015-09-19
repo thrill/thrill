@@ -147,7 +147,11 @@ function killcommand() {
     echo "Killing remote programs, please wait."
     for hostport in $THRILL_SSHLIST; do
         host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
-        REMOTENAME="$cmdbase.$hostport.$$"
+        if [ "$copy" == "1" ]; then
+            REMOTENAME="$cmdbase.$hostport.$$"
+        else
+            REMOTENAME="$cmd"
+        fi
 
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
             $host "killall \"$REMOTENAME\"" || true
