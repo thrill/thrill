@@ -1536,7 +1536,7 @@ sequential_multiway_merge(RandomAccessIteratorIterator seqs_begin,
         break;
     case 1:
     {
-        // std::size_t t = 0;
+        // size_t t = 0;
         for (auto it = seqs_begin[0].first; it != seqs_begin[0].second; ++it) {
             // return_target = *it;
             // ++t;

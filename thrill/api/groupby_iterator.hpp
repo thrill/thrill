@@ -39,7 +39,7 @@ struct MultiwayMergeTreePuller {
 
     MultiwayMergeTreePuller (IteratorListIterator seqs_begin_,
                              IteratorListIterator seqs_end_,
-                             std::size_t length,
+                             size_t length,
                              Comparator comp_) :
         seqs_begin(seqs_begin_),
         seqs_end(seqs_end_),
@@ -101,8 +101,8 @@ struct MultiwayMergeTreePuller {
     Comparator comp;
     source_type k;
     LoserTreeType lt;
-    std::size_t counter;
-    std::size_t total_length;
+    size_t counter;
+    size_t total_length;
     const ValueIn* arbitrary_element;
     const bool is_multiway_merged;
 };
