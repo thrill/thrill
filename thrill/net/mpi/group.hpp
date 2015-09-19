@@ -63,6 +63,8 @@ public:
  */
 class Connection final : public net::Connection
 {
+    static const bool debug = false;
+
 public:
     //! construct from group tag and MPI peer
     void Initialize(size_t group_tag, size_t peer) {
@@ -194,6 +196,9 @@ bool Construct(size_t group_size,
  * Return the number of MPI processes. This is the maximum group size.
  */
 size_t NumMpiProcesses();
+
+//! Return the rank of this process in the MPI COMM WORLD.
+size_t MpiRank();
 
 //! \}
 

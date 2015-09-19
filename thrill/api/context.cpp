@@ -20,7 +20,7 @@
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>
 
-//#define THRILL_HAVE_NET_MPI 1
+#define THRILL_HAVE_NET_MPI 1
 
 #if THRILL_HAVE_NET_TCP
 #include <thrill/net/tcp/construct.hpp>
@@ -311,7 +311,8 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     }
     else {
         std::cerr << "Thrill: environment variable THRILL_RANK"
-                  << " is required for tcp network backend.";
+                  << " is required for tcp network backend."
+                  << std::endl;
         return -1;
     }
 
@@ -348,7 +349,8 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     }
     else {
         std::cerr << "Thrill: environment variable THRILL_HOSTLIST"
-                  << " is required for tcp network backend.";
+                  << " is required for tcp network backend."
+                  << std::endl;
         return -1;
     }
 
@@ -370,12 +372,14 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     // okay configuration is good.
 
-    std::cerr << "Thrill: executing with host_rank " << my_host_rank << " and endpoints";
+    std::cerr << "Thrill: executing in tcp network with " << hostlist.size()
+              << " hosts and " << workers_per_host << " workers per host"
+              << " as rank " << my_host_rank << " with endpoints";
     for (const std::string& ep : hostlist)
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
-    STAT_NO_RANK << "event" << "RunDistributedTCP"
+    STAT_NO_RANK << "event" << "RunBackendTCP"
                  << "my_host_rank" << my_host_rank
                  << "workers_per_host" << workers_per_host;
 
@@ -412,11 +416,109 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 }
 #endif
 
+#if THRILL_HAVE_NET_MPI
+static inline
+int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
+
+    char* endptr;
+
+    size_t workers_per_host = 1;
+
+    const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
+
+    if (env_workers_per_host) {
+        workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
+        if (!endptr || *endptr != 0 || workers_per_host == 0) {
+            std::cerr << "Thrill: environment variable"
+                      << " THRILL_WORKERS_PER_HOST=" << env_workers_per_host
+                      << " is not a valid number of workers per host."
+                      << std::endl;
+            return -1;
+        }
+    }
+    else {
+        // TODO: someday, set workers_per_host = std::thread::hardware_concurrency().
+    }
+
+    size_t num_hosts = net::mpi::NumMpiProcesses();
+    size_t mpi_rank = net::mpi::MpiRank();
+
+    std::cerr << "Thrill: executing in MPI network with " << num_hosts
+              << " hosts and " << workers_per_host << " workers per host"
+              << " as rank " << mpi_rank << "."
+              << std::endl;
+
+    static const size_t kGroupCount = net::Manager::kGroupCount;
+
+    // construct three MPI network groups
+    std::array<std::unique_ptr<net::mpi::Group>, kGroupCount> groups;
+    net::mpi::Construct(num_hosts, groups.data(), kGroupCount);
+
+    std::array<net::GroupPtr, kGroupCount> host_groups = {
+        { std::move(groups[0]), std::move(groups[1]), std::move(groups[2]) }
+    };
+
+    // construct HostContext
+    HostContext host_context(std::move(host_groups), workers_per_host);
+
+    // launch worker threads
+    std::vector<std::thread> threads(workers_per_host);
+
+    for (size_t i = 0; i < workers_per_host; i++) {
+        threads[i] = std::thread(
+            [&host_context, &job_startpoint, i] {
+                Context ctx(host_context, i);
+                common::NameThisThread("host " + mem::to_string(ctx.host_rank())
+                                       + " worker " + mem::to_string(i));
+
+                STAT(ctx) << "event" << "jobStart";
+                auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
+                job_startpoint(ctx);
+                STOP_TIMER(overall_timer)
+                if (overall_timer)
+                    STAT(ctx) << "event" << "jobDone"
+                              << "time" << overall_timer->Milliseconds();
+
+                ctx.Barrier();
+            });
+    }
+
+    // join worker threads
+    int global_result = 0;
+
+    for (size_t i = 0; i < workers_per_host; i++) {
+        threads[i].join();
+    }
+
+    return global_result;
+}
+#endif
+
 static inline int
 RunNotSupported(const char* env_net) {
     std::cerr << "Thrill: network backend " << env_net
-              << " is not supported by this binary.";
+              << " is not supported by this binary." << std::endl;
     return -1;
+}
+
+static inline const char*
+DetectNetBackend() {
+#if THRILL_HAVE_NET_MPI
+    // detect openmpi run, add others as well.
+    if (getenv("OMPI_COMM_WORLD_SIZE") != nullptr)
+        return "mpi";
+#endif
+#if defined(_MSC_VER)
+    return "mock";
+#else
+    const char* env_rank = getenv("THRILL_RANK");
+    const char* env_hostlist = getenv("THRILL_HOSTLIST");
+
+    if (env_rank || env_hostlist)
+        return "tcp";
+    else
+        return "local";
+#endif
 }
 
 /*!
@@ -434,19 +536,7 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
     const char* env_net = getenv("THRILL_NET");
 
     // if no backend configured: automatically select one.
-    if (!env_net) {
-#if defined(_MSC_VER)
-        env_net = "mock";
-#else
-        const char* env_rank = getenv("THRILL_RANK");
-        const char* env_hostlist = getenv("THRILL_HOSTLIST");
-
-        if (env_rank || env_hostlist)
-            env_net = "tcp";
-        else
-            env_net = "local";
-#endif
-    }
+    if (!env_net) env_net = DetectNetBackend();
 
     // run with selected backend
     if (strcmp(env_net, "mock") == 0) {
@@ -472,7 +562,17 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
 #endif
     }
 
-    std::cerr << "Thrill: network backend " << env_net << " is unknown.";
+    if (strcmp(env_net, "mpi") == 0) {
+#if THRILL_HAVE_NET_MPI
+        // mpi network backend
+        return RunBackendMpi(job_startpoint);
+#else
+        return RunNotSupported(env_net);
+#endif
+    }
+
+    std::cerr << "Thrill: network backend " << env_net << " is unknown."
+              << std::endl;
     return -1;
 }
 
