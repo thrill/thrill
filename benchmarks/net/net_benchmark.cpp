@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/net/ping_pong.cpp
+ * benchmarks/net/net_benchmark.cpp
  *
  * Network backend benchmarks:
  * - 1-factor ping pong latency benchmark
