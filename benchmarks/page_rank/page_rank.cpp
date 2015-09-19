@@ -324,7 +324,7 @@ int main(int argc, char* argv[]) {
                 return std::to_string(item.first + 1)
                 + ": " + std::to_string(item.second);
             }).
-            WriteLines("pagerank.out");
+            WriteLines(output);
             timer.Stop();
 
             auto number_edges = in.Size();
