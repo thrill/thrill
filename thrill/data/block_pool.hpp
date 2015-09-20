@@ -93,6 +93,7 @@ protected:
 
     //! locked before internal state is changed
     std::mutex list_mutex_;
+    std::mutex pin_mutex_;
 
     //! For implementing hard limit
     std::mutex memory_mutex_;

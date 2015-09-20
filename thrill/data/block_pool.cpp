@@ -53,11 +53,12 @@ ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool swapable, bool pin
 }
 
 void BlockPool::UnpinBlock(ByteBlock* block_ptr) {
-    std::lock_guard<std::mutex> lock(list_mutex_);
+    std::lock_guard<std::mutex> lock(pin_mutex_);
     LOG << "unpinning block @" << block_ptr;
     if (--(block_ptr->pin_count_) == 0) {
         sLOG << "unpinned block reached ping-count 0";
         // pin count reached 0 --> move to victim list
+        std::lock_guard<std::mutex> lock(list_mutex_);
         victim_blocks_.push_back(block_ptr);
         num_pinned_blocks_--;
     }
@@ -65,13 +66,14 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr) {
 
 //! Pins a block by swapping it in if required.
 void BlockPool::PinBlock(ByteBlock* block_ptr, common::delegate<void()>&& callback) {
-    std::lock_guard<std::mutex> lock(list_mutex_);
+    pin_mutex_.lock();
     LOG << "pinning block @" << block_ptr;
 
     // first check, then increment
     if ((block_ptr->pin_count_)++ > 0) {
         sLOG << "already pinned - return ptr";
 
+        pin_mutex_.unlock();
         callback();
         return;
     }
@@ -81,10 +83,12 @@ void BlockPool::PinBlock(ByteBlock* block_ptr, common::delegate<void()>&& callba
     if (block_ptr->in_memory()) {
         victim_blocks_.erase(std::find(victim_blocks_.begin(), victim_blocks_.end(), block_ptr));
 
+        pin_mutex_.unlock();
         callback();
         return;
     }
     else {      //we need to swap it in
+        pin_mutex_.unlock();
         tasks_.Enqueue([&]() {
             //maybe blocking call until memory is available
             RequestInternalMemory(block_ptr->size());
