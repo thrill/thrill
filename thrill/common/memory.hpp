@@ -14,17 +14,19 @@
 #ifndef THRILL_COMMON_MEMORY_HEADER
 #define THRILL_COMMON_MEMORY_HEADER
 
+#include <thrill/common/config.hpp>
+
 namespace thrill {
 namespace common {
 
-//Finding cache line size is hard - we assume 64 byte. 
-#define CACHE_LINE_SIZE 64 
-
-//we can not use std::aligned_storage since it does not support
-//abritary alignment. 
+// We can not use std::aligned_storage since it does not support arbitrary
+// alignment.
 struct AlignedPtr {
-    alignas(CACHE_LINE_SIZE) void* ptr;
+    alignas(g_cache_line_size) void* ptr;
 };
+
+static_assert(sizeof(AlignedPtr) == g_cache_line_size,
+              "AlignedPtr has incorrect size.");
 
 } // namespace common
 } // namespace thrill
