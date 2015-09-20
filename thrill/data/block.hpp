@@ -170,6 +170,35 @@ public:
         return os << "]";
     }
 
+    //! Creates a pinned copy of the Block
+    //! If the underlying data::ByteBlock is already pinned, the Future is directly filled with a copy if this block
+    //! Otherwise an async pin call will be issued
+    //! The future is allocated on the heap, ownership is transfered to caller
+    //! This is required since Future is not moveable because ot mutexes
+    common::Future<Block>* Pin() {
+        //future required for passing result from backgroud thread (which calls the callback) back to caller's thread
+        common::Future<Block>* result = new common::Future<Block>();
+        //pinned blocks can be returned straigt away
+        if (pinned_) {
+            sLOG << "block " << byte_block_->data_ << " was already pinned";
+            *result << Block(*this);
+        } else {
+            sLOG << "request pin for block " << byte_block_->swap_token_;
+            //call pin with callback that creates new, pinned block
+            byte_block_->Pin([&](){
+                Block b(*this);
+                b.pinned_ = true;
+                sLOG << "block " << byte_block_->swap_token_ << "/" << byte_block_->data_ << " is now pinned";
+                *result << std::move(b);
+            });
+        }
+        return result;
+    }
+
+    Block&& UnpinnedCopy() {
+        return std::move(Block(byte_block_, begin_, end_, first_item_, num_items_, false));
+    }
+
 protected:
     Block(const ByteBlockPtr& byte_block,
           size_t begin, size_t end, size_t first_item, size_t num_items, bool pinned)
@@ -201,23 +230,6 @@ protected:
     //! during initialization
     bool pinned_;
 
-    //! Creates a pinned copy of the Block
-    //! If the underlying data::ByteBlock is already pinned, the Future is directly filled with a copy if this block
-    //! Otherwise an async pin call will be issued
-    common::Future<Block>&& Pin() {
-        //future required for passing result from backgroud thread (which calls the callback) back to caller's thread
-        common::Future<Block> result;
-        //pinned blocks can be returned straigt away
-        if (pinned_) {
-            result << std::move(Block( byte_block_, begin_, end_, first_item_, num_items_, pinned_ ));
-        } else {
-            //call pin with callback that creates new, pinned block
-            byte_block_->Pin([&](){
-                result << std::move(Block( byte_block_, begin_, end_, first_item_, num_items_, true ));
-            });
-        }
-        return std::move(result);
-    }
 
     //! Unpins the underlying byte block if it is valid and pinned
     void UnpinMaybe() {
