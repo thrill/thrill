@@ -200,13 +200,20 @@ public:
     }
 
 protected:
+    //! Creates a block that points to the given data::ByteBlock with the given offsets
+    //! The block can be initialized as pinned or not.
+    //! If the Block is set to be pinned, the underlying data::ByteBlock::ref_count will be increased
     Block(const ByteBlockPtr& byte_block,
           size_t begin, size_t end, size_t first_item, size_t num_items, bool pinned)
         : byte_block_(byte_block),
           begin_(begin), end_(end),
           first_item_(first_item), num_items_(num_items),
           pinned_(pinned)
-    { }
+    {
+        if (pinned_ && IsValid())
+            byte_block_->IncreasePinCount();
+    }
+
 
     //! referenced ByteBlock
     ByteBlockPtr byte_block_;
