@@ -12,6 +12,9 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 
+#include <sstream>
+#include <vector>
+
 using namespace thrill;
 
 TEST(Math, OneFactor) {
