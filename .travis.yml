@@ -34,8 +34,8 @@ matrix:
       os: linux
       addons: *gcc5
 
-    # clang 3.7 with AddressSanitizer, Debug & Release
-    - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address"
+    # clang 3.7 without AddressSanitizer, Debug & Release
+    - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Debug" COMPILER_FLAGS=""
       os: linux
       addons: &clang37
         apt:
