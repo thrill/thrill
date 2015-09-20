@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/channel_scatter.cpp
+ * benchmarks/data/stream_scatter.cpp
  *
  * Part of Project Thrill.
  *
@@ -67,10 +67,10 @@ void ConductExperiment(uint64_t bytes, int iterations,
     offsets.push_back({ 0, (size_t)(data1.size() / 3), data1.size() });
     offsets.push_back({ 0, 0, 0 });
 
-    std::vector<std::shared_ptr<data::CatChannel> > channels;
-    channels.push_back(ctx0.GetNewCatChannel());
-    channels.push_back(ctx1.GetNewCatChannel());
-    channels.push_back(ctx2.GetNewCatChannel());
+    std::vector<std::shared_ptr<data::CatStream> > streams;
+    streams.push_back(ctx0.GetNewCatStream());
+    streams.push_back(ctx1.GetNewCatStream());
+    streams.push_back(ctx2.GetNewCatStream());
 
     std::vector<StatsTimer<true> > read_timers(3);
     std::vector<StatsTimer<true> > write_timers(3);
@@ -78,11 +78,11 @@ void ConductExperiment(uint64_t bytes, int iterations,
     common::ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
         for (int id = 0; id < 3; id++) {
-            pool.Enqueue([&files, &channels, &offsets, &read_timers, &write_timers, id]() {
+            pool.Enqueue([&files, &streams, &offsets, &read_timers, &write_timers, id]() {
                              write_timers[id].Start();
-                             channels[id]->Scatter<Type>(files[id], offsets[id]);
+                             streams[id]->Scatter<Type>(files[id], offsets[id]);
                              write_timers[id].Stop();
-                             auto reader = channels[id]->OpenCatReader(true);
+                             auto reader = streams[id]->OpenCatReader(true);
                              read_timers[id].Start();
                              while (reader.HasNext()) {
                                  reader.Next<Type>();

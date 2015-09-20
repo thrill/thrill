@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/data/cat_channel.hpp
+ * thrill/data/cat_stream.hpp
  *
  * Part of Project Thrill.
  *
@@ -10,15 +10,15 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_DATA_CAT_CHANNEL_HEADER
-#define THRILL_DATA_CAT_CHANNEL_HEADER
+#ifndef THRILL_DATA_CAT_STREAM_HEADER
+#define THRILL_DATA_CAT_STREAM_HEADER
 
 #include <thrill/data/block_queue.hpp>
 #include <thrill/data/cat_block_source.hpp>
-#include <thrill/data/channel.hpp>
-#include <thrill/data/channel_sink.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
+#include <thrill/data/stream.hpp>
+#include <thrill/data/stream_sink.hpp>
 
 #include <string>
 #include <vector>
@@ -30,12 +30,12 @@ namespace data {
 //! \{
 
 /*!
- * A Channel is a virtual set of connections to all other worker instances,
- * hence a "Channel" bundles them to a logical communication context. We call an
+ * A Stream is a virtual set of connections to all other worker instances,
+ * hence a "Stream" bundles them to a logical communication context. We call an
  * individual connection from a worker to another worker a "Host".
  *
- * To use a Channel, one can get a vector of BlockWriter via OpenWriters() of
- * outbound Channel. The vector is of size of workers in the system.
+ * To use a Stream, one can get a vector of BlockWriter via OpenWriters() of
+ * outbound Stream. The vector is of size of workers in the system.
  * One can then write items destined to the
  * corresponding worker. The written items are buffered into a Block and only
  * sent when the Block is full. To force a send, use BlockWriter::Flush(). When
@@ -50,11 +50,11 @@ namespace data {
  * all items from *all* worker in worker order (concatenating all inbound
  * Connections).
  *
- * As soon as all attached streams of the Channel have been Close() the number of
- * expected streams is reached, the channel is marked as finished and no more
+ * As soon as all attached streams of the Stream have been Close() the number of
+ * expected streams is reached, the stream is marked as finished and no more
  * data will arrive.
  */
-class CatChannel final : public Channel
+class CatStream final : public Stream
 {
 public:
     using BlockQueueSource = ConsumeBlockQueueSource;
@@ -66,15 +66,15 @@ public:
     using Reader = BlockQueueReader;
     using CatReader = CatBlockReader;
 
-    //! Creates a new channel instance
-    CatChannel(Multiplexer& multiplexer, const ChannelId& id,
-               size_t my_local_worker_id)
-        : Channel(multiplexer, id, my_local_worker_id) {
+    //! Creates a new stream instance
+    CatStream(Multiplexer& multiplexer, const StreamId& id,
+              size_t my_local_worker_id)
+        : Stream(multiplexer, id, my_local_worker_id) {
 
         sinks_.reserve(multiplexer_.num_workers());
         queues_.reserve(multiplexer_.num_workers());
 
-        // construct ChannelSink array
+        // construct StreamSink array
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
             for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
                 if (host == multiplexer_.my_host_rank()) {
@@ -85,7 +85,7 @@ public:
                         multiplexer_.block_pool_,
                         &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
-                        MagicByte::CAT_CHANNEL_BLOCK,
+                        MagicByte::CAT_STREAM_BLOCK,
                         id,
                         multiplexer_.my_host_rank(), my_local_worker_id, worker,
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
@@ -97,11 +97,11 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    CatChannel(const CatChannel&) = delete;
+    CatStream(const CatStream&) = delete;
     //! non-copyable: delete assignment operator
-    CatChannel& operator = (const CatChannel&) = delete;
+    CatStream& operator = (const CatStream&) = delete;
     //! move-constructor: default
-    CatChannel(CatChannel&&) = default;
+    CatStream(CatStream&&) = default;
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
@@ -129,8 +129,8 @@ public:
     }
 
     //! Creates a BlockReader for each worker. The BlockReaders are attached to
-    //! the BlockQueues in the Channel and wait for further Blocks to arrive or
-    //! the Channel's remote close.
+    //! the BlockQueues in the Stream and wait for further Blocks to arrive or
+    //! the Stream's remote close.
     std::vector<BlockQueueReader> OpenReaders() {
         rx_timespan_.StartEventually();
 
@@ -149,7 +149,7 @@ public:
 
     //! Creates a BlockReader which concatenates items from all workers in
     //! worker rank order. The BlockReader is attached to one \ref
-    //! CatBlockSource which includes all incoming queues of this channel.
+    //! CatBlockSource which includes all incoming queues of this stream.
     CatBlockReader OpenCatReader(bool consume) {
         rx_timespan_.StartEventually();
 
@@ -162,7 +162,7 @@ public:
         return CatBlockReader(CatBlockSource(std::move(result)));
     }
 
-    //! shuts the channel down.
+    //! shuts the stream down.
     void Close() final {
         // close all sinks, this should emit sentinel to all other worker.
         for (size_t i = 0; i != sinks_.size(); ++i) {
@@ -188,7 +188,7 @@ public:
         CallClosedCallbacksEventually();
     }
 
-    //! Indicates if the channel is closed - meaning all remaining streams have
+    //! Indicates if the stream is closed - meaning all remaining streams have
     //! been closed. This does *not* include the loopback stream
     bool closed() const final {
         bool closed = true;
@@ -201,8 +201,8 @@ public:
 protected:
     static const bool debug = false;
 
-    //! ChannelSink objects are receivers of Blocks outbound for other worker.
-    std::vector<ChannelSink> sinks_;
+    //! StreamSink objects are receivers of Blocks outbound for other worker.
+    std::vector<StreamSink> sinks_;
 
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
@@ -211,26 +211,26 @@ protected:
     friend class Multiplexer;
 
     //! called from Multiplexer when there is a new Block on a
-    //! Channel.
-    void OnChannelBlock(size_t from, Block&& b) {
+    //! Stream.
+    void OnStreamBlock(size_t from, Block&& b) {
         assert(from < queues_.size());
         rx_timespan_.StartEventually();
         incoming_bytes_ += b.size();
         incoming_blocks_++;
 
-        sLOG << "OnCatChannelBlock" << b;
+        sLOG << "OnCatStreamBlock" << b;
 
         if (debug) {
-            sLOG << "channel" << id_ << "receive from" << from << ":"
+            sLOG << "stream" << id_ << "receive from" << from << ":"
                  << common::hexdump(b.ToString());
         }
 
         queues_[from].AppendBlock(b);
     }
 
-    //! called from Multiplexer when a CatChannel closed notification was
+    //! called from Multiplexer when a CatStream closed notification was
     //! received.
-    void OnCloseChannel(size_t from) {
+    void OnCloseStream(size_t from) {
         assert(from < queues_.size());
         queues_[from].Close();
 
@@ -241,7 +241,7 @@ protected:
         }
     }
 
-    //! Returns the loopback queue for the worker of this channel.
+    //! Returns the loopback queue for the worker of this stream.
     BlockQueue * loopback_queue(size_t from_worker_id) {
         assert(from_worker_id < multiplexer_.num_workers_per_host_);
         size_t global_worker_rank = multiplexer_.num_workers_per_host_ * multiplexer_.my_host_rank() + from_worker_id;
@@ -250,16 +250,16 @@ protected:
     }
 };
 
-using CatChannelPtr = std::shared_ptr<CatChannel>;
+using CatStreamPtr = std::shared_ptr<CatStream>;
 
-using CatChannelSet = ChannelSet<CatChannel>;
-using CatChannelSetPtr = std::shared_ptr<CatChannelSet>;
+using CatStreamSet = StreamSet<CatStream>;
+using CatStreamSetPtr = std::shared_ptr<CatStreamSet>;
 
 //! \}
 
 } // namespace data
 } // namespace thrill
 
-#endif // !THRILL_DATA_CAT_CHANNEL_HEADER
+#endif // !THRILL_DATA_CAT_STREAM_HEADER
 
 /******************************************************************************/
