@@ -300,7 +300,7 @@ int main(int argc, char* argv[]) {
                     // LOG << "links " << s << "}";
 
                     return all;
-                }, number_nodes).Cache();
+                }, number_nodes).Keep();
 
             // initialize all ranks to 1.0
             //
@@ -319,7 +319,7 @@ int main(int argc, char* argv[]) {
             auto node_ids = Generate(ctx,
                 [](const size_t& index) {
                     return index+1;
-                }, number_nodes).Cache();
+                }, number_nodes);
 
             // do iterations
             for (int i = 0; i < iter; ++i) {
@@ -354,7 +354,7 @@ int main(int argc, char* argv[]) {
 
                         return std::make_pair(l, r);
                     })
-                .FlatMap<Page_Rank>(
+                    .FlatMap<Page_Rank>(
                     [](const Outgoings_Rank& p, auto emit){
                         if (p.first.size() > 0) {
                             Rank rank_contrib = p.second / p.first.size();
@@ -379,25 +379,20 @@ int main(int argc, char* argv[]) {
                 //     return p1.second + p2.second;
                 // };
 
-                ranks = contribs.GroupByIndex<Rank>(
+                ranks = contribs.ReduceToIndex(
                     [](const Page_Rank& p) { return p.first; },
-                    [](auto& r, Key) {
-                        Rank rank = 0.0;
-                        while (r.HasNext()) {
-                            rank += r.Next().second;
-                        }
-                        LOG << "rank1 " << rank;
-                        return rank;
+                    [](const Page_Rank& p1, const Page_Rank& p2) {
+                        return std::make_pair(p1.first, p1.second+p2.second);
                     }, number_nodes)
-                .Map(
-                    [](const Rank p) {
+                    .Map(
+                    [](const Page_Rank p) {
                         LOG << "ranks2 in " << p;
-                        if (std::fabs(p) <= 1E-5) {
+                        if (std::fabs(p.second) <= 1E-5) {
                             LOG << "ranks2 " << 0.0;
                             return (Rank)0.0;
                         }else {
-                            LOG << "ranks2 " << f + s * p;
-                            return f + s * p;
+                            LOG << "ranks2 " << f + s * p.second;
+                            return f + s * p.second;
                         }
                     }).Cache();
             }
@@ -415,7 +410,7 @@ int main(int argc, char* argv[]) {
             timer.Stop();
 
             auto number_edges = in.Size();
-            LOG << "\n"
+            LOG1 << "\n"
                 << "FINISHED PAGERANK COMPUTATION"
                 << "\n"
                 << std::left << std::setfill(' ')
