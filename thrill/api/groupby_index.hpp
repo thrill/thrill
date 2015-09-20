@@ -77,7 +77,7 @@ public:
     GroupByIndexNode(const ParentDIARef& parent,
                      const KeyExtractor& key_extractor,
                      const GroupFunction& groupby_function,
-                     std::size_t number_keys,
+                     size_t number_keys,
                      const ValueOut& neutral_element,
                      StatsNode* stats_node,
                      const HashFunction& hash_function = HashFunction())
@@ -121,7 +121,7 @@ public:
 
     void PushData(bool consume) final {
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
-        const std::size_t num_runs = files_.size();
+        const size_t num_runs = files_.size();
         // if there's only one run, store it
         if (num_runs == 1) {
             RunUserFunc(files_[0], consume);
@@ -129,7 +129,7 @@ public:
         else {
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
-            for (std::size_t t = 0; t < num_runs; ++t) {
+            for (size_t t = 0; t < num_runs; ++t) {
                 std::shared_ptr<Reader> reader = std::make_shared<Reader>(files_[t].GetReader(consume));
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
@@ -142,7 +142,7 @@ public:
                 totalsize_,
                 ValueComparator(*this));
 
-            std::size_t curr_index = key_range_start_;
+            size_t curr_index = key_range_start_;
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator
@@ -192,12 +192,12 @@ public:
 private:
     const KeyExtractor& key_extractor_;
     const GroupFunction& groupby_function_;
-    const std::size_t number_keys_;
-    const std::size_t key_range_start_;
-    const std::size_t key_range_end_;
+    const size_t number_keys_;
+    const size_t key_range_start_;
+    const size_t key_range_end_;
     const ValueOut& neutral_element_;
     HashFunction hash_function_;
-    std::size_t totalsize_ = 0;
+    size_t totalsize_ = 0;
 
     data::ChannelPtr channel_;
     std::vector<data::Channel::Writer> emitter_;
@@ -208,7 +208,7 @@ private:
         if (r.HasNext()) {
             // create iterator to pass to user_function
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
-            std::size_t curr_index = key_range_start_;
+            size_t curr_index = key_range_start_;
             while (user_iterator.HasNextForReal()) {
                 if (user_iterator.GetNextKey() != curr_index) {
                     // push neutral element as result to callback functions
@@ -272,7 +272,7 @@ private:
         LOG << "running group by main op";
 
         const bool consume = true;
-        const std::size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
+        const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
 
@@ -310,7 +310,7 @@ template <typename ValueOut,
 auto DIARef<ValueType, Stack>::GroupByIndex(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function,
-    const std::size_t number_keys,
+    const size_t number_keys,
     const ValueOut &neutral_element) const {
 
     using DOpResult

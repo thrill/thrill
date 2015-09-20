@@ -87,7 +87,7 @@ class FileIteratorWrapper : public std::iterator<std::random_access_iterator_tag
 protected:
     File* file_;
     std::shared_ptr<Reader> reader_;
-    std::size_t pos_;
+    size_t pos_;
 
     std::shared_ptr<IterStats<ArrayItem> > stats_;
 
@@ -131,7 +131,7 @@ public:
 
     FileIteratorWrapper() : file_(), pos_(0) { }
 
-    FileIteratorWrapper(File* file, std::shared_ptr<Reader> reader, std::size_t pos, bool valid = true)
+    FileIteratorWrapper(File* file, std::shared_ptr<Reader> reader, size_t pos, bool valid = true)
         : file_(file),
           reader_(reader),
           pos_(pos),
