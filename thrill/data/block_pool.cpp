@@ -64,7 +64,7 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr) {
 }
 
 //! Pins a block by swapping it in if required.
-void BlockPool::PinBlock(ByteBlock* block_ptr, common::Signal& signal) {
+void BlockPool::PinBlock(ByteBlock* block_ptr, common::delegate<void()>&& callback) {
     std::lock_guard<std::mutex> lock(list_mutex_);
     LOG << "pinning block @" << block_ptr;
 
@@ -72,7 +72,7 @@ void BlockPool::PinBlock(ByteBlock* block_ptr, common::Signal& signal) {
     if ((block_ptr->pin_count_)++ > 0) {
         sLOG << "already pinned - return ptr";
 
-        signal.Set();
+        callback();
         return;
     }
     num_pinned_blocks_++;
@@ -81,7 +81,7 @@ void BlockPool::PinBlock(ByteBlock* block_ptr, common::Signal& signal) {
     if (block_ptr->in_memory()) {
         victim_blocks_.erase(std::find(victim_blocks_.begin(), victim_blocks_.end(), block_ptr));
 
-        signal.Set();
+        callback();
         return;
     }
     else {      //we need to swap it in
@@ -96,7 +96,7 @@ void BlockPool::PinBlock(ByteBlock* block_ptr, common::Signal& signal) {
             std::lock_guard<std::mutex> lock(list_mutex_);
             num_swapped_blocks_--;
             ext_mem_manager_.subtract(block_ptr->size());
-            signal.Set();
+            callback();
         });
     }
 }

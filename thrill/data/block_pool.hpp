@@ -113,8 +113,8 @@ protected:
 
     //! Pins a block by swapping it in if required.
     //! \param block_ptr the block to pin
-    //! \param signal for signaling end of async pin process
-    void PinBlock(ByteBlock* block_ptr, common::Signal& signal);
+    //! \param callback is called when the pinning is completed
+    void PinBlock(ByteBlock* block_ptr, common::delegate<void()>&& callback);
 
     //! Destroys the block. Only for internal purposes.
     //! Async call.

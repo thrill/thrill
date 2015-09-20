@@ -13,6 +13,7 @@
 #define THRILL_DATA_BLOCK_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
+#include <thrill/common/future.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/mem/manager.hpp>
 
@@ -46,13 +47,13 @@ namespace data {
 class Block
 {
 public:
-    Block() { }
+    Block() : pinned_(false) { }
 
     Block(const ByteBlockPtr& byte_block,
           size_t begin, size_t end, size_t first_item, size_t num_items)
         : byte_block_(byte_block),
           begin_(begin), end_(end),
-          first_item_(first_item), num_items_(num_items)
+          first_item_(first_item), num_items_(num_items), pinned_(false)
     { }
 
     //! Return whether the enclosed ByteBlock is valid.
@@ -62,7 +63,12 @@ public:
 
     //! Releases the reference to the ByteBlock and resets book-keeping info
     void Release() {
+        UnpinMaybe();
         byte_block_ = ByteBlockPtr();
+    }
+
+    ~Block() {
+        UnpinMaybe();
     }
 
     // Return block as std::string (for debugging), includes eventually cut off
@@ -116,12 +122,21 @@ public:
             os << " begin_=" << b.begin_
                << " end_=" << b.end_
                << " first_item_=" << b.first_item_
-               << " num_items_=" << b.num_items_;
+               << " num_items_=" << b.num_items_
+               << " pinned=" << (b.pinned_ ? "yes" : "no");
         }
         return os << "]";
     }
 
 protected:
+    Block(const ByteBlockPtr& byte_block,
+          size_t begin, size_t end, size_t first_item, size_t num_items, bool pinned)
+        : byte_block_(byte_block),
+          begin_(begin), end_(end),
+          first_item_(first_item), num_items_(num_items),
+          pinned_(pinned)
+    { }
+
     //! referenced ByteBlock
     ByteBlockPtr byte_block_;
 
@@ -139,6 +154,34 @@ protected:
     //! number of valid items that _start_ in this block (includes cut-off
     //! element at the end)
     size_t num_items_;
+
+    //! whether this Block is pointing to a pinned ByteBlock. Can only be set
+    //! during initialization
+    bool pinned_;
+
+    //! Creates a pinned copy of the Block
+    //! If the underlying data::ByteBlock is already pinned, the Future is directly filled with a copy if this block
+    //! Otherwise an async pin call will be issued
+    common::Future<Block>&& Pin() {
+        //future required for passing result from backgroud thread (which calls the callback) back to caller's thread
+        common::Future<Block> result;
+        //pinned blocks can be returned straigt away
+        if (pinned_) {
+            result << std::move(Block( byte_block_, begin_, end_, first_item_, num_items_, pinned_ ));
+        } else {
+            //call pin with callback that creates new, pinned block
+            byte_block_->Pin([&](){
+                result << std::move(Block( byte_block_, begin_, end_, first_item_, num_items_, true ));
+            });
+        }
+        return std::move(result);
+    }
+
+    //! Unpins the underlying byte block if it is valid and pinned
+    void UnpinMaybe() {
+        if(byte_block_ && pinned_)
+            byte_block_->DecreasePinCount();
+    }
 };
 
 //! \}
