@@ -425,11 +425,10 @@ public:
     ssize_t recv_one(void* out_data, size_t max_size, int flags = 0) {
         assert(IsValid());
 
-#if __APPLE__
-        // this is a work-around, since on MacOSX errno is spontaneously ==
-        // EINVAL, with no relationship to recv -tb 2015-08-28
+        // this is a work-around, since on errno is spontaneously == EINVAL,
+        // with no relationship to recv() -tb 2015-08-28
         errno = 0;
-#endif
+
         LOG << "Socket::recv_one()"
             << " fd_=" << fd_
             << " max_size=" << max_size
