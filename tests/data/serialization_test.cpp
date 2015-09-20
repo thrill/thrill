@@ -203,6 +203,7 @@ struct MyMethodStruct
         : i1(_i1), d2(_d2), s3(_s3) { }
 
     static const bool thrill_is_fixed_size = false;
+    static const size_t thrill_fixed_size = 0;
 
     template <typename Archive>
     void ThrillSerialize(Archive& ar) const {
