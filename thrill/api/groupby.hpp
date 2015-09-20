@@ -114,7 +114,9 @@ public:
 
     void PushData(bool consume) final {
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
+        thrill::common::StatsTimer<true> timer(false);
 
+        timer.Start();
         const size_t num_runs = files_.size();
         // if there's only one run, call user funcs
         if (num_runs == 1) {
@@ -153,6 +155,12 @@ public:
                 }
             }
         }
+        timer.Stop();
+        LOG1 << "\n"
+             << "RESULT"
+             << " name=multiwaymerge"
+             << " rank=" << context_.my_rank()
+             << " time=" << timer.Milliseconds();
     }
 
     void Dispose() override { }
