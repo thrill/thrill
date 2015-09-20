@@ -29,7 +29,7 @@ namespace data {
 //! \{
 
 enum class MagicByte : uint8_t {
-    INVALID, CAT_CHANNEL_BLOCK, MIX_CHANNEL_BLOCK, PARTITION_BLOCK
+    INVALID, CAT_STREAM_BLOCK, MIX_STREAM_BLOCK, PARTITION_BLOCK
 };
 
 struct BlockHeader {
@@ -72,32 +72,32 @@ public:
 //! boundaries
 //!
 //! Provides a serializer and two partial deserializers
-//! A ChannelBlockHeader with num_elements = 0 marks the end of a channel
-struct ChannelBlockHeader : public BlockHeader {
-    size_t channel_id;
+//! A StreamBlockHeader with num_elements = 0 marks the end of a stream
+struct StreamBlockHeader : public BlockHeader {
+    size_t stream_id;
     size_t sender_rank;
     size_t receiver_local_worker_id;
     size_t sender_local_worker_id;
 
-    ChannelBlockHeader() = default;
+    StreamBlockHeader() = default;
 
-    explicit ChannelBlockHeader(MagicByte m, const Block& b)
+    explicit StreamBlockHeader(MagicByte m, const Block& b)
         : BlockHeader(m, b)
     { }
 
     //! Serializes the whole block struct into a buffer
     void Serialize(net::BufferBuilder& bb) const {
         SerializeBlockHeader(bb);
-        bb.Put<size_t>(channel_id);
+        bb.Put<size_t>(stream_id);
         bb.Put<size_t>(sender_rank);
         bb.Put<size_t>(receiver_local_worker_id);
         bb.Put<size_t>(sender_local_worker_id);
     }
 
-    //! Reads the channel id and the number of elements in this block
+    //! Reads the stream id and the number of elements in this block
     void ParseHeader(net::BufferReader& br) {
         ParseBlockHeader(br);
-        channel_id = br.Get<size_t>();
+        stream_id = br.Get<size_t>();
         sender_rank = br.Get<size_t>();
         receiver_local_worker_id = br.Get<size_t>();
         sender_local_worker_id = br.Get<size_t>();
@@ -132,7 +132,7 @@ struct PartitionBlockHeader : public BlockHeader {
         bb.Put<size_t>(sender_local_worker_id);
     }
 
-    //! Reads the channel id and the number of elements in this block
+    //! Reads the stream id and the number of elements in this block
     void ParseHeader(net::BufferReader& br) {
         ParseBlockHeader(br);
         partition_set_id = br.Get<size_t>();

@@ -27,25 +27,25 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-class ChannelSetBase;
+class StreamSetBase;
 
-template <typename Channel>
-class ChannelSet;
+template <typename Stream>
+class StreamSet;
 
-class CatChannel;
-using CatChannelPtr = std::shared_ptr<CatChannel>;
-using CatChannelSet = ChannelSet<CatChannel>;
-using CatChannelSetPtr = std::shared_ptr<CatChannelSet>;
+class CatStream;
+using CatStreamPtr = std::shared_ptr<CatStream>;
+using CatStreamSet = StreamSet<CatStream>;
+using CatStreamSetPtr = std::shared_ptr<CatStreamSet>;
 
-class MixChannel;
-using MixChannelPtr = std::shared_ptr<MixChannel>;
-using MixChannelSet = ChannelSet<MixChannel>;
-using MixChannelSetPtr = std::shared_ptr<MixChannelSet>;
+class MixStream;
+using MixStreamPtr = std::shared_ptr<MixStream>;
+using MixStreamSet = StreamSet<MixStream>;
+using MixStreamSetPtr = std::shared_ptr<MixStreamSet>;
 
 class BlockQueue;
 class MixBlockQueueSink;
 
-struct ChannelBlockHeader;
+struct StreamBlockHeader;
 
 /*!
  * Multiplexes virtual Connections on Dispatcher.
@@ -53,12 +53,12 @@ struct ChannelBlockHeader;
  * A worker as a TCP conneciton to each other worker to exchange large amounts
  * of data. Since multiple exchanges can occur at the same time on this single
  * connection we use multiplexing. The slices are called Blocks and are
- * indicated by a \ref ChannelBlockHeader. Multiple Blocks form a Channel on a
+ * indicated by a \ref StreamBlockHeader. Multiple Blocks form a Stream on a
  * single TCP connection. The multiplexer multiplexes all streams on all
  * sockets.
  *
  * All sockets are polled for headers. As soon as the a header arrives it is
- * either attached to an existing channel or a new channel instance is
+ * either attached to an existing stream or a new stream instance is
  * created.
  */
 class Multiplexer
@@ -72,7 +72,7 @@ public:
           dispatcher_(mem_manager, group, "multiplexer"),
           group_(group),
           num_workers_per_host_(num_workers_per_host),
-          channel_sets_(num_workers_per_host) {
+          stream_sets_(num_workers_per_host) {
         for (size_t id = 0; id < group_.num_hosts(); id++) {
             if (id == group_.my_host_rank()) continue;
             AsyncReadBlockHeader(group_.connection(id));
@@ -110,50 +110,50 @@ public:
     //! Get the used BlockPool
     BlockPool & block_pool() { return block_pool_; }
 
-    //! \name CatChannel
+    //! \name CatStream
     //! \{
 
-    //! Allocate the next channel
-    size_t AllocateCatChannelId(size_t local_worker_id) {
+    //! Allocate the next stream
+    size_t AllocateCatStreamId(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return channel_sets_.AllocateId(local_worker_id);
+        return stream_sets_.AllocateId(local_worker_id);
     }
 
-    //! Get channel with given id, if it does not exist, create it.
-    CatChannelPtr GetOrCreateCatChannel(size_t id, size_t local_worker_id) {
+    //! Get stream with given id, if it does not exist, create it.
+    CatStreamPtr GetOrCreateCatStream(size_t id, size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateCatChannel(id, local_worker_id);
+        return _GetOrCreateCatStream(id, local_worker_id);
     }
 
-    //! Request next channel.
-    CatChannelPtr GetNewCatChannel(size_t local_worker_id) {
+    //! Request next stream.
+    CatStreamPtr GetNewCatStream(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateCatChannel(
-            channel_sets_.AllocateId(local_worker_id), local_worker_id);
+        return _GetOrCreateCatStream(
+            stream_sets_.AllocateId(local_worker_id), local_worker_id);
     }
 
     //! \}
 
-    //! \name MixChannel
+    //! \name MixStream
     //! \{
 
-    //! Allocate the next channel
-    size_t AllocateMixChannelId(size_t local_worker_id) {
+    //! Allocate the next stream
+    size_t AllocateMixStreamId(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return channel_sets_.AllocateId(local_worker_id);
+        return stream_sets_.AllocateId(local_worker_id);
     }
 
-    //! Get channel with given id, if it does not exist, create it.
-    MixChannelPtr GetOrCreateMixChannel(size_t id, size_t local_worker_id) {
+    //! Get stream with given id, if it does not exist, create it.
+    MixStreamPtr GetOrCreateMixStream(size_t id, size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateMixChannel(id, local_worker_id);
+        return _GetOrCreateMixStream(id, local_worker_id);
     }
 
-    //! Request next channel.
-    MixChannelPtr GetNewMixChannel(size_t local_worker_id) {
+    //! Request next stream.
+    MixStreamPtr GetNewMixStream(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateMixChannel(
-            channel_sets_.AllocateId(local_worker_id), local_worker_id);
+        return _GetOrCreateMixStream(
+            stream_sets_.AllocateId(local_worker_id), local_worker_id);
     }
 
     //! \}
@@ -171,7 +171,7 @@ protected:
     //! never leaves the data components!
     net::DispatcherThread dispatcher_;
 
-    // Holds NetConnections for outgoing Channels
+    // Holds NetConnections for outgoing Streams
     net::Group& group_;
 
     //! Number of workers per host
@@ -181,24 +181,24 @@ protected:
     std::mutex mutex_;
 
     //! friends for access to network components
-    friend class CatChannel;
-    friend class MixChannel;
+    friend class CatStream;
+    friend class MixStream;
 
     //! Pointer to queue that is used for communication between two workers on
     //! the same host.
     BlockQueue * CatLoopback(
-        size_t channel_id, size_t from_worker_id, size_t to_worker_id);
+        size_t stream_id, size_t from_worker_id, size_t to_worker_id);
 
     MixBlockQueueSink * MixLoopback(
-        size_t channel_id, size_t from_worker_id, size_t to_worker_id);
+        size_t stream_id, size_t from_worker_id, size_t to_worker_id);
 
     /**************************************************************************/
 
-    //! Channels have an ID in block headers. (worker id, channel id)
-    Repository<ChannelSetBase> channel_sets_;
+    //! Streams have an ID in block headers. (worker id, stream id)
+    Repository<StreamSetBase> stream_sets_;
 
-    CatChannelPtr _GetOrCreateCatChannel(size_t id, size_t local_worker_id);
-    MixChannelPtr _GetOrCreateMixChannel(size_t id, size_t local_worker_id);
+    CatStreamPtr _GetOrCreateCatStream(size_t id, size_t local_worker_id);
+    MixStreamPtr _GetOrCreateMixStream(size_t id, size_t local_worker_id);
 
     /**************************************************************************/
 
@@ -207,18 +207,18 @@ protected:
     //! expects the next BlockHeader from a socket and passes to OnBlockHeader
     void AsyncReadBlockHeader(Connection& s);
 
-    //! parses BlockHeader and decides whether to receive Block or close Channel
+    //! parses BlockHeader and decides whether to receive Block or close Stream
     void OnBlockHeader(Connection& s, net::Buffer&& buffer);
 
-    //! Receives and dispatches a Block to a CatChannel
-    void OnCatChannelBlock(
-        Connection& s, const ChannelBlockHeader& header,
-        const CatChannelPtr& channel, const ByteBlockPtr& bytes);
+    //! Receives and dispatches a Block to a CatStream
+    void OnCatStreamBlock(
+        Connection& s, const StreamBlockHeader& header,
+        const CatStreamPtr& stream, const ByteBlockPtr& bytes);
 
-    //! Receives and dispatches a Block to a MixChannel
-    void OnMixChannelBlock(
-        Connection& s, const ChannelBlockHeader& header,
-        const MixChannelPtr& channel, const ByteBlockPtr& bytes);
+    //! Receives and dispatches a Block to a MixStream
+    void OnMixStreamBlock(
+        Connection& s, const StreamBlockHeader& header,
+        const MixStreamPtr& stream, const ByteBlockPtr& bytes);
 };
 
 //! \}

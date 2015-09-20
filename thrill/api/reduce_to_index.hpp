@@ -96,8 +96,8 @@ public:
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(parent.ctx().GetNewCatChannel()),
-          emitters_(channel_->OpenWriters()),
+          stream_(parent.ctx().GetNewCatStream()),
+          emitters_(stream_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6,
                             core::PreReduceByIndex(result_size)),
@@ -158,8 +158,8 @@ public:
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            auto reader = channel_->OpenCatReader(consume);
-            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
+            auto reader = stream_->OpenCatReader(consume);
+            sLOG << "reading data from" << stream_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
@@ -167,8 +167,8 @@ public:
         }
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            auto reader = channel_->OpenCatReader(consume);
-            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
+            auto reader = stream_->OpenCatReader(consume);
+            sLOG << "reading data from" << stream_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
             }
@@ -199,9 +199,9 @@ private:
     //! Reduce function
     ReduceFunction reduce_function_;
 
-    data::CatChannelPtr channel_;
+    data::CatStreamPtr stream_;
 
-    std::vector<data::CatChannel::Writer> emitters_;
+    std::vector<data::CatStream::Writer> emitters_;
 
     PreHashTable reduce_pre_table_;
 
@@ -222,8 +222,8 @@ private:
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
-        channel_->Close();
-        this->WriteChannelStats(channel_);
+        stream_->Close();
+        this->WriteStreamStats(stream_);
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.

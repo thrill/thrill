@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/data/channel.hpp
+ * thrill/data/stream.hpp
  *
  * Part of Project Thrill.
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_DATA_CHANNEL_HEADER
-#define THRILL_DATA_CHANNEL_HEADER
+#ifndef THRILL_DATA_STREAM_HEADER
+#define THRILL_DATA_STREAM_HEADER
 
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
@@ -29,14 +29,14 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-using ChannelId = size_t;
+using StreamId = size_t;
 
 /*!
- * Base class for common structures for ConcatChannel and MixedChannel. This is
- * also a virtual base class use by Multiplexer to pass blocks to channels!
+ * Base class for common structures for ConcatStream and MixedStream. This is
+ * also a virtual base class use by Multiplexer to pass blocks to streams!
  * Instead, it contains common items like stats.
  */
-class Channel
+class Stream
 {
 public:
     using StatsCounter = common::StatsCounter<size_t, common::g_enable_stats>;
@@ -46,8 +46,8 @@ public:
 
     using Writer = DynBlockWriter;
 
-    Channel(Multiplexer& multiplexer, const ChannelId& id,
-            size_t my_local_worker_id)
+    Stream(Multiplexer& multiplexer, const StreamId& id,
+           size_t my_local_worker_id)
         : tx_lifetime_(true), rx_lifetime_(true),
           tx_timespan_(), rx_timespan_(),
           id_(id),
@@ -57,9 +57,9 @@ public:
               (multiplexer_.num_hosts() - 1) * multiplexer_.num_workers_per_host()),
           received_closing_blocks_(0) { }
 
-    virtual ~Channel() { }
+    virtual ~Stream() { }
 
-    const ChannelId & id() const {
+    const StreamId & id() const {
         return id_;
     }
 
@@ -72,10 +72,10 @@ public:
         }
     }
 
-    //! shuts the channel down.
+    //! shuts the stream down.
     virtual void Close() = 0;
 
-    //! Adds a Callback that is called when the channel is closed (r+w)
+    //! Adds a Callback that is called when the stream is closed (r+w)
     void OnClose(const ClosedCallback& cb) {
         closed_callbacks_.push_back(cb);
     }
@@ -143,7 +143,7 @@ public:
     //! Do not include loopback data transfer
     StatsCounter outgoing_bytes_, outgoing_blocks_;
 
-    //! Timers from creation of channel until rx / tx direction is closed.
+    //! Timers from creation of stream until rx / tx direction is closed.
     StatsTimer tx_lifetime_, rx_lifetime_;
 
     //! Timers from first rx / tx package until rx / tx direction is closed.
@@ -152,8 +152,8 @@ public:
     ///////////////////////////////////////////////////////////////////////////
 
 protected:
-    //! our own channel id.
-    ChannelId id_;
+    //! our own stream id.
+    StreamId id_;
 
     size_t my_local_worker_id_;
 
@@ -164,60 +164,60 @@ protected:
     //! know when to stop rx_lifetime
     size_t expected_closing_blocks_, received_closing_blocks_;
 
-    //! Callbacks that are called once when the channel is closed (r+w)
+    //! Callbacks that are called once when the stream is closed (r+w)
     std::vector<ClosedCallback> closed_callbacks_;
 
     // protects against race conditions in closed_callbacks_ loop
     std::mutex mutex_;
 };
 
-using ChannelPtr = std::shared_ptr<Channel>;
+using StreamPtr = std::shared_ptr<Stream>;
 
 /*!
- * Base class for ChannelSet.
+ * Base class for StreamSet.
  */
-class ChannelSetBase
+class StreamSetBase
 {
 public:
-    virtual ~ChannelSetBase() { }
+    virtual ~StreamSetBase() { }
 
-    //! Close all channels in the set.
+    //! Close all streams in the set.
     virtual void Close() = 0;
 };
 
 /*!
- * Simple structure that holds a all channel instances for the workers on the
- * local host for a given channel id.
+ * Simple structure that holds a all stream instances for the workers on the
+ * local host for a given stream id.
  */
-template <typename Channel>
-class ChannelSet : public ChannelSetBase
+template <typename Stream>
+class StreamSet : public StreamSetBase
 {
 public:
-    using ChannelPtr = std::shared_ptr<Channel>;
+    using StreamPtr = std::shared_ptr<Stream>;
 
-    //! Creates a ChannelSet with the given number of channels (num workers per
+    //! Creates a StreamSet with the given number of streams (num workers per
     //! host).
-    ChannelSet(data::Multiplexer& multiplexer, ChannelId id,
-               size_t num_workers_per_host) {
+    StreamSet(data::Multiplexer& multiplexer, StreamId id,
+              size_t num_workers_per_host) {
         for (size_t i = 0; i < num_workers_per_host; i++)
-            channels_.push_back(std::make_shared<Channel>(multiplexer, id, i));
+            streams_.push_back(std::make_shared<Stream>(multiplexer, id, i));
     }
 
-    //! Returns the channel that will be consumed by the worker with the given
+    //! Returns the stream that will be consumed by the worker with the given
     //! local id
-    ChannelPtr peer(size_t local_worker_id) {
-        assert(local_worker_id < channels_.size());
-        return channels_[local_worker_id];
+    StreamPtr peer(size_t local_worker_id) {
+        assert(local_worker_id < streams_.size());
+        return streams_[local_worker_id];
     }
 
     void Close() final {
-        for (auto& c : channels_)
+        for (auto& c : streams_)
             c->Close();
     }
 
 private:
-    //! 'owns' all channels belonging to one channel id for all local workers.
-    std::vector<ChannelPtr> channels_;
+    //! 'owns' all streams belonging to one stream id for all local workers.
+    std::vector<StreamPtr> streams_;
 };
 
 //! \}
@@ -225,6 +225,6 @@ private:
 } // namespace data
 } // namespace thrill
 
-#endif // !THRILL_DATA_CHANNEL_HEADER
+#endif // !THRILL_DATA_STREAM_HEADER
 
 /******************************************************************************/

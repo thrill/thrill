@@ -89,8 +89,8 @@ public:
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(parent.ctx().GetNewCatChannel()),
-          emitters_(channel_->OpenWriters()),
+          stream_(parent.ctx().GetNewCatStream()),
+          emitters_(stream_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6)
     {
@@ -102,9 +102,9 @@ public:
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
-        channel_->OnClose([this]() {
-                              this->WriteChannelStats(this->channel_);
-                          });
+        stream_->OnClose([this]() {
+                             this->WriteStreamStats(this->stream_);
+                         });
     }
 
     //! Virtual destructor for a ReduceNode.
@@ -139,8 +139,8 @@ public:
                           0, 0, Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01);
 
         if (RobustKey) {
-            auto reader = channel_->OpenCatReader(consume);
-            sLOG << "reading data from" << channel_->id() <<
+            auto reader = stream_->OpenCatReader(consume);
+            sLOG << "reading data from" << stream_->id() <<
                 "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
@@ -148,8 +148,8 @@ public:
             table.Flush(consume);
         }
         else {
-            auto reader = channel_->OpenCatReader(consume);
-            sLOG << "reading data from" << channel_->id() <<
+            auto reader = stream_->OpenCatReader(consume);
+            sLOG << "reading data from" << stream_->id() <<
                 "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
@@ -175,9 +175,9 @@ private:
     //! Reduce function
     ReduceFunction reduce_function_;
 
-    data::CatChannelPtr channel_;
+    data::CatStreamPtr stream_;
 
-    std::vector<data::CatChannel::Writer> emitters_;
+    std::vector<data::CatStream::Writer> emitters_;
 
     core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey,
                          core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;
@@ -195,7 +195,7 @@ private:
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
-        channel_->Close();
+        stream_->Close();
     }
 };
 

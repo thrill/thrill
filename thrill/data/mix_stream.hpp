@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/data/mix_channel.hpp
+ * thrill/data/mix_stream.hpp
  *
  * Part of Project Thrill.
  *
@@ -10,14 +10,14 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_DATA_MIX_CHANNEL_HEADER
-#define THRILL_DATA_MIX_CHANNEL_HEADER
+#ifndef THRILL_DATA_MIX_STREAM_HEADER
+#define THRILL_DATA_MIX_STREAM_HEADER
 
-#include <thrill/data/channel.hpp>
-#include <thrill/data/channel_sink.hpp>
 #include <thrill/data/mix_block_queue.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
+#include <thrill/data/stream.hpp>
+#include <thrill/data/stream_sink.hpp>
 
 #include <string>
 #include <vector>
@@ -29,35 +29,35 @@ namespace data {
 //! \{
 
 /*!
- * A Channel is a virtual set of connections to all other worker instances,
- * hence a "Channel" bundles them to a logical communication context. We call an
+ * A Stream is a virtual set of connections to all other worker instances,
+ * hence a "Stream" bundles them to a logical communication context. We call an
  * individual connection from a worker to another worker a "Host".
  *
- * To use a Channel, one can get a vector of BlockWriter via OpenWriters() of
- * outbound Channel. The vector is of size of workers in the system.  One can
+ * To use a Stream, one can get a vector of BlockWriter via OpenWriters() of
+ * outbound Stream. The vector is of size of workers in the system.  One can
  * then write items destined to the corresponding worker. The written items are
  * buffered into a Block and only sent when the Block is full. To force a send,
  * use BlockWriter::Flush(). When all items are sent, the BlockWriters **must**
  * be closed using BlockWriter::Close().
  *
- * The MixChannel allows reading of items from all workers in an unordered
+ * The MixStream allows reading of items from all workers in an unordered
  * sequence, without waiting for any of the workers to complete sending items.
  */
-class MixChannel final : public Channel
+class MixStream final : public Stream
 {
 public:
     using MixReader = MixBlockQueueReader;
 
-    //! Creates a new channel instance
-    MixChannel(Multiplexer& multiplexer, const ChannelId& id,
-               size_t my_local_worker_id)
-        : Channel(multiplexer, id, my_local_worker_id),
+    //! Creates a new stream instance
+    MixStream(Multiplexer& multiplexer, const StreamId& id,
+              size_t my_local_worker_id)
+        : Stream(multiplexer, id, my_local_worker_id),
           queue_(multiplexer_.block_pool_, multiplexer_.num_workers()) {
 
         sinks_.reserve(multiplexer_.num_workers());
         loopback_.reserve(multiplexer_.num_workers());
 
-        // construct ChannelSink array
+        // construct StreamSink array
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
             for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
                 if (host == multiplexer_.my_host_rank()) {
@@ -65,12 +65,12 @@ public:
                     sinks_.emplace_back(multiplexer_.block_pool_);
                 }
                 else {
-                    // ChannelSink which transmits MIX_CHANNEL_BLOCKs
+                    // StreamSink which transmits MIX_STREAM_BLOCKs
                     sinks_.emplace_back(
                         multiplexer_.block_pool_,
                         &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
-                        MagicByte::MIX_CHANNEL_BLOCK,
+                        MagicByte::MIX_STREAM_BLOCK,
                         id,
                         multiplexer_.my_host_rank(), my_local_worker_id, worker,
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
@@ -87,11 +87,11 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    MixChannel(const MixChannel&) = delete;
+    MixStream(const MixStream&) = delete;
     //! non-copyable: delete assignment operator
-    MixChannel& operator = (const MixChannel&) = delete;
+    MixStream& operator = (const MixStream&) = delete;
     //! move-constructor: default
-    MixChannel(MixChannel&&) = default;
+    MixStream(MixStream&&) = default;
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
@@ -126,7 +126,7 @@ public:
         return MixReader(queue_, consume);
     }
 
-    //! shuts the channel down.
+    //! shuts the stream down.
     void Close() final {
         // close all sinks, this should emit sentinel to all other worker.
         for (size_t i = 0; i != sinks_.size(); ++i) {
@@ -155,7 +155,7 @@ public:
         CallClosedCallbacksEventually();
     }
 
-    //! Indicates if the channel is closed - meaning all remaining streams have
+    //! Indicates if the stream is closed - meaning all remaining streams have
     //! been closed.
     bool closed() const final {
         bool closed = true;
@@ -166,8 +166,8 @@ public:
 protected:
     static const bool debug = false;
 
-    //! ChannelSink objects are receivers of Blocks outbound for other worker.
-    std::vector<ChannelSink> sinks_;
+    //! StreamSink objects are receivers of Blocks outbound for other worker.
+    std::vector<StreamSink> sinks_;
 
     //! BlockQueue to store incoming Blocks with source.
     MixBlockQueue queue_;
@@ -179,26 +179,26 @@ protected:
     //! for calling methods to deliver blocks
     friend class Multiplexer;
 
-    //! called from Multiplexer when there is a new Block for this Channel.
-    void OnChannelBlock(size_t from, Block&& b) {
+    //! called from Multiplexer when there is a new Block for this Stream.
+    void OnStreamBlock(size_t from, Block&& b) {
         assert(from < multiplexer_.num_workers());
         rx_timespan_.StartEventually();
         incoming_bytes_ += b.size();
         incoming_blocks_++;
 
-        sLOG << "OnMixChannelBlock" << b;
+        sLOG << "OnMixStreamBlock" << b;
 
         if (debug) {
-            sLOG << "channel" << id_ << "receive from" << from << ":"
+            sLOG << "stream" << id_ << "receive from" << from << ":"
                  << common::hexdump(b.ToString());
         }
 
         queue_.AppendBlock(from, b);
     }
 
-    //! called from Multiplexer when a MixChannel closed notification was
+    //! called from Multiplexer when a MixStream closed notification was
     //! received.
-    void OnCloseChannel(size_t from) {
+    void OnCloseStream(size_t from) {
         assert(from < multiplexer_.num_workers());
         queue_.Close(from);
 
@@ -209,7 +209,7 @@ protected:
         }
     }
 
-    //! Returns the loopback queue for the worker of this channel.
+    //! Returns the loopback queue for the worker of this stream.
     MixBlockQueueSink * loopback_queue(size_t from_worker_id) {
         assert(from_worker_id < multiplexer_.num_workers_per_host_);
         assert(from_worker_id < loopback_.size());
@@ -218,16 +218,16 @@ protected:
     }
 };
 
-using MixChannelPtr = std::shared_ptr<MixChannel>;
+using MixStreamPtr = std::shared_ptr<MixStream>;
 
-using MixChannelSet = ChannelSet<MixChannel>;
-using MixChannelSetPtr = std::shared_ptr<MixChannelSet>;
+using MixStreamSet = StreamSet<MixStream>;
+using MixStreamSetPtr = std::shared_ptr<MixStreamSet>;
 
 //! \}
 
 } // namespace data
 } // namespace thrill
 
-#endif // !THRILL_DATA_MIX_CHANNEL_HEADER
+#endif // !THRILL_DATA_MIX_STREAM_HEADER
 
 /******************************************************************************/

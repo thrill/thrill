@@ -39,8 +39,8 @@ public:
         : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(in_vector),
           source_id_(source_id),
-          channel_(ctx.GetNewCatChannel()),
-          emitters_(channel_->OpenWriters())
+          stream_(ctx.GetNewCatStream()),
+          emitters_(stream_->OpenWriters())
     { }
 
     //! Executes the scatter operation: source sends out its data.
@@ -62,21 +62,21 @@ public:
             }
         }
 
-        // close channel inputs.
+        // close stream inputs.
         for (size_t w = 0; w < emitters_.size(); ++w) {
             emitters_[w].Close();
         }
     }
 
     void PushData(bool consume) final {
-        data::CatChannel::CatReader readers = channel_->OpenCatReader(consume);
+        data::CatStream::CatReader readers = stream_->OpenCatReader(consume);
 
         while (readers.HasNext()) {
             this->PushItem(readers.Next<ValueType>());
         }
 
-        channel_->Close();
-        this->WriteChannelStats(channel_);
+        stream_->Close();
+        this->WriteStreamStats(stream_);
     }
 
     void Dispose() final { }
@@ -91,8 +91,8 @@ private:
     //! source worker id, which sends vector
     size_t source_id_;
 
-    data::CatChannelPtr channel_;
-    std::vector<data::CatChannel::Writer> emitters_;
+    data::CatStreamPtr stream_;
+    std::vector<data::CatStream::Writer> emitters_;
 };
 
 /*!
