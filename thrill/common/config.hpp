@@ -38,6 +38,10 @@ static const bool g_enable_stats = true;
 static const bool g_enable_stats = false;
 #endif
 
+#if !defined(_MSC_VER)
+#define THRILL_HAVE_NET_TCP 1
+#endif
+
 } // namespace common
 } // namespace thrill
 

@@ -44,13 +44,15 @@ namespace api {
 class HostContext
 {
 public:
+#if THRILL_HAVE_NET_TCP
     //! Construct one real host connected via TCP to others.
     HostContext(size_t my_host_rank,
                 const std::vector<std::string>& endpoints,
                 size_t workers_per_host);
+#endif
 
 #ifndef SWIG
-    //! constructor from existing net Groups for use from ConstructLocalMock().
+    //! constructor from existing net Groups. Used by the construction methods.
     HostContext(std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host)
         : workers_per_host_(workers_per_host),
@@ -63,7 +65,7 @@ public:
 
     //! Construct a number of mock hosts running in this process.
     static std::vector<std::unique_ptr<HostContext> >
-    ConstructLocalMock(size_t host_count, size_t workers_per_host);
+    ConstructLoopback(size_t host_count, size_t workers_per_host);
 #endif
 
     //! number of workers per host (all have the same).
@@ -323,12 +325,9 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint);
  *
  * THRILL_WORKERS_PER_HOST is the number of workers (threads) per host.
  *
- * \returns 0 if execution was fine on all threads. Otherwise, the first
- * non-zero return value of any thread is returned.
+ * \returns 0 if execution was fine on all threads.
  */
-int Run(
-    const std::function<void(Context&)>& job_startpoint,
-    const std::string& log_prefix = std::string());
+int Run(const std::function<void(Context&)>& job_startpoint);
 
 //! \}
 
