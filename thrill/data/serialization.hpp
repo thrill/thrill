@@ -200,6 +200,7 @@ struct Serialization<Archive, std::vector<T> >
     static std::vector<T> Deserialize(Archive& ar) {
         size_t size = ar.GetVarint();
         std::vector<T> out;
+        out.reserve(size);
         for (size_t i = 0; i != size; ++i)
             out.emplace_back(Serialization<Archive, T>::Deserialize(ar));
         return out;

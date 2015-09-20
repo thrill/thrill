@@ -16,6 +16,7 @@
 #include <thrill/common/aggregate.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/matrix.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
 
@@ -32,17 +33,7 @@ using namespace thrill; // NOLINT
 
 // matrix of measured latencies
 using AggDouble = common::Aggregate<double>;
-using AggMatrix = std::vector<std::vector<AggDouble> >;
-
-AggMatrix AddAggMatrix(const AggMatrix& a, const AggMatrix& b) {
-    AggMatrix m = a;
-    for (size_t i = 0; i < a.size(); ++i) {
-        for (size_t j = 0; j < a.size(); ++j) {
-            m[i][j] += b[i][j];
-        }
-    }
-    return m;
-}
+using AggMatrix = common::Matrix<AggDouble>;
 
 /******************************************************************************/
 //! perform a 1-factor ping pong latency test
@@ -59,8 +50,7 @@ void PingPongLatencyTest(api::Context& ctx) {
     // a counter to count and match ping pongs.
     size_t counter = 0;
 
-    AggMatrix latency(
-        group.num_hosts(), std::vector<AggDouble>(group.num_hosts()));
+    AggMatrix latency(group.num_hosts());
 
     for (size_t outer_repeat = 0;
          outer_repeat < outer_repeats; ++outer_repeat) {
@@ -103,7 +93,7 @@ void PingPongLatencyTest(api::Context& ctx) {
                               << "iteration" << iteration
                               << "latency" << avg;
 
-                        latency[ctx.host_rank()][peer].Add(avg);
+                        latency(ctx.host_rank(), peer).Add(avg);
                     };
 
                 auto Receiver =
@@ -158,17 +148,17 @@ void PingPongLatencyTest(api::Context& ctx) {
         }
     }
 
-    // reduce matrix to root.
-    group.ReduceToRoot(latency, AddAggMatrix);
+    // reduce (add) matrix to root.
+    group.ReduceToRoot(latency);
 
     // print matrix
     if (ctx.my_rank() == 0) {
-        for (size_t i = 0; i < latency.size(); ++i) {
+        for (size_t i = 0; i < latency.rows(); ++i) {
             std::ostringstream os2;
-            for (size_t j = 0; j < latency.size(); ++j) {
+            for (size_t j = 0; j < latency.columns(); ++j) {
                 os2 << common::str_snprintf(
                     64, "%8.1f/%8.3f",
-                    latency[i][j].Avg(), latency[i][j].StdDev());
+                    latency(i, j).Avg(), latency(i, j).StdDev());
             }
             LOG1 << os2.str();
         }
@@ -213,8 +203,7 @@ void BandwidthTest(api::Context& ctx) {
     // a counter to count and match messages
     size_t counter = 0;
 
-    AggMatrix bandwidth(
-        group.num_hosts(), std::vector<AggDouble>(group.num_hosts()));
+    AggMatrix bandwidth(group.num_hosts());
 
     // data block to send or receive
     size_t block_count = bandwidth_size / block_size;
@@ -266,7 +255,7 @@ void BandwidthTest(api::Context& ctx) {
                               << "time"
                               << (static_cast<double>(inner_timer.Microseconds()) * 1e-6);
 
-                        bandwidth[ctx.host_rank()][peer_id].Add(bw);
+                        bandwidth(ctx.host_rank(), peer_id).Add(bw);
                     };
 
                 auto Receiver =
@@ -317,17 +306,17 @@ void BandwidthTest(api::Context& ctx) {
         }
     }
 
-    // reduce matrix to root.
-    group.ReduceToRoot(bandwidth, AddAggMatrix);
+    // reduce (add) matrix to root.
+    group.ReduceToRoot(bandwidth);
 
     // print matrix
     if (ctx.my_rank() == 0) {
-        for (size_t i = 0; i < bandwidth.size(); ++i) {
+        for (size_t i = 0; i < bandwidth.rows(); ++i) {
             std::ostringstream os2;
-            for (size_t j = 0; j < bandwidth.size(); ++j) {
+            for (size_t j = 0; j < bandwidth.columns(); ++j) {
                 os2 << common::str_snprintf(
                     64, "%8.1f/%8.3f",
-                    bandwidth[i][j].Avg(), bandwidth[i][j].StdDev());
+                    bandwidth(i, j).Avg(), bandwidth(i, j).StdDev());
             }
             LOG1 << os2.str();
         }
