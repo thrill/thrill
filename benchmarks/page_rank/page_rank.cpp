@@ -11,6 +11,7 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/reduce.hpp>
+#include <thrill/api/generate.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
@@ -236,6 +237,7 @@ int main(int argc, char* argv[]) {
             using Page_Rank = std::pair<std::size_t, double>;
             using Page_Link = std::pair<std::size_t, std::size_t>;
             using Outgoings_Rank = std::pair<std::vector<Node>, double>;
+            using Outgoings = std::vector<Node>;
 
 
             ////////////////////////////////////////////////////////////////////////////
@@ -262,9 +264,9 @@ int main(int argc, char* argv[]) {
             // aggregate all outgoing links of a page in this format:
             //
             //  URL   OUTGOING
-            // (url, [linked_url, linked_url, ...])
-            // (url, [linked_url, linked_url, ...])
-            // (url, [linked_url, linked_url, ...])
+            // ([linked_url, linked_url, ...])
+            // ([linked_url, linked_url, ...])
+            // ([linked_url, linked_url, ...])
             // ...
 
             // get number of nodes by finding max page_id
@@ -279,12 +281,12 @@ int main(int argc, char* argv[]) {
                 while (r.HasNext()) {
                     all.push_back(r.Next().second);
                 }
-                return std::make_pair(k, all);
+                return all;
             };
             auto key_link_fn = [](Page_Link p) { return p.first; };
             // add 1 to max node_id to get number of nodes because of node_id 0
             const auto number_nodes = input.Sum(max_fn).first + 1;
-            auto links = input.GroupByIndex<Page_Outgoings>(key_link_fn, group_fn, number_nodes).Keep();
+            auto links = input.GroupByIndex<Outgoings>(key_link_fn, group_fn, number_nodes).Cache();
 
             // initialize all ranks to 1.0
             //
@@ -292,11 +294,10 @@ int main(int argc, char* argv[]) {
             // (url, rank)
             // (url, rank)
             // ...
-            auto set_rank_fn = [](Page_Outgoings p) {
-                return std::make_pair(p.first, 1.0);
-            };
+            auto ranks = Generate(ctx, [](const size_t& index) {
+                return std::make_pair(index, 1.0);
+            }, number_nodes).Cache();
 
-            auto ranks = links.Map(set_rank_fn).Cache();
             // do iterations
             for (int i = 1; i <= iter; ++i) {
                 LOG << "iteration " << i;
@@ -317,8 +318,8 @@ int main(int argc, char* argv[]) {
                 // (linked_url, rank / OUTGOING.size)
                 // ...
                 assert(links.Size() == ranks.Size());
-                auto merge_outgoings_w_rank_fn = [](const Page_Outgoings& l, const Page_Rank& r){
-                    return std::make_pair(l.second, r.second);
+                auto merge_outgoings_w_rank_fn = [](const Outgoings& l, const Page_Rank& r){
+                    return std::make_pair(l, r.second);
                 };
                 auto compute_rank_contrib_fn = [](const Outgoings_Rank& p, auto emit){
                     if (p.first.size() > 0) {
