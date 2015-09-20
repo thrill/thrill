@@ -84,6 +84,11 @@ public:
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           number_keys_(number_keys),
+          key_range_start_(std::get<0>(common::CalculateLocalRange(
+                number_keys_, context_.num_workers(), context_.my_rank()))),
+          key_range_end_(std::min(std::get<1>(
+                common::CalculateLocalRange(number_keys_,
+                context_.num_workers(), context_.my_rank())), number_keys_)),
           neutral_element_(neutral_element),
           hash_function_(hash_function),
           channel_(parent.ctx().GetNewChannel()),
@@ -136,12 +141,7 @@ public:
                 totalsize_,
                 ValueComparator(*this));
 
-
-            std::size_t curr_index = std::get<0>(common::CalculateLocalRange(
-                number_keys_, context_.num_workers(), context_.my_rank()));
-            std::size_t max_index = std::min(std::get<1>(
-                common::CalculateLocalRange(number_keys_,
-                context_.num_workers(), context_.my_rank())), number_keys_);
+            std::size_t curr_index = key_range_start_;
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator
@@ -167,7 +167,7 @@ public:
                     ++curr_index;
                 }
             }
-            while (curr_index < max_index - 1) {
+            while (curr_index < key_range_end_ - 1) {
                 // push neutral element as result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
                     func(neutral_element_);
@@ -190,7 +190,9 @@ public:
 private:
     const KeyExtractor& key_extractor_;
     const GroupFunction& groupby_function_;
-    std::size_t number_keys_;
+    const std::size_t number_keys_;
+    const std::size_t key_range_start_;
+    const std::size_t key_range_end_;
     const ValueOut& neutral_element_;
     HashFunction hash_function_;
     std::size_t totalsize_ = 0;
@@ -202,13 +204,9 @@ private:
     void RunUserFunc(File& f, bool consume) {
         auto r = f.GetReader(consume);
         if (r.HasNext()) {
-            std::size_t curr_index = std::get<0>(common::CalculateLocalRange(
-                number_keys_, context_.num_workers(), context_.my_rank()));
-            std::size_t max_index = std::min(std::get<1>(
-                common::CalculateLocalRange(number_keys_,
-                context_.num_workers(), context_.my_rank())), number_keys_);
             // create iterator to pass to user_function
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
+            std::size_t curr_index = key_range_start_;
             while (user_iterator.HasNextForReal()) {
                 if (user_iterator.GetNextKey() != curr_index) {
                     // push neutral element as result to callback functions
@@ -227,7 +225,7 @@ private:
                 }
                 ++curr_index;
             }
-            while (curr_index < max_index - 1) {
+            while (curr_index < key_range_end_ - 1) {
                 // push neutral element as result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
                     func(neutral_element_);
