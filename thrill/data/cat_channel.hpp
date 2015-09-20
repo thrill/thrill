@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/data/concat_channel.hpp
+ * thrill/data/cat_channel.hpp
  *
  * Part of Project Thrill.
  *
@@ -10,13 +10,13 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_DATA_CONCAT_CHANNEL_HEADER
-#define THRILL_DATA_CONCAT_CHANNEL_HEADER
+#ifndef THRILL_DATA_CAT_CHANNEL_HEADER
+#define THRILL_DATA_CAT_CHANNEL_HEADER
 
 #include <thrill/data/block_queue.hpp>
+#include <thrill/data/cat_block_source.hpp>
 #include <thrill/data/channel.hpp>
 #include <thrill/data/channel_sink.hpp>
-#include <thrill/data/concat_block_source.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
 
@@ -54,21 +54,21 @@ namespace data {
  * expected streams is reached, the channel is marked as finished and no more
  * data will arrive.
  */
-class ConcatChannel final : public Channel
+class CatChannel final : public Channel
 {
 public:
     using BlockQueueSource = ConsumeBlockQueueSource;
     using BlockQueueReader = BlockReader<BlockQueueSource>;
 
-    using ConcatBlockSource = data::ConcatBlockSource<DynBlockSource>;
-    using ConcatBlockReader = BlockReader<ConcatBlockSource>;
+    using CatBlockSource = data::CatBlockSource<DynBlockSource>;
+    using CatBlockReader = BlockReader<CatBlockSource>;
 
     using Reader = BlockQueueReader;
-    using ConcatReader = ConcatBlockReader;
+    using CatReader = CatBlockReader;
 
     //! Creates a new channel instance
-    ConcatChannel(Multiplexer& multiplexer, const ChannelId& id,
-                  size_t my_local_worker_id)
+    CatChannel(Multiplexer& multiplexer, const ChannelId& id,
+               size_t my_local_worker_id)
         : Channel(multiplexer, id, my_local_worker_id) {
 
         sinks_.reserve(multiplexer_.num_workers());
@@ -85,7 +85,7 @@ public:
                         multiplexer_.block_pool_,
                         &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
-                        MagicByte::CONCAT_CHANNEL_BLOCK,
+                        MagicByte::CAT_CHANNEL_BLOCK,
                         id,
                         multiplexer_.my_host_rank(), my_local_worker_id, worker,
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
@@ -97,11 +97,11 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    ConcatChannel(const ConcatChannel&) = delete;
+    CatChannel(const CatChannel&) = delete;
     //! non-copyable: delete assignment operator
-    ConcatChannel& operator = (const ConcatChannel&) = delete;
+    CatChannel& operator = (const CatChannel&) = delete;
     //! move-constructor: default
-    ConcatChannel(ConcatChannel&&) = default;
+    CatChannel(CatChannel&&) = default;
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
@@ -114,7 +114,7 @@ public:
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
             for (size_t local_worker_id = 0; local_worker_id < multiplexer_.num_workers_per_host_; ++local_worker_id) {
                 if (host == multiplexer_.my_host_rank()) {
-                    auto target_queue_ptr = multiplexer_.ConcatLoopback(id_, my_local_worker_id_, local_worker_id);
+                    auto target_queue_ptr = multiplexer_.CatLoopback(id_, my_local_worker_id_, local_worker_id);
                     result.emplace_back(target_queue_ptr, block_size);
                 }
                 else {
@@ -149,8 +149,8 @@ public:
 
     //! Creates a BlockReader which concatenates items from all workers in
     //! worker rank order. The BlockReader is attached to one \ref
-    //! ConcatBlockSource which includes all incoming queues of this channel.
-    ConcatBlockReader OpenConcatReader(bool consume) {
+    //! CatBlockSource which includes all incoming queues of this channel.
+    CatBlockReader OpenCatReader(bool consume) {
         rx_timespan_.StartEventually();
 
         // construct vector of BlockSources to read from queues_.
@@ -159,7 +159,7 @@ public:
             result.emplace_back(queues_[worker].GetBlockSource(consume));
         }
         // move BlockQueueSources into concatenation BlockSource, and to Reader.
-        return ConcatBlockReader(ConcatBlockSource(std::move(result)));
+        return CatBlockReader(CatBlockSource(std::move(result)));
     }
 
     //! shuts the channel down.
@@ -212,14 +212,13 @@ protected:
 
     //! called from Multiplexer when there is a new Block on a
     //! Channel.
-    //! \param from the worker rank (host rank * num_workers/host + worker id)
     void OnChannelBlock(size_t from, Block&& b) {
         assert(from < queues_.size());
         rx_timespan_.StartEventually();
         incoming_bytes_ += b.size();
         incoming_blocks_++;
 
-        sLOG << "OnConcatChannelBlock" << b;
+        sLOG << "OnCatChannelBlock" << b;
 
         if (debug) {
             sLOG << "channel" << id_ << "receive from" << from << ":"
@@ -229,9 +228,8 @@ protected:
         queues_[from].AppendBlock(b);
     }
 
-    //! called from Multiplexer when a ConcatChannel closed notification was
+    //! called from Multiplexer when a CatChannel closed notification was
     //! received.
-    //! \param from the worker rank (host rank * num_workers/host + worker id)
     void OnCloseChannel(size_t from) {
         assert(from < queues_.size());
         queues_[from].Close();
@@ -252,16 +250,16 @@ protected:
     }
 };
 
-using ConcatChannelPtr = std::shared_ptr<ConcatChannel>;
+using CatChannelPtr = std::shared_ptr<CatChannel>;
 
-using ConcatChannelSet = ChannelSet<ConcatChannel>;
-using ConcatChannelSetPtr = std::shared_ptr<ConcatChannelSet>;
+using CatChannelSet = ChannelSet<CatChannel>;
+using CatChannelSetPtr = std::shared_ptr<CatChannelSet>;
 
 //! \}
 
 } // namespace data
 } // namespace thrill
 
-#endif // !THRILL_DATA_CONCAT_CHANNEL_HEADER
+#endif // !THRILL_DATA_CAT_CHANNEL_HEADER
 
 /******************************************************************************/

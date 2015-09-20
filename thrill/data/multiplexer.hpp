@@ -32,10 +32,10 @@ class ChannelSetBase;
 template <typename Channel>
 class ChannelSet;
 
-class ConcatChannel;
-using ConcatChannelPtr = std::shared_ptr<ConcatChannel>;
-using ConcatChannelSet = ChannelSet<ConcatChannel>;
-using ConcatChannelSetPtr = std::shared_ptr<ConcatChannelSet>;
+class CatChannel;
+using CatChannelPtr = std::shared_ptr<CatChannel>;
+using CatChannelSet = ChannelSet<CatChannel>;
+using CatChannelSetPtr = std::shared_ptr<CatChannelSet>;
 
 class MixedChannel;
 using MixedChannelPtr = std::shared_ptr<MixedChannel>;
@@ -110,25 +110,25 @@ public:
     //! Get the used BlockPool
     BlockPool & block_pool() { return block_pool_; }
 
-    //! \name ConcatChannel
+    //! \name CatChannel
     //! \{
 
     //! Allocate the next channel
-    size_t AllocateConcatChannelId(size_t local_worker_id) {
+    size_t AllocateCatChannelId(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
         return channel_sets_.AllocateId(local_worker_id);
     }
 
     //! Get channel with given id, if it does not exist, create it.
-    ConcatChannelPtr GetOrCreateConcatChannel(size_t id, size_t local_worker_id) {
+    CatChannelPtr GetOrCreateCatChannel(size_t id, size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateConcatChannel(id, local_worker_id);
+        return _GetOrCreateCatChannel(id, local_worker_id);
     }
 
     //! Request next channel.
-    ConcatChannelPtr GetNewConcatChannel(size_t local_worker_id) {
+    CatChannelPtr GetNewCatChannel(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateConcatChannel(
+        return _GetOrCreateCatChannel(
             channel_sets_.AllocateId(local_worker_id), local_worker_id);
     }
 
@@ -181,14 +181,12 @@ protected:
     std::mutex mutex_;
 
     //! friends for access to network components
-    friend class ConcatChannel;
+    friend class CatChannel;
     friend class MixedChannel;
 
     //! Pointer to queue that is used for communication between two workers on
     //! the same host.
-    //! \param from_worker_id is the id of the sending worker
-    //! \param to_worker_id is the id of the receiving worker, that owns the queue
-    BlockQueue * ConcatLoopback(
+    BlockQueue * CatLoopback(
         size_t channel_id, size_t from_worker_id, size_t to_worker_id);
 
     MixedBlockQueueSink * MixedLoopback(
@@ -199,7 +197,7 @@ protected:
     //! Channels have an ID in block headers. (worker id, channel id)
     Repository<ChannelSetBase> channel_sets_;
 
-    ConcatChannelPtr _GetOrCreateConcatChannel(size_t id, size_t local_worker_id);
+    CatChannelPtr _GetOrCreateCatChannel(size_t id, size_t local_worker_id);
     MixedChannelPtr _GetOrCreateMixedChannel(size_t id, size_t local_worker_id);
 
     /**************************************************************************/
@@ -212,10 +210,10 @@ protected:
     //! parses BlockHeader and decides whether to receive Block or close Channel
     void OnBlockHeader(Connection& s, net::Buffer&& buffer);
 
-    //! Receives and dispatches a Block to a ConcatChannel
-    void OnConcatChannelBlock(
+    //! Receives and dispatches a Block to a CatChannel
+    void OnCatChannelBlock(
         Connection& s, const ChannelBlockHeader& header,
-        const ConcatChannelPtr& channel, const ByteBlockPtr& bytes);
+        const CatChannelPtr& channel, const ByteBlockPtr& bytes);
 
     //! Receives and dispatches a Block to a MixedChannel
     void OnMixedChannelBlock(

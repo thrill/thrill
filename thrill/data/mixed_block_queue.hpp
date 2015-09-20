@@ -206,7 +206,7 @@ protected:
  * The Reader supports all combinations of consuming and keeping. However, do
  * not assume that the second round of reading delivers items in the same order
  * as the first. This is because once items are cached inside the BlockQueues of
- * MixedBlockQueue, we use a plain ConcatReader to deliver them again (which is
+ * MixedBlockQueue, we use a plain CatReader to deliver them again (which is
  * probably faster as it has a sequential access pattern).
  *
  * See \ref MixedBlockQueue for more information on how items are read.
@@ -216,8 +216,8 @@ class MixedBlockQueueReader
     static const bool debug = false;
 
 public:
-    using ConcatBlockSource = data::ConcatBlockSource<DynBlockSource>;
-    using ConcatBlockReader = BlockReader<ConcatBlockSource>;
+    using CatBlockSource = data::CatBlockSource<DynBlockSource>;
+    using CatBlockReader = BlockReader<CatBlockSource>;
 
     MixedBlockQueueReader(MixedBlockQueue& mix_queue, bool consume)
         : mix_queue_(mix_queue),
@@ -239,7 +239,7 @@ public:
                 result.emplace_back(mix_queue_.queues_[w].GetBlockSource(consume));
             }
             // move BlockQueueSources into concatenation BlockSource, and to Reader.
-            concat_reader_ = ConcatBlockReader(ConcatBlockSource(std::move(result)));
+            cat_reader_ = CatBlockReader(CatBlockSource(std::move(result)));
         }
     }
 
@@ -259,7 +259,7 @@ public:
 
     //! HasNext() returns true if at least one more item is available.
     bool HasNext() {
-        if (reread_) return concat_reader_.HasNext();
+        if (reread_) return cat_reader_.HasNext();
 
         if (available_) return true;
         if (open_ == 0) return false;
@@ -273,7 +273,7 @@ public:
         assert(HasNext());
 
         if (reread_) {
-            return concat_reader_.template Next<T>();
+            return cat_reader_.template Next<T>();
         }
         else {
             if (!available_) {
@@ -298,7 +298,7 @@ protected:
     bool consume_;
 
     //! flat whether we are rereading the mixed queue by reading the files using
-    //! a concat_reader_.
+    //! a cat_reader_.
     bool reread_;
 
     //! \name Attributes for Mixed Reading
@@ -322,9 +322,9 @@ protected:
 
     //! \}
 
-    //! for rereading the mixed queue: use a concat reader on the embedded
+    //! for rereading the mixed queue: use a cat reader on the embedded
     //! BlockQueue's files.
-    ConcatBlockReader concat_reader_ { ConcatBlockSource() };
+    CatBlockReader cat_reader_ { CatBlockSource() };
 
     bool PullBlock() {
         // no full item available: get next block from mixed queue

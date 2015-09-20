@@ -67,10 +67,10 @@ void ConductExperiment(uint64_t bytes, int iterations,
     offsets.push_back({ 0, (size_t)(data1.size() / 3), data1.size() });
     offsets.push_back({ 0, 0, 0 });
 
-    std::vector<std::shared_ptr<data::ConcatChannel> > channels;
-    channels.push_back(ctx0.GetNewConcatChannel());
-    channels.push_back(ctx1.GetNewConcatChannel());
-    channels.push_back(ctx2.GetNewConcatChannel());
+    std::vector<std::shared_ptr<data::CatChannel> > channels;
+    channels.push_back(ctx0.GetNewCatChannel());
+    channels.push_back(ctx1.GetNewCatChannel());
+    channels.push_back(ctx2.GetNewCatChannel());
 
     std::vector<StatsTimer<true> > read_timers(3);
     std::vector<StatsTimer<true> > write_timers(3);
@@ -82,7 +82,7 @@ void ConductExperiment(uint64_t bytes, int iterations,
                              write_timers[id].Start();
                              channels[id]->Scatter<Type>(files[id], offsets[id]);
                              write_timers[id].Stop();
-                             auto reader = channels[id]->OpenConcatReader(true);
+                             auto reader = channels[id]->OpenCatReader(true);
                              read_timers[id].Start();
                              while (reader.HasNext()) {
                                  reader.Next<Type>();

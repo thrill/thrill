@@ -37,7 +37,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const 
     auto data = generate<Type>(bytes, 1, 100);
     common::ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
-        auto channel = ctx.GetNewConcatChannel();
+        auto channel = ctx.GetNewCatChannel();
         StatsTimer<true> write_timer;
         pool.Enqueue([&data, &channel, &ctx, &write_timer]() {
                          auto writers = channel->OpenWriters();
