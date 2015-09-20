@@ -10,21 +10,22 @@
 
 #include <gtest/gtest.h>
 
+#include <thrill/common/function_traits.hpp>
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/common/function_traits.hpp>
 
 #include <thrill/common/logger.hpp>
 
 #include <algorithm>
 #include <cstdlib>
+#include <functional>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace thrill; // NOLINT
-
 
 struct MultiwayMerge : public::testing::Test {
     data::BlockPool block_pool_ { nullptr };
@@ -68,8 +69,8 @@ TEST_F(MultiwayMerge, Basic) {
     core::sequential_multiway_merge<true, false>(seq.begin(),
                                                  seq.end(),
                                                  output.begin(),
-                                                        total,
-                                                        std::less<size_t>());
+                                                 total,
+                                                 std::less<size_t>());
     for (size_t i = 0; i < total; ++i) {
         ASSERT_EQ(ref[i], output[i]);
     }
@@ -114,8 +115,8 @@ TEST_F(MultiwayMerge, VectorWrapper) {
     core::sequential_multiway_merge<true, false>(seq.begin(),
                                                  seq.end(),
                                                  output.begin(),
-                                                        total,
-                                                        std::less<size_t>());
+                                                 total,
+                                                 std::less<size_t>());
     for (size_t i = 0; i < total; ++i) {
         ASSERT_EQ(ref[i], output[i]);
     }
@@ -189,9 +190,9 @@ TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
         std::sort(ref.begin(), ref.end());
         core::sequential_file_multiway_merge<true, false>(seq.begin(),
                                                           seq.end(),
-                                                                 oiter,
-                                                                 total,
-                                                                 std::less<size_t>());
+                                                          oiter,
+                                                          total,
+                                                          std::less<size_t>());
     }
 
     auto r = output_file.GetReader(true);
@@ -259,9 +260,9 @@ TEST_F(MultiwayMerge, File_Wrapper_with_1_Runs) {
         std::sort(ref.begin(), ref.end());
         core::sequential_file_multiway_merge<true, false>(seq.begin(),
                                                           seq.end(),
-                                                                 oiter,
-                                                                 total,
-                                                                 std::less<size_t>());
+                                                          oiter,
+                                                          total,
+                                                          std::less<size_t>());
     }
 
     auto r = output_file.GetReader(true);

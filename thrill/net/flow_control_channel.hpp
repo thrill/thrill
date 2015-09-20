@@ -125,12 +125,12 @@ public:
      * \brief Creates a new instance of this class, wrapping a group.
      */
     explicit FlowControlChannel(Group& group,
-                                size_t thread_id_, size_t thread_count_,
+                                size_t thread_id, size_t thread_count,
                                 common::ThreadBarrier& barrier,
                                 void** shmem)
         : group_(group),
           id_(group_.my_host_rank()), num_hosts_(group_.num_hosts()),
-          thread_id_(thread_id_), thread_count_(thread_count_),
+          thread_id_(thread_id), thread_count_(thread_count),
           barrier_(barrier), shmem_(shmem) { }
 
     //! Return the associated net::Group. USE AT YOUR OWN RISK.

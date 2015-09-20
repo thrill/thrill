@@ -8,15 +8,15 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/groupby.hpp>
 #include <thrill/api/groupby_index.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/data/file.hpp>
-#include <gtest/gtest.h>
 #include <thrill/core/multiway_merge.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <cstdlib>
@@ -45,7 +45,7 @@ TEST(GroupByNode, CompileAndSum) {
             auto modulo_keyfn = [](size_t in) { return (in % m); };
 
             auto sum_fn =
-            [](auto& r, size_t /* key */) {
+                [](auto& r, size_t /* key */) {
                     size_t res = 0;
                     while (r.HasNext()) {
                         size_t n = r.Next();
@@ -93,7 +93,7 @@ TEST(GroupByNode, Median) {
             auto modulo_keyfn = [](size_t in) { return (in % m); };
 
             auto median_fn =
-            [](auto& r, size_t /* key */) {
+                [](auto& r, size_t /* key */) {
                     std::vector<size_t> all;
                     while (r.HasNext()) {
                         all.push_back(r.Next());
@@ -133,7 +133,6 @@ TEST(GroupByNode, Median) {
     api::RunLocalTests(start_func);
 }
 
-
 TEST(GroupByNode, GroupByIndexCorrectResults) {
 
     std::function<void(Context&)> start_func =
@@ -151,13 +150,13 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
                        };
 
             auto add_function =
-                   [](auto& r, size_t /* key */) {
-                        size_t res = 42;
-                        while(r.HasNext()) {
-                            res += r.Next();
-                        }
-                        return res;
-                    };
+                [](auto& r, size_t /* key */) {
+                    size_t res = 42;
+                    while (r.HasNext()) {
+                        res += r.Next();
+                    }
+                    return res;
+                };
 
             auto reduced = integers.GroupByIndex<size_t>(key, add_function, m);
 

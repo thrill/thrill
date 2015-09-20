@@ -9,6 +9,7 @@
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
+#include <thrill/api/groupby_index.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/reduce.hpp>
 #include <thrill/api/reduce_to_index.hpp>
@@ -16,7 +17,6 @@
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/write_lines.hpp>
-#include <thrill/api/groupby_index.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
@@ -224,7 +224,7 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func =
-        [&input, &output, & iter](api::Context& ctx) {
+        [&input, &output, &iter](api::Context& ctx) {
             thrill::common::StatsTimer<true> timer(false);
             static const bool debug = false;
             static const double s = 0.85;
@@ -241,41 +241,41 @@ int main(int argc, char* argv[]) {
             ////////////////////////// ALL KINDS OF LAMBDAS ////////////////////////////
             ////////////////////////////////////////////////////////////////////////////
 
-            auto create_links_fn = [](const std::string& input) {
-                auto split = thrill::common::split(input, " ");
-                // set node ids base to zero
-                // LOG << (std::size_t)(std::stoi(split[0]) - 1);
-                // LOG << (std::size_t)(std::stoi(split[1]) - 1);
-                return std::make_pair((std::size_t)(std::stoi(split[0]) - 1),
-                    (std::size_t)(std::stoi(split[1]) - 1));
-            };
+            auto create_links_fn =
+                [](const std::string& input) {
+                    auto split = thrill::common::split(input, " ");
+                    // set node ids base to zero
+                    // LOG << (std::size_t)(std::stoi(split[0]) - 1);
+                    // LOG << (std::size_t)(std::stoi(split[1]) - 1);
+                    return std::make_pair((std::size_t)(std::stoi(split[0]) - 1),
+                                          (std::size_t)(std::stoi(split[1]) - 1));
+                };
 
-            auto max_fn = [](const Page_Link &in1, const Page_Link &in2) {
-                Node first = std::max(in1.first, in2.first);
-                Node second = std::max(in1.second, in2.second);
-                return std::make_pair(std::max(first, second), first);
-            };
+            auto max_fn = [](const Page_Link& in1, const Page_Link& in2) {
+                              Node first = std::max(in1.first, in2.first);
+                              Node second = std::max(in1.second, in2.second);
+                              return std::make_pair(std::max(first, second), first);
+                          };
 
             auto key_link_fn = [](Page_Link p) { return p.first; };
             auto key_page_with_ranks_fn = [](const Page_Rank& p) { return p.first; };
 
             auto group_fn = [](auto& r, Key k) {
-                // LOG << k << " has outgoings to";
-                std::vector<Node> all;
-                while (r.HasNext()) {
-                    // auto out = r.Next().second;
-                    // LOG << out;
-                    all.push_back(r.Next().second);
-                }
-                return std::make_pair(k, all);
-            };
+                                // LOG << k << " has outgoings to";
+                                std::vector<Node> all;
+                                while (r.HasNext()) {
+                                    // auto out = r.Next().second;
+                                    // LOG << out;
+                                    all.push_back(r.Next().second);
+                                }
+                                return std::make_pair(k, all);
+                            };
 
             auto set_rank_fn = [](Page_Outgoings p) {
-                return std::make_pair(p.first, 1.0);
-            };
+                                   return std::make_pair(p.first, 1.0);
+                               };
 
             Page_Outgoings neutral_page = std::make_pair(0, std::vector<Node>());
-
 
             ////////////////////////////////////////////////////////////////////////////
             //////////////////////// START OF COMPUTATION HERE /////////////////////////
@@ -311,18 +311,18 @@ int main(int argc, char* argv[]) {
                 // (linked_url, rank / OUTGOING.size)
                 // ...
                 assert(links.Size() == ranks.Size());
-                auto merge_outgoings_w_rank_fn = [](const Page_Outgoings& l, const Page_Rank& r){
-                    return std::make_pair(l.second, r.second);
-                };
-                auto compute_rank_contrib_fn = [](const Outgoings_Rank& p, auto emit){
-                    if (p.first.size() > 0) {
-                        double rank_contrib = p.second / p.first.size();
-                        // assert (rank_contrib <= 1);
-                        for(auto e : p.first) {
-                            emit(std::make_pair(e, rank_contrib));
-                        }
-                    }
-                };
+                auto merge_outgoings_w_rank_fn = [](const Page_Outgoings& l, const Page_Rank& r) {
+                                                     return std::make_pair(l.second, r.second);
+                                                 };
+                auto compute_rank_contrib_fn = [](const Outgoings_Rank& p, auto emit) {
+                                                   if (p.first.size() > 0) {
+                                                       double rank_contrib = p.second / p.first.size();
+                                                       // assert (rank_contrib <= 1);
+                                                       for (auto e : p.first) {
+                                                           emit(std::make_pair(e, rank_contrib));
+                                                       }
+                                                   }
+                                               };
 
                 auto contribs = links.Zip(ranks, merge_outgoings_w_rank_fn).FlatMap<Page_Rank>(compute_rank_contrib_fn);
 
@@ -331,26 +331,27 @@ int main(int argc, char* argv[]) {
                 // (url, rank)
                 // ...
 
-                //spark computation is:
+                // spark computation is:
                 // ranks = contribs.reduceByKey(_ + _).mapValues(0.15 + 0.85 * _)
                 auto update_rank_fn = [](const Page_Rank& p1, const Page_Rank& p2) {
-                    assert(p1.first == p2.first);
-                    // assert(f + s * (p1.second + p2.second) <= 1);
-                    return std::make_pair(p1.first, f + s * (p1.second + p2.second));
-                };
+                                          assert(p1.first == p2.first);
+                                          // assert(f + s * (p1.second + p2.second) <= 1);
+                                          return std::make_pair(p1.first, f + s * (p1.second + p2.second));
+                                      };
                 ranks = contribs.ReduceToIndex(key_page_with_ranks_fn, update_rank_fn, number_nodes).Cache();
             }
 
             auto res = ranks.Map([](Page_Rank item) {
-                if (item.first == 0 && item.second == 0.0) {
-                    return std::string("");
-                } else {
-                    return std::to_string(item.first + 1)
-                    + ": " + std::to_string(item.second);
-                }
-            });
+                                     if (item.first == 0 && item.second == 0.0) {
+                                         return std::string("");
+                                     }
+                                     else {
+                                         return std::to_string(item.first + 1)
+                                         + ": " + std::to_string(item.second);
+                                     }
+                                 });
 
-            assert (res.Size() == links.Size());
+            assert(res.Size() == links.Size());
 
             res.WriteLines(output);
             timer.Stop();

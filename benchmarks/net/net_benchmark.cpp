@@ -27,7 +27,7 @@ std::string benchmark;
 unsigned int outer_repeats = 1;
 unsigned int inner_repeats = 1;
 
-using namespace thrill;
+using namespace thrill; // NOLINT
 
 //! perform a 1-factor ping pong latency test
 void PingPongLatencyTest(api::Context& ctx) {
@@ -156,8 +156,8 @@ void BandwidthTest(api::Context& ctx) {
 
                     sLOG1 << "bandwidth" << ctx.host_rank() << "->" << peer_id
                           << ((block_count * block_size) /
-                              (static_cast<double>(bwtimer.Microseconds()) * 1e-6)
-                              / 1024.0 / 1024.0)
+                        (static_cast<double>(bwtimer.Microseconds()) * 1e-6)
+                        / 1024.0 / 1024.0)
                           << "MiB/s"
                           << "time"
                           << (static_cast<double>(bwtimer.Microseconds()) * 1e-6);
