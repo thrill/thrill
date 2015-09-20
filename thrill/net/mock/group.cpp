@@ -47,6 +47,8 @@ Group::ConstructLoopbackMesh(size_t num_hosts) {
 /******************************************************************************/
 
 void Connection::SyncSend(const void* data, size_t size, Flags /* flags */) {
+    // set errno : success (unconditionally)
+    errno = 0;
     group_->Send(peer_, net::Buffer(data, size));
 }
 
