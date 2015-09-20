@@ -20,7 +20,7 @@ matrix:
       os: linux
       addons: *gcc49
 
-    # gcc 5.x without AddressSanitizer, Debug & Release, with SWIG
+    # gcc 5.x without AddressSanitizer, Debug & Release, with SWIG and OpenMPI
     - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS="" USE_SWIG="1"
       os: linux
       addons: &gcc5
@@ -29,6 +29,8 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-5
+            - openmpi-bin
+            - libopenmpi-dev
 
     - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS="" USE_SWIG="1"
       os: linux

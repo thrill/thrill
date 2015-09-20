@@ -51,7 +51,7 @@ struct Multiplexer : public::testing::Test {
     static void Execute(WorkerThread f1 = nullptr,
                         WorkerThread f2 = nullptr,
                         WorkerThread f3 = nullptr) {
-        net::RunGroupTest(
+        net::RunLoopbackGroupTest(
             // calculate number of threads
             (f1 ? 1 : 0) + (f2 ? 1 : 0) + (f3 ? 1 : 0),
             [=](net::Group* g) {
@@ -127,10 +127,10 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
 TEST_F(Multiplexer, TalkAllToAllViaChannelForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 9:
-    net::RunGroupTest(1, TalkAllToAllViaChannel);
-    net::RunGroupTest(2, TalkAllToAllViaChannel);
-    net::RunGroupTest(5, TalkAllToAllViaChannel);
-    net::RunGroupTest(9, TalkAllToAllViaChannel);
+    net::RunLoopbackGroupTest(1, TalkAllToAllViaChannel);
+    net::RunLoopbackGroupTest(2, TalkAllToAllViaChannel);
+    net::RunLoopbackGroupTest(5, TalkAllToAllViaChannel);
+    net::RunLoopbackGroupTest(9, TalkAllToAllViaChannel);
 }
 
 TEST_F(Multiplexer, ReadCompleteChannel) {

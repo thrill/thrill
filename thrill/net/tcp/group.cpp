@@ -35,7 +35,7 @@ Group::ConstructDispatcher(mem::Manager& mem_manager) const {
         mem::Deleter<Dispatcher>(mem_manager));
 }
 
-std::vector<std::unique_ptr<Group> > Group::ConstructLocalMesh(
+std::vector<std::unique_ptr<Group> > Group::ConstructLoopbackMesh(
     size_t num_hosts) {
 
     // construct a group of num_hosts
@@ -57,6 +57,9 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLocalMesh(
 
             group[i]->connections_[j] = Connection(std::move(sp.first));
             group[j]->connections_[i] = Connection(std::move(sp.second));
+
+            group[i]->connections_[j].is_loopback_ = true;
+            group[j]->connections_[i].is_loopback_ = true;
         }
     }
 
@@ -90,7 +93,7 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLocalRealTCPMesh(
         threads[i] = std::thread(
             [i, &endpoints, &groups]() {
                         // construct Group i with endpoints
-                tcp::Construct(i, endpoints, groups.data() + i, 1);
+                Construct(i, endpoints, groups.data() + i, 1);
             });
     }
 

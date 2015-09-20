@@ -162,11 +162,12 @@ CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_func
 
 %template(VectorPyContext) std::vector<std::shared_ptr<thrill::PyContext> >;
 
-%ignore thrill::api::HostContext::ConstructLocalMock;
-
 // ignore all Context methods: forward them via PyContext if they should be
 // available.
 %ignore thrill::api::Context;
+
+// ignore constructor
+%ignore thrill::api::HostContext::HostContext;
 
 %feature("pythonappend") thrill::PyContext::PyContext(HostContext&, size_t) %{
     # acquire a reference to the HostContext

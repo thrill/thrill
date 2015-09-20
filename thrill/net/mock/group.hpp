@@ -53,6 +53,7 @@ public:
     void Initialize(Group* group, size_t peer) {
         group_ = group;
         peer_ = peer;
+        is_loopback_ = true;
     }
 
     //! Method which is called by other peers to enqueue a message.
@@ -190,7 +191,7 @@ public:
      * Construct a mock network with num_hosts peers and deliver Group contexts
      * for each of them.
      */
-    static std::vector<std::unique_ptr<Group> > ConstructLocalMesh(
+    static std::vector<std::unique_ptr<Group> > ConstructLoopbackMesh(
         size_t num_hosts);
 
     //! return hexdump or just [data] if not debugging

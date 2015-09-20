@@ -31,6 +31,8 @@ option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
 
+option(THRILL_USE_MPI "Use (optional) MPI net backend." ON)
+
 option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
 
 option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
@@ -279,6 +281,20 @@ else(NOT TBB_FOUND)
   link_directories(${TBB_LIBRARY_DIRS})
   set(ALL_LIBRARIES ${TBB_LIBRARIES} ${ALL_LIBRARIES})
   add_definitions(-DTHRILL_HAVE_INTELTBB=1)
+endif()
+
+# use MPI library (optional)
+
+if(THRILL_USE_MPI)
+  find_package(MPI)
+
+  if(NOT MPI_FOUND)
+    message(STATUS "No MPI library found. No problem, it is optional.")
+  else()
+    include_directories(${MPI_INCLUDE_PATH})
+    set(ALL_LIBRARIES ${MPI_LIBRARIES} ${ALL_LIBRARIES})
+    add_definitions(-DTHRILL_HAVE_NET_MPI=1)
+  endif()
 endif()
 
 # example: use Boost libraries:

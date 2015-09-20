@@ -6,6 +6,6 @@
 
 thrill_build_prog(broadcast)
 thrill_build_prog(prefixsum)
-thrill_build_prog(ping_pong)
+thrill_build_prog(net_benchmark)
 
 ################################################################################

@@ -25,7 +25,7 @@ mem::mm_unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
 }
 
 std::vector<std::unique_ptr<Group> >
-Group::ConstructLocalMesh(size_t num_hosts) {
+Group::ConstructLoopbackMesh(size_t num_hosts) {
 
     std::vector<std::unique_ptr<Group> > groups(num_hosts);
 
