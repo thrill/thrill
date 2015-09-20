@@ -42,6 +42,7 @@ void ConductExperiment(uint64_t bytes, int iterations,
     auto data0 = generate<Type>(bytes / 2, 1, 100);
     auto data1 = generate<Type>(bytes / 2, 1, 100);
     std::vector<data::File> files;
+    files.reserve(3);
     {
         files.emplace_back(ctx0.GetFile());
         auto writer0 = files[0].GetWriter();
