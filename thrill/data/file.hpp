@@ -13,6 +13,7 @@
 #define THRILL_DATA_FILE_HEADER
 
 #include <thrill/common/logger.hpp>
+#include <thrill/common/future.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
 #include <thrill/data/block_sink.hpp>
@@ -289,8 +290,10 @@ class ConsumeFileBlockSource
 {
 public:
     //! Start reading a File
-    explicit ConsumeFileBlockSource(File* file)
-        : file_(file) { }
+    //! Creates a source for the given file and set the numver of blocks
+    //! that should be prefetched. 0 means that no blocks are prefetched.
+    explicit ConsumeFileBlockSource(File* file, size_t prefetch = std::numeric_limits<size_t>::max())
+        : file_(file), desired_prefetched_(prefetch) { }
 
     //! non-copyable: delete copy-constructor
     ConsumeFileBlockSource(const ConsumeFileBlockSource&) = delete;
@@ -303,11 +306,31 @@ public:
     //! Get the next block of file.
     Block NextBlock() {
         assert(file_);
-        if (file_->blocks_.empty())
+        if (file_->blocks_.empty() && fetching_blocks_.empty())
             return Block();
 
-        Block b = file_->blocks_.front();
-        file_->blocks_.pop_front();
+        //operate without prefetching
+        if (desired_prefetched_ == 0) {
+            common::Future<Block>* f = file_->blocks_.front().Pin();
+            file_->blocks_.pop_front();
+            f->Wait();
+            Block b = f->Get();
+            free(f);
+            return b;
+        }
+
+        //prefetch #desired + 1
+        while(fetching_blocks_.size() <= desired_prefetched_ && !file_->blocks_.empty()) {
+            fetching_blocks_.push(file_->blocks_.front().Pin());
+            file_->blocks_.pop_front();
+        }
+
+        //this might block if the prefetching is not finished
+        fetching_blocks_.front()->Wait();
+
+        Block b = fetching_blocks_.front()->Get();
+        free(fetching_blocks_.front());
+        fetching_blocks_.pop();
         return b;
     }
 
@@ -316,12 +339,23 @@ public:
         if (file_) {
             file_->blocks_.clear();
             file_->num_items_sum_.clear();
+            while(!fetching_blocks_.empty()) {
+                auto f = fetching_blocks_.front();
+                fetching_blocks_.pop();
+                free(f);
+            }
         }
     }
 
 protected:
     //! file to consume blocks from
     File* file_;
+
+    //! number of concurrent prefetch operations
+    size_t desired_prefetched_;
+
+    //! current prefetch operations
+    std::queue<common::Future<Block>*> fetching_blocks_;
 };
 
 inline
