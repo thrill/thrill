@@ -49,13 +49,21 @@ int main(int argc, char* argv[]) {
     clp.AddParamInt("m", m,
                        "modulo");
 
+    int host;
+    clp.AddParamInt("h", host,
+                       "numer of hosts");
+
+    int worker;
+    clp.AddParamInt("w", worker,
+                       "number of workers");
+
     if (!clp.Process(argc, argv)) {
         return -1;
     }
 
     clp.PrintResult();
 
-    auto start_func = [n, m, &input](api::Context& ctx) {
+    auto start_func = [n, m, &input, host, worker](api::Context& ctx) {
         thrill::common::StatsTimer<true> timer(false);
 
         auto modulo_keyfn = [m](size_t in) { return (in % m); };
@@ -73,15 +81,18 @@ int main(int argc, char* argv[]) {
         // group by to compute median
         timer.Start();
         for (int i = 0; i < n; i++) {
-            elem = api::ReadBinary<size_t>(ctx, input).GroupBy<size_t>(modulo_keyfn, median_fn).Size();
+            api::ReadBinary<size_t>(ctx, input).GroupBy<size_t>(modulo_keyfn, median_fn).Size();
         }
         timer.Stop();
 
-        LOG1 << "RESULT"
-             << " host=" << ctx.my_rank()
+        LOG1 << "\n"
+             << "RESULT"
+             << " name=total"
+             << " rank=" << ctx.my_rank()
              << " time=" << (double)timer.Milliseconds()/(double)n
-             << " size=" << elem
-             << " file=" << input;
+             << " filename=" << input
+             << " num_hosts=" << host
+             << " num_worker=" << worker;
 
     };
 

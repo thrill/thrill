@@ -41,39 +41,57 @@ public:
 
     void Execute() {
         // time_t tt;
-        // timer.Start();
+        timer.Start();
         node_->Execute();
-        // timer.Stop();
+        timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
         //    << "FINISH (EXECUTING) stage" << node_->label();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
+        LOG1 << "\n"
+             << "RESULT"
+             << " name=groupby"
+             << " stage=execution"
+             << " node=" << node_->label()
+             << " time=" << timer.Milliseconds();
 
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // timer.Start();
+        timer.Start();
         node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
-        // timer.Stop();
+        timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
         //    << "FINISH (PUSHING) stage" << node_->label();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
+        LOG1 << "\n"
+             << "RESULT"
+             << " name=groupby"
+             << " stage=pushing"
+             << " node=" << node_->label()
+             << " time=" << timer.Milliseconds();
     }
 
     void PushData() {
         // time_t tt;
         die_unless(!node_->consume_on_push_data());
-        // timer.Start();
+        timer.Start();
         node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
-        // timer.Stop();
+        timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
         //    << "FINISH (PUSHING) stage" << node_->label();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time: " << std::put_time(std::localtime(&tt), "%T");
+        LOG1 << "\n"
+             << "RESULT"
+             << " name=groupby"
+             << " stage=pushing"
+             << " node=" << node_->label()
+             << " time=" << timer.Milliseconds();
     }
 
     void Dispose() {
