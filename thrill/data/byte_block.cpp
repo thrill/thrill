@@ -33,6 +33,10 @@ void ByteBlock::DecreasePinCount() {
     block_pool_->UnpinBlock(this);
 }
 
+void ByteBlock::IncreasePinCount() {
+    pin_count_++;
+}
+
 ByteBlock::ByteBlock(Byte* data, size_t size, BlockPool* block_pool, bool pinned, size_t swap_token)
     : data_(data), size_(size), block_pool_(block_pool), pin_count_(pinned ? 1 : 0), swap_token_(swap_token) { }
 
