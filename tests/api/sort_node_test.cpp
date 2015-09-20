@@ -136,12 +136,13 @@ TEST(Sort, SortRandomIntIntStructs) {
                 10000);
 
             auto compare_fn = [](Pair in1, Pair in2) {
-				if (in1.first != in2.first) {
-					return in1.first < in2.first;
-				} else {
-					return in1.second < in2.second;
-				}
-			};
+                                  if (in1.first != in2.first) {
+                                      return in1.first < in2.first;
+                                  }
+                                  else {
+                                      return in1.second < in2.second;
+                                  }
+                              };
 
             auto sorted = integers.Sort(compare_fn);
 

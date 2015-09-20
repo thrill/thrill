@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/groupby.hpp
+ * thrill/api/groupby_index.hpp
  *
  * DIANode for a groupby to indx operation.
  * Performs the actual groupby operation
@@ -23,6 +23,7 @@
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/multiway_merge.hpp>
 
+#include <algorithm>
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -42,7 +43,7 @@ class GroupByIndexNode : public DOpNode<ValueType>
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
     using ValueIn = typename std::decay<typename common::FunctionTraits<KeyExtractor>
-                    ::template arg<0>>::type;
+                                        ::template arg<0> >::type;
 
     using File = data::File;
     using Reader = typename File::Reader;
@@ -50,7 +51,7 @@ class GroupByIndexNode : public DOpNode<ValueType>
 
     struct ValueComparator
     {
-        ValueComparator(const GroupByIndexNode& info) : info_(info) { }
+        explicit ValueComparator(const GroupByIndexNode& info) : info_(info) { }
         const GroupByIndexNode& info_;
 
         bool operator () (const ValueIn& i,
@@ -74,21 +75,21 @@ public:
      * \param reduce_function Reduce function
      */
     GroupByIndexNode(const ParentDIARef& parent,
-                const KeyExtractor& key_extractor,
-                const GroupFunction& groupby_function,
-                std::size_t number_keys,
-                const ValueOut& neutral_element,
-                StatsNode* stats_node,
-                const HashFunction& hash_function = HashFunction())
+                     const KeyExtractor& key_extractor,
+                     const GroupFunction& groupby_function,
+                     std::size_t number_keys,
+                     const ValueOut& neutral_element,
+                     StatsNode* stats_node,
+                     const HashFunction& hash_function = HashFunction())
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           number_keys_(number_keys),
           key_range_start_(std::get<0>(common::CalculateLocalRange(
-                number_keys_, context_.num_workers(), context_.my_rank()))),
+                                           number_keys_, context_.num_workers(), context_.my_rank()))),
           key_range_end_(std::min(std::get<1>(
-                common::CalculateLocalRange(number_keys_,
-                context_.num_workers(), context_.my_rank())), number_keys_)),
+                                      common::CalculateLocalRange(number_keys_,
+                                                                  context_.num_workers(), context_.my_rank())), number_keys_)),
           neutral_element_(neutral_element),
           hash_function_(hash_function),
           channel_(parent.ctx().GetNewChannel()),
@@ -145,8 +146,8 @@ public:
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator
-                    <ValueIn, KeyExtractor, ValueComparator>
-                    (puller, key_extractor_);
+                                     <ValueIn, KeyExtractor, ValueComparator>
+                                         (puller, key_extractor_);
 
                 while (user_iterator.HasNextForReal()) {
                     if (user_iterator.GetNextKey() != curr_index) {
@@ -154,10 +155,11 @@ public:
                         for (auto func : DIANode<ValueType>::callbacks_) {
                             func(neutral_element_);
                         }
-                    } else {
-                        //call user function
+                    }
+                    else {
+                        // call user function
                         const ValueOut res = groupby_function_(user_iterator,
-                            user_iterator.GetNextKey());
+                                                               user_iterator.GetNextKey());
                         // push result to callback functions
                         for (auto func : DIANode<ValueType>::callbacks_) {
                             // LOG << "grouped to value " << res;
@@ -213,10 +215,11 @@ private:
                     for (auto func : DIANode<ValueType>::callbacks_) {
                         func(neutral_element_);
                     }
-                } else {
+                }
+                else {
                     // call user function
                     const ValueOut res = groupby_function_(user_iterator,
-                        user_iterator.GetNextKey());
+                                                           user_iterator.GetNextKey());
                     // push result to callback functions
                     for (auto func : DIANode<ValueType>::callbacks_) {
                         // LOG << "grouped to value " << res;
@@ -234,7 +237,6 @@ private:
             }
         }
     }
-
 
     /*
      * Send all elements to their designated PEs
@@ -279,7 +281,6 @@ private:
             e.Close();
         }
 
-
         // get incoming elements
         auto reader = channel_->OpenConcatReader(consume);
         while (reader.HasNext()) {
@@ -296,7 +297,6 @@ private:
         totalsize_ += incoming.size();
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
-
     }
 };
 
@@ -311,7 +311,7 @@ auto DIARef<ValueType, Stack>::GroupByIndex(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function,
     const std::size_t number_keys,
-    const ValueOut& neutral_element) const {
+    const ValueOut &neutral_element) const {
 
     using DOpResult
               = ValueOut;
@@ -326,7 +326,7 @@ auto DIARef<ValueType, Stack>::GroupByIndex(
     StatsNode* stats_node = AddChildStatsNode("GroupByIndex", DIANodeType::DOP);
     using GroupByResultNode
               = GroupByIndexNode<DOpResult, DIARef, KeyExtractor,
-                            GroupFunction, HashFunction>;
+                                 GroupFunction, HashFunction>;
     auto shared_node
         = std::make_shared<GroupByResultNode>(*this,
                                               key_extractor,

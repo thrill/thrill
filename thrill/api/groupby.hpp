@@ -22,6 +22,7 @@
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/multiway_merge.hpp>
 
+#include <algorithm>
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -41,7 +42,7 @@ class GroupByNode : public DOpNode<ValueType>
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
     using ValueIn = typename std::decay<typename common::FunctionTraits<KeyExtractor>
-                    ::template arg<0>>::type;
+                                        ::template arg<0> >::type;
 
     using File = data::File;
     using Reader = typename File::Reader;
@@ -49,7 +50,7 @@ class GroupByNode : public DOpNode<ValueType>
 
     struct ValueComparator
     {
-        ValueComparator(const GroupByNode& info) : info_(info) { }
+        explicit ValueComparator(const GroupByNode& info) : info_(info) { }
         const GroupByNode& info_;
 
         bool operator () (const ValueIn& i,
@@ -119,13 +120,13 @@ public:
         // if there's only one run, call user funcs
         if (num_runs == 1) {
             RunUserFunc(files_[0], consume);
-        } // otherwise sort all runs using multiway merge
+        }       // otherwise sort all runs using multiway merge
         else {
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
             for (size_t t = 0; t < num_runs; ++t) {
-                std::shared_ptr<Reader> reader = std::make_shared<Reader>
-                    (files_[t].GetReader(consume));
+                std::shared_ptr<Reader> reader = std::make_shared<Reader>(
+                    files_[t].GetReader(consume));
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
@@ -140,11 +141,11 @@ public:
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator
-                    <ValueIn, KeyExtractor, ValueComparator>(puller, key_extractor_);
+                                     <ValueIn, KeyExtractor, ValueComparator>(puller, key_extractor_);
                 while (user_iterator.HasNextForReal()) {
                     // call user function
                     const ValueOut res = groupby_function_(user_iterator,
-                        user_iterator.GetNextKey());
+                                                           user_iterator.GetNextKey());
                     // push result to callback functions
                     for (auto func : DIANode<ValueType>::callbacks_) {
                         // LOG << "grouped to value " << res;
@@ -184,7 +185,7 @@ private:
             while (user_iterator.HasNextForReal()) {
                 // call user function
                 const ValueOut res = groupby_function_(user_iterator,
-                    user_iterator.GetNextKey());
+                                                       user_iterator.GetNextKey());
                 // push result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
                     // LOG << "grouped to value " << res;
@@ -193,7 +194,6 @@ private:
             }
         }
     }
-
 
     /*
      * Send all elements to their designated PEs

@@ -510,10 +510,9 @@ public:
               typename KeyExtractor,
               typename GroupByFunction,
               typename HashFunction =
-                std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+                  std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
     auto GroupBy(const KeyExtractor &key_extractor,
                  const GroupByFunction &reduce_function) const;
-
 
     /*!
      * GroupBy is a DOp, which groups elements of the DIARef by its key.
@@ -548,7 +547,7 @@ public:
               typename KeyExtractor,
               typename GroupByFunction,
               typename HashFunction =
-                std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+                  std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
     auto GroupByIndex(const KeyExtractor &key_extractor,
                       const GroupByFunction &reduce_function,
                       const std::size_t number_keys,
@@ -614,7 +613,7 @@ public:
      *
      * \param initial_value Initial value of the sum.
      */
-    template <typename SumFunction = std::plus<ValueType>>
+    template <typename SumFunction = std::plus<ValueType> >
     auto Sum(const SumFunction& sum_function = std::plus<ValueType>(),
              const ValueType& initial_value = ValueType()) const;
 

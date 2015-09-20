@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/groupby.hpp
+ * thrill/api/groupby_iterator.hpp
  *
  * DIANode for a groupby operation. Performs the actual groupby operation
  *
@@ -14,20 +14,19 @@
 #ifndef THRILL_API_GROUPBY_ITERATOR_HEADER
 #define THRILL_API_GROUPBY_ITERATOR_HEADER
 
+#include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/function_traits.hpp>
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/losertree.hpp>
 #include <thrill/data/file.hpp>
 
+#include <algorithm>
 #include <utility>
 #include <vector>
 
-
 namespace thrill {
 namespace api {
-
 
 template <typename ValueIn,
           typename Comparator>
@@ -37,10 +36,10 @@ struct MultiwayMergeTreePuller {
     using LoserTreeType = core::LoserTreePointer<true, ValueIn, Comparator>;
     using source_type = typename LoserTreeType::source_type;
 
-    MultiwayMergeTreePuller (IteratorListIterator seqs_begin_,
-                             IteratorListIterator seqs_end_,
-                             size_t length,
-                             Comparator comp_) :
+    MultiwayMergeTreePuller(IteratorListIterator seqs_begin_,
+                            IteratorListIterator seqs_end_,
+                            size_t length,
+                            Comparator comp_) :
         seqs_begin(seqs_begin_),
         seqs_end(seqs_end_),
         comp(comp_),
@@ -49,8 +48,7 @@ struct MultiwayMergeTreePuller {
         counter(0),
         total_length(0),
         arbitrary_element(nullptr),
-        is_multiway_merged(false)
-    {
+        is_multiway_merged(false) {
         // find an arbitrary element to avoid default construction
         for (source_type t = 0; t < k; ++t)
         {
@@ -70,10 +68,9 @@ struct MultiwayMergeTreePuller {
 
         lt.init();
         total_length = std::min(total_length, length);
-
     }
 
-    bool HasNext() {
+    bool    HasNext() {
         return (counter < total_length);
     }
 
@@ -98,21 +95,20 @@ struct MultiwayMergeTreePuller {
 
     IteratorListIterator seqs_begin;
     IteratorListIterator seqs_end;
-    Comparator comp;
-    source_type k;
-    LoserTreeType lt;
-    size_t counter;
-    size_t total_length;
-    const ValueIn* arbitrary_element;
-    const bool is_multiway_merged;
+    Comparator           comp;
+    source_type          k;
+    LoserTreeType        lt;
+    size_t               counter;
+    size_t               total_length;
+    const ValueIn        * arbitrary_element;
+    const bool           is_multiway_merged;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-
-//forward declarations for friend classes
+// forward declarations for friend classes
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode;
@@ -191,7 +187,8 @@ private:
             elem_ = reader_.template Next<ValueIn>();
             old_key_ = new_key_;
             new_key_ = key_extractor_(elem_);
-        } else {
+        }
+        else {
             is_reader_empty = true;
         }
     }
@@ -275,7 +272,8 @@ private:
             elem_ = reader_.Next();
             old_key_ = new_key_;
             new_key_ = key_extractor_(elem_);
-        } else {
+        }
+        else {
             is_reader_empty = true;
         }
     }
