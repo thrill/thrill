@@ -37,13 +37,13 @@ using CatChannelPtr = std::shared_ptr<CatChannel>;
 using CatChannelSet = ChannelSet<CatChannel>;
 using CatChannelSetPtr = std::shared_ptr<CatChannelSet>;
 
-class MixedChannel;
-using MixedChannelPtr = std::shared_ptr<MixedChannel>;
-using MixedChannelSet = ChannelSet<MixedChannel>;
-using MixedChannelSetPtr = std::shared_ptr<MixedChannelSet>;
+class MixChannel;
+using MixChannelPtr = std::shared_ptr<MixChannel>;
+using MixChannelSet = ChannelSet<MixChannel>;
+using MixChannelSetPtr = std::shared_ptr<MixChannelSet>;
 
 class BlockQueue;
-class MixedBlockQueueSink;
+class MixBlockQueueSink;
 
 struct ChannelBlockHeader;
 
@@ -134,25 +134,25 @@ public:
 
     //! \}
 
-    //! \name MixedChannel
+    //! \name MixChannel
     //! \{
 
     //! Allocate the next channel
-    size_t AllocateMixedChannelId(size_t local_worker_id) {
+    size_t AllocateMixChannelId(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
         return channel_sets_.AllocateId(local_worker_id);
     }
 
     //! Get channel with given id, if it does not exist, create it.
-    MixedChannelPtr GetOrCreateMixedChannel(size_t id, size_t local_worker_id) {
+    MixChannelPtr GetOrCreateMixChannel(size_t id, size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateMixedChannel(id, local_worker_id);
+        return _GetOrCreateMixChannel(id, local_worker_id);
     }
 
     //! Request next channel.
-    MixedChannelPtr GetNewMixedChannel(size_t local_worker_id) {
+    MixChannelPtr GetNewMixChannel(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateMixedChannel(
+        return _GetOrCreateMixChannel(
             channel_sets_.AllocateId(local_worker_id), local_worker_id);
     }
 
@@ -182,14 +182,14 @@ protected:
 
     //! friends for access to network components
     friend class CatChannel;
-    friend class MixedChannel;
+    friend class MixChannel;
 
     //! Pointer to queue that is used for communication between two workers on
     //! the same host.
     BlockQueue * CatLoopback(
         size_t channel_id, size_t from_worker_id, size_t to_worker_id);
 
-    MixedBlockQueueSink * MixedLoopback(
+    MixBlockQueueSink * MixLoopback(
         size_t channel_id, size_t from_worker_id, size_t to_worker_id);
 
     /**************************************************************************/
@@ -198,7 +198,7 @@ protected:
     Repository<ChannelSetBase> channel_sets_;
 
     CatChannelPtr _GetOrCreateCatChannel(size_t id, size_t local_worker_id);
-    MixedChannelPtr _GetOrCreateMixedChannel(size_t id, size_t local_worker_id);
+    MixChannelPtr _GetOrCreateMixChannel(size_t id, size_t local_worker_id);
 
     /**************************************************************************/
 
@@ -215,10 +215,10 @@ protected:
         Connection& s, const ChannelBlockHeader& header,
         const CatChannelPtr& channel, const ByteBlockPtr& bytes);
 
-    //! Receives and dispatches a Block to a MixedChannel
-    void OnMixedChannelBlock(
+    //! Receives and dispatches a Block to a MixChannel
+    void OnMixChannelBlock(
         Connection& s, const ChannelBlockHeader& header,
-        const MixedChannelPtr& channel, const ByteBlockPtr& bytes);
+        const MixChannelPtr& channel, const ByteBlockPtr& bytes);
 };
 
 //! \}
