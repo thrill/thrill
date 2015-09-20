@@ -80,11 +80,19 @@ protected:
     ByteBlock() = delete;
 
     //! Creates a copy of this ByteBlockPtr that is pinned
+    //! Does NOT Increase the PinCount of this ByteBlock. Do that manually via
+    //! ByteBlock::IncreasePinCount()
     //! \param signal for signaling the end of the async pin
     void Pin(common::delegate<void()>&& callback);
 
     //! Decreases the pin count of this ByteBlock
     void DecreasePinCount();
+
+    //! Increases the pin count of this ByteBlock
+    //! We need this method since Blocks can be copied. If they are in
+    //! pinned state, the PinCount has to increased without additional call
+    //! to Pin which has a higher overhead.
+    void IncreasePinCount();
 
 public:
     //! mutable data accessor to memory block
