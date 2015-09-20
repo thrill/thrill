@@ -29,7 +29,7 @@ namespace data {
 //! \{
 
 enum class MagicByte : uint8_t {
-    INVALID, CONCAT_CHANNEL_BLOCK, MIXED_CHANNEL_BLOCK, PARTITION_BLOCK
+    INVALID, CAT_CHANNEL_BLOCK, MIXED_CHANNEL_BLOCK, PARTITION_BLOCK
 };
 
 struct BlockHeader {

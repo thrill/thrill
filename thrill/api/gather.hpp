@@ -39,7 +39,7 @@ public:
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           target_id_(target_id),
           out_vector_(out_vector),
-          channel_(parent.ctx().GetNewConcatChannel()),
+          channel_(parent.ctx().GetNewCatChannel()),
           emitters_(channel_->OpenWriters())
     {
         assert(target_id_ < context_.num_workers());
@@ -62,7 +62,7 @@ public:
         }
 
         bool consume = false;
-        auto reader = channel_->OpenConcatReader(consume);
+        auto reader = channel_->OpenCatReader(consume);
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
@@ -80,8 +80,8 @@ private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::ConcatChannelPtr channel_;
-    std::vector<data::ConcatChannel::Writer> emitters_;
+    data::CatChannelPtr channel_;
+    std::vector<data::CatChannel::Writer> emitters_;
 };
 
 /*!

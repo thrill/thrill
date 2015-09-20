@@ -36,7 +36,7 @@ void ExperimentAllPairs(
             // transmit data from worker src -> tgt: only send data if we are
             // tgt, but as tgt receive from all.
 
-            auto channel = ctx.GetNewConcatChannel();
+            auto channel = ctx.GetNewCatChannel();
 
             // write phase
             StatsTimer<true> write_timer(true);
@@ -57,7 +57,7 @@ void ExperimentAllPairs(
             // read phase
             StatsTimer<true> read_timer(true);
             {
-                auto reader = channel->OpenConcatReader(true);
+                auto reader = channel->OpenCatReader(true);
 
                 while (reader.HasNext()) {
                     reader.Next<Type>();
@@ -97,7 +97,7 @@ void ExperimentFull(
 
     // transmit data to all workers.
 
-    auto channel = ctx.GetNewConcatChannel();
+    auto channel = ctx.GetNewCatChannel();
 
     // write phase
     StatsTimer<true> write_timer(true);
@@ -117,7 +117,7 @@ void ExperimentFull(
     // read phase
     StatsTimer<true> read_timer(true);
     {
-        auto reader = channel->OpenConcatReader(true);
+        auto reader = channel->OpenCatReader(true);
 
         while (reader.HasNext()) {
             reader.Next<Type>();

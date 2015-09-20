@@ -18,7 +18,7 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/data/block_pool.hpp>
-#include <thrill/data/concat_channel.hpp>
+#include <thrill/data/cat_channel.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/mixed_channel.hpp>
 #include <thrill/data/multiplexer.hpp>
@@ -221,11 +221,11 @@ public:
         return data::File(block_pool_);
     }
 
-    //! Returns a reference to a new ConcatChannel.  This method alters the state of
-    //! the context and must be called on all Workers to ensure correct
+    //! Returns a reference to a new CatChannel.  This method alters the state
+    //! of the context and must be called on all Workers to ensure correct
     //! communication coordination.
-    data::ConcatChannelPtr GetNewConcatChannel() {
-        return multiplexer_.GetNewConcatChannel(local_worker_id_);
+    data::CatChannelPtr GetNewCatChannel() {
+        return multiplexer_.GetNewCatChannel(local_worker_id_);
     }
 
     //! Returns a reference to a new MixedChannel.  This method alters the state of

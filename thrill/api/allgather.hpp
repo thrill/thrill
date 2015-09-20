@@ -38,7 +38,7 @@ public:
                   StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_vector_(out_vector),
-          channel_(parent.ctx().GetNewConcatChannel()),
+          channel_(parent.ctx().GetNewCatChannel()),
           emitters_(channel_->OpenWriters())
     {
         auto pre_op_function = [=](const ValueType& input) {
@@ -65,7 +65,7 @@ public:
         }
 
         bool consume = false;
-        auto reader = channel_->OpenConcatReader(consume);
+        auto reader = channel_->OpenCatReader(consume);
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
@@ -80,8 +80,8 @@ private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::ConcatChannelPtr channel_;
-    std::vector<data::ConcatChannel::Writer> emitters_;
+    data::CatChannelPtr channel_;
+    std::vector<data::CatChannel::Writer> emitters_;
 
     static const bool debug = false;
 };

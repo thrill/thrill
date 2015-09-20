@@ -96,9 +96,9 @@ public:
         // when they are closed ( = you read all data + called Close() on the
         // channels).
         if (result_size_ != 0) {
-            // get inbound readers from all ConcatChannels
-            std::vector<data::ConcatChannel::ConcatReader> readers {
-                channels_[0]->OpenConcatReader(consume), channels_[1]->OpenConcatReader(consume)
+            // get inbound readers from all CatChannels
+            std::vector<data::CatChannel::CatReader> readers {
+                channels_[0]->OpenCatReader(consume), channels_[1]->OpenCatReader(consume)
             };
 
             while (readers[0].HasNext() && readers[1].HasNext()) {
@@ -151,8 +151,8 @@ private:
         { files_[0].GetWriter(), files_[1].GetWriter() }
     };
 
-    //! Array of inbound ConcatChannels
-    std::array<data::ConcatChannelPtr, num_inputs_> channels_;
+    //! Array of inbound CatChannels
+    std::array<data::CatChannelPtr, num_inputs_> channels_;
 
     //! \name Variables for Calculating Exchange
     //! \{

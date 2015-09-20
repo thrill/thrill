@@ -8,8 +8,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <thrill/data/cat_channel.hpp>
 #include <thrill/data/channel.hpp>
-#include <thrill/data/concat_channel.hpp>
 #include <thrill/data/mixed_channel.hpp>
 #include <thrill/data/multiplexer.hpp>
 
@@ -29,10 +29,10 @@ Multiplexer::~Multiplexer() {
     group_.Close();
 }
 
-ConcatChannelPtr
-Multiplexer::_GetOrCreateConcatChannel(size_t id, size_t local_worker_id) {
-    ConcatChannelSetPtr set =
-        channel_sets_.GetOrCreate<ConcatChannelSet>(
+CatChannelPtr
+Multiplexer::_GetOrCreateCatChannel(size_t id, size_t local_worker_id) {
+    CatChannelSetPtr set =
+        channel_sets_.GetOrCreate<CatChannelSet>(
             id, *this, id, num_workers_per_host_);
     return set->peer(local_worker_id);
 }
@@ -71,12 +71,12 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     size_t sender_worker_rank =
         header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
 
-    if (header.magic == MagicByte::CONCAT_CHANNEL_BLOCK)
+    if (header.magic == MagicByte::CAT_CHANNEL_BLOCK)
     {
-        ConcatChannelPtr channel = GetOrCreateConcatChannel(id, local_worker);
+        CatChannelPtr channel = GetOrCreateCatChannel(id, local_worker);
 
         if (header.IsEnd()) {
-            sLOG << "end of stream on" << s << "in concat channel" << id
+            sLOG << "end of stream on" << s << "in CatChannel" << id
                  << "from worker" << sender_worker_rank;
 
             channel->OnCloseChannel(sender_worker_rank);
@@ -84,7 +84,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
             AsyncReadBlockHeader(s);
         }
         else {
-            sLOG << "stream header from" << s << "on concat channel" << id
+            sLOG << "stream header from" << s << "on CatChannel" << id
                  << "from worker" << sender_worker_rank;
 
             ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
@@ -92,7 +92,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
             dispatcher_.AsyncRead(
                 s, bytes,
                 [this, header, channel, bytes](Connection& s) {
-                    OnConcatChannelBlock(s, header, channel, bytes);
+                    OnCatChannelBlock(s, header, channel, bytes);
                 });
         }
     }
@@ -126,12 +126,12 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     }
 }
 
-void Multiplexer::OnConcatChannelBlock(
+void Multiplexer::OnCatChannelBlock(
     Connection& s, const ChannelBlockHeader& header,
-    const ConcatChannelPtr& channel, const ByteBlockPtr& bytes) {
+    const CatChannelPtr& channel, const ByteBlockPtr& bytes) {
 
     size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
-    sLOG << "got block on" << s << "in concat channel" << header.channel_id << "from worker" << sender_worker_rank;
+    sLOG << "got block on" << s << "in CatChannel" << header.channel_id << "from worker" << sender_worker_rank;
 
     channel->OnChannelBlock(
         sender_worker_rank,
@@ -154,9 +154,9 @@ void Multiplexer::OnMixedChannelBlock(
     AsyncReadBlockHeader(s);
 }
 
-BlockQueue* Multiplexer::ConcatLoopback(
+BlockQueue* Multiplexer::CatLoopback(
     size_t channel_id, size_t from_worker_id, size_t to_worker_id) {
-    return channel_sets_.GetOrDie<ConcatChannelSet>(channel_id)
+    return channel_sets_.GetOrDie<CatChannelSet>(channel_id)
            ->peer(to_worker_id)->loopback_queue(from_worker_id);
 }
 

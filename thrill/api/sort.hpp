@@ -64,9 +64,9 @@ public:
              StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           compare_function_(compare_function),
-          channel_id_samples_(parent.ctx().GetNewConcatChannel()),
+          channel_id_samples_(parent.ctx().GetNewCatChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
-          channel_id_data_(parent.ctx().GetNewConcatChannel()),
+          channel_id_data_(parent.ctx().GetNewCatChannel()),
           emitters_data_(channel_id_data_->OpenWriters())
     {
         // Hook PreOp(s)
@@ -117,12 +117,12 @@ private:
     std::vector<ValueType> data_;
 
     //! Emitter to send samples to process 0
-    data::ConcatChannelPtr channel_id_samples_;
-    std::vector<data::ConcatChannel::Writer> emitters_samples_;
+    data::CatChannelPtr channel_id_samples_;
+    std::vector<data::CatChannel::Writer> emitters_samples_;
 
     //! Emitters to send data to other workers specified by splitters.
-    data::ConcatChannelPtr channel_id_data_;
-    std::vector<data::ConcatChannel::Writer> emitters_data_;
+    data::CatChannelPtr channel_id_data_;
+    std::vector<data::CatChannel::Writer> emitters_data_;
 
     // epsilon
     static constexpr double desired_imbalance_ = 0.25;
@@ -139,7 +139,7 @@ private:
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
         // TODO(tb): OpenConsumeReader
-        auto reader = channel_id_samples_->OpenConcatReader(true);
+        auto reader = channel_id_samples_->OpenCatReader(true);
 
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
@@ -336,7 +336,7 @@ private:
                 emitters_samples_[j].Close();
             }
             bool consume = false;
-            auto reader = channel_id_samples_->OpenConcatReader(consume);
+            auto reader = channel_id_samples_->OpenCatReader(consume);
             while (reader.HasNext()) {
                 splitters.push_back(reader.template Next<ValueType>());
             }
@@ -375,7 +375,7 @@ private:
         data_.clear();
 
         bool consume = false;
-        auto reader = channel_id_data_->OpenConcatReader(consume);
+        auto reader = channel_id_data_->OpenCatReader(consume);
 
         while (reader.HasNext()) {
             data_.push_back(reader.template Next<ValueType>());
