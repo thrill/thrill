@@ -83,7 +83,7 @@ void Socket::SetSndBuf(size_t size) {
 
 #if __linux__ || __FreeBSD__ || __APPLE__
 
-    int sockoptflag = size;
+    int sockoptflag = static_cast<int>(size);
 
     /*
      * SO_SNDBUF Sets or gets the maximum socket send buffer in bytes. The
@@ -108,7 +108,7 @@ void Socket::SetRcvBuf(size_t size) {
 
 #if __linux__ || __FreeBSD__ || __APPLE__
 
-    int sockoptflag = size;
+    int sockoptflag = static_cast<int>(size);
 
     /*
      * SO_RCVBUF Sets or gets the maximum socket receive buffer in bytes. The

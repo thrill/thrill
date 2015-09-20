@@ -42,7 +42,7 @@ public:
 
     //! constructor
     Dispatcher(mem::Manager& mem_manager,
-               size_t group_tag, size_t group_size)
+               int group_tag, size_t group_size)
         : net::Dispatcher(mem_manager),
           group_tag_(group_tag) {
         watch_.reserve(group_size);
@@ -107,7 +107,7 @@ public:
 
 protected:
     //! group_tag attached to this Dispatcher
-    size_t group_tag_;
+    int group_tag_;
 
     //! callback vectors per peer
     struct Watch
