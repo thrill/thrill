@@ -71,6 +71,7 @@ endmacro(build_test_group)
 
 build_plain(common/cmdline_parser_example)
 build_test_group(common/tests
+  common/aggregate_test
   common/cmdline_parser_test.cpp
   common/concurrent_bounded_queue_test.cpp
   common/concurrent_queue_test.cpp
