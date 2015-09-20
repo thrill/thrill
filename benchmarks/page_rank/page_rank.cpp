@@ -226,15 +226,16 @@ int main(int argc, char* argv[]) {
     auto start_func =
         [&input, &output, & iter](api::Context& ctx) {
             thrill::common::StatsTimer<true> timer(false);
-            static const bool debug = true;
+            static const bool debug = false;
             static const double s = 0.85;
             static const double f = 0.15;
 
             using Key = std::size_t;
             using Node = std::size_t;
-            using PageWithLinks = std::pair<std::size_t, std::vector<Node> >;
-            using PageWithRank = std::pair<std::size_t, double>;
-            using Link = std::pair<std::size_t, std::size_t>;
+            using Page_Outgoings = std::pair<std::size_t, std::vector<Node> >;
+            using Page_Rank = std::pair<std::size_t, double>;
+            using Page_Link = std::pair<std::size_t, std::size_t>;
+            using Outgoings_Rank = std::pair<std::vector<Node>, double>;
 
             ////////////////////////////////////////////////////////////////////////////
             ////////////////////////// ALL KINDS OF LAMBDAS ////////////////////////////
@@ -243,40 +244,37 @@ int main(int argc, char* argv[]) {
             auto create_links_fn = [](const std::string& input) {
                 auto split = thrill::common::split(input, " ");
                 // set node ids base to zero
+                // LOG << (std::size_t)(std::stoi(split[0]) - 1);
+                // LOG << (std::size_t)(std::stoi(split[1]) - 1);
                 return std::make_pair((std::size_t)(std::stoi(split[0]) - 1),
                     (std::size_t)(std::stoi(split[1]) - 1));
             };
 
-            auto max_fn = [](const Link &in1, const Link &in2) {
-                return std::make_pair(((in1.first > in2.first) ? in1.first : in2.first), in2.second);
+            auto max_fn = [](const Page_Link &in1, const Page_Link &in2) {
+                Node first = std::max(in1.first, in2.first);
+                Node second = std::max(in1.second, in2.second);
+                return std::make_pair(std::max(first, second), first);
             };
 
-            auto key_link_fn = [](Link p) { return p.first; };
-            auto key_page_with_ranks_fn = [](const PageWithRank& p) { return p.first; };
+            auto key_link_fn = [](Page_Link p) { return p.first; };
+            auto key_page_with_ranks_fn = [](const Page_Rank& p) { return p.first; };
 
             auto group_fn = [](auto& r, Key k) {
+                // LOG << k << " has outgoings to";
                 std::vector<Node> all;
                 while (r.HasNext()) {
+                    // auto out = r.Next().second;
+                    // LOG << out;
                     all.push_back(r.Next().second);
                 }
                 return std::make_pair(k, all);
             };
 
-            auto set_rank_fn = [](PageWithLinks p) {
+            auto set_rank_fn = [](Page_Outgoings p) {
                 return std::make_pair(p.first, 1.0);
             };
 
-            auto compute_rank_contrib_fn = [](const PageWithLinks& l, const PageWithRank& r){
-                return std::make_pair(l.first, r.second/(l.second.size()));
-            };
-
-            //spark computation is:
-            // ranks = contribs.reduceByKey(_ + _).mapValues(0.15 + 0.85 * _)
-            auto update_rank_fn = [](const PageWithRank& p1, const PageWithRank& p2) {
-                return std::make_pair(p1.first, f + s * (p1.second + p2.second));
-            };
-
-            PageWithLinks neutral_page = std::make_pair(0, std::vector<Node>());
+            Page_Outgoings neutral_page = std::make_pair(0, std::vector<Node>());
 
 
             ////////////////////////////////////////////////////////////////////////////
@@ -296,35 +294,65 @@ int main(int argc, char* argv[]) {
             // (url, [linked_url, linked_url, ...])
             // (url, [linked_url, linked_url, ...])
             // ...
-            auto number_nodes = input.Sum(max_fn).first + 1;
-            auto links = input.GroupByIndex<PageWithLinks>(key_link_fn, group_fn, number_nodes).Keep();
+            const auto number_nodes = input.Sum(max_fn).first + 1;
+            auto links = input.GroupByIndex<Page_Outgoings>(key_link_fn, group_fn, number_nodes).Keep();
 
             // (url, rank)
             // (url, rank)
             // (url, rank)
             // ...
             auto ranks = links.Map(set_rank_fn).Cache();
-
             // do iterations
             for (int i = 1; i <= iter; ++i) {
+                LOG << "iteration " << i;
+
                 // (linked_url, rank / OUTGOING.size)
                 // (linked_url, rank / OUTGOING.size)
                 // (linked_url, rank / OUTGOING.size)
                 // ...
-                auto contribs = links.Zip(ranks, compute_rank_contrib_fn);
+                assert(links.Size() == ranks.Size());
+                auto merge_outgoings_w_rank_fn = [](const Page_Outgoings& l, const Page_Rank& r){
+                    return std::make_pair(l.second, r.second);
+                };
+                auto compute_rank_contrib_fn = [](const Outgoings_Rank& p, auto emit){
+                    if (p.first.size() > 0) {
+                        double rank_contrib = p.second / p.first.size();
+                        // assert (rank_contrib <= 1);
+                        for(auto e : p.first) {
+                            emit(std::make_pair(e, rank_contrib));
+                        }
+                    }
+                };
+
+                auto contribs = links.Zip(ranks, merge_outgoings_w_rank_fn).FlatMap<Page_Rank>(compute_rank_contrib_fn);
 
                 // (url, rank)
                 // (url, rank)
                 // (url, rank)
                 // ...
-                ranks = contribs.ReduceToIndex(key_page_with_ranks_fn, update_rank_fn, number_nodes);
+
+                //spark computation is:
+                // ranks = contribs.reduceByKey(_ + _).mapValues(0.15 + 0.85 * _)
+                auto update_rank_fn = [](const Page_Rank& p1, const Page_Rank& p2) {
+                    assert(p1.first == p2.first);
+                    // assert(f + s * (p1.second + p2.second) <= 1);
+                    return std::make_pair(p1.first, f + s * (p1.second + p2.second));
+                };
+                ranks = contribs.ReduceToIndex(key_page_with_ranks_fn, update_rank_fn, number_nodes).Cache();
             }
 
-            ranks.Map([](PageWithRank item) {
-                return std::to_string(item.first + 1)
-                + ": " + std::to_string(item.second);
-            }).
-            WriteLines(output);
+            auto res = ranks.Map([](Page_Rank item) {
+                if (item.first == 0 && item.second == 0.0) {
+                    return std::string("");
+                } else {
+                    return std::to_string(item.first + 1)
+                    + ": " + std::to_string(item.second);
+                }
+            });
+
+            assert (res.Size() == links.Size());
+
+            res.WriteLines(output);
             timer.Stop();
 
             auto number_edges = in.Size();
