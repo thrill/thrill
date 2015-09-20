@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/data/mixed_block_queue.hpp
+ * thrill/data/mix_block_queue.hpp
  *
  * Part of Project Thrill.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_DATA_MIXED_BLOCK_QUEUE_HEADER
-#define THRILL_DATA_MIXED_BLOCK_QUEUE_HEADER
+#ifndef THRILL_DATA_MIX_BLOCK_QUEUE_HEADER
+#define THRILL_DATA_MIX_BLOCK_QUEUE_HEADER
 
 #include <thrill/common/atomic_movable.hpp>
 #include <thrill/common/concurrent_bounded_queue.hpp>
@@ -29,35 +29,35 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-class MixedBlockQueueReader;
+class MixBlockQueueReader;
 
 /*!
  * Implements reading an unordered sequence of items from multiple workers,
- * which sends Blocks. This class is mainly used to implement MixedChannel.
+ * which sends Blocks. This class is mainly used to implement MixChannel.
  *
  * When Blocks arrive from the net, the Multiplexer pushes (src, Blocks) pairs
- * to MixedChannel, which pushes them into a MixedBlockQueue. The
- * MixedBlockQueue stores these in a ConcurrentBoundedQueue for atomic reading.
+ * to MixChannel, which pushes them into a MixBlockQueue. The
+ * MixBlockQueue stores these in a ConcurrentBoundedQueue for atomic reading.
  *
- * When the MixedChannel should be read, MixedBlockQueueReader is used, which
+ * When the MixChannel should be read, MixBlockQueueReader is used, which
  * retrieves Blocks from the queue. The Reader contains one complete BlockReader
  * for each inbound worker, and these BlockReaders are attached to BlockQueue
- * instances inside the MixedBlockQueue.
+ * instances inside the MixBlockQueue.
  *
  * To enable unordered reading from multiple workers, the only remaining thing
- * to do is to fetch Blocks from the main mixed queue and put them into the
+ * to do is to fetch Blocks from the main mix queue and put them into the
  * right BlockQueue for the sub-readers to consume. By taking the Blocks from
  * the main mix queue, the Reader only blocks when no inbound Blocks are
  * available.
  *
  * To enable switching between items from different workers, the
- * MixedBlockQueueReader keeps track of how many _whole_ items are available on
+ * MixBlockQueueReader keeps track of how many _whole_ items are available on
  * each reader. This number is simply -1 of the number of items known to start
  * in the received blocks. The last item _may_ span further Blocks, and cannot
  * be fetched without infinitely blocking the sub-reader, since no thread will
  * deliver the next Block.
  */
-class MixedBlockQueue
+class MixBlockQueue
 {
     static const bool debug = false;
 
@@ -68,10 +68,10 @@ public:
         Block  block;
     };
 
-    using Reader = MixedBlockQueueReader;
+    using Reader = MixBlockQueueReader;
 
     //! Constructor from BlockPool
-    explicit MixedBlockQueue(BlockPool& block_pool, size_t num_workers)
+    explicit MixBlockQueue(BlockPool& block_pool, size_t num_workers)
         : block_pool_(block_pool),
           num_workers_(num_workers),
           write_closed_(num_workers) {
@@ -82,27 +82,27 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    MixedBlockQueue(const MixedBlockQueue&) = delete;
+    MixBlockQueue(const MixBlockQueue&) = delete;
     //! non-copyable: delete assignment operator
-    MixedBlockQueue& operator = (const MixedBlockQueue&) = delete;
+    MixBlockQueue& operator = (const MixBlockQueue&) = delete;
     //! move-constructor: default
-    MixedBlockQueue(MixedBlockQueue&&) = default;
+    MixBlockQueue(MixBlockQueue&&) = default;
     //! move-assignment operator: default
-    MixedBlockQueue& operator = (MixedBlockQueue&&) = default;
+    MixBlockQueue& operator = (MixBlockQueue&&) = default;
 
     //! return block pool
     BlockPool & block_pool() { return block_pool_; }
 
     //! append block delivered via the network from src.
     void AppendBlock(size_t src, const Block& block) {
-        LOG << "MixedBlockQueue::AppendBlock"
+        LOG << "MixBlockQueue::AppendBlock"
             << " src=" << src << " block=" << block;
         mix_queue_.emplace(SrcBlockPair { src, block });
     }
 
     //! append closing sentinel block from src (also delivered via the network).
     void Close(size_t src) {
-        LOG << "MixedBlockQueue::Close" << " src=" << src;
+        LOG << "MixBlockQueue::Close" << " src=" << src;
         assert(!write_closed_[src]);
         write_closed_[src] = true;
         --write_open_count_;
@@ -145,38 +145,38 @@ protected:
     //! received the close message from the writer.
     size_t read_open_ = num_workers_;
 
-    //! BlockQueues to deliver blocks to from mixed queue.
+    //! BlockQueues to deliver blocks to from mix queue.
     std::vector<BlockQueue> queues_;
 
     //! for access to queues_ and other internals.
-    friend class MixedBlockQueueReader;
+    friend class MixBlockQueueReader;
 };
 
 /*!
- * Implementation of BlockSink which forward Blocks to a mixed queue with a
- * fixed source worker tag. Used to implement loopback sinks in MixedChannel.
+ * Implementation of BlockSink which forward Blocks to a mix queue with a
+ * fixed source worker tag. Used to implement loopback sinks in MixChannel.
  */
-class MixedBlockQueueSink final : public BlockSink
+class MixBlockQueueSink final : public BlockSink
 {
     static const bool debug = false;
 
 public:
-    MixedBlockQueueSink(MixedBlockQueue& mixed_queue, size_t from)
-        : BlockSink(mixed_queue.block_pool()),
-          mixed_queue_(mixed_queue), from_(from)
+    MixBlockQueueSink(MixBlockQueue& mix_queue, size_t from)
+        : BlockSink(mix_queue.block_pool()),
+          mix_queue_(mix_queue), from_(from)
     { }
 
     void AppendBlock(const Block& b) final {
-        LOG << "MixedBlockQueueSink::AppendBlock()"
+        LOG << "MixBlockQueueSink::AppendBlock()"
             << " from_=" << from_ << " b=" << b;
-        mixed_queue_.AppendBlock(from_, b);
+        mix_queue_.AppendBlock(from_, b);
     }
 
     void Close() final {
         // enqueue a closing Block.
-        LOG << "MixedBlockQueueSink::Close()"
+        LOG << "MixBlockQueueSink::Close()"
             << " from_=" << from_;
-        mixed_queue_.Close(from_);
+        mix_queue_.Close(from_);
         write_closed_ = true;
     }
 
@@ -186,8 +186,8 @@ public:
     bool write_closed() const { return write_closed_; }
 
 protected:
-    //! destination mixed queue
-    MixedBlockQueue& mixed_queue_;
+    //! destination mix queue
+    MixBlockQueue& mix_queue_;
 
     //! close flag
     common::AtomicMovable<bool> write_closed_ = { false };
@@ -197,7 +197,7 @@ protected:
 };
 
 /*!
- * Reader to retrieve items in unordered sequence from a MixedBlockQueue. This
+ * Reader to retrieve items in unordered sequence from a MixBlockQueue. This
  * is not a full implementation of _all_ methods available in a normal
  * BlockReader. Mainly, this is because only retrieval of _whole_ items are
  * possible. Due to the unordered sequence, these probably have to be all of
@@ -206,12 +206,12 @@ protected:
  * The Reader supports all combinations of consuming and keeping. However, do
  * not assume that the second round of reading delivers items in the same order
  * as the first. This is because once items are cached inside the BlockQueues of
- * MixedBlockQueue, we use a plain CatReader to deliver them again (which is
+ * MixBlockQueue, we use a plain CatReader to deliver them again (which is
  * probably faster as it has a sequential access pattern).
  *
- * See \ref MixedBlockQueue for more information on how items are read.
+ * See \ref MixBlockQueue for more information on how items are read.
  */
-class MixedBlockQueueReader
+class MixBlockQueueReader
 {
     static const bool debug = false;
 
@@ -219,7 +219,7 @@ public:
     using CatBlockSource = data::CatBlockSource<DynBlockSource>;
     using CatBlockReader = BlockReader<CatBlockSource>;
 
-    MixedBlockQueueReader(MixedBlockQueue& mix_queue, bool consume)
+    MixBlockQueueReader(MixBlockQueue& mix_queue, bool consume)
         : mix_queue_(mix_queue),
           consume_(consume), reread_(mix_queue.read_closed()) {
 
@@ -244,16 +244,16 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    MixedBlockQueueReader(const MixedBlockQueueReader&) = delete;
+    MixBlockQueueReader(const MixBlockQueueReader&) = delete;
     //! non-copyable: delete assignment operator
-    MixedBlockQueueReader& operator = (const MixedBlockQueueReader&) = delete;
+    MixBlockQueueReader& operator = (const MixBlockQueueReader&) = delete;
     //! move-constructor: default
-    MixedBlockQueueReader(MixedBlockQueueReader&&) = default;
+    MixBlockQueueReader(MixBlockQueueReader&&) = default;
     //! move-assignment operator: default
-    MixedBlockQueueReader& operator = (MixedBlockQueueReader&&) = default;
+    MixBlockQueueReader& operator = (MixBlockQueueReader&&) = default;
 
     //! Possibly consume unread blocks.
-    ~MixedBlockQueueReader() {
+    ~MixBlockQueueReader() {
         // TODO(tb)
     }
 
@@ -279,7 +279,7 @@ public:
             if (!available_) {
                 if (!PullBlock())
                     throw std::runtime_error(
-                              "Data underflow in MixedBlockQueueReader.");
+                              "Data underflow in MixBlockQueueReader.");
             }
 
             assert(available_ > 0);
@@ -292,19 +292,19 @@ public:
 
 protected:
     //! reference to mix queue
-    MixedBlockQueue& mix_queue_;
+    MixBlockQueue& mix_queue_;
 
     //! flag whether to consume the input
     bool consume_;
 
-    //! flat whether we are rereading the mixed queue by reading the files using
+    //! flat whether we are rereading the mix queue by reading the files using
     //! a cat_reader_.
     bool reread_;
 
-    //! \name Attributes for Mixed Reading
+    //! \name Attributes for Mix Reading
     //! \{
 
-    //! sub-readers for each block queue in mixed queue
+    //! sub-readers for each block queue in mix queue
     std::vector<BlockQueue::Reader> readers_;
 
     //! reader currently selected
@@ -322,17 +322,17 @@ protected:
 
     //! \}
 
-    //! for rereading the mixed queue: use a cat reader on the embedded
+    //! for rereading the mix queue: use a cat reader on the embedded
     //! BlockQueue's files.
     CatBlockReader cat_reader_ { CatBlockSource() };
 
     bool PullBlock() {
-        // no full item available: get next block from mixed queue
+        // no full item available: get next block from mix queue
         while (available_ == 0) {
             LOG << "still open_=" << open_;
 
-            MixedBlockQueue::SrcBlockPair src_blk = mix_queue_.Pop();
-            LOG << "MixedBlockQueueReader::PullBlock()"
+            MixBlockQueue::SrcBlockPair src_blk = mix_queue_.Pop();
+            LOG << "MixBlockQueueReader::PullBlock()"
                 << " src=" << src_blk.src << " block=" << src_blk.block;
 
             assert(src_blk.src < readers_.size());
@@ -377,6 +377,6 @@ protected:
 } // namespace data
 } // namespace thrill
 
-#endif // !THRILL_DATA_MIXED_BLOCK_QUEUE_HEADER
+#endif // !THRILL_DATA_MIX_BLOCK_QUEUE_HEADER
 
 /******************************************************************************/

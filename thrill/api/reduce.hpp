@@ -89,7 +89,7 @@ public:
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(parent.ctx().GetNewMixedChannel()),
+          channel_(parent.ctx().GetNewCatChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6)
@@ -139,7 +139,7 @@ public:
                           0, 0, Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01);
 
         if (RobustKey) {
-            auto reader = channel_->OpenMixedReader(consume);
+            auto reader = channel_->OpenCatReader(consume);
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
@@ -148,7 +148,7 @@ public:
             table.Flush(consume);
         }
         else {
-            auto reader = channel_->OpenMixedReader(consume);
+            auto reader = channel_->OpenCatReader(consume);
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
@@ -175,9 +175,9 @@ private:
     //! Reduce function
     ReduceFunction reduce_function_;
 
-    data::MixedChannelPtr channel_;
+    data::CatChannelPtr channel_;
 
-    std::vector<data::MixedChannel::Writer> emitters_;
+    std::vector<data::CatChannel::Writer> emitters_;
 
     core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey,
                          core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;

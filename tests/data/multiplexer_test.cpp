@@ -11,7 +11,7 @@
 
 #include <gtest/gtest.h>
 #include <thrill/data/cat_channel.hpp>
-#include <thrill/data/mixed_channel.hpp>
+#include <thrill/data/mix_channel.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/group.hpp>
@@ -255,12 +255,12 @@ TEST_F(Multiplexer, ReadCompleteCatChannelManyTimes) {
 }
 
 /******************************************************************************/
-// MixedChannel Tests
+// MixChannel Tests
 
-TEST_F(Multiplexer, ReadCompleteMixedChannelManyTimes) {
+TEST_F(Multiplexer, ReadCompleteMixChannelManyTimes) {
     auto w0 = [](data::Multiplexer& multiplexer) {
-                  auto id = multiplexer.AllocateMixedChannelId(0);
-                  auto c = multiplexer.GetOrCreateMixedChannel(id, 0);
+                  auto id = multiplexer.AllocateMixChannelId(0);
+                  auto c = multiplexer.GetOrCreateMixChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
@@ -273,8 +273,8 @@ TEST_F(Multiplexer, ReadCompleteMixedChannelManyTimes) {
                   }
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
-                  auto id = multiplexer.AllocateMixedChannelId(0);
-                  auto c = multiplexer.GetOrCreateMixedChannel(id, 0);
+                  auto id = multiplexer.AllocateMixChannelId(0);
+                  auto c = multiplexer.GetOrCreateMixChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2](msg1);
@@ -284,15 +284,15 @@ TEST_F(Multiplexer, ReadCompleteMixedChannelManyTimes) {
                   }
               };
     auto w2 = [](data::Multiplexer& multiplexer) {
-                  auto id = multiplexer.AllocateMixedChannelId(0);
-                  auto c = multiplexer.GetOrCreateMixedChannel(id, 0);
+                  auto id = multiplexer.AllocateMixChannelId(0);
+                  auto c = multiplexer.GetOrCreateMixChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
                   }
                   {
-                      auto reader = c->OpenMixedReader(false);
+                      auto reader = c->OpenMixReader(false);
                       // receive three std::string items
                       std::vector<std::string> recv;
 
@@ -310,7 +310,7 @@ TEST_F(Multiplexer, ReadCompleteMixedChannelManyTimes) {
                       ASSERT_EQ("I came from worker 1", recv[2]);
                   }
                   {
-                      auto reader = c->OpenMixedReader(false);
+                      auto reader = c->OpenMixReader(false);
                       // receive three std::string items
                       std::vector<std::string> recv;
 
@@ -328,7 +328,7 @@ TEST_F(Multiplexer, ReadCompleteMixedChannelManyTimes) {
                       ASSERT_EQ("I came from worker 1", recv[2]);
                   }
                   {
-                      auto reader = c->OpenMixedReader(true);
+                      auto reader = c->OpenMixReader(true);
                       // receive three std::string items
                       std::vector<std::string> recv;
 
@@ -351,7 +351,7 @@ TEST_F(Multiplexer, ReadCompleteMixedChannelManyTimes) {
 
 // open a Channel via data::Multiplexer, and send a short message to all workers,
 // receive and check the message.
-void TalkAllToAllViaMixedChannel(net::Group* net) {
+void TalkAllToAllViaMixChannel(net::Group* net) {
     common::NameThisThread("chmp" + mem::to_string(net->my_host_rank()));
 
     char send_buffer[123];
@@ -368,11 +368,11 @@ void TalkAllToAllViaMixedChannel(net::Group* net) {
     data::BlockPool block_pool(&mem_manager);
     data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
     {
-        data::ChannelId id = multiplexer.AllocateMixedChannelId(my_local_worker_id);
+        data::ChannelId id = multiplexer.AllocateMixChannelId(my_local_worker_id);
 
         // open Writers and send a message to all workers
 
-        auto writers = multiplexer.GetOrCreateMixedChannel(
+        auto writers = multiplexer.GetOrCreateMixChannel(
             id, my_local_worker_id)->OpenWriters(test_block_size);
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
@@ -394,10 +394,10 @@ void TalkAllToAllViaMixedChannel(net::Group* net) {
             writers[tgt].Close();
         }
 
-        // open mixed Reader and receive messages from all workers
+        // open mix Reader and receive messages from all workers
 
-        auto reader = multiplexer.GetOrCreateMixedChannel(
-            id, my_local_worker_id)->OpenMixedReader(true);
+        auto reader = multiplexer.GetOrCreateMixChannel(
+            id, my_local_worker_id)->OpenMixReader(true);
 
         std::vector<std::string> recv;
 
@@ -426,12 +426,12 @@ void TalkAllToAllViaMixedChannel(net::Group* net) {
     }
 }
 
-TEST_F(Multiplexer, DISABLED_TalkAllToAllViaMixedChannelForManyNetSizes) {
+TEST_F(Multiplexer, DISABLED_TalkAllToAllViaMixChannelForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 9:
-    net::RunGroupTest(1, TalkAllToAllViaMixedChannel);
-    net::RunGroupTest(2, TalkAllToAllViaMixedChannel);
-    net::RunGroupTest(5, TalkAllToAllViaMixedChannel);
-    net::RunGroupTest(9, TalkAllToAllViaMixedChannel);
+    net::RunGroupTest(1, TalkAllToAllViaMixChannel);
+    net::RunGroupTest(2, TalkAllToAllViaMixChannel);
+    net::RunGroupTest(5, TalkAllToAllViaMixChannel);
+    net::RunGroupTest(9, TalkAllToAllViaMixChannel);
     // the test does not work for two digit #workers (due to sorting digits)
 }
 
