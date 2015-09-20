@@ -100,6 +100,10 @@ public:
         cv_.wait(lock, [=]() { return !inbound_.empty(); });
         net::Buffer msg = std::move(inbound_.front());
         inbound_.pop_front();
+
+        // set errno : success (other syscalls may have failed)
+        errno = 0;
+
         return msg;
     }
 
