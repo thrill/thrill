@@ -67,7 +67,7 @@ class Connection final : public net::Connection
 
 public:
     //! construct from group tag and MPI peer
-    void Initialize(size_t group_tag, size_t peer) {
+    void Initialize(int group_tag, int peer) {
         group_tag_ = group_tag;
         peer_ = peer;
     }
@@ -78,7 +78,7 @@ public:
     bool IsValid() const final { return true; }
 
     //! return the MPI peer number
-    size_t peer() const { return peer_; }
+    int peer() const { return peer_; }
 
     std::string ToString() const final {
         return "peer: " + std::to_string(peer_);
@@ -118,10 +118,10 @@ public:
 
 protected:
     //! Group number used as MPI tag.
-    size_t group_tag_;
+    int group_tag_;
 
     //! Outgoing peer id of this Connection.
-    size_t peer_;
+    int peer_;
 };
 
 /*!
@@ -139,17 +139,17 @@ public:
     //! \{
 
     //! Initialize a Group for the given size and rank
-    Group(size_t my_rank, size_t group_tag, size_t group_size)
+    Group(size_t my_rank, int group_tag, size_t group_size)
         : net::Group(my_rank),
           group_tag_(group_tag),
           conns_(group_size) {
         // create virtual connections
         for (size_t i = 0; i < group_size; ++i)
-            conns_[i].Initialize(group_tag, i);
+            conns_[i].Initialize(group_tag, static_cast<int>(i));
     }
 
     //! return MPI tag used to communicate
-    size_t group_tag() const { return group_tag_; }
+    int group_tag() const { return group_tag_; }
 
     //! number of hosts configured.
     size_t num_hosts() const final { return conns_.size(); }
@@ -172,7 +172,7 @@ public:
 
 protected:
     //! this group's MPI tag
-    size_t group_tag_;
+    int group_tag_;
 
     //! vector of virtual connection objects to remote peers
     std::vector<Connection> conns_;

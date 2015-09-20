@@ -13,6 +13,7 @@
 
 #include <mpi.h>
 
+#include <limits>
 #include <mutex>
 #include <vector>
 
@@ -45,7 +46,9 @@ void Connection::SyncSend(
         << " peer_=" << peer_
         << " group_tag_=" << group_tag_;
 
-    int r = MPI_Send(const_cast<void*>(data), size, MPI_BYTE,
+    assert(size <= std::numeric_limits<int>::max());
+
+    int r = MPI_Send(const_cast<void*>(data), static_cast<int>(size), MPI_BYTE,
                      peer_, group_tag_, MPI_COMM_WORLD);
 
     if (r != MPI_SUCCESS)
@@ -56,8 +59,10 @@ ssize_t Connection::SendOne(
     const void* data, size_t size, Flags /* flags */) {
     std::unique_lock<std::mutex> lock(g_mutex);
 
+    assert(size <= std::numeric_limits<int>::max());
+
     MPI_Request request;
-    int r = MPI_Isend(const_cast<void*>(data), size, MPI_BYTE,
+    int r = MPI_Isend(const_cast<void*>(data), static_cast<int>(size), MPI_BYTE,
                       peer_, group_tag_, MPI_COMM_WORLD, &request);
 
     if (r != MPI_SUCCESS)
@@ -76,8 +81,10 @@ void Connection::SyncRecv(void* out_data, size_t size) {
         << " peer_=" << peer_
         << " group_tag_=" << group_tag_;
 
+    assert(size <= std::numeric_limits<int>::max());
+
     MPI_Status status;
-    int r = MPI_Recv(out_data, size, MPI_BYTE,
+    int r = MPI_Recv(out_data, static_cast<int>(size), MPI_BYTE,
                      peer_, group_tag_, MPI_COMM_WORLD, &status);
     if (r != MPI_SUCCESS)
         throw Exception("Error during MPI_Recv()", r);
