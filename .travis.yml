@@ -34,23 +34,23 @@ matrix:
       os: linux
       addons: *gcc5
 
-    # clang 3.6 with AddressSanitizer, Debug & Release
-    - env: CMAKE_CC="clang-3.6" CMAKE_CXX="clang++-3.6" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address"
+    # clang 3.7 with AddressSanitizer, Debug & Release
+    - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address"
       os: linux
-      addons: &clang36
+      addons: &clang37
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.6
+            - llvm-toolchain-precise-3.7
           packages:
-            - clang-3.6
+            - clang-3.7
 
-    # clang 3.6 without AddressSanitizer (there are some system-dependent LeakSanitizer errors)
-    - env: CMAKE_CC="clang-3.6" CMAKE_CXX="clang++-3.6" BUILD_TYPE="Release" COMPILER_FLAGS=""
+    # clang 3.7 without AddressSanitizer (there are some system-dependent LeakSanitizer errors)
+    - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Release" COMPILER_FLAGS=""
       os: linux
-      addons: *clang36
+      addons: *clang37
 
-    # clang 3.6 on MacOSX without AddressSanitizer, Debug & Release
+    # clang 3.7 on MacOSX without AddressSanitizer, Debug & Release
     - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Debug" COMPILER_FLAGS=""
       os: osx
 
