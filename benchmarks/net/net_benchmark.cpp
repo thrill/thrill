@@ -148,7 +148,7 @@ int RunPingPongLatencyTest(int argc, char* argv[]) {
 
 uint64_t bandwidth_size = 1024 * 1024 * 1024llu;
 
-size_t block_size = 2 * 1024 * 1024;
+uint64_t block_size = 2 * 1024 * 1024;
 
 void BandwidthTest(api::Context& ctx) {
 
