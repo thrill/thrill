@@ -11,6 +11,9 @@ thrill_build_prog(data/disk)
 thrill_build_prog(data/file_read_write)
 thrill_build_prog(data/channel)
 
+thrill_build_prog(sort/generate_data)
+thrill_build_prog(sort/sort)
+
 if(NOT MSVC)
   # these benchmarks use a non-portable method to initialize the network,
   # TODO(ts): change to use RunXYZ().
