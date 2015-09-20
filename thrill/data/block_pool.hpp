@@ -60,6 +60,11 @@ public:
         });
     }
 
+    ~BlockPool() {
+        sLOG << "waiting for I/O background thread to end";
+        tasks_.LoopUntilEmpty();
+    }
+
     //! Allocates a block the size that is requested
     //! Maybe blocks if the hard memory limit is reached
     //! \param swapable indicates whether the block can be swapped to disk
