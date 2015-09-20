@@ -1,4 +1,4 @@
-/*******************************************************************************
+ /*******************************************************************************
  * benchmarks/page_rank/page_rank.cpp
  *
  * Part of Project Thrill.
@@ -233,10 +233,10 @@ int main(int argc, char* argv[]) {
 
             using Key = std::size_t;
             using Node = std::size_t;
-            using Page_Outgoings = std::pair<std::size_t, std::vector<Node> >;
-            using Page_Rank = std::pair<std::size_t, double>;
-            using Page_Link = std::pair<std::size_t, std::size_t>;
-            using Outgoings_Rank = std::pair<std::vector<Node>, double>;
+            using Rank = double;
+            using Page_Rank = std::pair<Node, Rank>;
+            using Page_Link = std::pair<Node, Node>;
+            using Outgoings_Rank = std::pair<std::vector<Node>, Rank>;
             using Outgoings = std::vector<Node>;
 
 
@@ -251,15 +251,19 @@ int main(int argc, char* argv[]) {
             // url linked_url
             // url linked_url
             // ...
-            auto create_links_fn = [](const std::string& input) {
-                auto split = thrill::common::split(input, " ");
-                // set base of page_id to 0
-                return std::make_pair((std::size_t)(std::stoi(split[0]) - 1),
-                    (std::size_t)(std::stoi(split[1]) - 1));
-            };
 
             auto in = ReadLines(ctx, input);
-            auto input = in.Map(create_links_fn);
+            auto input = in.Map(
+                [](const std::string& input) {
+                    auto split = thrill::common::split(input, " ");
+                    LOG << "input "
+                        << (std::size_t)(std::stoi(split[0]) - 1)
+                        << " "
+                        << (std::size_t)(std::stoi(split[1]) - 1);
+                    // set base of page_id to 0
+                    return std::make_pair((size_t)(std::stoi(split[0]) - 1),
+                                          (size_t)(std::stoi(split[1]) - 1));
+                });
 
             // aggregate all outgoing links of a page in this format:
             //
@@ -270,23 +274,33 @@ int main(int argc, char* argv[]) {
             // ...
 
             // get number of nodes by finding max page_id
-            auto max_fn = [](const Page_Link &in1, const Page_Link &in2) {
-                Node first = std::max(in1.first, in2.first);
-                Node second = std::max(in1.second, in2.second);
-                return std::make_pair(std::max(first, second), first);
-            };
-            // group outgoing links
-            auto group_fn = [](auto& r, Key k) {
-                std::vector<Node> all;
-                while (r.HasNext()) {
-                    all.push_back(r.Next().second);
-                }
-                return all;
-            };
-            auto key_link_fn = [](Page_Link p) { return p.first; };
             // add 1 to max node_id to get number of nodes because of node_id 0
-            const auto number_nodes = input.Sum(max_fn).first + 1;
-            auto links = input.GroupByIndex<Outgoings>(key_link_fn, group_fn, number_nodes).Cache();
+            const auto number_nodes = input.Sum(
+                [](const Page_Link &in1, const Page_Link &in2) {
+                    Node first = std::max(in1.first, in2.first);
+                    Node second = std::max(in1.second, in2.second);
+                    return std::make_pair(std::max(first, second), first);
+                }).first + 1;
+
+            LOG << "number_nodes " << number_nodes;
+
+            // group outgoing links
+            auto links = input.GroupByIndex<Outgoings>(
+                [](Page_Link p) { return p.first; },
+                [](auto& r, Key) {
+                    std::vector<Node> all;
+                    while (r.HasNext()) {
+                        all.push_back(r.Next().second);
+                    }
+
+                    // std::string s = "{";
+                    // for (auto e : all) {
+                    //     s+= std::to_string(e) + ", ";
+                    // }
+                    // LOG << "links " << s << "}";
+
+                    return all;
+                }, number_nodes).Cache();
 
             // initialize all ranks to 1.0
             //
@@ -294,12 +308,21 @@ int main(int argc, char* argv[]) {
             // (url, rank)
             // (url, rank)
             // ...
-            auto ranks = Generate(ctx, [](const size_t& index) {
-                return std::make_pair(index, 1.0);
-            }, number_nodes).Cache();
+            // auto ranks = Generate(ctx, [](const size_t& index) {
+            //     return std::make_pair(index, 1.0);
+            // }, number_nodes).Cache();
+            auto ranks = Generate(ctx,
+                [](const size_t&) {
+                    return (Rank)1.0;
+                }, number_nodes).Cache();
+
+            auto node_ids = Generate(ctx,
+                [](const size_t& index) {
+                    return index+1;
+                }, number_nodes).Cache();
 
             // do iterations
-            for (int i = 1; i <= iter; ++i) {
+            for (int i = 0; i < iter; ++i) {
                 LOG << "iteration " << i;
 
                 // for all outgoing link, get their rank contribution from all
@@ -317,21 +340,31 @@ int main(int argc, char* argv[]) {
                 // (linked_url, rank / OUTGOING.size)
                 // (linked_url, rank / OUTGOING.size)
                 // ...
-                assert(links.Size() == ranks.Size());
-                auto merge_outgoings_w_rank_fn = [](const Outgoings& l, const Page_Rank& r){
-                    return std::make_pair(l, r.second);
-                };
-                auto compute_rank_contrib_fn = [](const Outgoings_Rank& p, auto emit){
-                    if (p.first.size() > 0) {
-                        double rank_contrib = p.second / p.first.size();
-                        // assert (rank_contrib <= 1);
-                        for(auto e : p.first) {
-                            emit(std::make_pair(e, rank_contrib));
-                        }
-                    }
-                };
 
-                auto contribs = links.Zip(ranks, merge_outgoings_w_rank_fn).FlatMap<Page_Rank>(compute_rank_contrib_fn);
+                assert(links.Size() == ranks.Size());
+
+                auto contribs = links.Zip(ranks,
+                    [](const Outgoings& l, const Rank r){
+                        // std::string s = "{";
+                        // for (auto e : l) {
+                        //     s += std::to_string(e) + ", ";
+                        // }
+                        // s += "}";
+                        // LOG << "contribs1 " << s << " " << r;
+
+                        return std::make_pair(l, r);
+                    })
+                .FlatMap<Page_Rank>(
+                    [](const Outgoings_Rank& p, auto emit){
+                        if (p.first.size() > 0) {
+                            Rank rank_contrib = p.second / p.first.size();
+                            // assert (rank_contrib <= 1);
+                            for(auto e : p.first) {
+                                LOG << "contribs2 " << e << " " << rank_contrib;
+                                emit(std::make_pair(e, rank_contrib));
+                            }
+                        }
+                    });
 
                 // reduce all rank contributions by adding all rank contributions
                 // and compute the new rank with 0.15 * 0.85 * sum_rank_contribs
@@ -341,28 +374,42 @@ int main(int argc, char* argv[]) {
                 // (url, rank)
                 // ...
 
-                auto sum_rank_contrib_fn = [](const Page_Rank& p1, const Page_Rank& p2) {
-                    assert(p1.first == p2.first);
-                    return std::make_pair(p1.first, p1.second + p2.second);
-                };
-                auto update_rank_fn = [](const Page_Rank& p) {
-                    return std::make_pair(p.first, f + s * p.second);
-                };
-                auto key_page_with_ranks_fn = [](const Page_Rank& p) { return p.first; };
-                ranks = contribs.ReduceToIndex(key_page_with_ranks_fn, sum_rank_contrib_fn, number_nodes).Map(update_rank_fn).Cache();
+                // auto sum_rank_contrib_fn = [](const Page_Rank& p1, const Page_Rank& p2) {
+                //     assert(p1.first == p2.first);
+                //     return p1.second + p2.second;
+                // };
+
+                ranks = contribs.GroupByIndex<Rank>(
+                    [](const Page_Rank& p) { return p.first; },
+                    [](auto& r, Key) {
+                        Rank rank = 0.0;
+                        while (r.HasNext()) {
+                            rank += r.Next().second;
+                        }
+                        LOG << "rank1 " << rank;
+                        return rank;
+                    }, number_nodes)
+                .Map(
+                    [](const Rank p) {
+                        LOG << "ranks2 in " << p;
+                        if (std::fabs(p) <= 1E-5) {
+                            LOG << "ranks2 " << 0.0;
+                            return (Rank)0.0;
+                        }else {
+                            LOG << "ranks2 " << f + s * p;
+                            return f + s * p;
+                        }
+                    }).Cache();
             }
 
             // write result to line. add 1 to node_ids to revert back to normal
-            auto res = ranks.Map([](Page_Rank item) {
-                if (item.first == 0 && item.second == 0.0) {
-                    return std::string("");
-                } else {
-                    return std::to_string(item.first + 1)
-                    + ": " + std::to_string(item.second);
-                }
-            });
+            auto res = ranks.Zip(node_ids,
+                [](const Rank r, const Node n) {
+                    return std::to_string(n)
+                    + ": " + std::to_string(r);
+                });
 
-            assert (res.Size() == links.Size());
+            // assert (res.Size() == links.Size());
 
             res.WriteLines(output);
             timer.Stop();
