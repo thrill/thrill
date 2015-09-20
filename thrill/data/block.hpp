@@ -49,12 +49,54 @@ class Block
 public:
     Block() : pinned_(false) { }
 
+    //! Creates a block that points to the given data::ByteBlock with the given offsets
+    //! The block is not pinned.
     Block(const ByteBlockPtr& byte_block,
           size_t begin, size_t end, size_t first_item, size_t num_items)
         : byte_block_(byte_block),
           begin_(begin), end_(end),
           first_item_(first_item), num_items_(num_items), pinned_(false)
-    { }
+    {
+    }
+
+    //! Moves the block - the pinned property is moved as well
+    //! the 'other' block is afterwards unpinned
+    Block(Block&& other) {
+        byte_block_ = other.byte_block_;
+        begin_ = other.begin_;
+        end_ = other.end_;
+        first_item_ = other.first_item_;
+        num_items_ = other.num_items_;
+        pinned_ = other.pinned_;
+
+        // we do not have to change the pin_count_
+        other.pinned_ = false;
+
+        other.byte_block_ = nullptr;
+        other.begin_ = 0;
+        other.end_ = 0;
+        other.first_item_ = 0;
+        other.num_items_ = 0;
+    }
+
+    Block(const Block& other) {
+        *this = other;
+    }
+
+    //! assigns a block. If this block is pinned it is unpinned before
+    //! re-assigned.
+    Block& operator = (const Block& other) {
+        UnpinMaybe();
+        byte_block_ = other.byte_block_;
+        begin_ = other.begin_;
+        end_ = other.end_;
+        first_item_ = other.first_item_;
+        num_items_ = other.num_items_;
+        pinned_ = other.pinned_;
+        if (pinned_ && byte_block_)
+            byte_block_->IncreasePinCount();
+        return *this;
+    }
 
     //! Return whether the enclosed ByteBlock is valid.
     bool IsValid() const {
