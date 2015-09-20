@@ -13,6 +13,7 @@
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
+#include <thrill/common/aggregate.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
@@ -44,6 +45,13 @@ void PingPongLatencyTest(api::Context& ctx) {
     // a counter to count and match ping pongs.
     size_t counter = 0;
 
+    // matrix of measured latencies
+    using AggDouble = common::Aggregate<double>;
+    using AggMatrix = std::vector<std::vector<AggDouble> >;
+
+    AggMatrix latency(
+        group.num_hosts(), std::vector<AggDouble>(group.num_hosts()));
+
     for (size_t outer_repeat = 0;
          outer_repeat < outer_repeats; ++outer_repeat) {
 
@@ -56,46 +64,63 @@ void PingPongLatencyTest(api::Context& ctx) {
 
                 size_t peer = group.OneFactorPeer(round);
 
-                sLOG1 << "round" << round
+                sLOG0 << "round" << round
                       << "me" << ctx.host_rank() << "peer" << peer;
 
+                auto Sender =
+                    [&]() {
+                        common::StatsTimer<true> inner_timer(true);
+
+                        for (size_t inner_repeat = 0;
+                             inner_repeat < inner_repeats; inner_repeat++) {
+
+                            // send ping to peer
+                            size_t value = counter++;
+                            group.SendTo(peer, value);
+
+                            // wait for ping
+                            group.ReceiveFrom(peer, &value);
+                            assert(value == counter);
+                        }
+                        inner_timer.Stop();
+
+                        double avg =
+                            static_cast<double>(inner_timer.Microseconds()) /
+                            static_cast<double>(inner_repeats);
+
+                        sLOG0 << "bandwidth" << ctx.host_rank() << "->" << peer
+                              << "round" << round
+                              << "iteration" << iteration
+                              << "latency" << avg;
+
+                        latency[ctx.host_rank()][peer].Add(avg);
+                    };
+
+                auto Receiver =
+                    [&]() {
+                        for (size_t inner_repeat = 0;
+                             inner_repeat < inner_repeats; inner_repeat++) {
+
+                            // wait for ping
+                            size_t value;
+                            group.ReceiveFrom(peer, &value);
+                            assert(value == counter);
+
+                            // increment counters
+                            counter++, value++;
+
+                            // send pong
+                            group.SendTo(peer, value);
+                        }
+                    };
+
                 if (ctx.host_rank() < peer) {
-                    common::StatsTimer<true> inner_timer(true);
-
-                    for (size_t inner_repeat = 0;
-                         inner_repeat < inner_repeats; inner_repeat++) {
-
-                        // send ping to peer
-                        size_t value = counter++;
-                        group.SendTo(peer, value);
-
-                        // wait for ping
-                        group.ReceiveFrom(peer, &value);
-                        assert(value == counter);
-                    }
-                    inner_timer.Stop();
-
-                    sLOG1 << "bandwidth" << ctx.host_rank() << "->" << peer
-                          << "round" << round
-                          << "iteration" << iteration
-                          << (static_cast<double>(inner_timer.Microseconds()) /
-                        static_cast<double>(iterations));
+                    Sender();
+                    Receiver();
                 }
                 else if (ctx.host_rank() > peer) {
-                    for (size_t inner_repeat = 0;
-                         inner_repeat < inner_repeats; inner_repeat++) {
-
-                        // wait for ping
-                        size_t value;
-                        group.ReceiveFrom(peer, &value);
-                        assert(value == counter);
-
-                        // increment counters
-                        counter++, value++;
-
-                        // send pong
-                        group.SendTo(peer, value);
-                    }
+                    Receiver();
+                    Sender();
                 }
                 else {
                     // not participating in this round
@@ -122,6 +147,32 @@ void PingPongLatencyTest(api::Context& ctx) {
                  << static_cast<double>(time) / static_cast<double>(counter);
         }
     }
+
+    // reduce matrix to root.
+    group.ReduceToRoot(
+        latency,
+        [](const AggMatrix& a, const AggMatrix& b) {
+            AggMatrix m = a;
+            for (size_t i = 0; i < a.size(); ++i) {
+                for (size_t j = 0; j < a.size(); ++j) {
+                    m[i][j] += b[i][j];
+                }
+            }
+            return m;
+        });
+
+    // print matrix
+    if (ctx.my_rank() == 0) {
+        for (size_t i = 0; i < latency.size(); ++i) {
+            std::ostringstream os2;
+            for (size_t j = 0; j < latency.size(); ++j) {
+                os2 << common::str_snprintf(
+                    64, "%8.1f/%8.3f",
+                    latency[i][j].Avg(), latency[i][j].StdDev());
+            }
+            LOG1 << os2.str();
+        }
+    }
 }
 
 int RunPingPongLatencyTest(int argc, char* argv[]) {
@@ -131,11 +182,13 @@ int RunPingPongLatencyTest(int argc, char* argv[]) {
     clp.AddUInt('R', "outer_repeats", outer_repeats,
                 "Repeat whole experiment a number of times.");
 
-    clp.AddUInt('r', "iterations", iterations,
-                "Repeat 1-factor iterations a number of times.");
+    inner_repeats = 100;
 
-    clp.AddParamUInt("inner_repeats", inner_repeats,
-                     "Repeat inner experiment a number of times.");
+    clp.AddUInt('r', "inner_repeats", inner_repeats,
+                "Repeat inner experiment a number of times.");
+
+    clp.AddParamUInt("iterations", iterations,
+                     "Repeat 1-factor iterations a number of times.");
 
     if (!clp.Process(argc, argv))
         return -1;
