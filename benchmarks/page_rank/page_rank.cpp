@@ -230,11 +230,11 @@ int main(int argc, char* argv[]) {
             static const double s = 0.85;
             static const double f = 0.15;
 
-            using Key = std::size_t;
-            using Node = std::size_t;
-            using Page_Outgoings = std::pair<std::size_t, std::vector<Node> >;
-            using Page_Rank = std::pair<std::size_t, double>;
-            using Page_Link = std::pair<std::size_t, std::size_t>;
+            using Key = size_t;
+            using Node = size_t;
+            using Page_Outgoings = std::pair<size_t, std::vector<Node> >;
+            using Page_Rank = std::pair<size_t, double>;
+            using Page_Link = std::pair<size_t, size_t>;
             using Outgoings_Rank = std::pair<std::vector<Node>, double>;
 
             ////////////////////////////////////////////////////////////////////////////
@@ -245,10 +245,10 @@ int main(int argc, char* argv[]) {
                 [](const std::string& input) {
                     auto split = thrill::common::split(input, " ");
                     // set node ids base to zero
-                    // LOG << (std::size_t)(std::stoi(split[0]) - 1);
-                    // LOG << (std::size_t)(std::stoi(split[1]) - 1);
-                    return std::make_pair((std::size_t)(std::stoi(split[0]) - 1),
-                                          (std::size_t)(std::stoi(split[1]) - 1));
+                    // LOG << (size_t)(std::stoi(split[0]) - 1);
+                    // LOG << (size_t)(std::stoi(split[1]) - 1);
+                    return std::make_pair((size_t)(std::stoi(split[0]) - 1),
+                                          (size_t)(std::stoi(split[1]) - 1));
                 };
 
             auto max_fn = [](const Page_Link& in1, const Page_Link& in2) {

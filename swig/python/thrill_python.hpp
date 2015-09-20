@@ -206,7 +206,7 @@ namespace std {
 template <>
 struct hash<thrill::PyObjectRef>
     : public std::unary_function<thrill::PyObjectRef, size_t>{
-    std::size_t operator () (const thrill::PyObjectRef& ob) const {
+    size_t operator () (const thrill::PyObjectRef& ob) const {
         auto h = PyObject_Hash(ob.get());
         if (h == -1) {
             throw std::exception();
