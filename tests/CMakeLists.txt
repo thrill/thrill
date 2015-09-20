@@ -81,6 +81,7 @@ build_test_group(common/tests
   common/function_traits_test.cpp
   common/future_queue_test.cpp
   common/future_test.cpp
+  common/math_test.cpp
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
   common/thread_barrier_test.cpp
