@@ -10,6 +10,7 @@ thrill_build_prog(hashtable/bench_probing_hashtable)
 thrill_build_prog(data/disk)
 thrill_build_prog(data/file_read_write)
 thrill_build_prog(data/channel)
+thrill_build_prog(generate_data)
 
 if(NOT MSVC)
   # these benchmarks use a non-portable method to initialize the network,
@@ -24,6 +25,7 @@ thrill_build_prog(serialization/bench_serialization)
 
 add_subdirectory(word_count)
 add_subdirectory(page_rank)
+add_subdirectory(groupby)
 add_subdirectory(net)
 
 ################################################################################
