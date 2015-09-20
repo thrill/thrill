@@ -20,7 +20,6 @@
 
 #include <functional>
 #include <string>
-#include <vector>
 
 namespace thrill {
 namespace net {
@@ -152,9 +151,9 @@ public:
 
         static const bool debug = false;
 
-        T localElem = value;
+        T local_value = value;
             
-        SetLocalShared(&localElem);
+        SetLocalShared(&local_value);
 
         barrier_.Await();
 
@@ -162,23 +161,23 @@ public:
         if (thread_id_ == 0) {
 
             // Global Prefix
-            std::vector<T*> allLocals(thread_count_);
+            T** locals = reinterpret_cast<T**>(alloca(thread_count_ * sizeof(T*)));
             
             for (size_t i = 0; i < thread_count_; i++) {
-                allLocals[i] = GetLocalShared<T>(i);
+                locals[i] = GetLocalShared<T>(i);
             }
 
             for (size_t i = 1; i < thread_count_; i++) {
-                *(allLocals[i]) = sum_op(*(allLocals[i - 1]), *(allLocals[i]));
+                *(locals[i]) = sum_op(*(locals[i - 1]), *(locals[i]));
             }
 
             if(debug) {
                 for (size_t i = 0; i < thread_count_; i++) {
-                    LOG << id_ << ", " << i << ", " << inclusive << ": me: " << *(allLocals[i]);
+                    LOG << id_ << ", " << i << ", " << inclusive << ": me: " << *(locals[i]);
                 }
             }
 
-            T prefixSumBase = *(allLocals[thread_count_ - 1]);
+            T prefixSumBase = *(locals[thread_count_ - 1]);
             group_.PrefixSum(prefixSumBase, sum_op, false);
 
             if (id_ == 0) {
@@ -189,26 +188,26 @@ public:
 
             if (inclusive) {
                 for (size_t i = 0; i < thread_count_; i++) {
-                    *(allLocals[i]) = sum_op(prefixSumBase, *(allLocals[i]));
+                    *(locals[i]) = sum_op(prefixSumBase, *(locals[i]));
                 }
             }
             else {
                 for (size_t i = thread_count_ - 1; i > 0; i--) {
-                    *(allLocals[i]) = sum_op(prefixSumBase, *(allLocals[i - 1]));
+                    *(locals[i]) = sum_op(prefixSumBase, *(locals[i - 1]));
                 }
-                *(allLocals[0]) = prefixSumBase;
+                *(locals[0]) = prefixSumBase;
             }
         
             if(debug) {
                 for (size_t i = 0; i < thread_count_; i++) {
-                    LOG << id_ << ", " << i << ", " << inclusive << ": res: " << *(allLocals[i]);
+                    LOG << id_ << ", " << i << ", " << inclusive << ": res: " << *(locals[i]);
                 }
             }
         }
 
         barrier_.Await();
 
-        return localElem;
+        return local_value;
     }
 
     /**
