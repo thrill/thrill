@@ -97,7 +97,8 @@ void PingPongLatencyTest(api::Context& ctx) {
                  << " inner_repeats=" << inner_repeats
                  << " ping_pongs=" << counter
                  << " time[us]=" << time
-                 << " time_per_ping_pong[us]=" << static_cast<double>(time) / counter;
+                 << " time_per_ping_pong[us]="
+                 << static_cast<double>(time) / static_cast<double>(counter);
         }
     }
 }
@@ -154,10 +155,12 @@ void BandwidthTest(api::Context& ctx) {
                     bwtimer.Stop();
 
                     sLOG1 << "bandwidth" << ctx.host_rank() << "->" << peer_id
-                          << ((block_count * block_size) / (bwtimer.Microseconds() * 1e-6)
+                          << ((block_count * block_size) /
+                              (static_cast<double>(bwtimer.Microseconds()) * 1e-6)
                               / 1024.0 / 1024.0)
                           << "MiB/s"
-                          << "time" << (bwtimer.Microseconds() * 1e-6);
+                          << "time"
+                          << (static_cast<double>(bwtimer.Microseconds()) * 1e-6);
                 }
                 else if (ctx.host_rank() > peer_id) {
                     // receive blocks from peer
@@ -192,7 +195,8 @@ void BandwidthTest(api::Context& ctx) {
                  << " inner_repeats=" << inner_repeats
                  << " ping_pongs=" << counter
                  << " time[us]=" << time
-                 << " time_per_ping_pong[us]=" << static_cast<double>(time) / counter;
+                 << " time_per_ping_pong[us]="
+                 << static_cast<double>(time) / static_cast<double>(counter);
         }
     }
 }
