@@ -127,7 +127,7 @@ for hostport in $THRILL_SSHLIST; do
   if [ "$copy" == "1" ]; then
       REMOTENAME="/tmp/$cmdbase.$hostport.$$"
       # copy the program to the remote, and execute it at the remote end.
-      ( scp -o BatchMode=yes -o StrictHostKeyChecking=no \
+      ( scp -o BatchMode=yes -o StrictHostKeyChecking=no -o Compression=yes \
             "$cmd" "$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
             $host \

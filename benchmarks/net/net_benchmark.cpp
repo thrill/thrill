@@ -32,6 +32,8 @@ using namespace thrill; // NOLINT
 /******************************************************************************/
 //! perform a 1-factor ping pong latency test
 
+unsigned int iterations = 1;
+
 void PingPongLatencyTest(api::Context& ctx) {
 
     // only work with first thread on this host.
@@ -48,36 +50,52 @@ void PingPongLatencyTest(api::Context& ctx) {
         common::StatsTimer<true> timer;
 
         timer.Start();
-        for (size_t inner_repeat = 0;
-             inner_repeat < inner_repeats; inner_repeat++) {
+        for (size_t iteration = 0; iteration < iterations; iteration++) {
             // perform 1-factor ping pongs (without barriers)
-            for (size_t iter = 0; iter < ctx.num_hosts(); ++iter) {
+            for (size_t round = 0; round < group.OneFactorSize(); ++round) {
 
-                size_t peer = group.OneFactorPeer(iter);
+                size_t peer = group.OneFactorPeer(round);
 
-                sLOG0 << "round iter" << iter
+                sLOG1 << "round" << round
                       << "me" << ctx.host_rank() << "peer" << peer;
 
                 if (ctx.host_rank() < peer) {
-                    // send ping to peer
-                    size_t value = counter++;
-                    group.SendTo(peer, value);
+                    common::StatsTimer<true> inner_timer(true);
 
-                    // wait for ping
-                    group.ReceiveFrom(peer, &value);
-                    assert(value == counter);
+                    for (size_t inner_repeat = 0;
+                         inner_repeat < inner_repeats; inner_repeat++) {
+
+                        // send ping to peer
+                        size_t value = counter++;
+                        group.SendTo(peer, value);
+
+                        // wait for ping
+                        group.ReceiveFrom(peer, &value);
+                        assert(value == counter);
+                    }
+                    inner_timer.Stop();
+
+                    sLOG1 << "bandwidth" << ctx.host_rank() << "->" << peer
+                          << "round" << round
+                          << "iteration" << iteration
+                          << (static_cast<double>(inner_timer.Microseconds()) /
+                        static_cast<double>(iterations));
                 }
                 else if (ctx.host_rank() > peer) {
-                    // wait for ping
-                    size_t value;
-                    group.ReceiveFrom(peer, &value);
-                    assert(value == counter);
+                    for (size_t inner_repeat = 0;
+                         inner_repeat < inner_repeats; inner_repeat++) {
 
-                    // increment counters
-                    counter++, value++;
+                        // wait for ping
+                        size_t value;
+                        group.ReceiveFrom(peer, &value);
+                        assert(value == counter);
 
-                    // send pong
-                    group.SendTo(peer, value);
+                        // increment counters
+                        counter++, value++;
+
+                        // send pong
+                        group.SendTo(peer, value);
+                    }
                 }
                 else {
                     // not participating in this round
@@ -96,6 +114,7 @@ void PingPongLatencyTest(api::Context& ctx) {
                  << " benchmark=" << benchmark
                  << " hosts=" << ctx.num_hosts()
                  << " outer_repeat=" << outer_repeat
+                 << " iterations=" << iterations
                  << " inner_repeats=" << inner_repeats
                  << " ping_pongs=" << counter
                  << " time[us]=" << time
@@ -111,6 +130,9 @@ int RunPingPongLatencyTest(int argc, char* argv[]) {
 
     clp.AddUInt('R', "outer_repeats", outer_repeats,
                 "Repeat whole experiment a number of times.");
+
+    clp.AddUInt('r', "iterations", iterations,
+                "Repeat 1-factor iterations a number of times.");
 
     clp.AddParamUInt("inner_repeats", inner_repeats,
                      "Repeat inner experiment a number of times.");
@@ -152,7 +174,7 @@ void BandwidthTest(api::Context& ctx) {
         for (size_t inner_repeat = 0;
              inner_repeat < inner_repeats; inner_repeat++) {
             // perform 1-factor ping pongs (without barriers)
-            for (size_t iter = 0; iter < ctx.num_hosts(); ++iter) {
+            for (size_t iter = 0; iter < group.OneFactorSize(); ++iter) {
 
                 size_t peer_id = group.OneFactorPeer(iter);
                 net::Connection& peer = group.connection(peer_id);
