@@ -29,7 +29,9 @@ unsigned int inner_repeats = 1;
 
 using namespace thrill; // NOLINT
 
+/******************************************************************************/
 //! perform a 1-factor ping pong latency test
+
 void PingPongLatencyTest(api::Context& ctx) {
 
     // only work with first thread on this host.
@@ -103,7 +105,29 @@ void PingPongLatencyTest(api::Context& ctx) {
     }
 }
 
+int RunPingPongLatencyTest(int argc, char* argv[]) {
+
+    common::CmdlineParser clp;
+
+    clp.AddUInt('R', "outer_repeats", outer_repeats,
+                "Repeat whole experiment a number of times.");
+
+    clp.AddParamUInt("inner_repeats", inner_repeats,
+                     "Repeat inner experiment a number of times.");
+
+    if (!clp.Process(argc, argv))
+        return -1;
+
+    return api::Run(PingPongLatencyTest);
+}
+
+/******************************************************************************/
 //! perform a 1-factor bandwidth test
+
+uint64_t bandwidth_size = 1024 * 1024 * 1024llu;
+
+size_t block_size = 2 * 1024 * 1024;
+
 void BandwidthTest(api::Context& ctx) {
 
     // only work with first thread on this host.
@@ -115,8 +139,7 @@ void BandwidthTest(api::Context& ctx) {
     size_t counter = 0;
 
     // data block to send or receive
-    static const size_t block_count = 1024;
-    static const size_t block_size = 16 * 1024 * 1024;
+    size_t block_count = bandwidth_size / block_size;
     std::vector<size_t> data_block(block_size / sizeof(size_t));
     std::fill(data_block.begin(), data_block.end(), 42u);
 
@@ -201,24 +224,9 @@ void BandwidthTest(api::Context& ctx) {
     }
 }
 
-//! Network benchmarking.
-void net_test(api::Context& ctx) {
-    if (benchmark == "pingpong") {
-        PingPongLatencyTest(ctx);
-    }
-    else if (benchmark == "bandwidth") {
-        BandwidthTest(ctx);
-    }
-    else {
-        die("Unknown benchmark " + benchmark);
-    }
-}
-
-int main(int argc, char** argv) {
+int RunBandwidthTest(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
-
-    clp.SetVerboseProcess(false);
 
     clp.AddUInt('r', "inner_repeats", inner_repeats,
                 "Repeat inner experiment a number of times.");
@@ -226,18 +234,43 @@ int main(int argc, char** argv) {
     clp.AddUInt('R', "outer_repeats", outer_repeats,
                 "Repeat whole experiment a number of times.");
 
-    clp.AddParamString("benchmark", benchmark,
-                       "name of benchmark to run:\n"
-                       "  pingpong - 1-factor latency\n"
-                       "  bandwidth - 1-factor full bandwidth");
+    clp.AddBytes('B', "block_size", block_size,
+                 "Block size used to transfered data (default: 2 MiB).");
 
-    if (!clp.Process(argc, argv)) {
+    clp.AddParamBytes("size", bandwidth_size,
+                      "Amount of data transfered between peers (example: 1 GiB).");
+
+    if (!clp.Process(argc, argv))
         return -1;
+
+    return api::Run(BandwidthTest);
+}
+
+/******************************************************************************/
+
+int main(int argc, char** argv) {
+
+    if (argc <= 1) {
+        std::cout
+            << "Usage: " << argv[0] << " <benchmark>" << std::endl
+            << std::endl
+            << "    ping_pong  - 1-factor latency" << std::endl
+            << "    bandwidth  - 1-factor bandwidth" << std::endl
+            << std::endl;
+        return 0;
     }
 
-    clp.PrintResult();
+    benchmark = argv[1];
 
-    return api::Run(net_test);
+    if (benchmark == "ping_pong") {
+        return RunPingPongLatencyTest(argc - 1, argv + 1);
+    }
+    else if (benchmark == "bandwidth") {
+        return RunBandwidthTest(argc - 1, argv + 1);
+    }
+    else {
+        return -1;
+    }
 }
 
 /******************************************************************************/
