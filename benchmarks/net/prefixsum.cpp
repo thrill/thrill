@@ -27,16 +27,6 @@
 unsigned int iterations = 200;
 unsigned int repeats = 1;
 
-void PrintSQLPlotTool(std::string datatype, size_t workers, int iterations, int time) {
-    static const bool debug = true;
-    LOG << "RESULT"
-        << " datatype=" << datatype
-        << " workers=" << workers
-        << " iterations=" << iterations
-        << " time[μs]=" << time
-        << " time_per_op[μs]=" << static_cast<double>(time) / iterations;
-}
-
 //! Network benchmarking.
 void net_test(thrill::api::Context& ctx) {
     auto& flow = ctx.flow_control_channel();
@@ -57,8 +47,14 @@ void net_test(thrill::api::Context& ctx) {
         // calculate maximum time.
         time = flow.AllReduce(time, thrill::common::maximum<size_t>());
 
-        if (ctx.my_rank() == 0)
-            PrintSQLPlotTool("size_t", n, iterations, time);
+        if (ctx.my_rank() == 0) {
+            LOG1 << "RESULT"
+                 << " datatype=" << "size_t"
+                 << " workers=" << n
+                 << " iterations=" << iterations
+                 << " time[μs]=" << time
+                 << " time_per_op[μs]=" << static_cast<double>(time) / iterations;
+        }
     }
 }
 

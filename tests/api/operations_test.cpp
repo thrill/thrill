@@ -174,7 +174,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
             std::function<double(size_t)> double_elements =
                 [](size_t in) {
-                    return static_cast<double>(2.0 * in);
+                    return 2.0 * static_cast<double>(in);
                 };
 
             auto doubled = integers.Map(double_elements);
