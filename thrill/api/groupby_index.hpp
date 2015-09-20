@@ -167,7 +167,7 @@ public:
                     ++curr_index;
                 }
             }
-            while (curr_index < key_range_end_ - 1) {
+            while (curr_index < key_range_end_) {
                 // push neutral element as result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
                     func(neutral_element_);
@@ -225,7 +225,7 @@ private:
                 }
                 ++curr_index;
             }
-            while (curr_index < key_range_end_ - 1) {
+            while (curr_index < key_range_end_) {
                 // push neutral element as result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
                     func(neutral_element_);
