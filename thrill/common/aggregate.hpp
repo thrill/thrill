@@ -13,6 +13,7 @@
 #define THRILL_COMMON_AGGREGATE_HEADER
 
 #include <algorithm>
+#include <cmath>
 
 namespace thrill {
 namespace common {
@@ -72,7 +73,7 @@ public:
     //! return the standard deviation of all values aggregated
     double StandardDeviation() const {
         assert(count_ > 0);
-        return sqrt(
+        return std::sqrt(
             (static_cast<double>(total_squares_)
              - (static_cast<double>(total_) * static_cast<double>(total_)
                 / static_cast<double>(count_)))
