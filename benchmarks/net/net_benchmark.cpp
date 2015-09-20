@@ -30,6 +30,20 @@ unsigned int inner_repeats = 1;
 
 using namespace thrill; // NOLINT
 
+// matrix of measured latencies
+using AggDouble = common::Aggregate<double>;
+using AggMatrix = std::vector<std::vector<AggDouble> >;
+
+AggMatrix AddAggMatrix(const AggMatrix& a, const AggMatrix& b) {
+    AggMatrix m = a;
+    for (size_t i = 0; i < a.size(); ++i) {
+        for (size_t j = 0; j < a.size(); ++j) {
+            m[i][j] += b[i][j];
+        }
+    }
+    return m;
+}
+
 /******************************************************************************/
 //! perform a 1-factor ping pong latency test
 
@@ -44,10 +58,6 @@ void PingPongLatencyTest(api::Context& ctx) {
 
     // a counter to count and match ping pongs.
     size_t counter = 0;
-
-    // matrix of measured latencies
-    using AggDouble = common::Aggregate<double>;
-    using AggMatrix = std::vector<std::vector<AggDouble> >;
 
     AggMatrix latency(
         group.num_hosts(), std::vector<AggDouble>(group.num_hosts()));
@@ -149,17 +159,7 @@ void PingPongLatencyTest(api::Context& ctx) {
     }
 
     // reduce matrix to root.
-    group.ReduceToRoot(
-        latency,
-        [](const AggMatrix& a, const AggMatrix& b) {
-            AggMatrix m = a;
-            for (size_t i = 0; i < a.size(); ++i) {
-                for (size_t j = 0; j < a.size(); ++j) {
-                    m[i][j] += b[i][j];
-                }
-            }
-            return m;
-        });
+    group.ReduceToRoot(latency, AddAggMatrix);
 
     // print matrix
     if (ctx.my_rank() == 0) {
@@ -213,6 +213,9 @@ void BandwidthTest(api::Context& ctx) {
     // a counter to count and match messages
     size_t counter = 0;
 
+    AggMatrix bandwidth(
+        group.num_hosts(), std::vector<AggDouble>(group.num_hosts()));
+
     // data block to send or receive
     size_t block_count = bandwidth_size / block_size;
     std::vector<size_t> data_block(block_size / sizeof(size_t));
@@ -235,43 +238,59 @@ void BandwidthTest(api::Context& ctx) {
                 sLOG0 << "round iter" << iter
                       << "me" << ctx.host_rank() << "peer" << peer;
 
+                auto Sender =
+                    [&]() {
+                        common::StatsTimer<true> inner_timer(true);
+                        // send blocks to peer
+                        for (size_t i = 0; i != block_count; ++i) {
+                            data_block.front() = counter;
+                            data_block.back() = counter;
+                            ++counter;
+                            peer.SyncSend(data_block.data(), block_size);
+                        }
+
+                        // wait for response pong
+                        size_t value;
+                        peer.Receive(&value);
+                        assert(value == counter);
+
+                        inner_timer.Stop();
+
+                        double bw =
+                            static_cast<double>(block_count * block_size) /
+                            static_cast<double>(inner_timer.Microseconds()) *
+                            1e6 / 1024.0 / 1024.0;
+
+                        sLOG1 << "bandwidth" << ctx.host_rank() << "->" << peer_id
+                              << bw << "MiB/s"
+                              << "time"
+                              << (static_cast<double>(inner_timer.Microseconds()) * 1e-6);
+
+                        bandwidth[ctx.host_rank()][peer_id].Add(bw);
+                    };
+
+                auto Receiver =
+                    [&]() {
+                        // receive blocks from peer
+                        for (size_t i = 0; i != block_count; ++i) {
+                            peer.SyncRecv(data_block.data(), block_size);
+                            die_unequal(data_block.front(), counter);
+                            die_unequal(data_block.back(), counter);
+
+                            ++counter;
+                        }
+
+                        // send ping
+                        peer.Send(counter);
+                    };
+
                 if (ctx.host_rank() < peer_id) {
-                    common::StatsTimer<true> bwtimer(true);
-                    // send blocks to peer
-                    for (size_t i = 0; i != block_count; ++i) {
-                        data_block.front() = counter;
-                        data_block.back() = counter;
-                        ++counter;
-                        peer.SyncSend(data_block.data(), block_size);
-                    }
-
-                    // wait for response pong
-                    size_t value;
-                    peer.Receive(&value);
-                    assert(value == counter);
-
-                    bwtimer.Stop();
-
-                    sLOG1 << "bandwidth" << ctx.host_rank() << "->" << peer_id
-                          << ((block_count * block_size) /
-                        (static_cast<double>(bwtimer.Microseconds()) * 1e-6)
-                        / 1024.0 / 1024.0)
-                          << "MiB/s"
-                          << "time"
-                          << (static_cast<double>(bwtimer.Microseconds()) * 1e-6);
+                    Sender();
+                    Receiver();
                 }
                 else if (ctx.host_rank() > peer_id) {
-                    // receive blocks from peer
-                    for (size_t i = 0; i != block_count; ++i) {
-                        peer.SyncRecv(data_block.data(), block_size);
-                        die_unequal(data_block.front(), counter);
-                        die_unequal(data_block.back(), counter);
-
-                        ++counter;
-                    }
-
-                    // send ping
-                    peer.Send(counter);
+                    Receiver();
+                    Sender();
                 }
                 else {
                     // not participating in this round
@@ -295,6 +314,22 @@ void BandwidthTest(api::Context& ctx) {
                  << " time[us]=" << time
                  << " time_per_ping_pong[us]="
                  << static_cast<double>(time) / static_cast<double>(counter);
+        }
+    }
+
+    // reduce matrix to root.
+    group.ReduceToRoot(bandwidth, AddAggMatrix);
+
+    // print matrix
+    if (ctx.my_rank() == 0) {
+        for (size_t i = 0; i < bandwidth.size(); ++i) {
+            std::ostringstream os2;
+            for (size_t j = 0; j < bandwidth.size(); ++j) {
+                os2 << common::str_snprintf(
+                    64, "%8.1f/%8.3f",
+                    bandwidth[i][j].Avg(), bandwidth[i][j].StdDev());
+            }
+            LOG1 << os2.str();
         }
     }
 }
