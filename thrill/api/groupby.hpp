@@ -22,6 +22,7 @@
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/multiway_merge.hpp>
 
+#include <algorithm>
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -41,7 +42,7 @@ class GroupByNode : public DOpNode<ValueType>
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
     using ValueIn = typename std::decay<typename common::FunctionTraits<KeyExtractor>
-                    ::template arg<0>>::type;
+                                        ::template arg<0> >::type;
 
     using File = data::File;
     using Reader = typename File::Reader;
@@ -49,7 +50,7 @@ class GroupByNode : public DOpNode<ValueType>
 
     struct ValueComparator
     {
-        ValueComparator(const GroupByNode& info) : info_(info) { }
+        explicit ValueComparator(const GroupByNode& info) : info_(info) { }
         const GroupByNode& info_;
 
         bool operator () (const ValueIn& i,
@@ -82,11 +83,7 @@ public:
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
-          hash_function_(hash_function),
-          channel_(parent.ctx().GetNewChannel()),
-          emitter_(channel_->OpenWriters()),
-          sorted_elems_(context_.GetFile()),
-          totalsize_(0)
+          hash_function_(hash_function)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -96,9 +93,9 @@ public:
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
-        channel_->OnClose([this]() {
-                              this->WriteChannelStats(this->channel_);
-                          });
+        stream_->OnClose([this]() {
+                             this->WriteStreamStats(this->stream_);
+                         });
     }
 
     //! Virtual destructor for a GroupByNode.
@@ -119,13 +116,13 @@ public:
         // if there's only one run, call user funcs
         if (num_runs == 1) {
             RunUserFunc(files_[0], consume);
-        } // otherwise sort all runs using multiway merge
+        }       // otherwise sort all runs using multiway merge
         else {
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
             for (size_t t = 0; t < num_runs; ++t) {
-                std::shared_ptr<Reader> reader = std::make_shared<Reader>
-                    (files_[t].GetReader(consume));
+                std::shared_ptr<Reader> reader = std::make_shared<Reader>(
+                    files_[t].GetReader(consume));
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
@@ -139,12 +136,12 @@ public:
 
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
-                auto user_iterator = GroupByMultiwayMergeIterator
-                    <ValueIn, KeyExtractor, ValueComparator>(puller, key_extractor_);
+                auto user_iterator = GroupByMultiwayMergeIterator<
+                    ValueIn, KeyExtractor, ValueComparator>(puller, key_extractor_);
                 while (user_iterator.HasNextForReal()) {
                     // call user function
-                    const ValueOut res = groupby_function_(user_iterator,
-                        user_iterator.GetNextKey());
+                    const ValueOut res = groupby_function_(
+                        user_iterator, user_iterator.GetNextKey());
                     // push result to callback functions
                     for (auto func : DIANode<ValueType>::callbacks_) {
                         // LOG << "grouped to value " << res;
@@ -170,11 +167,11 @@ private:
     const GroupFunction& groupby_function_;
     const HashFunction& hash_function_;
 
-    data::ChannelPtr channel_;
-    std::vector<data::Channel::Writer> emitter_;
+    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+    std::vector<data::Stream::Writer> emitter_ { stream_->OpenWriters() };
     std::vector<data::File> files_;
-    data::File sorted_elems_;
-    size_t totalsize_;
+    data::File sorted_elems_ { context_.GetFile() };
+    size_t totalsize_ = 0;
 
     void RunUserFunc(File& f, bool consume) {
         auto r = f.GetReader(consume);
@@ -184,7 +181,7 @@ private:
             while (user_iterator.HasNextForReal()) {
                 // call user function
                 const ValueOut res = groupby_function_(user_iterator,
-                    user_iterator.GetNextKey());
+                                                       user_iterator.GetNextKey());
                 // push result to callback functions
                 for (auto func : DIANode<ValueType>::callbacks_) {
                     // LOG << "grouped to value " << res;
@@ -193,7 +190,6 @@ private:
             }
         }
     }
-
 
     /*
      * Send all elements to their designated PEs
@@ -239,7 +235,7 @@ private:
         }
 
         // get incoming elements
-        auto reader = channel_->OpenConcatReader(true /* consume */);
+        auto reader = stream_->OpenCatReader(true /* consume */);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
@@ -251,6 +247,8 @@ private:
         }
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
+
+        stream_->Close();
     }
 };
 

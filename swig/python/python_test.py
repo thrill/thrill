@@ -41,7 +41,7 @@ class TryThread(threading.Thread):
 
 def run_thrill_threads(num_threads, thread_func):
     # construct a local context mock network
-    ctxs = thrill.PyContext.ConstructLocalMock(num_threads, 1)
+    ctxs = thrill.PyContext.ConstructLoopback(num_threads, 1)
 
     # but then start python threads for each context
     threads = []

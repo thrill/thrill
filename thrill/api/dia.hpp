@@ -510,10 +510,9 @@ public:
               typename KeyExtractor,
               typename GroupByFunction,
               typename HashFunction =
-                std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+                  std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
     auto GroupBy(const KeyExtractor &key_extractor,
                  const GroupByFunction &reduce_function) const;
-
 
     /*!
      * GroupBy is a DOp, which groups elements of the DIARef by its key.
@@ -548,10 +547,10 @@ public:
               typename KeyExtractor,
               typename GroupByFunction,
               typename HashFunction =
-                std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+                  std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
     auto GroupByIndex(const KeyExtractor &key_extractor,
                       const GroupByFunction &reduce_function,
-                      const std::size_t number_keys,
+                      const size_t size,
                       const ValueOut& neutral_element = ValueOut()) const;
 
     /*!
@@ -603,7 +602,7 @@ public:
      * first element is smaller than second. False otherwise.
      */
     template <typename CompareFunction = std::less<ValueType> >
-    auto Sort(const CompareFunction& compare_function = std::less<ValueType>()) const;
+    auto Sort(const CompareFunction& compare_function = CompareFunction()) const;
 
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
@@ -614,8 +613,8 @@ public:
      *
      * \param initial_value Initial value of the sum.
      */
-    template <typename SumFunction>
-    auto Sum(const SumFunction& sum_function = std::plus<ValueType>(),
+    template <typename SumFunction = std::plus<ValueType> >
+    auto Sum(const SumFunction& sum_function = SumFunction(),
              const ValueType& initial_value = ValueType()) const;
 
     /*!

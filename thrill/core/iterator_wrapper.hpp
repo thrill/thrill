@@ -48,7 +48,8 @@ protected:
     std::shared_ptr<Writer> writer_;
 
 public:
-    FileOutputIteratorWrapper(std::shared_ptr<Writer> writer) : writer_(writer) { }
+    explicit FileOutputIteratorWrapper(const std::shared_ptr<Writer>& writer)
+        : writer_(writer) { }
 
     void operator () (const ArrayItem& a) const {
         (*writer_)(a);
@@ -86,7 +87,7 @@ class FileIteratorWrapper : public std::iterator<std::random_access_iterator_tag
 protected:
     File* file_;
     std::shared_ptr<Reader> reader_;
-    std::size_t pos_;
+    size_t pos_;
 
     std::shared_ptr<IterStats<ArrayItem> > stats_;
 
@@ -130,7 +131,7 @@ public:
 
     FileIteratorWrapper() : file_(), pos_(0) { }
 
-    FileIteratorWrapper(File* file, std::shared_ptr<Reader> reader, std::size_t pos, bool valid = true)
+    FileIteratorWrapper(File* file, std::shared_ptr<Reader> reader, size_t pos, bool valid = true)
         : file_(file),
           reader_(reader),
           pos_(pos),
@@ -183,7 +184,7 @@ public:
     //     return *this;
     // }
 
-    FileIteratorWrapper operator ++ (int) {
+    FileIteratorWrapper operator ++ (int) { // NOLINT
         auto r = FileIteratorWrapper(file_, reader_, ++pos_, stats_.is_valid_);
         LOG << "    Operator++ (postfix)";
         LOG << "        " << std::left << std::setw(7) << "pos: " << r.pos_;
@@ -334,10 +335,10 @@ public:
     VectorIteratorWrapper& operator -- ()
     { --m_pos; return *this; }
 
-    VectorIteratorWrapper operator ++ (int)
+    VectorIteratorWrapper operator ++ (int) // NOLINT
     { return VectorIteratorWrapper(m_array, m_pos++); }
 
-    VectorIteratorWrapper operator -- (int)
+    VectorIteratorWrapper operator -- (int) // NOLINT
     { return VectorIteratorWrapper(m_array, m_pos--); }
 
     VectorIteratorWrapper operator + (const difference_type& n) const
@@ -386,8 +387,8 @@ public:
     { return (m_pos - r2.m_pos); }
 };
 
-} //end namespace core
-} //end namespace thrill
+} // namespace core
+} // namespace thrill
 
 #endif // !THRILL_CORE_ITERATOR_WRAPPER_HEADER
 

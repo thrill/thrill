@@ -206,7 +206,7 @@ namespace std {
 template <>
 struct hash<thrill::PyObjectRef>
     : public std::unary_function<thrill::PyObjectRef, size_t>{
-    std::size_t operator () (const thrill::PyObjectRef& ob) const {
+    size_t operator () (const thrill::PyObjectRef& ob) const {
         auto h = PyObject_Hash(ob.get());
         if (h == -1) {
             throw std::exception();
@@ -374,9 +374,9 @@ public:
     }
 
     static std::vector<std::shared_ptr<PyContext> >
-    ConstructLocalMock(size_t host_count, size_t workers_per_host) {
+    ConstructLoopback(size_t host_count, size_t workers_per_host) {
         std::vector<std::unique_ptr<HostContext> > host_contexts
-            = HostContext::ConstructLocalMock(host_count, workers_per_host);
+            = HostContext::ConstructLoopback(host_count, workers_per_host);
 
         std::vector<std::shared_ptr<PyContext> > contexts;
 
