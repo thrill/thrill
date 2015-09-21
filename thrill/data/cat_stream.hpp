@@ -103,6 +103,10 @@ public:
     //! move-constructor: default
     CatStream(CatStream&&) = default;
 
+    ~CatStream() final {
+        Close();
+    }
+
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<Writer>
@@ -164,6 +168,9 @@ public:
 
     //! shuts the stream down.
     void Close() final {
+        if (is_closed_) return;
+        is_closed_ = true;
+
         // close all sinks, this should emit sentinel to all other worker.
         for (size_t i = 0; i != sinks_.size(); ++i) {
             if (sinks_[i].closed()) continue;
@@ -200,6 +207,8 @@ public:
 
 protected:
     static const bool debug = false;
+
+    bool is_closed_ = false;
 
     //! StreamSink objects are receivers of Blocks outbound for other worker.
     std::vector<StreamSink> sinks_;

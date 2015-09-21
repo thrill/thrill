@@ -297,6 +297,8 @@ private:
         totalsize_ += incoming.size();
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
+
+        stream_->Close();
     }
 };
 
@@ -328,19 +330,14 @@ auto DIARef<ValueType, Stack>::GroupByIndex(
               = GroupByIndexNode<DOpResult, DIARef, KeyExtractor,
                                  GroupFunction, HashFunction>;
     auto shared_node
-        = std::make_shared<GroupByResultNode>(*this,
-                                              key_extractor,
-                                              groupby_function,
-                                              number_keys,
-                                              neutral_element,
-                                              stats_node);
+        = std::make_shared<GroupByResultNode>(
+            *this, key_extractor, groupby_function,
+            number_keys, neutral_element, stats_node);
 
     auto groupby_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(groupby_stack)>(
-        shared_node,
-        groupby_stack,
-        { stats_node });
+        shared_node, groupby_stack, { stats_node });
 }
 
 } // namespace api

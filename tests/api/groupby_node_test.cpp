@@ -37,9 +37,7 @@ TEST(GroupByNode, CompileAndSum) {
 
             auto sizets = Generate(
                 ctx,
-                [](const size_t& index) {
-                    return index;
-                },
+                [](const size_t& index) { return index; },
                 n);
 
             auto modulo_keyfn = [](size_t in) { return (in % m); };
