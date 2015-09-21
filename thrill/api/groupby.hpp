@@ -83,11 +83,7 @@ public:
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
-          hash_function_(hash_function),
-          stream_(parent.ctx().GetNewCatStream()),
-          emitter_(stream_->OpenWriters()),
-          sorted_elems_(context_.GetFile()),
-          totalsize_(0)
+          hash_function_(hash_function)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -140,12 +136,12 @@ public:
 
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
-                auto user_iterator = GroupByMultiwayMergeIterator
-                                     <ValueIn, KeyExtractor, ValueComparator>(puller, key_extractor_);
+                auto user_iterator = GroupByMultiwayMergeIterator<
+                    ValueIn, KeyExtractor, ValueComparator>(puller, key_extractor_);
                 while (user_iterator.HasNextForReal()) {
                     // call user function
-                    const ValueOut res = groupby_function_(user_iterator,
-                                                           user_iterator.GetNextKey());
+                    const ValueOut res = groupby_function_(
+                        user_iterator, user_iterator.GetNextKey());
                     // push result to callback functions
                     for (auto func : DIANode<ValueType>::callbacks_) {
                         // LOG << "grouped to value " << res;
@@ -171,11 +167,11 @@ private:
     const GroupFunction& groupby_function_;
     const HashFunction& hash_function_;
 
-    data::CatStreamPtr stream_;
-    std::vector<data::Stream::Writer> emitter_;
+    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+    std::vector<data::Stream::Writer> emitter_ { stream_->OpenWriters() };
     std::vector<data::File> files_;
-    data::File sorted_elems_;
-    size_t totalsize_;
+    data::File sorted_elems_ { context_.GetFile() };
+    size_t totalsize_ = 0;
 
     void RunUserFunc(File& f, bool consume) {
         auto r = f.GetReader(consume);
@@ -251,6 +247,8 @@ private:
         }
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
+
+        stream_->Close();
     }
 };
 
