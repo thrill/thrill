@@ -150,10 +150,10 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
                 },
                 5);
 
-            static size_t result_size = 6;
+            static size_t result_size = 5;
 
             auto key = [](size_t in) {
-                           return in % 6;
+                           return in;
                        };
 
             auto add_function =
