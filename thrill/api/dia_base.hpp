@@ -195,14 +195,14 @@ public:
         if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms", LogType::EXECUTION);
     }
 
-    inline void WriteChannelStats(const data::ChannelPtr& c) {
+    inline void WriteStreamStats(const data::StreamPtr& c) {
         if (common::g_enable_stats) {
             assert(!c->rx_lifetime_.running());
             assert(!c->tx_lifetime_.running());
             assert(!c->rx_timespan_.running());
             assert(!c->tx_timespan_.running());
             stats_node_->AddStatsMsg(
-                "channel " + std::to_string(c->id()) + "; " +
+                "stream " + std::to_string(c->id()) + "; " +
                 "incoming_bytes " + std::to_string(c->incoming_bytes_.value()) + "; " +
                 "incoming_blocks " + std::to_string(c->incoming_blocks_.value()) + "; " +
                 "outgoing_bytes " + std::to_string(c->outgoing_bytes_.value()) + "; " +

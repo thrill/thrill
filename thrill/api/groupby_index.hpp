@@ -92,8 +92,8 @@ public:
                                                                   context_.num_workers(), context_.my_rank())), number_keys_)),
           neutral_element_(neutral_element),
           hash_function_(hash_function),
-          channel_(parent.ctx().GetNewChannel()),
-          emitter_(channel_->OpenWriters())
+          stream_(parent.ctx().GetNewCatStream()),
+          emitter_(stream_->OpenWriters())
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -103,9 +103,9 @@ public:
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
-        channel_->OnClose([this]() {
-                              this->WriteChannelStats(this->channel_);
-                          });
+        stream_->OnClose([this]() {
+                             this->WriteStreamStats(this->stream_);
+                         });
     }
 
     //! Virtual destructor for a GroupByIndexNode.
@@ -199,8 +199,8 @@ private:
     HashFunction hash_function_;
     size_t totalsize_ = 0;
 
-    data::ChannelPtr channel_;
-    std::vector<data::Channel::Writer> emitter_;
+    data::CatStreamPtr stream_;
+    std::vector<data::CatStream::Writer> emitter_;
     std::vector<data::File> files_;
 
     void RunUserFunc(File& f, bool consume) {
@@ -282,7 +282,7 @@ private:
         }
 
         // get incoming elements
-        auto reader = channel_->OpenConcatReader(consume);
+        auto reader = stream_->OpenCatReader(consume);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
