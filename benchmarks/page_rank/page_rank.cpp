@@ -202,6 +202,8 @@ using namespace thrill; // NOLINT
 //     WriteLines("pagerank.out");
 // }
 
+static const bool debug = false;
+
 int main(int argc, char* argv[]) {
     common::CmdlineParser clp;
 
@@ -227,7 +229,6 @@ int main(int argc, char* argv[]) {
     auto start_func =
         [&input, &output, &iter](api::Context& ctx) {
             thrill::common::StatsTimer<true> timer(false);
-            static const bool debug = false;
             static const double s = 0.85;
             static const double f = 0.15;
 
@@ -252,13 +253,14 @@ int main(int argc, char* argv[]) {
             // ...
 
             auto in = ReadLines(ctx, input);
+
             auto input = in.Map(
                 [](const std::string& input) {
                     auto split = thrill::common::split(input, " ");
-                    LOG << "input "
-                        << (std::size_t)(std::stoi(split[0]) - 1)
-                        << " "
-                        << (std::size_t)(std::stoi(split[1]) - 1);
+                    LOG0 << "input "
+                         << (std::stoi(split[0]) - 1)
+                         << " "
+                         << (std::stoi(split[1]) - 1);
                     // set base of page_id to 0
                     return std::make_pair((size_t)(std::stoi(split[0]) - 1),
                                           (size_t)(std::stoi(split[1]) - 1));
@@ -299,7 +301,7 @@ int main(int argc, char* argv[]) {
                     // LOG << "links " << s << "}";
 
                     return all;
-                }, number_nodes).Keep();
+                }, number_nodes).Cache();
 
             // initialize all ranks to 1.0
             //
@@ -385,7 +387,7 @@ int main(int argc, char* argv[]) {
                     }, number_nodes)
                     .Map(
                     [](const Page_Rank p) {
-                        LOG << "ranks2 in " << p;
+                        LOG << "ranks2 in " << p.first << "-" << p.second;
                         if (std::fabs(p.second) <= 1E-5) {
                             LOG << "ranks2 " << 0.0;
                             return (Rank)0.0;
