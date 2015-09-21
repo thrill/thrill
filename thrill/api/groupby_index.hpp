@@ -119,6 +119,8 @@ public:
     }
 
     void PushData(bool consume) final {
+        sLOG1 << "GroupByIndexNode::PushData()";
+
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
         const size_t num_runs = files_.size();
         // if there's only one run, store it
@@ -270,7 +272,6 @@ private:
     auto MainOp() {
         LOG << "running group by main op";
 
-        const bool consume = true;
         const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
@@ -281,7 +282,7 @@ private:
         }
 
         // get incoming elements
-        auto reader = stream_->OpenCatReader(consume);
+        auto reader = stream_->OpenCatReader(true /* consume */);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
