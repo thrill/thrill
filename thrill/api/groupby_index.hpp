@@ -331,8 +331,8 @@ auto DIARef<ValueType, Stack>::GroupByIndex(
                                  GroupFunction, HashFunction>;
     auto shared_node
         = std::make_shared<GroupByResultNode>(
-            *this, key_extractor, groupby_function,
-            number_keys, neutral_element, stats_node);
+        *this, key_extractor, groupby_function,
+        number_keys, neutral_element, stats_node);
 
     auto groupby_stack = shared_node->ProduceStack();
 

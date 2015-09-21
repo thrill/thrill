@@ -43,11 +43,11 @@ std::string FillFilePattern(const std::string& pathbase,
 // '.[gz/bz2,xz,lzo]')
 static inline
 bool IsCompressed(const std::string& path) {
-    return common::ends_with(path, ".gz") ||
-           common::ends_with(path, ".bz2") ||
-           common::ends_with(path, ".xz") ||
-           common::ends_with(path, ".lzo") ||
-           common::ends_with(path, ".lz4");
+    return common::EndsWith(path, ".gz") ||
+           common::EndsWith(path, ".bz2") ||
+           common::EndsWith(path, ".xz") ||
+           common::EndsWith(path, ".lzo") ||
+           common::EndsWith(path, ".lz4");
 }
 
 using FileSizePair = std::pair<std::string, size_t>;

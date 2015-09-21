@@ -19,7 +19,7 @@
 namespace thrill {
 namespace common {
 
-/**
+/*!
  * Implements a cyclic barrier that can be shared between threads.
  */
 class ThreadBarrier
@@ -33,7 +33,7 @@ private:
     size_t current_ = 0;
 
 public:
-    /**
+    /*!
      * Creates a new barrier that waits for n threads.
      *
      * \param n The number of threads to wait for.
@@ -41,7 +41,7 @@ public:
     explicit ThreadBarrier(size_t n)
         : thread_count_(n) { }
 
-    /**
+    /*!
      * Waits for n threads to arrive.
      *
      * This method blocks and returns as soon as n threads are waiting inside

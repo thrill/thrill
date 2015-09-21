@@ -190,7 +190,7 @@ protected:
 
         if (debug) {
             sLOG << "stream" << id_ << "receive from" << from << ":"
-                 << common::hexdump(b.ToString());
+                 << common::Hexdump(b.ToString());
         }
 
         queue_.AppendBlock(from, b);

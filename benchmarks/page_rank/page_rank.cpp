@@ -49,7 +49,7 @@ void page_rank(Context& ctx) {
     DIARef<PageWithRank> ranks =
         ReadLines(ctx, "pagerank.in")
         .Map([](const std::string& input) {
-                 auto splitted = thrill::common::split(input, " ");
+                 auto splitted = thrill::common::Split(input, " ");
                  return std::make_pair((size_t)std::stoi(splitted[0]), 1.0);
              }).Cache();
 
@@ -57,7 +57,7 @@ void page_rank(Context& ctx) {
 
     auto links = ReadLines(ctx, "pagerank.in")
                  .Map([](const std::string& line) {
-                          auto splitted = thrill::common::split(line, " ");
+                          auto splitted = thrill::common::Split(line, " ");
                           std::vector<int> links;
                           links.reserve(splitted.size() - 1);
                           for (size_t i = 1; i < splitted.size(); i++) {
@@ -139,7 +139,7 @@ void page_rank_with_reduce_sort(Context& ctx) {
     // ...
     auto links = in.Map(
         [](const std::string& input) {
-            auto split = thrill::common::split(input, " ");
+            auto split = thrill::common::Split(input, " ");
             return std::make_pair<int, std::vector<int> >(std::stoi(split[0]), std::vector<int>(1, std::stoi(split[1])));
         }).ReduceByKey(key_fn, red_fn);
 
@@ -243,7 +243,7 @@ int main(int argc, char* argv[]) {
 
             auto create_links_fn =
                 [](const std::string& input) {
-                    auto split = thrill::common::split(input, " ");
+                    auto split = thrill::common::Split(input, " ");
                     // set node ids base to zero
                     // LOG << (size_t)(std::stoi(split[0]) - 1);
                     // LOG << (size_t)(std::stoi(split[1]) - 1);

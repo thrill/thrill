@@ -231,7 +231,7 @@ protected:
 
         if (debug) {
             sLOG << "stream" << id_ << "receive from" << from << ":"
-                 << common::hexdump(b.ToString());
+                 << common::Hexdump(b.ToString());
         }
 
         queues_[from].AppendBlock(b);

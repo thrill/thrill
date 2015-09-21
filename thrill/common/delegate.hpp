@@ -2,7 +2,7 @@
  * thrill/common/delegate.hpp
  *
  * Replacement for std::function with ideas and base code borrowed from
- * http://codereview.stackexchange.com/questions/14730/impossibly-fast-delegate-in-c11
+ * http://codereview.stackexchange.com/questions/14730/impossibly-fast-delegate
  *
  * Massively rewritten, commented, simplified, and improved.
  *
@@ -326,16 +326,16 @@ private:
     std::shared_ptr<void> store_;
 
     //! private constructor for plain
-    delegate(const Caller& m, void* const o) noexcept
-        : caller_(m), object_ptr_(o) { }
+    delegate(const Caller& m, void* const obj) noexcept
+        : caller_(m), object_ptr_(obj) { }
 
     //! deleter for stored functor closures
     template <class T>
-    static void store_deleter(void* const p) {
+    static void store_deleter(void* const ptr) {
         using Rebind = typename Allocator::template rebind<T>::other;
 
-        Rebind().destroy(static_cast<T*>(p));
-        Rebind().deallocate(static_cast<T*>(p), 1);
+        Rebind().destroy(static_cast<T*>(ptr));
+        Rebind().deallocate(static_cast<T*>(ptr), 1);
     }
 
     //! \name Callers for simple function and immediate class::method calls.
@@ -424,28 +424,32 @@ private:
 //! constructor for wrapping a class::method with object pointer.
 template <class C, typename R, typename ... A>
 delegate<R(A ...)>
-make_delegate(C* const object_ptr, R(C::* const method_ptr)(A ...)) noexcept {
+make_delegate(
+    C* const object_ptr, R(C::* const method_ptr)(A ...)) noexcept {
     return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
 }
 
 //! constructor for wrapping a const class::method with object pointer.
 template <class C, typename R, typename ... A>
 delegate<R(A ...)>
-make_delegate(C* const object_ptr, R(C::* const method_ptr)(A ...) const) noexcept {
+make_delegate(
+    C* const object_ptr, R(C::* const method_ptr)(A ...) const) noexcept {
     return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
 }
 
 //! constructor for wrapping a class::method with object reference.
 template <class C, typename R, typename ... A>
 delegate<R(A ...)>
-make_delegate(C& object_ptr, R(C::* const method_ptr)(A ...)) noexcept {
+make_delegate(
+    C& object_ptr, R(C::* const method_ptr)(A ...)) noexcept {
     return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
 }
 
 //! constructor for wrapping a const class::method with object reference.
 template <class C, typename R, typename ... A>
 delegate<R(A ...)>
-make_delegate(C const& object_ptr, R(C::* const method_ptr)(A ...) const) noexcept {
+make_delegate(
+    C const& object_ptr, R(C::* const method_ptr)(A ...) const) noexcept {
     return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
 }
 

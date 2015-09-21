@@ -37,7 +37,7 @@ void PortSetCloseOnExec(int fd) {
 #endif
 }
 
-void make_pipe(int out_pipefds[2]) {
+void MakePipe(int out_pipefds[2]) {
 #if THRILL_HAVE_PIPE2
     if (pipe2(out_pipefds, O_CLOEXEC) != 0)
         throw ErrnoException("Error creating pipe");

@@ -61,7 +61,7 @@ public:
     explicit SelectDispatcher(mem::Manager& mem_manager)
         : net::Dispatcher(mem_manager) {
         // allocate self-pipe
-        common::make_pipe(self_pipe_);
+        common::MakePipe(self_pipe_);
 
         // Ignore PIPE signals (received when writing to closed sockets)
         signal(SIGPIPE, SIG_IGN);

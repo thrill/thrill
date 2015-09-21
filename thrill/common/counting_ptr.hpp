@@ -32,7 +32,7 @@ using CountingPtrDeleter = void (*)(Type*);
 
 //! default deleter for CountingPtr
 template <typename Type>
-void default_deleter(Type* ptr) noexcept {
+void DefaultDeleter(Type* ptr) noexcept {
     delete ptr;
 }
 
@@ -57,7 +57,7 @@ void default_deleter(Type* ptr) noexcept {
  * which are only related if constructed with std::make_shared.
  */
 template <typename Type,
-          CountingPtrDeleter<Type> deleter = default_deleter<Type> >
+          CountingPtrDeleter<Type> deleter = DefaultDeleter<Type> >
 class CountingPtr
 {
 public:
