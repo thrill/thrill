@@ -64,6 +64,12 @@ public:
 
     void PushData() {
         // time_t tt;
+        if (node_->consume_on_push_data()) {
+            sLOG1 << "StageBuilder: Attempt to PushData on"
+                  << "stage" << node_->label()
+                  << "failed, it was already consumed. Add .Keep()";
+            abort();
+        }
         die_unless(!node_->consume_on_push_data());
         // timer.Start();
         node_->DoPushData(node_->consume_on_push_data());
