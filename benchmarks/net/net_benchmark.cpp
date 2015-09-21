@@ -98,7 +98,6 @@ public:
             static_cast<double>(inner_repeats_);
 
         sLOG0 << "bandwidth" << ctx.host_rank() << "->" << peer
-              << "round" << round
               << "iteration" << iteration
               << "latency" << avg;
 
