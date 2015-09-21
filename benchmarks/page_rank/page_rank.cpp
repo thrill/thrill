@@ -9,6 +9,7 @@
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
+#include <thrill/api/groupby_index.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/reduce.hpp>
 #include <thrill/api/generate.hpp>
@@ -17,7 +18,6 @@
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/write_lines.hpp>
-#include <thrill/api/groupby_index.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
@@ -225,7 +225,7 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func =
-        [&input, &output, & iter](api::Context& ctx) {
+        [&input, &output, &iter](api::Context& ctx) {
             thrill::common::StatsTimer<true> timer(false);
             static const bool debug = false;
             static const double s = 0.85;
@@ -238,7 +238,6 @@ int main(int argc, char* argv[]) {
             using Page_Link = std::pair<Node, Node>;
             using Outgoings_Rank = std::pair<std::vector<Node>, Rank>;
             using Outgoings = std::vector<Node>;
-
 
             ////////////////////////////////////////////////////////////////////////////
             //////////////////////// START OF COMPUTATION HERE /////////////////////////

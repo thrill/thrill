@@ -357,7 +357,7 @@ protected:
                     if (callback_) callback_(conn_, Buffer());
                     return false;
                 }
-                throw Exception("AsyncReadBuffer() error in recv () on "
+                throw Exception("AsyncReadBuffer() error in recv() on "
                                 "connection " + conn_.ToString(), errno);
             }
 

@@ -25,7 +25,7 @@ void MockTestOne(size_t num_hosts,
     sLOG0 << "MockTestOne num_hosts" << num_hosts;
     // construct mock network mesh and run threads
     net::ExecuteGroupThreads(
-        net::mock::Group::ConstructLocalMesh(num_hosts),
+        net::mock::Group::ConstructLoopbackMesh(num_hosts),
         thread_function);
 }
 
@@ -54,7 +54,6 @@ void MockTestLess(const std::function<void(net::Group*)>& thread_function) {
 import tests.net.test_gen as m
 
 m.generate_group_tests('MockGroup', 'MockTest')
-m.generate_dispatcher_tests('MockGroup', 'MockTest', 'net::mock::Dispatcher')
 m.generate_flow_control_tests('MockGroup', 'MockTestLess')
   ]]]*/
 TEST(MockGroup, NoOperation) {
@@ -93,6 +92,9 @@ TEST(MockGroup, AllReduceString) {
 TEST(MockGroup, AllReduceHypercubeString) {
     MockTest(TestAllReduceHypercubeString);
 }
+TEST(MockGroup, DispatcherSyncSendAsyncRead) {
+    MockTest(TestDispatcherSyncSendAsyncRead);
+}
 TEST(MockGroup, DispatcherLaunchAndTerminate) {
     MockTest(TestDispatcherLaunchAndTerminate);
 }
@@ -101,10 +103,6 @@ TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 }
 TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     MockTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
-}
-TEST(MockGroup, DispatcherSyncSendAsyncRead) {
-    MockTest(
-        DispatcherTestSyncSendAsyncRead<net::mock::Dispatcher>);
 }
 TEST(FlowControlMockGroup, SingleThreadPrefixSum) {
     MockTestLess(TestSingleThreadPrefixSum);

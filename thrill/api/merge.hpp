@@ -92,13 +92,13 @@ public:
 
     void PushData(bool consume) final {
         size_t result_count = 0;
-        // TODO(ej) - call WriteChannelStats() for each channel when these
+        // TODO(ej) - call WriteStreamStats() for each stream when these
         // when they are closed ( = you read all data + called Close() on the
-        // channels).
+        // streams).
         if (result_size_ != 0) {
-            // get inbound readers from all Channels
-            std::vector<data::Channel::ConcatReader> readers {
-                channels_[0]->OpenConcatReader(consume), channels_[1]->OpenConcatReader(consume)
+            // get inbound readers from all CatStreams
+            std::vector<data::CatStream::CatReader> readers {
+                streams_[0]->OpenCatReader(consume), streams_[1]->OpenCatReader(consume)
             };
 
             while (readers[0].HasNext() && readers[1].HasNext()) {
@@ -151,8 +151,8 @@ private:
         { files_[0].GetWriter(), files_[1].GetWriter() }
     };
 
-    //! Array of inbound Channels
-    std::array<data::ChannelPtr, num_inputs_> channels_;
+    //! Array of inbound CatStreams
+    std::array<data::CatStreamPtr, num_inputs_> streams_;
 
     //! \name Variables for Calculating Exchange
     //! \{

@@ -16,6 +16,7 @@
 #ifndef THRILL_NET_GROUP_HEADER
 #define THRILL_NET_GROUP_HEADER
 
+#include <thrill/common/math.hpp>
 #include <thrill/net/connection.hpp>
 
 #include <algorithm>
@@ -77,6 +78,17 @@ public:
     //! internal implementation.
     virtual mem::mm_unique_ptr<class Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const = 0;
+
+    //! Number of of 1-factor iterations
+    size_t OneFactorSize() const {
+        return common::CalcOneFactorSize(num_hosts());
+    }
+
+    //! Calculate the peer of this host in the k-th iteration (of 0..p-1) of a
+    //! 1-factor based network exchange algorithm.
+    size_t OneFactorPeer(size_t round) const {
+        return common::CalcOneFactorPeer(round, my_host_rank(), num_hosts());
+    }
 
     //! \}
 
@@ -168,10 +180,10 @@ void ExecuteGroupThreads(
     }
 }
 
-//! Construct a mock Group network and run a thread for each client. The
-//! selected network implementation is platform dependent and must run without
-//! further configuration.
-void RunGroupTest(
+//! Construct a mock or tcp-lookback Group network and run a thread for each
+//! client. The selected network implementation is platform dependent and must
+//! run without further configuration.
+void RunLoopbackGroupTest(
     size_t num_hosts,
     const std::function<void(Group*)>& thread_function);
 

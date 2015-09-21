@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/channel.cpp
+ * benchmarks/data/stream.cpp
  *
  * Part of Project Thrill.
  *
@@ -36,12 +36,12 @@ void ExperimentAllPairs(
             // transmit data from worker src -> tgt: only send data if we are
             // tgt, but as tgt receive from all.
 
-            auto channel = ctx.GetNewChannel();
+            auto stream = ctx.GetNewCatStream();
 
             // write phase
             StatsTimer<true> write_timer(true);
             {
-                auto writers = channel->OpenWriters();
+                auto writers = stream->OpenWriters();
 
                 if (ctx.my_rank() == src) {
                     auto data = Generator<Type>(g_bytes);
@@ -57,7 +57,7 @@ void ExperimentAllPairs(
             // read phase
             StatsTimer<true> read_timer(true);
             {
-                auto reader = channel->OpenConcatReader(true);
+                auto reader = stream->OpenCatReader(true);
 
                 while (reader.HasNext()) {
                     reader.Next<Type>();
@@ -97,12 +97,12 @@ void ExperimentFull(
 
     // transmit data to all workers.
 
-    auto channel = ctx.GetNewChannel();
+    auto stream = ctx.GetNewCatStream();
 
     // write phase
     StatsTimer<true> write_timer(true);
     {
-        auto writers = channel->OpenWriters();
+        auto writers = stream->OpenWriters();
         auto data = Generator<Type>(g_bytes);
 
         while (data.HasNext()) {
@@ -117,7 +117,7 @@ void ExperimentFull(
     // read phase
     StatsTimer<true> read_timer(true);
     {
-        auto reader = channel->OpenConcatReader(true);
+        auto reader = stream->OpenCatReader(true);
 
         while (reader.HasNext()) {
             reader.Next<Type>();
@@ -179,7 +179,7 @@ int main(int argc, const char** argv) {
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
-    clp.SetDescription("thrill::data benchmark for Channel I/O");
+    clp.SetDescription("thrill::data benchmark for Stream I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
 
     clp.AddBytes('b', "bytes", g_bytes, "number of bytes to process");
