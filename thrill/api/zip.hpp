@@ -143,11 +143,6 @@ public:
                 this->PushItem(zip_function_(i0, i1));
                 ++result_count;
             }
-
-            streams_[0]->Close();
-            streams_[1]->Close();
-            this->WriteStreamStats(streams_[0]);
-            this->WriteStreamStats(streams_[1]);
         }
 
         sLOG << "Zip: result_count" << result_count;

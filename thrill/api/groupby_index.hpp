@@ -39,6 +39,7 @@ template <typename ValueType, typename ParentDIARef,
 class GroupByIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
+
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
@@ -91,9 +92,7 @@ public:
                                       common::CalculateLocalRange(number_keys_,
                                                                   context_.num_workers(), context_.my_rank())), number_keys_)),
           neutral_element_(neutral_element),
-          hash_function_(hash_function),
-          stream_(parent.ctx().GetNewCatStream()),
-          emitter_(stream_->OpenWriters())
+          hash_function_(hash_function)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -199,8 +198,8 @@ private:
     HashFunction hash_function_;
     size_t totalsize_ = 0;
 
-    data::CatStreamPtr stream_;
-    std::vector<data::CatStream::Writer> emitter_;
+    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+    std::vector<data::CatStream::Writer> emitter_ { stream_->OpenWriters() };
     std::vector<data::File> files_;
 
     void RunUserFunc(File& f, bool consume) {

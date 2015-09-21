@@ -58,7 +58,10 @@ public:
                net::DispatcherThread* dispatcher,
                net::Connection* connection,
                MagicByte magic,
-               StreamId stream_id, size_t my_rank, size_t my_local_worker_id, size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
+               StreamId stream_id, size_t my_rank,
+               size_t my_local_worker_id,
+               size_t peer_rank,
+               size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
         : BlockSink(block_pool),
           dispatcher_(dispatcher),
           connection_(connection),
@@ -66,6 +69,7 @@ public:
           id_(stream_id),
           my_rank_(my_rank),
           my_local_worker_id_(my_local_worker_id),
+          peer_rank_(peer_rank),
           partners_local_worker_id_(partners_local_worker_id),
           byte_counter_(byte_counter),
           block_counter_(block_counter),
@@ -117,7 +121,8 @@ public:
 
         sLOG << "sending 'close stream' from my_rank" << my_rank_
              << "worker" << my_local_worker_id_
-             << "to worker" << partners_local_worker_id_
+             << "to" << peer_rank_
+             << "worker" << partners_local_worker_id_
              << "stream" << id_;
 
         StreamBlockHeader header;
@@ -157,6 +162,7 @@ protected:
     size_t id_ = size_t(-1);
     size_t my_rank_ = size_t(-1);
     size_t my_local_worker_id_ = size_t(-1);
+    size_t peer_rank_ = size_t(-1);
     size_t partners_local_worker_id_ = size_t(-1);
     bool closed_ = false;
 
