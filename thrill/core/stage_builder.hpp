@@ -45,8 +45,8 @@ public:
         node_->Execute();
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "FINISH (EXECUTING) stage" << node_->label();
+        STAT(node_->context())
+           << "FINISH (EXECUTING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
 
@@ -56,8 +56,8 @@ public:
         node_->set_state(api::DIAState::EXECUTED);
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "FINISH (PUSHING) stage" << node_->label();
+        STAT(node_->context())
+           << "FINISH (PUSHING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
@@ -76,8 +76,8 @@ public:
         node_->set_state(api::DIAState::EXECUTED);
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "FINISH (PUSHING) stage" << node_->label();
+        STAT(node_->context())
+           << "FINISH (PUSHING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time: " << std::put_time(std::localtime(&tt), "%T");
     }
@@ -134,6 +134,7 @@ public:
                     // If not add parent to stages found and result stages
                     stages_found.insert(p);
                     stages_result.push_back(Stage(p));
+                    LOG1 << "FOUND: " << p->label() << " " << p->id();
                     // If parent was not executed push it to the DFS
                     if (p->state() != api::DIAState::EXECUTED ||
                         p->type() == api::DIANodeType::COLLAPSE) {
@@ -153,7 +154,13 @@ public:
         FindStages(action, result);
         for (auto s : result)
         {
-            if (s.node()->state() == api::DIAState::EXECUTED) s.PushData();
+            if (s.node()->state() == api::DIAState::EXECUTED) {
+                bool skip = true;
+                for (DIABase* child : s.node()->children()) 
+                    if(child->state() != api::DIAState::EXECUTED) skip = false;
+                if (skip) continue;
+                else s.PushData();
+            }
             if (s.node()->state() == api::DIAState::NEW) s.Execute();
             s.node()->UnregisterChilds();
         }
