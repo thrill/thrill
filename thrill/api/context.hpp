@@ -5,6 +5,7 @@
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -17,8 +18,9 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/data/block_pool.hpp>
-#include <thrill/data/channel.hpp>
+#include <thrill/data/cat_stream.hpp>
 #include <thrill/data/file.hpp>
+#include <thrill/data/mix_stream.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
@@ -109,9 +111,9 @@ protected:
 /*!
  * The Context of a job is a unique instance per worker which holds references
  * to all underlying parts of Thrill. The context is able to give references to
- * the \ref data::Multiplexer "channel multiplexer", the \ref net::Group "net
+ * the \ref data::Multiplexer "stream multiplexer", the \ref net::Group "net
  * group" \ref common::Stats "stats" and \ref common::StatsGraph "stats graph".
- * Threads share the channel multiplexer and the net group via the context
+ * Threads share the stream multiplexer and the net group via the context
  * object.
  */
 class Context
@@ -190,11 +192,7 @@ public:
     //! \name Network Subsystem
     //! \{
 
-    /**
-     * \brief Gets the flow control channel for the current worker.
-     *
-     * \return The flow control channel instance for this worker.
-     */
+    //! Gets the flow control channel for the current worker.
     net::FlowControlChannel & flow_control_channel() {
         return flow_manager_.GetFlowControlChannel(local_worker_id_);
     }
@@ -228,11 +226,18 @@ public:
         return data::File(block_pool_);
     }
 
-    //! Returns a reference to a new Channel.  This method alters the state of
+    //! Returns a reference to a new CatStream. This method alters the state of
     //! the context and must be called on all Workers to ensure correct
     //! communication coordination.
-    data::ChannelPtr GetNewChannel() {
-        return multiplexer_.GetNewChannel(local_worker_id_);
+    data::CatStreamPtr GetNewCatStream() {
+        return multiplexer_.GetNewCatStream(local_worker_id_);
+    }
+
+    //! Returns a reference to a new MixStream. This method alters the state
+    //! of the context and must be called on all Workers to ensure correct
+    //! communication coordination.
+    data::MixStreamPtr GetNewMixStream() {
+        return multiplexer_.GetNewMixStream(local_worker_id_);
     }
 
     //! the block manager keeps all data blocks moving through the system.

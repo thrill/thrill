@@ -38,8 +38,8 @@ public:
                   StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_vector_(out_vector),
-          channel_(parent.ctx().GetNewChannel()),
-          emitters_(channel_->OpenWriters())
+          stream_(parent.ctx().GetNewCatStream()),
+          emitters_(stream_->OpenWriters())
     {
         auto pre_op_function = [=](const ValueType& input) {
                                    PreOp(input);
@@ -65,13 +65,13 @@ public:
         }
 
         bool consume = false;
-        auto reader = channel_->OpenConcatReader(consume);
+        auto reader = stream_->OpenCatReader(consume);
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
 
-        this->WriteChannelStats(channel_);
+        this->WriteStreamStats(stream_);
     }
 
     void Dispose() final { }
@@ -80,8 +80,8 @@ private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::ChannelPtr channel_;
-    std::vector<data::Channel::Writer> emitters_;
+    data::CatStreamPtr stream_;
+    std::vector<data::CatStream::Writer> emitters_;
 
     static const bool debug = false;
 };

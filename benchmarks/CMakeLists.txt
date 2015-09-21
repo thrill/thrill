@@ -33,19 +33,19 @@ thrill_build_prog(hashtable/bench_probing_hashtable)
 
 thrill_build_prog(data/disk)
 thrill_build_prog(data/file_read_write)
-thrill_build_prog(data/channel)
-
-thrill_build_prog(sort/generate_data)
-thrill_build_prog(sort/sort)
+thrill_build_prog(data/stream)
 
 if(NOT MSVC)
   # these benchmarks use a non-portable method to initialize the network,
   # TODO(ts): change to use RunXYZ().
-  thrill_build_prog(data/channel_read_write)
-  thrill_build_prog(data/channel_a_to_b)
-  thrill_build_prog(data/channel_scatter)
+  thrill_build_prog(data/stream_read_write)
+  thrill_build_prog(data/stream_a_to_b)
+  thrill_build_prog(data/stream_scatter)
   file(COPY "data/run_data_benchmark.sh" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif()
+
+thrill_build_prog(sort/generate_data)
+thrill_build_prog(sort/sort)
 
 thrill_build_prog(serialization/bench_serialization)
 

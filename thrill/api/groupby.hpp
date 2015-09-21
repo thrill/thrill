@@ -84,8 +84,8 @@ public:
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           hash_function_(hash_function),
-          channel_(parent.ctx().GetNewChannel()),
-          emitter_(channel_->OpenWriters()),
+          stream_(parent.ctx().GetNewCatStream()),
+          emitter_(stream_->OpenWriters()),
           sorted_elems_(context_.GetFile()),
           totalsize_(0)
     {
@@ -97,9 +97,9 @@ public:
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
-        channel_->OnClose([this]() {
-                              this->WriteChannelStats(this->channel_);
-                          });
+        stream_->OnClose([this]() {
+                             this->WriteStreamStats(this->stream_);
+                         });
     }
 
     //! Virtual destructor for a GroupByNode.
@@ -171,8 +171,8 @@ private:
     const GroupFunction& groupby_function_;
     const HashFunction& hash_function_;
 
-    data::ChannelPtr channel_;
-    std::vector<data::Channel::Writer> emitter_;
+    data::CatStreamPtr stream_;
+    std::vector<data::Stream::Writer> emitter_;
     std::vector<data::File> files_;
     data::File sorted_elems_;
     size_t totalsize_;
@@ -239,7 +239,7 @@ private:
         }
 
         // get incoming elements
-        auto reader = channel_->OpenConcatReader(true /* consume */);
+        auto reader = stream_->OpenCatReader(true /* consume */);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
