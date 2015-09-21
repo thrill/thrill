@@ -21,17 +21,17 @@ namespace thrill {
 namespace common {
 
 /*!
- * FutureQueue helps you deal with the nasty callbacks in the land of callback-hell.
+ * FutureQueue helps you deal with the nasty callbacks in the land of
+ * callback-hell.
  *
- * Handles the use-case where a callback is expected to be called once or multiple times.
- * If you expect only a single call, use \ref Future.
+ * Handles the use-case where a callback is expected to be called once or
+ * multiple times.  If you expect only a single call, use \ref Future.
  *
- * One thread waits on this FutureQueue by calling \ref Wait() or \ref WaitForAll()
- * which returns directly if data is available and blocks otherwise until data
- * is available.
- * Another thread holds the callback to this FutureQueue which can be accquired
- * via \ref Callback() . The callback can be used to signal arrival of data
- * or signaling the end of stream.
+ * One thread waits on this FutureQueue by calling \ref Wait() or \ref
+ * WaitForAll() which returns directly if data is available and blocks otherwise
+ * until data is available.  Another thread holds the callback to this
+ * FutureQueue which can be accquired via \ref Callback() . The callback can be
+ * used to signal arrival of data or signaling the end of stream.
  *
  * FutureQueue can currently only be consumed by a single thread.//TODO(ts) change that.
  */

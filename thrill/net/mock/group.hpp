@@ -199,9 +199,9 @@ public:
         size_t num_hosts);
 
     //! return hexdump or just [data] if not debugging
-    static std::string maybe_hexdump(const void* data, size_t size) {
+    static std::string MaybeHexdump(const void* data, size_t size) {
         if (debug_data)
-            return common::hexdump(data, size);
+            return common::Hexdump(data, size);
         else
             return "[data]";
     }
@@ -219,7 +219,7 @@ protected:
 
         if (debug) {
             sLOG << "Sending" << my_rank_ << "->" << tgt
-                 << "msg" << maybe_hexdump(msg.data(), msg.size());
+                 << "msg" << MaybeHexdump(msg.data(), msg.size());
         }
 
         peers_[tgt]->conns_[my_rank_].InboundMsg(std::move(msg));

@@ -136,7 +136,7 @@ struct Serialization<Archive, PyObjectRef>
 
         PyBytes_AsStringAndSize(mar, &data, &len);
         if (debug)
-            sLOG0 << "Serialized:" << common::hexdump(data, len);
+            sLOG0 << "Serialized:" << common::Hexdump(data, len);
 
         ar.PutVarint(len).Append(data, len);
         Py_DECREF(mar);

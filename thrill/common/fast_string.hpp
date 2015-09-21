@@ -23,25 +23,22 @@
 namespace thrill {
 namespace common {
 
-/**
- * FastString is a fast implementation of a string, which is basically only
- * a char pointer and a length. The FastString is defined by the char array given
+/*!
+ * FastString is a fast implementation of a string, which is basically only a
+ * char pointer and a length. The FastString is defined by the char array given
  * by those parameters. A copy assignment or copy constructor actually allocates
- * memory for the data. This allows both non-allocating quick references and persistent
- * storage of strings.
+ * memory for the data. This allows both non-allocating quick references and
+ * persistent storage of strings.
  */
 class FastString
 {
 public:
     using iterator = const char*;
 
-    /**
-     * Default constructor for a FastString.
-     * Doesn't do anything.
-     */
+    //! Default constructor for a FastString. Doesn't do anything.
     FastString() : size_(0) { }
 
-    /**
+    /*!
      * Copy constructor for a new FastString. Actually allocates memory.
      * \param input Input FastString
      * \return Copy of input
@@ -54,47 +51,49 @@ public:
         owns_data_ = true;
     }
 
-    /**
-     * Move constructor for a new FastString. Steals data ownership.
-     */
+    //! Move constructor for a new FastString. Steals data ownership.
     FastString(FastString&& other)
         : FastString(other.data_, other.size_, other.owns_data_) {
         other.owns_data_ = false;
     }
 
-    /**
-     * Destructor for a FastString. If it holds data, this data gets freed.
-     */
+    //! Destructor for a FastString. If it holds data, this data gets freed.
     ~FastString() {
         if (owns_data_) {
             delete[] (data_);
         }
     }
 
-    /**
-     * Creates a new reference FastString, given a const char* and the size of the FastString.
+    /*!
+     * Creates a new reference FastString, given a const char* and the size of
+     * the FastString.
+     *
      * \param data Pointer to start of data
      * \param size Size of data in bytes.
      * \return New FastString object.
      */
-    static FastString Ref(const char* data, size_t size) {
+    static FastString
+    Ref(const char* data, size_t size) {
         return FastString(data, size, false);
     }
 
-    /**
-     * Creates a new reference FastString, given a const iterator to a std::string
-     * and the size of the FastString.
+    /*!
+     * Creates a new reference FastString, given a const iterator to a
+     * std::string and the size of the FastString.
+     *
      * \param data Pointer to start of data
      * \param size Size of data in bytes.
      * \return New FastString object.
      */
-    static FastString Ref(const std::string::const_iterator& data, size_t size) {
+    static FastString
+    Ref(const std::string::const_iterator& data, size_t size) {
         return FastString(&(*data), size, false);
     }
 
-    /**
-     * Creates a new FastString and takes data ownership,
-     * given a const char* and the size of the FastString.
+    /*!
+     * Creates a new FastString and takes data ownership, given a const char*
+     * and the size of the FastString.
+     *
      * \param data Pointer to start of data
      * \param size Size of data in bytes.
      * \return New FastString object.
@@ -103,7 +102,7 @@ public:
         return FastString(data, size, true);
     }
 
-    /**
+    /*!
      * Creates a new FastString and copies it's data.
      * \param data Pointer to start of data
      * \param size Size of data in bytes.
@@ -115,7 +114,7 @@ public:
         return FastString(mem, size, true);
     }
 
-    /**
+    /*!
      * Creates a new FastString and copies it's data.
      * \param input Input string, which the new FastString is a copy of
      * \return New FastString object.
@@ -144,7 +143,7 @@ public:
         return size_;
     }
 
-    /**
+    /*!
      * Copy assignment operator.
      * \param other copied FastString
      * \return reference to this FastString
@@ -159,7 +158,7 @@ public:
         return *this;
     }
 
-    /**
+    /*!
      * Move assignment operator
      * \param other moved FastString
      * \return reference to this FastString
@@ -173,7 +172,7 @@ public:
         return *this;
     }
 
-    /**
+    /*!
      * Equality operator to compare a FastString with an std::string
      * \param other Comparison string
      * \return true, if data is equal
@@ -183,7 +182,7 @@ public:
                std::equal(data_, data_ + size_, other.c_str());
     }
 
-    /**
+    /*!
      * Inequality operator to compare a FastString with an std::string
      * \param other Comparison string
      * \return false, if data is equal
@@ -192,7 +191,7 @@ public:
         return !(operator == (other));
     }
 
-    /**
+    /*!
      * Equality operator to compare a FastString with another FastString
      * \param other Comparison FastString
      * \return true, if data is equal
@@ -202,7 +201,7 @@ public:
                std::equal(data_, data_ + size_, other.data_);
     }
 
-    /**
+    /*!
      * Inequality operator to compare a FastString with another FastString
      * \param other Comparison FastString
      * \return false, if data is equal
@@ -211,7 +210,7 @@ public:
         return !(operator == (other));
     }
 
-    /**
+    /*!
      * Make FastString ostreamable
      * \param os ostream
      * \param fs FastString to stream
@@ -220,7 +219,7 @@ public:
         return os.write(fs.Data(), fs.Size());
     }
 
-    /**
+    /*!
      * Returns the data of this FastString as an std::string
      * \return This FastString as an std::string
      */
@@ -229,7 +228,7 @@ public:
     }
 
 protected:
-    /**
+    /*!
      * Internal constructor, which creates a new FastString and sets parameters
      * \param data Pointer to data
      * \param size Size of data in bytes

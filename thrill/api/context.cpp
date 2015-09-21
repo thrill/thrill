@@ -316,10 +316,10 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     if (env_hostlist) {
         // first try to split by spaces, then by commas
-        std::vector<std::string> list = common::split(env_hostlist, ' ');
+        std::vector<std::string> list = common::Split(env_hostlist, ' ');
 
         if (list.size() == 1) {
-            list = common::split(env_hostlist, ',');
+            list = common::Split(env_hostlist, ',');
         }
 
         for (const std::string& host : list) {

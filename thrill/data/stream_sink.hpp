@@ -88,7 +88,7 @@ public:
         header.receiver_local_worker_id = partners_local_worker_id_;
 
         if (debug) {
-            sLOG << "sending block" << common::hexdump(block.ToString());
+            sLOG << "sending block" << common::Hexdump(block.ToString());
         }
 
         net::BufferBuilder bb;

@@ -29,7 +29,7 @@ namespace common {
  * Handles the use-case where a callback is expected to be called exactly once!
  * If you expect multiple  calls use \ref FutureQueue
  *
- * Future can currently only be consumed by a single thread.//TODO(ts) change that.
+ * Future can currently only be consumed by a single thread. //TODO(ts) change that.
  *
  */
 template <typename T>

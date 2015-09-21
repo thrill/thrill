@@ -343,7 +343,7 @@ public:
             LOG << "Socket::send_one()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << maybe_hexdump(data, size)
+                << " data=" << MaybeHexdump(data, size)
                 << " flags=" << flags;
         }
 
@@ -364,7 +364,7 @@ public:
             LOG << "Socket::send()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << maybe_hexdump(data, size)
+                << " data=" << MaybeHexdump(data, size)
                 << " flags=" << flags;
         }
 
@@ -406,7 +406,7 @@ public:
             LOG << "Socket::sendto()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << maybe_hexdump(data, size)
+                << " data=" << MaybeHexdump(data, size)
                 << " flags=" << flags
                 << " dest=" << dest;
         }
@@ -442,7 +442,7 @@ public:
                 << " fd_=" << fd_
                 << " return=" << r
                 << " errno=" << errno
-                << " data=" << (r >= 0 ? maybe_hexdump(out_data, r) : "<error>");
+                << " data=" << (r >= 0 ? MaybeHexdump(out_data, r) : "<error>");
         }
 
         return r;
@@ -484,7 +484,7 @@ public:
             LOG << "done Socket::recv()"
                 << " fd_=" << fd_
                 << " return=" << rb
-                << " data=" << maybe_hexdump(out_data, rb);
+                << " data=" << MaybeHexdump(out_data, rb);
         }
 
         return rb;
@@ -513,7 +513,7 @@ public:
                 << " fd_=" << fd_
                 << " return=" << r
                 << " data="
-                << (r >= 0 ? maybe_hexdump(out_data, r) : "<error>")
+                << (r >= 0 ? MaybeHexdump(out_data, r) : "<error>")
                 << " out_source="
                 << (out_source ? out_source->ToStringHostPort() : "<null>");
         }
@@ -588,9 +588,9 @@ protected:
     int fd_;
 
     //! return hexdump or just [data] if not debugging
-    static std::string maybe_hexdump(const void* data, size_t size) {
+    static std::string MaybeHexdump(const void* data, size_t size) {
         if (debug_data)
-            return common::hexdump(data, size);
+            return common::Hexdump(data, size);
         else
             return "[data]";
     }
