@@ -45,8 +45,8 @@ public:
         node_->Execute();
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        STAT(node_->context())
-           << "FINISH (EXECUTING) stage" << node_->label() << node_->id();
+        // STAT(node_->context())
+        //    << "FINISH (EXECUTING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
 
@@ -56,8 +56,8 @@ public:
         node_->set_state(api::DIAState::EXECUTED);
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        STAT(node_->context())
-           << "FINISH (PUSHING) stage" << node_->label() << node_->id();
+        // STAT(node_->context())
+        //    << "FINISH (PUSHING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
@@ -76,8 +76,8 @@ public:
         node_->set_state(api::DIAState::EXECUTED);
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        STAT(node_->context())
-           << "FINISH (PUSHING) stage" << node_->label() << node_->id();
+        // STAT(node_->context())
+        //    << "FINISH (PUSHING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time: " << std::put_time(std::localtime(&tt), "%T");
     }
@@ -157,7 +157,9 @@ public:
             if (s.node()->state() == api::DIAState::EXECUTED) {
                 bool skip = true;
                 for (DIABase* child : s.node()->children()) 
-                    if(child->state() != api::DIAState::EXECUTED) skip = false;
+                    if(child->state() != api::DIAState::EXECUTED 
+                            || child->type() == api::DIANodeType::COLLAPSE) 
+                        skip = false;
                 if (skip) continue;
                 else s.PushData();
             }
