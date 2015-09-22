@@ -31,7 +31,7 @@ template <>
 class Generator<size_t>
 {
 public:
-    explicit Generator(size_t bytes, size_t /*min_size*/, size_t /*max_size*/)
+    explicit Generator(size_t bytes, size_t = 0/*min_size*/, size_t = 0 /*max_size*/)
         : size_((bytes + sizeof(size_t) - 1) / sizeof(size_t)) { }
 
     bool HasNext() const { return size_ > 0; }
@@ -51,7 +51,7 @@ template <>
 class Generator<std::string>
 {
 public:
-    explicit Generator(size_t bytes, size_t min_size, size_t max_size)
+    explicit Generator(size_t bytes, size_t min_size = 0, size_t max_size = 0)
         : bytes_(bytes),
           uniform_dist_(min_size, max_size) { }
 
@@ -99,7 +99,7 @@ template <typename ... Types>
 class Generator<std::tuple<Types ...> >
 {
 public:
-    explicit Generator(size_t bytes, size_t min_size, size_t max_size)
+    explicit Generator(size_t bytes, size_t min_size = 0, size_t max_size = 0)
         : gen_(Generator<Types>(bytes, min_size, max_size) ...) { }
 
     bool HasNext() const {
@@ -121,7 +121,7 @@ using Tuple = std::pair<std::string, int>;
 using Triple = std::tuple<std::string, int, std::string>;
 
 template <typename Type>
-std::vector<Type> generate(size_t bytes, size_t min_size, size_t max_size);
+std::vector<Type> generate(size_t bytes, size_t min_size = 0, size_t max_size = 0);
 
 template <>
 std::vector<std::string> generate(size_t bytes, size_t min_size, size_t max_size) {
