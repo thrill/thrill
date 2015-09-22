@@ -36,7 +36,7 @@ template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static const bool debug = true;
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
@@ -116,6 +116,7 @@ public:
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
         thrill::common::StatsTimer<true> timer(false);
 
+        LOG << "sort data";
         timer.Start();
         const size_t num_runs = files_.size();
         // if there's only one run, call user funcs
@@ -123,6 +124,7 @@ public:
             RunUserFunc(files_[0], consume);
         } // otherwise sort all runs using multiway merge
         else {
+            LOG << "start multiwaymerge";
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
             for (size_t t = 0; t < num_runs; ++t) {
@@ -132,13 +134,14 @@ public:
                 Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
             }
-
+            LOG << "start multiwaymerge for real";
             auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
                 seq.begin(),
                 seq.end(),
                 totalsize_,
                 ValueComparator(*this));
 
+            LOG << "run user func";
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator
@@ -188,7 +191,9 @@ private:
         auto r = f.GetReader(consume);
         if (r.HasNext()) {
             // create iterator to pass to user_function
+            LOG << "get iterator";
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
+            LOG << "start running user func";
             while (user_iterator.HasNextForReal()) {
                 // call user function
                 const ValueOut res = groupby_function_(user_iterator,
@@ -199,6 +204,7 @@ private:
                     func(res);
                 }
             }
+            LOG << "finished user func";
         }
     }
 
@@ -207,9 +213,11 @@ private:
      * Send all elements to their designated PEs
      */
     void PreOp(const ValueIn& v) {
+        LOG << "start assigning elems";
         const Key k = key_extractor_(v);
         const auto recipient = hash_function_(k) % emitter_.size();
         emitter_[recipient](v);
+        LOG << "finish assigning elems";
     }
 
     /*
@@ -236,7 +244,7 @@ private:
     auto MainOp() {
         LOG << "running group by main op";
 
-        const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
+        const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn) * 4;
         // const size_t FIXED_VECTOR_SIZE = 4;
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
@@ -245,7 +253,8 @@ private:
         for (auto& e : emitter_) {
             e.Close();
         }
-
+        LOG << "closed all emitters";
+        LOG << "receive elems";
         // get incoming elements
         auto reader = channel_->OpenConcatReader(true /* consume */);
         while (reader.HasNext()) {
@@ -259,6 +268,7 @@ private:
         }
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
+        LOG << "finished receiving elems";
     }
 };
 
