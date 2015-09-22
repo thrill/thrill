@@ -133,7 +133,7 @@ private:
         const std::vector<FileSizePair>& files_;
         //! Index of current file in files_
         size_t current_file_ = 0;
-        //! Byte buffer to create line-std::strings
+        //! Byte buffer to create line std::string values.
         net::BufferBuilder buffer_;
         //! Start of next element in current buffer.
         unsigned char* current_;
