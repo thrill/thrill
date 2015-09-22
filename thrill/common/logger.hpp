@@ -229,11 +229,11 @@ public:
 
 //! Check that X == Y or die miserably, but output the values of X and Y for
 //! better debugging.
-#define die_unequal(X, Y)                         \
-    do {                                          \
-        if ((X) != (Y))                           \
-            die("Inequality: " #X " != " #Y " : " \
-                "\"" << "\" != \"" << Y << "\""); \
+#define die_unequal(X, Y)                              \
+    do {                                               \
+        if ((X) != (Y))                                \
+            die("Inequality: " #X " != " #Y " : "      \
+                "\"" << X << "\" != \"" << Y << "\""); \
     } while (0)
 
 } // namespace common

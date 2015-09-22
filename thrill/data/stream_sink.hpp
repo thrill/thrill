@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/data/channel_sink.hpp
+ * thrill/data/stream_sink.hpp
  *
  * Part of Project Thrill.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_DATA_CHANNEL_SINK_HEADER
-#define THRILL_DATA_CHANNEL_SINK_HEADER
+#ifndef THRILL_DATA_STREAM_SINK_HEADER
+#define THRILL_DATA_STREAM_SINK_HEADER
 
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_counter.hpp>
@@ -28,57 +28,65 @@ namespace data {
 //! \{
 
 /*!
- * ChannelSink is an BlockSink that sends data via a network socket to the
- * Channel object on a different worker.
+ * StreamSink is an BlockSink that sends data via a network socket to the
+ * Stream object on a different worker.
  */
-class ChannelSink final : public BlockSink
+class StreamSink final : public BlockSink
 {
 public:
-    using ChannelId = size_t;
+    using StreamId = size_t;
     // use ptr because the default ctor cannot leave references unitialized
     using StatsCounterPtr = common::StatsCounter<size_t, common::g_enable_stats>*;
     using StatsTimerPtr = common::StatsTimer<common::g_enable_stats>*;
 
-    //! Construct invalid ChannelSink, needed for placeholders in sinks arrays
+    //! Construct invalid StreamSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    explicit ChannelSink(BlockPool& block_pool)
+    explicit StreamSink(BlockPool& block_pool)
         : BlockSink(block_pool), closed_(true) { }
 
-    /*! ChannelSink sending out to network.
+    /*!
+     * StreamSink sending out to network.
+     *
      * \param dispatcher used for sending data via a socket
-     * \param connection the socket (aka conneciton) used for the channel
-     * \param channel_id the ID that identifies the channel
+     * \param connection the socket (aka conneciton) used for the stream
+     * \param stream_id the ID that identifies the stream
      * \param my_rank the ID that identifies this computing node globally
      * \param my_local_worker_id the id that identifies the worker locally
      * \param partners_local_worker_id the id that identifies the partner worker locally
      */
-    ChannelSink(BlockPool& block_pool,
-                net::DispatcherThread* dispatcher,
-                net::Connection* connection,
-                ChannelId channel_id, size_t my_rank, size_t my_local_worker_id, size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
+    StreamSink(BlockPool& block_pool,
+               net::DispatcherThread* dispatcher,
+               net::Connection* connection,
+               MagicByte magic,
+               StreamId stream_id, size_t my_rank,
+               size_t my_local_worker_id,
+               size_t peer_rank,
+               size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
         : BlockSink(block_pool),
           dispatcher_(dispatcher),
           connection_(connection),
-          id_(channel_id),
+          magic_(magic),
+          id_(stream_id),
           my_rank_(my_rank),
           my_local_worker_id_(my_local_worker_id),
+          peer_rank_(peer_rank),
           partners_local_worker_id_(partners_local_worker_id),
           byte_counter_(byte_counter),
           block_counter_(block_counter),
           tx_timespan_(tx_timespan)
     { }
 
-    ChannelSink(ChannelSink&&) = default;
+    StreamSink(StreamSink&&) = default;
 
-    //! Appends data to the ChannelSink.  Data may be sent but may be delayed.
+    //! Appends data to the StreamSink.  Data may be sent but may be delayed.
     void AppendBlock(const Block& block) final {
         if (block.size() == 0) return;
 
         tx_timespan_->StartEventually();
-        sLOG << "ChannelSink::AppendBlock" << block;
+        sLOG << "StreamSink::AppendBlock" << block;
 
-        ChannelBlockHeader header(block);
-        header.channel_id = id_;
+        StreamBlockHeader header(magic_, block);
+        header.stream_id = id_;
         header.sender_rank = my_rank_;
         header.sender_local_worker_id = my_local_worker_id_;
         header.receiver_local_worker_id = partners_local_worker_id_;
@@ -88,10 +96,11 @@ public:
         }
 
         net::BufferBuilder bb;
-        // bb.Put(MagicByte::CHANNEL_BLOCK);
+        // bb.Put(MagicByte::STREAM_BLOCK);
         header.Serialize(bb);
 
         net::Buffer buffer = bb.ToBuffer();
+        assert(buffer.size() == BlockHeader::total_size);
 
         (*byte_counter_) += buffer.size();
         (*byte_counter_) += block.size();
@@ -110,22 +119,25 @@ public:
 
         tx_timespan_->StartEventually();
 
-        sLOG << "sending 'close channel' from my_rank" << my_rank_
+        sLOG << "sending 'close stream' from my_rank" << my_rank_
              << "worker" << my_local_worker_id_
-             << "to worker" << partners_local_worker_id_
-             << "channel" << id_;
+             << "to" << peer_rank_
+             << "worker" << partners_local_worker_id_
+             << "stream" << id_;
 
-        ChannelBlockHeader header;
-        header.channel_id = id_;
+        StreamBlockHeader header;
+        header.magic = magic_;
+        header.stream_id = id_;
         header.sender_rank = my_rank_;
         header.sender_local_worker_id = my_local_worker_id_;
         header.receiver_local_worker_id = partners_local_worker_id_;
 
         net::BufferBuilder bb;
-        // bb.Put(MagicByte::CHANNEL_BLOCK);
+        // bb.Put(MagicByte::STREAM_BLOCK);
         header.Serialize(bb);
 
         net::Buffer buffer = bb.ToBuffer();
+        assert(buffer.size() == BlockHeader::total_size);
 
         (*byte_counter_) += buffer.size();
 
@@ -146,9 +158,11 @@ protected:
     net::DispatcherThread* dispatcher_ = nullptr;
     net::Connection* connection_ = nullptr;
 
+    MagicByte magic_ = MagicByte::INVALID;
     size_t id_ = size_t(-1);
     size_t my_rank_ = size_t(-1);
     size_t my_local_worker_id_ = size_t(-1);
+    size_t peer_rank_ = size_t(-1);
     size_t partners_local_worker_id_ = size_t(-1);
     bool closed_ = false;
 
@@ -162,6 +176,6 @@ protected:
 } // namespace data
 } // namespace thrill
 
-#endif // !THRILL_DATA_CHANNEL_SINK_HEADER
+#endif // !THRILL_DATA_STREAM_SINK_HEADER
 
 /******************************************************************************/

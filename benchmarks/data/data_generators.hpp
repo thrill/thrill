@@ -87,7 +87,7 @@ struct TupleGenerator<0, Types ...>{
     }
 };
 
-template <std::size_t ... Is, typename ... Types>
+template <size_t ... Is, typename ... Types>
 auto TupleGeneratorNext(std::tuple<Generator<Types>...>&t,
                         common::index_sequence<Is ...>)
 {

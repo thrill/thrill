@@ -51,6 +51,10 @@ public:
     //! this increases network volume.
     static const bool self_verify_ = common::g_self_verify;
 
+    //! typeid().hash_code() is only guaranteed to be equal for the same program
+    //! run, hence, we can only use it on loopback networks.
+    bool is_loopback_ = false;
+
     //! Additional flags for sending or receiving.
     enum Flags : unsigned {
         NoFlags = 0,
@@ -96,7 +100,7 @@ public:
     //! thrown.
     template <typename T>
     void Send(const T& value) {
-        if (self_verify_) {
+        if (self_verify_ && is_loopback_) {
             // for communication verification, send hash_code.
             size_t hash_code = typeid(T).hash_code();
             SyncSend(&hash_code, sizeof(hash_code));
@@ -140,7 +144,7 @@ public:
     //! Receive any serializable item T.
     template <typename T>
     void Receive(T* out_value) {
-        if (self_verify_) {
+        if (self_verify_ && is_loopback_) {
             // for communication verification, receive hash_code.
             size_t hash_code;
             SyncRecv(&hash_code, sizeof(hash_code));

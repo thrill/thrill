@@ -4,24 +4,24 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/data/channel.hpp>
+#include <thrill/data/cat_stream.hpp>
+#include <thrill/data/mix_stream.hpp>
 #include <thrill/data/multiplexer.hpp>
+#include <thrill/data/stream.hpp>
 
 #include <algorithm>
 
 namespace thrill {
 namespace data {
 
-class ChannelSet;
-using ChannelSetPtr = std::shared_ptr<ChannelSet>;
-
 Multiplexer::~Multiplexer() {
-    // close all still open Channels
-    for (auto& ch : channel_sets_.map())
+    // close all still open Streams
+    for (auto& ch : stream_sets_.map())
         ch.second->Close();
 
     // terminate dispatcher, this waits for unfinished AsyncWrites.
@@ -30,73 +30,141 @@ Multiplexer::~Multiplexer() {
     group_.Close();
 }
 
-ChannelPtr Multiplexer::_GetOrCreateChannel(size_t id, size_t local_worker_id) {
-    ChannelSetPtr set = channel_sets_.GetOrCreate(id, *this, id, num_workers_per_host_);
+CatStreamPtr
+Multiplexer::_GetOrCreateCatStream(size_t id, size_t local_worker_id) {
+    CatStreamSetPtr set =
+        stream_sets_.GetOrCreate<CatStreamSet>(
+            id, *this, id, num_workers_per_host_);
+    return set->peer(local_worker_id);
+}
+
+MixStreamPtr
+Multiplexer::_GetOrCreateMixStream(size_t id, size_t local_worker_id) {
+    MixStreamSetPtr set =
+        stream_sets_.GetOrCreate<MixStreamSet>(
+            id, *this, id, num_workers_per_host_);
     return set->peer(local_worker_id);
 }
 
 /******************************************************************************/
 
-//! expects the next ChannelBlockHeader from a socket and passes to
-//! OnChannelBlockHeader
-void Multiplexer::AsyncReadChannelBlockHeader(Connection& s) {
+//! expects the next StreamBlockHeader from a socket and passes to
+//! OnStreamBlockHeader
+void Multiplexer::AsyncReadBlockHeader(Connection& s) {
     dispatcher_.AsyncRead(
-        s, sizeof(ChannelBlockHeader),
+        s, BlockHeader::total_size,
         net::AsyncReadCallback::from<
-            Multiplexer, & Multiplexer::OnChannelBlockHeader>(this));
+            Multiplexer, & Multiplexer::OnBlockHeader>(this));
 }
 
-void Multiplexer::OnChannelBlockHeader(Connection& s, net::Buffer&& buffer) {
+void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
 
     // received invalid Buffer: the connection has closed?
     if (!buffer.IsValid()) return;
 
-    ChannelBlockHeader header;
+    StreamBlockHeader header;
     net::BufferReader br(buffer);
     header.ParseHeader(br);
 
-    // received channel id
-    auto id = header.channel_id;
-    auto local_worker = header.receiver_local_worker_id;
-    ChannelPtr channel = GetOrCreateChannel(id, local_worker);
+    // received stream id
+    StreamId id = header.stream_id;
+    size_t local_worker = header.receiver_local_worker_id;
+    size_t sender_worker_rank =
+        header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
 
-    size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
-    if (header.IsEnd()) {
-        sLOG << "end of stream on" << s << "in channel" << id << "from worker" << sender_worker_rank;
-        channel->OnCloseChannel(sender_worker_rank);
+    if (header.magic == MagicByte::CAT_STREAM_BLOCK)
+    {
+        CatStreamPtr stream = GetOrCreateCatStream(id, local_worker);
 
-        AsyncReadChannelBlockHeader(s);
+        if (header.IsEnd()) {
+            sLOG << "end of stream on" << s << "in CatStream" << id
+                 << "from worker" << sender_worker_rank;
+
+            stream->OnCloseStream(sender_worker_rank);
+
+            AsyncReadBlockHeader(s);
+        }
+        else {
+            sLOG << "stream header from" << s << "on CatStream" << id
+                 << "from worker" << sender_worker_rank;
+
+            ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
+
+            dispatcher_.AsyncRead(
+                s, bytes,
+                [this, header, stream, bytes](Connection& s) {
+                    OnCatStreamBlock(s, header, stream, bytes);
+                });
+        }
+    }
+    else if (header.magic == MagicByte::MIX_STREAM_BLOCK)
+    {
+        MixStreamPtr stream = GetOrCreateMixStream(id, local_worker);
+
+        if (header.IsEnd()) {
+            sLOG << "end of stream on" << s << "in MixStream" << id
+                 << "from worker" << sender_worker_rank;
+
+            stream->OnCloseStream(sender_worker_rank);
+
+            AsyncReadBlockHeader(s);
+        }
+        else {
+            sLOG << "stream header from" << s << "on MixStream" << id
+                 << "from worker" << sender_worker_rank;
+
+            ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
+
+            dispatcher_.AsyncRead(
+                s, bytes,
+                [this, header, stream, bytes](Connection& s) {
+                    OnMixStreamBlock(s, header, stream, bytes);
+                });
+        }
     }
     else {
-        sLOG << "stream header from" << s << "on channel" << id
-             << "from" << header.sender_rank;
-
-        ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
-
-        dispatcher_.AsyncRead(
-            s, bytes,
-            [this, header, channel, bytes](Connection& s) {
-                OnChannelBlock(s, header, channel, bytes);
-            });
+        die("Invalid magic byte in BlockHeader");
     }
 }
 
-void Multiplexer::OnChannelBlock(
-    Connection& s, const ChannelBlockHeader& header, const ChannelPtr& channel,
-    const ByteBlockPtr& bytes) {
+void Multiplexer::OnCatStreamBlock(
+    Connection& s, const StreamBlockHeader& header,
+    const CatStreamPtr& stream, const ByteBlockPtr& bytes) {
 
     size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
-    sLOG << "got block on" << s << "in channel" << header.channel_id << "from worker" << sender_worker_rank;
+    sLOG << "got block on" << s << "in CatStream" << header.stream_id << "from worker" << sender_worker_rank;
 
-    channel->OnChannelBlock(
+    stream->OnStreamBlock(
         sender_worker_rank,
         Block(bytes, 0, header.size, header.first_item, header.num_items));
 
-    AsyncReadChannelBlockHeader(s);
+    AsyncReadBlockHeader(s);
 }
 
-BlockQueue* Multiplexer::loopback(size_t channel_id, size_t from_worker_id, size_t to_worker_id) {
-    return channel_sets_.GetOrDie(channel_id)->peer(to_worker_id)->loopback_queue(from_worker_id);
+void Multiplexer::OnMixStreamBlock(
+    Connection& s, const StreamBlockHeader& header,
+    const MixStreamPtr& stream, const ByteBlockPtr& bytes) {
+
+    size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
+    sLOG << "got block on" << s << "in MixStream" << header.stream_id << "from worker" << sender_worker_rank;
+
+    stream->OnStreamBlock(
+        sender_worker_rank,
+        Block(bytes, 0, header.size, header.first_item, header.num_items));
+
+    AsyncReadBlockHeader(s);
+}
+
+BlockQueue* Multiplexer::CatLoopback(
+    size_t stream_id, size_t from_worker_id, size_t to_worker_id) {
+    return stream_sets_.GetOrDie<CatStreamSet>(stream_id)
+           ->peer(to_worker_id)->loopback_queue(from_worker_id);
+}
+
+MixBlockQueueSink* Multiplexer::MixLoopback(
+    size_t stream_id, size_t from_worker_id, size_t to_worker_id) {
+    return stream_sets_.GetOrDie<MixStreamSet>(stream_id)
+           ->peer(to_worker_id)->loopback_queue(from_worker_id);
 }
 
 } // namespace data

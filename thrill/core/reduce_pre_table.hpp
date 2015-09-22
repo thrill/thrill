@@ -130,8 +130,8 @@ public:
 
         using IndexResult = typename ReducePreTable::IndexResult;
 
-        size_t global_index = k * ht->NumBucketsPerTable() / size_;
-        size_t partition_id = k * ht->NumPartitions() / size_;
+        size_t global_index = std::min(ht->NumBucketsPerTable() - 1, k * ht->NumBucketsPerTable() / size_);
+        size_t partition_id = std::min(k * ht->NumPartitions() / size_, ht->NumPartitions() - 1);
         size_t local_index = global_index -
                              partition_id * ht->NumBucketsPerPartition();
         return IndexResult(partition_id, local_index, global_index);

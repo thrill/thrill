@@ -25,8 +25,10 @@
 #ifndef THRILL_CORE_LOSERTREE_HEADER
 #define THRILL_CORE_LOSERTREE_HEADER
 
-#include <functional>
 #include <thrill/common/math.hpp>
+
+#include <algorithm>
+#include <functional>
 
 namespace thrill {
 namespace core {
@@ -195,7 +197,8 @@ public:
     using base_type::losers;
     using base_type::comp;
 
-    LoserTreeCopy(size_type _k, Comparator _comp = std::less<ValueType>())
+    explicit LoserTreeCopy(size_type _k,
+                           Comparator _comp = std::less<ValueType>())
         : base_type(_k, _comp)
     { }
 
@@ -249,7 +252,8 @@ public:
     using base_type::losers;
     using base_type::comp;
 
-    LoserTreeCopy(size_type _k, Comparator _comp = std::less<ValueType>())
+    explicit LoserTreeCopy(size_type _k,
+                           Comparator _comp = std::less<ValueType>())
         : base_type(_k, _comp)
     { }
 
@@ -313,7 +317,8 @@ private:
     Comparator comp;
 
 public:
-    LoserTreeReference(unsigned int _k, Comparator _comp = std::less<T>()) : comp(_comp) {
+    explicit LoserTreeReference(unsigned int _k,
+                                Comparator _comp = std::less<T>()) : comp(_comp) {
         ik = _k;
         k = common::RoundUpToPowerOfTwo(ik);
         losers = new Loser[k * 2];
@@ -604,7 +609,8 @@ public:
     using base_type::losers;
     using base_type::comp;
 
-    LoserTreePointer(size_type _k, Comparator _comp = std::less<ValueType>())
+    explicit LoserTreePointer(size_type _k,
+                              Comparator _comp = std::less<ValueType>())
         : base_type(_k, _comp)
     { }
 
@@ -654,7 +660,8 @@ public:
     using base_type::losers;
     using base_type::comp;
 
-    LoserTreePointer(size_type _k, Comparator _comp = std::less<ValueType>())
+    explicit LoserTreePointer(size_type _k,
+                              Comparator _comp = std::less<ValueType>())
         : base_type(_k, _comp)
     { }
 
