@@ -38,23 +38,22 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    int n;
-    clp.AddParamInt("n", n, "Iterations");
+    int n = 1;
 
-    std::string input;
-    clp.AddParamString("input", input,
-                       "input file pattern");
+    std::string input = "/Users/chau/projects/thrill/build/benchmarks/groupby/in/2GB/*";
 
-    if (!clp.Process(argc, argv)) {
-        return -1;
-    }
+    int m = 100;
+
+    int host = 1;
+
+    int worker = 4;
 
     clp.PrintResult();
 
-    auto start_func = [n, &input](api::Context& ctx) {
+    auto start_func = [n, m, &input, host, worker](api::Context& ctx) {
         thrill::common::StatsTimer<true> timer(false);
 
-        auto modulo_keyfn = [](size_t in) { return (in % 100); };
+        auto modulo_keyfn = [m](size_t in) { return (in % m); };
 
         auto median_fn = [](auto& r, std::size_t) {
             std::vector<std::size_t> all;
@@ -65,13 +64,13 @@ int main(int argc, char* argv[]) {
             return all[all.size() / 2 - 1];
         };
 
-        auto in = api::ReadBinary<size_t>(ctx, input).Keep();
-        in.Size();
-
+        std::size_t elem = 0;
         // group by to compute median
         timer.Start();
         for (int i = 0; i < n; i++) {
-            in.GroupBy<size_t>(modulo_keyfn, median_fn).Size();
+            LOG1 << "trying my best";
+            LOG1 << input;
+            elem = api::ReadBinary<size_t>(ctx, input).GroupBy<size_t>(modulo_keyfn, median_fn).Size();
         }
         timer.Stop();
 
@@ -80,7 +79,10 @@ int main(int argc, char* argv[]) {
              << " name=total"
              << " rank=" << ctx.my_rank()
              << " time=" << (double)timer.Milliseconds()/(double)n
-             << " filename=" << input;
+             << " filename=" << input
+             << " num_hosts=" << host
+             << " elem=" << elem
+             << " num_worker=" << worker;
 
     };
 
