@@ -105,6 +105,8 @@ void ChannelAllToAll(uint64_t bytes, size_t min_size, size_t max_size, unsigned 
         total_timer.Stop();
         LOG1 << "RESULT"
                   << " experiment=" << "channel_all_to_all"
+                  << " workers=" << ctx.num_workers()
+                  << " hosts=" << ctx.num_hosts()
                   << " datatype=" << type_as_string
                   << " size=" << bytes
                   << " block_size=" << block_size
@@ -143,6 +145,8 @@ void ChannelP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterati
         }
         LOG1 << "RESULT"
                   << " experiment=" << "channel_1p"
+                  << " workers=" << ctx.num_workers()
+                  << " hosts=" << ctx.num_hosts()
                   << " datatype=" << type_as_string
                   << " size=" << bytes
                   << " block_size=" << block_size
@@ -183,6 +187,8 @@ void ChannelAToBExperiment(uint64_t bytes, size_t min_size, size_t max_size, uns
         }
         LOG1 << "RESULT"
                   << " experiment=" << "channel_a_to_b"
+                  << " workers=" << ctx.num_workers()
+                  << " hosts=" << ctx.num_hosts()
                   << " datatype=" << type_as_string
                   << " size=" << bytes
                   << " block_size=" << block_size
@@ -235,6 +241,8 @@ void BlockQueueExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsi
         threads.LoopUntilEmpty();
         LOG1 << "RESULT"
                   << " experiment=" << "block_queue"
+                  << " workers=" << ctx.num_workers()
+                  << " hosts=" << ctx.num_hosts()
                   << " datatype=" << type_as_string
                   << " size=" << bytes
                   << " block_size=" << block_size
