@@ -70,6 +70,55 @@ void FileExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsigned i
     }
 }
 
+//! Writes and reads random elements from a file.
+//! Elements are genreated before the timer startet
+//! Number of elements depends on the number of bytes.
+//! one RESULT line will be printed for each iteration
+//! All iterations use the same generated data.
+//! Variable-length elements range between 1 and 100 bytes per default
+template <typename Type>
+void ChannelAToBExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterations, api::Context& ctx, const std::string& type_as_string, size_t block_size) {
+
+    for (unsigned i = 0; i < iterations; i++) {
+        auto stream = ctx.GetNewCatStream();
+        auto writers = stream->OpenWriters(block_size);
+        auto data = Generator<Type>(bytes, min_size, max_size);
+
+        StatsTimer<true> write_timer;
+        if (ctx.my_rank() != 0) {
+            std::cout << "writing " << bytes << " bytes" << std::endl;
+            write_timer.Start();
+            while (data.HasNext()) {
+                writers[0](data.Next());
+            }
+            for (auto& w : writers)
+                w.Close();
+            write_timer.Stop();
+        } else
+            for (auto& w : writers)
+                w.Close();
+
+        StatsTimer<true> read_timer;
+        if (ctx.my_rank() == 0) {
+            std::cout << "reading " << bytes << " bytes" << std::endl;
+            read_timer.Start();
+            auto reader = stream->OpenCatReader(true/*consume*/);
+            while (reader.HasNext())
+                reader.Next<Type>();
+            read_timer.Stop();
+        }
+        std::cout << "RESULT"
+                  << " experiment=" << "file"
+                  << " datatype=" << type_as_string
+                  << " size=" << bytes
+                  << " block_size=" << block_size
+                  << " avg_element_size=" << (min_size + max_size) / 2.0
+                  << " write_time=" << write_timer.Microseconds()
+                  << " read_time=" << read_timer.Microseconds()
+                  << std::endl;
+    }
+}
+
 //! Writes and reads random elements to / from block queue with 2 threads
 //! Elements are genreated before the timer startet
 //! Number of elements depends on the number of bytes.
@@ -179,6 +228,17 @@ int main(int argc, const char** argv) {
             api::RunLocalSameThread(std::bind(BlockQueueExperiment<pair>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size, threads));
         else if (type == "triple")
             api::RunLocalSameThread(std::bind(BlockQueueExperiment<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size, threads));
+        else
+            abort();
+    } else if (experiment == "channel_a_b") {
+        if (type == "size_t")
+            api::Run(std::bind(ChannelAToBExperiment<size_t>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
+        else if (type == "string")
+            api::Run(std::bind(ChannelAToBExperiment<std::string>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
+        else if (type == "pair")
+            api::Run(std::bind(ChannelAToBExperiment<pair>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
+        else if (type == "triple")
+            api::Run(std::bind(ChannelAToBExperiment<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
         else
             abort();
     } else
