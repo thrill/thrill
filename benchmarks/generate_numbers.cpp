@@ -32,8 +32,8 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    int elements;
-    clp.AddParamInt("n", elements, "Elements");
+    unsigned int elements;
+    clp.AddParamUInt("n", elements, "Elements");
 
 
     std::string output;
