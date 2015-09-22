@@ -84,7 +84,7 @@ public:
         return "peer: " + std::to_string(peer_);
     }
 
-    std::ostream & output_ostream(std::ostream& os) const final {
+    std::ostream & OutputOstream(std::ostream& os) const final {
         return os << "[mpi::Connection"
                   << " group_tag_=" << group_tag_
                   << " peer_=" << peer_

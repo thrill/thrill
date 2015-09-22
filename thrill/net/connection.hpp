@@ -56,7 +56,7 @@ public:
     bool is_loopback_ = false;
 
     //! Additional flags for sending or receiving.
-    enum Flags : unsigned {
+    enum Flags : size_t {
         NoFlags = 0,
         //! indicate that more data is coming, hence, sending a packet may be
         //! delayed. currently only applies to TCP.
@@ -66,7 +66,7 @@ public:
     //! operator to combine flags
     friend inline Flags operator | (const Flags& a, const Flags& b) {
         return static_cast<Flags>(
-            static_cast<unsigned>(a) | static_cast<unsigned>(b));
+            static_cast<size_t>(a) | static_cast<size_t>(b));
     }
 
     //! \name Base Status Functions
@@ -79,7 +79,7 @@ public:
     virtual std::string ToString() const = 0;
 
     //! virtual method to output to a std::ostream
-    virtual std::ostream & output_ostream(std::ostream& os) const = 0;
+    virtual std::ostream & OutputOstream(std::ostream& os) const = 0;
 
     //! \}
 
@@ -182,7 +182,7 @@ public:
 
     //! make ostreamable
     friend std::ostream& operator << (std::ostream& os, const Connection& c) {
-        return c.output_ostream(os);
+        return c.OutputOstream(os);
     }
 };
 

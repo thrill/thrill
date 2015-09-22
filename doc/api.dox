@@ -28,7 +28,7 @@ uses the DIABase graph to optimize the order of operations.
 
 # List of Actions
 
-## \ref Generate (ctx, generator_function, size)
+## Generate (ctx, generator_function, size)
 
 \copybrief api::Generate
 \copydoc api::Generate

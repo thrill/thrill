@@ -186,7 +186,7 @@ public:
     }
 
     //! make ostreamable
-    std::ostream & output_ostream(std::ostream& os) const final {
+    std::ostream & OutputOstream(std::ostream& os) const final {
         os << "[tcp::Connection"
            << " fd=" << GetSocket().fd();
 
