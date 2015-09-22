@@ -33,8 +33,9 @@ thrill_build_prog(hashtable/bench_probing_hashtable)
 
 thrill_build_prog(data/disk)
 thrill_build_prog(data/file_read_write)
-thrill_build_prog(data/channel)
 thrill_build_prog(generate_data)
+thrill_build_prog(edit_graph)
+thrill_build_prog(generate_numbers)
 thrill_build_prog(data/stream)
 
 if(NOT MSVC)
