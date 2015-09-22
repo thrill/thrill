@@ -30,7 +30,10 @@ using common::StatsTimer;
 //! All iterations use the same generated data.
 //! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
-void ConductExperiment(uint64_t bytes, unsigned iterations, api::Context& ctx, const std::string& type_as_string) {
+void ConductExperiment(uint64_t bytes, unsigned iterations, api::Context& ctx, const std::string& type_as_string, const std::string& reader_type) {
+
+    if (reader_type != "consume" && reader_type != "non-consume")
+        abort();
 
     for (unsigned i = 0; i < iterations; i++) {
         auto file = ctx.GetFile();
@@ -46,14 +49,16 @@ void ConductExperiment(uint64_t bytes, unsigned iterations, api::Context& ctx, c
         write_timer.Stop();
 
         std::cout << "reading " << bytes << " bytes" << std::endl;
-        auto reader = file.GetConsumeReader();
+        bool consume = reader_type == "consume";
         StatsTimer<true> read_timer(true);
+        auto reader = file.GetReader(consume);
         while (reader.HasNext())
             reader.Next<Type>();
         read_timer.Stop();
         std::cout << "RESULT"
                   << " datatype=" << type_as_string
                   << " size=" << bytes
+                  << " reader=" << reader_type
                   << " write_time=" << write_timer.Microseconds()
                   << " read_time=" << read_timer.Microseconds()
                   << std::endl;
@@ -67,25 +72,28 @@ int main(int argc, const char** argv) {
     clp.SetDescription("thrill::data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
     unsigned iterations = 1;
-    uint64_t bytes;
+    uint64_t bytes = 1024;
     std::string type;
-    clp.AddBytes('b', "bytes", bytes, "number of bytes to process");
+    std::string reader_type;
+    clp.AddBytes('b', "bytes", bytes, "number of bytes to process (default 1024)");
     clp.AddUInt('n', "iterations", iterations, "Iterations (default: 1)");
     clp.AddParamString("type", type,
                        "data type (size_t, string, pair, triple)");
+    clp.AddParamString("reader", reader_type,
+                       "reader type (consume, non-consume)");
     if (!clp.Process(argc, argv)) return -1;
 
     using pair = std::tuple<std::string, size_t>;
     using triple = std::tuple<std::string, size_t, std::string>;
 
     if (type == "size_t")
-        api::RunLocalSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type, reader_type));
     else if (type == "string")
-        api::RunLocalSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type, reader_type));
     else if (type == "pair")
-        api::RunLocalSameThread(std::bind(ConductExperiment<pair>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<pair>, bytes, iterations, std::placeholders::_1, type, reader_type));
     else if (type == "triple")
-        api::RunLocalSameThread(std::bind(ConductExperiment<triple>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<triple>, bytes, iterations, std::placeholders::_1, type, reader_type));
     else
         abort();
 }
