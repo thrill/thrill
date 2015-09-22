@@ -32,8 +32,11 @@ thrill_build_prog(hashtable/bench_bucket_hashtable)
 thrill_build_prog(hashtable/bench_probing_hashtable)
 
 thrill_build_prog(data/disk)
-thrill_build_prog(data/file_read_write)
 thrill_build_prog(data/stream)
+thrill_build_prog(data/io_benches)
+
+thrill_build_prog(sort/generate_data)
+thrill_build_prog(sort/sort)
 
 if(NOT MSVC)
   # these benchmarks use a non-portable method to initialize the network,
