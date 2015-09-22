@@ -11,6 +11,7 @@
 #include <thrill/api/context.hpp>
 #include <thrill/data/block_queue.hpp>
 #include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/common/stats_timer.hpp>
@@ -70,12 +71,44 @@ void FileExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsigned i
     }
 }
 
-//! Writes and reads random elements from a file.
-//! Elements are genreated before the timer startet
-//! Number of elements depends on the number of bytes.
-//! one RESULT line will be printed for each iteration
-//! All iterations use the same generated data.
-//! Variable-length elements range between 1 and 100 bytes per default
+template <typename Type>
+void ChannelP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterations, api::Context& ctx, const std::string& type_as_string, size_t block_size) {
+
+    for (unsigned i = 0; i < iterations; i++) {
+
+        StatsTimer<true> write_timer, read_timer;
+        for (size_t round = 0; round < ctx.num_workers(); round++) {
+            size_t send_to = (ctx.my_rank() + round + 1) % ctx.num_workers();
+            STAT(ctx) << "round" << round << "from" << ctx.num_workers() << "send_to" << send_to;
+
+            auto stream = ctx.GetNewMixStream();
+            auto data = Generator<Type>(bytes, min_size, max_size);
+            auto writers = stream->OpenWriters(block_size);
+            write_timer.Start();
+            while (data.HasNext()) {
+                writers[send_to](data.Next());
+            }
+            for (auto& w : writers)
+                w.Close();
+            write_timer.Stop();
+            read_timer.Start();
+            auto reader = stream->OpenMixReader(true/*consume*/);
+            while (reader.HasNext())
+                reader.Next<Type>();
+            read_timer.Stop();
+        }
+        std::cout << "RESULT"
+                  << " experiment=" << "file"
+                  << " datatype=" << type_as_string
+                  << " size=" << bytes
+                  << " block_size=" << block_size
+                  << " avg_element_size=" << (min_size + max_size) / 2.0
+                  << " write_time=" << write_timer.Microseconds()
+                  << " read_time=" << read_timer.Microseconds()
+                  << std::endl;
+    }
+}
+
 template <typename Type>
 void ChannelAToBExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterations, api::Context& ctx, const std::string& type_as_string, size_t block_size) {
 
@@ -239,6 +272,17 @@ int main(int argc, const char** argv) {
             api::Run(std::bind(ChannelAToBExperiment<pair>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
         else if (type == "triple")
             api::Run(std::bind(ChannelAToBExperiment<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
+        else
+            abort();
+    } else if (experiment == "channel_1p") {
+        if (type == "size_t")
+            api::Run(std::bind(ChannelP<size_t>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
+        else if (type == "string")
+            api::Run(std::bind(ChannelP<std::string>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
+        else if (type == "pair")
+            api::Run(std::bind(ChannelP<pair>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
+        else if (type == "triple")
+            api::Run(std::bind(ChannelP<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
         else
             abort();
     } else
