@@ -307,7 +307,7 @@ protected:
     unsigned int outer_repeats_ = 1;
 
     //! inner repetitions
-    unsigned int inner_repeats_ = 100;
+    unsigned int inner_repeats_ = 1;
 
     //! globally synchronized ping/pong counter to count and match packets.
     size_t counter_ = 0;
