@@ -213,11 +213,9 @@ private:
      * Send all elements to their designated PEs
      */
     void PreOp(const ValueIn& v) {
-        LOG << "start assigning elems";
         const Key k = key_extractor_(v);
         const auto recipient = hash_function_(k) % emitter_.size();
         emitter_[recipient](v);
-        LOG << "finish assigning elems";
     }
 
     /*
