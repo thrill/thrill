@@ -58,6 +58,7 @@ void FileExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsigned i
             reader.Next<Type>();
         read_timer.Stop();
         std::cout << "RESULT"
+                  << " experiment=" << "file"
                   << " datatype=" << type_as_string
                   << " size=" << bytes
                   << " block_size=" << block_size
@@ -110,6 +111,7 @@ void BlockQueueExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsi
         });
         threads.LoopUntilEmpty();
         std::cout << "RESULT"
+                  << " experiment=" << "block_queue"
                   << " datatype=" << type_as_string
                   << " size=" << bytes
                   << " block_size=" << block_size
