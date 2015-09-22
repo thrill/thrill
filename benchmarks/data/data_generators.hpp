@@ -31,7 +31,7 @@ template <>
 class Generator<size_t>
 {
 public:
-    explicit Generator(size_t bytes)
+    explicit Generator(size_t bytes, size_t /*min_size*/, size_t /*max_size*/)
         : size_((bytes + sizeof(size_t) - 1) / sizeof(size_t)) { }
 
     bool HasNext() const { return size_ > 0; }
@@ -51,8 +51,9 @@ template <>
 class Generator<std::string>
 {
 public:
-    explicit Generator(size_t bytes)
-        : bytes_(bytes) { }
+    explicit Generator(size_t bytes, size_t min_size, size_t max_size)
+        : bytes_(bytes),
+          uniform_dist_(min_size, max_size) { }
 
     bool HasNext() const { return bytes_ > 0; }
 
@@ -67,7 +68,7 @@ protected:
 
     // init randomness
     std::default_random_engine randomness_ { std::random_device { } () };
-    std::uniform_int_distribution<size_t> uniform_dist_ { 1, 100 };
+    std::uniform_int_distribution<size_t> uniform_dist_;
 };
 
 /******************************************************************************/
@@ -98,8 +99,8 @@ template <typename ... Types>
 class Generator<std::tuple<Types ...> >
 {
 public:
-    explicit Generator(size_t bytes)
-        : gen_(Generator<Types>(bytes) ...) { }
+    explicit Generator(size_t bytes, size_t min_size, size_t max_size)
+        : gen_(Generator<Types>(bytes, min_size, max_size) ...) { }
 
     bool HasNext() const {
         return TupleGenerator<sizeof ... (Types), Types ...>::HasNext(gen_);
