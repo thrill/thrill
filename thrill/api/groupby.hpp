@@ -121,6 +121,7 @@ public:
             RunUserFunc(files_[0], consume);
         }       // otherwise sort all runs using multiway merge
         else {
+            LOG1 << "USING MULTIWAYMERGE";
             LOG << "start multiwaymerge";
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
@@ -238,7 +239,7 @@ private:
     auto MainOp() {
         LOG << "running group by main op";
 
-        const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
+        const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn) * 4;
         // const size_t FIXED_VECTOR_SIZE = 4;
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);

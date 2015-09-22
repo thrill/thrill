@@ -26,7 +26,7 @@
 
 using namespace thrill; // NOLINT
 
-static const bool debug = true;
+static const bool debug = false;
 
 TEST(GroupByNode, CompileAndSum) {
 
@@ -140,15 +140,11 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) {
-                    return index;
-                },
-                5);
-
-            static size_t result_size = 5;
+                [](const size_t& index) { return index; },
+                n);
 
             auto key = [](size_t in) {
-                           return in;
+                           return in % m;
                        };
 
             auto add_function =
@@ -178,7 +174,7 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
         };
 
     api::RunLocalTests(start_func);
-    // RunLocalMock(1, 1, start_func);
+    // RunLocalMock(2, 1, start_func);
 }
 
 /******************************************************************************/
