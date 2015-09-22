@@ -104,7 +104,7 @@ void ChannelAllToAll(uint64_t bytes, size_t min_size, size_t max_size, unsigned 
 
         total_timer.Stop();
         LOG1 << "RESULT"
-                  << " experiment=" << "file"
+                  << " experiment=" << "channel_all_to_all"
                   << " datatype=" << type_as_string
                   << " size=" << bytes
                   << " block_size=" << block_size
@@ -142,7 +142,7 @@ void ChannelP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterati
             read_timer.Stop();
         }
         LOG1 << "RESULT"
-                  << " experiment=" << "file"
+                  << " experiment=" << "channel_1p"
                   << " datatype=" << type_as_string
                   << " size=" << bytes
                   << " block_size=" << block_size
@@ -182,7 +182,7 @@ void ChannelAToBExperiment(uint64_t bytes, size_t min_size, size_t max_size, uns
             read_timer.Stop();
         }
         LOG1 << "RESULT"
-                  << " experiment=" << "file"
+                  << " experiment=" << "channel_a_to_b"
                   << " datatype=" << type_as_string
                   << " size=" << bytes
                   << " block_size=" << block_size
