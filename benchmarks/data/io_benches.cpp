@@ -77,12 +77,12 @@ void FileExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsigned i
 //! All iterations use the same generated data.
 //! Variable-length elements range between 1 and 100 bytes per default
 template <typename Type>
-void BlockQueueExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterations, api::Context& ctx, const std::string& type_as_string, const std::string& reader_type, size_t block_size) {
+void BlockQueueExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterations, api::Context& ctx, const std::string& type_as_string, const std::string& reader_type, size_t block_size, size_t num_threads) {
 
     if (reader_type != "consume" && reader_type != "non-consume")
         abort();
 
-    common::ThreadPool threads(2);
+    common::ThreadPool threads(num_threads + 1);
     for (unsigned i = 0; i < iterations; i++) {
         auto queue = data::BlockQueue(ctx.block_pool());
         auto data = Generator<Type>(bytes, min_size, max_size);
@@ -99,16 +99,19 @@ void BlockQueueExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsi
             write_timer.Stop();
         });
 
-        StatsTimer<true> read_timer;
+        std::chrono::microseconds::rep read_time = 0;
         bool consume = reader_type == "consume";
-        threads.Enqueue([bytes, consume, &queue, &read_timer]() {
-            std::cout << "reading " << bytes << " bytes" << std::endl;
-            read_timer.Start();
-            auto reader = queue.GetReader(consume);
-            while (reader.HasNext())
-                reader.Next<Type>();
-            read_timer.Stop();
-        });
+        for(size_t thread = 0; thread < num_threads; thread++) {
+            threads.Enqueue([bytes, consume, &queue, &read_time]() {
+                std::cout << "reading " << bytes << " bytes" << std::endl;
+                StatsTimer<true> read_timer(true);
+                auto reader = queue.GetReader(consume);
+                while (reader.HasNext())
+                    reader.Next<Type>();
+                read_timer.Stop();
+                read_time = std::max(read_time, read_timer.Microseconds());
+            });
+        }
         threads.LoopUntilEmpty();
         std::cout << "RESULT"
                   << " experiment=" << "block_queue"
@@ -118,7 +121,8 @@ void BlockQueueExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsi
                   << " avg_element_size=" << (min_size + max_size) / 2.0
                   << " reader=" << reader_type
                   << " write_time=" << write_timer.Microseconds()
-                  << " read_time=" << read_timer.Microseconds()
+                  << " read_time=" << read_time
+                  << " threads=" << num_threads
                   << std::endl;
     }
 }
@@ -130,10 +134,11 @@ int main(int argc, const char** argv) {
     clp.SetDescription("thrill::data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
     unsigned iterations = 1;
+    unsigned threads = 1;
     uint64_t bytes = 1024;
     uint64_t block_size = data::default_block_size;
-    size_t min_variable_length = 1;
-    size_t max_variable_length = 100;
+    uint64_t min_variable_length = 1;
+    uint64_t max_variable_length = 100;
     std::string experiment;
     std::string type;
     std::string reader_type;
@@ -142,6 +147,7 @@ int main(int argc, const char** argv) {
     clp.AddBytes('l', "lower", min_variable_length, "lower bound for variable element length (default 1)");
     clp.AddBytes('u', "upper", max_variable_length, "upper bound for variable element length (default 100)");
     clp.AddUInt('n', "iterations", iterations, "Iterations (default: 1)");
+    clp.AddUInt('t', "threads", threads, "Threads (default: 1)");
     clp.AddParamString("experiment", experiment,
                        "experiment to run (file, block_queue)");
     clp.AddParamString("type", type,
@@ -166,13 +172,13 @@ int main(int argc, const char** argv) {
             abort();
     } else if (experiment == "block_queue") {
         if (type == "size_t")
-            api::RunLocalSameThread(std::bind(BlockQueueExperiment<size_t>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size));
+            api::RunLocalSameThread(std::bind(BlockQueueExperiment<size_t>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size, threads));
         else if (type == "string")
-            api::RunLocalSameThread(std::bind(BlockQueueExperiment<std::string>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size));
+            api::RunLocalSameThread(std::bind(BlockQueueExperiment<std::string>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size, threads));
         else if (type == "pair")
-            api::RunLocalSameThread(std::bind(BlockQueueExperiment<pair>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size));
+            api::RunLocalSameThread(std::bind(BlockQueueExperiment<pair>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size, threads));
         else if (type == "triple")
-            api::RunLocalSameThread(std::bind(BlockQueueExperiment<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size));
+            api::RunLocalSameThread(std::bind(BlockQueueExperiment<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size, threads));
         else
             abort();
     } else
