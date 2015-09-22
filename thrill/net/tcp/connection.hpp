@@ -95,55 +95,36 @@ public:
         return *this;
     }
 
-    /**
-     * \brief Gets the state of this connection.
-     */
-    ConnectionState state() const {
-        return state_;
-    }
+    //! Gets the state of this connection.
+    ConnectionState state() const
+    { return state_; }
 
-    /**
-     * \brief Gets the id of the net group this connection is associated with.
-     */
-    size_t group_id() const {
-        return group_id_;
-    }
+    //! Gets the id of the net group this connection is associated with.
+    size_t group_id() const
+    { return group_id_; }
 
-    /**
-     * \brief Gets the id of the worker this connection is connected to.
-     */
-    size_t peer_id() const {
-        return peer_id_;
-    }
+    //! Gets the id of the worker this connection is connected to.
+    size_t peer_id() const
+    { return peer_id_; }
 
-    // TODO(ej) Make setters internal/friend NetManager
+    //! Sets the state of this connection.
+    void set_state(ConnectionState state)
+    { state_ = state; }
 
-    /**
-     * \brief Sets the state of this connection.
-     */
-    void set_state(ConnectionState state) {
-        this->state_ = state;
-    }
+    //! Sets the group id of this connection.
+    void set_group_id(size_t groupId)
+    { group_id_ = groupId; }
 
-    /**
-     * \brief Sets the group id of this connection.
-     */
-    void set_group_id(size_t groupId) {
-        this->group_id_ = groupId;
-    }
-
-    /**
-     * \brief Sets the id of the worker this connection is connected to.
-     */
-    void set_peer_id(size_t peerId) {
-        this->peer_id_ = peerId;
-    }
+    //! Sets the id of the worker this connection is connected to.
+    void set_peer_id(size_t peerId)
+    { peer_id_ = peerId; }
 
     //! Check whether the contained file descriptor is valid.
     bool IsValid() const final
     { return socket_.IsValid(); }
 
-    std::string ToString() const final { return std::to_string(GetSocket().fd()); }
+    std::string ToString() const final
+    { return std::to_string(GetSocket().fd()); }
 
     //! Return the raw socket object for more low-level network programming.
     Socket & GetSocket()

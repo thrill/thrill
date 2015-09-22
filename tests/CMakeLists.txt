@@ -71,6 +71,7 @@ endmacro(build_test_group)
 
 build_plain(common/cmdline_parser_example)
 build_test_group(common/tests
+  common/aggregate_test
   common/cmdline_parser_test.cpp
   common/concurrent_bounded_queue_test.cpp
   common/concurrent_queue_test.cpp
@@ -80,6 +81,8 @@ build_test_group(common/tests
   common/function_traits_test.cpp
   common/future_queue_test.cpp
   common/future_test.cpp
+  common/math_test.cpp
+  common/matrix_test.cpp
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
   common/thread_barrier_test.cpp
@@ -99,12 +102,17 @@ build_test(net/mock_test)
 if(NOT MSVC)
   build_test(net/tcp_test)
 endif()
+if(MPI_FOUND)
+  build_only(net/mpi_test)
+  # run test with mpirun
+  add_test(net_mpi_test ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8 net_mpi_test)
+endif()
 
 build_test(data/block_queue_test)
 build_test(data/file_test)
 build_test(data/multiplexer_header_test)
 build_test(data/multiplexer_test)
-build_test(data/channel_set_test)
+build_test(data/stream_set_test)
 build_test(data/serialization_cereal_test)
 build_test(data/serialization_test)
 

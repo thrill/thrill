@@ -36,7 +36,7 @@ static void LocalGroupTest(
     const std::function<void(net::Group*)>& thread_function) {
     // execute local stream socket tests
     net::ExecuteGroupThreads(
-        net::tcp::Group::ConstructLocalMesh(6),
+        net::tcp::Group::ConstructLoopbackMesh(6),
         thread_function);
 }
 
@@ -44,12 +44,8 @@ static void LocalGroupTest(
 import tests.net.test_gen as m
 
 m.generate_group_tests('RealTcpGroup', 'RealGroupTest')
-m.generate_dispatcher_tests('RealTcpGroup', 'RealGroupTest',
-                            'net::tcp::SelectDispatcher')
 
 m.generate_group_tests('LocalTcpGroup', 'LocalGroupTest')
-m.generate_dispatcher_tests('LocalTcpGroup', 'LocalGroupTest',
-                            'net::tcp::SelectDispatcher')
 m.generate_flow_control_tests('LocalTcpGroup', 'LocalGroupTest')
 
   ]]]*/
@@ -89,6 +85,9 @@ TEST(RealTcpGroup, AllReduceString) {
 TEST(RealTcpGroup, AllReduceHypercubeString) {
     RealGroupTest(TestAllReduceHypercubeString);
 }
+TEST(RealTcpGroup, DispatcherSyncSendAsyncRead) {
+    RealGroupTest(TestDispatcherSyncSendAsyncRead);
+}
 TEST(RealTcpGroup, DispatcherLaunchAndTerminate) {
     RealGroupTest(TestDispatcherLaunchAndTerminate);
 }
@@ -97,10 +96,6 @@ TEST(RealTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 }
 TEST(RealTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     RealGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
-}
-TEST(RealTcpGroup, DispatcherSyncSendAsyncRead) {
-    RealGroupTest(
-        DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
 }
 TEST(LocalTcpGroup, NoOperation) {
     LocalGroupTest(TestNoOperation);
@@ -138,6 +133,9 @@ TEST(LocalTcpGroup, AllReduceString) {
 TEST(LocalTcpGroup, AllReduceHypercubeString) {
     LocalGroupTest(TestAllReduceHypercubeString);
 }
+TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
+    LocalGroupTest(TestDispatcherSyncSendAsyncRead);
+}
 TEST(LocalTcpGroup, DispatcherLaunchAndTerminate) {
     LocalGroupTest(TestDispatcherLaunchAndTerminate);
 }
@@ -146,10 +144,6 @@ TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 }
 TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     LocalGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
-}
-TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
-    LocalGroupTest(
-        DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
 }
 TEST(FlowControlLocalTcpGroup, SingleThreadPrefixSum) {
     LocalGroupTest(TestSingleThreadPrefixSum);

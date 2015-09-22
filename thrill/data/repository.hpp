@@ -27,11 +27,11 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-/*! A Repository holds obects that are shared among workers. Each object
- *! is addressd via and Id. Workers can allocate new Id independetly but
- *! deterministically (the repository will issue the same id sequence to all
- *! workers).
- *! Objects are created inplace via argument forwarding.
+/*!
+ * A Repository holds obects that are shared among workers. Each object is
+ * addressd via and Id. Workers can allocate new Id independetly but
+ * deterministically (the repository will issue the same id sequence to all
+ * workers).  Objects are created inplace via argument forwarding.
  */
 template <class Object>
 class Repository
@@ -54,28 +54,34 @@ public:
 
     //! Get object with given id, if it does not exist, create it.
     //! \param object_id of the object
-    //! \param local_worker_id of the local worker who requested the object
     //! \param construction parameters forwards to constructor
-    template <typename ... Types>
-    ObjectPtr GetOrCreate(Id object_id, Types&& ... construction) {
+    template <typename Subclass = Object, typename ... Types>
+    std::shared_ptr<Subclass>
+    GetOrCreate(Id object_id, Types&& ... construction) {
         auto it = map_.find(object_id);
 
-        if (it != map_.end())
-            return it->second;
+        if (it != map_.end()) {
+            die_unless(dynamic_cast<Subclass*>(it->second.get()));
+            return std::dynamic_pointer_cast<Subclass>(it->second);
+        }
 
         // construct new object
-        ObjectPtr value = std::make_shared<Object>(
+        std::shared_ptr<Subclass> value = std::make_shared<Subclass>(
             std::forward<Types>(construction) ...);
 
         map_.insert(std::make_pair(object_id, value));
-        return std::move(value);
+        return value;
     }
 
-    ObjectPtr GetOrDie(Id object_id) {
+    template <typename Subclass = Object>
+    std::shared_ptr<Subclass> GetOrDie(Id object_id) {
         auto it = map_.find(object_id);
 
-        if (it != map_.end())
-            return it->second;
+        if (it != map_.end()) {
+            die_unless(dynamic_cast<Subclass*>(it->second.get()));
+            return std::dynamic_pointer_cast<Subclass>(it->second);
+        }
+
         die("object " + std::to_string(object_id) + " not in repository");
     }
 

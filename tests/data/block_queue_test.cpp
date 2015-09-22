@@ -12,14 +12,14 @@
 #include <gtest/gtest.h>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block_queue.hpp>
-#include <thrill/data/concat_block_source.hpp>
+#include <thrill/data/cat_block_source.hpp>
 
 #include <string>
 
 using namespace thrill;
 
 using MyBlockSource = data::ConsumeBlockQueueSource;
-using ConcatBlockSource = data::ConcatBlockSource<MyBlockSource>;
+using CatBlockSource = data::CatBlockSource<MyBlockSource>;
 
 struct BlockQueue : public::testing::Test {
     data::BlockPool block_pool_ { nullptr };
@@ -161,8 +161,8 @@ TEST_F(BlockQueue, OrderedMultiQueue_Multithreaded) {
                      writer2.Close();
                  });
     pool.Enqueue([&q, &q2]() {
-                     auto reader = data::BlockReader<ConcatBlockSource>(
-                         ConcatBlockSource(
+                     auto reader = data::BlockReader<CatBlockSource>(
+                         CatBlockSource(
                              { MyBlockSource(q), MyBlockSource(q2) }));
                      ASSERT_EQ("1.1", reader.Next<std::string>());
                      ASSERT_EQ("1.2", reader.Next<std::string>());

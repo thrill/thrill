@@ -64,10 +64,10 @@ public:
              StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           compare_function_(compare_function),
-          channel_id_samples_(parent.ctx().GetNewChannel()),
-          emitters_samples_(channel_id_samples_->OpenWriters()),
-          channel_id_data_(parent.ctx().GetNewChannel()),
-          emitters_data_(channel_id_data_->OpenWriters())
+          stream_id_samples_(parent.ctx().GetNewCatStream()),
+          emitters_samples_(stream_id_samples_->OpenWriters()),
+          stream_id_data_(parent.ctx().GetNewCatStream()),
+          emitters_data_(stream_id_data_->OpenWriters())
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType& input) {
@@ -117,12 +117,12 @@ private:
     std::vector<ValueType> data_;
 
     //! Emitter to send samples to process 0
-    data::ChannelPtr channel_id_samples_;
-    std::vector<data::Channel::Writer> emitters_samples_;
+    data::CatStreamPtr stream_id_samples_;
+    std::vector<data::CatStream::Writer> emitters_samples_;
 
     //! Emitters to send data to other workers specified by splitters.
-    data::ChannelPtr channel_id_data_;
-    std::vector<data::Channel::Writer> emitters_data_;
+    data::CatStreamPtr stream_id_data_;
+    std::vector<data::CatStream::Writer> emitters_data_;
 
     // epsilon
     static constexpr double desired_imbalance_ = 0.25;
@@ -139,7 +139,7 @@ private:
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
         // TODO(tb): OpenConsumeReader
-        auto reader = channel_id_samples_->OpenConcatReader(true);
+        auto reader = stream_id_samples_->OpenCatReader(true);
 
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
@@ -336,12 +336,12 @@ private:
                 emitters_samples_[j].Close();
             }
             bool consume = false;
-            auto reader = channel_id_samples_->OpenConcatReader(consume);
+            auto reader = stream_id_samples_->OpenCatReader(consume);
             while (reader.HasNext()) {
                 splitters.push_back(reader.template Next<ValueType>());
             }
         }
-        channel_id_samples_->Close();
+        stream_id_samples_->Close();
 
         // code from SS2NPartition, slightly altered
 
@@ -375,18 +375,35 @@ private:
         data_.clear();
 
         bool consume = false;
-        auto reader = channel_id_data_->OpenConcatReader(consume);
+        auto reader = stream_id_data_->OpenCatReader(consume);
 
         while (reader.HasNext()) {
             data_.push_back(reader.template Next<ValueType>());
         }
-        channel_id_data_->Close();
+        stream_id_data_->Close();
+
+        double balance = 0;
+        if (data_.size() > 0) {
+            balance = static_cast<double>(data_.size())
+                      * static_cast<double>(num_total_workers)
+                      / static_cast<double>(total_elem);
+        }
+
+        if (balance > 1) {
+            balance = 1 / balance;
+        }
+
+        STATC << "NodeType" << "Sort"
+              << "Workers" << num_total_workers
+              << "LocalSize" << data_.size()
+              << "Balance Factor" << balance
+              << "Sample Size" << sample_size;
 
         LOG << "node " << context_.my_rank() << " : " << data_.size();
 
         std::sort(data_.begin(), data_.end(), compare_function_);
-        this->WriteChannelStats(channel_id_data_);
-        this->WriteChannelStats(channel_id_samples_);
+        this->WriteStreamStats(stream_id_data_);
+        this->WriteStreamStats(stream_id_samples_);
     }
 
     void PostOp() { }

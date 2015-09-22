@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/groupby.hpp
+ * thrill/api/groupby_index.hpp
  *
  * DIANode for a groupby to indx operation.
  * Performs the actual groupby operation
@@ -23,6 +23,7 @@
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/multiway_merge.hpp>
 
+#include <algorithm>
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -38,11 +39,12 @@ template <typename ValueType, typename ParentDIARef,
 class GroupByIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
+
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
     using ValueIn = typename std::decay<typename common::FunctionTraits<KeyExtractor>
-                    ::template arg<0>>::type;
+                                        ::template arg<0> >::type;
 
     using File = data::File;
     using Reader = typename File::Reader;
@@ -50,7 +52,7 @@ class GroupByIndexNode : public DOpNode<ValueType>
 
     struct ValueComparator
     {
-        ValueComparator(const GroupByIndexNode& info) : info_(info) { }
+        explicit ValueComparator(const GroupByIndexNode& info) : info_(info) { }
         const GroupByIndexNode& info_;
 
         bool operator () (const ValueIn& i,
@@ -74,25 +76,23 @@ public:
      * \param reduce_function Reduce function
      */
     GroupByIndexNode(const ParentDIARef& parent,
-                const KeyExtractor& key_extractor,
-                const GroupFunction& groupby_function,
-                std::size_t number_keys,
-                const ValueOut& neutral_element,
-                StatsNode* stats_node,
-                const HashFunction& hash_function = HashFunction())
+                     const KeyExtractor& key_extractor,
+                     const GroupFunction& groupby_function,
+                     size_t number_keys,
+                     const ValueOut& neutral_element,
+                     StatsNode* stats_node,
+                     const HashFunction& hash_function = HashFunction())
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           number_keys_(number_keys),
           key_range_start_(std::get<0>(common::CalculateLocalRange(
-                number_keys_, context_.num_workers(), context_.my_rank()))),
+                                           number_keys_, context_.num_workers(), context_.my_rank()))),
           key_range_end_(std::min(std::get<1>(
-                common::CalculateLocalRange(number_keys_,
-                context_.num_workers(), context_.my_rank())), number_keys_)),
+                                      common::CalculateLocalRange(number_keys_,
+                                                                  context_.num_workers(), context_.my_rank())), number_keys_)),
           neutral_element_(neutral_element),
-          hash_function_(hash_function),
-          channel_(parent.ctx().GetNewChannel()),
-          emitter_(channel_->OpenWriters())
+          hash_function_(hash_function)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -102,9 +102,9 @@ public:
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
-        channel_->OnClose([this]() {
-                              this->WriteChannelStats(this->channel_);
-                          });
+        stream_->OnClose([this]() {
+                             this->WriteStreamStats(this->stream_);
+                         });
     }
 
     //! Virtual destructor for a GroupByIndexNode.
@@ -119,8 +119,10 @@ public:
     }
 
     void PushData(bool consume) final {
+        sLOG1 << "GroupByIndexNode::PushData()";
+
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
-        const std::size_t num_runs = files_.size();
+        const size_t num_runs = files_.size();
         // if there's only one run, store it
         if (num_runs == 1) {
             RunUserFunc(files_[0], consume);
@@ -128,7 +130,7 @@ public:
         else {
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
-            for (std::size_t t = 0; t < num_runs; ++t) {
+            for (size_t t = 0; t < num_runs; ++t) {
                 std::shared_ptr<Reader> reader = std::make_shared<Reader>(files_[t].GetReader(consume));
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
@@ -141,12 +143,12 @@ public:
                 totalsize_,
                 ValueComparator(*this));
 
-            std::size_t curr_index = key_range_start_;
+            size_t curr_index = key_range_start_;
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator
-                    <ValueIn, KeyExtractor, ValueComparator>
-                    (puller, key_extractor_);
+                                     <ValueIn, KeyExtractor, ValueComparator>
+                                         (puller, key_extractor_);
 
                 while (user_iterator.HasNextForReal()) {
                     if (user_iterator.GetNextKey() != curr_index) {
@@ -154,10 +156,11 @@ public:
                         for (auto func : DIANode<ValueType>::callbacks_) {
                             func(neutral_element_);
                         }
-                    } else {
-                        //call user function
+                    }
+                    else {
+                        // call user function
                         const ValueOut res = groupby_function_(user_iterator,
-                            user_iterator.GetNextKey());
+                                                               user_iterator.GetNextKey());
                         // push result to callback functions
                         for (auto func : DIANode<ValueType>::callbacks_) {
                             // LOG << "grouped to value " << res;
@@ -190,15 +193,15 @@ public:
 private:
     const KeyExtractor& key_extractor_;
     const GroupFunction& groupby_function_;
-    const std::size_t number_keys_;
-    const std::size_t key_range_start_;
-    const std::size_t key_range_end_;
+    const size_t number_keys_;
+    const size_t key_range_start_;
+    const size_t key_range_end_;
     const ValueOut& neutral_element_;
     HashFunction hash_function_;
-    std::size_t totalsize_ = 0;
+    size_t totalsize_ = 0;
 
-    data::ChannelPtr channel_;
-    std::vector<data::Channel::Writer> emitter_;
+    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+    std::vector<data::CatStream::Writer> emitter_ { stream_->OpenWriters() };
     std::vector<data::File> files_;
 
     void RunUserFunc(File& f, bool consume) {
@@ -206,17 +209,18 @@ private:
         if (r.HasNext()) {
             // create iterator to pass to user_function
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
-            std::size_t curr_index = key_range_start_;
+            size_t curr_index = key_range_start_;
             while (user_iterator.HasNextForReal()) {
                 if (user_iterator.GetNextKey() != curr_index) {
                     // push neutral element as result to callback functions
                     for (auto func : DIANode<ValueType>::callbacks_) {
                         func(neutral_element_);
                     }
-                } else {
+                }
+                else {
                     // call user function
                     const ValueOut res = groupby_function_(user_iterator,
-                        user_iterator.GetNextKey());
+                                                           user_iterator.GetNextKey());
                     // push result to callback functions
                     for (auto func : DIANode<ValueType>::callbacks_) {
                         // LOG << "grouped to value " << res;
@@ -234,7 +238,6 @@ private:
             }
         }
     }
-
 
     /*
      * Send all elements to their designated PEs
@@ -269,8 +272,7 @@ private:
     auto MainOp() {
         LOG << "running group by main op";
 
-        const bool consume = true;
-        const std::size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
+        const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
 
@@ -279,9 +281,8 @@ private:
             e.Close();
         }
 
-
         // get incoming elements
-        auto reader = channel_->OpenConcatReader(consume);
+        auto reader = stream_->OpenCatReader(true /* consume */);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
@@ -297,6 +298,7 @@ private:
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
 
+        stream_->Close();
     }
 };
 
@@ -310,8 +312,8 @@ template <typename ValueOut,
 auto DIARef<ValueType, Stack>::GroupByIndex(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function,
-    const std::size_t number_keys,
-    const ValueOut& neutral_element) const {
+    const size_t number_keys,
+    const ValueOut &neutral_element) const {
 
     using DOpResult
               = ValueOut;
@@ -326,21 +328,16 @@ auto DIARef<ValueType, Stack>::GroupByIndex(
     StatsNode* stats_node = AddChildStatsNode("GroupByIndex", DIANodeType::DOP);
     using GroupByResultNode
               = GroupByIndexNode<DOpResult, DIARef, KeyExtractor,
-                            GroupFunction, HashFunction>;
+                                 GroupFunction, HashFunction>;
     auto shared_node
-        = std::make_shared<GroupByResultNode>(*this,
-                                              key_extractor,
-                                              groupby_function,
-                                              number_keys,
-                                              neutral_element,
-                                              stats_node);
+        = std::make_shared<GroupByResultNode>(
+            *this, key_extractor, groupby_function,
+            number_keys, neutral_element, stats_node);
 
     auto groupby_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(groupby_stack)>(
-        shared_node,
-        groupby_stack,
-        { stats_node });
+        shared_node, groupby_stack, { stats_node });
 }
 
 } // namespace api

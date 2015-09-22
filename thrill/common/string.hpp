@@ -68,9 +68,9 @@ bool ends_with(const std::string& str, const std::string& match) {
 template <typename String = std::string>
 String str_snprintf(size_t max_size, const char* fmt, ...)
 #if defined(__GNUC__) || defined(__clang__)
-__attribute__ ((format(printf, 2, 3)))
+__attribute__ ((format(printf, 2, 3))) // NOLINT
 #endif
-;
+;                                      // NOLINT
 
 template <typename String>
 String str_snprintf(size_t max_size, const char* fmt, ...) {
@@ -81,6 +81,41 @@ String str_snprintf(size_t max_size, const char* fmt, ...) {
     va_start(args, fmt);
 
     const int len = std::vsnprintf(s, max_size, fmt, args);
+
+    va_end(args);
+
+    return String(s, s + len);
+}
+
+/*!
+ * Helper for using sprintf to format into std::string and also to_string
+ * converters.
+ *
+ * \param fmt printf format and additional parameters
+ */
+template <typename String = std::string>
+String str_sprintf(const char* fmt, ...)
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__ ((format(printf, 1, 2))) // NOLINT
+#endif
+;                                      // NOLINT
+
+template <typename String>
+String str_sprintf(const char* fmt, ...) {
+    // allocate buffer on stack
+    char* s = static_cast<char*>(alloca(256));
+
+    va_list args;
+    va_start(args, fmt);
+
+    int len = std::vsnprintf(s, 256, fmt, args);
+
+    if (len >= 256) {
+        // try again.
+        s = static_cast<char*>(alloca(len + 1));
+
+        len = std::vsnprintf(s, len + 1, fmt, args);
+    }
 
     va_end(args);
 
