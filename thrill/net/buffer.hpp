@@ -95,12 +95,13 @@ public:
 
     //! move-assignment of other buffer into this one
     Buffer& operator = (Buffer&& other) {
-        assert(this != &other);
-        if (data_) free(data_);
-        data_ = other.data_;
-        size_ = other.size_;
-        other.data_ = nullptr;
-        other.size_ = 0;
+        if (this != &other) {
+            if (data_) free(data_);
+            data_ = other.data_;
+            size_ = other.size_;
+            other.data_ = nullptr;
+            other.size_ = 0;
+        }
         return *this;
     }
 

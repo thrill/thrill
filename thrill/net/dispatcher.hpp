@@ -154,8 +154,8 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    void AsyncWrite(Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+    virtual void AsyncWrite(Connection& c, Buffer&& buffer,
+                            AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
         if (buffer.size() == 0) {
@@ -174,8 +174,8 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    void AsyncWrite(Connection& c, const data::Block& block,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+    virtual void AsyncWrite(Connection& c, const data::Block& block,
+                            AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
         if (block.size() == 0) {
@@ -374,7 +374,7 @@ protected:
 
         bool IsDone() const { return size_ == buffer_.size(); }
 
-    private:
+    protected:
         //! Connection reference
         Connection& conn_;
 
@@ -439,7 +439,7 @@ protected:
 
         bool IsDone() const { return size_ == buffer_.size(); }
 
-    private:
+    protected:
         //! Connection reference
         Connection& conn_;
 
@@ -505,7 +505,7 @@ protected:
 
         bool IsDone() const { return size_ == block_->size(); }
 
-    private:
+    protected:
         //! Connection reference
         Connection& conn_;
 
@@ -571,7 +571,7 @@ protected:
 
         bool IsDone() const { return size_ == block_.size(); }
 
-    private:
+    protected:
         //! Connection reference
         Connection& conn_;
 
