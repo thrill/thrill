@@ -172,7 +172,7 @@ TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
                 w(t);
             }
         }
-        in.push_back(f);
+        in.emplace_back(std::move(f));
     }
 
     for (size_t t = 0; t < in.size(); ++t) {
@@ -243,7 +243,7 @@ TEST_F(MultiwayMerge, File_Wrapper_with_1_Runs) {
                 w(t);
             }
         }
-        in.push_back(f);
+        in.emplace_back(std::move(f));
     }
 
     for (size_t t = 0; t < in.size(); ++t) {
@@ -312,7 +312,7 @@ TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
                 w(t);
             }
         }
-        in.push_back(f);
+        in.emplace_back(std::move(f));
     }
 
     for (size_t t = 0; t < in.size(); ++t) {

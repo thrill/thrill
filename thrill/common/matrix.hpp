@@ -98,13 +98,13 @@ public:
     }
 
     //! equality operator
-    bool operator == (const Matrix& b) const {
+    bool operator == (const Matrix& b) const noexcept {
         if (rows() != b.rows() || columns() != b.columns()) return false;
         return std::equal(data_.begin(), data_.end(), b.data_.begin());
     }
 
     //! inequality operator
-    bool operator != (const Matrix& b) const {
+    bool operator != (const Matrix& b) const noexcept {
         return !operator == (b);
     }
 

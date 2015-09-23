@@ -251,7 +251,7 @@ public:
     // pointer operator->() const {
     // reference operator[](const difference_type& n) const {}
 
-    bool operator == (const FileIteratorWrapper& r) {
+    bool operator == (const FileIteratorWrapper& r) noexcept {
         LOG << "    Operator== ";
         LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
         LOG << "        " << std::left << std::setw(7) << "pos2: " << r.pos_;
@@ -261,7 +261,7 @@ public:
         return (file_ == r.file_) && (pos_ == r.pos_);
     }
 
-    bool operator != (const FileIteratorWrapper& r) {
+    bool operator != (const FileIteratorWrapper& r) noexcept {
         LOG << "    Operator!= ";
         LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
         LOG << "        " << std::left << std::setw(7) << "pos2: " << r.pos_;
