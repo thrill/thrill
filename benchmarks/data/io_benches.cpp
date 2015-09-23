@@ -92,7 +92,7 @@ public:
         clp.AddUInt('n', "iterations", iterations_, "Iterations (default: 1)");
 
         clp.AddParamString("reader", reader_type_,
-                           "reader type (consume, non-consume)");
+                           "reader type (consume, keep)");
 
         if (!clp.Process(argc, argv)) return -1;
 
@@ -116,7 +116,7 @@ public:
     template <typename Type>
     void Test(api::Context& ctx) {
 
-        if (reader_type_ != "consume" && reader_type_ != "non-consume")
+        if (reader_type_ != "consume" && reader_type_ != "keep")
             abort();
         bool consume = reader_type_ == "consume";
 
@@ -175,7 +175,7 @@ public:
         clp.AddUInt('n', "iterations", iterations_, "Iterations (default: 1)");
 
         clp.AddParamString("reader", reader_type_,
-                           "reader type (consume, non-consume)");
+                           "reader type (consume, keep)");
 
         if (!clp.Process(argc, argv)) return -1;
 
@@ -202,7 +202,7 @@ public:
     template <typename Type>
     void Test(api::Context& ctx) {
 
-        if (reader_type_ != "consume" && reader_type_ != "non-consume")
+        if (reader_type_ != "consume" && reader_type_ != "keep")
             abort();
         bool consume = reader_type_ == "consume";
 
@@ -385,7 +385,7 @@ public:
         clp.AddUInt('t', "threads", num_threads_, "Number of threads (default: 1)");
 
         clp.AddParamString("reader", reader_type_,
-                           "reader type (consume, non-consume)");
+                           "reader type (consume, keep)");
 
         if (!clp.Process(argc, argv)) return -1;
 
@@ -409,7 +409,7 @@ public:
     template <typename Type>
     void Test(api::Context& ctx) {
 
-        if (reader_type_ != "consume" && reader_type_ != "non-consume")
+        if (reader_type_ != "consume" && reader_type_ != "keep")
             abort();
         bool consume = reader_type_ == "consume";
 
