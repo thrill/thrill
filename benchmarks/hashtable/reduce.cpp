@@ -44,20 +44,22 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     api::Run([&input, &iterations](api::Context& ctx) {
-                 for (int i = 0; i < iterations; i++) {
-                     common::StatsTimer<true> timer(true);
-                     DIARef<size_t> dia = api::ReadBinary<size_t>(ctx, input).ReduceByKey([](const size_t& in) {
-                         return in;
-                     }, [](const size_t& in1, const size_t& in2) {
-                         (void)in2;
-                         return in1;
-                     });
-                     size_t elem = dia.Size();
-                     timer.Stop();
-                     LOG1 << "RESULT" << " time=" << timer.Milliseconds();
-                     LOG1 << elem;
-                 }
-             });
+        common::StatsTimer<true> timer(true);
+
+        auto in = api::ReadBinary<size_t>(ctx, input).Keep();
+        in.Size();
+
+        timer.Start();
+        in.ReduceByKey([](const size_t& in) {
+            return in;
+        }, [](const size_t& in1, const size_t& in2) {
+            (void)in2;
+            return in1;
+        }).Size();
+        timer.Stop();
+
+        LOG1 << "RESULT" << " time=" << timer.Milliseconds();
+    });
 }
 
 /******************************************************************************/

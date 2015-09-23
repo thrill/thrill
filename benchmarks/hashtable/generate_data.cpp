@@ -45,14 +45,14 @@ int main(int argc, char* argv[]) {
 
     api::Run([&output, &elements](api::Context& ctx) {
 
-                 std::default_random_engine generator(std::random_device { } ());
-                 std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
+        std::default_random_engine generator(std::random_device { } ());
+        std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
 
-                 Generate(ctx,
-                          [&distribution, &generator](size_t) {
-                              return distribution(generator);
-                          }, (size_t)elements).WriteBinary(output, 16 * 1024 * 1024);
-             });
+        Generate(ctx,
+                 [&distribution, &generator](size_t) {
+                     return distribution(generator);
+                 }, (size_t)elements).WriteBinary(output, 125000000);
+    });
 }
 
 /******************************************************************************/
