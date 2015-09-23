@@ -72,7 +72,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     size_t sender_worker_rank =
         header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
 
-    if (header.magic == MagicByte::CAT_STREAM_BLOCK)
+    if (header.magic == MagicByte::CatStreamBlock)
     {
         CatStreamPtr stream = GetOrCreateCatStream(id, local_worker);
 
@@ -97,7 +97,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
                 });
         }
     }
-    else if (header.magic == MagicByte::MIX_STREAM_BLOCK)
+    else if (header.magic == MagicByte::MixStreamBlock)
     {
         MixStreamPtr stream = GetOrCreateMixStream(id, local_worker);
 

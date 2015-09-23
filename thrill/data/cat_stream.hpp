@@ -85,7 +85,7 @@ public:
                         multiplexer_.block_pool_,
                         &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
-                        MagicByte::CAT_STREAM_BLOCK,
+                        MagicByte::CatStreamBlock,
                         id,
                         multiplexer_.my_host_rank(), my_local_worker_id, worker,
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);

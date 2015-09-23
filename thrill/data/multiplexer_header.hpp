@@ -29,12 +29,12 @@ namespace data {
 //! \{
 
 enum class MagicByte : uint8_t {
-    INVALID, CAT_STREAM_BLOCK, MIX_STREAM_BLOCK, PARTITION_BLOCK
+    Invalid, CatStreamBlock, MixStreamBlock, PartitionBlock
 };
 
 struct BlockHeader {
 public:
-    MagicByte           magic = MagicByte::INVALID;
+    MagicByte           magic = MagicByte::Invalid;
     size_t              size = 0;
     size_t              first_item = 0;
     size_t              num_items = 0;
@@ -119,7 +119,7 @@ struct PartitionBlockHeader : public BlockHeader {
     PartitionBlockHeader() = default;
 
     explicit PartitionBlockHeader(const Block& b)
-        : BlockHeader(MagicByte::PARTITION_BLOCK, b)
+        : BlockHeader(MagicByte::PartitionBlock, b)
     { }
 
     //! Serializes the whole block struct into a buffer
