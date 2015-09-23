@@ -56,7 +56,7 @@ public:
 
         return api::Run(
             [=](api::Context& ctx) {
-                // make a copy of this (for local workers)
+                // make a copy of this for local workers
                 PingPongLatency local = *this;
                 return local.Test(ctx);
             });
@@ -242,7 +242,7 @@ public:
 
         return api::Run(
             [=](api::Context& ctx) {
-                // make a copy of this (for local workers)
+                // make a copy of this for local workers
                 Bandwidth local = *this;
                 return local.Test(ctx);
             });
