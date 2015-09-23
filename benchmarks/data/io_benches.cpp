@@ -29,6 +29,17 @@ using common::StatsTimer;
 using pair_type = std::tuple<std::string, size_t>;
 using triple_type = std::tuple<std::string, size_t, std::string>;
 
+//! calculate MiB/s given byte size and microsecond time.
+double CalcMiBs(size_t bytes, const std::chrono::microseconds::rep& microsec) {
+    return static_cast<double>(bytes) / 1024.0 / 1024.0
+           / static_cast<double>(microsec) * 1e6;
+}
+
+//! calculate MiB/s given byte size and timer.
+double CalcMiBs(size_t bytes, const StatsTimer<true>& timer) {
+    return CalcMiBs(bytes, timer.Microseconds());
+}
+
 /******************************************************************************/
 //! Base Class for Experiments with Generator<> instances
 
@@ -146,7 +157,9 @@ public:
                  << " avg_element_size=" << (min_size_ + max_size_) / 2.0
                  << " reader=" << reader_type_
                  << " write_time=" << write_timer.Microseconds()
-                 << " read_time=" << read_timer.Microseconds();
+                 << " read_time=" << read_timer.Microseconds()
+                 << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
+                 << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
         }
     }
 
@@ -255,7 +268,10 @@ public:
                  << " avg_element_size=" << (min_size_ + max_size_) / 2.0
                  << " total_time=" << total_timer.Microseconds()
                  << " write_time=" << write_time
-                 << " read_time=" << read_timer.Microseconds();
+                 << " read_time=" << read_timer.Microseconds()
+                 << " total_speed_MiBs=" << CalcMiBs(bytes_, total_timer)
+                 << " write_speed_MiBs=" << CalcMiBs(bytes_, write_time)
+                 << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
         }
     }
 
@@ -306,7 +322,9 @@ void StreamP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iteratio
              << " block_size=" << block_size
              << " avg_element_size=" << (min_size + max_size) / 2.0
              << " write_time=" << write_timer.Microseconds()
-             << " read_time=" << read_timer.Microseconds();
+             << " read_time=" << read_timer.Microseconds()
+             << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
+             << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
     }
 }
 
@@ -355,7 +373,9 @@ void StreamAToBExperiment(api::Context& ctx) {
              << " block_size=" << block_size
              << " avg_element_size=" << (min_size + max_size) / 2.0
              << " write_time=" << write_timer.Microseconds()
-             << " read_time=" << read_timer.Microseconds();
+             << " read_time=" << read_timer.Microseconds()
+             << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
+             << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
     }
 }
 
@@ -440,6 +460,7 @@ public:
                         while (reader.HasNext())
                             reader.Next<Type>();
                         read_timer.Stop();
+                        // REVIEW(ts): this is a data race!
                         read_time = std::max(read_time, read_timer.Microseconds());
                     });
             }
@@ -455,6 +476,8 @@ public:
                  << " reader=" << reader_type_
                  << " write_time=" << write_timer.Microseconds()
                  << " read_time=" << read_time
+                 << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
+                 << " read_speed_MiBs=" << CalcMiBs(bytes_, read_time)
                  << " threads=" << num_threads_;
         }
     }
