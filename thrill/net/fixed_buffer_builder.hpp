@@ -18,6 +18,7 @@
 #include <thrill/common/item_serialization_tools.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstdlib>
 #include <stdexcept>

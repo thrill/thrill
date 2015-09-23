@@ -24,6 +24,7 @@
 #include <thrill/net/exception.hpp>
 #include <thrill/net/fixed_buffer_builder.hpp>
 
+#include <array>
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
