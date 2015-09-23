@@ -31,7 +31,8 @@ template <>
 class Generator<size_t>
 {
 public:
-    explicit Generator(size_t bytes, size_t = 0/*min_size*/, size_t = 0 /*max_size*/)
+    explicit Generator(size_t bytes,
+                       size_t = 0 /* min_size */, size_t = 0 /* max_size */)
         : size_((bytes + sizeof(size_t) - 1) / sizeof(size_t)) { }
 
     bool HasNext() const { return size_ > 0; }

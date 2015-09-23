@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/file_read_write.cpp
+ * benchmarks/data/io_benches.cpp
  *
  * Part of Project Thrill.
  *
@@ -9,12 +9,12 @@
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
-#include <thrill/data/block_queue.hpp>
 #include <thrill/common/cmdline_parser.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/thread_pool.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <thrill/common/thread_pool.hpp>
+#include <thrill/data/block_queue.hpp>
 
 #include <iostream>
 #include <random>
@@ -57,14 +57,14 @@ void FileExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsigned i
             reader.Next<Type>();
         read_timer.Stop();
         LOG1 << "RESULT"
-                  << " experiment=" << "file"
-                  << " datatype=" << type_as_string
-                  << " size=" << bytes
-                  << " block_size=" << block_size
-                  << " avg_element_size=" << (min_size + max_size) / 2.0
-                  << " reader=" << reader_type
-                  << " write_time=" << write_timer.Microseconds()
-                  << " read_time=" << read_timer.Microseconds();
+             << " experiment=" << "file"
+             << " datatype=" << type_as_string
+             << " size=" << bytes
+             << " block_size=" << block_size
+             << " avg_element_size=" << (min_size + max_size) / 2.0
+             << " reader=" << reader_type
+             << " write_time=" << write_timer.Microseconds()
+             << " read_time=" << read_timer.Microseconds();
     }
 }
 
@@ -78,42 +78,42 @@ void ChannelAllToAll(uint64_t bytes, size_t min_size, size_t max_size, unsigned 
         auto stream = ctx.GetNewMixStream();
 
         common::ThreadPool threads(ctx.num_workers() + 1);
-        threads.Enqueue([&](){
-            read_timer.Start();
-            auto reader = stream->OpenMixReader(true/*consume*/);
-            while (reader.HasNext())
-                reader.Next<Type>();
-            read_timer.Stop();
-        });
+        threads.Enqueue([&]() {
+                            read_timer.Start();
+                            auto reader = stream->OpenMixReader(true /*consume*/);
+                            while (reader.HasNext())
+                                reader.Next<Type>();
+                            read_timer.Stop();
+                        });
 
         auto writers = stream->OpenWriters(block_size);
         std::chrono::microseconds::rep write_time = 0;
-        for(size_t target = 0; target < ctx.num_workers(); target++) {
-            threads.Enqueue([&, target](){
-                auto data = Generator<Type>(bytes / ctx.num_workers(), min_size, max_size);
-                StatsTimer<true> write_timer(true);
-                while (data.HasNext()) {
-                    writers[target](data.Next());
-                }
-                writers[target].Close();
-                write_timer.Stop();
-                write_time = std::max(write_time, write_timer.Microseconds());
-            });
+        for (size_t target = 0; target < ctx.num_workers(); target++) {
+            threads.Enqueue([&, target]() {
+                                auto data = Generator<Type>(bytes / ctx.num_workers(), min_size, max_size);
+                                StatsTimer<true> write_timer(true);
+                                while (data.HasNext()) {
+                                    writers[target](data.Next());
+                                }
+                                writers[target].Close();
+                                write_timer.Stop();
+                                write_time = std::max(write_time, write_timer.Microseconds());
+                            });
         }
         threads.LoopUntilEmpty();
 
         total_timer.Stop();
         LOG1 << "RESULT"
-                  << " experiment=" << "channel_all_to_all"
-                  << " workers=" << ctx.num_workers()
-                  << " hosts=" << ctx.num_hosts()
-                  << " datatype=" << type_as_string
-                  << " size=" << bytes
-                  << " block_size=" << block_size
-                  << " avg_element_size=" << (min_size + max_size) / 2.0
-                  << " total_time=" << total_timer.Microseconds()
-                  << " write_time=" << write_time
-                  << " read_time=" << read_timer.Microseconds();
+             << " experiment=" << "channel_all_to_all"
+             << " workers=" << ctx.num_workers()
+             << " hosts=" << ctx.num_hosts()
+             << " datatype=" << type_as_string
+             << " size=" << bytes
+             << " block_size=" << block_size
+             << " avg_element_size=" << (min_size + max_size) / 2.0
+             << " total_time=" << total_timer.Microseconds()
+             << " write_time=" << write_time
+             << " read_time=" << read_timer.Microseconds();
     }
 }
 
@@ -137,21 +137,21 @@ void ChannelP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterati
                 w.Close();
             write_timer.Stop();
             read_timer.Start();
-            auto reader = stream->OpenMixReader(true/*consume*/);
+            auto reader = stream->OpenMixReader(true /*consume*/);
             while (reader.HasNext())
                 reader.Next<Type>();
             read_timer.Stop();
         }
         LOG1 << "RESULT"
-                  << " experiment=" << "channel_1p"
-                  << " workers=" << ctx.num_workers()
-                  << " hosts=" << ctx.num_hosts()
-                  << " datatype=" << type_as_string
-                  << " size=" << bytes
-                  << " block_size=" << block_size
-                  << " avg_element_size=" << (min_size + max_size) / 2.0
-                  << " write_time=" << write_timer.Microseconds()
-                  << " read_time=" << read_timer.Microseconds();
+             << " experiment=" << "channel_1p"
+             << " workers=" << ctx.num_workers()
+             << " hosts=" << ctx.num_hosts()
+             << " datatype=" << type_as_string
+             << " size=" << bytes
+             << " block_size=" << block_size
+             << " avg_element_size=" << (min_size + max_size) / 2.0
+             << " write_time=" << write_timer.Microseconds()
+             << " read_time=" << read_timer.Microseconds();
     }
 }
 
@@ -172,28 +172,29 @@ void ChannelAToBExperiment(uint64_t bytes, size_t min_size, size_t max_size, uns
             for (auto& w : writers)
                 w.Close();
             write_timer.Stop();
-        } else
+        }
+        else
             for (auto& w : writers)
                 w.Close();
 
         StatsTimer<true> read_timer;
         if (ctx.my_rank() == 0) {
             read_timer.Start();
-            auto reader = stream->OpenCatReader(true/*consume*/);
+            auto reader = stream->OpenCatReader(true /*consume*/);
             while (reader.HasNext())
                 reader.Next<Type>();
             read_timer.Stop();
         }
         LOG1 << "RESULT"
-                  << " experiment=" << "channel_a_to_b"
-                  << " workers=" << ctx.num_workers()
-                  << " hosts=" << ctx.num_hosts()
-                  << " datatype=" << type_as_string
-                  << " size=" << bytes
-                  << " block_size=" << block_size
-                  << " avg_element_size=" << (min_size + max_size) / 2.0
-                  << " write_time=" << write_timer.Microseconds()
-                  << " read_time=" << read_timer.Microseconds();
+             << " experiment=" << "channel_a_to_b"
+             << " workers=" << ctx.num_workers()
+             << " hosts=" << ctx.num_hosts()
+             << " datatype=" << type_as_string
+             << " size=" << bytes
+             << " block_size=" << block_size
+             << " avg_element_size=" << (min_size + max_size) / 2.0
+             << " write_time=" << write_timer.Microseconds()
+             << " read_time=" << read_timer.Microseconds();
     }
 }
 
@@ -216,40 +217,40 @@ void BlockQueueExperiment(uint64_t bytes, size_t min_size, size_t max_size, unsi
 
         StatsTimer<true> write_timer;
         threads.Enqueue([bytes, &data, &write_timer, &queue, block_size]() {
-            auto writer = queue.GetWriter(block_size);
-            write_timer.Start();
-            while (data.HasNext()) {
-                writer(data.Next());
-            }
-            writer.Close();
-            write_timer.Stop();
-        });
+                            auto writer = queue.GetWriter(block_size);
+                            write_timer.Start();
+                            while (data.HasNext()) {
+                                writer(data.Next());
+                            }
+                            writer.Close();
+                            write_timer.Stop();
+                        });
 
         std::chrono::microseconds::rep read_time = 0;
         bool consume = reader_type == "consume";
-        for(size_t thread = 0; thread < num_threads; thread++) {
+        for (size_t thread = 0; thread < num_threads; thread++) {
             threads.Enqueue([bytes, consume, &queue, &read_time]() {
-                StatsTimer<true> read_timer(true);
-                auto reader = queue.GetReader(consume);
-                while (reader.HasNext())
-                    reader.Next<Type>();
-                read_timer.Stop();
-                read_time = std::max(read_time, read_timer.Microseconds());
-            });
+                                StatsTimer<true> read_timer(true);
+                                auto reader = queue.GetReader(consume);
+                                while (reader.HasNext())
+                                    reader.Next<Type>();
+                                read_timer.Stop();
+                                read_time = std::max(read_time, read_timer.Microseconds());
+                            });
         }
         threads.LoopUntilEmpty();
         LOG1 << "RESULT"
-                  << " experiment=" << "block_queue"
-                  << " workers=" << ctx.num_workers()
-                  << " hosts=" << ctx.num_hosts()
-                  << " datatype=" << type_as_string
-                  << " size=" << bytes
-                  << " block_size=" << block_size
-                  << " avg_element_size=" << (min_size + max_size) / 2.0
-                  << " reader=" << reader_type
-                  << " write_time=" << write_timer.Microseconds()
-                  << " read_time=" << read_time
-                  << " threads=" << num_threads;
+             << " experiment=" << "block_queue"
+             << " workers=" << ctx.num_workers()
+             << " hosts=" << ctx.num_hosts()
+             << " datatype=" << type_as_string
+             << " size=" << bytes
+             << " block_size=" << block_size
+             << " avg_element_size=" << (min_size + max_size) / 2.0
+             << " reader=" << reader_type
+             << " write_time=" << write_timer.Microseconds()
+             << " read_time=" << read_time
+             << " threads=" << num_threads;
     }
 }
 
@@ -296,7 +297,8 @@ int main(int argc, const char** argv) {
             api::RunLocalSameThread(std::bind(FileExperiment<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size));
         else
             abort();
-    } else if (experiment == "block_queue") {
+    }
+    else if (experiment == "block_queue") {
         if (type == "size_t")
             api::RunLocalSameThread(std::bind(BlockQueueExperiment<size_t>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size, threads));
         else if (type == "string")
@@ -307,7 +309,8 @@ int main(int argc, const char** argv) {
             api::RunLocalSameThread(std::bind(BlockQueueExperiment<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, reader_type, block_size, threads));
         else
             abort();
-    } else if (experiment == "channel_a_b") {
+    }
+    else if (experiment == "channel_a_b") {
         if (type == "size_t")
             api::Run(std::bind(ChannelAToBExperiment<size_t>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
         else if (type == "string")
@@ -318,7 +321,8 @@ int main(int argc, const char** argv) {
             api::Run(std::bind(ChannelAToBExperiment<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
         else
             abort();
-    } else if (experiment == "channel_1p") {
+    }
+    else if (experiment == "channel_1p") {
         if (type == "size_t")
             api::Run(std::bind(ChannelP<size_t>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
         else if (type == "string")
@@ -329,7 +333,8 @@ int main(int argc, const char** argv) {
             api::Run(std::bind(ChannelP<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
         else
             abort();
-    } else if (experiment == "channel_all_to_all") {
+    }
+    else if (experiment == "channel_all_to_all") {
         if (type == "size_t")
             api::Run(std::bind(ChannelAllToAll<size_t>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
         else if (type == "string")
@@ -340,7 +345,8 @@ int main(int argc, const char** argv) {
             api::Run(std::bind(ChannelAllToAll<triple>, bytes, min_variable_length, max_variable_length, iterations, std::placeholders::_1, type, block_size));
         else
             abort();
-    } else
+    }
+    else
         abort();
 }
 
