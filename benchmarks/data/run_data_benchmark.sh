@@ -8,7 +8,7 @@ for benchmark in block_queue
 do
 for type in size_t string pair triple
 do
-  for reader in consume non-consume
+  for reader in consume keep
   do
     for size in 100K 1M 100M 2G
     do
@@ -28,7 +28,7 @@ done
 for benchmark in file
 for type in size_t string pair triple
 do
-  for reader in consume non-consume
+  for reader in consume keep
   do
     for size in 100K 1M 100M 2G
     do
