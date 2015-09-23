@@ -17,6 +17,7 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/read_binary.hpp>
+#include <thrill/api/cache.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -65,7 +66,7 @@ int main(int argc, char* argv[]) {
             return all[all.size() / 2 - 1];
         };
 
-        auto in = api::ReadBinary<size_t>(ctx, input).Keep();
+        auto in = api::ReadBinary<size_t>(ctx, input).Cache();
         in.Size();
 
         // group by to compute median
