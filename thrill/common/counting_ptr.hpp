@@ -202,7 +202,7 @@ public:
 //! swap enclosed object with another counting pointer (no reference counts need
 //! change)
 template <class A>
-void swap(CountingPtr<A>& a1, CountingPtr<A>& a2) {
+void swap(CountingPtr<A>& a1, CountingPtr<A>& a2) noexcept {
     a1.swap(a2);
 }
 

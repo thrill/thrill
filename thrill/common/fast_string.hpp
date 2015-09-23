@@ -177,7 +177,7 @@ public:
      * \param other Comparison string
      * \return true, if data is equal
      */
-    bool operator == (const std::string& other) const {
+    bool operator == (const std::string& other) const noexcept {
         return size_ == other.size() &&
                std::equal(data_, data_ + size_, other.c_str());
     }
@@ -187,7 +187,7 @@ public:
      * \param other Comparison string
      * \return false, if data is equal
      */
-    bool operator != (const std::string& other) const {
+    bool operator != (const std::string& other) const noexcept {
         return !(operator == (other));
     }
 
@@ -196,7 +196,7 @@ public:
      * \param other Comparison FastString
      * \return true, if data is equal
      */
-    bool operator == (const FastString& other) const {
+    bool operator == (const FastString& other) const noexcept {
         return size_ == other.size_ &&
                std::equal(data_, data_ + size_, other.data_);
     }
@@ -206,7 +206,7 @@ public:
      * \param other Comparison FastString
      * \return false, if data is equal
      */
-    bool operator != (const FastString& other) const {
+    bool operator != (const FastString& other) const noexcept {
         return !(operator == (other));
     }
 

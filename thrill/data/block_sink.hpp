@@ -35,6 +35,15 @@ public:
         : block_pool_(block_pool)
     { }
 
+    //! non-copyable: delete copy-constructor
+    BlockSink(const BlockSink &) = delete;
+    //! non-copyable: delete assignment operator
+    BlockSink & operator = (const BlockSink &) = delete;
+    //! move-constructor: default
+    BlockSink(BlockSink &&) = default;
+    //! move-assignment operator: default
+    BlockSink & operator = (BlockSink &&) = default;
+
     //! required virtual destructor
     virtual ~BlockSink() { }
 

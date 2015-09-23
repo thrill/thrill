@@ -86,13 +86,13 @@ public:
     }
 
     //! Compare contents of two BufferRefs.
-    bool operator == (const BufferRef& br) const {
+    bool operator == (const BufferRef& br) const noexcept {
         if (size_ != br.size_) return false;
         return std::equal(data_, data_ + size_, br.data_);
     }
 
     //! Compare contents of two BufferRefs.
-    bool operator != (const BufferRef& br) const {
+    bool operator != (const BufferRef& br) const noexcept {
         if (size_ != br.size_) return true;
         return !std::equal(data_, data_ + size_, br.data_);
     }

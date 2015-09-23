@@ -147,7 +147,7 @@ public:
     { return socket_.GetPeerAddress().ToStringHostPort(); }
 
     //! Checks wether two connections have the same underlying socket or not.
-    bool operator == (const Connection& c) const
+    bool operator == (const Connection& c) const noexcept
     { return GetSocket().fd() == c.GetSocket().fd(); }
 
     //! Destruction of Connection should be explicitly done by a NetGroup or

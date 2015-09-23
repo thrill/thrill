@@ -264,7 +264,7 @@ private:
             w.Close();
         }
 
-        files_.push_back(f);
+        files_.emplace_back(std::move(f));
     }
 
     //! Receive elements from other workers.

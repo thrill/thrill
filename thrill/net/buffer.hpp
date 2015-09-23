@@ -116,7 +116,7 @@ public:
     }
 
     //! swap buffer with another one
-    friend void swap(Buffer& a, Buffer& b) {
+    friend void swap(Buffer& a, Buffer& b) noexcept {
         using std::swap;
         swap(a.data_, b.data_);
         swap(a.size_, b.size_);
