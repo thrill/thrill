@@ -173,7 +173,7 @@ public:
                           ReduceFunction reduce_function,
                           std::vector<data::DynBlockWriter>& emit,
                           Key sentinel,
-                          size_t byte_size = 1024* 16,
+                          size_t byte_size = 1024 * 16,
                           double max_partition_fill_rate = 0.5,
                           const IndexFunction& index_function = IndexFunction(),
                           const EqualToFunction& equal_to_function = EqualToFunction())
@@ -192,8 +192,14 @@ public:
         assert(byte_size > 0 && "byte_size must be greater than 0");
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
 
-        size_ = (size_t)(static_cast<double>(byte_size_) / static_cast<double>(sizeof(KeyValuePair)));
-        num_items_per_partition_ = (size_t)std::ceil(static_cast<double>(size_) / static_cast<double>(num_partitions));
+        num_items_per_partition_ = std::max<size_t>((size_t)((static_cast<double>(byte_size_)
+                                                 / static_cast<double>(sizeof(KeyValuePair)))
+                                                / static_cast<double>(num_partitions)), 1);
+
+        size_ = num_items_per_partition_ * num_partitions_;
+
+        assert(size_ > 0);
+        assert(num_items_per_partition_ > 0);
 
         for (size_t i = 0; i < emit.size(); i++) {
             emit_stats_.push_back(0);
@@ -259,6 +265,8 @@ public:
                 LOG << "...finished reduce!";
                 return;
             }
+
+            num_collisions_++;
 
             if (current == last_item)
             {
@@ -370,11 +378,12 @@ public:
             if (current.first != sentinel_.first)
             {
                 if (RobustKey) {
-                    emit_[partition_id](current.second);
+                    //emit_[partition_id](current.second);
                 }
                 else {
-                    emit_[partition_id](current);
+                    //emit_[partition_id](current);
                 }
+                emit_stats_[partition_id]++;
 
                 items_[i] = sentinel_;
             }
@@ -419,6 +428,15 @@ public:
      */
     size_t NumFlushes() const {
         return num_flushes_;
+    }
+
+    /*!
+     * Returns the number of collisions.
+     *
+     * \return Number of collisions.
+     */
+    size_t NumCollisions() const {
+        return num_collisions_;
     }
 
     /*!
@@ -545,6 +563,9 @@ private:
 
     //! Number of flushes.
     size_t num_flushes_ = 0;
+
+    //! Number of collisions.
+    size_t num_collisions_ = 0;
 };
 
 } // namespace core

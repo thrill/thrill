@@ -50,12 +50,11 @@ public:
 
         size_t global_index = 0;
         size_t partition_id = 0;
-        size_t local_index = 0;
 
         (void)k;
         (void)ht;
 
-        return IndexResult(partition_id, local_index, global_index);
+        return IndexResult(partition_id, global_index);
     }
 
 private:
