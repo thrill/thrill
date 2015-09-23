@@ -160,7 +160,7 @@ protected:
 
 /******************************************************************************/
 
-class MixChannelAllToAllExperiment : public DataGeneratorExperiment
+class MixStreamAllToAllExperiment : public DataGeneratorExperiment
 {
 public:
     int Run(int argc, char* argv[]) {
@@ -179,16 +179,19 @@ public:
 
         if (!clp.Process(argc, argv)) return -1;
 
-        api::RunLocalSameThread(
+        api::Run(
             [=](api::Context& ctx) {
+                // make a copy of this for local workers
+                MixStreamAllToAllExperiment local = *this;
+
                 if (type_as_string_ == "size_t")
-                    Test<size_t>(ctx);
+                    local.Test<size_t>(ctx);
                 else if (type_as_string_ == "string")
-                    Test<std::string>(ctx);
+                    local.Test<std::string>(ctx);
                 else if (type_as_string_ == "pair")
-                    Test<pair_type>(ctx);
+                    local.Test<pair_type>(ctx);
                 else if (type_as_string_ == "triple")
-                    Test<triple_type>(ctx);
+                    local.Test<triple_type>(ctx);
                 else
                     abort();
             });
@@ -243,7 +246,7 @@ public:
 
             total_timer.Stop();
             LOG1 << "RESULT"
-                 << " experiment=" << "channel_all_to_all"
+                 << " experiment=" << "stream_all_to_all"
                  << " workers=" << ctx.num_workers()
                  << " hosts=" << ctx.num_hosts()
                  << " datatype=" << type_as_string_
@@ -269,7 +272,7 @@ protected:
 #if SORRY_HOW_IS_THIS_DIFFERENT_FROM_ABOVE_TB
 
 template <typename Type>
-void ChannelP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterations, api::Context& ctx, const std::string& type_as_string, size_t block_size) {
+void StreamP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterations, api::Context& ctx, const std::string& type_as_string, size_t block_size) {
 
     for (unsigned i = 0; i < iterations; i++) {
 
@@ -295,7 +298,7 @@ void ChannelP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterati
             read_timer.Stop();
         }
         LOG1 << "RESULT"
-             << " experiment=" << "channel_1p"
+             << " experiment=" << "stream_1p"
              << " workers=" << ctx.num_workers()
              << " hosts=" << ctx.num_hosts()
              << " datatype=" << type_as_string
@@ -314,7 +317,7 @@ void ChannelP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterati
 #if SORRY_I_DONT_UNDERSTAND_WHAT_THIS_TESTS_TB
 
 template <typename Type>
-void ChannelAToBExperiment(api::Context& ctx) {
+void StreamAToBExperiment(api::Context& ctx) {
 
     for (unsigned i = 0; i < iterations; i++) {
         auto stream = ctx.GetNewCatStream();
@@ -344,7 +347,7 @@ void ChannelAToBExperiment(api::Context& ctx) {
             read_timer.Stop();
         }
         LOG1 << "RESULT"
-             << " experiment=" << "channel_a_to_b"
+             << " experiment=" << "stream_a_to_b"
              << " workers=" << ctx.num_workers()
              << " hosts=" << ctx.num_hosts()
              << " datatype=" << type_as_string
@@ -474,7 +477,7 @@ void Usage(const char* argv0) {
         << "Usage: " << argv0 << " <benchmark>" << std::endl
         << std::endl
         << "    file                - File and Serialization Speed" << std::endl
-        << "    mix_channel_all2all - Full bandwidth test" << std::endl
+        << "    mix_stream_all2all - Full bandwidth test" << std::endl
         << "    blockqueue          - BlockQueue test" << std::endl
         << std::endl;
 }
@@ -493,8 +496,8 @@ int main(int argc, char* argv[]) {
     if (benchmark == "file") {
         return FileExperiment().Run(argc - 1, argv + 1);
     }
-    else if (benchmark == "mix_channel_all2all") {
-        return MixChannelAllToAllExperiment().Run(argc - 1, argv + 1);
+    else if (benchmark == "mix_stream_all2all") {
+        return MixStreamAllToAllExperiment().Run(argc - 1, argv + 1);
     }
     else if (benchmark == "blockqueue") {
         return BlockQueueExperiment().Run(argc - 1, argv + 1);
