@@ -103,12 +103,10 @@ public:
 
         size_t hashed = hash_function_(k);
 
-        size_t local_index = hashed % ht->NumBucketsPerPartition();
-        size_t partition_id = hashed % ht->NumPartitions();
-        size_t global_index = partition_id *
-                              ht->NumBucketsPerPartition() + local_index;
+        size_t partition_id = std::min(hashed % ht->NumPartitions(), ht->NumPartitions() - 1);
 
-        return IndexResult(partition_id, local_index, global_index);
+        return IndexResult(partition_id, std::min(ht->NumBucketsPerTable() - 1,
+                          partition_id * ht->NumBucketsPerPartition() + (hashed % ht->NumBucketsPerPartition())));
     }
 
 private:
@@ -130,11 +128,8 @@ public:
 
         using IndexResult = typename ReducePreTable::IndexResult;
 
-        size_t global_index = std::min(ht->NumBucketsPerTable() - 1, k * ht->NumBucketsPerTable() / size_);
-        size_t partition_id = std::min(k * ht->NumPartitions() / size_, ht->NumPartitions() - 1);
-        size_t local_index = global_index -
-                             partition_id * ht->NumBucketsPerPartition();
-        return IndexResult(partition_id, local_index, global_index);
+        return IndexResult(std::min(k * ht->NumPartitions() / size_, ht->NumPartitions() - 1),
+                           std::min(ht->NumBucketsPerTable() - 1, k * ht->NumBucketsPerTable() / size_));
     }
 };
 
@@ -155,14 +150,11 @@ public:
     public:
         //! which partition number the item belongs to.
         size_t partition_id;
-        //! index within the partition's sub-hashtable of this item
-        size_t local_index;
         //! index within the whole hashtable
         size_t global_index;
 
-        IndexResult(size_t p_id, size_t p_off, size_t g_id) {
+        IndexResult(size_t p_id, size_t g_id) {
             partition_id = p_id;
-            local_index = p_off;
             global_index = g_id;
         }
     };
@@ -213,7 +205,7 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
-                   size_t byte_size = 1024* 1024* 128* 4,
+                   size_t byte_size = 1024 * 1024 * 128 * 4,
                    double bucket_rate = 0.9,
                    double max_partition_fill_rate = 0.6,
                    const IndexFunction& index_function = IndexFunction(),
@@ -231,7 +223,7 @@ public:
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
         assert(byte_size > 0 && "byte_size must be greater than 0");
-        assert(bucket_rate > 0.0 && bucket_rate <= 1.0);
+        assert(bucket_rate > 0.0);
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
 
         max_num_blocks_per_table_ =
@@ -311,7 +303,6 @@ public:
         IndexResult h = index_function_(kv.first, this);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
-        assert(h.local_index >= 0 && h.local_index < num_buckets_per_partition_);
         assert(h.global_index >= 0 && h.global_index < num_buckets_per_table_);
 
         LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
@@ -335,6 +326,8 @@ public:
                     LOG << "...finished reduce!";
                     return;
                 }
+
+                num_collisions_++;
             }
 
             current = current->next;
@@ -451,26 +444,36 @@ public:
         LOG << "Flushing items of partition with id: "
             << partition_id;
 
+        std::vector<size_t> r_;
+        std::vector<size_t> l_;
+        size_t l = 0;
+
         for (size_t i = partition_id * num_buckets_per_partition_;
              i < (partition_id + 1) * num_buckets_per_partition_; i++)
         {
             BucketBlock* current = buckets_[i];
 
+            if (current != nullptr) {
+                r_.push_back(current->size);
+                l = 0;
+            }
+
             while (current != nullptr)
             {
+                l++;
+
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
                     if (RobustKey) {
-                        emit_[partition_id].PutItem(bi->second);
+                        //emit_[partition_id](bi->second);
                         sLOG << "Pushing value";
-                        emit_stats_[partition_id]++;
                     }
                     else {
-                        emit_[partition_id].PutItem(*bi);
+                        //emit_[partition_id](*bi);
                         sLOG << "pushing pair";
-                        emit_stats_[partition_id]++;
                     }
+                    emit_stats_[partition_id]++;
                 }
 
                 num_items_per_table_ -= current->size;
@@ -482,6 +485,10 @@ public:
                 current = next;
             }
 
+            if (buckets_[i] != nullptr) {
+                l_.push_back(l);
+            }
+
             buckets_[i] = nullptr;
         }
 
@@ -491,8 +498,21 @@ public:
         num_blocks_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
-        // increase flush counter
+
+        // debug: increase flush counter
         num_flushes_++;
+        // debug: waste before flush
+        double sum = std::accumulate(r_.begin(), r_.end(), 0.0);
+        double mean = sum / r_.size();
+        double sq_sum = std::inner_product(r_.begin(), r_.end(), r_.begin(), 0.0);
+        block_fill_rates_median.push_back(mean);
+        block_fill_rates_stedv.push_back(std::sqrt(sq_sum / r_.size() - mean * mean));
+        // debug: block length
+        sum = std::accumulate(l_.begin(), l_.end(), 0.0);
+        mean = sum / l_.size();
+        sq_sum = std::inner_product(l_.begin(), l_.end(), l_.begin(), 0.0);
+        block_length_median.push_back(mean);
+        block_length_stedv.push_back(std::sqrt(sq_sum / l_.size() - mean * mean));
 
         LOG << "Flushed items of partition with id: " << partition_id;
     }
@@ -543,6 +563,15 @@ public:
     }
 
     /*!
+     * Returns the number of collisions.
+     *
+     * \return Number of collisions.
+     */
+    size_t NumCollisions() const {
+        return num_collisions_;
+    }
+
+    /*!
      * Returns the number of blocks of a partition.
      *
      * \param partition_id The id of the partition the number of
@@ -551,6 +580,23 @@ public:
      */
     size_t NumBlocksPerPartition(size_t partition_id) {
         return num_blocks_per_partition_[partition_id];
+    }
+
+    double BlockFillRatesMedian() const {
+        double sum = std::accumulate(block_fill_rates_median.begin(), block_fill_rates_median.end(), 0.0);
+        return sum / block_fill_rates_median.size();
+    }
+    double BlockFillRatesStedv() const {
+        double sum = std::accumulate(block_fill_rates_stedv.begin(), block_fill_rates_stedv.end(), 0.0);
+        return sum / block_fill_rates_stedv.size();
+    }
+    double BlockLengthMedian() const {
+        double sum = std::accumulate(block_length_median.begin(), block_length_median.end(), 0.0);
+        return sum / block_length_median.size();
+    }
+    double BlockLengthStedv() const {
+        double sum = std::accumulate(block_length_stedv.begin(), block_length_stedv.end(), 0.0);
+        return sum / block_length_stedv.size();
     }
 
     /*!
@@ -668,6 +714,14 @@ protected:
 
     //! Number of flushes.
     size_t num_flushes_ = 0;
+
+    //! Number of collisions.
+    size_t num_collisions_ = 0;
+
+    std::vector<double> block_fill_rates_median;
+    std::vector<double> block_fill_rates_stedv;
+    std::vector<double> block_length_median;
+    std::vector<double> block_length_stedv;
 };
 
 } // namespace core

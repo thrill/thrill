@@ -71,7 +71,6 @@ TEST_F(PostTable, CustomHashFunction) {
                                     });
 
             CustomKeyHashFunction<int> cust_hash;
-            core::PostReduceFlushToDefault<int, decltype(red_fn)> flush_func(red_fn);
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>, CustomKeyHashFunction<int> >
             table(ctx, key_ex, red_fn, emit, cust_hash, core::PostReduceFlushToDefault<int, decltype(red_fn)>(red_fn));
