@@ -51,6 +51,7 @@ thrill_build_prog(sort/generate_data)
 thrill_build_prog(sort/sort)
 
 thrill_build_prog(serialization/bench_serialization)
+thrill_build_prog(serialization/cpp-serializers)
 
 add_subdirectory(word_count)
 add_subdirectory(page_rank)
