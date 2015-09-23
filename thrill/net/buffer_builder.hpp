@@ -54,26 +54,23 @@ private:
     using const_reference = const Byte &;
 
     //! Allocated buffer pointer.
-    Byte* data_;
+    Byte* data_ = nullptr;
 
     //! Size of valid data.
-    size_t size_;
+    size_t size_ = 0;
 
     //! Total capacity of buffer.
-    size_t capacity_;
+    size_t capacity_ = 0;
 
 public:
     //! \name Construction, Movement, Destruction
     //! \{
 
     //! Create a new empty object
-    BufferBuilder()
-        : data_(nullptr), size_(0), capacity_(0)
-    { }
+    BufferBuilder() = default;
 
     //! Copy-Constructor, duplicates memory content.
-    BufferBuilder(const BufferBuilder& other)
-        : data_(nullptr), size_(0), capacity_(0) {
+    BufferBuilder(const BufferBuilder& other) {
         Assign(other);
     }
 
@@ -86,20 +83,17 @@ public:
     }
 
     //! Constructor, copy memory area.
-    BufferBuilder(const void* data, size_t n)
-        : data_(nullptr), size_(0), capacity_(0) {
+    BufferBuilder(const void* data, size_t n) {
         Assign(data, n);
     }
 
     //! Constructor, create object with n bytes pre-allocated.
-    explicit BufferBuilder(size_t n)
-        : data_(nullptr), size_(0), capacity_(0) {
+    explicit BufferBuilder(size_t n) {
         Reserve(n);
     }
 
     //! Constructor from std::string, COPIES string content.
-    explicit BufferBuilder(const std::string& str)
-        : data_(nullptr), size_(0), capacity_(0) {
+    explicit BufferBuilder(const std::string& str) {
         Assign(str.data(), str.size());
     }
 
@@ -228,12 +222,6 @@ public:
     //! Explicit conversion to std::string (copies memory of course).
     std::string ToString() const {
         return std::string(reinterpret_cast<const char*>(data_), size_);
-    }
-
-    //! copy part of contents into std::string
-    std::string PartialToString(size_t begin, size_t length) const {
-        assert(size_ >= begin + length);
-        return std::string(reinterpret_cast<const char*>(data_ + begin), length);
     }
 
     //! Explicit conversion to Buffer MOVING the memory ownership.
