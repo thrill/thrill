@@ -22,6 +22,7 @@
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>
 #include <thrill/net/exception.hpp>
+#include <thrill/net/fixed_buffer_builder.hpp>
 
 #include <cassert>
 #include <cerrno>
@@ -111,10 +112,22 @@ public:
         }
         else if (data::Serialization<BufferBuilder, T>::is_fixed_size) {
             // fixed_size items can be sent without size header
-            // TODO(tb): make bb allocate on stack.
-            BufferBuilder bb;
-            data::Serialization<BufferBuilder, T>::Serialize(value, bb);
-            SyncSend(bb.data(), bb.size());
+            static const size_t fixed_size
+                = data::Serialization<BufferBuilder, T>::fixed_size;
+            if (fixed_size < 2 * 1024 * 1024) {
+                // allocate buffer on stack (no allocation)
+                using FixedBuilder = FixedBufferBuilder<fixed_size>;
+                FixedBuilder fb;
+                data::Serialization<FixedBuilder, T>::Serialize(value, fb);
+                assert(fb.size() == fixed_size);
+                SyncSend(fb.data(), fb.size());
+            }
+            else {
+                // too big, use heap allocation
+                BufferBuilder bb;
+                data::Serialization<BufferBuilder, T>::Serialize(value, bb);
+                SyncSend(bb.data(), bb.size());
+            }
         }
         else {
             // variable length items must be prefixed with size header
@@ -160,11 +173,22 @@ public:
         }
         else if (data::Serialization<BufferBuilder, T>::is_fixed_size) {
             // fixed_size items can be received without size header
-            // TODO(tb): make bb allocate on stack.
-            Buffer b(data::Serialization<BufferBuilder, T>::fixed_size);
-            SyncRecv(b.data(), b.size());
-            BufferReader br(b);
-            *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+            static const size_t fixed_size
+                = data::Serialization<BufferBuilder, T>::fixed_size;
+            if (fixed_size < 2 * 1024 * 1024) {
+                // allocate buffer on stack (no allocation)
+                std::array<uint8_t, fixed_size> b;
+                SyncRecv(b.data(), b.size());
+                BufferReader br(b.data(), b.size());
+                *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+            }
+            else {
+                // too big, use heap allocation
+                Buffer b(data::Serialization<BufferBuilder, T>::fixed_size);
+                SyncRecv(b.data(), b.size());
+                BufferReader br(b);
+                *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+            }
         }
         else {
             // variable length items are prefixed with size header

@@ -877,7 +877,7 @@ public:
 template <typename ValueType, typename Comparator = std::less<ValueType> >
 class LoserTreePointerUnguardedBase
 {
-private:
+protected:
     //! Internal representation of a loser tree player/node
     struct Loser
     {

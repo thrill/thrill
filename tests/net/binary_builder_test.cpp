@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>
+#include <thrill/net/fixed_buffer_builder.hpp>
 
 using thrill::net::BufferBuilder;
 using thrill::net::BufferRef;
@@ -69,5 +70,13 @@ TEST(BufferBuilder, Test1) {
     ASSERT_EQ(bb.size(), 0u);
     ASSERT_EQ(nb.size(), sizeof(bb_data));
 }
+
+namespace thrill {
+namespace net {
+
+template class FixedBufferBuilder<42>;
+
+} // namespace net
+} // namespace thrill
 
 /******************************************************************************/
