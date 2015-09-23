@@ -125,7 +125,6 @@ void ChannelP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterati
         StatsTimer<true> write_timer, read_timer;
         for (size_t round = 0; round < ctx.num_workers(); round++) {
             size_t send_to = (ctx.my_rank() + round + 1) % ctx.num_workers();
-            STAT(ctx) << "round" << round << "from" << ctx.num_workers() << "send_to" << send_to;
 
             auto stream = ctx.GetNewMixStream();
             auto data = Generator<Type>(bytes / ctx.num_workers(), min_size, max_size);
