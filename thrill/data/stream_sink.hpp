@@ -92,7 +92,6 @@ public:
         }
 
         net::BufferBuilder bb;
-        // bb.Put(MagicByte::STREAM_BLOCK);
         header.Serialize(bb);
 
         net::Buffer buffer = bb.ToBuffer();
@@ -128,7 +127,6 @@ public:
         header.receiver_local_worker_id = partners_local_worker_id_;
 
         net::BufferBuilder bb;
-        // bb.Put(MagicByte::STREAM_BLOCK);
         header.Serialize(bb);
 
         net::Buffer buffer = bb.ToBuffer();
@@ -153,7 +151,7 @@ private:
     net::DispatcherThread* dispatcher_ = nullptr;
     net::Connection* connection_ = nullptr;
 
-    MagicByte magic_ = MagicByte::INVALID;
+    MagicByte magic_ = MagicByte::Invalid;
     size_t id_ = size_t(-1);
     size_t my_rank_ = size_t(-1);
     size_t my_local_worker_id_ = size_t(-1);
