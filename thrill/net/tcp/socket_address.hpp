@@ -53,6 +53,7 @@ protected:
         struct sockaddr_in6 in6;
     } sockaddr_;
 
+private:
     //! Return value of the last getaddrinfo() call. Used to output nice user
     //! messages.
     int resolve_error_;

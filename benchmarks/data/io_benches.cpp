@@ -163,7 +163,7 @@ public:
         }
     }
 
-protected:
+private:
     //! number of iterations to run
     unsigned iterations_ = 1;
 
@@ -275,7 +275,7 @@ public:
         }
     }
 
-protected:
+private:
     //! number of iterations to run
     unsigned iterations_ = 1;
 
@@ -482,7 +482,7 @@ public:
         }
     }
 
-protected:
+private:
     //! number of iterations to run
     unsigned iterations_ = 1;
 

@@ -163,7 +163,7 @@ public:
         return closed;
     }
 
-protected:
+private:
     static const bool debug = false;
 
     //! StreamSink objects are receivers of Blocks outbound for other worker.

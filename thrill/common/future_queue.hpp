@@ -38,7 +38,7 @@ namespace common {
 template <typename T>
 class FutureQueue
 {
-protected:
+private:
     //! Mutex for the condition variable
     std::mutex mutex_;
 

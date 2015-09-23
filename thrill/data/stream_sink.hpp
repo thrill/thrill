@@ -147,7 +147,7 @@ public:
     //! nullptr).
     enum { allocate_can_fail_ = false };
 
-protected:
+private:
     static const bool debug = false;
 
     net::DispatcherThread* dispatcher_ = nullptr;

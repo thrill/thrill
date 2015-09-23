@@ -88,7 +88,7 @@ public:
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer & data_multiplexer() { return data_multiplexer_; }
 
-protected:
+private:
     //! number of workers per host (all have the same).
     size_t workers_per_host_;
 

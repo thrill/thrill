@@ -126,7 +126,7 @@ public:
     //! check if reader side has returned a closing sentinel block
     bool read_closed() const { return read_open_ == 0; }
 
-protected:
+private:
     BlockPool& block_pool_;
 
     //! the main mix queue, containing the block in the reception order.
@@ -185,7 +185,7 @@ public:
     //! check if writer side Close() was called.
     bool write_closed() const { return write_closed_; }
 
-protected:
+private:
     //! destination mix queue
     MixBlockQueue& mix_queue_;
 
@@ -290,7 +290,7 @@ public:
         }
     }
 
-protected:
+private:
     //! reference to mix queue
     MixBlockQueue& mix_queue_;
 

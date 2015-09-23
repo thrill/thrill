@@ -120,7 +120,7 @@ public:
         }
     }
 
-protected:
+private:
     //! Temporary Manager for construction
     mem::Manager mem_manager_ { nullptr, "Construction" };
 

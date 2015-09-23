@@ -34,7 +34,7 @@ class BufferReader
     : public BufferRef,
       public common::ItemReaderToolsBase<BufferReader>
 {
-protected:
+private:
     //! Current read cursor
     size_t cursor_ = 0;
 

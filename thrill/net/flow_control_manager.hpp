@@ -27,7 +27,7 @@ namespace net {
 
 class FlowControlChannelManager
 {
-protected:
+private:
     /**
      * The shared barrier used to synchronize between worker threads on this node.
      */

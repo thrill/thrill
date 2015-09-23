@@ -64,7 +64,7 @@ public:
         return DynWriter(this, block_size);
     }
 
-protected:
+private:
     bool closed_ = false;
 };
 

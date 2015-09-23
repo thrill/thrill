@@ -43,7 +43,7 @@ public:
         return index_++;
     }
 
-protected:
+private:
     size_t size_;
     size_t index_ = 42;
 };
@@ -64,7 +64,7 @@ public:
         return std::string(next_size, 'f');
     }
 
-protected:
+private:
     ssize_t bytes_;
 
     // init randomness
@@ -112,7 +112,7 @@ public:
         return TupleGeneratorNext(gen_, common::make_index_sequence<Size>{ });
     }
 
-protected:
+private:
     std::tuple<Generator<Types>...> gen_;
 };
 

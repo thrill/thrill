@@ -39,7 +39,7 @@ public:
     //! The counter's value type
     using ValueType = _ValueType;
 
-protected:
+private:
     //! The counter's value
     ValueType value_;
 

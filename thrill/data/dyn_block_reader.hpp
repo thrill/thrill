@@ -53,7 +53,7 @@ public:
         return block_source_ptr_->NextBlock();
     }
 
-protected:
+private:
     std::shared_ptr<DynBlockSourceInterface> block_source_ptr_;
 };
 
@@ -85,7 +85,7 @@ public:
         return block_source_.NextBlock();
     }
 
-protected:
+private:
     BlockSource block_source_;
 };
 

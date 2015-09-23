@@ -137,7 +137,7 @@ public:
         }
     }
 
-protected:
+private:
     //! number of rows in matrix
     size_t rows_ = 0;
     //! number of columns in matrix

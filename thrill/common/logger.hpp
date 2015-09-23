@@ -102,7 +102,7 @@ class Logger
 template <>
 class Logger<true>
 {
-protected:
+private:
     //! collector stream
     std::basic_ostringstream<
         char, std::char_traits<char>, LoggerAllocator<char> > oss_;
@@ -149,7 +149,7 @@ class SpacingLogger
 template <>
 class SpacingLogger<true>
 {
-protected:
+private:
     //! true until the first element it outputted.
     bool first_ = true;
 

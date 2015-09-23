@@ -118,7 +118,7 @@ public:
         }
     }
 
-protected:
+private:
     //! Callback functions from the child nodes.
     std::vector<CallbackPair<ValueType> > callbacks_;
 };

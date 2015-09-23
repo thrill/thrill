@@ -305,7 +305,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Instance of BlockSource. This is NOT a reference, as to enable embedding
     //! of FileBlockSource to compose classes into File::Reader.
     BlockSource source_;

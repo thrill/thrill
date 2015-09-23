@@ -46,7 +46,7 @@ public:
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
-protected:
+private:
     //! the actual data queue
     std::deque<T, Allocator> queue_;
 

@@ -158,7 +158,7 @@ public:
 
     //! \}
 
-protected:
+private:
     static const bool debug = false;
 
     //! reference to host-global memory manager

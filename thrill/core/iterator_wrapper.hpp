@@ -44,7 +44,7 @@ class FileOutputIteratorWrapper
     using File = data::File;
     using Writer = File::Writer;
 
-protected:
+private:
     std::shared_ptr<Writer> writer_;
 
 public:
@@ -84,7 +84,7 @@ class FileIteratorWrapper : public std::iterator<std::random_access_iterator_tag
     using File = data::File;
     using Reader = File::Reader;
 
-protected:
+private:
     File* file_;
     std::shared_ptr<Reader> reader_;
     size_t pos_;
@@ -306,7 +306,7 @@ public:
 template <typename ArrayItem>
 class VectorIteratorWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
 {
-protected:
+private:
     std::vector<ArrayItem>* m_array;
     size_t m_pos;
 

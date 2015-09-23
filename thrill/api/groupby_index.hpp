@@ -152,28 +152,21 @@ public:
                 while (user_iterator.HasNextForReal()) {
                     if (user_iterator.GetNextKey() != curr_index) {
                         // push neutral element as result to callback functions
-                        for (auto func : DIANode<ValueType>::callbacks_) {
-                            func(neutral_element_);
-                        }
+                        this->PushItem(neutral_element_);
                     }
                     else {
                         // call user function
-                        const ValueOut res = groupby_function_(user_iterator,
-                                                               user_iterator.GetNextKey());
+                        const ValueOut res = groupby_function_(
+                            user_iterator, user_iterator.GetNextKey());
                         // push result to callback functions
-                        for (auto func : DIANode<ValueType>::callbacks_) {
-                            // LOG << "grouped to value " << res;
-                            func(res);
-                        }
+                        this->PushItem(res);
                     }
                     ++curr_index;
                 }
             }
             while (curr_index < key_range_end_) {
                 // push neutral element as result to callback functions
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(neutral_element_);
-                }
+                this->PushItem(neutral_element_);
                 ++curr_index;
             }
         }
@@ -212,27 +205,20 @@ private:
             while (user_iterator.HasNextForReal()) {
                 if (user_iterator.GetNextKey() != curr_index) {
                     // push neutral element as result to callback functions
-                    for (auto func : DIANode<ValueType>::callbacks_) {
-                        func(neutral_element_);
-                    }
+                    this->PushItem(neutral_element_);
                 }
                 else {
                     // call user function
                     const ValueOut res = groupby_function_(user_iterator,
                                                            user_iterator.GetNextKey());
                     // push result to callback functions
-                    for (auto func : DIANode<ValueType>::callbacks_) {
-                        // LOG << "grouped to value " << res;
-                        func(res);
-                    }
+                    this->PushItem(res);
                 }
                 ++curr_index;
             }
             while (curr_index < key_range_end_) {
                 // push neutral element as result to callback functions
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(neutral_element_);
-                }
+                this->PushItem(neutral_element_);
                 ++curr_index;
             }
         }

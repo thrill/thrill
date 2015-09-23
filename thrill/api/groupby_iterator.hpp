@@ -162,7 +162,7 @@ public:
         return elem;
     }
 
-protected:
+private:
     bool HasNextForReal() {
         is_first_elem_ = true;
         return !is_reader_empty;
@@ -247,7 +247,7 @@ public:
         return elem;
     }
 
-protected:
+private:
     bool HasNextForReal() {
         is_first_elem_ = true;
         return !is_reader_empty;

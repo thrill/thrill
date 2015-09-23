@@ -145,8 +145,8 @@ public:
         close();
     }
 
-protected:
-    //! protected constructor: use OpenForRead or OpenForWrite.
+private:
+    //! private constructor: use OpenForRead or OpenForWrite.
     explicit SysFile(int fd, int pid = 0)
         : fd_(fd), pid_(pid) { }
 
@@ -196,7 +196,7 @@ public:
         wipe_directory(dir_, false);
     }
 
-protected:
+private:
     std::string dir_;
 };
 

@@ -227,7 +227,7 @@ public:
         return std::string(data_, size_);
     }
 
-protected:
+private:
     /*!
      * Internal constructor, which creates a new FastString and sets parameters
      * \param data Pointer to data

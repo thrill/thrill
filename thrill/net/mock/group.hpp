@@ -121,7 +121,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Reference to our group.
     Group* group_;
 
@@ -206,7 +206,7 @@ public:
             return "[data]";
     }
 
-protected:
+private:
     //! vector of peers for delivery of messages.
     std::vector<Group*> peers_;
 
@@ -294,7 +294,7 @@ public:
 
     void DispatchOne(const std::chrono::milliseconds& timeout) final;
 
-protected:
+private:
     //! Mutex to lock access to watch lists
     std::mutex mutex_;
 

@@ -156,7 +156,7 @@ public:
     //! Interrupt does nothing.
     void Interrupt() final { }
 
-protected:
+private:
     //! group_tag attached to this Dispatcher
     int group_tag_;
 
@@ -202,7 +202,7 @@ protected:
             : callback_(callback),
               block_(block) { }
 
-    protected:
+    private:
         //! functional object to call once data is complete
         AsyncWriteCallback callback_;
 
