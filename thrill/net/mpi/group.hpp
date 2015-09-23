@@ -116,7 +116,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Group number used as MPI tag.
     int group_tag_;
 
@@ -170,7 +170,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! this group's MPI tag
     int group_tag_;
 

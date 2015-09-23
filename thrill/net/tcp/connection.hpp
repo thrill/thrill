@@ -196,7 +196,7 @@ public:
         return os << "]";
     }
 
-protected:
+private:
     //! Underlying socket or connection handle.
     Socket socket_;
 

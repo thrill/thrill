@@ -42,7 +42,7 @@ namespace net {
  */
 class FlowControlChannel
 {
-protected:
+private:
     static const bool self_verify = false;
 
     //! The group associated with this channel.

@@ -176,7 +176,7 @@ private:
             }
         }
 
-    protected:
+    private:
         Context& context_;
         core::SysFile sysfile_;
         size_t& stats_total_bytes_;

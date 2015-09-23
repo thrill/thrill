@@ -479,7 +479,7 @@ public:
 template <typename ValueType, typename Comparator = std::less<ValueType> >
 class LoserTreePointerBase
 {
-public:
+protected:
     //! size of counters and array indexes
     typedef typename LoserTreeCopyBase<ValueType, Comparator>
         ::size_type size_type;
@@ -793,7 +793,7 @@ template <bool Stable /* == false */,
           typename ValueType, typename Comparator = std::less<ValueType> >
 class LoserTreeCopyUnguarded : public LoserTreeCopyUnguardedBase<ValueType, Comparator>
 {
-protected:
+private:
     using base_type = LoserTreeCopyUnguardedBase<ValueType, Comparator>;
 
     using base_type::k;
@@ -831,7 +831,7 @@ template <typename ValueType, typename Comparator>
 class LoserTreeCopyUnguarded</* Stable == */ true, ValueType, Comparator>
     : public LoserTreeCopyUnguardedBase<ValueType, Comparator>
 {
-protected:
+private:
     using base_type = LoserTreeCopyUnguardedBase<ValueType, Comparator>;
 
     using base_type::k;
@@ -877,7 +877,7 @@ public:
 template <typename ValueType, typename Comparator = std::less<ValueType> >
 class LoserTreePointerUnguardedBase
 {
-protected:
+private:
     //! Internal representation of a loser tree player/node
     struct Loser
     {
@@ -896,7 +896,7 @@ protected:
     //! the comparator object
     Comparator comp;
 
-public:
+protected:
     LoserTreePointerUnguardedBase(unsigned int _k, const ValueType& _sentinel,
                                   Comparator _comp = std::less<ValueType>())
         : ik(_k),
@@ -967,7 +967,7 @@ template <bool Stable /* == false */,
 class LoserTreePointerUnguarded
     : public LoserTreePointerUnguardedBase<ValueType, Comparator>
 {
-protected:
+private:
     using base_type = LoserTreePointerUnguardedBase<ValueType, Comparator>;
 
     using base_type::k;
@@ -1005,7 +1005,7 @@ template <typename ValueType, typename Comparator>
 class LoserTreePointerUnguarded</* Stable == */ true, ValueType, Comparator>
     : public LoserTreePointerUnguardedBase<ValueType, Comparator>
 {
-protected:
+private:
     using base_type = LoserTreePointerUnguardedBase<ValueType, Comparator>;
 
     using base_type::k;

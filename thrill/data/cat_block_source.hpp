@@ -58,7 +58,7 @@ public:
         return Block();
     }
 
-protected:
+private:
     //! vector containing block sources
     std::vector<BlockSource> sources_;
 

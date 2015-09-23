@@ -205,7 +205,7 @@ public:
         return closed;
     }
 
-protected:
+private:
     static const bool debug = false;
 
     bool is_closed_ = false;

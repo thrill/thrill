@@ -148,7 +148,7 @@ public:
         return queue_.Pop();
     }
 
-protected:
+private:
     //! BlockQueue that blocks are retrieved from
     BlockQueue& queue_;
 };
@@ -198,7 +198,7 @@ public:
         }
     }
 
-protected:
+private:
     //! Reference to BlockQueue
     BlockQueue* queue_;
 };

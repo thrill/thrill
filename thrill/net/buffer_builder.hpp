@@ -40,7 +40,7 @@ namespace net {
 class BufferBuilder
     : public common::ItemWriterToolsBase<BufferBuilder>
 {
-protected:
+private:
     //! type used to store the bytes
     using Byte = unsigned char;
 

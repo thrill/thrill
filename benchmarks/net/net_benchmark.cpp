@@ -123,7 +123,7 @@ public:
         }
     }
 
-protected:
+private:
     //! whole experiment
     unsigned int outer_repeats_ = 1;
 
@@ -302,7 +302,7 @@ public:
         peer.Send(counter_);
     }
 
-protected:
+private:
     //! whole experiment
     unsigned int outer_repeats_ = 1;
 

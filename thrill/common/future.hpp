@@ -35,7 +35,7 @@ namespace common {
 template <typename T>
 class Future
 {
-protected:
+private:
     //! Mutex for the condition variable
     std::mutex mutex_;
 
@@ -112,7 +112,7 @@ public:
     //! tuple to hold all values given by callback
     using Values = std::tuple<Ts ...>;
 
-protected:
+private:
     //! Mutex for the condition variable
     std::mutex mutex_;
 

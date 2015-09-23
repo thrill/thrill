@@ -143,10 +143,7 @@ public:
                     const ValueOut res = groupby_function_(
                         user_iterator, user_iterator.GetNextKey());
                     // push result to callback functions
-                    for (auto func : DIANode<ValueType>::callbacks_) {
-                        // LOG << "grouped to value " << res;
-                        func(res);
-                    }
+                    this->PushItem(res);
                 }
             }
         }
@@ -183,10 +180,7 @@ private:
                 const ValueOut res = groupby_function_(user_iterator,
                                                        user_iterator.GetNextKey());
                 // push result to callback functions
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    // LOG << "grouped to value " << res;
-                    func(res);
-                }
+                this->PushItem(res);
             }
         }
     }

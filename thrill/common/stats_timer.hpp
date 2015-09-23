@@ -47,7 +47,7 @@ public:
 
     using duration = std::chrono::microseconds;
 
-protected:
+private:
     //! boolean whether the timer is currently running
     bool running_;
 

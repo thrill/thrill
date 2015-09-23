@@ -32,7 +32,7 @@ class StatLogger
 template <>
 class StatLogger<true>
 {
-protected:
+private:
     //! collector stream
     std::basic_ostringstream<
         char, std::char_traits<char>, LoggerAllocator<char> > oss_;

@@ -583,7 +583,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! the file descriptor of the socket.
     int fd_;
 

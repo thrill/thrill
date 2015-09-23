@@ -68,7 +68,6 @@ private:
     //! the pointer to the currently referenced object.
     Type* ptr_;
 
-protected:
     //! increment reference count for current object.
     void IncReference() noexcept
     { IncReference(ptr_); }

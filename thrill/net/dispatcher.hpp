@@ -60,7 +60,7 @@ class Dispatcher
 {
     static const bool debug = false;
 
-protected:
+private:
     //! import into class namespace
     using steady_clock = std::chrono::steady_clock;
 
@@ -374,7 +374,7 @@ protected:
 
         bool IsDone() const { return size_ == buffer_.size(); }
 
-    protected:
+    private:
         //! Connection reference
         Connection& conn_;
 
@@ -439,7 +439,7 @@ protected:
 
         bool IsDone() const { return size_ == buffer_.size(); }
 
-    protected:
+    private:
         //! Connection reference
         Connection& conn_;
 
@@ -505,7 +505,7 @@ protected:
 
         bool IsDone() const { return size_ == block_->size(); }
 
-    protected:
+    private:
         //! Connection reference
         Connection& conn_;
 
@@ -571,7 +571,7 @@ protected:
 
         bool IsDone() const { return size_ == block_.size(); }
 
-    protected:
+    private:
         //! Connection reference
         Connection& conn_;
 

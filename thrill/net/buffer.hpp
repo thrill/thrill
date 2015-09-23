@@ -54,7 +54,7 @@ public:
     //! simple pointer references
     using const_reference = const value_type &;
 
-protected:
+private:
     //! protected constructor used to acquire ownership of a buffer
     Buffer(bool /* acquire_tag */, void* data, size_type size)
         : data_(reinterpret_cast<value_type*>(data)), size_(size)
@@ -227,7 +227,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! the buffer, typed as character data
     value_type* data_;
 

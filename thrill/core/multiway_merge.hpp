@@ -64,7 +64,7 @@ public:
     //! Value type of the iterator
     using value_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
 
-protected:
+private:
     //! Current iterator position.
     RandomAccessIterator current;
     //! End iterator of the sequence.
@@ -149,7 +149,7 @@ public:
     //! Value type of the iterator
     using value_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
 
-protected:
+private:
     //! Current iterator position.
     RandomAccessIterator current;
     //! Comparator.

@@ -176,7 +176,7 @@ public:
         die_unless(wb == 1);
     }
 
-protected:
+private:
     //! select() manager object
     Select select_;
 

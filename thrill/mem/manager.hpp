@@ -59,7 +59,7 @@ public:
         return *this;
     }
 
-protected:
+private:
     //! reference to superior memory counter
     Manager* super_;
 
