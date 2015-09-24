@@ -116,9 +116,7 @@ private:
     }
 
 public:
-    /**
-     * \brief Creates a new instance of this class, wrapping a group.
-     */
+    //! Creates a new instance of this class, wrapping a group.
     explicit FlowControlChannel(Group& group,
                                 size_t thread_id, size_t thread_count,
                                 common::ThreadBarrier& barrier,
@@ -130,6 +128,11 @@ public:
 
     //! Return the associated net::Group. USE AT YOUR OWN RISK.
     Group & group() { return group_; }
+
+    //! Return the worker's global rank
+    size_t my_rank() const {
+        return group_.my_host_rank() * thread_count_ + thread_id_;
+    }
 
     /**
      * \brief Calculates the prefix sum over all workers, given a certain sum
