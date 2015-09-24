@@ -370,9 +370,18 @@ sub process_pl_cmake {
     my ($path) = @_;
 
     # check permissions
-    if ($path !~ /\.pl$/) {
+    if ($path =~ /\.(pl|sh)$/) {
         my $st = stat($path) or die("Cannot stat() file $path: $!");
-        if ($st->mode & 0133) {
+        if (($st->mode & 0777) != 0755) {
+            print("Wrong mode ".sprintf("%o", $st->mode)." on $path\n");
+            if ($write_changes) {
+                chmod(0755, $path) or die("Cannot chmod() file $path: $!");
+            }
+        }
+    }
+    else {
+        my $st = stat($path) or die("Cannot stat() file $path: $!");
+        if (($st->mode & 0777) != 0644) {
             print("Wrong mode ".sprintf("%o", $st->mode)." on $path\n");
             if ($write_changes) {
                 chmod(0644, $path) or die("Cannot chmod() file $path: $!");
@@ -703,6 +712,9 @@ foreach my $file (@filelist)
     }
     elsif ($file =~ /\.py$/) {
         process_py($file);
+    }
+    elsif ($file =~ /\.(sh|awk)$/) {
+        process_pl_cmake($file);
     }
     elsif ($file =~ m!(^|/)CMakeLists\.txt$!) {
         process_pl_cmake($file);
