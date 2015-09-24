@@ -112,7 +112,7 @@ public:
         }
     }
 
-protected:
+private:
     //! read bit-field
     fd_set read_set_;
 

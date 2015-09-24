@@ -78,7 +78,7 @@ public:
 
     void Dispose() final { }
 
-protected:
+private:
     //! Implements BlockSink class writing to files with size limit.
     class SysFileSink final : public data::BoundedBlockSink
     {
@@ -103,7 +103,7 @@ protected:
             file_.close();
         }
 
-    protected:
+    private:
         core::SysFile file_;
         size_t& stats_total_elements_;
         size_t& stats_total_writes_;

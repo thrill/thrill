@@ -54,11 +54,6 @@ public:
 
         LOG << "Client " << my_rank_ << " starting: " << endpoints[my_rank_];
 
-        // If we heldy any connections, do not allow a new initialization.
-        if (connections_.size() != 0) {
-            throw new Exception("This net manager has already been initialized.");
-        }
-
         for (size_t i = 0; i < group_count_; i++) {
             groups_[i] = std::make_unique<Group>(my_rank_, endpoints.size());
         }
@@ -125,7 +120,7 @@ public:
         }
     }
 
-protected:
+private:
     //! Temporary Manager for construction
     mem::Manager mem_manager_ { nullptr, "Construction" };
 

@@ -2,8 +2,9 @@
 
 set -e
 
-ENV=$(./make_env.py)
+scriptdir="`dirname "$0"`"
 
+ENV=$($scriptdir/make_env.py)
 eval $ENV
 
-../ssh/invoke.sh "$@"
+$scriptdir/../ssh/invoke.sh "$@"

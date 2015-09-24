@@ -36,6 +36,13 @@ struct is_pair : public std::false_type { };
 template <typename S, typename T>
 struct is_pair<std::pair<S, T> >: public std::true_type { };
 
+//! test if is std::array<T>
+template <typename T>
+struct is_std_array : public std::false_type { };
+
+template <typename T, size_t N>
+struct is_std_array<std::array<T, N> >: public std::true_type { };
+
 //! template for constexpr min, because std::min is not good enough.
 template <typename T>
 constexpr static inline const T & min(const T& a, const T& b) {

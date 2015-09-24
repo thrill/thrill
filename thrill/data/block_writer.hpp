@@ -337,7 +337,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
         bytes_ = sink_->AllocateByteBlock(block_size_);

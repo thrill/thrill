@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/file_read_write.cpp
+ * benchmarks/data/stream_read_write.cpp
  *
  * Part of Project Thrill.
  *
@@ -11,51 +11,63 @@
 #include <thrill/api/context.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/stats_timer.hpp>
+#include <thrill/common/thread_pool.hpp>
 
 #include <iostream>
 #include <random>
 #include <string>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 #include "data_generators.hpp"
 
 using namespace thrill; // NOLINT
 using common::StatsTimer;
 
-//! Writes and reads random elements from a file.
-//! Elements are genreated before the timer startet
+//! Creates two threads (workers) that work with one context instance
+//! one worker sends elements to the other worker.
 //! Number of elements depends on the number of bytes.
 //! one RESULT line will be printed for each iteration
 //! All iterations use the same generated data.
 //! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
-void ConductExperiment(uint64_t bytes, unsigned iterations, api::Context& ctx, const std::string& type_as_string) {
+void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const std::string& type_as_string) {
 
-    for (unsigned i = 0; i < iterations; i++) {
-        auto file = ctx.GetFile();
-        auto writer = file.GetWriter();
-        auto data = Generator<Type>(bytes);
+    auto data = generate<Type>(bytes, 1, 100);
+    common::ThreadPool pool;
+    for (int i = 0; i < iterations; i++) {
+        auto stream = ctx.GetNewCatStream();
+        StatsTimer<true> write_timer;
+        pool.Enqueue([&data, &stream, &ctx, &write_timer]() {
+                         auto writers = stream->OpenWriters();
+                         assert(writers.size() == 1);
+                         auto& writer = writers[0];
+                         write_timer.Start();
+                         for (auto& s : data) {
+                             writer(s);
+                         }
+                         writer.Close();
+                         write_timer.Stop();
+                     });
 
-        std::cout << "writing " << bytes << " bytes" << std::endl;
-        StatsTimer<true> write_timer(true);
-        while (data.HasNext()) {
-            writer(data.Next());
-        }
-        writer.Close();
-        write_timer.Stop();
-
-        std::cout << "reading " << bytes << " bytes" << std::endl;
-        auto reader = file.GetConsumeReader();
-        StatsTimer<true> read_timer(true);
-        while (reader.HasNext())
-            reader.Next<Type>();
-        read_timer.Stop();
+        StatsTimer<true> read_timer;
+        pool.Enqueue([&stream, &ctx, &read_timer]() {
+                         auto readers = stream->OpenReaders();
+                         assert(readers.size() == 1);
+                         auto& reader = readers[0];
+                         read_timer.Start();
+                         while (reader.HasNext()) {
+                             reader.Next<Type>();
+                         }
+                         read_timer.Stop();
+                     });
+        pool.LoopUntilEmpty();
         std::cout << "RESULT"
                   << " datatype=" << type_as_string
                   << " size=" << bytes
-                  << " write_time=" << write_timer.Microseconds()
-                  << " read_time=" << read_timer.Microseconds()
+                  << " write_time=" << write_timer
+                  << " read_time=" << read_timer
                   << std::endl;
     }
 }
@@ -66,19 +78,21 @@ int main(int argc, const char** argv) {
     common::CmdlineParser clp;
     clp.SetDescription("thrill::data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
-    unsigned iterations = 1;
+    int iterations;
     uint64_t bytes;
     std::string type;
     clp.AddBytes('b', "bytes", bytes, "number of bytes to process");
-    clp.AddUInt('n', "iterations", iterations, "Iterations (default: 1)");
+    clp.AddParamInt("n", iterations, "Iterations");
     clp.AddParamString("type", type,
-                       "data type (size_t, string, pair, triple)");
+                       "data type (int, string, pair, triple)");
     if (!clp.Process(argc, argv)) return -1;
 
-    using pair = std::tuple<std::string, size_t>;
-    using triple = std::tuple<std::string, size_t, std::string>;
+    using pair = std::pair<std::string, int>;
+    using triple = std::tuple<std::string, int, std::string>;
 
-    if (type == "size_t")
+    if (type == "int")
+        api::RunLocalSameThread(std::bind(ConductExperiment<int>, bytes, iterations, std::placeholders::_1, type));
+    else if (type == "size_t")
         api::RunLocalSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "string")
         api::RunLocalSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type));

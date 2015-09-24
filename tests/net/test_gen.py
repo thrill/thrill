@@ -38,23 +38,6 @@ def generate_group_tests(testname, runner):
             cog.outl("}")
 
 
-def generate_dispatcher_tests(testname, runner, dispatcher):
-
-    lines = [line.rstrip('\n')
-             for line in open('tests/net/group_test_base.hpp')]
-
-    p2 = re.compile('^static void DispatcherTest([A-Za-z0-9]+)\(')
-
-    for ln in lines:
-        m2 = p2.match(ln)
-        if m2:
-            func = m2.group(1)
-            cog.outl("TEST(%s, Dispatcher%s) {" % (testname, func))
-            cog.outl("    %s(" % (runner))
-            cog.outl("        DispatcherTest%s<%s>);" % (func, dispatcher))
-            cog.outl("}")
-
-
 def generate_flow_control_tests(testname, runner):
 
     lines = [line.rstrip('\n')

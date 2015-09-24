@@ -793,7 +793,7 @@ public:
         return;
     }
 
-protected:
+private:
     //! Size of the table in bytes
     size_t byte_size_ = 0;
 

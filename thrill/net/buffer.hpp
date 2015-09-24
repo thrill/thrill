@@ -54,7 +54,7 @@ public:
     //! simple pointer references
     using const_reference = const value_type &;
 
-protected:
+private:
     //! protected constructor used to acquire ownership of a buffer
     Buffer(bool /* acquire_tag */, void* data, size_type size)
         : data_(reinterpret_cast<value_type*>(data)), size_(size)
@@ -95,12 +95,13 @@ public:
 
     //! move-assignment of other buffer into this one
     Buffer& operator = (Buffer&& other) {
-        assert(this != &other);
-        if (data_) free(data_);
-        data_ = other.data_;
-        size_ = other.size_;
-        other.data_ = nullptr;
-        other.size_ = 0;
+        if (this != &other) {
+            if (data_) free(data_);
+            data_ = other.data_;
+            size_ = other.size_;
+            other.data_ = nullptr;
+            other.size_ = 0;
+        }
         return *this;
     }
 
@@ -115,7 +116,7 @@ public:
     }
 
     //! swap buffer with another one
-    friend void swap(Buffer& a, Buffer& b) {
+    friend void swap(Buffer& a, Buffer& b) noexcept {
         using std::swap;
         swap(a.data_, b.data_);
         swap(a.size_, b.size_);
@@ -226,7 +227,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! the buffer, typed as character data
     value_type* data_;
 

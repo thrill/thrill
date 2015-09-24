@@ -183,7 +183,7 @@ public:
         allocator_.deallocate(ptr, 1);
     }
 
-protected:
+private:
     //! reference to Manager for freeing.
     Allocator<T> allocator_;
 };

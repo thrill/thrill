@@ -8,6 +8,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -479,6 +480,80 @@ public:
         neutral_element = typename FunctionTraits<ReduceFunction>::result_type()) const;
 
     /*!
+     * GroupBy is a DOp, which groups elements of the DIARef by its key.
+     * After having grouped all elements of one key, all elements of one key
+     * will be processed according to the GroupByFunction and returns an output
+     * Contrary to Reduce, GroupBy allows usage of functions that require all
+     * elements of one key at once as GroupByFunction will be applied _after_
+     * all elements with the same key have been grouped. However because of this
+     * reason, the communication overhead is also higher. If possible, usage of
+     * Reduce is therefore recommended.
+     * As GroupBy is a DOp, it creates a new DIANode. The DIARef returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIARef consists of the PostOp of Reduce, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam GroupByFunction Type of the groupby_function. This is a function
+     * taking an iterator for all elements of the same key as input.
+     *
+     * \param groupby_function Reduce function, which defines how the key
+     * buckets are grouped and processed.
+     *      input param: api::GroupByReader with functions HasNext() and Next()
+     */
+    template <typename ValueOut,
+              typename KeyExtractor,
+              typename GroupByFunction,
+              typename HashFunction =
+                  std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+    auto GroupBy(const KeyExtractor &key_extractor,
+                 const GroupByFunction &reduce_function) const;
+
+    /*!
+     * GroupBy is a DOp, which groups elements of the DIARef by its key.
+     * After having grouped all elements of one key, all elements of one key
+     * will be processed according to the GroupByFunction and returns an output
+     * Contrary to Reduce, GroupBy allows usage of functions that require all
+     * elements of one key at once as GroupByFunction will be applied _after_
+     * all elements with the same key have been grouped. However because of this
+     * reason, the communication overhead is also higher. If possible, usage of
+     * Reduce is therefore recommended.
+     * In contrast to GroupBy, GroupByIndex returns a DIA in a defined order,
+     * which has the reduced element with key i in position i.
+     * As GroupBy is a DOp, it creates a new DIANode. The DIARef returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIARef consists of the PostOp of Reduce, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam GroupByFunction Type of the groupby_function. This is a function
+     * taking an iterator for all elements of the same key as input.
+     *
+     * \param groupby_function Reduce function, which defines how the key
+     * buckets are grouped and processed.
+     *      input param: api::GroupByReader with functions HasNext() and Next()
+     */
+    template <typename ValueOut,
+              typename KeyExtractor,
+              typename GroupByFunction,
+              typename HashFunction =
+                  std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+    auto GroupByIndex(const KeyExtractor &key_extractor,
+                      const GroupByFunction &reduce_function,
+                      const size_t size,
+                      const ValueOut& neutral_element = ValueOut()) const;
+
+    /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
      * zip_function is used to zip the i-th elements of both input DIAs together
      * to form the i-th element of the output DIARef. The type of the output
@@ -527,7 +602,7 @@ public:
      * first element is smaller than second. False otherwise.
      */
     template <typename CompareFunction = std::less<ValueType> >
-    auto Sort(const CompareFunction& compare_function = std::less<ValueType>()) const;
+    auto Sort(const CompareFunction& compare_function = CompareFunction()) const;
 
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
@@ -538,8 +613,8 @@ public:
      *
      * \param initial_value Initial value of the sum.
      */
-    template <typename SumFunction>
-    auto Sum(const SumFunction& sum_function = std::plus<ValueType>(),
+    template <typename SumFunction = std::plus<ValueType> >
+    auto Sum(const SumFunction& sum_function = SumFunction(),
              const ValueType& initial_value = ValueType()) const;
 
     /*!

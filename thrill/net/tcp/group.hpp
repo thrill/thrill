@@ -47,12 +47,12 @@ public:
     //! \{
 
     /*!
-     * Construct a test network with an underlying full mesh of local stream
-     * sockets for testing. Returns vector of net::Group interfaces for each
-     * virtual client. This is ideal for testing network communication
+     * Construct a test network with an underlying full mesh of local loopback
+     * stream sockets for testing. Returns vector of net::Group interfaces for
+     * each virtual client. This is ideal for testing network communication
      * protocols.
      */
-    static std::vector<std::unique_ptr<Group> > ConstructLocalMesh(
+    static std::vector<std::unique_ptr<Group> > ConstructLoopbackMesh(
         size_t num_hosts);
 
     /*!

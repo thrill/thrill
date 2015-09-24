@@ -131,7 +131,7 @@ private:
      *
      * \return Single "folded" lambda function representing the chain.
      */
-    template <std::size_t ... Is>
+    template <size_t ... Is>
     auto emit_sequence(common::index_sequence<Is ...>) const {
         return run_emitter(std::get<Is>(stack_) ...);
     }

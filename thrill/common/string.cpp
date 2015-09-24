@@ -15,7 +15,7 @@
 namespace thrill {
 namespace common {
 
-std::string hexdump(const void* const data, size_t size) {
+std::string Hexdump(const void* const data, size_t size) {
     const unsigned char* const cdata
         = static_cast<const unsigned char* const>(data);
 
@@ -37,8 +37,8 @@ std::string hexdump(const void* const data, size_t size) {
     return out;
 }
 
-std::string hexdump(const std::string& str) {
-    return hexdump(str.data(), str.size());
+std::string Hexdump(const std::string& str) {
+    return Hexdump(str.data(), str.size());
 }
 
 } // namespace common

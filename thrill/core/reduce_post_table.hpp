@@ -1456,7 +1456,7 @@ public:
         return;
     }
 
-protected:
+private:
     //! Number of buckets per table.
     size_t num_buckets_per_table_;
 

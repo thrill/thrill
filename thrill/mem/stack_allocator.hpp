@@ -149,7 +149,7 @@ public:
     template <class Other, size_t OtherSize>
     friend class StackAllocator;
 
-protected:
+private:
     Arena<Size>* arena_;
 };
 
