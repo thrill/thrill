@@ -1,7 +1,11 @@
 ################################################################################
 # swig/python/CMakeLists.txt
 #
-# CMake file for swig python frontend
+# Part of Project Thrill.
+#
+# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
 find_package(PythonInterp REQUIRED)

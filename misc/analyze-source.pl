@@ -200,7 +200,7 @@ sub process_cpp {
     # skip over custom file comments
     my $j = $i;
     while ($data[$i] !~ /^ \* Part of Project Thrill/) {
-        expect_re($path, $i, @data, '^ \*( .*)?\n$');
+        expect_re($path, $i, @data, '^ \*( .*|$)$');
         if (++$i >= @data) {
             $i = $j; # restore read position
             last;
@@ -394,11 +394,31 @@ sub process_pl_cmake {
     expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
 
-    # skip over comment
-    while ($data[$i] ne ('#'x80)."\n") {
-        expect_re($path, $i, @data, '^#( .*)?\n$');
-        return unless ++$i < @data;
+    # skip over custom file comments
+    my $j = $i;
+    while ($data[$i] !~ /^# Part of Project Thrill/) {
+        expect_re($path, $i, @data, '^#( .*|$)');
+        if (++$i >= @data) {
+            $i = $j; # restore read position
+            last;
+        }
     }
+
+    # check "Part of Project Thrill"
+    expect($path, $i-1, @data, "#\n");
+    expect($path, $i, @data, "# Part of Project Thrill.\n"); ++$i;
+    expect($path, $i, @data, "#\n"); ++$i;
+
+    # read authors
+    while ($data[$i] =~ /^# Copyright \(C\) ([0-9-]+(, [0-9-]+)*) (?<name>[^0-9<]+)( <(?<mail>[^>]+)>)?\n/) {
+        #print "Author: $+{name} - $+{mail}\n";
+        $authormap{$+{name}}{$+{mail} || ""} = 1;
+        die unless ++$i < @data;
+    }
+
+    # otherwise check license
+    expect($path, $i, @data, "#\n"); ++$i;
+    expectr($path, $i, @data, "# All rights reserved. Published under the BSD-2 license in the LICENSE file.\n", qr/^# /); ++$i;
 
     expect($path, $i, @data, ('#'x80)."\n"); ++$i;
 
