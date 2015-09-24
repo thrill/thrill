@@ -134,7 +134,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Enqueue job in queue for dispatching thread to run at its discretion.
     void Enqueue(Job&& job);
 

@@ -60,7 +60,7 @@ class Dispatcher
 {
     static const bool debug = false;
 
-protected:
+private:
     //! import into class namespace
     using steady_clock = std::chrono::steady_clock;
 
@@ -154,8 +154,8 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    void AsyncWrite(Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+    virtual void AsyncWrite(Connection& c, Buffer&& buffer,
+                            AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
         if (buffer.size() == 0) {
@@ -174,8 +174,8 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    void AsyncWrite(Connection& c, const data::Block& block,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+    virtual void AsyncWrite(Connection& c, const data::Block& block,
+                            AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
         if (block.size() == 0) {
@@ -357,7 +357,7 @@ protected:
                     if (callback_) callback_(conn_, Buffer());
                     return false;
                 }
-                throw Exception("AsyncReadBuffer() error in recv () on "
+                throw Exception("AsyncReadBuffer() error in recv() on "
                                 "connection " + conn_.ToString(), errno);
             }
 

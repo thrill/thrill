@@ -37,7 +37,7 @@ public:
     explicit ThreadBarrierLocking(size_t thread_count)
         : thread_count_(thread_count) { }
 
-    /**
+    /*!
      * Waits for n threads to arrive.
      *
      * This method blocks and returns as soon as n threads are waiting inside

@@ -88,7 +88,7 @@ public:
         return Serialization<BlockReader, T>::Deserialize(*this);
     }
 
-    //! HasNext() returns true if at least one more byte is available.
+    //! HasNext() returns true if at least one more item is available.
     bool HasNext() {
         while (current_ == end_) {
             if (!NextBlock()) {
@@ -305,7 +305,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Instance of BlockSource. This is NOT a reference, as to enable embedding
     //! of FileBlockSource to compose classes into File::Reader.
     BlockSource source_;

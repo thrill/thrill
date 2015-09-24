@@ -26,6 +26,8 @@
 #include <thrill/net/tcp/select.hpp>
 #include <thrill/net/tcp/socket.hpp>
 
+#include <unistd.h>
+
 #include <cerrno>
 #include <chrono>
 #include <csignal>
@@ -59,7 +61,7 @@ public:
     explicit SelectDispatcher(mem::Manager& mem_manager)
         : net::Dispatcher(mem_manager) {
         // allocate self-pipe
-        common::make_pipe(self_pipe_);
+        common::MakePipe(self_pipe_);
 
         // Ignore PIPE signals (received when writing to closed sockets)
         signal(SIGPIPE, SIG_IGN);
@@ -174,7 +176,7 @@ public:
         die_unless(wb == 1);
     }
 
-protected:
+private:
     //! select() manager object
     Select select_;
 

@@ -24,7 +24,7 @@ namespace common {
 void PortSetCloseOnExec(int fd);
 
 //! create a pair of pipe file descriptors
-void make_pipe(int out_pipefds[2]);
+void MakePipe(int out_pipefds[2]);
 
 } // namespace common
 } // namespace thrill

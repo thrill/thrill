@@ -86,7 +86,7 @@ namespace thrill {
 namespace core {
 namespace glob_local {
 
-/*! \file SimpleGlob.h
+/*! \file simple_glob.hpp
 
     \version 3.6
 
@@ -121,7 +121,7 @@ namespace glob_local {
    <li> Instantiate a CSimpleGlob object supplying the appropriate flags.
 
         <pre>
-        \link CSimpleGlobTempl CSimpleGlob \endlink glob(FLAGS);
+        CSimpleGlob glob(FLAGS);
         </pre>
 
    <li> Add all file specifications to the glob class.

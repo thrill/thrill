@@ -32,7 +32,7 @@ using CountingPtrDeleter = void (*)(Type*);
 
 //! default deleter for CountingPtr
 template <typename Type>
-void default_deleter(Type* ptr) noexcept {
+void DefaultDeleter(Type* ptr) noexcept {
     delete ptr;
 }
 
@@ -57,7 +57,7 @@ void default_deleter(Type* ptr) noexcept {
  * which are only related if constructed with std::make_shared.
  */
 template <typename Type,
-          CountingPtrDeleter<Type> deleter = default_deleter<Type> >
+          CountingPtrDeleter<Type> deleter = DefaultDeleter<Type> >
 class CountingPtr
 {
 public:
@@ -68,7 +68,6 @@ private:
     //! the pointer to the currently referenced object.
     Type* ptr_;
 
-protected:
     //! increment reference count for current object.
     void IncReference() noexcept
     { IncReference(ptr_); }
@@ -202,7 +201,7 @@ public:
 //! swap enclosed object with another counting pointer (no reference counts need
 //! change)
 template <class A>
-void swap(CountingPtr<A>& a1, CountingPtr<A>& a2) {
+void swap(CountingPtr<A>& a1, CountingPtr<A>& a2) noexcept {
     a1.swap(a2);
 }
 

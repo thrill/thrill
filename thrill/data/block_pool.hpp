@@ -46,7 +46,7 @@ public:
             << " total_size=" << mem_manager_.total();
     }
 
-protected:
+private:
     //! local Manager counting only ByteBlock allocations.
     mem::Manager mem_manager_;
 

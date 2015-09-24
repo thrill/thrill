@@ -85,7 +85,7 @@ class ThreadPool
 public:
     using Job = delegate<void()>;
 
-protected:
+private:
     //! Deque of scheduled jobs.
     std::deque<Job> jobs_;
 
@@ -157,7 +157,7 @@ public:
         return threads_[i];
     }
 
-protected:
+private:
     //! Worker function, one per thread is started.
     void Worker();
 };

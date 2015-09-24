@@ -4,6 +4,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -147,7 +148,7 @@ public:
         return queue_.Pop();
     }
 
-protected:
+private:
     //! BlockQueue that blocks are retrieved from
     BlockQueue& queue_;
 };
@@ -197,7 +198,7 @@ public:
         }
     }
 
-protected:
+private:
     //! Reference to BlockQueue
     BlockQueue* queue_;
 };

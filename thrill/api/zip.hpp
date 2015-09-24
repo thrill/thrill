@@ -132,10 +132,10 @@ public:
         size_t result_count = 0;
 
         if (result_size_ != 0) {
-            // get inbound readers from all Channels
-            std::vector<data::Channel::ConcatReader> readers;
-            readers.emplace_back(channels_[0]->OpenConcatReader(consume));
-            readers.emplace_back(channels_[1]->OpenConcatReader(consume));
+            // get inbound readers from all Streams
+            std::vector<data::CatStream::CatReader> readers;
+            readers.emplace_back(streams_[0]->OpenCatReader(consume));
+            readers.emplace_back(streams_[1]->OpenCatReader(consume));
 
             while (readers[0].HasNext() && readers[1].HasNext()) {
                 ZipArg0 i0 = readers[0].Next<ZipArg0>();
@@ -144,10 +144,10 @@ public:
                 ++result_count;
             }
 
-            channels_[0]->Close();
-            channels_[1]->Close();
-            this->WriteChannelStats(channels_[0]);
-            this->WriteChannelStats(channels_[1]);
+            streams_[0]->Close();
+            streams_[1]->Close();
+            this->WriteStreamStats(streams_[0]);
+            this->WriteStreamStats(streams_[1]);
         }
 
         sLOG << "Zip: result_count" << result_count;
@@ -180,8 +180,8 @@ private:
         { files_[0].GetWriter(), files_[1].GetWriter() }
     };
 
-    //! Array of inbound Channels
-    std::array<data::ChannelPtr, num_inputs_> channels_;
+    //! Array of inbound CatStreams
+    std::array<data::CatStreamPtr, num_inputs_> streams_;
 
     //! \name Variables for Calculating Exchange
     //! \{
@@ -241,11 +241,11 @@ private:
             LOG << "input " << in << " offsets[" << i << "] = " << offsets[i];
         }
 
-        //! target channel id
-        channels_[in] = context_.GetNewChannel();
+        //! target stream id
+        streams_[in] = context_.GetNewCatStream();
 
         //! scatter elements to other workers, if necessary
-        channels_[in]->template Scatter<ZipArgNum>(files_[in], offsets);
+        streams_[in]->template Scatter<ZipArgNum>(files_[in], offsets);
     }
 
     //! Receive elements from other workers.

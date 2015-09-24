@@ -613,7 +613,7 @@ public:
         return;
     }
 
-protected:
+private:
     //! Number of partitions
     size_t num_partitions_;
 

@@ -29,32 +29,38 @@ namespace data {
 //! \{
 
 enum class MagicByte : uint8_t {
-    CHANNEL_BLOCK, PARTITION_BLOCK
+    Invalid, CatStreamBlock, MixStreamBlock, PartitionBlock
 };
 
 struct BlockHeader {
-    size_t size = 0;
-    size_t first_item = 0;
-    size_t num_items = 0;
+public:
+    MagicByte           magic = MagicByte::Invalid;
+    size_t              size = 0;
+    size_t              first_item = 0;
+    size_t              num_items = 0;
 
     BlockHeader() = default;
 
-    explicit BlockHeader(const Block& b)
-        : size(b.size()),
+    explicit BlockHeader(MagicByte m, const Block& b)
+        : magic(m),
+          size(b.size()),
           first_item(b.first_item_relative()),
           num_items(b.num_items())
     { }
 
-    static const
-    size_t serialized_size = 3 * sizeof(size_t);
+    static const size_t header_size = sizeof(MagicByte) + 3 * sizeof(size_t);
 
-    void   SerializeBlockHeader(net::BufferBuilder& bb) const {
+    static const size_t total_size = header_size + 4 * sizeof(size_t);
+
+    void                SerializeBlockHeader(net::BufferBuilder& bb) const {
+        bb.Put<MagicByte>(magic);
         bb.Put<size_t>(size);
         bb.Put<size_t>(first_item);
         bb.Put<size_t>(num_items);
     }
 
-    void   ParseBlockHeader(net::BufferReader& br) {
+    void                ParseBlockHeader(net::BufferReader& br) {
+        magic = br.Get<MagicByte>();
         size = br.Get<size_t>();
         first_item = br.Get<size_t>();
         num_items = br.Get<size_t>();
@@ -66,35 +72,32 @@ struct BlockHeader {
 //! boundaries
 //!
 //! Provides a serializer and two partial deserializers
-//! A ChannelBlockHeader with num_elements = 0 marks the end of a channel
-struct ChannelBlockHeader : public BlockHeader {
-    size_t channel_id;
+//! A StreamBlockHeader with num_elements = 0 marks the end of a stream
+struct StreamBlockHeader : public BlockHeader {
+    size_t stream_id;
     size_t sender_rank;
     size_t receiver_local_worker_id;
     size_t sender_local_worker_id;
 
-    ChannelBlockHeader() = default;
+    StreamBlockHeader() = default;
 
-    explicit ChannelBlockHeader(const Block& b)
-        : BlockHeader(b)
+    explicit StreamBlockHeader(MagicByte m, const Block& b)
+        : BlockHeader(m, b)
     { }
-
-    static const
-    size_t serialized_size = BlockHeader::serialized_size + 4 * sizeof(size_t);
 
     //! Serializes the whole block struct into a buffer
     void Serialize(net::BufferBuilder& bb) const {
         SerializeBlockHeader(bb);
-        bb.Put<size_t>(channel_id);
+        bb.Put<size_t>(stream_id);
         bb.Put<size_t>(sender_rank);
         bb.Put<size_t>(receiver_local_worker_id);
         bb.Put<size_t>(sender_local_worker_id);
     }
 
-    //! Reads the channel id and the number of elements in this block
+    //! Reads the stream id and the number of elements in this block
     void ParseHeader(net::BufferReader& br) {
         ParseBlockHeader(br);
-        channel_id = br.Get<size_t>();
+        stream_id = br.Get<size_t>();
         sender_rank = br.Get<size_t>();
         receiver_local_worker_id = br.Get<size_t>();
         sender_local_worker_id = br.Get<size_t>();
@@ -116,11 +119,8 @@ struct PartitionBlockHeader : public BlockHeader {
     PartitionBlockHeader() = default;
 
     explicit PartitionBlockHeader(const Block& b)
-        : BlockHeader(b)
+        : BlockHeader(MagicByte::PartitionBlock, b)
     { }
-
-    static const
-    size_t serialized_size = BlockHeader::serialized_size + 5 * sizeof(size_t);
 
     //! Serializes the whole block struct into a buffer
     void Serialize(net::BufferBuilder& bb) const {
@@ -132,7 +132,7 @@ struct PartitionBlockHeader : public BlockHeader {
         bb.Put<size_t>(sender_local_worker_id);
     }
 
-    //! Reads the channel id and the number of elements in this block
+    //! Reads the stream id and the number of elements in this block
     void ParseHeader(net::BufferReader& br) {
         ParseBlockHeader(br);
         partition_set_id = br.Get<size_t>();

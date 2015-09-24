@@ -55,7 +55,7 @@ public:
     using ByteBlockPtr = common::CountingPtr<ByteBlock, deleter>;
     using ByteBlockCPtr = common::CountingPtr<const ByteBlock, deleter>;
 
-protected:
+private:
     struct {
         //! the allocated size of the buffer in bytes, excluding the size_ field
         size_t   size_;
@@ -208,7 +208,7 @@ public:
         return os << "]";
     }
 
-protected:
+private:
     //! referenced ByteBlock
     ByteBlockPtr byte_block_;
 
