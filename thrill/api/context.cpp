@@ -16,6 +16,7 @@
 #include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats.hpp>
+#include <thrill/common/system_exception.hpp>
 
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>
