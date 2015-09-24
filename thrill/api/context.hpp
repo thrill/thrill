@@ -324,11 +324,22 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint);
  * across different workers.  The Thrill configuration is taken from environment
  * variables starting the THRILL_.
  *
+ * THRILL_NET is the network backend to use, e.g.: mock, local, tcp, or mpi.
+ *
  * THRILL_RANK contains the rank of this worker
  *
- * THRILL_HOSTLIST contains a space- or comma-separated list of host:ports to connect to.
+ * THRILL_HOSTLIST contains a space- or comma-separated list of host:ports to
+ * connect to.
  *
  * THRILL_WORKERS_PER_HOST is the number of workers (threads) per host.
+ *
+ * Additional variables:
+ *
+ * THRILL_DIE_WITH_PARENT sets a flag which terminates the program if the caller
+ * terminates (this is automatically set by ssh/invoke.sh). No more zombies.
+ *
+ * THRILL_UNLINK_BINARY deletes a file. Used by ssh/invoke.sh to unlink a copied
+ * program binary while it is running. Hence, it can keep /tmp clean.
  *
  * \returns 0 if execution was fine on all threads.
  */
