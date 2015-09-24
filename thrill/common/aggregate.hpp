@@ -113,12 +113,14 @@ public:
 
     //! deserialization with Thrill's serializer
     template <typename Archive>
-    void ThrillDeserialize(Archive& ar) {
-        count_ = ar.template Get<size_t>();
-        total_ = ar.template Get<Type>();
-        min_ = ar.template Get<Type>();
-        max_ = ar.template Get<Type>();
-        total_squares_ = ar.template Get<Type>();
+    static Aggregate ThrillDeserialize(Archive& ar) {
+        Aggregate agg;
+        agg.count_ = ar.template Get<size_t>();
+        agg.total_ = ar.template Get<Type>();
+        agg.min_ = ar.template Get<Type>();
+        agg.max_ = ar.template Get<Type>();
+        agg.total_squares_ = ar.template Get<Type>();
+        return agg;
     }
 
     static const bool thrill_is_fixed_size = true;
