@@ -79,10 +79,8 @@ protected:
  * Implements a cyclic barrier using atomics and a spin lock that can be used to
  * synchronize threads.
  *
- * !!! This ThreadBarrier implementation was a lot slower in tests !!!
- *
- * Do not use it (unless your measurements show different results)! It remains
- * here for reference purposes.
+ * This ThreadBarrier implementation was a lot faster in tests, but
+ * ThreadSanitizer shows data races (probably due to the generation counter).
  */
 class ThreadBarrierSpinning
 {
@@ -102,17 +100,17 @@ public:
      * the method.
      */
     void Await() {
-        // get unique synchronization step.
-        size_t this_step = step_.load();
+        // get synchronization generation step counter.
+        size_t this_step = step_.load(std::memory_order_acquire);
 
-        if ((waiting_ += 1) == thread_count_) {
+        if (waiting_.fetch_add(1, std::memory_order_acq_rel) == thread_count_ - 1) {
             // we are the last thread to Await() -> reset and increment step.
-            waiting_.store(0);
-            step_.fetch_add(1);
+            waiting_.store(0, std::memory_order_release);
+            step_.fetch_add(1, std::memory_order_acq_rel);
         }
         else {
             // spin lock awaiting the last thread to increment the step counter.
-            while (step_.load() == this_step) { }
+            while (step_.load(std::memory_order_relaxed) == this_step) { }
         }
     }
 
@@ -123,12 +121,16 @@ protected:
     //! number of threads in spin lock
     std::atomic<size_t> waiting_ { 0 };
 
-    //! barrier synchronization iteration
+    //! barrier synchronization generation
     std::atomic<size_t> step_ { 0 };
 };
 
 // select thread barrier implementation.
+#if THRILL_HAVE_THREAD_SANITIZER
 using ThreadBarrier = ThreadBarrierLocking;
+#else
+using ThreadBarrier = ThreadBarrierSpinning;
+#endif
 
 } // namespace common
 } // namespace thrill
