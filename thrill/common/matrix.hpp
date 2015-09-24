@@ -15,6 +15,7 @@
 #include <thrill/data/serialization.hpp>
 
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <vector>
 
@@ -39,6 +40,13 @@ public:
     //! constructor of square n times n matrix.
     explicit Matrix(size_t rows_columns, const Type& initial = Type())
         : Matrix(rows_columns, rows_columns, initial) { }
+
+    //! constructor of m times n matrix from appropriate vector
+    Matrix(size_t rows, size_t columns, std::vector<Type>&& data)
+        : rows_(rows), columns_(columns),
+          data_(std::move(data)) {
+        assert(data_.size() == rows_ * columns_);
+    }
 
     //! number of rows in matrix
     size_t rows() const { return rows_; }
@@ -126,15 +134,17 @@ public:
 
     //! deserialization with Thrill's serializer
     template <typename Archive>
-    void ThrillDeserialize(Archive& ar) {
-        rows_ = ar.template Get<size_t>();
-        columns_ = ar.template Get<size_t>();
-        data_.resize(0);
-        data_.reserve(rows_ * columns_);
-        for (size_t i = 0; i != rows_ * columns_; ++i) {
-            data_.emplace_back(
+    static Matrix ThrillDeserialize(Archive& ar) {
+        size_t rows = ar.template Get<size_t>();
+        size_t columns = ar.template Get<size_t>();
+        std::vector<Type> data;
+        data.resize(0);
+        data.reserve(rows * columns);
+        for (size_t i = 0; i < rows * columns; ++i) {
+            data.emplace_back(
                 data::Serialization<Archive, Type>::Deserialize(ar));
         }
+        return Matrix(rows, columns, std::move(data));
     }
 
 private:

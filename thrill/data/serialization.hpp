@@ -249,9 +249,7 @@ struct Serialization<Archive, T,
         x.ThrillSerialize(ar);
     }
     static T Deserialize(Archive& ar) {
-        T x;
-        x.ThrillDeserialize(ar);
-        return x;
+        return T::ThrillDeserialize(ar);
     }
     static const bool   is_fixed_size = T::thrill_is_fixed_size;
     static const size_t fixed_size = T::thrill_fixed_size;
