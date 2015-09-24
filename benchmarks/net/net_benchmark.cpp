@@ -434,24 +434,23 @@ public:
     }
 
     void Test(api::Context& ctx) {
-        auto& fcc = ctx.flow_control_channel();
 
         for (size_t outer = 0; outer < outer_repeats_; ++outer) {
 
-            thrill::common::StatsTimer<true> t;
+            common::StatsTimer<true> t;
 
             size_t dummy = +4915221495089;
 
             t.Start();
             for (size_t inner = 0; inner < inner_repeats_; ++inner) {
-                dummy = fcc.Broadcast(dummy);
+                dummy = ctx.Broadcast(dummy);
             }
             t.Stop();
 
             size_t n = ctx.num_workers();
             size_t time = t.Microseconds();
             // calculate maximum time.
-            time = fcc.AllReduce(time, thrill::common::maximum<size_t>());
+            time = ctx.AllReduce(time, common::maximum<size_t>());
 
             if (ctx.my_rank() == 0) {
                 LOG1 << "RESULT"
@@ -499,24 +498,26 @@ public:
     }
 
     void Test(api::Context& ctx) {
-        auto& fcc = ctx.flow_control_channel();
 
         for (size_t outer = 0; outer < outer_repeats_; ++outer) {
 
-            thrill::common::StatsTimer<true> t;
-
-            size_t dummy = +4915221495089;
+            common::StatsTimer<true> t;
 
             t.Start();
             for (size_t inner = 0; inner < inner_repeats_; ++inner) {
-                dummy = fcc.PrefixSum(dummy);
+                // prefixsum a different value in each iteration
+                size_t value = inner + ctx.my_rank();
+                value = ctx.PrefixSum(value);
+                die_unequal(value,
+                            inner * (ctx.my_rank() + 1)
+                            + ctx.my_rank() * (ctx.my_rank() + 1) / 2);
             }
             t.Stop();
 
             size_t n = ctx.num_workers();
             size_t time = t.Microseconds();
             // calculate maximum time.
-            time = fcc.AllReduce(time, thrill::common::maximum<size_t>());
+            time = ctx.AllReduce(time, common::maximum<size_t>());
 
             if (ctx.my_rank() == 0) {
                 LOG1 << "RESULT"
