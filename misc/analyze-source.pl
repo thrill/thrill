@@ -462,11 +462,31 @@ sub process_py {
     expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
 
-    # skip over comment
-    while ($data[$i] ne ('#'x74)."\n") {
-        expect_re($path, $i, @data, '^#( .*)?\n$');
-        return unless ++$i < @data;
+    # skip over custom file comments
+    my $j = $i;
+    while ($data[$i] !~ /^# Part of Project Thrill/) {
+        expect_re($path, $i, @data, '^#( .*|$)');
+        if (++$i >= @data) {
+            $i = $j; # restore read position
+            last;
+        }
     }
+
+    # check "Part of Project Thrill"
+    expect($path, $i-1, @data, "#\n");
+    expect($path, $i, @data, "# Part of Project Thrill.\n"); ++$i;
+    expect($path, $i, @data, "#\n"); ++$i;
+
+    # read authors
+    while ($data[$i] =~ /^# Copyright \(C\) ([0-9-]+(, [0-9-]+)*) (?<name>[^0-9<]+)( <(?<mail>[^>]+)>)?\n/) {
+        #print "Author: $+{name} - $+{mail}\n";
+        $authormap{$+{name}}{$+{mail} || ""} = 1;
+        die unless ++$i < @data;
+    }
+
+    # otherwise check license
+    expect($path, $i, @data, "#\n"); ++$i;
+    expectr($path, $i, @data, "# All rights reserved. Published under the BSD-2 license in the LICENSE file.\n", qr/^# /); ++$i;
 
     expect($path, $i, @data, ('#'x74)."\n"); ++$i;
 
@@ -647,7 +667,7 @@ my ($uncrustver) = filter_program("", "uncrustify", "--version");
     or die("Requires uncrustify 0.61 to run correctly. ".
            "See https://github.com/PdF14-MR/thrill/wiki/Uncrustify-as-local-pre-commit-hook");
 
-$have_autopep8 = 1;
+$have_autopep8 = 0;
 my ($check_autopep8) = filter_program("", "autopep8", "--version");
 if (!$check_autopep8 || $check_autopep8 !~ /^autopep8/) {
     $have_autopep8 = 0;
@@ -681,7 +701,7 @@ foreach my $file (@filelist)
     elsif ($file =~ /\.pl$/) {
         process_pl_cmake($file);
     }
-    elsif ($file =~ /^(swig|tests).*\.py$/) {
+    elsif ($file =~ /\.py$/) {
         process_py($file);
     }
     elsif ($file =~ m!(^|/)CMakeLists\.txt$!) {
