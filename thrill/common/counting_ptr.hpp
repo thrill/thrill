@@ -11,7 +11,7 @@
  * Copyright (C) 2010-2011 Raoul Steffen <R-Steffen@gmx.de>
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once

@@ -6,7 +6,7 @@
 #
 # Copyright (C) 2014-2015 Timo Bingmann <tb@panthema.net>
 #
-# All rights reserved. Available under the BSD-2 license in the LICENSE file.
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
 # print multiple email addresses
@@ -221,7 +221,7 @@ sub process_cpp {
 
     # otherwise check license
     expect($path, $i, @data, " *\n"); ++$i;
-    expectr($path, $i, @data, " * This file has no license. Only Chuck Norris can compile it.\n", qr/^ \*/); ++$i;
+    expectr($path, $i, @data, " * All rights reserved. Published under the BSD-2 license in the LICENSE file.\n", qr/^ \*/); ++$i;
     expect($path, $i, @data, " ".('*'x78)."/\n"); ++$i;
 
     # check include guard name
@@ -550,7 +550,7 @@ sub process_swig {
 
     # otherwise check license
     expect($path, $i, @data, " *\n"); ++$i;
-    expectr($path, $i, @data, " * This file has no license. Only Chuck Norris can compile it.\n", qr/^ \*/); ++$i;
+    expectr($path, $i, @data, " * All rights reserved. Published under the BSD-2 license in the LICENSE file.\n", qr/^ \*/); ++$i;
     expect($path, $i, @data, " ".('*'x78)."/\n"); ++$i;
 
     # check terminating /****/ comment
