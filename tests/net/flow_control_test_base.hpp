@@ -214,7 +214,7 @@ static void TestMultiThreadPrefixSum(net::Group* net) {
  */
 static void TestHardcoreRaceConditionTest(net::Group* net) {
 
-    const size_t count = 16;
+    const size_t count = std::thread::hardware_concurrency();
 
     ExecuteMultiThreads(
         net, count, [=](net::FlowControlChannel& channel, size_t id) {
