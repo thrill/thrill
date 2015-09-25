@@ -8,7 +8,10 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
-#include <thrill/thrill.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/reduce.hpp>
+#include <thrill/api/cache.hpp>
 
 #include <algorithm>
 #include <random>
