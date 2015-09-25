@@ -111,8 +111,8 @@ auto Generate(Context & ctx,
     using GeneratorResult =
               typename common::FunctionTraits<GeneratorFunction>::result_type;
 
-    using GenerateResultNode =
-              GenerateNode<GeneratorResult, GeneratorFunction>;
+    using GenerateNode =
+              api::GenerateNode<GeneratorResult, GeneratorFunction>;
 
     static_assert(
         std::is_convertible<
@@ -123,7 +123,7 @@ auto Generate(Context & ctx,
 
     StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", DIANodeType::DOP);
     auto shared_node =
-        std::make_shared<GenerateResultNode>(
+        std::make_shared<GenerateNode>(
             ctx, generator_function, size, stats_node);
 
     auto generator_stack = shared_node->ProduceStack();

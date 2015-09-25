@@ -34,10 +34,13 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIA>
+template <typename ParentDIA>
 class WriteBinaryNode : public ActionNode
 {
     static const bool debug = false;
+
+    //! input type is the parent's output value type.
+    using Input = typename ParentDIA::ValueType;
 
 public:
     using Super = ActionNode;
@@ -57,7 +60,7 @@ public:
                                common::RoundUpToPowerOfTwo(max_file_size));
         sLOG << "block_size_" << block_size_;
 
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [=](const Input& input) {
                              return PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -151,7 +154,7 @@ private:
     }
 
     //! writer preop: put item into file, create files as needed.
-    void PreOp(const ValueType& input) {
+    void PreOp(const Input& input) {
         stats_total_elements_++;
 
         if (!sink_) OpenNextFile();
@@ -179,12 +182,12 @@ template <typename ValueType, typename Stack>
 void DIA<ValueType, Stack>::WriteBinary(
     const std::string& filepath, size_t max_file_size) const {
 
-    using WriteResultNode = WriteBinaryNode<ValueType, DIA>;
+    using WriteBinaryNode = api::WriteBinaryNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("WriteBinary", DIANodeType::ACTION);
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(
+        std::make_shared<WriteBinaryNode>(
             *this, filepath, max_file_size, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());

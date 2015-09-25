@@ -297,7 +297,7 @@ auto DIA<ValueType, Stack>::Zip(
     using ZipResult
               = typename FunctionTraits<ZipFunction>::result_type;
 
-    using ZipResultNode
+    using ZipNode
               = TwoZipNode<ZipResult, DIA, SecondDIA, ZipFunction>;
 
     static_assert(
@@ -317,10 +317,8 @@ auto DIA<ValueType, Stack>::Zip(
     StatsNode* stats_node = AddChildStatsNode("Zip", DIANodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto zip_node
-        = std::make_shared<ZipResultNode>(*this,
-                                          second_dia,
-                                          zip_function,
-                                          stats_node);
+        = std::make_shared<ZipNode>(
+        *this, second_dia, zip_function, stats_node);
 
     auto zip_stack = zip_node->ProduceStack();
 

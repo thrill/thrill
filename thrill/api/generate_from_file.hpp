@@ -155,7 +155,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
     using GeneratorResult =
               typename common::FunctionTraits<GeneratorFunction>::result_type;
 
-    using GenerateResultNode =
+    using GenerateNode =
               GenerateFileNode<GeneratorResult, GeneratorFunction>;
 
     static_assert(
@@ -168,7 +168,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
         "GenerateFromFile", DIANodeType::DOP);
 
     auto shared_node =
-        std::make_shared<GenerateResultNode>(
+        std::make_shared<GenerateNode>(
             ctx, generator_function, filepath, size, stats_node);
 
     auto generator_stack = shared_node->ProduceStack();

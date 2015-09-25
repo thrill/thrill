@@ -312,11 +312,11 @@ auto DIA<ValueType, Stack>::GroupByIndex(
         "KeyExtractor has the wrong input type");
 
     StatsNode* stats_node = AddChildStatsNode("GroupByIndex", DIANodeType::DOP);
-    using GroupByResultNode
+    using GroupByNode
               = GroupByIndexNode<DOpResult, DIA, KeyExtractor,
                                  GroupFunction, HashFunction>;
     auto shared_node
-        = std::make_shared<GroupByResultNode>(
+        = std::make_shared<GroupByNode>(
         *this, key_extractor, groupby_function,
         number_keys, neutral_element, stats_node);
 

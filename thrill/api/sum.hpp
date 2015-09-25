@@ -29,14 +29,16 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIA, typename SumFunction>
+template <typename ParentDIA, typename SumFunction>
 class SumNode : public ActionNode
 {
     static const bool debug = false;
 
     using Super = ActionNode;
     using Super::context_;
-    using SumArg0 = ValueType;
+
+    //! input and result type is the parent's output value type.
+    using ValueType = typename ParentDIA::ValueType;
 
 public:
     SumNode(const ParentDIA& parent,
@@ -48,7 +50,7 @@ public:
           local_sum_(initial_value)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](ValueType input) {
+        auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
                          };
 
@@ -101,8 +103,7 @@ auto DIA<ValueType, Stack>::Sum(
     const SumFunction &sum_function, const ValueType &initial_value) const {
     assert(IsValid());
 
-    using SumResultNode
-              = SumNode<ValueType, DIA, SumFunction>;
+    using SumNode = api::SumNode<DIA, SumFunction>;
 
     static_assert(
         std::is_convertible<
@@ -124,10 +125,9 @@ auto DIA<ValueType, Stack>::Sum(
 
     StatsNode* stats_node = AddChildStatsNode("Sum", DIANodeType::ACTION);
     auto shared_node
-        = std::make_shared<SumResultNode>(*this,
-                                          sum_function,
-                                          initial_value,
-                                          stats_node);
+        = std::make_shared<SumNode>(
+        *this, sum_function, initial_value, stats_node);
+
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }

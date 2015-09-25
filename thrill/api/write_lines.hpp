@@ -28,7 +28,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIA>
+template <typename ParentDIA>
 class WriteLinesNode : public ActionNode
 {
     static const bool debug = false;
@@ -36,6 +36,9 @@ class WriteLinesNode : public ActionNode
 public:
     using Super = ActionNode;
     using Super::context_;
+
+    //! input type is the parent's output value type.
+    using Input = typename ParentDIA::ValueType;
 
     WriteLinesNode(const ParentDIA& parent,
                    const std::string& path_out,
@@ -48,7 +51,7 @@ public:
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [=](const Input& input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -57,7 +60,7 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    void PreOp(const ValueType& input) {
+    void PreOp(const Input& input) {
         writer_(input);
         size_ += input.size() + 1;
         stats_total_elements_++;
@@ -83,7 +86,7 @@ public:
         data::File::ConsumeReader reader = temp_file_.GetConsumeReader();
 
         for (size_t i = 0; i < temp_file_.num_items(); ++i) {
-            file_ << reader.Next<ValueType>() << "\n";
+            file_ << reader.Next<Input>() << "\n";
         }
 
         file_.close();
@@ -118,11 +121,11 @@ void DIA<ValueType, Stack>::WriteLines(
     static_assert(std::is_same<ValueType, std::string>::value,
                   "WriteLines needs an std::string as input parameter");
 
-    using WriteResultNode = WriteLinesNode<ValueType, DIA>;
+    using WriteLinesNode = api::WriteLinesNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("WriteLines", DIANodeType::ACTION);
     auto shared_node =
-        std::make_shared<WriteResultNode>(
+        std::make_shared<WriteLinesNode>(
             *this, filepath, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
