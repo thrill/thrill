@@ -180,7 +180,7 @@ void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
 
     for (size_t& host_count : num_hosts) {
         for (size_t& workers_per_host : num_workers) {
-            return RunLoopbackThreads<TestGroup>(
+            RunLoopbackThreads<TestGroup>(
                 host_count, workers_per_host, job_startpoint);
         }
     }
