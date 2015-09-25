@@ -26,12 +26,15 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIA>
+template <typename ParentDIA>
 class AllGatherNode : public ActionNode
 {
 public:
     using Super = ActionNode;
     using Super::context_;
+
+    //! input and output type is the parent's output value type.
+    using ValueType = typename ParentDIA::ValueType;
 
     AllGatherNode(const ParentDIA& parent,
                   std::vector<ValueType>* out_vector,
@@ -90,7 +93,7 @@ template <typename ValueType, typename Stack>
 std::vector<ValueType> DIA<ValueType, Stack>::AllGather()  const {
     assert(IsValid());
 
-    using AllGatherNode = api::AllGatherNode<ValueType, DIA>;
+    using AllGatherNode = api::AllGatherNode<DIA>;
 
     std::vector<ValueType> output;
 
@@ -108,7 +111,7 @@ void DIA<ValueType, Stack>::AllGather(
     std::vector<ValueType>* out_vector)  const {
     assert(IsValid());
 
-    using AllGatherNode = api::AllGatherNode<ValueType, DIA>;
+    using AllGatherNode = api::AllGatherNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("AllGather", DIANodeType::ACTION);
     auto shared_node =

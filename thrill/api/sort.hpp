@@ -414,8 +414,7 @@ template <typename CompareFunction>
 auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
     assert(IsValid());
 
-    using SortResultNode
-              = SortNode<ValueType, DIA, CompareFunction>;
+    using SortNode = api::SortNode<ValueType, DIA, CompareFunction>;
 
     static_assert(
         std::is_convertible<
@@ -440,7 +439,7 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const 
 
     StatsNode* stats_node = AddChildStatsNode("Sort", DIANodeType::DOP);
     auto shared_node
-        = std::make_shared<SortResultNode>(*this, compare_function, stats_node);
+        = std::make_shared<SortNode>(*this, compare_function, stats_node);
 
     auto sort_stack = shared_node->ProduceStack();
 

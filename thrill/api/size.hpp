@@ -28,7 +28,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIA>
+template <typename ParentDIA>
 class SizeNode : public ActionNode
 {
     static const bool debug = false;
@@ -36,13 +36,16 @@ class SizeNode : public ActionNode
     using Super = ActionNode;
     using Super::context_;
 
+    //! input type is the parent's output value type.
+    using Input = typename ParentDIA::ValueType;
+
 public:
     SizeNode(const ParentDIA& parent,
              StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
+        auto pre_op_fn = [=](const Input&) { ++local_size_; };
 
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
@@ -87,11 +90,11 @@ template <typename ValueType, typename Stack>
 size_t DIA<ValueType, Stack>::Size() const {
     assert(IsValid());
 
-    using SizeResultNode = SizeNode<ValueType, DIA>;
+    using SizeNode = api::SizeNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Size", DIANodeType::ACTION);
     auto shared_node
-        = std::make_shared<SizeResultNode>(*this, stats_node);
+        = std::make_shared<SizeNode>(*this, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();

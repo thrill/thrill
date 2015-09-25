@@ -30,7 +30,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIA>
+template <typename ParentDIA>
 class WriteLinesManyNode : public ActionNode
 {
     static const bool debug = false;
@@ -38,6 +38,9 @@ class WriteLinesManyNode : public ActionNode
 public:
     using Super = ActionNode;
     using Super::context_;
+
+    //! input type is the parent's output value type.
+    using Input = typename ParentDIA::ValueType;
 
     WriteLinesManyNode(const ParentDIA& parent,
                        const std::string& path_out,
@@ -52,12 +55,13 @@ public:
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [=](std::string input) {
+        auto pre_op_fn = [=](const std::string& input) {
                              PreOp(input);
                          };
 
-        max_buffer_size_ = std::min(data::default_block_size,
-                                    common::RoundUpToPowerOfTwo(target_file_size_));
+        max_buffer_size_ =
+            std::min(data::default_block_size,
+                     common::RoundUpToPowerOfTwo(target_file_size_));
 
         write_buffer_.Reserve(max_buffer_size_);
 
@@ -160,12 +164,13 @@ void DIA<ValueType, Stack>::WriteLinesMany(
     static_assert(std::is_same<ValueType, std::string>::value,
                   "WriteLinesMany needs an std::string as input parameter");
 
-    using WriteResultNode = WriteLinesManyNode<ValueType, DIA>;
+    using WriteLinesManyNode = api::WriteLinesManyNode<DIA>;
 
-    StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", DIANodeType::ACTION);
+    StatsNode* stats_node =
+        AddChildStatsNode("WriteLinesMany", DIANodeType::ACTION);
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(
+        std::make_shared<WriteLinesManyNode>(
             *this, filepath, target_file_size, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());

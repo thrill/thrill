@@ -245,14 +245,14 @@ auto DIA<ValueType, Stack>::ReduceToIndexByKey(
             size_t>::value,
         "The key has to be an unsigned long int (aka. size_t).");
 
-    using ReduceResultNode
+    using ReduceNode
               = ReduceToIndexNode<DOpResult, DIA,
                                   KeyExtractor, ReduceFunction,
                                   false, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndexByKey", DIANodeType::DOP);
     auto shared_node
-        = std::make_shared<ReduceResultNode>(
+        = std::make_shared<ReduceNode>(
         *this, key_extractor, reduce_function,
         size, neutral_element, stats_node);
 
@@ -305,27 +305,27 @@ auto DIA<ValueType, Stack>::ReducePairToIndex(
 
     using Key = typename ValueType::first_type;
 
-    using ReduceResultNode
+    using ReduceNode
               = ReduceToIndexNode<ValueType, DIA,
                                   std::function<Key(Key)>,
                                   ReduceFunction, false, true>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", DIANodeType::DOP);
     auto shared_node
-        = std::make_shared<ReduceResultNode>(*this,
-                                             [](Key key) {
-                                                 // This function should not be
-                                                 // called, it is only here to
-                                                 // give the key type to the
-                                                 // hashtables.
-                                                 assert(1 == 0);
-                                                 key = key;
-                                                 return Key();
-                                             },
-                                             reduce_function,
-                                             size,
-                                             neutral_element,
-                                             stats_node);
+        = std::make_shared<ReduceNode>(*this,
+                                       [](Key key) {
+                                           // This function should not be
+                                           // called, it is only here to
+                                           // give the key type to the
+                                           // hashtables.
+                                           assert(1 == 0);
+                                           key = key;
+                                           return Key();
+                                       },
+                                       reduce_function,
+                                       size,
+                                       neutral_element,
+                                       stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
 
@@ -378,19 +378,15 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
             size_t>::value,
         "The key has to be an unsigned long int (aka. size_t).");
 
-    using ReduceResultNode
+    using ReduceNode
               = ReduceToIndexNode<DOpResult, DIA,
                                   KeyExtractor, ReduceFunction,
                                   true, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", DIANodeType::DOP);
-    auto shared_node
-        = std::make_shared<ReduceResultNode>(*this,
-                                             key_extractor,
-                                             reduce_function,
-                                             size,
-                                             neutral_element,
-                                             stats_node);
+    auto shared_node =
+        std::make_shared<ReduceNode>(
+        *this, key_extractor, reduce_function, size, neutral_element, stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
 

@@ -224,11 +224,11 @@ auto DIA<ValueType, Stack>::ReduceBy(
         "KeyExtractor has the wrong input type");
 
     StatsNode* stats_node = AddChildStatsNode("ReduceBy", DIANodeType::DOP);
-    using ReduceResultNode
-              = ReduceNode<DOpResult, DIA, KeyExtractor,
-                           ReduceFunction, true, false>;
+    using ReduceNode
+              = api::ReduceNode<DOpResult, DIA, KeyExtractor,
+                                ReduceFunction, true, false>;
     auto shared_node
-        = std::make_shared<ReduceResultNode>(
+        = std::make_shared<ReduceNode>(
         *this, key_extractor, reduce_function, stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
@@ -273,22 +273,22 @@ auto DIA<ValueType, Stack>::ReducePair(
     using Value = typename ValueType::second_type;
 
     StatsNode* stats_node = AddChildStatsNode("ReducePair", DIANodeType::DOP);
-    using ReduceResultNode
-              = ReduceNode<ValueType, DIA, std::function<Key(Value)>,
-                           ReduceFunction, false, true>;
+    using ReduceNode
+              = api::ReduceNode<ValueType, DIA, std::function<Key(Value)>,
+                                ReduceFunction, false, true>;
     auto shared_node
-        = std::make_shared<ReduceResultNode>(*this,
-                                             [](Value value) {
-                                                 // This function should not be
-                                                 // called, it is only here to
-                                                 // give the key type to the
-                                                 // hashtables.
-                                                 assert(1 == 0);
-                                                 value = value;
-                                                 return Key();
-                                             },
-                                             reduce_function,
-                                             stats_node);
+        = std::make_shared<ReduceNode>(*this,
+                                       [](Value value) {
+                                           // This function should not be
+                                           // called, it is only here to
+                                           // give the key type to the
+                                           // hashtables.
+                                           assert(1 == 0);
+                                           value = value;
+                                           return Key();
+                                       },
+                                       reduce_function,
+                                       stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
 
@@ -334,11 +334,11 @@ auto DIA<ValueType, Stack>::ReduceByKey(
         "KeyExtractor has the wrong input type");
 
     StatsNode* stats_node = AddChildStatsNode("ReduceByKey", DIANodeType::DOP);
-    using ReduceResultNode
-              = ReduceNode<DOpResult, DIA, KeyExtractor,
-                           ReduceFunction, false, false>;
+    using ReduceNode
+              = api::ReduceNode<DOpResult, DIA, KeyExtractor,
+                                ReduceFunction, false, false>;
     auto shared_node
-        = std::make_shared<ReduceResultNode>(
+        = std::make_shared<ReduceNode>(
         *this, key_extractor, reduce_function, stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
