@@ -209,6 +209,108 @@ static void TestMultiThreadPrefixSum(net::Group* net) {
         });
 }
 
+// perform first test: PE must be items only from predecessor
+static void TestPredecessorManyItems(net::Group* net) {
+
+    const size_t thread_count = 4;
+
+    ExecuteMultiThreads(
+        net, thread_count,
+        [=](net::FlowControlChannel& channel) {
+            size_t my_rank = channel.my_rank();
+
+            for (size_t r = 0; r < 10; ++r) {
+                // each PE has three items
+                std::vector<size_t> inval(3);
+                inval[0] = r + my_rank;
+                inval[1] = r + my_rank + 42;
+                inval[2] = r + my_rank * my_rank;
+
+                // get two predecessors
+                std::vector<size_t> pre = channel.Predecessor(2, inval);
+
+                if (my_rank == 0) {
+                    ASSERT_EQ(0u, pre.size());
+                }
+                else {
+                    ASSERT_EQ(r + (my_rank - 1) + 42, pre[0]);
+                    ASSERT_EQ(r + (my_rank - 1) * (my_rank - 1), pre[1]);
+                }
+            }
+        });
+}
+
+// perform second test: one PE must get elements from preceding two ones.
+static void TestPredecessorFewItems(net::Group* net) {
+
+    const size_t thread_count = 4;
+
+    ExecuteMultiThreads(
+        net, thread_count,
+        [=](net::FlowControlChannel& channel) {
+            size_t my_rank = channel.my_rank();
+
+            for (size_t r = 0; r < 10; ++r) {
+                // each PE has only one item
+                std::vector<size_t> inval(1);
+                inval[0] = r + my_rank;
+
+                // get three predecessors
+                std::vector<size_t> pre = channel.Predecessor(3, inval);
+
+                if (my_rank == 0) {
+                    ASSERT_EQ(0u, pre.size());
+                }
+                else if (my_rank == 1) {
+                    ASSERT_EQ(1u, pre.size());
+                    ASSERT_EQ(r + 0u, pre[0]);
+                }
+                else if (my_rank == 2) {
+                    ASSERT_EQ(2u, pre.size());
+                    ASSERT_EQ(r + 0u, pre[0]);
+                    ASSERT_EQ(r + 1u, pre[1]);
+                }
+                else {
+                    ASSERT_EQ(3u, pre.size());
+                    ASSERT_EQ(r + my_rank - 3u, pre[0]);
+                    ASSERT_EQ(r + my_rank - 2u, pre[1]);
+                    ASSERT_EQ(r + my_rank - 1u, pre[2]);
+                }
+            }
+        });
+}
+
+// perform third evil test: only first PE has an item
+static void TestPredecessorOneItem(net::Group* net) {
+
+    const size_t thread_count = 4;
+
+    ExecuteMultiThreads(
+        net, thread_count,
+        [=](net::FlowControlChannel& channel) {
+            size_t my_rank = channel.my_rank();
+
+            for (size_t r = 0; r < 10; ++r) {
+                // first PE has only one item
+                std::vector<size_t> inval;
+                if (my_rank == 0) {
+                    inval.push_back(r);
+                }
+
+                // get three predecessors
+                std::vector<size_t> pre = channel.Predecessor(3, inval);
+
+                if (my_rank == 0) {
+                    ASSERT_EQ(0u, pre.size());
+                }
+                else {
+                    ASSERT_EQ(1u, pre.size());
+                    ASSERT_EQ(r, pre[0]);
+                }
+            }
+        });
+}
+
 /**
  * Does a lot of operations to provoke race conditions.
  */
