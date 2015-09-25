@@ -27,14 +27,16 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
-/**
- * \brief Provides a blocking collection for communication.
- * \details This wraps a raw net group and should be used for
- * flow control with integral types.
+/*!
+ * Provides a blocking collection for communication.
  *
- * Important notice on threading: It is not allowed to call two different methods of two different
- * instances of FlowControlChannel simultaniously by different threads, since the internal synchronization state
- * (the barrier) is shared globally.
+ * This wraps a raw net group, adds multi-worker/thread support, and should be
+ * used for flow control with integral types.
+ *
+ * Important notice on threading: It is not allowed to call two different
+ * methods of two different instances of FlowControlChannel simultaniously by
+ * different threads, since the internal synchronization state (the barrier) is
+ * shared globally.
  *
  * The implementations will be replaced by better/decentral versions.
  *
@@ -65,38 +67,6 @@ private:
 
     //! A shared memory location to work upon.
     common::AlignedPtr* shmem_;
-
-    /**
-     * \brief Sends a value of an integral type T to a certain other worker.
-     * \details This method can block if there is unsufficient space
-     * in the send buffer. This method may only be called by thread with ID 0.
-     *
-     * \param destination The id of the worker to send the value to.
-     * \param value The value to send.
-     */
-    template <typename T>
-    void SendTo(size_t destination, const T& value) {
-
-        assert(thread_id_ == 0); //Only primary thread might send/receive.
-
-        group_.connection(destination).Send(value);
-    }
-
-    /**
-     * \brief Receives a value of an integral type T from a certain other worker.
-     * \details This method blocks until the data is received. This method may only be called by thread with ID 0.
-     *
-     * \param source The id of the worker to receive the value from.
-     * \param out_value A pointer to a memory location where the
-     * received value is stored.
-     */
-    template <typename T>
-    void ReceiveFrom(size_t source, T* out_value) {
-
-        assert(thread_id_ == 0); // Only primary thread might send/receive.
-
-        group_.connection(source).Receive(out_value);
-    }
 
     template <typename T>
     void SetLocalShared(T* value) {
@@ -134,12 +104,13 @@ public:
         return group_.my_host_rank() * thread_count_ + thread_id_;
     }
 
-    /**
-     * \brief Calculates the prefix sum over all workers, given a certain sum
+    /*!
+     * Calculates the prefix sum over all workers, given a certain sum
      * operation.
-     * \details This method blocks until the sum is caluclated. Values
-     * are applied in order, that means sum_op(sum_op(a, b), c) if a, b, c
-     * are the values of workers 0, 1, 2.
+     *
+     * This method blocks until the sum is caluclated. Values are applied in
+     * order, that means sum_op(sum_op(a, b), c) if a, b, c are the values of
+     * workers 0, 1, 2.
      *
      * \param value The local value of this worker.
      * \param initial The initial element for the body defined by T and sum_op
@@ -149,8 +120,8 @@ public:
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T PrefixSum(const T& value, const T& initial = T(), BinarySumOp sum_op = BinarySumOp(),
-                bool inclusive = true) {
+    T PrefixSum(const T& value, const T& initial = T(),
+                BinarySumOp sum_op = BinarySumOp(), bool inclusive = true) {
 
         static const bool debug = false;
 
@@ -180,25 +151,25 @@ public:
                 }
             }
 
-            T prefixSumBase = *(locals[thread_count_ - 1]);
-            group_.PrefixSum(prefixSumBase, sum_op, false);
+            T base_sum = *(locals[thread_count_ - 1]);
+            group_.PrefixSum(base_sum, sum_op, false);
 
             if (id_ == 0) {
-                prefixSumBase = initial;
+                base_sum = initial;
             }
 
-            LOG << id_ << ", m, " << inclusive << ": base: " << prefixSumBase;
+            LOG << id_ << ", m, " << inclusive << ": base: " << base_sum;
 
             if (inclusive) {
                 for (size_t i = 0; i < thread_count_; i++) {
-                    *(locals[i]) = sum_op(prefixSumBase, *(locals[i]));
+                    *(locals[i]) = sum_op(base_sum, *(locals[i]));
                 }
             }
             else {
                 for (size_t i = thread_count_ - 1; i > 0; i--) {
-                    *(locals[i]) = sum_op(prefixSumBase, *(locals[i - 1]));
+                    *(locals[i]) = sum_op(base_sum, *(locals[i - 1]));
                 }
-                *(locals[0]) = prefixSumBase;
+                *(locals[0]) = base_sum;
             }
 
             if (debug) {
@@ -213,13 +184,13 @@ public:
         return local_value;
     }
 
-    /**
-     * \brief Calculates the exclusive prefix sum over all workers, given a
-     * certain sum operation.
+    /*!
+     * Calculates the exclusive prefix sum over all workers, given a certain sum
+     * operation.
      *
-     * \details This method blocks until the sum is caluclated. Values
-     * are applied in order, that means sum_op(sum_op(a, b), c) if a, b, c
-     * are the values of workers 0, 1, 2.
+     * This method blocks until the sum is caluclated. Values are applied in
+     * order, that means sum_op(sum_op(a, b), c) if a, b, c are the values of
+     * workers 0, 1, 2.
      *
      * \param value The local value of this worker.
      * \param sum_op The operation to use for
@@ -233,10 +204,11 @@ public:
         return PrefixSum(value, initial, sum_op, false);
     }
 
-    /**
-     * \brief Broadcasts a value of an integral type T from the master
-     * (the worker with id 0) to all other workers.
-     * \details This method is blocking on all workers except the master.
+    /*!
+     * Broadcasts a value of an integral type T from the master (the worker with
+     * id 0) to all other workers.
+     *
+     * This method is blocking on all workers except the master.
      *
      * \param value The value to broadcast. This value is ignored for each
      * worker except the master. We use this signature to keep the decision
@@ -267,11 +239,12 @@ public:
         return res;
     }
 
-    /**
-     * \brief Reduces a value of an integral type T over all workers given a
-     * certain reduce function.
-     * \details This method is blocking. The reduce happens in order as with
-     * prefix sum. The operation is assumed to be associative.
+    /*!
+     * Reduces a value of an integral type T over all workers given a certain
+     * reduce function.
+     *
+     * This method is blocking. The reduce happens in order as with prefix
+     * sum. The operation is assumed to be associative.
      *
      * \param value The value to use for the reduce operation.
      * \param sum_op The operation to use for
@@ -280,9 +253,9 @@ public:
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
     T AllReduce(const T& value, BinarySumOp sum_op = BinarySumOp()) {
-        T localElem = value;
+        T local = value;
 
-        SetLocalShared(&localElem);
+        SetLocalShared(&local);
 
         barrier_.Await();
 
@@ -291,25 +264,25 @@ public:
 
             // Global reduce
             for (size_t i = 1; i < thread_count_; i++) {
-                localElem = sum_op(localElem, *GetLocalShared<T>(i));
+                local = sum_op(local, *GetLocalShared<T>(i));
             }
 
-            group_.AllReduce(localElem, sum_op);
+            group_.AllReduce(local, sum_op);
 
             // We have the choice: One more barrier so each slave can read
             // from master's shared memory, or p writes to write to each slaves
             // mem. I choose the latter since the cost of a barrier is very high.
             for (size_t i = 1; i < thread_count_; i++) {
-                *GetLocalShared<T>(i) = localElem;
+                *GetLocalShared<T>(i) = local;
             }
         }
 
         barrier_.Await();
 
-        return localElem;
+        return local;
     }
 
-    /**
+    /*!
      * \brief A trivial global barrier.
      * Use for debugging only.
      */

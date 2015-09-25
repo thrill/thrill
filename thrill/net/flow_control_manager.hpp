@@ -52,8 +52,9 @@ public:
      * \param local_worker_count The count of threads to spawn flow channels for.
      *
      */
-    explicit FlowControlChannelManager(Group& group, size_t local_worker_count)
-        : barrier_(local_worker_count), shmem_(new common::AlignedPtr[local_worker_count]) {
+    FlowControlChannelManager(Group& group, size_t local_worker_count)
+        : barrier_(local_worker_count),
+          shmem_(new common::AlignedPtr[local_worker_count]) {
 
         for (size_t i = 0; i < local_worker_count; i++) {
             channels_.emplace_back(group, i, local_worker_count, barrier_, shmem_);
