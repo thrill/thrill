@@ -257,7 +257,7 @@ struct Serialization<Archive, common::FastString>
     }
 
     static common::FastString Deserialize(Archive& ar) {
-        uint64_t size = ar.GetVarint();
+        size_t size = ar.GetVarint();
         char* outdata = new char[size];
         ar.Read(outdata, size);
         return common::FastString::Take(outdata, size);
