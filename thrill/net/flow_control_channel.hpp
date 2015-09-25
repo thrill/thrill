@@ -4,6 +4,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -13,7 +14,6 @@
 #define THRILL_NET_FLOW_CONTROL_CHANNEL_HEADER
 
 #include <thrill/common/functional.hpp>
-#include <thrill/common/memory.hpp>
 #include <thrill/common/thread_barrier.hpp>
 #include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
@@ -65,19 +65,38 @@ private:
     //! The shared barrier used to synchronize between worker threads on this node.
     common::ThreadBarrier& barrier_;
 
-    //! A shared memory location to work upon.
-    common::AlignedPtr* shmem_;
+    //! Thread local data structure: aligned such that no cache line is
+    //! shared. The actual vector is in the FlowControlChannelManager.
+    struct LocalData
+    {
+        //! pointer to some thread-owned data type
+        alignas(common::g_cache_line_size)
+        void* ptr { nullptr };
+
+        //! atomic generation counter
+        std::atomic<size_t> counter { 0 };
+    };
+
+    static_assert(sizeof(LocalData) == common::g_cache_line_size,
+                  "struct LocalData has incorrect size.");
+
+    //! for access to struct LocalData
+    friend class FlowControlChannelManager;
+
+    //! The global shared local data memory location to work upon.
+    LocalData* shmem_;
 
     template <typename T>
     void SetLocalShared(T* value) {
         // We are only allowed to set our own memory location.
         size_t idx = thread_id_;
-        *(reinterpret_cast<T**>(shmem_ + idx)) = value;
+        shmem_[idx].ptr = value;
     }
 
     template <typename T>
     T * GetLocalShared(size_t idx) {
-        return *(reinterpret_cast<T**>(shmem_ + idx));
+        assert(idx < thread_count_);
+        return reinterpret_cast<T*>(shmem_[idx].ptr);
     }
 
     template <typename T>
@@ -87,10 +106,10 @@ private:
 
 public:
     //! Creates a new instance of this class, wrapping a group.
-    explicit FlowControlChannel(Group& group,
-                                size_t thread_id, size_t thread_count,
-                                common::ThreadBarrier& barrier,
-                                common::AlignedPtr* shmem)
+    FlowControlChannel(Group& group,
+                       size_t thread_id, size_t thread_count,
+                       common::ThreadBarrier& barrier,
+                       LocalData* shmem)
         : group_(group),
           id_(group_.my_host_rank()), num_hosts_(group_.num_hosts()),
           thread_id_(thread_id), thread_count_(thread_count),
