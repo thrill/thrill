@@ -52,7 +52,7 @@ public:
     }
 
     //! Move constructor for a new FastString. Steals data ownership.
-    FastString(FastString&& other)
+    FastString(FastString&& other) noexcept
         : FastString(other.data_, other.size_, other.owns_data_) {
         other.owns_data_ = false;
     }
@@ -73,7 +73,7 @@ public:
      * \return New FastString object.
      */
     static FastString
-    Ref(const char* data, size_t size) {
+    Ref(const char* data, size_t size) noexcept {
         return FastString(data, size, false);
     }
 
@@ -163,9 +163,9 @@ public:
      * \param other moved FastString
      * \return reference to this FastString
      */
-    FastString& operator = (FastString&& other) {
+    FastString& operator = (FastString&& other) noexcept{
         if (owns_data_) delete[] (data_);
-        data_ = std::move(other.data_);
+        data_ = other.data_;
         size_ = other.Size();
         owns_data_ = other.owns_data_;
         other.owns_data_ = false;
@@ -234,7 +234,7 @@ private:
      * \param size Size of data in bytes
      * \param owns_data True, if this FastString has ownership of data
      */
-    FastString(const char* data, size_t size, bool owns_data)
+    FastString(const char* data, size_t size, bool owns_data) noexcept
         : data_(data), size_(size), owns_data_(owns_data) { }
 
     //! Pointer to data
