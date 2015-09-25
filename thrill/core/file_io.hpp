@@ -100,7 +100,7 @@ public:
     //! non-copyable: delete assignment operator
     SysFile& operator = (const SysFile&) = delete;
     //! move-constructor
-    SysFile(SysFile&& f)
+    SysFile(SysFile&& f) noexcept
         : fd_(f.fd_), pid_(f.pid_) {
         f.fd_ = -1, f.pid_ = 0;
     }
@@ -147,7 +147,7 @@ public:
 
 private:
     //! private constructor: use OpenForRead or OpenForWrite.
-    explicit SysFile(int fd, int pid = 0)
+    explicit SysFile(int fd, int pid = 0) noexcept
         : fd_(fd), pid_(pid) { }
 
     //! file descriptor
