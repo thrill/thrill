@@ -13,11 +13,9 @@
 #ifndef THRILL_THRILL_HEADER
 #define THRILL_THRILL_HEADER
 
-/*[[[cog
-import cog, glob
-for fn in glob.glob('thrill/api/' + '*.hpp'):
-     cog.outl("#include <%s>" % fn)
-  ]]]*/
+/*[[[perl
+print "#include <$_>\n" foreach (sort <thrill/api/*.hpp>);
+]]]*/
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>

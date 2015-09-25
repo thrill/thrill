@@ -163,7 +163,7 @@ public:
      * \param other moved FastString
      * \return reference to this FastString
      */
-    FastString& operator = (FastString&& other) noexcept{
+    FastString& operator = (FastString&& other) noexcept {
         if (owns_data_) delete[] (data_);
         data_ = other.data_;
         size_ = other.Size();

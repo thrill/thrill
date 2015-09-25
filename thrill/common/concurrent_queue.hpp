@@ -76,7 +76,7 @@ public:
     template <typename ... Arguments>
     void emplace(Arguments&& ... args) {
         std::unique_lock<std::mutex> lock(mutex_);
-        queue_.emplace_back(std::forward<Arguments>(args)...);
+        queue_.emplace_back(std::forward<Arguments>(args) ...);
     }
 
     //! Returns: true if queue has no items; false otherwise.
