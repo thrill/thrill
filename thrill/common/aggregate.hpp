@@ -35,12 +35,12 @@ public:
 
     //! initializing constructor
     Aggregate(size_t count, const Type& total,
-              const Type& min, const Type& max, const Type& total_squares)
+              const Type& min, const Type& max, const Type& total_squares) noexcept
         : count_(count), total_(total),
           min_(min), max_(max), total_squares_(total_squares) { }
 
     //! add a value to the running aggregation
-    Aggregate & Add(const Type& value) {
+    Aggregate & Add(const Type& value) noexcept {
         count_++;
         total_ += value;
         min_ = std::min(min_, value);
@@ -50,13 +50,14 @@ public:
     }
 
     //! return number of values aggregated
-    size_t Count() const { return count_; }
+    size_t Count() const noexcept { return count_; }
 
     //! return sum over all values aggregated
-    const Type & Total() const { return total_; }
+    const Type & Total() const noexcept { return total_; }
 
     //! return the average over all values aggregated
     double Average() const {
+        // can't make noexcept since _Type's conversion is allowed to throw
         return static_cast<double>(total_) / static_cast<double>(count_);
     }
 
@@ -64,13 +65,13 @@ public:
     double Avg() const { return Average(); }
 
     //! return minimum over all values aggregated
-    const Type & Min() const { return min_; }
+    const Type & Min() const noexcept { return min_; }
 
     //! return maximum over all values aggregated
-    const Type & Max() const { return max_; }
+    const Type & Max() const noexcept { return max_; }
 
     //! return sum over all squared values aggregated
-    const Type & TotalSquares() const { return total_squares_; }
+    const Type & TotalSquares() const noexcept { return total_squares_; }
 
     //! return the standard deviation of all values aggregated
     double StandardDeviation() const {
@@ -85,14 +86,14 @@ public:
     double StdDev() const { return StandardDeviation(); }
 
     //! operator +
-    Aggregate operator + (const Aggregate& a) const {
+    Aggregate operator + (const Aggregate& a) const noexcept {
         return Aggregate(count_ + a.count_, total_ + a.total_,
                          std::min(min_, a.min_), std::max(max_, a.max_),
                          total_squares_ + a.total_squares_);
     }
 
     //! operator +=
-    Aggregate& operator += (const Aggregate& a) {
+    Aggregate& operator += (const Aggregate& a) noexcept {
         count_ += a.count_;
         total_ += a.total_;
         min_ = std::min(min_, a.min_);

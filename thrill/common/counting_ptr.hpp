@@ -86,26 +86,26 @@ public:
     friend class CountingPtr;
 
     //! default constructor: contains a nullptr pointer.
-    CountingPtr() : ptr_(nullptr)
+    CountingPtr() noexcept : ptr_(nullptr)
     { }
 
     //! constructor with pointer: initializes new reference to ptr.
-    explicit CountingPtr(Type* ptr) : ptr_(ptr)
+    explicit CountingPtr(Type* ptr) noexcept : ptr_(ptr)
     { IncReference(); }
 
     //! copy-constructor: also initializes new reference to ptr.
-    CountingPtr(const CountingPtr& other_ptr) : ptr_(other_ptr.ptr_)
+    CountingPtr(const CountingPtr& other_ptr) noexcept : ptr_(other_ptr.ptr_)
     { IncReference(); }
 
     //! move-constructor: just moves pointer, does not change reference counts.
-    CountingPtr(CountingPtr&& other_ptr) : ptr_(other_ptr.ptr_) {
+    CountingPtr(CountingPtr&& other_ptr) noexcept : ptr_(other_ptr.ptr_) {
         other_ptr.ptr_ = nullptr;
     }
 
     //! move-constructor from other counting pointer (pointer types must be
     //! convertible): also initializes new reference to ptr.
     template <typename Other>
-    CountingPtr(CountingPtr<Other>&& other_ptr) : ptr_(other_ptr.ptr_)
+    CountingPtr(CountingPtr<Other>&& other_ptr) noexcept : ptr_(other_ptr.ptr_)
     { other_ptr.ptr_ = nullptr; }
 
     //! copy-assignment operator: dereference current object and acquire
@@ -221,15 +221,15 @@ private:
 
 public:
     //! new objects have zero reference count
-    ReferenceCount()
+    ReferenceCount() noexcept
         : reference_count_(0) { }
 
     //! coping still creates a new object with zero reference count
-    ReferenceCount(const ReferenceCount&)
+    ReferenceCount(const ReferenceCount&) noexcept
         : reference_count_(0) { }
 
     //! assignment operator, leaves pointers unchanged
-    ReferenceCount& operator = (const ReferenceCount&)
+    ReferenceCount& operator = (const ReferenceCount&) noexcept
     { return *this; } // changing the contents leaves pointers unchanged
 
     ~ReferenceCount()
