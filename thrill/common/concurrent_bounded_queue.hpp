@@ -89,7 +89,7 @@ public:
     template <typename ... Arguments>
     void emplace(Arguments&& ... args) {
         std::unique_lock<std::mutex> lock(mutex_);
-        queue_.emplace(args ...);
+        queue_.emplace(std::forward<Arguments>(args)...);
         cv_.notify_one();
     }
 

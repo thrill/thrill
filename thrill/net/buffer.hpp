@@ -65,12 +65,12 @@ public:
     //! \{
 
     //! allocate empty buffer
-    Buffer()
+    Buffer() noexcept
         : data_(nullptr), size_(0)
     { }
 
     //! allocate buffer containing n bytes
-    explicit Buffer(size_type n)
+    explicit Buffer(size_type n) noexcept
         : Buffer(true, malloc(n), n)
     { }
 
@@ -87,14 +87,14 @@ public:
     Buffer& operator = (const Buffer&) = delete;
 
     //! move-construct other buffer into this one
-    Buffer(Buffer&& other)
+    Buffer(Buffer&& other) noexcept
         : data_(other.data_), size_(other.size_) {
         other.data_ = nullptr;
         other.size_ = 0;
     }
 
     //! move-assignment of other buffer into this one
-    Buffer& operator = (Buffer&& other) {
+    Buffer& operator = (Buffer&& other) noexcept {
         if (this != &other) {
             if (data_) free(data_);
             data_ = other.data_;
@@ -123,7 +123,7 @@ public:
     }
 
     //! Check for Buffer contents is valid.
-    bool IsValid() const { return (data_ != nullptr); }
+    bool IsValid() const noexcept { return (data_ != nullptr); }
 
     //! \}
 
@@ -131,14 +131,14 @@ public:
     //! \{
 
     //! return iterator to beginning of Buffer
-    iterator data()
+    iterator data() noexcept
     { return data_; }
     //! return iterator to beginning of Buffer
-    const_iterator data() const
+    const_iterator data() const noexcept
     { return data_; }
 
     //! return number of items in Buffer
-    size_type size() const
+    size_type size() const noexcept
     { return size_; }
 
     //! return the i-th position of the Buffer
@@ -157,23 +157,23 @@ public:
     //! \name Iterator Access
 
     //! return mutable iterator to first element
-    iterator begin()
+    iterator begin() noexcept
     { return data_; }
     //! return constant iterator to first element
-    const_iterator begin() const
+    const_iterator begin() const noexcept
     { return data_; }
     //! return constant iterator to first element
-    const_iterator cbegin() const
+    const_iterator cbegin() const noexcept
     { return begin(); }
 
     //! return mutable iterator beyond last element
-    iterator end()
+    iterator end() noexcept
     { return data_ + size_; }
     //! return constant iterator beyond last element
-    const_iterator end() const
+    const_iterator end() const noexcept
     { return data_ + size_; }
     //! return constant iterator beyond last element
-    const_iterator cend() const
+    const_iterator cend() const noexcept
     { return end(); }
 
     //! \}

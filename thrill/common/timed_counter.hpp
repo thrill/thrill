@@ -30,7 +30,7 @@ public:
     TimedCounter(const TimedCounter& that) = delete;
     // move is okay
     TimedCounter(TimedCounter&& rhs) {
-        occurences_ = rhs.occurences_;
+        occurences_ = std::move(rhs.occurences_);
     }
 
     TimedCounter() { }

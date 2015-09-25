@@ -61,7 +61,7 @@ public:
     /*!
      * Construct Manager from already initialized net::Groups.
      */
-    explicit Manager(std::array<GroupPtr, kGroupCount>&& groups)
+    explicit Manager(std::array<GroupPtr, kGroupCount>&& groups) noexcept
         : groups_(std::move(groups)) { }
 
     /*!
