@@ -25,6 +25,27 @@ namespace common {
 #define THRILL_UNLIKELY(c) c
 #endif
 
+// detect ThreadSanitizer
+#ifndef THRILL_HAVE_THREAD_SANITIZER
+
+#if defined(__has_feature)
+
+// this works with clang
+#if __has_feature(thread_sanitizer)
+#define THRILL_HAVE_THREAD_SANITIZER 1
+#else
+#define THRILL_HAVE_THREAD_SANITIZER 0
+#endif
+
+#else
+
+// gcc's sanitizers cannot be detected?
+#define THRILL_HAVE_THREAD_SANITIZER 0
+
+#endif
+
+#endif // THRILL_HAVE_THREAD_SANITIZER
+
 } // namespace common
 } // namespace thrill
 

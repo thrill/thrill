@@ -38,6 +38,9 @@ static const bool g_enable_stats = true;
 static const bool g_enable_stats = false;
 #endif
 
+//! Finding cache line size is hard - we assume 64 byte.
+static const unsigned g_cache_line_size = 64;
+
 #if !defined(_MSC_VER)
 #define THRILL_HAVE_NET_TCP 1
 #endif
