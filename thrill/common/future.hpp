@@ -81,14 +81,14 @@ public:
     }
 
     //! Returns true when the future was fulfilled.
-    bool Test() const {
+    bool Test() const noexcept {
         return triggered_;
     }
 
     //! Indicates if get was invoked and returned
     //! Can be used at the end of a job to see if outstanding
     //! futures were not called.
-    bool is_finished() const {
+    bool is_finished() const noexcept {
         return finished_;
     }
 };
@@ -162,7 +162,7 @@ public:
     //! Indicates if get was invoked and returned
     //! Can be used at the end of a job to see if outstanding
     //! futures were not called.
-    bool is_finished() const {
+    bool is_finished() const noexcept {
         return finished_;
     }
 };

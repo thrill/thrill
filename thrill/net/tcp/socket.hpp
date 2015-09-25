@@ -72,7 +72,7 @@ public:
     //! non-copyable: delete assignment operator
     Socket& operator = (const Socket&) = delete;
     //! move-constructor: move file descriptor
-    Socket(Socket&& s) : fd_(s.fd_) { s.fd_ = -1; }
+    Socket(Socket&& s) noexcept : fd_(s.fd_) { s.fd_ = -1; }
     //! move-assignment operator: move file descriptor
     Socket& operator = (Socket&& s) {
         if (this == &s) return *this;

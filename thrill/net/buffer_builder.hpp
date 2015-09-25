@@ -75,7 +75,7 @@ public:
     }
 
     //! Move-Constructor, moves memory area.
-    BufferBuilder(BufferBuilder&& other)
+    BufferBuilder(BufferBuilder&& other) noexcept
         : data_(other.data_), size_(other.size_), capacity_(other.capacity_) {
         other.data_ = nullptr;
         other.size_ = 0;
@@ -106,7 +106,7 @@ public:
     }
 
     //! Move-Assignment operator: move other's memory area into buffer.
-    BufferBuilder& operator = (BufferBuilder&& other) {
+    BufferBuilder& operator = (BufferBuilder&& other) noexcept {
         if (this != &other)
         {
             if (data_) free(data_);
