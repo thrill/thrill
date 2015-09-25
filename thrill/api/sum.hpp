@@ -29,7 +29,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef, typename SumFunction>
+template <typename ValueType, typename ParentDIA, typename SumFunction>
 class SumNode : public ActionNode
 {
     static const bool debug = false;
@@ -39,7 +39,7 @@ class SumNode : public ActionNode
     using SumArg0 = ValueType;
 
 public:
-    SumNode(const ParentDIARef& parent,
+    SumNode(const ParentDIA& parent,
             const SumFunction& sum_function,
             const ValueType& initial_value,
             StatsNode* stats_node)
@@ -97,12 +97,12 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
-auto DIARef<ValueType, Stack>::Sum(
+auto DIA<ValueType, Stack>::Sum(
     const SumFunction &sum_function, const ValueType &initial_value) const {
     assert(IsValid());
 
     using SumResultNode
-              = SumNode<ValueType, DIARef, SumFunction>;
+              = SumNode<ValueType, DIA, SumFunction>;
 
     static_assert(
         std::is_convertible<

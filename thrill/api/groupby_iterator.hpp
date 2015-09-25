@@ -109,11 +109,11 @@ struct MultiwayMergeTreePuller {
 ////////////////////////////////////////////////////////////////////////////////
 
 // forward declarations for friend classes
-template <typename ValueType, typename ParentDIARef,
+template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode;
 
-template <typename ValueType, typename ParentDIARef,
+template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByIndexNode;
 

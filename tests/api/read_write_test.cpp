@@ -36,7 +36,7 @@
 
 using namespace thrill;
 using thrill::api::Context;
-using thrill::api::DIARef;
+using thrill::api::DIA;
 
 TEST(IO, ReadSingleFile) {
     std::function<void(Context&)> start_func =

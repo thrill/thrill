@@ -32,7 +32,7 @@ namespace api {
  * \tparam ParentStack Function chain, which contains the chained lambdas between
  * the last and this DIANode.
  */
-template <typename ValueType, typename ParentDIARef>
+template <typename ValueType, typename ParentDIA>
 class CacheNode : public DIANode<ValueType>
 {
 public:
@@ -42,9 +42,9 @@ public:
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      *
-     * \param parent Parent DIARef.
+     * \param parent Parent DIA.
      */
-    CacheNode(const ParentDIARef& parent,
+    CacheNode(const ParentDIA& parent,
               StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
@@ -89,15 +89,15 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename AnyStack>
-DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
+DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs) {
     assert(IsValid());
 
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-    // DIARef with empty stack and LOpNode
-    using LOpChainNode = CacheNode<ValueType, DIARef>;
+    // DIA with empty stack and LOpNode
+    using LOpChainNode = CacheNode<ValueType, DIA>;
 
-    LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
-    LOG0 << "Consider whether you can use auto instead of DIARef.";
+    LOG0 << "WARNING: cast to DIA creates LOpNode instead of inline chaining.";
+    LOG0 << "Consider whether you can use auto instead of DIA.";
 
     auto shared_node
         = std::make_shared<LOpChainNode>(rhs, "");
@@ -105,19 +105,19 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
 }
 
 template <typename ValueType, typename Stack>
-auto DIARef<ValueType, Stack>::Cache() const {
+auto DIA<ValueType, Stack>::Cache() const {
     assert(IsValid());
 
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-    // DIARef with empty stack and LOpNode
-    using LOpChainNode = CacheNode<ValueType, DIARef>;
+    // DIA with empty stack and LOpNode
+    using LOpChainNode = CacheNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Cache", DIANodeType::CACHE);
     auto shared_node
         = std::make_shared<LOpChainNode>(*this, stats_node);
     auto lop_stack = FunctionStack<ValueType>();
 
-    return DIARef<ValueType, decltype(lop_stack)>(
+    return DIA<ValueType, decltype(lop_stack)>(
         shared_node, lop_stack, { stats_node });
 }
 

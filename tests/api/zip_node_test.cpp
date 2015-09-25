@@ -175,7 +175,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
                 },
                 test_size);
 
-            DIARef<std::string> input = input_gen.Cache();
+            DIA<std::string> input = input_gen.Cache();
 
             std::vector<std::string> vinput = input.AllGather();
             ASSERT_EQ(test_size, vinput.size());

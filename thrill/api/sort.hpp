@@ -43,7 +43,7 @@ namespace api {
  * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
  * \tparam CompareFunction Type of the compare function
  */
-template <typename ValueType, typename ParentDIARef, typename CompareFunction>
+template <typename ValueType, typename ParentDIA, typename CompareFunction>
 class SortNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -55,11 +55,11 @@ public:
     /*!
      * Constructor for a sort node.
      *
-     * \param parent DIARef.
+     * \param parent DIA.
      * \param parent_stack Stack of lambda functions between parent and this node
      * \param compare_function Function comparing two elements.
      */
-    SortNode(const ParentDIARef& parent,
+    SortNode(const ParentDIA& parent,
              CompareFunction compare_function,
              StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
@@ -411,11 +411,11 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename CompareFunction>
-auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
+auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
     assert(IsValid());
 
     using SortResultNode
-              = SortNode<ValueType, DIARef, CompareFunction>;
+              = SortNode<ValueType, DIA, CompareFunction>;
 
     static_assert(
         std::is_convertible<
@@ -444,10 +444,8 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
 
     auto sort_stack = shared_node->ProduceStack();
 
-    return DIARef<ValueType, decltype(sort_stack)>(
-        shared_node,
-        sort_stack,
-        { stats_node });
+    return DIA<ValueType, decltype(sort_stack)>(
+        shared_node, sort_stack, { stats_node });
 }
 
 //! \}

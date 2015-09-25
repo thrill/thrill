@@ -193,7 +193,7 @@ private:
  * \param filepath Path of the file in the file system
  */
 template <typename ValueType>
-DIARef<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
+DIA<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
 
     StatsNode* stats_node =
         ctx.stats_graph().AddNode("ReadBinary", DIANodeType::DOP);
@@ -204,7 +204,7 @@ DIARef<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
 
     auto read_stack = shared_node->ProduceStack();
 
-    return DIARef<ValueType, decltype(read_stack)>(
+    return DIA<ValueType, decltype(read_stack)>(
         shared_node, read_stack, { stats_node });
 }
 

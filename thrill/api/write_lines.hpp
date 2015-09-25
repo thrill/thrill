@@ -28,7 +28,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
+template <typename ValueType, typename ParentDIA>
 class WriteLinesNode : public ActionNode
 {
     static const bool debug = false;
@@ -37,7 +37,7 @@ public:
     using Super = ActionNode;
     using Super::context_;
 
-    WriteLinesNode(const ParentDIARef& parent,
+    WriteLinesNode(const ParentDIA& parent,
                    const std::string& path_out,
                    StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
@@ -111,20 +111,19 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::WriteLines(
+void DIA<ValueType, Stack>::WriteLines(
     const std::string& filepath) const {
     assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,
                   "WriteLines needs an std::string as input parameter");
 
-    using WriteResultNode = WriteLinesNode<ValueType, DIARef>;
+    using WriteResultNode = WriteLinesNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("WriteLines", DIANodeType::ACTION);
     auto shared_node =
-        std::make_shared<WriteResultNode>(*this,
-                                          filepath,
-                                          stats_node);
+        std::make_shared<WriteResultNode>(
+            *this, filepath, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
 }
