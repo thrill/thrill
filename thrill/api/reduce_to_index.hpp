@@ -384,9 +384,8 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
                                   true, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", DIANodeType::DOP);
-    auto shared_node =
-        std::make_shared<ReduceNode>(
-            *this, key_extractor, reduce_function, size, neutral_element, stats_node);
+    auto shared_node = std::make_shared<ReduceNode>(
+        *this, key_extractor, reduce_function, size, neutral_element, stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
 
