@@ -426,7 +426,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
     }
 }
 
-TEST_F(Multiplexer, DISABLED_TalkAllToAllViaMixStreamForManyNetSizes) {
+TEST_F(Multiplexer, TalkAllToAllViaMixStreamForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 9:
     net::RunLoopbackGroupTest(1, TalkAllToAllViaMixStream);
     net::RunLoopbackGroupTest(2, TalkAllToAllViaMixStream);
