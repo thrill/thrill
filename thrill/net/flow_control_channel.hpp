@@ -352,6 +352,133 @@ public:
     }
 
     /*!
+     * Collects up to k predecessors of type T from preceding PEs.
+     *
+     * Assume each worker has <= k items. Predecessor collects up to the k items
+     * from preceding PEs. If the directly preceding PE has fewer than k items,
+     * then it waits for its predecessor to deliver items, in the hope to get up
+     * to k.
+     *
+     * This is used by the Window() transformation, but may in future also be
+     * useful to get a single predecessor item in other distributed operations.
+     */
+    template <typename T>
+    std::vector<T> Predecessor(size_t k, const std::vector<T>& my_values) {
+
+        std::vector<T> res;
+
+        // this vector must live beyond the ThreadBarrier.
+        std::vector<T> send_values;
+
+        // get generation counter
+        size_t this_step = generation_.load(std::memory_order_acquire) + 1;
+
+        if (my_values.size() >= k) {
+            // if we already have k items, then "transmit" them to our successor
+            if (local_id_ + 1 != thread_count_) {
+                SetLocalShared(&my_values);
+                // release memory inside vector
+                std::atomic_thread_fence(std::memory_order_release);
+                // increment generation counter to match this_step.
+                shmem_[local_id_].IncCounter();
+            }
+            else if (host_rank_ + 1 != num_hosts_) {
+                if (my_values.size() > k) {
+                    std::vector<T> send_values(my_values.end() - k, my_values.end());
+                    group_.SendTo(host_rank_ + 1, send_values);
+                }
+                else {
+                    group_.SendTo(host_rank_ + 1, my_values);
+                }
+                // increment generation counter for synchronizing
+                shmem_[local_id_].IncCounter();
+            }
+            else {
+                // increment generation counter for synchronizing
+                shmem_[local_id_].IncCounter();
+            }
+
+            // and wait for the predecessor to deliver its batch
+            if (local_id_ != 0) {
+                // wait on generation counter of predecessor
+                shmem_[local_id_ - 1].WaitCounter(this_step);
+
+                // acquire memory inside vector
+                std::atomic_thread_fence(std::memory_order_acquire);
+
+                std::vector<T>* pre =
+                    GetLocalShared<std::vector<T> >(local_id_ - 1);
+
+                // copy over only k elements (there may be more or less)
+                res = std::vector<T>(
+                    pre->size() <= k ? pre->begin() : pre->end() - k, pre->end());
+            }
+            else if (host_rank_ != 0) {
+                group_.ReceiveFrom(host_rank_ - 1, &res);
+            }
+        }
+        else {
+            // we don't have k items, wait for our predecessor to send some.
+            if (local_id_ != 0) {
+                // wait on generation counter of predecessor
+                shmem_[local_id_ - 1].WaitCounter(this_step);
+
+                // acquire memory inside vector
+                std::atomic_thread_fence(std::memory_order_acquire);
+
+                std::vector<T>* pre =
+                    GetLocalShared<std::vector<T> >(local_id_ - 1);
+
+                // copy over only k elements (there may be more)
+                res = std::vector<T>(
+                    pre->size() <= k ? pre->begin() : pre->end() - k, pre->end());
+            }
+            else if (host_rank_ != 0) {
+                group_.ReceiveFrom(host_rank_ - 1, &res);
+            }
+
+            // prepend values we got from our predecessor with local ones, such
+            // that they will fill up send_values together with all local items
+            size_t my_size = my_values.size();
+            size_t fill_size = k - my_size;
+            // send_values.reserve(std::min(k, my_size + res.size()));
+            send_values.insert(
+                send_values.end(),
+                // copy last fill_size items from res. don't do end - fill_size,
+                // because that may result in unsigned wrap-around.
+                res.size() <= fill_size ? res.begin() : res.end() - fill_size,
+                res.end());
+            send_values.insert(send_values.end(),
+                               my_values.begin(), my_values.end());
+            assert(send_values.size() <= k);
+
+            // now we have k items or at many as we can get, hence, "transmit"
+            // them to our successor
+            if (local_id_ + 1 != thread_count_) {
+                SetLocalShared(&send_values);
+                // release memory inside vector
+                std::atomic_thread_fence(std::memory_order_release);
+                // increment generation counter to match this_step.
+                shmem_[local_id_].IncCounter();
+            }
+            else if (host_rank_ + 1 != num_hosts_) {
+                group_.SendTo(host_rank_ + 1, send_values);
+                // increment generation counter for synchronizing
+                shmem_[local_id_].IncCounter();
+            }
+            else {
+                // increment generation counter for synchronizing
+                shmem_[local_id_].IncCounter();
+            }
+        }
+
+        // await until all threads have retrieved their value.
+        barrier_.Await([this]() { generation_++; });
+
+        return res;
+    }
+
+    /*!
      * \brief A trivial global barrier.
      * Use for debugging only.
      */
