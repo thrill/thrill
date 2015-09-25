@@ -31,19 +31,19 @@ using namespace thrill; // NOLINT
 static void TestSingleThreadPrefixSum(net::Group* net) {
     net::FlowControlChannelManager manager(*net, 1);
     net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
-    size_t myRank = net->my_host_rank();
+    size_t my_rank = net->my_host_rank();
     size_t initial = 0;
 
-    size_t resInclusive = channel.PrefixSum(myRank, initial, std::plus<size_t>(), true);
-    size_t resExclusive = channel.PrefixSum(myRank, initial, std::plus<size_t>(), false);
+    size_t resInclusive = channel.PrefixSum(my_rank, initial, std::plus<size_t>(), true);
+    size_t resExclusive = channel.PrefixSum(my_rank, initial, std::plus<size_t>(), false);
     size_t expectedInclusive = 0;
     size_t expectedExclusive = 0;
 
-    for (size_t i = 0; i <= myRank; i++) {
+    for (size_t i = 0; i <= my_rank; i++) {
         expectedInclusive += i;
     }
 
-    for (size_t i = 0; i < myRank; i++) {
+    for (size_t i = 0; i < my_rank; i++) {
         expectedExclusive += i;
     }
 
@@ -55,11 +55,11 @@ static void TestSingleThreadVectorPrefixSum(net::Group* net) {
     net::FlowControlChannelManager manager(*net, 1);
     net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     size_t size = 3;
-    size_t myRank = net->my_host_rank();
+    size_t my_rank = net->my_host_rank();
     std::vector<size_t> initial(size);
     std::fill(initial.begin(), initial.end(), 0);
     std::vector<size_t> val(size);
-    std::fill(val.begin(), val.end(), myRank);
+    std::fill(val.begin(), val.end(), my_rank);
 
     auto addSizeTVectors =
         [](const std::vector<size_t>& a, const std::vector<size_t>& b) {
@@ -75,11 +75,11 @@ static void TestSingleThreadVectorPrefixSum(net::Group* net) {
     size_t expectedInclusive = 0;
     size_t expectedExclusive = 0;
 
-    for (size_t i = 0; i <= myRank; i++) {
+    for (size_t i = 0; i <= my_rank; i++) {
         expectedInclusive += i;
     }
 
-    for (size_t i = 0; i < myRank; i++) {
+    for (size_t i = 0; i < my_rank; i++) {
         expectedExclusive += i;
     }
 
@@ -96,8 +96,8 @@ static void TestSingleThreadBroadcast(net::Group* net) {
     net::FlowControlChannelManager manager(*net, 1);
     net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     size_t magic = 1337;
-    size_t myRank = net->my_host_rank();
-    size_t value = myRank + magic;
+    size_t my_rank = net->my_host_rank();
+    size_t value = my_rank + magic;
 
     size_t res = channel.Broadcast(value);
 
@@ -106,7 +106,7 @@ static void TestSingleThreadBroadcast(net::Group* net) {
 
 static void ExecuteMultiThreads(
     net::Group* net, size_t count,
-    const std::function<void(net::FlowControlChannel&, size_t)>& function) {
+    const std::function<void(net::FlowControlChannel&)>& function) {
 
     std::vector<std::thread> threads(count);
     net::FlowControlChannelManager manager(*net, count);
@@ -114,7 +114,7 @@ static void ExecuteMultiThreads(
     for (size_t i = 0; i < count; i++) {
         threads[i] = std::thread(
             [i, function, &manager] {
-                function(manager.GetFlowControlChannel(i), i);
+                function(manager.GetFlowControlChannel(i));
             });
     }
 
@@ -130,10 +130,10 @@ static void TestMultiThreadBroadcast(net::Group* net) {
     const size_t count = 4;
     const size_t magic = 1337;
     ExecuteMultiThreads(
-        net, count, [=](net::FlowControlChannel& channel, size_t id) {
-            size_t myRank = net->my_host_rank() * count + id + magic;
+        net, count, [=](net::FlowControlChannel& channel) {
+            size_t my_rank = channel.my_rank() + magic;
 
-            size_t res = channel.Broadcast(myRank);
+            size_t res = channel.Broadcast(my_rank);
 
             ASSERT_EQ(res, magic);
         });
@@ -146,9 +146,9 @@ static void TestSingleThreadAllReduce(net::Group* net) {
     net::FlowControlChannelManager manager(*net, 1);
     net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
 
-    size_t myRank = net->my_host_rank();
+    size_t my_rank = net->my_host_rank();
 
-    size_t res = channel.AllReduce(myRank);
+    size_t res = channel.AllReduce(my_rank);
 
     size_t expected = 0;
     for (size_t i = 0; i < net->num_hosts(); i++) {
@@ -166,10 +166,10 @@ static void TestMultiThreadAllReduce(net::Group* net) {
     const size_t count = 4;
 
     ExecuteMultiThreads(
-        net, count, [=](net::FlowControlChannel& channel, size_t id) {
-            size_t myRank = net->my_host_rank() * count + id;
+        net, count, [=](net::FlowControlChannel& channel) {
+            size_t my_rank = channel.my_rank();
 
-            size_t res = channel.AllReduce(myRank);
+            size_t res = channel.AllReduce(my_rank);
             size_t expected = 0;
             for (size_t i = 0; i < net->num_hosts() * count; i++) {
                 expected += i;
@@ -187,20 +187,20 @@ static void TestMultiThreadPrefixSum(net::Group* net) {
     const size_t count = 4;
 
     ExecuteMultiThreads(
-        net, count, [=](net::FlowControlChannel& channel, size_t id) {
-            size_t myRank = net->my_host_rank() * count + id;
+        net, count, [=](net::FlowControlChannel& channel) {
+            size_t my_rank = channel.my_rank();
             size_t initial = 0;
 
-            size_t resInclusive = channel.PrefixSum(myRank, initial, std::plus<size_t>(), true);
-            size_t resExclusive = channel.PrefixSum(myRank, initial, std::plus<size_t>(), false);
+            size_t resInclusive = channel.PrefixSum(my_rank, initial, std::plus<size_t>(), true);
+            size_t resExclusive = channel.PrefixSum(my_rank, initial, std::plus<size_t>(), false);
             size_t expectedInclusive = 0;
             size_t expectedExclusive = 0;
 
-            for (size_t i = 0; i <= myRank; i++) {
+            for (size_t i = 0; i <= my_rank; i++) {
                 expectedInclusive += i;
             }
 
-            for (size_t i = 0; i < myRank; i++) {
+            for (size_t i = 0; i < my_rank; i++) {
                 expectedExclusive += i;
             }
 
@@ -218,24 +218,24 @@ static void TestHardcoreRaceConditionTest(net::Group* net) {
     sLOG0 << "hardware_concurrency: " << std::thread::hardware_concurrency();
 
     ExecuteMultiThreads(
-        net, count, [=](net::FlowControlChannel& channel, size_t id) {
-            size_t myRank = net->my_host_rank() * count + id;
+        net, count, [=](net::FlowControlChannel& channel) {
+            size_t my_rank = channel.my_rank();
             size_t initial = 0;
             std::vector<size_t> pres;
             std::vector<size_t> rres;
 
             for (int i = 0; i < 20; i++) {
                 // Make a prefix sum and push res
-                pres.push_back(channel.PrefixSum(myRank, initial));
+                pres.push_back(channel.PrefixSum(my_rank, initial));
                 // Make an all reduce and push res.
-                rres.push_back(channel.AllReduce(myRank));
+                rres.push_back(channel.AllReduce(my_rank));
 
                 // Assert that broadcast gives us the result of the master
                 size_t bRes = channel.Broadcast(i + net->my_host_rank());
                 ASSERT_EQ(bRes, i);
             }
             size_t pexpected = 0;
-            for (size_t i = 0; i <= net->my_host_rank() * count + id; i++) {
+            for (size_t i = 0; i <= channel.my_rank(); i++) {
                 pexpected += i;
             }
             size_t rexpected = 0;
