@@ -207,8 +207,24 @@ public:
     //! Reduces a value of an integral type T over all workers given a certain
     //! reduce function.
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
-        return flow_control_channel().AllReduce(value, sumOp);
+    T AllReduce(const T& value, BinarySumOp sum_op = BinarySumOp()) {
+        return flow_control_channel().AllReduce(value, sum_op);
+    }
+
+    //! Calculates the prefix sum over all workers, given a certain sum
+    //! operation.
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T PrefixSum(const T& value,
+                const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+        return flow_control_channel().PrefixSum(value, initial, sum_op);
+    }
+
+    //! Calculates the exclusive prefix sum over all workers, given a certain
+    //! sum operation.
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T ExPrefixSum(const T& value,
+                  const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+        return flow_control_channel().ExPrefixSum(value, initial, sum_op);
     }
 
     //! A collective global barrier.
