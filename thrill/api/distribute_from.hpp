@@ -116,7 +116,7 @@ auto DistributeFrom(
 
     auto scatter_stack = shared_node->ProduceStack();
 
-    return DIARef<ValueType, decltype(scatter_stack)>(
+    return DIA<ValueType, decltype(scatter_stack)>(
         shared_node, scatter_stack, { stats_node });
 }
 

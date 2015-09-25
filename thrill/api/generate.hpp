@@ -128,7 +128,7 @@ auto Generate(Context & ctx,
 
     auto generator_stack = shared_node->ProduceStack();
 
-    return DIARef<GeneratorResult, decltype(generator_stack)>(
+    return DIA<GeneratorResult, decltype(generator_stack)>(
         shared_node, generator_stack, { stats_node });
 }
 

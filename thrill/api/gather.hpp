@@ -25,14 +25,14 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
+template <typename ValueType, typename ParentDIA>
 class GatherNode : public ActionNode
 {
 public:
     using Super = ActionNode;
     using Super::context_;
 
-    GatherNode(const ParentDIARef& parent,
+    GatherNode(const ParentDIA& parent,
                size_t target_id,
                std::vector<ValueType>* out_vector,
                StatsNode* stats_node)
@@ -91,10 +91,10 @@ private:
  */
 template <typename ValueType, typename Stack>
 std::vector<ValueType>
-DIARef<ValueType, Stack>::Gather(size_t target_id) const {
+DIA<ValueType, Stack>::Gather(size_t target_id) const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<ValueType, DIARef>;
+    using GatherNode = api::GatherNode<ValueType, DIA>;
 
     std::vector<ValueType> output;
 
@@ -113,11 +113,11 @@ DIARef<ValueType, Stack>::Gather(size_t target_id) const {
  * of the one worker.
  */
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::Gather(
+void DIA<ValueType, Stack>::Gather(
     size_t target_id, std::vector<ValueType>* out_vector)  const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<ValueType, DIARef>;
+    using GatherNode = api::GatherNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
     auto shared_node =

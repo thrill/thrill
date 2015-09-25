@@ -223,10 +223,10 @@ namespace thrill {
 
 //! all DIAs used in the python code contain PyObjectRefs, which are reference
 //! counted PyObjects.
-typedef api::DIARef<PyObjectRef> PyDIARef;
+typedef api::DIA<PyObjectRef> PyObjDIA;
 
 /*!
- * This is a wrapper around the C++ DIARef class, which returns plain PyDIAs
+ * This is a wrapper around the C++ DIA class, which returns plain PyDIAs
  * again. The C++ function stack is always collapsed.
  */
 class PyDIA
@@ -234,10 +234,10 @@ class PyDIA
     static const bool debug = false;
 
 public:
-    //! underlying C++ DIARef class, which can be freely copied by the object.
-    PyDIARef dia_;
+    //! underlying C++ DIA class, which can be freely copied by the object.
+    PyObjDIA dia_;
 
-    explicit PyDIA(const PyDIARef& dia)
+    explicit PyDIA(const PyObjDIA& dia)
         : dia_(dia) {
         sLOG << "create PyDIA" << this;
     }
@@ -396,7 +396,7 @@ public:
         SwigDirector_GeneratorFunction& director =
             *dynamic_cast<SwigDirector_GeneratorFunction*>(&generator_function);
 
-        PyDIARef dia = api::Generate(
+        PyObjDIA dia = api::Generate(
             *this, [&generator_function,
                     // this holds a reference count to the callback object for the
                     // lifetime of the capture object.
@@ -413,7 +413,7 @@ public:
         // this acquires a reference count on the objects
         std::vector<PyObjectRef> list_refed(list.begin(), list.end());
 
-        PyDIARef dia = api::Distribute(*this, std::move(list_refed));
+        PyObjDIA dia = api::Distribute(*this, std::move(list_refed));
 
         return PyDIA(dia);
     }

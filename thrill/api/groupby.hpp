@@ -33,7 +33,7 @@
 namespace thrill {
 namespace api {
 
-template <typename ValueType, typename ParentDIARef,
+template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode : public DOpNode<ValueType>
 {
@@ -70,12 +70,12 @@ public:
      * Constructor for a GroupByNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      *
-     * \param parent Parent DIARef.
+     * \param parent Parent DIA.
      * and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
-    GroupByNode(const ParentDIARef& parent,
+    GroupByNode(const ParentDIA& parent,
                 const KeyExtractor& key_extractor,
                 const GroupFunction& groupby_function,
                 StatsNode* stats_node,
@@ -253,7 +253,7 @@ template <typename ValueOut,
           typename KeyExtractor,
           typename GroupFunction,
           typename HashFunction>
-auto DIARef<ValueType, Stack>::GroupBy(
+auto DIA<ValueType, Stack>::GroupBy(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function) const {
 
@@ -268,17 +268,15 @@ auto DIARef<ValueType, Stack>::GroupBy(
 
     StatsNode* stats_node = AddChildStatsNode("GroupBy", DIANodeType::DOP);
     using GroupByResultNode
-              = GroupByNode<DOpResult, DIARef, KeyExtractor,
+              = GroupByNode<DOpResult, DIA, KeyExtractor,
                             GroupFunction, HashFunction>;
     auto shared_node
-        = std::make_shared<GroupByResultNode>(*this,
-                                              key_extractor,
-                                              groupby_function,
-                                              stats_node);
+        = std::make_shared<GroupByResultNode>(
+        *this, key_extractor, groupby_function, stats_node);
 
     auto groupby_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(groupby_stack)>(
+    return DIA<DOpResult, decltype(groupby_stack)>(
         shared_node, groupby_stack, { stats_node });
 }
 

@@ -72,7 +72,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
                                     return in1 + in2;
                                 };
 
-            DIARef<int> coll = ones.Collapse();
+            DIA<int> coll = ones.Collapse();
 
             ASSERT_EQ(136, coll.Sum(add_function));
             ASSERT_EQ(16u, coll.Size());

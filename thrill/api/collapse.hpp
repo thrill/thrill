@@ -31,7 +31,7 @@ namespace api {
  * \tparam ParentStack Function chain, which contains the chained lambdas between
  * the last and this DIANode.
  */
-template <typename ValueType, typename ParentDIARef>
+template <typename ValueType, typename ParentDIA>
 class CollapseNode : public DIANode<ValueType>
 {
 public:
@@ -41,9 +41,9 @@ public:
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      *
-     * \param parent Parent DIARef.
+     * \param parent Parent DIA.
      */
-    CollapseNode(const ParentDIARef& parent,
+    CollapseNode(const ParentDIA& parent,
                  StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
@@ -79,19 +79,19 @@ public:
 };
 
 template <typename ValueType, typename Stack>
-auto DIARef<ValueType, Stack>::Collapse() const {
+auto DIA<ValueType, Stack>::Collapse() const {
     assert(IsValid());
 
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-    // DIARef with empty stack and LOpNode
-    using LOpChainNode = CollapseNode<ValueType, DIARef>;
+    // DIA with empty stack and LOpNode
+    using LOpChainNode = CollapseNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Collapse", DIANodeType::COLLAPSE);
     auto shared_node
         = std::make_shared<LOpChainNode>(*this, stats_node);
     auto lop_stack = FunctionStack<ValueType>();
 
-    return DIARef<ValueType, decltype(lop_stack)>(
+    return DIA<ValueType, decltype(lop_stack)>(
         shared_node, lop_stack, { stats_node });
 }
 

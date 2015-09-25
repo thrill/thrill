@@ -21,7 +21,7 @@ namespace thrill {
   </tr>
   <tr>
     <td colspan="2"><div style="text-align: center">\ref api "api: Thrill User Interface"</div>
-    Convenient user interface for writing Big Data algorithms as dataflow graphs with imperative actions. Contains the Context and DIARef classes.</td>
+    Convenient user interface for writing Big Data algorithms as dataflow graphs with imperative actions. Contains the Context and DIA classes.</td>
   </tr>
   <tr>
     <td colspan="2"><div style="text-align: center">\ref core "core: Internal Algorithms"</div>

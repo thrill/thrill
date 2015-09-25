@@ -28,7 +28,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
+template <typename ValueType, typename ParentDIA>
 class SizeNode : public ActionNode
 {
     static const bool debug = false;
@@ -37,7 +37,7 @@ class SizeNode : public ActionNode
     using Super::context_;
 
 public:
-    SizeNode(const ParentDIARef& parent,
+    SizeNode(const ParentDIA& parent,
              StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node)
     {
@@ -84,10 +84,10 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-size_t DIARef<ValueType, Stack>::Size() const {
+size_t DIA<ValueType, Stack>::Size() const {
     assert(IsValid());
 
-    using SizeResultNode = SizeNode<ValueType, DIARef>;
+    using SizeResultNode = SizeNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Size", DIANodeType::ACTION);
     auto shared_node

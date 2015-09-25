@@ -34,7 +34,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
+template <typename ValueType, typename ParentDIA>
 class WriteBinaryNode : public ActionNode
 {
     static const bool debug = false;
@@ -43,7 +43,7 @@ public:
     using Super = ActionNode;
     using Super::context_;
 
-    WriteBinaryNode(const ParentDIARef& parent,
+    WriteBinaryNode(const ParentDIA& parent,
                     const std::string& path_out,
                     size_t max_file_size,
                     StatsNode* stats_node)
@@ -176,10 +176,10 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::WriteBinary(
+void DIA<ValueType, Stack>::WriteBinary(
     const std::string& filepath, size_t max_file_size) const {
 
-    using WriteResultNode = WriteBinaryNode<ValueType, DIARef>;
+    using WriteResultNode = WriteBinaryNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("WriteBinary", DIANodeType::ACTION);
 

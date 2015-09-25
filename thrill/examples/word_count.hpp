@@ -32,7 +32,7 @@ using WordCountPair = std::pair<std::string, size_t>;
 //! The WordCount user program: reads a DIA containing std::string words, and
 //! returns a DIA containing WordCountPairs.
 template <typename InStack>
-auto WordCount(const DIARef<std::string, InStack>&input) {
+auto WordCount(const DIA<std::string, InStack>&input) {
 
     auto word_pairs = input.template FlatMap<WordCountPair>(
         [](const std::string& line, auto emit) -> void {

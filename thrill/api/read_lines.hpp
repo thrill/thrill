@@ -423,7 +423,14 @@ private:
     };
 };
 
-DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
+/*!
+ * ReadLines is a DOp, which reads a file from the file system and
+ * creates an ordered DIA according to a given read function.
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ */
+DIA<std::string> ReadLines(Context& ctx, std::string filepath) {
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
         "ReadLines", DIANodeType::DOP);
@@ -434,7 +441,7 @@ DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
 
     auto read_stack = shared_node->ProduceStack();
 
-    return DIARef<std::string, decltype(read_stack)>(
+    return DIA<std::string, decltype(read_stack)>(
         shared_node, read_stack, { stats_node });
 }
 

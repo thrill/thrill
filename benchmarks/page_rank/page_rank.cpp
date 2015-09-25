@@ -32,7 +32,7 @@
 #include <utility>
 #include <vector>
 
-using thrill::DIARef;
+using thrill::DIA;
 using thrill::Context;
 
 using namespace thrill; // NOLINT
@@ -46,7 +46,7 @@ void page_rank(Context& ctx) {
     using PageWithRank = std::pair<size_t, double>;
     using Page = std::tuple<size_t, double, std::vector<int> >;
 
-    DIARef<PageWithRank> ranks =
+    DIA<PageWithRank> ranks =
         ReadLines(ctx, "pagerank.in")
         .Map([](const std::string& input) {
                  auto splitted = thrill::common::Split(input, " ");
@@ -153,7 +153,7 @@ void page_rank_with_reduce_sort(Context& ctx) {
     // (url, rank)
     // (url, rank)
     // ...
-    DIARef<PageWithRank> ranks = links_sorted.Map(
+    DIA<PageWithRank> ranks = links_sorted.Map(
         [](const std::pair<int, std::vector<int> >& l) {
             return std::make_pair((size_t)l.first, 1.0);
         }).Cache();

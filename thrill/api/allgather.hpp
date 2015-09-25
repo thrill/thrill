@@ -26,14 +26,14 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
+template <typename ValueType, typename ParentDIA>
 class AllGatherNode : public ActionNode
 {
 public:
     using Super = ActionNode;
     using Super::context_;
 
-    AllGatherNode(const ParentDIARef& parent,
+    AllGatherNode(const ParentDIA& parent,
                   std::vector<ValueType>* out_vector,
                   StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
@@ -87,10 +87,10 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
+std::vector<ValueType> DIA<ValueType, Stack>::AllGather()  const {
     assert(IsValid());
 
-    using AllGatherNode = api::AllGatherNode<ValueType, DIARef>;
+    using AllGatherNode = api::AllGatherNode<ValueType, DIA>;
 
     std::vector<ValueType> output;
 
@@ -104,11 +104,11 @@ std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
 }
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::AllGather(
+void DIA<ValueType, Stack>::AllGather(
     std::vector<ValueType>* out_vector)  const {
     assert(IsValid());
 
-    using AllGatherNode = api::AllGatherNode<ValueType, DIARef>;
+    using AllGatherNode = api::AllGatherNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("AllGather", DIANodeType::ACTION);
     auto shared_node =

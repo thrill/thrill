@@ -34,7 +34,7 @@
 namespace thrill {
 namespace api {
 
-template <typename ValueType, typename ParentDIARef,
+template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByIndexNode : public DOpNode<ValueType>
 {
@@ -69,12 +69,12 @@ public:
      * Constructor for a GroupByIndexNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      *
-     * \param parent Parent DIARef.
+     * \param parent Parent DIA.
      * and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
-    GroupByIndexNode(const ParentDIARef& parent,
+    GroupByIndexNode(const ParentDIA& parent,
                      const KeyExtractor& key_extractor,
                      const GroupFunction& groupby_function,
                      size_t number_keys,
@@ -295,7 +295,7 @@ template <typename ValueOut,
           typename KeyExtractor,
           typename GroupFunction,
           typename HashFunction>
-auto DIARef<ValueType, Stack>::GroupByIndex(
+auto DIA<ValueType, Stack>::GroupByIndex(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function,
     const size_t number_keys,
@@ -313,7 +313,7 @@ auto DIARef<ValueType, Stack>::GroupByIndex(
 
     StatsNode* stats_node = AddChildStatsNode("GroupByIndex", DIANodeType::DOP);
     using GroupByResultNode
-              = GroupByIndexNode<DOpResult, DIARef, KeyExtractor,
+              = GroupByIndexNode<DOpResult, DIA, KeyExtractor,
                                  GroupFunction, HashFunction>;
     auto shared_node
         = std::make_shared<GroupByResultNode>(
@@ -322,7 +322,7 @@ auto DIARef<ValueType, Stack>::GroupByIndex(
 
     auto groupby_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(groupby_stack)>(
+    return DIA<DOpResult, decltype(groupby_stack)>(
         shared_node, groupby_stack, { stats_node });
 }
 
