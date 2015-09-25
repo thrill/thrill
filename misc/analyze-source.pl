@@ -30,9 +30,6 @@ my $write_changes = 0;
 # have autopep8 python formatter?
 my $have_autopep8;
 
-# have cogapp code generator?
-my $have_cogapp;
-
 # function testing whether to uncrustify a path
 sub filter_uncrustify($) {
     my ($path) = @_;
@@ -142,6 +139,61 @@ sub filter_program {
     }
 }
 
+sub process_inline_perl {
+    my @data = @_;
+
+    for(my $i = 0; $i < @data; ++$i)
+    {
+        if ($data[$i] =~ /\[\[\[perl/) {
+            # try to find the following ]]] line
+            my $j = $i + 1;
+            while ($j < @data && $data[$j] !~ /\]\]\]/) {
+                $j++;
+            }
+
+            # no ]]] found.
+            die("[[[perl is missing closing ]]]") if $j >= @data;
+
+            # extract lines
+            my $prog = join("", @data[$i+1..$j-1]);
+
+            # evaluate the program
+            my $output;
+            {
+                # return STDOUT to $output
+                open local(*STDOUT), '>', \$output or die $!;
+                eval $prog;
+            }
+            if ($@) {
+                print "Perl inline: -------------\n";
+                print "$prog\n";
+                print "--------------------------\n";
+                die("failed with $@");
+            }
+            #print "output: ".$output."\n";
+
+            # try to find the following [[[end]]] line
+            my $k = $j + 1;
+            while ($k < @data && $data[$k] !~ /\[\[\[end\]\]\]/ && $data[$k] !~ /\[\[\[perl/) {
+                $k++;
+            }
+
+            # not found: insert [[[end]]]
+            if ($data[$k] !~ /\[\[\[end\]\]\]/) {
+                $k = $j + 1;
+                $output .= "\n// [[[end]]]";
+            }
+
+            my @output = split(/\n/, $output);
+            $output[$_] .= "\n" foreach (0..@output-1);
+
+            splice(@data, $j + 1, $k - ($j + 1), @output);
+        }
+    }
+
+    return @data;
+}
+
 sub process_cpp {
     my ($path) = @_;
 
@@ -167,22 +219,8 @@ sub process_cpp {
 
     my @origdata = @data;
 
-    # first check whether there are cog lines and execute them
-    if ($have_cogapp) {
-        my $have_coglines = 0;
-        foreach my $ln (@data) {
-            if ($ln =~ /\[\[\[cog/) {
-                $have_coglines = 1;
-                last;
-            }
-        }
-
-        if ($have_coglines) {
-            # pipe file through cog.py
-            my $data = join("", @data);
-            @data = filter_program($data, "cog.py", "-");
-        }
-    }
+    # first check whether there are [[[perl lines and execute them
+    @data = process_inline_perl(@data);
 
     # put all #include lines into the includemap
     for my $i (0...@data-1)
@@ -510,22 +548,8 @@ sub process_swig {
 
     my @origdata = @data;
 
-    # first check whether there are cog lines and execute them
-    if ($have_cogapp) {
-        my $have_coglines = 0;
-        foreach my $ln (@data) {
-            if ($ln =~ /\[\[\[cog/) {
-                $have_coglines = 1;
-                last;
-            }
-        }
-
-        if ($have_coglines) {
-            # pipe file through cog.py
-            my $data = join("", @data);
-            @data = filter_program($data, "cog.py", "-");
-        }
-    }
+    # first check whether there are [[[perl lines and execute them
+    @data = process_inline_perl(@data);
 
     # check source header
     my $i = 0;
@@ -641,13 +665,6 @@ my ($check_autopep8) = filter_program("", "autopep8", "--version");
 if (!$check_autopep8 || $check_autopep8 !~ /^autopep8/) {
     $have_autopep8 = 0;
     warn("Could not find autopep8 - automatic python formatter.");
-}
-
-$have_cogapp = 1;
-my ($check_cogapp) = filter_program("", "cog.py", "-version");
-if (!$check_cogapp || $check_cogapp !~ /^Cog/) {
-    $have_cogapp = 0;
-    warn("Could not find cogapp - python code generator formatter.");
 }
 
 use File::Find;
