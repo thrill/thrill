@@ -12,8 +12,8 @@
 #ifndef THRILL_NET_FLOW_CONTROL_MANAGER_HEADER
 #define THRILL_NET_FLOW_CONTROL_MANAGER_HEADER
 
-#include <thrill/common/thread_barrier.hpp>
 #include <thrill/common/memory.hpp>
+#include <thrill/common/thread_barrier.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/group.hpp>
 
@@ -42,7 +42,7 @@ private:
     /**
      * Some shared memory to work upon (managed by thread 0).
      */
-    common::AlignedPtr *shmem_;
+    common::AlignedPtr* shmem_;
 
 public:
     /**

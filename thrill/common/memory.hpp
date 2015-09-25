@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/common/memory.hpp
  *
- * Memory specific global defines. 
+ * Memory specific global defines.
  *
  * Part of Project Thrill.
  *

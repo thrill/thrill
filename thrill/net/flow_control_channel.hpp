@@ -13,8 +13,8 @@
 #define THRILL_NET_FLOW_CONTROL_CHANNEL_HEADER
 
 #include <thrill/common/functional.hpp>
-#include <thrill/common/thread_barrier.hpp>
 #include <thrill/common/memory.hpp>
+#include <thrill/common/thread_barrier.hpp>
 #include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
 
@@ -64,7 +64,7 @@ private:
     common::ThreadBarrier& barrier_;
 
     //! A shared memory location to work upon.
-    common::AlignedPtr *shmem_;
+    common::AlignedPtr* shmem_;
 
     /**
      * \brief Sends a value of an integral type T to a certain other worker.
@@ -100,16 +100,16 @@ private:
 
     template <typename T>
     void SetLocalShared(T* value) {
-        //We are only allowed to set our own memory location. 
-        size_t idx = thread_id_; 
+        // We are only allowed to set our own memory location.
+        size_t idx = thread_id_;
         *(reinterpret_cast<T**>(shmem_ + idx)) = value;
     }
-    
+
     template <typename T>
     T * GetLocalShared(size_t idx) {
         return *(reinterpret_cast<T**>(shmem_ + idx));
     }
-    
+
     template <typename T>
     T * GetLocalShared() {
         GetLocalShared<T>(thread_id_);
@@ -120,7 +120,7 @@ public:
     explicit FlowControlChannel(Group& group,
                                 size_t thread_id, size_t thread_count,
                                 common::ThreadBarrier& barrier,
-                                common::AlignedPtr *shmem)
+                                common::AlignedPtr* shmem)
         : group_(group),
           id_(group_.my_host_rank()), num_hosts_(group_.num_hosts()),
           thread_id_(thread_id), thread_count_(thread_count),
@@ -155,7 +155,7 @@ public:
         static const bool debug = false;
 
         T local_value = value;
-            
+
         SetLocalShared(&local_value);
 
         barrier_.Await();
@@ -165,7 +165,7 @@ public:
 
             // Global Prefix
             T** locals = reinterpret_cast<T**>(alloca(thread_count_ * sizeof(T*)));
-            
+
             for (size_t i = 0; i < thread_count_; i++) {
                 locals[i] = GetLocalShared<T>(i);
             }
@@ -174,7 +174,7 @@ public:
                 *(locals[i]) = sum_op(*(locals[i - 1]), *(locals[i]));
             }
 
-            if(debug) {
+            if (debug) {
                 for (size_t i = 0; i < thread_count_; i++) {
                     LOG << id_ << ", " << i << ", " << inclusive << ": me: " << *(locals[i]);
                 }
@@ -200,8 +200,8 @@ public:
                 }
                 *(locals[0]) = prefixSumBase;
             }
-        
-            if(debug) {
+
+            if (debug) {
                 for (size_t i = 0; i < thread_count_; i++) {
                     LOG << id_ << ", " << i << ", " << inclusive << ": res: " << *(locals[i]);
                 }
@@ -281,7 +281,7 @@ public:
     template <typename T, typename BinarySumOp = std::plus<T> >
     T AllReduce(const T& value, BinarySumOp sum_op = BinarySumOp()) {
         T localElem = value;
-        
+
         SetLocalShared(&localElem);
 
         barrier_.Await();
@@ -296,9 +296,9 @@ public:
 
             group_.AllReduce(localElem, sum_op);
 
-            //We have the choice: One more barrier so each slave can read
-            //from master's shared memory, or p writes to write to each slaves
-            //mem. I choose the latter since the cost of a barrier is very high. 
+            // We have the choice: One more barrier so each slave can read
+            // from master's shared memory, or p writes to write to each slaves
+            // mem. I choose the latter since the cost of a barrier is very high.
             for (size_t i = 1; i < thread_count_; i++) {
                 *GetLocalShared<T>(i) = localElem;
             }
@@ -311,7 +311,7 @@ public:
 
     /**
      * \brief A trivial global barrier.
-     * Use for debugging only. 
+     * Use for debugging only.
      */
     void Barrier() {
         size_t i = 0;
