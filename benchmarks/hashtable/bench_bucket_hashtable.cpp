@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
 
     core::ReducePostTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), false,
             core::PostReduceFlushToDefault<size_t, decltype(red_fn)>,
-            core::PostReduceByHashKey<size_t>, std::equal_to<size_t>, 16 * 16>
+            core::PostReduceByHashKey<size_t>, std::equal_to<size_t>, 32 * 16>
     table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<size_t>(),
                   core::PostReduceFlushToDefault<size_t, decltype(red_fn)>(red_fn), 0, 0, 0, byte_size,
                   bucket_rate, max_partition_fill_rate, 0.01,

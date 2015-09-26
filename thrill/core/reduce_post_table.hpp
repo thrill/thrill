@@ -16,6 +16,9 @@
 #ifndef THRILL_CORE_REDUCE_POST_TABLE_HEADER
 #define THRILL_CORE_REDUCE_POST_TABLE_HEADER
 
+#define BENCHMARK
+#define EMIT_DATA
+
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
@@ -154,9 +157,7 @@ public:
 
         std::vector<BucketBlock*>& buckets = ht->Items();
 
-        std::vector<size_t>& num_blocks_mem_per_frame = ht->NumBlocksMemPerFrame();
-
-        std::vector<size_t>& total_num_blocks_per_frame = ht->TotalNumBlocksPerFrame();
+        std::vector<size_t>& num_items_mem_per_frame = ht->NumItemsMemPerFrame();
 
         std::vector<data::File>& frame_files = ht->FrameFiles();
 
@@ -170,18 +171,20 @@ public:
 
         size_t num_buckets_per_frame = ht->NumBucketsPerFrame();
 
+        size_t block_size_ = ht->BlockSize();
+
         double fill_rate = ht->MaxFrameFillRate();
 
         std::vector<BucketBlock*> buckets_second;
 
         // sort total num blocks per frame
-        std::vector<size_t> idx(total_num_blocks_per_frame.size());
+        std::vector<size_t> idx(num_items_mem_per_frame.size());
         for (size_t i = 0; i != idx.size(); ++i) {
             idx[i] = i;
         }
         // sort indexes based on comparing values in v
-        std::sort(idx.begin(), idx.end(), [&total_num_blocks_per_frame](size_t i1, size_t i2) {
-            return total_num_blocks_per_frame[i1] > total_num_blocks_per_frame[i2];
+        std::sort(idx.begin(), idx.end(), [&num_items_mem_per_frame](size_t i1, size_t i2) {
+            return num_items_mem_per_frame[i1] > num_items_mem_per_frame[i2];
         });
 
         // from now on, it is ensured enough internal memory is available to process
@@ -197,11 +200,14 @@ public:
             size_t offset = frame_id * num_buckets_per_frame;
             size_t length = std::min<size_t>(offset + num_buckets_per_frame, num_buckets_per_table);
 
+            size_t blocks_free = 0;
+
             // only if items have been spilled,
             // process a second reduce
             if (file.num_items() > 0) {
 
-                size_t blocks_in_use = total_num_blocks_per_frame[frame_id];
+                size_t blocks_in_use = std::max<size_t>((size_t)(static_cast<double>(num_items_mem_per_frame[frame_id])
+                                                / static_cast<double>(block_size_)), 1);
 
                 // calculate num buckets in second reduce table
                 size_t num_buckets_second = std::max<size_t>(
@@ -299,6 +305,7 @@ public:
                             current->destroy_items();
                             operator delete (current);
                             current = next;
+                            blocks_free++;
                         }
                         else {
                             current = current->next;
@@ -385,7 +392,9 @@ public:
                         for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi)
                         {
+#if defined(EMIT_DATA)
                             ht->EmitAll(bi->first, bi->second);
+#endif
                         }
 
                         // destroy block and advance to next
@@ -415,7 +424,9 @@ public:
                         for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi)
                         {
+#if defined(EMIT_DATA)
                             ht->EmitAll(bi->first, bi->second);
+#endif
                         }
 
                         // advance to next
@@ -426,6 +437,7 @@ public:
                             current->destroy_items();
                             operator delete (current);
                             current = next;
+                            blocks_free++;
                         }
                         else {
                             current = current->next;
@@ -439,19 +451,19 @@ public:
                 }
             }
 
-            // set num blocks for frame to zero
+            // set num items for frame to 0
             if (consume)
             {
-                ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - num_blocks_mem_per_frame[frame_id]);
-                num_blocks_mem_per_frame[frame_id] = 0;
-                total_num_blocks_per_frame[frame_id] = 0;
+                ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - blocks_free);
+                num_items_mem_per_frame[frame_id] = 0;
             }
         }
-
+#if defined(BENCHMARK)
         if (consume)
         {
             ht->SetNumItemsPerTable(0);
         }
+#endif
     }
 
 private:
@@ -485,9 +497,7 @@ public:
 
         std::vector<BucketBlock*>& buckets = ht->Items();
 
-        std::vector<size_t>& num_blocks_mem_per_frame = ht->NumBlocksMemPerFrame();
-
-        std::vector<size_t>& total_num_blocks_per_frame = ht->TotalNumBlocksPerFrame();
+        std::vector<size_t>& num_items_mem_per_frame = ht->NumItemsMemPerFrame();
 
         std::vector<data::File>& frame_files = ht->FrameFiles();
 
@@ -505,16 +515,18 @@ public:
 
         Value neutral_element = ht->NeutralElement();
 
+        size_t block_size_ = ht->BlockSize();
+
         std::vector<Value> elements_to_emit(ht->EndLocalIndex() - ht->BeginLocalIndex(), neutral_element);
 
         // sort total num blocks per frame
-        std::vector<size_t> idx(total_num_blocks_per_frame.size());
+        std::vector<size_t> idx(num_items_mem_per_frame.size());
         for (size_t i = 0; i != idx.size(); ++i) {
             idx[i] = i;
         }
         // sort indexes based on comparing values in v
-        std::sort(idx.begin(), idx.end(), [&total_num_blocks_per_frame](size_t i1, size_t i2) {
-            return total_num_blocks_per_frame[i1] > total_num_blocks_per_frame[i2];
+        std::sort(idx.begin(), idx.end(), [&num_items_mem_per_frame](size_t i1, size_t i2) {
+            return num_items_mem_per_frame[i1] > num_items_mem_per_frame[i2];
         });
 
         // from now on, it is ensured enough internal memory is available to process
@@ -530,11 +542,14 @@ public:
             size_t offset = frame_id * num_buckets_per_frame;
             size_t length = std::min<size_t>(offset + num_buckets_per_frame, num_buckets_per_table);
 
+            size_t blocks_free = 0;
+
             // only if items have been spilled,
             // process a second reduce
             if (file.num_items() > 0) {
 
-                size_t blocks_in_use = total_num_blocks_per_frame[frame_id];
+                size_t blocks_in_use = std::max<size_t>((size_t)(static_cast<double>(num_items_mem_per_frame[frame_id])
+                                                                 / static_cast<double>(block_size_)), 1);
 
                 // calculate num buckets in second reduce table
                 size_t num_buckets_second = std::max<size_t>(
@@ -694,6 +709,7 @@ public:
                             current->destroy_items();
                             operator delete (current);
                             current = next;
+                            blocks_free++;
                         }
                         else {
                             current = current->next;
@@ -759,6 +775,7 @@ public:
                             current->destroy_items();
                             operator delete (current);
                             current = next;
+                            blocks_free++;
                         }
                         else {
                             current = current->next;
@@ -775,24 +792,27 @@ public:
             // set num blocks for frame to zero
             if (consume)
             {
-                ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - num_blocks_mem_per_frame[frame_id]);
-                num_blocks_mem_per_frame[frame_id] = 0;
-                total_num_blocks_per_frame[frame_id] = 0;
+                ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - blocks_free);
+                num_items_mem_per_frame[frame_id] = 0;
             }
         }
 
         size_t index = ht->BeginLocalIndex();
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
+#if defined(EMIT_DATA)
             ht->EmitAll(index++, elements_to_emit[i]);
+#endif
             elements_to_emit[i] = neutral_element;
         }
 
         assert(index == ht->EndLocalIndex());
 
+#if defined(BENCHMARK)
         if (consume)
         {
             ht->SetNumItemsPerTable(0);
         }
+#endif
     }
 
 private:
@@ -910,9 +930,9 @@ public:
           flush_function_(flush_function),
           reduce_function_(reduce_function) {
 
-        assert(byte_size > 0 && "byte_size must be greater than 0");
+        assert(byte_size >= 0 && "byte_size must be greater than 0");
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
-        assert(frame_rate > 0.0 && frame_rate <= 1.0);
+        assert(frame_rate >= 0.0 && frame_rate <= 1.0);
         assert(bucket_rate >= 0.0 && bucket_rate <= 1.0);
         assert(begin_local_index >= 0);
         assert(end_local_index >= 0);
@@ -923,6 +943,9 @@ public:
                                                               / static_cast<double>(sizeof(BucketBlock))), 1);
         max_num_blocks_mem_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
                                                                   / static_cast<double>(num_frames_)), 1);
+
+        max_num_items_mem_per_frame_ = max_num_blocks_mem_per_frame_ * block_size_;
+
         num_buckets_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_mem_per_frame_)
                                                            * bucket_rate), 1);
         num_buckets_per_table_ = num_buckets_per_frame_ * num_frames_;
@@ -940,8 +963,7 @@ public:
         assert(num_buckets_per_table_ > 0);
 
         buckets_.resize(num_buckets_per_table_, nullptr);
-        num_blocks_mem_per_frame_.resize(num_frames_, 0);
-        total_num_blocks_per_frame_.resize(num_frames_, 0);
+        num_items_mem_per_frame_.resize(num_frames_, 0);
 
         for (size_t i = 0; i < num_frames_; i++) {
             frame_files_.push_back(ctx.GetFile());
@@ -1044,14 +1066,6 @@ public:
             // new block needed.
             //////
 
-            // spill current frame if max frame fill rate reached
-            if (static_cast<double>(num_blocks_mem_per_frame_[frame_id] + 1)
-                / static_cast<double>(max_num_blocks_mem_per_frame_)
-                > max_frame_fill_rate_)
-            {
-                SpillFrame(frame_id);
-            }
-
             // spill largest frame if max number of blocks reached
             if (num_blocks_per_table_ == max_num_blocks_per_table_)
             {
@@ -1066,10 +1080,6 @@ public:
             current->next = buckets_[global_index];
             buckets_[global_index] = current;
 
-            // Number of blocks per frame.
-            num_blocks_mem_per_frame_[frame_id]++;
-            // Number of blocks per frame.
-            total_num_blocks_per_frame_[frame_id]++;
             // Total number of blocks
             num_blocks_per_table_++;
         }
@@ -1077,8 +1087,20 @@ public:
         // in-place construct/insert new item in current bucket block
         new (current->items + current->size++)KeyValuePair(kv);
 
-        // Increase total item count
+        // Number of items per frame.
+        num_items_mem_per_frame_[frame_id]++;
+#if defined(BENCHMARK)
+        // Increase total item counter
         num_items_per_table_++;
+#endif
+
+        // spill current frame if max frame fill rate reached
+        if (static_cast<double>(num_items_mem_per_frame_[frame_id])
+            / static_cast<double>(max_num_items_mem_per_frame_)
+            > max_frame_fill_rate_)
+        {
+            SpillFrame(frame_id);
+        }
     }
 
     /*!
@@ -1103,9 +1125,9 @@ public:
         size_t p_idx = 0;
         for (size_t i = 0; i < num_frames_; i++)
         {
-            if (num_blocks_mem_per_frame_[i] > p_size_max)
+            if (num_items_mem_per_frame_[i] > p_size_max)
             {
-                p_size_max = num_blocks_mem_per_frame_[i];
+                p_size_max = num_items_mem_per_frame_[i];
                 p_idx = i;
             }
         }
@@ -1128,10 +1150,10 @@ public:
         size_t p_idx = 0;
         for (size_t i = 0; i < num_frames_; i++)
         {
-            if (num_blocks_mem_per_frame_[i] < p_size_min
-                && num_blocks_mem_per_frame_[i] != 0)
+            if (num_items_mem_per_frame_[i] < p_size_min
+                && num_items_mem_per_frame_[i] != 0)
             {
-                p_size_min = num_blocks_mem_per_frame_[i];
+                p_size_min = num_items_mem_per_frame_[i];
                 p_idx = i;
             }
         }
@@ -1162,10 +1184,13 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
+#if defined(EMIT_DATA)
                     writer.PutItem(*bi);
+#endif
                 }
-
+#if defined(BENCHMARK)
                 num_items_per_table_ -= current->size;
+#endif
 
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -1177,12 +1202,16 @@ public:
             buckets_[i] = nullptr;
         }
 
+#if defined(BENCHMARK)
         // adjust number of blocks in table
-        num_blocks_per_table_ -= num_blocks_mem_per_frame_[frame_id];
+        num_items_per_table_ -= num_items_mem_per_frame_[frame_id];
+#endif
         // reset number of blocks in external memory
-        num_blocks_mem_per_frame_[frame_id] = 0;
+        num_items_mem_per_frame_[frame_id] = 0;
+#if defined(BENCHMARK)
         // increase spill counter
         num_spills_++;
+#endif
     }
 
     /*!
@@ -1220,27 +1249,9 @@ public:
     }
 
     /*!
-     * Returns the maximal num of blocks in the table.
-     *
-     * \return Maximal number of blocks in the table.
-     */
-    size_t MaxNumBlocksPerTable() const {
-        return max_num_blocks_per_table_;
-    }
-
-    /*!
-     * Sets the maximum number of blocks of the table.
-     *
-     * \param size The maximal number of blocks the table.
-     */
-    void SetMaxNumBlocksTable(const size_t& size) {
-        max_num_blocks_per_table_ = size;
-    }
-
-    /*!
      * Sets the num of blocks in the table.
      */
-    void SetNumBlocksPerTable(const size_t& num_blocks) {
+    void SetNumBlocksPerTable(const size_t num_blocks) {
         num_blocks_per_table_ = num_blocks;
     }
 
@@ -1251,6 +1262,15 @@ public:
      */
     size_t NumItemsPerTable() const {
         return num_items_per_table_;
+    }
+
+    /*!
+     * Returns the number of items in the table.
+     *
+     * \return Number of items in the table.
+     */
+    size_t MaxNumBlocksPerTable() const {
+        return max_num_blocks_per_table_;
     }
 
     /*!
@@ -1327,21 +1347,12 @@ public:
     }
 
     /*!
-     * Returns the vector of number of blocks per frame in internal memory.
+     * Returns the vector of number of items per frame in internal memory.
      *
-     * \return Vector of number of blocks per frame in internal memory.
+     * \return Vector of number of items per frame in internal memory.
      */
-    std::vector<size_t> & NumBlocksMemPerFrame() {
-        return num_blocks_mem_per_frame_;
-    }
-
-    /*!
-     * Returns the vector of total of number of blocks per frame.
-     *
-     * \return Vector of total of number of blocks per frame.
-     */
-    std::vector<size_t> & TotalNumBlocksPerFrame() {
-        return total_num_blocks_per_frame_;
+    std::vector<size_t> & NumItemsMemPerFrame() {
+        return num_items_mem_per_frame_;
     }
 
     /*!
@@ -1369,6 +1380,15 @@ public:
      */
     double BucketRate() const {
         return bucket_rate_;
+    }
+
+    /*!
+     * Returns the block size.
+     *
+     * \return Block size.
+     */
+    double BlockSize() const {
+        return block_size_;
     }
 
     /*!
@@ -1421,14 +1441,14 @@ public:
 
 protected:
     //! Number of buckets per table.
-    size_t num_buckets_per_table_;
+    size_t num_buckets_per_table_ = 0;
 
     // Maximal frame fill rate.
-    double max_frame_fill_rate_;
+    double max_frame_fill_rate_ = 1.0;
 
     //! Maximal number of blocks in the table before some items
     //! are spilled.
-    size_t max_num_blocks_per_table_;
+    size_t max_num_blocks_per_table_ = 0;
 
     //! Total number of blocks in the table.
     size_t num_blocks_per_table_ = 0;
@@ -1452,10 +1472,10 @@ protected:
     std::vector<data::File::Writer> frame_writers_;
 
     //! Begin local index (reduce to index).
-    size_t begin_local_index_;
+    size_t begin_local_index_ = 0;
 
     //! End local index (reduce to index).
-    size_t end_local_index_;
+    size_t end_local_index_ = 0;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;
@@ -1478,20 +1498,20 @@ protected:
     //! Number of items in the table.
     size_t num_items_per_table_ = 0;
 
-    //! Number of blocks per frame in internal memory.
-    std::vector<size_t> num_blocks_mem_per_frame_;
+    //! Number of items per frame in internal memory.
+    std::vector<size_t> num_items_mem_per_frame_;
 
-    //! Total number of blocks per frame.
-    std::vector<size_t> total_num_blocks_per_frame_;
+    //! Maximal number of items per partition.
+    size_t max_num_items_mem_per_frame_ = 0;
 
     //! Number of spills.
     size_t num_spills_ = 0;
 
     //! Number of buckets per frame.
-    size_t num_buckets_per_frame_;
+    size_t num_buckets_per_frame_ = 0;
 
     //! Maximal number of blocks per frame.
-    size_t max_num_blocks_mem_per_frame_;
+    size_t max_num_blocks_mem_per_frame_ = 0;
 
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;

@@ -93,14 +93,14 @@ public:
           emitters_(stream_->OpenWriters()),
           reduce_pre_table_(
               parent.ctx().num_workers(), key_extractor,
-              reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6),
+              reduce_function_, emitters_, 1000000000, 0.9, 0.6),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
               core::PostReduceByHashKey<Key>(),
               core::PostReduceFlushToDefault<Key,
                                              ReduceFunction>(reduce_function),
-              0, 0, Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
+              0, 0, Value(), 1000000000, 0.9, 0.6, 0.01)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -176,12 +176,12 @@ private:
 
     core::ReducePreTable<
         Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;
+        core::PreReduceByHashKey<Key>, std::equal_to<Key>, 32*16> reduce_pre_table_;
 
     core::ReducePostTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
         core::PostReduceFlushToDefault<Key, ReduceFunction>, core::PostReduceByHashKey<Key>,
-        std::equal_to<Key>, 16*16> reduce_post_table_;
+        std::equal_to<Key>, 32*16> reduce_post_table_;
 
     bool reduced = false;
 };

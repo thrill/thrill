@@ -16,6 +16,9 @@
 #ifndef THRILL_CORE_REDUCE_PRE_TABLE_HEADER
 #define THRILL_CORE_REDUCE_PRE_TABLE_HEADER
 
+#define BENCHMARK
+#define EMIT_DATA
+
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
@@ -103,10 +106,10 @@ public:
 
         size_t hashed = hash_function_(k);
 
-        size_t partition_id = std::min(hashed % ht->NumPartitions(), ht->NumPartitions() - 1);
+        size_t partition_id = hashed % ht->NumPartitions();
 
-        return IndexResult(partition_id, std::min(ht->NumBucketsPerTable() - 1,
-                          partition_id * ht->NumBucketsPerPartition() + (hashed % ht->NumBucketsPerPartition())));
+        return IndexResult(partition_id,
+                           partition_id * ht->NumBucketsPerPartition() + (hashed % ht->NumBucketsPerPartition()));
     }
 
 private:
@@ -127,7 +130,6 @@ public:
     operator () (const size_t k, ReducePreTable* ht) const {
 
         using IndexResult = typename ReducePreTable::IndexResult;
-
         return IndexResult(std::min(k * ht->NumPartitions() / size_, ht->NumPartitions() - 1),
                            std::min(ht->NumBucketsPerTable() - 1, k * ht->NumBucketsPerTable() / size_));
     }
@@ -206,8 +208,8 @@ public:
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
                    size_t byte_size = 1024 * 1024 * 128 * 4,
-                   double bucket_rate = 0.9,
-                   double max_partition_fill_rate = 0.6,
+                   double bucket_rate = 1.0,
+                   double max_partition_fill_rate = 0.7,
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
@@ -222,16 +224,20 @@ public:
 
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
-        assert(byte_size > 0 && "byte_size must be greater than 0");
-        assert(bucket_rate > 0.0);
+        assert(byte_size >= 0 && "byte_size must be greater than or equal 0");
+        assert(bucket_rate >= 0.0 && "bucket_rate must be greater than or equal 0");
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
 
         max_num_blocks_per_table_ =
             std::max<size_t>((size_t)(static_cast<double>(byte_size_)
                                       / static_cast<double>(sizeof(BucketBlock))), 1);
+
         max_num_blocks_per_partition_ =
-            std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
-                                      / static_cast<double>(num_partitions_)), 1);
+                std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
+                                          / static_cast<double>(num_partitions_)), 1);
+
+        max_num_items_per_partition_ = max_num_blocks_per_partition_ * block_size_;
+
         num_buckets_per_partition_ =
             std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_partition_)
                                       * bucket_rate), 1);
@@ -251,7 +257,7 @@ public:
         assert(num_buckets_per_table_ > 0);
 
         buckets_.resize(num_buckets_per_table_, nullptr);
-        num_blocks_per_partition_.resize(num_partitions_, 0);
+        num_items_per_partition_.resize(num_partitions_, 0);
 
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
@@ -326,8 +332,9 @@ public:
                     LOG << "...finished reduce!";
                     return;
                 }
-
+#if defined(BENCHMARK)
                 num_collisions_++;
+#endif
             }
 
             current = current->next;
@@ -345,14 +352,6 @@ public:
             // new block needed.
             //////
 
-            // flush current partition if max partition fill rate reached
-            if (static_cast<double>(num_blocks_per_partition_[h.partition_id] + 1)
-                / static_cast<double>(max_num_blocks_per_partition_)
-                > max_partition_fill_rate_)
-            {
-                FlushPartition(h.partition_id);
-            }
-
             // flush largest partition if max number of blocks reached
             if (num_blocks_per_table_ == max_num_blocks_per_table_)
             {
@@ -367,16 +366,27 @@ public:
             current->next = buckets_[h.global_index];
             buckets_[h.global_index] = current;
 
-            // Number of blocks per partition.
-            num_blocks_per_partition_[h.partition_id]++;
             // Total number of blocks
             num_blocks_per_table_++;
         }
 
         // in-place construct/insert new item in current bucket block
         new (current->items + current->size++)KeyValuePair(kv);
+
+        // Increase partition item count
+        num_items_per_partition_[h.partition_id]++;
+#if defined(BENCHMARK)
         // Increase total item count
         num_items_per_table_++;
+#endif
+
+        // flush current partition if max partition fill rate reached
+        if (static_cast<double>(num_items_per_partition_[h.partition_id])
+            / static_cast<double>(max_num_items_per_partition_)
+            > max_partition_fill_rate_)
+        {
+            FlushPartition(h.partition_id);
+        }
     }
 
     /*!
@@ -407,9 +417,9 @@ public:
         size_t p_idx = 0;
         for (size_t i = 0; i < num_partitions_; i++)
         {
-            if (num_blocks_per_partition_[i] > p_size_max)
+            if (num_items_per_partition_[i] > p_size_max)
             {
-                p_size_max = num_blocks_per_partition_[i];
+                p_size_max = num_items_per_partition_[i];
                 p_idx = i;
             }
         }
@@ -441,42 +451,51 @@ public:
      * \param partition_id The id of the partition to be flushed.
      */
     void FlushPartition(size_t partition_id) {
+
         LOG << "Flushing items of partition with id: "
             << partition_id;
 
+#if defined(BENCHMARK)
         std::vector<size_t> r_;
         std::vector<size_t> l_;
         size_t l = 0;
+#endif
 
         for (size_t i = partition_id * num_buckets_per_partition_;
              i < (partition_id + 1) * num_buckets_per_partition_; i++)
         {
             BucketBlock* current = buckets_[i];
 
+#if defined(BENCHMARK)
             if (current != nullptr) {
                 r_.push_back(current->size);
                 l = 0;
             }
+#endif
 
             while (current != nullptr)
             {
+#if defined(BENCHMARK)
                 l++;
+#endif
 
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
                     if (RobustKey) {
-                        //emit_[partition_id](bi->second);
+#if defined(EMIT_DATA)
+                        emit_[partition_id](bi->second);
+#endif
                         sLOG << "Pushing value";
                     }
                     else {
-                        //emit_[partition_id](*bi);
+#if defined(EMIT_DATA)
+                        emit_[partition_id](*bi);
+#endif
                         sLOG << "pushing pair";
                     }
                     emit_stats_[partition_id]++;
                 }
-
-                num_items_per_table_ -= current->size;
 
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -485,20 +504,25 @@ public:
                 current = next;
             }
 
+#if defined(BENCHMARK)
             if (buckets_[i] != nullptr) {
                 l_.push_back(l);
             }
+#endif
 
             buckets_[i] = nullptr;
         }
 
+#if defined(BENCHMARK)
         // reset table specific counter
-        num_blocks_per_table_ -= num_blocks_per_partition_[partition_id];
+        num_items_per_table_ -= num_items_per_partition_[partition_id];
+#endif
         // reset partition specific counter
-        num_blocks_per_partition_[partition_id] = 0;
+        num_items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
 
+#if defined(BENCHMARK)
         // debug: increase flush counter
         num_flushes_++;
         // debug: waste before flush
@@ -513,6 +537,7 @@ public:
         sq_sum = std::inner_product(l_.begin(), l_.end(), l_.begin(), 0.0);
         block_length_median.push_back(mean);
         block_length_stedv.push_back(std::sqrt(sq_sum / l_.size() - mean * mean));
+#endif
 
         LOG << "Flushed items of partition with id: " << partition_id;
     }
@@ -572,28 +597,47 @@ public:
     }
 
     /*!
-     * Returns the number of blocks of a partition.
+     * Returns the number of items of a partition.
      *
      * \param partition_id The id of the partition the number of
      *                  blocks to be returned..
-     * \return The number of blocks in the partitions.
+     * \return The number of items in the partitions.
      */
-    size_t NumBlocksPerPartition(size_t partition_id) {
-        return num_blocks_per_partition_[partition_id];
+    size_t NumItemsPerPartition(size_t partition_id) {
+        return num_items_per_partition_[partition_id];
     }
 
+    /*!
+     * Returns the median of the fill rates of blocks lastly
+     * added to a bucket, computed before flush.
+     */
     double BlockFillRatesMedian() const {
         double sum = std::accumulate(block_fill_rates_median.begin(), block_fill_rates_median.end(), 0.0);
         return sum / block_fill_rates_median.size();
     }
+
+    /*!
+     * Returns the standard deviation of the fill rates of blocks lastly
+     * added to a bucket, computed before flush.
+     */
     double BlockFillRatesStedv() const {
         double sum = std::accumulate(block_fill_rates_stedv.begin(), block_fill_rates_stedv.end(), 0.0);
         return sum / block_fill_rates_stedv.size();
     }
+
+    /*!
+     * Returns the median of the block length per partition,
+     * computed before flush.
+     */
     double BlockLengthMedian() const {
         double sum = std::accumulate(block_length_median.begin(), block_length_median.end(), 0.0);
         return sum / block_length_median.size();
     }
+
+    /*!
+     * Returns the standard deviation of the block length per partition,
+     * computed before flush.
+     */
     double BlockLengthStedv() const {
         double sum = std::accumulate(block_length_stedv.begin(), block_length_stedv.end(), 0.0);
         return sum / block_length_stedv.size();
@@ -661,17 +705,17 @@ public:
 
 protected:
     //! Number of partitions
-    size_t num_partitions_;
+    size_t num_partitions_ = 1;
 
     //! Number of buckets per partition.
-    size_t num_buckets_per_partition_;
+    size_t num_buckets_per_partition_ = 0;
 
     // Fill rate for partition.
-    double max_partition_fill_rate_;
+    double max_partition_fill_rate_ = 1.0;
 
     //! Maximal number of blocks before some items
     //! are spilled.
-    size_t max_num_blocks_per_table_;
+    size_t max_num_blocks_per_table_ = 0;
 
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
@@ -692,19 +736,22 @@ protected:
     EqualToFunction equal_to_function_;
 
     //! Number of buckets in teh table.
-    size_t num_buckets_per_table_;
+    size_t num_buckets_per_table_ = 0;
 
     //! Total number of blocks in the table.
     size_t num_blocks_per_table_ = 0;
 
     //! Number of blocks per partition.
-    std::vector<size_t> num_blocks_per_partition_;
+    std::vector<size_t> num_items_per_partition_;
 
     //! Emitter stats.
     std::vector<size_t> emit_stats_;
 
     //! Storing the items.
     std::vector<BucketBlock*> buckets_;
+
+    //! Maximal number of items per partition.
+    size_t max_num_items_per_partition_ = 0;
 
     //! Maximal number of blocks per partition.
     size_t max_num_blocks_per_partition_ = 0;
@@ -718,9 +765,16 @@ protected:
     //! Number of collisions.
     size_t num_collisions_ = 0;
 
+    //! Median of fill rates of blocks lastly added to a bucket.
     std::vector<double> block_fill_rates_median;
+
+    //! Standard deviation of fill rates of blocks lastly added to a bucket.
     std::vector<double> block_fill_rates_stedv;
+
+    //! Median of the block length per partition.
     std::vector<double> block_length_median;
+
+    //! Standard deviation of the block length per partition.
     std::vector<double> block_length_stedv;
 };
 

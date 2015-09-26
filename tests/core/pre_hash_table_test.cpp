@@ -177,7 +177,7 @@ TEST_F(PreTable, PopIntegers) {
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
                          core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(1, key_ex, red_fn, writers, bucket_block_size * 2, 0.5, 1.0);
+    table(1, key_ex, red_fn, writers, bucket_block_size, 0.0, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -192,7 +192,7 @@ TEST_F(PreTable, PopIntegers) {
 
     table.Insert(9);
 
-    ASSERT_EQ(1u, table.NumItemsPerTable());
+    ASSERT_EQ(0u, table.NumItemsPerTable());
 }
 
 // Manually flush all items in table,
@@ -581,11 +581,17 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
-    size_t nitems_per_key = 10;
-    size_t nitems = 1 * 4 * 1024;
+    const size_t TargetBlockSize = 16 * 1024;
 
-    core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, 16 * 1024, 0.001, 0.5);
+    const size_t nitems_per_key = 10;
+    const size_t nitems = core::ReducePreTable<std::string, StringPair,
+            decltype(key_ex), decltype(red_fn), true,
+            core::PreReduceByHashKey<std::string>, std::equal_to<std::string>,
+            TargetBlockSize>::block_size_;
+
+    core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true,
+            core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>
+    table(1, key_ex, red_fn, writers, TargetBlockSize, 0.0, 1.0);
 
     // insert lots of items
     size_t sum = 0;
@@ -598,6 +604,8 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
             table.Insert(std::make_pair(str, i));
         }
     }
+
+    ASSERT_EQ(nitems, table.NumItemsPerTable());
 
     table.Flush();
 

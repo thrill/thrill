@@ -12,6 +12,9 @@
 #ifndef THRILL_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 #define THRILL_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 
+#define BENCHMARK
+#define EMIT_DATA
+
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block_writer.hpp>
@@ -87,13 +90,10 @@ public:
 
         size_t hashed = hash_function_(k);
 
-        size_t local_index = hashed % ht->NumItemsPerPartition();
         size_t partition_id = hashed % ht->NumPartitions();
-        size_t global_index = partition_id *
-                              ht->NumItemsPerPartition() +
-                              local_index;
-
-        return IndexResult(partition_id, local_index, global_index);
+        return IndexResult(partition_id, partition_id *
+                                         ht->NumItemsPerPartition() +
+                                         hashed % ht->NumItemsPerPartition());
     }
 
 private:
@@ -114,12 +114,8 @@ public:
     operator () (const size_t& k, ReducePreProbingTable* ht) const {
 
         using IndexResult = typename ReducePreProbingTable::IndexResult;
-
-        size_t global_index = k * ht->Size() / size_;
-        size_t partition_id = k * ht->NumPartitions() / size_;
-        size_t local_index = global_index - partition_id * ht->NumItemsPerPartition();
-
-        return IndexResult(partition_id, local_index, global_index);
+        return IndexResult(std::min(k * ht->NumPartitions() / size_, ht->NumPartitions()-1),
+                           std::min(k * ht->Size() / size_, ht->Size()-1));
     }
 };
 
@@ -140,14 +136,11 @@ public:
     public:
         //! which partition number the item belongs to.
         size_t partition_id;
-        //! index within the partition's sub-hashtable of this item
-        size_t local_index;
         //! index within the whole hashtable
         size_t global_index;
 
-        IndexResult(size_t p_id, size_t p_off, size_t g_id) {
+        IndexResult(size_t p_id, size_t g_id) {
             partition_id = p_id;
-            local_index = p_off;
             global_index = g_id;
         }
     };
@@ -189,7 +182,7 @@ public:
 
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
-        assert(byte_size > 0 && "byte_size must be greater than 0");
+        assert(byte_size >= 0 && "byte_size must be greater than 0");
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
 
         num_items_per_partition_ = std::max<size_t>((size_t)((static_cast<double>(byte_size_)
@@ -243,15 +236,12 @@ public:
         IndexResult h = index_function_(kv.first, this);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
-        assert(h.local_index >= 0 && h.local_index < num_items_per_partition_);
         assert(h.global_index >= 0 && h.global_index < size_);
 
         KeyValuePair* initial = &items_[h.global_index];
         KeyValuePair* current = initial;
-        size_t num_items_per_partition = (h.partition_id != num_partitions_ - 1) ?
-                                         num_items_per_partition_ : size_ - (h.partition_id * num_items_per_partition_);
         KeyValuePair* last_item = &items_[h.global_index - (h.global_index % num_items_per_partition_)
-                                          + num_items_per_partition - 1];
+                                          + num_items_per_partition_ - 1];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
@@ -266,11 +256,13 @@ public:
                 return;
             }
 
+#if defined(BENCHMARK)
             num_collisions_++;
+#endif
 
             if (current == last_item)
             {
-                current -= (num_items_per_partition - 1);
+                current -= (num_items_per_partition_ - 1);
             }
             else
             {
@@ -285,26 +277,30 @@ public:
                 current->second = kv.second;
                 // increase counter for partition
                 items_per_partition_[h.partition_id]++;
+
+#if defined(BENCHMARK)
                 // increase total counter
                 num_items_++;
+#endif
                 return;
             }
         }
 
-        if (static_cast<double>(items_per_partition_[h.partition_id] + 1)
+        // insert new pair
+        *current = kv;
+        // increase counter for partition
+        items_per_partition_[h.partition_id]++;
+#if defined(BENCHMARK)
+        // increase total counter
+        num_items_++;
+#endif
+
+        if (static_cast<double>(items_per_partition_[h.partition_id])
             / static_cast<double>(num_items_per_partition_)
             > max_partition_fill_rate_)
         {
             FlushPartition(h.partition_id);
         }
-
-        // insert new pair
-        *current = kv;
-
-        // increase counter for partition
-        items_per_partition_[h.partition_id]++;
-        // increase total counter
-        num_items_++;
     }
 
     /*!
@@ -378,10 +374,14 @@ public:
             if (current.first != sentinel_.first)
             {
                 if (RobustKey) {
-                    //emit_[partition_id](current.second);
+#if defined(EMIT_DATA)
+                    emit_[partition_id](current.second);
+#endif
                 }
                 else {
-                    //emit_[partition_id](current);
+#if defined(EMIT_DATA)
+                    emit_[partition_id](current);
+#endif
                 }
                 emit_stats_[partition_id]++;
 
@@ -389,14 +389,18 @@ public:
             }
         }
 
+#if defined(BENCHMARK)
         // reset total counter
         num_items_ -= items_per_partition_[partition_id];
+#endif
         // reset partition specific counter
         items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
+#if defined(BENCHMARK)
         // increase flush counter
         num_flushes_++;
+#endif
 
         LOG << "Flushed items of partition with id: "
             << partition_id;
@@ -515,11 +519,11 @@ public:
 
 private:
     //! Number of partitions
-    size_t num_partitions_;
+    size_t num_partitions_ = 1;
 
     //! Maximal allowed fill ratio per partition before
     //! resize.
-    double max_partition_fill_rate_;
+    double max_partition_fill_rate_ = 1.0;
 
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
@@ -544,7 +548,7 @@ private:
     size_t size_ = 0;
 
     //! Calculated according to size divided by num partitions.
-    size_t num_items_per_partition_;
+    size_t num_items_per_partition_ = 0;
 
     //! Number of items per partition.
     std::vector<size_t> items_per_partition_;
