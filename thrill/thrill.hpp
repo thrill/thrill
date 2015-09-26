@@ -14,7 +14,7 @@
 #define THRILL_THRILL_HEADER
 
 /*[[[perl
-print "#include <$_>\n" foreach (sort <thrill/api/*.hpp>);
+print "#include <$_>\n" foreach sort <thrill/api/*.hpp>;
 ]]]*/
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/allgather.hpp>

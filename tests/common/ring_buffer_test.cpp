@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/common/static_ring_buffer_test.cpp
+ * tests/common/ring_buffer_test.cpp
  *
  * Part of Project Thrill.
  *
@@ -10,13 +10,13 @@
 
 #include <gtest/gtest.h>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/static_ring_buffer.hpp>
+#include <thrill/common/ring_buffer.hpp>
 
 using namespace thrill;
 
-TEST(StaticRingBuffer, FillCircular) {
+TEST(RingBuffer, FillCircular) {
 
-    common::StaticRingBuffer<size_t> ring(12);
+    common::RingBuffer<size_t> ring(12);
 
     // put first element
     ASSERT_EQ(0u, ring.size());
@@ -57,9 +57,9 @@ struct MyStruct {
         : i1(_i1), i2(_i2) { }
 };
 
-TEST(StaticRingBuffer, NonDefaultConstructible) {
+TEST(RingBuffer, NonDefaultConstructible) {
 
-    common::StaticRingBuffer<MyStruct> ring(12);
+    common::RingBuffer<MyStruct> ring(12);
 
     ring.push_back(MyStruct(0, 1));
     ring.emplace_back(1, 2);
@@ -77,7 +77,7 @@ TEST(StaticRingBuffer, NonDefaultConstructible) {
 namespace thrill {
 namespace common {
 
-template class StaticRingBuffer<size_t>;
+template class RingBuffer<size_t>;
 
 } // namespace common
 } // namespace thrill
