@@ -16,6 +16,7 @@
 #include <thrill/common/concurrent_bounded_queue.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
+#include <thrill/data/block_queue.hpp>
 #include <thrill/data/block_reader.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>

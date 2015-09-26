@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <ostream>
 
 namespace thrill {
 namespace core {
