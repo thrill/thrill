@@ -592,6 +592,21 @@ public:
                    const ValueType& initial_element = ValueType()) const;
 
     /*!
+     * Window is a DOp, which applies a window function to every k consecutive
+     * items in a DIA. The window function is also given the index of the first
+     * item, and can output zero or more items via an Emitter.
+     *
+     * \tparam WindowFunction Type of the window_function.
+     *
+     * \param window_size the size of the delivered window. Signature: TODO(tb).
+     *
+     * \param window_function Window function applied to each k item.
+     */
+    template <typename WindowFunction>
+    auto Window(size_t window_size,
+                const WindowFunction& window_function = WindowFunction()) const;
+
+    /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
      *
      * \tparam CompareFunction Type of the compare_function.
