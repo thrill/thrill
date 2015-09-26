@@ -82,7 +82,6 @@ build_test_group(common/tests
   common/counting_ptr_test.cpp
   common/delegate_test.cpp
   common/fast_string_test.cpp
-  common/static_ring_buffer_test.cpp
   common/function_traits_test.cpp
   common/future_queue_test.cpp
   common/future_test.cpp

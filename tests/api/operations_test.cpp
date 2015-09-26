@@ -345,7 +345,7 @@ TEST(Operations, WindowCorrectResults) {
 
             auto window = integers.Window(
                 window_size, [](size_t rank,
-                                const common::StaticRingBuffer<size_t>& window) {
+                                const common::RingBuffer<size_t>& window) {
 
                     // check received window
                     die_unequal(window_size, window.size());
