@@ -6,7 +6,7 @@
 
 # macro for registering test programs: maybe prepend valgrind, add environment
 # Usage: thrill_test_single(testname "ENV=1;ENV2=1" program args)
-macro(thrill_test_single TESTNAME ENVIRON)
+macro(thrill_test_single TESTNAME ENVIRON PROG)
 
   if(USE_VALGRIND)
     # prepend valgrind call
@@ -14,11 +14,11 @@ macro(thrill_test_single TESTNAME ENVIRON)
       NAME ${TESTNAME}
       COMMAND /usr/bin/valgrind ${THRILL_VALGRIND_OPTS}
       --xml=yes --xml-file=${TESTNAME}.xml
-      ${ARGN})
+      ./${PROG} ${ARGN})
   else()
     add_test(
       NAME ${TESTNAME}
-      COMMAND ${ARGN})
+      COMMAND ${PROG} ${ARGN})
   endif()
 
   # environment of test run: set default and let ENVIRON override
