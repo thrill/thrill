@@ -23,7 +23,7 @@
 namespace thrill {
 namespace common {
 
-static const bool stats_enabled = true;
+static const bool stats_enabled = false;
 
 template <bool Enabled>
 class StatLogger
