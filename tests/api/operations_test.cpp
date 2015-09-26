@@ -219,8 +219,11 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
             ASSERT_EQ(32u, out_vec.size());
 
             for (size_t i = 0; i != out_vec.size() / 2; ++i) {
-                ASSERT_DOUBLE_EQ(out_vec[2 * i + 0], 2.0 * i);
-                ASSERT_DOUBLE_EQ(out_vec[2 * i + 1], 2.0 * (i + 16));
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 0],
+                                 2.0 * static_cast<double>(i));
+
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 1],
+                                 2.0 * static_cast<double>(i + 16));
             }
 
             static_assert(

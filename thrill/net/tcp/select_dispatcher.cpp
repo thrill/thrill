@@ -26,7 +26,7 @@ void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
 
     if (self_verify_)
     {
-        for (size_t fd = 3; fd < watch_.size(); ++fd) {
+        for (int fd = 3; fd < static_cast<int>(watch_.size()); ++fd) {
             Watch& w = watch_[fd];
 
             if (!w.active) continue;
