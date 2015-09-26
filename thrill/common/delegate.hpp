@@ -175,9 +175,9 @@ public:
     //! capture or a member_pair or const_member_pair wrapper.
     template <
         typename T,
-        typename = typename std::enable_if <
-                   !std::is_same<delegate, typename std::decay<T>::type>{ }
-        > ::type
+        typename = typename std::enable_if<
+            !std::is_same<delegate, typename std::decay<T>::type>::value
+            >::type
         >
     delegate(T&& f)
         : store_(
