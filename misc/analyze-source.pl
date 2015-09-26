@@ -724,7 +724,7 @@ foreach my $file (@filelist)
     elsif ($file =~ /\.(h|cpp|hpp|h\.in|dox)$/) {
         process_cpp($file);
     }
-    elsif ($file =~ /\.pl$/) {
+    elsif ($file =~ /\.p[lm]$/) {
         process_pl_cmake($file);
     }
     elsif ($file =~ /\.py$/) {
