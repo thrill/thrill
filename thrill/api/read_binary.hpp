@@ -48,7 +48,7 @@ public:
     using Super = SourceNode<ValueType>;
     using Super::context_;
 
-    using FileSizePair = std::pair<std::string, size_t>;
+    using SysFileInfo = core::SysFileInfo;
 
     /*!
      * Constructor for a ReadLinesNode. Sets the Context
@@ -60,29 +60,28 @@ public:
     ReadBinaryNode(Context& ctx,
                    const std::string& filepath,
                    StatsNode* stats_node)
-        : Super(ctx, { }, stats_node),
-          filepath_(filepath)
+        : Super(ctx, { }, stats_node)
     {
-        filelist_ = core::GlobFileSizePrefixSum(filepath_);
+        core::SysFileList files = core::GlobFileSizePrefixSum(filepath);
 
         size_t my_start, my_end;
         std::tie(my_start, my_end) =
-            context_.CalculateLocalRange(filelist_[filelist_.size() - 1].second);
+            context_.CalculateLocalRange(files.total_size);
         size_t first_file = 0;
         size_t last_file = 0;
 
-        while (filelist_[first_file + 1].second <= my_start) {
+        while (files.list[first_file].size_inc_psum() <= my_start) {
             first_file++;
             last_file++;
         }
 
-        while (last_file < filelist_.size() - 1 && filelist_[last_file + 1].second <= my_end) {
+        while (last_file < files.list.size() - 1 && files.list[last_file].size_inc_psum() <= my_end) {
             last_file++;
         }
 
-        my_files_ = std::vector<FileSizePair>(
-            filelist_.begin() + first_file,
-            filelist_.begin() + last_file);
+        my_files_ = std::vector<SysFileInfo>(
+            files.list.begin() + first_file,
+            files.list.begin() + last_file);
 
         LOG << my_files_.size() << " files from " << my_start << " to " << my_end;
     }
@@ -98,11 +97,11 @@ public:
         LOG << "READING data " << std::to_string(this->id());
 
         // Hook Read
-        for (const FileSizePair& file : my_files_) {
-            LOG << "OPENING FILE " << file.first;
+        for (const SysFileInfo& file : my_files_) {
+            LOG << "OPENING FILE " << file.path;
 
             data::BlockReader<SysFileBlockSource> br(
-                SysFileBlockSource(file.first, context_,
+                SysFileBlockSource(file.path, context_,
                                    stats_total_bytes, stats_total_reads));
 
             while (br.HasNext()) {
@@ -120,11 +119,7 @@ public:
     void Dispose() final { }
 
 private:
-    //! Path of the input file.
-    std::string filepath_;
-
-    std::vector<FileSizePair> filelist_;
-    std::vector<FileSizePair> my_files_;
+    std::vector<SysFileInfo> my_files_;
 
     size_t stats_total_bytes = 0;
     size_t stats_total_reads = 0;
