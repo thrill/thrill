@@ -15,7 +15,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/static_ring_buffer.hpp>
+#include <thrill/common/ring_buffer.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
@@ -41,7 +41,7 @@ class WindowNode : public DOpNode<ValueType>
     using Input = typename ParentDIA::ValueType;
 
     //! RingBuffer used and passed to user-defined function.
-    using RingBuffer = common::StaticRingBuffer<Input>;
+    using RingBuffer = common::RingBuffer<Input>;
 
 public:
     WindowNode(const ParentDIA& parent,

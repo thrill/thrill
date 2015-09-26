@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/common/static_ring_buffer.hpp
+ * thrill/common/ring_buffer.hpp
  *
  * Part of Project Thrill.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_COMMON_STATIC_RING_BUFFER_HEADER
-#define THRILL_COMMON_STATIC_RING_BUFFER_HEADER
+#ifndef THRILL_COMMON_RING_BUFFER_HEADER
+#define THRILL_COMMON_RING_BUFFER_HEADER
 
 #include <thrill/common/math.hpp>
 
@@ -31,7 +31,7 @@ namespace common {
  * size_ member requires more book-keeping.
  */
 template <typename Type, class Allocator = std::allocator<Type> >
-class StaticRingBuffer
+class RingBuffer
 {
 public:
     using value_type = Type;
@@ -52,8 +52,8 @@ public:
     // using reverse_iterator = std::reverse_iterator<iterator>;
     // using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-    explicit StaticRingBuffer(size_t max_size,
-                              const Allocator& alloc = allocator_type())
+    explicit RingBuffer(size_t max_size,
+                        const Allocator& alloc = allocator_type())
         : max_size_(max_size),
           alloc_(alloc),
           capacity_(RoundUpToPowerOfTwo(max_size + 1)),
@@ -61,7 +61,7 @@ public:
           data_(alloc_.allocate(capacity_)) { }
 
     //! copy-constructor: create new ring buffer
-    StaticRingBuffer(const StaticRingBuffer& srb)
+    RingBuffer(const RingBuffer& srb)
         : max_size_(srb.max_size_),
           alloc_(srb.alloc_),
           capacity_(srb.capacity_),
@@ -74,13 +74,13 @@ public:
         }
     }
     //! non-copyable: delete assignment operator
-    StaticRingBuffer& operator = (const StaticRingBuffer&) = delete;
+    RingBuffer& operator = (const RingBuffer&) = delete;
     //! move-constructor: default
-    StaticRingBuffer(StaticRingBuffer&&) = default;
+    RingBuffer(RingBuffer&&) = default;
     //! move-assignment operator: default
-    StaticRingBuffer& operator = (StaticRingBuffer&&) = default;
+    RingBuffer& operator = (RingBuffer&&) = default;
 
-    ~StaticRingBuffer() {
+    ~RingBuffer() {
         clear();
         alloc_.deallocate(data_, capacity_);
     }
@@ -249,6 +249,6 @@ protected:
 } // namespace common
 } // namespace thrill
 
-#endif // !THRILL_COMMON_STATIC_RING_BUFFER_HEADER
+#endif // !THRILL_COMMON_RING_BUFFER_HEADER
 
 /******************************************************************************/
