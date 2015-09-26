@@ -60,8 +60,19 @@ public:
           mask_(capacity_ - 1),
           data_(alloc_.allocate(capacity_)) { }
 
-    //! non-copyable: delete copy-constructor
-    StaticRingBuffer(const StaticRingBuffer&) = delete;
+    //! copy-constructor: create new ring buffer
+    StaticRingBuffer(const StaticRingBuffer& srb)
+        : max_size_(srb.max_size_),
+          alloc_(srb.alloc_),
+          capacity_(srb.capacity_),
+          mask_(srb.mask_),
+          data_(alloc_.allocate(capacity_)) {
+        // copy items using existing methods (we cannot just flat copy the array
+        // due to item construction).
+        for (size_t i = 0; i < srb.size(); ++i) {
+            push_back(srb[i]);
+        }
+    }
     //! non-copyable: delete assignment operator
     StaticRingBuffer& operator = (const StaticRingBuffer&) = delete;
     //! move-constructor: default

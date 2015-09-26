@@ -439,9 +439,8 @@ public:
 
             // prepend values we got from our predecessor with local ones, such
             // that they will fill up send_values together with all local items
-            size_t my_size = my_values.size();
-            size_t fill_size = k - my_size;
-            // send_values.reserve(std::min(k, my_size + res.size()));
+            size_t fill_size = k - my_values.size();
+            send_values.reserve(std::min(k, fill_size + res.size()));
             send_values.insert(
                 send_values.end(),
                 // copy last fill_size items from res. don't do end - fill_size,
