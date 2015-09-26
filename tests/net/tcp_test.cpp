@@ -164,6 +164,15 @@ TEST(LocalTcpGroup, MultiThreadAllReduce) {
 TEST(LocalTcpGroup, MultiThreadPrefixSum) {
     LocalGroupTest(TestMultiThreadPrefixSum);
 }
+TEST(LocalTcpGroup, PredecessorManyItems) {
+    LocalGroupTest(TestPredecessorManyItems);
+}
+TEST(LocalTcpGroup, PredecessorFewItems) {
+    LocalGroupTest(TestPredecessorFewItems);
+}
+TEST(LocalTcpGroup, PredecessorOneItem) {
+    LocalGroupTest(TestPredecessorOneItem);
+}
 TEST(LocalTcpGroup, HardcoreRaceConditionTest) {
     LocalGroupTest(TestHardcoreRaceConditionTest);
 }

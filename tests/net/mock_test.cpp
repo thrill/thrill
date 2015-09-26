@@ -124,6 +124,15 @@ TEST(MockGroup, MultiThreadAllReduce) {
 TEST(MockGroup, MultiThreadPrefixSum) {
     MockTestLess(TestMultiThreadPrefixSum);
 }
+TEST(MockGroup, PredecessorManyItems) {
+    MockTestLess(TestPredecessorManyItems);
+}
+TEST(MockGroup, PredecessorFewItems) {
+    MockTestLess(TestPredecessorFewItems);
+}
+TEST(MockGroup, PredecessorOneItem) {
+    MockTestLess(TestPredecessorOneItem);
+}
 TEST(MockGroup, HardcoreRaceConditionTest) {
     MockTestLess(TestHardcoreRaceConditionTest);
 }
