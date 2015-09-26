@@ -1,5 +1,14 @@
+################################################################################
+# benchmarks/data/run_data_benchmark.sh
+#
 # runs the bench_data_file_read_write benchmark with different types and
 # different data types
+#
+# Part of Project Thrill.
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 githash=$(eval "git rev-parse --short HEAD")
 timestamp=$(date)
@@ -40,3 +49,5 @@ do
     done
   done
 done
+
+################################################################################

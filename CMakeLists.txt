@@ -1,7 +1,13 @@
 ################################################################################
 # CMakeLists.txt
 #
-# Build script for Thrill.
+# Root CMake build script for Thrill.
+#
+# Part of Project Thrill.
+#
+# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
 cmake_minimum_required(VERSION 2.8)

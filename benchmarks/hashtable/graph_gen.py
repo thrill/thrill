@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+##########################################################################
+# benchmarks/hashtable/graph_gen.py
+#
+# Part of Project Thrill.
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+##########################################################################
+
 from pylab import *
 import sys, os, re, operator, numpy, itertools
 
@@ -39,3 +49,5 @@ xlabel("2^x elements")
 ylabel("micros per element")
 print "generating plot"
 savefig(paths + ".pdf")
+
+##########################################################################

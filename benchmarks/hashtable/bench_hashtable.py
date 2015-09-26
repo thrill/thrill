@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+##########################################################################
+# benchmarks/hashtable/bench_hashtable.py
+#
+# Part of Project Thrill.
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+##########################################################################
 
 import os
 import sys
@@ -82,3 +90,5 @@ for worker in workers:
                                 print str(amount) + " " + str(median * 1000 / pow(2,amount))
                                 file1.write(str(amount) + " " + str(median * 1000 / pow(2,amount)) + "\n")
                             file1.close()
+
+##########################################################################
