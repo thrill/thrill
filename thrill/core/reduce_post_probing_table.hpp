@@ -12,6 +12,9 @@
 #ifndef THRILL_CORE_REDUCE_POST_PROBING_TABLE_HEADER
 #define THRILL_CORE_REDUCE_POST_PROBING_TABLE_HEADER
 
+#define BENCHMARK
+#define EMIT_DATA
+
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
@@ -296,7 +299,9 @@ public:
                     KeyValuePair& current = second_reduce[i];
                     if (current.first != ht->Sentinel().first)
                     {
+#if defined(EMIT_DATA)
                         ht->EmitAll(current.first, current.second);
+#endif
                         second_reduce[i] = ht->Sentinel();
                     }
                 }
@@ -314,7 +319,9 @@ public:
                     KeyValuePair& current = items[i];
                     if (current.first != ht->Sentinel().first)
                     {
+#if defined(EMIT_DATA)
                         ht->EmitAll(current.first, current.second);
+#endif
 
                         if (consume)
                         {
@@ -331,10 +338,12 @@ public:
             }
         }
 
+#if defined(BENCHMARK)
         if (consume)
         {
             ht->SetNumItems(0);
         }
+#endif
     }
 
 private:
@@ -568,14 +577,18 @@ public:
 
         size_t index = ht->BeginLocalIndex();
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
+#if defined(EMIT_DATA)
             ht->EmitAll(index++, elements_to_emit[i]);
+#endif
             elements_to_emit[i] = neutral_element;
         }
 
+#if defined(BENCHMARK)
         if (consume)
         {
             ht->SetNumItems(0);
         }
+#endif
     }
 
 private:
@@ -667,9 +680,9 @@ public:
           neutral_element_(neutral_element),
           reduce_function_(reduce_function) {
 
-        assert(byte_size > 0 && "byte_size must be greater than 0");
+        assert(byte_size >= 0 && "byte_size must be greater than 0");
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
-        assert(frame_rate > 0.0 && frame_rate <= 1.0);
+        assert(frame_rate >= 0.0 && frame_rate <= 1.0);
         assert(begin_local_index >= 0);
         assert(end_local_index >= 0);
 
@@ -780,28 +793,31 @@ public:
                 items_per_frame_[frame_id]++;
                 // total number of items per frame.
                 total_num_items_per_frame_[frame_id]++;
+#if defined(BENCHMARK)
                 // increase total counter
                 num_items_++;
+#endif
                 return;
             }
         }
 
-        if (static_cast<double>(items_per_frame_[frame_id] + 1)
+        // insert data
+        *current = kv;
+        // increase counter for frame
+        items_per_frame_[frame_id]++;
+        // total number of items per frame.
+        total_num_items_per_frame_[frame_id]++;
+#if defined(BENCHMARK)
+        // increase total item counter
+        num_items_++;
+#endif
+
+        if (static_cast<double>(items_per_frame_[frame_id])
             / static_cast<double>(num_items_per_frame_)
             > max_frame_fill_rate_)
         {
             SpillFrame(frame_id);
         }
-
-        // insert data
-        *current = kv;
-
-        // increase counter for frame
-        items_per_frame_[frame_id]++;
-        // total number of items per frame.
-        total_num_items_per_frame_[frame_id]++;
-        // increase total counter
-        num_items_++;
     }
 
     /*!
@@ -883,12 +899,16 @@ public:
             }
         }
 
+#if defined(BENCHMARK)
         // reset total counter
         num_items_ -= items_per_frame_[frame_id];
+#endif
         // reset partition specific counter
         items_per_frame_[frame_id] = 0;
+#if defined(BENCHMARK)
         // increase spill counter
         num_spills_++;
+#endif
     }
 
     /*!
@@ -1082,7 +1102,7 @@ protected:
 
     //! Maximal allowed fill rate per partition
     //! before items get spilled.
-    double max_frame_fill_rate_;
+    double max_frame_fill_rate_ = 1.0;
 
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
@@ -1103,10 +1123,10 @@ protected:
     FlushFunction flush_function_;
 
     //! Begin local index (reduce to index).
-    size_t begin_local_index_;
+    size_t begin_local_index_ = 0;
 
     //! End local index (reduce to index).
-    size_t end_local_index_;
+    size_t end_local_index_ = 0;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;
@@ -1130,7 +1150,7 @@ protected:
     KeyValuePair sentinel_;
 
     //! Total num of items.
-    size_t num_items_per_frame_;
+    size_t num_items_per_frame_ = 0;
 
     //! Number of items per frame.
     std::vector<size_t> items_per_frame_;

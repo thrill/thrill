@@ -41,11 +41,10 @@ public:
 
         size_t global_index = v / 2;
         size_t partition_id = 0;
-        size_t local_index = v / 2;
 
         (void)ht;
 
-        return IndexResult(partition_id, local_index, global_index);
+        return IndexResult(partition_id, global_index);
     }
 
 private:
@@ -302,8 +301,8 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
         c++;
     }
 
-    ASSERT_EQ(4, c);
-    ASSERT_EQ(1u, table.NumItems());
+    ASSERT_EQ(5, c);
+    ASSERT_EQ(0, table.NumItems());
 }
 
 //// Partial flush of items in table due to
@@ -389,7 +388,7 @@ TEST_F(ReducePreProbingTable, ComplexType) {
 
     table.Insert(StringPair("baguette", 1));
 
-    ASSERT_EQ(1u, table.NumItems());
+    ASSERT_EQ(0, table.NumItems());
 }
 
 TEST_F(ReducePreProbingTable, MultipleWorkers) {

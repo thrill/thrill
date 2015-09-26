@@ -15,7 +15,7 @@ def bench(workers, sizes, bucket_rates, max_partition_fill_rates, byte_sizes, nu
             for bucket_rate in bucket_rates:
                 for max_partition_fill_rate in max_partition_fill_rates:
                     for byte_size in byte_sizes:
-                        with open(result_dir + "/" + str(worker) + "_" + str(size) + "_" + str(bucket_rate) + "_" + str(max_partition_fill_rate) + "_" + str(byte_size) + "_16_S", "w+") as file1:
+                        with open(result_dir + "/" + str(worker) + "_" + str(size) + "_" + str(bucket_rate) + "_" + str(max_partition_fill_rate) + "_" + str(byte_size) + "_32_S", "w+") as file1:
                             times = []
                             #flushes = []
                             #collisions = []
