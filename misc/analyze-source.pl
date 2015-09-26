@@ -32,8 +32,10 @@ use strict;
 use warnings;
 use Text::Diff;
 use File::stat;
+use List::Util qw(min);
 
-my %includemap;
+my %include_list;
+my %include_map;
 my %authormap;
 
 my @source_filelist;
@@ -213,11 +215,12 @@ sub process_cpp {
     # first check whether there are [[[perl lines and execute them
     @data = process_inline_perl(@data);
 
-    # put all #include lines into the includemap
+    # put all #include lines into the includelist+map
     for my $i (0...@data-1)
     {
-        if ($data[$i] =~ m!\s*#\s*include\s*([<"]\S+[">])!) {
-            $includemap{$1}{$path} = 1;
+        if ($data[$i] =~ m!\s*#\s*include\s*[<"](\S+)[">]!) {
+            $include_list{$1} = 1;
+            $include_map{$path}{$1} = 1;
 
             if ($1 eq "<thrill/thrill.hpp>" && $path !~ /\.dox$/) {
                 print "\n";
@@ -767,17 +770,6 @@ foreach my $file (@filelist)
     }
 }
 
-# print includes to includemap.txt
-if (0)
-{
-    print "Writing includemap:\n";
-    foreach my $inc (sort keys %includemap)
-    {
-        print "$inc => ".scalar(keys %{$includemap{$inc}})." [";
-        print join(",", sort keys %{$includemap{$inc}}). "]\n";
-    }
-}
-
 # print authors to AUTHORS
 print "Writing AUTHORS:\n";
 open(A, "> AUTHORS");
@@ -797,7 +789,7 @@ foreach my $a (sort keys %authormap)
 }
 close(A);
 
-# check includemap for C-style headers
+# check include_list for C-style headers
 {
 
     my @cheaders = qw(assert.h ctype.h errno.h fenv.h float.h inttypes.h
@@ -806,10 +798,82 @@ close(A);
 
     foreach my $ch (@cheaders)
     {
-        $ch = "<$ch>";
-        next if !$includemap{$ch};
+        next if !$include_list{$ch};
         print "Replace c-style header $ch in\n";
-        print "    [".join(",", sort keys %{$includemap{$ch}}). "]\n";
+        print "    [".join(",", sort keys %{$include_list{$ch}}). "]\n";
+    }
+}
+
+# print includes
+if (0)
+{
+    print "Writing include_map:\n";
+    foreach my $inc (sort keys %include_map)
+    {
+        print "$inc => ".scalar(keys %{$include_map{$inc}})." [";
+        print join(",", sort keys %{$include_map{$inc}}). "]\n";
+    }
+}
+
+# try to find cycles in includes
+if (1)
+{
+    my %graph = %include_map;
+
+    # Tarjan's Strongly Connected Components Algorithm
+    # https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+
+    my $index = 0;
+    my @S = [];
+    my %vi; # vertex info
+
+    sub strongconnect {
+        my ($v) = @_;
+
+        # Set the depth index for v to the smallest unused index
+        $vi{$v}{index} = $index;
+        $vi{$v}{lowlink} = $index++;
+        push(@S, $v);
+        $vi{$v}{onStack} = 1;
+
+        # Consider successors of v
+        foreach my $w (keys %{$graph{$v}}) {
+            if (!defined $vi{$w}{index}) {
+                # Successor w has not yet been visited; recurse on it
+                strongconnect($w);
+                $vi{$w}{lowlink} = min($vi{$v}{lowlink}, $vi{$w}{lowlink});
+            }
+            elsif ($vi{$w}{onStack}) {
+                # Successor w is in stack S and hence in the current SCC
+                $vi{$v}{lowlink} = min($vi{$v}{lowlink}, $vi{$w}{index})
+            }
+        }
+
+        # If v is a root node, pop the stack and generate an SCC
+        if ($vi{$v}{lowlink} == $vi{$v}{index}) {
+            # start a new strongly connected component
+            my @SCC;
+            my $w;
+            do {
+                $w = pop(@S);
+                $vi{$w}{onStack} = 0;
+                # add w to current strongly connected component
+                push(@SCC, $w);
+            } while ($w ne $v);
+            # output the current strongly connected component (only if it is not
+            # a singleton)
+            if (@SCC != 1) {
+                print "-------------------------------------------------";
+                print "Found cycle:\n";
+                print "    $_\n" foreach @SCC;
+                print "end cycle\n";
+            }
+        }
+    }
+
+    foreach my $v (keys %graph) {
+        next if defined $vi{$v}{index};
+        strongconnect($v);
     }
 }
 
