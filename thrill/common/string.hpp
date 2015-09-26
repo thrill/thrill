@@ -16,6 +16,7 @@
 
 #include <cstdarg>
 #include <random>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -210,23 +211,20 @@ std::vector<std::string> Split(
  * \param last  the ending iterator of the range to join
  * \return      string constructed from the range with the glue between them.
  */
-template <typename Iterator>
+template <typename Iterator, typename Glue>
 static inline
-std::string Join(const std::string& glue, Iterator first, Iterator last) {
-    std::string out;
-    if (first == last) return out;
+std::string Join(const Glue& glue, Iterator first, Iterator last) {
+    std::ostringstream oss;
+    if (first == last) return oss.str();
 
-    out.append(*first);
-    ++first;
+    oss << *first++;
 
-    while (first != last)
-    {
-        out.append(glue);
-        out.append(*first);
-        ++first;
+    while (first != last) {
+        oss << glue;
+        oss << *first++;
     }
 
-    return out;
+    return oss.str();
 }
 
 /*!
@@ -237,10 +235,10 @@ std::string Join(const std::string& glue, Iterator first, Iterator last) {
  * \param parts the vector of strings to join
  * \return      string constructed from the vector with the glue between them.
  */
-template <typename Container>
+template <typename Container, typename Glue>
 static inline
-std::string Join(const std::string& glue, const Container& parts) {
-    return join(glue, parts.begin(), parts.end());
+std::string Join(const Glue& glue, const Container& parts) {
+    return Join(glue, parts.begin(), parts.end());
 }
 
 /*!
