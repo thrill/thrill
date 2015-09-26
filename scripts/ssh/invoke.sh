@@ -1,4 +1,13 @@
 #!/bin/bash
+################################################################################
+# scripts/ssh/invoke.sh
+#
+# Part of Project Thrill.
+#
+# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 ssh_dir="`dirname "$0"`"
 ssh_dir="`cd "$ssh_dir"; pwd`"
@@ -149,3 +158,5 @@ for hostport in $THRILL_HOSTLIST; do
     wait
 done
 echo "Done."
+
+################################################################################
