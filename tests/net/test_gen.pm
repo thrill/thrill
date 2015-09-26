@@ -1,7 +1,11 @@
 ################################################################################
-# misc/analyze-source.pl
+# tests/net/test_gen.pm
+#
+# Part of Project Thrill.
 #
 # Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
 sub generate_group_tests {
