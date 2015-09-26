@@ -154,7 +154,8 @@ public:
                  << " datatype=" << type_as_string_
                  << " size=" << bytes_
                  << " block_size=" << block_size_
-                 << " avg_element_size=" << (min_size_ + max_size_) / 2.0
+                 << " avg_element_size="
+                 << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " reader=" << reader_type_
                  << " write_time=" << write_timer.Microseconds()
                  << " read_time=" << read_timer.Microseconds()
@@ -265,7 +266,8 @@ public:
                  << " datatype=" << type_as_string_
                  << " size=" << bytes_
                  << " block_size=" << block_size_
-                 << " avg_element_size=" << (min_size_ + max_size_) / 2.0
+                 << " avg_element_size="
+                 << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " total_time=" << total_timer.Microseconds()
                  << " write_time=" << write_time
                  << " read_time=" << read_timer.Microseconds()
@@ -472,7 +474,8 @@ public:
                  << " datatype=" << type_as_string_
                  << " size=" << bytes_
                  << " block_size=" << block_size_
-                 << " avg_element_size=" << (min_size_ + max_size_) / 2.0
+                 << " avg_element_size="
+                 << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " reader=" << reader_type_
                  << " write_time=" << write_timer.Microseconds()
                  << " read_time=" << read_time

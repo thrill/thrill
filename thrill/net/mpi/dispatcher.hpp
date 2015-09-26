@@ -95,7 +95,7 @@ public:
         w.active = false;
     }
 
-    MPI_Request ISend(size_t peer_, const void* data, size_t size) {
+    MPI_Request ISend(int peer_, const void* data, size_t size) {
         MPI_Request request;
         int r = MPI_Isend(const_cast<void*>(data), static_cast<int>(size), MPI_BYTE,
                           peer_, group_tag_, MPI_COMM_WORLD, &request);
