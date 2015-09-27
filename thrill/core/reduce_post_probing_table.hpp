@@ -703,7 +703,6 @@ public:
         assert(num_frames_ > 0);
         assert(size_ > 0);
         assert(num_items_per_frame_ > 0);
-        assert(items_per_frame_ > 0);
 
         for (size_t i = 0; i < num_frames_; i++) {
             frame_files_.push_back(ctx.GetFile());
