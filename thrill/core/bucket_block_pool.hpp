@@ -1,6 +1,14 @@
-//
-// Created by Matthias Stumpp on 27/09/15.
-//
+/*******************************************************************************
+ * thrill/core/bucket_block_pool.hpp
+ *
+ * BucketBlockPool to stack allocated BucketBlocks.
+ *
+ * Part of Project Thrill.
+ *
+ * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
 
 #ifndef THRILL_BUCKET_BLOCK_POOL_HPP
 #define THRILL_BUCKET_BLOCK_POOL_HPP
