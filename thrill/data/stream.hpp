@@ -211,7 +211,7 @@ public:
     }
 
     void Close() final {
-        for (auto& c : streams_)
+        for (StreamPtr& c : streams_)
             c->Close();
     }
 
