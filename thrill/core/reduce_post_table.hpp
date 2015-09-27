@@ -1511,6 +1511,9 @@ protected:
 
     //! Bucket block pool.
     BucketBlockPool<BucketBlock> block_pool;
+
+    //! Rate of sizes of primary to secondary table.
+    double table_rate = 0.05;
 };
 
 } // namespace core
