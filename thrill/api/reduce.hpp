@@ -98,7 +98,7 @@ public:
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
               core::PostReduceByHashKey<Key>(),
-              core::PostReduceFlushToDefault<Key,
+              core::PostReduceFlushToDefault<Key, KeyValuePair,
                                              ReduceFunction>(reduce_function),
               0, 0, Value(), 1000000000, 0.9, 0.6, 0.01)
     {
@@ -180,7 +180,7 @@ private:
 
     core::ReducePostTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-        core::PostReduceFlushToDefault<Key, ReduceFunction>, core::PostReduceByHashKey<Key>,
+        core::PostReduceFlushToDefault<Key, KeyValuePair, ReduceFunction>, core::PostReduceByHashKey<Key>,
         std::equal_to<Key>, 32*16> reduce_post_table_;
 
     bool reduced = false;
