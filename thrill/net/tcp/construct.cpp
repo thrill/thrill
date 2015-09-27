@@ -114,8 +114,6 @@ public:
                 LOG << "Group " << j
                     << " link " << my_rank_ << " -> " << i << " = fd "
                     << groups_[j]->tcp_connection(i).GetSocket().fd();
-
-                groups_[j]->tcp_connection(i).GetSocket().SetNonBlocking(true);
             }
         }
     }
