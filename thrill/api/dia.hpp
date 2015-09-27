@@ -709,7 +709,7 @@ public:
      * the given worker. This should only be done if the received data can fit
      * into RAM of the one worker.
      */
-    std::vector<ValueType> Gather(size_t target_id) const;
+    std::vector<ValueType> Gather(size_t target_id = 0) const;
 
     /*!
      * Gather is an Action, which collects all data of the DIA into a vector at

@@ -31,7 +31,7 @@ namespace api {
 //! \{
 
 template <typename ValueType, typename ParentDIA, typename WindowFunction>
-class WindowNode : public DOpNode<ValueType>
+class WindowNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
