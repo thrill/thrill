@@ -27,6 +27,7 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
+#include <thrill/core/bucket_block_pool.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -175,6 +176,8 @@ public:
 
         double fill_rate = ht->MaxFrameFillRate();
 
+        BucketBlockPool<BucketBlock>& block_pool_ = ht->BlockPool();
+
         std::vector<BucketBlock*> buckets_second;
 
         // sort total num blocks per frame
@@ -286,9 +289,7 @@ public:
                                 current_second->size == ht->block_size_)
                             {
                                 // allocate a new block of uninitialized items, postpend to bucket
-                                current_second = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
-
-                                current_second->size = 0;
+                                current_second = block_pool_.GetBlock();
                                 current_second->next = buckets_second[global_index];
                                 buckets_second[global_index] = current_second;
                             }
@@ -301,9 +302,7 @@ public:
                         if (consume)
                         {
                             BucketBlock* next = current->next;
-                            // destroy block
-                            current->destroy_items();
-                            operator delete (current);
+                            block_pool_.Deallocate(current);
                             current = next;
                             blocks_free++;
                         }
@@ -369,9 +368,7 @@ public:
                         current->size == ht->block_size_)
                     {
                         // allocate a new block of uninitialized items, postpend to bucket
-                        current = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
-
-                        current->size = 0;
+                        current = block_pool_.GetBlock();
                         current->next = buckets_second[global_index];
                         buckets_second[global_index] = current;
                     }
@@ -399,8 +396,7 @@ public:
 
                         // destroy block and advance to next
                         BucketBlock* next = current->next;
-                        current->destroy_items();
-                        operator delete (current);
+                        block_pool_.Deallocate(current);
                         current = next;
                     }
 
@@ -433,9 +429,7 @@ public:
                         if (consume)
                         {
                             BucketBlock* next = current->next;
-                            // destroy block
-                            current->destroy_items();
-                            operator delete (current);
+                            block_pool_.Deallocate(current);
                             current = next;
                             blocks_free++;
                         }
@@ -516,6 +510,8 @@ public:
         Value neutral_element = ht->NeutralElement();
 
         size_t block_size_ = ht->BlockSize();
+
+        BucketBlockPool<BucketBlock>& block_pool_ = ht->BlockPool();
 
         std::vector<Value> elements_to_emit(ht->EndLocalIndex() - ht->BeginLocalIndex(), neutral_element);
 
@@ -625,9 +621,7 @@ public:
                         current->size == ht->block_size_)
                     {
                         // allocate a new block of uninitialized items, postpend to bucket
-                        current = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
-
-                        current->size = 0;
+                        current = block_pool_.GetBlock();
                         current->next = buckets_second[global_index];
                         buckets_second[global_index] = current;
                     }
@@ -690,9 +684,7 @@ public:
                                 current_second->size == ht->block_size_)
                             {
                                 // allocate a new block of uninitialized items, postpend to bucket
-                                current_second = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
-
-                                current_second->size = 0;
+                                current = block_pool_.GetBlock();
                                 current_second->next = buckets_second[global_index];
                                 buckets_second[global_index] = current_second;
                             }
@@ -705,9 +697,7 @@ public:
                         if (consume)
                         {
                             BucketBlock* next = current->next;
-                            // destroy block
-                            current->destroy_items();
-                            operator delete (current);
+                            block_pool_.Deallocate(current);
                             current = next;
                             blocks_free++;
                         }
@@ -737,10 +727,8 @@ public:
                             elements_to_emit[bi->first - ht->BeginLocalIndex()] = bi->second;
                         }
 
-                        // destroy block and advance to next
                         BucketBlock* next = current->next;
-                        current->destroy_items();
-                        operator delete (current);
+                        block_pool_.Deallocate(current);
                         current = next;
                     }
 
@@ -771,9 +759,7 @@ public:
                         if (consume)
                         {
                             BucketBlock* next = current->next;
-                            // destroy block
-                            current->destroy_items();
-                            operator delete (current);
+                            block_pool_.Deallocate(current);
                             current = next;
                             blocks_free++;
                         }
@@ -876,9 +862,10 @@ public:
         KeyValuePair items[block_size_]; // NOLINT
 
         //! helper to destroy all allocated items
-        void         destroy_items() {
-            for (KeyValuePair* i = items; i != items + size; ++i)
+        void destroy_items() {
+            for (KeyValuePair* i = items; i != items + size; ++i) {
                 i->~KeyValuePair();
+            }
         }
     };
 
@@ -997,6 +984,7 @@ public:
                 current = next;
             }
         }
+        block_pool.Destroy();
     }
 
     /*!
@@ -1073,10 +1061,7 @@ public:
             }
 
             // allocate a new block of uninitialized items, prepend to bucket
-            current =
-                static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
-
-            current->size = 0;
+            current = block_pool.GetBlock();
             current->next = buckets_[global_index];
             buckets_[global_index] = current;
 
@@ -1194,8 +1179,7 @@ public:
 
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
-                current->destroy_items();
-                operator delete (current);
+                block_pool.Deallocate(current);
                 current = next;
             }
 
@@ -1392,6 +1376,15 @@ public:
     }
 
     /*!
+     * Returns the block size.
+     *
+     * \return Block size.
+     */
+    BucketBlockPool<BucketBlock> & BlockPool() {
+        return block_pool;
+    }
+
+    /*!
      * Prints content of hash table.
      */
     void Print() {
@@ -1515,6 +1508,9 @@ protected:
 
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
+
+    //! Bucket block pool.
+    BucketBlockPool<BucketBlock> block_pool;
 };
 
 } // namespace core

@@ -23,6 +23,7 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block_writer.hpp>
+#include <thrill/core/bucket_block_pool.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -181,9 +182,10 @@ public:
         KeyValuePair items[block_size_]; // NOLINT
 
         //! helper to destroy all allocated items
-        void         destroy_items() {
-            for (KeyValuePair* i = items; i != items + size; ++i)
+        void destroy_items() {
+            for (KeyValuePair* i = items; i != items + size; ++i) {
                 i->~KeyValuePair();
+            }
         }
     };
 
@@ -284,6 +286,7 @@ public:
                 current = next;
             }
         }
+        block_pool.Destroy();
     }
 
     /*!
@@ -361,10 +364,7 @@ public:
             }
 
             // allocate a new block of uninitialized items, prepend to bucket
-            current =
-                static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
-
-            current->size = 0;
+            current = block_pool.GetBlock();
             current->next = buckets_[h.global_index];
             buckets_[h.global_index] = current;
 
@@ -496,13 +496,13 @@ public:
 #endif
                         sLOG << "pushing pair";
                     }
+
                     emit_stats_[partition_id]++;
                 }
 
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
-                current->destroy_items();
-                operator delete (current);
+                block_pool.Deallocate(current);
                 current = next;
             }
 
@@ -778,6 +778,9 @@ protected:
 
     //! Standard deviation of the block length per partition.
     std::vector<double> block_length_stedv;
+
+    //! Bucket block pool.
+    BucketBlockPool<BucketBlock> block_pool;
 };
 
 } // namespace core
