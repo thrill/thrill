@@ -231,7 +231,7 @@ public:
         file << "\n";
         for (const auto& node : nodes_) {
             for (const auto& neighbor : node->adjacent_nodes()) {
-                file << "\t" << *node << std::to_string(node->id()) << " -> " << *neighbor << std::to_string(neighbor->id())<< ";\n";
+                file << "\t" << *node << std::to_string(node->id()) << " -> " << *neighbor << std::to_string(neighbor->id()) << ";\n";
             }
         }
         file << "}";
