@@ -54,6 +54,7 @@ thrill_build_prog(sort/sort)
 
 thrill_build_prog(serialization/bench_serialization)
 
+#add_subdirectory(chaining)
 add_subdirectory(word_count)
 add_subdirectory(page_rank)
 add_subdirectory(net)
