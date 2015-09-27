@@ -251,6 +251,8 @@ public:
                                           static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
                                           / static_cast<double>(sizeof(BucketBlock)))), 0);
 
+        std::cout << max_num_blocks_per_table_ << std::endl;
+
         assert(max_num_blocks_per_table_ > 0);
         assert(max_num_blocks_per_partition_ > 0);
         assert(num_buckets_per_partition_ > 0);

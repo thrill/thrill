@@ -177,7 +177,7 @@ TEST_F(PreTable, PopIntegers) {
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
                          core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(1, key_ex, red_fn, writers, bucket_block_size, 0.0, 1.0);
+    table(1, key_ex, red_fn, writers, bucket_block_size * 2, 0.0, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -192,7 +192,7 @@ TEST_F(PreTable, PopIntegers) {
 
     table.Insert(9);
 
-    ASSERT_EQ(0u, table.NumItemsPerTable());
+    ASSERT_EQ(1u, table.NumItemsPerTable());
 }
 
 // Manually flush all items in table,
@@ -591,7 +591,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
 
     core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true,
             core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>
-    table(1, key_ex, red_fn, writers, TargetBlockSize, 0.0, 1.0);
+    table(1, key_ex, red_fn, writers, TargetBlockSize * 2, 0.0, 1.0);
 
     // insert lots of items
     size_t sum = 0;
