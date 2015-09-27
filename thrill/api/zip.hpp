@@ -38,13 +38,13 @@ namespace api {
  * LOps are stored in the Stack.
  *
  * <pre>
- *                ParentStack1 ParentStack2
+ *                ParentStack0 ParentStack1
  *                 +--------+   +--------+
  *                 |        |   |        |  A ParentStackX is called with
  *                 |        |   |        |  ParentInputX, and must deliver
  *                 |        |   |        |  a ZipArgX item.
  *               +-+--------+---+--------+-+
- *               | | PreOp1 |   | PreOp2 | |
+ *               | | PreOp0 |   | PreOp1 | |
  *               | +--------+   +--------+ |
  *    DIA<T> --> |           Zip           |
  *               |        +-------+        |
@@ -68,7 +68,7 @@ namespace api {
 template <typename ValueType,
           typename ParentDIA0, typename ParentDIA1,
           typename ZipFunction>
-class TwoZipNode : public DOpNode<ValueType>
+class TwoZipNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 

@@ -42,7 +42,7 @@ namespace api {
  * \tparam ReadFunction Type of the generate function.
  */
 template <typename ValueType, typename GeneratorFunction>
-class GenerateFileNode : public SourceNode<ValueType>
+class GenerateFileNode final : public SourceNode<ValueType>
 {
 public:
     using Super = SourceNode<ValueType>;

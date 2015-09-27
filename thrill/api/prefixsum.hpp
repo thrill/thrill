@@ -29,7 +29,7 @@ namespace api {
 //! \{
 
 template <typename ValueType, typename ParentDIA, typename SumFunction>
-class PrefixSumNode : public DOpNode<ValueType>
+class PrefixSumNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 

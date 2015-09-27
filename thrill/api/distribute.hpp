@@ -26,7 +26,7 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class DistributeNode : public SourceNode<ValueType>
+class DistributeNode final : public SourceNode<ValueType>
 {
 public:
     using Super = SourceNode<ValueType>;

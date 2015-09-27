@@ -44,7 +44,7 @@ namespace api {
  * \tparam CompareFunction Type of the compare function
  */
 template <typename ValueType, typename ParentDIA, typename CompareFunction>
-class SortNode : public DOpNode<ValueType>
+class SortNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 

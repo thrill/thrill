@@ -37,7 +37,7 @@ namespace api {
 template <typename ValueType,
           typename ParentDIA0, typename ParentDIA1,
           typename MergeFunction>
-class TwoMergeNode : public DOpNode<ValueType>
+class TwoMergeNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 

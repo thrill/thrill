@@ -35,7 +35,7 @@ namespace api {
 //! \{
 
 template <typename ParentDIA>
-class WriteBinaryNode : public ActionNode
+class WriteBinaryNode final : public ActionNode
 {
     static const bool debug = false;
 

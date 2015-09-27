@@ -55,7 +55,7 @@ namespace api {
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey, const bool SendPair>
-class ReduceNode : public DOpNode<ValueType>
+class ReduceNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
