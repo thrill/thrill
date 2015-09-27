@@ -156,9 +156,9 @@ public:
         {
             if (s.node()->state() == api::DIAState::EXECUTED) {
                 bool skip = true;
-                for (DIABase* child : s.node()->children()) 
-                    if(child->state() != api::DIAState::EXECUTED 
-                            || child->type() == api::DIANodeType::COLLAPSE) 
+                for (DIABase* child : s.node()->children())
+                    if (child->state() != api::DIAState::EXECUTED
+                        || child->type() == api::DIANodeType::COLLAPSE)
                         skip = false;
                 if (skip) continue;
                 else s.PushData();
