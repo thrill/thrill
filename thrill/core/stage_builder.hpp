@@ -134,7 +134,7 @@ public:
                     // If not add parent to stages found and result stages
                     stages_found.insert(p);
                     stages_result.push_back(Stage(p));
-                    LOG1 << "FOUND: " << p->label() << " " << p->id();
+                    LOG << "FOUND: " << p->label() << " " << p->id();
                     // If parent was not executed push it to the DFS
                     if (p->state() != api::DIAState::EXECUTED ||
                         p->type() == api::DIANodeType::COLLAPSE) {

@@ -88,28 +88,9 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-template <typename AnyStack>
-DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs) {
-    assert(IsValid());
-
-    // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-    // DIA with empty stack and LOpNode
-    using LOpChainNode = CacheNode<ValueType, DIA>;
-
-    LOG0 << "WARNING: cast to DIA creates LOpNode instead of inline chaining.";
-    LOG0 << "Consider whether you can use auto instead of DIA.";
-
-    auto shared_node
-        = std::make_shared<LOpChainNode>(rhs, "");
-    node_ = std::move(shared_node);
-}
-
-template <typename ValueType, typename Stack>
 auto DIA<ValueType, Stack>::Cache() const {
     assert(IsValid());
 
-    // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-    // DIA with empty stack and LOpNode
     using LOpChainNode = CacheNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Cache", DIANodeType::CACHE);
