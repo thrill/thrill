@@ -52,9 +52,6 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLoopbackMesh(
 
             std::pair<Socket, Socket> sp = Socket::CreatePair();
 
-            sp.first.SetNonBlocking(true);
-            sp.second.SetNonBlocking(true);
-
             group[i]->connections_[j] = Connection(std::move(sp.first));
             group[j]->connections_[i] = Connection(std::move(sp.second));
 

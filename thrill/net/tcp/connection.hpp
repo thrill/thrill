@@ -139,8 +139,10 @@ public:
     { return socket_.GetError(); }
 
     //! Set socket to non-blocking
-    int SetNonBlocking(bool non_blocking) const
-    { return socket_.SetNonBlocking(non_blocking); }
+    void SetNonBlocking(bool non_blocking) {
+        if (!socket_.SetNonBlocking(non_blocking))
+            throw Exception("Error setting socket non-blocking flag", errno);
+    }
 
     //! Return the socket peer address
     std::string GetPeerAddress() const
@@ -159,6 +161,7 @@ public:
     }
 
     void SyncSend(const void* data, size_t size, Flags flags) final {
+        SetNonBlocking(false);
         int f = 0;
         if (flags & MsgMore) f |= MSG_MORE;
         if (socket_.send(data, size, f) != static_cast<ssize_t>(size))
@@ -166,17 +169,20 @@ public:
     }
 
     ssize_t SendOne(const void* data, size_t size, Flags flags) final {
+        SetNonBlocking(true);
         int f = 0;
         if (flags & MsgMore) f |= MSG_MORE;
         return socket_.send_one(data, size, f);
     }
 
     void SyncRecv(void* out_data, size_t size) final {
+        SetNonBlocking(false);
         if (socket_.recv(out_data, size) != static_cast<ssize_t>(size))
             throw Exception("Error during SyncRecv", errno);
     }
 
     ssize_t RecvOne(void* out_data, size_t size) final {
+        SetNonBlocking(true);
         return socket_.recv_one(out_data, size);
     }
 

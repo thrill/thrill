@@ -158,9 +158,10 @@ public:
     }
 
     //! Turn socket into non-blocking state.
-    //! \return old blocking value (0 or 1) or -1 for error
-    int SetNonBlocking(bool non_blocking) const {
+    bool SetNonBlocking(bool non_blocking) {
         assert(IsValid());
+
+        if (non_blocking == non_blocking_) return true;
 
         int old_opts = fcntl(fd_, F_GETFL);
 
@@ -173,10 +174,11 @@ public:
                 << " fd_=" << fd_
                 << " non_blocking=" << non_blocking
                 << " error=" << strerror(errno);
-            return -1;
+            return false;
         }
 
-        return old_opts;
+        non_blocking_ = non_blocking;
+        return true;
     }
 
     //! Return the current local socket address.
@@ -586,6 +588,9 @@ public:
 private:
     //! the file descriptor of the socket.
     int fd_;
+
+    //! flag whether the socket is set to non-blocking
+    bool non_blocking_ = false;
 
     //! return hexdump or just [data] if not debugging
     static std::string MaybeHexdump(const void* data, size_t size) {
