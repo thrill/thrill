@@ -35,7 +35,7 @@ template <typename ReturnType>
 struct NoOperation {
     ReturnType return_value_;
 
-    NoOperation(ReturnType return_value = ReturnType())
+    explicit NoOperation(ReturnType return_value = ReturnType())
         : return_value_(return_value) { }
 
     ReturnType operator () (...) const noexcept {
