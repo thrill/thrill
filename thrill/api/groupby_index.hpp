@@ -39,6 +39,7 @@ template <typename ValueType, typename ParentDIA,
 class GroupByIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
+
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
@@ -91,9 +92,7 @@ public:
                                       common::CalculateLocalRange(number_keys_,
                                                                   context_.num_workers(), context_.my_rank())), number_keys_)),
           neutral_element_(neutral_element),
-          hash_function_(hash_function),
-          stream_(parent.ctx().GetNewCatStream()),
-          emitter_(stream_->OpenWriters())
+          hash_function_(hash_function)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -120,6 +119,8 @@ public:
     }
 
     void PushData(bool consume) final {
+        sLOG1 << "GroupByIndexNode::PushData()";
+
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
         const size_t num_runs = files_.size();
         // if there's only one run, store it
@@ -192,8 +193,8 @@ private:
     HashFunction hash_function_;
     size_t totalsize_ = 0;
 
-    data::CatStreamPtr stream_;
-    std::vector<data::CatStream::Writer> emitter_;
+    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+    std::vector<data::CatStream::Writer> emitter_ { stream_->OpenWriters() };
     std::vector<data::File> files_;
 
     void RunUserFunc(File& f, bool consume) {
@@ -257,7 +258,6 @@ private:
     auto MainOp() {
         LOG << "running group by main op";
 
-        const bool consume = true;
         const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
@@ -268,7 +268,7 @@ private:
         }
 
         // get incoming elements
-        auto reader = stream_->OpenCatReader(consume);
+        auto reader = stream_->OpenCatReader(true /* consume */);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (incoming.size() == FIXED_VECTOR_SIZE) {
