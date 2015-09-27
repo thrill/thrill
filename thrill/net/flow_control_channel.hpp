@@ -18,6 +18,7 @@
 #include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
 
+#include <algorithm>
 #include <condition_variable>
 #include <functional>
 #include <mutex>
