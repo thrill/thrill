@@ -30,7 +30,7 @@ namespace api {
 //! \{
 
 template <typename ParentDIA, typename SumFunction>
-class SumNode : public ActionNode
+class SumNode final : public ActionNode
 {
     static const bool debug = false;
 

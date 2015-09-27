@@ -27,7 +27,7 @@ namespace api {
 //! \{
 
 template <typename ParentDIA>
-class AllGatherNode : public ActionNode
+class AllGatherNode final : public ActionNode
 {
 public:
     using Super = ActionNode;

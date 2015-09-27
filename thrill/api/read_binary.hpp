@@ -40,7 +40,7 @@ namespace api {
  * the file system and emits it as a DIA.
  */
 template <typename ValueType>
-class ReadBinaryNode : public SourceNode<ValueType>
+class ReadBinaryNode final : public SourceNode<ValueType>
 {
     static const bool debug = false;
 

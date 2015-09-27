@@ -32,7 +32,7 @@ namespace api {
  * the last and this DIANode.
  */
 template <typename ValueType, typename ParentDIA>
-class CollapseNode : public DIANode<ValueType>
+class CollapseNode final : public DIANode<ValueType>
 {
 public:
     using Super = DIANode<ValueType>;

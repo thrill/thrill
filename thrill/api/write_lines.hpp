@@ -29,7 +29,7 @@ namespace api {
 //! \{
 
 template <typename ParentDIA>
-class WriteLinesNode : public ActionNode
+class WriteLinesNode final : public ActionNode
 {
     static const bool debug = false;
 

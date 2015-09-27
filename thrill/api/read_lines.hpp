@@ -38,7 +38,7 @@ namespace api {
  * A DIANode which performs a line-based Read operation. Read reads a file from
  * the file system and emits it as a DIA.
  */
-class ReadLinesNode : public SourceNode<std::string>
+class ReadLinesNode final : public SourceNode<std::string>
 {
 public:
     using Super = SourceNode<std::string>;

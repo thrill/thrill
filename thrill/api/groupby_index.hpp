@@ -36,7 +36,7 @@ namespace api {
 
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
-class GroupByIndexNode : public DOpNode<ValueType>
+class GroupByIndexNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
