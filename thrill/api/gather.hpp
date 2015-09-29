@@ -65,8 +65,7 @@ public:
             emitters_[i].Close();
         }
 
-        bool consume = false;
-        auto reader = stream_->OpenCatReader(consume);
+        auto reader = stream_->OpenCatReader(true /* consume */);
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());

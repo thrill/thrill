@@ -86,7 +86,10 @@ public:
             if (window.size() != window_size_) continue;
 
             // call window user-defined function
-            this->PushItem(window_function_(rank, window));
+            window_function_(rank, window,
+                             [this](const ValueType& output) {
+                                 this->PushItem(output);
+                             });
 
             // return to window size - 1
             if (window.size() >= window_size_ - 1)
@@ -161,16 +164,12 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-template <typename WindowFunction>
-auto DIA<ValueType, Stack>::Window(
+template <typename ValueOut, typename WindowFunction>
+auto DIA<ValueType, Stack>::FlatWindow(
     size_t window_size, const WindowFunction &window_function) const {
     assert(IsValid());
 
-    using Result
-              = typename FunctionTraits<WindowFunction>::result_type;
-
-    using WindowResultNode
-              = WindowNode<Result, DIA, WindowFunction>;
+    using WindowNode = api::WindowNode<ValueOut, DIA, WindowFunction>;
 
     // static_assert(
     //     std::is_convertible<
@@ -192,14 +191,33 @@ auto DIA<ValueType, Stack>::Window(
     //     "WindowFunction has the wrong input type");
 
     StatsNode* stats_node = AddChildStatsNode("Window", DIANodeType::DOP);
-    auto shared_node
-        = std::make_shared<WindowResultNode>(
+    auto shared_node = std::make_shared<WindowNode>(
         *this, window_size, window_function, stats_node);
 
     auto window_stack = shared_node->ProduceStack();
 
-    return DIA<Result, decltype(window_stack)>(
+    return DIA<ValueOut, decltype(window_stack)>(
         shared_node, window_stack, { stats_node });
+}
+
+template <typename ValueType, typename Stack>
+template <typename WindowFunction>
+auto DIA<ValueType, Stack>::Window(
+    size_t window_size, const WindowFunction &window_function) const {
+    assert(IsValid());
+
+    using Result
+              = typename FunctionTraits<WindowFunction>::result_type;
+
+    // transform Map-like function into Flatmap-like function
+    auto flatwindow_function =
+        [window_function](size_t index,
+                          const common::RingBuffer<ValueType>& window,
+                          auto emit) {
+            emit(window_function(index, window));
+        };
+
+    return FlatWindow<Result>(window_size, flatwindow_function);
 }
 
 //! \}
