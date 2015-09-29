@@ -55,6 +55,8 @@ int main(int argc, char* argv[]) {
 
     auto start_func =
         [&input, &output](api::Context& ctx) {
+            ctx.set_consume(true);
+
             auto input_dia = ReadLines(ctx, input);
 
             auto word_pairs = input_dia.template FlatMap<WordCountPair>(
