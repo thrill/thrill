@@ -117,7 +117,7 @@ struct StringFragment
     }
 };
 
-DIA<size_t> recursion(const DIA<size_t>& _input) {
+DIA<size_t> Recursion(const DIA<size_t>& _input) {
     // this is cheating: perform naive suffix sorting. TODO: templatize
     // algorithm and call recursively.
 
@@ -144,8 +144,6 @@ DIA<size_t> recursion(const DIA<size_t>& _input) {
 
 void StartDC3(api::Context& ctx) {
 
-    static const bool debug = true;
-
     auto input_dia = api::ReadBinary<uint8_t>(ctx, "Makefile");
 
     using TripleChar = Triple<uint8_t>;
@@ -164,14 +162,8 @@ void StartDC3(api::Context& ctx) {
         .Sort()
         .Cache();
 
-    if (debug && 0) {
-        std::vector<TripleChar> out = triple_sorted.AllGather();
-        if (ctx.my_rank() == 0) {
-            for (const TripleChar& tc : out) {
-                sLOG1 << tc;
-            }
-        }
-    }
+    if (0)
+        triple_sorted.Print("triple_sorted");
 
     auto triple_prerank_sums =
         triple_sorted
@@ -186,14 +178,8 @@ void StartDC3(api::Context& ctx) {
             })
         .PrefixSum();
 
-    if (debug && 0) {
-        std::vector<size_t> out = triple_prerank_sums.AllGather();
-        if (ctx.my_rank() == 0) {
-            for (const size_t& tc : out) {
-                sLOG1 << tc;
-            }
-        }
-    }
+    if (0)
+        triple_prerank_sums.Print("triple_prerank_sums");
 
     if (true) {
 
@@ -209,14 +195,8 @@ void StartDC3(api::Context& ctx) {
                 })
             .Keep(); // is this needed?
 
-        if (debug && 1) {
-            std::vector<TripleRank> out = triple_ranks.AllGather();
-            if (ctx.my_rank() == 0) {
-                for (const auto& e : out) {
-                    sLOG1 << e;
-                }
-            }
-        }
+        if (0)
+            triple_ranks.Print("triple_ranks");
 
         // construct recursion string with all ranks at mod 1 indices
         DIA<size_t> string_mod1 =
@@ -249,26 +229,10 @@ void StartDC3(api::Context& ctx) {
             .Collapse();
 
         // TODO(tb): this is actually an ActionFuture.
-        size_t size_mod1 = string_mod1.Size();
+        // size_t size_mod1 = string_mod1.Size();
 
-        if (debug && 1) {
-            std::vector<size_t> out = string_mod1.AllGather();
-            if (ctx.my_rank() == 0) {
-                for (const auto& e : out) {
-                    sLOG1 << e;
-                }
-            }
-        }
-
-        if (debug && 1) {
-            std::vector<size_t> out = string_mod2.AllGather();
-            if (ctx.my_rank() == 0) {
-                sLOG1 << "out";
-                for (const auto& e : out) {
-                    sLOG1 << e;
-                }
-            }
-        }
+        string_mod1.Print("string_mod1");
+        string_mod2.Print("string_mod2");
 
         // not available yet.
         // DIA<size_t> string_rec = string_mod1.Concat(string_mod2);
@@ -286,19 +250,11 @@ void StartDC3(api::Context& ctx) {
 
         DIA<size_t> string_rec = DistributeFrom(ctx, rec);
 
-        DIA<size_t> suffix_array_rec = recursion(string_rec);
+        DIA<size_t> suffix_array_rec = Recursion(string_rec);
 
         suffix_array_rec.Keep();
 
-        if (debug && 1) {
-            std::vector<size_t> out = suffix_array_rec.AllGather();
-            if (ctx.my_rank() == 0) {
-                sLOG1 << "suffix_array_rec";
-                for (const auto& e : out) {
-                    sLOG1 << e;
-                }
-            }
-        }
+        suffix_array_rec.Print("suffix_array_rec");
 
         // reverse suffix array of recursion strings to find ranks for mod 1
         // and mod 2 positions.
@@ -324,16 +280,9 @@ void StartDC3(api::Context& ctx) {
                      return a.rank;
                  });
 
-        if (debug && 1) {
-            std::vector<size_t> out = ranks_rec.AllGather();
-            if (ctx.my_rank() == 0) {
-                for (const auto& e : out) {
-                    sLOG1 << e;
-                }
-            }
-        }
+        ranks_rec.Print("ranks_rec");
 
-#if 0
+#if OLD_PROTOTYPE
         // *** construct StringFragments ***
 
         // how to do a synchronized parallel scan over two or three arrays?
@@ -479,7 +428,7 @@ void StartDC3(api::Context& ctx) {
         // map to only suffix array
 
         DIA<size_t> SuffixArray = DIA<StringFragment>(output)
-                                  .map([](const StringFragment& a) { return a.index; });
+                                  .Map([](const StringFragment& a) { return a.index; });
 
         // debug output
 
