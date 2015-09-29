@@ -99,7 +99,8 @@ public:
                  << "my_start" << my_start << "my_end" << my_end;
 
             size_t i = 0;
-            while (files.list[i].size_inc_psum() <= my_start) {
+            while (i < files.count() &&
+                   files.list[i].size_inc_psum() <= my_start) {
                 i++;
             }
 
@@ -134,7 +135,8 @@ public:
             std::tie(my_start, my_end) =
                 context_.CalculateLocalRange(files.total_size);
 
-            while (files.list[i].size_inc_psum() <= my_start) {
+            while (i < files.count() &&
+                   files.list[i].size_inc_psum() <= my_start) {
                 i++;
             }
 
