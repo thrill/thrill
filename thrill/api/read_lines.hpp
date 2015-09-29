@@ -142,16 +142,16 @@ private:
         //! Reference to context
         Context& context_;
 
-		common::StatsTimer<true> read_timer;
+        common::StatsTimer<true> read_timer;
 
         size_t stats_total_bytes_ = 0;
         size_t stats_total_reads_ = 0;
         size_t stats_total_elements_ = 0;
 
         bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
-			read_timer.Start();
+            read_timer.Start();
             ssize_t bytes = file.read(buffer.data(), read_size);
-			read_timer.Stop();
+            read_timer.Stop();
             if (bytes < 0) {
                 throw common::ErrnoException("Read error");
             }
@@ -168,7 +168,7 @@ private:
                            << "TotalBytes" << stats_total_bytes_
                            << "TotalReads" << stats_total_reads_
                            << "TotalLines" << stats_total_elements_
-						   << "ReadTime" << read_timer.Milliseconds();
+                           << "ReadTime" << read_timer.Milliseconds();
         }
     };
 

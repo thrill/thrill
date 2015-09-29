@@ -171,7 +171,6 @@ HostContext::HostContext(size_t my_host_rank,
                         net_manager_.GetDataGroup())
 { }
 
-
 static inline
 int RunDistributedTCP(
     size_t my_host_rank,
