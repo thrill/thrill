@@ -36,15 +36,15 @@ int main(int argc, const char** argv) {
 
     for (int i = 0; i < iterations; i++) {
         api::Run([&input_file, &output_file](api::Context& ctx) {
-                               StatsTimer<true> timer(true);
-                               auto lines = ReadLines(ctx, input_file);
-                               lines.WriteLinesMany(output_file);
-                               timer.Stop();
-                               std::cout << "RESULT"
-                                         << " input_file=" << input_file
-                                         << " time=" << timer.Microseconds()
-                                         << std::endl;
-                           });
+                     StatsTimer<true> timer(true);
+                     auto lines = ReadLines(ctx, input_file);
+                     lines.WriteLinesMany(output_file);
+                     timer.Stop();
+                     std::cout << "RESULT"
+                               << " input_file=" << input_file
+                               << " time=" << timer.Microseconds()
+                               << std::endl;
+                 });
     }
 }
 
