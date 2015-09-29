@@ -285,7 +285,7 @@ TEST(IO, GenerateStringWriteBinary) {
         });
 }
 
-TEST(IO, WriteAndReadBinaryEqualDIAS) {
+TEST(IO, WriteAndReadBinaryEqualDIAs) {
     core::TemporaryDirectory tmpdir;
 
     std::function<void(Context&)> start_func =
@@ -311,6 +311,8 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
             auto integers2 = api::ReadBinary<int>(
                 ctx, tmpdir.get() + "/*");
 
+            ASSERT_EQ(16u, integers2.Size());
+
             integers2.Map(
                 [](const int& item) {
                     return std::to_string(item);
@@ -321,7 +323,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
             // still writing to output file.
             ctx.Barrier();
 
-            std::ifstream file(path, std::ios::binary);
+            std::ifstream file(path);
             size_t begin = file.tellg();
             file.seekg(0, std::ios::end);
             size_t end = file.tellg();
@@ -330,7 +332,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
             for (int i = 1; i <= 16; i++) {
                 std::string line;
                 std::getline(file, line);
-                ASSERT_EQ(std::stoi(line), i);
+                ASSERT_EQ(std::to_string(i), line);
             }
         };
 

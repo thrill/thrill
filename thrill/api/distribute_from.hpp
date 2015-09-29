@@ -38,9 +38,16 @@ public:
                        StatsNode* stats_node)
         : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(in_vector),
-          source_id_(source_id),
-          stream_(ctx.GetNewCatStream()),
-          emitters_(stream_->OpenWriters())
+          source_id_(source_id)
+    { }
+
+    DistributeFromNode(Context& ctx,
+                       std::vector<ValueType>&& in_vector,
+                       size_t source_id,
+                       StatsNode* stats_node)
+        : SourceNode<ValueType>(ctx, { }, stats_node),
+          in_vector_(std::move(in_vector)),
+          source_id_(source_id)
     { }
 
     //! Executes the scatter operation: source sends out its data.
@@ -87,12 +94,13 @@ public:
 
 private:
     //! Vector pointer to read elements from.
-    const std::vector<ValueType>& in_vector_;
+    std::vector<ValueType> in_vector_;
     //! source worker id, which sends vector
     size_t source_id_;
 
-    data::CatStreamPtr stream_;
-    std::vector<data::CatStream::Writer> emitters_;
+    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+
+    std::vector<data::CatStream::Writer> emitters_ { stream_->OpenWriters() };
 };
 
 /*!
@@ -103,7 +111,7 @@ private:
 template <typename ValueType>
 auto DistributeFrom(
     Context & ctx,
-    const std::vector<ValueType>&in_vector, size_t source_id) {
+    const std::vector<ValueType>&in_vector, size_t source_id = 0) {
 
     using DistributeFromNode = api::DistributeFromNode<ValueType>;
 
@@ -113,6 +121,31 @@ auto DistributeFrom(
     auto shared_node =
         std::make_shared<DistributeFromNode>(
             ctx, in_vector, source_id, stats_node);
+
+    auto scatter_stack = shared_node->ProduceStack();
+
+    return DIA<ValueType, decltype(scatter_stack)>(
+        shared_node, scatter_stack, { stats_node });
+}
+
+/*!
+ * DistributeFrom is a Source DOp, which scatters the vector data from the
+ * source_id to all workers, partitioning equally, and returning the data in a
+ * DIA.
+ */
+template <typename ValueType>
+auto DistributeFrom(
+    Context & ctx,
+    std::vector<ValueType>&& in_vector, size_t source_id = 0) {
+
+    using DistributeFromNode = api::DistributeFromNode<ValueType>;
+
+    StatsNode* stats_node = ctx.stats_graph().AddNode(
+        "DistributeFrom", DIANodeType::DOP);
+
+    auto shared_node =
+        std::make_shared<DistributeFromNode>(
+            ctx, std::move(in_vector), source_id, stats_node);
 
     auto scatter_stack = shared_node->ProduceStack();
 
