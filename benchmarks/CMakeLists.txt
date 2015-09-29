@@ -40,6 +40,8 @@ thrill_build_prog(data/stream)
 thrill_build_prog(data/io_benches)
 
 
+thrill_build_prog(io/string_test)
+
 if(NOT MSVC)
   # these benchmarks use a non-portable method to initialize the network,
   # TODO(ts): change to use RunXYZ().
