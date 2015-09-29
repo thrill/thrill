@@ -251,13 +251,9 @@ void StartDC3(api::Context& ctx) {
 
         size_t rec_size = suffix_array_rec.Size();
 
-        auto enumerate = Generate(ctx,
-                                  [](const size_t& index) { return index; },
-                                  rec_size);
-
         auto ranks_rec =
             suffix_array_rec
-            .Zip(enumerate,
+            .Zip(Generate(ctx, rec_size),
                  [](size_t sa, size_t i) {
                      return IndexRank { sa, i };
                  })
@@ -306,12 +302,6 @@ void StartDC3(api::Context& ctx) {
 
         // TODO(tb): Yay. Need MultiZip!
 
-        auto ranks_mod12 =
-            ranks_mod1
-            .Zip(ranks_mod2, [](const size_t& mod1, const size_t& mod2) {
-                     return std::make_pair(mod1, mod2);
-                 });
-
         using StringFragmentMod0 = ::StringFragmentMod0<Char>;
         using StringFragmentMod1 = ::StringFragmentMod1<Char>;
         using StringFragmentMod2 = ::StringFragmentMod2<Char>;
@@ -324,7 +314,10 @@ void StartDC3(api::Context& ctx) {
 
         auto zip_triple_pairs =
             triple_chars
-            .Zip(ranks_mod12,
+            .Zip(ranks_mod1
+                 .Zip(ranks_mod2, [](const size_t& mod1, const size_t& mod2) {
+                          return std::make_pair(mod1, mod2);
+                      }),
                  [](const Chars& ch, const std::pair<size_t, size_t>& mod12) {
                      return CharsRanks12 { ch, mod12.first, mod12.second };
                  })
@@ -387,7 +380,7 @@ void StartDC3(api::Context& ctx) {
                      const CharsRanks12& cr1 = std::get<2>(chp);
 
                      return StringFragmentMod2 {
-                         index + 1,
+                         index + 2,
                          cr0.chars.triple[2], cr1.chars.triple[0],
                          cr0.rank2, cr1.rank1
                      };
