@@ -128,6 +128,19 @@ public:
     }
 
     /**
+* Creates a new copied FastString, given a const iterator to a std::string
+* and the size of the FastString.
+* \param data Pointer to start of data
+* \param size Size of data in bytes.
+* \return New FastString object.
+*/
+    static FastString Copy(const std::string::const_iterator& data, size_t size) {
+        char* mem = new char[size];
+        std::copy(data, data + size, mem);
+        return FastString(mem, size, true);
+    }
+
+    /**
      * Creates a new FastString and copies it's data.
      * \param input Input string, which the new FastString is a copy of
      * \return New FastString object.
