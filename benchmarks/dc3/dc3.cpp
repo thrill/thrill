@@ -11,6 +11,7 @@
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/dia.hpp>
+#include <thrill/api/distribute.hpp>
 #include <thrill/api/distribute_from.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
@@ -35,16 +36,11 @@ struct Triple {
     size_t       index;
     AlphabetType triple[3];
 
-    bool operator < (const Triple& b) const noexcept {
-        return std::lexicographical_compare(
-            triple + 0, triple + 3, b.triple + 0, b.triple + 3);
-    }
-
     friend std::ostream& operator << (std::ostream& os, const Triple& tc) {
         return os << "[" << std::to_string(tc.index) << "|"
                   << tc.triple[0] << tc.triple[1] << tc.triple[2] << "]";
     }
-};
+} __attribute__ ((packed));
 
 //! A pair (index, rank)
 struct TripleRank {
@@ -55,7 +51,7 @@ struct TripleRank {
         return os << "(" << std::to_string(tr.index) << "|"
                   << std::to_string(tr.rank) << ")";
     }
-};
+} __attribute__ ((packed));
 
 //! Fragments at String Positions i = 0 Mod 3.
 template <typename AlphabetType>
@@ -68,7 +64,7 @@ struct StringFragmentMod0
         return os << "t0=" << sf.t0 << ",t1=" << sf.t1
                   << ",r1=" << sf.r1 << ",r2=" << sf.r2;
     }
-};
+} __attribute__ ((packed));
 
 //! Fragments at String Positions i = 1 Mod 3.
 template <typename AlphabetType>
@@ -80,7 +76,7 @@ struct StringFragmentMod1
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod1& sf) {
         return os << "t0=" << sf.t0 << ",r0=" << sf.r0 << ",r1=" << sf.r1;
     }
-};
+} __attribute__ ((packed));
 
 //! Fragments at String Positions i = 2 Mod 3.
 template <typename AlphabetType>
@@ -93,7 +89,7 @@ struct StringFragmentMod2
         return os << "t0=" << sf.t0 << ",t1=" << sf.t1
                   << ",r0=" << sf.r0 << ",r2=" << sf.r2;
     }
-};
+} __attribute__ ((packed));
 
 //! Union of String Fragments with Index
 template <typename AlphabetType>
@@ -115,7 +111,7 @@ struct StringFragment
         if (tc.index % 3 == 2)
             return os << "2|" << tc.mod2 << "]";
     }
-};
+} __attribute__ ((packed));
 
 DIA<size_t> Recursion(const DIA<size_t>& _input) {
     // this is cheating: perform naive suffix sorting. TODO: templatize
@@ -144,37 +140,51 @@ DIA<size_t> Recursion(const DIA<size_t>& _input) {
 
 void StartDC3(api::Context& ctx) {
 
-    auto input_dia = api::ReadBinary<uint8_t>(ctx, "Makefile");
+    using Char = char;
+    using TripleChar = Triple<Char>;
 
-    using TripleChar = Triple<uint8_t>;
+    std::string input = "bananabananabananabanana";
+    std::vector<Char> input_vec(input.begin(), input.end());
+
+    // auto input_dia = api::ReadBinary<Char>(ctx, "Makefile");
+    auto input_dia = api::Distribute<Char>(ctx, input_vec);
+
+    // TODO(tb): have this passed to the method, this costs extra data round.
+    size_t input_size = input_dia.Size();
 
     auto triple_sorted =
         input_dia
         // map (t_i) -> (i,t_i,t_{i+1},t_{i+2}) where i neq 0 mod 3
-        .Window(
-            3, [](size_t index, const common::RingBuffer<uint8_t>& rb) {
+        .FlatWindow<TripleChar>(
+            3, [](size_t index, const common::RingBuffer<Char>& rb, auto emit) {
                 assert(rb.size() == 3);
-                // TODO(tb): filter out 0 mod 3 ? or change to FlatMap.
-                // also missing last items.
-                return TripleChar { index, rb[0], rb[1], rb[2] };
+                // TODO(tb): missing last sentinel items.
+                if (index % 3 != 0)
+                    emit(TripleChar { index, rb[0], rb[1], rb[2] });
             })
         // sort triples by contained letters
-        .Sort()
+        .Sort([](const TripleChar& a, const TripleChar& b) {
+                  return std::lexicographical_compare(
+                      a.triple + 0, a.triple + 3, b.triple + 0, b.triple + 3);
+              })
         .Cache();
 
-    if (0)
+    if (1)
         triple_sorted.Print("triple_sorted");
 
     auto triple_prerank_sums =
         triple_sorted
-        .Window(
-            2, [](size_t /* index */, const common::RingBuffer<TripleChar>& rb) {
+        .FlatWindow<size_t>(
+            2, [](size_t index, const common::RingBuffer<TripleChar>& rb, auto emit) {
                 assert(rb.size() == 2);
+
+                // emit one sentinel for index 0.
+                if (index == 0) emit(1);
 
                 // return 0 or 1 depending on whether previous triple is equal
                 size_t b = std::equal(rb[0].triple, rb[0].triple + 3,
                                       rb[1].triple) ? 0 : 1;
-                return b;
+                emit(b);
             })
         .PrefixSum();
 
@@ -193,60 +203,30 @@ void StartDC3(api::Context& ctx) {
                 [](const TripleChar& tc, size_t rank) {
                     return TripleRank { tc.index, rank };
                 });
-        if (0)
+        if (1)
             triple_ranks.Print("triple_ranks");
 
-        // construct recursion string with all ranks at mod 1 indices
-        DIA<size_t> string_mod1 =
+        // construct recursion string with all ranks at mod 1 indices followed
+        // by all ranks at mod 2 indices.
+        DIA<size_t> string_mod12 =
             triple_ranks
-            .Filter([](const TripleRank& tr) {
-                        return tr.index % 3 == 1;
-                    })
             .Sort([](const TripleRank& a, const TripleRank& b) {
-                      return a.index < b.index;
+                      if (a.index % 3 == b.index % 3)
+                          return a.index < b.index;
+                      else
+                          return a.index % 3 < b.index % 3;
                   })
             .Map([](const TripleRank& tr) {
                      return tr.rank;
                  })
             .Collapse();
 
-        // construct recursion string with all ranks at mod 2 indices
-        DIA<size_t> string_mod2 =
-            triple_ranks
-            .Filter([](const TripleRank& tr) {
-                        return tr.index % 3 == 2;
-                    })
-            .Sort([](const TripleRank& a, const TripleRank& b) {
-                      return a.index < b.index;
-                  })
-            .Map([](const TripleRank& tr) {
-                     return tr.rank;
-                 })
-            .Collapse();
+        string_mod12.Print("string_mod12");
 
-        // TODO(tb): this is actually an ActionFuture.
+        // TODO(tb): this can be calculated from input_size.
         // size_t size_mod1 = string_mod1.Size();
 
-        string_mod1.Print("string_mod1");
-        string_mod2.Print("string_mod2");
-
-        // not available yet.
-        // DIA<size_t> string_rec = string_mod1.Concat(string_mod2);
-
-        // emulate Concat (badly)
-        std::vector<size_t> rec;
-        {
-            std::vector<size_t> out1 = string_mod1.Gather();
-            std::vector<size_t> out2 = string_mod2.Gather();
-
-            rec.reserve(out1.size() + out2.size());
-            rec.insert(rec.end(), out1.begin(), out1.end());
-            rec.insert(rec.end(), out2.begin(), out2.end());
-        }
-
-        DIA<size_t> string_rec = DistributeFrom(ctx, rec);
-
-        DIA<size_t> suffix_array_rec = Recursion(string_rec);
+        DIA<size_t> suffix_array_rec = Recursion(string_mod12);
 
         suffix_array_rec.Print("suffix_array_rec");
 
@@ -254,8 +234,6 @@ void StartDC3(api::Context& ctx) {
         // and mod 2 positions.
 
         size_t rec_size = suffix_array_rec.Size();
-
-        return;
 
         auto enumerate = Generate(ctx,
                                   [](const size_t& index) { return index; },
@@ -272,7 +250,8 @@ void StartDC3(api::Context& ctx) {
                   })
             .Map([](const TripleRank& a) {
                      return a.rank;
-                 });
+                 })
+            .Collapse();
 
         ranks_rec.Print("ranks_rec");
 
