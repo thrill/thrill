@@ -27,6 +27,7 @@
 #include <cassert>
 #include <functional>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -276,7 +277,8 @@ public:
         assert(IsValid());
 
         auto new_stack = stack_.push(flatmap_function);
-        return DIA<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", DIANodeType::LAMBDA) });
+        return DIA<ResultType, decltype(new_stack)>(
+            node_, new_stack, { AddChildStatsNode("FlatMap", DIANodeType::LAMBDA) });
     }
 
     /*!
@@ -703,6 +705,18 @@ public:
      * into RAM of the one worker.
      */
     void Gather(size_t target_id, std::vector<ValueType>* out_vector)  const;
+
+    /*!
+     * Print is an Action, which collects all data of the DIA at the worker 0
+     * and prints using ostream serialization. It is implemented using Gather().
+     */
+    void Print(const std::string& name) const;
+
+    /*!
+     * Print is an Action, which collects all data of the DIA at the worker 0
+     * and prints using ostream serialization. It is implemented using Gather().
+     */
+    void Print(const std::string& name, std::ostream& out) const;
 
     auto Collapse() const;
 
