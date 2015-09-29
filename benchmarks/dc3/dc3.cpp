@@ -32,22 +32,33 @@ using namespace thrill; // NOLINT
 
 //! A triple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename AlphabetType>
-struct Triple {
+struct IndexChars {
     size_t       index;
     AlphabetType triple[3];
 
-    friend std::ostream& operator << (std::ostream& os, const Triple& tc) {
+    friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << "[" << std::to_string(tc.index) << "|"
                   << tc.triple[0] << tc.triple[1] << tc.triple[2] << "]";
     }
 } __attribute__ ((packed));
 
+//! A triple with index (i,t_i,t_{i+1},t_{i+2}).
+template <typename AlphabetType>
+struct Chars {
+    AlphabetType triple[3];
+
+    friend std::ostream& operator << (std::ostream& os, const Chars& ch) {
+        return os << "["
+                  << ch.triple[0] << ch.triple[1] << ch.triple[2] << "]";
+    }
+} __attribute__ ((packed));
+
 //! A pair (index, rank)
-struct TripleRank {
+struct IndexRank {
     size_t index;
     size_t rank;
 
-    friend std::ostream& operator << (std::ostream& os, const TripleRank& tr) {
+    friend std::ostream& operator << (std::ostream& os, const IndexRank& tr) {
         return os << "(" << std::to_string(tr.index) << "|"
                   << std::to_string(tr.rank) << ")";
     }
@@ -57,6 +68,7 @@ struct TripleRank {
 template <typename AlphabetType>
 struct StringFragmentMod0
 {
+    size_t       index;
     AlphabetType t0, t1;
     size_t       r1, r2;
 
@@ -70,11 +82,12 @@ struct StringFragmentMod0
 template <typename AlphabetType>
 struct StringFragmentMod1
 {
+    size_t       index;
     AlphabetType t0;
     size_t       r0, r1;
 
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod1& sf) {
-        return os << "t0=" << sf.t0 << ",r0=" << sf.r0 << ",r1=" << sf.r1;
+        return os << "r0=" << sf.r0 << ",t0=" << sf.t0 << ",r1=" << sf.r1;
     }
 } __attribute__ ((packed));
 
@@ -82,12 +95,13 @@ struct StringFragmentMod1
 template <typename AlphabetType>
 struct StringFragmentMod2
 {
+    size_t       index;
     AlphabetType t0, t1;
     size_t       r0, r2;
 
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod2& sf) {
-        return os << "t0=" << sf.t0 << ",t1=" << sf.t1
-                  << ",r0=" << sf.r0 << ",r2=" << sf.r2;
+        return os << "r0=" << sf.r0 << ",t0=" << sf.t0 << ","
+                  << "t1=" << sf.t1 << ",r2=" << sf.r2;
     }
 } __attribute__ ((packed));
 
@@ -95,8 +109,8 @@ struct StringFragmentMod2
 template <typename AlphabetType>
 struct StringFragment
 {
-    size_t index;
     union {
+        size_t                           index;
         StringFragmentMod0<AlphabetType> mod0;
         StringFragmentMod1<AlphabetType> mod1;
         StringFragmentMod2<AlphabetType> mod2;
@@ -141,7 +155,8 @@ DIA<size_t> Recursion(const DIA<size_t>& _input) {
 void StartDC3(api::Context& ctx) {
 
     using Char = char;
-    using TripleChar = Triple<Char>;
+    using IndexChars = ::IndexChars<Char>;
+    using Chars = ::Chars<Char>;
 
     std::string input = "bananabananabananabanana";
     std::vector<Char> input_vec(input.begin(), input.end());
@@ -155,15 +170,15 @@ void StartDC3(api::Context& ctx) {
     auto triple_sorted =
         input_dia
         // map (t_i) -> (i,t_i,t_{i+1},t_{i+2}) where i neq 0 mod 3
-        .FlatWindow<TripleChar>(
+        .FlatWindow<IndexChars>(
             3, [](size_t index, const common::RingBuffer<Char>& rb, auto emit) {
                 assert(rb.size() == 3);
                 // TODO(tb): missing last sentinel items.
                 if (index % 3 != 0)
-                    emit(TripleChar { index, rb[0], rb[1], rb[2] });
+                    emit(IndexChars { index, rb[0], rb[1], rb[2] });
             })
         // sort triples by contained letters
-        .Sort([](const TripleChar& a, const TripleChar& b) {
+        .Sort([](const IndexChars& a, const IndexChars& b) {
                   return std::lexicographical_compare(
                       a.triple + 0, a.triple + 3, b.triple + 0, b.triple + 3);
               })
@@ -175,7 +190,7 @@ void StartDC3(api::Context& ctx) {
     auto triple_prerank_sums =
         triple_sorted
         .FlatWindow<size_t>(
-            2, [](size_t index, const common::RingBuffer<TripleChar>& rb, auto emit) {
+            2, [](size_t index, const common::RingBuffer<IndexChars>& rb, auto emit) {
                 assert(rb.size() == 2);
 
                 // emit one sentinel for index 0.
@@ -200,8 +215,8 @@ void StartDC3(api::Context& ctx) {
             triple_sorted
             .Zip(
                 triple_prerank_sums,
-                [](const TripleChar& tc, size_t rank) {
-                    return TripleRank { tc.index, rank };
+                [](const IndexChars& tc, size_t rank) {
+                    return IndexRank { tc.index, rank };
                 });
         if (1)
             triple_ranks.Print("triple_ranks");
@@ -210,13 +225,13 @@ void StartDC3(api::Context& ctx) {
         // by all ranks at mod 2 indices.
         DIA<size_t> string_mod12 =
             triple_ranks
-            .Sort([](const TripleRank& a, const TripleRank& b) {
+            .Sort([](const IndexRank& a, const IndexRank& b) {
                       if (a.index % 3 == b.index % 3)
                           return a.index < b.index;
                       else
                           return a.index % 3 < b.index % 3;
                   })
-            .Map([](const TripleRank& tr) {
+            .Map([](const IndexRank& tr) {
                      return tr.rank;
                  })
             .Collapse();
@@ -225,6 +240,7 @@ void StartDC3(api::Context& ctx) {
 
         // TODO(tb): this can be calculated from input_size.
         // size_t size_mod1 = string_mod1.Size();
+        size_t size_mod1 = input_size / 3;
 
         DIA<size_t> suffix_array_rec = Recursion(string_mod12);
 
@@ -239,98 +255,183 @@ void StartDC3(api::Context& ctx) {
                                   [](const size_t& index) { return index; },
                                   rec_size);
 
-        DIA<size_t> ranks_rec =
+        auto ranks_rec =
             suffix_array_rec
             .Zip(enumerate,
                  [](size_t sa, size_t i) {
-                     return TripleRank { sa, i };
+                     return IndexRank { sa, i };
                  })
-            .Sort([](const TripleRank& a, const TripleRank& b) {
+            .Sort([](const IndexRank& a, const IndexRank& b) {
+                      // TODO(tb): change sort order for better locality later.
                       return a.index < b.index;
-                  })
-            .Map([](const TripleRank& a) {
+                  });
+
+        ranks_rec.Print("ranks_rec");
+
+        // *** construct StringFragments ***
+
+        auto triple_chars =
+            input_dia
+            // map (t_i) -> (i,t_i,t_{i+1},t_{i+2}) where i neq 0 mod 3
+            .FlatWindow<Chars>(
+                3, [](size_t index, const common::RingBuffer<Char>& rb, auto emit) {
+                    assert(rb.size() == 3);
+                    if (index % 3 == 0)
+                        emit(Chars { rb[0], rb[1], rb[2] });
+                });
+
+        auto ranks_mod1 =
+            ranks_rec
+            .Filter([&](const IndexRank& a) {
+                        return a.index < size_mod1;
+                    })
+            .Map([](const IndexRank& a) {
                      return a.rank;
                  })
             .Collapse();
 
-        ranks_rec.Print("ranks_rec");
+        auto ranks_mod2 =
+            ranks_rec
+            .Filter([&](const IndexRank& a) {
+                        return a.index >= size_mod1;
+                    })
+            .Map([](const IndexRank& a) {
+                     return a.rank;
+                 })
+            .Collapse();
 
-#if OLD_PROTOTYPE
-        // *** construct StringFragments ***
+        triple_chars.Print("triple_chars");
+        ranks_mod1.Print("ranks_mod1");
+        ranks_mod2.Print("ranks_mod2");
 
-        // how to do a synchronized parallel scan over two or three arrays?
-        // currently: fake it.
+        // TODO(tb): Yay. Need MultiZip!
 
-        using StringFragment = StringFragment<char>;
+        auto ranks_mod12 =
+            ranks_mod1
+            .Zip(ranks_mod2, [](const size_t& mod1, const size_t& mod2) {
+                     return std::make_pair(mod1, mod2);
+                 });
 
-        std::vector<StringFragment>
-        StringFragMod0, StringFragMod1, StringFragMod2;
+        using StringFragmentMod0 = ::StringFragmentMod0<Char>;
+        using StringFragmentMod1 = ::StringFragmentMod1<Char>;
+        using StringFragmentMod2 = ::StringFragmentMod2<Char>;
 
-        for (size_t i = 0; i < inputString.size(); ++i)
-        {
-            StringFragment sf {
-                i
-            };
-            size_t idiv3mod1 = i / 3;
-            size_t idiv3mod2 = idiv3mod1 + sizeMod1;
+        struct CharsRanks12 {
+            Chars  chars;
+            size_t rank1;
+            size_t rank2;
+        };
 
-            if (i % 3 == 0)
-            {
-                sf.mod0.t0 = inputString.rank(i);
-                sf.mod0.t1 =
-                    i + 1 < inputString.size() ? inputString.rank(i + 1)
-                    : std::numeric_limits<char>::max();
-                sf.mod0.r1 =
-                    idiv3mod1 < sizeMod1 ? ranksRec.rank(idiv3mod1)
-                    : std::numeric_limits<size_t>::min();
-                sf.mod0.r2 =
-                    idiv3mod2 < ranksRec.size() ? ranksRec.rank(idiv3mod2)
-                    : std::numeric_limits<size_t>::max();
-                StringFragMod0.push_back(sf);
-            }
-            else if (i % 3 == 1)
-            {
-                sf.mod1.t0 = inputString.rank(i);
-                sf.mod1.r0 = ranksRec.rank(idiv3mod1);
-                sf.mod1.r1 =
-                    idiv3mod2 < ranksRec.size() ? ranksRec.rank(idiv3mod2)
-                    : std::numeric_limits<size_t>::max();
-                StringFragMod1.push_back(sf);
-            }
-            else if (i % 3 == 2)
-            {
-                sf.mod2.t0 = inputString.rank(i);
-                sf.mod2.t1 =
-                    i + 1 < inputString.size() ? inputString.rank(i + 1)
-                    : std::numeric_limits<char>::max();
-                sf.mod2.r0 = ranksRec.rank(idiv3mod2);
-                sf.mod2.r2 =
-                    idiv3mod1 + 1 < sizeMod1 ? ranksRec.rank(idiv3mod1 + 1)
-                    : std::numeric_limits<size_t>::max();
-                StringFragMod2.push_back(sf);
-            }
-        }
+        auto zip_triple_pairs =
+            triple_chars
+            .Zip(ranks_mod12,
+                 [](const Chars& ch, const std::pair<size_t, size_t>& mod12) {
+                     return CharsRanks12 { ch, mod12.first, mod12.second };
+                 })
+            .Window(
+                2, [](size_t index,
+                      const common::RingBuffer<CharsRanks12>& rb) {
+                    return std::make_tuple(3 * index, rb[0], rb[1]);
+                });
+
+        // size_t idiv3mod1 = i / 3;
+        // size_t idiv3mod2 = idiv3mod1 + size_mod1;
+
+        auto fragments_mod0 =
+            zip_triple_pairs
+            .Map([](const std::tuple<size_t, CharsRanks12, CharsRanks12>& chp) {
+                     size_t index = std::get<0>(chp);
+                     const CharsRanks12& cr0 = std::get<1>(chp);
+
+                     return StringFragmentMod0 {
+                         index,
+                         cr0.chars.triple[0], cr0.chars.triple[1],
+                         cr0.rank1, cr0.rank2
+                     };
+                     //     sf.mod0.t0 = inputString.rank(i);
+                     // sf.mod0.t1 =
+                     //     i + 1 < inputString.size() ? inputString.rank(i + 1)
+                     //     : std::numeric_limits<char>::max();
+                     // sf.mod0.r1 =
+                     //     idiv3mod1 < size_mod1 ? ranksRec.rank(idiv3mod1)
+                     //     : std::numeric_limits<size_t>::min();
+                     // sf.mod0.r2 =
+                     //     idiv3mod2 < ranksRec.size() ? ranksRec.rank(idiv3mod2)
+                     //     : std::numeric_limits<size_t>::max();
+                 });
+
+        auto fragments_mod1 =
+            zip_triple_pairs
+            .Map([](const std::tuple<size_t, CharsRanks12, CharsRanks12>& chp) {
+                     size_t index = std::get<0>(chp);
+                     const CharsRanks12& cr0 = std::get<1>(chp);
+
+                     return StringFragmentMod1 {
+                         index + 1,
+                         cr0.chars.triple[1],
+                         cr0.rank1, cr0.rank2
+                     };
+
+                     // sf.mod1.t0 = inputString.rank(i);
+                     // sf.mod1.r0 = ranksRec.rank(idiv3mod1);
+                     // sf.mod1.r1 =
+                     // idiv3mod2 < ranksRec.size() ? ranksRec.rank(idiv3mod2)
+                     // : std::numeric_limits<size_t>::max();
+                 });
+
+        auto fragments_mod2 =
+            zip_triple_pairs
+            .Map([](const std::tuple<size_t, CharsRanks12, CharsRanks12>& chp) {
+                     size_t index = std::get<0>(chp);
+                     const CharsRanks12& cr0 = std::get<1>(chp);
+                     const CharsRanks12& cr1 = std::get<2>(chp);
+
+                     return StringFragmentMod2 {
+                         index + 1,
+                         cr0.chars.triple[2], cr1.chars.triple[0],
+                         cr0.rank2, cr1.rank1
+                     };
+
+                     // sf.mod2.t0 = inputString.rank(i);
+                     // sf.mod2.t1 =
+                     //     i + 1 < inputString.size() ? inputString.rank(i + 1)
+                     //     : std::numeric_limits<char>::max();
+                     // sf.mod2.r0 = ranksRec.rank(idiv3mod2);
+                     // sf.mod2.r2 =
+                     //     idiv3mod1 + 1 < size_mod1 ? ranksRec.rank(idiv3mod1 + 1)
+                     //     : std::numeric_limits<size_t>::max();
+                 });
+
+        fragments_mod0.Print("fragments_mod0");
+        fragments_mod1.Print("fragments_mod1");
+        fragments_mod2.Print("fragments_mod2");
 
         // Sort the three string fragment sets
 
-        DIA<StringFragment> SortedStringFragMod0 =
-            DIA<StringFragment>(StringFragMod0)
-            .sort([](const StringFragment& a, const StringFragment& b)
-                  {
-                      return a.mod0.t0 == b.mod0.t0
-                      ? a.mod0.r1 < b.mod0.r1
-                      : a.mod0.t0 < b.mod0.t0;
+        auto sorted_fragments_mod0 =
+            fragments_mod0
+            .Sort([](const StringFragmentMod0& a, const StringFragmentMod0& b) {
+                      return a.t0 == b.t0 ? a.r1 < b.r1 : a.t0 < b.t0;
                   });
 
-        DIA<StringFragment> SortedStringFragMod1 =
-            DIA<StringFragment>(StringFragMod1)
-            .sort([](const StringFragment& a, const StringFragment& b)
-                  { return a.mod1.r0 < b.mod1.r0; });
+        auto sorted_fragments_mod1 =
+            fragments_mod1
+            .Sort([](const StringFragmentMod1& a, const StringFragmentMod1& b) {
+                      return a.r0 < b.r0;
+                  });
 
-        DIA<StringFragment> SortedStringFragMod2 =
-            DIA<StringFragment>(StringFragMod2)
-            .sort([](const StringFragment& a, const StringFragment& b)
-                  { return a.mod2.r0 < b.mod2.r0; });
+        auto sorted_fragments_mod2 =
+            fragments_mod2
+            .Sort([](const StringFragmentMod2& a, const StringFragmentMod2& b) {
+                      return a.r0 < b.r0;
+                  });
+
+        sorted_fragments_mod0.Print("sorted_fragments_mod0");
+        sorted_fragments_mod1.Print("sorted_fragments_mod1");
+        sorted_fragments_mod2.Print("sorted_fragments_mod2");
+
+#ifdef OLD_PROTOTYPE
+        using StringFragment = ::StringFragment<Char>;
 
         // Multi-way merge the three string fragment arrays: TODO also fake
         // currently.
