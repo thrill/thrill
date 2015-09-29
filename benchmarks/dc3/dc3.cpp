@@ -192,9 +192,7 @@ void StartDC3(api::Context& ctx) {
                 triple_prerank_sums,
                 [](const TripleChar& tc, size_t rank) {
                     return TripleRank { tc.index, rank };
-                })
-            .Keep(); // is this needed?
-
+                });
         if (0)
             triple_ranks.Print("triple_ranks");
 
@@ -207,7 +205,6 @@ void StartDC3(api::Context& ctx) {
             .Sort([](const TripleRank& a, const TripleRank& b) {
                       return a.index < b.index;
                   })
-            .Keep() // TODO(sl): this Keep should not be needed?
             .Map([](const TripleRank& tr) {
                      return tr.rank;
                  })
@@ -222,7 +219,6 @@ void StartDC3(api::Context& ctx) {
             .Sort([](const TripleRank& a, const TripleRank& b) {
                       return a.index < b.index;
                   })
-            .Keep() // TODO(sl): this Keep should not be needed?
             .Map([](const TripleRank& tr) {
                      return tr.rank;
                  })
@@ -251,8 +247,6 @@ void StartDC3(api::Context& ctx) {
         DIA<size_t> string_rec = DistributeFrom(ctx, rec);
 
         DIA<size_t> suffix_array_rec = Recursion(string_rec);
-
-        suffix_array_rec.Keep();
 
         suffix_array_rec.Print("suffix_array_rec");
 
