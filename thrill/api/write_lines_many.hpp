@@ -71,14 +71,16 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    void PreOp(std::string input) {
+    void PreOp(const std::string& input) {
         stats_total_elements_++;
 
         if (THRILL_UNLIKELY(current_buffer_size_ + input.size() + 1
                             >= max_buffer_size_)) {
             stats_total_writes_++;
             stats_total_bytes_ += current_buffer_size_;
+            timer.Start();
             file_.write(write_buffer_.data(), current_buffer_size_);
+            timer.Stop();
             write_buffer_.set_size(0);
             current_file_size_ += current_buffer_size_;
             current_buffer_size_ = 0;
@@ -97,7 +99,9 @@ public:
                 stats_total_writes_++;
                 stats_total_bytes_ += input.size();
                 current_file_size_ += input.size() + 1;
+                timer.Start();
                 file_.write(input.data(), input.size());
+                timer.Stop();
                 current_buffer_size_ = 1;
                 write_buffer_.PutByte('\n');
                 return;
@@ -114,14 +118,17 @@ public:
         sLOG << "closing file";
         stats_total_writes_++;
         stats_total_bytes_ += current_buffer_size_;
+        timer.Start();
         file_.write(write_buffer_.data(), current_buffer_size_);
+        timer.Stop();
         file_.close();
 
         STAT(context_) << "NodeType" << "WriteLinesMany"
                        << "TotalBytes" << stats_total_bytes_
                        << "TotalLines" << stats_total_elements_
                        << "TotalWrites" << stats_total_writes_
-                       << "TotalFiles" << out_serial_;
+                       << "TotalFiles" << out_serial_
+                       << "WriteTime" << timer.Milliseconds();
     }
 
     void Dispose() final { }
@@ -150,6 +157,8 @@ private:
 
     //! Targetl file size in bytes
     size_t target_file_size_;
+
+    common::StatsTimer<true> timer;
 
     size_t stats_total_bytes_ = 0;
     size_t stats_total_elements_ = 0;
