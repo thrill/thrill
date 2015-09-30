@@ -34,7 +34,7 @@ int main(int argc, const char** argv) {
     if (!clp.Process(argc, argv)) return -1;
 
     for (int i = 0; i < iterations; i++) {
-        api::RunLocalSameThread(
+        api::Run(
             [&input_file, &output_file](api::Context& ctx) {
                 StatsTimer<true> timer(true);
                 auto lines = ReadLines(ctx, input_file);
