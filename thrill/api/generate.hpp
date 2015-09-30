@@ -76,14 +76,6 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.  \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
-
 private:
     //! The generator function which is applied to every index.
     GeneratorFunction generator_function_;
@@ -126,10 +118,7 @@ auto Generate(Context & ctx,
         std::make_shared<GenerateNode>(
             ctx, generator_function, size, stats_node);
 
-    auto generator_stack = shared_node->ProduceStack();
-
-    return DIA<GeneratorResult, decltype(generator_stack)>(
-        shared_node, generator_stack, { stats_node });
+    return DIA<GeneratorResult>(shared_node, { stats_node });
 }
 
 //! \}

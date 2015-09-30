@@ -119,16 +119,6 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     *
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
-
 private:
     //! Path of the input file.
     std::string filepath_;
@@ -202,10 +192,7 @@ DIA<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
         std::make_shared<ReadBinaryNode<ValueType> >(
             ctx, filepath, stats_node);
 
-    auto read_stack = shared_node->ProduceStack();
-
-    return DIA<ValueType, decltype(read_stack)>(
-        shared_node, read_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

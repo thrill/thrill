@@ -98,16 +98,6 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     *
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<std::string>();
-    }
-
 private:
     //! True, if at least one input file is compressed.
     bool contains_compressed_file_ = false;
@@ -439,10 +429,7 @@ DIA<std::string> ReadLines(Context& ctx, std::string filepath) {
         std::make_shared<ReadLinesNode>(
             ctx, filepath, stats_node);
 
-    auto read_stack = shared_node->ProduceStack();
-
-    return DIA<std::string, decltype(read_stack)>(
-        shared_node, read_stack, { stats_node });
+    return DIA<std::string>(shared_node, { stats_node });
 }
 
 //! \}

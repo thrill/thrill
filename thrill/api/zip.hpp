@@ -118,8 +118,6 @@ public:
         parent1.node()->RegisterChild(lop_chain1, this->type());
     }
 
-    ~TwoZipNode() { }
-
     /*!
      * Actually executes the zip operation. Uses the member functions PreOp,
      * MainOp and PostOp.
@@ -149,14 +147,6 @@ public:
     }
 
     void Dispose() final { }
-
-    /*!
-     * Creates empty stack.
-     */
-    auto ProduceStack() {
-        // Hook PostOp
-        return FunctionStack<ZipResult>();
-    }
 
 private:
     //! Zip function
@@ -315,10 +305,7 @@ auto DIA<ValueType, Stack>::Zip(
         = std::make_shared<ZipNode>(
         *this, second_dia, zip_function, stats_node);
 
-    auto zip_stack = zip_node->ProduceStack();
-
-    return DIA<ZipResult, decltype(zip_stack)>(
-        zip_node, zip_stack, { stats_node });
+    return DIA<ZipResult>(zip_node, { stats_node });
 }
 
 //! \}

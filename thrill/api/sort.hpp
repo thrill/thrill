@@ -78,8 +78,6 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    virtual ~SortNode() { }
-
     //! Executes the sum operation.
     void Execute() final {
         MainOp();
@@ -98,16 +96,6 @@ public:
 
     void Dispose() final {
         std::vector<ValueType>().swap(data_);
-    }
-
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     *
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
     }
 
 private:
@@ -441,10 +429,7 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const 
     auto shared_node
         = std::make_shared<SortNode>(*this, compare_function, stats_node);
 
-    auto sort_stack = shared_node->ProduceStack();
-
-    return DIA<ValueType, decltype(sort_stack)>(
-        shared_node, sort_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

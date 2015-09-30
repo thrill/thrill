@@ -57,9 +57,6 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    //! Virtual destructor for a LOpNode.
-    virtual ~CollapseNode() { }
-
     /*!
      * Pushes elements to next node.
      * Can be skipped for LOps.
@@ -107,10 +104,8 @@ auto DIA<ValueType, Stack>::Collapse() const {
     StatsNode* stats_node = AddChildStatsNode("Collapse", DIANodeType::COLLAPSE);
     auto shared_node
         = std::make_shared<CollapseNode>(*this, stats_node);
-    auto lop_stack = FunctionStack<ValueType>();
 
-    return DIA<ValueType, decltype(lop_stack)>(
-        shared_node, lop_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

@@ -73,16 +73,6 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     *
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
-
 private:
     //! The sum function which is applied to two elements.
     SumFunction sum_function_;
@@ -153,10 +143,7 @@ auto DIA<ValueType, Stack>::PrefixSum(
         = std::make_shared<SumResultNode>(
         *this, sum_function, initial_element, stats_node);
 
-    auto sum_stack = shared_node->ProduceStack();
-
-    return DIA<ValueType, decltype(sum_stack)>(
-        shared_node, sum_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}
