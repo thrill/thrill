@@ -117,6 +117,18 @@ public:
     { }
 
     /*!
+     * Constructor of a new DIA supporting move semantics of nodes.
+     *
+     * \param node Pointer to the last DIANode, DOps and Actions create a new
+     * DIANode, LOps link to the DIANode of the previous DIA.
+     *
+     * \param stack Function stack consisting of functions between last DIANode
+     * and this DIA.
+     */
+    DIA(DIANodePtr&& node, const std::vector<StatsNode*>& stats_parents)
+        : DIA(std::move(node), FunctionStack<ValueType>(), stats_parents) { }
+
+    /*!
      * Copy-Constructor of a DIA with empty function chain from a DIA with
      * a non-empty chain.  The functionality of the chain is stored in a newly
      * created LOpNode.  The current DIA than points to this LOpNode.  This

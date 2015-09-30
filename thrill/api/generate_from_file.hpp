@@ -69,8 +69,6 @@ public:
           size_(size)
     { }
 
-    virtual ~GenerateFileNode() { }
-
     void PushData(bool /* consume */) final {
         LOG << "GENERATING data to file " << this->id();
 
@@ -109,16 +107,6 @@ public:
     }
 
     void Dispose() final { }
-
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     *
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
 
 private:
     //! The read function which is applied on every line read.
@@ -171,10 +159,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
         std::make_shared<GenerateNode>(
             ctx, generator_function, filepath, size, stats_node);
 
-    auto generator_stack = shared_node->ProduceStack();
-
-    return DIA<GeneratorResult, decltype(generator_stack)>(
-        shared_node, generator_stack, { });
+    return DIA<GeneratorResult>(shared_node, { });
 }
 
 //! \}

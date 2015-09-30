@@ -81,10 +81,6 @@ public:
 
     void Dispose() final { }
 
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
-
 private:
     //! Vector pointer to read elements from.
     const std::vector<ValueType>& in_vector_;
@@ -114,10 +110,7 @@ auto DistributeFrom(
         std::make_shared<DistributeFromNode>(
             ctx, in_vector, source_id, stats_node);
 
-    auto scatter_stack = shared_node->ProduceStack();
-
-    return DIA<ValueType, decltype(scatter_stack)>(
-        shared_node, scatter_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

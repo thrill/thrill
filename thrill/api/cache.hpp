@@ -59,9 +59,6 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    //! Virtual destructor for a LOpNode.
-    virtual ~CacheNode() { }
-
     /*!
      * Pushes elements to next node.
      * Can be skipped for LOps.
@@ -94,12 +91,11 @@ auto DIA<ValueType, Stack>::Cache() const {
     using LOpChainNode = CacheNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Cache", DIANodeType::CACHE);
+
     auto shared_node
         = std::make_shared<LOpChainNode>(*this, stats_node);
-    auto lop_stack = FunctionStack<ValueType>();
 
-    return DIA<ValueType, decltype(lop_stack)>(
-        shared_node, lop_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

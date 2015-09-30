@@ -107,9 +107,6 @@ public:
                          });
     }
 
-    //! Virtual destructor for a GroupByIndexNode.
-    virtual ~GroupByIndexNode() { }
-
     /*!
      * Actually executes the reduce operation. Uses the member functions PreOp,
      * MainOp and PostOp.
@@ -174,14 +171,6 @@ public:
     }
 
     void Dispose() override { }
-
-    /*!
-     * Produces a function stack, which only contains the PostOp function.
-     * \return PostOp function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
 
 private:
     const KeyExtractor& key_extractor_;
@@ -320,10 +309,7 @@ auto DIA<ValueType, Stack>::GroupByIndex(
         *this, key_extractor, groupby_function,
         number_keys, neutral_element, stats_node);
 
-    auto groupby_stack = shared_node->ProduceStack();
-
-    return DIA<DOpResult, decltype(groupby_stack)>(
-        shared_node, groupby_stack, { stats_node });
+    return DIA<DOpResult>(shared_node, { stats_node });
 }
 
 } // namespace api

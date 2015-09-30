@@ -173,10 +173,6 @@ public:
 
     void Dispose() final { }
 
-    FunctionStack<ValueType> ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
-
 private:
     //! Key extractor function
     KeyExtractor key_extractor_;
@@ -256,10 +252,7 @@ auto DIA<ValueType, Stack>::ReduceToIndexByKey(
         *this, key_extractor, reduce_function,
         size, neutral_element, stats_node);
 
-    auto reduce_stack = shared_node->ProduceStack();
-
-    return DIA<DOpResult, decltype(reduce_stack)>(
-        shared_node, reduce_stack, { stats_node });
+    return DIA<DOpResult>(shared_node, { stats_node });
 }
 
 template <typename ValueType, typename Stack>
@@ -327,10 +320,7 @@ auto DIA<ValueType, Stack>::ReducePairToIndex(
                                        neutral_element,
                                        stats_node);
 
-    auto reduce_stack = shared_node->ProduceStack();
-
-    return DIA<ValueType, decltype(reduce_stack)>(
-        shared_node, reduce_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 template <typename ValueType, typename Stack>
@@ -387,10 +377,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
     auto shared_node = std::make_shared<ReduceNode>(
         *this, key_extractor, reduce_function, size, neutral_element, stats_node);
 
-    auto reduce_stack = shared_node->ProduceStack();
-
-    return DIA<DOpResult, decltype(reduce_stack)>(
-        shared_node, reduce_stack, { stats_node });
+    return DIA<DOpResult>(shared_node, { stats_node });
 }
 
 //! \}

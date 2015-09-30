@@ -80,8 +80,6 @@ public:
         parent1.node()->RegisterChild(lop_chain1, this->type());
     }
 
-    ~TwoMergeNode() { }
-
     /*!
      * Actually executes the merge operation. Uses the member functions PreOp,
      * MainOp and PostOp.
@@ -122,14 +120,6 @@ public:
     }
 
     void Dispose() final { }
-
-    /*!
-     * Creates empty stack.
-     */
-    auto ProduceStack() {
-        // Hook PostOp
-        return FunctionStack<MergeResult>();
-    }
 
 private:
     //! Merge function
@@ -210,10 +200,7 @@ auto DIA<ValueType, Stack>::Merge(
         = std::make_shared<MergeResultNode>(
         *this, second_dia, merge_function, stats_node);
 
-    auto merge_stack = merge_node->ProduceStack();
-
-    return DIA<MergeResult, decltype(merge_stack)>(
-        merge_node, merge_stack, { stats_node });
+    return DIA<MergeResult>(merge_node, { stats_node });
 }
 
 //! \}
