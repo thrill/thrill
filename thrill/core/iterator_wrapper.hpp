@@ -149,7 +149,7 @@ public:
         }
     }
 
-    // FileIteratorWrapper(const FileIteratorWrapper& r) {}
+    FileIteratorWrapper(const FileIteratorWrapper&) = default;
 
     FileIteratorWrapper& operator = (const FileIteratorWrapper& r) {
         file_ = r.file_;

@@ -125,6 +125,12 @@ public:
     FixedAllocator(const FixedAllocator<OtherType, manager_>&) noexcept
     { }
 
+    //! copy-assignment operator: default
+    FixedAllocator& operator = (FixedAllocator&) noexcept = default;
+
+    //! move-assignment operator: default
+    FixedAllocator& operator = (FixedAllocator&&) noexcept = default;
+
     //! Attempts to allocate a block of storage with a size large enough to
     //! contain n elements of member type value_type, and returns a pointer to
     //! the first element.

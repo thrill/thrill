@@ -242,6 +242,9 @@ public:
         sLOG << "create PyDIA" << this;
     }
 
+    //! copy-constructor: default
+    PyDIA(const PyDIA& dia) = default;
+
     ~PyDIA() {
         sLOG << "delete PyDIA" << this;
     }

@@ -95,6 +95,11 @@ if(NOT MSVC)
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
   endif()
+  # enable extra warnings on clang
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wdeprecated")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wabstract-vbase-init")
+  endif()
 
   # Clang < 3.6 0 (?) does not support debug output for auto return types yet.
   # try compiling a platform test for auto return types

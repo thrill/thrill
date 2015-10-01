@@ -33,7 +33,7 @@ set_target_properties(_thrill_python PROPERTIES OUTPUT_NAME "_thrill")
 set_join(NO_WARN
   "-Wno-cast-qual -Wno-missing-field-initializers"
   "-Wno-deprecated-register -Wno-self-assign -Wno-sometimes-uninitialized"
-  "-Wno-conversion")
+  "-Wno-conversion -Wno-deprecated")
 set_source_files_properties(thrill_pythonPYTHON_wrap.cxx
   PROPERTIES COMPILE_FLAGS "${NO_WARN}")
 
