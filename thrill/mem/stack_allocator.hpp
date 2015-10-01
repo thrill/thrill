@@ -123,8 +123,17 @@ public:
     StackAllocator(const StackAllocator<Other, Size>& other) noexcept
         : arena_(other.arena_) { }
 
-    //! copy-constructor
-    StackAllocator(const StackAllocator&) noexcept = default;
+    //! copy-constructor: default
+    StackAllocator(const StackAllocator& other) noexcept = default;
+
+    //! move-constructor: default
+    StackAllocator(StackAllocator&& other) noexcept = default;
+
+    //! copy-assignment: default
+    StackAllocator& operator = (StackAllocator& other) noexcept = default;
+
+    //! move-assignment: default
+    StackAllocator& operator = (StackAllocator&& other) noexcept = default;
 
     //! allocate method: get memory from arena
     pointer allocate(size_t n) {

@@ -409,7 +409,7 @@ public:
     //! constructor with reference to BlockPool
     BoundedFile(data::BlockPool& block_pool, size_t max_size)
         : BlockSink(block_pool),
-          BoundedBlockSink(block_pool, max_size),
+          BoundedBlockSink(max_size),
           File(block_pool)
     { }
 

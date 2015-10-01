@@ -523,6 +523,15 @@ public:
         }
     }
 
+    //! non-copyable: delete copy-constructor
+    LoserTreePointerBase(const LoserTreePointerBase&) = delete;
+    //! non-copyable: delete assignment operator
+    LoserTreePointerBase& operator = (const LoserTreePointerBase&) = delete;
+    //! move-constructor: default
+    LoserTreePointerBase(LoserTreePointerBase&&) = default;
+    //! move-assignment operator: default
+    LoserTreePointerBase& operator = (LoserTreePointerBase&&) = default;
+
     ~LoserTreePointerBase() {
         delete[] losers;
     }

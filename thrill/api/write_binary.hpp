@@ -91,7 +91,7 @@ private:
                     size_t& stats_total_elements,
                     size_t& stats_total_writes)
             : BlockSink(block_pool),
-              BoundedBlockSink(block_pool, max_file_size),
+              BoundedBlockSink(max_file_size),
               file_(core::SysFile::OpenForWrite(path)),
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }

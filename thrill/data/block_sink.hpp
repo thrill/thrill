@@ -82,9 +82,8 @@ class BoundedBlockSink : public virtual BlockSink
 {
 public:
     //! constructor with reference to BlockPool
-    BoundedBlockSink(data::BlockPool& block_pool, size_t max_size)
-        : BlockSink(block_pool),
-          max_size_(max_size), available_(max_size)
+    BoundedBlockSink(size_t max_size)
+        : max_size_(max_size), available_(max_size)
     { }
 
     ByteBlockPtr AllocateByteBlock(size_t block_size) final {

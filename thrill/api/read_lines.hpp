@@ -114,6 +114,15 @@ private:
 
         static const bool debug = false;
 
+        //! non-copyable: delete copy-constructor
+        InputLineIterator(const InputLineIterator&) = delete;
+        //! non-copyable: delete assignment operator
+        InputLineIterator& operator = (const InputLineIterator&) = delete;
+        //! move-constructor: default
+        InputLineIterator(InputLineIterator&&) = default;
+        //! move-assignment operator: default
+        InputLineIterator& operator = (InputLineIterator&&) = default;
+
     protected:
         //! Block read size
         const size_t read_size = data::default_block_size;
