@@ -150,11 +150,9 @@ void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
         {
             if (w->except_cb) {
                 if (!w->except_cb()) {
-                    w = &watch_[fd];
                     // callback returned false: remove fd from set
                     select_.ClearException(fd);
                 }
-                w = &watch_[fd];
             }
             else {
                 DefaultExceptionCallback();

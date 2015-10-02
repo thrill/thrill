@@ -131,7 +131,7 @@ private:
     /**
      * The rank associated with the local worker.
      */
-    size_t my_rank_;
+    size_t my_rank_ = size_t(-1);
 
     /**
      * The Connections responsible

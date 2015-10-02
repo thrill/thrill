@@ -319,7 +319,7 @@ private:
     //! is the function pointer, for class::methods it is a pointer to the class
     //! instance, for functors it is a pointer to the shared_ptr store_
     //! contents.
-    void* object_ptr_;
+    void* object_ptr_ = nullptr;
 
     //! shared_ptr used to contain a memory object containing the callable, like
     //! lambdas with closures, or our own wrappers.

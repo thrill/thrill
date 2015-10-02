@@ -705,8 +705,7 @@ void CmdlineParser::AddOptParamStringlist(const std::string& name,
 /******************************************************************************/
 
 void CmdlineParser::PrintUsage(std::ostream& os) {
-    std::ios state(nullptr);
-    state.copyfmt(os);
+    std::ios::fmtflags flags(os.flags());
 
     os << "Usage: " << progname_
        << (optlist_.size() ? " [options]" : "");
@@ -769,7 +768,7 @@ void CmdlineParser::PrintUsage(std::ostream& os) {
         }
     }
 
-    os.copyfmt(state);
+    os.flags(flags);
 }
 
 void CmdlineParser::PrintOptionError(
@@ -950,8 +949,7 @@ bool CmdlineParser::Process(
 }
 
 void CmdlineParser::PrintResult(std::ostream& os) {
-    std::ios state(nullptr);
-    state.copyfmt(os);
+    std::ios::fmtflags flags(os.flags());
 
     int maxlong = std::max(param_maxlong_, opt_maxlong_);
 
@@ -995,7 +993,7 @@ void CmdlineParser::PrintResult(std::ostream& os) {
         }
     }
 
-    os.copyfmt(state);
+    os.flags(flags);
 }
 
 /******************************************************************************/

@@ -74,10 +74,10 @@ public:
 //! Provides a serializer and two partial deserializers
 //! A StreamBlockHeader with num_elements = 0 marks the end of a stream
 struct StreamBlockHeader : public BlockHeader {
-    size_t stream_id;
-    size_t sender_rank;
-    size_t receiver_local_worker_id;
-    size_t sender_local_worker_id;
+    size_t stream_id = 0;
+    size_t sender_rank = 0;
+    size_t receiver_local_worker_id = 0;
+    size_t sender_local_worker_id = 0;
 
     StreamBlockHeader() = default;
 
@@ -110,11 +110,11 @@ struct StreamBlockHeader : public BlockHeader {
 };
 
 struct PartitionBlockHeader : public BlockHeader {
-    size_t partition_set_id;
-    size_t partition_index;
-    size_t sender_rank;
-    size_t receiver_local_worker_id;
-    size_t sender_local_worker_id;
+    size_t partition_set_id = 0;
+    size_t partition_index = 0;
+    size_t sender_rank = 0;
+    size_t receiver_local_worker_id = 0;
+    size_t sender_local_worker_id = 0;
 
     PartitionBlockHeader() = default;
 
