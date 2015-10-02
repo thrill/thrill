@@ -133,7 +133,7 @@ using ByteBlockPtr = ByteBlock::ByteBlockPtr;
 class Block
 {
 public:
-    Block() { }
+    Block() = default;
 
     Block(const ByteBlockPtr& byte_block,
           size_t begin, size_t end, size_t first_item, size_t num_items)
@@ -213,19 +213,19 @@ private:
     ByteBlockPtr byte_block_;
 
     //! beginning offset of valid bytes to read
-    size_t begin_;
+    size_t begin_ = 0;
 
     //! one byte beyond the end of the valid bytes in the ByteBlock (can be used
     //! to virtually shorten a ByteBlock)
-    size_t end_;
+    size_t end_ = 0;
 
     //! offset of first valid element in the ByteBlock in absolute bytes from
     //! byte_block_->begin().
-    size_t first_item_;
+    size_t first_item_ = 0;
 
     //! number of valid items that _start_ in this block (includes cut-off
     //! element at the end)
-    size_t num_items_;
+    size_t num_items_ = 0;
 };
 
 //! \}

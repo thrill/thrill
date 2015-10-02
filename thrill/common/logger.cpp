@@ -57,9 +57,11 @@ void FormatNameForThisThread(std::ostream& os) {
     if (it != s_threads.end()) {
         StringCount& sc = it->second;
         if (true) {
+            std::ios::fmtflags flags(os.flags());
             // print "name #msg";
             os << sc.first << ' '
                << std::setfill('0') << std::setw(6) << sc.second++;
+            os.flags(flags);
         }
         else {
             os << sc.first;

@@ -123,10 +123,10 @@ public:
 
 private:
     //! Reference to our group.
-    Group* group_;
+    Group* group_ = nullptr;
 
     //! Outgoing peer id of this Connection.
-    size_t peer_;
+    size_t peer_ = size_t(-1);
 
     //! Mutex to lock access to inbound message queue
     std::mutex mutex_;

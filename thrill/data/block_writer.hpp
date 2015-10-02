@@ -365,10 +365,10 @@ private:
     Byte* end_ = nullptr;
 
     //! number of items in current block
-    size_t nitems_;
+    size_t nitems_ = 0;
 
     //! offset of first item
-    size_t first_offset_;
+    size_t first_offset_ = 0;
 
     //! file or stream sink to output blocks to.
     BlockSink* sink_;

@@ -164,9 +164,9 @@ private:
     size_t partners_local_worker_id_ = size_t(-1);
     bool closed_ = false;
 
-    StatsCounterPtr byte_counter_;
-    StatsCounterPtr block_counter_;
-    StatsTimerPtr tx_timespan_;
+    StatsCounterPtr byte_counter_ = nullptr;
+    StatsCounterPtr block_counter_ = nullptr;
+    StatsTimerPtr tx_timespan_ = nullptr;
 };
 
 //! \}
