@@ -240,6 +240,8 @@ public:
 
         max_num_items_per_partition_ = max_num_blocks_per_partition_ * block_size_;
 
+        fill_rate_num_items_per_partition_ = (size_t)(max_num_items_per_partition_ * max_partition_fill_rate_);
+
         num_buckets_per_partition_ =
             std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_partition_)
                                       * bucket_rate), 1);
@@ -252,8 +254,6 @@ public:
             std::max<size_t>((size_t)(std::ceil(
                                           static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
                                           / static_cast<double>(sizeof(BucketBlock)))), 0);
-
-        std::cout << max_num_blocks_per_table_ << std::endl;
 
         assert(max_num_blocks_per_table_ > 0);
         assert(max_num_blocks_per_partition_ > 0);
@@ -383,9 +383,7 @@ public:
 #endif
 
         // flush current partition if max partition fill rate reached
-        if (static_cast<double>(num_items_per_partition_[h.partition_id])
-            / static_cast<double>(max_num_items_per_partition_)
-            > max_partition_fill_rate_)
+        if (num_items_per_partition_[h.partition_id] > fill_rate_num_items_per_partition_)
         {
             FlushPartition(h.partition_id);
         }
@@ -781,6 +779,9 @@ protected:
 
     //! Bucket block pool.
     BucketBlockPool<BucketBlock> block_pool;
+
+    //! Number of items per partition considering fill rate.
+    size_t fill_rate_num_items_per_partition_ = 0;
 };
 
 } // namespace core

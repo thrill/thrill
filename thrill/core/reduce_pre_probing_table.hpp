@@ -191,6 +191,8 @@ public:
 
         size_ = num_items_per_partition_ * num_partitions_;
 
+        fill_rate_num_items_per_partition_ = (size_t)(num_items_per_partition_ * max_partition_fill_rate_);
+
         assert(size_ > 0);
         assert(num_items_per_partition_ > 0);
 
@@ -295,9 +297,7 @@ public:
         num_items_++;
 #endif
 
-        if (static_cast<double>(items_per_partition_[h.partition_id])
-            / static_cast<double>(num_items_per_partition_)
-            > max_partition_fill_rate_)
+        if (items_per_partition_[h.partition_id] > fill_rate_num_items_per_partition_)
         {
             FlushPartition(h.partition_id);
         }
@@ -570,6 +570,9 @@ private:
 
     //! Number of collisions.
     size_t num_collisions_ = 0;
+
+    //! Number of items per partition considering fill rate.
+    size_t fill_rate_num_items_per_partition_ = 0;
 };
 
 } // namespace core

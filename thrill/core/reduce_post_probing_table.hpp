@@ -116,10 +116,11 @@ public:
 };
 
 template <typename Key,
-        typename KeyValuePair,
+        typename Value,
         typename ReduceFunction,
         typename IndexFunction = PostProbingReduceByHashKey<Key>,
-        typename EqualToFunction = std::equal_to<Key> >
+        typename EqualToFunction = std::equal_to<Key>,
+        typename KeyValuePair = std::pair<Key, Value> >
 class PostProbingReduceFlushToDefault
 {
 public:
@@ -360,6 +361,10 @@ public:
 
         size_t num_frames = ht->NumFrames();
 
+        //Value neutral_element = ht->NeutralElement();
+
+        //elements_to_emit.resize(ht->EndLocalIndex() - ht->BeginLocalIndex(), neutral_element);
+
         Context& ctx = ht->Ctx();
 
         for (size_t frame_id = 0; frame_id < num_frames; frame_id++)
@@ -429,7 +434,8 @@ template <typename Key,
         typename Value,
         typename ReduceFunction,
         typename IndexFunction = PostProbingReduceByHashKey<Key>,
-        typename EqualToFunction = std::equal_to<Key> >
+        typename EqualToFunction = std::equal_to<Key>,
+        typename KeyValuePair = std::pair<Key, Value> >
 class PostProbingReduceFlushToIndex
 {
 public:
@@ -442,46 +448,244 @@ public:
     { }
 
     template <typename ReducePostProbingTable>
+    void Spill(std::vector<KeyValuePair>& second_reduce, size_t offset,
+               size_t length, data::File::Writer& writer,
+               ReducePostProbingTable* ht) const
+    {
+        for (size_t idx = offset; idx < length; idx++)
+        {
+            KeyValuePair& current = second_reduce[idx];
+            if (current.first != ht->Sentinel().first)
+            {
+                writer.PutItem(current);
+                second_reduce[idx] = ht->Sentinel();
+            }
+        }
+    }
+
+    template <typename ReducePostProbingTable>
+    void Reduce(Context& ctx, bool consume, ReducePostProbingTable* ht,
+                std::vector<KeyValuePair>& items, size_t offset, size_t length,
+                data::File::Reader& reader, std::vector<KeyValuePair>& second_reduce,
+                std::vector<Value>& elements_to_emit) const
+    {
+        size_t item_count = 0;
+
+        double fill_rate = ht->MaxFrameFillRate();
+
+        std::vector<data::File> frame_files_;
+        std::vector<data::File::Writer> frame_writers_;
+
+        /////
+        // reduce data from spilled files
+        /////
+
+        // flag used when item is reduced to advance to next item
+        bool reduced = false;
+
+        /////
+        // reduce data from primary table
+        /////
+        for (size_t i = offset; i < length; i++)
+        {
+            KeyValuePair& kv = items[i];
+            if (kv.first != ht->Sentinel().first)
+            {
+                size_t global_index = index_function_(kv.first, ht, second_reduce.size());
+
+                KeyValuePair* initial = &second_reduce[global_index];
+                KeyValuePair* current = initial;
+                KeyValuePair* last_item = &second_reduce[second_reduce.size() - 1];
+
+                while (!equal_to_function_(current->first, ht->Sentinel().first))
+                {
+                    if (equal_to_function_(current->first, kv.first))
+                    {
+                        current->second = reduce_function_(current->second, kv.second);
+                        reduced = true;
+                        break;
+                    }
+
+                    if (current == last_item)
+                    {
+                        current -= (second_reduce.size() - 1);
+                    }
+                    else
+                    {
+                        ++current;
+                    }
+                }
+
+                if (reduced)
+                {
+                    if (consume)
+                    {
+                        items[i] = ht->Sentinel();
+                    }
+                    reduced = false;
+                    continue;
+                }
+
+                // insert new pair
+                current->first = kv.first;
+                current->second = kv.second;
+                item_count++;
+
+                if (consume)
+                {
+                    items[i] = ht->Sentinel();
+                }
+
+                // flush current partition if max partition fill rate reached
+                if (static_cast<double>(item_count)
+                    / static_cast<double>(second_reduce.size())
+                    > fill_rate)
+                {
+                    // set up files (if not set up already)
+                    if (frame_files_.size() == 0) {
+                        for (size_t i = 0; i < 2; i++) {
+                            frame_files_.push_back(ctx.GetFile());
+                        }
+                        for (size_t i = 0; i < 2; i++) {
+                            frame_writers_.push_back(frame_files_[i].GetWriter());
+                        }
+                    }
+
+                    // spill into files
+                    Spill(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], ht);
+                    Spill(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], ht);
+
+                    item_count = 0;
+                }
+            }
+        }
+
+        while (reader.HasNext()) {
+
+            KeyValuePair kv = reader.Next<KeyValuePair>();
+
+            size_t global_index = index_function_(kv.first, ht, second_reduce.size());
+
+            KeyValuePair* initial = &second_reduce[global_index];
+            KeyValuePair* current = initial;
+            KeyValuePair* last_item = &second_reduce[second_reduce.size() - 1];
+
+            while (!equal_to_function_(current->first, ht->Sentinel().first))
+            {
+                if (equal_to_function_(current->first, kv.first))
+                {
+                    current->second = reduce_function_(current->second, kv.second);
+                    reduced = true;
+                    break;
+                }
+
+                if (current == last_item)
+                {
+                    current -= (second_reduce.size() - 1);
+                }
+                else
+                {
+                    ++current;
+                }
+            }
+
+            if (reduced)
+            {
+                reduced = false;
+                continue;
+            }
+
+            // insert new pair
+            current->first = kv.first;
+            current->second = kv.second;
+            item_count++;
+
+            // flush current partition if max partition fill rate reached
+            if (static_cast<double>(item_count)
+                / static_cast<double>(second_reduce.size())
+                > fill_rate)
+            {
+                // set up files (if not set up already)
+                if (frame_files_.size() == 0) {
+                    for (size_t i = 0; i < 2; i++) {
+                        frame_files_.push_back(ctx.GetFile());
+                    }
+                    for (size_t i = 0; i < 2; i++) {
+                        frame_writers_.push_back(frame_files_[i].GetWriter());
+                    }
+                }
+
+                // spill into files
+                Spill(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], ht);
+                Spill(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], ht);
+
+                item_count = 0;
+            }
+        }
+
+        /////
+        // emit data
+        /////
+
+        // nothing spilled in second reduce
+        if (frame_files_.size() == 0) {
+            for (size_t i = 0; i < second_reduce.size(); i++) {
+                KeyValuePair &current = second_reduce[i];
+                if (current.first != ht->Sentinel().first) {
+#if defined(EMIT_DATA)
+                    elements_to_emit[current.first - ht->BeginLocalIndex()] = current.second;
+                }
+#endif
+                second_reduce[i] = ht->Sentinel();
+            }
+        }
+
+        // spilling was required, need to reduce again
+        else {
+            // spill into files
+            Spill(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], ht);
+            Spill(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], ht);
+
+            data::File& file1 = frame_files_[0];
+            data::File::Writer& writer1 = frame_writers_[0];
+            writer1.Close();
+            data::File::Reader reader1 = file1.GetReader(true);
+            Reduce(ctx, false, ht, second_reduce, 0, 0, reader1, second_reduce, elements_to_emit);
+
+            data::File& file2 = frame_files_[1];
+            data::File::Writer& writer2 = frame_writers_[1];
+            writer2.Close();
+            data::File::Reader reader2 = file2.GetReader(true);
+            Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce, elements_to_emit);
+        }
+    }
+
+    template <typename ReducePostProbingTable>
     void
     operator () (bool consume, ReducePostProbingTable* ht) const {
 
-        using KeyValuePair = typename ReducePostProbingTable::KeyValuePair;
-
         std::vector<KeyValuePair>& items = ht->Items();
 
-        std::vector<size_t>& num_items_per_frame = ht->NumItemsPerFrame();
+        std::vector<KeyValuePair>& second_reduce = ht->SecondTable();
 
-        std::vector<size_t>& total_num_items_per_frame = ht->TotalNumItemsPerFrame();
+        std::vector<size_t>& num_items_per_frame = ht->NumItemsPerFrame();
 
         std::vector<data::File>& frame_files = ht->FrameFiles();
 
         std::vector<data::File::Writer>& frame_writers = ht->FrameWriters();
 
-        size_t size = ht->Size();
-
         size_t frame_size = ht->FrameSize();
 
-        double fill_rate = ht->MaxFrameFillRate();
-
-        //! Data structure for second reduce table
-        std::vector<KeyValuePair> second_reduce;
+        size_t num_frames = ht->NumFrames();
 
         Value neutral_element = ht->NeutralElement();
 
         std::vector<Value> elements_to_emit(ht->EndLocalIndex() - ht->BeginLocalIndex(), neutral_element);
 
-        // sort total num blocks per frame
-        std::vector<size_t> idx(total_num_items_per_frame.size());
-        for (size_t i = 0; i != idx.size(); ++i) {
-            idx[i] = i;
-        }
-        // sort indexes based on comparing values in v
-        std::sort(idx.begin(), idx.end(), [&total_num_items_per_frame](size_t i1, size_t i2) {
-            return total_num_items_per_frame[i1] > total_num_items_per_frame[i2];
-        });
+        Context& ctx = ht->Ctx();
 
-        for (size_t frame_id : idx) {
-
+        for (size_t frame_id = 0; frame_id < num_frames; frame_id++)
+        {
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
             data::File::Writer& writer = frame_writers[frame_id];
@@ -489,135 +693,14 @@ public:
 
             // compute frame offset of current frame
             size_t offset = frame_id * frame_size;
-            size_t length = std::min<size_t>(offset + frame_size, size);
+            size_t length = offset + frame_size;
 
-            // only if items have been spilled,
-            // process a second reduce
-            if (file.num_items() > 0) {
-
-                size_t frame_length = std::max<size_t>((size_t)(static_cast<double>(total_num_items_per_frame[frame_id])
-                                                                / fill_rate), 1);
-
-                // adjust size of second reduce table
-                second_reduce.resize(frame_length, ht->Sentinel());
-
-                /////
-                // reduce data from spilled files
-                /////
-
-                // flag used when item is reduced to advance to next item
-                bool reduced = false;
-
-                /////
-                // reduce data from primary table
-                /////
-                for (size_t i = offset; i < length; i++)
-                {
-                    KeyValuePair& kv = items[i];
-                    if (kv.first != ht->Sentinel().first)
-                    {
-                        size_t global_index = index_function_(kv.first, ht, frame_length);
-
-                        KeyValuePair* initial = &second_reduce[global_index];
-                        KeyValuePair* current = initial;
-                        KeyValuePair* last_item = &second_reduce[frame_length - 1];
-
-                        while (!equal_to_function_(current->first, ht->Sentinel().first))
-                        {
-                            if (equal_to_function_(current->first, kv.first))
-                            {
-                                current->second = reduce_function_(current->second, kv.second);
-                                reduced = true;
-                                break;
-                            }
-
-                            if (current == last_item)
-                            {
-                                current -= (frame_length - 1);
-                            }
-                            else
-                            {
-                                ++current;
-                            }
-                        }
-
-                        if (reduced)
-                        {
-                            if (consume)
-                            {
-                                items[i] = ht->Sentinel();
-                            }
-                            reduced = false;
-                            continue;
-                        }
-
-                        // insert new pair
-                        current->first = kv.first;
-                        current->second = kv.second;
-
-                        if (consume)
-                        {
-                            items[i] = ht->Sentinel();
-                        }
-                    }
-                }
-
-                // get the items and insert them in secondary
-                // table
+            // only if items have been spilled, process a second reduce
+            if (file.num_items() > 0)
+            {
                 data::File::Reader reader = file.GetReader(consume);
 
-                while (reader.HasNext()) {
-
-                    KeyValuePair kv = reader.Next<KeyValuePair>();
-
-                    size_t global_index = index_function_(kv.first, ht, frame_length);
-
-                    KeyValuePair* initial = &second_reduce[global_index];
-                    KeyValuePair* current = initial;
-                    KeyValuePair* last_item = &second_reduce[frame_length - 1];
-
-                    while (!equal_to_function_(current->first, ht->Sentinel().first))
-                    {
-                        if (equal_to_function_(current->first, kv.first))
-                        {
-                            current->second = reduce_function_(current->second, kv.second);
-                            reduced = true;
-                            break;
-                        }
-
-                        if (current == last_item)
-                        {
-                            current -= (frame_length - 1);
-                        }
-                        else
-                        {
-                            ++current;
-                        }
-                    }
-
-                    if (reduced)
-                    {
-                        reduced = false;
-                        continue;
-                    }
-
-                    // insert new pair
-                    current->first = kv.first;
-                    current->second = kv.second;
-                }
-
-                /////
-                // emit data
-                /////
-                for (size_t i = 0; i < frame_length; i++)
-                {
-                    KeyValuePair& current = second_reduce[i];
-                    if (current.first != ht->Sentinel().first)
-                    {
-                        elements_to_emit[current.first - ht->BeginLocalIndex()] = current.second;
-                        second_reduce[i] = ht->Sentinel();
-                    }
-                }
+                Reduce(ctx, consume, ht, items, offset, length, reader, second_reduce, elements_to_emit);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current frame
@@ -632,7 +715,10 @@ public:
                     KeyValuePair& current = items[i];
                     if (current.first != ht->Sentinel().first)
                     {
+    #if defined(EMIT_DATA)
                         elements_to_emit[current.first - ht->BeginLocalIndex()] = current.second;
+    #endif
+
                         if (consume)
                         {
                             items[i] = ht->Sentinel();
@@ -644,17 +730,20 @@ public:
             if (consume)
             {
                 num_items_per_frame[frame_id] = 0;
-                total_num_items_per_frame[frame_id] = 0;
             }
         }
 
-        size_t index = ht->BeginLocalIndex();
-        for (size_t i = 0; i < elements_to_emit.size(); i++) {
+            size_t index = ht->BeginLocalIndex();
+            for (size_t i = 0; i < elements_to_emit.size(); i++) {
 #if defined(EMIT_DATA)
-            ht->EmitAll(index++, elements_to_emit[i]);
+                ht->EmitAll(index++, elements_to_emit[i]);
+#else
+                index++;
 #endif
-            elements_to_emit[i] = neutral_element;
-        }
+                elements_to_emit[i] = neutral_element;
+            }
+
+            assert(index == ht->EndLocalIndex());
 
 #if defined(BENCHMARK)
         if (consume)
@@ -691,7 +780,7 @@ struct EmitImpl<false, EmitterFunction, Key, Value, SendType>{
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename FlushFunction = PostProbingReduceFlushToDefault<Key, std::pair<Key, Value>, ReduceFunction>,
+          typename FlushFunction = PostProbingReduceFlushToDefault<Key, Value, ReduceFunction>,
           typename IndexFunction = PostProbingReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class ReducePostProbingTable
@@ -769,6 +858,8 @@ public:
         size_ = frame_size_ * num_frames_;
 
         num_items_per_frame_ = (size_t)(static_cast<double>(size_) / static_cast<double>(num_frames_));
+
+        fill_rate_num_items_per_frame_ = (size_t)(num_items_per_frame_ * max_frame_fill_rate_);
 
         items_per_frame_.resize(num_frames_, 0);
 
@@ -887,10 +978,7 @@ public:
         // increase total item counter
         num_items_++;
 #endif
-
-        if (static_cast<double>(items_per_frame_[frame_id])
-            / static_cast<double>(num_items_per_frame_)
-            > max_frame_fill_rate_)
+        if (items_per_frame_[frame_id] > fill_rate_num_items_per_frame_)
         {
             SpillFrame(frame_id);
         }
@@ -1264,6 +1352,9 @@ protected:
 
     //! Storing the secondary table.
     std::vector<KeyValuePair> second_table_;
+
+    //! Number of items per frame considering fill rate.
+    size_t fill_rate_num_items_per_frame_ = 0;
 };
 
 } // namespace core
