@@ -9,6 +9,6 @@ if [ ! -d "build" ]; then
     mkdir build
 fi
 cd build
-cmake .. $@ -DCMAKE_BUILD_TYPE=Release
-make $MAKEOPTS -j8
+cmake .. $@
+make $MAKEOPTS
 ctest -V
