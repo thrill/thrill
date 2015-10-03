@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 namespace thrill {
@@ -43,15 +43,15 @@ The File is a vector of Blocks which represents an infinitely growable data stor
 
 File are allocated via \ref api::Context::GetFile and the File object itself contains the vector, there is no pointer indirection or reference counting. To write to the File get a BlockWriter using \ref File::GetWriter and to read from it get a BlockReader using \ref File::GetReader.
 
-## Data Channels
+## Data Streams
 
-Workers may need to exchange many data elements between each other in an asynchronous fashion. A Channel is a communication context to exchange large amounts of items between workers. Channels may be used by DOps to implemented distributed operations. In MPI lingua, a Channel is an AllToAll collective which streams blocks asynchronously.
+Workers may need to exchange many data elements between each other in an asynchronous fashion. A Stream is a communication context to exchange large amounts of items between workers. Streams may be used by DOps to implemented distributed operations. In MPI lingua, a Stream is an AllToAll collective which streams blocks asynchronously.
 
-Multiple Channels of different distributed operations can exist concurrently. Therefore the Channel objects have to be allocated in a deterministic order via \ref api::Context::GetNewChannel().
+Multiple Streams of different distributed operations can exist concurrently. Therefore the Stream objects have to be allocated in a deterministic order via \ref api::Context::GetNewCatStream().
 
-Write to Channels using a BlockWriter from \ref Channel::GetWriters() which delivers writers for all workers!
+Write to Streams using a BlockWriter from \ref Stream::OpenWriters() which delivers writers for all workers!
 
-See the documentation of Channel and ChannelMultiplexer on how to read and write to Channels.
+See the documentation of Stream and StreamMultiplexer on how to read and write to Streams.
 
 */
 

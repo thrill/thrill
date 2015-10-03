@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -337,7 +337,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
         bytes_ = sink_->AllocateByteBlock(block_size_);
@@ -365,10 +365,10 @@ protected:
     Byte* end_ = nullptr;
 
     //! number of items in current block
-    size_t nitems_;
+    size_t nitems_ = 0;
 
     //! offset of first item
-    size_t first_offset_;
+    size_t first_offset_ = 0;
 
     //! file or stream sink to output blocks to.
     BlockSink* sink_;

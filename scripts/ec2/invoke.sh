@@ -1,9 +1,21 @@
 #!/bin/bash
+################################################################################
+# scripts/ec2/invoke.sh
+#
+# Part of Project Thrill.
+#
+# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 set -e
 
-ENV=$(./make_env.py)
+scriptdir="`dirname "$0"`"
 
+ENV=$($scriptdir/make_env.py)
 eval $ENV
 
-../ssh/invoke.sh "$@"
+$scriptdir/../ssh/invoke.sh "$@"
+
+################################################################################

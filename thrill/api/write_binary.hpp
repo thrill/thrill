@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -34,16 +34,19 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
-class WriteBinaryNode : public ActionNode
+template <typename ParentDIA>
+class WriteBinaryNode final : public ActionNode
 {
     static const bool debug = false;
+
+    //! input type is the parent's output value type.
+    using Input = typename ParentDIA::ValueType;
 
 public:
     using Super = ActionNode;
     using Super::context_;
 
-    WriteBinaryNode(const ParentDIARef& parent,
+    WriteBinaryNode(const ParentDIA& parent,
                     const std::string& path_out,
                     size_t max_file_size,
                     StatsNode* stats_node)
@@ -57,7 +60,7 @@ public:
                                common::RoundUpToPowerOfTwo(max_file_size));
         sLOG << "block_size_" << block_size_;
 
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [=](const Input& input) {
                              return PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -78,7 +81,7 @@ public:
 
     void Dispose() final { }
 
-protected:
+private:
     //! Implements BlockSink class writing to files with size limit.
     class SysFileSink final : public data::BoundedBlockSink
     {
@@ -103,7 +106,7 @@ protected:
             file_.close();
         }
 
-    protected:
+    private:
         core::SysFile file_;
         size_t& stats_total_elements_;
         size_t& stats_total_writes_;
@@ -151,7 +154,7 @@ protected:
     }
 
     //! writer preop: put item into file, create files as needed.
-    void PreOp(const ValueType& input) {
+    void PreOp(const Input& input) {
         stats_total_elements_++;
 
         if (!sink_) OpenNextFile();
@@ -176,15 +179,15 @@ protected:
 };
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::WriteBinary(
+void DIA<ValueType, Stack>::WriteBinary(
     const std::string& filepath, size_t max_file_size) const {
 
-    using WriteResultNode = WriteBinaryNode<ValueType, DIARef>;
+    using WriteBinaryNode = api::WriteBinaryNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("WriteBinary", DIANodeType::ACTION);
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(
+        std::make_shared<WriteBinaryNode>(
             *this, filepath, max_file_size, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());

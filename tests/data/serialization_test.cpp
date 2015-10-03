@@ -4,7 +4,7 @@
  * Part of Project Thrill.
  *
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -213,10 +213,11 @@ struct MyMethodStruct
     }
 
     template <typename Archive>
-    void ThrillDeserialize(Archive& ar) {
-        i1 = ar.template Get<int>();
-        d2 = ar.template Get<double>();
-        s3 = ar.GetString();
+    static MyMethodStruct ThrillDeserialize(Archive& ar) {
+        int i1 = ar.template Get<int>();
+        double d2 = ar.template Get<double>();
+        std::string s3 = ar.GetString();
+        return MyMethodStruct(i1, d2, s3);
     }
 };
 

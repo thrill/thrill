@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -47,11 +47,11 @@ public:
     //! move-construction NOT same as std::atomic: load and move.
     //! Requires T to have an ctor that takes an instance of T for
     //! initialization.
-    AtomicMovable(const AtomicMovable&& rhs)
+    AtomicMovable(const AtomicMovable&& rhs) noexcept
         : std::atomic<T>(T(std::move(rhs))) { }
 
     //! assignment operator (same as std::atomic)
-    T operator = (T desired) { return std::atomic<T>::operator = (desired); }
+    T operator = (T desired) noexcept { return std::atomic<T>::operator = (desired); }
 };
 
 } // namespace common

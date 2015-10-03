@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+################################################################################
+# scripts/cluster/start-hpc-cluster.sh
+#
+# Part of Project Thrill.
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 cluster="`dirname "$0"`"
 cluster="`cd "$cluster"; pwd`"
@@ -8,3 +16,5 @@ slurm=${cluster}/../slurm
 
 msub -v slurm=${slurm},cluster=${cluster} -N thrill -l nodes=${CLUSTER_NODES}:ppn=${CLUSTER_PPN},walltime=${CLUSTER_WALLTIME},naccesspolicy=singlejob ${slurm}/invokeWrapper.sh
 
+
+################################################################################

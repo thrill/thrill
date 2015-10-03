@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -426,7 +426,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
     }
 }
 
-TEST_F(Multiplexer, DISABLED_TalkAllToAllViaMixStreamForManyNetSizes) {
+TEST_F(Multiplexer, TalkAllToAllViaMixStreamForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 9:
     net::RunLoopbackGroupTest(1, TalkAllToAllViaMixStream);
     net::RunLoopbackGroupTest(2, TalkAllToAllViaMixStream);

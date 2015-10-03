@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -122,7 +122,7 @@ public:
      * Set the node style according to the nodes type.
      */
     std::string NodeStyle() const {
-        std::string style = std::string(label_) + " [";
+        std::string style = std::string(label_) + std::to_string(id_) + " [";
         switch (type_) {
         case DIANodeType::DOP:
             style += "style=filled, fillcolor=red, shape=box";
@@ -231,7 +231,7 @@ public:
         file << "\n";
         for (const auto& node : nodes_) {
             for (const auto& neighbor : node->adjacent_nodes()) {
-                file << "\t" << *node << " -> " << *neighbor << ";\n";
+                file << "\t" << *node << std::to_string(node->id()) << " -> " << *neighbor << std::to_string(neighbor->id()) << ";\n";
             }
         }
         file << "}";

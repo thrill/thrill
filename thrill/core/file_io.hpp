@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -43,11 +43,11 @@ std::string FillFilePattern(const std::string& pathbase,
 // '.[gz/bz2,xz,lzo]')
 static inline
 bool IsCompressed(const std::string& path) {
-    return common::ends_with(path, ".gz") ||
-           common::ends_with(path, ".bz2") ||
-           common::ends_with(path, ".xz") ||
-           common::ends_with(path, ".lzo") ||
-           common::ends_with(path, ".lz4");
+    return common::EndsWith(path, ".gz") ||
+           common::EndsWith(path, ".bz2") ||
+           common::EndsWith(path, ".xz") ||
+           common::EndsWith(path, ".lzo") ||
+           common::EndsWith(path, ".lz4");
 }
 
 using FileSizePair = std::pair<std::string, size_t>;
@@ -100,7 +100,7 @@ public:
     //! non-copyable: delete assignment operator
     SysFile& operator = (const SysFile&) = delete;
     //! move-constructor
-    SysFile(SysFile&& f)
+    SysFile(SysFile&& f) noexcept
         : fd_(f.fd_), pid_(f.pid_) {
         f.fd_ = -1, f.pid_ = 0;
     }
@@ -145,9 +145,9 @@ public:
         close();
     }
 
-protected:
-    //! protected constructor: use OpenForRead or OpenForWrite.
-    explicit SysFile(int fd, int pid = 0)
+private:
+    //! private constructor: use OpenForRead or OpenForWrite.
+    explicit SysFile(int fd, int pid = 0) noexcept
         : fd_(fd), pid_(pid) { }
 
     //! file descriptor
@@ -196,7 +196,7 @@ public:
         wipe_directory(dir_, false);
     }
 
-protected:
+private:
     std::string dir_;
 };
 

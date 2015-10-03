@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -172,7 +172,7 @@ TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
                 w(t);
             }
         }
-        in.push_back(f);
+        in.emplace_back(std::move(f));
     }
 
     for (size_t t = 0; t < in.size(); ++t) {
@@ -243,7 +243,7 @@ TEST_F(MultiwayMerge, File_Wrapper_with_1_Runs) {
                 w(t);
             }
         }
-        in.push_back(f);
+        in.emplace_back(std::move(f));
     }
 
     for (size_t t = 0; t < in.size(); ++t) {
@@ -312,7 +312,7 @@ TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
                 w(t);
             }
         }
-        in.push_back(f);
+        in.emplace_back(std::move(f));
     }
 
     for (size_t t = 0; t < in.size(); ++t) {

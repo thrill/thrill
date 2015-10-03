@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -22,37 +22,37 @@
 namespace thrill {
 namespace common {
 
-/**
+/*!
  * Dump a (binary) string as a sequence of hexadecimal pairs.
  *
  * \param data  binary data to output in hex
  * \param size  length of binary data
  * \return      string of hexadecimal pairs
  */
-std::string hexdump(const void* const data, size_t size);
+std::string Hexdump(const void* const data, size_t size);
 
-/**
+/*!
  * Dump a (binary) string as a sequence of hexadecimal pairs.
  *
  * \param str  binary data to output in hex
  * \return     string of hexadecimal pairs
  */
-std::string hexdump(const std::string& str);
+std::string Hexdump(const std::string& str);
 
-/**
+/*!
  * Checks if the given match string is located at the start of this string.
  */
 static inline
-bool starts_with(const std::string& str, const std::string& match) {
+bool StartsWith(const std::string& str, const std::string& match) {
     if (match.size() > str.size()) return false;
     return std::equal(match.begin(), match.end(), str.begin());
 }
 
-/**
+/*!
  * Checks if the given match string is located at the end of this string.
  */
 static inline
-bool ends_with(const std::string& str, const std::string& match) {
+bool EndsWith(const std::string& str, const std::string& match) {
     if (match.size() > str.size()) return false;
     return std::equal(match.begin(), match.end(),
                       str.end() - match.size());
@@ -108,7 +108,7 @@ String str_sprintf(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    int len = std::vsnprintf(s, 256, fmt, args);
+    int len = std::vsnprintf(s, 256, fmt, args); // NOLINT
 
     if (len >= 256) {
         // try again.
@@ -122,7 +122,7 @@ String str_sprintf(const char* fmt, ...) {
     return String(s, s + len);
 }
 
-/**
+/*!
  * Split the given string at each separator character into distinct
  * substrings. Multiple consecutive separators are considered individually and
  * will result in empty split substrings.
@@ -133,7 +133,7 @@ String str_sprintf(const char* fmt, ...) {
  * \return       vector containing each split substring
  */
 static inline
-std::vector<std::string> split(
+std::vector<std::string> Split(
     const std::string& str, char sep,
     std::string::size_type limit = std::string::npos) {
 
@@ -161,7 +161,7 @@ std::vector<std::string> split(
     return out;
 }
 
-/**
+/*!
  * Split the given string at each separator string into distinct
  * substrings. Multiple consecutive separators are considered individually and
  * will result in empty split substrings.
@@ -172,7 +172,7 @@ std::vector<std::string> split(
  * \return        vector containing each split substring
  */
 static inline
-std::vector<std::string> split(
+std::vector<std::string> Split(
     const std::string& str, const std::string& sepstr,
     std::string::size_type limit = std::string::npos) {
 
@@ -201,7 +201,7 @@ std::vector<std::string> split(
     return out;
 }
 
-/**
+/*!
  * Join a sequence of strings by some glue string between each pair from the
  * sequence. The sequence in given as a range between two iterators.
  *
@@ -212,7 +212,7 @@ std::vector<std::string> split(
  */
 template <typename Iterator>
 static inline
-std::string join(const std::string& glue, Iterator first, Iterator last) {
+std::string Join(const std::string& glue, Iterator first, Iterator last) {
     std::string out;
     if (first == last) return out;
 
@@ -229,7 +229,7 @@ std::string join(const std::string& glue, Iterator first, Iterator last) {
     return out;
 }
 
-/**
+/*!
  * Join a Container (like a vector) of strings using some glue string between
  * each pair from the sequence.
  *
@@ -239,11 +239,11 @@ std::string join(const std::string& glue, Iterator first, Iterator last) {
  */
 template <typename Container>
 static inline
-std::string join(const std::string& glue, const Container& parts) {
+std::string Join(const std::string& glue, const Container& parts) {
     return join(glue, parts.begin(), parts.end());
 }
 
-/**
+/*!
  * Replace all occurrences of needle in str. Each needle will be replaced with
  * instead, if found. The replacement is done in the given string and a
  * reference to the same is returned.
@@ -254,8 +254,8 @@ std::string join(const std::string& glue, const Container& parts) {
  * \return              reference to str
  */
 static inline
-std::string & replace_all(std::string& str, const std::string& needle,
-                          const std::string& instead) {
+std::string & ReplaceAll(std::string& str, const std::string& needle,
+                         const std::string& instead) {
     std::string::size_type lastpos = 0, thispos;
 
     while ((thispos = str.find(needle, lastpos)) != std::string::npos)
@@ -266,7 +266,7 @@ std::string & replace_all(std::string& str, const std::string& needle,
     return str;
 }
 
-/**
+/*!
  * Generate a random string of given length. The set of available
  * bytes/characters is given as the second argument. Each byte is equally
  * probable. Uses the pseudo-random number generator from stdlib; take care to

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -175,7 +175,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
                 },
                 test_size);
 
-            DIARef<std::string> input = input_gen.Cache();
+            DIA<std::string> input = input_gen.Cache();
 
             std::vector<std::string> vinput = input.AllGather();
             ASSERT_EQ(test_size, vinput.size());
