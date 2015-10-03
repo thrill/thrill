@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -85,9 +85,10 @@ public:
                         multiplexer_.block_pool_,
                         &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
-                        MagicByte::CAT_STREAM_BLOCK,
+                        MagicByte::CatStreamBlock,
                         id,
-                        multiplexer_.my_host_rank(), my_local_worker_id, worker,
+                        multiplexer_.my_host_rank(), my_local_worker_id,
+                        host, worker,
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
                 }
                 // construct inbound queues
@@ -171,6 +172,10 @@ public:
         if (is_closed_) return;
         is_closed_ = true;
 
+        sLOG << "stream" << id() << "close"
+             << "host" << multiplexer_.my_host_rank()
+             << "local_worker" << my_local_worker_id_;
+
         // close all sinks, this should emit sentinel to all other worker.
         for (size_t i = 0; i != sinks_.size(); ++i) {
             if (sinks_[i].closed()) continue;
@@ -186,7 +191,10 @@ public:
         // do it better -tb)
         for (size_t i = 0; i != queues_.size(); ++i) {
             while (!queues_[i].write_closed()) {
-                LOG << "wait for close from worker" << i;
+                sLOG << "stream" << id()
+                     << "host" << multiplexer_.my_host_rank()
+                     << "local_worker" << my_local_worker_id_
+                     << "wait for close from worker" << i;
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         }
@@ -205,7 +213,7 @@ public:
         return closed;
     }
 
-protected:
+private:
     static const bool debug = false;
 
     bool is_closed_ = false;
@@ -231,7 +239,7 @@ protected:
 
         if (debug) {
             sLOG << "stream" << id_ << "receive from" << from << ":"
-                 << common::hexdump(b.ToString());
+                 << common::Hexdump(b.ToString());
         }
 
         queues_[from].AppendBlock(b);

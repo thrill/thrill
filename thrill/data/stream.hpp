@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -211,7 +211,7 @@ public:
     }
 
     void Close() final {
-        for (auto& c : streams_)
+        for (StreamPtr& c : streams_)
             c->Close();
     }
 

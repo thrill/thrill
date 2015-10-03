@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -108,8 +108,10 @@ public:
         return callbacks_;
     }
 
-    void callback_functions(std::vector<std::function<void(const ValueType&)> >& cbs) {
-        for (auto& cb_pair : callbacks_) cbs.push_back(cb_pair.cb_);
+    void AddCallbackFunctions(
+        const std::vector<std::function<void(const ValueType&)> >& cbs) {
+        for (auto& cb_pair : callbacks_)
+            cbs.push_back(cb_pair.cb_);
     }
 
     void PushItem(const ValueType& elem) const {
@@ -118,7 +120,7 @@ public:
         }
     }
 
-protected:
+private:
     //! Callback functions from the child nodes.
     std::vector<CallbackPair<ValueType> > callbacks_;
 };

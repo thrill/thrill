@@ -9,7 +9,7 @@
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -38,37 +38,37 @@ namespace api {
  * LOps are stored in the Stack.
  *
  * <pre>
- *                ParentStack1 ParentStack2
+ *                ParentStack0 ParentStack1
  *                 +--------+   +--------+
  *                 |        |   |        |  A ParentStackX is called with
  *                 |        |   |        |  ParentInputX, and must deliver
  *                 |        |   |        |  a ZipArgX item.
  *               +-+--------+---+--------+-+
- *               | | PreOp1 |   | PreOp2 | |
+ *               | | PreOp0 |   | PreOp1 | |
  *               | +--------+   +--------+ |
- * DIARef<T> --> |           Zip           |
+ *    DIA<T> --> |           Zip           |
  *               |        +-------+        |
  *               |        |PostOp |        |
  *               +--------+-------+--------+
- *                        |       | New DIARef<T>::stack_ is started
+ *                        |       | New DIA<T>::stack_ is started
  *                        |       | with PostOp to chain next nodes.
  *                        +-------+
  * </pre>
  *
  * \tparam ValueType Output type of the Zip operation.
  *
- * \tparam ParentStack1 Function stack, which contains the chained lambdas
+ * \tparam ParentDIA0 Function stack, which contains the chained lambdas
  * between the last and this DIANode for first input DIA.
  *
- * \tparam ParentStack2 Function stack, which contains the chained lambdas
+ * \tparam ParentDIA1 Function stack, which contains the chained lambdas
  * between the last and this DIANode for second input DIA.
  *
  * \tparam ZipFunction Type of the ZipFunction.
  */
 template <typename ValueType,
-          typename ParentDIARef0, typename ParentDIARef1,
+          typename ParentDIA0, typename ParentDIA1,
           typename ZipFunction>
-class TwoZipNode : public DOpNode<ValueType>
+class TwoZipNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
@@ -93,8 +93,8 @@ public:
      * \param parent1 Second parent of the ZipNode
      * \param zip_function Zip function used to zip elements.
      */
-    TwoZipNode(const ParentDIARef0& parent0,
-               const ParentDIARef1& parent1,
+    TwoZipNode(const ParentDIA0& parent0,
+               const ParentDIA1& parent1,
                ZipFunction zip_function,
                StatsNode* stats_node)
         : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() },
@@ -117,8 +117,6 @@ public:
         parent0.node()->RegisterChild(lop_chain0, this->type());
         parent1.node()->RegisterChild(lop_chain1, this->type());
     }
-
-    ~TwoZipNode() { }
 
     /*!
      * Actually executes the zip operation. Uses the member functions PreOp,
@@ -143,25 +141,12 @@ public:
                 this->PushItem(zip_function_(i0, i1));
                 ++result_count;
             }
-
-            streams_[0]->Close();
-            streams_[1]->Close();
-            this->WriteStreamStats(streams_[0]);
-            this->WriteStreamStats(streams_[1]);
         }
 
         sLOG << "Zip: result_count" << result_count;
     }
 
     void Dispose() final { }
-
-    /*!
-     * Creates empty stack.
-     */
-    auto ProduceStack() {
-        // Hook PostOp
-        return FunctionStack<ZipResult>();
-    }
 
 private:
     //! Zip function
@@ -289,7 +274,7 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
-auto DIARef<ValueType, Stack>::Zip(
+auto DIA<ValueType, Stack>::Zip(
     SecondDIA second_dia, const ZipFunction &zip_function) const {
     assert(IsValid());
     assert(second_dia.IsValid());
@@ -297,8 +282,8 @@ auto DIARef<ValueType, Stack>::Zip(
     using ZipResult
               = typename FunctionTraits<ZipFunction>::result_type;
 
-    using ZipResultNode
-              = TwoZipNode<ZipResult, DIARef, SecondDIA, ZipFunction>;
+    using ZipNode
+              = TwoZipNode<ZipResult, DIA, SecondDIA, ZipFunction>;
 
     static_assert(
         std::is_convertible<
@@ -317,17 +302,10 @@ auto DIARef<ValueType, Stack>::Zip(
     StatsNode* stats_node = AddChildStatsNode("Zip", DIANodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto zip_node
-        = std::make_shared<ZipResultNode>(*this,
-                                          second_dia,
-                                          zip_function,
-                                          stats_node);
+        = std::make_shared<ZipNode>(
+        *this, second_dia, zip_function, stats_node);
 
-    auto zip_stack = zip_node->ProduceStack();
-
-    return DIARef<ZipResult, decltype(zip_stack)>(
-        zip_node,
-        zip_stack,
-        { stats_node });
+    return DIA<ZipResult>(zip_node, { stats_node });
 }
 
 //! \}

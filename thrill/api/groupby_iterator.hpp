@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -109,11 +109,11 @@ struct MultiwayMergeTreePuller {
 ////////////////////////////////////////////////////////////////////////////////
 
 // forward declarations for friend classes
-template <typename ValueType, typename ParentDIARef,
+template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode;
 
-template <typename ValueType, typename ParentDIARef,
+template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByIndexNode;
 
@@ -162,7 +162,7 @@ public:
         return elem;
     }
 
-protected:
+private:
     bool HasNextForReal() {
         is_first_elem_ = true;
         return !is_reader_empty;
@@ -247,7 +247,7 @@ public:
         return elem;
     }
 
-protected:
+private:
     bool HasNextForReal() {
         is_first_elem_ = true;
         return !is_reader_empty;

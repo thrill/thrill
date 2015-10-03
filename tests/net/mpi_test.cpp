@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -52,11 +52,10 @@ void MpiTest(const std::function<void(net::Group*)>& thread_function) {
     MpiTestOne(8, thread_function);
 }
 
-/*[[[cog
-import tests.net.test_gen as m
-
-m.generate_group_tests('MpiGroup', 'MpiTest')
-m.generate_flow_control_tests('MpiGroup', 'MpiTest')
+/*[[[perl
+  require("tests/net/test_gen.pm");
+  generate_group_tests("MpiGroup", "MpiTest");
+  generate_flow_control_tests("MpiGroup", "MpiTest");
   ]]]*/
 TEST(MpiGroup, NoOperation) {
     MpiTest(TestNoOperation);
@@ -106,28 +105,28 @@ TEST(MpiGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 TEST(MpiGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     MpiTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
 }
-TEST(FlowControlMpiGroup, SingleThreadPrefixSum) {
+TEST(MpiGroup, SingleThreadPrefixSum) {
     MpiTest(TestSingleThreadPrefixSum);
 }
-TEST(FlowControlMpiGroup, SingleThreadVectorPrefixSum) {
+TEST(MpiGroup, SingleThreadVectorPrefixSum) {
     MpiTest(TestSingleThreadVectorPrefixSum);
 }
-TEST(FlowControlMpiGroup, SingleThreadBroadcast) {
+TEST(MpiGroup, SingleThreadBroadcast) {
     MpiTest(TestSingleThreadBroadcast);
 }
-TEST(FlowControlMpiGroup, MultiThreadBroadcast) {
+TEST(MpiGroup, MultiThreadBroadcast) {
     MpiTest(TestMultiThreadBroadcast);
 }
-TEST(FlowControlMpiGroup, SingleThreadAllReduce) {
+TEST(MpiGroup, SingleThreadAllReduce) {
     MpiTest(TestSingleThreadAllReduce);
 }
-TEST(FlowControlMpiGroup, MultiThreadAllReduce) {
+TEST(MpiGroup, MultiThreadAllReduce) {
     MpiTest(TestMultiThreadAllReduce);
 }
-TEST(FlowControlMpiGroup, MultiThreadPrefixSum) {
+TEST(MpiGroup, MultiThreadPrefixSum) {
     MpiTest(TestMultiThreadPrefixSum);
 }
-TEST(FlowControlMpiGroup, HardcoreRaceConditionTest) {
+TEST(MpiGroup, HardcoreRaceConditionTest) {
     MpiTest(TestHardcoreRaceConditionTest);
 }
 // [[[end]]]

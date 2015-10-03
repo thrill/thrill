@@ -7,7 +7,7 @@
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -88,7 +88,7 @@ public:
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer & data_multiplexer() { return data_multiplexer_; }
 
-protected:
+private:
     //! number of workers per host (all have the same).
     size_t workers_per_host_;
 
@@ -207,8 +207,24 @@ public:
     //! Reduces a value of an integral type T over all workers given a certain
     //! reduce function.
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
-        return flow_control_channel().AllReduce(value, sumOp);
+    T AllReduce(const T& value, BinarySumOp sum_op = BinarySumOp()) {
+        return flow_control_channel().AllReduce(value, sum_op);
+    }
+
+    //! Calculates the prefix sum over all workers, given a certain sum
+    //! operation.
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T PrefixSum(const T& value,
+                const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+        return flow_control_channel().PrefixSum(value, initial, sum_op);
+    }
+
+    //! Calculates the exclusive prefix sum over all workers, given a certain
+    //! sum operation.
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T ExPrefixSum(const T& value,
+                  const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+        return flow_control_channel().ExPrefixSum(value, initial, sum_op);
     }
 
     //! A collective global barrier.
@@ -324,11 +340,22 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint);
  * across different workers.  The Thrill configuration is taken from environment
  * variables starting the THRILL_.
  *
+ * THRILL_NET is the network backend to use, e.g.: mock, local, tcp, or mpi.
+ *
  * THRILL_RANK contains the rank of this worker
  *
- * THRILL_HOSTLIST contains a space- or comma-separated list of host:ports to connect to.
+ * THRILL_HOSTLIST contains a space- or comma-separated list of host:ports to
+ * connect to.
  *
  * THRILL_WORKERS_PER_HOST is the number of workers (threads) per host.
+ *
+ * Additional variables:
+ *
+ * THRILL_DIE_WITH_PARENT sets a flag which terminates the program if the caller
+ * terminates (this is automatically set by ssh/invoke.sh). No more zombies.
+ *
+ * THRILL_UNLINK_BINARY deletes a file. Used by ssh/invoke.sh to unlink a copied
+ * program binary while it is running. Hence, it can keep /tmp clean.
  *
  * \returns 0 if execution was fine on all threads.
  */

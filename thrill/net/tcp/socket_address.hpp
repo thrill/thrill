@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -53,6 +53,7 @@ protected:
         struct sockaddr_in6 in6;
     } sockaddr_;
 
+private:
     //! Return value of the last getaddrinfo() call. Used to output nice user
     //! messages.
     int resolve_error_;

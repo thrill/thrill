@@ -10,7 +10,7 @@
  * Copyright (C) 2014 Thomas Keh <thomas.keh@student.kit.edu>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -39,7 +39,7 @@ public:
     //! The counter's value type
     using ValueType = _ValueType;
 
-protected:
+private:
     //! The counter's value
     ValueType value_;
 

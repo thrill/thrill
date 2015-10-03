@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/data/cat_stream.hpp>
@@ -72,7 +72,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     size_t sender_worker_rank =
         header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
 
-    if (header.magic == MagicByte::CAT_STREAM_BLOCK)
+    if (header.magic == MagicByte::CatStreamBlock)
     {
         CatStreamPtr stream = GetOrCreateCatStream(id, local_worker);
 
@@ -97,7 +97,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
                 });
         }
     }
-    else if (header.magic == MagicByte::MIX_STREAM_BLOCK)
+    else if (header.magic == MagicByte::MixStreamBlock)
     {
         MixStreamPtr stream = GetOrCreateMixStream(id, local_worker);
 

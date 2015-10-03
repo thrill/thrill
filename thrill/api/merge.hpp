@@ -8,7 +8,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -35,9 +35,9 @@ namespace api {
 //! todo(ej) todo(tb) Can probably subclass a lot here.
 
 template <typename ValueType,
-          typename ParentDIARef0, typename ParentDIARef1,
+          typename ParentDIA0, typename ParentDIA1,
           typename MergeFunction>
-class TwoMergeNode : public DOpNode<ValueType>
+class TwoMergeNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
@@ -55,8 +55,8 @@ class TwoMergeNode : public DOpNode<ValueType>
               typename FunctionTraits<MergeFunction>::result_type;
 
 public:
-    TwoMergeNode(const ParentDIARef0& parent0,
-                 const ParentDIARef1& parent1,
+    TwoMergeNode(const ParentDIA0& parent0,
+                 const ParentDIA1& parent1,
                  MergeFunction merge_function,
                  StatsNode* stats_node)
         : DOpNode<ValueType>(parent0.ctx(),
@@ -79,8 +79,6 @@ public:
         parent0.node()->RegisterChild(lop_chain0, this->type());
         parent1.node()->RegisterChild(lop_chain1, this->type());
     }
-
-    ~TwoMergeNode() { }
 
     /*!
      * Actually executes the merge operation. Uses the member functions PreOp,
@@ -122,14 +120,6 @@ public:
     }
 
     void Dispose() final { }
-
-    /*!
-     * Creates empty stack.
-     */
-    auto ProduceStack() {
-        // Hook PostOp
-        return FunctionStack<MergeResult>();
-    }
 
 private:
     //! Merge function
@@ -179,7 +169,7 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename MergeFunction, typename SecondDIA>
-auto DIARef<ValueType, Stack>::Merge(
+auto DIA<ValueType, Stack>::Merge(
     SecondDIA second_dia, const MergeFunction &merge_function) const {
     assert(IsValid());
     assert(second_dia.IsValid());
@@ -188,7 +178,7 @@ auto DIARef<ValueType, Stack>::Merge(
               = typename FunctionTraits<MergeFunction>::result_type;
 
     using MergeResultNode
-              = TwoMergeNode<MergeResult, DIARef, SecondDIA, MergeFunction>;
+              = TwoMergeNode<MergeResult, DIA, SecondDIA, MergeFunction>;
 
     static_assert(
         std::is_convertible<
@@ -207,17 +197,10 @@ auto DIARef<ValueType, Stack>::Merge(
     StatsNode* stats_node = AddChildStatsNode("Merge", DIANodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto merge_node
-        = std::make_shared<MergeResultNode>(*this,
-                                            second_dia,
-                                            merge_function,
-                                            stats_node);
+        = std::make_shared<MergeResultNode>(
+        *this, second_dia, merge_function, stats_node);
 
-    auto merge_stack = merge_node->ProduceStack();
-
-    return DIARef<MergeResult, decltype(merge_stack)>(
-        merge_node,
-        merge_stack,
-        { stats_node });
+    return DIA<MergeResult>(merge_node, { stats_node });
 }
 
 //! \}

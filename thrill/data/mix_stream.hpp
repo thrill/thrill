@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -70,9 +70,10 @@ public:
                         multiplexer_.block_pool_,
                         &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
-                        MagicByte::MIX_STREAM_BLOCK,
+                        MagicByte::MixStreamBlock,
                         id,
-                        multiplexer_.my_host_rank(), my_local_worker_id, worker,
+                        multiplexer_.my_host_rank(), my_local_worker_id,
+                        host, worker,
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
                 }
             }
@@ -163,7 +164,7 @@ public:
         return closed;
     }
 
-protected:
+private:
     static const bool debug = false;
 
     //! StreamSink objects are receivers of Blocks outbound for other worker.
@@ -190,7 +191,7 @@ protected:
 
         if (debug) {
             sLOG << "stream" << id_ << "receive from" << from << ":"
-                 << common::hexdump(b.ToString());
+                 << common::Hexdump(b.ToString());
         }
 
         queue_.AppendBlock(from, b);

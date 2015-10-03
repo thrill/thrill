@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -61,7 +61,7 @@ public:
     /*!
      * Construct Manager from already initialized net::Groups.
      */
-    explicit Manager(std::array<GroupPtr, kGroupCount>&& groups)
+    explicit Manager(std::array<GroupPtr, kGroupCount>&& groups) noexcept
         : groups_(std::move(groups)) { }
 
     /*!

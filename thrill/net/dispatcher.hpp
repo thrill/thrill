@@ -8,7 +8,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -60,7 +60,7 @@ class Dispatcher
 {
     static const bool debug = false;
 
-protected:
+private:
     //! import into class namespace
     using steady_clock = std::chrono::steady_clock;
 
@@ -154,8 +154,8 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    void AsyncWrite(Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+    virtual void AsyncWrite(Connection& c, Buffer&& buffer,
+                            AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
         if (buffer.size() == 0) {
@@ -174,8 +174,8 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    void AsyncWrite(Connection& c, const data::Block& block,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+    virtual void AsyncWrite(Connection& c, const data::Block& block,
+                            AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
         if (block.size() == 0) {

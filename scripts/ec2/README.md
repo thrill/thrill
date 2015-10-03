@@ -23,7 +23,7 @@ Run `./make_env.py` to check if the boto3 library can connect to AWS.
 Using aws command line tool:
 
 ```
-aws ec2 run-instances --image-id ami-2d3a185a \
+aws ec2 run-instances --image-id ami-21745a56 \
       --key-name rsa.tb2 --instance-type t2.micro \
       --security-groups default \
       --enable-api-termination \

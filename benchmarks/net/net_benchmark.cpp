@@ -4,12 +4,15 @@
  * Network backend benchmarks:
  * - 1-factor ping pong latency benchmark
  * - 1-factor full bandwidth test
+ * - fcc Broadcast
+ * - fcc PrefixSum
  *
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
@@ -51,12 +54,11 @@ public:
         clp.AddUInt('r', "inner_repeats", inner_repeats_,
                     "Repeat inner experiment a number of times.");
 
-        if (!clp.Process(argc, argv))
-            return -1;
+        if (!clp.Process(argc, argv)) return -1;
 
         return api::Run(
             [=](api::Context& ctx) {
-                // make a copy of this (for local workers)
+                // make a copy of this for local workers
                 PingPongLatency local = *this;
                 return local.Test(ctx);
             });
@@ -123,7 +125,7 @@ public:
         }
     }
 
-protected:
+private:
     //! whole experiment
     unsigned int outer_repeats_ = 1;
 
@@ -237,12 +239,11 @@ public:
         clp.AddParamBytes("size", data_size_,
                           "Amount of data transfered between peers (example: 1 GiB).");
 
-        if (!clp.Process(argc, argv))
-            return -1;
+        if (!clp.Process(argc, argv)) return -1;
 
         return api::Run(
             [=](api::Context& ctx) {
-                // make a copy of this (for local workers)
+                // make a copy of this for local workers
                 Bandwidth local = *this;
                 return local.Test(ctx);
             });
@@ -302,12 +303,12 @@ public:
         peer.Send(counter_);
     }
 
-protected:
+private:
     //! whole experiment
     unsigned int outer_repeats_ = 1;
 
     //! inner repetitions
-    unsigned int inner_repeats_ = 100;
+    unsigned int inner_repeats_ = 1;
 
     //! globally synchronized ping/pong counter to count and match packets.
     size_t counter_ = 0;
@@ -409,12 +410,145 @@ void Bandwidth::Test(api::Context& ctx) {
 
 /******************************************************************************/
 
+class Broadcast
+{
+public:
+    int Run(int argc, char* argv[]) {
+
+        common::CmdlineParser clp;
+
+        clp.AddUInt('r', "inner_repeats", inner_repeats_,
+                    "Repeat inner experiment a number of times.");
+
+        clp.AddUInt('R', "outer_repeats", outer_repeats_,
+                    "Repeat whole experiment a number of times.");
+
+        if (!clp.Process(argc, argv)) return -1;
+
+        return api::Run(
+            [=](api::Context& ctx) {
+                // make a copy of this for local workers
+                Broadcast local = *this;
+                return local.Test(ctx);
+            });
+    }
+
+    void Test(api::Context& ctx) {
+
+        for (size_t outer = 0; outer < outer_repeats_; ++outer) {
+
+            common::StatsTimer<true> t;
+
+            size_t dummy = +4915221495089;
+
+            t.Start();
+            for (size_t inner = 0; inner < inner_repeats_; ++inner) {
+                dummy = ctx.Broadcast(dummy);
+            }
+            t.Stop();
+
+            size_t n = ctx.num_workers();
+            size_t time = t.Microseconds();
+            // calculate maximum time.
+            time = ctx.AllReduce(time, common::maximum<size_t>());
+
+            if (ctx.my_rank() == 0) {
+                LOG1 << "RESULT"
+                     << " datatype=" << "size_t"
+                     << " workers=" << n
+                     << " inner_repeats=" << inner_repeats_
+                     << " time[us]=" << time
+                     << " time_per_op[us]="
+                     << static_cast<double>(time) / inner_repeats_;
+            }
+        }
+    }
+
+private:
+    //! whole experiment
+    unsigned int outer_repeats_ = 1;
+
+    //! inner repetitions
+    unsigned int inner_repeats_ = 200;
+};
+
+/******************************************************************************/
+
+class PrefixSum
+{
+public:
+    int Run(int argc, char* argv[]) {
+
+        common::CmdlineParser clp;
+
+        clp.AddUInt('r', "inner_repeats", inner_repeats_,
+                    "Repeat inner experiment a number of times.");
+
+        clp.AddUInt('R', "outer_repeats", outer_repeats_,
+                    "Repeat whole experiment a number of times.");
+
+        if (!clp.Process(argc, argv)) return -1;
+
+        return api::Run(
+            [=](api::Context& ctx) {
+                // make a copy of this for local workers
+                PrefixSum local = *this;
+                return local.Test(ctx);
+            });
+    }
+
+    void Test(api::Context& ctx) {
+
+        for (size_t outer = 0; outer < outer_repeats_; ++outer) {
+
+            common::StatsTimer<true> t;
+
+            t.Start();
+            for (size_t inner = 0; inner < inner_repeats_; ++inner) {
+                // prefixsum a different value in each iteration
+                size_t value = inner + ctx.my_rank();
+                value = ctx.PrefixSum(value);
+                die_unequal(value,
+                            inner * (ctx.my_rank() + 1)
+                            + ctx.my_rank() * (ctx.my_rank() + 1) / 2);
+            }
+            t.Stop();
+
+            size_t n = ctx.num_workers();
+            size_t time = t.Microseconds();
+            // calculate maximum time.
+            time = ctx.AllReduce(time, common::maximum<size_t>());
+
+            if (ctx.my_rank() == 0) {
+                LOG1 << "RESULT"
+                     << " datatype=" << "size_t"
+                     << " workers=" << n
+                     << " inner_repeats=" << inner_repeats_
+                     << " time[us]=" << time
+                     << " time_per_op[us]="
+                     << static_cast<double>(time) / inner_repeats_;
+            }
+        }
+    }
+
+private:
+    //! whole experiment
+    unsigned int outer_repeats_ = 1;
+
+    //! inner repetitions
+    unsigned int inner_repeats_ = 200;
+};
+
+/******************************************************************************/
+
 void Usage(const char* argv0) {
     std::cout
         << "Usage: " << argv0 << " <benchmark>" << std::endl
         << std::endl
         << "    ping_pong  - 1-factor latency" << std::endl
         << "    bandwidth  - 1-factor bandwidth" << std::endl
+        << "    broadcast  - FCC Broadcast operation" << std::endl
+        << "    prefixsum  - FCC PrefixSum operation" << std::endl
         << std::endl;
 }
 
@@ -432,6 +566,12 @@ int main(int argc, char** argv) {
     }
     else if (benchmark == "bandwidth") {
         return Bandwidth().Run(argc - 1, argv + 1);
+    }
+    else if (benchmark == "broadcast") {
+        return Broadcast().Run(argc - 1, argv + 1);
+    }
+    else if (benchmark == "prefixsum") {
+        return PrefixSum().Run(argc - 1, argv + 1);
     }
     else {
         Usage(argv[0]);

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -40,14 +40,12 @@ static void LocalGroupTest(
         thread_function);
 }
 
-/*[[[cog
-import tests.net.test_gen as m
+/*[[[perl
+  require("tests/net/test_gen.pm");
+  generate_group_tests("RealTcpGroup", "RealGroupTest");
 
-m.generate_group_tests('RealTcpGroup', 'RealGroupTest')
-
-m.generate_group_tests('LocalTcpGroup', 'LocalGroupTest')
-m.generate_flow_control_tests('LocalTcpGroup', 'LocalGroupTest')
-
+  generate_group_tests("LocalTcpGroup", "LocalGroupTest");
+  generate_flow_control_tests("LocalTcpGroup", "LocalGroupTest");
   ]]]*/
 TEST(RealTcpGroup, NoOperation) {
     RealGroupTest(TestNoOperation);
@@ -145,28 +143,28 @@ TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     LocalGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
 }
-TEST(FlowControlLocalTcpGroup, SingleThreadPrefixSum) {
+TEST(LocalTcpGroup, SingleThreadPrefixSum) {
     LocalGroupTest(TestSingleThreadPrefixSum);
 }
-TEST(FlowControlLocalTcpGroup, SingleThreadVectorPrefixSum) {
+TEST(LocalTcpGroup, SingleThreadVectorPrefixSum) {
     LocalGroupTest(TestSingleThreadVectorPrefixSum);
 }
-TEST(FlowControlLocalTcpGroup, SingleThreadBroadcast) {
+TEST(LocalTcpGroup, SingleThreadBroadcast) {
     LocalGroupTest(TestSingleThreadBroadcast);
 }
-TEST(FlowControlLocalTcpGroup, MultiThreadBroadcast) {
+TEST(LocalTcpGroup, MultiThreadBroadcast) {
     LocalGroupTest(TestMultiThreadBroadcast);
 }
-TEST(FlowControlLocalTcpGroup, SingleThreadAllReduce) {
+TEST(LocalTcpGroup, SingleThreadAllReduce) {
     LocalGroupTest(TestSingleThreadAllReduce);
 }
-TEST(FlowControlLocalTcpGroup, MultiThreadAllReduce) {
+TEST(LocalTcpGroup, MultiThreadAllReduce) {
     LocalGroupTest(TestMultiThreadAllReduce);
 }
-TEST(FlowControlLocalTcpGroup, MultiThreadPrefixSum) {
+TEST(LocalTcpGroup, MultiThreadPrefixSum) {
     LocalGroupTest(TestMultiThreadPrefixSum);
 }
-TEST(FlowControlLocalTcpGroup, HardcoreRaceConditionTest) {
+TEST(LocalTcpGroup, HardcoreRaceConditionTest) {
     LocalGroupTest(TestHardcoreRaceConditionTest);
 }
 // [[[end]]]

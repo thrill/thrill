@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -26,14 +26,17 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
-class AllGatherNode : public ActionNode
+template <typename ParentDIA>
+class AllGatherNode final : public ActionNode
 {
 public:
     using Super = ActionNode;
     using Super::context_;
 
-    AllGatherNode(const ParentDIARef& parent,
+    //! input and output type is the parent's output value type.
+    using ValueType = typename ParentDIA::ValueType;
+
+    AllGatherNode(const ParentDIA& parent,
                   std::vector<ValueType>* out_vector,
                   StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
@@ -87,10 +90,10 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
+std::vector<ValueType> DIA<ValueType, Stack>::AllGather()  const {
     assert(IsValid());
 
-    using AllGatherNode = api::AllGatherNode<ValueType, DIARef>;
+    using AllGatherNode = api::AllGatherNode<DIA>;
 
     std::vector<ValueType> output;
 
@@ -104,11 +107,11 @@ std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
 }
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::AllGather(
+void DIA<ValueType, Stack>::AllGather(
     std::vector<ValueType>* out_vector)  const {
     assert(IsValid());
 
-    using AllGatherNode = api::AllGatherNode<ValueType, DIARef>;
+    using AllGatherNode = api::AllGatherNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("AllGather", DIANodeType::ACTION);
     auto shared_node =

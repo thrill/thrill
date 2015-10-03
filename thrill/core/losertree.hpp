@@ -18,7 +18,7 @@
  * Copyright (C) 2014-2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <ostream>
 
 namespace thrill {
 namespace core {
@@ -479,7 +480,7 @@ public:
 template <typename ValueType, typename Comparator = std::less<ValueType> >
 class LoserTreePointerBase
 {
-public:
+protected:
     //! size of counters and array indexes
     typedef typename LoserTreeCopyBase<ValueType, Comparator>
         ::size_type size_type;
@@ -521,6 +522,15 @@ public:
             losers[i + k].source = (source_type)(-1);
         }
     }
+
+    //! non-copyable: delete copy-constructor
+    LoserTreePointerBase(const LoserTreePointerBase&) = delete;
+    //! non-copyable: delete assignment operator
+    LoserTreePointerBase& operator = (const LoserTreePointerBase&) = delete;
+    //! move-constructor: default
+    LoserTreePointerBase(LoserTreePointerBase&&) = default;
+    //! move-assignment operator: default
+    LoserTreePointerBase& operator = (LoserTreePointerBase&&) = default;
 
     ~LoserTreePointerBase() {
         delete[] losers;
@@ -793,7 +803,7 @@ template <bool Stable /* == false */,
           typename ValueType, typename Comparator = std::less<ValueType> >
 class LoserTreeCopyUnguarded : public LoserTreeCopyUnguardedBase<ValueType, Comparator>
 {
-protected:
+private:
     using base_type = LoserTreeCopyUnguardedBase<ValueType, Comparator>;
 
     using base_type::k;
@@ -831,7 +841,7 @@ template <typename ValueType, typename Comparator>
 class LoserTreeCopyUnguarded</* Stable == */ true, ValueType, Comparator>
     : public LoserTreeCopyUnguardedBase<ValueType, Comparator>
 {
-protected:
+private:
     using base_type = LoserTreeCopyUnguardedBase<ValueType, Comparator>;
 
     using base_type::k;
@@ -896,7 +906,7 @@ protected:
     //! the comparator object
     Comparator comp;
 
-public:
+protected:
     LoserTreePointerUnguardedBase(unsigned int _k, const ValueType& _sentinel,
                                   Comparator _comp = std::less<ValueType>())
         : ik(_k),
@@ -967,7 +977,7 @@ template <bool Stable /* == false */,
 class LoserTreePointerUnguarded
     : public LoserTreePointerUnguardedBase<ValueType, Comparator>
 {
-protected:
+private:
     using base_type = LoserTreePointerUnguardedBase<ValueType, Comparator>;
 
     using base_type::k;
@@ -1005,7 +1015,7 @@ template <typename ValueType, typename Comparator>
 class LoserTreePointerUnguarded</* Stable == */ true, ValueType, Comparator>
     : public LoserTreePointerUnguardedBase<ValueType, Comparator>
 {
-protected:
+private:
     using base_type = LoserTreePointerUnguardedBase<ValueType, Comparator>;
 
     using base_type::k;

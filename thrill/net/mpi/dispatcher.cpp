@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/net/mpi/dispatcher.hpp>
@@ -27,18 +27,67 @@ extern std::mutex g_mutex;
 
 void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
 
-    // since MPI can always write to the network: call all write callbacks
-    for (size_t i = 0; i < watch_.size(); ++i) {
-        if (!watch_[i].active) continue;
-        Watch& w = watch_[i];
+    // use MPI_Testsome() to check for finished writes
+    if (mpi_async_requests_.size())
+    {
+        // lock the GMLIM
+        std::unique_lock<std::mutex> lock(g_mutex);
 
-        while (w.write_cb.size()) {
-            if (w.write_cb.front()()) break;
-            w.write_cb.pop_front();
+        assert(mpi_async_write_.size() == mpi_async_requests_.size());
+        assert(mpi_async_write_.size() == mpi_async_out_.size());
+        assert(mpi_async_write_.size() == mpi_async_status_.size());
+
+        int out_count;
+
+        sLOG << "DispatchOne(): MPI_Testsome()"
+             << " mpi_async_requests_=" << mpi_async_requests_.size();
+
+        int r = MPI_Testsome(
+            // in: Length of array_of_requests (integer).
+            static_cast<int>(mpi_async_requests_.size()),
+            // in: Array of requests (array of handles).
+            mpi_async_requests_.data(),
+            // out: Number of completed requests (integer).
+            &out_count,
+            // out: Array of indices of operations that completed (array of
+            // integers).
+            mpi_async_out_.data(),
+            // out: Array of status objects for operations that completed (array
+            // of status).
+            mpi_async_status_.data());
+
+        lock.unlock();
+
+        if (r != MPI_SUCCESS)
+            throw Exception("Error during MPI_Testsome()", r);
+
+        if (out_count == MPI_UNDEFINED) {
+            // nothing returned
         }
+        else if (out_count > 0) {
+            sLOG << "DispatchOne(): MPI_Testsome() out_count=" << out_count;
 
-        if (w.read_cb.size() == 0 && w.write_cb.size() == 0) {
-            w.active = false;
+            size_t len = mpi_async_write_.size();
+
+            // run through finished requests back to front, swap last entry into
+            // finished ones.
+            for (int k = out_count - 1; k >= 0; --k) {
+                size_t p = mpi_async_out_[k];
+
+                // TODO(tb): check for errors?
+
+                // deleted the entry (no problem is k == len)
+                --len;
+                mpi_async_write_[p] = std::move(mpi_async_write_[len]);
+                mpi_async_requests_[p] = std::move(mpi_async_requests_[len]);
+                mpi_async_out_[p] = std::move(mpi_async_out_[len]);
+                mpi_async_status_[p] = std::move(mpi_async_status_[len]);
+            }
+
+            mpi_async_write_.resize(len);
+            mpi_async_requests_.resize(len);
+            mpi_async_out_.resize(len);
+            mpi_async_status_.resize(len);
         }
     }
 
@@ -80,7 +129,7 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
             w.read_cb.pop_front();
         }
 
-        if (w.read_cb.size() == 0 && w.write_cb.size() == 0) {
+        if (w.read_cb.size() == 0) {
             w.active = false;
         }
     }

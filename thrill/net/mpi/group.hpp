@@ -15,7 +15,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -84,7 +84,7 @@ public:
         return "peer: " + std::to_string(peer_);
     }
 
-    std::ostream & output_ostream(std::ostream& os) const final {
+    std::ostream & OutputOstream(std::ostream& os) const final {
         return os << "[mpi::Connection"
                   << " group_tag_=" << group_tag_
                   << " peer_=" << peer_
@@ -116,7 +116,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Group number used as MPI tag.
     int group_tag_;
 
@@ -170,7 +170,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! this group's MPI tag
     int group_tag_;
 

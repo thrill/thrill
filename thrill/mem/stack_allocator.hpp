@@ -13,7 +13,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -123,8 +123,17 @@ public:
     StackAllocator(const StackAllocator<Other, Size>& other) noexcept
         : arena_(other.arena_) { }
 
-    //! copy-constructor
-    StackAllocator(const StackAllocator&) noexcept = default;
+    //! copy-constructor: default
+    StackAllocator(const StackAllocator& other) noexcept = default;
+
+    //! move-constructor: default
+    StackAllocator(StackAllocator&& other) noexcept = default;
+
+    //! copy-assignment: default
+    StackAllocator& operator = (StackAllocator& other) noexcept = default;
+
+    //! move-assignment: default
+    StackAllocator& operator = (StackAllocator&& other) noexcept = default;
 
     //! allocate method: get memory from arena
     pointer allocate(size_t n) {
@@ -149,7 +158,7 @@ public:
     template <class Other, size_t OtherSize>
     friend class StackAllocator;
 
-protected:
+private:
     Arena<Size>* arena_;
 };
 
