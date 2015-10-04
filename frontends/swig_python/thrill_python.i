@@ -1,5 +1,5 @@
 /*******************************************************************************
- * swig/python/thrill_python.i
+ * frontends/swig_python/thrill_python.i
  *
  * Part of Project Thrill - http://project-thrill.org
  *

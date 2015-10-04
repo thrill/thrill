@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# swig/python/python_rpyc.py
+# frontends/swig_python/python_rpyc.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #

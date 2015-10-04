@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# swig/python/python_test.py
+# frontends/swig_python/python_test.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #

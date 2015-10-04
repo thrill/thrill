@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# swig/python/RemoteThrill.py
+# frontends/swig_python/RemoteThrill.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * swig/python/thrill_python.hpp
+ * frontends/swig_python/thrill_python.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_SWIG_PYTHON_THRILL_PYTHON_HEADER
-#define THRILL_SWIG_PYTHON_THRILL_PYTHON_HEADER
+#ifndef THRILL_FRONTENDS_SWIG_PYTHON_THRILL_PYTHON_HEADER
+#define THRILL_FRONTENDS_SWIG_PYTHON_THRILL_PYTHON_HEADER
 
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
@@ -427,6 +427,6 @@ protected:
 
 } // namespace thrill
 
-#endif // !THRILL_SWIG_PYTHON_THRILL_PYTHON_HEADER
+#endif // !THRILL_FRONTENDS_SWIG_PYTHON_THRILL_PYTHON_HEADER
 
 /******************************************************************************/

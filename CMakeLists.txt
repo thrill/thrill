@@ -39,10 +39,6 @@ option(THRILL_USE_TBB "Use (optional) Intel TBB library if available." ON)
 
 option(THRILL_USE_MPI "Use (optional) MPI net backend." OFF)
 
-option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." OFF)
-
-option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
-
 option(THRILL_FULL_BUILD "Disable large compilation units for faster development." OFF)
 
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
@@ -345,18 +341,6 @@ endif()
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
-# SWIG (optional)
-
-if(THRILL_USE_SWIG)
-  find_package(SWIG)
-  if(SWIG_FOUND)
-    include(${SWIG_USE_FILE})
-  endif()
-  if(NOT SWIG_FOUND AND THRILL_REQUIRE_SWIG)
-    message(FATAL "Swig was not found but is mandatory.")
-  endif()
-endif()
-
 ################################################################################
 ### Build Macros
 
@@ -394,10 +378,8 @@ add_subdirectory(tests)
 # descend into benchmarks and examples programs
 add_subdirectory(benchmarks)
 
-if(SWIG_FOUND)
-  # build swig frontends
-  add_subdirectory(swig)
-endif()
+# build frontends
+add_subdirectory(frontends)
 
 ###############################################################################
 ### cmake script TRY_COMPILE all Thrill header files

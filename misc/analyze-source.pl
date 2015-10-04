@@ -322,7 +322,7 @@ sub process_cpp {
             print("replacing NULL in $path:$i\n");
         }
 
-        if ($path !~ /^swig/) {
+        if ($path !~ m!^frontends/swig_!) {
             # check for typedef, issue warnings.
             #if ($data[$i] =~ m/\btypedef\b/) {
             if ($data[$i] =~ s/\btypedef\b(.+)\b(\w+);$/using $2 = $1;/) {
