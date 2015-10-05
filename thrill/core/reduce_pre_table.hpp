@@ -16,9 +16,6 @@
 #ifndef THRILL_CORE_REDUCE_PRE_TABLE_HEADER
 #define THRILL_CORE_REDUCE_PRE_TABLE_HEADER
 
-#define BENCHMARK
-#define EMIT_DATA
-
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
@@ -146,6 +143,10 @@ template <typename Key, typename Value,
 class ReducePreTable
 {
     static const bool debug = false;
+
+    static const bool bench = true;
+
+    static const bool emit = true;
 
 public:
     struct IndexResult
@@ -337,9 +338,10 @@ public:
                     LOG << "...finished reduce!";
                     return;
                 }
-#if defined(BENCHMARK)
-                num_collisions_++;
-#endif
+
+                if (bench) {
+                    num_collisions_++;
+                }
             }
 
             current = current->next;
@@ -377,10 +379,11 @@ public:
 
         // Increase partition item count
         num_items_per_partition_[h.partition_id]++;
-#if defined(BENCHMARK)
-        // Increase total item count
-        num_items_per_table_++;
-#endif
+
+        if (bench) {
+            // Increase total item count
+            num_items_per_table_++;
+        }
 
         // flush current partition if max partition fill rate reached
         if (num_items_per_partition_[h.partition_id] > fill_rate_num_items_per_partition_)
@@ -455,43 +458,43 @@ public:
         LOG << "Flushing items of partition with id: "
             << partition_id;
 
-#if defined(BENCHMARK)
-        std::vector<size_t> r_;
-        std::vector<size_t> l_;
-        size_t l = 0;
-#endif
+        if (bench) {
+            r_.clear();
+            l_.clear();
+            l = 0;
+        }
 
         for (size_t i = partition_id * num_buckets_per_partition_;
              i < (partition_id + 1) * num_buckets_per_partition_; i++)
         {
             BucketBlock* current = buckets_[i];
 
-#if defined(BENCHMARK)
-            if (current != nullptr) {
-                r_.push_back(current->size);
-                l = 0;
+            if (bench) {
+                if (current != nullptr) {
+                    r_.push_back(current->size);
+                    l = 0;
+                }
             }
-#endif
 
             while (current != nullptr)
             {
-#if defined(BENCHMARK)
-                l++;
-#endif
+                if (bench) {
+                    l++;
+                }
 
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
                     if (RobustKey) {
-#if defined(EMIT_DATA)
-                        emit_[partition_id](bi->second);
-#endif
+                        if (emit) {
+                            emit_[partition_id](bi->second);
+                        }
                         sLOG << "Pushing value";
                     }
                     else {
-#if defined(EMIT_DATA)
-                        emit_[partition_id](*bi);
-#endif
+                        if (emit) {
+                            emit_[partition_id](*bi);
+                        }
                         sLOG << "pushing pair";
                     }
 
@@ -504,40 +507,41 @@ public:
                 current = next;
             }
 
-#if defined(BENCHMARK)
-            if (buckets_[i] != nullptr) {
-                l_.push_back(l);
+            if (bench) {
+                if (buckets_[i] != nullptr) {
+                    l_.push_back(l);
+                }
             }
-#endif
 
             buckets_[i] = nullptr;
         }
 
-#if defined(BENCHMARK)
-        // reset table specific counter
-        num_items_per_table_ -= num_items_per_partition_[partition_id];
-#endif
+        if (bench) {
+            // reset table specific counter
+            num_items_per_table_ -= num_items_per_partition_[partition_id];
+        }
+
         // reset partition specific counter
         num_items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
 
-#if defined(BENCHMARK)
-        // debug: increase flush counter
-        num_flushes_++;
-        // debug: waste before flush
-        double sum = std::accumulate(r_.begin(), r_.end(), 0.0);
-        double mean = sum / r_.size();
-        double sq_sum = std::inner_product(r_.begin(), r_.end(), r_.begin(), 0.0);
-        block_fill_rates_median.push_back(mean);
-        block_fill_rates_stedv.push_back(std::sqrt(sq_sum / r_.size() - mean * mean));
-        // debug: block length
-        sum = std::accumulate(l_.begin(), l_.end(), 0.0);
-        mean = sum / l_.size();
-        sq_sum = std::inner_product(l_.begin(), l_.end(), l_.begin(), 0.0);
-        block_length_median.push_back(mean);
-        block_length_stedv.push_back(std::sqrt(sq_sum / l_.size() - mean * mean));
-#endif
+        if (bench) {
+            // debug: increase flush counter
+            num_flushes_++;
+            // debug: waste before flush
+            double sum = std::accumulate(r_.begin(), r_.end(), 0.0);
+            double mean = sum / r_.size();
+            double sq_sum = std::inner_product(r_.begin(), r_.end(), r_.begin(), 0.0);
+            block_fill_rates_median.push_back(mean);
+            block_fill_rates_stedv.push_back(std::sqrt(sq_sum / r_.size() - mean * mean));
+            // debug: block length
+            sum = std::accumulate(l_.begin(), l_.end(), 0.0);
+            mean = sum / l_.size();
+            sq_sum = std::inner_product(l_.begin(), l_.end(), l_.begin(), 0.0);
+            block_length_median.push_back(mean);
+            block_length_stedv.push_back(std::sqrt(sq_sum / l_.size() - mean * mean));
+        }
 
         LOG << "Flushed items of partition with id: " << partition_id;
     }
@@ -782,6 +786,12 @@ private:
 
     //! Number of items per partition considering fill rate.
     size_t fill_rate_num_items_per_partition_ = 0;
+
+    std::vector<size_t> r_;
+
+    std::vector<size_t> l_;
+
+    size_t l = 0;
 };
 
 } // namespace core

@@ -16,9 +16,6 @@
 #ifndef THRILL_CORE_REDUCE_POST_TABLE_HEADER
 #define THRILL_CORE_REDUCE_POST_TABLE_HEADER
 
-#define BENCHMARK
-#define EMIT_DATA
-
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
@@ -141,6 +138,10 @@ template <typename Key,
         typename KeyValuePair = std::pair<Key, Value>>
 class PostReduceFlushToDefault
 {
+    static const bool bench = true;
+
+    static const bool emit = true;
+
 public:
     PostReduceFlushToDefault(ReduceFunction reduce_function,
                                     const IndexFunction& index_function = IndexFunction(),
@@ -163,9 +164,7 @@ public:
             while (current != nullptr) {
                 for (KeyValuePair *bi = current->items;
                      bi != current->items + current->size; ++bi) {
-#if defined(EMIT_DATA)
                     writer.PutItem(*bi);
-#endif
                 }
 
                 // destroy block and advance to next
@@ -386,9 +385,9 @@ public:
                     while (current != nullptr) {
                         for (KeyValuePair *bi = current->items;
                              bi != current->items + current->size; ++bi) {
-#if defined(EMIT_DATA)
-                            ht->EmitAll(bi->first, bi->second);
-#endif
+                            if (emit) {
+                                ht->EmitAll(bi->first, bi->second);
+                            }
                         }
 
                         // destroy block and advance to next
@@ -479,9 +478,9 @@ public:
                         while (current != nullptr) {
                             for (KeyValuePair *bi = current->items;
                                  bi != current->items + current->size; ++bi) {
-#if defined(EMIT_DATA)
-                                ht->EmitAll(bi->first, bi->second);
-#endif
+                                if (emit) {
+                                    ht->EmitAll(bi->first, bi->second);
+                                }
                             }
 
                             // advance to next
@@ -509,11 +508,11 @@ public:
                 }
             }
 
-#if defined(BENCHMARK)
-            if (consume) {
-                ht->SetNumItemsPerTable(0);
+            if (bench) {
+                if (consume) {
+                    ht->SetNumItemsPerTable(0);
+                }
             }
-#endif
         }
 
 private:
@@ -530,6 +529,10 @@ template <typename Key,
         typename KeyValuePair = std::pair<Key, Value>>
 class PostReduceFlushToIndex
 {
+    static const bool bench = true;
+
+    static const bool emit = true;
+
 public:
     PostReduceFlushToIndex(ReduceFunction reduce_function,
                            const IndexFunction& index_function = IndexFunction(),
@@ -552,9 +555,7 @@ public:
             while (current != nullptr) {
                 for (KeyValuePair *bi = current->items;
                      bi != current->items + current->size; ++bi) {
-#if defined(EMIT_DATA)
                     writer.PutItem(*bi);
-#endif
                 }
 
                 // destroy block and advance to next
@@ -776,9 +777,8 @@ public:
                 while (current != nullptr) {
                     for (KeyValuePair *bi = current->items;
                          bi != current->items + current->size; ++bi) {
-#if defined(EMIT_DATA)
+
                         elements_to_emit[bi->first - ht->BeginLocalIndex()] = bi->second;
-#endif
                     }
 
                     // destroy block and advance to next
@@ -874,9 +874,8 @@ public:
                     while (current != nullptr) {
                         for (KeyValuePair *bi = current->items;
                              bi != current->items + current->size; ++bi) {
-#if defined(EMIT_DATA)
+
                             elements_to_emit[bi->first - ht->BeginLocalIndex()] = bi->second;
-#endif
                         }
 
                         // advance to next
@@ -906,20 +905,20 @@ public:
 
         size_t index = ht->BeginLocalIndex();
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
-#if defined(EMIT_DATA)
-            ht->EmitAll(index++, elements_to_emit[i]);
-#else
-            index++;
-#endif
+            if (emit) {
+                ht->EmitAll(index++, elements_to_emit[i]);
+            } else {
+                index++;
+            }
             elements_to_emit[i] = neutral_element;
         }
         assert(index == ht->EndLocalIndex());
 
-#if defined(BENCHMARK)
-        if (consume) {
-            ht->SetNumItemsPerTable(0);
+        if (bench) {
+            if (consume) {
+                ht->SetNumItemsPerTable(0);
+            }
         }
-#endif
     }
 
 public:
@@ -957,6 +956,10 @@ template <typename ValueType, typename Key, typename Value, // TODO: dont need b
 class ReducePostTable
 {
     static const bool debug = false;
+
+    static const bool bench = true;
+
+    static const bool emit = true;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -1215,10 +1218,10 @@ public:
 
         // Number of items per frame.
         num_items_mem_per_frame_[frame_id]++;
-#if defined(BENCHMARK)
-        // Increase total item counter
-        num_items_per_table_++;
-#endif
+        if (bench) {
+            // Increase total item counter
+            num_items_per_table_++;
+        }
 
         if (num_items_mem_per_frame_[frame_id] > fill_rate_num_items_mem_per_frame_)
         {
@@ -1307,13 +1310,13 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-#if defined(EMIT_DATA)
-                    writer.PutItem(*bi);
-#endif
+                    if (emit) {
+                        writer.PutItem(*bi);
+                    }
                 }
-#if defined(BENCHMARK)
-                num_items_per_table_ -= current->size;
-#endif
+                if (bench) {
+                    num_items_per_table_ -= current->size;
+                }
 
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -1324,16 +1327,17 @@ public:
             buckets_[i] = nullptr;
         }
 
-#if defined(BENCHMARK)
-        // adjust number of blocks in table
-        num_items_per_table_ -= num_items_mem_per_frame_[frame_id];
-#endif
+        if (bench) {
+            // adjust number of blocks in table
+            num_items_per_table_ -= num_items_mem_per_frame_[frame_id];
+        }
+
         // reset number of blocks in external memory
         num_items_mem_per_frame_[frame_id] = 0;
-#if defined(BENCHMARK)
-        // increase spill counter
-        num_spills_++;
-#endif
+        if (bench) {
+            // increase spill counter
+            num_spills_++;
+        }
     }
 
     /*!

@@ -12,9 +12,6 @@
 #ifndef THRILL_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 #define THRILL_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 
-#define BENCHMARK
-#define EMIT_DATA
-
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block_writer.hpp>
@@ -129,6 +126,10 @@ class ReducePreProbingTable
 {
     static const bool debug = false;
 
+    static const bool bench = true;
+
+    static const bool emit = true;
+
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
@@ -240,17 +241,15 @@ public:
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.global_index >= 0 && h.global_index < size_);
 
-        KeyValuePair* initial = &items_[h.global_index];
-        KeyValuePair* current = initial;
-        KeyValuePair* last_item = &items_[h.global_index - (h.global_index % num_items_per_partition_)
+        KeyValuePair *initial = &items_[h.global_index];
+        KeyValuePair *current = initial;
+        KeyValuePair *last_item = &items_[h.global_index - (h.global_index % num_items_per_partition_)
                                           + num_items_per_partition_ - 1];
 
-        while (!equal_to_function_(current->first, sentinel_.first))
-        {
-            if (equal_to_function_(current->first, kv.first))
-            {
+        while (!equal_to_function_(current->first, sentinel_.first)) {
+            if (equal_to_function_(current->first, kv.first)) {
                 LOG << "match of key: " << kv.first
-                    << " and " << current->first << " ... reducing...";
+                                           << " and " << current->first << " ... reducing...";
 
                 current->second = reduce_function_(current->second, kv.second);
 
@@ -258,32 +257,30 @@ public:
                 return;
             }
 
-#if defined(BENCHMARK)
-            num_collisions_++;
-#endif
+            if (bench) {
+                num_collisions_++;
+            }
 
-            if (current == last_item)
-            {
+            if (current == last_item) {
                 current -= (num_items_per_partition_ - 1);
             }
-            else
-            {
+            else {
                 ++current;
             }
 
             // flush partition, if all slots are occupied
-            if (current == initial)
-            {
+            if (current == initial) {
                 FlushPartition(h.partition_id);
                 current->first = kv.first;
                 current->second = kv.second;
                 // increase counter for partition
                 items_per_partition_[h.partition_id]++;
 
-#if defined(BENCHMARK)
-                // increase total counter
-                num_items_++;
-#endif
+                if (bench) {
+                    // increase total counter
+                    num_items_++;
+                }
+
                 return;
             }
         }
@@ -292,10 +289,11 @@ public:
         *current = kv;
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
-#if defined(BENCHMARK)
-        // increase total counter
-        num_items_++;
-#endif
+
+        if (bench) {
+            // increase total counter
+            num_items_++;
+        }
 
         if (items_per_partition_[h.partition_id] > fill_rate_num_items_per_partition_)
         {
@@ -374,14 +372,14 @@ public:
             if (current.first != sentinel_.first)
             {
                 if (RobustKey) {
-#if defined(EMIT_DATA)
-                    emit_[partition_id](current.second);
-#endif
+                    if (emit) {
+                        emit_[partition_id](current.second);
+                    }
                 }
                 else {
-#if defined(EMIT_DATA)
-                    emit_[partition_id](current);
-#endif
+                    if (emit) {
+                        emit_[partition_id](current);
+                    }
                 }
                 emit_stats_[partition_id]++;
 
@@ -389,18 +387,18 @@ public:
             }
         }
 
-#if defined(BENCHMARK)
-        // reset total counter
-        num_items_ -= items_per_partition_[partition_id];
-#endif
+        if (bench) {
+            // reset total counter
+            num_items_ -= items_per_partition_[partition_id];
+        }
         // reset partition specific counter
         items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
-#if defined(BENCHMARK)
-        // increase flush counter
-        num_flushes_++;
-#endif
+        if (bench) {
+            // increase flush counter
+            num_flushes_++;
+        }
 
         LOG << "Flushed items of partition with id: "
             << partition_id;

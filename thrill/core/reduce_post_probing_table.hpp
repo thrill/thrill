@@ -12,9 +12,6 @@
 #ifndef THRILL_CORE_REDUCE_POST_PROBING_TABLE_HEADER
 #define THRILL_CORE_REDUCE_POST_PROBING_TABLE_HEADER
 
-#define BENCHMARK
-#define EMIT_DATA
-
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
@@ -123,6 +120,10 @@ template <typename Key,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostProbingReduceFlushToDefault
 {
+    static const bool bench = true;
+
+    static const bool emit = true;
+
 public:
     PostProbingReduceFlushToDefault(ReduceFunction reduce_function,
                              const IndexFunction& index_function = IndexFunction(),
@@ -315,9 +316,9 @@ public:
                 for (size_t i = 0; i < second_reduce.size(); i++) {
                     KeyValuePair &current = second_reduce[i];
                     if (current.first != ht->Sentinel().first) {
-#if defined(EMIT_DATA)
-                        ht->EmitAll(current.first, current.second);
-#endif
+                        if (emit) {
+                            ht->EmitAll(current.first, current.second);
+                        }
                         second_reduce[i] = ht->Sentinel();
                     }
                 }
@@ -394,9 +395,9 @@ public:
                     KeyValuePair& current = items[i];
                     if (current.first != ht->Sentinel().first)
                     {
-#if defined(EMIT_DATA)
-                        ht->EmitAll(current.first, current.second);
-#endif
+                        if (emit) {
+                            ht->EmitAll(current.first, current.second);
+                        }
 
                         if (consume)
                         {
@@ -412,12 +413,11 @@ public:
             }
         }
 
-#if defined(BENCHMARK)
-        if (consume)
-        {
-            ht->SetNumItems(0);
+        if (bench) {
+            if (consume) {
+                ht->SetNumItems(0);
+            }
         }
-#endif
     }
 
 private:
@@ -434,6 +434,10 @@ template <typename Key,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostProbingReduceFlushToIndex
 {
+    static const bool bench = true;
+
+    static const bool emit = true;
+
 public:
     PostProbingReduceFlushToIndex(ReduceFunction reduce_function,
                                     const IndexFunction& index_function = IndexFunction(),
@@ -628,10 +632,9 @@ public:
             for (size_t i = 0; i < second_reduce.size(); i++) {
                 KeyValuePair &current = second_reduce[i];
                 if (current.first != ht->Sentinel().first) {
-#if defined(EMIT_DATA)
                     elements_to_emit[current.first - ht->BeginLocalIndex()] = current.second;
                 }
-#endif
+
                 second_reduce[i] = ht->Sentinel();
             }
         }
@@ -711,9 +714,7 @@ public:
                     KeyValuePair& current = items[i];
                     if (current.first != ht->Sentinel().first)
                     {
-    #if defined(EMIT_DATA)
                         elements_to_emit[current.first - ht->BeginLocalIndex()] = current.second;
-    #endif
 
                         if (consume)
                         {
@@ -731,22 +732,21 @@ public:
 
             size_t index = ht->BeginLocalIndex();
             for (size_t i = 0; i < elements_to_emit.size(); i++) {
-#if defined(EMIT_DATA)
-                ht->EmitAll(index++, elements_to_emit[i]);
-#else
-                index++;
-#endif
+                if (emit) {
+                    ht->EmitAll(index++, elements_to_emit[i]);
+                } else {
+                    index++;
+                }
                 elements_to_emit[i] = neutral_element;
             }
 
             assert(index == ht->EndLocalIndex());
 
-#if defined(BENCHMARK)
-        if (consume)
-        {
-            ht->SetNumItems(0);
+        if (bench) {
+            if (consume) {
+                ht->SetNumItems(0);
+            }
         }
-#endif
     }
 
 private:
@@ -782,6 +782,10 @@ template <typename ValueType, typename Key, typename Value,
 class ReducePostProbingTable
 {
     static const bool debug = false;
+
+    static const bool bench = true;
+
+    static const bool emit = true;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -958,10 +962,12 @@ public:
                 current->second = kv.second;
                 // increase counter for partition
                 items_per_frame_[frame_id]++;
-#if defined(BENCHMARK)
-                // increase total counter
-                num_items_++;
-#endif
+
+                if (bench) {
+                    // increase total counter
+                    num_items_++;
+                }
+
                 return;
             }
         }
@@ -970,10 +976,12 @@ public:
         *current = kv;
         // increase counter for frame
         items_per_frame_[frame_id]++;
-#if defined(BENCHMARK)
-        // increase total item counter
-        num_items_++;
-#endif
+
+        if (bench) {
+            // increase total item counter
+            num_items_++;
+        }
+
         if (items_per_frame_[frame_id] > fill_rate_num_items_per_frame_)
         {
             SpillFrame(frame_id);
@@ -1060,16 +1068,18 @@ public:
             }
         }
 
-#if defined(BENCHMARK)
-        // reset total counter
-        num_items_ -= items_per_frame_[frame_id];
-#endif
+        if (bench) {
+            // reset total counter
+            num_items_ -= items_per_frame_[frame_id];
+        }
+
         // reset partition specific counter
         items_per_frame_[frame_id] = 0;
-#if defined(BENCHMARK)
-        // increase spill counter
-        num_spills_++;
-#endif
+
+        if (bench) {
+            // increase spill counter
+            num_spills_++;
+        }
     }
 
     /*!
