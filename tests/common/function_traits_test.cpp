@@ -15,6 +15,31 @@
 
 using namespace thrill; // NOLINT
 
+static std::string func1(int, double) {
+    return "hello";
+}
+
+TEST(FunctionTraits, FunctionPointerTest) {
+    using common::FunctionTraits;
+
+    using Func1 = decltype(&func1);
+
+    static_assert(std::is_same<
+                      FunctionTraits<Func1>::result_type, std::string>::value,
+                  "Result type is std::string");
+
+    static_assert(FunctionTraits<Func1>::arity == 2,
+                  "Arity of func1 is 2");
+
+    static_assert(std::is_same<
+                      FunctionTraits<Func1>::arg<0>, int>::value,
+                  "Argument 0 is int");
+
+    static_assert(std::is_same<
+                      FunctionTraits<Func1>::arg<1>, double>::value,
+                  "Argument 1 is double");
+}
+
 TEST(FunctionTraits, LambdaParametersTest) {
     using common::FunctionTraits;
 
