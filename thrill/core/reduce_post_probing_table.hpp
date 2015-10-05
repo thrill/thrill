@@ -1281,7 +1281,6 @@ public:
         return;
     }
 
-protected:
     //! Context
     Context& ctx_;
 
