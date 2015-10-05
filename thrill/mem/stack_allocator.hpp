@@ -123,11 +123,13 @@ public:
     StackAllocator(const StackAllocator<Other, Size>& other) noexcept
         : arena_(other.arena_) { }
 
+#if !defined(_MSC_VER)
     //! copy-constructor: default
     StackAllocator(const StackAllocator& other) noexcept = default;
 
     //! move-constructor: default
     StackAllocator(StackAllocator&& other) noexcept = default;
+#endif
 
     //! copy-assignment: default
     StackAllocator& operator = (StackAllocator& other) noexcept = default;
