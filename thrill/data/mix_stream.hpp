@@ -149,6 +149,10 @@ public:
         // wait for close packets to arrive (this is a busy waiting loop, try to
         // do it better -tb)
         while (!queue_.write_closed()) {
+            sLOG << "MixStream" << id()
+                 << "host" << multiplexer_.my_host_rank()
+                 << "local_worker" << my_local_worker_id_
+                 << "wait for close";
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         tx_lifetime_.StopEventually();
@@ -202,6 +206,8 @@ private:
     void OnCloseStream(size_t from) {
         assert(from < multiplexer_.num_workers());
         queue_.Close(from);
+
+        sLOG << "OnMixCloseStream from=" << from;
 
         if (expected_closing_blocks_ == ++received_closing_blocks_) {
             rx_lifetime_.StopEventually();

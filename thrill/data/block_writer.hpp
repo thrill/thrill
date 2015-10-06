@@ -71,24 +71,53 @@ public:
     BlockWriter& operator = (const BlockWriter&) = delete;
 
     //! move-constructor
-    BlockWriter(BlockWriter&&) = default;
+    BlockWriter(BlockWriter&& bw) noexcept
+        : bytes_(std::move(bw.bytes_)),
+          current_(std::move(bw.current_)),
+          end_(std::move(bw.end_)),
+          nitems_(std::move(bw.nitems_)),
+          first_offset_(std::move(bw.first_offset_)),
+          sink_(std::move(bw.sink_)),
+          do_queue_(std::move(bw.do_queue_)),
+          sink_queue_(std::move(bw.sink_queue_)),
+          block_size_(std::move(bw.block_size_)),
+          closed_(std::move(bw.closed_)) {
+        // set closed flag -> disables destructor
+        bw.closed_ = true;
+    }
+
     //! move-assignment
-    BlockWriter& operator = (BlockWriter&&) = default;
+    BlockWriter& operator = (BlockWriter&& bw) noexcept {
+        if (this == &bw) return *this;
+
+        bytes_ = std::move(bw.bytes_);
+        current_ = std::move(bw.current_);
+        end_ = std::move(bw.end_);
+        nitems_ = std::move(bw.nitems_);
+        first_offset_ = std::move(bw.first_offset_);
+        sink_ = std::move(bw.sink_);
+        do_queue_ = std::move(bw.do_queue_);
+        sink_queue_ = std::move(bw.sink_queue_);
+        block_size_ = std::move(bw.block_size_);
+        closed_ = std::move(bw.closed_);
+        // set closed flag -> disables destructor
+        bw.closed_ = true;
+        return *this;
+    }
 
     //! On destruction, the last partial block is flushed.
     ~BlockWriter() {
-        if (bytes_)
+        if (!closed_)
             Close();
     }
 
     //! Explicitly close the writer
     void Close() {
-        if (!closed_) {
-            closed_ = true;
-            Flush();
-            if (sink_)
-                sink_->Close();
-        }
+        if (closed_) return;
+        closed_ = true;
+        Flush();
+        if (sink_)
+            sink_->Close();
     }
 
     //! Return whether an actual BlockSink is attached.
