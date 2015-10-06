@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -53,6 +53,7 @@ protected:
         struct sockaddr_in6 in6;
     } sockaddr_;
 
+private:
     //! Return value of the last getaddrinfo() call. Used to output nice user
     //! messages.
     int resolve_error_;
@@ -199,6 +200,11 @@ public:
 class IPv4Address : public SocketAddress
 {
 public:
+    //! Create uninitialized IPv4 address
+    IPv4Address() : SocketAddress() {
+        sockaddr_.in.sin_family = AF_INET;
+    }
+
     //! Create an IPv4 address and initialize only the port part.
     explicit IPv4Address(uint16_t port)
         : SocketAddress() {
@@ -242,6 +248,11 @@ public:
 class IPv6Address : public SocketAddress
 {
 public:
+    //! Create uninitialized IPv6 address
+    IPv6Address() : SocketAddress() {
+        sockaddr_.in6.sin6_family = AF_INET6;
+    }
+
     //! Create an IPv6 address and initialize only the port part.
     explicit IPv6Address(uint16_t port)
         : SocketAddress() {

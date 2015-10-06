@@ -1,5 +1,14 @@
 #!/bin/bash
+################################################################################
+# scripts/gen_random_words.sh
+#
 # Generates random words, multiple words per line, space separated
+#
+# Part of Project Thrill.
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 MAX_LEN=32 #of word
 BYTES=1048576 #1MB
@@ -17,3 +26,5 @@ do
   ((c=$c+1))
   echo " "
 done
+
+################################################################################

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -96,7 +96,7 @@ This example is documented in \ref common_cmdline tutorial.
 */
 class CmdlineParser
 {
-protected:
+private:
     // forward declaration of Argument classes
     struct Argument;
     struct ArgumentFlag;
@@ -108,7 +108,7 @@ protected:
     struct ArgumentString;
     struct ArgumentStringlist;
 
-protected:
+private:
     //! option and parameter list type
     using ArgumentList = std::vector<Argument*>;
 

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -41,59 +41,49 @@ public:
 
     void Execute() {
         // time_t tt;
-        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "START (EXECUTING) stage" << node_->label()
-        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
         // timer.Start();
         node_->Execute();
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
-        //    << "FINISH (EXECUTING) stage" << node_->label()
+        //    << "FINISH (EXECUTING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
 
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "START (PUSHING) stage" << node_->label()
-        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
         // timer.Start();
-        node_->PushData(node_->consume_on_push_data());
-        // timer.Stop();
+        node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
+        // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
-        //    << "FINISH (PUSHING) stage" << node_->label()
+        //    << "FINISH (PUSHING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
 
     void PushData() {
         // time_t tt;
-        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "START (PUSHING) stage" << node_->label()
-        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
+        if (node_->consume_on_push_data()) {
+            sLOG1 << "StageBuilder: Attempt to PushData on"
+                  << "stage" << node_->label()
+                  << "failed, it was already consumed. Add .Keep()";
+            abort();
+        }
         die_unless(!node_->consume_on_push_data());
         // timer.Start();
-        node_->PushData(node_->consume_on_push_data());
+        node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
         // timer.Stop();
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         // STAT(node_->context())
-        //    << "FINISH (PUSHING) stage"
-        //    << node_->label()
+        //    << "FINISH (PUSHING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time: " << std::put_time(std::localtime(&tt), "%T");
     }
 
     void Dispose() {
         // time_t tt;
-        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        // STAT(node_->context())
-        //    << "START (DISPOSING) stage" << node_->label()
-        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
         // timer.Start();
         node_->Dispose();
         // timer.Stop();
@@ -144,6 +134,7 @@ public:
                     // If not add parent to stages found and result stages
                     stages_found.insert(p);
                     stages_result.push_back(Stage(p));
+                    LOG << "FOUND: " << p->label() << " " << p->id();
                     // If parent was not executed push it to the DFS
                     if (p->state() != api::DIAState::EXECUTED ||
                         p->type() == api::DIANodeType::COLLAPSE) {
@@ -163,7 +154,15 @@ public:
         FindStages(action, result);
         for (auto s : result)
         {
-            if (s.node()->state() == api::DIAState::EXECUTED) s.PushData();
+            if (s.node()->state() == api::DIAState::EXECUTED) {
+                bool skip = true;
+                for (DIABase* child : s.node()->children())
+                    if (child->state() != api::DIAState::EXECUTED
+                        || child->type() == api::DIANodeType::COLLAPSE)
+                        skip = false;
+                if (skip) continue;
+                else s.PushData();
+            }
             if (s.node()->state() == api::DIAState::NEW) s.Execute();
             s.node()->UnregisterChilds();
         }

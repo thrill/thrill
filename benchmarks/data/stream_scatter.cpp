@@ -1,11 +1,11 @@
 /*******************************************************************************
- * benchmarks/data/channel_scatter.cpp
+ * benchmarks/data/stream_scatter.cpp
  *
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
@@ -42,6 +42,7 @@ void ConductExperiment(uint64_t bytes, int iterations,
     auto data0 = generate<Type>(bytes / 2, 1, 100);
     auto data1 = generate<Type>(bytes / 2, 1, 100);
     std::vector<data::File> files;
+    files.reserve(3);
     {
         files.emplace_back(ctx0.GetFile());
         auto writer0 = files[0].GetWriter();
@@ -67,10 +68,10 @@ void ConductExperiment(uint64_t bytes, int iterations,
     offsets.push_back({ 0, (size_t)(data1.size() / 3), data1.size() });
     offsets.push_back({ 0, 0, 0 });
 
-    std::vector<std::shared_ptr<data::Channel> > channels;
-    channels.push_back(ctx0.GetNewChannel());
-    channels.push_back(ctx1.GetNewChannel());
-    channels.push_back(ctx2.GetNewChannel());
+    std::vector<std::shared_ptr<data::CatStream> > streams;
+    streams.push_back(ctx0.GetNewCatStream());
+    streams.push_back(ctx1.GetNewCatStream());
+    streams.push_back(ctx2.GetNewCatStream());
 
     std::vector<StatsTimer<true> > read_timers(3);
     std::vector<StatsTimer<true> > write_timers(3);
@@ -78,11 +79,11 @@ void ConductExperiment(uint64_t bytes, int iterations,
     common::ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
         for (int id = 0; id < 3; id++) {
-            pool.Enqueue([&files, &channels, &offsets, &read_timers, &write_timers, id]() {
+            pool.Enqueue([&files, &streams, &offsets, &read_timers, &write_timers, id]() {
                              write_timers[id].Start();
-                             channels[id]->Scatter<Type>(files[id], offsets[id]);
+                             streams[id]->Scatter<Type>(files[id], offsets[id]);
                              write_timers[id].Stop();
-                             auto reader = channels[id]->OpenConcatReader(true);
+                             auto reader = streams[id]->OpenCatReader(true);
                              read_timers[id].Start();
                              while (reader.HasNext()) {
                                  reader.Next<Type>();

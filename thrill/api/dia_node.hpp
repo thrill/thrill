@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -96,14 +96,22 @@ public:
                 callbacks_.begin(), callbacks_.end(),
                 [](const auto& cb) { return cb.type_ != DIANodeType::COLLAPSE; }),
             callbacks_.end());
+
+        children_.erase(
+            std::remove_if(
+                children_.begin(), children_.end(),
+                [](const auto& c) { return c->type() != DIANodeType::COLLAPSE; }),
+            children_.end());
     }
 
     std::vector<CallbackPair<ValueType> > & callbacks() {
         return callbacks_;
     }
 
-    void callback_functions(std::vector<std::function<void(const ValueType&)> >& cbs) {
-        for (auto& cb_pair : callbacks_) cbs.push_back(cb_pair.cb_);
+    void AddCallbackFunctions(
+        const std::vector<std::function<void(const ValueType&)> >& cbs) {
+        for (auto& cb_pair : callbacks_)
+            cbs.push_back(cb_pair.cb_);
     }
 
     void PushItem(const ValueType& elem) const {
@@ -112,7 +120,7 @@ public:
         }
     }
 
-protected:
+private:
     //! Callback functions from the child nodes.
     std::vector<CallbackPair<ValueType> > callbacks_;
 };

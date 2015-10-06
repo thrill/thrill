@@ -2,20 +2,11 @@
 ################################################################################
 # misc/analyze-source.pl
 #
+# Part of Project Thrill.
+#
 # Copyright (C) 2014-2015 Timo Bingmann <tb@panthema.net>
 #
-# This program is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program.  If not, see <http://www.gnu.org/licenses/>.
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
 # print multiple email addresses
@@ -30,9 +21,6 @@ my $write_changes = 0;
 # have autopep8 python formatter?
 my $have_autopep8;
 
-# have cogapp code generator?
-my $have_cogapp;
-
 # function testing whether to uncrustify a path
 sub filter_uncrustify($) {
     my ($path) = @_;
@@ -44,8 +32,10 @@ use strict;
 use warnings;
 use Text::Diff;
 use File::stat;
+use List::Util qw(min);
 
-my %includemap;
+my %include_list;
+my %include_map;
 my %authormap;
 
 my @source_filelist;
@@ -142,6 +132,61 @@ sub filter_program {
     }
 }
 
+sub process_inline_perl {
+    my @data = @_;
+
+    for(my $i = 0; $i < @data; ++$i)
+    {
+        if ($data[$i] =~ /\[\[\[perl/) {
+            # try to find the following ]]] line
+            my $j = $i + 1;
+            while ($j < @data && $data[$j] !~ /\]\]\]/) {
+                $j++;
+            }
+
+            # no ]]] found.
+            die("[[[perl is missing closing ]]]") if $j >= @data;
+
+            # extract lines
+            my $prog = join("", @data[$i+1..$j-1]);
+
+            # evaluate the program
+            my $output;
+            {
+                # return STDOUT to $output
+                open local(*STDOUT), '>', \$output or die $!;
+                eval $prog;
+            }
+            if ($@) {
+                print "Perl inline: -------------\n";
+                print "$prog\n";
+                print "--------------------------\n";
+                die("failed with $@");
+            }
+            #print "output: ".$output."\n";
+
+            # try to find the following [[[end]]] line
+            my $k = $j + 1;
+            while ($k < @data && $data[$k] !~ /\[\[\[end\]\]\]/ && $data[$k] !~ /\[\[\[perl/) {
+                $k++;
+            }
+
+            # not found: insert [[[end]]]
+            if ($data[$k] !~ /\[\[\[end\]\]\]/) {
+                $k = $j + 1;
+                $output .= "\n// [[[end]]]";
+            }
+
+            my @output = split(/\n/, $output);
+            $output[$_] .= "\n" foreach (0..@output-1);
+
+            splice(@data, $j + 1, $k - ($j + 1), @output);
+        }
+    }
+
+    return @data;
+}
+
 sub process_cpp {
     my ($path) = @_;
 
@@ -167,28 +212,21 @@ sub process_cpp {
 
     my @origdata = @data;
 
-    # first check whether there are cog lines and execute them
-    if ($have_cogapp) {
-        my $have_coglines = 0;
-        foreach my $ln (@data) {
-            if ($ln =~ /\[\[\[cog/) {
-                $have_coglines = 1;
-                last;
-            }
-        }
+    # first check whether there are [[[perl lines and execute them
+    @data = process_inline_perl(@data);
 
-        if ($have_coglines) {
-            # pipe file through cog.py
-            my $data = join("", @data);
-            @data = filter_program($data, "cog.py", "-");
-        }
-    }
-
-    # put all #include lines into the includemap
-    foreach my $ln (@data)
+    # put all #include lines into the includelist+map
+    for my $i (0...@data-1)
     {
-        if ($ln =~ m!\s*#\s*include\s*([<"]\S+[">])!) {
-            $includemap{$1}{$path} = 1;
+        if ($data[$i] =~ m!\s*#\s*include\s*[<"](\S+)[">]!) {
+            $include_list{$1} = 1;
+            $include_map{$path}{$1} = 1;
+
+            if ($1 eq "<thrill/thrill.hpp>" && $path !~ /\.dox$/) {
+                print "\n";
+                print "$path:$i: NEVER NEVER NEVER use thrill/thrill.hpp in our sources.\n";
+                print "\n";
+            }
         }
     }
 
@@ -203,7 +241,7 @@ sub process_cpp {
     # skip over custom file comments
     my $j = $i;
     while ($data[$i] !~ /^ \* Part of Project Thrill/) {
-        expect_re($path, $i, @data, '^ \*( .*)?\n$');
+        expect_re($path, $i, @data, '^ \*( .*|$)$');
         if (++$i >= @data) {
             $i = $j; # restore read position
             last;
@@ -224,7 +262,7 @@ sub process_cpp {
 
     # otherwise check license
     expect($path, $i, @data, " *\n"); ++$i;
-    expectr($path, $i, @data, " * This file has no license. Only Chuck Norris can compile it.\n", qr/^ \*/); ++$i;
+    expectr($path, $i, @data, " * All rights reserved. Published under the BSD-2 license in the LICENSE file.\n", qr/^ \*/); ++$i;
     expect($path, $i, @data, " ".('*'x78)."/\n"); ++$i;
 
     # check include guard name
@@ -373,9 +411,18 @@ sub process_pl_cmake {
     my ($path) = @_;
 
     # check permissions
-    if ($path !~ /\.pl$/) {
+    if ($path =~ /\.(pl|sh)$/) {
         my $st = stat($path) or die("Cannot stat() file $path: $!");
-        if ($st->mode & 0133) {
+        if (($st->mode & 0777) != 0755) {
+            print("Wrong mode ".sprintf("%o", $st->mode)." on $path\n");
+            if ($write_changes) {
+                chmod(0755, $path) or die("Cannot chmod() file $path: $!");
+            }
+        }
+    }
+    else {
+        my $st = stat($path) or die("Cannot stat() file $path: $!");
+        if (($st->mode & 0777) != 0644) {
             print("Wrong mode ".sprintf("%o", $st->mode)." on $path\n");
             if ($write_changes) {
                 chmod(0644, $path) or die("Cannot chmod() file $path: $!");
@@ -397,11 +444,31 @@ sub process_pl_cmake {
     expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
 
-    # skip over comment
-    while ($data[$i] ne ('#'x80)."\n") {
-        expect_re($path, $i, @data, '^#( .*)?\n$');
-        return unless ++$i < @data;
+    # skip over custom file comments
+    my $j = $i;
+    while ($data[$i] !~ /^# Part of Project Thrill/) {
+        expect_re($path, $i, @data, '^#( .*|$)');
+        if (++$i >= @data) {
+            $i = $j; # restore read position
+            last;
+        }
     }
+
+    # check "Part of Project Thrill"
+    expect($path, $i-1, @data, "#\n");
+    expect($path, $i, @data, "# Part of Project Thrill.\n"); ++$i;
+    expect($path, $i, @data, "#\n"); ++$i;
+
+    # read authors
+    while ($data[$i] =~ /^# Copyright \(C\) ([0-9-]+(, [0-9-]+)*) (?<name>[^0-9<]+)( <(?<mail>[^>]+)>)?\n/) {
+        #print "Author: $+{name} - $+{mail}\n";
+        $authormap{$+{name}}{$+{mail} || ""} = 1;
+        die unless ++$i < @data;
+    }
+
+    # otherwise check license
+    expect($path, $i, @data, "#\n"); ++$i;
+    expectr($path, $i, @data, "# All rights reserved. Published under the BSD-2 license in the LICENSE file.\n", qr/^# /); ++$i;
 
     expect($path, $i, @data, ('#'x80)."\n"); ++$i;
 
@@ -445,11 +512,31 @@ sub process_py {
     expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
 
-    # skip over comment
-    while ($data[$i] ne ('#'x74)."\n") {
-        expect_re($path, $i, @data, '^#( .*)?\n$');
-        return unless ++$i < @data;
+    # skip over custom file comments
+    my $j = $i;
+    while ($data[$i] !~ /^# Part of Project Thrill/) {
+        expect_re($path, $i, @data, '^#( .*|$)');
+        if (++$i >= @data) {
+            $i = $j; # restore read position
+            last;
+        }
     }
+
+    # check "Part of Project Thrill"
+    expect($path, $i-1, @data, "#\n");
+    expect($path, $i, @data, "# Part of Project Thrill.\n"); ++$i;
+    expect($path, $i, @data, "#\n"); ++$i;
+
+    # read authors
+    while ($data[$i] =~ /^# Copyright \(C\) ([0-9-]+(, [0-9-]+)*) (?<name>[^0-9<]+)( <(?<mail>[^>]+)>)?\n/) {
+        #print "Author: $+{name} - $+{mail}\n";
+        $authormap{$+{name}}{$+{mail} || ""} = 1;
+        die unless ++$i < @data;
+    }
+
+    # otherwise check license
+    expect($path, $i, @data, "#\n"); ++$i;
+    expectr($path, $i, @data, "# All rights reserved. Published under the BSD-2 license in the LICENSE file.\n", qr/^# /); ++$i;
 
     expect($path, $i, @data, ('#'x74)."\n"); ++$i;
 
@@ -504,22 +591,8 @@ sub process_swig {
 
     my @origdata = @data;
 
-    # first check whether there are cog lines and execute them
-    if ($have_cogapp) {
-        my $have_coglines = 0;
-        foreach my $ln (@data) {
-            if ($ln =~ /\[\[\[cog/) {
-                $have_coglines = 1;
-                last;
-            }
-        }
-
-        if ($have_coglines) {
-            # pipe file through cog.py
-            my $data = join("", @data);
-            @data = filter_program($data, "cog.py", "-");
-        }
-    }
+    # first check whether there are [[[perl lines and execute them
+    @data = process_inline_perl(@data);
 
     # check source header
     my $i = 0;
@@ -553,7 +626,7 @@ sub process_swig {
 
     # otherwise check license
     expect($path, $i, @data, " *\n"); ++$i;
-    expectr($path, $i, @data, " * This file has no license. Only Chuck Norris can compile it.\n", qr/^ \*/); ++$i;
+    expectr($path, $i, @data, " * All rights reserved. Published under the BSD-2 license in the LICENSE file.\n", qr/^ \*/); ++$i;
     expect($path, $i, @data, " ".('*'x78)."/\n"); ++$i;
 
     # check terminating /****/ comment
@@ -630,18 +703,11 @@ my ($uncrustver) = filter_program("", "uncrustify", "--version");
     or die("Requires uncrustify 0.61 to run correctly. ".
            "See https://github.com/PdF14-MR/thrill/wiki/Uncrustify-as-local-pre-commit-hook");
 
-$have_autopep8 = 1;
+$have_autopep8 = 0;
 my ($check_autopep8) = filter_program("", "autopep8", "--version");
 if (!$check_autopep8 || $check_autopep8 !~ /^autopep8/) {
     $have_autopep8 = 0;
     warn("Could not find autopep8 - automatic python formatter.");
-}
-
-$have_cogapp = 1;
-my ($check_cogapp) = filter_program("", "cog.py", "-version");
-if (!$check_cogapp || $check_cogapp !~ /^Cog/) {
-    $have_cogapp = 0;
-    warn("Could not find cogapp - python code generator formatter.");
 }
 
 use File::Find;
@@ -661,11 +727,14 @@ foreach my $file (@filelist)
     elsif ($file =~ /\.(h|cpp|hpp|h\.in|dox)$/) {
         process_cpp($file);
     }
-    elsif ($file =~ /\.pl$/) {
+    elsif ($file =~ /\.p[lm]$/) {
         process_pl_cmake($file);
     }
-    elsif ($file =~ /^(swig|tests).*\.py$/) {
+    elsif ($file =~ /\.py$/) {
         process_py($file);
+    }
+    elsif ($file =~ /\.(sh|awk)$/) {
+        process_pl_cmake($file);
     }
     elsif ($file =~ m!(^|/)CMakeLists\.txt$!) {
         process_pl_cmake($file);
@@ -684,6 +753,8 @@ foreach my $file (@filelist)
     }
     elsif ($file =~ m!^misc/!) {
     }
+    elsif ($file =~ m!^tests/inputs/!) {
+    }
     elsif ($file =~ m!CPPLINT\.cfg$!) {
     }
     elsif ($file =~ m!^doxygen-html/!) {
@@ -696,17 +767,6 @@ foreach my $file (@filelist)
     }
     else {
         print "Unknown file type $file\n";
-    }
-}
-
-# print includes to includemap.txt
-if (0)
-{
-    print "Writing includemap:\n";
-    foreach my $inc (sort keys %includemap)
-    {
-        print "$inc => ".scalar(keys %{$includemap{$inc}})." [";
-        print join(",", sort keys %{$includemap{$inc}}). "]\n";
     }
 }
 
@@ -729,7 +789,7 @@ foreach my $a (sort keys %authormap)
 }
 close(A);
 
-# check includemap for C-style headers
+# check include_list for C-style headers
 {
 
     my @cheaders = qw(assert.h ctype.h errno.h fenv.h float.h inttypes.h
@@ -738,10 +798,82 @@ close(A);
 
     foreach my $ch (@cheaders)
     {
-        $ch = "<$ch>";
-        next if !$includemap{$ch};
+        next if !$include_list{$ch};
         print "Replace c-style header $ch in\n";
-        print "    [".join(",", sort keys %{$includemap{$ch}}). "]\n";
+        print "    [".join(",", sort keys %{$include_list{$ch}}). "]\n";
+    }
+}
+
+# print includes
+if (0)
+{
+    print "Writing include_map:\n";
+    foreach my $inc (sort keys %include_map)
+    {
+        print "$inc => ".scalar(keys %{$include_map{$inc}})." [";
+        print join(",", sort keys %{$include_map{$inc}}). "]\n";
+    }
+}
+
+# try to find cycles in includes
+if (1)
+{
+    my %graph = %include_map;
+
+    # Tarjan's Strongly Connected Components Algorithm
+    # https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+
+    my $index = 0;
+    my @S = [];
+    my %vi; # vertex info
+
+    sub strongconnect {
+        my ($v) = @_;
+
+        # Set the depth index for v to the smallest unused index
+        $vi{$v}{index} = $index;
+        $vi{$v}{lowlink} = $index++;
+        push(@S, $v);
+        $vi{$v}{onStack} = 1;
+
+        # Consider successors of v
+        foreach my $w (keys %{$graph{$v}}) {
+            if (!defined $vi{$w}{index}) {
+                # Successor w has not yet been visited; recurse on it
+                strongconnect($w);
+                $vi{$w}{lowlink} = min($vi{$v}{lowlink}, $vi{$w}{lowlink});
+            }
+            elsif ($vi{$w}{onStack}) {
+                # Successor w is in stack S and hence in the current SCC
+                $vi{$v}{lowlink} = min($vi{$v}{lowlink}, $vi{$w}{index})
+            }
+        }
+
+        # If v is a root node, pop the stack and generate an SCC
+        if ($vi{$v}{lowlink} == $vi{$v}{index}) {
+            # start a new strongly connected component
+            my @SCC;
+            my $w;
+            do {
+                $w = pop(@S);
+                $vi{$w}{onStack} = 0;
+                # add w to current strongly connected component
+                push(@SCC, $w);
+            } while ($w ne $v);
+            # output the current strongly connected component (only if it is not
+            # a singleton)
+            if (@SCC != 1) {
+                print "-------------------------------------------------";
+                print "Found cycle:\n";
+                print "    $_\n" foreach @SCC;
+                print "end cycle\n";
+            }
+        }
+    }
+
+    foreach my $v (keys %graph) {
+        next if defined $vi{$v}{index};
+        strongconnect($v);
     }
 }
 

@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -36,7 +36,7 @@
 
 using namespace thrill;
 using thrill::api::Context;
-using thrill::api::DIARef;
+using thrill::api::DIA;
 
 TEST(IO, ReadSingleFile) {
     std::function<void(Context&)> start_func =
@@ -96,7 +96,7 @@ TEST(IO, ReadPartOfFolderCompressed) {
 }
 
 TEST(IO, GenerateFromFileRandomIntegers) {
-    api::RunSameThread(
+    api::RunLocalSameThread(
         [](api::Context& ctx) {
             std::default_random_engine generator(std::random_device { } ());
             std::uniform_int_distribution<int> distribution(1000, 10000);
@@ -131,7 +131,7 @@ TEST(IO, GenerateFromFileRandomIntegers) {
 
 TEST(IO, WriteBinaryPatternFormatter) {
 
-    std::string str1 = core::FillFilePattern("test-$$$$-########", 42, 10);
+    std::string str1 = core::FillFilePattern("test-@@@@-########", 42, 10);
     ASSERT_EQ("test-0042-00000010", str1);
 
     std::string str2 = core::FillFilePattern("test", 42, 10);
@@ -206,7 +206,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
                     [](const size_t index) { return index + 42; },
                     generate_size);
 
-                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary-$$$$-####.gz",
+                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary-@@@@-####.gz",
                                 16 * 1024);
             }
             ctx.Barrier();
@@ -233,7 +233,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
 // make weird test strings of different lengths
 std::string test_string(size_t index) {
     return std::string((index * index) % 20,
-                       '0' + static_cast<char>(index) % 100);
+                       '0' + static_cast<char>(index % 100));
 }
 
 TEST(IO, GenerateStringWriteBinary) {

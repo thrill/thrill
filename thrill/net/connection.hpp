@@ -8,7 +8,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -22,7 +22,9 @@
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>
 #include <thrill/net/exception.hpp>
+#include <thrill/net/fixed_buffer_builder.hpp>
 
+#include <array>
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
@@ -51,8 +53,12 @@ public:
     //! this increases network volume.
     static const bool self_verify_ = common::g_self_verify;
 
+    //! typeid().hash_code() is only guaranteed to be equal for the same program
+    //! run, hence, we can only use it on loopback networks.
+    bool is_loopback_ = false;
+
     //! Additional flags for sending or receiving.
-    enum Flags : unsigned {
+    enum Flags : size_t {
         NoFlags = 0,
         //! indicate that more data is coming, hence, sending a packet may be
         //! delayed. currently only applies to TCP.
@@ -62,7 +68,7 @@ public:
     //! operator to combine flags
     friend inline Flags operator | (const Flags& a, const Flags& b) {
         return static_cast<Flags>(
-            static_cast<unsigned>(a) | static_cast<unsigned>(b));
+            static_cast<size_t>(a) | static_cast<size_t>(b));
     }
 
     //! \name Base Status Functions
@@ -75,7 +81,7 @@ public:
     virtual std::string ToString() const = 0;
 
     //! virtual method to output to a std::ostream
-    virtual std::ostream & output_ostream(std::ostream& os) const = 0;
+    virtual std::ostream & OutputOstream(std::ostream& os) const = 0;
 
     //! \}
 
@@ -96,7 +102,7 @@ public:
     //! thrown.
     template <typename T>
     void Send(const T& value) {
-        if (self_verify_) {
+        if (self_verify_ && is_loopback_) {
             // for communication verification, send hash_code.
             size_t hash_code = typeid(T).hash_code();
             SyncSend(&hash_code, sizeof(hash_code));
@@ -107,10 +113,22 @@ public:
         }
         else if (data::Serialization<BufferBuilder, T>::is_fixed_size) {
             // fixed_size items can be sent without size header
-            // TODO(tb): make bb allocate on stack.
-            BufferBuilder bb;
-            data::Serialization<BufferBuilder, T>::Serialize(value, bb);
-            SyncSend(bb.data(), bb.size());
+            static const size_t fixed_size
+                = data::Serialization<BufferBuilder, T>::fixed_size;
+            if (fixed_size < 2 * 1024 * 1024) {
+                // allocate buffer on stack (no allocation)
+                using FixedBuilder = FixedBufferBuilder<fixed_size>;
+                FixedBuilder fb;
+                data::Serialization<FixedBuilder, T>::Serialize(value, fb);
+                assert(fb.size() == fixed_size);
+                SyncSend(fb.data(), fb.size());
+            }
+            else {
+                // too big, use heap allocation
+                BufferBuilder bb;
+                data::Serialization<BufferBuilder, T>::Serialize(value, bb);
+                SyncSend(bb.data(), bb.size());
+            }
         }
         else {
             // variable length items must be prefixed with size header
@@ -140,7 +158,7 @@ public:
     //! Receive any serializable item T.
     template <typename T>
     void Receive(T* out_value) {
-        if (self_verify_) {
+        if (self_verify_ && is_loopback_) {
             // for communication verification, receive hash_code.
             size_t hash_code;
             SyncRecv(&hash_code, sizeof(hash_code));
@@ -156,11 +174,22 @@ public:
         }
         else if (data::Serialization<BufferBuilder, T>::is_fixed_size) {
             // fixed_size items can be received without size header
-            // TODO(tb): make bb allocate on stack.
-            Buffer b(data::Serialization<BufferBuilder, T>::fixed_size);
-            SyncRecv(b.data(), b.size());
-            BufferReader br(b);
-            *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+            static const size_t fixed_size
+                = data::Serialization<BufferBuilder, T>::fixed_size;
+            if (fixed_size < 2 * 1024 * 1024) {
+                // allocate buffer on stack (no allocation)
+                std::array<uint8_t, fixed_size> b;
+                SyncRecv(b.data(), b.size());
+                BufferReader br(b.data(), b.size());
+                *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+            }
+            else {
+                // too big, use heap allocation
+                Buffer b(data::Serialization<BufferBuilder, T>::fixed_size);
+                SyncRecv(b.data(), b.size());
+                BufferReader br(b);
+                *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+            }
         }
         else {
             // variable length items are prefixed with size header
@@ -178,7 +207,7 @@ public:
 
     //! make ostreamable
     friend std::ostream& operator << (std::ostream& os, const Connection& c) {
-        return c.output_ostream(os);
+        return c.OutputOstream(os);
     }
 };
 

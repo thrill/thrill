@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -89,7 +89,7 @@ TEST_F(PostTable, CustomHashFunction) {
             ASSERT_EQ(16u, writer1.size());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, AddIntegers) {
@@ -127,7 +127,7 @@ TEST_F(PostTable, AddIntegers) {
             ASSERT_EQ(0u, table.NumBlocksPerTable());
             ASSERT_EQ(3u, writer1.size());
         };
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, CreateEmptyTable) {
@@ -154,7 +154,7 @@ TEST_F(PostTable, CreateEmptyTable) {
             ASSERT_EQ(0u, table.NumBlocksPerTable());
             ASSERT_EQ(0u, table.NumItemsPerTable());
         };
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, FlushIntegers) {
@@ -192,7 +192,7 @@ TEST_F(PostTable, FlushIntegers) {
 
             table.Insert(pair(1));
         };
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, FlushIntegersInSequence) {
@@ -238,7 +238,7 @@ TEST_F(PostTable, FlushIntegersInSequence) {
 
             ASSERT_EQ(6u, writer1.size());
         };
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, MultipleEmitters) {
@@ -279,7 +279,7 @@ TEST_F(PostTable, MultipleEmitters) {
             ASSERT_EQ(3u, writer1.size());
             ASSERT_EQ(3u, writer2.size());
         };
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, ComplexType) {
@@ -329,7 +329,7 @@ TEST_F(PostTable, ComplexType) {
             // ASSERT_EQ(4u, table.NumBlocks());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
@@ -383,7 +383,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
             ASSERT_EQ(block_size, writer1.size());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketOneBlockTestFillRate2) {
@@ -442,7 +442,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate2) {
             ASSERT_EQ(2 * block_size, writer1.size());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketTwoBlocksTestFillRate) {
@@ -501,7 +501,7 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate) {
 
             ASSERT_EQ(block_size * 2, writer1.size());
         };
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketTwoBlocksTestFillRate2) {
@@ -560,7 +560,7 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate2) {
 
             ASSERT_EQ(block_size * 2, writer1.size());
         };
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
@@ -617,7 +617,7 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
 
             ASSERT_EQ(block_size * 2, writer1.size());
         };
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
@@ -674,7 +674,7 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
 
             ASSERT_EQ(block_size * 2, writer1.size());
         };
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, MaxTableBlocks) {
@@ -730,7 +730,7 @@ TEST_F(PostTable, MaxTableBlocks) {
 
             ASSERT_EQ(num_items, writer1.size());
         };
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 /******************************************************************************/

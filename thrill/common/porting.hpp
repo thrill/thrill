@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -24,7 +24,7 @@ namespace common {
 void PortSetCloseOnExec(int fd);
 
 //! create a pair of pipe file descriptors
-void make_pipe(int out_pipefds[2]);
+void MakePipe(int out_pipefds[2]);
 
 } // namespace common
 } // namespace thrill

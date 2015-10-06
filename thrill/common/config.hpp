@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -36,6 +36,13 @@ static const bool g_self_verify = g_debug_mode;
 static const bool g_enable_stats = true;
 #else
 static const bool g_enable_stats = false;
+#endif
+
+//! Finding cache line size is hard - we assume 64 byte.
+static const unsigned g_cache_line_size = 64;
+
+#if !defined(_MSC_VER)
+#define THRILL_HAVE_NET_TCP 1
 #endif
 
 } // namespace common

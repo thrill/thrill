@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/net/tcp/connection.hpp>
@@ -53,11 +53,6 @@ public:
         die_unless(my_rank_ < endpoints.size());
 
         LOG << "Client " << my_rank_ << " starting: " << endpoints[my_rank_];
-
-        // If we heldy any connections, do not allow a new initialization.
-        if (connections_.size() != 0) {
-            throw new Exception("This net manager has already been initialized.");
-        }
 
         for (size_t i = 0; i < group_count_; i++) {
             groups_[i] = std::make_unique<Group>(my_rank_, endpoints.size());
@@ -119,13 +114,11 @@ public:
                 LOG << "Group " << j
                     << " link " << my_rank_ << " -> " << i << " = fd "
                     << groups_[j]->tcp_connection(i).GetSocket().fd();
-
-                groups_[j]->tcp_connection(i).GetSocket().SetNonBlocking(true);
             }
         }
     }
 
-protected:
+private:
     //! Temporary Manager for construction
     mem::Manager mem_manager_ { nullptr, "Construction" };
 
@@ -138,7 +131,7 @@ protected:
     /**
      * The rank associated with the local worker.
      */
-    size_t my_rank_;
+    size_t my_rank_ = size_t(-1);
 
     /**
      * The Connections responsible

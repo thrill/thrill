@@ -1,11 +1,11 @@
 /*******************************************************************************
- * benchmarks/data/channel_read_write.cpp
+ * benchmarks/data/stream_read_write.cpp
  *
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
@@ -37,10 +37,10 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const 
     auto data = generate<Type>(bytes, 1, 100);
     common::ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
-        auto channel = ctx.GetNewChannel();
+        auto stream = ctx.GetNewCatStream();
         StatsTimer<true> write_timer;
-        pool.Enqueue([&data, &channel, &ctx, &write_timer]() {
-                         auto writers = channel->OpenWriters();
+        pool.Enqueue([&data, &stream, &ctx, &write_timer]() {
+                         auto writers = stream->OpenWriters();
                          assert(writers.size() == 1);
                          auto& writer = writers[0];
                          write_timer.Start();
@@ -52,8 +52,8 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const 
                      });
 
         StatsTimer<true> read_timer;
-        pool.Enqueue([&channel, &ctx, &read_timer]() {
-                         auto readers = channel->OpenReaders();
+        pool.Enqueue([&stream, &ctx, &read_timer]() {
+                         auto readers = stream->OpenReaders();
                          assert(readers.size() == 1);
                          auto& reader = readers[0];
                          read_timer.Start();
@@ -91,15 +91,15 @@ int main(int argc, const char** argv) {
     using triple = std::tuple<std::string, int, std::string>;
 
     if (type == "int")
-        api::RunSameThread(std::bind(ConductExperiment<int>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<int>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "size_t")
-        api::RunSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "string")
-        api::RunSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "pair")
-        api::RunSameThread(std::bind(ConductExperiment<pair>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<pair>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "triple")
-        api::RunSameThread(std::bind(ConductExperiment<triple>, bytes, iterations, std::placeholders::_1, type));
+        api::RunLocalSameThread(std::bind(ConductExperiment<triple>, bytes, iterations, std::placeholders::_1, type));
     else
         abort();
 }

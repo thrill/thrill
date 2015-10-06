@@ -1,11 +1,11 @@
 /*******************************************************************************
- * benchmarks/data/channel_a_to_b.cpp
+ * benchmarks/data/stream_a_to_b.cpp
  *
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
@@ -39,8 +39,8 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::
     for (int i = 0; i < iterations; i++) {
         StatsTimer<true> write_timer;
         pool.Enqueue([&data, &ctx1, &write_timer]() {
-                         auto channel = ctx1.GetNewChannel();
-                         auto writers = channel->OpenWriters();
+                         auto stream = ctx1.GetNewCatStream();
+                         auto writers = stream->OpenWriters();
                          assert(writers.size() == 2);
                          write_timer.Start();
                          auto& writer = writers[1];
@@ -54,8 +54,8 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::
 
         StatsTimer<true> read_timer;
         pool.Enqueue([&ctx2, &read_timer]() {
-                         auto channel = ctx2.GetNewChannel();
-                         auto readers = channel->OpenReaders();
+                         auto stream = ctx2.GetNewCatStream();
+                         auto readers = stream->OpenReaders();
                          assert(readers.size() == 2);
                          auto& reader = readers[0];
                          read_timer.Start();

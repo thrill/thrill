@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -35,6 +35,13 @@ struct is_pair : public std::false_type { };
 
 template <typename S, typename T>
 struct is_pair<std::pair<S, T> >: public std::true_type { };
+
+//! test if is std::array<T>
+template <typename T>
+struct is_std_array : public std::false_type { };
+
+template <typename T, size_t N>
+struct is_std_array<std::array<T, N> >: public std::true_type { };
 
 //! template for constexpr min, because std::min is not good enough.
 template <typename T>

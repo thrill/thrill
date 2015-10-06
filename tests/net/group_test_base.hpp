@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -206,8 +206,7 @@ static void TestAllReduceHypercubeString(net::Group* net) {
 // Dispatcher Tests
 
 //! sends and receives asynchronous messages between all workers.
-template <typename Dispatcher>
-static void DispatcherTestSyncSendAsyncRead(net::Group* net) {
+static void TestDispatcherSyncSendAsyncRead(net::Group* net) {
     // send a message to all other clients except ourselves.
     for (size_t i = 0; i < net->num_hosts(); ++i)
     {
@@ -217,7 +216,8 @@ static void DispatcherTestSyncSendAsyncRead(net::Group* net) {
 
     size_t received = 0;
     mem::Manager mem_manager(nullptr, "Dispatcher");
-    Dispatcher dispatcher(mem_manager);
+    mem::mm_unique_ptr<net::Dispatcher>
+    dispatcher = net->ConstructDispatcher(mem_manager);
 
     net::AsyncReadCallback callback =
         [net, &received](net::Connection& /* s */, const net::Buffer& buffer) {
@@ -230,11 +230,11 @@ static void DispatcherTestSyncSendAsyncRead(net::Group* net) {
     for (size_t i = 0; i != net->num_hosts(); ++i)
     {
         if (i == net->my_host_rank()) continue;
-        dispatcher.AsyncRead(net->connection(i), sizeof(size_t), callback);
+        dispatcher->AsyncRead(net->connection(i), sizeof(size_t), callback);
     }
 
     while (received < net->num_hosts() - 1) {
-        dispatcher.Dispatch();
+        dispatcher->Dispatch();
     }
 }
 

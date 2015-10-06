@@ -6,18 +6,16 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
 #ifndef THRILL_THRILL_HEADER
 #define THRILL_THRILL_HEADER
 
-/*[[[cog
-import cog, glob
-for fn in glob.glob('thrill/api/' + '*.hpp'):
-     cog.outl("#include <%s>" % fn)
-  ]]]*/
+/*[[[perl
+print "#include <$_>\n" foreach (sort <thrill/api/*.hpp>);
+]]]*/
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
@@ -33,6 +31,9 @@ for fn in glob.glob('thrill/api/' + '*.hpp'):
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/groupby.hpp>
+#include <thrill/api/groupby_index.hpp>
+#include <thrill/api/groupby_iterator.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/read_binary.hpp>

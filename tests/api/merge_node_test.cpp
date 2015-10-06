@@ -25,7 +25,7 @@
 using namespace thrill;
 
 using thrill::api::Context;
-using thrill::api::DIARef;
+using thrill::api::DIA;
 
 struct MyStruct {
     int a, b;
@@ -35,11 +35,10 @@ struct MergeHelpers : public::testing::Test {
     data::BlockPool block_pool_ { nullptr };
 };
 
-void CreateTrivialFiles(std::vector<data::File> &files, size_t size, size_t count, data::BlockPool &block_pool_) {
-    files.reserve(count);
+template <size_t count>
+void CreateTrivialFiles(std::array<data::File, count> &files, size_t size) {
 
     for(size_t i = 0; i < count; i++) {
-        files.emplace_back(block_pool_);
         data::File::Writer fw = files[i].GetWriter(53);
 
         for (size_t j = 0; j < size; j++) {
@@ -50,13 +49,12 @@ void CreateTrivialFiles(std::vector<data::File> &files, size_t size, size_t coun
     }
 }
 
-void CreateRandomSizeFiles(std::vector<data::File> &files, size_t maxSize, size_t count, data::BlockPool &block_pool_) {
-    files.reserve(count);
+template <size_t count>
+void CreateRandomSizeFiles(std::array<data::File, count> &files, size_t maxSize) {
 
     std::mt19937 gen(0);
 
     for(size_t i = 0; i < count; i++) {
-        files.emplace_back(block_pool_);
         data::File::Writer fw = files[i].GetWriter(53);
 
         size_t size = gen() % maxSize;
@@ -72,8 +70,10 @@ TEST_F(MergeHelpers, MultiIndexOf) {
     const size_t size = 500;
     const size_t count = 10;
 
-    std::vector<data::File> files;
-    CreateTrivialFiles(files, size, count, block_pool_);
+    //TODO: Please help. Not sure how to intialize this better. 
+    std::array<data::File, count> files {{ data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_) }};
+
+    CreateTrivialFiles(files, size);
 
     for (size_t i = 0; i < size; i++) {
         size_t val = i;
@@ -91,8 +91,10 @@ TEST_F(MergeHelpers, RandomFileSizeMultiGetAtIndex) {
     const size_t size = 500;
     const size_t count = 10;
 
-    std::vector<data::File> files;
-    CreateRandomSizeFiles(files, size, count, block_pool_);
+    //TODO: Please help. Not sure how to intialize this better. 
+    std::array<data::File, count> files {{ data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_), data::File(block_pool_) }};
+
+    CreateRandomSizeFiles(files, size);
 
     size_t sizeSum = 0;
     for(size_t i = 0; i < files.size(); i++) {
@@ -110,7 +112,7 @@ TEST_F(MergeHelpers, RandomFileSizeMultiGetAtIndex) {
     }
 }
 template <typename stackA, typename stackB>
-void DoMergeAndCheckResult(api::DIARef<size_t, stackA> merge_input1, api::DIARef<size_t, stackB> merge_input2, size_t expected_size, int num_workers) {
+void DoMergeAndCheckResult(api::DIA<size_t, stackA> merge_input1, api::DIA<size_t, stackB> merge_input2, size_t expected_size, int num_workers) {
         // merge
         auto merge_result = merge_input1.Merge(
             merge_input2, std::less<size_t>());
