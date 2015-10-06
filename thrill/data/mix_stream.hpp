@@ -127,6 +127,11 @@ public:
         return MixReader(queue_, consume);
     }
 
+    //! Open a MixReader (function name matches a method in CatStream).
+    MixReader OpenAnyReader(bool consume) {
+        return OpenMixReader(consume);
+    }
+
     //! shuts the stream down.
     void Close() final {
         // close all sinks, this should emit sentinel to all other worker.

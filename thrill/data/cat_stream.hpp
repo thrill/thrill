@@ -167,6 +167,11 @@ public:
         return CatBlockReader(CatBlockSource(std::move(result)));
     }
 
+    //! Open a CatReader (function name matches a method in MixStream).
+    CatReader OpenAnyReader(bool consume) {
+        return OpenCatReader(consume);
+    }
+
     //! shuts the stream down.
     void Close() final {
         if (is_closed_) return;

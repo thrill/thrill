@@ -635,6 +635,19 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
     return -1;
 }
 
+/******************************************************************************/
+// Context methods
+
+template <>
+std::shared_ptr<data::CatStream> Context::GetNewStream<data::CatStream>() {
+    return GetNewCatStream();
+}
+
+template <>
+std::shared_ptr<data::MixStream> Context::GetNewStream<data::MixStream>() {
+    return GetNewMixStream();
+}
+
 } // namespace api
 } // namespace thrill
 
