@@ -194,7 +194,8 @@ private:
 
 /******************************************************************************/
 
-class CatStreamOneFactorExperiment : public DataGeneratorExperiment
+template <typename Stream>
+class StreamOneFactorExperiment : public DataGeneratorExperiment
 {
     static const bool debug = true;
 
@@ -223,7 +224,7 @@ public:
         api::Run(
             [=](api::Context& ctx) {
                 // make a copy of this for local workers
-                CatStreamOneFactorExperiment local = *this;
+                StreamOneFactorExperiment<Stream> local = *this;
 
                 if (type_as_string_ == "size_t")
                     local.Test<size_t>(ctx);
@@ -246,7 +247,7 @@ public:
     template <typename Type>
     void Sender(api::Context& ctx, size_t peer_id, size_t inner_repeat) {
 
-        auto stream = ctx.GetNewCatStream();
+        auto stream = ctx.GetNewStream<Stream>();
         auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
         StatsTimer<true> write_timer(true);
@@ -274,7 +275,7 @@ public:
     template <typename Type>
     void Receiver(api::Context& ctx, size_t peer_id, size_t inner_repeat) {
 
-        auto stream = ctx.GetNewCatStream();
+        auto stream = ctx.GetNewStream<Stream>();
 
         // just to determine TotalBytes()
         auto data = Generator<Type>(bytes_, min_size_, max_size_);
@@ -287,7 +288,7 @@ public:
 
         StatsTimer<true> read_timer(true);
         {
-            auto reader = stream->OpenCatReader(consume_);
+            auto reader = stream->OpenAnyReader(consume_);
             while (reader.HasNext())
                 reader.template Next<Type>();
         }
@@ -327,8 +328,9 @@ private:
     bool consume_;
 };
 
+template <typename Stream>
 template <typename Type>
-void CatStreamOneFactorExperiment::Test(api::Context& ctx) {
+void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
 
     bandwidth_write_ = AggMatrix(ctx.num_workers());
     bandwidth_read_ = AggMatrix(ctx.num_workers());
@@ -367,10 +369,10 @@ void CatStreamOneFactorExperiment::Test(api::Context& ctx) {
                     // not participating in this round, but still have to
                     // allocate and close Streams.
                     ctx.Barrier();
-                    auto stream1 = ctx.GetNewCatStream();
+                    auto stream1 = ctx.GetNewStream<Stream>();
                     stream1->Close();
                     ctx.Barrier();
-                    auto stream2 = ctx.GetNewCatStream();
+                    auto stream2 = ctx.GetNewStream<Stream>();
                     stream2->Close();
                 }
             }
@@ -378,7 +380,8 @@ void CatStreamOneFactorExperiment::Test(api::Context& ctx) {
         timer.Stop();
 
         LOG1 << "RESULT"
-             << " experiment=" << "cat_stream_1factor"
+             << " experiment=" << "stream_1factor"
+             << " stream=" << typeid(Stream).name()
              << " workers=" << ctx.num_workers()
              << " hosts=" << ctx.num_hosts()
              << " datatype=" << type_as_string_
@@ -388,6 +391,8 @@ void CatStreamOneFactorExperiment::Test(api::Context& ctx) {
              << static_cast<double>(min_size_ + max_size_) / 2.0
              << " total_time=" << timer.Microseconds();
     }
+
+    ctx.Barrier();
 
     // reduce (add) matrix to root.
     bandwidth_write_ = ctx.flow_control_channel().AllReduce(bandwidth_write_);
@@ -404,217 +409,8 @@ void CatStreamOneFactorExperiment::Test(api::Context& ctx) {
 
 /******************************************************************************/
 
-class MixStreamOneFactorExperiment : public DataGeneratorExperiment
-{
-    static const bool debug = true;
-
-public:
-    int Run(int argc, char* argv[]) {
-
-        common::CmdlineParser clp;
-
-        DataGeneratorExperiment::AddCmdline(clp);
-
-        clp.AddUInt('r', "inner_repeats", inner_repeats_,
-                    "Repeat inner experiment a number of times.");
-
-        clp.AddUInt('R', "outer_repeats", outer_repeats_,
-                    "Repeat whole experiment a number of times.");
-
-        clp.AddParamString("reader", reader_type_,
-                           "reader type (consume, keep)");
-
-        if (!clp.Process(argc, argv)) return -1;
-
-        if (reader_type_ != "consume" && reader_type_ != "keep")
-            abort();
-        consume_ = (reader_type_ == "consume");
-
-        api::Run(
-            [=](api::Context& ctx) {
-                // make a copy of this for local workers
-                MixStreamOneFactorExperiment local = *this;
-
-                if (type_as_string_ == "size_t")
-                    local.Test<size_t>(ctx);
-                else if (type_as_string_ == "string")
-                    local.Test<std::string>(ctx);
-                else if (type_as_string_ == "pair")
-                    local.Test<pair_type>(ctx);
-                else if (type_as_string_ == "triple")
-                    local.Test<triple_type>(ctx);
-                else
-                    abort();
-            });
-
-        return 0;
-    }
-
-    template <typename Type>
-    void Test(api::Context& ctx);
-
-    template <typename Type>
-    void Sender(api::Context& ctx, size_t peer_id, size_t inner_repeat) {
-
-        auto stream = ctx.GetNewMixStream();
-        auto data = Generator<Type>(bytes_, min_size_, max_size_);
-
-        StatsTimer<true> write_timer(true);
-        {
-            auto writers = stream->OpenWriters(block_size_);
-            while (data.HasNext())
-                writers[peer_id].PutItem(data.Next());
-        }
-        write_timer.Stop();
-
-        stream->Close();
-
-        double bw = CalcMiBs(data.TotalBytes(), write_timer);
-
-        sLOG << "send bandwidth" << ctx.my_rank() << "->" << peer_id
-             << "inner_repeat" << inner_repeat
-             << bw << "MiB/s"
-             << "total_bytes" << data.TotalBytes()
-             << "time"
-             << (static_cast<double>(write_timer.Microseconds()) * 1e-6);
-
-        bandwidth_write_(ctx.my_rank(), peer_id).Add(bw);
-    }
-
-    template <typename Type>
-    void Receiver(api::Context& ctx, size_t peer_id, size_t inner_repeat) {
-
-        auto stream = ctx.GetNewMixStream();
-
-        // just to determine TotalBytes()
-        auto data = Generator<Type>(bytes_, min_size_, max_size_);
-
-        {
-            // this opens and closes the writers. this must be done,
-            // otherwise the reader will wait infinitely on the loopback!
-            auto writers = stream->OpenWriters(block_size_);
-        }
-
-        StatsTimer<true> read_timer(true);
-        {
-            auto reader = stream->OpenMixReader(consume_);
-            while (reader.HasNext())
-                reader.template Next<Type>();
-        }
-        read_timer.Stop();
-
-        stream->Close();
-
-        double bw = CalcMiBs(data.TotalBytes(), read_timer);
-
-        sLOG << "recv bandwidth" << ctx.my_rank() << "->" << peer_id
-             << "inner_repeat" << inner_repeat
-             << bw << "MiB/s"
-             << "total_bytes" << data.TotalBytes()
-             << "time"
-             << (static_cast<double>(read_timer.Microseconds()) * 1e-6);
-
-        bandwidth_read_(ctx.my_rank(), peer_id).Add(bw);
-    }
-
-private:
-    //! reader type: consume or keep
-    std::string reader_type_;
-
-    //! whole experiment
-    unsigned int outer_repeats_ = 1;
-
-    //! inner repetitions
-    unsigned int inner_repeats_ = 1;
-
-    //! n x n matrix of measured bandwidth
-    AggMatrix bandwidth_write_;
-
-    //! n x n matrix of measured bandwidth
-    AggMatrix bandwidth_read_;
-
-    //! consuming reader
-    bool consume_;
-};
-
-template <typename Type>
-void MixStreamOneFactorExperiment::Test(api::Context& ctx) {
-
-    bandwidth_write_ = AggMatrix(ctx.num_workers());
-    bandwidth_read_ = AggMatrix(ctx.num_workers());
-
-    for (size_t outer_repeat = 0;
-         outer_repeat < outer_repeats_; ++outer_repeat) {
-
-        common::StatsTimer<true> timer;
-
-        timer.Start();
-        for (size_t inner_repeat = 0;
-             inner_repeat < inner_repeats_; inner_repeat++) {
-            // perform 1-factor ping pongs (without barriers)
-            for (size_t round = 0;
-                 round < common::CalcOneFactorSize(ctx.num_workers()); ++round) {
-
-                size_t peer =
-                    common::CalcOneFactorPeer(round, ctx.my_rank(), ctx.num_workers());
-
-                sLOG << "round" << round
-                     << "me" << ctx.my_rank() << "peer_id" << peer;
-
-                if (ctx.my_rank() < peer) {
-                    ctx.Barrier();
-                    Sender<Type>(ctx, peer, inner_repeat);
-                    ctx.Barrier();
-                    Receiver<Type>(ctx, peer, inner_repeat);
-                }
-                else if (ctx.my_rank() > peer) {
-                    ctx.Barrier();
-                    Receiver<Type>(ctx, peer, inner_repeat);
-                    ctx.Barrier();
-                    Sender<Type>(ctx, peer, inner_repeat);
-                }
-                else {
-                    // not participating in this round, but still have to
-                    // allocate and close Streams.
-                    ctx.Barrier();
-                    auto stream1 = ctx.GetNewMixStream();
-                    stream1->Close();
-                    ctx.Barrier();
-                    auto stream2 = ctx.GetNewMixStream();
-                    stream2->Close();
-                }
-            }
-        }
-        timer.Stop();
-
-        LOG1 << "RESULT"
-             << " experiment=" << "mix_stream_1factor"
-             << " workers=" << ctx.num_workers()
-             << " hosts=" << ctx.num_hosts()
-             << " datatype=" << type_as_string_
-             << " size=" << bytes_
-             << " block_size=" << block_size_
-             << " avg_element_size="
-             << static_cast<double>(min_size_ + max_size_) / 2.0
-             << " total_time=" << timer.Microseconds();
-    }
-
-    // reduce (add) matrix to root.
-    bandwidth_write_ = ctx.flow_control_channel().AllReduce(bandwidth_write_);
-    bandwidth_read_ = ctx.flow_control_channel().AllReduce(bandwidth_read_);
-
-    // print matrix
-    if (ctx.my_rank() == 0) {
-        LOG1 << "bandwidth_write_";
-        PrintMatrix(bandwidth_write_);
-        LOG1 << "bandwidth_read_";
-        PrintMatrix(bandwidth_read_);
-    }
-}
-
-/******************************************************************************/
-
-class MixStreamAllToAllExperiment : public DataGeneratorExperiment
+template <typename Stream>
+class StreamAllToAllExperiment : public DataGeneratorExperiment
 {
 public:
     int Run(int argc, char* argv[]) {
@@ -636,7 +432,7 @@ public:
         api::Run(
             [=](api::Context& ctx) {
                 // make a copy of this for local workers
-                MixStreamAllToAllExperiment local = *this;
+                StreamAllToAllExperiment<Stream> local = *this;
 
                 if (type_as_string_ == "size_t")
                     local.Test<size_t>(ctx);
@@ -664,16 +460,16 @@ public:
 
             StatsTimer<true> total_timer(true);
             StatsTimer<true> read_timer;
-            auto stream = ctx.GetNewMixStream();
+            auto stream = ctx.GetNewStream<Stream>();
 
             // start reader thread
             common::ThreadPool threads(ctx.num_workers() + 1);
             threads.Enqueue(
                 [&]() {
                     read_timer.Start();
-                    auto reader = stream->OpenMixReader(consume);
+                    auto reader = stream->OpenAnyReader(consume);
                     while (reader.HasNext())
-                        reader.Next<Type>();
+                        reader.template Next<Type>();
                     read_timer.Stop();
                 });
 
@@ -701,6 +497,7 @@ public:
             total_timer.Stop();
             LOG1 << "RESULT"
                  << " experiment=" << "stream_all_to_all"
+                 << " stream=" << typeid(Stream).name()
                  << " workers=" << ctx.num_workers()
                  << " hosts=" << ctx.num_hosts()
                  << " datatype=" << type_as_string_
@@ -943,9 +740,10 @@ void Usage(const char* argv0) {
         << "Usage: " << argv0 << " <benchmark>" << std::endl
         << std::endl
         << "    file                - File and Serialization Speed" << std::endl
-        << "    cat_stream_1factor  - 1 factor bandwidth test" << std::endl
-        << "    mix_stream_1factor  - 1 factor bandwidth test" << std::endl
-        << "    mix_stream_all2all  - Full bandwidth test" << std::endl
+        << "    cat_stream_1factor  - 1 factor bandwidth test using CatStream" << std::endl
+        << "    mix_stream_1factor  - 1 factor bandwidth test using MixStream" << std::endl
+        << "    cat_stream_all2all  - Full bandwidth test using CatStream" << std::endl
+        << "    mix_stream_all2all  - Full bandwidth test using MixStream" << std::endl
         << "    blockqueue          - BlockQueue test" << std::endl
         << std::endl;
 }
@@ -965,13 +763,20 @@ int main(int argc, char* argv[]) {
         return FileExperiment().Run(argc - 1, argv + 1);
     }
     else if (benchmark == "cat_stream_1factor") {
-        return CatStreamOneFactorExperiment().Run(argc - 1, argv + 1);
+        return StreamOneFactorExperiment<data::CatStream>().Run(
+            argc - 1, argv + 1);
     }
     else if (benchmark == "mix_stream_1factor") {
-        return MixStreamOneFactorExperiment().Run(argc - 1, argv + 1);
+        return StreamOneFactorExperiment<data::MixStream>().Run(
+            argc - 1, argv + 1);
+    }
+    else if (benchmark == "cat_stream_all2all") {
+        return StreamAllToAllExperiment<data::CatStream>().Run(
+            argc - 1, argv + 1);
     }
     else if (benchmark == "mix_stream_all2all") {
-        return MixStreamAllToAllExperiment().Run(argc - 1, argv + 1);
+        return StreamAllToAllExperiment<data::MixStream>().Run(
+            argc - 1, argv + 1);
     }
     else if (benchmark == "blockqueue") {
         return BlockQueueExperiment().Run(argc - 1, argv + 1);
