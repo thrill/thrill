@@ -516,7 +516,7 @@ protected:
 
         bool IsDone() const { return size_ == block_->size(); }
 
-        data::ByteBlockPtr byte_block() { return block_; }
+        data::ByteBlockPtr& byte_block() { return block_; }
 
         void DoCallback() {
             if (callback_) callback_(*conn_);
