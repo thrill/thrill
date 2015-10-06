@@ -548,7 +548,6 @@ static inline int RunDieWithParent() {
 #if defined(__linux__)
     if (prctl(PR_SET_PDEATHSIG, SIGTERM) != 0)
         throw common::ErrnoException("Error calling prctl(PR_SET_PDEATHSIG)");
-    sLOG1 << "die with parent done.";
     return 1;
 #else
     std::cerr << "Thrill: DIE_WITH_PARENT is not supported on this platform.\n"
