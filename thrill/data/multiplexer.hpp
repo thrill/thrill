@@ -69,7 +69,9 @@ public:
                          size_t num_workers_per_host, net::Group& group)
         : mem_manager_(mem_manager),
           block_pool_(block_pool),
-          dispatcher_(mem_manager, group, "multiplexer"),
+          dispatcher_(
+              mem_manager, group,
+              "host " + mem::to_string(group.my_host_rank()) + " multiplexer"),
           group_(group),
           num_workers_per_host_(num_workers_per_host),
           stream_sets_(num_workers_per_host) {
