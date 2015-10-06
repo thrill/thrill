@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -38,7 +38,7 @@ namespace api {
  * \param lambda Lambda function that represents the chain end.
  */
 template <typename Lambda>
-auto run_emitter(Lambda lambda)
+auto RunEmitter(const Lambda &lambda)
 {
     return [=](const auto & input)->void {
                lambda(input);
@@ -56,10 +56,10 @@ auto run_emitter(Lambda lambda)
  * \param rest Remaining lambda functions.
  */
 template <typename Lambda, typename ... MoreLambdas>
-auto run_emitter(Lambda lambda, MoreLambdas ... rest)
+auto RunEmitter(const Lambda &lambda, const MoreLambdas &... rest)
 {
     return [=](const auto & input)->void {
-               lambda(input, run_emitter(rest ...));
+               lambda(input, RunEmitter(rest ...));
     };
 }
 
@@ -79,18 +79,15 @@ class FunctionStack
 public:
     using Input = _Input;
 
-    FunctionStack()
-        : stack_(std::make_tuple()) { }
+    FunctionStack() = default;
 
     /*!
      * Initialize the function chain with a given tuple of functions.
      *
      * \param stack Tuple of lambda functions.
      */
-    explicit FunctionStack(std::tuple<Lambdas ...> stack)
+    explicit FunctionStack(const std::tuple<Lambdas ...>& stack)
         : stack_(stack) { }
-
-    virtual ~FunctionStack() { }
 
     /*!
      * Add a lambda function to the end of the chain.
@@ -102,7 +99,7 @@ public:
      * \return New chain containing the previous and new lambda function(s).
      */
     template <typename Function>
-    auto push(Function append_func) const
+    auto push(const Function &append_func) const
     {
         // append to function stack's type the new function: we prepend it to
         // the type line because later we will
@@ -113,15 +110,15 @@ public:
     }
 
     /*!
-     * Build a single lambda function by "folding" the chain.
-     * Folding means that the chain is processed from back to front
-     * and each emitter is composed using previous lambda functions.
+     * Build a single lambda function by "folding" the chain.  Folding means
+     * that the chain is processed from back to front and each emitter is
+     * composed using previous lambda functions.
      *
      * \return Single "folded" lambda function representing the chain.
      */
     auto emit() const {
         const size_t Size = sizeof ... (Lambdas);
-        return emit_sequence(common::make_index_sequence<Size>{ });
+        return EmitSequence(common::make_index_sequence<Size>{ });
     }
 
 private:
@@ -129,20 +126,19 @@ private:
     std::tuple<Lambdas ...> stack_;
 
     /*!
-     * Auxilary function for "folding" the chain.
-     * This is needed to send all lambda functions as parameters to the
-     * function that folds them together.
+     * Auxilary function for "folding" the chain.  This is needed to send all
+     * lambda functions as parameters to the function that folds them together.
      *
      * \return Single "folded" lambda function representing the chain.
      */
-    template <std::size_t ... Is>
-    auto emit_sequence(common::index_sequence<Is ...>) const {
-        return run_emitter(std::get<Is>(stack_) ...);
+    template <size_t ... Is>
+    auto EmitSequence(common::index_sequence<Is ...>) const {
+        return RunEmitter(std::get<Is>(stack_) ...);
     }
 };
 
 template <typename Input, typename Lambda>
-static inline auto MakeFunctionStack(Lambda lambda) {
+static inline auto MakeFunctionStack(const Lambda &lambda) {
     return FunctionStack<Input, Lambda>(std::make_tuple(lambda));
 }
 

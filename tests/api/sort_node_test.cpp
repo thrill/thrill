@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/allgather.hpp>
@@ -34,7 +34,7 @@ TEST(Sort, SortKnownIntegers) {
                 [](const size_t& index) -> size_t {
                     return index;
                 },
-                100);
+                10000);
 
             auto sorted = integers.Sort();
 
@@ -46,7 +46,7 @@ TEST(Sort, SortKnownIntegers) {
                 ASSERT_EQ(i, out_vec[i]);
             }
 
-            ASSERT_EQ(100u, out_vec.size());
+            ASSERT_EQ(10000u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);
@@ -65,7 +65,7 @@ TEST(Sort, SortRandomIntegers) {
                 [&distribution, &generator](const size_t&) -> int {
                     return distribution(generator);
                 },
-                100);
+                10000);
 
             auto sorted = integers.Sort();
 
@@ -77,7 +77,7 @@ TEST(Sort, SortRandomIntegers) {
                 ASSERT_FALSE(out_vec[i + 1] < out_vec[i]);
             }
 
-            ASSERT_EQ(100u, out_vec.size());
+            ASSERT_EQ(10000u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);
@@ -96,7 +96,7 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
                 [&distribution, &generator](const size_t&) -> int {
                     return distribution(generator);
                 },
-                100);
+                10000);
 
             auto compare_fn = [](int in1, int in2) {
                                   return in1 > in2;
@@ -112,7 +112,7 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
                 ASSERT_FALSE(out_vec[i + 1] > out_vec[i]);
             }
 
-            ASSERT_EQ(100u, out_vec.size());
+            ASSERT_EQ(10000u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);
@@ -133,10 +133,15 @@ TEST(Sort, SortRandomIntIntStructs) {
                 [&distribution, &generator](const size_t&) -> Pair {
                     return std::make_pair(distribution(generator), distribution(generator));
                 },
-                100);
+                10000);
 
             auto compare_fn = [](Pair in1, Pair in2) {
-                                  return in1.first < in2.first;
+                                  if (in1.first != in2.first) {
+                                      return in1.first < in2.first;
+                                  }
+                                  else {
+                                      return in1.second < in2.second;
+                                  }
                               };
 
             auto sorted = integers.Sort(compare_fn);
@@ -149,7 +154,7 @@ TEST(Sort, SortRandomIntIntStructs) {
                 ASSERT_FALSE(out_vec[i + 1].first < out_vec[i].first);
             }
 
-            ASSERT_EQ(100u, out_vec.size());
+            ASSERT_EQ(10000u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);

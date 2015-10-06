@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -202,7 +202,7 @@ public:
         return os << "]]";
     }
 
-protected:
+private:
     //! the container holding blocks and thus shared pointers to all byte
     //! blocks.
     std::deque<Block> blocks_;
@@ -258,7 +258,7 @@ public:
         }
     }
 
-protected:
+private:
     //! sentinel value for not changing the first_item item
     static const size_t keep_first_item = size_t(-1);
 
@@ -322,7 +322,7 @@ public:
         }
     }
 
-protected:
+private:
     //! file to consume blocks from
     File* file_;
 };

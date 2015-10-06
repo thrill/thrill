@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -84,7 +84,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 
     if (0) {
         for (size_t i = 0; i != file.num_blocks(); ++i) {
-            std::cout << common::hexdump(file.block(i).ToString())
+            std::cout << common::Hexdump(file.block(i).ToString())
                       << std::endl;
         }
     }

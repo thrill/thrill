@@ -1,4 +1,13 @@
 #!/bin/bash
+################################################################################
+# scripts/ssh/invoke.sh
+#
+# Part of Project Thrill.
+#
+# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 ssh_dir="`dirname "$0"`"
 ssh_dir="`cd "$ssh_dir"; pwd`"
@@ -17,7 +26,7 @@ user=$(whoami)
 
 . ${cluster}/thrill-env.sh
 
-while getopts "u:h:H:cvC" opt; do
+while getopts "u:h:H:cvCw:" opt; do
     case "$opt" in
     h)
         # this overrides the user environment variable
@@ -38,6 +47,10 @@ while getopts "u:h:H:cvC" opt; do
         dir=/tmp/
         ;;
     C)  dir=$OPTARG
+        ;;
+    w)
+        # this overrides the user environment variable
+        THRILL_WORKERS_PER_HOST=$OPTARG
         ;;
     :)
         echo "Option -$OPTARG requires an argument." >&2
@@ -61,6 +74,7 @@ if [ -z "$cmd" ]; then
     echo "  -h <list>  list of nodes with port numbers"
     echo "  -H <list>  list of internal IPs passed to thrill exe (else: -h list)"
     echo "  -u <name>  ssh user name"
+    echo "  -w <num>   set thrill workers per host variable"
     echo "  -v         verbose output"
     exit 1
 fi
@@ -116,41 +130,33 @@ for hostport in $THRILL_SSHLIST; do
   if [ $verbose -ne 0 ]; then
     echo "Connecting to $host to invoke $cmd"
   fi
+  THRILL_EXPORTS="THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\""
+  THRILL_EXPORTS="$THRILL_EXPORTS THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\""
+  THRILL_EXPORTS="$THRILL_EXPORTS THRILL_DIE_WITH_PARENT=1"
   REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
   if [ "$copy" == "1" ]; then
       REMOTENAME="/tmp/$cmdbase.$hostport.$$"
+      THRILL_EXPORTS="$THRILL_EXPORTS THRILL_UNLINK_BINARY=\"$REMOTENAME\""
       # copy the program to the remote, and execute it at the remote end.
-      ( scp -o BatchMode=yes -o StrictHostKeyChecking=no \
+      ( scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
             "$cmd" "$host:$REMOTENAME" &&
-        ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
+        ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
             $host \
-            "export THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\" THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
+            "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && exec \"$REMOTENAME\" $*"
       ) &
   else
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
           $host \
-          "export THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\" THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $*" &
+          "export $THRILL_EXPORTS && cd $dir && exec $cmd $*" &
   fi
   rank=$((rank+1))
 done
-
-# on Ctrl+C kill remote programs
-function killcommand() {
-    echo "Killing remote programs, please wait."
-    for hostport in $THRILL_SSHLIST; do
-        host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
-        REMOTENAME="$cmdbase.$hostport.$$"
-
-        ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
-            $host "killall \"$REMOTENAME\"" || true
-    done
-}
-
-trap "killcommand" SIGINT
 
 echo "Waiting for execution to finish."
 for hostport in $THRILL_HOSTLIST; do
     wait
 done
 echo "Done."
+
+################################################################################

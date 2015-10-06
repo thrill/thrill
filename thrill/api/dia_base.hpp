@@ -9,7 +9,7 @@
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -107,6 +107,19 @@ public:
     //! Virtual clear method. Triggers actual disposing in sub-classes.
     virtual void Dispose() = 0;
 
+    //! Virtual method for preparing start of data.
+    virtual void StartPreOp() { }
+
+    //! Virtual method for preparing end of data.
+    virtual void StopPreOp() { }
+
+    //! Performing push operation. Notifies children and calls actual push method.
+    void DoPushData(bool consume) {
+        for (DIABase* child : children_) child->StartPreOp();
+        PushData(consume);
+        for (DIABase* child : children_) child->StopPreOp();
+    }
+
     //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
     virtual void UnregisterChilds() = 0;
 
@@ -182,14 +195,14 @@ public:
         if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms", LogType::EXECUTION);
     }
 
-    inline void WriteChannelStats(const data::ChannelPtr& c) {
+    inline void WriteStreamStats(const data::StreamPtr& c) {
         if (common::g_enable_stats) {
             assert(!c->rx_lifetime_.running());
             assert(!c->tx_lifetime_.running());
             assert(!c->rx_timespan_.running());
             assert(!c->tx_timespan_.running());
             stats_node_->AddStatsMsg(
-                "channel " + std::to_string(c->id()) + "; " +
+                "stream " + std::to_string(c->id()) + "; " +
                 "incoming_bytes " + std::to_string(c->incoming_bytes_.value()) + "; " +
                 "incoming_blocks " + std::to_string(c->incoming_blocks_.value()) + "; " +
                 "outgoing_bytes " + std::to_string(c->outgoing_bytes_.value()) + "; " +

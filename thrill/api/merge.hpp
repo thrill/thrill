@@ -8,7 +8,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -95,14 +95,14 @@ namespace merge_local {
         }
     };
 
-    template <typename ItemType, typename CompareFunction>
-    static ItemType GetAt(size_t k, const std::vector<data::File> &files, CompareFunction comperator, common::StatsTimer<stats_enabled> *timer = NULL) {
+    template <typename ItemType, typename CompareFunction, size_t num_items>
+    static ItemType GetAt(size_t k, const std::array<data::File, num_items> &files, CompareFunction comperator, common::StatsTimer<stats_enabled> *timer = NULL) {
         
         static const bool debug = false;
 
         START_TIMER(timer);
         
-        size_t n = files.size();
+        size_t n = num_items;
         std::vector<size_t> left(n);
         std::vector<size_t> width(n);
         std::vector<size_t> remap(n);
@@ -136,7 +136,7 @@ namespace merge_local {
             size_t j = j0;
             mid[j] = left[j] + width[j] / 2;
             LOG << "Master selecting pivot at " << mid[j];
-            ItemType pivot = files[j].GetItemAt<ItemType>(mid[j]);
+            ItemType pivot = files[j].template GetItemAt<ItemType>(mid[j]);
             size_t leftSum = mid[j] - left[j];
 
             for(size_t i = 1; i < n; i++) {
@@ -173,7 +173,7 @@ namespace merge_local {
         //TODO(ej) This function is broken here. 
         //Best: Remove alltogether. 
         size_t j = remap[k];
-        ItemType value = files[j].GetItemAt<ItemType>(mid[j]);
+        ItemType value = files[j].template GetItemAt<ItemType>(mid[j]);
         LOG << "Selected value " << value; 
         
         STOP_TIMER(timer);
@@ -181,8 +181,8 @@ namespace merge_local {
         return value;
     }
 
-    template <typename ItemType, typename Comperator>
-    static size_t IndexOf(ItemType element, size_t tie, const std::vector<data::File> &files, Comperator comperator, common::StatsTimer<stats_enabled> *timer = NULL) {
+    template <typename ItemType, typename Comperator, size_t num_items>
+    static size_t IndexOf(ItemType element, size_t tie, const std::array<data::File, num_items> &files, Comperator comperator, common::StatsTimer<stats_enabled> *timer = NULL) {
         static const bool debug = false;
 
         START_TIMER(timer);
@@ -194,7 +194,7 @@ namespace merge_local {
 
         LOG << "Looking for element " << element << " with tie " << tie;
 
-        for(size_t i = 0; i < files.size(); i++) {
+        for(size_t i = 0; i < num_items; i++) {
             auto reader = files[i].GetKeepReader();
             lidx += files[i].GetIndexOf(element, 0, comperator);
             hidx += files[i].GetIndexOf(element, std::numeric_limits<size_t>::max(), comperator);
@@ -252,8 +252,6 @@ public:
         parent1.node()->RegisterChild(lop_chain1, this->type());
     }
 
-    ~TwoMergeNode() { }
-
     /*!
      * Actually executes the merge operation. Uses the member functions PreOp,
      * MainOp and PostOp.
@@ -271,12 +269,12 @@ public:
 
         stats.MergeTimer.Start();
 
-        typedef data::BufferedBlockReader<ValueType, data::ConcatBlockSource<data::DynBlockSource>> Reader; 
+        typedef data::BufferedBlockReader<ValueType, data::CatBlockSource<data::DynBlockSource>> Reader; 
 
         // get buffered inbound readers from all Channels
         std::vector<Reader> readers;
-        for(size_t i = 0; i < channels_.size(); i++) {
-            readers.emplace_back(std::move(channels_[i]->GetConcatSource(consume)));
+        for(size_t i = 0; i < streams_.size(); i++) {
+            readers.emplace_back(std::move(streams_[i]->GetCatBlockSource(consume)));
         }
 
         while(true) {
@@ -286,17 +284,17 @@ public:
 
             if(a.HasValue() && b.HasValue()) {
                 if(comperator_(b.Value(), a.Value())) {
-                    PushDataToChilds(b.Value());
+                    this->PushItem(b.Value());
                     b.Next();
                 } else {
-                    PushDataToChilds(a.Value());
+                    this->PushItem(a.Value());
                     a.Next();
                 }
             } else if(b.HasValue()) {
-                PushDataToChilds(b.Value());
+                this->PushItem(b.Value());
                 b.Next();
             } else if(a.HasValue()) {
-                PushDataToChilds(a.Value());
+                this->PushItem(a.Value());
                 a.Next();
             } else {
                 break;
@@ -307,11 +305,6 @@ public:
         
         stats.MergeTimer.Stop();
 
-        for (size_t i = 0; i < channels_.size(); i++) {
-            channels_[i]->Close();
-            this->WriteChannelStats(channels_[i]);
-        }
-        
         sLOG << "Merge: result_count" << result_count;
 
         stats.result_size = result_count;
@@ -339,7 +332,7 @@ private:
     size_t result_size_;
 
     //! Files for intermediate storage
-    std::vector<data::File> files_ {
+    std::array<data::File, num_inputs_> files_ {
         { context_.GetFile(), context_.GetFile() }
     };
 
@@ -348,8 +341,8 @@ private:
         { files_[0].GetWriter(), files_[1].GetWriter() }
     };
 
-    //! Array of inbound Channels
-    std::array<data::ChannelPtr, num_inputs_> channels_;
+    //! Array of inbound CatStreams
+    std::array<data::CatStreamPtr, num_inputs_> streams_;
 
     struct Pivot {
         ValueType first;
@@ -467,7 +460,7 @@ private:
         std::vector<Pivot> pivots(p - 1);
         std::vector<size_t> splitsum(p - 1);
 
-        Pivot zero = CreatePivot(merge_local::GetAt<ValueType>(0, files_, comperator_, &stats.GetAtIndexTimer), 0);
+        Pivot zero = CreatePivot(merge_local::GetAt<ValueType, Comperator, num_inputs_>(0, files_, comperator_, &stats.GetAtIndexTimer), 0);
         zero.valid = false;
 
         auto addSizeTVectors = [] 
@@ -528,7 +521,7 @@ private:
                    
                    size_t localRank = left[r] + pivotrank[r] - widthscan[r]; 
                    LOG << "Selecting local rank " << localRank << " zero pivot " << r;
-                   ValueType pivotElement = merge_local::GetAt<ValueType>(localRank, files_, comperator_, &stats.GetAtIndexTimer);
+                   ValueType pivotElement = merge_local::GetAt<ValueType, Comperator, num_inputs_>(localRank, files_, comperator_, &stats.GetAtIndexTimer);
 
                    if(debug) {
                         assert(merge_local::IndexOf(pivotElement, localRank, files_, comperator_, &stats.IndexOfTimer) == localRank);
@@ -623,7 +616,7 @@ private:
         
         //Init channels and offsets.
         for(size_t j = 0; j < num_inputs_; j++) {
-            channels_[j] = context_.GetNewChannel();
+            streams_[j] = context_.GetNewCatStream();
             offsets[j] = std::vector<size_t>(p);
             offsets[j][p - 1] = files_[j].num_items();
         }
@@ -640,7 +633,7 @@ private:
             LOG << "Global Splitter " << i << ": " << globalSplitter;
             if(globalSplitter < dataSize) {
                 //We have to find file-local splitters.
-                ValueType pivot = merge_local::GetAt<ValueType, Comperator>(partitions[i], files_, comperator_, &stats.GetAtIndexTimer);
+                ValueType pivot = merge_local::GetAt<ValueType, Comperator, num_inputs_>(partitions[i], files_, comperator_, &stats.GetAtIndexTimer);
 
                 size_t prefixSum = 0;
 
@@ -667,21 +660,16 @@ private:
                 LOG << "Offset " << i << " for file " << j << ": " << offsets[j][i];
             }
 
-            channels_[j]->template Scatter<ValueType>(files_[j], offsets[j]);
-        }
-    }
-    
-    void PushDataToChilds(const ValueType &data) {
-        for (auto func : DIANode<ValueType>::callbacks_) {
-            func(data);
+            streams_[j]->template Scatter<ValueType>(files_[j], offsets[j]);
         }
     }
 };
 
 template <typename ValueType, typename Stack>
 template <typename SecondDIA, typename Comperator>
-auto DIARef<ValueType, Stack>::Merge(
+auto DIA<ValueType, Stack>::Merge(
     SecondDIA second_dia, const Comperator &comperator) const {
+    
     assert(IsValid());
     assert(second_dia.IsValid());
 
@@ -689,7 +677,7 @@ auto DIARef<ValueType, Stack>::Merge(
               = typename FunctionTraits<Comperator>::result_type;
 
     using MergeResultNode
-              = TwoMergeNode<ValueType, DIARef, SecondDIA, Comperator>;
+              = TwoMergeNode<ValueType, DIA, SecondDIA, Comperator>;
     
     static_assert(
         std::is_convertible<
@@ -729,7 +717,7 @@ auto DIARef<ValueType, Stack>::Merge(
 
     auto merge_stack = merge_node->ProduceStack();
 
-    return DIARef<ValueType, decltype(merge_stack)>(
+    return DIA<ValueType, decltype(merge_stack)>(
         merge_node,
         merge_stack,
         { stats_node });

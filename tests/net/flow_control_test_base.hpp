@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -214,7 +214,8 @@ static void TestMultiThreadPrefixSum(net::Group* net) {
  */
 static void TestHardcoreRaceConditionTest(net::Group* net) {
 
-    const size_t count = 16;
+    const size_t count = 4;
+    sLOG0 << "hardware_concurrency: " << std::thread::hardware_concurrency();
 
     ExecuteMultiThreads(
         net, count, [=](net::FlowControlChannel& channel, size_t id) {

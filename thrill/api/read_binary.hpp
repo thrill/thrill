@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -18,6 +18,7 @@
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/core/file_io.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
@@ -39,7 +40,7 @@ namespace api {
  * the file system and emits it as a DIA.
  */
 template <typename ValueType>
-class ReadBinaryNode : public SourceNode<ValueType>
+class ReadBinaryNode final : public SourceNode<ValueType>
 {
     static const bool debug = false;
 
@@ -109,24 +110,14 @@ public:
             }
         }
 
-        STAT(context_) << "NodeType" << "ReadBinary"
-                       << "TotalBytes" << stats_total_bytes
-                       << "TotalReads" << stats_total_reads;
+        STATC << "NodeType" << "ReadBinary"
+              << "TotalBytes" << stats_total_bytes
+              << "TotalReads" << stats_total_reads;
 
         LOG << "DONE!";
     }
 
     void Dispose() final { }
-
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     *
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
 
 private:
     //! Path of the input file.
@@ -175,7 +166,7 @@ private:
             }
         }
 
-    protected:
+    private:
         Context& context_;
         core::SysFile sysfile_;
         size_t& stats_total_bytes_;
@@ -192,7 +183,7 @@ private:
  * \param filepath Path of the file in the file system
  */
 template <typename ValueType>
-DIARef<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
+DIA<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
 
     StatsNode* stats_node =
         ctx.stats_graph().AddNode("ReadBinary", DIANodeType::DOP);
@@ -201,10 +192,7 @@ DIARef<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
         std::make_shared<ReadBinaryNode<ValueType> >(
             ctx, filepath, stats_node);
 
-    auto read_stack = shared_node->ProduceStack();
-
-    return DIARef<ValueType, decltype(read_stack)>(
-        shared_node, read_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

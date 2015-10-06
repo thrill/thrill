@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/net/mock/group.hpp>
@@ -25,7 +25,7 @@ mem::mm_unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
 }
 
 std::vector<std::unique_ptr<Group> >
-Group::ConstructLocalMesh(size_t num_hosts) {
+Group::ConstructLoopbackMesh(size_t num_hosts) {
 
     std::vector<std::unique_ptr<Group> > groups(num_hosts);
 
@@ -47,6 +47,8 @@ Group::ConstructLocalMesh(size_t num_hosts) {
 /******************************************************************************/
 
 void Connection::SyncSend(const void* data, size_t size, Flags /* flags */) {
+    // set errno : success (unconditionally)
+    errno = 0;
     group_->Send(peer_, net::Buffer(data, size));
 }
 
@@ -95,7 +97,16 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
             c_lock.unlock();
             d_lock.unlock();
 
-            bool ret = w.read_cb.front()();
+            bool ret = true;
+            try {
+                ret = w.read_cb.front()();
+            }
+            catch (std::exception& e) {
+                LOG1 << "Dispatcher: exception " << typeid(e).name()
+                     << "in read callback.";
+                LOG1 << "  what(): " << e.what();
+                throw;
+            }
 
             d_lock.lock();
             c_lock.lock();
@@ -119,7 +130,16 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
             c_lock.unlock();
             d_lock.unlock();
 
-            bool ret = w.write_cb.front()();
+            bool ret = true;
+            try {
+                ret = w.write_cb.front()();
+            }
+            catch (std::exception& e) {
+                LOG1 << "Dispatcher: exception " << typeid(e).name()
+                     << "in write callback.";
+                LOG1 << "  what(): " << e.what();
+                throw;
+            }
 
             d_lock.lock();
             c_lock.lock();

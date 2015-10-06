@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -793,7 +793,7 @@ public:
         return;
     }
 
-protected:
+private:
     //! Size of the table in bytes
     size_t byte_size_ = 0;
 

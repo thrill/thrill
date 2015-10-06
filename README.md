@@ -1,4 +1,4 @@
-# Thrill - A Distributed Big Data Framework in C++
+# Thrill - A Distributed Big Data Batch Processing Framework in C++
 
 THE code repository for the almighty Thrill-framework.
 

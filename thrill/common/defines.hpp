@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -24,6 +24,27 @@ namespace common {
 #define THRILL_LIKELY(c)   c
 #define THRILL_UNLIKELY(c) c
 #endif
+
+// detect ThreadSanitizer
+#ifndef THRILL_HAVE_THREAD_SANITIZER
+
+#if defined(__has_feature)
+
+// this works with clang
+#if __has_feature(thread_sanitizer)
+#define THRILL_HAVE_THREAD_SANITIZER 1
+#else
+#define THRILL_HAVE_THREAD_SANITIZER 0
+#endif
+
+#else
+
+// gcc's sanitizers cannot be detected?
+#define THRILL_HAVE_THREAD_SANITIZER 0
+
+#endif
+
+#endif // THRILL_HAVE_THREAD_SANITIZER
 
 } // namespace common
 } // namespace thrill

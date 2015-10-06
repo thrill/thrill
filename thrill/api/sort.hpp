@@ -7,7 +7,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Michael Axtmann <michael.axtmann@kit.edu>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -43,8 +43,8 @@ namespace api {
  * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
  * \tparam CompareFunction Type of the compare function
  */
-template <typename ValueType, typename ParentDIARef, typename CompareFunction>
-class SortNode : public DOpNode<ValueType>
+template <typename ValueType, typename ParentDIA, typename CompareFunction>
+class SortNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
@@ -55,19 +55,19 @@ public:
     /*!
      * Constructor for a sort node.
      *
-     * \param parent DIARef.
+     * \param parent DIA.
      * \param parent_stack Stack of lambda functions between parent and this node
      * \param compare_function Function comparing two elements.
      */
-    SortNode(const ParentDIARef& parent,
+    SortNode(const ParentDIA& parent,
              CompareFunction compare_function,
              StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           compare_function_(compare_function),
-          channel_id_samples_(parent.ctx().GetNewChannel()),
-          emitters_samples_(channel_id_samples_->OpenWriters()),
-          channel_id_data_(parent.ctx().GetNewChannel()),
-          emitters_data_(channel_id_data_->OpenWriters())
+          stream_id_samples_(parent.ctx().GetNewCatStream()),
+          emitters_samples_(stream_id_samples_->OpenWriters()),
+          stream_id_data_(parent.ctx().GetNewCatStream()),
+          emitters_data_(stream_id_data_->OpenWriters())
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType& input) {
@@ -77,8 +77,6 @@ public:
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
     }
-
-    virtual ~SortNode() { }
 
     //! Executes the sum operation.
     void Execute() final {
@@ -100,16 +98,6 @@ public:
         std::vector<ValueType>().swap(data_);
     }
 
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     *
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
-
 private:
     //! The sum function which is applied to two elements.
     CompareFunction compare_function_;
@@ -117,12 +105,12 @@ private:
     std::vector<ValueType> data_;
 
     //! Emitter to send samples to process 0
-    data::ChannelPtr channel_id_samples_;
-    std::vector<data::Channel::Writer> emitters_samples_;
+    data::CatStreamPtr stream_id_samples_;
+    std::vector<data::CatStream::Writer> emitters_samples_;
 
     //! Emitters to send data to other workers specified by splitters.
-    data::ChannelPtr channel_id_data_;
-    std::vector<data::Channel::Writer> emitters_data_;
+    data::CatStreamPtr stream_id_data_;
+    std::vector<data::CatStream::Writer> emitters_data_;
 
     // epsilon
     static constexpr double desired_imbalance_ = 0.25;
@@ -139,7 +127,7 @@ private:
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
         // TODO(tb): OpenConsumeReader
-        auto reader = channel_id_samples_->OpenConcatReader(true);
+        auto reader = stream_id_samples_->OpenCatReader(true);
 
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
@@ -336,12 +324,12 @@ private:
                 emitters_samples_[j].Close();
             }
             bool consume = false;
-            auto reader = channel_id_samples_->OpenConcatReader(consume);
+            auto reader = stream_id_samples_->OpenCatReader(consume);
             while (reader.HasNext()) {
                 splitters.push_back(reader.template Next<ValueType>());
             }
         }
-        channel_id_samples_->Close();
+        stream_id_samples_->Close();
 
         // code from SS2NPartition, slightly altered
 
@@ -375,18 +363,35 @@ private:
         data_.clear();
 
         bool consume = false;
-        auto reader = channel_id_data_->OpenConcatReader(consume);
+        auto reader = stream_id_data_->OpenCatReader(consume);
 
         while (reader.HasNext()) {
             data_.push_back(reader.template Next<ValueType>());
         }
-        channel_id_data_->Close();
+        stream_id_data_->Close();
+
+        double balance = 0;
+        if (data_.size() > 0) {
+            balance = static_cast<double>(data_.size())
+                      * static_cast<double>(num_total_workers)
+                      / static_cast<double>(total_elem);
+        }
+
+        if (balance > 1) {
+            balance = 1 / balance;
+        }
+
+        STATC << "NodeType" << "Sort"
+              << "Workers" << num_total_workers
+              << "LocalSize" << data_.size()
+              << "Balance Factor" << balance
+              << "Sample Size" << sample_size;
 
         LOG << "node " << context_.my_rank() << " : " << data_.size();
 
         std::sort(data_.begin(), data_.end(), compare_function_);
-        this->WriteChannelStats(channel_id_data_);
-        this->WriteChannelStats(channel_id_samples_);
+        this->WriteStreamStats(stream_id_data_);
+        this->WriteStreamStats(stream_id_samples_);
     }
 
     void PostOp() { }
@@ -394,11 +399,10 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename CompareFunction>
-auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
+auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
     assert(IsValid());
 
-    using SortResultNode
-              = SortNode<ValueType, DIARef, CompareFunction>;
+    using SortNode = api::SortNode<ValueType, DIA, CompareFunction>;
 
     static_assert(
         std::is_convertible<
@@ -423,14 +427,9 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
 
     StatsNode* stats_node = AddChildStatsNode("Sort", DIANodeType::DOP);
     auto shared_node
-        = std::make_shared<SortResultNode>(*this, compare_function, stats_node);
+        = std::make_shared<SortNode>(*this, compare_function, stats_node);
 
-    auto sort_stack = shared_node->ProduceStack();
-
-    return DIARef<ValueType, decltype(sort_stack)>(
-        shared_node,
-        sort_stack,
-        { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

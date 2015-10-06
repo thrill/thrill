@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -25,22 +25,25 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
-class GatherNode : public ActionNode
+template <typename ParentDIA>
+class GatherNode final : public ActionNode
 {
 public:
     using Super = ActionNode;
     using Super::context_;
 
-    GatherNode(const ParentDIARef& parent,
+    //! input and output type is the parent's output value type.
+    using ValueType = typename ParentDIA::ValueType;
+
+    GatherNode(const ParentDIA& parent,
                size_t target_id,
                std::vector<ValueType>* out_vector,
                StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           target_id_(target_id),
           out_vector_(out_vector),
-          channel_(parent.ctx().GetNewChannel()),
-          emitters_(channel_->OpenWriters())
+          stream_(parent.ctx().GetNewCatStream()),
+          emitters_(stream_->OpenWriters())
     {
         assert(target_id_ < context_.num_workers());
 
@@ -62,13 +65,13 @@ public:
         }
 
         bool consume = false;
-        auto reader = channel_->OpenConcatReader(consume);
+        auto reader = stream_->OpenCatReader(consume);
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
 
-        this->WriteChannelStats(channel_);
+        this->WriteStreamStats(stream_);
     }
 
     void Dispose() final { }
@@ -80,8 +83,8 @@ private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::ChannelPtr channel_;
-    std::vector<data::Channel::Writer> emitters_;
+    data::CatStreamPtr stream_;
+    std::vector<data::CatStream::Writer> emitters_;
 };
 
 /*!
@@ -91,10 +94,10 @@ private:
  */
 template <typename ValueType, typename Stack>
 std::vector<ValueType>
-DIARef<ValueType, Stack>::Gather(size_t target_id) const {
+DIA<ValueType, Stack>::Gather(size_t target_id) const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<ValueType, DIARef>;
+    using GatherNode = api::GatherNode<DIA>;
 
     std::vector<ValueType> output;
 
@@ -113,11 +116,11 @@ DIARef<ValueType, Stack>::Gather(size_t target_id) const {
  * of the one worker.
  */
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::Gather(
+void DIA<ValueType, Stack>::Gather(
     size_t target_id, std::vector<ValueType>* out_vector)  const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<ValueType, DIARef>;
+    using GatherNode = api::GatherNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
     auto shared_node =

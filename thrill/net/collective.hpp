@@ -9,7 +9,7 @@
  * Copyright (C) 2015 Robert Hangu <robert.hangu@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -60,7 +60,7 @@ void PrefixSum(
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
 
         if (net.my_host_rank() + d < net.num_hosts()) {
-            sLOG << "Worker" << net.my_host_rank()
+            sLOG << "Host" << net.my_host_rank()
                  << ": sending to" << net.my_host_rank() + d;
             net.SendTo(net.my_host_rank() + d, to_forward);
         }
@@ -68,7 +68,7 @@ void PrefixSum(
         if (net.my_host_rank() >= d) {
             T recv_value;
             net.ReceiveFrom(net.my_host_rank() - d, &recv_value);
-            sLOG << "Worker" << net.my_host_rank()
+            sLOG << "Host" << net.my_host_rank()
                  << ": receiving " << recv_value
                  << " from" << net.my_host_rank() - d;
 
@@ -300,7 +300,7 @@ void AllReduceHypercube(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()
         // Send value to worker with id id ^ d
         if (peer < net.num_hosts()) {
             net.connection(peer).Send(value);
-            sLOG << "ALL_REDUCE_HYPERCUBE: Worker" << net.my_host_rank()
+            sLOG << "ALL_REDUCE_HYPERCUBE: Host" << net.my_host_rank()
                  << ": Sending" << value << "to worker" << peer;
         }
 
@@ -316,7 +316,7 @@ void AllReduceHypercube(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()
             else
                 value = sum_op(value, recv_data);
 
-            sLOG << "ALL_REDUCE_HYPERCUBE: Worker " << net.my_host_rank()
+            sLOG << "ALL_REDUCE_HYPERCUBE: Host " << net.my_host_rank()
                  << ": Received " << recv_data
                  << " from worker " << peer << " value = " << value;
         }

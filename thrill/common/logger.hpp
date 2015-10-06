@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -102,7 +102,7 @@ class Logger
 template <>
 class Logger<true>
 {
-protected:
+private:
     //! collector stream
     std::basic_ostringstream<
         char, std::char_traits<char>, LoggerAllocator<char> > oss_;
@@ -149,7 +149,7 @@ class SpacingLogger
 template <>
 class SpacingLogger<true>
 {
-protected:
+private:
     //! true until the first element it outputted.
     bool first_ = true;
 
@@ -229,11 +229,11 @@ public:
 
 //! Check that X == Y or die miserably, but output the values of X and Y for
 //! better debugging.
-#define die_unequal(X, Y)                         \
-    do {                                          \
-        if ((X) != (Y))                           \
-            die("Inequality: " #X " != " #Y " : " \
-                "\"" << "\" != \"" << Y << "\""); \
+#define die_unequal(X, Y)                              \
+    do {                                               \
+        if ((X) != (Y))                                \
+            die("Inequality: " #X " != " #Y " : "      \
+                "\"" << X << "\" != \"" << Y << "\""); \
     } while (0)
 
 } // namespace common

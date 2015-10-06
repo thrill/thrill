@@ -4,7 +4,7 @@
  * Part of Project Thrill.
  *
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -189,6 +189,53 @@ TEST_F(Serialization, StringArray) {
 
     auto check42 = r.Next<int>();
     ASSERT_EQ(42, check42);
+}
+
+struct MyMethodStruct
+{
+    int                 i1;
+    double              d2;
+    std::string         s3;
+
+    MyMethodStruct() = default;
+
+    MyMethodStruct(int _i1, double _d2, const std::string& _s3)
+        : i1(_i1), d2(_d2), s3(_s3) { }
+
+    static const bool   thrill_is_fixed_size = false;
+    static const size_t thrill_fixed_size = 0;
+
+    template <typename Archive>
+    void ThrillSerialize(Archive& ar) const {
+        ar.template Put<int>(i1);
+        ar.template Put<double>(d2);
+        ar.PutString(s3);
+    }
+
+    template <typename Archive>
+    static MyMethodStruct ThrillDeserialize(Archive& ar) {
+        int i1 = ar.template Get<int>();
+        double d2 = ar.template Get<double>();
+        std::string s3 = ar.GetString();
+        return MyMethodStruct(i1, d2, s3);
+    }
+};
+
+TEST_F(Serialization, MethodStruct) {
+    MyMethodStruct foo(6 * 9, 42, "abc");
+    data::File f(block_pool_);
+    {
+        auto w = f.GetWriter();
+        w.PutItem(foo);
+    }
+    auto r = f.GetKeepReader();
+    auto fooserial = r.Next<MyMethodStruct>();
+    ASSERT_EQ(foo.i1, fooserial.i1);
+    ASSERT_DOUBLE_EQ(foo.d2, fooserial.d2);
+    ASSERT_EQ(foo.s3, fooserial.s3);
+    static_assert(
+        !data::Serialization<data::DynBlockWriter, MyMethodStruct>::is_fixed_size,
+        "Serialization::is_fixed_size is wrong");
 }
 
 /******************************************************************************/

@@ -9,7 +9,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -130,8 +130,8 @@ public:
 
         using IndexResult = typename ReducePreTable::IndexResult;
 
-        size_t global_index = k * ht->NumBucketsPerTable() / size_;
-        size_t partition_id = k * ht->NumPartitions() / size_;
+        size_t global_index = std::min(ht->NumBucketsPerTable() - 1, k * ht->NumBucketsPerTable() / size_);
+        size_t partition_id = std::min(k * ht->NumPartitions() / size_, ht->NumPartitions() - 1);
         size_t local_index = global_index -
                              partition_id * ht->NumBucketsPerPartition();
         return IndexResult(partition_id, local_index, global_index);
@@ -613,7 +613,7 @@ public:
         return;
     }
 
-protected:
+private:
     //! Number of partitions
     size_t num_partitions_;
 

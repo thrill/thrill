@@ -1,11 +1,11 @@
 /*******************************************************************************
- * benchmarks/data/channel_read_write.cpp
+ * benchmarks/data/stream_a_to_b.cpp
  *
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
@@ -25,36 +25,38 @@
 using namespace thrill; // NOLINT
 using common::StatsTimer;
 
-//! Creates two threads (workers) that work with one context instance
+//! Creates two threads that work with two context instances
 //! one worker sends elements to the other worker.
 //! Number of elements depends on the number of bytes.
 //! one RESULT line will be printed for each iteration
 //! All iterations use the same generated data.
 //! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
-void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const std::string& type_as_string) {
+void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::Context& ctx2, const std::string& type_as_string) {
 
     auto data = generate<Type>(bytes, 1, 100);
     common::ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
-        auto channel = ctx.GetNewChannel();
         StatsTimer<true> write_timer;
-        pool.Enqueue([&data, &channel, &ctx, &write_timer]() {
-                         auto writers = channel->OpenWriters();
-                         assert(writers.size() == 1);
-                         auto& writer = writers[0];
+        pool.Enqueue([&data, &ctx1, &write_timer]() {
+                         auto stream = ctx1.GetNewCatStream();
+                         auto writers = stream->OpenWriters();
+                         assert(writers.size() == 2);
                          write_timer.Start();
+                         auto& writer = writers[1];
                          for (auto& s : data) {
                              writer(s);
                          }
                          writer.Close();
+                         writers[0].Close();
                          write_timer.Stop();
                      });
 
         StatsTimer<true> read_timer;
-        pool.Enqueue([&channel, &ctx, &read_timer]() {
-                         auto readers = channel->OpenReaders();
-                         assert(readers.size() == 1);
+        pool.Enqueue([&ctx2, &read_timer]() {
+                         auto stream = ctx2.GetNewCatStream();
+                         auto readers = stream->OpenReaders();
+                         assert(readers.size() == 2);
                          auto& reader = readers[0];
                          read_timer.Start();
                          while (reader.HasNext()) {
@@ -73,6 +75,25 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const 
 }
 
 int main(int argc, const char** argv) {
+    common::ThreadPool connect_pool;
+    std::vector<std::string> endpoints;
+    endpoints.push_back("127.0.0.1:8000");
+    endpoints.push_back("127.0.0.1:8001");
+    std::unique_ptr<api::HostContext> host_ctx1, host_ctx2;
+    connect_pool.Enqueue(
+        [&host_ctx1, &endpoints]() {
+            host_ctx1 = std::make_unique<api::HostContext>(0, endpoints, 1);
+        });
+
+    connect_pool.Enqueue(
+        [&host_ctx2, &endpoints]() {
+            host_ctx2 = std::make_unique<api::HostContext>(1, endpoints, 1);
+        });
+    connect_pool.LoopUntilEmpty();
+
+    api::Context ctx1(*host_ctx1, 0);
+    api::Context ctx2(*host_ctx2, 0);
+
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
@@ -87,19 +108,16 @@ int main(int argc, const char** argv) {
                        "data type (int, string, pair, triple)");
     if (!clp.Process(argc, argv)) return -1;
 
-    using pair = std::pair<std::string, int>;
-    using triple = std::tuple<std::string, int, std::string>;
-
     if (type == "int")
-        api::RunSameThread(std::bind(ConductExperiment<int>, bytes, iterations, std::placeholders::_1, type));
+        ConductExperiment<int>(bytes, iterations, ctx1, ctx2, type);
     else if (type == "size_t")
-        api::RunSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type));
+        ConductExperiment<size_t>(bytes, iterations, ctx1, ctx2, type);
     else if (type == "string")
-        api::RunSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type));
+        ConductExperiment<std::string>(bytes, iterations, ctx1, ctx2, type);
     else if (type == "pair")
-        api::RunSameThread(std::bind(ConductExperiment<pair>, bytes, iterations, std::placeholders::_1, type));
+        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx1, ctx2, type);
     else if (type == "triple")
-        api::RunSameThread(std::bind(ConductExperiment<triple>, bytes, iterations, std::placeholders::_1, type));
+        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx1, ctx2, type);
     else
         abort();
 }

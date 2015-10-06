@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -88,7 +88,7 @@ public:
         return Serialization<BlockReader, T>::Deserialize(*this);
     }
 
-    //! HasNext() returns true if at least one more byte is available.
+    //! HasNext() returns true if at least one more item is available.
     bool HasNext() {
         while (current_ == end_) {
             if (!NextBlock()) {
@@ -305,7 +305,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Instance of BlockSource. This is NOT a reference, as to enable embedding
     //! of FileBlockSource to compose classes into File::Reader.
     BlockSource source_;

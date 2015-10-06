@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -36,22 +36,16 @@ static void LocalGroupTest(
     const std::function<void(net::Group*)>& thread_function) {
     // execute local stream socket tests
     net::ExecuteGroupThreads(
-        net::tcp::Group::ConstructLocalMesh(6),
+        net::tcp::Group::ConstructLoopbackMesh(6),
         thread_function);
 }
 
-/*[[[cog
-import tests.net.test_gen as m
+/*[[[perl
+  require("tests/net/test_gen.pm");
+  generate_group_tests("RealTcpGroup", "RealGroupTest");
 
-m.generate_group_tests('RealTcpGroup', 'RealGroupTest')
-m.generate_dispatcher_tests('RealTcpGroup', 'RealGroupTest',
-                            'net::tcp::SelectDispatcher')
-
-m.generate_group_tests('LocalTcpGroup', 'LocalGroupTest')
-m.generate_dispatcher_tests('LocalTcpGroup', 'LocalGroupTest',
-                            'net::tcp::SelectDispatcher')
-m.generate_flow_control_tests('LocalTcpGroup', 'LocalGroupTest')
-
+  generate_group_tests("LocalTcpGroup", "LocalGroupTest");
+  generate_flow_control_tests("LocalTcpGroup", "LocalGroupTest");
   ]]]*/
 TEST(RealTcpGroup, NoOperation) {
     RealGroupTest(TestNoOperation);
@@ -89,6 +83,9 @@ TEST(RealTcpGroup, AllReduceString) {
 TEST(RealTcpGroup, AllReduceHypercubeString) {
     RealGroupTest(TestAllReduceHypercubeString);
 }
+TEST(RealTcpGroup, DispatcherSyncSendAsyncRead) {
+    RealGroupTest(TestDispatcherSyncSendAsyncRead);
+}
 TEST(RealTcpGroup, DispatcherLaunchAndTerminate) {
     RealGroupTest(TestDispatcherLaunchAndTerminate);
 }
@@ -97,10 +94,6 @@ TEST(RealTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 }
 TEST(RealTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     RealGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
-}
-TEST(RealTcpGroup, DispatcherSyncSendAsyncRead) {
-    RealGroupTest(
-        DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
 }
 TEST(LocalTcpGroup, NoOperation) {
     LocalGroupTest(TestNoOperation);
@@ -138,6 +131,9 @@ TEST(LocalTcpGroup, AllReduceString) {
 TEST(LocalTcpGroup, AllReduceHypercubeString) {
     LocalGroupTest(TestAllReduceHypercubeString);
 }
+TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
+    LocalGroupTest(TestDispatcherSyncSendAsyncRead);
+}
 TEST(LocalTcpGroup, DispatcherLaunchAndTerminate) {
     LocalGroupTest(TestDispatcherLaunchAndTerminate);
 }
@@ -147,32 +143,28 @@ TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     LocalGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
 }
-TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
-    LocalGroupTest(
-        DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
-}
-TEST(FlowControlLocalTcpGroup, SingleThreadPrefixSum) {
+TEST(LocalTcpGroup, SingleThreadPrefixSum) {
     LocalGroupTest(TestSingleThreadPrefixSum);
 }
-TEST(FlowControlLocalTcpGroup, SingleThreadVectorPrefixSum) {
+TEST(LocalTcpGroup, SingleThreadVectorPrefixSum) {
     LocalGroupTest(TestSingleThreadVectorPrefixSum);
 }
-TEST(FlowControlLocalTcpGroup, SingleThreadBroadcast) {
+TEST(LocalTcpGroup, SingleThreadBroadcast) {
     LocalGroupTest(TestSingleThreadBroadcast);
 }
-TEST(FlowControlLocalTcpGroup, MultiThreadBroadcast) {
+TEST(LocalTcpGroup, MultiThreadBroadcast) {
     LocalGroupTest(TestMultiThreadBroadcast);
 }
-TEST(FlowControlLocalTcpGroup, SingleThreadAllReduce) {
+TEST(LocalTcpGroup, SingleThreadAllReduce) {
     LocalGroupTest(TestSingleThreadAllReduce);
 }
-TEST(FlowControlLocalTcpGroup, MultiThreadAllReduce) {
+TEST(LocalTcpGroup, MultiThreadAllReduce) {
     LocalGroupTest(TestMultiThreadAllReduce);
 }
-TEST(FlowControlLocalTcpGroup, MultiThreadPrefixSum) {
+TEST(LocalTcpGroup, MultiThreadPrefixSum) {
     LocalGroupTest(TestMultiThreadPrefixSum);
 }
-TEST(FlowControlLocalTcpGroup, HardcoreRaceConditionTest) {
+TEST(LocalTcpGroup, HardcoreRaceConditionTest) {
     LocalGroupTest(TestHardcoreRaceConditionTest);
 }
 // [[[end]]]

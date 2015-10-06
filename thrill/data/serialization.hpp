@@ -5,12 +5,15 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
 #ifndef THRILL_DATA_SERIALIZATION_HEADER
 #define THRILL_DATA_SERIALIZATION_HEADER
+
+#include <thrill/common/functional.hpp>
+#include <thrill/common/meta.hpp>
 
 #include <array>
 #include <string>
@@ -36,7 +39,8 @@ template <typename Archive, typename T>
 struct Serialization<Archive, T,
                      typename std::enable_if<
                          // a POD, but not a pointer
-                         std::is_pod<T>::value&& !std::is_pointer<T>::value
+                         std::is_pod<T>::value
+                         && !std::is_pointer<T>::value
                          >::type>
 {
     static void Serialize(const T& x, Archive& ar) {
@@ -196,6 +200,7 @@ struct Serialization<Archive, std::vector<T> >
     static std::vector<T> Deserialize(Archive& ar) {
         size_t size = ar.GetVarint();
         std::vector<T> out;
+        out.reserve(size);
         for (size_t i = 0; i != size; ++i)
             out.emplace_back(Serialization<Archive, T>::Deserialize(ar));
         return out;
@@ -207,7 +212,12 @@ struct Serialization<Archive, std::vector<T> >
 /*********************** Serialization of array *******************************/
 
 template <typename Archive, typename T, size_t N>
-struct Serialization<Archive, std::array<T, N> >
+struct Serialization<Archive, std::array<T, N>,
+                     typename std::enable_if<
+                         // sometimes std::array<T> is a POD, if T is a POD
+                         !std::is_pod<std::array<T, N> >::value
+                         >::type
+                     >
 {
     static void Serialize(const std::array<T, N>& x, Archive& ar) {
         for (typename std::array<T, N>::const_iterator it = x.begin();
@@ -222,6 +232,27 @@ struct Serialization<Archive, std::array<T, N> >
     }
     static const bool   is_fixed_size = Serialization<Archive, T>::is_fixed_size;
     static const size_t fixed_size = N * Serialization<Archive, T>::fixed_size;
+};
+
+/******************* Serialization via Class Methods **************************/
+
+THRILL_MAKE_METHOD_TEST(thrill_is_fixed_size)
+
+template <typename Archive, typename T>
+struct Serialization<Archive, T,
+                     typename std::enable_if<
+                         has_method_thrill_is_fixed_size<T>::value
+                         >::type
+                     >
+{
+    static void Serialize(const T& x, Archive& ar) {
+        x.ThrillSerialize(ar);
+    }
+    static T Deserialize(Archive& ar) {
+        return T::ThrillDeserialize(ar);
+    }
+    static const bool   is_fixed_size = T::thrill_is_fixed_size;
+    static const size_t fixed_size = T::thrill_fixed_size;
 };
 
 //! \}
