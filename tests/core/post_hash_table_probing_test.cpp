@@ -73,7 +73,7 @@ TEST_F(PostTable, CustomHashFunction) {
             core::PostProbingReduceFlushToDefault<int, int, decltype(red_fn)> flush_func(red_fn);
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                          core::PostProbingReduceFlushToDefault<int, int, decltype(red_fn)>, CustomKeyHashFunction<int> >
-            table(ctx, key_ex, red_fn, emit, -1, cust_hash, flush_func);
+            table(ctx, key_ex, red_fn, emit, -1, cust_hash, flush_func, 0, 0, 0, 1024 * 32);
 
             ASSERT_EQ(0u, writer1.size());
             ASSERT_EQ(0u, table.NumItems());
