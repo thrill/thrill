@@ -85,14 +85,14 @@ std::string GetNameForThisThread() {
 static std::mutex s_logger_mutex;
 
 //! constructor: if real = false the output is suppressed.
-Logger<true>::Logger() {
+Logger::Logger() {
     oss_ << '[';
     FormatNameForThisThread(oss_);
     oss_ << "] ";
 }
 
 //! destructor: output a newline
-Logger<true>::~Logger() {
+Logger::~Logger() {
     oss_ << '\n';
     // lock the global mutex of logger for serialized output in
     // multi-threaded programs.
@@ -101,14 +101,14 @@ Logger<true>::~Logger() {
 }
 
 //! constructor: if real = false the output is suppressed.
-SpacingLogger<true>::SpacingLogger() {
+SpacingLogger::SpacingLogger() {
     oss_ << '[';
     FormatNameForThisThread(oss_);
     oss_ << "] ";
 }
 
 //! destructor: output a newline
-SpacingLogger<true>::~SpacingLogger() {
+SpacingLogger::~SpacingLogger() {
     oss_ << '\n';
     // lock the global mutex of logger for serialized output in
     // multi-threaded programs.

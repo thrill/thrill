@@ -82,7 +82,6 @@ private:
     ValueType global_sum_;
 
     void PreOp(ValueType input) {
-        LOG << "PreOp: " << input;
         local_sum_ = sum_function_(local_sum_, input);
     }
 

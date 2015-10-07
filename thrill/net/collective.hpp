@@ -69,8 +69,7 @@ void PrefixSum(
             T recv_value;
             net.ReceiveFrom(net.my_host_rank() - d, &recv_value);
             sLOG << "Host" << net.my_host_rank()
-                 << ": receiving " << recv_value
-                 << " from" << net.my_host_rank() - d;
+                 << ": receiving from" << net.my_host_rank() - d;
 
             // Take care of order, so we don't break associativity.
             to_forward = sum_op(recv_value, to_forward);
@@ -120,8 +119,8 @@ void PrefixSumHypercube(
         // Send total sum of this hypercube to worker with id = id XOR d
         if (peer < net.num_hosts()) {
             net.SendTo(peer, total_sum);
-            sLOG << "PREFIX_SUM: host" << net.my_host_rank() << ": sending" << total_sum
-                 << "to peer" << peer;
+            sLOG << "PREFIX_SUM: host" << net.my_host_rank()
+                 << ": sending to peer" << peer;
         }
 
         // Receive total sum of smaller hypercube from worker with id = id XOR d
@@ -138,14 +137,12 @@ void PrefixSumHypercube(
             if (net.my_host_rank() & d)
                 // The order of addition is respected the same way as above.
                 value = sum_op(recv_data, value);
-            sLOG << "PREFIX_SUM: host" << net.my_host_rank() << ": received" << recv_data
-                 << "from peer" << peer
-                 << "value =" << value;
+            sLOG << "PREFIX_SUM: host" << net.my_host_rank()
+                 << ": received from peer" << peer;
         }
     }
 
-    sLOG << "PREFIX_SUM: host" << net.my_host_rank()
-         << ": value after prefix sum =" << value;
+    sLOG << "PREFIX_SUM: host" << net.my_host_rank() << ": done";
 }
 
 /******************************************************************************/
