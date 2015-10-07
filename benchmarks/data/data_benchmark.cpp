@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/io_benches.cpp
+ * benchmarks/data/data_benchmark.cpp
  *
  * Part of Project Thrill.
  *
