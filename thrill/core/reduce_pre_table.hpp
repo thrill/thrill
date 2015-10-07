@@ -314,7 +314,7 @@ public:
         assert(h.local_index >= 0 && h.local_index < num_buckets_per_partition_);
         assert(h.global_index >= 0 && h.global_index < num_buckets_per_table_);
 
-        LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
+        // LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
         BucketBlock* current = buckets_[h.global_index];
 
@@ -327,8 +327,8 @@ public:
                 // if item and key equals, then reduce.
                 if (equal_to_function_(kv.first, bi->first))
                 {
-                    LOG << "match of key: " << kv.first
-                        << " and " << bi->first << " ... reducing...";
+                    // LOG << "match of key: " << kv.first
+                    //     << " and " << bi->first << " ... reducing...";
 
                     bi->second = reduce_function_(bi->second, kv.second);
 
