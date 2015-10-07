@@ -183,8 +183,10 @@ public:
 
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
-        assert(byte_size >= 0 && "byte_size must be greater than 0");
-        assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
+        assert(byte_size >= 0 && "byte_size must be greater than or equal to 0. "
+                                         "a byte size of zero results in exactly one item per partition");
+        assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0 && "max_partition_fill_rate "
+                    "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
 
         num_items_per_partition_ = std::max<size_t>((size_t)((static_cast<double>(byte_size_)
                                                  / static_cast<double>(sizeof(KeyValuePair)))
@@ -192,10 +194,12 @@ public:
 
         size_ = num_items_per_partition_ * num_partitions_;
 
-        fill_rate_num_items_per_partition_ = (size_t)(num_items_per_partition_ * max_partition_fill_rate_);
+        fill_rate_num_items_per_partition_ = (size_t)(static_cast<double>(num_items_per_partition_)
+                                                      * max_partition_fill_rate_);
 
-        assert(size_ > 0);
         assert(num_items_per_partition_ > 0);
+        assert(size_ > 0);
+        assert(fill_rate_num_items_per_partition_ >= 0);
 
         for (size_t i = 0; i < emit.size(); i++) {
             emit_stats_.push_back(0);
@@ -276,11 +280,6 @@ public:
                 // increase counter for partition
                 items_per_partition_[h.partition_id]++;
 
-                if (bench) {
-                    // increase total counter
-                    num_items_++;
-                }
-
                 return;
             }
         }
@@ -289,11 +288,6 @@ public:
         *current = kv;
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
-
-        if (bench) {
-            // increase total counter
-            num_items_++;
-        }
 
         if (items_per_partition_[h.partition_id] > fill_rate_num_items_per_partition_)
         {
@@ -362,11 +356,8 @@ public:
         LOG << "Flushing items of partition with id: "
             << partition_id;
 
-        size_t num_items_per_partition = (partition_id != num_partitions_ - 1) ?
-                                         num_items_per_partition_ : size_ - (partition_id * num_items_per_partition_);
-
         for (size_t i = partition_id * num_items_per_partition_;
-             i < partition_id * num_items_per_partition_ + num_items_per_partition; i++)
+             i < partition_id * num_items_per_partition_ + num_items_per_partition_; i++)
         {
             KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
@@ -387,10 +378,6 @@ public:
             }
         }
 
-        if (bench) {
-            // reset total counter
-            num_items_ -= items_per_partition_[partition_id];
-        }
         // reset partition specific counter
         items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
@@ -420,7 +407,13 @@ public:
      * \return Number of items in the table.
      */
     size_t NumItems() const {
-        return num_items_;
+
+        size_t total_num_items = 0;
+        for (size_t num_items : items_per_partition_) {
+            total_num_items += num_items;
+        }
+
+        return total_num_items;
     }
 
     /*!
@@ -559,9 +552,6 @@ private:
 
     //! Sentinel element used to flag free slots.
     KeyValuePair sentinel_;
-
-    //! Keeps the total number of items in the table.
-    size_t num_items_ = 0;
 
     //! Number of flushes.
     size_t num_flushes_ = 0;

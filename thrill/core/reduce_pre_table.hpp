@@ -210,9 +210,9 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
-                   size_t byte_size = 1024 * 1024 * 128 * 4,
+                   size_t byte_size = 1024 * 16,
                    double bucket_rate = 1.0,
-                   double max_partition_fill_rate = 0.7,
+                   double max_partition_fill_rate = 0.5,
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
@@ -227,39 +227,41 @@ public:
 
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
-        assert(byte_size >= 0 && "byte_size must be greater than or equal 0");
-        assert(bucket_rate >= 0.0 && "bucket_rate must be greater than or equal 0");
-        assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
-
-        max_num_blocks_per_table_ =
-            std::max<size_t>((size_t)(static_cast<double>(byte_size_)
-                                      / static_cast<double>(sizeof(BucketBlock))), 1);
+        assert(byte_size >= 0 && "byte_size must be greater than or equal to 0. "
+                "a byte size of zero results in exactly one item per partition");
+        assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0 && "max_partition_fill_rate "
+                "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
+        assert(bucket_rate >= 0.0 && "bucket_rate must be greater than or equal 0. "
+                                             "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
 
         max_num_blocks_per_partition_ =
-                std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
-                                          / static_cast<double>(num_partitions_)), 1);
+            std::max<size_t>((size_t)((static_cast<double>(byte_size_) / num_partitions_)
+                                      / static_cast<double>(sizeof(BucketBlock))), 1);
 
         max_num_items_per_partition_ = max_num_blocks_per_partition_ * block_size_;
 
-        fill_rate_num_items_per_partition_ = (size_t)(max_num_items_per_partition_ * max_partition_fill_rate_);
+        fill_rate_num_items_per_partition_ = (size_t)(static_cast<double>(max_num_items_per_partition_)
+                                                      * max_partition_fill_rate_);
 
         num_buckets_per_partition_ =
             std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_partition_)
                                       * bucket_rate), 1);
-        num_buckets_per_table_ = num_buckets_per_partition_ * num_partitions_;
 
-        // reduce number of blocks once we know how many buckets we have, thus
-        // knowing the size of pointers in the bucket vector
-
-        max_num_blocks_per_table_ -=
+        // reduce max number of blocks per partition to cope for the memory needed for pointers
+        max_num_blocks_per_partition_ -=
             std::max<size_t>((size_t)(std::ceil(
-                                          static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
-                                          / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                          static_cast<double>(num_buckets_per_partition_ * sizeof(BucketBlock*))
+                                          / static_cast<double>(sizeof(BucketBlock)))), 1);
 
-        assert(max_num_blocks_per_table_ > 0);
+        num_buckets_per_table_ = num_buckets_per_partition_ * num_partitions_;
+        max_num_blocks_per_table_ = max_num_blocks_per_partition_ * num_partitions_;
+
         assert(max_num_blocks_per_partition_ > 0);
+        assert(max_num_items_per_partition_ > 0);
+        assert(fill_rate_num_items_per_partition_ >= 0);
         assert(num_buckets_per_partition_ > 0);
         assert(num_buckets_per_table_ > 0);
+        assert(max_num_blocks_per_table_ > 0);
 
         buckets_.resize(num_buckets_per_table_, nullptr);
         num_items_per_partition_.resize(num_partitions_, 0);
@@ -379,11 +381,6 @@ public:
 
         // Increase partition item count
         num_items_per_partition_[h.partition_id]++;
-
-        if (bench) {
-            // Increase total item count
-            num_items_per_table_++;
-        }
 
         // flush current partition if max partition fill rate reached
         if (num_items_per_partition_[h.partition_id] > fill_rate_num_items_per_partition_)
@@ -516,11 +513,6 @@ public:
             buckets_[i] = nullptr;
         }
 
-        if (bench) {
-            // reset table specific counter
-            num_items_per_table_ -= num_items_per_partition_[partition_id];
-        }
-
         // reset partition specific counter
         num_items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
@@ -561,7 +553,12 @@ public:
      * \return Number of items in the table.
      */
     size_t NumItemsPerTable() const {
-        return num_items_per_table_;
+        size_t total_num_items = 0;
+        for (size_t num_items : num_items_per_partition_) {
+            total_num_items += num_items;
+        }
+
+        return total_num_items;
     }
 
     /*!
@@ -717,8 +714,7 @@ private:
     // Fill rate for partition.
     double max_partition_fill_rate_ = 1.0;
 
-    //! Maximal number of blocks before some items
-    //! are spilled.
+    //! Maximal number of blocks.
     size_t max_num_blocks_per_table_ = 0;
 
     //! Key extractor function for extracting a key from a value.
@@ -759,9 +755,6 @@ private:
 
     //! Maximal number of blocks per partition.
     size_t max_num_blocks_per_partition_ = 0;
-
-    //! Total number of items in the table.
-    size_t num_items_per_table_ = 0;
 
     //! Number of flushes.
     size_t num_flushes_ = 0;

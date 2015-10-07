@@ -138,8 +138,6 @@ template <typename Key,
         typename KeyValuePair = std::pair<Key, Value>>
 class PostReduceFlushToDefault
 {
-    static const bool bench = true;
-
     static const bool emit = true;
 
 public:
@@ -153,11 +151,8 @@ public:
 
     template<typename ReducePostTable, typename BucketBlock>
     void Spill(std::vector<BucketBlock*> &second_reduce, size_t offset,
-               size_t length, data::File::Writer& writer,
-               ReducePostTable* ht) const
+               size_t length, data::File::Writer& writer, BucketBlockPool<BucketBlock> &block_pool) const
     {
-        BucketBlockPool<BucketBlock> &block_pool = ht->BlockPool();
-
         for (size_t idx = offset; idx < length; idx++) {
             BucketBlock *current = second_reduce[idx];
 
@@ -180,15 +175,13 @@ public:
         template<typename ReducePostTable, typename BucketBlock>
         void Reduce(Context &ctx, bool consume, ReducePostTable *ht,
                     std::vector<BucketBlock*> &items, size_t offset, size_t length,
-                    data::File::Reader &reader, std::vector<BucketBlock*> &second_reduce) const
+                    data::File::Reader &reader, std::vector<BucketBlock*> &second_reduce,
+                    size_t fill_rate_num_items_per_frame,
+                    size_t frame_id, std::vector<size_t>& num_items_per_frame,
+                    BucketBlockPool<BucketBlock> &block_pool,
+                    size_t max_num_blocks_second_reduce, size_t block_size) const
         {
-            BucketBlockPool<BucketBlock> &block_pool = ht->BlockPool();
-
             size_t item_count = 0;
-
-            double max_items = ht->MaxNumItemsSecondReduce();
-
-            double fill_rate = ht->MaxFrameFillRate();
 
             std::vector<data::File> frame_files_;
             std::vector<data::File::Writer> frame_writers_;
@@ -200,7 +193,7 @@ public:
             // flag used when item is reduced to advance to next item
             bool reduced = false;
 
-            size_t blocks_free = 0;
+            size_t blocks_secondary_used = 0;
 
             /////
             // reduce data from primary table
@@ -245,9 +238,33 @@ public:
                         //////
 
                         if (current_second == nullptr ||
-                            current_second->size == ht->block_size_) {
+                            current_second->size == block_size) {
+
+                            // spill largest frame if max number of blocks reached
+                            if (blocks_secondary_used == max_num_blocks_second_reduce)
+                            {
+                                // set up files (if not set up already)
+                                if (frame_files_.size() == 0) {
+                                    for (size_t i = 0; i < 2; i++) {
+                                        frame_files_.push_back(ctx.GetFile());
+                                    }
+                                    for (size_t i = 0; i < 2; i++) {
+                                        frame_writers_.push_back(frame_files_[i].GetWriter());
+                                    }
+                                }
+
+                                // spill into files
+                                Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
+                                                                    frame_writers_[0], block_pool);
+                                Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2,
+                                                                    second_reduce.size(), frame_writers_[1], block_pool);
+
+                                blocks_secondary_used = 0;
+                            }
+
                             // allocate a new block of uninitialized items, postpend to bucket
                             current_second = block_pool.GetBlock();
+                            blocks_secondary_used++;
                             current_second->next = second_reduce[global_index];
                             second_reduce[global_index] = current_second;
                         }
@@ -264,7 +281,6 @@ public:
                         BucketBlock *next = current->next;
                         block_pool.Deallocate(current);
                         current = next;
-                        blocks_free++;
                     }
                     else {
                         current = current->next;
@@ -276,9 +292,7 @@ public:
                 }
 
                 // flush current partition if max partition fill rate reached
-                if (static_cast<double>(item_count)
-                    / static_cast<double>(max_items)
-                    > fill_rate) {
+                if (item_count > fill_rate_num_items_per_frame) {
                     // set up files (if not set up already)
                     if (frame_files_.size() == 0) {
                         for (size_t i = 0; i < 2; i++) {
@@ -290,16 +304,13 @@ public:
                     }
 
                     // spill into files
-                    Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], ht);
-                    Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], ht);
+                    Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
+                                                        frame_writers_[0], block_pool);
+                    Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2,
+                                                        second_reduce.size(), frame_writers_[1], block_pool);
 
                     item_count = 0;
                 }
-            }
-
-            // set num blocks for frame to 0
-            if (consume) {
-                ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - blocks_free);
             }
 
             // get the items and insert them in secondary
@@ -339,9 +350,33 @@ public:
 
                 // have an item that needs to be added.
                 if (current == nullptr ||
-                    current->size == ht->block_size_) {
+                    current->size == block_size) {
+
+                    // spill largest frame if max number of blocks reached
+                    if (blocks_secondary_used == max_num_blocks_second_reduce)
+                    {
+                        // set up files (if not set up already)
+                        if (frame_files_.size() == 0) {
+                            for (size_t i = 0; i < 2; i++) {
+                                frame_files_.push_back(ctx.GetFile());
+                            }
+                            for (size_t i = 0; i < 2; i++) {
+                                frame_writers_.push_back(frame_files_[i].GetWriter());
+                            }
+                        }
+
+                        // spill into files
+                        Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
+                                                            frame_writers_[0], block_pool);
+                        Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2,
+                                                            second_reduce.size(), frame_writers_[1], block_pool);
+
+                        blocks_secondary_used = 0;
+                    }
+
                     // allocate a new block of uninitialized items, postpend to bucket
                     current = block_pool.GetBlock();
+                    blocks_secondary_used++;
                     current->next = second_reduce[global_index];
                     second_reduce[global_index] = current;
                 }
@@ -352,9 +387,7 @@ public:
                 item_count++;
 
                 // flush current partition if max partition fill rate reached
-                if (static_cast<double>(item_count)
-                    / static_cast<double>(max_items)
-                    > fill_rate) {
+                if (item_count > fill_rate_num_items_per_frame) {
                     // set up files (if not set up already)
                     if (frame_files_.size() == 0) {
                         for (size_t i = 0; i < 2; i++) {
@@ -366,8 +399,10 @@ public:
                     }
 
                     // spill into files
-                    Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], ht);
-                    Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], ht);
+                    Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
+                                                        frame_writers_[0], block_pool);
+                    Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2,
+                                                        second_reduce.size(), frame_writers_[1], block_pool);
 
                     item_count = 0;
                 }
@@ -403,20 +438,26 @@ public:
                 // spilling was required, need to reduce again
             else {
                 // spill into files
-                Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], ht);
-                Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], ht);
+                Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
+                                                    frame_writers_[0], block_pool);
+                Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2,
+                                                    second_reduce.size(), frame_writers_[1], block_pool);
 
                 data::File &file1 = frame_files_[0];
                 data::File::Writer &writer1 = frame_writers_[0];
                 writer1.Close();
                 data::File::Reader reader1 = file1.GetReader(true);
-                Reduce(ctx, false, ht, second_reduce, 0, 0, reader1, second_reduce);
+                Reduce(ctx, false, ht, second_reduce, 0, 0, reader1, second_reduce,
+                       fill_rate_num_items_per_frame, frame_id, num_items_per_frame,
+                       block_pool, max_num_blocks_second_reduce, block_size);
 
                 data::File &file2 = frame_files_[1];
                 data::File::Writer &writer2 = frame_writers_[1];
                 writer2.Close();
                 data::File::Reader reader2 = file2.GetReader(true);
-                Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce);
+                Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce,
+                       fill_rate_num_items_per_frame, frame_id, num_items_per_frame,
+                       block_pool, max_num_blocks_second_reduce, block_size);
             }
         }
 
@@ -436,15 +477,19 @@ public:
 
             std::vector<data::File::Writer> &frame_writers = ht->FrameWriters();
 
-            size_t num_frames = ht->NumFrames();
-
             size_t num_buckets_per_frame = ht->NumBucketsPerFrame();
 
-            BucketBlockPool<BucketBlock> &block_pool_ = ht->BlockPool();
+            size_t num_frames = ht->NumFrames();
+
+            size_t fill_rate_num_items_per_frame = ht->MaxNumItemsSecondReduce();
+
+            size_t max_num_blocks_second_reduce = ht->MaxNumBlocksSecondReduce();
+
+            BucketBlockPool<BucketBlock> &block_pool = ht->BlockPool();
 
             Context &ctx = ht->Ctx();
 
-            size_t blocks_free = 0;
+            size_t block_size = ht->BlockSize();
 
             for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
                 // get the actual reader from the file
@@ -461,14 +506,16 @@ public:
 
                     data::File::Reader reader = file.GetReader(consume);
 
-                    Reduce<ReducePostTable, BucketBlock>(ctx, consume, ht, items, offset, length, reader, second_reduce);
+                    Reduce<ReducePostTable, BucketBlock>(ctx, consume, ht, items, offset,
+                                                         length, reader, second_reduce,
+                                                         fill_rate_num_items_per_frame,
+                                                         frame_id, num_items_mem_per_frame, block_pool,
+                                                         max_num_blocks_second_reduce, block_size);
 
                     // no spilled items, just flush already reduced
                     // data in primary table in current frame
                 }
                 else {
-                    blocks_free = 0;
-
                     /////
                     // emit data
                     /////
@@ -486,9 +533,8 @@ public:
                             // advance to next
                             if (consume) {
                                 BucketBlock *next = current->next;
-                                block_pool_.Deallocate(current);
+                                block_pool.Deallocate(current);
                                 current = next;
-                                blocks_free++;
                             }
                             else {
                                 current = current->next;
@@ -499,18 +545,14 @@ public:
                             items[i] = nullptr;
                         }
                     }
-
-                    // set num items for frame to 0
-                    if (consume) {
-                        ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - blocks_free);
-                        num_items_mem_per_frame[frame_id] = 0;
-                    }
                 }
             }
 
-            if (bench) {
-                if (consume) {
-                    ht->SetNumItemsPerTable(0);
+            // set num blocks for table/items per frame to 0
+            if (consume) {
+                ht->SetNumBlocksPerTable(0);
+                for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
+                    num_items_mem_per_frame[frame_id] = 0;
                 }
             }
         }
@@ -529,8 +571,6 @@ template <typename Key,
         typename KeyValuePair = std::pair<Key, Value>>
 class PostReduceFlushToIndex
 {
-    static const bool bench = true;
-
     static const bool emit = true;
 
 public:
@@ -545,10 +585,8 @@ public:
     template<typename ReducePostTable, typename BucketBlock>
     void Spill(std::vector<BucketBlock*> &second_reduce, size_t offset,
                size_t length, data::File::Writer& writer,
-               ReducePostTable* ht) const
+               BucketBlockPool<BucketBlock> &block_pool) const
     {
-        BucketBlockPool<BucketBlock> &block_pool = ht->BlockPool();
-
         for (size_t idx = offset; idx < length; idx++) {
             BucketBlock *current = second_reduce[idx];
 
@@ -572,15 +610,12 @@ public:
     void Reduce(Context &ctx, bool consume, ReducePostTable *ht,
                 std::vector<BucketBlock*> &items, size_t offset, size_t length,
                 data::File::Reader &reader, std::vector<BucketBlock*> &second_reduce,
-                std::vector<Value>& elements_to_emit) const
+                std::vector<Value>& elements_to_emit, size_t fill_rate_num_items_per_frame,
+                size_t frame_id, std::vector<size_t>& num_items_per_frame,
+                BucketBlockPool<BucketBlock> &block_pool, size_t max_num_blocks_second_reduce,
+                size_t block_size, size_t begin_local_index) const
     {
-        BucketBlockPool<BucketBlock> &block_pool = ht->BlockPool();
-
         size_t item_count = 0;
-
-        double max_items = ht->MaxNumItemsSecondReduce();
-
-        double fill_rate = ht->MaxFrameFillRate();
 
         std::vector<data::File> frame_files_;
         std::vector<data::File::Writer> frame_writers_;
@@ -592,7 +627,7 @@ public:
         // flag used when item is reduced to advance to next item
         bool reduced = false;
 
-        size_t blocks_free = 0;
+        size_t blocks_secondary_used = 0;
 
         /////
         // reduce data from primary table
@@ -637,9 +672,33 @@ public:
                     //////
 
                     if (current_second == nullptr ||
-                        current_second->size == ht->block_size_) {
+                        current_second->size == block_size) {
+
+                        // spill largest frame if max number of blocks reached
+                        if (blocks_secondary_used == max_num_blocks_second_reduce)
+                        {
+                            // set up files (if not set up already)
+                            if (frame_files_.size() == 0) {
+                                for (size_t i = 0; i < 2; i++) {
+                                    frame_files_.push_back(ctx.GetFile());
+                                }
+                                for (size_t i = 0; i < 2; i++) {
+                                    frame_writers_.push_back(frame_files_[i].GetWriter());
+                                }
+                            }
+
+                            // spill into files
+                            Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
+                                                                frame_writers_[0], block_pool);
+                            Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2,
+                                                                second_reduce.size(), frame_writers_[1], block_pool);
+
+                            blocks_secondary_used = 0;
+                        }
+
                         // allocate a new block of uninitialized items, postpend to bucket
                         current_second = block_pool.GetBlock();
+                        blocks_secondary_used++;
                         current_second->next = second_reduce[global_index];
                         second_reduce[global_index] = current_second;
                     }
@@ -656,7 +715,6 @@ public:
                     BucketBlock *next = current->next;
                     block_pool.Deallocate(current);
                     current = next;
-                    blocks_free++;
                 }
                 else {
                     current = current->next;
@@ -668,9 +726,7 @@ public:
             }
 
             // flush current partition if max partition fill rate reached
-            if (static_cast<double>(item_count)
-                / static_cast<double>(max_items)
-                > fill_rate) {
+            if (item_count > fill_rate_num_items_per_frame) {
                 // set up files (if not set up already)
                 if (frame_files_.size() == 0) {
                     for (size_t i = 0; i < 2; i++) {
@@ -682,16 +738,13 @@ public:
                 }
 
                 // spill into files
-                Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], ht);
-                Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], ht);
+                Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
+                                                    frame_writers_[0], block_pool);
+                Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2,
+                                                    second_reduce.size(), frame_writers_[1], block_pool);
 
                 item_count = 0;
             }
-        }
-
-        // set num blocks for frame to 0
-        if (consume) {
-            ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - blocks_free);
         }
 
         // get the items and insert them in secondary
@@ -731,9 +784,33 @@ public:
 
             // have an item that needs to be added.
             if (current == nullptr ||
-                current->size == ht->block_size_) {
+                current->size == block_size) {
+
+                // spill largest frame if max number of blocks reached
+                if (blocks_secondary_used == max_num_blocks_second_reduce)
+                {
+                    // set up files (if not set up already)
+                    if (frame_files_.size() == 0) {
+                        for (size_t i = 0; i < 2; i++) {
+                            frame_files_.push_back(ctx.GetFile());
+                        }
+                        for (size_t i = 0; i < 2; i++) {
+                            frame_writers_.push_back(frame_files_[i].GetWriter());
+                        }
+                    }
+
+                    // spill into files
+                    Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
+                                                        frame_writers_[0], block_pool);
+                    Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2,
+                                                        second_reduce.size(), frame_writers_[1], block_pool);
+
+                    blocks_secondary_used = 0;
+                }
+
                 // allocate a new block of uninitialized items, postpend to bucket
                 current = block_pool.GetBlock();
+                blocks_secondary_used++;
                 current->next = second_reduce[global_index];
                 second_reduce[global_index] = current;
             }
@@ -744,9 +821,7 @@ public:
             item_count++;
 
             // flush current partition if max partition fill rate reached
-            if (static_cast<double>(item_count)
-                / static_cast<double>(max_items)
-                > fill_rate) {
+            if (item_count > fill_rate_num_items_per_frame) {
                 // set up files (if not set up already)
                 if (frame_files_.size() == 0) {
                     for (size_t i = 0; i < 2; i++) {
@@ -758,8 +833,10 @@ public:
                 }
 
                 // spill into files
-                Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], ht);
-                Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], ht);
+                Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
+                                                    frame_writers_[0], block_pool);
+                Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2,
+                                                    second_reduce.size(), frame_writers_[1], block_pool);
 
                 item_count = 0;
             }
@@ -778,7 +855,7 @@ public:
                     for (KeyValuePair *bi = current->items;
                          bi != current->items + current->size; ++bi) {
 
-                        elements_to_emit[bi->first - ht->BeginLocalIndex()] = bi->second;
+                        elements_to_emit[bi->first - begin_local_index] = bi->second;
                     }
 
                     // destroy block and advance to next
@@ -791,23 +868,29 @@ public:
             }
         }
 
-            // spilling was required, need to reduce again
+        // spilling was required, need to reduce again
         else {
             // spill into files
-            Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], ht);
-            Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], ht);
+            Spill<ReducePostTable, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
+                                                frame_writers_[0], block_pool);
+            Spill<ReducePostTable, BucketBlock>(second_reduce, second_reduce.size() / 2,
+                                                second_reduce.size(), frame_writers_[1], block_pool);
 
             data::File &file1 = frame_files_[0];
             data::File::Writer &writer1 = frame_writers_[0];
             writer1.Close();
             data::File::Reader reader1 = file1.GetReader(true);
-            Reduce(ctx, false, ht, second_reduce, 0, 0, reader1, second_reduce, elements_to_emit);
+            Reduce(ctx, false, ht, second_reduce, 0, 0, reader1, second_reduce, elements_to_emit,
+                   fill_rate_num_items_per_frame, frame_id, num_items_per_frame,
+                   block_pool, max_num_blocks_second_reduce, block_size, begin_local_index);
 
             data::File &file2 = frame_files_[1];
             data::File::Writer &writer2 = frame_writers_[1];
             writer2.Close();
             data::File::Reader reader2 = file2.GetReader(true);
-            Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce, elements_to_emit);
+            Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce, elements_to_emit,
+                   fill_rate_num_items_per_frame, frame_id, num_items_per_frame,
+                   block_pool, max_num_blocks_second_reduce, block_size, begin_local_index);
         }
     }
 
@@ -827,21 +910,30 @@ public:
 
         std::vector<data::File::Writer> &frame_writers = ht->FrameWriters();
 
-        size_t num_frames = ht->NumFrames();
-
         size_t num_buckets_per_frame = ht->NumBucketsPerFrame();
 
-        BucketBlockPool<BucketBlock> &block_pool_ = ht->BlockPool();
+        size_t num_frames = ht->NumFrames();
 
-        Context &ctx = ht->Ctx();
+        size_t fill_rate_num_items_per_frame = ht->MaxNumItemsSecondReduce();
 
-        size_t blocks_free = 0;
+        size_t max_num_blocks_second_reduce = ht->MaxNumBlocksSecondReduce();
+
+        BucketBlockPool<BucketBlock> &block_pool = ht->BlockPool();
 
         Value neutral_element = ht->NeutralElement();
 
-        std::vector<Value> elements_to_emit(ht->EndLocalIndex() - ht->BeginLocalIndex(), neutral_element);
+        size_t begin_local_index = ht->BeginLocalIndex();
 
-        for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
+        size_t end_local_index = ht->EndLocalIndex();
+
+        std::vector<Value> elements_to_emit(end_local_index - begin_local_index, neutral_element);
+
+        Context &ctx = ht->Ctx();
+
+        size_t block_size = ht->BlockSize();
+
+        for (size_t frame_id = 0; frame_id < num_frames; frame_id++)
+        {
             // get the actual reader from the file
             data::File &file = frame_files[frame_id];
             data::File::Writer &writer = frame_writers[frame_id];
@@ -857,14 +949,16 @@ public:
                 data::File::Reader reader = file.GetReader(consume);
 
                 Reduce<ReducePostTable, BucketBlock>(ctx, consume, ht, items, offset,
-                                                     length, reader, second_reduce, elements_to_emit);
+                                                     length, reader, second_reduce, elements_to_emit,
+                                                     fill_rate_num_items_per_frame,
+                                                     frame_id, num_items_mem_per_frame, block_pool,
+                                                     max_num_blocks_second_reduce,
+                                                     block_size, begin_local_index);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current frame
             }
             else {
-                blocks_free = 0;
-
                 /////
                 // emit data
                 /////
@@ -875,15 +969,14 @@ public:
                         for (KeyValuePair *bi = current->items;
                              bi != current->items + current->size; ++bi) {
 
-                            elements_to_emit[bi->first - ht->BeginLocalIndex()] = bi->second;
+                            elements_to_emit[bi->first - begin_local_index] = bi->second;
                         }
 
                         // advance to next
                         if (consume) {
                             BucketBlock *next = current->next;
-                            block_pool_.Deallocate(current);
+                            block_pool.Deallocate(current);
                             current = next;
-                            blocks_free++;
                         }
                         else {
                             current = current->next;
@@ -894,16 +987,18 @@ public:
                         items[i] = nullptr;
                     }
                 }
-
-                // set num items for frame to 0
-                if (consume) {
-                    ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - blocks_free);
-                    num_items_mem_per_frame[frame_id] = 0;
-                }
             }
         }
 
-        size_t index = ht->BeginLocalIndex();
+        // set num blocks for table/items per frame to 0
+        if (consume) {
+            ht->SetNumBlocksPerTable(0);
+            for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
+                num_items_mem_per_frame[frame_id] = 0;
+            }
+        }
+
+        size_t index = begin_local_index;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
             if (emit) {
                 ht->EmitAll(index++, elements_to_emit[i]);
@@ -912,13 +1007,7 @@ public:
             }
             elements_to_emit[i] = neutral_element;
         }
-        assert(index == ht->EndLocalIndex());
-
-        if (bench) {
-            if (consume) {
-                ht->SetNumItemsPerTable(0);
-            }
-        }
+        assert(index == end_local_index);
     }
 
 public:
@@ -1023,9 +1112,9 @@ public:
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
                     const Value& neutral_element = Value(),
-                    size_t byte_size = 1024 * 1024 * 128 * 4,
-                    double bucket_rate = 0.9,
-                    double max_frame_fill_rate = 0.6,
+                    size_t byte_size = 1024 * 16,
+                    double bucket_rate = 1.0,
+                    double max_frame_fill_rate = 0.5,
                     double frame_rate = 0.01,
                     const EqualToFunction& equal_to_function = EqualToFunction())
         : ctx_(ctx),
@@ -1042,19 +1131,21 @@ public:
           flush_function_(flush_function),
           reduce_function_(reduce_function) {
 
-        assert(byte_size >= 0 && "byte_size must be greater than 0");
-        assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
-        assert(frame_rate >= 0.0 && frame_rate <= 1.0);
-        assert(bucket_rate >= 0.0 && bucket_rate <= 1.0);
+        assert(byte_size >= 0 && "byte_size must be greater than or equal to 0. "
+                "a byte size of zero results in exactly one item per partition");
+        assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0 && "max_partition_fill_rate "
+                "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
+        assert(frame_rate > 0.0 && frame_rate <= 1.0 && "a frame rate of 1.0 causes exactly one frame.");
+        assert(bucket_rate >= 0.0 && "bucket_rate must be greater than or equal 0. "
+                "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
         assert(begin_local_index >= 0);
         assert(end_local_index >= 0);
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
 
-        max_num_blocks_per_table_ = std::max<size_t>((size_t)((byte_size_ * (1 - table_rate_))
-                                                              / static_cast<double>(sizeof(BucketBlock))), 1);
-        max_num_blocks_mem_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
-                                                                  / static_cast<double>(num_frames_)), 1);
+        max_num_blocks_mem_per_frame_ =
+                std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_)) / num_frames_)
+                                          / static_cast<double>(sizeof(BucketBlock))), 1);
 
         max_num_items_mem_per_frame_ = max_num_blocks_mem_per_frame_ * block_size_;
 
@@ -1064,19 +1155,21 @@ public:
                 std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_mem_per_frame_)
                                           * bucket_rate), 1);
 
-        num_buckets_per_table_ = num_buckets_per_frame_ * num_frames_;
+        // reduce max number of blocks per frame to cope for the memory needed for pointers
+        max_num_blocks_mem_per_frame_ -= std::max<size_t>((size_t)(std::ceil(
+                                                                   static_cast<double>(num_buckets_per_frame_ * sizeof(BucketBlock*))
+                                                                   / static_cast<double>(sizeof(BucketBlock)))), 1);
 
-        // reduce number of blocks once we know how many buckets we have, thus
-        // knowing the size of pointers in the bucket vector
-        max_num_blocks_per_table_ -= std::max<size_t>((size_t)(std::ceil(
-                                                                   static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
-                                                                   / static_cast<double>(sizeof(BucketBlock)))), 0);
+        num_buckets_per_table_ = num_buckets_per_frame_ * num_frames_;
+        max_num_blocks_per_table_ = max_num_blocks_mem_per_frame_ * num_frames_;
 
         assert(num_frames_ > 0);
-        assert(max_num_blocks_per_table_ > 0);
         assert(max_num_blocks_mem_per_frame_ > 0);
+        assert(max_num_items_mem_per_frame_ > 0);
+        assert(fill_rate_num_items_mem_per_frame_ >= 0);
         assert(num_buckets_per_frame_ > 0);
         assert(num_buckets_per_table_ > 0);
+        assert(max_num_blocks_per_table_ > 0);
 
         buckets_.resize(num_buckets_per_table_, nullptr);
         num_items_mem_per_frame_.resize(num_frames_, 0);
@@ -1089,18 +1182,31 @@ public:
         }
 
         // set up second table
-        size_t max_num_blocks_second_reduce_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
+        max_num_blocks_second_reduce_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
                                                               / static_cast<double>(sizeof(BucketBlock))), 1);
 
         max_num_items_second_reduce_ = max_num_blocks_second_reduce_ * block_size_;
 
-        size_t second_table_size_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_second_reduce_)
+        fill_rate_num_items_second_reduce_ = (size_t)(max_num_items_second_reduce_ * max_frame_fill_rate_);
+
+        second_table_size_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_second_reduce_)
                                                            * bucket_rate), 1);
 
+        // ensure size of second table is even, in order to be able to split by half for spilling
         if (second_table_size_ % 2 != 0) {
             second_table_size_--;
         }
         second_table_size_ = std::max<size_t>(2, second_table_size_);
+        // reduce max number of blocks of second table to cope for the memory needed for pointers
+        max_num_blocks_second_reduce_ -= std::max<size_t>((size_t)(std::ceil(
+                static_cast<double>(second_table_size_ * sizeof(BucketBlock*))
+                / static_cast<double>(sizeof(BucketBlock)))), 1);
+
+        assert(max_num_blocks_second_reduce_ > 0);
+        assert(max_num_items_second_reduce_ > 0);
+        assert(fill_rate_num_items_second_reduce_ >= 0);
+        assert(second_table_size_ > 0);
+
         second_table_.resize(second_table_size_, nullptr);
     }
 
@@ -1218,10 +1324,6 @@ public:
 
         // Number of items per frame.
         num_items_mem_per_frame_[frame_id]++;
-        if (bench) {
-            // Increase total item counter
-            num_items_per_table_++;
-        }
 
         if (num_items_mem_per_frame_[frame_id] > fill_rate_num_items_mem_per_frame_)
         {
@@ -1314,9 +1416,6 @@ public:
                         writer.PutItem(*bi);
                     }
                 }
-                if (bench) {
-                    num_items_per_table_ -= current->size;
-                }
 
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -1325,11 +1424,6 @@ public:
             }
 
             buckets_[i] = nullptr;
-        }
-
-        if (bench) {
-            // adjust number of blocks in table
-            num_items_per_table_ -= num_items_mem_per_frame_[frame_id];
         }
 
         // reset number of blocks in external memory
@@ -1348,30 +1442,12 @@ public:
     }
 
     /*!
-     * Returns the num of buckets in the table.
-     *
-     * \return Number of buckets in the table.
-     */
-    size_t NumBucketsPerTable() const {
-        return num_buckets_per_table_;
-    }
-
-    /*!
      * Returns the num of buckets in a frame.
      *
      * \return Number of buckets in a frame.
      */
     size_t NumBucketsPerFrame() const {
         return num_buckets_per_frame_;
-    }
-
-    /*!
-     * Returns the num of blocks in the table.
-     *
-     * \return Number of blocks in the table.
-     */
-    size_t NumBlocksPerTable() const {
-        return num_blocks_per_table_;
     }
 
     /*!
@@ -1387,26 +1463,13 @@ public:
      * \return Number of items in the table.
      */
     size_t NumItemsPerTable() const {
-        return num_items_per_table_;
-    }
 
-    /*!
-     * Returns the number of items in the table.
-     *
-     * \return Number of items in the table.
-     */
-    size_t MaxNumBlocksPerTable() const {
-        return max_num_blocks_per_table_;
-    }
+        size_t total_num_items = 0;
+        for (size_t num_items : num_items_mem_per_frame_) {
+            total_num_items += num_items;
+        }
 
-    /*!
-     * Sets the num of items in the table.
-     * Returns the num of items in the table.
-     *
-     * \return Number of items in the table.
-     */
-    void SetNumItemsPerTable(size_t num_items) {
-        num_items_per_table_ = num_items;
+        return total_num_items;
     }
 
     /*!
@@ -1416,15 +1479,6 @@ public:
      */
     std::vector<BucketBlock*> & Items() {
         return buckets_;
-    }
-
-    /*!
-     * Returns the maximal frame fill rate.
-     *
-     * \return Maximal frame fill rate.
-     */
-    double MaxFrameFillRate() const {
-        return max_frame_fill_rate_;
     }
 
     /*!
@@ -1500,15 +1554,6 @@ public:
     }
 
     /*!
-     * Returns the bucket rate.
-     *
-     * \return Bucket rate.
-     */
-    double BucketRate() const {
-        return bucket_rate_;
-    }
-
-    /*!
      * Returns the block size.
      *
      * \return Block size.
@@ -1524,15 +1569,6 @@ public:
      */
     BucketBlockPool<BucketBlock> & BlockPool() {
         return block_pool;
-    }
-
-    /*!
-     * Returns the table rate.
-     *
-     * \return Table rate.
-     */
-    double TableRate() const {
-        return table_rate_;
     }
 
     /*!
@@ -1560,6 +1596,24 @@ public:
      */
     size_t MaxNumItemsSecondReduce() const {
         return max_num_items_second_reduce_;
+    }
+
+    /*!
+     * Returns the number of spills.
+     *
+     * \return Number of spills.
+     */
+    size_t MaxNumBlocksSecondReduce() const {
+        return max_num_blocks_second_reduce_;
+    }
+
+    /*!
+     * Returns the number of block in the table.
+     *
+     * \return Number of blocks in the table.
+     */
+    size_t NumBlocksPerTable() const {
+        return num_blocks_per_table_;
     }
 
     /*!
@@ -1668,9 +1722,6 @@ public:
     //! Flush function.
     FlushFunction flush_function_;
 
-    //! Number of items in the table.
-    size_t num_items_per_table_ = 0;
-
     //! Number of items per frame in internal memory.
     std::vector<size_t> num_items_mem_per_frame_;
 
@@ -1702,6 +1753,12 @@ public:
 
     //! Number of items per frame considering fill rate.
     size_t fill_rate_num_items_mem_per_frame_ = 0;
+
+    size_t second_table_size_;
+
+    size_t max_num_blocks_second_reduce_;
+
+    size_t fill_rate_num_items_second_reduce_;
 };
 
 } // namespace core
