@@ -37,7 +37,7 @@ thrill_build_prog(hashtable/bench_probing_hashtable)
 
 thrill_build_prog(data/disk)
 thrill_build_prog(data/stream)
-thrill_build_prog(data/io_benches)
+thrill_build_prog(data/data_benchmark)
 
 
 thrill_build_prog(io/string_test)
