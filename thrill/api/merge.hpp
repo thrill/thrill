@@ -95,92 +95,6 @@ namespace merge_local {
         }
     };
 
-    template <typename ItemType, typename CompareFunction, size_t num_items>
-    static ItemType GetAt(size_t k, const std::array<data::File, num_items> &files, CompareFunction comperator, common::StatsTimer<stats_enabled> *timer = NULL) {
-        
-        static const bool debug = false;
-
-        START_TIMER(timer);
-        
-        size_t n = num_items;
-        std::vector<size_t> left(n);
-        std::vector<size_t> width(n);
-        std::vector<size_t> remap(n);
-        std::vector<size_t> mid(n);
-
-        std::fill(left.begin(), left.end(), 0);
-        std::iota(remap.begin(), remap.end(), 0);
-
-        size_t sum = 0, len;
-
-        for(size_t i = 0; i < n; i++) {
-            len = files[i].num_items();
-            sum += len;
-            width[i] = std::min(len, k);
-        }
-
-        LOG << "Searching for element with rank " << k;
-        
-        //Assert check wether k is in bounds of all files. 
-        assert(sum > k);
-
-
-        while(true) {
-
-            //Re-map arrays so that largest one is always first.  
-            std::sort(remap.begin(), remap.end(), [&] (size_t a, size_t b) {
-                return width[b] < width[a];
-            });
-
-            size_t j0 = remap[0];
-            size_t j = j0;
-            mid[j] = left[j] + width[j] / 2;
-            LOG << "Master selecting pivot at " << mid[j];
-            ItemType pivot = files[j].template GetItemAt<ItemType>(mid[j]);
-            size_t leftSum = mid[j] - left[j];
-
-            for(size_t i = 1; i < n; i++) {
-                j = remap[i];
-                mid[j] = files[j].GetIndexOf(pivot, mid[j0], comperator);
-                LOG << i << " selecting pivot at " << mid[j];
-                leftSum += mid[j] - left[j];
-            }
-            LOG << "leftSum: " << leftSum;
-            LOG << "K: " << k;
-            //Recurse.
-            if(k < leftSum) {
-                for(size_t i = 0; i < n; i++) {
-                    j = remap[i];
-                    width[j] = mid[j] - left[j];   
-                } 
-            } else if(k > leftSum) {
-                for(size_t i = 0; i < n; i++) {
-                    j = remap[i];
-                    width[j] -= mid[j] - left[j];   
-                    left[j] = mid[j];   
-                }
-                k -= leftSum;
-            } else {
-                k = 0;
-                break;
-            }
-
-            if(leftSum == 0) 
-                break;
-
-        }
-
-        //TODO(ej) This function is broken here. 
-        //Best: Remove alltogether. 
-        size_t j = remap[k];
-        ItemType value = files[j].template GetItemAt<ItemType>(mid[j]);
-        LOG << "Selected value " << value; 
-        
-        STOP_TIMER(timer);
-        
-        return value;
-    }
-
     template <typename ItemType, typename Comperator, size_t num_items>
     static size_t IndexOf(ItemType element, size_t tie, const std::array<data::File, num_items> &files, Comperator comperator, common::StatsTimer<stats_enabled> *timer = NULL) {
         static const bool debug = false;
@@ -345,16 +259,16 @@ private:
     std::array<data::CatStreamPtr, num_inputs_> streams_;
 
     struct Pivot {
-        ValueType first;
-        size_t second;
-        bool valid;
+        ValueType value;
+        size_t tie_host;
+        size_t tie_idx; 
+        size_t segment_len;
     };
 
     Pivot CreatePivot(ValueType v, size_t i) {
         Pivot p;
         p.first = v;
         p.second = i;
-        p.valid = true;
         return p;
     }
     
@@ -380,7 +294,85 @@ private:
 
         return ss.str();
     }
+
+    //Globally selects pivots based on the given left/right
+    //dim 1: Different splitters, dim 2: different files
+    void SelectPivots(std::vector<Pivot> &pivots, const std::vector<std::vector<size_t>> &left, const std::vector<std::vector<size_t>> &width, FlowControlChannel &flowControl) {
+
+        //Select the best pivot we have from our ranges. 
+
+        for(size_t s = 0; s < width.size()) {
+            size_t mp = 0; //biggest range
+
+            for(size_t p = 1; p < width[s].size(); p++) {
+                if(width[s][p] > width[s][mp]) {
+                    p = mp;
+                }
+            }
+  
+            size_t pivotIdx = (left[s][mp] + width[s][mp]) / 2;
+
+            //Todo: Not sure about tying here. 
+            pivots[s] = Pivot{files[mp].GetAt(pivotIdx), my_rank_, pivotIdx, width[s][mp]};
+        } 
+
+        //Distribute pivots globally. 
+        
+        //Return pivot from biggest range (makes sure that we actually split)
+        auto reducePivots = [this] (const Pivot a, const Pivot b) { 
+                if(a.segment_len > b.segment_len) {
+                    return a; 
+                } else {
+                    return b;
+                }}; 
+
+        //stats.CommTimer.Start();
+        pivots = flowControl.AllReduce(pivots, 
+            [reducePivots]
+            (const std::vector<Pivot> &a, const std::vector<Pivot> &b) {
+                assert(a.size() == b.size());
+                std::vector<Pivot> res(a.size());
+                for(size_t i = 0; i < a.size(); i++) {
+                   res[i] = reducePivots(a[i], b[i]); 
+                }
+                return res;
+            }); 
+        //stats.CommTimer.Stop();
+
+    }
+
+    void GetGlobalRanks(const std::vector<Pivot> &pivots, std::vector<size_t> &ranks) {
+        //TODO(ej): We can actually optimize here by saving the rank of the pivots in files for later.
+        for(size_t s = 0; s < pivots.size(); s++) {
+           size_t tie = pivots[s].tie_idx;
+           if(pivots[s].tie_host < my_rank)
+               tie = 0;
+           else if(pivots[s].tie_host > my_rank) 
+               tie = std::max<size_t>;
+           ranks[s] = merge_local::GetIndexOf(pivots[s].pivot, tie, files_, comperator_); 
+        }
+           
+        ranks = flowControl.AllReduce(ranks, addSizeTVectors);
+    }
     
+    void SearchStep(const std::vector<Pivot> &pivots, const std::vector<size_t> &ranks, const std::vector<size_t> &target_ranks, std::vector<std::vector<size_t>> &left, std::vector<std::vector<size_t>> &width) {
+        for(size_t s = 0; s < pivots.size(); s++) {
+
+            for(size_t p = 0; p < width[s][p].size(); p++) {
+                size_t idx = files_[p].IndexOf(pivots[s]); //TODO 
+
+                if(ranks[s] < target_ranks[s]) {
+                    width[s][p] = idx - left[s][p];
+                    left[s][p] = idx;
+                } else {
+                    width[s][p] = left[s][p] - idx;
+                }
+            }
+        }
+    }
+
+    //TODO: Rewrite this method with the helpers above. 
+
     //! Receive elements from other workers.
     void MainOp() {
         for (size_t i = 0; i != writers_.size(); ++i) {
@@ -490,7 +482,7 @@ private:
             LOG << "widthsum: " << VToStr(widthsum);
 
             for(size_t r = 0; r < p - 1; r++) {
-                if(widthsum[r] <= 9) { //Yes, this is cheating, but I have no idea why it gets unstable for very low widthsum[r]. 9 is randomly choosen by fair dice roll.  
+                if(widthsum[r] <= 1) { //Yes, this is cheating, but I have no idea why it gets unstable for very low widthsum[r]. 9 is randomly choosen by fair dice roll.  
                     partitions[r] = left[r];
                     done++;
                 }
