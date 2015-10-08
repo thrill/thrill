@@ -20,8 +20,8 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_post_table.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
+#include <thrill/core/reduce_pre_bucket_table.hpp>
+#include <thrill/core/reduce_post_bucket_table.hpp>
 
 #include <functional>
 #include <string>
@@ -76,7 +76,7 @@ public:
     using PreHashTable = typename core::ReducePreTable<
               Key, Value,
               KeyExtractor, ReduceFunction, RobustKey,
-              core::PreReduceByIndex, std::equal_to<Key>, 16*16>;
+              core::PreBucketReduceByIndex, std::equal_to<Key>, 16*16>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
@@ -103,13 +103,14 @@ public:
           reduce_pre_table_(
               parent.ctx().num_workers(), key_extractor,
               reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6,
-              core::PreReduceByIndex(result_size)),
+              core::PreBucketReduceByIndex(result_size)),
           result_size_(result_size),
           neutral_element_(neutral_element),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostReduceByIndex(), core::PostReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
+              core::PostBucketReduceByIndex(), core::PostBucketReduceFlushToIndex<Key,
+                          Value, ReduceFunction>(reduce_function),
               std::get<0>(common::CalculateLocalRange(
                               result_size_, context_.num_workers(), context_.my_rank())),
               std::get<1>(common::CalculateLocalRange(
@@ -190,7 +191,7 @@ private:
     Value neutral_element_;
 
     core::ReducePostTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-                          core::PostReduceFlushToIndex<Key, Value, ReduceFunction>, core::PostReduceByIndex,
+                          core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>, core::PostBucketReduceByIndex,
                           std::equal_to<Key>, 16*16> reduce_post_table_;
 
     bool reduced = false;

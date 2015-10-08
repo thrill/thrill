@@ -10,10 +10,9 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
-#include <thrill/core/reduce_post_table.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
+#include <thrill/core/reduce_post_bucket_table.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -103,10 +102,10 @@ int main(int argc, char* argv[]) {
 //    table(workers, key_ex, red_fn, writers, byte_size, bucket_rate, max_partition_fill_rate);
 
     core::ReducePostTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), false,
-            core::PostReduceFlushToDefault<size_t, size_t, decltype(red_fn)>,
-            core::PostReduceByHashKey<size_t>, std::equal_to<size_t>, 32 * 16>
-    table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<size_t>(),
-                  core::PostReduceFlushToDefault<size_t, size_t, decltype(red_fn)>(red_fn), 0, 0, 0, byte_size,
+            core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>,
+            core::PostBucketReduceByHashKey<size_t>, std::equal_to<size_t>, 32 * 16>
+    table(ctx, key_ex, red_fn, emit, core::PostBucketReduceByHashKey<size_t>(),
+                  core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn), 0, 0, 0, byte_size,
                   bucket_rate, max_partition_fill_rate, 0.01,
                   std::equal_to<size_t>());
 

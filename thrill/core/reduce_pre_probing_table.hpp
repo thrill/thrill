@@ -15,6 +15,8 @@
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block_writer.hpp>
+#include <thrill/core/pre_probing_reduce_by_hash_key.hpp>
+#include <thrill/core/pre_probing_reduce_by_index.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -71,51 +73,6 @@ namespace core {
  *         PI..Partition ID
  *
  */
-template <typename Key, typename HashFunction = std::hash<Key> >
-class PreProbingReduceByHashKey
-{
-public:
-    explicit PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
-        : hash_function_(hash_function)
-    { }
-
-    template <typename ReducePreProbingTable>
-    typename ReducePreProbingTable::IndexResult
-    operator () (const Key& k, ReducePreProbingTable* ht) const {
-
-        using IndexResult = typename ReducePreProbingTable::IndexResult;
-
-        size_t hashed = hash_function_(k);
-
-        size_t partition_id = hashed % ht->NumPartitions();
-        return IndexResult(partition_id, partition_id *
-                                         ht->NumItemsPerPartition() +
-                                         hashed % ht->NumItemsPerPartition());
-    }
-
-private:
-    HashFunction hash_function_;
-};
-
-class PreProbingReduceByIndex
-{
-public:
-    size_t size_;
-
-    explicit PreProbingReduceByIndex(size_t size)
-        : size_(size)
-    { }
-
-    template <typename ReducePreProbingTable>
-    typename ReducePreProbingTable::IndexResult
-    operator () (const size_t& k, ReducePreProbingTable* ht) const {
-
-        using IndexResult = typename ReducePreProbingTable::IndexResult;
-        return IndexResult(std::min(k * ht->NumPartitions() / size_, ht->NumPartitions()-1),
-                           std::min(k * ht->Size() / size_, ht->Size()-1));
-    }
-};
-
 template <typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
@@ -132,19 +89,6 @@ class ReducePreProbingTable
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
-
-    struct IndexResult {
-    public:
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the whole hashtable
-        size_t global_index;
-
-        IndexResult(size_t p_id, size_t g_id) {
-            partition_id = p_id;
-            global_index = g_id;
-        }
-    };
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
@@ -178,7 +122,8 @@ public:
           byte_size_(byte_size),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function) {
+          equal_to_function_(equal_to_function)
+    {
         sLOG << "creating ReducePreProbingTable with" << emit_.size() << "output emiters";
 
         assert(num_partitions > 0);
@@ -240,7 +185,7 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        IndexResult h = index_function_(kv.first, this);
+        typename IndexFunction::IndexResult h = index_function_(kv.first, this);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.global_index >= 0 && h.global_index < size_);
@@ -272,7 +217,7 @@ public:
                 ++current;
             }
 
-            // flush partition, if all slots are occupied
+            // flush partition, if all slots are reserved
             if (current == initial) {
                 FlushPartition(h.partition_id);
                 current->first = kv.first;
@@ -475,39 +420,6 @@ public:
         }
     }
 
-    /*!
-    * Prints content of hash table.
-    */
-    void Print() {
-
-        std::string log = "Printing\n";
-
-        for (size_t i = 0; i < size_; i++)
-        {
-            if (items_[i].first == sentinel_.first)
-            {
-                log += "item: ";
-                log += std::to_string(i);
-                log += " empty\n";
-                continue;
-            }
-
-            log += "item: ";
-            log += std::to_string(i);
-            log += " (";
-            // log += std::is_arithmetic<Key>::value || strcmp(typeid(Key).name(), "string")
-            //       ? std::to_string(vector_[i].first) : "_";
-            log += ", ";
-            // log += std::is_arithmetic<Value>::value || strcmp(typeid(Value).name(), "string")
-            //       ? std::to_string(vector_[i].second) : "_";
-            log += ")\n";
-        }
-
-        std::cout << log << std::endl;
-
-        return;
-    }
-
 private:
     //! Number of partitions
     size_t num_partitions_ = 1;
@@ -528,7 +440,7 @@ private:
     //! Set of emitters, one per partition.
     std::vector<data::DynBlockWriter>& emit_;
 
-    //! Hash functions.
+    //! Index functions.
     IndexFunction index_function_;
 
     //! Comparator function for keys.

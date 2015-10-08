@@ -70,9 +70,9 @@ TEST_F(PostTable, CustomHashFunction) {
             });
 
             CustomKeyHashFunction<int> cust_hash;
-            core::PostProbingReduceFlushToDefault<int, int, decltype(red_fn)> flush_func(red_fn);
+            core::PostProbingReduceFlush<int, int, decltype(red_fn)> flush_func(red_fn);
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                                         core::PostProbingReduceFlushToDefault<int, int, decltype(red_fn)>, CustomKeyHashFunction<int> >
+                                         core::PostProbingReduceFlush<int, int, decltype(red_fn)>, CustomKeyHashFunction<int> >
             table(ctx, key_ex, red_fn, emit, -1, cust_hash, flush_func, 0, 0, 0, 1024 * 32);
 
             ASSERT_EQ(0u, writer1.size());
@@ -353,10 +353,10 @@ TEST_F(PostTable, WithinTableItemsLimit) {
             double fill_rate = 0.5;
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                                         core::PostProbingReduceFlushToDefault<int, int, decltype(red_fn)>,
+                                         core::PostProbingReduceFlush<int, int, decltype(red_fn)>,
                                          core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emit, -1, core::PostProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlushToDefault<int, int, decltype(red_fn)>(red_fn), 0, 0, 0, byte_size, fill_rate,
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), 0, 0, 0, byte_size, fill_rate,
                   1,
                   std::equal_to<int>());
 
@@ -403,10 +403,10 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
             double fill_rate = 0.5;
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                                         core::PostProbingReduceFlushToDefault<int, int, decltype(red_fn)>,
+                                         core::PostProbingReduceFlush<int, int, decltype(red_fn)>,
                                          core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emit, -1, core::PostProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlushToDefault<int, int, decltype(red_fn)>(red_fn), 0, 0, 0, byte_size, fill_rate,
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), 0, 0, 0, byte_size, fill_rate,
                   1,
                   std::equal_to<int>());
 
@@ -453,11 +453,11 @@ TEST_F(PostTable, AboveTableItemsLimit) {
             double fill_rate = 0.5;
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                                         core::PostProbingReduceFlushToDefault<int, int, decltype(red_fn)>,
+                                         core::PostProbingReduceFlush<int, int, decltype(red_fn)>,
                                          core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emit, -1,
                   core::PostProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlushToDefault<int, int, decltype(red_fn)>(red_fn),
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn),
                   0, 0, 0, byte_size, fill_rate, 1,
                   std::equal_to<int>());
 

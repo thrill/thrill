@@ -20,8 +20,8 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_post_table.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
+#include <thrill/core/reduce_pre_bucket_table.hpp>
+#include <thrill/core/reduce_post_bucket_table.hpp>
 
 #include <functional>
 #include <string>
@@ -97,8 +97,8 @@ public:
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostReduceByHashKey<Key>(),
-              core::PostReduceFlushToDefault<Key, Value, ReduceFunction>(reduce_function),
+              core::PostBucketReduceByHashKey<Key>(),
+              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
               0, 0, Value(), 1000000000, 0.9, 0.6, 0.01)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
@@ -171,11 +171,11 @@ private:
 
     core::ReducePreTable<
         Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PreReduceByHashKey<Key>, std::equal_to<Key>, 32*16> reduce_pre_table_;
+        core::PreBucketReduceByHashKey<Key>, std::equal_to<Key>, 32*16> reduce_pre_table_;
 
     core::ReducePostTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-        core::PostReduceFlushToDefault<Key, Value, ReduceFunction>, core::PostReduceByHashKey<Key>,
+        core::PostBucketReduceFlush<Key, Value, ReduceFunction>, core::PostBucketReduceByHashKey<Key>,
         std::equal_to<Key>, 32*16> reduce_post_table_;
 
     bool reduced = false;

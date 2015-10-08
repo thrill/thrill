@@ -21,6 +21,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
+#include "pre_bucket_reduce_by_hash_key.hpp"
+#include "pre_bucket_reduce_by_index.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -88,55 +90,10 @@ namespace core {
  *    +---+       +---+
  *
  */
-template <typename Key, typename HashFunction = std::hash<Key> >
-class PreReduceByHashKey
-{
-public:
-    explicit PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
-        : hash_function_(hash_function)
-    { }
-
-    template <typename ReducePreTable>
-    typename ReducePreTable::IndexResult
-    operator () (const Key& k, ReducePreTable* ht) const {
-
-        using IndexResult = typename ReducePreTable::IndexResult;
-
-        size_t hashed = hash_function_(k);
-
-        size_t partition_id = hashed % ht->NumPartitions();
-
-        return IndexResult(partition_id,
-                           partition_id * ht->NumBucketsPerPartition() + (hashed % ht->NumBucketsPerPartition()));
-    }
-
-private:
-    HashFunction hash_function_;
-};
-
-class PreReduceByIndex
-{
-public:
-    size_t size_;
-
-    explicit PreReduceByIndex(size_t size)
-        : size_(size)
-    { }
-
-    template <typename ReducePreTable>
-    typename ReducePreTable::IndexResult
-    operator () (const size_t k, ReducePreTable* ht) const {
-
-        using IndexResult = typename ReducePreTable::IndexResult;
-        return IndexResult(std::min(k * ht->NumPartitions() / size_, ht->NumPartitions() - 1),
-                           std::min(ht->NumBucketsPerTable() - 1, k * ht->NumBucketsPerTable() / size_));
-    }
-};
-
 template <typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
-          typename IndexFunction = PreReduceByHashKey<Key>,
+          typename IndexFunction = PreBucketReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           size_t TargetBlockSize = 16*16
           >
@@ -149,20 +106,6 @@ class ReducePreTable
     static const bool emit = true;
 
 public:
-    struct IndexResult
-    {
-    public:
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the whole hashtable
-        size_t global_index;
-
-        IndexResult(size_t p_id, size_t g_id) {
-            partition_id = p_id;
-            global_index = g_id;
-        }
-    };
-
     using KeyValuePair = std::pair<Key, Value>;
 
     //! calculate number of items such that each BucketBlock has about 1 MiB of
@@ -222,7 +165,8 @@ public:
           emit_(emit),
           byte_size_(byte_size),
           index_function_(index_function),
-          equal_to_function_(equal_to_function) {
+          equal_to_function_(equal_to_function)
+    {
         sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
 
         assert(num_partitions > 0);
@@ -314,7 +258,7 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        IndexResult h = index_function_(kv.first, this);
+        typename IndexFunction::IndexResult h = index_function_(kv.first, this);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.global_index >= 0 && h.global_index < num_buckets_per_table_);
@@ -654,54 +598,6 @@ public:
             e.Close();
             sLOG << "emitter " << i << " pushed " << emit_stats_[i++];
         }
-    }
-
-    /*!
-     * Prints content of hash table.
-     */
-    void Print() {
-        LOG << "Printing";
-
-        for (size_t i = 0; i < num_buckets_per_table_; i++)
-        {
-            if (buckets_[i] == nullptr)
-            {
-                LOG << "bucket id: "
-                    << i
-                    << " empty";
-                continue;
-            }
-
-            std::string log = "";
-
-            BucketBlock* current = buckets_[i];
-            while (current != nullptr)
-            {
-                log += "block: ";
-
-                for (KeyValuePair* bi = current->items;
-                     bi != current->items + current->size; ++bi)
-                {
-                    log += "item: ";
-                    log += std::to_string(i);
-                    log += " (";
-                    log += std::is_arithmetic<Key>::value || strcmp(typeid(Key).name(), "string")
-                           ? std::to_string(bi->first) : "_";
-                    log += ", ";
-                    log += std::is_arithmetic<Value>::value || strcmp(typeid(Value).name(), "string")
-                           ? std::to_string(bi->second) : "_";
-                    log += ")\n";
-                }
-                current = current->next;
-            }
-
-            LOG << "bucket id: "
-                << i
-                << " "
-                << log;
-        }
-
-        return;
     }
 
 private:
