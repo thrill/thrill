@@ -49,8 +49,8 @@ class PostProbingReduceFlush
 
 public:
     PostProbingReduceFlush(ReduceFunction reduce_function,
-                                    const IndexFunction& index_function = IndexFunction(),
-                                    const EqualToFunction& equal_to_function = EqualToFunction())
+                       const IndexFunction& index_function = IndexFunction(),
+                       const EqualToFunction& equal_to_function = EqualToFunction())
             : reduce_function_(reduce_function),
               index_function_(index_function),
               equal_to_function_(equal_to_function)

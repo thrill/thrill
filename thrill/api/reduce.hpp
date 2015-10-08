@@ -91,9 +91,11 @@ public:
           reduce_function_(reduce_function),
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters()),
-          reduce_pre_table_(
+          reduce_pre_table_(context_,
               parent.ctx().num_workers(), key_extractor,
-              reduce_function_, emitters_, 1000000000, 0.9, 0.6),
+              reduce_function_, emitters_,
+              core::PreBucketReduceByHashKey<Key>(),
+              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function), Value(), 1000000000, 0.9, 0.6),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
@@ -123,7 +125,7 @@ public:
     void Execute() final {
         LOG << this->label() << " running main op";
         // Flush hash table before the postOp
-        reduce_pre_table_.Flush();
+        reduce_pre_table_.Flush(true);
         reduce_pre_table_.CloseEmitter();
         stream_->Close();
     }
@@ -170,8 +172,9 @@ private:
     std::vector<data::CatStream::Writer> emitters_;
 
     core::ReducePreTable<
-        Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PreBucketReduceByHashKey<Key>, std::equal_to<Key>, 32*16> reduce_pre_table_;
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+        core::PostBucketReduceFlush<Key, Value, ReduceFunction>, core::PreBucketReduceByHashKey<Key>,
+        std::equal_to<Key>, 32*16> reduce_pre_table_;
 
     core::ReducePostTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,

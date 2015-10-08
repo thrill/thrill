@@ -53,11 +53,11 @@ public:
             : size_(size)
     { }
 
-    template <typename ReducePreProbingTable>
+    template <typename Table>
     IndexResult
-    operator () (const size_t& k, ReducePreProbingTable* ht) const {
+    operator () (const size_t& k, Table* ht) const {
 
-        return IndexResult(std::min(k * ht->NumPartitions() / size_, ht->NumPartitions()-1),
+        return IndexResult(std::min(k * ht->NumFrames() / size_, ht->NumFrames()-1),
                            std::min(k * ht->Size() / size_, ht->Size()-1));
     }
 };

@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_POST_TABLE_HEADER
-#define THRILL_CORE_REDUCE_POST_TABLE_HEADER
+#ifndef THRILL_CORE_REDUCE_POST_BUCKET_TABLE_HEADER
+#define THRILL_CORE_REDUCE_POST_BUCKET_TABLE_HEADER
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
@@ -25,10 +25,10 @@
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
-#include "post_bucket_reduce_by_hash_key.hpp"
-#include "post_bucket_reduce_by_index.hpp"
-#include "post_bucket_reduce_flush.hpp"
-#include "post_bucket_reduce_flush_to_index.hpp"
+#include <thrill/core/post_bucket_reduce_by_hash_key.hpp>
+#include <thrill/core/post_bucket_reduce_by_index.hpp>
+#include <thrill/core/post_bucket_reduce_flush_to_index.hpp>
+#include <thrill/core/post_bucket_reduce_flush.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -241,7 +241,9 @@ public:
         // reduce max number of blocks per frame to cope for the memory needed for pointers
         max_num_blocks_mem_per_frame_ -= std::max<size_t>((size_t)(std::ceil(
                                                                    static_cast<double>(num_buckets_per_frame_ * sizeof(BucketBlock*))
-                                                                   / static_cast<double>(sizeof(BucketBlock)))), 1);
+                                                                   / static_cast<double>(sizeof(BucketBlock)))), 0);
+
+        max_num_blocks_mem_per_frame_ = std::max<size_t>(max_num_blocks_mem_per_frame_, 1);
 
         num_buckets_per_table_ = num_buckets_per_frame_ * num_frames_;
         max_num_blocks_per_table_ = max_num_blocks_mem_per_frame_ * num_frames_;
@@ -266,7 +268,9 @@ public:
 
         // set up second table
         max_num_blocks_second_reduce_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
-                                                              / static_cast<double>(sizeof(BucketBlock))), 1);
+                                                              / static_cast<double>(sizeof(BucketBlock))), 0);
+
+        max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 1);
 
         max_num_items_second_reduce_ = max_num_blocks_second_reduce_ * block_size_;
 
@@ -283,7 +287,8 @@ public:
         // reduce max number of blocks of second table to cope for the memory needed for pointers
         max_num_blocks_second_reduce_ -= std::max<size_t>((size_t)(std::ceil(
                 static_cast<double>(second_table_size_ * sizeof(BucketBlock*))
-                / static_cast<double>(sizeof(BucketBlock)))), 1);
+                / static_cast<double>(sizeof(BucketBlock)))), 0);
+        max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 1);
 
         assert(max_num_blocks_second_reduce_ > 0);
         assert(max_num_items_second_reduce_ > 0);
@@ -800,6 +805,6 @@ private:
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_POST_TABLE_HEADER
+#endif // !THRILL_CORE_REDUCE_POST_BUCKET_TABLE_HEADER
 
 /******************************************************************************/

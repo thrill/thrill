@@ -21,8 +21,11 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
-#include "pre_bucket_reduce_by_hash_key.hpp"
-#include "pre_bucket_reduce_by_index.hpp"
+#include <thrill/core/pre_bucket_reduce_by_hash_key.hpp>
+#include <thrill/core/pre_bucket_reduce_by_index.hpp>
+#include <thrill/core/pre_bucket_reduce_flush_to_index.hpp>
+#include <thrill/core/post_bucket_reduce_flush.hpp>
+
 
 #include <algorithm>
 #include <cassert>
@@ -90,13 +93,14 @@ namespace core {
  *    +---+       +---+
  *
  */
-template <typename Key, typename Value,
+template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
+          typename FlushFunction = PostBucketReduceFlush<Key, Value, ReduceFunction>,
           typename IndexFunction = PreBucketReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
-          size_t TargetBlockSize = 16*16
-          >
+          size_t TargetBlockSize = 16*16,
+          const bool FullPreReduce = false>
 class ReducePreTable
 {
     static const bool debug = false;
@@ -149,23 +153,29 @@ public:
      * \param index_function Function to be used for computing the bucket the item to be inserted.
      * \param equal_to_function Function for checking equality fo two keys.
      */
-    ReducePreTable(size_t num_partitions,
+    ReducePreTable(Context& ctx,
+                   size_t num_partitions,
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
+                   const IndexFunction& index_function,
+                   const FlushFunction& flush_function,
+                   const Value& neutral_element = Value(),
                    size_t byte_size = 1024 * 16,
                    double bucket_rate = 1.0,
                    double max_partition_fill_rate = 0.5,
-                   const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
-        : num_partitions_(num_partitions),
+        : ctx_(ctx),
+          num_partitions_(num_partitions),
           max_partition_fill_rate_(max_partition_fill_rate),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
           byte_size_(byte_size),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
+          flush_function_(flush_function),
+          equal_to_function_(equal_to_function),
+          neutral_element_(neutral_element)
     {
         sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
 
@@ -179,8 +189,8 @@ public:
                                              "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
 
         max_num_blocks_per_partition_ =
-            std::max<size_t>((size_t)((static_cast<double>(byte_size_) / num_partitions_)
-                                      / static_cast<double>(sizeof(BucketBlock))), 1);
+                std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_)) / num_partitions_)
+                                          / static_cast<double>(sizeof(BucketBlock))), 1);
 
         max_num_items_per_partition_ = max_num_blocks_per_partition_ * block_size_;
 
@@ -195,7 +205,9 @@ public:
         max_num_blocks_per_partition_ -=
             std::max<size_t>((size_t)(std::ceil(
                                           static_cast<double>(num_buckets_per_partition_ * sizeof(BucketBlock*))
-                                          / static_cast<double>(sizeof(BucketBlock)))), 1);
+                                          / static_cast<double>(sizeof(BucketBlock)))), 0);
+
+        max_num_blocks_per_partition_ = std::max<size_t>(max_num_blocks_per_partition_, 1);
 
         num_buckets_per_table_ = num_buckets_per_partition_ * num_partitions_;
         max_num_blocks_per_table_ = max_num_blocks_per_partition_ * num_partitions_;
@@ -210,9 +222,52 @@ public:
         buckets_.resize(num_buckets_per_table_, nullptr);
         num_items_per_partition_.resize(num_partitions_, 0);
 
+        for (size_t i = 0; i < num_partitions_; i++) {
+            partition_files_.push_back(ctx.GetFile());
+        }
+        for (size_t i = 0; i < num_partitions_; i++) {
+            partition_writers_.push_back(partition_files_[i].GetWriter());
+        }
+
+        // set up second table
+        max_num_blocks_second_reduce_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
+                                                                  / static_cast<double>(sizeof(BucketBlock))), 0);
+
+        max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 1);
+
+        max_num_items_second_reduce_ = max_num_blocks_second_reduce_ * block_size_;
+
+        fill_rate_num_items_second_reduce_ = (size_t)(max_num_items_second_reduce_ * max_partition_fill_rate_);
+
+        second_table_size_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_second_reduce_)
+                                                       * bucket_rate), 1);
+
+        // ensure size of second table is even, in order to be able to split by half for spilling
+        if (second_table_size_ % 2 != 0) {
+            second_table_size_--;
+        }
+        second_table_size_ = std::max<size_t>(2, second_table_size_);
+        // reduce max number of blocks of second table to cope for the memory needed for pointers
+        max_num_blocks_second_reduce_ -= std::max<size_t>((size_t)(std::ceil(
+                static_cast<double>(second_table_size_ * sizeof(BucketBlock*))
+                / static_cast<double>(sizeof(BucketBlock)))), 0);
+        max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 1);
+
+        assert(max_num_blocks_second_reduce_ > 0);
+        assert(max_num_items_second_reduce_ > 0);
+        assert(fill_rate_num_items_second_reduce_ >= 0);
+        assert(second_table_size_ > 0);
+
+        second_table_.resize(second_table_size_, nullptr);
+
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
     }
+
+    ReducePreTable(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
+            ReduceFunction reduce_function, std::vector<data::DynBlockWriter>& emit)
+    : ReducePreTable(ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction(),
+            FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
     ReducePreTable(const ReducePreTable&) = delete;
@@ -308,7 +363,13 @@ public:
             // flush largest partition if max number of blocks reached
             if (num_blocks_per_table_ == max_num_blocks_per_table_)
             {
-                FlushLargestPartition();
+                if (FullPreReduce) {
+                    SpillPartition(h.partition_id);
+                    //SpillLargestPartition();
+                } else {
+                    FlushPartition(h.partition_id);
+                    //FlushLargestPartition();
+                }
             }
 
             // allocate a new block of uninitialized items, prepend to bucket
@@ -329,64 +390,170 @@ public:
         // flush current partition if max partition fill rate reached
         if (num_items_per_partition_[h.partition_id] > fill_rate_num_items_per_partition_)
         {
-            FlushPartition(h.partition_id);
-        }
-    }
-
-    /*!
-    * Flushes all items in the whole table.
-    */
-    void Flush() {
-        LOG << "Flushing all items";
-
-        // retrieve items
-        for (size_t i = 0; i < num_partitions_; i++)
-        {
-            FlushPartition(i);
-        }
-
-        LOG << "Flushed all items";
-    }
-
-    /*!
-     * Retrieves all items belonging to the partition
-     * having the most items. Retrieved items are then pushed
-     * to the provided emitter.
-     */
-    void FlushLargestPartition() {
-        LOG << "Flushing items of largest partition";
-
-        // get partition with max size
-        size_t p_size_max = 0;
-        size_t p_idx = 0;
-        for (size_t i = 0; i < num_partitions_; i++)
-        {
-            if (num_items_per_partition_[i] > p_size_max)
-            {
-                p_size_max = num_items_per_partition_[i];
-                p_idx = i;
+            if (FullPreReduce) {
+                SpillPartition(h.partition_id);
+            } else {
+                FlushPartition(h.partition_id);
             }
         }
+    }
 
-        LOG << "currMax: "
-            << p_size_max
-            << " currentIdx: "
-            << p_idx
-            << " currentIdx*p_size: "
-            << p_idx * num_buckets_per_partition_
-            << " CurrentIdx*p_size+p_size-1 "
-            << p_idx * num_buckets_per_partition_ + num_buckets_per_partition_ - 1;
+//    /*!
+//    * Flushes all items in the whole table.
+//    */
+//    void Flush() {
+//        LOG << "Flushing all items";
+//
+//        // retrieve items
+//        for (size_t i = 0; i < num_partitions_; i++)
+//        {
+//            FlushPartition(i);
+//        }
+//
+//        LOG << "Flushed all items";
+//    }
+//
+//    /*!
+//     * Retrieves all items belonging to the partition
+//     * having the most items. Retrieved items are then pushed
+//     * to the provided emitter.
+//     */
+//    void FlushLargestPartition() {
+//        LOG << "Flushing items of largest partition";
+//
+//        // get partition with max size
+//        size_t p_size_max = 0;
+//        size_t p_idx = 0;
+//        for (size_t i = 0; i < num_partitions_; i++)
+//        {
+//            if (num_items_per_partition_[i] > p_size_max)
+//            {
+//                p_size_max = num_items_per_partition_[i];
+//                p_idx = i;
+//            }
+//        }
+//
+//        LOG << "currMax: "
+//            << p_size_max
+//            << " currentIdx: "
+//            << p_idx
+//            << " currentIdx*p_size: "
+//            << p_idx * num_buckets_per_partition_
+//            << " CurrentIdx*p_size+p_size-1 "
+//            << p_idx * num_buckets_per_partition_ + num_buckets_per_partition_ - 1;
+//
+//        LOG << "Largest patition id: "
+//            << p_idx;
+//
+//        if (p_size_max == 0) {
+//            return;
+//        }
+//
+//        FlushPartition(p_idx);
+//
+//        LOG << "Flushed items of largest partition";
+//    }
 
-        LOG << "Largest patition id: "
-            << p_idx;
+        /*!
+     * Flushes all items of a partition.
+     *
+     * \param partition_id The id of the partition to be flushed.
+     */
+    void SpillPartition(size_t partition_id) {
 
-        if (p_size_max == 0) {
-            return;
+        data::File::Writer& writer = partition_writers_[partition_id];
+
+        if (bench) {
+            r_.clear();
+            l_.clear();
+            l = 0;
         }
 
-        FlushPartition(p_idx);
+        for (size_t i = partition_id * num_buckets_per_partition_;
+             i < (partition_id + 1) * num_buckets_per_partition_; i++)
+        {
+            BucketBlock* current = buckets_[i];
 
-        LOG << "Flushed items of largest partition";
+            if (bench) {
+                if (current != nullptr) {
+                    r_.push_back(current->size);
+                    l = 0;
+                }
+            }
+
+            while (current != nullptr)
+            {
+                if (bench) {
+                    l++;
+                }
+
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
+                {
+                    if (RobustKey) {
+                        if (emit) {
+                            writer.PutItem(bi->second);
+                        }
+                    }
+                    else {
+                        if (emit) {
+                            writer.PutItem(*bi);
+                        }
+                    }
+
+                }
+
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                block_pool.Deallocate(current);
+                current = next;
+            }
+
+            if (bench) {
+                if (buckets_[i] != nullptr) {
+                    l_.push_back(l);
+                }
+            }
+
+            buckets_[i] = nullptr;
+        }
+
+        // reset partition specific counter
+        num_items_per_partition_[partition_id] = 0;
+
+        if (bench) {
+            // debug: increase flush counter
+            num_spills_++;
+            // debug: waste before flush
+            double sum = std::accumulate(r_.begin(), r_.end(), 0.0);
+            double mean = sum / r_.size();
+            double sq_sum = std::inner_product(r_.begin(), r_.end(), r_.begin(), 0.0);
+            block_fill_rates_median.push_back(mean);
+            block_fill_rates_stedv.push_back(std::sqrt(sq_sum / r_.size() - mean * mean));
+            // debug: block length
+            sum = std::accumulate(l_.begin(), l_.end(), 0.0);
+            mean = sum / l_.size();
+            sq_sum = std::inner_product(l_.begin(), l_.end(), l_.begin(), 0.0);
+            block_length_median.push_back(mean);
+            block_length_stedv.push_back(std::sqrt(sq_sum / l_.size() - mean * mean));
+        }
+    }
+
+    /*!
+     * Flush.
+     */
+    void Flush(bool consume = false) {
+
+        if (FullPreReduce) {
+            flush_function_(consume, this);
+
+        } else {
+
+            for (size_t i = 0; i < num_partitions_; i++)
+            {
+                FlushPartition(i);
+            }
+        }
     }
 
     /*!
@@ -483,12 +650,28 @@ public:
     }
 
     /*!
+     * Emits element to all children
+     */
+    void EmitAll(const Key& k, const Value& v) {
+        (void)k;
+        (void)v;
+        //emit_impl_.EmitElement(k, v, emit_);
+    }
+
+    /*!
      * Returns the total num of buckets in the table.
      *
      * \return Number of buckets in the table.
      */
     size_t NumBucketsPerTable() const {
         return num_buckets_per_table_;
+    }
+
+    /*!
+     * Sets the num of blocks in the table.
+     */
+    void SetNumBlocksPerTable(const size_t num_blocks) {
+        num_blocks_per_table_ = num_blocks;
     }
 
     /*!
@@ -510,7 +693,7 @@ public:
      *
      * \return Number of buckets per partition.
      */
-    size_t NumBucketsPerPartition() const {
+    size_t NumBucketsPerFrame() const {
         return num_buckets_per_partition_;
     }
 
@@ -519,7 +702,7 @@ public:
      *
      * \return The number of partitions.
      */
-    size_t NumPartitions() const {
+    size_t NumFrames() const {
         return num_partitions_;
     }
 
@@ -542,6 +725,33 @@ public:
     }
 
     /*!
+     * Returns the vector of bucket blocks.
+     *
+     * \return Vector of bucket blocks.
+     */
+    std::vector<BucketBlock*> & Items() {
+        return buckets_;
+    }
+
+    /*!
+     * Returns the vector of frame files.
+     *
+     * \return Vector of frame files.
+     */
+    std::vector<data::File> & FrameFiles() {
+        return partition_files_;
+    }
+
+    /*!
+     * Returns the vector of frame writers.
+     *
+     * \return Vector of frame writers.
+     */
+    std::vector<data::File::Writer> & FrameWriters() {
+        return partition_writers_;
+    }
+
+    /*!
      * Returns the number of items of a partition.
      *
      * \param partition_id The id of the partition the number of
@@ -550,6 +760,96 @@ public:
      */
     size_t NumItemsPerPartition(size_t partition_id) {
         return num_items_per_partition_[partition_id];
+    }
+
+    /*!
+     * Returns the vector of number of items per frame in internal memory.
+     *
+     * \return Vector of number of items per frame in internal memory.
+     */
+    std::vector<size_t> & NumItemsMemPerFrame() {
+        return num_items_per_partition_;
+    }
+
+    /*!
+     * Returns the number of spills.
+     *
+     * \return Number of spills.
+     */
+    size_t NumSpills() const {
+        return num_spills_;
+    }
+
+    /*!
+     * Returns the block size.
+     *
+     * \return Block size.
+     */
+    double BlockSize() const {
+        return block_size_;
+    }
+
+    /*!
+     * Returns the block size.
+     *
+     * \return Block size.
+     */
+    BucketBlockPool<BucketBlock> & BlockPool() {
+        return block_pool;
+    }
+
+    /*!
+     * Returns the vector of key/value pairs.
+     *
+     * \return Vector of key/value pairs.
+     */
+    std::vector<BucketBlock*> & SecondTable() {
+        return second_table_;
+    }
+
+    /*!
+     * Returns the vector of key/value pairs.s
+     *
+     * \return Vector of key/value pairs.
+     */
+    Context& Ctx() {
+        return ctx_;
+    }
+
+    /*!
+     * Returns the number of spills.
+     *
+     * \return Number of spills.
+     */
+    size_t MaxNumItemsSecondReduce() const {
+        return max_num_items_second_reduce_;
+    }
+
+    /*!
+     * Returns the number of spills.
+     *
+     * \return Number of spills.
+     */
+    size_t MaxNumBlocksSecondReduce() const {
+        return max_num_blocks_second_reduce_;
+    }
+
+    /*!
+     * Returns the number of block in the table.
+     *
+     * \return Number of blocks in the table.
+     */
+    size_t NumBlocksPerTable() const {
+        return num_blocks_per_table_;
+    }
+
+    /*!
+    * Returns the neutral element.
+    *
+    * \return Neutral element.
+    */
+    Value NeutralElement() const {
+        return neutral_element_;
     }
 
     /*!
@@ -601,6 +901,9 @@ public:
     }
 
 private:
+    //! Context
+    Context& ctx_;
+
     //! Number of partitions
     size_t num_partitions_ = 1;
 
@@ -625,8 +928,14 @@ private:
     //! Size of the table in bytes
     size_t byte_size_ = 0;
 
+    //! Bucket rate.
+    double bucket_rate_ = 0.0;
+
     //! Index Calculation functions: Hash or ByIndex.
     IndexFunction index_function_;
+
+    //! Flush function.
+    FlushFunction flush_function_;
 
     //! Comparator function for keys.
     EqualToFunction equal_to_function_;
@@ -646,6 +955,12 @@ private:
     //! Storing the items.
     std::vector<BucketBlock*> buckets_;
 
+    //! Store the files for frames.
+    std::vector<data::File> partition_files_;
+
+    //! Store the writers for frames.
+    std::vector<data::File::Writer> partition_writers_;
+
     //! Maximal number of items per partition.
     size_t max_num_items_per_partition_ = 0;
 
@@ -657,6 +972,9 @@ private:
 
     //! Number of collisions.
     size_t num_collisions_ = 0;
+
+    //! Number of spills.
+    size_t num_spills_ = 0;
 
     //! Median of fill rates of blocks lastly added to a bucket.
     std::vector<double> block_fill_rates_median;
@@ -681,6 +999,23 @@ private:
     std::vector<size_t> l_;
 
     size_t l = 0;
+
+    //! Rate of sizes of primary to secondary table.
+    double table_rate_ = 0.0;
+
+    //! Storing the secondary table.
+    std::vector<BucketBlock*> second_table_;
+
+    size_t max_num_items_second_reduce_;
+
+    size_t second_table_size_;
+
+    size_t max_num_blocks_second_reduce_;
+
+    size_t fill_rate_num_items_second_reduce_;
+
+    //! Neutral element (reduce to index).
+    Value neutral_element_;
 };
 
 } // namespace core

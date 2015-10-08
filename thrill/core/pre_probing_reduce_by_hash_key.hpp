@@ -30,42 +30,42 @@
 namespace thrill {
 namespace core {
 
-template <typename Key, typename HashFunction = std::hash<Key> >
-class PreProbingReduceByHashKey
-{
-public:
-    struct IndexResult {
+    template <typename Key, typename HashFunction = std::hash<Key> >
+    class PreProbingReduceByHashKey
+    {
     public:
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the whole hashtable
-        size_t global_index;
+        struct IndexResult {
+        public:
+            //! which partition number the item belongs to.
+            size_t partition_id;
+            //! index within the whole hashtable
+            size_t global_index;
 
-        IndexResult(size_t p_id, size_t g_id) {
-            partition_id = p_id;
-            global_index = g_id;
+            IndexResult(size_t p_id, size_t g_id) {
+                partition_id = p_id;
+                global_index = g_id;
+            }
+        };
+
+        explicit PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
+                : hash_function_(hash_function)
+        { }
+
+        template <typename Table>
+        IndexResult
+        operator () (const Key& k, Table* ht) const {
+
+            size_t hashed = hash_function_(k);
+
+            size_t partition_id = hashed % ht->NumFrames();
+            return IndexResult(partition_id, partition_id *
+                                             ht->FrameSize() +
+                                             hashed % ht->FrameSize());
         }
+
+    private:
+        HashFunction hash_function_;
     };
-
-    explicit PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
-    { }
-
-    template <typename Table>
-    IndexResult
-    operator () (const Key& k, Table* ht) const {
-
-        size_t hashed = hash_function_(k);
-
-        size_t partition_id = hashed % ht->NumPartitions();
-        return IndexResult(partition_id, partition_id *
-                                         ht->NumItemsPerPartition() +
-                                         hashed % ht->NumItemsPerPartition());
-    }
-
-private:
-    HashFunction hash_function_;
-};
 
 }
 }
