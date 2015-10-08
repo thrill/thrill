@@ -11,7 +11,6 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/core/reduce_pre_probing_table.hpp>
 #include <thrill/core/reduce_post_probing_table.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/discard_sink.hpp>
@@ -95,10 +94,10 @@ int main(int argc, char* argv[]) {
 //    table(workers, key_ex, red_fn, writers, 0, byte_size, max_partition_fill_rate);
 
     core::ReducePostProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-            core::PostProbingReduceFlushToDefault<size_t, size_t, decltype(red_fn)>,
+            core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>,
             core::PostProbingReduceByHashKey<size_t>, std::equal_to<size_t> >
                                                    table(ctx, key_ex, red_fn, emit, 0, core::PostProbingReduceByHashKey<size_t>(),
-                                                         core::PostProbingReduceFlushToDefault<size_t, size_t, decltype(red_fn)>(red_fn), 0, 0, 0, 1000000000, 0.5,
+                                                         core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn), 0, 0, 0, 1000000000, 0.5,
                                                          0.01,
                                                          std::equal_to<size_t>());
 

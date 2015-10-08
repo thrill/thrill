@@ -29,15 +29,26 @@ class CustomKeyHashFunction
     : public core::PreProbingReduceByHashKey<int>
 {
 public:
+    struct IndexResult {
+    public:
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the whole hashtable
+        size_t global_index;
+
+        IndexResult(size_t p_id, size_t g_id) {
+            partition_id = p_id;
+            global_index = g_id;
+        }
+    };
+
     explicit CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
     template <typename ReducePreProbingTable>
-    typename ReducePreProbingTable::IndexResult
+    IndexResult
     operator () (const Key& v, ReducePreProbingTable* ht) const {
-
-        using IndexResult = typename ReducePreProbingTable::IndexResult;
 
         size_t global_index = v / 2;
         size_t partition_id = 0;
