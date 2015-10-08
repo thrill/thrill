@@ -57,10 +57,10 @@ public:
 
         size_t hashed = hash_function_(k);
 
-        size_t partition_id = hashed % ht->NumPartitions();
+        size_t partition_id = hashed % ht->NumFrames();
 
         return IndexResult(partition_id,
-                           partition_id * ht->NumBucketsPerPartition() + (hashed % ht->NumBucketsPerPartition()));
+                           partition_id * ht->NumBucketsPerFrame() + (hashed % ht->NumBucketsPerFrame()));
     }
 
 private:

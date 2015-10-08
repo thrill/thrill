@@ -73,11 +73,6 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
 public:
     using Emitter = data::DynBlockWriter;
 
-    using PreHashTable = typename core::ReducePreTable<
-              Key, Value,
-              KeyExtractor, ReduceFunction, RobustKey,
-              core::PreBucketReduceByIndex, std::equal_to<Key>, 16*16>;
-
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
      * key_extractor and reduce_function.
@@ -100,22 +95,26 @@ public:
           reduce_function_(reduce_function),
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters()),
-          reduce_pre_table_(
+          reduce_pre_table_(context_,
               parent.ctx().num_workers(), key_extractor,
-              reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6,
-              core::PreBucketReduceByIndex(result_size)),
+              reduce_function_, emitters_, core::PreBucketReduceByIndex(result_size),
+              core::PreBucketReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
+              neutral_element_,
+              1024 * 1024 * 128 * 8, 0.9, 0.6),
           result_size_(result_size),
           neutral_element_(neutral_element),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostBucketReduceByIndex(), core::PostBucketReduceFlushToIndex<Key,
-                          Value, ReduceFunction>(reduce_function),
+              core::PostBucketReduceByIndex(),
+              core::PostBucketReduceFlushToIndex<Key,
+                          Value, ReduceFunction, core::PostBucketReduceByIndex>(reduce_function),
               std::get<0>(common::CalculateLocalRange(
                               result_size_, context_.num_workers(), context_.my_rank())),
               std::get<1>(common::CalculateLocalRange(
                               result_size_, context_.num_workers(), context_.my_rank())),
-              neutral_element_, 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
+              neutral_element_,
+              1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -184,15 +183,18 @@ private:
 
     std::vector<data::CatStream::Writer> emitters_;
 
-    PreHashTable reduce_pre_table_;
-
     size_t result_size_;
 
     Value neutral_element_;
 
+    core::ReducePreTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+        core::PreBucketReduceFlushToIndex<Key, Value, ReduceFunction>, core::PreBucketReduceByIndex,
+        std::equal_to<Key>, 16*16> reduce_pre_table_;
+
     core::ReducePostTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-                          core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>, core::PostBucketReduceByIndex,
-                          std::equal_to<Key>, 16*16> reduce_post_table_;
+        core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction, core::PostBucketReduceByIndex>,
+        core::PostBucketReduceByIndex,
+        std::equal_to<Key>, 16*16> reduce_post_table_;
 
     bool reduced = false;
 };

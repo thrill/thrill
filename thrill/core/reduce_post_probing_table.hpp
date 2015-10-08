@@ -19,7 +19,6 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/data/file.hpp>
 #include <thrill/core/post_probing_reduce_by_hash_key.hpp>
 #include <thrill/core/post_probing_reduce_by_index.hpp>
 #include <thrill/core/post_probing_reduce_flush.hpp>
@@ -292,8 +291,10 @@ public:
             if (current == initial)
             {
                 SpillFrame(frame_id);
+
                 current->first = kv.first;
                 current->second = kv.second;
+
                 // increase counter for partition
                 items_per_frame_[frame_id]++;
 
@@ -310,64 +311,6 @@ public:
         {
             SpillFrame(frame_id);
         }
-    }
-
-    /*!
-    * Flushes all items in the whole table.
-    */
-    void Flush(bool consume = false) {
-        LOG << "Flushing items";
-
-        flush_function_(consume, this);
-
-        LOG << "Flushed items";
-    }
-
-    /*!
-     * Retrieve all items belonging to the frame
-     * having the most items. Retrieved items are then spilled
-     * to the provided file.
-     */
-    void SpillLargestFrame() {
-        // get frame with max size
-        size_t p_size_max = 0;
-        size_t p_idx = 0;
-        for (size_t i = 0; i < num_frames_; i++)
-        {
-            if (items_per_frame_[i] > p_size_max)
-            {
-                p_size_max = items_per_frame_[i];
-                p_idx = i;
-            }
-        }
-
-        SpillFrame(p_idx);
-    }
-
-    /*!
-     * Retrieve all items belonging to the frame
-     * having the most items. Retrieved items are then spilled
-     * to the provided file.
-     */
-    void SpillSmallestFrame() {
-        // get frame with min size
-        size_t p_size_min = ULONG_MAX;
-        size_t p_idx = 0;
-        for (size_t i = 0; i < num_frames_; i++)
-        {
-            if (items_per_frame_[i] < p_size_min)
-            {
-                p_size_min = items_per_frame_[i];
-                p_idx = i;
-            }
-        }
-
-        if (p_size_min == 0
-            || p_size_min == ULONG_MAX) {
-            return;
-        }
-
-        SpillFrame(p_idx);
     }
 
     /*!
@@ -399,6 +342,17 @@ public:
             // increase spill counter
             num_spills_++;
         }
+    }
+
+    /*!
+    * Flushes all items in the whole table.
+    */
+    void Flush(bool consume = false) {
+        LOG << "Flushing items";
+
+        flush_function_(consume, this);
+
+        LOG << "Flushed items";
     }
 
     /*!
@@ -637,7 +591,7 @@ private:
     //! Size of the second table.
     size_t second_table_size_ = 0;
 
-    size_t fill_rate_num_items_second_reduce_;
+    size_t fill_rate_num_items_second_reduce_ = 0;
 };
 
 } // namespace core

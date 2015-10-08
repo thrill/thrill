@@ -56,7 +56,7 @@ public:
     IndexResult
     operator () (const size_t k, Table* ht) const {
 
-        return IndexResult(std::min(k * ht->NumPartitions() / size_, ht->NumPartitions() - 1),
+        return IndexResult(std::min(k * ht->NumFrames() / size_, ht->NumFrames() - 1),
                            std::min(ht->NumBucketsPerTable() - 1, k * ht->NumBucketsPerTable() / size_));
     }
 };

@@ -1,8 +1,0 @@
-//
-// Created by Matthias Stumpp on 08/10/15.
-//
-
-#ifndef THRILL_PRE_PROBING_REDUCE_SPILL_HPP
-#define THRILL_PRE_PROBING_REDUCE_SPILL_HPP
-
-#endif //THRILL_PRE_PROBING_REDUCE_SPILL_HPP
