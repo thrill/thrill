@@ -59,5 +59,6 @@ thrill_build_prog(serialization/bench_serialization)
 add_subdirectory(word_count)
 add_subdirectory(page_rank)
 add_subdirectory(net)
+add_subdirectory(merge)
 
 ################################################################################

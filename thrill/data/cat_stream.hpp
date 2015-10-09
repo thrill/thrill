@@ -151,11 +151,9 @@ public:
         assert(result.size() == multiplexer_.num_workers());
         return result;
     }
-
-    //! Creates a BlockReader which concatenates items from all workers in
-    //! worker rank order. The BlockReader is attached to one \ref
-    //! CatBlockSource which includes all incoming queues of this stream.
-    CatBlockReader OpenCatReader(bool consume) {
+    
+    //! Gets a CatBlockSource which includes all incoming queues of this stream.
+    inline CatBlockSource GetCatBlockSource(bool consume) {
         rx_timespan_.StartEventually();
 
         // construct vector of BlockSources to read from queues_.
@@ -163,10 +161,18 @@ public:
         for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
             result.emplace_back(queues_[worker].GetBlockSource(consume));
         }
+
         // move BlockQueueSources into concatenation BlockSource, and to Reader.
-        return CatBlockReader(CatBlockSource(std::move(result)));
+        return CatBlockSource(std::move(result));
     }
 
+    //! Creates a BlockReader which concatenates items from all workers in
+    //! worker rank order. The BlockReader is attached to one \ref
+    //! CatBlockSource which includes all incoming queues of this stream.
+    CatBlockReader OpenCatReader(bool consume) {
+        return CatBlockReader(GetCatBlockSource(consume));
+    }
+    
     //! Open a CatReader (function name matches a method in MixStream).
     CatReader OpenAnyReader(bool consume) {
         return OpenCatReader(consume);
