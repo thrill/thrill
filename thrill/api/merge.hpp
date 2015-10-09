@@ -377,7 +377,6 @@ private:
         //Environment
         my_rank_ = context_.my_rank(); //Local rank. 
         size_t p = context_.num_workers(); //Count of all workers (and count of target partitions)
-        size_t zero_t = 0;
 
         LOG << "Splitting to " << p << " workers";
 
@@ -486,7 +485,7 @@ private:
         stats.BalancingTimer.Stop();
 
         LOG << "Scattering.";
-        
+
         for(size_t j = 0; j < num_inputs_; j++) {
 
             std::vector<size_t> offsets(p);

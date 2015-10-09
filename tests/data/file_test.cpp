@@ -288,7 +288,6 @@ TEST_F(File, TieGetIndexOf) {
     fw.Close();
 
     for (size_t i = 0; i < size; i++) {
-        size_t val = i;
         size_t idx = file.GetIndexOf(i, i, std::less<size_t>());
         
         ASSERT_EQ(idx, i);
