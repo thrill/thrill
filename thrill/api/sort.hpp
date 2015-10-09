@@ -402,15 +402,14 @@ private:
             balance = 1 / balance;
         }
 
+        std::sort(data_.begin(), data_.end(), compare_function_);
+
         STATC << "NodeType" << "Sort"
               << "Workers" << num_total_workers
               << "LocalSize" << data_.size()
               << "Balance Factor" << balance
               << "Sample Size" << sample_size;
 
-        LOG << "node " << context_.my_rank() << " : " << data_.size();
-
-        std::sort(data_.begin(), data_.end(), compare_function_);
         this->WriteStreamStats(stream_id_data_);
         this->WriteStreamStats(stream_id_samples_);
     }
