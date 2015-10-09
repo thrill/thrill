@@ -248,7 +248,7 @@ private:
             size_t b0 = j0 - k;
             size_t b1 = j1 - k;
 
-			if (Equal(el0, sorted_splitters[b0 - 1])) {
+			if (b0 && Equal(el0, sorted_splitters[b0 - 1])) {
 				while (b0 && Equal(el0, sorted_splitters[b0 - 1])
 					   && (prefix_elem + i) * actual_k < b0 * total_elem) {
 					b0--;
@@ -263,7 +263,7 @@ private:
             emitters_data_[b0](el0);
 
 			
-			if (Equal(el1, sorted_splitters[b1 - 1])) {
+			if (b1 && Equal(el1, sorted_splitters[b1 - 1])) {
 				while (b1 && Equal(el1, sorted_splitters[b1 - 1])
 					   && (prefix_elem + i + 1) * actual_k < b1 * total_elem) {
 					b1--;
