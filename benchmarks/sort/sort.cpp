@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     int iterations;
     clp.AddParamInt("i", iterations, "Iterations");
 
-    size_t size;
+    uint64_t size;
 
     clp.AddParamBytes("size", size,
                       "Amount of data transfered between peers (example: 1 GiB).");
