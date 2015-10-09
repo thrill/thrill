@@ -254,7 +254,7 @@ public:
         }
 
         barrier_.Await();
-
+        
         return res;
     }
 
