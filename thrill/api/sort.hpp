@@ -314,6 +314,8 @@ private:
             common::IntegerLog2Ceil(total_elem) *
             static_cast<size_t>(1 / (desired_imbalance_ * desired_imbalance_));
 
+		sample_size = std::min(data_.size(), sample_size);
+
         LOG << prefix_elem << " elements, out of " << total_elem;
 
         std::default_random_engine generator(std::random_device { } ());

@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <thrill/api/allgather.hpp>
+#include <thrill/api/read_binary.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/sort.hpp>
 
@@ -185,6 +186,32 @@ TEST(Sort, SortZeros) {
 			/* for (size_t i = 0; i < out_vec.size() - 1; i++) {
                 ASSERT_FALSE(out_vec[i + 1].first < out_vec[i].first);
 				}*/
+
+            ASSERT_EQ(10000u, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Sort, SortWithEmptyWorkers) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+		std::string in = "inputs/compressed-0-0.gzip";
+		auto integers = api::ReadBinary<size_t>(ctx, in);
+
+		auto sorted = integers.Sort();
+
+		std::vector<size_t> out_vec;
+
+		sorted.AllGather(&out_vec);
+
+		size_t prev = 0;
+		for (size_t i = 0; i < out_vec.size() - 1; i++) {
+			ASSERT_TRUE(out_vec[i] >= prev);
+			prev = out_vec[i];
+		}
 
             ASSERT_EQ(10000u, out_vec.size());
         };
