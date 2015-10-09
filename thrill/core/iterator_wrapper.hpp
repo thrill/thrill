@@ -245,7 +245,7 @@ public:
         LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
         LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
         LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
-        //LOG << "        " << std::left << std::setw(7) << "item: " << stats_->item_;
+        // LOG << "        " << std::left << std::setw(7) << "item: " << stats_->item_;
         return stats_->item_;
     }
     // pointer operator->() const {

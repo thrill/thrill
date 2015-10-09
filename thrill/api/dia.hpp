@@ -589,7 +589,7 @@ public:
      * TODO
      */
     template <typename SecondDIA, typename Comperator = std::less<ValueType> >
-    auto Merge(SecondDIA second_dia, const Comperator &comperator = Comperator()) const;
+    auto Merge(SecondDIA second_dia, const Comperator& comperator = Comperator()) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum

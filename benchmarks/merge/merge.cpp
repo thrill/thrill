@@ -7,15 +7,15 @@
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/sum.hpp>
-#include <thrill/api/sort.hpp>
-#include <thrill/api/size.hpp>
 #include <thrill/api/merge.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/sort.hpp>
+#include <thrill/api/sum.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>

@@ -34,10 +34,10 @@ int main(int argc, char* argv[]) {
     int iterations;
     clp.AddParamInt("i", iterations, "Iterations");
 
-	size_t size;
-	
-	clp.AddParamBytes("size", size,
-					  "Amount of data transfered between peers (example: 1 GiB).");
+    size_t size;
+
+    clp.AddParamBytes("size", size,
+                      "Amount of data transfered between peers (example: 1 GiB).");
 
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -45,24 +45,25 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
-    api::Run([&iterations, &size](api::Context& ctx) {
-                 for (int i = 0; i < iterations; i++) {					 
-					 std::default_random_engine generator(std::random_device { } ());
-					 std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
+    api::Run(
+        [&iterations, &size](api::Context& ctx) {
+            for (int i = 0; i < iterations; i++) {
+                std::default_random_engine generator(std::random_device { } ());
+                std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
 
-                     common::StatsTimer<true> timer(true);
-                     api::Generate(
-						 ctx,
-						 [&distribution, &generator](size_t) -> size_t { 
-							 return distribution(generator);
-						 },
-						 size / sizeof(size_t)).Sort().Size();
-                     timer.Stop();
-					 if (!ctx.my_rank()) {
-						 LOG1 << "ITERATION " << i << " RESULT" << " time=" << timer.Milliseconds();
-					 }
-                 }
-             });
+                common::StatsTimer<true> timer(true);
+                api::Generate(
+                    ctx,
+                    [&distribution, &generator](size_t) -> size_t {
+                        return distribution(generator);
+                    },
+                    size / sizeof(size_t)).Sort().Size();
+                timer.Stop();
+                if (!ctx.my_rank()) {
+                    LOG1 << "ITERATION " << i << " RESULT" << " time=" << timer.Milliseconds();
+                }
+            }
+        });
 }
 
 /******************************************************************************/
