@@ -130,7 +130,7 @@ TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
             // numbers in 2500..12499
             auto merge_input2 = Generate(
                 ctx,
-                [](size_t index) { return index + offset; },
+                [=](size_t index) { return index + offset; },
                 test_size * 2);
             
             std::vector<size_t> expected;
