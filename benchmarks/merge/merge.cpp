@@ -38,12 +38,12 @@ void merge_test(thrill::api::Context& ctx) {
 
     auto merge_input1 = thrill::api::Generate(
         ctx,
-        [&gen](size_t index) { return gen(); },
+        [&gen](size_t /* index */) { return gen(); },
         size);
 
     auto merge_input2 = thrill::api::Generate(
         ctx,
-        [&gen](size_t index) { return gen(); },
+        [&gen](size_t /* index */) { return gen(); },
         size);
 
     merge_input1 = merge_input1.Sort();
@@ -52,7 +52,7 @@ void merge_test(thrill::api::Context& ctx) {
     auto merge_result = merge_input1.Merge(
         merge_input2, std::less<size_t>());
 
-    auto res = merge_result.Size();
+    merge_result.Size();
 }
 
 int main(int argc, char** argv) {

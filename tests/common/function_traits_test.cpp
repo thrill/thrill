@@ -15,7 +15,7 @@
 
 using namespace thrill; // NOLINT
 
-static std::string func1(int, double) {
+std::string func1(int, double) {
     return "hello";
 }
 
