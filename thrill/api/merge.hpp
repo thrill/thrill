@@ -192,14 +192,6 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Creates empty stack.
-     */
-    auto ProduceStack() {
-        // Hook PostOp
-        return FunctionStack<ValueType>();
-    }
-
 private:
     //! Merge comparator
     Comparator comparator_;
@@ -559,19 +551,11 @@ auto DIA<ValueType, Stack>::Merge(
     StatsNode* stats_node = AddChildStatsNode("Merge", DIANodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto merge_node
-        = std::make_shared<MergeResultNode>(*this,
-                                            second_dia,
-                                            comparator,
-                                            stats_node);
+        = std::make_shared<MergeResultNode>(
+            *this, second_dia, comparator, stats_node);
 
-    auto merge_stack = merge_node->ProduceStack();
-
-    return DIA<ValueType, decltype(merge_stack)>(
-        merge_node,
-        merge_stack,
-        { stats_node });
+    return DIA<ValueType>(merge_node, { stats_node });
 }
-
 
 //! \}
 
