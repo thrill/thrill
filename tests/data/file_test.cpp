@@ -289,7 +289,7 @@ TEST_F(File, TieGetIndexOf) {
 
     for (size_t i = 0; i < size; i++) {
         size_t idx = file.GetIndexOf(i, i, std::less<size_t>());
-        
+
         ASSERT_EQ(idx, i);
     }
 }
@@ -313,12 +313,12 @@ TEST_F(File, TieGetIndexOfWithDuplicates) {
     ASSERT_EQ(size, file.num_items());
 
     for (size_t i = 0; i < size; i++) {
-        if(i % 4 == 0) {
+        if (i % 4 == 0) {
             size_t val = i / 4;
             size_t idxL = file.GetIndexOf(val, 0, std::less<size_t>());
             size_t idxH = file.GetIndexOf(val, size * 2, std::less<size_t>());
             size_t idxE = file.GetIndexOf(val, val, std::less<size_t>());
-            
+
             ASSERT_EQ(val * 4, idxL);
             ASSERT_EQ(idxE, idxL);
             ASSERT_EQ(val * 4 + 4, idxH);

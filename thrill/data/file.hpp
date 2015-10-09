@@ -12,6 +12,7 @@
 #ifndef THRILL_DATA_FILE_HEADER
 #define THRILL_DATA_FILE_HEADER
 
+#include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
@@ -19,7 +20,6 @@
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/buffered_block_reader.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
-#include <thrill/common/function_traits.hpp>
 
 #include <cassert>
 #include <deque>
@@ -170,9 +170,9 @@ public:
 
     //! Get index of the given item, or the next greater item,
     // in this file. The file has to be ordered according to the
-    // given compare function. The tie value can be used to 
-    // make a decision in case of many successive equal elements. 
-    // The tie is compared with the local rank of the element. 
+    // given compare function. The tie value can be used to
+    // make a decision in case of many successive equal elements.
+    // The tie is compared with the local rank of the element.
     //
     // WARNING: This method uses GetItemAt combined with a binary search and
     // is therefore not efficient. The method will be reimplemented in near future.
@@ -415,11 +415,11 @@ size_t File::GetIndexOf(ItemType item, size_t tie, const CompareFunction less) c
     static const bool debug = false;
 
     static_assert(
-            std::is_convertible<
-                bool, 
-                typename common::FunctionTraits<CompareFunction>::result_type
-            >::value, 
-       "Comperator must return int.");
+        std::is_convertible<
+            bool,
+            typename common::FunctionTraits<CompareFunction>::result_type
+            >::value,
+        "Comperator must return int.");
 
     LOG << "Looking for item " << item;
     LOG << "Looking for tie " << tie;

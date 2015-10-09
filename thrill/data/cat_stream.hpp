@@ -151,7 +151,7 @@ public:
         assert(result.size() == multiplexer_.num_workers());
         return result;
     }
-    
+
     //! Gets a CatBlockSource which includes all incoming queues of this stream.
     inline CatBlockSource GetCatBlockSource(bool consume) {
         rx_timespan_.StartEventually();
@@ -172,7 +172,7 @@ public:
     CatBlockReader OpenCatReader(bool consume) {
         return CatBlockReader(GetCatBlockSource(consume));
     }
-    
+
     //! Open a CatReader (function name matches a method in MixStream).
     CatReader OpenAnyReader(bool consume) {
         return OpenCatReader(consume);
