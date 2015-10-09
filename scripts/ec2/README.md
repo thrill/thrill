@@ -46,7 +46,7 @@ aws ec2 describe-instances
 
 - `invoke.sh` runs ssh invoke with the environment variables from `make_env.py`.
 
-TODO: have `make_env.py` limit the number of hosts used.
+- Use `export EC2_KEY_NAME=rsa.keyname` to filter the selected instances to just those started with a specific ssh keypair. (Useful if multiple experiments are run under one ec2 account).
 
 ## Example
 
