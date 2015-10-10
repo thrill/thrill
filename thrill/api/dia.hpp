@@ -588,8 +588,13 @@ public:
     /*!
      * TODO
      */
-    template <typename SecondDIA, typename Comperator = std::less<ValueType> >
-    auto Merge(SecondDIA second_dia, const Comperator& comperator = Comperator()) const;
+    template <typename Comperator = std::less<ValueType> >
+    auto Merge(DIA<_ValueType, _Stack> second_dia, const Comperator& comperator = Comperator()) {
+        Merge({{second_dia}}, comperator);
+    }
+
+    template <typename Comperator = std::less<ValueType>, size_t num_inputs>
+    auto Merge(std::array<DIA<_ValueType, _Stack>, num_inputs> inputs, const Comperator& comperator = Comperator()) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
