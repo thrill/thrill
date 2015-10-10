@@ -241,6 +241,12 @@ public:
     data::File GetFile() {
         return data::File(block_pool_);
     }
+    
+    //! Returns a new File, wrapped in a shared_ptr, containing a 
+    //! sequence of local Blocks. 
+    std::shared_ptr<data::File> GetFilePtr() {
+        return std::shared_ptr<data::File>(new data::File(block_pool_));
+    }
 
     //! Returns a reference to a new CatStream. This method alters the state of
     //! the context and must be called on all Workers to ensure correct

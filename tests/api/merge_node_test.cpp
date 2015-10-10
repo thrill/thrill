@@ -32,7 +32,7 @@ template <typename stackA, typename stackB>
 void DoMergeAndCheckResult(api::DIA<size_t, stackA> merge_input1, api::DIA<size_t, stackB> merge_input2, const std::vector<size_t>& expected, int num_workers) {
     // merge
     auto merge_result = merge_input1.Merge(
-        merge_input2, std::less<size_t>());
+            merge_input2, std::less<size_t>());
 
     // check if order was kept while merging.
     int count = 0;

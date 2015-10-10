@@ -99,7 +99,7 @@ template <typename ValueType,
           typename Comparator, size_t num_inputs_>
 class MergeNode : public DOpNode<ValueType>
 {
-    static_assert(num_inputs_ > 2, "Merge requires more than two inputs");
+    static_assert(num_inputs_ >= 2, "Merge requires at least two inputs.");
 
     static const bool debug = false;
 
@@ -127,11 +127,11 @@ public:
           comparator_(comparator)
     {
         for(size_t i = 0; i < num_inputs_; i++) {
-            files_[i] = context_.GetFile();
-            writers_[i] = files_[i].GetWriter();
+            files_[i] = context_.GetFilePtr();
+            writers_[i] = files_[i]->GetWriterPtr();
         
             auto pre_op_fn = [=](const ValueType& input) {
-                              writers_[i](input);
+                              (*writers_[i])(input);
                           };
             
             auto lop_chain = parents[i].stack().push(pre_op_fn).emit();
@@ -159,16 +159,23 @@ public:
 
         using Reader = data::BufferedBlockReader<ValueType, data::CatBlockSource<data::DynBlockSource> >;
 
+        const size_t k = num_inputs_; 
+
         // get buffered inbound readers from all Channels
         std::vector<Reader> readers;
-        for (size_t i = 0; i < streams_.size(); i++) {
+        for (size_t i = 0; i < k; i++) {
             readers.emplace_back(std::move(streams_[i]->GetCatBlockSource(consume)));
         }
         //Init the looser-tree
-         
-        core::LoserTreeType lt(k, [this] 
+        typedef core::LoserTreePointer<
+                true, 
+                ValueType, 
+                std::function<bool(const ValueType &a, const ValueType &b)>> 
+            LoserTreeType; //ADVICE(tb), select correct type. 
+        
+        LoserTreeType lt(k, [this] 
                 (const ValueType &a, const ValueType &b) -> bool {
-                    return comperator_(a, b);
+                    return comparator_(a, b);
                 }
         );
 
@@ -205,12 +212,8 @@ public:
                 auto &reader = readers[min];
                 assert(reader.HasValue());
 
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(reader.Value());
-                }
+                this->PushItem(reader.Value());
 
-                out << reader.Value() << " ";
-               
                 reader.Next();
 
                 if(reader.HasValue()) {
@@ -244,10 +247,10 @@ private:
     std::mt19937 ran;
 
     //! Files for intermediate storage
-    std::array<data::File, num_inputs_> files_;
+    std::array<std::shared_ptr<data::File>, num_inputs_> files_;
 
     //! Writers to intermediate files
-    std::array<data::File::Writer, num_inputs_> writers_;
+    std::array<std::shared_ptr<data::File::Writer>, num_inputs_> writers_;
 
     //! Array of inbound CatStreams
     std::array<data::CatStreamPtr, num_inputs_> streams_;
@@ -321,7 +324,7 @@ private:
 
             if (width[s][mp] > 0) {
                 pivotIdx = left[s][mp] + (ran() % width[s][mp]);
-                pivotElem = files_[mp].template GetItemAt<ValueType>(pivotIdx);
+                pivotElem = files_[mp]->template GetItemAt<ValueType>(pivotIdx);
             }
 
             pivots[s] = Pivot {
@@ -362,7 +365,7 @@ private:
         for (size_t s = 0; s < pivots.size(); s++) {
             size_t rank = 0;
             for (size_t i = 0; i < num_inputs_; i++) {
-                size_t idx = files_[i].GetIndexOf(pivots[s].value, pivots[s].tie_idx, comparator_);
+                size_t idx = files_[i]->GetIndexOf(pivots[s].value, pivots[s].tie_idx, comparator_);
                 rank += idx;
 
                 localRanks[s][i] = idx;
@@ -404,7 +407,7 @@ private:
     //! Receive elements from other workers.
     void MainOp() {
         for (size_t i = 0; i != writers_.size(); ++i) {
-            writers_[i].Close();
+            writers_[i]->Close();
         }
         net::FlowControlChannel& flowControl = context_.flow_control_channel();
 
@@ -421,7 +424,7 @@ private:
         dataSize = 0;
 
         for (size_t i = 0; i < files_.size(); i++) {
-            dataSize += files_[i].num_items();
+            dataSize += files_[i]->num_items();
         }
 
         // Global size off all data.
@@ -468,7 +471,7 @@ private:
             std::fill(left[r].begin(), left[r].end(), 0);
 
             for (size_t q = 0; q < num_inputs_; q++) {
-                width[r][q] = files_[q].num_items();
+                width[r][q] = files_[q]->num_items();
             }
         }
 
@@ -529,13 +532,13 @@ private:
                 offsets[r] = left[r][j];
             }
 
-            offsets[p - 1] = files_[j].num_items();
+            offsets[p - 1] = files_[j]->num_items();
 
             for (size_t i = 0; i < p; i++) {
                 LOG << "Offset " << i << " for file " << j << ": " << VToStr(offsets);
             }
 
-            streams_[j]->template Scatter<ValueType>(files_[j], offsets);
+            streams_[j]->template Scatter<ValueType>(*files_[j], offsets);
         }
     }
 };
@@ -543,7 +546,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename Comparator, size_t num_inputs>
 auto DIA<ValueType, Stack>::Merge(
-     std::array<DIA<_ValueType, _Stack>, num_inputs> inputs,
+     std::array<DIA<ValueType, Stack>, num_inputs> inputs,
      const Comparator &comparator) const {
 
     assert(IsValid());
@@ -554,21 +557,21 @@ auto DIA<ValueType, Stack>::Merge(
               = typename FunctionTraits<Comparator>::result_type;
 
     using MergeResultNode
-              = MergeNode<ValueType, DIA, SecondDIA, Comparator>;
+              = MergeNode<ValueType, DIA, Comparator, num_inputs + 1>;
 
     static_assert(
         std::is_convertible<
             ValueType,
             typename FunctionTraits<Comparator>::template arg<0>
             >::value,
-        "Comparator has the wrong input type in DIA 0");
+        "Comparator has the wrong input type in argument 1");
 
     static_assert(
         std::is_convertible<
-            typename SecondDIA::ValueType,
+            ValueType,
             typename FunctionTraits<Comparator>::template arg<1>
             >::value,
-        "Comparator has the wrong input type in DIA 1");
+        "Comparator has the wrong input type in argument 2");
 
     static_assert(
         std::is_convertible<
@@ -578,10 +581,22 @@ auto DIA<ValueType, Stack>::Merge(
         "Comparator must return bool");
 
     StatsNode* stats_node = AddChildStatsNode("Merge", DIANodeType::DOP);
-    second_dia.AppendChildStatsNode(stats_node);
+
+    std::array<DIA<ValueType, Stack>, num_inputs + 1> allInputs;
+   
+    allInputs[0] = *this;
+
+    for(size_t i = 0; i < num_inputs; i++) {
+        allInputs[i + 1] = inputs[i];
+    }
+
+    for(size_t i = 0; i < num_inputs + 1; i++) {
+        allInputs[0].AppendChildStatsNode(stats_node);
+    }
+    
     auto merge_node
         = std::make_shared<MergeResultNode>(
-        *this, inputs, comparator, stats_node);
+        allInputs, comparator, stats_node);
 
     return DIA<ValueType>(merge_node, { stats_node });
 }

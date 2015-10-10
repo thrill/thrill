@@ -128,6 +128,11 @@ public:
     Writer GetWriter(size_t block_size = default_block_size) {
         return Writer(this, block_size);
     }
+    
+    //! Get BlockWriterPtr.
+    std::shared_ptr<Writer> GetWriterPtr(size_t block_size = default_block_size) {
+        return std::shared_ptr<Writer>(new Writer(this, block_size));
+    }
 
     //! Get BlockWriter.
     DynWriter GetDynWriter(size_t block_size = default_block_size) {
