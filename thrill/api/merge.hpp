@@ -94,10 +94,12 @@ public:
 } // namespace merge_local
 
 template <typename ValueType,
-          typename ParentDIARef0, typename ParentDIARef1,
-          typename Comparator>
-class TwoMergeNode : public DOpNode<ValueType>
+          typename ParentDIAType,
+          typename Comparator, size_t num_inputs_>
+class MergeNode : public DOpNode<ValueType>
 {
+    std::static_assert(num_inputs_ > 2, "Merge requires more than two inputs");
+
     static const bool debug = false;
 
     merge_local::MergeStats stats;
@@ -105,30 +107,37 @@ class TwoMergeNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
+    std::vector<std::shared_ptr<DIABase>> GetNodes(const std::array<ParentDIARefType, num_inputs_> &diaRefs) const {
+        std::vector<std::shared_ptr<DIABase>> nodes;
+        nodes.reserve(num_inputs_);
+
+        for(size_t i = 0; i < num_inputs_; i++)
+            nodes.emplace_back(diaRefs[i].node());
+
+        return nodes;
+    }
+
 public:
-    TwoMergeNode(const ParentDIARef0& parent0,
-                 const ParentDIARef1& parent1,
+    TwoMergeNode(std::array<ParentDIARefType, num_inputs_> parents,
                  Comparator comparator,
                  StatsNode* stats_node)
-        : DOpNode<ValueType>(parent0.ctx(),
-                             { parent0.node(), parent1.node() }, stats_node),
+        : DOpNode<ValueType>(parents[0].ctx(),
+                             GetNodes(parents), stats_node),
           comparator_(comparator)
     {
-        // Hook PreOp(s)
-        auto pre_op0_fn = [=](const ValueType& input) {
-                              writers_[0](input);
+        for(size_t i = 0; i < num_inputs_, i++) {
+            files_[i] = ctx.GetFile();
+            writers_[i] = files_[i].GetWriter();
+        
+            auto pre_op_fn = [=](const ValueType& input) {
+                              writers_[i](input);
                           };
-        auto pre_op1_fn = [=](const ValueType& input) {
-                              writers_[1](input);
-                          };
-
-        // close the function stacks with our pre ops and register it at parent
-        // nodes for output
-        auto lop_chain0 = parent0.stack().push(pre_op0_fn).emit();
-        auto lop_chain1 = parent1.stack().push(pre_op1_fn).emit();
-
-        parent0.node()->RegisterChild(lop_chain0, this->type());
-        parent1.node()->RegisterChild(lop_chain1, this->type());
+            
+            auto lop_chain = parent.stack().push(pre_op_fn).emit();
+            // close the function stacks with our pre ops and register it at parent
+            // nodes for output
+            parent.node()->RegisterChild(lop_chain, this->type());
+        }
     }
 
     /*!
@@ -199,21 +208,14 @@ private:
     //! Merge comparator
     Comparator comparator_;
 
-    //! Number of storage DIAs backing
-    static const size_t num_inputs_ = 2;
-
     size_t my_rank_;
     std::mt19937 ran;
 
     //! Files for intermediate storage
-    std::array<data::File, num_inputs_> files_ {
-        { context_.GetFile(), context_.GetFile() }
-    };
+    std::array<data::File, num_inputs_> files_;
 
     //! Writers to intermediate files
-    std::array<data::File::Writer, num_inputs_> writers_  {
-        { files_[0].GetWriter(), files_[1].GetWriter() }
-    };
+    std::array<data::File::Writer, num_inputs_> writers_;
 
     //! Array of inbound CatStreams
     std::array<data::CatStreamPtr, num_inputs_> streams_;
