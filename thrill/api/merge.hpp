@@ -20,6 +20,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <thrill/core/losertree.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>
 
@@ -98,7 +99,7 @@ template <typename ValueType,
           typename Comparator, size_t num_inputs_>
 class MergeNode : public DOpNode<ValueType>
 {
-    std::static_assert(num_inputs_ > 2, "Merge requires more than two inputs");
+    static_assert(num_inputs_ > 2, "Merge requires more than two inputs");
 
     static const bool debug = false;
 
@@ -107,7 +108,7 @@ class MergeNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
-    std::vector<std::shared_ptr<DIABase>> GetNodes(const std::array<ParentDIARefType, num_inputs_> &diaRefs) const {
+    std::vector<std::shared_ptr<DIABase>> GetNodes(const std::array<ParentDIAType, num_inputs_> &diaRefs) const {
         std::vector<std::shared_ptr<DIABase>> nodes;
         nodes.reserve(num_inputs_);
 
@@ -118,25 +119,25 @@ class MergeNode : public DOpNode<ValueType>
     }
 
 public:
-    TwoMergeNode(std::array<ParentDIARefType, num_inputs_> parents,
+    MergeNode(std::array<ParentDIAType, num_inputs_> parents,
                  Comparator comparator,
                  StatsNode* stats_node)
         : DOpNode<ValueType>(parents[0].ctx(),
                              GetNodes(parents), stats_node),
           comparator_(comparator)
     {
-        for(size_t i = 0; i < num_inputs_, i++) {
-            files_[i] = ctx.GetFile();
+        for(size_t i = 0; i < num_inputs_; i++) {
+            files_[i] = context_.GetFile();
             writers_[i] = files_[i].GetWriter();
         
             auto pre_op_fn = [=](const ValueType& input) {
                               writers_[i](input);
                           };
             
-            auto lop_chain = parent.stack().push(pre_op_fn).emit();
+            auto lop_chain = parents[i].stack().push(pre_op_fn).emit();
             // close the function stacks with our pre ops and register it at parent
             // nodes for output
-            parent.node()->RegisterChild(lop_chain, this->type());
+            parents[i].node()->RegisterChild(lop_chain, this->type());
         }
     }
 
@@ -163,35 +164,66 @@ public:
         for (size_t i = 0; i < streams_.size(); i++) {
             readers.emplace_back(std::move(streams_[i]->GetCatBlockSource(consume)));
         }
-
-        while (true) {
-
-            auto& a = readers[0];
-            auto& b = readers[1];
-
-            if (a.HasValue() && b.HasValue()) {
-                if (comparator_(b.Value(), a.Value())) {
-                    this->PushItem(b.Value());
-                    b.Next();
+        //Init the looser-tree
+         
+        core::LoserTreeType lt(k, [this] 
+                (const ValueType &a, const ValueType &b) -> bool {
+                    return comperator_(a, b);
                 }
-                else {
-                    this->PushItem(a.Value());
-                    a.Next();
+        );
+
+        //Abritary element (copied!)
+        ValueType *zero = NULL;
+
+        size_t completed = 0;
+
+        //Find abritary elem. 
+        for(size_t i = 0; i < k; i++) {
+            if(readers[i].HasValue()) {
+                 zero = (ValueType*)malloc(sizeof(ValueType));
+                 *zero = readers[i].Value();
+                 break;
+            } 
+        }
+
+        if(zero != NULL) { //If so, we only have empty channels. 
+            //Insert abritray element for each empty reader.
+            for(size_t i = 0; i < k; i++) {
+                if(!readers[i].HasValue()) {
+                    lt.insert_start(*zero, i, true);
+                    completed++;
+                } else {
+                    lt.insert_start(readers[i].Value(), i, false);
                 }
             }
-            else if (b.HasValue()) {
-                this->PushItem(b.Value());
-                b.Next();
-            }
-            else if (a.HasValue()) {
-                this->PushItem(a.Value());
-                a.Next();
-            }
-            else {
-                break;
-            }
+            lt.init();
 
-            result_count++;
+            while(completed < k) {
+
+                size_t min = lt.get_min_source();
+
+                auto &reader = readers[min];
+                assert(reader.HasValue());
+
+                for (auto func : DIANode<ValueType>::callbacks_) {
+                    func(reader.Value());
+                }
+
+                out << reader.Value() << " ";
+               
+                reader.Next();
+
+                if(reader.HasValue()) {
+                    lt.delete_min_insert(reader.Value(), false);
+                } else {
+                    lt.delete_min_insert(*zero, true); 
+                    completed++;
+                }
+
+                result_count++;
+            }
+            
+            free(zero);
         }
 
         stats.MergeTimer.Stop();
@@ -509,25 +541,20 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-template <typename SecondDIA, typename Comparator>
+template <typename Comparator, size_t num_inputs>
 auto DIA<ValueType, Stack>::Merge(
-    SecondDIA second_dia, const Comparator &comparator) const {
+     std::array<DIA<_ValueType, _Stack>, num_inputs> inputs,
+     const Comparator &comparator) const {
 
     assert(IsValid());
-    assert(second_dia.IsValid());
+    for(size_t i = 0; i < num_inputs; i++)
+        assert(inputs[i].IsValid());
 
     using CompareResult
               = typename FunctionTraits<Comparator>::result_type;
 
     using MergeResultNode
-              = TwoMergeNode<ValueType, DIA, SecondDIA, Comparator>;
-
-    static_assert(
-        std::is_convertible<
-            typename SecondDIA::ValueType,
-            ValueType
-            >::value,
-        "DIA 1 and DIA 0 have different types");
+              = MergeNode<ValueType, DIA, SecondDIA, Comparator>;
 
     static_assert(
         std::is_convertible<
@@ -554,7 +581,7 @@ auto DIA<ValueType, Stack>::Merge(
     second_dia.AppendChildStatsNode(stats_node);
     auto merge_node
         = std::make_shared<MergeResultNode>(
-        *this, second_dia, comparator, stats_node);
+        *this, inputs, comparator, stats_node);
 
     return DIA<ValueType>(merge_node, { stats_node });
 }
