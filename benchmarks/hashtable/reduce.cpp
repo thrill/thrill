@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     api::Run([&input, &iterations](api::Context& ctx) {
-        common::StatsTimer<true> timer(true);
+        common::StatsTimer<true> timer(false);
 
         auto in = api::ReadBinary<size_t>(ctx, input).Keep();
         in.Size();
@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
         }).Size();
         timer.Stop();
 
-        LOG1 << "RESULT" << " time=" << timer.Milliseconds();
+        LOG1 << "RESULT" << " benchmark=reduce time=" << timer.Milliseconds();
     });
 }
 

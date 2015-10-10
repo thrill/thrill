@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    unsigned int size = 50000000;
+    unsigned int size = 5000000;
     clp.AddUInt('s', "size", "S", size,
                 "Load in byte to be inserted");
 
@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     clp.AddDouble('f', "max_partition_fill_rate", "F", max_partition_fill_rate,
                   "Open hashtable with max_partition_fill_rate, default = 0.5.");
 
-    unsigned int byte_size = 50000000;
+    unsigned int byte_size = 5000000;
     clp.AddUInt('t', "max_num_items_table", "T", byte_size,
                 "Table size, default = 500000000.");
 
