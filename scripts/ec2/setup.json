@@ -1,0 +1,14 @@
+{
+  "ACCESS_KEY" : "AKI...",
+  "SECRET_KEY" : "nXr...",
+  "EC2_KEY_HANDLE" : "mstumpp_2",
+  "SECGROUP_HANDLE" : "default",
+  "REGION" : "us-east-1",
+  "ZONE" : "us-east-1a",
+
+  "AMI_ID" : "ami-9183fdf4",
+  "INSTANCE_TYPE" : "t2.micro",
+  "COUNT" : 2,
+
+  "VOL_SNAPSHOT_ID" : "snap-473dc70a"
+}
