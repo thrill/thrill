@@ -8,7 +8,7 @@
 
   "AMI_ID" : "ami-9183fdf4",
   "INSTANCE_TYPE" : "t2.micro",
-  "COUNT" : 2,
+  "COUNT" : 1,
 
-  "VOL_SNAPSHOT_ID" : "snap-473dc70a"
+  "VOL_SNAPSHOT_ID" : "snap-effdec9d"
 }
