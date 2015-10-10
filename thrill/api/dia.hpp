@@ -590,7 +590,8 @@ public:
      */
     template <typename Comperator = std::less<ValueType> >
     auto Merge(DIA<_ValueType, _Stack> second_dia, const Comperator& comperator = Comperator()) {
-        Merge({{second_dia}}, comperator);
+        std::array<DIA<_ValueType, _Stack>, 1> inputs = {{second_dia}};
+        return Merge(inputs, comperator);
     }
 
     template <typename Comperator = std::less<ValueType>, size_t num_inputs>
