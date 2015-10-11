@@ -1,12 +1,16 @@
 ################################################################################
 # benchmarks/CMakeLists.txt
 #
-# CMake file for Thrill benchmark programs.
+# Part of Project Thrill.
+#
+# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
 # macro for registering test programs: maybe prepend valgrind, add environment
 # Usage: thrill_test_single(testname "ENV=1;ENV2=1" program args)
-macro(thrill_test_single TESTNAME ENVIRON)
+macro(thrill_test_single TESTNAME ENVIRON PROG)
 
   if(USE_VALGRIND)
     # prepend valgrind call
@@ -14,11 +18,11 @@ macro(thrill_test_single TESTNAME ENVIRON)
       NAME ${TESTNAME}
       COMMAND /usr/bin/valgrind ${THRILL_VALGRIND_OPTS}
       --xml=yes --xml-file=${TESTNAME}.xml
-      ${ARGN})
+      ./${PROG} ${ARGN})
   else()
     add_test(
       NAME ${TESTNAME}
-      COMMAND ${ARGN})
+      COMMAND ${PROG} ${ARGN})
   endif()
 
   # environment of test run: set default and let ENVIRON override
@@ -32,11 +36,13 @@ thrill_build_prog(hashtable/bench_bucket_hashtable)
 thrill_build_prog(hashtable/bench_probing_hashtable)
 
 thrill_build_prog(data/disk)
-thrill_build_prog(data/file_read_write)
 thrill_build_prog(generate_data)
-thrill_build_prog(edit_graph)
 thrill_build_prog(generate_numbers)
 thrill_build_prog(data/stream)
+thrill_build_prog(data/data_benchmark)
+
+
+thrill_build_prog(io/string_test)
 
 if(NOT MSVC)
   # these benchmarks use a non-portable method to initialize the network,
@@ -57,5 +63,6 @@ add_subdirectory(word_count)
 add_subdirectory(page_rank)
 add_subdirectory(groupby)
 add_subdirectory(net)
+add_subdirectory(merge)
 
 ################################################################################

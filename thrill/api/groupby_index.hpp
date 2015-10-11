@@ -8,7 +8,7 @@
  *
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -34,9 +34,9 @@
 namespace thrill {
 namespace api {
 
-template <typename ValueType, typename ParentDIARef,
+template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
-class GroupByIndexNode : public DOpNode<ValueType>
+class GroupByIndexNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
@@ -70,12 +70,12 @@ public:
      * Constructor for a GroupByIndexNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      *
-     * \param parent Parent DIARef.
+     * \param parent Parent DIA.
      * and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
-    GroupByIndexNode(const ParentDIARef& parent,
+    GroupByIndexNode(const ParentDIA& parent,
                      const KeyExtractor& key_extractor,
                      const GroupFunction& groupby_function,
                      size_t number_keys,
@@ -106,9 +106,6 @@ public:
                              this->WriteStreamStats(this->stream_);
                          });
     }
-
-    //! Virtual destructor for a GroupByIndexNode.
-    virtual ~GroupByIndexNode() { }
 
     /*!
      * Actually executes the reduce operation. Uses the member functions PreOp,
@@ -153,42 +150,27 @@ public:
                 while (user_iterator.HasNextForReal()) {
                     if (user_iterator.GetNextKey() != curr_index) {
                         // push neutral element as result to callback functions
-                        for (auto func : DIANode<ValueType>::callbacks_) {
-                            func(neutral_element_);
-                        }
+                        this->PushItem(neutral_element_);
                     }
                     else {
                         // call user function
-                        const ValueOut res = groupby_function_(user_iterator,
-                                                               user_iterator.GetNextKey());
+                        const ValueOut res = groupby_function_(
+                            user_iterator, user_iterator.GetNextKey());
                         // push result to callback functions
-                        for (auto func : DIANode<ValueType>::callbacks_) {
-                            // LOG << "grouped to value " << res;
-                            func(res);
-                        }
+                        this->PushItem(res);
                     }
                     ++curr_index;
                 }
             }
             while (curr_index < key_range_end_) {
                 // push neutral element as result to callback functions
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(neutral_element_);
-                }
+                this->PushItem(neutral_element_);
                 ++curr_index;
             }
         }
     }
 
     void Dispose() override { }
-
-    /*!
-     * Produces a function stack, which only contains the PostOp function.
-     * \return PostOp function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
 
 private:
     const KeyExtractor& key_extractor_;
@@ -213,27 +195,20 @@ private:
             while (user_iterator.HasNextForReal()) {
                 if (user_iterator.GetNextKey() != curr_index) {
                     // push neutral element as result to callback functions
-                    for (auto func : DIANode<ValueType>::callbacks_) {
-                        func(neutral_element_);
-                    }
+                    this->PushItem(neutral_element_);
                 }
                 else {
                     // call user function
                     const ValueOut res = groupby_function_(user_iterator,
                                                            user_iterator.GetNextKey());
                     // push result to callback functions
-                    for (auto func : DIANode<ValueType>::callbacks_) {
-                        // LOG << "grouped to value " << res;
-                        func(res);
-                    }
+                    this->PushItem(res);
                 }
                 ++curr_index;
             }
             while (curr_index < key_range_end_) {
                 // push neutral element as result to callback functions
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(neutral_element_);
-                }
+                this->PushItem(neutral_element_);
                 ++curr_index;
             }
         }
@@ -265,7 +240,7 @@ private:
             w.Close();
         }
 
-        files_.push_back(f);
+        files_.emplace_back(std::move(f));
     }
 
     //! Receive elements from other workers.
@@ -309,7 +284,7 @@ template <typename ValueOut,
           typename KeyExtractor,
           typename GroupFunction,
           typename HashFunction>
-auto DIARef<ValueType, Stack>::GroupByIndex(
+auto DIA<ValueType, Stack>::GroupByIndex(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function,
     const size_t number_keys,
@@ -326,18 +301,15 @@ auto DIARef<ValueType, Stack>::GroupByIndex(
         "KeyExtractor has the wrong input type");
 
     StatsNode* stats_node = AddChildStatsNode("GroupByIndex", DIANodeType::DOP);
-    using GroupByResultNode
-              = GroupByIndexNode<DOpResult, DIARef, KeyExtractor,
+    using GroupByNode
+              = GroupByIndexNode<DOpResult, DIA, KeyExtractor,
                                  GroupFunction, HashFunction>;
     auto shared_node
-        = std::make_shared<GroupByResultNode>(
-            *this, key_extractor, groupby_function,
-            number_keys, neutral_element, stats_node);
+        = std::make_shared<GroupByNode>(
+        *this, key_extractor, groupby_function,
+        number_keys, neutral_element, stats_node);
 
-    auto groupby_stack = shared_node->ProduceStack();
-
-    return DIARef<DOpResult, decltype(groupby_stack)>(
-        shared_node, groupby_stack, { stats_node });
+    return DIA<DOpResult>(shared_node, { stats_node });
 }
 
 } // namespace api

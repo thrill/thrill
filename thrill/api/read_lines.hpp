@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -38,7 +38,7 @@ namespace api {
  * A DIANode which performs a line-based Read operation. Read reads a file from
  * the file system and emits it as a DIA.
  */
-class ReadLinesNode : public SourceNode<std::string>
+class ReadLinesNode final : public SourceNode<std::string>
 {
 public:
     using Super = SourceNode<std::string>;
@@ -98,16 +98,6 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     *
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<std::string>();
-    }
-
 private:
     //! True, if at least one input file is compressed.
     bool contains_compressed_file_ = false;
@@ -124,6 +114,15 @@ private:
 
         static const bool debug = false;
 
+        //! non-copyable: delete copy-constructor
+        InputLineIterator(const InputLineIterator&) = delete;
+        //! non-copyable: delete assignment operator
+        InputLineIterator& operator = (const InputLineIterator&) = delete;
+        //! move-constructor: default
+        InputLineIterator(InputLineIterator&&) = default;
+        //! move-assignment operator: default
+        InputLineIterator& operator = (InputLineIterator&&) = default;
+
     protected:
         //! Block read size
         const size_t read_size = data::default_block_size;
@@ -133,7 +132,7 @@ private:
         const std::vector<FileSizePair>& files_;
         //! Index of current file in files_
         size_t current_file_ = 0;
-        //! Byte buffer to create line-std::strings
+        //! Byte buffer to create line std::string values.
         net::BufferBuilder buffer_;
         //! Start of next element in current buffer.
         unsigned char* current_;
@@ -142,12 +141,16 @@ private:
         //! Reference to context
         Context& context_;
 
+        common::StatsTimer<true> read_timer;
+
         size_t stats_total_bytes_ = 0;
         size_t stats_total_reads_ = 0;
         size_t stats_total_elements_ = 0;
 
         bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
+            read_timer.Start();
             ssize_t bytes = file.read(buffer.data(), read_size);
+            read_timer.Stop();
             if (bytes < 0) {
                 throw common::ErrnoException("Read error");
             }
@@ -163,7 +166,8 @@ private:
             STAT(context_) << "NodeType" << "ReadLines"
                            << "TotalBytes" << stats_total_bytes_
                            << "TotalReads" << stats_total_reads_
-                           << "TotalLines" << stats_total_elements_;
+                           << "TotalLines" << stats_total_elements_
+                           << "ReadTime" << read_timer.Milliseconds();
         }
     };
 
@@ -423,7 +427,14 @@ private:
     };
 };
 
-DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
+/*!
+ * ReadLines is a DOp, which reads a file from the file system and
+ * creates an ordered DIA according to a given read function.
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ */
+DIA<std::string> ReadLines(Context& ctx, std::string filepath) {
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
         "ReadLines", DIANodeType::DOP);
@@ -432,10 +443,7 @@ DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
         std::make_shared<ReadLinesNode>(
             ctx, filepath, stats_node);
 
-    auto read_stack = shared_node->ProduceStack();
-
-    return DIARef<std::string, decltype(read_stack)>(
-        shared_node, read_stack, { stats_node });
+    return DIA<std::string>(shared_node, { stats_node });
 }
 
 //! \}

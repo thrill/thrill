@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -32,8 +32,8 @@ namespace api {
  * \tparam ParentStack Function chain, which contains the chained lambdas between
  * the last and this DIANode.
  */
-template <typename ValueType, typename ParentDIARef>
-class CacheNode : public DIANode<ValueType>
+template <typename ValueType, typename ParentDIA>
+class CacheNode final : public DIANode<ValueType>
 {
 public:
     using Super = DIANode<ValueType>;
@@ -42,9 +42,9 @@ public:
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      *
-     * \param parent Parent DIARef.
+     * \param parent Parent DIA.
      */
-    CacheNode(const ParentDIARef& parent,
+    CacheNode(const ParentDIA& parent,
               StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
@@ -58,9 +58,6 @@ public:
         auto lop_chain = parent.stack().push(save_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
     }
-
-    //! Virtual destructor for a LOpNode.
-    virtual ~CacheNode() { }
 
     /*!
      * Pushes elements to next node.
@@ -88,37 +85,17 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-template <typename AnyStack>
-DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
+auto DIA<ValueType, Stack>::Cache() const {
     assert(IsValid());
 
-    // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-    // DIARef with empty stack and LOpNode
-    using LOpChainNode = CacheNode<ValueType, DIARef>;
-
-    LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
-    LOG0 << "Consider whether you can use auto instead of DIARef.";
-
-    auto shared_node
-        = std::make_shared<LOpChainNode>(rhs, "");
-    node_ = std::move(shared_node);
-}
-
-template <typename ValueType, typename Stack>
-auto DIARef<ValueType, Stack>::Cache() const {
-    assert(IsValid());
-
-    // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-    // DIARef with empty stack and LOpNode
-    using LOpChainNode = CacheNode<ValueType, DIARef>;
+    using LOpChainNode = CacheNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Cache", DIANodeType::CACHE);
+
     auto shared_node
         = std::make_shared<LOpChainNode>(*this, stats_node);
-    auto lop_stack = FunctionStack<ValueType>();
 
-    return DIARef<ValueType, decltype(lop_stack)>(
-        shared_node, lop_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

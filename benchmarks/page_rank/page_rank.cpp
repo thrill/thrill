@@ -1,18 +1,18 @@
- /*******************************************************************************
+/*******************************************************************************
  * benchmarks/page_rank/page_rank.cpp
  *
  * Part of Project Thrill.
  *
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
+#include <thrill/api/generate.hpp>
 #include <thrill/api/groupby_index.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/reduce.hpp>
-#include <thrill/api/generate.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
@@ -33,7 +33,7 @@
 #include <utility>
 #include <vector>
 
-using thrill::DIARef;
+using thrill::DIA;
 using thrill::Context;
 
 using namespace thrill; // NOLINT
@@ -256,7 +256,7 @@ int main(int argc, char* argv[]) {
 
             auto input = in.Map(
                 [](const std::string& input) {
-                    auto split = thrill::common::split(input, " ");
+                    auto split = thrill::common::Split(input, " ");
                     LOG0 << "input "
                          << (std::stoi(split[0]) - 1)
                          << " "
@@ -277,7 +277,7 @@ int main(int argc, char* argv[]) {
             // get number of nodes by finding max page_id
             // add 1 to max node_id to get number of nodes because of node_id 0
             const auto number_nodes = input.Sum(
-                [](const Page_Link &in1, const Page_Link &in2) {
+                [](const Page_Link& in1, const Page_Link& in2) {
                     Node first = std::max(in1.first, in2.first);
                     Node second = std::max(in1.second, in2.second);
                     return std::make_pair(std::max(first, second), first);
@@ -313,14 +313,14 @@ int main(int argc, char* argv[]) {
             //     return std::make_pair(index, 1.0);
             // }, number_nodes).Cache();
             auto ranks = Generate(ctx,
-                [](const size_t&) {
-                    return (Rank)1.0;
-                }, number_nodes).Cache();
+                                  [](const size_t&) {
+                                      return (Rank)1.0;
+                                  }, number_nodes).Cache();
 
             auto node_ids = Generate(ctx,
-                [](const size_t& index) {
-                    return index+1;
-                }, number_nodes);
+                                     [](const size_t& index) {
+                                         return index + 1;
+                                     }, number_nodes);
 
             // do iterations
             for (int i = 0; i < iter; ++i) {
@@ -345,22 +345,22 @@ int main(int argc, char* argv[]) {
                 assert(links.Size() == ranks.Size());
 
                 auto contribs = links.Zip(ranks,
-                    [](const Outgoings& l, const Rank r){
-                        // std::string s = "{";
-                        // for (auto e : l) {
-                        //     s += std::to_string(e) + ", ";
-                        // }
-                        // s += "}";
-                        // LOG << "contribs1 " << s << " " << r;
+                                          [](const Outgoings& l, const Rank r) {
+                                              // std::string s = "{";
+                                              // for (auto e : l) {
+                                              //     s += std::to_string(e) + ", ";
+                                              // }
+                                              // s += "}";
+                                              // LOG << "contribs1 " << s << " " << r;
 
-                        return std::make_pair(l, r);
-                    })
-                    .FlatMap<Page_Rank>(
-                    [](const Outgoings_Rank& p, auto emit){
+                                              return std::make_pair(l, r);
+                                          })
+                                .FlatMap<Page_Rank>(
+                    [](const Outgoings_Rank& p, auto emit) {
                         if (p.first.size() > 0) {
                             Rank rank_contrib = p.second / p.first.size();
                             // assert (rank_contrib <= 1);
-                            for(auto e : p.first) {
+                            for (auto e : p.first) {
                                 LOG << "contribs2 " << e << " " << rank_contrib;
                                 emit(std::make_pair(e, rank_contrib));
                             }
@@ -383,15 +383,16 @@ int main(int argc, char* argv[]) {
                 ranks = contribs.ReduceToIndex(
                     [](const Page_Rank& p) { return p.first; },
                     [](const Page_Rank& p1, const Page_Rank& p2) {
-                        return std::make_pair(p1.first, p1.second+p2.second);
+                        return std::make_pair(p1.first, p1.second + p2.second);
                     }, number_nodes)
-                    .Map(
+                        .Map(
                     [](const Page_Rank p) {
                         LOG << "ranks2 in " << p.first << "-" << p.second;
                         if (std::fabs(p.second) <= 1E-5) {
                             LOG << "ranks2 " << 0.0;
                             return (Rank)0.0;
-                        }else {
+                        }
+                        else {
                             LOG << "ranks2 " << f + s * p.second;
                             return f + s * p.second;
                         }
@@ -400,10 +401,10 @@ int main(int argc, char* argv[]) {
 
             // write result to line. add 1 to node_ids to revert back to normal
             auto res = ranks.Zip(node_ids,
-                [](const Rank r, const Node n) {
-                    return std::to_string(n)
-                    + ": " + std::to_string(r);
-                });
+                                 [](const Rank r, const Node n) {
+                                     return std::to_string(n)
+                                     + ": " + std::to_string(r);
+                                 });
 
             // assert (res.Size() == links.Size());
 
@@ -412,16 +413,16 @@ int main(int argc, char* argv[]) {
 
             auto number_edges = in.Size();
             LOG1 << "\n"
-                << "FINISHED PAGERANK COMPUTATION"
-                << "\n"
-                << std::left << std::setfill(' ')
-                << std::setw(10) << "#nodes: " << number_nodes
-                << "\n"
-                << std::setw(10) << "#edges: " << number_edges
-                << "\n"
-                << std::setw(10) << "#iter: " << iter
-                << "\n"
-                << std::setw(10) << "time: " << timer.Milliseconds() << "ms";
+                 << "FINISHED PAGERANK COMPUTATION"
+                 << "\n"
+                 << std::left << std::setfill(' ')
+                 << std::setw(10) << "#nodes: " << number_nodes
+                 << "\n"
+                 << std::setw(10) << "#edges: " << number_edges
+                 << "\n"
+                 << std::setw(10) << "#iter: " << iter
+                 << "\n"
+                 << std::setw(10) << "time: " << timer.Milliseconds() << "ms";
         };
 
     return api::Run(start_func);

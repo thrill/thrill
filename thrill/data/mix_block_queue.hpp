@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -16,6 +16,7 @@
 #include <thrill/common/concurrent_bounded_queue.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
+#include <thrill/data/block_queue.hpp>
 #include <thrill/data/block_reader.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>
@@ -126,7 +127,7 @@ public:
     //! check if reader side has returned a closing sentinel block
     bool read_closed() const { return read_open_ == 0; }
 
-protected:
+private:
     BlockPool& block_pool_;
 
     //! the main mix queue, containing the block in the reception order.
@@ -185,7 +186,7 @@ public:
     //! check if writer side Close() was called.
     bool write_closed() const { return write_closed_; }
 
-protected:
+private:
     //! destination mix queue
     MixBlockQueue& mix_queue_;
 
@@ -290,7 +291,7 @@ public:
         }
     }
 
-protected:
+private:
     //! reference to mix queue
     MixBlockQueue& mix_queue_;
 

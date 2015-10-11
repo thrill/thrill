@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -85,7 +85,7 @@ public:
                         multiplexer_.block_pool_,
                         &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
-                        MagicByte::CAT_STREAM_BLOCK,
+                        MagicByte::CatStreamBlock,
                         id,
                         multiplexer_.my_host_rank(), my_local_worker_id,
                         host, worker,
@@ -152,10 +152,8 @@ public:
         return result;
     }
 
-    //! Creates a BlockReader which concatenates items from all workers in
-    //! worker rank order. The BlockReader is attached to one \ref
-    //! CatBlockSource which includes all incoming queues of this stream.
-    CatBlockReader OpenCatReader(bool consume) {
+    //! Gets a CatBlockSource which includes all incoming queues of this stream.
+    inline CatBlockSource GetCatBlockSource(bool consume) {
         rx_timespan_.StartEventually();
 
         // construct vector of BlockSources to read from queues_.
@@ -163,8 +161,21 @@ public:
         for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
             result.emplace_back(queues_[worker].GetBlockSource(consume));
         }
+
         // move BlockQueueSources into concatenation BlockSource, and to Reader.
-        return CatBlockReader(CatBlockSource(std::move(result)));
+        return CatBlockSource(std::move(result));
+    }
+
+    //! Creates a BlockReader which concatenates items from all workers in
+    //! worker rank order. The BlockReader is attached to one \ref
+    //! CatBlockSource which includes all incoming queues of this stream.
+    CatBlockReader OpenCatReader(bool consume) {
+        return CatBlockReader(GetCatBlockSource(consume));
+    }
+
+    //! Open a CatReader (function name matches a method in MixStream).
+    CatReader OpenAnyReader(bool consume) {
+        return OpenCatReader(consume);
     }
 
     //! shuts the stream down.
@@ -172,13 +183,15 @@ public:
         if (is_closed_) return;
         is_closed_ = true;
 
-        sLOG << "stream" << id() << "close"
+        sLOG << "CatStream" << id() << "close"
              << "host" << multiplexer_.my_host_rank()
              << "local_worker" << my_local_worker_id_;
 
         // close all sinks, this should emit sentinel to all other worker.
-        for (size_t i = 0; i != sinks_.size(); ++i) {
+        for (size_t i = 0; i < sinks_.size(); ++i) {
             if (sinks_[i].closed()) continue;
+            sLOG << "CatStream" << id() << "close"
+                 << "unopened sink" << i;
             sinks_[i].Close();
         }
 
@@ -189,9 +202,9 @@ public:
 
         // wait for close packets to arrive (this is a busy waiting loop, try to
         // do it better -tb)
-        for (size_t i = 0; i != queues_.size(); ++i) {
+        for (size_t i = 0; i < queues_.size(); ++i) {
             while (!queues_[i].write_closed()) {
-                sLOG << "stream" << id()
+                sLOG << "CatStream" << id()
                      << "host" << multiplexer_.my_host_rank()
                      << "local_worker" << my_local_worker_id_
                      << "wait for close from worker" << i;
@@ -213,7 +226,7 @@ public:
         return closed;
     }
 
-protected:
+private:
     static const bool debug = false;
 
     bool is_closed_ = false;
@@ -239,7 +252,7 @@ protected:
 
         if (debug) {
             sLOG << "stream" << id_ << "receive from" << from << ":"
-                 << common::hexdump(b.ToString());
+                 << common::Hexdump(b.ToString());
         }
 
         queues_[from].AppendBlock(b);
@@ -250,6 +263,8 @@ protected:
     void OnCloseStream(size_t from) {
         assert(from < queues_.size());
         queues_[from].Close();
+
+        sLOG << "OnCatCloseStream from=" << from;
 
         if (expected_closing_blocks_ == ++received_closing_blocks_) {
             rx_lifetime_.StopEventually();

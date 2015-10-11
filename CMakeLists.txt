@@ -1,7 +1,13 @@
 ################################################################################
 # CMakeLists.txt
 #
-# Build script for Thrill.
+# Root CMake build script for Thrill.
+#
+# Part of Project Thrill.
+#
+# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
 cmake_minimum_required(VERSION 2.8)
@@ -29,7 +35,7 @@ option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 
 option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
-option(USE_TBB "Use (optional) Intel TBB library if available." ON)
+option(THRILL_USE_TBB "Use (optional) Intel TBB library if available." ON)
 
 option(THRILL_USE_MPI "Use (optional) MPI net backend." ON)
 
@@ -65,7 +71,12 @@ if(NOT MSVC)
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
   # enable ThreadSanitizer
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+  if(OFF)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTHRILL_HAVE_THREAD_SANITIZER=1")
+    set(THRILL_USE_MPI OFF)
+    set(THRILL_USE_TBB OFF)
+  endif()
 
   # enable UndefinedBehaviorSanitizer
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
@@ -83,6 +94,11 @@ if(NOT MSVC)
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast")
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
+  endif()
+  # enable extra warnings on clang
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wdeprecated")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wabstract-vbase-init")
   endif()
 
   # Clang < 3.6 0 (?) does not support debug output for auto return types yet.
@@ -268,7 +284,7 @@ set(ALL_LIBRARIES ${ALL_LIBRARIES} ${CMAKE_DL_LIBS})
 
 # try to find Intel TBB (optional)
 
-if(USE_TBB)
+if(THRILL_USE_TBB)
   find_package(TBB)
 endif()
 

@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -72,7 +72,7 @@ public:
     //! non-copyable: delete assignment operator
     Socket& operator = (const Socket&) = delete;
     //! move-constructor: move file descriptor
-    Socket(Socket&& s) : fd_(s.fd_) { s.fd_ = -1; }
+    Socket(Socket&& s) noexcept : fd_(s.fd_) { s.fd_ = -1; }
     //! move-assignment operator: move file descriptor
     Socket& operator = (Socket&& s) {
         if (this == &s) return *this;
@@ -158,9 +158,10 @@ public:
     }
 
     //! Turn socket into non-blocking state.
-    //! \return old blocking value (0 or 1) or -1 for error
-    int SetNonBlocking(bool non_blocking) const {
+    bool SetNonBlocking(bool non_blocking) {
         assert(IsValid());
+
+        if (non_blocking == non_blocking_) return true;
 
         int old_opts = fcntl(fd_, F_GETFL);
 
@@ -173,10 +174,11 @@ public:
                 << " fd_=" << fd_
                 << " non_blocking=" << non_blocking
                 << " error=" << strerror(errno);
-            return -1;
+            return false;
         }
 
-        return old_opts;
+        non_blocking_ = non_blocking;
+        return true;
     }
 
     //! Return the current local socket address.
@@ -343,7 +345,7 @@ public:
             LOG << "Socket::send_one()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << maybe_hexdump(data, size)
+                << " data=" << MaybeHexdump(data, size)
                 << " flags=" << flags;
         }
 
@@ -364,7 +366,7 @@ public:
             LOG << "Socket::send()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << maybe_hexdump(data, size)
+                << " data=" << MaybeHexdump(data, size)
                 << " flags=" << flags;
         }
 
@@ -406,7 +408,7 @@ public:
             LOG << "Socket::sendto()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << maybe_hexdump(data, size)
+                << " data=" << MaybeHexdump(data, size)
                 << " flags=" << flags
                 << " dest=" << dest;
         }
@@ -442,7 +444,7 @@ public:
                 << " fd_=" << fd_
                 << " return=" << r
                 << " errno=" << errno
-                << " data=" << (r >= 0 ? maybe_hexdump(out_data, r) : "<error>");
+                << " data=" << (r >= 0 ? MaybeHexdump(out_data, r) : "<error>");
         }
 
         return r;
@@ -484,7 +486,7 @@ public:
             LOG << "done Socket::recv()"
                 << " fd_=" << fd_
                 << " return=" << rb
-                << " data=" << maybe_hexdump(out_data, rb);
+                << " data=" << MaybeHexdump(out_data, rb);
         }
 
         return rb;
@@ -513,7 +515,7 @@ public:
                 << " fd_=" << fd_
                 << " return=" << r
                 << " data="
-                << (r >= 0 ? maybe_hexdump(out_data, r) : "<error>")
+                << (r >= 0 ? MaybeHexdump(out_data, r) : "<error>")
                 << " out_source="
                 << (out_source ? out_source->ToStringHostPort() : "<null>");
         }
@@ -583,14 +585,17 @@ public:
 
     //! \}
 
-protected:
+private:
     //! the file descriptor of the socket.
     int fd_;
 
+    //! flag whether the socket is set to non-blocking
+    bool non_blocking_ = false;
+
     //! return hexdump or just [data] if not debugging
-    static std::string maybe_hexdump(const void* data, size_t size) {
+    static std::string MaybeHexdump(const void* data, size_t size) {
         if (debug_data)
-            return common::hexdump(data, size);
+            return common::Hexdump(data, size);
         else
             return "[data]";
     }

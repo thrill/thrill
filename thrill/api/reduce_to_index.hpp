@@ -8,7 +8,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -50,10 +50,10 @@ namespace api {
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
  */
-template <typename ValueType, typename ParentDIARef,
+template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
           bool RobustKey, bool SendPair>
-class ReduceToIndexNode : public DOpNode<ValueType>
+class ReduceToIndexNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
@@ -82,14 +82,14 @@ public:
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
      * key_extractor and reduce_function.
      *
-     * \param parent Parent DIARef.
+     * \param parent Parent DIA.
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      * \param result_size size of the resulting DIA, range of index returned by reduce_function.
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
      */
-    ReduceToIndexNode(const ParentDIARef& parent,
+    ReduceToIndexNode(const ParentDIA& parent,
                       const KeyExtractor& key_extractor,
                       const ReduceFunction& reduce_function,
                       size_t result_size,
@@ -173,10 +173,6 @@ public:
 
     void Dispose() final { }
 
-    FunctionStack<ValueType> ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
-
 private:
     //! Key extractor function
     KeyExtractor key_extractor_;
@@ -202,7 +198,7 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
+auto DIA<ValueType, Stack>::ReduceToIndexByKey(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t size,
@@ -245,31 +241,23 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
             size_t>::value,
         "The key has to be an unsigned long int (aka. size_t).");
 
-    using ReduceResultNode
-              = ReduceToIndexNode<DOpResult, DIARef,
+    using ReduceNode
+              = ReduceToIndexNode<DOpResult, DIA,
                                   KeyExtractor, ReduceFunction,
                                   false, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndexByKey", DIANodeType::DOP);
     auto shared_node
-        = std::make_shared<ReduceResultNode>(*this,
-                                             key_extractor,
-                                             reduce_function,
-                                             size,
-                                             neutral_element,
-                                             stats_node);
+        = std::make_shared<ReduceNode>(
+        *this, key_extractor, reduce_function,
+        size, neutral_element, stats_node);
 
-    auto reduce_stack = shared_node->ProduceStack();
-
-    return DIARef<DOpResult, decltype(reduce_stack)>(
-        shared_node,
-        reduce_stack,
-        { stats_node });
+    return DIA<DOpResult>(shared_node, { stats_node });
 }
 
 template <typename ValueType, typename Stack>
 template <typename ReduceFunction>
-auto DIARef<ValueType, Stack>::ReducePairToIndex(
+auto DIA<ValueType, Stack>::ReducePairToIndex(
     const ReduceFunction &reduce_function,
     size_t size,
     const typename common::FunctionTraits<ReduceFunction>::result_type &
@@ -310,37 +298,34 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
 
     using Key = typename ValueType::first_type;
 
-    using ReduceResultNode
-              = ReduceToIndexNode<ValueType, DIARef,
+    using ReduceNode
+              = ReduceToIndexNode<ValueType, DIA,
                                   std::function<Key(Key)>,
                                   ReduceFunction, false, true>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", DIANodeType::DOP);
     auto shared_node
-        = std::make_shared<ReduceResultNode>(*this,
-                                             [](Key key) {
-                                                 // This function should not be
-                                                 // called, it is only here to
-                                                 // give the key type to the
-                                                 // hashtables.
-                                                 assert(1 == 0);
-                                                 key = key;
-                                                 return Key();
-                                             },
-                                             reduce_function,
-                                             size,
-                                             neutral_element,
-                                             stats_node);
+        = std::make_shared<ReduceNode>(*this,
+                                       [](Key key) {
+                                           // This function should not be
+                                           // called, it is only here to
+                                           // give the key type to the
+                                           // hashtables.
+                                           assert(1 == 0);
+                                           key = key;
+                                           return Key();
+                                       },
+                                       reduce_function,
+                                       size,
+                                       neutral_element,
+                                       stats_node);
 
-    auto reduce_stack = shared_node->ProduceStack();
-
-    return DIARef<ValueType, decltype(reduce_stack)>(
-        shared_node, reduce_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<ValueType, Stack>::ReduceToIndex(
+auto DIA<ValueType, Stack>::ReduceToIndex(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t size,
@@ -383,24 +368,16 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
             size_t>::value,
         "The key has to be an unsigned long int (aka. size_t).");
 
-    using ReduceResultNode
-              = ReduceToIndexNode<DOpResult, DIARef,
+    using ReduceNode
+              = ReduceToIndexNode<DOpResult, DIA,
                                   KeyExtractor, ReduceFunction,
                                   true, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", DIANodeType::DOP);
-    auto shared_node
-        = std::make_shared<ReduceResultNode>(*this,
-                                             key_extractor,
-                                             reduce_function,
-                                             size,
-                                             neutral_element,
-                                             stats_node);
+    auto shared_node = std::make_shared<ReduceNode>(
+        *this, key_extractor, reduce_function, size, neutral_element, stats_node);
 
-    auto reduce_stack = shared_node->ProduceStack();
-
-    return DIARef<DOpResult, decltype(reduce_stack)>(
-        shared_node, reduce_stack, { stats_node });
+    return DIA<DOpResult>(shared_node, { stats_node });
 }
 
 //! \}

@@ -4,7 +4,7 @@
  * Part of Project Thrill.
  *
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>

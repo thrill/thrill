@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+##########################################################################
+# benchmarks/word_count/graph_gen.py
+#
+# Part of Project Thrill.
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+##########################################################################
+
 from pylab import *
 import sys, os, re, operator, numpy, itertools
 
@@ -45,3 +55,5 @@ xlabel("2^x elements")
 ylabel("ns per element")
 print "generating plot"
 savefig("wordcount.pdf")
+
+##########################################################################

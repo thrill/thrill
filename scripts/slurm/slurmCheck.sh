@@ -1,4 +1,13 @@
 #!/bin/bash
+################################################################################
+# scripts/slurm/slurmCheck.sh
+#
+# Part of Project Thrill.
+#
+# Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 set -e
 
@@ -25,3 +34,5 @@ fi
 echo "More SLURM Environment:"
 set | grep ^SLURM
 echo "END SLURM Environment:"
+
+################################################################################

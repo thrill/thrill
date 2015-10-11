@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -124,6 +124,14 @@ public:
     template <typename OtherType>
     FixedAllocator(const FixedAllocator<OtherType, manager_>&) noexcept
     { }
+
+#if !defined(_MSC_VER)
+    //! copy-assignment operator: default
+    FixedAllocator& operator = (FixedAllocator&) noexcept = default;
+
+    //! move-assignment operator: default
+    FixedAllocator& operator = (FixedAllocator&&) noexcept = default;
+#endif
 
     //! Attempts to allocate a block of storage with a size large enough to
     //! contain n elements of member type value_type, and returns a pointer to

@@ -10,7 +10,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -86,7 +86,7 @@ namespace thrill {
 namespace core {
 namespace glob_local {
 
-/*! \file SimpleGlob.h
+/*! \file simple_glob.hpp
 
     \version 3.6
 
@@ -121,7 +121,7 @@ namespace glob_local {
    <li> Instantiate a CSimpleGlob object supplying the appropriate flags.
 
         <pre>
-        \link CSimpleGlobTempl CSimpleGlob \endlink glob(FLAGS);
+        CSimpleGlob glob(FLAGS);
         </pre>
 
    <li> Add all file specifications to the glob class.

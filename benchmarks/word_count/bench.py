@@ -1,5 +1,14 @@
 #!/usr/bin/env python
-#Test speedup for local parallelization with 1 to 4 workers on a single node.
+##########################################################################
+# benchmarks/word_count/bench.py
+#
+# Test speedup for local parallelization with 1 to 4 workers on a single node.
+#
+# Part of Project Thrill.
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+##########################################################################
 
 import os
 import sys
@@ -45,3 +54,5 @@ for amount in amounts:
             file1.close()
 
 
+
+##########################################################################

@@ -9,7 +9,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -1061,7 +1061,7 @@ public:
 
         size_t frame_id = global_index / num_buckets_per_frame_;
 
-        LOG << "key: " << kv.first << " to bucket id: " << global_index;
+        // LOG << "key: " << kv.first << " to bucket id: " << global_index;
 
         BucketBlock* current = buckets_[global_index];
 
@@ -1074,8 +1074,8 @@ public:
                 // if item and key equals, then reduce.
                 if (equal_to_function_(kv.first, bi->first))
                 {
-                    LOG << "match of key: " << kv.first
-                        << " and " << bi->first << " ... reducing...";
+                    // LOG << "match of key: " << kv.first
+                    //     << " and " << bi->first << " ... reducing...";
 
                     bi->second = reduce_function_(bi->second, kv.second);
 
@@ -1456,7 +1456,7 @@ public:
         return;
     }
 
-protected:
+private:
     //! Number of buckets per table.
     size_t num_buckets_per_table_;
 

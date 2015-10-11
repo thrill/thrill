@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -231,7 +231,7 @@ public:
         file << "\n";
         for (const auto& node : nodes_) {
             for (const auto& neighbor : node->adjacent_nodes()) {
-                file << "\t" << *node << std::to_string(node->id()) << " -> " << *neighbor << std::to_string(neighbor->id())<< ";\n";
+                file << "\t" << *node << std::to_string(node->id()) << " -> " << *neighbor << std::to_string(neighbor->id()) << ";\n";
             }
         }
         file << "}";

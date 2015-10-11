@@ -4,7 +4,7 @@
  * Part of Project Thrill.
  *
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 namespace thrill {
@@ -28,7 +28,7 @@ uses the DIABase graph to optimize the order of operations.
 
 # List of Actions
 
-## \ref Generate (ctx, generator_function, size)
+## Generate (ctx, generator_function, size)
 
 \copybrief api::Generate
 \copydoc api::Generate

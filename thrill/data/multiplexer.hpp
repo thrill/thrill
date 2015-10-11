@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -69,7 +69,9 @@ public:
                          size_t num_workers_per_host, net::Group& group)
         : mem_manager_(mem_manager),
           block_pool_(block_pool),
-          dispatcher_(mem_manager, group, "multiplexer"),
+          dispatcher_(
+              mem_manager, group,
+              "host " + mem::to_string(group.my_host_rank()) + " multiplexer"),
           group_(group),
           num_workers_per_host_(num_workers_per_host),
           stream_sets_(num_workers_per_host) {
@@ -158,7 +160,7 @@ public:
 
     //! \}
 
-protected:
+private:
     static const bool debug = false;
 
     //! reference to host-global memory manager

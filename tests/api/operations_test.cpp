@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -50,7 +50,7 @@ TEST(Operations, DistributeAndAllGatherElements) {
             std::default_random_engine gen(123456);
             std::shuffle(in_vector.begin(), in_vector.end(), gen);
 
-            DIARef<size_t> integers = Distribute(ctx, in_vector).Collapse();
+            DIA<size_t> integers = Distribute(ctx, in_vector).Collapse();
 
             std::vector<size_t> out_vec = integers.AllGather();
 
@@ -83,7 +83,7 @@ TEST(Operations, DistributeFromAndAllGatherElements) {
                 std::random_shuffle(in_vector.begin(), in_vector.end());
             }
 
-            DIARef<size_t> integers = DistributeFrom(ctx, in_vector, 0).Collapse();
+            DIA<size_t> integers = DistributeFrom(ctx, in_vector, 0).Collapse();
 
             std::vector<size_t> out_vec = integers.AllGather();
 
@@ -116,7 +116,7 @@ TEST(Operations, DistributeAndGatherElements) {
             std::default_random_engine gen(123456);
             std::shuffle(in_vector.begin(), in_vector.end(), gen);
 
-            DIARef<size_t> integers = Distribute(ctx, in_vector).Cache();
+            DIA<size_t> integers = Distribute(ctx, in_vector).Cache();
 
             std::vector<size_t> out_vec = integers.Gather(0);
 
@@ -219,8 +219,11 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
             ASSERT_EQ(32u, out_vec.size());
 
             for (size_t i = 0; i != out_vec.size() / 2; ++i) {
-                ASSERT_DOUBLE_EQ(out_vec[2 * i + 0], 2.0 * i);
-                ASSERT_DOUBLE_EQ(out_vec[2 * i + 1], 2.0 * (i + 16));
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 0],
+                                 2.0 * static_cast<double>(i));
+
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 1],
+                                 2.0 * static_cast<double>(i + 16));
             }
 
             static_assert(
@@ -326,7 +329,7 @@ TEST(Operations, FilterResultsCorrectly) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, DIARefCasting) {
+TEST(Operations, DIACasting) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -342,7 +345,7 @@ TEST(Operations, DIARefCasting) {
                 },
                 16);
 
-            DIARef<size_t> doubled = integers.Filter(even).Collapse();
+            DIA<size_t> doubled = integers.Filter(even).Collapse();
 
             std::vector<size_t> out_vec = doubled.AllGather();
 
@@ -379,7 +382,7 @@ TEST(Operations, ForLoop) {
                                     return 2 * in;
                                 };
 
-            DIARef<size_t> squares = integers.Collapse();
+            DIA<size_t> squares = integers.Collapse();
 
             // run loop four times, inflating DIA of 16 items -> 256
             for (size_t i = 0; i < 4; ++i) {
@@ -421,7 +424,7 @@ TEST(Operations, WhileLoop) {
                                     return 2 * in;
                                 };
 
-            DIARef<size_t> squares = integers.Collapse();
+            DIA<size_t> squares = integers.Collapse();
             size_t sum = 0;
 
             // run loop four times, inflating DIA of 16 items -> 256

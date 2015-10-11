@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -70,7 +70,7 @@ public:
                         multiplexer_.block_pool_,
                         &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
-                        MagicByte::MIX_STREAM_BLOCK,
+                        MagicByte::MixStreamBlock,
                         id,
                         multiplexer_.my_host_rank(), my_local_worker_id,
                         host, worker,
@@ -127,6 +127,11 @@ public:
         return MixReader(queue_, consume);
     }
 
+    //! Open a MixReader (function name matches a method in CatStream).
+    MixReader OpenAnyReader(bool consume) {
+        return OpenMixReader(consume);
+    }
+
     //! shuts the stream down.
     void Close() final {
         // close all sinks, this should emit sentinel to all other worker.
@@ -149,6 +154,10 @@ public:
         // wait for close packets to arrive (this is a busy waiting loop, try to
         // do it better -tb)
         while (!queue_.write_closed()) {
+            sLOG << "MixStream" << id()
+                 << "host" << multiplexer_.my_host_rank()
+                 << "local_worker" << my_local_worker_id_
+                 << "wait for close";
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         tx_lifetime_.StopEventually();
@@ -164,7 +173,7 @@ public:
         return closed;
     }
 
-protected:
+private:
     static const bool debug = false;
 
     //! StreamSink objects are receivers of Blocks outbound for other worker.
@@ -191,7 +200,7 @@ protected:
 
         if (debug) {
             sLOG << "stream" << id_ << "receive from" << from << ":"
-                 << common::hexdump(b.ToString());
+                 << common::Hexdump(b.ToString());
         }
 
         queue_.AppendBlock(from, b);
@@ -202,6 +211,8 @@ protected:
     void OnCloseStream(size_t from) {
         assert(from < multiplexer_.num_workers());
         queue_.Close(from);
+
+        sLOG << "OnMixCloseStream from=" << from;
 
         if (expected_closing_blocks_ == ++received_closing_blocks_) {
             rx_lifetime_.StopEventually();

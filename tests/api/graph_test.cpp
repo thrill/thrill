@@ -4,7 +4,7 @@
  * Part of Project Thrill.
  *
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/allgather.hpp>
@@ -79,7 +79,7 @@ TEST(Graph, WhileLoop) {
                                     return 2 * in;
                                 };
 
-            DIARef<size_t> squares = integers.Collapse();
+            DIA<size_t> squares = integers.Collapse();
             size_t sum = 0;
 
             // run loop four times, inflating DIA of 16 items -> 256

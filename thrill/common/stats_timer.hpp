@@ -10,7 +10,7 @@
  * Copyright (C) 2014 Thomas Keh <thomas.keh@student.kit.edu>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -47,7 +47,7 @@ public:
 
     using duration = std::chrono::microseconds;
 
-protected:
+private:
     //! boolean whether the timer is currently running
     bool running_;
 

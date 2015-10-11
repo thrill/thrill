@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -92,11 +92,10 @@ public:
         header.receiver_local_worker_id = partners_local_worker_id_;
 
         if (debug) {
-            sLOG << "sending block" << common::hexdump(block.ToString());
+            sLOG << "sending block" << common::Hexdump(block.ToString());
         }
 
         net::BufferBuilder bb;
-        // bb.Put(MagicByte::STREAM_BLOCK);
         header.Serialize(bb);
 
         net::Buffer buffer = bb.ToBuffer();
@@ -133,7 +132,6 @@ public:
         header.receiver_local_worker_id = partners_local_worker_id_;
 
         net::BufferBuilder bb;
-        // bb.Put(MagicByte::STREAM_BLOCK);
         header.Serialize(bb);
 
         net::Buffer buffer = bb.ToBuffer();
@@ -152,13 +150,13 @@ public:
     //! nullptr).
     enum { allocate_can_fail_ = false };
 
-protected:
+private:
     static const bool debug = false;
 
     net::DispatcherThread* dispatcher_ = nullptr;
     net::Connection* connection_ = nullptr;
 
-    MagicByte magic_ = MagicByte::INVALID;
+    MagicByte magic_ = MagicByte::Invalid;
     size_t id_ = size_t(-1);
     size_t my_rank_ = size_t(-1);
     size_t my_local_worker_id_ = size_t(-1);
@@ -166,9 +164,9 @@ protected:
     size_t partners_local_worker_id_ = size_t(-1);
     bool closed_ = false;
 
-    StatsCounterPtr byte_counter_;
-    StatsCounterPtr block_counter_;
-    StatsTimerPtr tx_timespan_;
+    StatsCounterPtr byte_counter_ = nullptr;
+    StatsCounterPtr block_counter_ = nullptr;
+    StatsTimerPtr tx_timespan_ = nullptr;
 };
 
 //! \}

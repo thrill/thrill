@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/common/porting.hpp>
@@ -54,18 +54,18 @@ std::string FillFilePattern(const std::string& pathbase,
 
     std::string out_path = pathbase;
     {
-        // replace dollar
-        size_type dollar_end = out_path.rfind('$');
-        size_type dollar_begin = out_path.find_last_not_of('$', dollar_end);
+        // replace @
+        size_type at_end = out_path.rfind('@');
+        size_type at_begin = out_path.find_last_not_of('@', at_end);
 
-        size_type dollar_length =
-            dollar_end != std::string::npos && dollar_end > dollar_begin
-            ? dollar_end - dollar_begin : 4;
+        size_type at_length =
+            at_end != std::string::npos && at_end > at_begin
+            ? at_end - at_begin : 4;
 
-        sLOG << "dollar_length" << dollar_length;
-        out_path.replace(dollar_begin + 1, dollar_length,
-                         common::str_snprintf<>(dollar_length + 2, "%0*zu",
-                                                static_cast<int>(dollar_length),
+        sLOG << "at_length" << at_length;
+        out_path.replace(at_begin + 1, at_length,
+                         common::str_snprintf<>(at_length + 2, "%0*zu",
+                                                static_cast<int>(at_length),
                                                 worker));
     }
     {
@@ -186,7 +186,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
     // first open the file and see if it exists at all.
 
-    int fd = open(path.c_str(), O_RDONLY | O_BINARY, 0);
+    int fd = ::open(path.c_str(), O_RDONLY | O_BINARY, 0);
     if (fd < 0) {
         throw common::ErrnoException("Cannot open file " + path);
     }
@@ -195,19 +195,19 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
     const char* decompressor;
 
-    if (common::ends_with(path, ".gz")) {
+    if (common::EndsWith(path, ".gz")) {
         decompressor = "gzip";
     }
-    else if (common::ends_with(path, ".bz2")) {
+    else if (common::EndsWith(path, ".bz2")) {
         decompressor = "bzip2";
     }
-    else if (common::ends_with(path, ".xz")) {
+    else if (common::EndsWith(path, ".xz")) {
         decompressor = "xz";
     }
-    else if (common::ends_with(path, ".lzo")) {
+    else if (common::EndsWith(path, ".lzo")) {
         decompressor = "lzop";
     }
-    else if (common::ends_with(path, ".lz4")) {
+    else if (common::EndsWith(path, ".lz4")) {
         decompressor = "lz4";
     }
     else {
@@ -229,7 +229,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
     // pipe[0] = read, pipe[1] = write
     int pipefd[2];
-    common::make_pipe(pipefd);
+    common::MakePipe(pipefd);
 
     pid_t pid = fork();
     if (pid == 0) {
@@ -270,7 +270,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     // first create the file and see if we can write it at all.
 
-    int fd = open(path.c_str(), O_CREAT | O_WRONLY | O_BINARY, 0666);
+    int fd = ::open(path.c_str(), O_CREAT | O_WRONLY | O_BINARY, 0666);
     if (fd < 0) {
         throw common::ErrnoException("Cannot create file " + path);
     }
@@ -279,19 +279,19 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     const char* compressor;
 
-    if (common::ends_with(path, ".gz")) {
+    if (common::EndsWith(path, ".gz")) {
         compressor = "gzip";
     }
-    else if (common::ends_with(path, ".bz2")) {
+    else if (common::EndsWith(path, ".bz2")) {
         compressor = "bzip2";
     }
-    else if (common::ends_with(path, ".xz")) {
+    else if (common::EndsWith(path, ".xz")) {
         compressor = "xz";
     }
-    else if (common::ends_with(path, ".lzo")) {
+    else if (common::EndsWith(path, ".lzo")) {
         compressor = "lzop";
     }
-    else if (common::ends_with(path, ".lz4")) {
+    else if (common::EndsWith(path, ".lz4")) {
         compressor = "lz4";
     }
     else {
@@ -313,7 +313,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     // pipe[0] = read, pipe[1] = write
     int pipefd[2];
-    common::make_pipe(pipefd);
+    common::MakePipe(pipefd);
 
     pid_t pid = fork();
     if (pid == 0) {

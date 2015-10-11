@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -38,7 +38,7 @@ namespace api {
  * \tparam GenerateNode Type of the generate function.
  */
 template <typename ValueType, typename GeneratorFunction>
-class GenerateNode : public SourceNode<ValueType>
+class GenerateNode final : public SourceNode<ValueType>
 {
 public:
     using Super = SourceNode<ValueType>;
@@ -71,18 +71,10 @@ public:
             this->PushItem(generator_function_(i));
         }
 
-        STAT(context_) << "NodeType" << "Generate";
+        // STAT(context_) << "NodeType" << "Generate";
     }
 
     void Dispose() final { }
-
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.  \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
 
 private:
     //! The generator function which is applied to every index.
@@ -111,8 +103,8 @@ auto Generate(Context & ctx,
     using GeneratorResult =
               typename common::FunctionTraits<GeneratorFunction>::result_type;
 
-    using GenerateResultNode =
-              GenerateNode<GeneratorResult, GeneratorFunction>;
+    using GenerateNode =
+              api::GenerateNode<GeneratorResult, GeneratorFunction>;
 
     static_assert(
         std::is_convertible<
@@ -123,13 +115,10 @@ auto Generate(Context & ctx,
 
     StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", DIANodeType::DOP);
     auto shared_node =
-        std::make_shared<GenerateResultNode>(
+        std::make_shared<GenerateNode>(
             ctx, generator_function, size, stats_node);
 
-    auto generator_stack = shared_node->ProduceStack();
-
-    return DIARef<GeneratorResult, decltype(generator_stack)>(
-        shared_node, generator_stack, { stats_node });
+    return DIA<GeneratorResult>(shared_node, { stats_node });
 }
 
 //! \}

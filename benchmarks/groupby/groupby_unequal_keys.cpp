@@ -28,7 +28,7 @@
 #include <utility>
 #include <vector>
 
-using thrill::DIARef;
+// using thrill::DIARef;
 using thrill::Context;
 
 using namespace thrill; // NOLINT

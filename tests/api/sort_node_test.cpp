@@ -5,11 +5,12 @@
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/generate.hpp>
+#include <thrill/api/read_binary.hpp>
 #include <thrill/api/sort.hpp>
 
 #include <gtest/gtest.h>
@@ -152,6 +153,63 @@ TEST(Sort, SortRandomIntIntStructs) {
 
             for (size_t i = 0; i < out_vec.size() - 1; i++) {
                 ASSERT_FALSE(out_vec[i + 1].first < out_vec[i].first);
+            }
+
+            ASSERT_EQ(10000u, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Sort, SortZeros) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            std::default_random_engine generator(std::random_device { } ());
+            std::uniform_int_distribution<int> distribution(1, 10);
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t&) -> size_t {
+                    return 0;
+                },
+                10000);
+
+            auto sorted = integers.Sort();
+
+            std::vector<size_t> out_vec;
+
+            sorted.AllGather(&out_vec);
+
+            /* for (size_t i = 0; i < out_vec.size() - 1; i++) {
+    ASSERT_FALSE(out_vec[i + 1].first < out_vec[i].first);
+                    }*/
+
+            ASSERT_EQ(10000u, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Sort, SortWithEmptyWorkers) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            std::string in = "inputs/compressed-0-0.gzip";
+            auto integers = api::ReadBinary<size_t>(ctx, in);
+
+            auto sorted = integers.Sort();
+
+            std::vector<size_t> out_vec;
+
+            sorted.AllGather(&out_vec);
+
+            size_t prev = 0;
+            for (size_t i = 0; i < out_vec.size() - 1; i++) {
+                ASSERT_TRUE(out_vec[i] >= prev);
+                prev = out_vec[i];
             }
 
             ASSERT_EQ(10000u, out_vec.size());

@@ -8,7 +8,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -53,7 +53,7 @@ public:
         return block_source_ptr_->NextBlock();
     }
 
-protected:
+private:
     std::shared_ptr<DynBlockSourceInterface> block_source_ptr_;
 };
 
@@ -85,7 +85,7 @@ public:
         return block_source_.NextBlock();
     }
 
-protected:
+private:
     BlockSource block_source_;
 };
 
