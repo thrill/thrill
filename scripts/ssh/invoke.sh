@@ -1,4 +1,13 @@
 #!/bin/bash
+################################################################################
+# scripts/ssh/invoke.sh
+#
+# Part of Project Thrill.
+#
+# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 ssh_dir="`dirname "$0"`"
 ssh_dir="`cd "$ssh_dir"; pwd`"
@@ -123,45 +132,31 @@ for hostport in $THRILL_SSHLIST; do
   fi
   THRILL_EXPORTS="THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\""
   THRILL_EXPORTS="$THRILL_EXPORTS THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\""
+  THRILL_EXPORTS="$THRILL_EXPORTS THRILL_DIE_WITH_PARENT=1"
   REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
   if [ "$copy" == "1" ]; then
       REMOTENAME="/tmp/$cmdbase.$hostport.$$"
+      THRILL_EXPORTS="$THRILL_EXPORTS THRILL_UNLINK_BINARY=\"$REMOTENAME\""
       # copy the program to the remote, and execute it at the remote end.
-      ( scp -o BatchMode=yes -o StrictHostKeyChecking=no -o Compression=yes \
+      ( scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
             "$cmd" "$host:$REMOTENAME" &&
-        ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
+        ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
             $host \
-            "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
+            "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && exec \"$REMOTENAME\" $*"
       ) &
   else
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
           $host \
-          "export $THRILL_EXPORTS && cd $dir && $cmd $*" &
+          "export $THRILL_EXPORTS && cd $dir && exec $cmd $*" &
   fi
   rank=$((rank+1))
 done
-
-# on Ctrl+C kill remote programs
-function killcommand() {
-    echo "Killing remote programs, please wait."
-    for hostport in $THRILL_SSHLIST; do
-        host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
-        if [ "$copy" == "1" ]; then
-            REMOTENAME="$cmdbase.$hostport.$$"
-        else
-            REMOTENAME="$cmd"
-        fi
-
-        ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
-            $host "killall \"$REMOTENAME\"" || true
-    done
-}
-
-trap "killcommand" SIGINT
 
 echo "Waiting for execution to finish."
 for hostport in $THRILL_HOSTLIST; do
     wait
 done
 echo "Done."
+
+################################################################################

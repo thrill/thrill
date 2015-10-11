@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -84,7 +84,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 
     if (0) {
         for (size_t i = 0; i != file.num_blocks(); ++i) {
-            std::cout << common::hexdump(file.block(i).ToString())
+            std::cout << common::Hexdump(file.block(i).ToString())
                       << std::endl;
         }
     }
@@ -250,7 +250,7 @@ TEST_F(File, SerializeSomeItemsConsumeReader) {
 TEST_F(File, RandomGetIndexOf) {
     const size_t size = 500;
 
-    std::minstd_rand0 rng;
+    std::minstd_rand0 rng(0);
 
     // Create test file.
     data::File file(block_pool_);
@@ -265,15 +265,72 @@ TEST_F(File, RandomGetIndexOf) {
 
     ASSERT_EQ(size, file.num_items());
 
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < 100; i++) {
         size_t val = rng() % size;
-        size_t idx = file.GetIndexOf(val, std::less<size_t>());
 
-        ASSERT_EQ(500 - val - 1, idx);
+        size_t idx = file.GetIndexOf(val, 0, std::greater<size_t>());
+        ASSERT_EQ(val, file.GetItemAt<size_t>(idx));
     }
 }
 
-TEST_F(File, ReadFileWIthBufferedReader) {
+TEST_F(File, TieGetIndexOf) {
+    const size_t size = 500;
+
+    // Create test file.
+    data::File file(block_pool_);
+
+    data::File::Writer fw = file.GetWriter(53);
+
+    for (size_t i = 0; i < size; i++) {
+        fw(i);
+    }
+
+    fw.Close();
+
+    for (size_t i = 0; i < size; i++) {
+        size_t idx = file.GetIndexOf(i, i, std::less<size_t>());
+
+        ASSERT_EQ(idx, i);
+    }
+}
+
+TEST_F(File, TieGetIndexOfWithDuplicates) {
+    const size_t size = 500;
+
+    std::minstd_rand0 rng(0);
+
+    // Create test file.
+    data::File file(block_pool_);
+
+    data::File::Writer fw = file.GetWriter(53);
+
+    for (size_t i = 0; i < size; i++) {
+        fw(i / 4);
+    }
+
+    fw.Close();
+
+    ASSERT_EQ(size, file.num_items());
+
+    for (size_t i = 0; i < size; i++) {
+        if (i % 4 == 0) {
+            size_t val = i / 4;
+            size_t idxL = file.GetIndexOf(val, 0, std::less<size_t>());
+            size_t idxH = file.GetIndexOf(val, size * 2, std::less<size_t>());
+            size_t idxE = file.GetIndexOf(val, val, std::less<size_t>());
+
+            ASSERT_EQ(val * 4, idxL);
+            ASSERT_EQ(idxE, idxL);
+            ASSERT_EQ(val * 4 + 4, idxH);
+            ASSERT_EQ(val, file.GetItemAt<size_t>(idxL));
+        }
+        size_t val = i;
+        size_t idxM = file.GetIndexOf(val / 4, val, std::less<size_t>());
+        ASSERT_EQ(idxM, val);
+    }
+}
+
+TEST_F(File, ReadFileWithBufferedReader) {
     data::File file(block_pool_);
     data::File::Writer fw = file.GetWriter(53);
 

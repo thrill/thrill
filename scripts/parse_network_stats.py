@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+##########################################################################
+# scripts/parse_network_stats.py
+#
+# Part of Project Thrill.
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+##########################################################################
+
 from sys import stdin
 
 def second_word(words):
@@ -44,3 +54,5 @@ while True:
         break
     if not "[Network] channel " in line: continue
     print_data(enrich_data(parse_line(line)))
+
+##########################################################################

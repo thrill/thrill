@@ -8,7 +8,7 @@
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -139,15 +139,17 @@ public:
     { return socket_.GetError(); }
 
     //! Set socket to non-blocking
-    int SetNonBlocking(bool non_blocking) const
-    { return socket_.SetNonBlocking(non_blocking); }
+    void SetNonBlocking(bool non_blocking) {
+        if (!socket_.SetNonBlocking(non_blocking))
+            throw Exception("Error setting socket non-blocking flag", errno);
+    }
 
     //! Return the socket peer address
     std::string GetPeerAddress() const
     { return socket_.GetPeerAddress().ToStringHostPort(); }
 
     //! Checks wether two connections have the same underlying socket or not.
-    bool operator == (const Connection& c) const
+    bool operator == (const Connection& c) const noexcept
     { return GetSocket().fd() == c.GetSocket().fd(); }
 
     //! Destruction of Connection should be explicitly done by a NetGroup or
@@ -159,6 +161,7 @@ public:
     }
 
     void SyncSend(const void* data, size_t size, Flags flags) final {
+        SetNonBlocking(false);
         int f = 0;
         if (flags & MsgMore) f |= MSG_MORE;
         if (socket_.send(data, size, f) != static_cast<ssize_t>(size))
@@ -166,17 +169,20 @@ public:
     }
 
     ssize_t SendOne(const void* data, size_t size, Flags flags) final {
+        SetNonBlocking(true);
         int f = 0;
         if (flags & MsgMore) f |= MSG_MORE;
         return socket_.send_one(data, size, f);
     }
 
     void SyncRecv(void* out_data, size_t size) final {
+        SetNonBlocking(false);
         if (socket_.recv(out_data, size) != static_cast<ssize_t>(size))
             throw Exception("Error during SyncRecv", errno);
     }
 
     ssize_t RecvOne(void* out_data, size_t size) final {
+        SetNonBlocking(true);
         return socket_.recv_one(out_data, size);
     }
 
@@ -186,7 +192,7 @@ public:
     }
 
     //! make ostreamable
-    std::ostream & output_ostream(std::ostream& os) const final {
+    std::ostream & OutputOstream(std::ostream& os) const final {
         os << "[tcp::Connection"
            << " fd=" << GetSocket().fd();
 
@@ -196,7 +202,7 @@ public:
         return os << "]";
     }
 
-protected:
+private:
     //! Underlying socket or connection handle.
     Socket socket_;
 

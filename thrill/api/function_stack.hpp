@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -38,7 +38,7 @@ namespace api {
  * \param lambda Lambda function that represents the chain end.
  */
 template <typename Lambda>
-auto run_emitter(const Lambda &lambda)
+auto RunEmitter(const Lambda &lambda)
 {
     return [=](const auto & input)->void {
                lambda(input);
@@ -56,10 +56,10 @@ auto run_emitter(const Lambda &lambda)
  * \param rest Remaining lambda functions.
  */
 template <typename Lambda, typename ... MoreLambdas>
-auto run_emitter(const Lambda &lambda, const MoreLambdas &... rest)
+auto RunEmitter(const Lambda &lambda, const MoreLambdas &... rest)
 {
     return [=](const auto & input)->void {
-               lambda(input, run_emitter(rest ...));
+               lambda(input, RunEmitter(rest ...));
     };
 }
 
@@ -118,7 +118,7 @@ public:
      */
     auto emit() const {
         const size_t Size = sizeof ... (Lambdas);
-        return emit_sequence(common::make_index_sequence<Size>{ });
+        return EmitSequence(common::make_index_sequence<Size>{ });
     }
 
 private:
@@ -132,8 +132,8 @@ private:
      * \return Single "folded" lambda function representing the chain.
      */
     template <size_t ... Is>
-    auto emit_sequence(common::index_sequence<Is ...>) const {
-        return run_emitter(std::get<Is>(stack_) ...);
+    auto EmitSequence(common::index_sequence<Is ...>) const {
+        return RunEmitter(std::get<Is>(stack_) ...);
     }
 };
 

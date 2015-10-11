@@ -9,7 +9,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -68,7 +68,7 @@ public:
         return "peer: " + std::to_string(peer_);
     }
 
-    std::ostream & output_ostream(std::ostream& os) const final {
+    std::ostream & OutputOstream(std::ostream& os) const final {
         return os << "[mock::Connection"
                   << " group=" << group_
                   << " peer=" << peer_
@@ -121,12 +121,12 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Reference to our group.
-    Group* group_;
+    Group* group_ = nullptr;
 
     //! Outgoing peer id of this Connection.
-    size_t peer_;
+    size_t peer_ = size_t(-1);
 
     //! Mutex to lock access to inbound message queue
     std::mutex mutex_;
@@ -199,14 +199,14 @@ public:
         size_t num_hosts);
 
     //! return hexdump or just [data] if not debugging
-    static std::string maybe_hexdump(const void* data, size_t size) {
+    static std::string MaybeHexdump(const void* data, size_t size) {
         if (debug_data)
-            return common::hexdump(data, size);
+            return common::Hexdump(data, size);
         else
             return "[data]";
     }
 
-protected:
+private:
     //! vector of peers for delivery of messages.
     std::vector<Group*> peers_;
 
@@ -219,7 +219,7 @@ protected:
 
         if (debug) {
             sLOG << "Sending" << my_rank_ << "->" << tgt
-                 << "msg" << maybe_hexdump(msg.data(), msg.size());
+                 << "msg" << MaybeHexdump(msg.data(), msg.size());
         }
 
         peers_[tgt]->conns_[my_rank_].InboundMsg(std::move(msg));
@@ -294,7 +294,7 @@ public:
 
     void DispatchOne(const std::chrono::milliseconds& timeout) final;
 
-protected:
+private:
     //! Mutex to lock access to watch lists
     std::mutex mutex_;
 

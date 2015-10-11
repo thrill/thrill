@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
@@ -16,6 +16,7 @@
 #include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats.hpp>
+#include <thrill/common/system_exception.hpp>
 
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>
@@ -28,9 +29,15 @@
 #include <thrill/net/mpi/group.hpp>
 #endif
 
-#include <atomic>
+#if defined(__linux__)
+
+// linux-specific process control
+#include <sys/prctl.h>
+
+#endif
+
+#include <csignal>
 #include <memory>
-#include <random>
 #include <string>
 #include <thread>
 #include <tuple>
@@ -173,7 +180,7 @@ void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
 
     for (size_t& host_count : num_hosts) {
         for (size_t& workers_per_host : num_workers) {
-            return RunLoopbackThreads<TestGroup>(
+            RunLoopbackThreads<TestGroup>(
                 host_count, workers_per_host, job_startpoint);
         }
     }
@@ -316,10 +323,10 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     if (env_hostlist) {
         // first try to split by spaces, then by commas
-        std::vector<std::string> list = common::split(env_hostlist, ' ');
+        std::vector<std::string> list = common::Split(env_hostlist, ' ');
 
         if (list.size() == 1) {
-            list = common::split(env_hostlist, ',');
+            list = common::Split(env_hostlist, ',');
         }
 
         for (const std::string& host : list) {
@@ -516,6 +523,57 @@ DetectNetBackend() {
 #endif
 }
 
+//! Check environment variable THRILL_DIE_WITH_PARENT and enable process flag:
+//! this is useful for ssh/invoke.sh: it kills spawned processes when the ssh
+//! connection breaks. Hence: no more zombies.
+static inline int RunDieWithParent() {
+
+    const char* env_die_with_parent = getenv("THRILL_DIE_WITH_PARENT");
+    if (!env_die_with_parent) return 0;
+
+    char* endptr;
+
+    long die_with_parent = std::strtol(env_die_with_parent, &endptr, 10);
+    if (!endptr || *endptr != 0 ||
+        (die_with_parent != 0 && die_with_parent != 1)) {
+        std::cerr << "Thrill: environment variable"
+                  << " THRILL_DIE_WITH_PARENT=" << env_die_with_parent
+                  << " is not either 0 or 1."
+                  << std::endl;
+        return -1;
+    }
+
+    if (!die_with_parent) return 0;
+
+#if defined(__linux__)
+    if (prctl(PR_SET_PDEATHSIG, SIGTERM) != 0)
+        throw common::ErrnoException("Error calling prctl(PR_SET_PDEATHSIG)");
+    return 1;
+#else
+    std::cerr << "Thrill: DIE_WITH_PARENT is not supported on this platform.\n"
+              << "Please submit a patch."
+              << std::endl;
+    return 0;
+#endif
+}
+
+//! Check environment variable THRILL_UNLINK_BINARY and unlink given program
+//! path: this is useful for ssh/invoke.sh: it removes the copied program files
+//! _while_ it is running, hence it is gone even if the program crashes.
+static inline int RunUnlinkBinary() {
+
+    const char* env_unlink_binary = getenv("THRILL_UNLINK_BINARY");
+    if (!env_unlink_binary) return 0;
+
+    if (unlink(env_unlink_binary) != 0) {
+        throw common::ErrnoException(
+                  "Error calling unlink binary \""
+                  + std::string(env_unlink_binary) + "\"");
+    }
+
+    return 0;
+}
+
 /*!
  * Runs the given job startpoint with a context instance.  Startpoints may be
  * called multiple times with concurrent threads and different context instances
@@ -527,7 +585,13 @@ DetectNetBackend() {
  */
 int Run(const std::function<void(Context&)>& job_startpoint) {
 
-    // parse environment.
+    if (RunDieWithParent() < 0)
+        return -1;
+
+    if (RunUnlinkBinary() < 0)
+        return -1;
+
+    // parse environment: THRILL_NET
     const char* env_net = getenv("THRILL_NET");
 
     // if no backend configured: automatically select one.
@@ -569,6 +633,19 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
     std::cerr << "Thrill: network backend " << env_net << " is unknown."
               << std::endl;
     return -1;
+}
+
+/******************************************************************************/
+// Context methods
+
+template <>
+std::shared_ptr<data::CatStream> Context::GetNewStream<data::CatStream>() {
+    return GetNewCatStream();
+}
+
+template <>
+std::shared_ptr<data::MixStream> Context::GetNewStream<data::MixStream>() {
+    return GetNewMixStream();
 }
 
 } // namespace api

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -39,12 +39,12 @@ public:
     }
 
     //! Returns true if this reader holds a value at the current position.
-    bool HasValue() {
+    bool HasValue() const {
         return hasCurrent_;
     }
 
     //! Gets the value at the current position of this reader.
-    ItemType Value() {
+    const ItemType & Value() const {
         assert(HasValue());
 
         return current_;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -26,7 +26,7 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class DistributeFromNode : public SourceNode<ValueType>
+class DistributeFromNode final : public SourceNode<ValueType>
 {
 public:
     using Super = SourceNode<ValueType>;
@@ -81,10 +81,6 @@ public:
 
     void Dispose() final { }
 
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
-
 private:
     //! Vector pointer to read elements from.
     const std::vector<ValueType>& in_vector_;
@@ -114,10 +110,7 @@ auto DistributeFrom(
         std::make_shared<DistributeFromNode>(
             ctx, in_vector, source_id, stats_node);
 
-    auto scatter_stack = shared_node->ProduceStack();
-
-    return DIARef<ValueType, decltype(scatter_stack)>(
-        shared_node, scatter_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -249,9 +249,7 @@ struct Serialization<Archive, T,
         x.ThrillSerialize(ar);
     }
     static T Deserialize(Archive& ar) {
-        T x;
-        x.ThrillDeserialize(ar);
-        return x;
+        return T::ThrillDeserialize(ar);
     }
     static const bool   is_fixed_size = T::thrill_is_fixed_size;
     static const size_t fixed_size = T::thrill_fixed_size;

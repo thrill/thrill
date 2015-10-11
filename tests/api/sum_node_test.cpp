@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -72,7 +72,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
                                     return in1 + in2;
                                 };
 
-            DIARef<int> coll = ones.Collapse();
+            DIA<int> coll = ones.Collapse();
 
             ASSERT_EQ(136, coll.Sum(add_function));
             ASSERT_EQ(16u, coll.Size());

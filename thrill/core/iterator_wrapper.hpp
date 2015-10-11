@@ -11,7 +11,7 @@
  * Copyright (C) 2013-2014 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -44,7 +44,7 @@ class FileOutputIteratorWrapper
     using File = data::File;
     using Writer = File::Writer;
 
-protected:
+private:
     std::shared_ptr<Writer> writer_;
 
 public:
@@ -84,7 +84,7 @@ class FileIteratorWrapper : public std::iterator<std::random_access_iterator_tag
     using File = data::File;
     using Reader = File::Reader;
 
-protected:
+private:
     File* file_;
     std::shared_ptr<Reader> reader_;
     size_t pos_;
@@ -107,7 +107,7 @@ public:
         stats_->has_elem_ = true;
 
         LOG << "-----------------------------------------";
-        LOG << "NEXT GOT " << stats_->item_ << " FROM " << file_->ToString();
+        LOG << "NEXT GOT ITEM FROM " << file_->ToString();
         LOG << "-----------------------------------------";
     }
 
@@ -149,7 +149,7 @@ public:
         }
     }
 
-    // FileIteratorWrapper(const FileIteratorWrapper& r) {}
+    FileIteratorWrapper(const FileIteratorWrapper&) = default;
 
     FileIteratorWrapper& operator = (const FileIteratorWrapper& r) {
         file_ = r.file_;
@@ -234,24 +234,24 @@ public:
 
     reference operator * () const {
         LOG << "-----------------------------------------";
-        LOG << "Trying to return " << stats_->item_ << " from " << pos_ << " " << file_->ToString();
+        LOG << "Trying to return item from " << pos_ << " " << file_->ToString();
         LOG << "-----------------------------------------";
         assert(stats_->is_valid_);
 
         LOG << "-----------------------------------------";
-        LOG << "RETURN " << stats_->item_ << " FROM " << pos_ << " " << file_->ToString();
+        LOG << "RETURN item FROM " << pos_ << " " << file_->ToString();
         LOG << "-----------------------------------------";
         LOG << "    Operator* ";
         LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
         LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
         LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
-        LOG << "        " << std::left << std::setw(7) << "item: " << stats_->item_;
+        // LOG << "        " << std::left << std::setw(7) << "item: " << stats_->item_;
         return stats_->item_;
     }
     // pointer operator->() const {
     // reference operator[](const difference_type& n) const {}
 
-    bool operator == (const FileIteratorWrapper& r) {
+    bool operator == (const FileIteratorWrapper& r) noexcept {
         LOG << "    Operator== ";
         LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
         LOG << "        " << std::left << std::setw(7) << "pos2: " << r.pos_;
@@ -261,7 +261,7 @@ public:
         return (file_ == r.file_) && (pos_ == r.pos_);
     }
 
-    bool operator != (const FileIteratorWrapper& r) {
+    bool operator != (const FileIteratorWrapper& r) noexcept {
         LOG << "    Operator!= ";
         LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
         LOG << "        " << std::left << std::setw(7) << "pos2: " << r.pos_;
@@ -306,7 +306,7 @@ public:
 template <typename ArrayItem>
 class VectorIteratorWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
 {
-protected:
+private:
     std::vector<ArrayItem>* m_array;
     size_t m_pos;
 

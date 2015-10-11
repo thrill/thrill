@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/common/porting.hpp>
@@ -37,7 +37,7 @@ void PortSetCloseOnExec(int fd) {
 #endif
 }
 
-void make_pipe(int out_pipefds[2]) {
+void MakePipe(int out_pipefds[2]) {
 #if THRILL_HAVE_PIPE2
     if (pipe2(out_pipefds, O_CLOEXEC) != 0)
         throw ErrnoException("Error creating pipe");

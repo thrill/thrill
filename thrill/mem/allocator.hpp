@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -183,7 +183,7 @@ public:
         allocator_.deallocate(ptr, 1);
     }
 
-protected:
+private:
     //! reference to Manager for freeing.
     Allocator<T> allocator_;
 };

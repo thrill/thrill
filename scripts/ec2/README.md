@@ -23,7 +23,7 @@ Run `./make_env.py` to check if the boto3 library can connect to AWS.
 Using aws command line tool:
 
 ```
-aws ec2 run-instances --image-id ami-2d3a185a \
+aws ec2 run-instances --image-id ami-21745a56 \
       --key-name rsa.tb2 --instance-type t2.micro \
       --security-groups default \
       --enable-api-termination \
@@ -46,7 +46,7 @@ aws ec2 describe-instances
 
 - `invoke.sh` runs ssh invoke with the environment variables from `make_env.py`.
 
-TODO: have `make_env.py` limit the number of hosts used.
+- Use `export EC2_KEY_NAME=rsa.keyname` to filter the selected instances to just those started with a specific ssh keypair. (Useful if multiple experiments are run under one ec2 account).
 
 ## Example
 

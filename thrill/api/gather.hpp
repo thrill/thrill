@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -25,14 +25,17 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
-class GatherNode : public ActionNode
+template <typename ParentDIA>
+class GatherNode final : public ActionNode
 {
 public:
     using Super = ActionNode;
     using Super::context_;
 
-    GatherNode(const ParentDIARef& parent,
+    //! input and output type is the parent's output value type.
+    using ValueType = typename ParentDIA::ValueType;
+
+    GatherNode(const ParentDIA& parent,
                size_t target_id,
                std::vector<ValueType>* out_vector,
                StatsNode* stats_node)
@@ -91,10 +94,10 @@ private:
  */
 template <typename ValueType, typename Stack>
 std::vector<ValueType>
-DIARef<ValueType, Stack>::Gather(size_t target_id) const {
+DIA<ValueType, Stack>::Gather(size_t target_id) const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<ValueType, DIARef>;
+    using GatherNode = api::GatherNode<DIA>;
 
     std::vector<ValueType> output;
 
@@ -113,11 +116,11 @@ DIARef<ValueType, Stack>::Gather(size_t target_id) const {
  * of the one worker.
  */
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::Gather(
+void DIA<ValueType, Stack>::Gather(
     size_t target_id, std::vector<ValueType>* out_vector)  const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<ValueType, DIARef>;
+    using GatherNode = api::GatherNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
     auto shared_node =

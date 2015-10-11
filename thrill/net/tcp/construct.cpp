@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/net/tcp/connection.hpp>
@@ -114,13 +114,11 @@ public:
                 LOG << "Group " << j
                     << " link " << my_rank_ << " -> " << i << " = fd "
                     << groups_[j]->tcp_connection(i).GetSocket().fd();
-
-                groups_[j]->tcp_connection(i).GetSocket().SetNonBlocking(true);
             }
         }
     }
 
-protected:
+private:
     //! Temporary Manager for construction
     mem::Manager mem_manager_ { nullptr, "Construction" };
 
@@ -133,7 +131,7 @@ protected:
     /**
      * The rank associated with the local worker.
      */
-    size_t my_rank_;
+    size_t my_rank_ = size_t(-1);
 
     /**
      * The Connections responsible

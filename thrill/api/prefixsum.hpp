@@ -6,7 +6,7 @@
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -28,8 +28,8 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef, typename SumFunction>
-class PrefixSumNode : public DOpNode<ValueType>
+template <typename ValueType, typename ParentDIA, typename SumFunction>
+class PrefixSumNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
@@ -37,7 +37,7 @@ class PrefixSumNode : public DOpNode<ValueType>
     using Super::context_;
 
 public:
-    PrefixSumNode(const ParentDIARef& parent,
+    PrefixSumNode(const ParentDIA& parent,
                   const SumFunction& sum_function,
                   const ValueType& initial_element,
                   StatsNode* stats_node)
@@ -72,16 +72,6 @@ public:
     }
 
     void Dispose() final { }
-
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     *
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
 
 private:
     //! The sum function which is applied to two elements.
@@ -122,12 +112,12 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
-auto DIARef<ValueType, Stack>::PrefixSum(
+auto DIA<ValueType, Stack>::PrefixSum(
     const SumFunction &sum_function, const ValueType &initial_element) const {
     assert(IsValid());
 
     using SumResultNode
-              = PrefixSumNode<ValueType, DIARef, SumFunction>;
+              = PrefixSumNode<ValueType, DIA, SumFunction>;
 
     static_assert(
         std::is_convertible<
@@ -150,17 +140,10 @@ auto DIARef<ValueType, Stack>::PrefixSum(
 
     StatsNode* stats_node = AddChildStatsNode("PrefixSum", DIANodeType::DOP);
     auto shared_node
-        = std::make_shared<SumResultNode>(*this,
-                                          sum_function,
-                                          initial_element,
-                                          stats_node);
+        = std::make_shared<SumResultNode>(
+        *this, sum_function, initial_element, stats_node);
 
-    auto sum_stack = shared_node->ProduceStack();
-
-    return DIARef<ValueType, decltype(sum_stack)>(
-        shared_node,
-        sum_stack,
-        { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

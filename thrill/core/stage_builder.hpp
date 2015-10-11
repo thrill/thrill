@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -152,7 +152,7 @@ public:
                     // If not add parent to stages found and result stages
                     stages_found.insert(p);
                     stages_result.push_back(Stage(p));
-                    LOG1 << "FOUND: " << p->label() << " " << p->id();
+                    LOG << "FOUND: " << p->label() << " " << p->id();
                     // If parent was not executed push it to the DFS
                     if (p->state() != api::DIAState::EXECUTED ||
                         p->type() == api::DIANodeType::COLLAPSE) {
@@ -174,9 +174,9 @@ public:
         {
             if (s.node()->state() == api::DIAState::EXECUTED) {
                 bool skip = true;
-                for (DIABase* child : s.node()->children()) 
-                    if(child->state() != api::DIAState::EXECUTED 
-                            || child->type() == api::DIANodeType::COLLAPSE) 
+                for (DIABase* child : s.node()->children())
+                    if (child->state() != api::DIAState::EXECUTED
+                        || child->type() == api::DIANodeType::COLLAPSE)
                         skip = false;
                 if (skip) continue;
                 else s.PushData();
