@@ -42,13 +42,13 @@ static const bool stats_enabled = false;
 class MergeStatsBase
 {
 public:
-    thrill::common::StatsTimer<stats_enabled> IndexOfTimer;
-    thrill::common::StatsTimer<stats_enabled> GetAtIndexTimer;
+    thrill::common::StatsTimer<stats_enabled> FileOpTimer;
     thrill::common::StatsTimer<stats_enabled> MergeTimer;
     thrill::common::StatsTimer<stats_enabled> BalancingTimer;
     thrill::common::StatsTimer<stats_enabled> PivotSelectionTimer;
-    thrill::common::StatsTimer<stats_enabled> PivotLocationTimer;
+    thrill::common::StatsTimer<stats_enabled> SearchStepTimer;
     thrill::common::StatsTimer<stats_enabled> CommTimer;
+    thrill::common::StatsTimer<stats_enabled> ScatterTimer;
     size_t result_size = 0;
     size_t iterations = 0;
 };
@@ -68,23 +68,23 @@ public:
             net::FlowControlChannel& flow = ctx.flow_control_channel();
             size_t p = ctx.num_workers();
 
-            size_t merge = flow.AllReduce(MergeTimer.Microseconds()) / p;
-            size_t balance = flow.AllReduce(BalancingTimer.Microseconds()) / p;
-            size_t pivotSelection = flow.AllReduce(PivotSelectionTimer.Microseconds()) / p;
-            size_t pivotLocation = flow.AllReduce(PivotLocationTimer.Microseconds()) / p;
-            size_t indexOf = flow.AllReduce(IndexOfTimer.Microseconds()) / p;
-            size_t getAtIndex = flow.AllReduce(GetAtIndexTimer.Microseconds()) / p;
-            size_t comm = flow.AllReduce(CommTimer.Microseconds()) / p;
+            size_t merge = flow.AllReduce(MergeTimer.Milliseconds()) / p;
+            size_t balance = flow.AllReduce(BalancingTimer.Milliseconds()) / p;
+            size_t pivotSelection = flow.AllReduce(PivotSelectionTimer.Milliseconds()) / p;
+            size_t searchStep = flow.AllReduce(SearchStepTimer.Milliseconds()) / p;
+            size_t fileOp = flow.AllReduce(FileOpTimer.Milliseconds()) / p;
+            size_t comm = flow.AllReduce(CommTimer.Milliseconds()) / p;
+            size_t scatter = flow.AllReduce(ScatterTimer.Milliseconds()) / p;
             result_size = flow.AllReduce(result_size);
 
             if (ctx.my_rank() == 0) {
                 PrintToSQLPlotTool("merge", p, merge);
                 PrintToSQLPlotTool("balance", p, balance);
                 PrintToSQLPlotTool("pivotSelection", p, pivotSelection);
-                PrintToSQLPlotTool("pivotLocation", p, pivotLocation);
-                PrintToSQLPlotTool("getIndexOf", p, indexOf);
-                PrintToSQLPlotTool("getAtIndex", p, getAtIndex);
+                PrintToSQLPlotTool("searchStep", p, searchStep);
+                PrintToSQLPlotTool("fileOp", p, fileOp);
                 PrintToSQLPlotTool("communication", p, comm);
+                PrintToSQLPlotTool("scatter", p, scatter);
                 PrintToSQLPlotTool("iterations", p, iterations);
             }
         }
@@ -269,7 +269,7 @@ private:
     // Globally selects pivots based on the given left/right
     // dim 1: Different splitters, dim 2: different files
     void SelectPivots(std::vector<Pivot>& pivots, const std::vector<std::vector<size_t> >& left, const std::vector<std::vector<size_t> >& width, net::FlowControlChannel& flowControl) {
-
+        
         // Select the best pivot we have from our ranges.
 
         for (size_t s = 0; s < width.size(); s++) {
@@ -287,7 +287,9 @@ private:
 
             if (width[s][mp] > 0) {
                 pivotIdx = left[s][mp] + (ran() % width[s][mp]);
+                stats.FileOpTimer.Start();
                 pivotElem = files_[mp].template GetItemAt<ValueType>(pivotIdx);
+                stats.FileOpTimer.Stop();
             }
 
             pivots[s] = Pivot {
@@ -310,7 +312,7 @@ private:
                                 }
                             };
 
-        // stats.CommTimer.Start();
+        stats.CommTimer.Start();
         pivots = flowControl.AllReduce(pivots,
                                        [reducePivots]
                                            (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
@@ -321,14 +323,17 @@ private:
                                            }
                                            return res;
                                        });
-        // stats.CommTimer.Stop();
+        stats.CommTimer.Stop();
     }
 
     void GetGlobalRanks(const std::vector<Pivot>& pivots, std::vector<size_t>& ranks, std::vector<std::vector<size_t> >& localRanks, net::FlowControlChannel& flowControl) {
         for (size_t s = 0; s < pivots.size(); s++) {
             size_t rank = 0;
             for (size_t i = 0; i < num_inputs_; i++) {
+                stats.FileOpTimer.Start();
                 size_t idx = files_[i].GetIndexOf(pivots[s].value, pivots[s].tie_idx, comparator_);
+                stats.FileOpTimer.Stop();
+
                 rank += idx;
 
                 localRanks[s][i] = idx;
@@ -336,7 +341,9 @@ private:
             ranks[s] = rank;
         }
 
+        stats.CommTimer.Start();
         ranks = flowControl.AllReduce(ranks, &AddSizeTVectors);
+        stats.CommTimer.Stop();
     }
 
     void SearchStep(const std::vector<Pivot>& pivots, const std::vector<size_t>& ranks, std::vector<std::vector<size_t> >& localRanks, const std::vector<size_t>& target_ranks, std::vector<std::vector<size_t> >& left, std::vector<std::vector<size_t> >& width) {
@@ -443,17 +450,17 @@ private:
         // Partition loop
         // while(globalRanks != targetRanks) {
         while (!finished) {
-            stats.PivotSelectionTimer.Start();
 
             LOG << "left: " << VToStr(left);
             LOG << "width: " << VToStr(width);
 
+            stats.PivotSelectionTimer.Start();
             SelectPivots(pivots, left, width, flowControl);
+            stats.PivotSelectionTimer.Stop();
 
             LOG << "Final Pivots " << VToStr(pivots);
 
-            stats.PivotSelectionTimer.Stop();
-            stats.PivotLocationTimer.Start();
+            stats.SearchStepTimer.Start();
 
             GetGlobalRanks(pivots, globalRanks, localRanks, flowControl);
             SearchStep(pivots, globalRanks, localRanks, targetRanks, left, width);
@@ -472,7 +479,7 @@ private:
             LOG << "srank: " << VToStr(targetRanks);
             LOG << "grank: " << VToStr(globalRanks);
 
-            stats.PivotLocationTimer.Stop();
+            stats.SearchStepTimer.Stop();
             stats.iterations++;
         }
 
@@ -484,6 +491,7 @@ private:
         }
 
         stats.BalancingTimer.Stop();
+        stats.ScatterTimer.Start();
 
         LOG << "Scattering.";
 
@@ -503,6 +511,7 @@ private:
 
             streams_[j]->template Scatter<ValueType>(files_[j], offsets);
         }
+        stats.ScatterTimer.Stop();
     }
 };
 

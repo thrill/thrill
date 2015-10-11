@@ -52,7 +52,7 @@ void merge_test(thrill::api::Context& ctx) {
     auto merge_result = merge_input1.Merge(
         merge_input2, std::less<size_t>());
 
-    merge_result.Size();
+    assert(merge_result.Size() == size * 2);
 }
 
 int main(int argc, char** argv) {
