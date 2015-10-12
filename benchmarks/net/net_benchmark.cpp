@@ -457,6 +457,7 @@ public:
             if (ctx.my_rank() == 0) {
                 LOG1 << "RESULT"
                      << " datatype=" << "size_t"
+                     << " operation=" << "broadcast"
                      << " workers=" << n
                      << " inner_repeats=" << inner_repeats_
                      << " time[us]=" << time
@@ -524,6 +525,7 @@ public:
             if (ctx.my_rank() == 0) {
                 LOG1 << "RESULT"
                      << " datatype=" << "size_t"
+                     << " operation=" << "prefixsum"
                      << " workers=" << n
                      << " inner_repeats=" << inner_repeats_
                      << " time[us]=" << time
@@ -591,6 +593,7 @@ public:
             if (ctx.my_rank() == 0) {
                 LOG1 << "RESULT"
                      << " datatype=" << "size_t"
+                     << " operation=" << "allreduce"
                      << " workers=" << n
                      << " inner_repeats=" << inner_repeats_
                      << " time[us]=" << time
