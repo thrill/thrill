@@ -5,7 +5,7 @@
  *
  * Borrowed of STXXL. See http://stxxl.sourceforge.net
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
  *

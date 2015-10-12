@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/common/cmdline_parser_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
  *

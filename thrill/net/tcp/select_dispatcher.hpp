@@ -3,7 +3,7 @@
  *
  * Asynchronous callback wrapper around select()
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

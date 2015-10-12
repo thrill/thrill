@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/page_rank/page_rank.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.

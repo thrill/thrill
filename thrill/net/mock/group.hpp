@@ -5,7 +5,7 @@
  * classes: Group, Connection, and Dispatcher are in this file since they are
  * tightly interdependent to provide thread-safety.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

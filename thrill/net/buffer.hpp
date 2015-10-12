@@ -3,7 +3,7 @@
  *
  * Contains binary byte buffer used by most network classes.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
