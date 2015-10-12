@@ -22,6 +22,7 @@
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
+#include <array>
 #include <functional>
 #include <string>
 #include <tuple>
@@ -103,7 +104,7 @@ public:
             files_.emplace_back(context_.GetFile());
 
         for (size_t i = 0; i < num_inputs_; ++i)
-            writers_.emplace_back(files_[i].GetWriter());
+            writers_[i] = files_[i].GetWriter();
 
         // Hook PreOp(s)
         common::VarCallForeachIndex(
@@ -142,9 +143,9 @@ public:
 
         if (result_size_ != 0) {
             // get inbound readers from all Streams
-            std::vector<data::CatStream::CatReader> readers;
+            std::array<data::CatStream::CatReader, num_inputs_> readers;
             for (size_t i = 0; i < num_inputs_; ++i)
-                readers.emplace_back(streams_[i]->OpenCatReader(consume));
+                readers[i] = streams_[i]->OpenCatReader(consume);
 
             while (HasNext(readers)) {
                 auto v = common::VarMapEnumerate<num_inputs_>(
@@ -177,14 +178,10 @@ private:
     std::vector<data::File> files_;
 
     //! Writers to intermediate files
-    // std::array<data::File::Writer, num_inputs_> writers_  {
-    //     { files_[0].GetWriter(), files_[1].GetWriter() }
-    // };
-    std::vector<data::File::Writer> writers_;
+    std::array<data::File::Writer, num_inputs_> writers_;
 
     //! Array of inbound CatStreams
-    // std::array<data::CatStreamPtr, num_inputs_> streams_;
-    std::vector<data::CatStreamPtr> streams_ { num_inputs_ };
+    std::array<data::CatStreamPtr, num_inputs_> streams_;
 
     //! \name Variables for Calculating Exchange
     //! \{
@@ -292,7 +289,8 @@ private:
     }
 
     //! helper for PushData() which checks all inputs
-    static bool HasNext(std::vector<data::CatStream::CatReader>& readers) {
+    static bool HasNext(
+        std::array<data::CatStream::CatReader, num_inputs_>& readers) {
         for (size_t i = 0; i < num_inputs_; ++i) {
             if (!readers[i].HasNext()) return false;
         }
