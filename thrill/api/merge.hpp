@@ -3,7 +3,7 @@
  *
  * DIANode for a merge operation. Performs the actual merge operation
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
@@ -269,7 +269,7 @@ private:
     // Globally selects pivots based on the given left/right
     // dim 1: Different splitters, dim 2: different files
     void SelectPivots(std::vector<Pivot>& pivots, const std::vector<std::vector<size_t> >& left, const std::vector<std::vector<size_t> >& width, net::FlowControlChannel& flowControl) {
-        
+
         // Select the best pivot we have from our ranges.
 
         for (size_t s = 0; s < width.size(); s++) {

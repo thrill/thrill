@@ -4,7 +4,7 @@
  * DIANode for a groupby to indx operation.
  * Performs the actual groupby operation
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
