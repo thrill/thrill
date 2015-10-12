@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <limits>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -40,7 +41,7 @@ struct IndexChars {
         return os << "[" << std::to_string(tc.index) << "|"
                   << tc.triple[0] << tc.triple[1] << tc.triple[2] << "]";
     }
-} __attribute__ ((packed));
+} __attribute__ ((packed)); // NOLINT
 
 //! A triple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename AlphabetType>
@@ -51,7 +52,7 @@ struct Chars {
         return os << "["
                   << ch.triple[0] << ch.triple[1] << ch.triple[2] << "]";
     }
-} __attribute__ ((packed));
+} __attribute__ ((packed)); // NOLINT
 
 //! A pair (index, rank)
 struct IndexRank {
@@ -62,7 +63,7 @@ struct IndexRank {
         return os << "(" << std::to_string(tr.index) << "|"
                   << std::to_string(tr.rank) << ")";
     }
-} __attribute__ ((packed));
+} __attribute__ ((packed)); // NOLINT
 
 //! Fragments at String Positions i = 0 Mod 3.
 template <typename AlphabetType>
@@ -76,7 +77,7 @@ struct StringFragmentMod0
         return os << "t0=" << sf.t0 << ",t1=" << sf.t1
                   << ",r1=" << sf.r1 << ",r2=" << sf.r2;
     }
-} __attribute__ ((packed));
+} __attribute__ ((packed)); // NOLINT
 
 //! Fragments at String Positions i = 1 Mod 3.
 template <typename AlphabetType>
@@ -89,7 +90,7 @@ struct StringFragmentMod1
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod1& sf) {
         return os << "r0=" << sf.r0 << ",t0=" << sf.t0 << ",r1=" << sf.r1;
     }
-} __attribute__ ((packed));
+} __attribute__ ((packed)); // NOLINT
 
 //! Fragments at String Positions i = 2 Mod 3.
 template <typename AlphabetType>
@@ -103,7 +104,7 @@ struct StringFragmentMod2
         return os << "r0=" << sf.r0 << ",t0=" << sf.t0 << ","
                   << "t1=" << sf.t1 << ",r2=" << sf.r2;
     }
-} __attribute__ ((packed));
+} __attribute__ ((packed)); // NOLINT
 
 //! Union of String Fragments with Index
 template <typename AlphabetType>
@@ -313,14 +314,10 @@ void StartDC3(api::Context& ctx) {
         };
 
         auto zip_triple_pairs =
-            triple_chars
-            .Zip(ranks_mod1
-                 .Zip(ranks_mod2, [](const size_t& mod1, const size_t& mod2) {
-                          return std::make_pair(mod1, mod2);
-                      }),
-                 [](const Chars& ch, const std::pair<size_t, size_t>& mod12) {
-                     return CharsRanks12 { ch, mod12.first, mod12.second };
-                 })
+            Zip([](const Chars& ch, const size_t& mod1, const size_t& mod2) {
+                    return CharsRanks12 { ch, mod1, mod2 };
+                },
+                triple_chars, ranks_mod1, ranks_mod2)
             .Window(
                 2, [](size_t index,
                       const common::RingBuffer<CharsRanks12>& rb) {

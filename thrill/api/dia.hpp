@@ -84,6 +84,9 @@ public:
     //! Return whether the DIA is valid.
     bool IsValid() const { return node_.get() != nullptr; }
 
+    //! Assert that the DIA is valid.
+    void AssertValid() const { assert(IsValid()); }
+
     /*!
      * Constructor of a new DIA with a pointer to a DIANode and a
      * function chain from the DIANode to this DIA.
@@ -582,7 +585,7 @@ public:
      * DIA.
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(SecondDIA second_dia, const ZipFunction &zip_function) const;
+    auto Zip(const SecondDIA &second_dia, const ZipFunction &zip_function) const;
 
     // REVIEW(ej): use default comparator. remove everywhere where it is
     // duplicate.
