@@ -19,6 +19,7 @@
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
+#include <thrill/api/sum.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/core/multiway_merge.hpp>
@@ -178,6 +179,117 @@ DIA<size_t> Recursion(const DIA<size_t>& _input) {
     }
 
     return api::DistributeFrom(_input.ctx(), std::move(output));
+}
+
+template <typename Char>
+struct Index3 {
+    size_t index;
+    size_t next;
+    Char ch;
+
+    friend std::ostream& operator << (std::ostream& os, const Index3& i) {
+        return os << "(index=" << i.index << " next=" << i.next << " ch=" << i.ch << ")";
+    }
+};
+
+template <typename InputDIA, typename SuffixArrayDIA>
+bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
+
+    Context& ctx = input.ctx();
+
+    using Char = typename InputDIA::ValueType;
+    using Index3 = ::Index3<Char>;
+
+    size_t input_size = input.Size();
+
+    auto isa_pair =
+        suffix_array
+        // build tuples with index: (SA[i]) -> (i, SA[i]),
+        .Zip(Generate(ctx, input_size),
+             [](size_t sa, size_t i) {
+                 return IndexRank { sa, i };
+             })
+        // take (i, SA[i]) and sort to (ISA[i], i)
+        .Sort([](const IndexRank& a, const IndexRank& b) {
+                return a.index < b.index;
+            });
+
+    // Zip (ISA[i], i) with [0,n) and check that the second component was a
+    // permutation of [0,n)
+    bool perm_check =
+        isa_pair
+        .Zip(Generate(ctx, input_size),
+             [](const IndexRank& ir, size_t index) -> size_t {
+                 return ir.index == index ? 0 : 1;
+             })
+        // sum over all boolean values.
+        .Sum();
+
+    if (perm_check != 0) {
+        LOG1 << "Error: suffix array is not a permutation of 0..n-1.";
+        return false;
+    }
+
+    using IndexPair = std::pair<size_t, size_t>;
+
+    auto order_check =
+        isa_pair
+        // extract ISA[i]
+        .Map([](const IndexRank& ir) { return ir.rank; })
+         // build (ISA[i], ISA[i+1], T[i])
+        .template FlatWindow<IndexPair>(
+            2, [input_size](size_t index, const RingBuffer<size_t>& rb, auto emit) {
+                emit(IndexPair{ rb[0], rb[1] });
+                if (index == input_size - 2) {
+                    // emit sentinel at end
+                    emit(IndexPair{ rb[1], input_size });
+                }
+            })
+        .Zip(input,
+             [](const std::pair<size_t, size_t>& isa_pair, const Char& ch) {
+                 return Index3 { isa_pair.first, isa_pair.second, ch };
+             })
+        // and sort to (i, ISA[SA[i]+1], T[SA[i]])
+        .Sort([](const Index3& a, const Index3& b) {
+                return a.index < b.index;
+            });
+
+    // order_check.Print("order_check");
+
+    bool order_check_sum =
+        order_check
+        // check that no pair violates the order
+        .Window(2, [input_size](size_t index, const RingBuffer<Index3>& rb) -> size_t {
+
+                if (rb[0].ch > rb[1].ch) {
+                    // simple check of first character of suffix failed.
+                    LOG1 << "Error: suffix array position "
+                         << index << " ordered incorrectly.";
+                    return 1;
+                }
+                else if (rb[0].ch == rb[1].ch) {
+                    if (rb[1].next == input_size) {
+                        // last suffix of string must be first among those with
+                        // same first character
+                        LOG1 << "Error: suffix array position "
+                             << index << " ordered incorrectly.";
+                        return 1;
+                    }
+                    if (rb[0].next != input_size && rb[0].next > rb[1].next) {
+                        // positions SA[i] and SA[i-1] has same first character
+                        // but their suffixes are ordered incorrectly: the
+                        // suffix position of SA[i] is given by ISA[SA[i]]
+                        LOG1 << "Error: suffix array position "
+                             << index << " ordered incorrectly.";
+                        return 1;
+                    }
+                }
+                // else (rb[0].ch < rb[1].ch) -> okay.
+                return 0;
+            })
+        .Sum();
+
+    return (order_check_sum == 0);
 }
 
 std::string g_input = "dbacbacbd";
@@ -572,6 +684,10 @@ void StartDC3(api::Context& ctx) {
                 }
             }
         }
+
+        // check result
+
+        assert(CheckSA(input_dia, suffix_array));
     }
 }
 
