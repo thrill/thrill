@@ -183,6 +183,10 @@ public:
         return consume_on_push_data_;
     }
 
+    void AddStats(const std::string& msg) const {
+        stats_node_->AddStatsMsg(msg, LogType::INFO);
+    }
+
     // Why are these stupid functions here?
     // Because we do not want to include the stats.hpp into every
     // single node class

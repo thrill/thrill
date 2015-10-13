@@ -154,6 +154,12 @@ public:
         return node_;
     }
 
+    //! Returns a the corresponding stats nodes
+    const std::vector<StatsNode*> & stats_parents() const {
+        assert(IsValid());
+        return stats_parents_;
+    }
+
     //! Returns the number of references to the according DIANode.
     size_t node_refcount() const {
         assert(IsValid());
@@ -176,6 +182,15 @@ public:
     void AppendChildStatsNode(StatsNode* stats_node) const {
         for (const auto& parent : stats_parents_)
             node_->context().stats_graph().AddEdge(parent, stats_node);
+    }
+
+    template <typename AnyType, typename AnyStack>
+    auto LinkStatsNode(const DIA<AnyType, AnyStack>& rhs) {
+        for (const auto& parent : stats_parents_) {
+            for (const auto& rhs_parent : rhs.stats_parents())
+                node_->context().stats_graph().AddEdge(rhs_parent, parent);
+        }
+        return *this;
     }
 
     Context & ctx() const {
@@ -706,6 +721,11 @@ public:
     auto Collapse() const;
 
     auto Cache() const;
+
+    auto Label(const std::string& msg) const {
+        node_->AddStats(msg);
+        return *this;
+    }
 
     /*!
      * Returns the string which defines the DIANode node_.
