@@ -186,7 +186,7 @@ template <typename ValueType>
 DIA<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
 
     StatsNode* stats_node =
-        ctx.stats_graph().AddNode("ReadBinary", DIANodeType::DOP);
+        ctx.stats_graph().AddNode("ReadBinary", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<ReadBinaryNode<ValueType> >(

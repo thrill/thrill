@@ -437,7 +437,7 @@ private:
 DIA<std::string> ReadLines(Context& ctx, std::string filepath) {
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "ReadLines", DIANodeType::DOP);
+        "ReadLines", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<ReadLinesNode>(

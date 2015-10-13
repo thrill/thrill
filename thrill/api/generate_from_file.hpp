@@ -153,7 +153,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
         "GeneratorFunction needs a const std::string& as input");
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "GenerateFromFile", DIANodeType::DOP);
+        "GenerateFromFile", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<GenerateNode>(
