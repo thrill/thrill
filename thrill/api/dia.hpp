@@ -185,7 +185,7 @@ public:
     }
 
     template <typename AnyType, typename AnyStack>
-    auto LinkStatsNode(const DIA<AnyType, AnyStack>& rhs) {
+    auto LinkStatsNodeFrom(const DIA<AnyType, AnyStack>& rhs) {
         for (const auto& parent : stats_parents_) {
             for (const auto& rhs_parent : rhs.stats_parents())
                 node_->context().stats_graph().AddEdge(rhs_parent, parent);
