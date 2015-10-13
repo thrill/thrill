@@ -37,7 +37,7 @@ template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode final : public DOpNode<ValueType>
 {
-    static const bool debug = true;
+    static const bool debug = false;
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
@@ -118,7 +118,6 @@ public:
             RunUserFunc(files_[0], consume);
         }       // otherwise sort all runs using multiway merge
         else {
-            LOG1 << "USING MULTIWAYMERGE";
             LOG << "start multiwaymerge";
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
@@ -151,11 +150,11 @@ public:
             }
         }
         timer.Stop();
-        LOG1 << "\n"
+        LOG1 //<< "\n"
              << "RESULT"
              << " name=multiwaymerge"
-             << " rank=" << context_.my_rank()
-             << " time=" << timer.Milliseconds();
+             << " time=" << timer.Milliseconds()
+             << " multiwaymerge=" << (num_runs > 1);
     }
 
     void Dispose() override { }
@@ -220,9 +219,12 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
+        thrill::common::StatsTimer<true> timer(false);
+        timer.Start();
+
         LOG << "running group by main op";
 
-        const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn) * 4;
+        const size_t FIXED_VECTOR_SIZE = 1024*1024*1024 / sizeof(ValueIn) / 2;
         // const size_t FIXED_VECTOR_SIZE = 4;
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
@@ -248,6 +250,15 @@ private:
         std::vector<ValueIn>().swap(incoming);
         LOG << "finished receiving elems";
         stream_->Close();
+
+        timer.Stop();
+
+        LOG1 //<< "\n"
+             << "RESULT"
+             << " name=mainop"
+             << " time=" << (double)timer.Milliseconds()
+             << " number_files=" << files_.size()
+             << " vector_size=" << FIXED_VECTOR_SIZE;
     }
 };
 

@@ -49,12 +49,12 @@ public:
         //    << "FINISH (EXECUTING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
-        LOG1 << "\n"
-             << "RESULT"
-             << " name=groupby"
-             << " stage=execution"
-             << " node=" << node_->label()
-             << " time=" << timer.Milliseconds();
+        // LOG1 << "\n"
+        //      << "RESULT"
+        //      << " name=groupby"
+        //      << " stage=execution"
+        //      << " node=" << node_->label()
+        //      << " time=" << timer.Milliseconds();
 
         // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         timer.Start();
@@ -66,12 +66,12 @@ public:
         //    << "FINISH (PUSHING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time:" << std::put_time(std::localtime(&tt), "%T");
-        LOG1 << "\n"
-             << "RESULT"
-             << " name=groupby"
-             << " stage=pushing"
-             << " node=" << node_->label()
-             << " time=" << timer.Milliseconds();
+        // LOG1 << "\n"
+        //      << "RESULT"
+        //      << " name=groupby"
+        //      << " stage=pushing"
+        //      << " node=" << node_->label()
+        //      << " time=" << timer.Milliseconds();
     }
 
     void PushData() {
@@ -92,12 +92,12 @@ public:
         //    << "FINISH (PUSHING) stage" << node_->label() << node_->id();
         //    << "took (ms)" << timer.Milliseconds()
         //    << "time: " << std::put_time(std::localtime(&tt), "%T");
-        LOG1 << "\n"
-             << "RESULT"
-             << " name=groupby"
-             << " stage=pushing"
-             << " node=" << node_->label()
-             << " time=" << timer.Milliseconds();
+        // LOG1 << "\n"
+        //      << "RESULT"
+        //      << " name=groupby"
+        //      << " stage=pushing"
+        //      << " node=" << node_->label()
+        //      << " time=" << timer.Milliseconds();
     }
 
     void Dispose() {

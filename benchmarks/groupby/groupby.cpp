@@ -39,9 +39,6 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    int n;
-    clp.AddParamInt("n", n, "Iterations");
-
     std::string input;
     clp.AddParamString("input", input,
                        "input file pattern");
@@ -52,7 +49,7 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
-    auto start_func = [n, &input](api::Context& ctx) {
+    auto start_func = [&input](api::Context& ctx) {
         thrill::common::StatsTimer<true> timer(false);
 
         auto modulo_keyfn = [](size_t in) { return (in % 100); };
@@ -67,23 +64,23 @@ int main(int argc, char* argv[]) {
         };
 
         auto in = api::ReadBinary<size_t>(ctx, input).Cache();
-        in.Size();
-
+        auto res2 = in.Size();
         // group by to compute median
         timer.Start();
-        for (int i = 0; i < n; i++) {
-            in.GroupBy<size_t>(modulo_keyfn, median_fn).Size();
-        }
+        auto res = in.GroupBy<size_t>(modulo_keyfn, median_fn).Size();
         timer.Stop();
 
-        LOG1 << "\n"
+        LOG1 //<< "\n"
              << "RESULT"
              << " name=total"
-             << " rank=" << ctx.my_rank()
-             << " time=" << (double)timer.Milliseconds()/(double)n
-             << " filename=" << input;
+             << " time=" << (double)timer.Milliseconds()
+             << " filename=" << input
+             << " sanity=" << res;
 
     };
+    for (size_t i = 0; i < 4; ++i) {
+        api::Run(start_func);
+    }
 
     return api::Run(start_func);
 }
