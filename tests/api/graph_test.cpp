@@ -50,7 +50,7 @@ TEST(Graph, SimpleGraph) {
 
             auto zip_result = prefixsums.Zip(emitted, [](int input1, int input2) {
                                                  return input1 + input2;
-                                             }).Label("Zippy").LinkStatsNode(doubled);
+                                             }).Label("Zippy").LinkStatsNodeFrom(doubled);
 
             ctx.stats_graph().BuildLayout("simple.out");
         };
