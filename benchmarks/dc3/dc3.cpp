@@ -21,6 +21,7 @@
 #include <thrill/api/sort.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/core/multiway_merge.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -30,6 +31,7 @@
 #include <vector>
 
 using namespace thrill; // NOLINT
+using thrill::common::RingBuffer;
 
 //! A triple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename AlphabetType>
@@ -117,6 +119,20 @@ struct StringFragment
         StringFragmentMod2<AlphabetType> mod2;
     };
 
+    StringFragment() = default;
+
+    // conversion from StringFragmentMod0
+    explicit StringFragment(const StringFragmentMod0<AlphabetType>& _mod0)
+        : mod0(_mod0) { }
+
+    // conversion from StringFragmentMod1
+    explicit StringFragment(const StringFragmentMod1<AlphabetType>& _mod1)
+        : mod1(_mod1) { }
+
+    // conversion from StringFragmentMod2
+    explicit StringFragment(const StringFragmentMod2<AlphabetType>& _mod2)
+        : mod2(_mod2) { }
+
     friend std::ostream& operator << (std::ostream& os, const StringFragment& tc) {
         os << "[" << std::to_string(tc.index) << "|";
         if (tc.index % 3 == 0)
@@ -126,10 +142,10 @@ struct StringFragment
         if (tc.index % 3 == 2)
             return os << "2|" << tc.mod2 << "]";
     }
-} __attribute__ ((packed));
+} __attribute__ ((packed)); // NOLINT
 
 DIA<size_t> Recursion(const DIA<size_t>& _input) {
-    // this is cheating: perform naive suffix sorting. TODO: templatize
+    // this is cheating: perform naive suffix sorting. TODO(tb): templatize
     // algorithm and call recursively.
 
     std::vector<size_t> input = _input.Gather();
@@ -159,20 +175,20 @@ void StartDC3(api::Context& ctx) {
     using IndexChars = ::IndexChars<Char>;
     using Chars = ::Chars<Char>;
 
-    std::string input = "bananabananabananabanana";
+    std::string input = "dbacbacbd$$";
     std::vector<Char> input_vec(input.begin(), input.end());
 
     // auto input_dia = api::ReadBinary<Char>(ctx, "Makefile");
     auto input_dia = api::Distribute<Char>(ctx, input_vec);
 
-    // TODO(tb): have this passed to the method, this costs extra data round.
+    // TODO(tb): have this passed to the method, this costs an extra data round.
     size_t input_size = input_dia.Size();
 
     auto triple_sorted =
         input_dia
         // map (t_i) -> (i,t_i,t_{i+1},t_{i+2}) where i neq 0 mod 3
         .FlatWindow<IndexChars>(
-            3, [](size_t index, const common::RingBuffer<Char>& rb, auto emit) {
+            3, [](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 assert(rb.size() == 3);
                 // TODO(tb): missing last sentinel items.
                 if (index % 3 != 0)
@@ -191,11 +207,11 @@ void StartDC3(api::Context& ctx) {
     auto triple_prerank_sums =
         triple_sorted
         .FlatWindow<size_t>(
-            2, [](size_t index, const common::RingBuffer<IndexChars>& rb, auto emit) {
+            2, [](size_t index, const RingBuffer<IndexChars>& rb, auto emit) {
                 assert(rb.size() == 2);
 
                 // emit one sentinel for index 0.
-                if (index == 0) emit(1);
+                if (index == 0) emit(0);
 
                 // return 0 or 1 depending on whether previous triple is equal
                 size_t b = std::equal(rb[0].triple, rb[0].triple + 3,
@@ -214,11 +230,10 @@ void StartDC3(api::Context& ctx) {
         // zip triples and ranks.
         auto triple_ranks =
             triple_sorted
-            .Zip(
-                triple_prerank_sums,
-                [](const IndexChars& tc, size_t rank) {
-                    return IndexRank { tc.index, rank };
-                });
+            .Zip(triple_prerank_sums,
+                 [](const IndexChars& tc, size_t rank) {
+                     return IndexRank { tc.index, rank };
+                 });
         if (1)
             triple_ranks.Print("triple_ranks");
 
@@ -271,7 +286,7 @@ void StartDC3(api::Context& ctx) {
             input_dia
             // map (t_i) -> (i,t_i,t_{i+1},t_{i+2}) where i neq 0 mod 3
             .FlatWindow<Chars>(
-                3, [](size_t index, const common::RingBuffer<Char>& rb, auto emit) {
+                3, [](size_t index, const RingBuffer<Char>& rb, auto emit) {
                     assert(rb.size() == 3);
                     if (index % 3 == 0)
                         emit(Chars { rb[0], rb[1], rb[2] });
@@ -284,8 +299,7 @@ void StartDC3(api::Context& ctx) {
                     })
             .Map([](const IndexRank& a) {
                      return a.rank;
-                 })
-            .Collapse();
+                 });
 
         auto ranks_mod2 =
             ranks_rec
@@ -294,14 +308,14 @@ void StartDC3(api::Context& ctx) {
                     })
             .Map([](const IndexRank& a) {
                      return a.rank;
-                 })
-            .Collapse();
+                 });
 
         triple_chars.Print("triple_chars");
         ranks_mod1.Print("ranks_mod1");
         ranks_mod2.Print("ranks_mod2");
 
-        // TODO(tb): Yay. Need MultiZip!
+        // Zip together the three arrays, create pairs, and extract needed
+        // tuples into string fragments.
 
         using StringFragmentMod0 = ::StringFragmentMod0<Char>;
         using StringFragmentMod1 = ::StringFragmentMod1<Char>;
@@ -311,7 +325,13 @@ void StartDC3(api::Context& ctx) {
             Chars  chars;
             size_t rank1;
             size_t rank2;
-        };
+        } __attribute__ ((packed)); // NOLINT
+
+        struct IndexCR12Pair {
+            size_t       index;
+            CharsRanks12 cr0;
+            CharsRanks12 cr1;
+        } __attribute__ ((packed)); // NOLINT
 
         auto zip_triple_pairs =
             Zip([](const Chars& ch, const size_t& mod1, const size_t& mod2) {
@@ -319,9 +339,8 @@ void StartDC3(api::Context& ctx) {
                 },
                 triple_chars, ranks_mod1, ranks_mod2)
             .Window(
-                2, [](size_t index,
-                      const common::RingBuffer<CharsRanks12>& rb) {
-                    return std::make_tuple(3 * index, rb[0], rb[1]);
+                2, [](size_t index, const RingBuffer<CharsRanks12>& rb) {
+                    return IndexCR12Pair { 3 * index, rb[0], rb[1] };
                 });
 
         // size_t idiv3mod1 = i / 3;
@@ -329,14 +348,11 @@ void StartDC3(api::Context& ctx) {
 
         auto fragments_mod0 =
             zip_triple_pairs
-            .Map([](const std::tuple<size_t, CharsRanks12, CharsRanks12>& chp) {
-                     size_t index = std::get<0>(chp);
-                     const CharsRanks12& cr0 = std::get<1>(chp);
-
+            .Map([](const IndexCR12Pair& ip) {
                      return StringFragmentMod0 {
-                         index,
-                         cr0.chars.triple[0], cr0.chars.triple[1],
-                         cr0.rank1, cr0.rank2
+                         ip.index,
+                         ip.cr0.chars.triple[0], ip.cr0.chars.triple[1],
+                         ip.cr0.rank1, ip.cr0.rank2
                      };
                      //     sf.mod0.t0 = inputString.rank(i);
                      // sf.mod0.t1 =
@@ -352,14 +368,11 @@ void StartDC3(api::Context& ctx) {
 
         auto fragments_mod1 =
             zip_triple_pairs
-            .Map([](const std::tuple<size_t, CharsRanks12, CharsRanks12>& chp) {
-                     size_t index = std::get<0>(chp);
-                     const CharsRanks12& cr0 = std::get<1>(chp);
-
+            .Map([](const IndexCR12Pair& ip) {
                      return StringFragmentMod1 {
-                         index + 1,
-                         cr0.chars.triple[1],
-                         cr0.rank1, cr0.rank2
+                         ip.index + 1,
+                         ip.cr0.chars.triple[1],
+                         ip.cr0.rank1, ip.cr0.rank2
                      };
 
                      // sf.mod1.t0 = inputString.rank(i);
@@ -371,15 +384,11 @@ void StartDC3(api::Context& ctx) {
 
         auto fragments_mod2 =
             zip_triple_pairs
-            .Map([](const std::tuple<size_t, CharsRanks12, CharsRanks12>& chp) {
-                     size_t index = std::get<0>(chp);
-                     const CharsRanks12& cr0 = std::get<1>(chp);
-                     const CharsRanks12& cr1 = std::get<2>(chp);
-
+            .Map([](const IndexCR12Pair& ip) {
                      return StringFragmentMod2 {
-                         index + 2,
-                         cr0.chars.triple[2], cr1.chars.triple[0],
-                         cr0.rank2, cr1.rank1
+                         ip.index + 2,
+                         ip.cr0.chars.triple[2], ip.cr1.chars.triple[0],
+                         ip.cr0.rank2, ip.cr1.rank1
                      };
 
                      // sf.mod2.t0 = inputString.rank(i);
@@ -420,30 +429,40 @@ void StartDC3(api::Context& ctx) {
         sorted_fragments_mod1.Print("sorted_fragments_mod1");
         sorted_fragments_mod2.Print("sorted_fragments_mod2");
 
-#ifdef OLD_PROTOTYPE
         using StringFragment = ::StringFragment<Char>;
 
-        // Multi-way merge the three string fragment arrays: TODO also fake
-        // currently.
+        // Multi-way merge the three string fragment arrays: TODO(tb): currently
+        // not distributed, FAKE FAKE FAKE!
 
         using StringFragmentIterator = std::vector<StringFragment>::iterator;
 
-        std::vector<StringFragment>
-        vSortedStringFragMod0 = SortedStringFragMod0.evilGetData();
-        std::vector<StringFragment>
-        vSortedStringFragMod1 = SortedStringFragMod1.evilGetData();
-        std::vector<StringFragment>
-        vSortedStringFragMod2 = SortedStringFragMod2.evilGetData();
+        std::vector<StringFragment> vec_fragments_mod0 =
+            sorted_fragments_mod0
+            .Map([](const StringFragmentMod0& mod0)
+                 { return StringFragment(mod0); })
+            .AllGather();
+
+        std::vector<StringFragment> vec_fragments_mod1 =
+            sorted_fragments_mod1
+            .Map([](const StringFragmentMod1& mod1)
+                 { return StringFragment(mod1); })
+            .AllGather();
+
+        std::vector<StringFragment> vec_fragments_mod2 =
+            sorted_fragments_mod2
+            .Map([](const StringFragmentMod2& mod2)
+                 { return StringFragment(mod2); })
+            .AllGather();
 
         std::pair<StringFragmentIterator, StringFragmentIterator> seqs[3];
         seqs[0] = std::make_pair(
-            vSortedStringFragMod0.begin(), vSortedStringFragMod0.end());
+            vec_fragments_mod0.begin(), vec_fragments_mod0.end());
         seqs[1] = std::make_pair(
-            vSortedStringFragMod1.begin(), vSortedStringFragMod1.end());
+            vec_fragments_mod1.begin(), vec_fragments_mod1.end());
         seqs[2] = std::make_pair(
-            vSortedStringFragMod2.begin(), vSortedStringFragMod2.end());
+            vec_fragments_mod2.begin(), vec_fragments_mod2.end());
 
-        std::vector<StringFragment> output(inputString.size());
+        std::vector<StringFragment> output(input_size);
 
         auto fragmentComparator =
             [](const StringFragment& a, const StringFragment& b)
@@ -484,27 +503,33 @@ void StartDC3(api::Context& ctx) {
                 abort();
             };
 
-        __gnu_parallel::multiway_merge(seqs, seqs + 3,
-                                       output.begin(), inputString.size(),
-                                       fragmentComparator,
-                                       __gnu_parallel::sequential_tag());
+        core::sequential_multiway_merge<false, false>(
+            seqs, seqs + 3,
+            output.begin(), input_size,
+            fragmentComparator);
 
         // map to only suffix array
 
-        DIA<size_t> SuffixArray = DIA<StringFragment>(output)
-                                  .Map([](const StringFragment& a) { return a.index; });
+        auto suffix_array =
+            api::Distribute<StringFragment>(ctx, output)
+            .Map([](const StringFragment& a) { return a.index; });
 
         // debug output
 
-        for (const size_t& index : SuffixArray.evilGetData())
-        {
-            std::string sub(theRealInputString.substr(index, 128));
-            boost::replace_all(sub, "\n", " ");
-            boost::replace_all(sub, "\t", " ");
+        if (1) {
+            std::vector<size_t> vec = suffix_array.AllGather();
 
-            std::cout << std::setw(5) << index << " = " << sub << "\n";
+            if (ctx.my_rank() == 0) {
+                for (const size_t& index : vec)
+                {
+                    std::cout << std::setw(5) << index << " =";
+                    for (size_t i = index; i < index + 64 && i < input_size; ++i) {
+                        std::cout << ' ' << input_vec[i];
+                    }
+                    std::cout << '\n';
+                }
+            }
         }
-#endif
     }
 }
 
