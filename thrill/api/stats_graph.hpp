@@ -31,6 +31,7 @@ enum class DIANodeType {
     ACTION,
     COLLAPSE,
     CACHE,
+    GENERATOR,
     LAMBDA
 };
 
@@ -124,15 +125,20 @@ public:
     std::string NodeStyle() const {
         std::string style = std::string(label_) + std::to_string(id_) + " [";
         switch (type_) {
+        case DIANodeType::GENERATOR:
+            style += "colorscheme=accent5, style=filled, color=1, shape=invhouse";
+            break;
         case DIANodeType::DOP:
-            style += "style=filled, fillcolor=red, shape=box";
+            style += "colorscheme=accent5, style=filled, color=2, shape=box";
             break;
         case DIANodeType::ACTION:
-            style += "style=filled, fillcolor=yellow, shape=diamond";
+            style += "colorscheme=accent5, style=filled, color=3, shape=house";
             break;
         case DIANodeType::CACHE:
+            style += "colorscheme=accent5, style=filled, color=4, shape=oval";
+            break;
         case DIANodeType::COLLAPSE:
-            style += "style=filled, fillcolor=blue, shape=hexagon";
+            style += "colorscheme=accent5, style=filled, color=5, shape=oval";
             break;
         default:
             break;

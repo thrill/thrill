@@ -104,7 +104,7 @@ auto DistributeFrom(
     using DistributeFromNode = api::DistributeFromNode<ValueType>;
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "DistributeFrom", DIANodeType::DOP);
+        "DistributeFrom", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<DistributeFromNode>(

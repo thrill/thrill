@@ -113,7 +113,7 @@ auto Generate(Context & ctx,
             >::value,
         "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", DIANodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", DIANodeType::GENERATOR);
     auto shared_node =
         std::make_shared<GenerateNode>(
             ctx, generator_function, size, stats_node);
