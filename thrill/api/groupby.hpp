@@ -220,7 +220,6 @@ private:
     //! Receive elements from other workers.
     auto MainOp() {
         thrill::common::StatsTimer<true> timer(false);
-        timer.Start();
 
         LOG << "running group by main op";
 
@@ -235,6 +234,7 @@ private:
         }
         LOG << "closed all emitters";
         LOG << "receive elems";
+        timer.Start();
         // get incoming elements
         auto reader = stream_->OpenCatReader(true /* consume */);
         while (reader.HasNext()) {
