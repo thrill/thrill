@@ -173,12 +173,12 @@ public:
     void Dispose() override { }
 
 private:
-    const KeyExtractor& key_extractor_;
-    const GroupFunction& groupby_function_;
+    KeyExtractor key_extractor_;
+    GroupFunction groupby_function_;
     const size_t number_keys_;
     const size_t key_range_start_;
     const size_t key_range_end_;
-    const ValueOut& neutral_element_;
+    ValueOut neutral_element_;
     HashFunction hash_function_;
     size_t totalsize_ = 0;
 
