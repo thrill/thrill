@@ -59,7 +59,7 @@ public:
     void PrintToSQLPlotTool(std::string label, size_t p, size_t value) {
         static const bool debug = true;
 
-        LOG << "RESULT " << label << "=" << value << " workers=" << p << " result_size=" << result_size;
+        LOG << "RESULT " << "operation=" << label << " time=" << value << " workers=" << p << " result_size=" << result_size;
     }
 
     void Print(Context& ctx) {
