@@ -80,7 +80,7 @@ class ZipPadNode final : public DOpNode<ValueType>
     using ZipArgN =
               typename common::FunctionTraits<ZipFunction>::template arg_plain<Index>;
     using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args;
+              typename common::FunctionTraits<ZipFunction>::args_plain;
 
 public:
     /*!
@@ -152,7 +152,7 @@ public:
                         using ZipArg = ZipArgN<decltype(index)::index>;
                         if (!readers[index].HasNext()) {
                                 // take padding_ if next is not available.
-                            return std::get<decltype(index)::index>(padding_);
+                            return std::get<decltype(index)::index>(this->padding_);
                         }
                         return readers[index].template Next<ZipArg>();
                     });
@@ -340,7 +340,7 @@ auto ZipPad(const ZipFunction &zip_function,
               typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args;
+              typename common::FunctionTraits<ZipFunction>::args_plain;
 
     using ZipPadNode
               = api::ZipPadNode<ZipResult, ZipFunction, FirstDIA, DIAs ...>;
@@ -379,7 +379,7 @@ auto ZipPad(const ZipFunction &zip_function,
 template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
 auto ZipPadding(
     const ZipFunction &zip_function,
-    const typename common::FunctionTraits<ZipFunction>::args & padding,
+    const typename common::FunctionTraits<ZipFunction>::args_plain & padding,
     const FirstDIA &first_dia, const DIAs &... dias) {
 
     using VarForeachExpander = int[];
