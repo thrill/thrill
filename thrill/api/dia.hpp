@@ -235,12 +235,13 @@ public:
         assert(IsValid());
 
         using MapArgument
-                  = typename FunctionTraits<MapFunction>::template arg<0>;
+                  = typename FunctionTraits<MapFunction>::template arg_plain<0>;
         using MapResult
                   = typename FunctionTraits<MapFunction>::result_type;
-        auto conv_map_function = [=](MapArgument input, auto emit_func) {
-                                     emit_func(map_function(input));
-                                 };
+        auto conv_map_function =
+            [=](const MapArgument& input, auto emit_func) {
+                emit_func(map_function(input));
+            };
 
         static_assert(
             std::is_convertible<ValueType, MapArgument>::value,
@@ -268,10 +269,11 @@ public:
         assert(IsValid());
 
         using FilterArgument
-                  = typename FunctionTraits<FilterFunction>::template arg<0>;
-        auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
-                                        if (filter_function(input)) emit_func(input);
-                                    };
+                  = typename FunctionTraits<FilterFunction>::template arg_plain<0>;
+        auto conv_filter_function =
+            [=](const FilterArgument& input, auto emit_func) {
+                if (filter_function(input)) emit_func(input);
+            };
 
         static_assert(
             std::is_convertible<ValueType, FilterArgument>::value,
