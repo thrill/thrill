@@ -396,7 +396,7 @@ int main(int argc, char* argv[]) {
                             LOG << "ranks2 " << f + s * p.second;
                             return f + s * p.second;
                         }
-                    }).Collapse();
+                    }).Keep().Collapse();
             }
 
             // write result to line. add 1 to node_ids to revert back to normal
