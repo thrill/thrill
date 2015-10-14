@@ -64,7 +64,7 @@ void merge_test(thrill::api::Context& ctx) {
     
     static const bool debug = true;
     
-    LOG << "operation=merge time=" << timer.Microseconds() << " workers=" << ctx.num_workers();
+    LOG << "RESULT operation=merge time=" << timer.Microseconds() << " workers=" << ctx.num_workers();
 }
 
 int main(int argc, char** argv) {
