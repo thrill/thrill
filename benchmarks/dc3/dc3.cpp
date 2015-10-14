@@ -22,6 +22,7 @@
 #include <thrill/api/sum.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/api/zip_pad.hpp>
 #include <thrill/core/multiway_merge.hpp>
 
 #include <algorithm>
@@ -58,11 +59,11 @@ struct Chars {
 
     static Chars EndSentinel() {
         return Chars {
-            std::numeric_limits<char>::lowest(),
-                std::numeric_limits<char>::lowest(),
-                std::numeric_limits<char>::lowest() };
+                   std::numeric_limits<char>::lowest(),
+                   std::numeric_limits<char>::lowest(),
+                   std::numeric_limits<char>::lowest()
+        };
     }
-
 } __attribute__ ((packed)); // NOLINT
 
 //! A pair (index, rank)
@@ -185,12 +186,23 @@ template <typename Char>
 struct Index3 {
     size_t index;
     size_t next;
-    Char ch;
+    Char   ch;
 
     friend std::ostream& operator << (std::ostream& os, const Index3& i) {
         return os << "(index=" << i.index << " next=" << i.next << " ch=" << i.ch << ")";
     }
 };
+
+template <typename Char>
+struct CharsRanks12 {
+    Chars<Char> chars;
+    size_t      rank1;
+    size_t      rank2;
+
+    friend std::ostream& operator << (std::ostream& os, const CharsRanks12& c) {
+        return os << "(ch=" << c.chars << " r1=" << c.rank1 << " r2=" << c.rank2 << ")";
+    }
+} __attribute__ ((packed)); // NOLINT
 
 template <typename InputDIA, typename SuffixArrayDIA>
 bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
@@ -211,8 +223,8 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
              })
         // take (i, SA[i]) and sort to (ISA[i], i)
         .Sort([](const IndexRank& a, const IndexRank& b) {
-                return a.index < b.index;
-            });
+                  return a.index < b.index;
+              });
 
     // Zip (ISA[i], i) with [0,n) and check that the second component was a
     // permutation of [0,n)
@@ -236,13 +248,13 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
         isa_pair
         // extract ISA[i]
         .Map([](const IndexRank& ir) { return ir.rank; })
-         // build (ISA[i], ISA[i+1], T[i])
+        // build (ISA[i], ISA[i+1], T[i])
         .template FlatWindow<IndexPair>(
             2, [input_size](size_t index, const RingBuffer<size_t>& rb, auto emit) {
-                emit(IndexPair{ rb[0], rb[1] });
+                emit(IndexPair { rb[0], rb[1] });
                 if (index == input_size - 2) {
                     // emit sentinel at end
-                    emit(IndexPair{ rb[1], input_size });
+                    emit(IndexPair { rb[1], input_size });
                 }
             })
         .Zip(input,
@@ -251,8 +263,8 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
              })
         // and sort to (i, ISA[SA[i]+1], T[SA[i]])
         .Sort([](const Index3& a, const Index3& b) {
-                return a.index < b.index;
-            });
+                  return a.index < b.index;
+              });
 
     // order_check.Print("order_check");
 
@@ -261,32 +273,32 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
         // check that no pair violates the order
         .Window(2, [input_size](size_t index, const RingBuffer<Index3>& rb) -> size_t {
 
-                if (rb[0].ch > rb[1].ch) {
-                    // simple check of first character of suffix failed.
-                    LOG1 << "Error: suffix array position "
-                         << index << " ordered incorrectly.";
-                    return 1;
-                }
-                else if (rb[0].ch == rb[1].ch) {
-                    if (rb[1].next == input_size) {
-                        // last suffix of string must be first among those with
-                        // same first character
+                    if (rb[0].ch > rb[1].ch) {
+                        // simple check of first character of suffix failed.
                         LOG1 << "Error: suffix array position "
                              << index << " ordered incorrectly.";
                         return 1;
                     }
-                    if (rb[0].next != input_size && rb[0].next > rb[1].next) {
-                        // positions SA[i] and SA[i-1] has same first character
-                        // but their suffixes are ordered incorrectly: the
-                        // suffix position of SA[i] is given by ISA[SA[i]]
-                        LOG1 << "Error: suffix array position "
-                             << index << " ordered incorrectly.";
-                        return 1;
+                    else if (rb[0].ch == rb[1].ch) {
+                        if (rb[1].next == input_size) {
+                            // last suffix of string must be first among those with
+                            // same first character
+                            LOG1 << "Error: suffix array position "
+                                 << index << " ordered incorrectly.";
+                            return 1;
+                        }
+                        if (rb[0].next != input_size && rb[0].next > rb[1].next) {
+                            // positions SA[i] and SA[i-1] has same first character
+                            // but their suffixes are ordered incorrectly: the
+                            // suffix position of SA[i] is given by ISA[SA[i]]
+                            LOG1 << "Error: suffix array position "
+                                 << index << " ordered incorrectly.";
+                            return 1;
+                        }
                     }
-                }
-                // else (rb[0].ch < rb[1].ch) -> okay.
-                return 0;
-            })
+                    // else (rb[0].ch < rb[1].ch) -> okay.
+                    return 0;
+                })
         .Sum();
 
     return (order_check_sum == 0);
@@ -323,7 +335,6 @@ void StartDC3(api::Context& ctx) {
                     if ((index + 2) % 3 != 0)
                         emit(IndexChars { index + 2, rb[2], Char(), Char() });
                 }
-
             })
         // sort triples by contained letters
         .Sort([](const IndexChars& a, const IndexChars& b) {
@@ -423,10 +434,17 @@ void StartDC3(api::Context& ctx) {
             input_dia
             // map (t_i) -> (i,t_i,t_{i+1},t_{i+2}) where i neq 0 mod 3
             .FlatWindow<Chars>(
-                3, [](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                    assert(rb.size() == 3);
+                3, [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                     if (index % 3 == 0)
                         emit(Chars { rb[0], rb[1], rb[2] });
+
+                    if (index == input_size - 3) {
+                        // emit sentinel
+                        if ((index + 1) % 3 == 0)
+                            emit(Chars { rb[1], rb[2], Char() });
+                        if ((index + 2) % 3 == 0)
+                            emit(Chars { rb[2], Char(), Char() });
+                    }
                 });
 
         auto ranks_mod1 =
@@ -451,9 +469,12 @@ void StartDC3(api::Context& ctx) {
         ranks_mod1.Print("ranks_mod1");
         ranks_mod2.Print("ranks_mod2");
 
-        assert(triple_chars.Size() == size_mod1);
+        assert(triple_chars.Size() == size_mod1 + (input_size % 3 ? 1 : 0));
         assert(ranks_mod1.Size() == size_mod1);
         assert(ranks_mod2.Size() == size_mod1);
+
+        size_t zip_size = size_mod1 + (input_size % 3 ? 1 : 0);
+        sLOG1 << "zip_size" << zip_size;
 
         // Zip together the three arrays, create pairs, and extract needed
         // tuples into string fragments.
@@ -462,11 +483,7 @@ void StartDC3(api::Context& ctx) {
         using StringFragmentMod1 = ::StringFragmentMod1<Char>;
         using StringFragmentMod2 = ::StringFragmentMod2<Char>;
 
-        struct CharsRanks12 {
-            Chars  chars;
-            size_t rank1;
-            size_t rank2;
-        } __attribute__ ((packed)); // NOLINT
+        using CharsRanks12 = ::CharsRanks12<Char>;
 
         struct IndexCR12Pair {
             size_t       index;
@@ -474,19 +491,26 @@ void StartDC3(api::Context& ctx) {
             CharsRanks12 cr1;
         } __attribute__ ((packed)); // NOLINT
 
-        auto zip_triple_pairs =
-            Zip([](const Chars& ch, const size_t& mod1, const size_t& mod2) {
+        auto zip_triple_pairs1 =
+            ZipPadding(
+                [](const Chars& ch, const size_t& mod1, const size_t& mod2) {
                     return CharsRanks12 { ch, mod1, mod2 };
                 },
-                triple_chars, ranks_mod1, ranks_mod2)
+                std::make_tuple(Chars::EndSentinel(), 0, 0),
+                triple_chars, ranks_mod1, ranks_mod2);
+
+        zip_triple_pairs1.Print("zip_triple_pairs1");
+
+        auto zip_triple_pairs =
+            zip_triple_pairs1
             .FlatWindow<IndexCR12Pair>(
-                2, [size_mod1](size_t index, const RingBuffer<CharsRanks12>& rb, auto emit) {
+                2, [zip_size](size_t index, const RingBuffer<CharsRanks12>& rb, auto emit) {
                     emit(IndexCR12Pair { 3 * index, rb[0], rb[1] });
-                    if (index == size_mod1 - 2) {
+                    if (index == zip_size - 2) {
                         // emit last sentinel
                         emit(IndexCR12Pair { 3 * (index + 1), rb[1],
-                                    CharsRanks12 { Chars::EndSentinel(), 0, 0 }
-                            });
+                                             CharsRanks12 { Chars::EndSentinel(), 0, 0 }
+                             });
                     }
                 });
 
@@ -499,20 +523,10 @@ void StartDC3(api::Context& ctx) {
                          ip.cr0.chars.triple[1],
                          ip.cr0.rank1, ip.cr0.rank2
                      };
-                     //     sf.mod0.t0 = inputString.rank(i);
-                     // sf.mod0.t1 =
-                     //     i + 1 < inputString.size() ? inputString.rank(i + 1)
-                     //     : std::numeric_limits<char>::max();
-                     // sf.mod0.r1 =
-                     //     idiv3mod1 < size_mod1 ? ranksRec.rank(idiv3mod1)
-                     //     : std::numeric_limits<size_t>::min();
-                     // sf.mod0.r2 =
-                     //     idiv3mod2 < ranksRec.size() ? ranksRec.rank(idiv3mod2)
-                     //     : std::numeric_limits<size_t>::max();
                  })
             .Filter([input_size](const StringFragmentMod0& mod0) {
-                    return mod0.index < input_size;
-                });
+                        return mod0.index < input_size;
+                    });
 
         auto fragments_mod1 =
             zip_triple_pairs
@@ -522,16 +536,10 @@ void StartDC3(api::Context& ctx) {
                          ip.cr0.chars.triple[1],
                          ip.cr0.rank1, ip.cr0.rank2
                      };
-
-                     // sf.mod1.t0 = inputString.rank(i);
-                     // sf.mod1.r0 = ranksRec.rank(idiv3mod1);
-                     // sf.mod1.r1 =
-                     // idiv3mod2 < ranksRec.size() ? ranksRec.rank(idiv3mod2)
-                     // : std::numeric_limits<size_t>::max();
                  })
             .Filter([input_size](const StringFragmentMod1& mod1) {
-                    return mod1.index < input_size;
-                });
+                        return mod1.index < input_size;
+                    });
 
         auto fragments_mod2 =
             zip_triple_pairs
@@ -541,19 +549,10 @@ void StartDC3(api::Context& ctx) {
                          ip.cr0.chars.triple[2], ip.cr1.chars.triple[0],
                          ip.cr0.rank2, ip.cr1.rank1
                      };
-
-                     // sf.mod2.t0 = inputString.rank(i);
-                     // sf.mod2.t1 =
-                     //     i + 1 < inputString.size() ? inputString.rank(i + 1)
-                     //     : std::numeric_limits<char>::max();
-                     // sf.mod2.r0 = ranksRec.rank(idiv3mod2);
-                     // sf.mod2.r2 =
-                     //     idiv3mod1 + 1 < size_mod1 ? ranksRec.rank(idiv3mod1 + 1)
-                     //     : std::numeric_limits<size_t>::max();
                  })
             .Filter([input_size](const StringFragmentMod2& mod2) {
-                    return mod2.index < input_size;
-                });
+                        return mod2.index < input_size;
+                    });
 
         fragments_mod0.Print("fragments_mod0");
         fragments_mod1.Print("fragments_mod1");
@@ -691,7 +690,7 @@ void StartDC3(api::Context& ctx) {
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     if (argc == 2) g_input = argv[1];
     return api::Run(StartDC3);
 }
