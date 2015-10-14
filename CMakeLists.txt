@@ -37,7 +37,7 @@ option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(THRILL_USE_TBB "Use (optional) Intel TBB library if available." ON)
 
-option(THRILL_USE_MPI "Use (optional) MPI net backend." ON)
+option(THRILL_USE_MPI "Use (optional) MPI net backend." OFF)
 
 option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
 
