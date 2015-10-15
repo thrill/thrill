@@ -492,6 +492,16 @@ auto ZipPadding(
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::Zip;
+
+//! imported from api namespace
+using api::ZipPad;
+
+//! imported from api namespace
+using api::ZipPadding;
+
 } // namespace thrill
 
 #endif // !THRILL_API_ZIP_HEADER
