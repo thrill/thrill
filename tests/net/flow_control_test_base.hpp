@@ -131,11 +131,15 @@ static void TestMultiThreadBroadcast(net::Group* net) {
     const size_t magic = 1337;
     ExecuteMultiThreads(
         net, count, [=](net::FlowControlChannel& channel) {
-            size_t my_rank = channel.my_rank() + magic;
 
-            size_t res = channel.Broadcast(my_rank);
+            for (size_t origin = 0; origin < channel.num_workers(); ++origin) {
 
-            ASSERT_EQ(res, magic);
+                size_t my_rank = origin == channel.my_rank() ? magic : 0;
+
+                size_t res = channel.Broadcast(my_rank, origin);
+
+                ASSERT_EQ(res, magic);
+            }
         });
 }
 

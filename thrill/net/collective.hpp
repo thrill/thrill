@@ -350,10 +350,10 @@ void Group::ExPrefixSum(T& value, BinarySumOp sum_op) {
     return collective::PrefixSum(*this, value, sum_op, false);
 }
 
-//! Broadcast a value from the worker 0
+//! Broadcast a value from the worker "origin"
 template <typename T>
-void Group::Broadcast(T& value) {
-    return collective::Broadcast(*this, value);
+void Group::Broadcast(T& value, size_t origin) {
+    return collective::Broadcast(*this, value, origin);
 }
 
 //! Reduce a value from all workers to the worker 0
