@@ -67,7 +67,7 @@ namespace api {
  *
  * \tparam ZipFunction Type of the ZipFunction.
  */
-template <typename ValueType, typename ZipFunction,
+template <typename ValueType, typename ZipFunction, bool Pad,
           typename ParentDIA0, typename ... ParentDIAs>
 class ZipNode final : public DOpNode<ValueType>
 {
@@ -79,6 +79,8 @@ class ZipNode final : public DOpNode<ValueType>
     template <size_t Index>
     using ZipArgN =
               typename common::FunctionTraits<ZipFunction>::template arg_plain<Index>;
+    using ZipArgs =
+              typename common::FunctionTraits<ZipFunction>::args_plain;
 
 public:
     /*!
@@ -86,12 +88,14 @@ public:
      */
     ZipNode(const ZipFunction& zip_function,
             StatsNode* stats_node,
+            const ZipArgs& padding,
             const ParentDIA0& parent0,
             const ParentDIAs& ... parents)
         : DOpNode<ValueType>(
               parent0.ctx(), { parent0.node(), parents.node() ... },
               stats_node),
-          zip_function_(zip_function)
+          zip_function_(zip_function),
+          padding_(padding)
     {
         // allocate files.
         files_.reserve(num_inputs_);
@@ -144,8 +148,12 @@ public:
 
             while (HasNext(readers)) {
                 auto v = common::VarMapEnumerate<num_inputs_>(
-                    [&readers](auto index) {
+                    [this, &readers](auto index) {
                         using ZipArg = ZipArgN<decltype(index)::index>;
+                        if (Pad && !readers[index].HasNext()) {
+                                // take padding_ if next is not available.
+                            return std::get<decltype(index)::index>(this->padding_);
+                        }
                         return readers[index].template Next<ZipArg>();
                     });
 
@@ -162,6 +170,9 @@ public:
 private:
     //! Zip function
     ZipFunction zip_function_;
+
+    //! padding for shorter DIAs
+    ZipArgs padding_;
 
     //! Number of storage DIAs backing
     static const size_t num_inputs_ = 1 + sizeof ... (ParentDIAs);
@@ -272,7 +283,9 @@ private:
 
         // return only the minimum size of all DIAs.
         result_size_ =
-            *std::min_element(dia_total_size.begin(), dia_total_size.end());
+            Pad
+            ? *std::max_element(dia_total_size.begin(), dia_total_size.end())
+            : *std::min_element(dia_total_size.begin(), dia_total_size.end());
 
         // perform scatters to exchange data, with different types.
         if (result_size_ != 0) {
@@ -286,10 +299,18 @@ private:
     //! helper for PushData() which checks all inputs
     static bool HasNext(
         std::array<data::CatStream::CatReader, num_inputs_>& readers) {
-        for (size_t i = 0; i < num_inputs_; ++i) {
-            if (!readers[i].HasNext()) return false;
+        if (Pad) {
+            for (size_t i = 0; i < num_inputs_; ++i) {
+                if (readers[i].HasNext()) return true;
+            }
+            return false;
         }
-        return true;
+        else {
+            for (size_t i = 0; i < num_inputs_; ++i) {
+                if (!readers[i].HasNext()) return false;
+            }
+            return true;
+        }
     }
 };
 
@@ -330,8 +351,11 @@ auto Zip(const ZipFunction &zip_function,
     using ZipResult
               = typename common::FunctionTraits<ZipFunction>::result_type;
 
+    using ZipArgs =
+              typename common::FunctionTraits<ZipFunction>::args_plain;
+
     using ZipNode
-              = api::ZipNode<ZipResult, ZipFunction, FirstDIA, DIAs ...>;
+              = api::ZipNode<ZipResult, ZipFunction, false, FirstDIA, DIAs ...>;
 
     StatsNode* stats_node = first_dia.AddChildStatsNode("Zip", DIANodeType::DOP);
     (void)VarForeachExpander {
@@ -340,7 +364,7 @@ auto Zip(const ZipFunction &zip_function,
 
     auto zip_node
         = std::make_shared<ZipNode>(
-        zip_function, stats_node, first_dia, dias ...);
+        zip_function, stats_node, ZipArgs(), first_dia, dias ...);
 
     return DIA<ZipResult>(zip_node, { stats_node });
 }
@@ -350,6 +374,118 @@ template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
     const SecondDIA &second_dia, const ZipFunction &zip_function) const {
     return api::Zip(zip_function, *this, second_dia);
+}
+
+/*!
+ * ZipPad is a DOp, which Zips any number of DIAs in style of functional
+ * programming. The zip_function is used to zip the i-th elements of all input
+ * DIAs together to form the i-th element of the output DIA. The type of the
+ * output DIA can be inferred from the zip_function. The output DIA's length is
+ * the *maximum* of all input DIAs, shorter DIAs are padded with
+ * default-constructed items.
+ *
+ * \tparam ZipFunction Type of the zip_function. This is a function with two
+ * input elements, both of the local type, and one output element, which is
+ * the type of the Zip node.
+ *
+ * \param zip_function Zip function, which zips two elements together
+ *
+ * \param second_dia DIA, which is zipped together with the original DIA.
+ */
+template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
+auto ZipPad(const ZipFunction &zip_function,
+            const FirstDIA &first_dia, const DIAs &... dias) {
+
+    using VarForeachExpander = int[];
+
+    first_dia.AssertValid();
+    (void)VarForeachExpander {
+        (dias.AssertValid(), 0) ...
+    };
+
+    static_assert(
+        std::is_convertible<
+            typename FirstDIA::ValueType,
+            typename common::FunctionTraits<ZipFunction>::template arg<0>
+            >::value,
+        "ZipFunction has the wrong input type in DIA 0");
+
+    using ZipResult =
+              typename common::FunctionTraits<ZipFunction>::result_type;
+
+    using ZipArgs =
+              typename common::FunctionTraits<ZipFunction>::args_plain;
+
+    using ZipNode
+              = api::ZipNode<ZipResult, ZipFunction, true, FirstDIA, DIAs ...>;
+
+    StatsNode* stats_node = first_dia.AddChildStatsNode("Zip", DIANodeType::DOP);
+    (void)VarForeachExpander {
+        (dias.AppendChildStatsNode(stats_node), 0) ...
+    };
+
+    auto zip_node
+        = std::make_shared<ZipNode>(
+        zip_function, stats_node, ZipArgs(), first_dia, dias ...);
+
+    return DIA<ZipResult>(zip_node, { stats_node });
+}
+
+/*!
+ * ZipPadding is a DOp, which Zips any number of DIAs in style of functional
+ * programming. The zip_function is used to zip the i-th elements of all input
+ * DIAs together to form the i-th element of the output DIA. The type of the
+ * output DIA can be inferred from the zip_function. The output DIA's length is
+ * the *maximum* of all input DIAs, shorter DIAs are padded with items given by
+ * the padding parameter.
+ *
+ * \tparam ZipFunction Type of the zip_function. This is a function with two
+ * input elements, both of the local type, and one output element, which is
+ * the type of the Zip node.
+ *
+ * \param zip_function Zip function, which zips two elements together
+ *
+ * \param padding std::tuple<args> of padding sentinels delivered to ZipFunction
+ * if an input dia is too short.
+ *
+ * \param second_dia DIA, which is zipped together with the original DIA.
+ */
+template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
+auto ZipPadding(
+    const ZipFunction &zip_function,
+    const typename common::FunctionTraits<ZipFunction>::args_plain & padding,
+    const FirstDIA &first_dia, const DIAs &... dias) {
+
+    using VarForeachExpander = int[];
+
+    first_dia.AssertValid();
+    (void)VarForeachExpander {
+        (dias.AssertValid(), 0) ...
+    };
+
+    static_assert(
+        std::is_convertible<
+            typename FirstDIA::ValueType,
+            typename common::FunctionTraits<ZipFunction>::template arg<0>
+            >::value,
+        "ZipFunction has the wrong input type in DIA 0");
+
+    using ZipResult =
+              typename common::FunctionTraits<ZipFunction>::result_type;
+
+    using ZipNode
+              = api::ZipNode<ZipResult, ZipFunction, true, FirstDIA, DIAs ...>;
+
+    StatsNode* stats_node = first_dia.AddChildStatsNode("Zip", DIANodeType::DOP);
+    (void)VarForeachExpander {
+        (dias.AppendChildStatsNode(stats_node), 0) ...
+    };
+
+    auto zip_node
+        = std::make_shared<ZipNode>(
+        zip_function, stats_node, padding, first_dia, dias ...);
+
+    return DIA<ZipResult>(zip_node, { stats_node });
 }
 
 //! \}

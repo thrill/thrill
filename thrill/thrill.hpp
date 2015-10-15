@@ -50,7 +50,6 @@ print "#include <$_>\n" foreach sort <thrill/api/*.hpp>;
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
 #include <thrill/api/zip.hpp>
-#include <thrill/api/zip_pad.hpp>
 // [[[end]]]
 
 namespace thrill {

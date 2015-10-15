@@ -22,7 +22,6 @@
 #include <thrill/api/sum.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
-#include <thrill/api/zip_pad.hpp>
 #include <thrill/core/multiway_merge.hpp>
 
 #include <algorithm>

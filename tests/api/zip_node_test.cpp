@@ -14,7 +14,6 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/zip.hpp>
-#include <thrill/api/zip_pad.hpp>
 #include <thrill/common/string.hpp>
 
 #include <algorithm>
