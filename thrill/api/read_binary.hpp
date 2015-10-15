@@ -266,6 +266,10 @@ DIA<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::ReadBinary;
+
 } // namespace thrill
 
 #endif // !THRILL_API_READ_BINARY_HEADER

@@ -388,7 +388,12 @@ int Run(const std::function<void(Context&)>& job_startpoint);
 
 //! imported from api namespace
 using api::HostContext;
+
+//! imported from api namespace
 using api::Context;
+
+//! imported from api namespace
+using api::Run;
 
 } // namespace thrill
 

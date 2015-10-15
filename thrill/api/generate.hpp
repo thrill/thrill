@@ -136,6 +136,10 @@ auto Generate(Context & ctx, size_t size) {
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::Generate;
+
 } // namespace thrill
 
 #endif // !THRILL_API_GENERATE_HEADER
