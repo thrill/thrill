@@ -174,6 +174,11 @@ public:
         return group_.my_host_rank() * thread_count_ + local_id_;
     }
 
+    //! Return the total number of workers.
+    size_t num_workers() const {
+        return group_.num_hosts() * thread_count_;
+    }
+
     /*!
      * Calculates the prefix sum over all workers, given a certain sum
      * operation.
@@ -283,25 +288,31 @@ public:
      * \param value The value to broadcast. This value is ignored for each
      * worker except the master. We use this signature to keep the decision
      * wether a node is the master transparent.
+     *
+     * \param origin Worker number to broadcast value from.
+     *
      * \return The value sent by the master.
      */
     template <typename T>
-    T Broadcast(const T& value) {
+    T Broadcast(const T& value, size_t origin = 0) {
 
         T res = value;
 
-        // The primary thread of each node has to handle IO
-        if (local_id_ == 0) {
+        // Select primary thread of each node to handle IO (assumes all hosts
+        // has the same number of threads).
+        size_t local_pe = origin % thread_count_;
+
+        if (local_id_ == local_pe) {
             SetLocalShared(&res);
 
-            group_.Broadcast(res);
+            group_.Broadcast(res, origin / thread_count_);
         }
 
         barrier_.Await();
 
         // other threads: read value from thread 0.
-        if (local_id_ != 0) {
-            res = *GetLocalShared<T>(0);
+        if (local_id_ != local_pe) {
+            res = *GetLocalShared<T>(local_pe);
         }
 
         barrier_.Await();
