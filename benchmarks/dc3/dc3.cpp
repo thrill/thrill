@@ -38,24 +38,20 @@ using thrill::common::RingBuffer;
 
 //! A triple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename AlphabetType>
-struct IndexChars {
-    size_t       index;
-    AlphabetType triple[3];
-
-    friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
-        return os << "[" << std::to_string(tc.index) << "|"
-                  << tc.triple[0] << tc.triple[1] << tc.triple[2] << "]";
-    }
-} __attribute__ ((packed)); // NOLINT
-
-//! A triple with index (i,t_i,t_{i+1},t_{i+2}).
-template <typename AlphabetType>
 struct Chars {
-    AlphabetType triple[3];
+    AlphabetType ch[3];
 
-    friend std::ostream& operator << (std::ostream& os, const Chars& ch) {
-        return os << "["
-                  << ch.triple[0] << ch.triple[1] << ch.triple[2] << "]";
+    bool operator == (const Chars& b) const {
+        return std::equal(ch + 0, ch + 3, b.ch + 0);
+    }
+
+    bool operator < (const Chars& b) const {
+        return std::lexicographical_compare(
+            ch + 0, ch + 3, b.ch + 0, b.ch + 3);
+    }
+
+    friend std::ostream& operator << (std::ostream& os, const Chars& chars) {
+        return os << '[' << chars.ch[0] << chars.ch[1] << chars.ch[2] << ']';
     }
 
     static Chars EndSentinel() {
@@ -67,14 +63,24 @@ struct Chars {
     }
 } __attribute__ ((packed)); // NOLINT
 
+//! A triple with index (i,t_i,t_{i+1},t_{i+2}).
+template <typename AlphabetType>
+struct IndexChars {
+    size_t              index;
+    Chars<AlphabetType> chars;
+
+    friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
+        return os << '[' << tc.index << '|' << tc.chars << ']';
+    }
+} __attribute__ ((packed)); // NOLINT
+
 //! A pair (index, rank)
 struct IndexRank {
     size_t index;
     size_t rank;
 
     friend std::ostream& operator << (std::ostream& os, const IndexRank& tr) {
-        return os << "(" << std::to_string(tr.index) << "|"
-                  << std::to_string(tr.rank) << ")";
+        return os << '(' << tr.index << '|' << tr.rank << ')';
     }
 } __attribute__ ((packed)); // NOLINT
 
@@ -148,13 +154,35 @@ struct StringFragment
         : mod2(_mod2) { }
 
     friend std::ostream& operator << (std::ostream& os, const StringFragment& tc) {
-        os << "[" << std::to_string(tc.index) << "|";
+        os << '[' << std::to_string(tc.index) << '|';
         if (tc.index % 3 == 0)
-            return os << "0|" << tc.mod0 << "]";
+            return os << "0|" << tc.mod0 << ']';
         if (tc.index % 3 == 1)
-            return os << "1|" << tc.mod1 << "]";
+            return os << "1|" << tc.mod1 << ']';
         if (tc.index % 3 == 2)
-            return os << "2|" << tc.mod2 << "]";
+            return os << "2|" << tc.mod2 << ']';
+    }
+} __attribute__ ((packed)); // NOLINT
+
+template <typename Char>
+struct Index3 {
+    size_t index;
+    size_t next;
+    Char   ch;
+
+    friend std::ostream& operator << (std::ostream& os, const Index3& i) {
+        return os << "(index=" << i.index << " next=" << i.next << " ch=" << i.ch << ")";
+    }
+} __attribute__ ((packed)); // NOLINT
+
+template <typename Char>
+struct CharsRanks12 {
+    Chars<Char> chars;
+    size_t      rank1;
+    size_t      rank2;
+
+    friend std::ostream& operator << (std::ostream& os, const CharsRanks12& c) {
+        return os << "(ch=" << c.chars << " r1=" << c.rank1 << " r2=" << c.rank2 << ")";
     }
 } __attribute__ ((packed)); // NOLINT
 
@@ -180,30 +208,8 @@ DIA<size_t> Recursion(const DIA<size_t>& _input) {
                   });
     }
 
-    return api::DistributeFrom(_input.ctx(), std::move(output));
+    return DistributeFrom(_input.ctx(), std::move(output));
 }
-
-template <typename Char>
-struct Index3 {
-    size_t index;
-    size_t next;
-    Char   ch;
-
-    friend std::ostream& operator << (std::ostream& os, const Index3& i) {
-        return os << "(index=" << i.index << " next=" << i.next << " ch=" << i.ch << ")";
-    }
-};
-
-template <typename Char>
-struct CharsRanks12 {
-    Chars<Char> chars;
-    size_t      rank1;
-    size_t      rank2;
-
-    friend std::ostream& operator << (std::ostream& os, const CharsRanks12& c) {
-        return os << "(ch=" << c.chars << " r1=" << c.rank1 << " r2=" << c.rank2 << ")";
-    }
-} __attribute__ ((packed)); // NOLINT
 
 template <typename InputDIA, typename SuffixArrayDIA>
 bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
@@ -306,7 +312,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 }
 
 template <typename InputDIA>
-void DC3(api::Context& ctx, const InputDIA& input_dia, size_t input_size) {
+void DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
 
     using Char = typename InputDIA::ValueType;
     using IndexChars = ::IndexChars<Char>;
@@ -337,8 +343,7 @@ void DC3(api::Context& ctx, const InputDIA& input_dia, size_t input_size) {
             })
         // sort triples by contained letters
         .Sort([](const IndexChars& a, const IndexChars& b) {
-                  return std::lexicographical_compare(
-                      a.triple + 0, a.triple + 3, b.triple + 0, b.triple + 3);
+                  return a.chars < b.chars;
               });
 
     if (debug_print)
@@ -359,8 +364,7 @@ void DC3(api::Context& ctx, const InputDIA& input_dia, size_t input_size) {
                 if (index == 0) emit(0);
 
                 // emit 0 or 1 depending on whether previous triple is equal
-                emit(std::equal(rb[0].triple, rb[0].triple + 3,
-                                rb[1].triple) ? 0 : 1);
+                emit(rb[0].chars == rb[1].chars ? 0 : 1);
             })
         .PrefixSum();
 
@@ -559,8 +563,7 @@ void DC3(api::Context& ctx, const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexCR12Pair& ip) {
                  return StringFragmentMod0 {
                      ip.index,
-                     ip.cr0.chars.triple[0],
-                     ip.cr0.chars.triple[1],
+                     ip.cr0.chars.ch[0], ip.cr0.chars.ch[1],
                      ip.cr0.rank1, ip.cr0.rank2
                  };
              })
@@ -573,7 +576,7 @@ void DC3(api::Context& ctx, const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexCR12Pair& ip) {
                  return StringFragmentMod1 {
                      ip.index + 1,
-                     ip.cr0.chars.triple[1],
+                     ip.cr0.chars.ch[1],
                      ip.cr0.rank1, ip.cr0.rank2
                  };
              })
@@ -586,7 +589,7 @@ void DC3(api::Context& ctx, const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexCR12Pair& ip) {
                  return StringFragmentMod2 {
                      ip.index + 2,
-                     ip.cr0.chars.triple[2], ip.cr1.chars.triple[0],
+                     ip.cr0.chars.ch[2], ip.cr1.chars.ch[0],
                      ip.cr0.rank2, ip.cr1.rank1
                  };
              })
@@ -704,7 +707,7 @@ void DC3(api::Context& ctx, const InputDIA& input_dia, size_t input_size) {
     // map to only suffix array
 
     auto suffix_array =
-        api::Distribute<StringFragment>(ctx, output)
+        Distribute<StringFragment>(ctx, output)
         .Map([](const StringFragment& a) { return a.index; });
 
     // debug output
@@ -732,12 +735,12 @@ void DC3(api::Context& ctx, const InputDIA& input_dia, size_t input_size) {
 
 std::string g_input = "dbacbacbd";
 
-void StartDC3(api::Context& ctx) {
+void StartDC3(Context& ctx) {
 
     std::vector<char> input_vec(g_input.begin(), g_input.end());
 
-    // auto input_dia = api::ReadBinary<char>(ctx, "Makefile");
-    auto input_dia = api::Distribute<char>(ctx, input_vec);
+    // auto input_dia = ReadBinary<char>(ctx, "Makefile");
+    auto input_dia = Distribute<char>(ctx, input_vec);
 
     // TODO(tb): have this passed to the method, this costs an extra data round.
     size_t input_size = input_dia.Size();
@@ -747,7 +750,7 @@ void StartDC3(api::Context& ctx) {
 
 int main(int argc, char* argv[]) {
     if (argc == 2) g_input = argv[1];
-    return api::Run(StartDC3);
+    return Run(StartDC3);
 }
 
 /******************************************************************************/
