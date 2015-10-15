@@ -155,57 +155,65 @@ void PrefixSumHypercube(
  * \param net The current peer onto which to apply the operation
  *
  * \param value The value to be broadcast / receive into.
+ *
+ * \param origin The PE to broadcast value from.
  */
 template <typename T>
 static inline
-void BroadcastTrivial(Group& net, T& value) {
+void BroadcastTrivial(Group& net, T& value, size_t origin = 0) {
 
-    if (net.my_host_rank() == 0) {
+    if (net.my_host_rank() == origin) {
         // send value to all peers
-        for (size_t p = 1; p < net.num_hosts(); ++p) {
-            net.SendTo(p, value);
+        for (size_t p = 0; p < net.num_hosts(); ++p) {
+            if (p != origin)
+                net.SendTo(p, value);
         }
     }
     else {
-        // receive from peer 0
-        net.ReceiveFrom(0, &value);
+        // receive from origin
+        net.ReceiveFrom(origin, &value);
     }
 }
 
 /*!
- * Broadcasts the value of the worker with index 0 to all the others. This is a
- * binomial tree broadcast method.
+ * Broadcasts the value of the worker with index "origin" to all the
+ * others. This is a binomial tree broadcast method.
  *
  * \param net The current worker onto which to apply the operation
  *
  * \param value The value to be broadcast / receive into.
+ *
+ * \param origin The PE to broadcast value from.
  */
 template <typename T>
 static inline
-void BroadcastBinomialTree(Group& net, T& value) {
+void BroadcastBinomialTree(Group& net, T& value, size_t origin = 0) {
     static const bool debug = false;
 
-    size_t my_rank = net.my_host_rank();
+    size_t num_hosts = net.num_hosts();
+    // calculate rank in cyclically shifted binomial tree
+    size_t my_rank = (net.my_host_rank() + num_hosts - origin) % num_hosts;
     size_t r = 0, d = 1;
     // receive from predecessor
     if (my_rank > 0) {
         // our predecessor is p with the lowest one bit flipped to zero. this
         // also counts the number of rounds we have to send out messages later.
         while ((my_rank & d) == 0) d <<= 1, ++r;
-        size_t from = my_rank ^ d;
+        size_t from = ((my_rank ^ d) + origin) % num_hosts;
         sLOG << "Broadcast: rank" << my_rank << "receiving from" << from
              << "in round" << r;
         net.ReceiveFrom(from, &value);
     }
     else {
-        d = common::RoundUpToPowerOfTwo(net.num_hosts());
+        d = common::RoundUpToPowerOfTwo(num_hosts);
     }
     // send to successors
     for (d >>= 1; d > 0; d >>= 1, ++r) {
-        if (my_rank + d < net.num_hosts()) {
+        if (my_rank + d < num_hosts) {
+            size_t to = (my_rank + d + origin) % num_hosts;
             sLOG << "Broadcast: rank" << my_rank << "round" << r << "sending to"
-                 << my_rank + d;
-            net.SendTo(my_rank + d, value);
+                 << to;
+            net.SendTo(to, value);
         }
     }
 }
@@ -217,11 +225,13 @@ void BroadcastBinomialTree(Group& net, T& value) {
  * \param net The current worker onto which to apply the operation
  *
  * \param value The value to be broadcast / receive into.
+ *
+ * \param origin The PE to broadcast value from.
  */
 template <typename T>
 static inline
-void Broadcast(Group& net, T& value) {
-    return BroadcastBinomialTree(net, value);
+void Broadcast(Group& net, T& value, size_t origin = 0) {
+    return BroadcastBinomialTree(net, value, origin);
 }
 
 /******************************************************************************/
