@@ -146,6 +146,10 @@ auto DistributeFrom(
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::DistributeFrom;
+
 } // namespace thrill
 
 #endif // !THRILL_API_DISTRIBUTE_FROM_HEADER

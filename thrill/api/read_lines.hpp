@@ -429,6 +429,10 @@ DIA<std::string> ReadLines(Context& ctx, std::string filepath) {
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::ReadLines;
+
 } // namespace thrill
 
 #endif // !THRILL_API_READ_LINES_HEADER
