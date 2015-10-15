@@ -334,6 +334,13 @@ void StartDC3(api::Context& ctx) {
                         emit(IndexChars { index + 1, rb[1], rb[2], Char() });
                     if ((index + 2) % 3 != 0)
                         emit(IndexChars { index + 2, rb[2], Char(), Char() });
+
+                    if (input_size % 3 == 1) {
+                        // emit a sentinel tuple for inputs n % 3 == 1 to
+                        // separate mod1 and mod2 strings in recursive
+                        // subproblem.
+                        emit(IndexChars { index + 3, Char(), Char(), Char() });
+                    }
                 }
             })
         // sort triples by contained letters
@@ -401,7 +408,7 @@ void StartDC3(api::Context& ctx) {
 
         // TODO(tb): this can be calculated from input_size.
         // size_t size_mod1 = string_mod1.Size();
-        size_t size_mod1 = input_size / 3;
+        size_t size_mod1 = input_size / 3 + (input_size % 3 != 0);
 
         // compute the size of the 2/3 subproblem.
         size_t size_subp = (input_size / 3) * 2 + (input_size % 3 == 2);
@@ -453,7 +460,9 @@ void StartDC3(api::Context& ctx) {
                         return a.index < size_mod1;
                     })
             .Map([](const IndexRank& a) {
-                     return a.rank;
+                     // add one to ranks such that zero can be used as sentinel
+                     // for suffixes beyond the end of the string.
+                     return a.rank + 1;
                  });
 
         auto ranks_mod2 =
@@ -462,18 +471,18 @@ void StartDC3(api::Context& ctx) {
                         return a.index >= size_mod1;
                     })
             .Map([](const IndexRank& a) {
-                     return a.rank;
+                     return a.rank + 1;
                  });
 
         triple_chars.Print("triple_chars");
         ranks_mod1.Print("ranks_mod1");
         ranks_mod2.Print("ranks_mod2");
 
-        assert(triple_chars.Size() == size_mod1 + (input_size % 3 ? 1 : 0));
+        assert(triple_chars.Size() == size_mod1);
         assert(ranks_mod1.Size() == size_mod1);
-        assert(ranks_mod2.Size() == size_mod1);
+        assert(ranks_mod2.Size() == size_mod1 - (input_size % 3 ? 1 : 0));
 
-        size_t zip_size = size_mod1 + (input_size % 3 ? 1 : 0);
+        size_t zip_size = size_mod1;
         sLOG1 << "zip_size" << zip_size;
 
         // Zip together the three arrays, create pairs, and extract needed
