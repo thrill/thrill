@@ -110,6 +110,8 @@ if [ $verbose -ne 0 ]; then
 fi
 
 rank=0
+# On mac, use the following line: 
+# uuid=$(uuidgen)
 uuid=$(cat /proc/sys/kernel/random/uuid)
 
 # check THRILL_HOSTLIST for hosts without port numbers: add 10000+rank
