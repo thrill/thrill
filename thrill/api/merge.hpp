@@ -115,10 +115,9 @@ public:
               const FirstParentDIAType& parent0,
               const ParentDIAType& ... parents)
         : DOpNode<ValueType>(parent0.ctx(),
-                            { parent0, parents.node() ... }, stats_node),
+                            { parent0.node(), parents.node() ... }, stats_node),
           comparator_(comparator)
     {
-   
         common::VarCallForeachIndex([this](auto i, auto parent) {
             files_[i] = context_.GetFilePtr();
             writers_[i] = files_[i]->GetWriterPtr();
@@ -318,7 +317,7 @@ private:
             if (width[s][mp] > 0) {
                 pivotIdx = left[s][mp] + (ran() % width[s][mp]);
                 stats.FileOpTimer.Start();
-                pivotElem = files_[mp].template GetItemAt<ValueType>(pivotIdx);
+                pivotElem = files_[mp]->template GetItemAt<ValueType>(pivotIdx);
                 stats.FileOpTimer.Stop();
             }
 
@@ -361,7 +360,7 @@ private:
             size_t rank = 0;
             for (size_t i = 0; i < num_inputs_; i++) {
                 stats.FileOpTimer.Start();
-                size_t idx = files_[i].GetIndexOf(pivots[s].value, pivots[s].tie_idx, comparator_);
+                size_t idx = files_[i]->GetIndexOf(pivots[s].value, pivots[s].tie_idx, comparator_);
                 stats.FileOpTimer.Stop();
 
                 rank += idx;
@@ -551,11 +550,10 @@ auto DIA<ValueType, Stack>::Merge(const Comparator &comparator, const DIAs &... 
 
     using VarForeachExpander = int[];
 
-    // Todo: Merge with Timo's branch
-   // AssertValid();
-   // (void)VarForeachExpander {
-   //     (dias.AssertValid(), 0) ...
-   // };
+    AssertValid();
+    (void)VarForeachExpander {
+        (dias.AssertValid(), 0) ...
+    };
 
     using CompareResult
               = typename FunctionTraits<Comparator>::result_type;
