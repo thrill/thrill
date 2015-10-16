@@ -10,6 +10,7 @@
 ##########################################################################
 
 import boto3
+import os
 from subprocess import call
 
 ec2 = boto3.resource('ec2')
