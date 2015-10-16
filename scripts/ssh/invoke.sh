@@ -85,6 +85,8 @@ if [ ! -e "$cmd" ]; then
 fi
 
 # get absolute path
+# note for OSX users: readlink will fail on mac. 
+# install coreutils (brew install coreutils) and use greadlink instead
 cmd=`readlink -f "$cmd"`
 
 if [ -z "$THRILL_HOSTLIST" ]; then
