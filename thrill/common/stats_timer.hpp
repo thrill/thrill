@@ -5,7 +5,7 @@
  * (See accompanying file LICENSE_1_0.txt or copy at
  * http://www.boost.org/LICENSE_1_0.txt)
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2014 Thomas Keh <thomas.keh@student.kit.edu>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>

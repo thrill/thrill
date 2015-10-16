@@ -3,7 +3,7 @@
  *
  * Interface for Operations, holds pointer to node and lambda from node to state
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
@@ -154,6 +154,12 @@ public:
         return node_;
     }
 
+    //! Returns a the corresponding stats nodes
+    const std::vector<StatsNode*> & stats_parents() const {
+        assert(IsValid());
+        return stats_parents_;
+    }
+
     //! Returns the number of references to the according DIANode.
     size_t node_refcount() const {
         assert(IsValid());
@@ -176,6 +182,15 @@ public:
     void AppendChildStatsNode(StatsNode* stats_node) const {
         for (const auto& parent : stats_parents_)
             node_->context().stats_graph().AddEdge(parent, stats_node);
+    }
+
+    template <typename AnyType, typename AnyStack>
+    auto LinkStatsNodeFrom(const DIA<AnyType, AnyStack>& rhs) {
+        for (const auto& parent : stats_parents_) {
+            for (const auto& rhs_parent : rhs.stats_parents())
+                node_->context().stats_graph().AddEdge(rhs_parent, parent);
+        }
+        return *this;
     }
 
     Context & ctx() const {
@@ -220,12 +235,13 @@ public:
         assert(IsValid());
 
         using MapArgument
-                  = typename FunctionTraits<MapFunction>::template arg<0>;
+                  = typename FunctionTraits<MapFunction>::template arg_plain<0>;
         using MapResult
                   = typename FunctionTraits<MapFunction>::result_type;
-        auto conv_map_function = [=](MapArgument input, auto emit_func) {
-                                     emit_func(map_function(input));
-                                 };
+        auto conv_map_function =
+            [=](const MapArgument& input, auto emit_func) {
+                emit_func(map_function(input));
+            };
 
         static_assert(
             std::is_convertible<ValueType, MapArgument>::value,
@@ -253,10 +269,11 @@ public:
         assert(IsValid());
 
         using FilterArgument
-                  = typename FunctionTraits<FilterFunction>::template arg<0>;
-        auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
-                                        if (filter_function(input)) emit_func(input);
-                                    };
+                  = typename FunctionTraits<FilterFunction>::template arg_plain<0>;
+        auto conv_filter_function =
+            [=](const FilterArgument& input, auto emit_func) {
+                if (filter_function(input)) emit_func(input);
+            };
 
         static_assert(
             std::is_convertible<ValueType, FilterArgument>::value,
@@ -588,14 +605,13 @@ public:
     /*!
      * TODO
      */
-    template <typename Comperator = std::less<ValueType> >
-    auto Merge(DIA<_ValueType, _Stack> second_dia, const Comperator& comperator = Comperator()) {
-        std::array<DIA<_ValueType, _Stack>, 1> inputs = {{second_dia}};
-        return Merge(inputs, comperator);
+    template <typename Comparator = std::less<ValueType> >
+    auto Merge(const DIA<_ValueType, _Stack> &second_dia, const Comparator& comparator = Comparator()) {
+        return Merge<Comparator, 1, DIA<_ValueType, _Stack>> (comparator, second_dia);
     }
 
-    template <typename Comperator = std::less<ValueType>, size_t num_inputs>
-    auto Merge(std::array<DIA<_ValueType, _Stack>, num_inputs> inputs, const Comperator& comperator = Comperator()) const;
+    template <typename Comparator = std::less<ValueType>, size_t num_inputs, typename ... DIAs>
+    auto Merge(const Comparator &comparator, const DIAs &... dias) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
@@ -712,6 +728,11 @@ public:
     auto Collapse() const;
 
     auto Cache() const;
+
+    auto Label(const std::string& msg) const {
+        node_->AddStats(msg);
+        return *this;
+    }
 
     /*!
      * Returns the string which defines the DIANode node_.

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/net/tcp/construct.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>

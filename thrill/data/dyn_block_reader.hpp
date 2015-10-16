@@ -4,7 +4,7 @@
  * Dynamized instantiation of BlockReader which can polymorphically read from
  * different block sources using the same object type.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
