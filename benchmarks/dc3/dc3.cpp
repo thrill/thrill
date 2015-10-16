@@ -539,7 +539,9 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
                 })
         .Map([](const IndexRank& a) {
                  return a.rank + 1;
-             });
+             })
+        // TODO(sl): Mr. StageBuilder, this should NOT be needed.
+        .Cache();
 
     if (debug_print) {
         triple_chars.Print("triple_chars");
