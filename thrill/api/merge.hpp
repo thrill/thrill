@@ -496,10 +496,15 @@ private:
 
             finished = true;
 
+            // TODO: We check for accuracy of num_inputs_ + 1
+            // There is a off-by one error in the last search step. 
+            // We need special treatment of search ranges with width 1, when the pivot 
+            // originates from our host.
+            // An error of num_inputs_ + 1 is the worst case. 
             for (size_t i = 0; i < p - 1; i++) {
                 size_t a = globalRanks[i];
                 size_t b = targetRanks[i];
-                if ((a > b && a - b > 1) || (b > a && b - a > 1)) {
+                if ((a > b && a - b > num_inputs_ + 1) || (b > a && b - a > num_inputs_ + 1)) {
                     finished = false;
                     break;
                 }
@@ -545,10 +550,11 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-template <typename Comparator, size_t num_inputs, typename ... DIAs>
+template <typename Comparator, typename ... DIAs>
 auto DIA<ValueType, Stack>::Merge(const Comparator &comparator, const DIAs &... dias) const {
 
     using VarForeachExpander = int[];
+    const size_t num_inputs = sizeof...(DIAs);
 
     AssertValid();
     (void)VarForeachExpander {

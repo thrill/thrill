@@ -610,12 +610,7 @@ public:
     /*!
      * TODO
      */
-    template <typename Comparator = std::less<ValueType> >
-    auto Merge(const DIA<_ValueType, _Stack> &second_dia, const Comparator& comparator = Comparator()) {
-        return Merge<Comparator, 1, DIA<_ValueType, _Stack>> (comparator, second_dia);
-    }
-
-    template <typename Comparator = std::less<ValueType>, size_t num_inputs, typename ... DIAs>
+    template <typename Comparator = std::less<ValueType>, typename ... DIAs>
     auto Merge(const Comparator &comparator, const DIAs &... dias) const;
 
     /*!
