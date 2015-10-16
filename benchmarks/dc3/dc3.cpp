@@ -51,14 +51,15 @@ struct Chars {
     }
 
     friend std::ostream& operator << (std::ostream& os, const Chars& chars) {
-        return os << '[' << chars.ch[0] << chars.ch[1] << chars.ch[2] << ']';
+        return os << '[' << chars.ch[0] << ',' << chars.ch[1]
+                  << ',' << chars.ch[2] << ']';
     }
 
     static Chars EndSentinel() {
         return Chars {
-                   std::numeric_limits<char>::lowest(),
-                   std::numeric_limits<char>::lowest(),
-                   std::numeric_limits<char>::lowest()
+                   std::numeric_limits<AlphabetType>::lowest(),
+                   std::numeric_limits<AlphabetType>::lowest(),
+                   std::numeric_limits<AlphabetType>::lowest()
         };
     }
 } __attribute__ ((packed)); // NOLINT
@@ -186,9 +187,18 @@ struct CharsRanks12 {
     }
 } __attribute__ ((packed)); // NOLINT
 
+template <typename Char>
+struct IndexCR12Pair {
+    size_t             index;
+    CharsRanks12<Char> cr0;
+    CharsRanks12<Char> cr1;
+} __attribute__ ((packed)); // NOLINT
+
 DIA<size_t> Recursion(const DIA<size_t>& _input) {
     // this is cheating: perform naive suffix sorting. TODO(tb): templatize
     // algorithm and call recursively.
+
+    LOG1 << "Doing naive suffix sorting";
 
     std::vector<size_t> input = _input.Gather();
     std::vector<size_t> output;
@@ -312,7 +322,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 }
 
 template <typename InputDIA>
-void DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
+DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
 
     using Char = typename InputDIA::ValueType;
     using IndexChars = ::IndexChars<Char>;
@@ -422,7 +432,8 @@ void DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
         if (debug_print)
             string_mod12.Print("string_mod12");
 
-        auto suffix_array_rec = Recursion(string_mod12);
+        // auto suffix_array_rec = Recursion(string_mod12);
+        auto suffix_array_rec = DC3(ctx, string_mod12, size_subp);
 
         // reverse suffix array of recursion strings to find ranks for mod 1
         // and mod 2 positions.
@@ -528,12 +539,7 @@ void DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
     using StringFragmentMod2 = ::StringFragmentMod2<Char>;
 
     using CharsRanks12 = ::CharsRanks12<Char>;
-
-    struct IndexCR12Pair {
-        size_t       index;
-        CharsRanks12 cr0;
-        CharsRanks12 cr1;
-    } __attribute__ ((packed)); // NOLINT
+    using IndexCR12Pair = ::IndexCR12Pair<Char>;
 
     auto zip_triple_pairs1 =
         ZipPadding(
@@ -731,6 +737,8 @@ void DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
     // check result
 
     assert(CheckSA(input_dia, suffix_array));
+
+    return suffix_array.Collapse();
 }
 
 std::string g_input = "dbacbacbd";
@@ -745,7 +753,7 @@ void StartDC3(Context& ctx) {
     // TODO(tb): have this passed to the method, this costs an extra data round.
     size_t input_size = input_dia.Size();
 
-    DC3(ctx, input_dia, input_size);
+    auto suffix_array = DC3(ctx, input_dia, input_size);
 }
 
 int main(int argc, char* argv[]) {
