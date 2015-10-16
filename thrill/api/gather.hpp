@@ -16,6 +16,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/core/stage_builder.hpp>
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -64,8 +65,7 @@ public:
             emitters_[i].Close();
         }
 
-        bool consume = false;
-        auto reader = stream_->OpenCatReader(consume);
+        auto reader = stream_->OpenCatReader(true /* consume */);
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
@@ -87,11 +87,6 @@ private:
     std::vector<data::CatStream::Writer> emitters_;
 };
 
-/*!
- * Gather is an Action, which collects all data of the DIA into a vector at the
- * given worker. This should only be done if the received data can fit into RAM
- * of the one worker.
- */
 template <typename ValueType, typename Stack>
 std::vector<ValueType>
 DIA<ValueType, Stack>::Gather(size_t target_id) const {
@@ -110,14 +105,9 @@ DIA<ValueType, Stack>::Gather(size_t target_id) const {
     return std::move(output);
 }
 
-/*!
- * Gather is an Action, which collects all data of the DIA into a vector at the
- * given worker. This should only be done if the received data can fit into RAM
- * of the one worker.
- */
 template <typename ValueType, typename Stack>
 void DIA<ValueType, Stack>::Gather(
-    size_t target_id, std::vector<ValueType>* out_vector)  const {
+    size_t target_id, std::vector<ValueType>* out_vector) const {
     assert(IsValid());
 
     using GatherNode = api::GatherNode<DIA>;
@@ -127,6 +117,37 @@ void DIA<ValueType, Stack>::Gather(
         std::make_shared<GatherNode>(*this, target_id, out_vector, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
+}
+
+template <typename ValueType, typename Stack>
+void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) const {
+    assert(IsValid());
+
+    using GatherNode = api::GatherNode<DIA>;
+
+    std::vector<ValueType> output;
+
+    StatsNode* stats_node = AddChildStatsNode("Print", DIANodeType::ACTION);
+    auto shared_node =
+        std::make_shared<GatherNode>(*this, 0, &output, stats_node);
+
+    core::StageBuilder().RunScope(shared_node.get());
+
+    if (shared_node->context().my_rank() == 0)
+    {
+        os << name
+           << " --- Begin DIA.Print() --- size=" << output.size() << '\n';
+        for (size_t i = 0; i < output.size(); ++i) {
+            os << name << '[' << i << "]: " << output[i] << '\n';
+        }
+        os << name
+           << " --- End DIA.Print() --- size=" << output.size() << std::endl;
+    }
+}
+
+template <typename ValueType, typename Stack>
+void DIA<ValueType, Stack>::Print(const std::string& name) const {
+    return Print(name, std::cout);
 }
 
 //! \}

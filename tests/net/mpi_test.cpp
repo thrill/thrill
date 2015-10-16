@@ -126,6 +126,15 @@ TEST(MpiGroup, MultiThreadAllReduce) {
 TEST(MpiGroup, MultiThreadPrefixSum) {
     MpiTest(TestMultiThreadPrefixSum);
 }
+TEST(MpiGroup, PredecessorManyItems) {
+    MpiTest(TestPredecessorManyItems);
+}
+TEST(MpiGroup, PredecessorFewItems) {
+    MpiTest(TestPredecessorFewItems);
+}
+TEST(MpiGroup, PredecessorOneItem) {
+    MpiTest(TestPredecessorOneItem);
+}
 TEST(MpiGroup, HardcoreRaceConditionTest) {
     MpiTest(TestHardcoreRaceConditionTest);
 }

@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <random>
 #include <string>
+#include <tuple>
 #include <vector>
 
 using namespace thrill; // NOLINT
@@ -223,6 +224,111 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
 
             ASSERT_EQ(check.size(), res.size());
             ASSERT_EQ(check, res);
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(ZipNode, ThreeIntegerArrays) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            // numbers 0..999 (evenly distributed to workers)
+            auto input1 = Generate(
+                ctx,
+                [](size_t index) { return static_cast<short>(index); },
+                test_size);
+
+            // numbers 0..1999 (evenly distributed to workers)
+            auto input2 = Generate(
+                ctx,
+                [](size_t index) { return index; },
+                test_size * 2);
+
+            // numbers 0..0.999 (evenly distributed to workers)
+            auto input3 = Generate(
+                ctx,
+                [](size_t index) {
+                    return static_cast<double>(index)
+                    / static_cast<double>(test_size);
+                },
+                test_size);
+
+            // zip
+            auto zip_result = Zip(
+                [](short a, size_t b, double c) {
+                    return std::make_tuple(a, b, c);
+                },
+                input1, input2, input3);
+
+            // check result
+            std::vector<std::tuple<short, size_t, double> > res
+                = zip_result.AllGather();
+
+            ASSERT_EQ(test_size, res.size());
+            for (size_t i = 0; i < test_size; ++i) {
+                ASSERT_EQ(static_cast<short>(i), std::get<0>(res[i]));
+                ASSERT_EQ(static_cast<size_t>(i), std::get<1>(res[i]));
+                ASSERT_DOUBLE_EQ(
+                    static_cast<double>(i) / static_cast<double>(test_size),
+                    std::get<2>(res[i]));
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(ZipNode, ThreeIntegerArraysPadded) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            // numbers 0..999 (evenly distributed to workers)
+            auto input1 = Generate(
+                ctx,
+                [](size_t index) { return static_cast<short>(index); },
+                test_size);
+
+            // numbers 0..1999 (evenly distributed to workers)
+            auto input2 = Generate(
+                ctx,
+                [](size_t index) { return index; },
+                test_size * 2);
+
+            // numbers 0..0.999 (evenly distributed to workers)
+            auto input3 = Generate(
+                ctx,
+                [](size_t index) {
+                    return static_cast<double>(index)
+                    / static_cast<double>(test_size);
+                },
+                test_size);
+
+            // zip
+            auto zip_result = ZipPadding(
+                [](short a, size_t b, double c) {
+                    return std::make_tuple(a, b, c);
+                },
+                std::make_tuple(42, 42, 42),
+                input1, input2, input3);
+
+            // check result
+            std::vector<std::tuple<short, size_t, double> > res
+                = zip_result.AllGather();
+
+            ASSERT_EQ(2 * test_size, res.size());
+            for (size_t i = 0; i < 2 * test_size; ++i) {
+                ASSERT_EQ(i < test_size ? static_cast<short>(i) : 42,
+                          std::get<0>(res[i]));
+                ASSERT_EQ(static_cast<size_t>(i),
+                          std::get<1>(res[i]));
+                ASSERT_DOUBLE_EQ(
+                    i < test_size
+                    ? static_cast<double>(i) / static_cast<double>(test_size)
+                    : 42,
+                    std::get<2>(res[i]));
+            }
         };
 
     api::RunLocalTests(start_func);

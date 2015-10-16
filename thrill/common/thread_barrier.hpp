@@ -14,6 +14,7 @@
 #define THRILL_COMMON_THREAD_BARRIER_HEADER
 
 #include <thrill/common/defines.hpp>
+#include <thrill/common/functional.hpp>
 
 #include <atomic>
 #include <condition_variable>
@@ -43,7 +44,8 @@ public:
      * This method blocks and returns as soon as n threads are waiting inside
      * the method.
      */
-    void Await() {
+    template <typename Lambda = NoOperation<void> >
+    void Await(Lambda lambda = Lambda()) {
         std::unique_lock<std::mutex> lock(mutex_);
 
         size_t local_ = current_;
@@ -57,6 +59,7 @@ public:
         else {
             current_ = current_ ? 0 : 1;
             counts_[current_] = 0;
+            lambda();
             cv_.notify_all();
         }
     }
@@ -99,13 +102,17 @@ public:
      * This method blocks and returns as soon as n threads are waiting inside
      * the method.
      */
-    void Await() {
+    template <typename Lambda = NoOperation<void> >
+    void Await(Lambda lambda = Lambda()) {
         // get synchronization generation step counter.
         size_t this_step = step_.load(std::memory_order_acquire);
 
         if (waiting_.fetch_add(1, std::memory_order_acq_rel) == thread_count_ - 1) {
             // we are the last thread to Await() -> reset and increment step.
             waiting_.store(0, std::memory_order_release);
+            // step other generation counters.
+            lambda();
+            // the following statement releases all threads from busy waiting.
             step_.fetch_add(1, std::memory_order_acq_rel);
         }
         else {

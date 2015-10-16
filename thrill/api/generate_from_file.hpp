@@ -165,6 +165,10 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::GenerateFromFile;
+
 } // namespace thrill
 
 #endif // !THRILL_API_GENERATE_FROM_FILE_HEADER
