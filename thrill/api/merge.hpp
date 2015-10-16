@@ -3,7 +3,7 @@
  *
  * DIANode for a merge operation. Performs the actual merge operation
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
@@ -43,13 +43,13 @@ static const bool stats_enabled = false;
 class MergeStatsBase
 {
 public:
-    thrill::common::StatsTimer<stats_enabled> IndexOfTimer;
-    thrill::common::StatsTimer<stats_enabled> GetAtIndexTimer;
+    thrill::common::StatsTimer<stats_enabled> FileOpTimer;
     thrill::common::StatsTimer<stats_enabled> MergeTimer;
     thrill::common::StatsTimer<stats_enabled> BalancingTimer;
     thrill::common::StatsTimer<stats_enabled> PivotSelectionTimer;
-    thrill::common::StatsTimer<stats_enabled> PivotLocationTimer;
+    thrill::common::StatsTimer<stats_enabled> SearchStepTimer;
     thrill::common::StatsTimer<stats_enabled> CommTimer;
+    thrill::common::StatsTimer<stats_enabled> ScatterTimer;
     size_t result_size = 0;
     size_t iterations = 0;
 };
@@ -60,7 +60,7 @@ public:
     void PrintToSQLPlotTool(std::string label, size_t p, size_t value) {
         static const bool debug = true;
 
-        LOG << "RESULT " << label << "=" << value << " workers=" << p << " result_size=" << result_size;
+        LOG << "RESULT " << "operation=" << label << " time=" << value << " workers=" << p << " result_size=" << result_size;
     }
 
     void Print(Context& ctx) {
@@ -69,23 +69,23 @@ public:
             net::FlowControlChannel& flow = ctx.flow_control_channel();
             size_t p = ctx.num_workers();
 
-            size_t merge = flow.AllReduce(MergeTimer.Microseconds()) / p;
-            size_t balance = flow.AllReduce(BalancingTimer.Microseconds()) / p;
-            size_t pivotSelection = flow.AllReduce(PivotSelectionTimer.Microseconds()) / p;
-            size_t pivotLocation = flow.AllReduce(PivotLocationTimer.Microseconds()) / p;
-            size_t indexOf = flow.AllReduce(IndexOfTimer.Microseconds()) / p;
-            size_t getAtIndex = flow.AllReduce(GetAtIndexTimer.Microseconds()) / p;
-            size_t comm = flow.AllReduce(CommTimer.Microseconds()) / p;
+            size_t merge = flow.AllReduce(MergeTimer.Milliseconds()) / p;
+            size_t balance = flow.AllReduce(BalancingTimer.Milliseconds()) / p;
+            size_t pivotSelection = flow.AllReduce(PivotSelectionTimer.Milliseconds()) / p;
+            size_t searchStep = flow.AllReduce(SearchStepTimer.Milliseconds()) / p;
+            size_t fileOp = flow.AllReduce(FileOpTimer.Milliseconds()) / p;
+            size_t comm = flow.AllReduce(CommTimer.Milliseconds()) / p;
+            size_t scatter = flow.AllReduce(ScatterTimer.Milliseconds()) / p;
             result_size = flow.AllReduce(result_size);
 
             if (ctx.my_rank() == 0) {
                 PrintToSQLPlotTool("merge", p, merge);
                 PrintToSQLPlotTool("balance", p, balance);
                 PrintToSQLPlotTool("pivotSelection", p, pivotSelection);
-                PrintToSQLPlotTool("pivotLocation", p, pivotLocation);
-                PrintToSQLPlotTool("getIndexOf", p, indexOf);
-                PrintToSQLPlotTool("getAtIndex", p, getAtIndex);
+                PrintToSQLPlotTool("searchStep", p, searchStep);
+                PrintToSQLPlotTool("fileOp", p, fileOp);
                 PrintToSQLPlotTool("communication", p, comm);
+                PrintToSQLPlotTool("scatter", p, scatter);
                 PrintToSQLPlotTool("iterations", p, iterations);
             }
         }
@@ -95,8 +95,9 @@ public:
 } // namespace merge_local
 
 template <typename ValueType,
-          typename ParentDIAType,
-          typename Comparator, size_t num_inputs_>
+          typename Comparator, size_t num_inputs_, 
+          typename FirstParentDIAType,
+          typename ... ParentDIAType>
 class MergeNode : public DOpNode<ValueType>
 {
     static_assert(num_inputs_ >= 2, "Merge requires at least two inputs.");
@@ -108,25 +109,17 @@ class MergeNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
-    std::vector<std::shared_ptr<DIABase>> GetNodes(const std::array<ParentDIAType, num_inputs_> &diaRefs) const {
-        std::vector<std::shared_ptr<DIABase>> nodes;
-        nodes.reserve(num_inputs_);
-
-        for(size_t i = 0; i < num_inputs_; i++)
-            nodes.emplace_back(diaRefs[i].node());
-
-        return nodes;
-    }
-
 public:
-    MergeNode(std::array<ParentDIAType, num_inputs_> parents,
-                 Comparator comparator,
-                 StatsNode* stats_node)
-        : DOpNode<ValueType>(parents[0].ctx(),
-                             GetNodes(parents), stats_node),
+    MergeNode(Comparator comparator,
+              StatsNode* stats_node,
+              const FirstParentDIAType& parent0,
+              const ParentDIAType& ... parents)
+        : DOpNode<ValueType>(parent0.ctx(),
+                            { parent0, parents.node() ... }, stats_node),
           comparator_(comparator)
     {
-        for(size_t i = 0; i < num_inputs_; i++) {
+   
+        common::VarCallForeachIndex([this](auto i, auto parent) {
             files_[i] = context_.GetFilePtr();
             writers_[i] = files_[i]->GetWriterPtr();
         
@@ -134,11 +127,11 @@ public:
                               (*writers_[i])(input);
                           };
             
-            auto lop_chain = parents[i].stack().push(pre_op_fn).emit();
+            auto lop_chain = parent.stack().push(pre_op_fn).emit();
             // close the function stacks with our pre ops and register it at parent
             // nodes for output
-            parents[i].node()->RegisterChild(lop_chain, this->type());
-        }
+            parent.node()->RegisterChild(lop_chain, this->type());
+        }, parent0, parents ...);
     }
 
     /*!
@@ -324,7 +317,9 @@ private:
 
             if (width[s][mp] > 0) {
                 pivotIdx = left[s][mp] + (ran() % width[s][mp]);
-                pivotElem = files_[mp]->template GetItemAt<ValueType>(pivotIdx);
+                stats.FileOpTimer.Start();
+                pivotElem = files_[mp].template GetItemAt<ValueType>(pivotIdx);
+                stats.FileOpTimer.Stop();
             }
 
             pivots[s] = Pivot {
@@ -347,7 +342,7 @@ private:
                                 }
                             };
 
-        // stats.CommTimer.Start();
+        stats.CommTimer.Start();
         pivots = flowControl.AllReduce(pivots,
                                        [reducePivots]
                                            (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
@@ -358,14 +353,17 @@ private:
                                            }
                                            return res;
                                        });
-        // stats.CommTimer.Stop();
+        stats.CommTimer.Stop();
     }
 
     void GetGlobalRanks(const std::vector<Pivot>& pivots, std::vector<size_t>& ranks, std::vector<std::vector<size_t> >& localRanks, net::FlowControlChannel& flowControl) {
         for (size_t s = 0; s < pivots.size(); s++) {
             size_t rank = 0;
             for (size_t i = 0; i < num_inputs_; i++) {
-                size_t idx = files_[i]->GetIndexOf(pivots[s].value, pivots[s].tie_idx, comparator_);
+                stats.FileOpTimer.Start();
+                size_t idx = files_[i].GetIndexOf(pivots[s].value, pivots[s].tie_idx, comparator_);
+                stats.FileOpTimer.Stop();
+
                 rank += idx;
 
                 localRanks[s][i] = idx;
@@ -373,7 +371,9 @@ private:
             ranks[s] = rank;
         }
 
+        stats.CommTimer.Start();
         ranks = flowControl.AllReduce(ranks, &AddSizeTVectors);
+        stats.CommTimer.Stop();
     }
 
     void SearchStep(const std::vector<Pivot>& pivots, const std::vector<size_t>& ranks, std::vector<std::vector<size_t> >& localRanks, const std::vector<size_t>& target_ranks, std::vector<std::vector<size_t> >& left, std::vector<std::vector<size_t> >& width) {
@@ -480,17 +480,17 @@ private:
         // Partition loop
         // while(globalRanks != targetRanks) {
         while (!finished) {
-            stats.PivotSelectionTimer.Start();
 
             LOG << "left: " << VToStr(left);
             LOG << "width: " << VToStr(width);
 
+            stats.PivotSelectionTimer.Start();
             SelectPivots(pivots, left, width, flowControl);
+            stats.PivotSelectionTimer.Stop();
 
             LOG << "Final Pivots " << VToStr(pivots);
 
-            stats.PivotSelectionTimer.Stop();
-            stats.PivotLocationTimer.Start();
+            stats.SearchStepTimer.Start();
 
             GetGlobalRanks(pivots, globalRanks, localRanks, flowControl);
             SearchStep(pivots, globalRanks, localRanks, targetRanks, left, width);
@@ -509,7 +509,7 @@ private:
             LOG << "srank: " << VToStr(targetRanks);
             LOG << "grank: " << VToStr(globalRanks);
 
-            stats.PivotLocationTimer.Stop();
+            stats.SearchStepTimer.Stop();
             stats.iterations++;
         }
 
@@ -521,6 +521,7 @@ private:
         }
 
         stats.BalancingTimer.Stop();
+        stats.ScatterTimer.Start();
 
         LOG << "Scattering.";
 
@@ -540,24 +541,27 @@ private:
 
             streams_[j]->template Scatter<ValueType>(*files_[j], offsets);
         }
+        stats.ScatterTimer.Stop();
     }
 };
 
 template <typename ValueType, typename Stack>
-template <typename Comparator, size_t num_inputs>
-auto DIA<ValueType, Stack>::Merge(
-     std::array<DIA<ValueType, Stack>, num_inputs> inputs,
-     const Comparator &comparator) const {
+template <typename Comparator, size_t num_inputs, typename ... DIAs>
+auto DIA<ValueType, Stack>::Merge(const Comparator &comparator, const DIAs &... dias) const {
 
-    assert(IsValid());
-    for(size_t i = 0; i < num_inputs; i++)
-        assert(inputs[i].IsValid());
+    using VarForeachExpander = int[];
+
+    // Todo: Merge with Timo's branch
+   // AssertValid();
+   // (void)VarForeachExpander {
+   //     (dias.AssertValid(), 0) ...
+   // };
 
     using CompareResult
               = typename FunctionTraits<Comparator>::result_type;
 
     using MergeResultNode
-              = MergeNode<ValueType, DIA, Comparator, num_inputs + 1>;
+              = MergeNode<ValueType, Comparator, num_inputs + 1, DIA<ValueType, Stack>, DIAs ...>;
 
     static_assert(
         std::is_convertible<
@@ -581,22 +585,12 @@ auto DIA<ValueType, Stack>::Merge(
         "Comparator must return bool");
 
     StatsNode* stats_node = AddChildStatsNode("Merge", DIANodeType::DOP);
+    (void)VarForeachExpander {
+        (dias.AppendChildStatsNode(stats_node), 0) ...
+    };
 
-    std::array<DIA<ValueType, Stack>, num_inputs + 1> allInputs;
-   
-    allInputs[0] = *this;
-
-    for(size_t i = 0; i < num_inputs; i++) {
-        allInputs[i + 1] = inputs[i];
-    }
-
-    for(size_t i = 0; i < num_inputs + 1; i++) {
-        allInputs[0].AppendChildStatsNode(stats_node);
-    }
-    
     auto merge_node
-        = std::make_shared<MergeResultNode>(
-        allInputs, comparator, stats_node);
+        = std::make_shared<MergeResultNode>(comparator, stats_node, *this, dias ...);
 
     return DIA<ValueType>(merge_node, { stats_node });
 }

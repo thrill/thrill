@@ -6,7 +6,7 @@
  *
  * Borrowed of STXXL under the Boost license. See http://stxxl.sourceforge.net
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2010-2011 Raoul Steffen <R-Steffen@gmx.de>
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>

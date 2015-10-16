@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/action_node.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *

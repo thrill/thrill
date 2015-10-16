@@ -4,7 +4,7 @@
  * FixedBufferBuilder is like BufferBuilder except that constructs data blocks
  * with FIXED length content.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *

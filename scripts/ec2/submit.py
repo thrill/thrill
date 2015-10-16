@@ -2,7 +2,7 @@
 ##########################################################################
 # scripts/ec2/submit.py
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 # Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
 #
@@ -10,3 +10,5 @@
 ##########################################################################
 
 import boto3
+
+##########################################################################
