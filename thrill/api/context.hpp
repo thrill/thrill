@@ -272,7 +272,7 @@ public:
 
     //! \}
 
-    //! Returns the stas object for this worker
+    //! Returns the stats object for this worker
     common::Stats<common::g_enable_stats> & stats() {
         return stats_;
     }
@@ -292,6 +292,19 @@ public:
         return common::CalculateLocalRange(
             global_size, num_workers(), my_rank());
     }
+
+    //! return value of consume flag.
+    bool consume() const { return consume_; }
+
+    /*!
+     * Sets consume-mode flag such that DIA contents may be consumed during
+     * PushData(). When in consume mode the DIA contents is destroyed online
+     * when it is transmitted to the next operation. This enables reusing the
+     * space of the consume operations. This enabled processing more data with
+     * less space. However, by default this mode is DISABLED, because it
+     * requires deliberate insertion of .Keep() calls.
+     */
+    void set_consume(bool consume) { consume_ = consume; }
 
 private:
     //! host-global memory manager
@@ -318,6 +331,9 @@ private:
 
     //! number of workers hosted per host
     size_t workers_per_host_;
+
+    //! flag to set which enables selective consumption of DIA contents!
+    bool consume_ = false;
 };
 
 //! \name Run Methods with Internal Networks for Testing
@@ -378,7 +394,12 @@ int Run(const std::function<void(Context&)>& job_startpoint);
 
 //! imported from api namespace
 using api::HostContext;
+
+//! imported from api namespace
 using api::Context;
+
+//! imported from api namespace
+using api::Run;
 
 } // namespace thrill
 

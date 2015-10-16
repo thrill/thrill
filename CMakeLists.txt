@@ -375,7 +375,7 @@ if(SWIG_FOUND)
 endif()
 
 ###############################################################################
-### cmake script TRY_COMPILE all stxxl header files
+### cmake script TRY_COMPILE all Thrill header files
 
 if(TRY_COMPILE_HEADERS)
 

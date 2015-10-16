@@ -121,9 +121,25 @@ auto Generate(Context & ctx,
     return DIA<GeneratorResult>(shared_node, { stats_node });
 }
 
+/*!
+ * Generate is a Source-DOp, which creates a DIA of given size containing the
+ * size_t indexes `[0,size)`.
+ *
+ * \param ctx Reference to the Context object
+ *
+ * \param size Size of the output DIA
+ */
+auto Generate(Context & ctx, size_t size) {
+    return Generate(ctx, [](const size_t& index) { return index; }, size);
+}
+
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::Generate;
+
 } // namespace thrill
 
 #endif // !THRILL_API_GENERATE_HEADER

@@ -61,4 +61,6 @@ add_subdirectory(page_rank)
 add_subdirectory(net)
 add_subdirectory(merge)
 
+thrill_build_prog(dc3/dc3)
+
 ################################################################################
