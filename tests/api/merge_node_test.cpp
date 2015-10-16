@@ -32,7 +32,7 @@ template <typename stackA, typename stackB>
 void DoMergeAndCheckResult(api::DIA<size_t, stackA> merge_input1, api::DIA<size_t, stackB> merge_input2, const std::vector<size_t>& expected, int num_workers) {
     // merge
     auto merge_result = merge_input1.Merge(
-            merge_input2, std::less<size_t>());
+            std::less<size_t>(), merge_input2);
 
     // check if order was kept while merging.
     int count = 0;
@@ -75,6 +75,53 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
             }
 
             DoMergeAndCheckResult(merge_input1, merge_input2, expected, ctx.num_workers());
+        };
+
+    thrill::api::RunLocalTests(start_func);
+}
+
+TEST(MergeNode, FourBalancedIntegerArrays) {
+
+    const size_t test_size = 5000;
+    const bool debug = false;
+
+    std::function<void(Context&)> start_func =
+        [test_size](Context& ctx) {
+
+            auto merge_input1 = Generate(
+                ctx,
+                [](size_t index) { return index * 4; },
+                test_size);
+
+            auto merge_input2 = merge_input1.Map(
+                [](size_t i) { return i + 1; });
+            auto merge_input3 = merge_input1.Map(
+                [](size_t i) { return i + 2; });
+            auto merge_input4 = merge_input1.Map(
+                [](size_t i) { return i + 3; });
+
+            std::vector<size_t> expected(test_size * 4);
+            for (size_t i = 0; i < test_size * 4; i++) {
+                expected[i] = i;
+            }
+
+            auto merge_result = merge_input1.Merge(std::less<size_t>(),
+                    merge_input2, merge_input3, merge_input4);
+
+            // check if order was kept while merging.
+            int count = 0;
+            auto res = merge_result.Map([&count](size_t in) {
+                                            count++;
+                                            return in;
+                                        }).AllGather();
+
+            // Check if res is as expected.
+            ASSERT_EQ(expected, res);
+
+            LOG << "count: " << count << " expected: " << ((float)res.size() / (float)ctx.num_workers());
+
+            float expectedCount = (float)res.size() / (float)ctx.num_workers();
+            ASSERT_TRUE(std::abs(expectedCount - count) <= ctx.num_workers() + 50);
         };
 
     thrill::api::RunLocalTests(start_func);
