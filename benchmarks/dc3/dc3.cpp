@@ -21,11 +21,14 @@
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/window.hpp>
+#include <thrill/api/write_binary.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/core/multiway_merge.hpp>
 
 #include <algorithm>
 #include <limits>
+#include <random>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -194,7 +197,7 @@ struct IndexCR12Pair {
     CharsRanks12<Char> cr1;
 } __attribute__ ((packed)); // NOLINT
 
-DIA<size_t> Recursion(const DIA<size_t>& _input) {
+DIA<size_t> NaiveSuffixSort(const DIA<size_t>& _input) {
     // this is cheating: perform naive suffix sorting. TODO(tb): templatize
     // algorithm and call recursively.
 
@@ -741,24 +744,147 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
     return suffix_array.Collapse();
 }
 
-std::string g_input = "dbacbacbd";
+/*!
+ * Class to encapsulate all
+ */
+class StartDC3
+{
+public:
+    StartDC3(
+        Context& ctx,
+        const std::string& input_path, const std::string& output_path,
+        size_t sizelimit,
+        bool text_output_flag,
+        bool check_flag,
+        bool input_verbatim)
+        : ctx_(ctx),
+          input_path_(input_path), output_path_(output_path),
+          sizelimit_(sizelimit),
+          text_output_flag_(text_output_flag),
+          check_flag_(check_flag),
+          input_verbatim_(input_verbatim) { }
 
-void StartDC3(Context& ctx) {
+    void Run() {
+        if (input_verbatim_) {
+            // take path as verbatim text
+            std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
+            auto input_dia = Distribute<uint8_t>(ctx_, input_vec);
+            StartDC3Input(input_dia, input_vec.size());
+        }
+        else if (input_path_ == "unary") {
+            if (sizelimit_ == std::numeric_limits<size_t>::max()) {
+                LOG1 << "You must provide -s <size> for generated inputs.";
+                return;
+            }
 
-    std::vector<char> input_vec(g_input.begin(), g_input.end());
+            auto input_dia = Generate(
+                ctx_, [](size_t /* i */) { return 'a'; }, sizelimit_);
+            StartDC3Input(input_dia, sizelimit_);
+        }
+        else if (input_path_ == "random") {
+            if (sizelimit_ == std::numeric_limits<size_t>::max()) {
+                LOG1 << "You must provide -s <size> for generated inputs.";
+                return;
+            }
 
-    // auto input_dia = ReadBinary<char>(ctx, "Makefile");
-    auto input_dia = Distribute<char>(ctx, input_vec);
+            // share prng in Generate (just random numbers anyway)
+            std::default_random_engine prng(std::random_device { } ());
 
-    // TODO(tb): have this passed to the method, this costs an extra data round.
-    size_t input_size = input_dia.Size();
+            auto input_dia =
+                Generate(
+                    ctx_,
+                    [&prng](size_t /* i */) {
+                        return static_cast<uint8_t>(prng());
+                    },
+                    sizelimit_)
+                // the random input _must_ be cached, otherwise it will be
+                // regenerated ... and contain new numbers.
+                .Cache();
+            StartDC3Input(input_dia, sizelimit_);
+        }
+        else {
+            auto input_dia = ReadBinary<uint8_t>(ctx_, input_path_);
+            // read total size of input. TODO(tb): get this directly?
+            size_t input_size = input_dia.Size();
+            StartDC3Input(input_dia, input_size);
+        }
+    }
 
-    auto suffix_array = DC3(ctx, input_dia, input_size);
-}
+    template <typename InputDIA>
+    void StartDC3Input(const InputDIA& input_dia, size_t input_size) {
+
+        // run DC3
+        auto suffix_array = DC3(ctx_, input_dia, input_size);
+
+        if (output_path_.size()) {
+            suffix_array.WriteBinary(output_path_);
+        }
+
+        if (check_flag_) {
+            LOG1 << "checking suffix array...";
+
+            if (!CheckSA(input_dia, suffix_array)) {
+                LOG1 << "failed!";
+                return;
+            }
+            else {
+                LOG1 << "okay.";
+            }
+        }
+    }
+
+protected:
+    Context& ctx_;
+
+    std::string input_path_;
+    std::string output_path_;
+
+    size_t sizelimit_;
+    bool text_output_flag_;
+    bool check_flag_;
+    bool input_verbatim_;
+};
 
 int main(int argc, char* argv[]) {
-    if (argc == 2) g_input = argv[1];
-    return Run(StartDC3);
+
+    common::CmdlineParser cp;
+
+    cp.SetDescription("DC3 aka skew3 algorithm for suffix array construction.");
+    cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
+
+    std::string input_path, output_path;
+    size_t sizelimit = std::numeric_limits<size_t>::max();
+    bool text_output_flag = false;
+    bool check_flag = false;
+    bool input_verbatim = false;
+
+    cp.AddParamString("input", input_path,
+                      "Path to input file (or verbatim text).\n"
+                      "  The special inputs 'random' and 'unary' generate "
+                      "such text on-the-fly.");
+    cp.AddFlag('c', "check", check_flag,
+               "Check suffix array for correctness.");
+    cp.AddFlag('t', "text", text_output_flag,
+               "Print out suffix array in readable text.");
+    cp.AddString('o', "output", output_path,
+                 "Output suffix array to given path.");
+    cp.AddFlag('v', "verbatim", input_verbatim,
+               "Consider \"input\" as verbatim text to construct "
+               "suffix array on.");
+    cp.AddBytes('s', "size", sizelimit,
+                "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
+
+    // process command line
+    if (!cp.Process(argc, argv))
+        return -1;
+
+    return Run(
+        [&](Context& ctx) {
+            return StartDC3(ctx,
+                            input_path, output_path,
+                            sizelimit, input_verbatim,
+                            text_output_flag, check_flag).Run();
+        });
 }
 
 /******************************************************************************/
