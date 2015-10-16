@@ -50,4 +50,4 @@ aws ec2 describe-instances
 
 ## Example
 
-./invoke.sh -u ec2-user -c ../../build/benchmarks/net/broadcast -r 100
+./invoke.sh -u ec2-user -c ../../build/benchmarks/net/net_benchmark broadcast -r 100
