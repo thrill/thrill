@@ -39,12 +39,12 @@ public:
     }
 
     //! Returns true if this reader holds a value at the current position.
-    bool HasValue() {
+    bool HasValue() const {
         return hasCurrent_;
     }
 
     //! Gets the value at the current position of this reader.
-    ItemType Value() {
+    const ItemType & Value() const {
         assert(HasValue());
 
         return current_;

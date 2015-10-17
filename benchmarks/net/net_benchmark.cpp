@@ -31,9 +31,32 @@ using namespace thrill; // NOLINT
 
 std::string benchmark;
 
-// matrix of measured latencies
+//! calculate MiB/s given byte size and microsecond time.
+double CalcMiBs(size_t bytes, const std::chrono::microseconds::rep& microsec) {
+    return static_cast<double>(bytes) / 1024.0 / 1024.0
+           / static_cast<double>(microsec) * 1e6;
+}
+
+//! calculate MiB/s given byte size and timer.
+double CalcMiBs(size_t bytes, const common::StatsTimer<true>& timer) {
+    return CalcMiBs(bytes, timer.Microseconds());
+}
+
+// matrix of measured latencies or bandwidths
 using AggDouble = common::Aggregate<double>;
 using AggMatrix = common::Matrix<AggDouble>;
+
+//! print avg/stddev matrix
+void PrintMatrix(const AggMatrix& m) {
+    for (size_t i = 0; i < m.rows(); ++i) {
+        std::ostringstream os;
+        for (size_t j = 0; j < m.columns(); ++j) {
+            os << common::str_sprintf(
+                "%8.1f/%8.3f", m(i, j).Avg(), m(i, j).StdDev());
+        }
+        LOG1 << os.str();
+    }
+}
 
 /******************************************************************************/
 //! perform a 1-factor ping pong latency test
@@ -204,17 +227,8 @@ void PingPongLatency::Test(api::Context& ctx) {
     group.ReduceToRoot(latency_);
 
     // print matrix
-    if (ctx.my_rank() == 0) {
-        for (size_t i = 0; i < latency_.rows(); ++i) {
-            std::ostringstream os2;
-            for (size_t j = 0; j < latency_.columns(); ++j) {
-                os2 << common::str_sprintf(
-                    "%8.1f/%8.3f",
-                    latency_(i, j).Avg(), latency_(i, j).StdDev());
-            }
-            LOG1 << os2.str();
-        }
-    }
+    if (ctx.my_rank() == 0)
+        PrintMatrix(latency_);
 }
 
 /******************************************************************************/
@@ -272,10 +286,7 @@ public:
 
         inner_timer.Stop();
 
-        double bw =
-            static_cast<double>(block_count_ * block_size_) /
-            static_cast<double>(inner_timer.Microseconds()) *
-            1e6 / 1024.0 / 1024.0;
+        double bw = CalcMiBs(block_count_ * block_size_, inner_timer);
 
         sLOG0 << "bandwidth" << ctx.host_rank() << "->" << peer_id
               << "inner_repeat" << inner_repeat
@@ -395,17 +406,8 @@ void Bandwidth::Test(api::Context& ctx) {
     group.ReduceToRoot(bandwidth_);
 
     // print matrix
-    if (ctx.my_rank() == 0) {
-        for (size_t i = 0; i < bandwidth_.rows(); ++i) {
-            std::ostringstream os2;
-            for (size_t j = 0; j < bandwidth_.columns(); ++j) {
-                os2 << common::str_sprintf(
-                    "%8.1f/%8.3f",
-                    bandwidth_(i, j).Avg(), bandwidth_(i, j).StdDev());
-            }
-            LOG1 << os2.str();
-        }
-    }
+    if (ctx.my_rank() == 0)
+        PrintMatrix(bandwidth_);
 }
 
 /******************************************************************************/

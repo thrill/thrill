@@ -166,7 +166,7 @@ public:
 
             if (debug) {
                 for (size_t i = 0; i < thread_count_; i++) {
-                    LOG << id_ << ", " << i << ", " << inclusive << ": me: " << *(locals[i]);
+                    // LOG << id_ << ", " << i << ", " << inclusive << ": me: " << *(locals[i]);
                 }
             }
 
@@ -177,7 +177,7 @@ public:
                 base_sum = initial;
             }
 
-            LOG << id_ << ", m, " << inclusive << ": base: " << base_sum;
+            // LOG << id_ << ", m, " << inclusive << ": base: " << base_sum;
 
             if (inclusive) {
                 for (size_t i = 0; i < thread_count_; i++) {
@@ -193,7 +193,7 @@ public:
 
             if (debug) {
                 for (size_t i = 0; i < thread_count_; i++) {
-                    LOG << id_ << ", " << i << ", " << inclusive << ": res: " << *(locals[i]);
+                    // LOG << id_ << ", " << i << ", " << inclusive << ": res: " << *(locals[i]);
                 }
             }
         }

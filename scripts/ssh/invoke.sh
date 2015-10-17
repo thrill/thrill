@@ -85,7 +85,11 @@ if [ ! -e "$cmd" ]; then
 fi
 
 # get absolute path
-cmd=`readlink -f "$cmd"`
+if [[ "$(uname)" == "Darwin" ]]; then
+  cmd=`greadlink -f "$cmd"` # requires package coreutils
+else
+  cmd=`readlink -f "$cmd"`
+fi
 
 if [ -z "$THRILL_HOSTLIST" ]; then
     if [ -z "$THRILL_SSHLIST" ]; then
@@ -108,7 +112,11 @@ if [ $verbose -ne 0 ]; then
 fi
 
 rank=0
-uuid=$(cat /proc/sys/kernel/random/uuid)
+if [[ "$(uname)" == "Darwin" ]]; then
+  uuid=uuidgen
+else
+  uuid=$(cat /proc/sys/kernel/random/uuid)
+fi
 
 # check THRILL_HOSTLIST for hosts without port numbers: add 10000+rank
 hostlist=()
@@ -125,6 +133,12 @@ cmdbase=`basename "$cmd"`
 rank=0
 THRILL_HOSTLIST="${hostlist[@]}"
 
+EC2_ATTACH_VOLUME="$EC2_ATTACH_VOLUME"
+attach_vol=""
+if [ $EC2_ATTACH_VOLUME ]; then
+  attach_vol="mountpoint -q ./data && echo \"$EC2_ATTACH_VOLUME already mounted\" || \"mkdir ./data && sudo mount $EC2_ATTACH_VOLUME ./data && echo \"$EC2_ATTACH_VOLUME mounted\"\""
+fi
+
 for hostport in $THRILL_SSHLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   if [ $verbose -ne 0 ]; then
@@ -139,15 +153,15 @@ for hostport in $THRILL_SSHLIST; do
       THRILL_EXPORTS="$THRILL_EXPORTS THRILL_UNLINK_BINARY=\"$REMOTENAME\""
       # copy the program to the remote, and execute it at the remote end.
       ( scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
-            "$cmd" "$host:$REMOTENAME" &&
+            "$cmd" "ubuntu@$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
-            $host \
+            ubuntu@$host \
             "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && exec \"$REMOTENAME\" $*"
       ) &
   else
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
-          $host \
+          ubuntu$host \
           "export $THRILL_EXPORTS && cd $dir && exec $cmd $*" &
   fi
   rank=$((rank+1))
