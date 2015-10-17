@@ -248,18 +248,31 @@ private:
             size_t b0 = j0 - k;
             size_t b1 = j1 - k;
 
-            while (b0 && Equal(el0, sorted_splitters[b0 - 1])
-                   && (prefix_elem + i) * actual_k >= b0 * total_elem) {
-                b0--;
+            if (b0 && Equal(el0, sorted_splitters[b0 - 1])) {
+                while (b0 && Equal(el0, sorted_splitters[b0 - 1])
+                       && (prefix_elem + i) * actual_k < b0 * total_elem) {
+                    b0--;
+                }
+
+                if (b0 + 1 >= actual_k) {
+                    b0 = k - 1;
+                }
             }
 
             assert(emitters_data_[b0].IsValid());
             emitters_data_[b0](el0);
 
-            while (b1 && Equal(el1, sorted_splitters[b1 - 1])
-                   && (prefix_elem + i + 1) * actual_k >= b1 * total_elem) {
-                b1--;
+            if (b1 && Equal(el1, sorted_splitters[b1 - 1])) {
+                while (b1 && Equal(el1, sorted_splitters[b1 - 1])
+                       && (prefix_elem + i + 1) * actual_k < b1 * total_elem) {
+                    b1--;
+                }
+
+                if (b1 + 1 >= actual_k) {
+                    b1 = k - 1;
+                }
             }
+
             assert(emitters_data_[b1].IsValid());
             emitters_data_[b1](el1);
         }
@@ -276,9 +289,14 @@ private:
             size_t b = j - k;
 
             while (b && Equal(data_[i], sorted_splitters[b - 1])
-                   && (prefix_elem + i) * actual_k >= b * total_elem) {
+                   && (prefix_elem + i) * actual_k < b * total_elem) {
                 b--;
             }
+
+            if (b + 1 >= actual_k) {
+                b = k - 1;
+            }
+
             assert(emitters_data_[b].IsValid());
             emitters_data_[b](data_[i]);
         }
@@ -287,13 +305,15 @@ private:
     void MainOp() {
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        size_t prefix_elem = channel.PrefixSum(data_.size());
+        size_t prefix_elem = channel.PrefixSum(data_.size(), (size_t)0, std::plus<size_t>(), false);
         size_t total_elem = channel.AllReduce(data_.size());
 
         size_t num_total_workers = context_.num_workers();
         size_t sample_size =
             common::IntegerLog2Ceil(total_elem) *
             static_cast<size_t>(1 / (desired_imbalance_ * desired_imbalance_));
+
+        sample_size = std::min(data_.size(), sample_size);
 
         LOG << prefix_elem << " elements, out of " << total_elem;
 
@@ -381,15 +401,14 @@ private:
             balance = 1 / balance;
         }
 
+        std::sort(data_.begin(), data_.end(), compare_function_);
+
         STATC << "NodeType" << "Sort"
               << "Workers" << num_total_workers
               << "LocalSize" << data_.size()
               << "Balance Factor" << balance
               << "Sample Size" << sample_size;
 
-        LOG << "node " << context_.my_rank() << " : " << data_.size();
-
-        std::sort(data_.begin(), data_.end(), compare_function_);
         this->WriteStreamStats(stream_id_data_);
         this->WriteStreamStats(stream_id_samples_);
     }

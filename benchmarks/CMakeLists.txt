@@ -39,7 +39,7 @@ thrill_build_prog(hashtable/reduce)
 
 thrill_build_prog(data/disk)
 thrill_build_prog(data/stream)
-thrill_build_prog(data/io_benches)
+thrill_build_prog(data/data_benchmark)
 
 
 thrill_build_prog(io/string_test)
@@ -61,5 +61,6 @@ thrill_build_prog(serialization/bench_serialization)
 add_subdirectory(word_count)
 add_subdirectory(page_rank)
 add_subdirectory(net)
+add_subdirectory(merge)
 
 ################################################################################

@@ -124,16 +124,18 @@ public:
         : arena_(other.arena_) { }
 
     //! copy-constructor: default
-    StackAllocator(const StackAllocator& other) noexcept = default;
+    StackAllocator(const StackAllocator&) noexcept = default;
+
+#if !defined(_MSC_VER)
+    //! copy-assignment: default
+    StackAllocator& operator = (StackAllocator&) noexcept = default;
 
     //! move-constructor: default
-    StackAllocator(StackAllocator&& other) noexcept = default;
-
-    //! copy-assignment: default
-    StackAllocator& operator = (StackAllocator& other) noexcept = default;
+    StackAllocator(StackAllocator&&) noexcept = default;
 
     //! move-assignment: default
-    StackAllocator& operator = (StackAllocator&& other) noexcept = default;
+    StackAllocator& operator = (StackAllocator&&) noexcept = default;
+#endif
 
     //! allocate method: get memory from arena
     pointer allocate(size_t n) {

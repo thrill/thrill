@@ -33,9 +33,9 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
         // lock the GMLIM
         std::unique_lock<std::mutex> lock(g_mutex);
 
-        assert(mpi_async_write_.size() == mpi_async_requests_.size());
-        assert(mpi_async_write_.size() == mpi_async_out_.size());
-        assert(mpi_async_write_.size() == mpi_async_status_.size());
+        assert(mpi_async_.size() == mpi_async_requests_.size());
+        assert(mpi_async_.size() == mpi_async_out_.size());
+        assert(mpi_async_.size() == mpi_async_status_.size());
 
         int out_count;
 
@@ -67,7 +67,7 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
         else if (out_count > 0) {
             sLOG << "DispatchOne(): MPI_Testsome() out_count=" << out_count;
 
-            size_t len = mpi_async_write_.size();
+            size_t len = mpi_async_.size();
 
             // run through finished requests back to front, swap last entry into
             // finished ones.
@@ -76,66 +76,73 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
 
                 // TODO(tb): check for errors?
 
+                // perform callback
+                mpi_async_[p]();
+
                 // deleted the entry (no problem is k == len)
                 --len;
-                mpi_async_write_[p] = std::move(mpi_async_write_[len]);
+                mpi_async_[p] = std::move(mpi_async_[len]);
                 mpi_async_requests_[p] = std::move(mpi_async_requests_[len]);
                 mpi_async_out_[p] = std::move(mpi_async_out_[len]);
                 mpi_async_status_[p] = std::move(mpi_async_status_[len]);
             }
 
-            mpi_async_write_.resize(len);
+            mpi_async_.resize(len);
             mpi_async_requests_.resize(len);
             mpi_async_out_.resize(len);
             mpi_async_status_.resize(len);
         }
     }
 
-    // use MPI_Iprobe() to check for a new message on this MPI tag.
-    int flag = 0;
-    MPI_Status status;
-
+    if (watch_active_)
     {
-        // lock the GMLIM
-        std::unique_lock<std::mutex> lock(g_mutex);
+        // use MPI_Iprobe() to check for a new message on this MPI tag.
+        int flag = 0;
+        MPI_Status status;
 
-        int r = MPI_Iprobe(MPI_ANY_SOURCE, group_tag_, MPI_COMM_WORLD,
-                           &flag, &status);
+        {
+            // lock the GMLIM
+            std::unique_lock<std::mutex> lock(g_mutex);
 
-        if (r != MPI_SUCCESS)
-            throw Exception("Error during MPI_Iprobe()", r);
-    }
+            int r = MPI_Iprobe(MPI_ANY_SOURCE, group_tag_, MPI_COMM_WORLD,
+                               &flag, &status);
 
-    // check whether probe was successful
-    if (flag == 0) return;
-
-    // get the right watch
-    int p = status.MPI_SOURCE;
-    assert(p >= 0 && static_cast<size_t>(p) < watch_.size());
-
-    Watch& w = watch_[p];
-
-    if (!w.active) {
-        sLOG << "Got Iprobe() for unwatched peer" << p;
-        return;
-    }
-
-    sLOG << "Got iprobe for peer" << p;
-
-    if (w.read_cb.size()) {
-        // run read callbacks until one returns true (in which case it wants
-        // to be called again), or the read_cb list is empty.
-        while (w.read_cb.size() && w.read_cb.front()() == false) {
-            w.read_cb.pop_front();
+            if (r != MPI_SUCCESS)
+                throw Exception("Error during MPI_Iprobe()", r);
         }
 
-        if (w.read_cb.size() == 0) {
-            w.active = false;
+        // check whether probe was successful
+        if (flag == 0) return;
+
+        // get the right watch
+        int p = status.MPI_SOURCE;
+        assert(p >= 0 && static_cast<size_t>(p) < watch_.size());
+
+        Watch& w = watch_[p];
+
+        if (!w.active) {
+            sLOG << "Got Iprobe() for unwatched peer" << p;
+            return;
         }
-    }
-    else {
-        LOG << "Dispatcher: got MPI_Iprobe() for peer "
-            << p << " without a read handler.";
+
+        sLOG << "Got iprobe for peer" << p;
+
+        if (w.read_cb.size()) {
+            // run read callbacks until one returns true (in which case it wants
+            // to be called again), or the read_cb list is empty.
+            while (w.read_cb.size() && w.read_cb.front()() == false) {
+                w.read_cb.pop_front();
+            }
+
+            if (w.read_cb.size() == 0) {
+                w.active = false;
+                watch_active_--;
+            }
+        }
+        else {
+            LOG << "Dispatcher: got MPI_Iprobe() for peer "
+                << p << " without a read handler.";
+        }
     }
 }
 

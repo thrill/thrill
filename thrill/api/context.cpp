@@ -548,7 +548,6 @@ static inline int RunDieWithParent() {
 #if defined(__linux__)
     if (prctl(PR_SET_PDEATHSIG, SIGTERM) != 0)
         throw common::ErrnoException("Error calling prctl(PR_SET_PDEATHSIG)");
-    sLOG1 << "die with parent done.";
     return 1;
 #else
     std::cerr << "Thrill: DIE_WITH_PARENT is not supported on this platform.\n"
@@ -634,6 +633,19 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
     std::cerr << "Thrill: network backend " << env_net << " is unknown."
               << std::endl;
     return -1;
+}
+
+/******************************************************************************/
+// Context methods
+
+template <>
+std::shared_ptr<data::CatStream> Context::GetNewStream<data::CatStream>() {
+    return GetNewCatStream();
+}
+
+template <>
+std::shared_ptr<data::MixStream> Context::GetNewStream<data::MixStream>() {
+    return GetNewMixStream();
 }
 
 } // namespace api

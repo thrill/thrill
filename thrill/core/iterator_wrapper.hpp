@@ -107,7 +107,7 @@ public:
         stats_->has_elem_ = true;
 
         LOG << "-----------------------------------------";
-        LOG << "NEXT GOT " << stats_->item_ << " FROM " << file_->ToString();
+        LOG << "NEXT GOT ITEM FROM " << file_->ToString();
         LOG << "-----------------------------------------";
     }
 
@@ -234,18 +234,18 @@ public:
 
     reference operator * () const {
         LOG << "-----------------------------------------";
-        LOG << "Trying to return " << stats_->item_ << " from " << pos_ << " " << file_->ToString();
+        LOG << "Trying to return item from " << pos_ << " " << file_->ToString();
         LOG << "-----------------------------------------";
         assert(stats_->is_valid_);
 
         LOG << "-----------------------------------------";
-        LOG << "RETURN " << stats_->item_ << " FROM " << pos_ << " " << file_->ToString();
+        LOG << "RETURN item FROM " << pos_ << " " << file_->ToString();
         LOG << "-----------------------------------------";
         LOG << "    Operator* ";
         LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
         LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
         LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
-        LOG << "        " << std::left << std::setw(7) << "item: " << stats_->item_;
+        // LOG << "        " << std::left << std::setw(7) << "item: " << stats_->item_;
         return stats_->item_;
     }
     // pointer operator->() const {

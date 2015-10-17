@@ -256,6 +256,11 @@ public:
         return multiplexer_.GetNewMixStream(local_worker_id_);
     }
 
+    //! Returns a reference to a new CatStream or MixStream, selectable via
+    //! template parameter.
+    template <typename Stream>
+    std::shared_ptr<Stream> GetNewStream();
+
     //! the block manager keeps all data blocks moving through the system.
     data::BlockPool & block_pool() { return block_pool_; }
 

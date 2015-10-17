@@ -71,7 +71,7 @@ public:
             this->PushItem(generator_function_(i));
         }
 
-        STAT(context_) << "NodeType" << "Generate";
+        // STAT(context_) << "NodeType" << "Generate";
     }
 
     void Dispose() final { }

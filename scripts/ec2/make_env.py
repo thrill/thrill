@@ -11,12 +11,26 @@
 
 import boto3
 import sys
+import os
+import json
+import sys
+
 from subprocess import call
+
+if len(sys.argv) != 2:
+    print "Usage: make_env.py 123"
+    sys.exit();
+
+job_id = str(sys.argv[1])
 
 ec2 = boto3.resource('ec2')
 
-instances = ec2.instances.filter(
-    Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
+with open('config.json') as data_file:
+    data = json.load(data_file)
+
+instances = ec2.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']},
+                                          {'Name': 'key-name', 'Values': [data["EC2_KEY_HANDLE"]]},
+                                          {'Name': 'tag:JobId', 'Values':[job_id]}])
 
 for instance in instances:
     sys.stderr.write("%s pub %s priv %s\n" % (instance.id, instance.public_ip_address, instance.private_ip_address))
@@ -28,6 +42,8 @@ sys.stderr.write("%d instances\n" % (len(pub_ips)))
 
 print("export THRILL_HOSTLIST=\"" + (" ".join(priv_ips)) + "\"")
 print("export THRILL_SSHLIST=\"" + (" ".join(pub_ips)) + "\"")
+if data["EC2_ATTACH_VOLUME"]:
+    print("export EC2_ATTACH_VOLUME=\"" + data["EC2_ATTACH_VOLUME"] + "\"")
 print("# cluster ssh: cssh " + (" ".join(pub_ips)))
 
 ##########################################################################
