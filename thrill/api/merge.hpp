@@ -590,7 +590,7 @@ private:
             // Get global ranks and shrink ranges. 
             stats.SearchStepTimer.Start();
             GetGlobalRanks(pivots, globalRanks, localRanks, flowControl);
-            SearchStep(pivots, globalRanks, localRanks, targetRanks, left, width);
+            SearchStep(globalRanks, localRanks, targetRanks, left, width);
 
             // Check if all our ranges have at most size one.
             // TODO: This can potentially be omitted. See comment
