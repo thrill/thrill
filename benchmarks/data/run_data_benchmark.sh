@@ -13,41 +13,20 @@
 githash=$(eval "git rev-parse --short HEAD")
 timestamp=$(date)
 echo ${timestamp}
-for benchmark in block_queue
+for benchmark in block_queue file
 do
-for type in size_t string pair triple
+for type in size_t string
 do
-  for reader in consume keep
+  for reader in consume
   do
-    for size in 100K 1M 100M 2G
+    for size in 1M 1G 10G
     do
-      for block_size in 1K 1024K 2048K 4096K
+      for block_size in 8K 16K 32K 64K 128K 256K 512K 1024K 2048K 4096K
       do
-        for threads in 1 2 4
-        do
-          eval ./data_io_benches -t ${threads} -l 1 -u 100 -s ${block_size} -b ${size} ${benchmark} ${type} ${reader} | grep "RESULT" |  sed -e "s/$/ version=${githash} timestamp=${timestamp} /"
-          eval ./data_io_benches -t ${threads} -l 1K -u 10K -s ${block_size} -b ${size} ${benchmark} ${type} ${reader} | grep "RESULT" |  sed -e "s/$/ version=${githash} timestamp=${timestamp} /"
-        done
+          eval ./data_io_benches -n 10 -l 1 -u 1K -s ${block_size} -b ${size} ${benchmark} ${type} ${reader} | grep "RESULT" |  sed -e "s/$/ version=${githash} timestamp=${timestamp} /"
       done
     done
   done
 done
 done
-
-for benchmark in file
-for type in size_t string pair triple
-do
-  for reader in consume keep
-  do
-    for size in 100K 1M 100M 2G
-    do
-      for block_size in 1K 1024K 2048K 4096K
-      do
-        eval ./data_io_benches -l 1 -u 100 -s ${block_size} -b ${size} ${benchmark} ${type} ${reader} | grep "RESULT" |  sed -e "s/$/ version=${githash} timestamp=${timestamp} /"
-        eval ./data_io_benches -l 1K -u 10K -s ${block_size} -b ${size} ${benchmark} ${type} ${reader} | grep "RESULT" |  sed -e "s/$/ version=${githash} timestamp=${timestamp} /"
-      done
-    done
-  done
-done
-
 ################################################################################
