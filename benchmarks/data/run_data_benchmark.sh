@@ -23,7 +23,7 @@ do
     do
       for block_size in 8K 16K 32K 64K 128K 256K 512K 1024K 2048K 4096K
       do
-          eval ./data_io_benches -n 10 -l 1 -u 1K -s ${block_size} -b ${size} ${benchmark} ${type} ${reader} | grep "RESULT" |  sed -e "s/$/ version=${githash} timestamp=${timestamp} /"
+          eval ./data_data_benchmarks ${benchmark} -n 10 -l 1 -u 1K -s ${block_size} -b ${size} ${type} ${reader} | grep "RESULT" |  sed -e "s/$/ version=${githash} timestamp=${timestamp} /"
       done
     done
   done
