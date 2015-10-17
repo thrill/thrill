@@ -575,17 +575,18 @@ public:
             StatsTimer<true> total_timer(true);
             StatsTimer<true> read_timer;
             auto stream = ctx.GetNewStream<data::CatStream>();
-	    data::File file(ctx.block_pool());
-	    auto writer = file.GetWriter();
-	    if (ctx.my_rank() == 0) {
-		Generator<Type> data = Generator<Type>(bytes_, min_size_, max_size_);
-		while(data.HasNext())
-		    writer(data.Next());
-	    } else {
-		Generator<Type> data = Generator<Type>(0, min_size_, max_size_);
-		while(data.HasNext())
-		    writer(data.Next());
-	    }
+            data::File file(ctx.block_pool());
+            auto writer = file.GetWriter();
+            if (ctx.my_rank() == 0) {
+                Generator<Type> data = Generator<Type>(bytes_, min_size_, max_size_);
+                while (data.HasNext())
+                    writer(data.Next());
+            }
+            else {
+                Generator<Type> data = Generator<Type>(0, min_size_, max_size_);
+                while (data.HasNext())
+                    writer(data.Next());
+            }
 
             // start reader thread
             common::ThreadPool threads(2);
@@ -593,7 +594,7 @@ public:
                 [&]() {
                     read_timer.Start();
                     auto reader = stream->OpenAnyReader(consume);
-		    while(reader.HasNext())
+                    while (reader.HasNext())
                         reader.template Next<Type>();
                     read_timer.Stop();
                 });
@@ -602,20 +603,20 @@ public:
             std::chrono::microseconds::rep write_time = 0;
             threads.Enqueue(
                 [&]() {
-		    writer.Close();
+                    writer.Close();
                     std::vector<size_t> offsets;
                     for (unsigned int w = 0; w < ctx.num_workers(); w++) {
                         if (ctx.my_rank() == 0) {
                             offsets.push_back(file.num_items() / ctx.num_workers() * (w + 1));
-			    std::cout << offsets.back() << std::endl;
-			}
+                            std::cout << offsets.back() << std::endl;
+                        }
                         else
                             offsets.push_back(0);
                     }
 
                     StatsTimer<true> write_timer(true);
                     stream->Scatter<Type>(file, offsets);
-			stream->Close();
+                    stream->Close();
                     write_timer.Stop();
                     write_time = std::max(write_time, write_timer.Microseconds());
                 });
