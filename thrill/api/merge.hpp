@@ -349,7 +349,7 @@ private:
             // If it is not initialized below, then 
             // an other worker's pivot will be taken for
             // this range, since our range is zero. 
-            ValueType pivotElem;
+            ValueType pivotElem = pivotElem;
             size_t pivotIdx = left[s][mp];
 
             if (width[s][mp] > 0) {
