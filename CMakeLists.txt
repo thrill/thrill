@@ -115,8 +115,8 @@ if(NOT MSVC)
 
     if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
       message(STATUS "compiler does not support -g debug info with auto returns")
-      string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-      string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+      string(REPLACE "-g" "" ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS})
+      string(REPLACE "-g" "" ${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_DEBUG})
     endif()
 
     set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")
