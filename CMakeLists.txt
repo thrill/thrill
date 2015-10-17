@@ -39,7 +39,7 @@ option(THRILL_USE_TBB "Use (optional) Intel TBB library if available." ON)
 
 option(THRILL_USE_MPI "Use (optional) MPI net backend." OFF)
 
-option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
+option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." OFF)
 
 option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
