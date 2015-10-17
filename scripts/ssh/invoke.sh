@@ -134,6 +134,7 @@ for hostport in $THRILL_SSHLIST; do
   THRILL_EXPORTS="$THRILL_EXPORTS THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\""
   THRILL_EXPORTS="$THRILL_EXPORTS THRILL_DIE_WITH_PARENT=1"
   REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
+  echo $*
   if [ "$copy" == "1" ]; then
       REMOTENAME="/tmp/$cmdbase.$hostport.$$"
       THRILL_EXPORTS="$THRILL_EXPORTS THRILL_UNLINK_BINARY=\"$REMOTENAME\""
