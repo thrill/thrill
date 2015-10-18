@@ -81,23 +81,22 @@ namespace core {
 *
 */
 
-//template <bool, typename EmitterFunction, typename Key, typename Value, typename SendType>
-//struct EmitImpl;
-//
-//template <typename EmitterFunction, typename Key, typename Value, typename SendType>
-//struct EmitImpl<true, EmitterFunction, Key, Value, SendType>{
-//    void EmitElement(const Key& k, const Value& v, EmitterFunction emit) {
-//        emit(std::make_pair(k, v));
-//    }
-//};
-//
-//template <typename EmitterFunction, typename Key, typename Value, typename SendType>
-//struct EmitImpl<false, EmitterFunction, Key, Value, SendType>{
-//    void EmitElement(const Key& k, const Value& v, EmitterFunction emit) {
-//        (void)k;
-//        emit(v);
-//    }
-//};
+template <bool, typename Emitters, typename KeyValuePair>
+struct PreProbingEmitImpl;
+
+template <typename Emitters, typename KeyValuePair>
+struct PreProbingEmitImpl<true, Emitters, KeyValuePair>{
+    void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
+        emit[partition_id](p.second);
+    }
+};
+
+template <typename Emitters, typename KeyValuePair>
+struct PreProbingEmitImpl<false, Emitters, KeyValuePair>{
+    void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
+        emit[partition_id](p);
+    }
+};
 
 template <typename ValueType, typename Key, typename Value,
         typename KeyExtractor, typename ReduceFunction,
@@ -117,7 +116,9 @@ class ReducePreProbingTable
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
-    //EmitImpl<RobustKey, EmitterFunction, Key, Value, ValueType> emit_impl_;
+    using Emitters = std::vector<data::DynBlockWriter>;
+
+    PreProbingEmitImpl<RobustKey, Emitters, KeyValuePair> emit_impl_;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
@@ -358,7 +359,7 @@ public:
     /*!
      * Flush.
      */
-    void Flush(bool consume = false) {
+    void Flush(bool consume = true) {
 
         if (FullPreReduce) {
             flush_function_(consume, this);
@@ -387,17 +388,9 @@ public:
             KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
             {
-                if (RobustKey) {
-                    if (emit) {
-                        emit_[partition_id](current.second);
-                    }
+                if (emit) {
+                    EmitAll(current, partition_id);
                 }
-                else {
-                    if (emit) {
-                        emit_[partition_id](current);
-                    }
-                }
-                emit_stats_[partition_id]++;
 
                 items_[i] = sentinel_;
             }
@@ -420,10 +413,9 @@ public:
     /*!
      * Emits element to all children
      */
-    void EmitAll(const Key& k, const Value& v) {
-        (void)k;
-        (void)v;
-       // emit_impl_.EmitElement(k, v, emit_);
+    void EmitAll(const KeyValuePair& p, const size_t& partition_id) {
+        emit_stats_[partition_id]++;
+        emit_impl_.EmitElement(p, partition_id, emit_);
     }
 
     /*!

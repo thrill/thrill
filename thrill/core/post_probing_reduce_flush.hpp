@@ -74,7 +74,7 @@ public:
     void Reduce(Context& ctx, bool consume, Table* ht,
                 std::vector<KeyValuePair>& items, size_t offset, size_t length,
                 data::File::Reader& reader, std::vector<KeyValuePair>& second_reduce,
-                size_t fill_rate_num_items_per_frame, KeyValuePair& sentinel) const
+                size_t fill_rate_num_items_per_frame, size_t frame_id, KeyValuePair& sentinel) const
     {
         size_t item_count = 0;
 
@@ -234,7 +234,7 @@ public:
                 KeyValuePair &current = second_reduce[i];
                 if (current.first != sentinel.first) {
                     if (emit) {
-                        ht->EmitAll(current.first, current.second);
+                        ht->EmitAll(current, frame_id);
                     }
                     second_reduce[i] = sentinel;
                 }
@@ -251,13 +251,13 @@ public:
             data::File::Writer& writer1 = frame_writers_[0];
             writer1.Close();
             data::File::Reader reader1 = file1.GetReader(true);
-            Reduce(ctx, false, ht, second_reduce, 0, 0, reader1, second_reduce, fill_rate_num_items_per_frame, sentinel);
+            Reduce(ctx, false, ht, second_reduce, 0, 0, reader1, second_reduce, fill_rate_num_items_per_frame, frame_id, sentinel);
 
             data::File& file2 = frame_files_[1];
             data::File::Writer& writer2 = frame_writers_[1];
             writer2.Close();
             data::File::Reader reader2 = file2.GetReader(true);
-            Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce, fill_rate_num_items_per_frame, sentinel);
+            Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce, fill_rate_num_items_per_frame, frame_id, sentinel);
         }
     }
 
@@ -301,7 +301,8 @@ public:
             {
                 data::File::Reader reader = file.GetReader(consume);
 
-                Reduce(ctx, consume, ht, items, offset, length, reader, second_reduce, fill_rate_num_items_per_frame, sentinel);
+                Reduce(ctx, consume, ht, items, offset, length, reader, second_reduce,
+                       fill_rate_num_items_per_frame, frame_id, sentinel);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current frame
@@ -317,7 +318,7 @@ public:
                     if (current.first != sentinel.first)
                     {
                         if (emit) {
-                            ht->EmitAll(current.first, current.second);
+                            ht->EmitAll(current, frame_id);
                         }
 
                         if (consume)

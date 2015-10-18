@@ -80,21 +80,20 @@ namespace core {
  *         PI..Partition ID
  *
  */
-template <bool, typename EmitterFunction, typename Key, typename Value, typename SendType>
-struct EmitImpl;
+template <bool, typename EmitterFunction, typename KeyValuePair, typename SendType>
+struct PostProbingEmitImpl;
 
-template <typename EmitterFunction, typename Key, typename Value, typename SendType>
-struct EmitImpl<true, EmitterFunction, Key, Value, SendType>{
-    void EmitElement(const Key& k, const Value& v, EmitterFunction emit) {
-        emit(std::make_pair(k, v));
+template <typename EmitterFunction, typename KeyValuePair, typename SendType>
+struct PostProbingEmitImpl<true, EmitterFunction, KeyValuePair, SendType>{
+    void EmitElement(const KeyValuePair& p, EmitterFunction emit) {
+        emit(p);
     }
 };
 
-template <typename EmitterFunction, typename Key, typename Value, typename SendType>
-struct EmitImpl<false, EmitterFunction, Key, Value, SendType>{
-    void EmitElement(const Key& k, const Value& v, EmitterFunction emit) {
-        (void)k;
-        emit(v);
+template <typename EmitterFunction, typename KeyValuePair, typename SendType>
+struct PostProbingEmitImpl<false, EmitterFunction, KeyValuePair, SendType>{
+    void EmitElement(const KeyValuePair& p, EmitterFunction emit) {
+        emit(p.second);
     }
 };
 
@@ -117,7 +116,7 @@ public:
 
     using EmitterFunction = std::function<void(const ValueType&)>;
 
-    EmitImpl<SendPair, EmitterFunction, Key, Value, ValueType> emit_impl_;
+    PostProbingEmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
@@ -358,8 +357,9 @@ public:
     /*!
      * Emits element to all children
      */
-    void EmitAll(const Key& k, const Value& v) {
-        emit_impl_.EmitElement(k, v, emit_);
+    void EmitAll(const KeyValuePair& p, const size_t& partition_id) {
+        (void)partition_id;
+        emit_impl_.EmitElement(p, emit_);
     }
 
     /*!

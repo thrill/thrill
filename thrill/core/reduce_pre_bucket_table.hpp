@@ -94,17 +94,17 @@ namespace core {
  *
  */
 template <bool, typename Emitters, typename KeyValuePair>
-struct PreEmitImpl;
+struct PreBucketEmitImpl;
 
 template <typename Emitters, typename KeyValuePair>
-struct PreEmitImpl<true, Emitters, KeyValuePair>{
+struct PreBucketEmitImpl<true, Emitters, KeyValuePair>{
     void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
         emit[partition_id](p.second);
     }
 };
 
 template <typename Emitters, typename KeyValuePair>
-struct PreEmitImpl<false, Emitters, KeyValuePair>{
+struct PreBucketEmitImpl<false, Emitters, KeyValuePair>{
     void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
         emit[partition_id](p);
     }
@@ -131,7 +131,7 @@ public:
 
     using Emitters = std::vector<data::DynBlockWriter>;
 
-    PreEmitImpl<RobustKey, Emitters, KeyValuePair> emit_impl_;
+    PreBucketEmitImpl<RobustKey, Emitters, KeyValuePair> emit_impl_;
 
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.

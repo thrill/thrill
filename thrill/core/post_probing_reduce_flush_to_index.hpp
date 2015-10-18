@@ -326,7 +326,7 @@ public:
         size_t index = begin_local_index;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
             if (emit) {
-                ht->EmitAll(index++, elements_to_emit[i]);
+                ht->EmitAll(std::make_pair(index++, elements_to_emit[i]), 0);
             } else {
                 index++;
             }
