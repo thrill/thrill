@@ -29,12 +29,13 @@
 #include <algorithm>
 #include <limits>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
-static const bool debug_print = true;
+bool debug_print = false;
 
 using namespace thrill; // NOLINT
 using thrill::common::RingBuffer;
@@ -60,9 +61,11 @@ struct Chars {
 
     static Chars EndSentinel() {
         return Chars {
-                   std::numeric_limits<AlphabetType>::lowest(),
-                   std::numeric_limits<AlphabetType>::lowest(),
-                   std::numeric_limits<AlphabetType>::lowest()
+                   {
+                       std::numeric_limits<AlphabetType>::lowest(),
+                       std::numeric_limits<AlphabetType>::lowest(),
+                       std::numeric_limits<AlphabetType>::lowest()
+                   }
         };
     }
 } __attribute__ ((packed)); // NOLINT
@@ -337,20 +340,24 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
         .template FlatWindow<IndexChars>(
             3, [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 if (index % 3 != 0)
-                    emit(IndexChars { index, rb[0], rb[1], rb[2] });
+                    emit(IndexChars { index, { rb[0], rb[1], rb[2] }
+                         });
 
                 if (index == input_size - 3) {
                     // emit last sentinel items.
                     if ((index + 1) % 3 != 0)
-                        emit(IndexChars { index + 1, rb[1], rb[2], Char() });
+                        emit(IndexChars { index + 1, { rb[1], rb[2], Char() }
+                             });
                     if ((index + 2) % 3 != 0)
-                        emit(IndexChars { index + 2, rb[2], Char(), Char() });
+                        emit(IndexChars { index + 2, { rb[2], Char(), Char() }
+                             });
 
                     if (input_size % 3 == 1) {
                         // emit a sentinel tuple for inputs n % 3 == 1 to
                         // separate mod1 and mod2 strings in recursive
                         // subproblem. example which needs this: aaaaaaaaaa.
-                        emit(IndexChars { index + 3, Char(), Char(), Char() });
+                        emit(IndexChars { index + 3, { Char(), Char(), Char() }
+                             });
                     }
                 }
             })
@@ -395,9 +402,11 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
     // size of the mod1 part of the recursive subproblem
     size_t size_mod1 = input_size / 3 + (input_size % 3 != 0);
 
-    sLOG1 << "max_lexname=" << max_lexname
-          << " size_subp=" << size_subp
-          << " size_mod1=" << size_mod1;
+    if (debug_print) {
+        sLOG1 << "max_lexname=" << max_lexname
+              << " size_subp=" << size_subp
+              << " size_mod1=" << size_mod1;
+    }
 
     DIA<IndexRank> ranks_rec;
 
@@ -441,7 +450,9 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
         // reverse suffix array of recursion strings to find ranks for mod 1
         // and mod 2 positions.
 
-        suffix_array_rec.Print("suffix_array_rec");
+        if (debug_print)
+            suffix_array_rec.Print("suffix_array_rec");
+
         assert(suffix_array_rec.Size() == size_subp);
 
         ranks_rec =
@@ -459,7 +470,8 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
             ranks_rec.Print("ranks_rec");
     }
     else {
-        triple_index_sorted.Print("triple_index_sorted");
+        if (debug_print)
+            triple_index_sorted.Print("triple_index_sorted");
 
         ranks_rec =
             triple_index_sorted
@@ -492,14 +504,20 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
         .template FlatWindow<Chars>(
             3, [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 if (index % 3 == 0)
-                    emit(Chars { rb[0], rb[1], rb[2] });
+                    emit(Chars {
+                             { rb[0], rb[1], rb[2] }
+                         });
 
                 if (index == input_size - 3) {
                     // emit sentinel
                     if ((index + 1) % 3 == 0)
-                        emit(Chars { rb[1], rb[2], Char() });
+                        emit(Chars {
+                                 { rb[1], rb[2], Char() }
+                             });
                     if ((index + 2) % 3 == 0)
-                        emit(Chars { rb[2], Char(), Char() });
+                        emit(Chars {
+                                 { rb[2], Char(), Char() }
+                             });
                 }
             });
 
@@ -521,18 +539,23 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
                 })
         .Map([](const IndexRank& a) {
                  return a.rank + 1;
-             });
+             })
+        // TODO(sl): Mr. StageBuilder, this should NOT be needed.
+        .Cache();
 
-    triple_chars.Print("triple_chars");
-    ranks_mod1.Print("ranks_mod1");
-    ranks_mod2.Print("ranks_mod2");
+    if (debug_print) {
+        triple_chars.Print("triple_chars");
+        ranks_mod1.Print("ranks_mod1");
+        ranks_mod2.Print("ranks_mod2");
+    }
 
     assert(triple_chars.Size() == size_mod1);
     assert(ranks_mod1.Size() == size_mod1);
     assert(ranks_mod2.Size() == size_mod1 - (input_size % 3 ? 1 : 0));
 
     size_t zip_size = size_mod1;
-    sLOG1 << "zip_size" << zip_size;
+    if (debug_print)
+        sLOG1 << "zip_size" << zip_size;
 
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.
@@ -552,7 +575,8 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
             std::make_tuple(Chars::EndSentinel(), 0, 0),
             triple_chars, ranks_mod1, ranks_mod2);
 
-    zip_triple_pairs1.Print("zip_triple_pairs1");
+    if (debug_print)
+        zip_triple_pairs1.Print("zip_triple_pairs1");
 
     auto zip_triple_pairs =
         zip_triple_pairs1
@@ -606,9 +630,11 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
                     return mod2.index < input_size;
                 });
 
-    fragments_mod0.Print("fragments_mod0");
-    fragments_mod1.Print("fragments_mod1");
-    fragments_mod2.Print("fragments_mod2");
+    if (debug_print) {
+        fragments_mod0.Print("fragments_mod0");
+        fragments_mod1.Print("fragments_mod1");
+        fragments_mod2.Print("fragments_mod2");
+    }
 
     // Sort the three string fragment sets
 
@@ -630,9 +656,11 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
                   return a.r0 < b.r0;
               });
 
-    sorted_fragments_mod0.Print("sorted_fragments_mod0");
-    sorted_fragments_mod1.Print("sorted_fragments_mod1");
-    sorted_fragments_mod2.Print("sorted_fragments_mod2");
+    if (debug_print) {
+        sorted_fragments_mod0.Print("sorted_fragments_mod0");
+        sorted_fragments_mod1.Print("sorted_fragments_mod1");
+        sorted_fragments_mod2.Print("sorted_fragments_mod2");
+    }
 
     using StringFragment = ::StringFragment<Char>;
 
@@ -753,7 +781,7 @@ public:
     StartDC3(
         Context& ctx,
         const std::string& input_path, const std::string& output_path,
-        size_t sizelimit,
+        uint64_t sizelimit,
         bool text_output_flag,
         bool check_flag,
         bool input_verbatim)
@@ -811,7 +839,7 @@ public:
     }
 
     template <typename InputDIA>
-    void StartDC3Input(const InputDIA& input_dia, size_t input_size) {
+    void StartDC3Input(const InputDIA& input_dia, uint64_t input_size) {
 
         // run DC3
         auto suffix_array = DC3(ctx_, input_dia, input_size);
@@ -824,8 +852,7 @@ public:
             LOG1 << "checking suffix array...";
 
             if (!CheckSA(input_dia, suffix_array)) {
-                LOG1 << "failed!";
-                return;
+                throw std::runtime_error("Suffix array is invalid!");
             }
             else {
                 LOG1 << "okay.";
@@ -839,7 +866,7 @@ protected:
     std::string input_path_;
     std::string output_path_;
 
-    size_t sizelimit_;
+    uint64_t sizelimit_;
     bool text_output_flag_;
     bool check_flag_;
     bool input_verbatim_;
@@ -853,7 +880,7 @@ int main(int argc, char* argv[]) {
     cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
 
     std::string input_path, output_path;
-    size_t sizelimit = std::numeric_limits<size_t>::max();
+    uint64_t sizelimit = std::numeric_limits<uint64_t>::max();
     bool text_output_flag = false;
     bool check_flag = false;
     bool input_verbatim = false;
@@ -873,6 +900,8 @@ int main(int argc, char* argv[]) {
                "suffix array on.");
     cp.AddBytes('s', "size", sizelimit,
                 "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
+    cp.AddFlag('d', "debug", debug_print,
+               "Print debug info.");
 
     // process command line
     if (!cp.Process(argc, argv))
@@ -882,8 +911,10 @@ int main(int argc, char* argv[]) {
         [&](Context& ctx) {
             return StartDC3(ctx,
                             input_path, output_path,
-                            sizelimit, input_verbatim,
-                            text_output_flag, check_flag).Run();
+                            sizelimit,
+                            text_output_flag,
+                            check_flag,
+                            input_verbatim).Run();
         });
 }
 
