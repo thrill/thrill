@@ -93,6 +93,23 @@ namespace core {
  *    +---+       +---+
  *
  */
+template <bool, typename Emitters, typename KeyValuePair>
+struct PreEmitImpl;
+
+template <typename Emitters, typename KeyValuePair>
+struct PreEmitImpl<true, Emitters, KeyValuePair>{
+    void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
+        emit[partition_id](p.second);
+    }
+};
+
+template <typename Emitters, typename KeyValuePair>
+struct PreEmitImpl<false, Emitters, KeyValuePair>{
+    void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
+        emit[partition_id](p);
+    }
+};
+
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
@@ -111,6 +128,10 @@ class ReducePreTable
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
+
+    using Emitters = std::vector<data::DynBlockWriter>;
+
+    PreEmitImpl<RobustKey, Emitters, KeyValuePair> emit_impl_;
 
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
@@ -398,64 +419,8 @@ public:
         }
     }
 
-//    /*!
-//    * Flushes all items in the whole table.
-//    */
-//    void Flush() {
-//        LOG << "Flushing all items";
-//
-//        // retrieve items
-//        for (size_t i = 0; i < num_partitions_; i++)
-//        {
-//            FlushPartition(i);
-//        }
-//
-//        LOG << "Flushed all items";
-//    }
-//
-//    /*!
-//     * Retrieves all items belonging to the partition
-//     * having the most items. Retrieved items are then pushed
-//     * to the provided emitter.
-//     */
-//    void FlushLargestPartition() {
-//        LOG << "Flushing items of largest partition";
-//
-//        // get partition with max size
-//        size_t p_size_max = 0;
-//        size_t p_idx = 0;
-//        for (size_t i = 0; i < num_partitions_; i++)
-//        {
-//            if (num_items_per_partition_[i] > p_size_max)
-//            {
-//                p_size_max = num_items_per_partition_[i];
-//                p_idx = i;
-//            }
-//        }
-//
-//        LOG << "currMax: "
-//            << p_size_max
-//            << " currentIdx: "
-//            << p_idx
-//            << " currentIdx*p_size: "
-//            << p_idx * num_buckets_per_partition_
-//            << " CurrentIdx*p_size+p_size-1 "
-//            << p_idx * num_buckets_per_partition_ + num_buckets_per_partition_ - 1;
-//
-//        LOG << "Largest patition id: "
-//            << p_idx;
-//
-//        if (p_size_max == 0) {
-//            return;
-//        }
-//
-//        FlushPartition(p_idx);
-//
-//        LOG << "Flushed items of largest partition";
-//    }
-
-        /*!
-     * Flushes all items of a partition.
+    /*!
+     * Spills all items of a partition.
      *
      * \param partition_id The id of the partition to be flushed.
      */
@@ -542,7 +507,7 @@ public:
     /*!
      * Flush.
      */
-    void Flush(bool consume = false) {
+    void Flush(bool consume = true) {
 
         if (FullPreReduce) {
             flush_function_(consume, this);
@@ -554,6 +519,47 @@ public:
                 FlushPartition(i);
             }
         }
+    }
+
+    /*!
+     * Retrieves all items belonging to the partition
+     * having the most items. Retrieved items are then pushed
+     * to the provided emitter.
+     */
+    void FlushLargestPartition() {
+        LOG << "Flushing items of largest partition";
+
+        // get partition with max size
+        size_t p_size_max = 0;
+        size_t p_idx = 0;
+        for (size_t i = 0; i < num_partitions_; i++)
+        {
+            if (num_items_per_partition_[i] > p_size_max)
+            {
+                p_size_max = num_items_per_partition_[i];
+                p_idx = i;
+            }
+        }
+
+        LOG << "currMax: "
+            << p_size_max
+            << " currentIdx: "
+            << p_idx
+            << " currentIdx*p_size: "
+            << p_idx * num_buckets_per_partition_
+            << " CurrentIdx*p_size+p_size-1 "
+            << p_idx * num_buckets_per_partition_ + num_buckets_per_partition_ - 1;
+
+        LOG << "Largest patition id: "
+            << p_idx;
+
+        if (p_size_max == 0) {
+            return;
+        }
+
+        FlushPartition(p_idx);
+
+        LOG << "Flushed items of largest partition";
     }
 
     /*!
@@ -593,20 +599,9 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    if (RobustKey) {
-                        if (emit) {
-                            emit_[partition_id](bi->second);
-                        }
-                        sLOG << "Pushing value";
+                    if (emit) {
+                        EmitAll(*bi, partition_id);
                     }
-                    else {
-                        if (emit) {
-                            emit_[partition_id](*bi);
-                        }
-                        sLOG << "pushing pair";
-                    }
-
-                    emit_stats_[partition_id]++;
                 }
 
                 // destroy block and advance to next
@@ -652,10 +647,9 @@ public:
     /*!
      * Emits element to all children
      */
-    void EmitAll(const Key& k, const Value& v) {
-        (void)k;
-        (void)v;
-        //emit_impl_.EmitElement(k, v, emit_);
+    void EmitAll(const KeyValuePair& p, const size_t& partition_id) {
+        emit_stats_[partition_id]++;
+        emit_impl_.EmitElement(p, partition_id, emit_);
     }
 
     /*!

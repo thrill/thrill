@@ -45,6 +45,7 @@ template<typename Key,
         typename EqualToFunction = std::equal_to<Key>,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostBucketReduceFlush {
+
     static const bool emit = true;
 
 public:
@@ -324,7 +325,7 @@ public:
                     for (KeyValuePair *bi = current->items;
                          bi != current->items + current->size; ++bi) {
                         if (emit) {
-                            ht->EmitAll(bi->first, bi->second);
+                            ht->EmitAll(*bi, frame_id);
                         }
                     }
 
@@ -429,7 +430,7 @@ public:
                         for (KeyValuePair *bi = current->items;
                              bi != current->items + current->size; ++bi) {
                             if (emit) {
-                                ht->EmitAll(bi->first, bi->second);
+                                ht->EmitAll(*bi, frame_id);
                             }
                         }
 
