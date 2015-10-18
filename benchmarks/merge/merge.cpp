@@ -56,8 +56,7 @@ void merge_test(thrill::api::Context& ctx) {
    
     thrill::common::StatsTimer<true> timer(true); 
     
-    auto merge_result = merge_input1.Merge(
-        merge_input2, std::less<size_t>());
+    auto merge_result = merge_input1.Merge(std::less<size_t>(), merge_input2);
 
     assert(merge_result.Size() == size * 2);
     timer.Stop();

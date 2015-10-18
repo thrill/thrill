@@ -118,8 +118,9 @@ public:
                             { parent0.node(), parents.node() ... }, stats_node),
           comparator_(comparator)
     {
-        common::VarCallForeachIndex([this](auto i, auto parent) {
-            files_[i] = context_.GetFilePtr();
+        Context &context = parent0.ctx();
+        common::VarCallForeachIndex([&context, this](auto i, auto parent) {
+            files_[i] = context.GetFilePtr();
             writers_[i] = files_[i]->GetWriterPtr();
         
             auto pre_op_fn = [=](const ValueType& input) {
