@@ -150,6 +150,7 @@ public:
                            const Key& sentinel,
                            const IndexFunction& index_function,
                            const FlushFunction& flush_function,
+                           const Value& neutral_element = Value(),
                            size_t byte_size = 1024 * 16,
                            double max_partition_fill_rate = 0.5,
                            const EqualToFunction& equal_to_function = EqualToFunction())
@@ -162,7 +163,8 @@ public:
               index_function_(index_function),
               equal_to_function_(equal_to_function),
               flush_function_(flush_function),
-              reduce_function_(reduce_function)
+              reduce_function_(reduce_function),
+              neutral_element_(neutral_element)
     {
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
@@ -581,6 +583,15 @@ public:
     }
 
     /*!
+    * Returns the neutral element.
+    *
+    * \return Neutral element.
+    */
+    Value NeutralElement() const {
+        return neutral_element_;
+    }
+
+    /*!
     * Closes all emitter.
     */
     void CloseEmitter() {
@@ -671,6 +682,9 @@ private:
     size_t num_collisions_ = 0;
 
     size_t fill_rate_num_items_second_reduce_ = 0;
+
+    //! Neutral element (reduce to index).
+    Value neutral_element_;
 };
 
 } // namespace core
