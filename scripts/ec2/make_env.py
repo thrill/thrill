@@ -17,11 +17,10 @@ import sys
 
 from subprocess import call
 
-if len(sys.argv) != 2:
-    print "Usage: make_env.py 123"
-    sys.exit();
-
-job_id = str(sys.argv[1])
+#if len(sys.argv) != 2:
+#    print "Usage: make_env.py 123"
+#    sys.exit();
+#job_id = str(sys.argv[1])
 
 ec2 = boto3.resource('ec2')
 
@@ -30,7 +29,7 @@ with open('config.json') as data_file:
 
 instances = ec2.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']},
                                           {'Name': 'key-name', 'Values': [data["EC2_KEY_HANDLE"]]},
-                                          {'Name': 'tag:JobId', 'Values':[job_id]}])
+                                          {'Name': 'tag:JobId', 'Values':[str(data["JOB_ID"])]}])
 
 for instance in instances:
     sys.stderr.write("%s pub %s priv %s\n" % (instance.id, instance.public_ip_address, instance.private_ip_address))
