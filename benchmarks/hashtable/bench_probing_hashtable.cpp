@@ -11,7 +11,7 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/core/reduce_post_probing_table.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
@@ -38,6 +38,10 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
+    std::string title = "";
+    clp.AddString('t', "title", "T", title,
+                  "Load in byte to be inserted");
+
     unsigned int size = 5000000;
     clp.AddUInt('s', "size", "S", size,
                 "Load in byte to be inserted");
@@ -50,8 +54,12 @@ int main(int argc, char* argv[]) {
     clp.AddDouble('f', "max_partition_fill_rate", "F", max_partition_fill_rate,
                   "Open hashtable with max_partition_fill_rate, default = 0.5.");
 
+    double table_rate = 1.0;
+    clp.AddDouble('r', "table_rate", "R", table_rate,
+                  "Open hashtable with max_partition_fill_rate, default = 1.0.");
+
     unsigned int byte_size = 5000000;
-    clp.AddUInt('t', "max_num_items_table", "T", byte_size,
+    clp.AddUInt('m', "max_num_items_table", "M", byte_size,
                 "Table size, default = 500000000.");
 
     if (!clp.Process(argc, argv)) {
@@ -62,55 +70,50 @@ int main(int argc, char* argv[]) {
     // strings mode
     ///////
 
-    api::Run([&size, &max_partition_fill_rate, &byte_size](api::Context& ctx) {
+    api::Run([&](api::Context& ctx) {
 
-    auto key_ex = [](size_t in) { return in; };
+        auto key_ex = [](size_t in) { return in; };
 
-    auto red_fn = [](size_t in1, size_t in2) {
-                      (void)in2;
-                      return in1;
-                  };
+        auto red_fn = [](size_t in1, size_t in2) {
+                          (void)in2;
+                          return in1;
+                      };
 
-    size_t num_items = 1000000 / sizeof(size_t);
+        size_t num_items = size / sizeof(std::pair<size_t, size_t>);
 
-    std::default_random_engine rng(std::random_device { } ());
-    std::uniform_int_distribution<size_t> dist(1, std::numeric_limits<size_t>::max());
+        std::default_random_engine rng(std::random_device { } ());
+        std::uniform_int_distribution<size_t> dist(1, std::numeric_limits<size_t>::max());
 
-//    data::BlockPool block_pool(nullptr);
-//    std::vector<data::File> sinks;
-//    std::vector<data::File::DynWriter> writers;
-//    for (size_t i = 0; i != workers; ++i) {
-//        sinks.emplace_back(block_pool);
-//        writers.emplace_back(sinks[i].GetDynWriter());
-//    }
+        data::BlockPool block_pool(nullptr);
+        std::vector<data::File> sinks;
+        std::vector<data::File::DynWriter> writers;
+        for (size_t i = 0; i != workers; ++i) {
+            sinks.emplace_back(block_pool);
+            writers.emplace_back(sinks[i].GetDynWriter());
+        }
 
-    using EmitterFunction = std::function<void(const size_t&)>;
-    std::vector<size_t> writer1;
-    EmitterFunction emit = ([&writer1](const size_t value) {
-        writer1.push_back(value);
-    });
+         core::ReducePreProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
+         core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreProbingReduceByHashKey<size_t>,
+         std::equal_to<size_t>, false>
+         table(ctx, workers, key_ex, red_fn, writers, 0, core::PreProbingReduceByHashKey<size_t>(),
+               core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
+               0, byte_size, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
 
-//    core::ReducePreProbingTable<size_t, size_t, decltype(key_ex), decltype(red_fn), true>
-//    table(workers, key_ex, red_fn, writers, 0, byte_size, max_partition_fill_rate);
+        common::StatsTimer<true> timer(true);
 
-    core::ReducePostProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-            core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>,
-            core::PostProbingReduceByHashKey<size_t>, std::equal_to<size_t> >
-                                                   table(ctx, key_ex, red_fn, emit, 0, core::PostProbingReduceByHashKey<size_t>(),
-                                                         core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn), 0, 0, 0, 1000000000, 0.5,
-                                                         0.01,
-                                                         std::equal_to<size_t>());
+        for (size_t i = 0; i < num_items; i++)
+        {
+            table.Insert(dist(rng));
+        }
 
-    common::StatsTimer<true> timer(true);
+        timer.Stop();
 
-    for (size_t i = 0; i < num_items; i++)
-    {
-        table.Insert(dist(rng));
-    }
-
-    timer.Stop();
-
-    std::cout << timer.Microseconds() << " " << table.NumSpills() << " " << std::endl;
+        std::cout << "RESULT" << " benchmark=" << title << " size=" << size << " byte_size=" << byte_size << " workers="
+        << workers << " max_partition_fill_rate=" << max_partition_fill_rate
+        << " table_rate_multiplier=" << table_rate
+        << " time=" << timer.Milliseconds()
+        << " num_flushes=" << table.NumFlushes() << " num_spills=" << table.NumSpills()
+        << " num_collisions=" << table.NumCollisions() << std::endl;
 
     });
 
