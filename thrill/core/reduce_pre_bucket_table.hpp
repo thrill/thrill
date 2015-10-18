@@ -187,7 +187,8 @@ public:
                    size_t byte_size = 1024 * 16,
                    double bucket_rate = 1.0,
                    double max_partition_fill_rate = 0.5,
-                   const EqualToFunction& equal_to_function = EqualToFunction())
+                   const EqualToFunction& equal_to_function = EqualToFunction(),
+                   double table_rate_multiplier = 1.05)
         : ctx_(ctx),
           num_partitions_(num_partitions),
           max_partition_fill_rate_(max_partition_fill_rate),
@@ -210,6 +211,8 @@ public:
                 "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
         assert(bucket_rate >= 0.0 && "bucket_rate must be greater than or equal 0. "
                                              "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
+
+        table_rate_ = table_rate_multiplier * (1.0 / static_cast<double>(num_partitions_));
 
         max_num_blocks_per_partition_ =
                 std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_)) / num_partitions_)
@@ -243,6 +246,8 @@ public:
         assert(max_num_blocks_per_table_ > 0);
 
         buckets_.resize(num_buckets_per_table_, nullptr);
+        buckets_length_.resize(num_buckets_per_table_, 0);
+
         num_items_per_partition_.resize(num_partitions_, 0);
 
         total_items_per_partition_.resize(num_partitions, 0);
@@ -421,6 +426,10 @@ public:
 
             // Total number of blocks
             num_blocks_per_table_++;
+
+            if (bench) {
+                buckets_length_[h.global_index]++;
+            }
         }
 
         // in-place construct/insert new item in current bucket block
@@ -488,6 +497,7 @@ public:
             if (bench) {
                 if (buckets_[i] != nullptr) {
                     l_.push_back(l);
+                    buckets_length_[i] = 0;
                 }
             }
 
@@ -505,18 +515,6 @@ public:
         if (bench) {
             // debug: increase flush counter
             num_spills_++;
-            // debug: waste before flush
-            double sum = std::accumulate(r_.begin(), r_.end(), 0.0);
-            double mean = sum / r_.size();
-            double sq_sum = std::inner_product(r_.begin(), r_.end(), r_.begin(), 0.0);
-            block_fill_rates_median.push_back(mean);
-            block_fill_rates_stedv.push_back(std::sqrt(sq_sum / r_.size() - mean * mean));
-            // debug: block length
-            sum = std::accumulate(l_.begin(), l_.end(), 0.0);
-            mean = sum / l_.size();
-            sq_sum = std::inner_product(l_.begin(), l_.end(), l_.begin(), 0.0);
-            block_length_median.push_back(mean);
-            block_length_stedv.push_back(std::sqrt(sq_sum / l_.size() - mean * mean));
         }
     }
 
@@ -664,6 +662,10 @@ public:
             }
 
             buckets_[i] = nullptr;
+
+            if (bench) {
+                buckets_length_[i] = 0;
+            }
         }
 
         if (flush_mode == 1)
@@ -679,18 +681,6 @@ public:
         if (bench) {
             // debug: increase flush counter
             num_flushes_++;
-            // debug: waste before flush
-            double sum = std::accumulate(r_.begin(), r_.end(), 0.0);
-            double mean = sum / r_.size();
-            double sq_sum = std::inner_product(r_.begin(), r_.end(), r_.begin(), 0.0);
-            block_fill_rates_median.push_back(mean);
-            block_fill_rates_stedv.push_back(std::sqrt(sq_sum / r_.size() - mean * mean));
-            // debug: block length
-            sum = std::accumulate(l_.begin(), l_.end(), 0.0);
-            mean = sum / l_.size();
-            sq_sum = std::inner_product(l_.begin(), l_.end(), l_.begin(), 0.0);
-            block_length_median.push_back(mean);
-            block_length_stedv.push_back(std::sqrt(sq_sum / l_.size() - mean * mean));
         }
 
         LOG << "Flushed items of partition with id: " << partition_id;
@@ -898,40 +888,24 @@ public:
         return neutral_element_;
     }
 
-    /*!
-     * Returns the median of the fill rates of blocks lastly
-     * added to a bucket, computed before flush.
-     */
-    double BlockFillRatesMedian() const {
-        double sum = std::accumulate(block_fill_rates_median.begin(), block_fill_rates_median.end(), 0.0);
-        return sum / block_fill_rates_median.size();
+    void incrRecursiveSpills() {
+        num_recursive_spills_++;
     }
 
-    /*!
-     * Returns the standard deviation of the fill rates of blocks lastly
-     * added to a bucket, computed before flush.
-     */
-    double BlockFillRatesStedv() const {
-        double sum = std::accumulate(block_fill_rates_stedv.begin(), block_fill_rates_stedv.end(), 0.0);
-        return sum / block_fill_rates_stedv.size();
+    size_t RecursiveSpills() {
+        return num_recursive_spills_;
     }
 
-    /*!
-     * Returns the median of the block length per partition,
-     * computed before flush.
-     */
-    double BlockLengthMedian() const {
-        double sum = std::accumulate(block_length_median.begin(), block_length_median.end(), 0.0);
-        return sum / block_length_median.size();
+    double BucketLengthMedian() {
+        double sum = std::accumulate(buckets_length_.begin(), buckets_length_.end(), 0.0);
+        return sum / buckets_length_.size();
     }
 
-    /*!
-     * Returns the standard deviation of the block length per partition,
-     * computed before flush.
-     */
-    double BlockLengthStedv() const {
-        double sum = std::accumulate(block_length_stedv.begin(), block_length_stedv.end(), 0.0);
-        return sum / block_length_stedv.size();
+    double BucketLengthStdv() {
+        double sum = std::accumulate(buckets_length_.begin(), buckets_length_.end(), 0.0);
+        double mean = sum / buckets_length_.size();
+        double sq_sum = std::inner_product(buckets_length_.begin(), buckets_length_.end(), buckets_length_.begin(), 0.0);
+        return std::sqrt(sq_sum / l_.size() - mean * mean);
     }
 
     /*!
@@ -1079,18 +1053,6 @@ private:
     //! Number of spills.
     size_t num_spills_ = 0;
 
-    //! Median of fill rates of blocks lastly added to a bucket.
-    std::vector<double> block_fill_rates_median;
-
-    //! Standard deviation of fill rates of blocks lastly added to a bucket.
-    std::vector<double> block_fill_rates_stedv;
-
-    //! Median of the block length per partition.
-    std::vector<double> block_length_median;
-
-    //! Standard deviation of the block length per partition.
-    std::vector<double> block_length_stedv;
-
     //! Bucket block pool.
     BucketBlockPool<BucketBlock> block_pool;
 
@@ -1122,6 +1084,12 @@ private:
 
     //! Frame Sequence.
     std::vector<size_t> frame_sequence_;
+
+    //! Number of recursive spills.
+    size_t num_recursive_spills_ = 0;
+
+    //! Storing the items.
+    std::vector<size_t> buckets_length_;
 };
 
 } // namespace core

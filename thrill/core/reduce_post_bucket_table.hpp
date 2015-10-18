@@ -196,7 +196,8 @@ public:
                     double bucket_rate = 1.0,
                     double max_frame_fill_rate = 0.5,
                     double frame_rate = 0.01,
-                    const EqualToFunction& equal_to_function = EqualToFunction())
+                    const EqualToFunction& equal_to_function = EqualToFunction(),
+                    double table_rate_multiplier = 1.1)
         : ctx_(ctx),
           max_frame_fill_rate_(max_frame_fill_rate),
           emit_(emit),
@@ -222,6 +223,8 @@ public:
         assert(end_local_index >= 0);
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
+
+        table_rate_ = table_rate_multiplier * (1.0 / static_cast<double>(num_frames_));
 
         max_num_blocks_mem_per_frame_ =
                 std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_)) / num_frames_)
@@ -715,6 +718,10 @@ public:
         return frame_sequence_;
     }
 
+    void incrRecursiveSpills() {
+        num_recursive_spills_++;
+    }
+
 private:
     //! Context
     Context& ctx_;
@@ -796,7 +803,7 @@ private:
     BucketBlockPool<BucketBlock> block_pool;
 
     //! Rate of sizes of primary to secondary table.
-    double table_rate_ = 0.05;
+    double table_rate_ = 0.0;
 
     //! Storing the secondary table.
     std::vector<BucketBlock*> second_table_;
@@ -814,6 +821,9 @@ private:
 
     //! Frame Sequence.
     std::vector<size_t> frame_sequence_;
+
+    //! Number of recursive spills.
+    size_t num_recursive_spills_ = 0;
 };
 
 } // namespace core

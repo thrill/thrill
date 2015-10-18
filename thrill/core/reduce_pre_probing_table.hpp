@@ -155,7 +155,8 @@ public:
                            const Value& neutral_element = Value(),
                            size_t byte_size = 1024 * 16,
                            double max_partition_fill_rate = 0.5,
-                           const EqualToFunction& equal_to_function = EqualToFunction())
+                           const EqualToFunction& equal_to_function = EqualToFunction(),
+                           double table_rate_multiplier = 1.05)
             : ctx_(ctx),
               num_partitions_(num_partitions),
               byte_size_(byte_size),
@@ -174,6 +175,8 @@ public:
                 "a byte size of zero results in exactly one item per partition");
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0 && "max_partition_fill_rate "
                 "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
+
+        table_rate_ = table_rate_multiplier * (1.0 / static_cast<double>(num_partitions_));
 
         num_items_per_partition_ = std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_))
                                                  / static_cast<double>(sizeof(KeyValuePair)))
@@ -644,6 +647,14 @@ public:
         return neutral_element_;
     }
 
+    void incrRecursiveSpills() {
+        num_recursive_spills_++;
+    }
+
+    size_t RecursiveSpills() {
+        return num_recursive_spills_;
+    }
+
     /*!
     * Closes all emitter.
     */
@@ -798,6 +809,9 @@ private:
 
     //! Frame Sequence.
     std::vector<size_t> frame_sequence_;
+
+    //! Number of recursive spills.
+    size_t num_recursive_spills_ = 0;
 };
 
 } // namespace core

@@ -47,6 +47,9 @@ class PostProbingReduceFlush
 {
     static const bool emit = true;
 
+    static const bool bench = true;
+
+
 public:
     PostProbingReduceFlush(ReduceFunction reduce_function,
                        const IndexFunction& index_function = IndexFunction(),
@@ -258,6 +261,11 @@ public:
             writer2.Close();
             data::File::Reader reader2 = file2.GetReader(true);
             Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce, fill_rate_num_items_per_frame, frame_id, sentinel);
+
+            if (bench)
+            {
+                ht->incrRecursiveSpills();
+            }
         }
     }
 

@@ -153,7 +153,8 @@ public:
                            size_t byte_size = 1024 * 16,
                            double max_frame_fill_rate = 0.5,
                            double frame_rate = 0.01,
-                           const EqualToFunction& equal_to_function = EqualToFunction())
+                           const EqualToFunction& equal_to_function = EqualToFunction(),
+                           double table_rate_multiplier = 1.1)
         : ctx_(ctx),
           byte_size_(byte_size),
           max_frame_fill_rate_(max_frame_fill_rate),
@@ -176,6 +177,8 @@ public:
         assert(end_local_index >= 0);
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
+
+        table_rate_ = table_rate_multiplier * (1.0 / static_cast<double>(num_frames_));
 
         frame_size_ = std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_))
                                                  / static_cast<double>(sizeof(KeyValuePair)))
@@ -528,6 +531,10 @@ public:
         return frame_sequence_;
     }
 
+    void incrRecursiveSpills() {
+        num_recursive_spills_++;
+    }
+
 private:
     //! Context
     Context& ctx_;
@@ -595,7 +602,7 @@ private:
     ReduceFunction reduce_function_;
 
     //! Rate of sizes of primary to secondary table.
-    double table_rate_ = 0.05;
+    double table_rate_ = 0.0;
 
     //! Storing the secondary table.
     std::vector<KeyValuePair> second_table_;
@@ -610,6 +617,9 @@ private:
 
     //! Frame Sequence.
     std::vector<size_t> frame_sequence_;
+
+    //! Number of recursive spills.
+    size_t num_recursive_spills_ = 0;
 };
 
 } // namespace core

@@ -48,6 +48,8 @@ class PostBucketReduceFlush {
 
     static const bool emit = true;
 
+    static const bool bench = true;
+
 public:
     PostBucketReduceFlush(ReduceFunction reduce_function,
                     const IndexFunction &index_function = IndexFunction(),
@@ -362,6 +364,11 @@ public:
             Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce,
                    fill_rate_num_items_per_frame, frame_id, num_items_per_frame,
                    block_pool, max_num_blocks_second_reduce, block_size);
+
+            if (bench)
+            {
+                ht->incrRecursiveSpills();
+            }
         }
     }
 
