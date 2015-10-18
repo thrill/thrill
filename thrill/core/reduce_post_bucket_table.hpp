@@ -25,7 +25,6 @@
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
-#include <thrill/core/post_bucket_reduce_by_hash_key.hpp>
 #include <thrill/core/post_bucket_reduce_by_index.hpp>
 #include <thrill/core/post_bucket_reduce_flush_to_index.hpp>
 #include <thrill/core/post_bucket_reduce_flush.hpp>
@@ -98,22 +97,20 @@ namespace core {
  *    +---+       +---+
  *
  */
-
-template <bool, typename EmitterFunction, typename Key, typename Value, typename SendType>
+template <bool, typename EmitterFunction, typename KeyValuePair, typename SendType>
 struct EmitImpl;
 
-template <typename EmitterFunction, typename Key, typename Value, typename SendType>
-struct EmitImpl<true, EmitterFunction, Key, Value, SendType>{
-    void EmitElement(const Key& k, const Value& v, EmitterFunction emit) {
-        emit(std::make_pair(k, v));
+template <typename EmitterFunction, typename KeyValuePair, typename SendType>
+struct EmitImpl<true, EmitterFunction, KeyValuePair, SendType>{
+    void EmitElement(const KeyValuePair& p, EmitterFunction emit) {
+        emit(p);
     }
 };
 
-template <typename EmitterFunction, typename Key, typename Value, typename SendType>
-struct EmitImpl<false, EmitterFunction, Key, Value, SendType>{
-    void EmitElement(const Key& k, const Value& v, EmitterFunction emit) {
-        (void)k;
-        emit(v);
+template <typename EmitterFunction, typename KeyValuePair, typename SendType>
+struct EmitImpl<false, EmitterFunction, KeyValuePair, SendType>{
+    void EmitElement(const KeyValuePair& p, EmitterFunction emit) {
+        emit(p.second);
     }
 };
 
@@ -138,7 +135,7 @@ public:
 
     using EmitterFunction = std::function<void(const ValueType&)>;
 
-    EmitImpl<SendPair, EmitterFunction, Key, Value, ValueType> emit_impl_;
+    EmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
 
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
@@ -525,8 +522,9 @@ public:
     /*!
      * Emits element to all children
      */
-    void EmitAll(const Key& k, const Value& v) {
-        emit_impl_.EmitElement(k, v, emit_);
+    void EmitAll(const KeyValuePair& p, const size_t& partition_id) {
+        (void)partition_id;
+        emit_impl_.EmitElement(p, emit_);
     }
 
     /*!
