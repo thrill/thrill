@@ -104,7 +104,7 @@ public:
                             Key(),
                             core::PreProbingReduceByHashKey<Key>(),
                             core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-                                    Value(), 1000000000, 0.6),
+                                    Value(), 1000, 0.6),
 //          reduce_post_table_(
 //              context_, key_extractor_, reduce_function_,
 //              [this](const ValueType& item) { return this->PushItem(item); },
@@ -116,7 +116,7 @@ public:
                             Key(),
                             core::PostProbingReduceByHashKey<Key>(),
                             core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-                                    0, 0, Value(), 1000000000, 0.6, 0.01)
+                                    0, 0, Value(), 1000, 0.6, 0.1)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another

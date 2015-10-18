@@ -217,6 +217,13 @@ public:
         assert(second_table_size_ > 0);
 
         second_table_.resize(second_table_size_, sentinel_);
+
+        frame_sequence_.resize(num_frames_, 0);
+        size_t idx = 0;
+        for (size_t i=0; i<num_frames_; i++)
+        {
+            frame_sequence_[idx++] = i;
+        }
     }
 
     ReducePostProbingTable(Context& ctx, KeyExtractor key_extractor,
@@ -513,6 +520,14 @@ public:
         return ctx_;
     }
 
+    /*!
+     * Returns the sequence of frame ids to
+     * be processed on flush.
+     */
+    std::vector<size_t>& FrameSequence() {
+        return frame_sequence_;
+    }
+
 private:
     //! Context
     Context& ctx_;
@@ -592,6 +607,9 @@ private:
     size_t second_table_size_ = 0;
 
     size_t fill_rate_num_items_second_reduce_ = 0;
+
+    //! Frame Sequence.
+    std::vector<size_t> frame_sequence_;
 };
 
 } // namespace core

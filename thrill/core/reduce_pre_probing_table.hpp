@@ -113,6 +113,8 @@ class ReducePreProbingTable
 
     static const bool emit = true;
 
+    static const size_t flush_mode = 4; // 0... 1-factor, 1... fullest, 2... LRU, 3... LFU, 4... random
+
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
@@ -188,6 +190,8 @@ public:
 
         items_per_partition_.resize(num_partitions_, 0);
 
+        total_items_per_partition_.resize(num_partitions, 0);
+
         for (size_t i = 0; i < num_partitions_; i++) {
             partition_files_.push_back(ctx.GetFile());
         }
@@ -216,6 +220,24 @@ public:
 
         for (size_t i = 0; i < emit.size(); i++) {
             emit_stats_.push_back(0);
+        }
+
+        frame_sequence_.resize(num_partitions_, 0);
+        if (flush_mode == 0)
+        {
+            ComputeOneFactor(num_partitions_, ctx_.my_rank());
+        }
+        else if (flush_mode == 4)
+        {
+            size_t idx = 0;
+            for (size_t i=0; i<num_partitions_; i++)
+            {
+                if (i != ctx_.my_rank()) {
+                    frame_sequence_[idx++] = i;
+                }
+            }
+            std::random_shuffle(frame_sequence_.begin(), frame_sequence_.end()-1);
+            frame_sequence_[num_partitions_-1] = ctx_.my_rank();
         }
     }
 
@@ -334,19 +356,14 @@ public:
             KeyValuePair& current = items_[global_index];
             if (current.first != sentinel_.first)
             {
-                if (RobustKey) {
-                    if (emit) {
-                        writer.PutItem(current.second);
-                    }
-                }
-                else {
-                    if (emit) {
-                        writer.PutItem(current);
-                    }
-                }
-
+                writer.PutItem(current);
                 items_[global_index] = sentinel_;
             }
+        }
+
+        if (flush_mode == 1)
+        {
+            total_items_per_partition_[partition_id] += items_per_partition_[partition_id];
         }
 
         // reset partition specific counter
@@ -363,12 +380,43 @@ public:
      */
     void Flush(bool consume = true) {
 
+        if (flush_mode == 1) {
+            size_t idx = 0;
+            for (size_t i = 0; i != num_partitions_; i++) {
+                if (i != ctx_.my_rank())
+                    frame_sequence_[idx++] = i;
+            }
+
+            if (FullPreReduce) {
+                std::vector<size_t> sum_items_per_partition_;
+                sum_items_per_partition_.resize(num_partitions_, 0);
+                for (size_t i = 0; i != num_partitions_; ++i) {
+                    sum_items_per_partition_[i] += items_per_partition_[i];
+                    sum_items_per_partition_[i] += total_items_per_partition_[i];
+                    if (consume)
+                        total_items_per_partition_[i] = 0;
+                }
+                std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
+                          [&](size_t i1, size_t i2) {
+                              return sum_items_per_partition_[i1] < sum_items_per_partition_[i2];
+                          });
+
+            } else {
+                std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
+                          [&](size_t i1, size_t i2) {
+                              return items_per_partition_[i1] < items_per_partition_[i2];
+                          });
+            }
+
+            frame_sequence_[num_partitions_-1] = ctx_.my_rank();
+        }
+
         if (FullPreReduce) {
             flush_function_(consume, this);
 
         } else {
 
-            for (size_t i = 0; i < num_partitions_; i++)
+            for (size_t i : frame_sequence_)
             {
                 FlushPartition(i);
             }
@@ -396,6 +444,11 @@ public:
 
                 items_[i] = sentinel_;
             }
+        }
+
+        if (flush_mode == 1)
+        {
+            total_items_per_partition_[partition_id] -= items_per_partition_[partition_id];
         }
 
         // reset partition specific counter
@@ -603,6 +656,60 @@ public:
         }
     }
 
+    /*!
+     * Computes the one 1-factor sequence
+     */
+    void ComputeOneFactor(const size_t& p_raw,
+                          const size_t& j)
+    {
+        assert(p_raw > 0);
+        assert(j >= 0);
+        assert(j < p_raw);
+
+        size_t p = (p_raw % 2 == 0) ? p_raw-1 : p_raw;
+        size_t p_i[p];
+
+        for (size_t i=0; i<p; i++) {
+            if (i == 0) {
+                p_i[i] = 0;
+                continue;
+            }
+            p_i[i] = p-i;
+        }
+
+        size_t a = 0;
+        for (size_t i=0; i<p; i++) {
+            if (p != p_raw && j == p) {
+                frame_sequence_[i] = ((p_raw/2)*i) % (p_raw-1);
+                continue;
+            }
+
+            int idx = j-i;
+            if (idx < 0) {
+                idx = p+(j-i);
+            }
+            if (p_i[idx] == j) {
+                if (p == p_raw) {
+                    continue;
+                } else {
+                    frame_sequence_[a++] = p;
+                    continue;
+                }
+            }
+            frame_sequence_[a++] = p_i[idx];
+        }
+
+        frame_sequence_[p_raw-1] = j;
+    }
+
+    /*!
+     * Returns the sequence of frame ids to
+     * be processed on flush.
+     */
+    std::vector<size_t>& FrameSequence() {
+        return frame_sequence_;
+    }
+
 private:
     //! Context
     Context& ctx_;
@@ -657,6 +764,9 @@ private:
     //! Number of items per partition.
     std::vector<size_t> items_per_partition_;
 
+    //! Number of items per partition.
+    std::vector<size_t> total_items_per_partition_;
+
     //! Total num of spills.
     size_t num_spills_ = 0;
 
@@ -685,6 +795,9 @@ private:
 
     //! Neutral element (reduce to index).
     Value neutral_element_;
+
+    //! Frame Sequence.
+    std::vector<size_t> frame_sequence_;
 };
 
 } // namespace core

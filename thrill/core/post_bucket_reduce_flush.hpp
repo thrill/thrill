@@ -395,7 +395,9 @@ public:
 
         size_t block_size = ht->BlockSize();
 
-        for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
+        std::vector<size_t>& frame_sequence = ht->FrameSequence();
+
+        for (size_t frame_id : frame_sequence) {
             // get the actual reader from the file
             data::File &file = frame_files[frame_id];
             data::File::Writer &writer = frame_writers[frame_id];

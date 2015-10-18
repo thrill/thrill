@@ -293,6 +293,13 @@ public:
         assert(second_table_size_ > 0);
 
         second_table_.resize(second_table_size_, nullptr);
+
+        frame_sequence_.resize(num_frames_, 0);
+        size_t idx = 0;
+        for (size_t i=0; i<num_frames_; i++)
+        {
+            frame_sequence_[idx++] = i;
+        }
     }
 
     ReducePostTable(Context& ctx, KeyExtractor key_extractor,
@@ -497,9 +504,7 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    if (emit) {
-                        writer.PutItem(*bi);
-                    }
+                    writer.PutItem(*bi);
                 }
 
                 // destroy block and advance to next
@@ -702,6 +707,14 @@ public:
         return num_blocks_per_table_;
     }
 
+    /*!
+     * Returns the sequence of frame ids to
+     * be processed on flush.
+     */
+    std::vector<size_t>& FrameSequence() {
+        return frame_sequence_;
+    }
+
 private:
     //! Context
     Context& ctx_;
@@ -798,6 +811,9 @@ private:
     size_t max_num_blocks_second_reduce_;
 
     size_t fill_rate_num_items_second_reduce_;
+
+    //! Frame Sequence.
+    std::vector<size_t> frame_sequence_;
 };
 
 } // namespace core
