@@ -98,17 +98,17 @@ namespace core {
  *
  */
 template <bool, typename EmitterFunction, typename KeyValuePair, typename SendType>
-struct EmitImpl;
+struct PostBucketEmitImpl;
 
 template <typename EmitterFunction, typename KeyValuePair, typename SendType>
-struct EmitImpl<true, EmitterFunction, KeyValuePair, SendType>{
+struct PostBucketEmitImpl<true, EmitterFunction, KeyValuePair, SendType>{
     void EmitElement(const KeyValuePair& p, EmitterFunction emit) {
         emit(p);
     }
 };
 
 template <typename EmitterFunction, typename KeyValuePair, typename SendType>
-struct EmitImpl<false, EmitterFunction, KeyValuePair, SendType>{
+struct PostBucketEmitImpl<false, EmitterFunction, KeyValuePair, SendType>{
     void EmitElement(const KeyValuePair& p, EmitterFunction emit) {
         emit(p.second);
     }
@@ -135,7 +135,7 @@ public:
 
     using EmitterFunction = std::function<void(const ValueType&)>;
 
-    EmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
+    PostBucketEmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
 
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
