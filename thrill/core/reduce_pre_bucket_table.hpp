@@ -124,9 +124,9 @@ class ReducePreTable
 
     static const bool bench = true;
 
-    static const bool emit = true;
+    static const bool emit = false;
 
-    static const size_t flush_mode = 1; // 0... 1-factor, 1... fullest, 2... LRU, 3... LFU, 4... random
+    static const size_t flush_mode = 4; // 0... 1-factor, 1... fullest, 2... LRU, 3... LFU, 4... random
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -301,7 +301,6 @@ public:
         else if (flush_mode == 4)
         {
             size_t idx = 0;
-            std::cout << num_partitions_ << std::endl;
             for (size_t i=0; i<num_partitions_; i++)
             {
                 if (i != ctx_.my_rank()) {
@@ -458,30 +457,14 @@ public:
 
         data::File::Writer& writer = partition_writers_[partition_id];
 
-        if (bench) {
-            r_.clear();
-            l_.clear();
-            l = 0;
-        }
-
         for (size_t i = partition_id * num_buckets_per_partition_;
              i < (partition_id + 1) * num_buckets_per_partition_; i++)
         {
             BucketBlock* current = buckets_[i];
 
-            if (bench) {
-                if (current != nullptr) {
-                    r_.push_back(current->size);
-                    l = 0;
-                }
-            }
-
             while (current != nullptr)
             {
-                if (bench) {
-                    l++;
-                }
-
+           
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
@@ -496,7 +479,6 @@ public:
 
             if (bench) {
                 if (buckets_[i] != nullptr) {
-                    l_.push_back(l);
                     buckets_length_[i] = 0;
                 }
             }
@@ -616,31 +598,14 @@ public:
 
         LOG << "Flushing items of partition with id: "
             << partition_id;
-
-        if (bench) {
-            r_.clear();
-            l_.clear();
-            l = 0;
-        }
-
+        
         for (size_t i = partition_id * num_buckets_per_partition_;
              i < (partition_id + 1) * num_buckets_per_partition_; i++)
         {
             BucketBlock* current = buckets_[i];
 
-            if (bench) {
-                if (current != nullptr) {
-                    r_.push_back(current->size);
-                    l = 0;
-                }
-            }
-
             while (current != nullptr)
             {
-                if (bench) {
-                    l++;
-                }
-
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
@@ -653,12 +618,6 @@ public:
                 BucketBlock* next = current->next;
                 block_pool.Deallocate(current);
                 current = next;
-            }
-
-            if (bench) {
-                if (buckets_[i] != nullptr) {
-                    l_.push_back(l);
-                }
             }
 
             buckets_[i] = nullptr;
@@ -905,7 +864,7 @@ public:
         double sum = std::accumulate(buckets_length_.begin(), buckets_length_.end(), 0.0);
         double mean = sum / buckets_length_.size();
         double sq_sum = std::inner_product(buckets_length_.begin(), buckets_length_.end(), buckets_length_.begin(), 0.0);
-        return std::sqrt(sq_sum / l_.size() - mean * mean);
+        return std::sqrt(sq_sum / buckets_length_.size() - mean * mean);
     }
 
     /*!
@@ -1058,12 +1017,6 @@ private:
 
     //! Number of items per partition considering fill rate.
     size_t fill_rate_num_items_per_partition_ = 0;
-
-    std::vector<size_t> r_;
-
-    std::vector<size_t> l_;
-
-    size_t l = 0;
 
     //! Rate of sizes of primary to secondary table.
     double table_rate_ = 0.0;
