@@ -45,7 +45,7 @@ template <typename Key,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostProbingReduceFlush
 {
-    static const bool emit = true;
+    static const bool emit = false;
 
     static const bool bench = true;
 

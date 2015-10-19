@@ -46,7 +46,7 @@ template<typename Key,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostBucketReduceFlush {
 
-    static const bool emit = true;
+    static const bool emit = false;
 
     static const bool bench = true;
 

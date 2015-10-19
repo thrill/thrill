@@ -69,6 +69,8 @@ int main(int argc, char* argv[]) {
     clp.AddUInt('m', "table_size", "M", byte_size,
                 "Table size, default = 500000000.");
 
+    const bool full_reduce = false;
+
     if (!clp.Process(argc, argv)) {
         return -1;
     }
@@ -101,7 +103,7 @@ int main(int argc, char* argv[]) {
 
          core::ReducePreTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
             core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreBucketReduceByHashKey<size_t>,
-            std::equal_to<size_t>, 32*16, false>
+            std::equal_to<size_t>, target_block_size, full_reduce>
          table(ctx,
                   workers, key_ex, red_fn, writers,
                   core::PreBucketReduceByHashKey<size_t>(),
@@ -116,14 +118,20 @@ int main(int argc, char* argv[]) {
         }
 
         timer.Stop();
+     
+        size_t num_flushes = table.NumFlushes();
+        size_t num_spills = table.NumSpills();
+        size_t num_collisions = table.NumCollisions();
+        double block_length_median = table.BucketLengthMedian();
+        double block_length_stdev = table.BucketLengthStdv();
 
         std::cout << "RESULT" << " benchmark=" << title << " size=" << size << " byte_size=" << byte_size << " workers="
         << workers << " bucket_rate=" << bucket_rate << " max_partition_fill_rate=" << max_partition_fill_rate
-        << " table_rate_multiplier=" << table_rate << " block_size=" << target_block_size
+        << " table_rate_multiplier=" << table_rate << " full_reduce=" << full_reduce << " final_reduce=true" << " block_size=" << target_block_size
         << " time=" << timer.Milliseconds()
-        << " num_flushes=" << table.NumFlushes() << " num_spills=" << table.NumSpills()
-        << " num_collisions=" << table.NumCollisions() << " block_length_median=" << table.BucketLengthMedian()
-        << " block_length_stdv=" << table.BucketLengthStdv() << std::endl;
+        << " num_flushes=" << num_flushes << " num_spills=" << num_spills
+        << " num_collisions=" << num_collisions << " block_length_median=" << block_length_median
+        << " block_length_stdv=" << block_length_stdev << std::endl;
 
     });
 

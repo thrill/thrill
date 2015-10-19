@@ -111,7 +111,7 @@ class ReducePreProbingTable
 
     static const bool bench = true;
 
-    static const bool emit = true;
+    static const bool emit = false;
 
     static const size_t flush_mode = 4; // 0... 1-factor, 1... fullest, 2... LRU, 3... LFU, 4... random
 
