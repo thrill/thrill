@@ -116,14 +116,16 @@ int main(int argc, char* argv[]) {
         {
             table.Insert(dist(rng));
         }
-
-        timer.Stop();
-     
+   
         size_t num_flushes = table.NumFlushes();
         size_t num_spills = table.NumSpills();
         size_t num_collisions = table.NumCollisions();
         double block_length_median = table.BucketLengthMedian();
         double block_length_stdev = table.BucketLengthStdv();
+
+        table.Flush();
+
+   	timer.Stop();
 
         std::cout << "RESULT" << " benchmark=" << title << " size=" << size << " byte_size=" << byte_size << " workers="
         << workers << " bucket_rate=" << bucket_rate << " max_partition_fill_rate=" << max_partition_fill_rate

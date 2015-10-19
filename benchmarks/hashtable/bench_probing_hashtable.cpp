@@ -112,6 +112,8 @@ int main(int argc, char* argv[]) {
         size_t num_spills = table.NumSpills();
         size_t num_collisions = table.NumCollisions();
 
+        table.Flush();
+
         timer.Stop();
 
         std::cout << "RESULT" << " benchmark=" << title << " size=" << size << " byte_size=" << byte_size << " workers="
