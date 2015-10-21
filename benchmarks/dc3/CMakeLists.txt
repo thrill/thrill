@@ -10,6 +10,11 @@
 
 thrill_build_prog(dc3)
 
+if(MSVC)
+  # requires /bigobj flag to build
+  set_target_properties(dc3 PROPERTIES COMPILE_FLAGS /bigobj)
+endif()
+
 thrill_test_single(dc3_aaa3 "THRILL_LOCAL=3" dc3 -c -s 1000 unary)
 thrill_test_single(dc3_aaa4 "THRILL_LOCAL=4" dc3 -c -s 1000 unary)
 

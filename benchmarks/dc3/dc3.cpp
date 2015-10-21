@@ -68,7 +68,7 @@ struct Chars {
                    }
         };
     }
-} __attribute__ ((packed)); // NOLINT
+} THRILL_ATTRIBUTE_PACKED;
 
 //! A triple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename AlphabetType>
@@ -79,7 +79,7 @@ struct IndexChars {
     friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
     }
-} __attribute__ ((packed)); // NOLINT
+} THRILL_ATTRIBUTE_PACKED;
 
 //! A pair (index, rank)
 struct IndexRank {
@@ -89,7 +89,7 @@ struct IndexRank {
     friend std::ostream& operator << (std::ostream& os, const IndexRank& tr) {
         return os << '(' << tr.index << '|' << tr.rank << ')';
     }
-} __attribute__ ((packed)); // NOLINT
+} THRILL_ATTRIBUTE_PACKED;
 
 //! Fragments at String Positions i = 0 Mod 3.
 template <typename AlphabetType>
@@ -104,7 +104,7 @@ struct StringFragmentMod0
                   << " t0=" << sf.t0 << " t1=" << sf.t1
                   << " r1=" << sf.r1 << " r2=" << sf.r2;
     }
-} __attribute__ ((packed)); // NOLINT
+} THRILL_ATTRIBUTE_PACKED;
 
 //! Fragments at String Positions i = 1 Mod 3.
 template <typename AlphabetType>
@@ -118,7 +118,7 @@ struct StringFragmentMod1
         return os << "i=" << sf.index
                   << " r0=" << sf.r0 << " t0=" << sf.t0 << " r1=" << sf.r1;
     }
-} __attribute__ ((packed)); // NOLINT
+} THRILL_ATTRIBUTE_PACKED;
 
 //! Fragments at String Positions i = 2 Mod 3.
 template <typename AlphabetType>
@@ -133,7 +133,7 @@ struct StringFragmentMod2
                   << " r0=" << sf.r0 << " t0=" << sf.t0
                   << " t1=" << sf.t1 << " r2=" << sf.r2;
     }
-} __attribute__ ((packed)); // NOLINT
+} THRILL_ATTRIBUTE_PACKED;
 
 //! Union of String Fragments with Index
 template <typename AlphabetType>
@@ -169,7 +169,7 @@ struct StringFragment
         if (tc.index % 3 == 2)
             return os << "2|" << tc.mod2 << ']';
     }
-} __attribute__ ((packed)); // NOLINT
+} THRILL_ATTRIBUTE_PACKED;
 
 template <typename Char>
 struct Index3 {
@@ -180,7 +180,7 @@ struct Index3 {
     friend std::ostream& operator << (std::ostream& os, const Index3& i) {
         return os << "(index=" << i.index << " next=" << i.next << " ch=" << i.ch << ")";
     }
-} __attribute__ ((packed)); // NOLINT
+} THRILL_ATTRIBUTE_PACKED;
 
 template <typename Char>
 struct CharsRanks12 {
@@ -191,14 +191,14 @@ struct CharsRanks12 {
     friend std::ostream& operator << (std::ostream& os, const CharsRanks12& c) {
         return os << "(ch=" << c.chars << " r1=" << c.rank1 << " r2=" << c.rank2 << ")";
     }
-} __attribute__ ((packed)); // NOLINT
+} THRILL_ATTRIBUTE_PACKED;
 
 template <typename Char>
 struct IndexCR12Pair {
     size_t             index;
     CharsRanks12<Char> cr0;
     CharsRanks12<Char> cr1;
-} __attribute__ ((packed)); // NOLINT
+} THRILL_ATTRIBUTE_PACKED;
 
 DIA<size_t> NaiveSuffixSort(const DIA<size_t>& _input) {
     // this is cheating: perform naive suffix sorting. TODO(tb): templatize
@@ -251,7 +251,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 
     // Zip (ISA[i], i) with [0,n) and check that the second component was a
     // permutation of [0,n)
-    bool perm_check =
+    size_t perm_check =
         isa_pair
         .Zip(Generate(ctx, input_size),
              [](const IndexRank& ir, size_t index) -> size_t {
@@ -291,7 +291,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 
     // order_check.Print("order_check");
 
-    bool order_check_sum =
+    size_t order_check_sum =
         order_check
         // check that no pair violates the order
         .Window(2, [input_size](size_t index, const RingBuffer<Index3>& rb) -> size_t {

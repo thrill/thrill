@@ -396,8 +396,8 @@ public:
             }
             else if (host_rank_ + 1 != num_hosts_) {
                 if (my_values.size() > k) {
-                    std::vector<T> send_values(my_values.end() - k, my_values.end());
-                    group_.SendTo(host_rank_ + 1, send_values);
+                    std::vector<T> send_values_next(my_values.end() - k, my_values.end());
+                    group_.SendTo(host_rank_ + 1, send_values_next);
                 }
                 else {
                     group_.SendTo(host_rank_ + 1, my_values);

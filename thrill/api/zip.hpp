@@ -177,7 +177,7 @@ private:
         void operator () (const Index& index, Parent& parent) {
 
             // get the ZipFunction's argument for this index
-            using ZipArg = typename ZipArgN<Index::index>;
+            using ZipArg = ZipArgN<Index::index>;
             (void)index;
 
             // check that the parent's type is convertible to the
@@ -331,7 +331,7 @@ private:
         auto operator () (const Index& index) {
 
             // get the ZipFunction's argument for this index
-            using ZipArg = typename ZipArgN<Index::index>;
+            using ZipArg = ZipArgN<Index::index>;
             (void)index;
 
             if (Pad && !readers_[Index::index].HasNext()) {
