@@ -83,11 +83,23 @@ TEST(Meta, VarCallEnumerate) {
 /******************************************************************************/
 // VarMapIndex
 
+class Functor
+{
+public:
+    Functor() { }
+
+    template <typename Type>
+    void Run(const Type& t) {
+        (void)t;
+    }
+};
+
 TEST(Meta, VarMapIndex) {
     g_oss.str("");
 
     auto res = common::VarMapIndex(
         [](auto index, auto a) {
+            Functor().Run(a);
             return a + index;
         },
         // some argument to map.
@@ -106,6 +118,7 @@ TEST(Meta, VarMapEnumerate) {
 
     auto res = common::VarMapEnumerate<3>(
         [](auto index) {
+            (void)index;
             return std::get<decltype(index)::index>(my_tuple);
         });
 
