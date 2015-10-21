@@ -27,6 +27,7 @@
 #include <cassert>
 #include <functional>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -82,6 +83,9 @@ public:
 
     //! Return whether the DIA is valid.
     bool IsValid() const { return node_.get() != nullptr; }
+
+    //! Assert that the DIA is valid.
+    void AssertValid() const { assert(IsValid()); }
 
     /*!
      * Constructor of a new DIA with a pointer to a DIANode and a
@@ -305,7 +309,8 @@ public:
         assert(IsValid());
 
         auto new_stack = stack_.push(flatmap_function);
-        return DIA<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", DIANodeType::LAMBDA) });
+        return DIA<ResultType, decltype(new_stack)>(
+            node_, new_stack, { AddChildStatsNode("FlatMap", DIANodeType::LAMBDA) });
     }
 
     /*!
@@ -597,7 +602,7 @@ public:
      * DIA.
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(SecondDIA second_dia, const ZipFunction &zip_function) const;
+    auto Zip(const SecondDIA &second_dia, const ZipFunction &zip_function) const;
 
     // REVIEW(ej): use default comparator. remove everywhere where it is
     // duplicate.
@@ -632,6 +637,36 @@ public:
     template <typename SumFunction = std::plus<ValueType> >
     auto PrefixSum(const SumFunction& sum_function = SumFunction(),
                    const ValueType& initial_element = ValueType()) const;
+
+    /*!
+     * Window is a DOp, which applies a window function to every k
+     * consecutive items in a DIA. The window function is also given the index
+     * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \tparam WindowFunction Type of the window_function.
+     *
+     * \param window_size the size of the delivered window. Signature: TODO(tb).
+     *
+     * \param window_function Window function applied to each k item.
+     */
+    template <typename WindowFunction>
+    auto Window(size_t window_size,
+                const WindowFunction& window_function = WindowFunction()) const;
+
+    /*!
+     * FlatWindow is a DOp, which applies a window function to every k
+     * consecutive items in a DIA. The window function is also given the index
+     * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \tparam WindowFunction Type of the window_function.
+     *
+     * \param window_size the size of the delivered window. Signature: TODO(tb).
+     *
+     * \param window_function Window function applied to each k item.
+     */
+    template <typename ValueOut, typename WindowFunction>
+    auto FlatWindow(size_t window_size,
+                    const WindowFunction& window_function = WindowFunction()) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
@@ -722,7 +757,7 @@ public:
      * the given worker. This should only be done if the received data can fit
      * into RAM of the one worker.
      */
-    std::vector<ValueType> Gather(size_t target_id) const;
+    std::vector<ValueType> Gather(size_t target_id = 0) const;
 
     /*!
      * Gather is an Action, which collects all data of the DIA into a vector at
@@ -730,6 +765,18 @@ public:
      * into RAM of the one worker.
      */
     void Gather(size_t target_id, std::vector<ValueType>* out_vector)  const;
+
+    /*!
+     * Print is an Action, which collects all data of the DIA at the worker 0
+     * and prints using ostream serialization. It is implemented using Gather().
+     */
+    void Print(const std::string& name) const;
+
+    /*!
+     * Print is an Action, which collects all data of the DIA at the worker 0
+     * and prints using ostream serialization. It is implemented using Gather().
+     */
+    void Print(const std::string& name, std::ostream& out) const;
 
     auto Collapse() const;
 
