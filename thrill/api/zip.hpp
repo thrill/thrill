@@ -19,6 +19,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/meta.hpp>
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
@@ -174,11 +175,10 @@ private:
         RegisterParent(ZipNode* zip_node) : zip_node_(zip_node) { }
 
         template <typename Index, typename Parent>
-        void operator () (const Index& index, Parent& parent) {
+        void operator () (const Index&, Parent& parent) {
 
             // get the ZipFunction's argument for this index
             using ZipArg = ZipArgN<Index::index>;
-            (void)index;
 
             // check that the parent's type is convertible to the
             // ZipFunction argument.
@@ -328,11 +328,10 @@ private:
         }
 
         template <typename Index>
-        auto operator () (const Index& index) {
+        auto operator () (const Index&) {
 
             // get the ZipFunction's argument for this index
             using ZipArg = ZipArgN<Index::index>;
-            (void)index;
 
             if (Pad && !readers_[Index::index].HasNext()) {
                 // take padding_ if next is not available.
