@@ -116,7 +116,7 @@ public:
     //! Performing push operation. Notifies children and calls actual push method.
     void DoPushData(bool consume) {
         for (DIABase* child : children_) child->StartPreOp();
-        PushData(consume);
+        PushData(consume && context().consume());
         for (DIABase* child : children_) child->StopPreOp();
     }
 
