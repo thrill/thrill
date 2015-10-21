@@ -244,8 +244,8 @@ public:
     
     //! Returns a new File, wrapped in a shared_ptr, containing a 
     //! sequence of local Blocks. 
-    std::shared_ptr<data::File> GetFilePtr() {
-        return std::shared_ptr<data::File>(new data::File(block_pool_));
+    data::FilePtr GetFilePtr() {
+        return std::make_shared<data::File>(block_pool_);
     }
 
     //! Returns a reference to a new CatStream. This method alters the state of

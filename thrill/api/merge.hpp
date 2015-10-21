@@ -156,7 +156,7 @@ public:
             writers_[i] = files_[i]->GetWriterPtr();
 
             auto pre_op_fn = [=](const ValueType& input) {
-                              (*writers_[i])(input);
+                writers_[i]->PutItem(input);
                           };
 
             auto lop_chain = parent.stack().push(pre_op_fn).emit();
@@ -733,7 +733,6 @@ auto DIA<ValueType, Stack>::Merge(const Comparator &comparator, const DIAs &... 
 } // namespace api
 } // namespace thrill
 
-//! \}
 #endif // !THRILL_API_MERGE_HEADER
 
 /******************************************************************************/

@@ -29,13 +29,16 @@ using thrill::api::Context;
 using thrill::api::DIA;
 
 template <typename stackA, typename stackB>
-void DoMergeAndCheckResult(api::DIA<size_t, stackA> merge_input1, api::DIA<size_t, stackB> merge_input2, const std::vector<size_t>& expected, int num_workers) {
+void DoMergeAndCheckResult(
+    const api::DIA<size_t, stackA>& merge_input1,
+    const api::DIA<size_t, stackB>& merge_input2,
+    const std::vector<size_t>& expected, size_t num_workers) {
     // merge
     auto merge_result = merge_input1.Merge(
             std::less<size_t>(), merge_input2);
 
     // check if order was kept while merging.
-    int count = 0;
+    size_t count = 0;
     auto res = merge_result.Map([&count](size_t in) {
                                     count++;
                                     return in;
@@ -83,7 +86,7 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
 TEST(MergeNode, FourBalancedIntegerArrays) {
 
     const size_t test_size = 5000;
-    const bool debug = false;
+    static const bool debug = false;
 
     std::function<void(Context&)> start_func =
         [test_size](Context& ctx) {
@@ -109,7 +112,7 @@ TEST(MergeNode, FourBalancedIntegerArrays) {
                     merge_input2, merge_input3, merge_input4);
 
             // check if order was kept while merging.
-            int count = 0;
+            size_t count = 0;
             auto res = merge_result.Map([&count](size_t in) {
                                             count++;
                                             return in;
