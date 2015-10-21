@@ -23,6 +23,7 @@
 #include <thrill/core/losertree.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>
+#include <thrill/common/meta.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -150,20 +151,15 @@ public:
                             { parent0.node(), parents.node() ... }, stats_node),
           comparator_(comparator)
     {
-        Context &context = parent0.ctx();
-        common::VarCallForeachIndex([&context, this](auto i, auto parent) {
-            files_[i] = context.GetFilePtr();
+        // allocate files.
+        for (size_t i = 0; i < num_inputs_; ++i)
+            files_[i] = context_.GetFilePtr();
+
+        for (size_t i = 0; i < num_inputs_; ++i)
             writers_[i] = files_[i]->GetWriterPtr();
 
-            auto pre_op_fn = [=](const ValueType& input) {
-                writers_[i]->PutItem(input);
-                          };
-
-            auto lop_chain = parent.stack().push(pre_op_fn).emit();
-            // close the function stacks with our pre ops and register it at parent
-            // nodes for output
-            parent.node()->RegisterChild(lop_chain, this->type());
-        }, parent0, parents ...);
+         common::VarCallForeachIndex(
+             RegisterParent(this), parent0, parents ...);
     }
 
     /*!
@@ -272,7 +268,7 @@ private:
     std::mt19937 ran;
 
     //! Files for intermediate storage
-    std::array<std::shared_ptr<data::File>, num_inputs_> files_;
+    std::array<data::FilePtr, num_inputs_> files_;
 
     //! Writers to intermediate files
     std::array<std::shared_ptr<data::File::Writer>, num_inputs_> writers_;
@@ -332,6 +328,32 @@ private:
         }
         return res;
     }
+
+    //! Register Parent PreOp Hooks, instantiated and called for each Merge parent
+    class RegisterParent
+    {
+    public:
+        RegisterParent(MergeNode* merge_node) : merge_node_(merge_node) { }
+
+        template <typename Index, typename Parent>
+        void operator () (const Index&, Parent& parent) {
+
+            // construct lambda with only the writer in the closure
+            data::File::Writer* writer = merge_node_->writers_[Index::index].get();
+            auto pre_op_fn = [writer](const ValueType& input) -> void {
+                writer->PutItem(input);
+            };
+
+            // close the function stacks with our pre ops and register it at
+            // parent nodes for output
+            auto lop_chain = parent.stack().push(pre_op_fn).emit();
+
+            parent.node()->RegisterChild(lop_chain, merge_node_->type());
+        }
+
+    protected:
+        MergeNode* merge_node_;
+    };
 
     /*!
      * Selects random global pivots for all splitter searches based on all worker's search ranges.
