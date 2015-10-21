@@ -149,9 +149,9 @@ public:
     void Dispose() override { }
 
 private:
-    const KeyExtractor& key_extractor_;
-    const GroupFunction& groupby_function_;
-    const HashFunction& hash_function_;
+    KeyExtractor key_extractor_;
+    GroupFunction groupby_function_;
+    HashFunction hash_function_;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream() };
     std::vector<data::Stream::Writer> emitter_ { stream_->OpenWriters() };
