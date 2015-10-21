@@ -107,30 +107,7 @@ public:
 
         // Hook PreOp(s)
         common::VarCallForeachIndex(
-            [this](auto index, auto parent) {
-
-                // get the ZipFunction's argument for this index
-                using ZipArg = ZipArgN<decltype(index)::index>;
-
-                // check that the parent's type is convertible to the
-                // ZipFunction argument.
-                static_assert(
-                    std::is_convertible<
-                        typename decltype(parent)::ValueType, ZipArg
-                        >::value,
-                    "ZipFunction argument does not match input DIA");
-
-                auto pre_op_fn = [=](const ZipArg& input) {
-                                     writers_[index].PutItem(input);
-                                 };
-
-                // close the function stacks with our pre ops and register it at
-                // parent nodes for output
-                auto lop_chain = parent.stack().push(pre_op_fn).emit();
-
-                parent.node()->RegisterChild(lop_chain, this->type());
-            },
-            parent0, parents ...);
+            RegisterParent(this), parent0, parents ...);
     }
 
     void Execute() final {
@@ -146,17 +123,10 @@ public:
             for (size_t i = 0; i < num_inputs_; ++i)
                 readers[i] = streams_[i]->OpenCatReader(consume);
 
-            while (HasNext(readers)) {
-                auto v = common::VarMapEnumerate<num_inputs_>(
-                    [this, &readers](auto index) {
-                        using ZipArg = ZipArgN<decltype(index)::index>;
-                        if (Pad && !readers[index].HasNext()) {
-                                // take padding_ if next is not available.
-                            return std::get<decltype(index)::index>(this->padding_);
-                        }
-                        return readers[index].template Next<ZipArg>();
-                    });
+            ReaderNext reader_next(*this, readers);
 
+            while (reader_next.HasNext()) {
+                auto v = common::VarMapEnumerate<num_inputs_>(reader_next);
                 this->PushItem(common::ApplyTuple(zip_function_, v));
                 ++result_count;
             }
@@ -178,9 +148,6 @@ private:
     static const size_t num_inputs_ = 1 + sizeof ... (ParentDIAs);
 
     //! Files for intermediate storage
-    // std::array<data::File, num_inputs_> files_ {
-    //     { context_.GetFile(), context_.GetFile() }
-    // };
     std::vector<data::File> files_;
 
     //! Writers to intermediate files
@@ -199,6 +166,44 @@ private:
     size_t result_size_;
 
     //! \}
+
+    //! Register Parent PreOp Hooks, instantiated and called for each Zip parent
+    class RegisterParent
+    {
+    public:
+        RegisterParent(ZipNode* zip_node) : zip_node_(zip_node) { }
+
+        template <typename Index, typename Parent>
+        void operator () (const Index& index, Parent& parent) {
+
+            // get the ZipFunction's argument for this index
+            using ZipArg = typename ZipArgN<Index::index>;
+            (void)index;
+
+            // check that the parent's type is convertible to the
+            // ZipFunction argument.
+            static_assert(
+                std::is_convertible<
+                typename Parent::ValueType, ZipArg
+                >::value,
+                "ZipFunction argument does not match input DIA");
+
+            // construct lambda with only the writer in the closure
+            data::File::Writer* writer = &zip_node_->writers_[Index::index];
+            auto pre_op_fn = [writer](const ZipArg& input) -> void {
+                writer->PutItem(input);
+            };
+
+            // close the function stacks with our pre ops and register it at
+            // parent nodes for output
+            auto lop_chain = parent.stack().push(pre_op_fn).emit();
+
+            parent.node()->RegisterChild(lop_chain, zip_node_->type());
+        }
+
+    protected:
+        ZipNode* zip_node_;
+    };
 
     //! Scatter items from DIA "Index" to other workers if necessary.
     template <size_t Index>
@@ -292,27 +297,56 @@ private:
         if (result_size_ != 0) {
             common::VarCallEnumerate<num_inputs_>(
                 [=](auto index) {
+                    (void)index;
                     this->DoScatter<decltype(index)::index>();
                 });
         }
     }
 
-    //! helper for PushData() which checks all inputs
-    static bool HasNext(
-        std::array<data::CatStream::CatReader, num_inputs_>& readers) {
-        if (Pad) {
-            for (size_t i = 0; i < num_inputs_; ++i) {
-                if (readers[i].HasNext()) return true;
+    //! Access CatReaders for different different parents.
+    class ReaderNext
+    {
+    public:
+        ReaderNext(ZipNode& zip_node,
+                   std::array<data::CatStream::CatReader, num_inputs_>& readers)
+            : zip_node_(zip_node), readers_(readers) { }
+
+        //! helper for PushData() which checks all inputs
+        bool HasNext() {
+            if (Pad) {
+                for (size_t i = 0; i < num_inputs_; ++i) {
+                    if (readers_[i].HasNext()) return true;
+                }
+                return false;
             }
-            return false;
-        }
-        else {
-            for (size_t i = 0; i < num_inputs_; ++i) {
-                if (!readers[i].HasNext()) return false;
+            else {
+                for (size_t i = 0; i < num_inputs_; ++i) {
+                    if (!readers_[i].HasNext()) return false;
+                }
+                return true;
             }
-            return true;
         }
-    }
+
+        template <typename Index>
+        auto operator () (const Index& index) {
+
+            // get the ZipFunction's argument for this index
+            using ZipArg = typename ZipArgN<Index::index>;
+            (void)index;
+
+            if (Pad && !readers_[Index::index].HasNext()) {
+                // take padding_ if next is not available.
+                return std::get<Index::index>(zip_node_.padding_);
+            }
+            return readers_[Index::index].template Next<ZipArg>();
+        }
+
+    protected:
+        ZipNode& zip_node_;
+
+        //! reference to the reader array in PushData().
+        std::array<data::CatStream::CatReader, num_inputs_>& readers_;
+    };
 };
 
 /*!
