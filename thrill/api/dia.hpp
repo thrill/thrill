@@ -608,7 +608,18 @@ public:
     // duplicate.
 
     /*!
-     * TODO
+     * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.
+     * Both input DIAs must be used sorted conforming to the given comparator.
+     * The type of the output DIA will be the type of this DIA.
+     *
+     * The merge operation balances all input data, so that each worker will
+     * have an equal number of elements when the merge completes.
+     *
+     * \tparam Comparator Comparator to specify the order of input and output.
+     *
+     * \param comparator Comparator to specify the order of input and output.
+     *
+     * \param second_dia DIA, which is merged with this DIA.
      */
     template <typename Comparator = std::less<ValueType>, typename ... DIAs>
     auto Merge(const Comparator &comparator, const DIAs &... dias) const;
