@@ -362,7 +362,9 @@ private:
  *
  * \param zip_function Zip function, which zips two elements together
  *
- * \param second_dia DIA, which is zipped together with the original DIA.
+ * \param first_dia the initial DIA.
+ *
+ * \param dias DIAs, which is zipped together with the original DIA.
  */
 template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
 auto Zip(const ZipFunction &zip_function,
@@ -424,7 +426,9 @@ auto DIA<ValueType, Stack>::Zip(
  *
  * \param zip_function Zip function, which zips two elements together
  *
- * \param second_dia DIA, which is zipped together with the original DIA.
+ * \param first_dia the initial DIA.
+ *
+ * \param dias DIAs, which is zipped together with the first DIA.
  */
 template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
 auto ZipPad(const ZipFunction &zip_function,
@@ -482,7 +486,9 @@ auto ZipPad(const ZipFunction &zip_function,
  * \param padding std::tuple<args> of padding sentinels delivered to ZipFunction
  * if an input dia is too short.
  *
- * \param second_dia DIA, which is zipped together with the original DIA.
+ * \param first_dia the initial DIA.
+ *
+ * \param dias DIAs, which is zipped together with the original DIA.
  */
 template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
 auto ZipPadding(
