@@ -190,33 +190,24 @@ public:
             readers.emplace_back(std::move(streams_[i]->GetCatBlockSource(consume)));
         }
         // init the looser-tree
-        typedef core::LoserTreePointer<
-                true,
-                ValueType,
-                std::function<bool(const ValueType &a, const ValueType &b)> >
-            LoserTreeType; //ADVICE(tb), select correct type.
+        using LoserTreeType = core::LoserTreePointer<true, ValueType, Comparator>;
 
-        LoserTreeType lt(num_inputs_, [this]
-                (const ValueType &a, const ValueType &b) -> bool {
-                    return comparator_(a, b);
-                }
-        );
+        LoserTreeType lt(num_inputs_, comparator_);
 
-        // Abritary element (copied!)
-        ValueType *zero = NULL;
+        // Arbitrary element (copied!)
+        std::unique_ptr<ValueType> zero;
 
         size_t completed = 0;
 
         // Find abritary elem.
         for(size_t i = 0; i < num_inputs_; i++) {
             if(readers[i].HasValue()) {
-                 zero = (ValueType*)malloc(sizeof(ValueType));
-                 *zero = readers[i].Value();
-                 break;
+                zero = std::make_unique<ValueType>(readers[i].Value());
+                break;
             }
         }
 
-        if(zero != NULL) { //If so, we only have empty channels.
+        if(zero) { //If so, we only have empty channels.
             //Insert abritray element for each empty reader.
             for(size_t i = 0; i < num_inputs_; i++) {
                 if(!readers[i].HasValue()) {
@@ -248,8 +239,6 @@ public:
 
                 result_count++;
             }
-
-            free(zero);
         }
 
         stats_.merge_timer_.Stop();
