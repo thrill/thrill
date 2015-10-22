@@ -80,7 +80,7 @@ public:
 class MergeStats : public MergeStatsBase
 {
 public:
-    void PrintToSQLPlotTool(std::string label, size_t p, size_t value) {
+    void PrintToSQLPlotTool(const std::string& label, size_t p, size_t value) {
         static const bool debug = true;
 
         LOG << "RESULT " << "operation=" << label << " time=" << value
@@ -232,7 +232,8 @@ public:
 
                 if(reader.HasValue()) {
                     lt.delete_min_insert(reader.Value(), false);
-                } else {
+                }
+                else {
                     lt.delete_min_insert(*zero, true);
                     completed++;
                 }
@@ -255,8 +256,8 @@ private:
     //! Merge comparator
     Comparator comparator_;
 
-    size_t my_rank_;
-    std::mt19937 rng_;
+    //! Random generator for pivot selection.
+    std::minstd_rand0 rng_;
 
     //! Files for intermediate storage
     std::array<data::FilePtr, num_inputs_> files_;
@@ -283,7 +284,7 @@ private:
     std::string VToStr(const std::vector<T>& data) {
         std::stringstream ss;
 
-        for (T elem : data)
+        for (const T& elem : data)
             ss << elem << " ";
 
         return ss.str();
@@ -407,7 +408,7 @@ private:
         // Reduce function that returns the pivot originating from the biggest
         // range.  That removes some nasty corner cases, like selecting the same
         // pivot over and over again from a tiny range.
-        auto reduce_pivots = [this](const Pivot a, const Pivot b) {
+        auto reduce_pivots = [](const Pivot& a, const Pivot& b) {
                                 if (a.segment_len > b.segment_len) {
                                     return a;
                                 }
@@ -527,17 +528,18 @@ private:
     }
 
     /*!
-     * Receives elements from other workers and re-balance
-     * them, so each worker has the same amount after merging.
+     * Receives elements from other workers and re-balance them, so each worker
+     * has the same amount after merging.
      */
     void MainOp() {
         for (size_t i = 0; i != writers_.size(); ++i) {
             writers_[i]->Close();
         }
 
-        // Setup Environment for merging
-        my_rank_ = context_.my_rank();     //Local rank.
-        size_t p = context_.num_workers(); //Count of all workers (and count of target partitions)
+        // *** Setup Environment for merging ***
+
+        // Count of all workers (and count of target partitions)
+        size_t p = context_.num_workers();
 
         LOG << "Splitting to " << p << " workers";
 
@@ -555,8 +557,8 @@ private:
 
         LOG << "Global size: " << global_size;
 
-        // Calculate and remember the ranks we search for.
-        // In our case, we search for ranks that split the data into equal parts.
+        // Calculate and remember the ranks we search for.  In our case, we
+        // search for ranks that split the data into equal parts.
         std::vector<size_t> target_ranks(p - 1);
         std::vector<size_t> global_ranks(p - 1);
 
@@ -564,8 +566,8 @@ private:
             target_ranks[r] = (global_size / p) * (r + 1);
         }
 
-        // Modify all ranks 0..(globalSize % p), in case globalSize is
-        // not divisible by p.
+        // Modify all ranks 0..(globalSize % p), in case global_size is not
+        // divisible by p.
         for (size_t r = 0; r < global_size % p; r++) {
             target_ranks[r] += 1;
         }
@@ -588,8 +590,8 @@ private:
         std::vector<Pivot> pivots(p - 1);
         std::vector<std::vector<size_t> > local_ranks(p - 1);
 
-        // Initialize all lefts with 0 and all
-        // widths with size of their respective file.
+        // Initialize all lefts with 0 and all widths with size of their
+        // respective file.
         for (size_t r = 0; r < p - 1; r++) {
             left[r] = std::vector<size_t>(num_inputs_);
             width[r] = std::vector<size_t>(num_inputs_);
