@@ -83,6 +83,9 @@ class ZipNode final : public DOpNode<ValueType>
     using ZipArgs =
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
+    //! Number of storage DIAs backing
+    static const size_t num_inputs_ = 1 + sizeof ... (ParentDIAs);
+
 public:
     /*!
      * Constructor for a ZipNode.
@@ -144,9 +147,6 @@ private:
 
     //! padding for shorter DIAs
     ZipArgs padding_;
-
-    //! Number of storage DIAs backing
-    static const size_t num_inputs_ = 1 + sizeof ... (ParentDIAs);
 
     //! Files for intermediate storage
     std::vector<data::File> files_;

@@ -34,8 +34,7 @@ void DoMergeAndCheckResult(
     const api::DIA<size_t, stackB>& merge_input2,
     const std::vector<size_t>& expected, size_t num_workers) {
     // merge
-    auto merge_result = merge_input1.Merge(
-            std::less<size_t>(), merge_input2);
+    auto merge_result = merge_input1.Merge(std::less<size_t>(), merge_input2);
 
     // check if order was kept while merging.
     size_t count = 0;
