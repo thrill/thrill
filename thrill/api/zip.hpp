@@ -19,6 +19,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/meta.hpp>
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
@@ -82,6 +83,9 @@ class ZipNode final : public DOpNode<ValueType>
     using ZipArgs =
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
+    //! Number of storage DIAs backing
+    static const size_t num_inputs_ = 1 + sizeof ... (ParentDIAs);
+
 public:
     /*!
      * Constructor for a ZipNode.
@@ -144,9 +148,6 @@ private:
     //! padding for shorter DIAs
     ZipArgs padding_;
 
-    //! Number of storage DIAs backing
-    static const size_t num_inputs_ = 1 + sizeof ... (ParentDIAs);
-
     //! Files for intermediate storage
     std::vector<data::File> files_;
 
@@ -174,11 +175,10 @@ private:
         RegisterParent(ZipNode* zip_node) : zip_node_(zip_node) { }
 
         template <typename Index, typename Parent>
-        void operator () (const Index& index, Parent& parent) {
+        void operator () (const Index&, Parent& parent) {
 
             // get the ZipFunction's argument for this index
             using ZipArg = ZipArgN<Index::index>;
-            (void)index;
 
             // check that the parent's type is convertible to the
             // ZipFunction argument.
@@ -328,11 +328,10 @@ private:
         }
 
         template <typename Index>
-        auto operator () (const Index& index) {
+        auto operator () (const Index&) {
 
             // get the ZipFunction's argument for this index
             using ZipArg = ZipArgN<Index::index>;
-            (void)index;
 
             if (Pad && !readers_[Index::index].HasNext()) {
                 // take padding_ if next is not available.
@@ -363,7 +362,9 @@ private:
  *
  * \param zip_function Zip function, which zips two elements together
  *
- * \param second_dia DIA, which is zipped together with the original DIA.
+ * \param first_dia the initial DIA.
+ *
+ * \param dias DIAs, which is zipped together with the original DIA.
  */
 template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
 auto Zip(const ZipFunction &zip_function,
@@ -425,7 +426,9 @@ auto DIA<ValueType, Stack>::Zip(
  *
  * \param zip_function Zip function, which zips two elements together
  *
- * \param second_dia DIA, which is zipped together with the original DIA.
+ * \param first_dia the initial DIA.
+ *
+ * \param dias DIAs, which is zipped together with the first DIA.
  */
 template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
 auto ZipPad(const ZipFunction &zip_function,
@@ -483,7 +486,9 @@ auto ZipPad(const ZipFunction &zip_function,
  * \param padding std::tuple<args> of padding sentinels delivered to ZipFunction
  * if an input dia is too short.
  *
- * \param second_dia DIA, which is zipped together with the original DIA.
+ * \param first_dia the initial DIA.
+ *
+ * \param dias DIAs, which is zipped together with the original DIA.
  */
 template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
 auto ZipPadding(

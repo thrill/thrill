@@ -128,6 +128,11 @@ public:
     Writer GetWriter(size_t block_size = default_block_size) {
         return Writer(this, block_size);
     }
+    
+    //! Get BlockWriterPtr.
+    std::shared_ptr<Writer> GetWriterPtr(size_t block_size = default_block_size) {
+        return std::make_shared<Writer>(this, block_size);
+    }
 
     //! Get BlockWriter.
     DynWriter GetDynWriter(size_t block_size = default_block_size) {
@@ -222,6 +227,8 @@ private:
     //! Closed files can not be altered
     bool closed_ = false;
 };
+
+using FilePtr = std::shared_ptr<File>;
 
 /*!
  * A BlockSource to read Blocks from a File. The KeepFileBlockSource mainly contains
