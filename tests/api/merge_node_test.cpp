@@ -51,7 +51,7 @@ void DoMergeAndCheckResult(
     // low number of workers. I'm not sure why though.
     // LOG << "count: " << count << " expected: " << ((float)res.size() / (float)num_workers);
     float expectedCount = (float)res.size() / (float)num_workers;
-    ASSERT_TRUE(std::abs(expectedCount - count) <= num_workers + 50);
+    ASSERT_LE(std::abs(expectedCount - count), num_workers + 100);
 }
 
 TEST(MergeNode, TwoBalancedIntegerArrays) {
@@ -123,7 +123,7 @@ TEST(MergeNode, FourBalancedIntegerArrays) {
             LOG << "count: " << count << " expected: " << ((float)res.size() / (float)ctx.num_workers());
 
             float expectedCount = (float)res.size() / (float)ctx.num_workers();
-            ASSERT_TRUE(std::abs(expectedCount - count) <= ctx.num_workers() + 50);
+            ASSERT_LE(std::abs(expectedCount - count), ctx.num_workers() + 100);
         };
 
     thrill::api::RunLocalTests(start_func);
