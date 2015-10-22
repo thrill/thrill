@@ -609,20 +609,20 @@ public:
 
     /*!
      * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.
-     * Both input DIAs must be used sorted conforming to the given comparator. 
-     * The type of the output DIA will be the type of this DIA. 
+     * Both input DIAs must be used sorted conforming to the given comparator.
+     * The type of the output DIA will be the type of this DIA.
      *
-     * The merge operation balances all input data, so that each worker will 
-     * have an equal number of elements when the merge completes. 
+     * The merge operation balances all input data, so that each worker will
+     * have an equal number of elements when the merge completes.
      *
-     * \tparam Comparator Comparator to specify the order of input and output. 
+     * \tparam Comparator Comparator to specify the order of input and output.
      *
-     * \param comparator Comparator to specify the order of input and output. 
+     * \param comparator Comparator to specify the order of input and output.
      *
-     * \param second_dia DIA, which is merged with this DIA. 
+     * \param second_dia DIA, which is merged with this DIA.
      */
-    template <typename SecondDIA, typename Comparator = std::less<ValueType> >
-    auto Merge(SecondDIA second_dia, const Comparator& comparator = Comparator()) const;
+    template <typename Comparator = std::less<ValueType>, typename ... DIAs>
+    auto Merge(const Comparator &comparator, const DIAs &... dias) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
