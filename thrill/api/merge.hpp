@@ -257,7 +257,7 @@ private:
     Comparator comparator_;
 
     //! Random generator for pivot selection.
-    std::minstd_rand0 rng_;
+    std::default_random_engine rng_ { std::random_device { } () };
 
     //! Files for intermediate storage
     std::array<data::FilePtr, num_inputs_> files_;
