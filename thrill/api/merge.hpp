@@ -18,12 +18,12 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/meta.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/core/losertree.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/common/meta.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -151,7 +151,7 @@ public:
               const ParentDIA0& parent0,
               const ParentDIAs& ... parents)
         : DOpNode<ValueType>(parent0.ctx(),
-                            { parent0.node(), parents.node() ... }, stats_node),
+                             { parent0.node(), parents.node() ... }, stats_node),
           comparator_(comparator)
     {
         // allocate files.
@@ -161,8 +161,8 @@ public:
         for (size_t i = 0; i < num_inputs_; ++i)
             writers_[i] = files_[i]->GetWriterPtr();
 
-         common::VarCallForeachIndex(
-             RegisterParent(this), parent0, parents ...);
+        common::VarCallForeachIndex(
+            RegisterParent(this), parent0, parents ...);
     }
 
     /*!
@@ -182,7 +182,7 @@ public:
         stats_.merge_timer_.Start();
 
         using Reader = data::BufferedBlockReader<
-            ValueType, data::CatBlockSource<data::DynBlockSource> >;
+                  ValueType, data::CatBlockSource<data::DynBlockSource> >;
 
         // get buffered inbound readers from all Channels
         std::vector<Reader> readers;
@@ -200,37 +200,38 @@ public:
         size_t completed = 0;
 
         // Find abritary elem.
-        for(size_t i = 0; i < num_inputs_; i++) {
-            if(readers[i].HasValue()) {
+        for (size_t i = 0; i < num_inputs_; i++) {
+            if (readers[i].HasValue()) {
                 zero = std::make_unique<ValueType>(readers[i].Value());
                 break;
             }
         }
 
-        if(zero) { //If so, we only have empty channels.
-            //Insert abritray element for each empty reader.
-            for(size_t i = 0; i < num_inputs_; i++) {
-                if(!readers[i].HasValue()) {
+        if (zero) { //If so, we only have empty channels.
+            // Insert abritray element for each empty reader.
+            for (size_t i = 0; i < num_inputs_; i++) {
+                if (!readers[i].HasValue()) {
                     lt.insert_start(*zero, i, true);
                     completed++;
-                } else {
+                }
+                else {
                     lt.insert_start(readers[i].Value(), i, false);
                 }
             }
             lt.init();
 
-            while(completed < num_inputs_) {
+            while (completed < num_inputs_) {
 
                 size_t min = lt.get_min_source();
 
-                auto &reader = readers[min];
+                auto& reader = readers[min];
                 assert(reader.HasValue());
 
                 this->PushItem(reader.Value());
 
                 reader.Next();
 
-                if(reader.HasValue()) {
+                if (reader.HasValue()) {
                     lt.delete_min_insert(reader.Value(), false);
                 }
                 else {
@@ -328,7 +329,8 @@ private:
     class RegisterParent
     {
     public:
-        RegisterParent(MergeNode* merge_node) : merge_node_(merge_node) { }
+        explicit RegisterParent(MergeNode* merge_node)
+            : merge_node_(merge_node) { }
 
         template <typename Index, typename Parent>
         void operator () (const Index&, Parent& parent) {
@@ -336,8 +338,8 @@ private:
             // construct lambda with only the writer in the closure
             data::File::Writer* writer = merge_node_->writers_[Index::index].get();
             auto pre_op_fn = [writer](const ValueType& input) -> void {
-                writer->PutItem(input);
-            };
+                                 writer->PutItem(input);
+                             };
 
             // close the function stacks with our pre ops and register it at
             // parent nodes for output
@@ -365,9 +367,9 @@ private:
      */
     // dim 1: Different splitters, dim 2: different files
     void SelectPivots(
-            std::vector<Pivot>& pivots,
-            const std::vector<std::vector<size_t> >& left,
-            const std::vector<std::vector<size_t> >& width) {
+        std::vector<Pivot>& pivots,
+        const std::vector<std::vector<size_t> >& left,
+        const std::vector<std::vector<size_t> >& width) {
 
         // Select a random pivot for the largest range we have
         // For each splitter.
@@ -409,13 +411,13 @@ private:
         // range.  That removes some nasty corner cases, like selecting the same
         // pivot over and over again from a tiny range.
         auto reduce_pivots = [](const Pivot& a, const Pivot& b) {
-                                if (a.segment_len > b.segment_len) {
-                                    return a;
-                                }
-                                else {
-                                    return b;
-                                }
-                            };
+                                 if (a.segment_len > b.segment_len) {
+                                     return a;
+                                 }
+                                 else {
+                                     return b;
+                                 }
+                             };
 
         stats_.comm_timer_.Start();
 
@@ -424,7 +426,7 @@ private:
         pivots = context_.AllReduce(
             pivots,
             [reduce_pivots]
-            (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
+                (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
                 assert(a.size() == b.size());
                 std::vector<Pivot> res(a.size());
                 for (size_t i = 0; i < a.size(); i++) {
@@ -447,9 +449,9 @@ private:
      * splitter, the second one to the file. This is an output parameter.
      */
     void GetGlobalRanks(
-            const std::vector<Pivot>& pivots,
-            std::vector<size_t>& ranks,
-            std::vector<std::vector<size_t> >& local_ranks) {
+        const std::vector<Pivot>& pivots,
+        std::vector<size_t>& ranks,
+        std::vector<std::vector<size_t> >& local_ranks) {
 
         // Simply get the rank of each pivot in each file.
         // Sum the ranks up locally.

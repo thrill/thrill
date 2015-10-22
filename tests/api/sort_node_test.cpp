@@ -223,7 +223,7 @@ TEST(Sort, SortOneInteger) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-        LOG1 << "Sorting with " << ctx.num_workers() << " workers";
+            LOG1 << "Sorting with " << ctx.num_workers() << " workers";
 
             auto integers = Generate(
                 ctx,

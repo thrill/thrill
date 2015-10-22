@@ -172,7 +172,7 @@ private:
     class RegisterParent
     {
     public:
-        RegisterParent(ZipNode* zip_node) : zip_node_(zip_node) { }
+        explicit RegisterParent(ZipNode* zip_node) : zip_node_(zip_node) { }
 
         template <typename Index, typename Parent>
         void operator () (const Index&, Parent& parent) {
@@ -184,15 +184,15 @@ private:
             // ZipFunction argument.
             static_assert(
                 std::is_convertible<
-                typename Parent::ValueType, ZipArg
-                >::value,
+                    typename Parent::ValueType, ZipArg
+                    >::value,
                 "ZipFunction argument does not match input DIA");
 
             // construct lambda with only the writer in the closure
             data::File::Writer* writer = &zip_node_->writers_[Index::index];
             auto pre_op_fn = [writer](const ZipArg& input) -> void {
-                writer->PutItem(input);
-            };
+                                 writer->PutItem(input);
+                             };
 
             // close the function stacks with our pre ops and register it at
             // parent nodes for output

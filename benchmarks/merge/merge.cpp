@@ -49,20 +49,20 @@ void merge_test(thrill::api::Context& ctx) {
     merge_input1 = merge_input1.Sort().Keep();
     merge_input2 = merge_input2.Sort().Keep();
 
-    //Force sorting of dia before we run merge.
+    // Force sorting of dia before we run merge.
     size_t sum = merge_input1.Sum();
     size_t sum2 = merge_input2.Sum();
     std::swap(sum, sum2);
-   
-    thrill::common::StatsTimer<true> timer(true); 
-    
+
+    thrill::common::StatsTimer<true> timer(true);
+
     auto merge_result = merge_input1.Merge(std::less<size_t>(), merge_input2);
 
     assert(merge_result.Size() == size * 2);
     timer.Stop();
-    
+
     static const bool debug = true;
-    
+
     LOG << "RESULT operation=merge time=" << timer.Microseconds() << " workers=" << ctx.num_workers();
 }
 
