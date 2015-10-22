@@ -49,7 +49,7 @@ namespace common {
 
 #endif
 
-#endif // THRILL_HAVE_THREAD_SANITIZER
+#endif  // THRILL_HAVE_THREAD_SANITIZER
 
 /******************************************************************************/
 // __attribute__ ((packed))

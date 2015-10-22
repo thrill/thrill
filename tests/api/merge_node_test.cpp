@@ -50,7 +50,8 @@ void DoMergeAndCheckResult(
     // TODO(EJ) There seems to be a bug with inbalanced arrays on a very
     // low number of workers. I'm not sure why though.
     // LOG << "count: " << count << " expected: " << ((float)res.size() / (float)num_workers);
-    float expectedCount = (float)res.size() / (float)num_workers;
+    float expectedCount =
+        static_cast<float>(res.size()) / static_cast<float>(num_workers);
     ASSERT_LE(std::abs(expectedCount - count), num_workers + 100);
 }
 
@@ -107,8 +108,9 @@ TEST(MergeNode, FourBalancedIntegerArrays) {
                 expected[i] = i;
             }
 
-            auto merge_result = merge_input1.Merge(std::less<size_t>(),
-                    merge_input2, merge_input3, merge_input4);
+            auto merge_result = merge_input1.Merge(
+                std::less<size_t>(),
+                merge_input2, merge_input3, merge_input4);
 
             // check if order was kept while merging.
             size_t count = 0;
@@ -120,9 +122,12 @@ TEST(MergeNode, FourBalancedIntegerArrays) {
             // Check if res is as expected.
             ASSERT_EQ(expected, res);
 
-            LOG << "count: " << count << " expected: " << ((float)res.size() / (float)ctx.num_workers());
+            LOG << "count: " << count << " expected: "
+                << (static_cast<float>(res.size())
+                / static_cast<float>(ctx.num_workers()));
 
-            float expectedCount = (float)res.size() / (float)ctx.num_workers();
+            float expectedCount = static_cast<float>(res.size())
+                                  / static_cast<float>(ctx.num_workers());
             ASSERT_LE(std::abs(expectedCount - count), ctx.num_workers() + 100);
         };
 

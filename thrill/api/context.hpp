@@ -241,9 +241,9 @@ public:
     data::File GetFile() {
         return data::File(block_pool_);
     }
-    
-    //! Returns a new File, wrapped in a shared_ptr, containing a 
-    //! sequence of local Blocks. 
+
+    //! Returns a new File, wrapped in a shared_ptr, containing a
+    //! sequence of local Blocks.
     data::FilePtr GetFilePtr() {
         return std::make_shared<data::File>(block_pool_);
     }
