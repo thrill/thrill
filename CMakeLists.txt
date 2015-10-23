@@ -246,12 +246,18 @@ enable_testing()
 
 # this fixes compilation with static libs on MSVC
 set(gtest_force_shared_crt ON CACHE BOOL "on" FORCE)
-# silence some warnings
-set(GTEST_SAVE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated")
+if(NOT MSVC)
+  # silence some warnings
+  set(GTEST_SAVE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated")
+endif()
+
 add_subdirectory(extlib/googletest/googletest)
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-set(CMAKE_CXX_FLAGS "${GTEST_SAVE_CXX_FLAGS}")
+
+if(NOT MSVC)
+  set(CMAKE_CXX_FLAGS "${GTEST_SAVE_CXX_FLAGS}")
+endif()
 
 ### general valgrind setting, if run with USE_VALGRIND=ON.
 
