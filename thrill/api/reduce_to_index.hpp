@@ -109,11 +109,10 @@ public:
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostReduceByIndex(), core::PostReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
-              std::get<0>(common::CalculateLocalRange(
-                              result_size_, context_.num_workers(), context_.my_rank())),
-              std::get<1>(common::CalculateLocalRange(
-                              result_size_, context_.num_workers(), context_.my_rank())),
+              core::PostReduceByIndex(),
+              core::PostReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
+              common::CalculateLocalRange(
+                  result_size_, context_.num_workers(), context_.my_rank()),
               neutral_element_, 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and

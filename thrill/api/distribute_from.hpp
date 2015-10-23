@@ -59,11 +59,10 @@ public:
 
             for (size_t w = 0; w < emitters_.size(); ++w) {
 
-                size_t local_begin, local_end;
-                std::tie(local_begin, local_end) =
+                common::Range local =
                     common::CalculateLocalRange(in_size, emitters_.size(), w);
 
-                for (size_t i = local_begin; i < local_end; ++i) {
+                for (size_t i = local.begin; i < local.end; ++i) {
                     emitters_[w](in_vector_[i]);
                 }
             }

@@ -230,7 +230,7 @@ public:
      * Alternatively, it may trigger a resize of the table in case the maximal fill ratio
      * per partition is reached.
      *
-     * \param p Value to be inserted into the table.
+     * \param kv Value to be inserted into the table.
      */
     void Insert(const KeyValuePair& kv) {
 
