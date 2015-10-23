@@ -64,10 +64,9 @@ public:
     { }
 
     void PushData(bool /* consume */) final {
-        size_t local_begin, local_end;
-        std::tie(local_begin, local_end) = context_.CalculateLocalRange(size_);
+        common::Range local = context_.CalculateLocalRange(size_);
 
-        for (size_t i = local_begin; i < local_end; i++) {
+        for (size_t i = local.begin; i < local.end; i++) {
             this->PushItem(generator_function_(i));
         }
 

@@ -88,24 +88,23 @@ public:
                     std::to_string(fixed_size_));
             }
 
-            size_t my_start, my_end;
-            std::tie(my_start, my_end) =
+            common::Range my_range =
                 context_.CalculateLocalRange(files.total_size / fixed_size_);
 
-            my_start *= fixed_size_;
-            my_end *= fixed_size_;
+            my_range.begin *= fixed_size_;
+            my_range.end *= fixed_size_;
 
             sLOG << "ReadBinaryNode" << ctx.num_workers()
-                 << "my_start" << my_start << "my_end" << my_end;
+                 << "my_range" << my_range;
 
             size_t i = 0;
             while (i < files.count() &&
-                   files.list[i].size_inc_psum() <= my_start) {
+                   files.list[i].size_inc_psum() <= my_range.begin) {
                 i++;
             }
 
             while (i < files.count() &&
-                   files.list[i].size_ex_psum <= my_end) {
+                   files.list[i].size_ex_psum <= my_range.end) {
 
                 size_t file_begin = files.list[i].size_ex_psum;
                 size_t file_end = files.list[i].size_inc_psum();
@@ -113,8 +112,8 @@ public:
 
                 FileInfo fi;
                 fi.path = files.list[i].path;
-                fi.begin = my_start <= file_begin ? 0 : my_start - file_begin;
-                fi.end = my_end >= file_end ? file_size : my_end - file_begin;
+                fi.begin = my_range.begin <= file_begin ? 0 : my_range.begin - file_begin;
+                fi.end = my_range.end >= file_end ? file_size : my_range.end - file_begin;
 
                 sLOG << "FileInfo"
                      << "path" << fi.path
@@ -131,25 +130,23 @@ public:
             // split filelist by whole files.
             size_t i = 0;
 
-            size_t my_start, my_end;
-            std::tie(my_start, my_end) =
+            common::Range my_range =
                 context_.CalculateLocalRange(files.total_size);
 
             while (i < files.count() &&
-                   files.list[i].size_inc_psum() <= my_start) {
+                   files.list[i].size_inc_psum() <= my_range.begin) {
                 i++;
             }
 
             while (i < files.count() &&
-                   files.list[i].size_inc_psum() <= my_end) {
+                   files.list[i].size_inc_psum() <= my_range.end) {
                 my_files_.push_back(
                     FileInfo { files.list[i].path, 0,
                                std::numeric_limits<size_t>::max() });
                 i++;
             }
 
-            LOG << my_files_.size() << " files "
-                << "from " << my_start << " to " << my_end;
+            LOG << my_files_.size() << " files, my range " << my_range;
         }
     }
 

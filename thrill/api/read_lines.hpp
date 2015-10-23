@@ -127,8 +127,8 @@ private:
         net::BufferBuilder buffer_;
         //! Start of next element in current buffer.
         unsigned char* current_;
-        //! (exclusive) end of local block
-        size_t my_end_;
+        //! (exclusive) [begin,end) of local block
+        common::Range my_range_;
         //! Reference to context
         Context& context_;
 
@@ -172,26 +172,24 @@ private:
             : InputLineIterator(files, ctx) {
 
             // Go to start of 'local part'.
-            size_t my_start;
-            std::tie(my_start, my_end_) =
-                context_.CalculateLocalRange(files.total_size);
+            my_range_ = context_.CalculateLocalRange(files.total_size);
 
-            while (files_.list[current_file_].size_inc_psum() <= my_start) {
+            while (files_.list[current_file_].size_inc_psum() <= my_range_.begin) {
                 current_file_++;
             }
-            if (my_start < my_end_) {
+            if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
                 file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
             }
             else {
-                LOG << "my_start : " << my_start << " my_end_: " << my_end_;
+                LOG << "my_range : " << my_range_;
                 return;
             }
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
             offset_ = file_.lseek(
-                static_cast<off_t>(my_start - files_.list[current_file_].size_ex_psum));
+                static_cast<off_t>(my_range_.begin - files_.list[current_file_].size_ex_psum));
             buffer_.Reserve(read_size);
             ReadBlock(file_, buffer_);
 
@@ -265,8 +263,8 @@ private:
             size_t position_in_buf = current_ - buffer_.begin();
             assert(current_ >= buffer_.begin());
             size_t global_index = offset_ + position_in_buf + files_.list[current_file_].size_ex_psum;
-            return global_index < my_end_ ||
-                   (global_index == my_end_ &&
+            return global_index < my_range_.end ||
+                   (global_index == my_range_.end &&
                     files_.list[current_file_].size > offset_ + position_in_buf);
         }
 
@@ -287,32 +285,30 @@ private:
             : InputLineIterator(files, ctx) {
 
             // Go to start of 'local part'.
-            size_t my_start;
-            std::tie(my_start, my_end_) =
-                context_.CalculateLocalRange(files.total_size);
+            my_range_ = context_.CalculateLocalRange(files.total_size);
 
-            while (files_.list[current_file_].size_inc_psum() <= my_start) {
+            while (files_.list[current_file_].size_inc_psum() <= my_range_.begin) {
                 current_file_++;
             }
 
             for (size_t file_nr = current_file_; file_nr < files_.count(); file_nr++) {
-                if (files.list[file_nr].size_inc_psum() == my_end_) {
+                if (files.list[file_nr].size_inc_psum() == my_range_.end) {
                     break;
                 }
-                if (files.list[file_nr].size_inc_psum() > my_end_) {
-                    my_end_ = files_.list[file_nr].size_ex_psum;
+                if (files.list[file_nr].size_inc_psum() > my_range_.end) {
+                    my_range_.end = files_.list[file_nr].size_ex_psum;
                     break;
                 }
             }
 
-            if (my_start < my_end_) {
+            if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
-                LOG << "my_start : " << my_start << " my_end_: " << my_end_;
+                LOG << "my_range : " << my_range_;
                 file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
             }
             else {
                 // No local files, set buffer size to 2, so HasNext() does not try to read
-                LOG << "my_start : " << my_start << " my_end_: " << my_end_;
+                LOG << "my_range : " << my_range_;
                 buffer_.Reserve(2);
                 buffer_.set_size(2);
                 current_ = buffer_.begin();
@@ -364,7 +360,7 @@ private:
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-            if (files_.list[current_file_].size_ex_psum >= my_end_) {
+            if (files_.list[current_file_].size_ex_psum >= my_range_.end) {
                 return false;
             }
 
@@ -385,7 +381,7 @@ private:
                     }
                     file_.close();
                     // if (this worker reads at least one more file)
-                    if (my_end_ > files_.list[current_file_].size_inc_psum()) {
+                    if (my_range_.end > files_.list[current_file_].size_inc_psum()) {
                         current_file_++;
                         file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
                         ReadBlock(file_, buffer_);

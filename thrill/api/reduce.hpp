@@ -100,7 +100,7 @@ public:
               core::PostReduceByHashKey<Key>(),
               core::PostReduceFlushToDefault<Key,
                                              ReduceFunction>(reduce_function),
-              0, 0, Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
+              common::Range(), Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another

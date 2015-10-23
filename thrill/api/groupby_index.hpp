@@ -86,11 +86,9 @@ public:
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           number_keys_(number_keys),
-          key_range_start_(std::get<0>(common::CalculateLocalRange(
-                                           number_keys_, context_.num_workers(), context_.my_rank()))),
-          key_range_end_(std::min(std::get<1>(
-                                      common::CalculateLocalRange(number_keys_,
-                                                                  context_.num_workers(), context_.my_rank())), number_keys_)),
+          key_range_(
+              common::CalculateLocalRange(
+                  number_keys_, context_.num_workers(), context_.my_rank())),
           neutral_element_(neutral_element),
           hash_function_(hash_function)
     {
@@ -140,7 +138,7 @@ public:
                 totalsize_,
                 ValueComparator(*this));
 
-            size_t curr_index = key_range_start_;
+            size_t curr_index = key_range_.begin;
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator
@@ -162,7 +160,7 @@ public:
                     ++curr_index;
                 }
             }
-            while (curr_index < key_range_end_) {
+            while (curr_index < key_range_.end) {
                 // push neutral element as result to callback functions
                 this->PushItem(neutral_element_);
                 ++curr_index;
@@ -176,8 +174,7 @@ private:
     KeyExtractor key_extractor_;
     GroupFunction groupby_function_;
     const size_t number_keys_;
-    const size_t key_range_start_;
-    const size_t key_range_end_;
+    const common::Range key_range_;
     ValueOut neutral_element_;
     HashFunction hash_function_;
     size_t totalsize_ = 0;
@@ -191,7 +188,7 @@ private:
         if (r.HasNext()) {
             // create iterator to pass to user_function
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
-            size_t curr_index = key_range_start_;
+            size_t curr_index = key_range_.begin;
             while (user_iterator.HasNextForReal()) {
                 if (user_iterator.GetNextKey() != curr_index) {
                     // push neutral element as result to callback functions
@@ -206,7 +203,7 @@ private:
                 }
                 ++curr_index;
             }
-            while (curr_index < key_range_end_) {
+            while (curr_index < key_range_.end) {
                 // push neutral element as result to callback functions
                 this->PushItem(neutral_element_);
                 ++curr_index;
