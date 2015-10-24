@@ -19,7 +19,6 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/post_probing_reduce_by_index.hpp>
 #include <thrill/core/post_probing_reduce_flush.hpp>
 #include <thrill/core/post_probing_reduce_flush_to_index.hpp>
 
@@ -60,6 +59,19 @@ public:
 
 private:
     HashFunction hash_function_;
+};
+
+class PostProbingReduceByIndex
+{
+public:
+    PostProbingReduceByIndex() { }
+
+    template <typename Table>
+    size_t
+    operator () (const size_t& k, Table* ht, const size_t& size) const {
+
+        return (k - ht->BeginLocalIndex()) % size;
+    }
 };
 
 /**

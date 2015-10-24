@@ -25,7 +25,6 @@
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
-#include <thrill/core/post_bucket_reduce_by_index.hpp>
 #include <thrill/core/post_bucket_reduce_flush_to_index.hpp>
 #include <thrill/core/post_bucket_reduce_flush.hpp>
 
@@ -65,6 +64,20 @@ public:
 
 private:
     HashFunction hash_function_;
+};
+
+
+class PostBucketReduceByIndex
+{
+public:
+    PostBucketReduceByIndex() { }
+
+    template <typename Table>
+    size_t
+    operator () (const size_t& k, Table* ht, const size_t& size) const {
+
+        return (k - ht->BeginLocalIndex()) % size;
+    }
 };
 
 /**
