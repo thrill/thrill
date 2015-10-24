@@ -202,7 +202,6 @@ public:
           max_frame_fill_rate_(max_frame_fill_rate),
           emit_(emit),
           byte_size_(byte_size),
-          bucket_rate_(bucket_rate),
           begin_local_index_(begin_local_index),
           end_local_index_(end_local_index),
           neutral_element_(neutral_element),
@@ -224,7 +223,7 @@ public:
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
 
-        table_rate_ = table_rate_multiplier * (1.0 / static_cast<double>(num_frames_));
+        table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_frames_), 0.5);
 
         max_num_blocks_mem_per_frame_ =
                 std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_)) / num_frames_)
@@ -744,9 +743,6 @@ private:
 
     //! Size of the table in bytes.
     size_t byte_size_ = 0;
-
-    //! Bucket rate.
-    double bucket_rate_ = 0.0;
 
     //! Store the items.
     std::vector<BucketBlock*> buckets_;

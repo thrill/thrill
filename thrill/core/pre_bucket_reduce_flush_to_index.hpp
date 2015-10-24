@@ -19,7 +19,6 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/pre_bucket_reduce_by_hash_key.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
 
 #include <algorithm>
