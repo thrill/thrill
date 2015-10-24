@@ -19,7 +19,6 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/post_probing_reduce_by_hash_key.hpp>
 #include <thrill/core/post_probing_reduce_by_index.hpp>
 #include <thrill/core/post_probing_reduce_flush.hpp>
 #include <thrill/core/post_probing_reduce_flush_to_index.hpp>
@@ -39,6 +38,29 @@
 
 namespace thrill {
 namespace core {
+
+template <typename Key, typename HashFunction = std::hash<Key> >
+class PostProbingReduceByHashKey
+{
+public:
+    explicit PostProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
+            : hash_function_(hash_function)
+    { }
+
+    template <typename Table>
+    size_t
+    operator () (const Key& k, Table* ht, const size_t& size) const {
+
+        (void)ht;
+
+        size_t hashed = hash_function_(k);
+
+        return hashed % size;
+    }
+
+private:
+    HashFunction hash_function_;
+};
 
 /**
  * A data structure which takes an arbitrary value and extracts a key using
@@ -100,7 +122,7 @@ struct PostProbingEmitImpl<false, EmitterFunction, KeyValuePair, SendType>{
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename FlushFunction = PostProbingReduceFlush<Key, Value, ReduceFunction>,
+          typename FlushFunction = core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
           typename IndexFunction = PostProbingReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class ReducePostProbingTable
@@ -178,7 +200,7 @@ public:
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
 
-        table_rate_ = table_rate_multiplier * (1.0 / static_cast<double>(num_frames_));
+        table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_frames_), 0.5);
 
         frame_size_ = std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_))
                                                  / static_cast<double>(sizeof(KeyValuePair)))

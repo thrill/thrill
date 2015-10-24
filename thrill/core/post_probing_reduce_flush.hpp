@@ -19,7 +19,6 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/post_probing_reduce_by_hash_key.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -37,10 +36,13 @@
 namespace thrill {
 namespace core {
 
+template <typename Key, typename HashFunction>
+class PostProbingReduceByHashKey;
+
 template <typename Key,
         typename Value,
         typename ReduceFunction,
-        typename IndexFunction = core::PostProbingReduceByHashKey<Key>,
+        typename IndexFunction = PostProbingReduceByHashKey<Key, std::hash<Key> >,
         typename EqualToFunction = std::equal_to<Key>,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostProbingReduceFlush
@@ -48,7 +50,6 @@ class PostProbingReduceFlush
     static const bool emit = true;
 
     static const bool bench = true;
-
 
 public:
     PostProbingReduceFlush(ReduceFunction reduce_function,

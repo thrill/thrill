@@ -19,7 +19,6 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/pre_probing_reduce_by_hash_key.hpp>
 #include <thrill/core/pre_probing_reduce_by_index.hpp>
 #include <thrill/core/post_probing_reduce_flush.hpp>
 #include <thrill/core/post_probing_reduce_flush_to_index.hpp>
@@ -39,6 +38,43 @@
 
 namespace thrill {
 namespace core {
+
+template <typename Key, typename HashFunction = std::hash<Key> >
+class PreProbingReduceByHashKey
+{
+public:
+    struct IndexResult {
+    public:
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the whole hashtable
+        size_t global_index;
+
+        IndexResult(size_t p_id, size_t g_id) {
+            partition_id = p_id;
+            global_index = g_id;
+        }
+    };
+
+    explicit PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
+            : hash_function_(hash_function)
+    { }
+
+    template <typename Table>
+    IndexResult
+    operator () (const Key& k, Table* ht) const {
+
+        size_t hashed = hash_function_(k);
+
+        size_t partition_id = hashed % ht->NumFrames();
+        return IndexResult(partition_id, partition_id *
+                                         ht->FrameSize() +
+                                         hashed % ht->FrameSize());
+    }
+
+private:
+    HashFunction hash_function_;
+};
 
 /**
 * A data structure which takes an arbitrary value and extracts a key using
@@ -176,7 +212,7 @@ public:
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0 && "max_partition_fill_rate "
                 "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
 
-        table_rate_ = table_rate_multiplier * (1.0 / static_cast<double>(num_partitions_));
+        table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_partitions_), 0.5);
 
         num_items_per_partition_ = std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_))
                                                  / static_cast<double>(sizeof(KeyValuePair)))
