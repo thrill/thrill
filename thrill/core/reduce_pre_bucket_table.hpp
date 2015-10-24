@@ -21,7 +21,6 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
-#include <thrill/core/pre_bucket_reduce_by_index.hpp>
 #include <thrill/core/pre_bucket_reduce_flush_to_index.hpp>
 #include <thrill/core/post_bucket_reduce_flush.hpp>
 
@@ -74,6 +73,38 @@ public:
 
 private:
     HashFunction hash_function_;
+};
+
+
+class PreBucketReduceByIndex
+{
+public:
+    size_t size_;
+
+    struct IndexResult {
+    public:
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the whole hashtable
+        size_t global_index;
+
+        IndexResult(size_t p_id, size_t g_id) {
+            partition_id = p_id;
+            global_index = g_id;
+        }
+    };
+
+    explicit PreBucketReduceByIndex(size_t size)
+            : size_(size)
+    { }
+
+    template <typename Table>
+    IndexResult
+    operator () (const size_t k, Table* ht) const {
+
+        return IndexResult(std::min(k * ht->NumFrames() / size_, ht->NumFrames() - 1),
+                           std::min(ht->NumBucketsPerTable() - 1, k * ht->NumBucketsPerTable() / size_));
+    }
 };
 
 /**
