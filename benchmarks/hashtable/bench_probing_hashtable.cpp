@@ -62,6 +62,8 @@ int main(int argc, char* argv[]) {
     clp.AddUInt('m', "max_num_items_table", "M", byte_size,
                 "Table size, default = 500000000.");
 
+    const bool full_reduce = false;
+
     if (!clp.Process(argc, argv)) {
         return -1;
     }
@@ -94,7 +96,7 @@ int main(int argc, char* argv[]) {
 
          core::ReducePreProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
          core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreProbingReduceByHashKey<size_t>,
-         std::equal_to<size_t>, false>
+         std::equal_to<size_t>, full_reduce>
          table(ctx, workers, key_ex, red_fn, writers, 0, core::PreProbingReduceByHashKey<size_t>(),
                core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
                0, byte_size, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
@@ -106,14 +108,20 @@ int main(int argc, char* argv[]) {
             table.Insert(dist(rng));
         }
 
+        size_t num_flushes = table.NumFlushes();
+        size_t num_spills = table.NumSpills();
+        size_t num_collisions = table.NumCollisions();
+
+        table.Flush();
+
         timer.Stop();
 
         std::cout << "RESULT" << " benchmark=" << title << " size=" << size << " byte_size=" << byte_size << " workers="
         << workers << " max_partition_fill_rate=" << max_partition_fill_rate
-        << " table_rate_multiplier=" << table_rate
+        << " table_rate_multiplier=" << table_rate << " full_reduce=" << full_reduce << " final_reduce=true"
         << " time=" << timer.Milliseconds()
-        << " num_flushes=" << table.NumFlushes() << " num_spills=" << table.NumSpills()
-        << " num_collisions=" << table.NumCollisions() << std::endl;
+        << " num_flushes=" << num_flushes << " num_spills=" << num_spills
+        << " num_collisions=" << num_collisions << " recursive_spills=" << table.RecursiveSpills() << std::endl;
 
     });
 
