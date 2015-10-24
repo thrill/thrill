@@ -19,7 +19,6 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/post_bucket_reduce_by_hash_key.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
 
 #include <algorithm>
@@ -38,10 +37,13 @@
 namespace thrill {
 namespace core {
 
+template <typename Key, typename HashFunction>
+class PostBucketReduceByHashKey;
+
 template<typename Key,
         typename Value,
         typename ReduceFunction,
-        typename IndexFunction = core::PostBucketReduceByHashKey<Key>,
+        typename IndexFunction = core::PostBucketReduceByHashKey<Key, std::hash<Key> >,
         typename EqualToFunction = std::equal_to<Key>,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostBucketReduceFlush {

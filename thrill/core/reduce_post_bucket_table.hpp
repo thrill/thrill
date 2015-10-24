@@ -44,6 +44,29 @@
 namespace thrill {
 namespace core {
 
+template <typename Key, typename HashFunction = std::hash<Key> >
+class PostBucketReduceByHashKey
+{
+public:
+    explicit PostBucketReduceByHashKey(const HashFunction& hash_function = HashFunction())
+            : hash_function_(hash_function)
+    { }
+
+    template <typename Table>
+    size_t
+    operator () (const Key& k, Table* ht, const size_t& size) const {
+
+        (void)ht;
+
+        size_t hashed = hash_function_(k);
+
+        return hashed % size;
+    }
+
+private:
+    HashFunction hash_function_;
+};
+
 /**
  *
  * A data structure which takes an arbitrary value and extracts a key using
