@@ -16,6 +16,7 @@
 
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
+#include <thrill/common/defines.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/cat_stream.hpp>
@@ -200,30 +201,34 @@ public:
     //! Broadcasts a value of an integral type T from the master (the worker
     //! with rank 0) to all other workers.
     template <typename T>
-    T Broadcast(const T& value) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    Broadcast(const T& value) {
         return flow_control_channel().Broadcast(value);
     }
 
     //! Reduces a value of an integral type T over all workers given a certain
     //! reduce function.
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T AllReduce(const T& value, BinarySumOp sum_op = BinarySumOp()) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    AllReduce(const T& value, const BinarySumOp& sum_op = BinarySumOp()) {
         return flow_control_channel().AllReduce(value, sum_op);
     }
 
     //! Calculates the prefix sum over all workers, given a certain sum
     //! operation.
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T PrefixSum(const T& value,
-                const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    PrefixSum(const T& value, const T& initial = T(),
+              const BinarySumOp& sum_op = BinarySumOp()) {
         return flow_control_channel().PrefixSum(value, initial, sum_op);
     }
 
     //! Calculates the exclusive prefix sum over all workers, given a certain
     //! sum operation.
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T ExPrefixSum(const T& value,
-                  const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    ExPrefixSum(const T& value, const T& initial = T(),
+                const BinarySumOp& sum_op = BinarySumOp()) {
         return flow_control_channel().ExPrefixSum(value, initial, sum_op);
     }
 

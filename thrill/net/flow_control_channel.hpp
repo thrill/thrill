@@ -13,6 +13,7 @@
 #ifndef THRILL_NET_FLOW_CONTROL_CHANNEL_HEADER
 #define THRILL_NET_FLOW_CONTROL_CHANNEL_HEADER
 
+#include <thrill/common/defines.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/thread_barrier.hpp>
 #include <thrill/net/collective.hpp>
@@ -195,8 +196,10 @@ public:
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T PrefixSum(const T& value, const T& initial = T(),
-                BinarySumOp sum_op = BinarySumOp(), bool inclusive = true) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    PrefixSum(const T& value, const T& initial = T(),
+              const BinarySumOp& sum_op = BinarySumOp(),
+              bool inclusive = true) {
 
         static const bool debug = false;
 
@@ -274,8 +277,9 @@ public:
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T ExPrefixSum(const T& value,
-                  const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    ExPrefixSum(const T& value, const T& initial = T(),
+                const BinarySumOp& sum_op = BinarySumOp()) {
         return PrefixSum(value, initial, sum_op, false);
     }
 
@@ -294,7 +298,8 @@ public:
      * \return The value sent by the master.
      */
     template <typename T>
-    T Broadcast(const T& value, size_t origin = 0) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    Broadcast(const T& value, size_t origin = 0) {
 
         T res = value;
 
@@ -333,7 +338,9 @@ public:
      * \return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T AllReduce(const T& value, BinarySumOp sum_op = BinarySumOp()) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    AllReduce(const T& value,
+              const BinarySumOp& sum_op = BinarySumOp()) {
         T local = value;
 
         SetLocalShared(&local);
@@ -495,7 +502,7 @@ public:
      */
     void Barrier() {
         size_t i = 0;
-        AllReduce(i);
+        i = AllReduce(i);
     }
 };
 
