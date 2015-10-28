@@ -165,10 +165,11 @@ struct StringFragment
         os << '[' << std::to_string(tc.index) << '|';
         if (tc.index % 3 == 0)
             return os << "0|" << tc.mod0 << ']';
-        if (tc.index % 3 == 1)
+        else if (tc.index % 3 == 1)
             return os << "1|" << tc.mod1 << ']';
-        if (tc.index % 3 == 2)
+        else if (tc.index % 3 == 2)
             return os << "2|" << tc.mod2 << ']';
+        abort();
     }
 } THRILL_ATTRIBUTE_PACKED;
 
