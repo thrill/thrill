@@ -133,6 +133,7 @@ template <typename ValueType, typename Comparator,
 class MergeNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
+    static const bool self_verify = true;
 
     //! Instance of merge statistics
     merge_local::MergeStats stats_;
@@ -413,6 +414,7 @@ private:
 
             if (width[s][mp] > 0) {
                 pivot_idx = left[s][mp] + (rng_() % width[s][mp]);
+                assert(pivot_idx < files_[mp]->num_items());
                 stats_.file_op_timer_.Start();
                 pivot_elem = files_[mp]->template GetItemAt<ValueType>(pivot_idx);
                 stats_.file_op_timer_.Stop();
@@ -537,6 +539,7 @@ private:
                 size_t old_width = width[s][p];
 
                 if (ranks[s] <= target_ranks[s]) {
+                    assert(left[s][p] <= idx);
                     width[s][p] -= idx - left[s][p];
                     left[s][p] = idx;
                 }
@@ -567,6 +570,21 @@ private:
 
         for (size_t i = 0; i < files_.size(); i++) {
             local_size += files_[i]->num_items();
+        }
+
+        // test that the data we got is sorted!
+        if (self_verify) {
+            for (size_t i = 0; i < num_inputs_; i++) {
+                auto reader = files_[i]->GetReader(/* consume */ false);
+                if (!reader.HasNext()) continue;
+
+                ValueType prev = reader.template Next<ValueType>();
+                while (reader.HasNext()) {
+                    ValueType next = reader.template Next<ValueType>();
+                    die_unless(!comparator_(next, prev) || !"Merge input was not sorted!");
+                    prev = std::move(next);
+                }
+            }
         }
 
         // Count of all global elements.
@@ -642,6 +660,10 @@ private:
             // Get global ranks and shrink ranges.
             stats_.search_step_timer_.Start();
             GetGlobalRanks(pivots, global_ranks, local_ranks);
+
+            LOG << "global_ranks " << VToStr(global_ranks);
+            LOG << "local_ranks " << VToStr(local_ranks);
+
             SearchStep(global_ranks, local_ranks, target_ranks, left, width);
 
             // Check if all our ranges have at most size one.
