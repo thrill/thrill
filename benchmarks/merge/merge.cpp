@@ -35,12 +35,12 @@ void merge_test(thrill::api::Context& ctx) {
 
     std::mt19937 gen(std::random_device { }());
 
-    auto merge_input1 = thrill::api::Generate(
+    auto merge_input1 = thrill::Generate(
         ctx,
         [&gen](size_t /* index */) { return gen(); },
         size);
 
-    auto merge_input2 = thrill::api::Generate(
+    auto merge_input2 = thrill::Generate(
         ctx,
         [&gen](size_t /* index */) { return gen(); },
         size);
@@ -60,9 +60,10 @@ void merge_test(thrill::api::Context& ctx) {
     assert(merge_result.Size() == size * 2);
     timer.Stop();
 
-    static const bool debug = true;
-
-    LOG << "RESULT operation=merge time=" << timer.Microseconds() << " workers=" << ctx.num_workers();
+    LOG1 << "RESULT"
+         << " operation=merge"
+         << " time=" << timer.Microseconds()
+         << " workers=" << ctx.num_workers();
 }
 
 int main(int argc, char** argv) {
