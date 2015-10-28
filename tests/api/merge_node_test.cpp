@@ -108,9 +108,9 @@ TEST(MergeNode, FourBalancedIntegerArrays) {
                 expected[i] = i;
             }
 
-            auto merge_result = merge_input1.Merge(
+            auto merge_result = Merge(
                 std::less<size_t>(),
-                merge_input2, merge_input3, merge_input4);
+                merge_input1, merge_input2, merge_input3, merge_input4);
 
             // check if order was kept while merging.
             size_t count = 0;

@@ -604,9 +604,6 @@ public:
     template <typename ZipFunction, typename SecondDIA>
     auto Zip(const SecondDIA &second_dia, const ZipFunction &zip_function) const;
 
-    // REVIEW(ej): use default comparator. remove everywhere where it is
-    // duplicate.
-
     /*!
      * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.
      * Both input DIAs must be used sorted conforming to the given comparator.
@@ -621,8 +618,8 @@ public:
      *
      * \param second_dia DIA, which is merged with this DIA.
      */
-    template <typename Comparator = std::less<ValueType>, typename ... DIAs>
-    auto Merge(const Comparator &comparator, const DIAs &... dias) const;
+    template <typename Comparator = std::less<ValueType>, typename SecondDIA>
+    auto Merge(const Comparator &comparator, const SecondDIA &second_dia) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum

@@ -704,62 +704,88 @@ private:
     }
 };
 
-template <typename ValueType, typename Stack>
-template <typename Comparator, typename ... DIAs>
-auto DIA<ValueType, Stack>::Merge(
-    const Comparator &comparator, const DIAs &... dias) const {
+/*!
+ * Merge is a DOp, which merges any number of sorted DIAs to a single sorted
+ * DIA.  All input DIAs must be sorted conforming to the given comparator.  The
+ * type of the output DIA will be the type of this DIA.
+ *
+ * The merge operation balances all input data, so that each worker will have an
+ * equal number of elements when the merge completes.
+ *
+ * \tparam Comparator Comparator to specify the order of input and output.
+ *
+ * \param comparator Comparator to specify the order of input and output.
+ *
+ * \param second_dia DIA, which is merged with this DIA.
+ */
+template <typename Comparator, typename FirstDIA, typename ... DIAs>
+auto Merge(const Comparator &comparator,
+           const FirstDIA &first_dia, const DIAs &... dias) {
 
     using VarForeachExpander = int[];
 
-    AssertValid();
+    first_dia.AssertValid();
     (void)VarForeachExpander {
         (dias.AssertValid(), 0) ...
     };
 
-    using CompareResult
-              = typename FunctionTraits<Comparator>::result_type;
+    using ValueType = typename FirstDIA::ValueType;
 
-    using MergeResultNode
-              = MergeNode<ValueType, Comparator, DIA<ValueType, Stack>, DIAs ...>;
+    using CompareResult =
+              typename common::FunctionTraits<Comparator>::result_type;
 
-    // Assert comperator types.
+    using MergeNode =
+              api::MergeNode<ValueType, Comparator, FirstDIA, DIAs ...>;
+
+    // Assert comparator types.
     static_assert(
         std::is_convertible<
             ValueType,
-            typename FunctionTraits<Comparator>::template arg<0>
+            typename common::FunctionTraits<Comparator>::template arg<0>
+            >::value,
+        "Comparator has the wrong input type in argument 0");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<Comparator>::template arg<1>
             >::value,
         "Comparator has the wrong input type in argument 1");
-
-    static_assert(
-        std::is_convertible<
-            ValueType,
-            typename FunctionTraits<Comparator>::template arg<1>
-            >::value,
-        "Comparator has the wrong input type in argument 2");
 
     // Assert meaningful return type of comperator.
     static_assert(
         std::is_convertible<
-            bool,
-            CompareResult
+            CompareResult,
+            bool
             >::value,
         "Comparator must return bool");
 
     // Create merge node.
-    StatsNode* stats_node = AddChildStatsNode("Merge", DIANodeType::DOP);
+    StatsNode* stats_node = first_dia.AddChildStatsNode("Merge", DIANodeType::DOP);
     (void)VarForeachExpander {
         (dias.AppendChildStatsNode(stats_node), 0) ...
     };
 
-    auto merge_node
-        = std::make_shared<MergeResultNode>(comparator, stats_node, *this, dias ...);
+    auto merge_node =
+        std::make_shared<MergeNode>(comparator, stats_node, first_dia, dias ...);
 
     return DIA<ValueType>(merge_node, { stats_node });
+}
+
+template <typename ValueType, typename Stack>
+template <typename Comparator, typename SecondDIA>
+auto DIA<ValueType, Stack>::Merge(
+    const Comparator &comparator, const SecondDIA &second_dia) const {
+    return api::Merge(comparator, *this, second_dia);
 }
 
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::Merge;
+
 } // namespace thrill
 
 #endif // !THRILL_API_MERGE_HEADER
