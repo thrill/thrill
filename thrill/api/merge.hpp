@@ -275,10 +275,32 @@ private:
         size_t    segment_len;
     };
 
-    //! Count of items on this worker.
-    size_t data_size_;
     //! Count of items on all prev workers.
     size_t prefix_size_;
+
+    using ArrayNumInputsSizeT = std::array<size_t, num_inputs_>;
+
+    //! Logging helper to print vectors.
+    template <typename T, size_t N>
+    std::string VToStr(const std::array<T, N>& data) {
+        std::stringstream ss;
+
+        for (const T& elem : data)
+            ss << elem << " ";
+
+        return ss.str();
+    }
+
+    //! Logging helper to print vectors of vectors of size_t
+    std::string VToStr(const std::vector<ArrayNumInputsSizeT>& data) {
+        std::stringstream ss;
+
+        for (const ArrayNumInputsSizeT& elem : data) {
+            ss << VToStr(elem) << " ## ";
+        }
+
+        return ss.str();
+    }
 
     //! Logging helper to print vectors.
     template <typename T>
@@ -356,20 +378,20 @@ private:
      * Selects random global pivots for all splitter searches based on all
      * worker's search ranges.
      *
-     * \param pivots The output pivots.
-     *
      * \param left The left bounds of all search ranges for all files.  The
      * first index identifies the splitter, the second index identifies the
      * file.
      *
      * \param width The width of all search ranges for all files.  The first
      * index identifies the splitter, the second index identifies the file.
+     *
+     * \param out_pivots The output pivots.
      */
     // dim 1: Different splitters, dim 2: different files
     void SelectPivots(
-        std::vector<Pivot>& pivots,
-        const std::vector<std::vector<size_t> >& left,
-        const std::vector<std::vector<size_t> >& width) {
+        const std::vector<ArrayNumInputsSizeT>& left,
+        const std::vector<ArrayNumInputsSizeT>& width,
+        std::vector<Pivot>& out_pivots) {
 
         // Select a random pivot for the largest range we have
         // For each splitter.
@@ -396,14 +418,14 @@ private:
                 stats_.file_op_timer_.Stop();
             }
 
-            pivots[s] = Pivot {
+            out_pivots[s] = Pivot {
                 pivot_elem,
                 pivot_idx,
                 width[s][mp]
             };
         }
 
-        LOG << "Local Pivots " << VToStr(pivots);
+        LOG << "Local Pivots " << VToStr(out_pivots);
 
         // Distribute pivots globally.
 
@@ -423,8 +445,8 @@ private:
 
         // Reduce vectors of pivots globally to select the pivots from the
         // largest ranges.
-        pivots = context_.AllReduce(
-            pivots,
+        out_pivots = context_.AllReduce(
+            out_pivots,
             [reduce_pivots]
                 (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
                 assert(a.size() == b.size());
@@ -451,7 +473,7 @@ private:
     void GetGlobalRanks(
         const std::vector<Pivot>& pivots,
         std::vector<size_t>& ranks,
-        std::vector<std::vector<size_t> >& local_ranks) {
+        std::vector<ArrayNumInputsSizeT>& local_ranks) {
 
         // Simply get the rank of each pivot in each file.
         // Sum the ranks up locally.
@@ -497,10 +519,10 @@ private:
      */
     void SearchStep(
         const std::vector<size_t>& ranks,
-        std::vector<std::vector<size_t> >& local_ranks,
+        std::vector<ArrayNumInputsSizeT>& local_ranks,
         const std::vector<size_t>& target_ranks,
-        std::vector<std::vector<size_t> >& left,
-        std::vector<std::vector<size_t> >& width) {
+        std::vector<ArrayNumInputsSizeT>& left,
+        std::vector<ArrayNumInputsSizeT>& width) {
 
         // This is basically a binary search for each
         // splitter and each file.
@@ -538,19 +560,18 @@ private:
 
         // Count of all workers (and count of target partitions)
         size_t p = context_.num_workers();
-
         LOG << "Splitting to " << p << " workers";
 
         // Count of all local elements.
-        data_size_ = 0;
+        size_t local_size = 0;
 
         for (size_t i = 0; i < files_.size(); i++) {
-            data_size_ += files_[i]->num_items();
+            local_size += files_[i]->num_items();
         }
 
         // Count of all global elements.
         stats_.comm_timer_.Start();
-        size_t global_size = context_.AllReduce(data_size_);
+        size_t global_size = context_.AllReduce(local_size);
         stats_.comm_timer_.Stop();
 
         LOG << "Global size: " << global_size;
@@ -581,21 +602,16 @@ private:
         }
 
         // Search range bounds.
-        std::vector<std::vector<size_t> > left(p - 1);
-        std::vector<std::vector<size_t> > width(p - 1);
+        std::vector<ArrayNumInputsSizeT> left(p - 1);
+        std::vector<ArrayNumInputsSizeT> width(p - 1);
 
         // Auxillary arrays.
         std::vector<Pivot> pivots(p - 1);
-        std::vector<std::vector<size_t> > local_ranks(p - 1);
+        std::vector<ArrayNumInputsSizeT> local_ranks(p - 1);
 
         // Initialize all lefts with 0 and all widths with size of their
         // respective file.
         for (size_t r = 0; r < p - 1; r++) {
-            left[r] = std::vector<size_t>(num_inputs_);
-            width[r] = std::vector<size_t>(num_inputs_);
-            local_ranks[r] = std::vector<size_t>(num_inputs_);
-            std::fill(left[r].begin(), left[r].end(), 0);
-
             for (size_t q = 0; q < num_inputs_; q++) {
                 width[r][q] = files_[q]->num_items();
             }
@@ -618,7 +634,7 @@ private:
 
             // Find pivots.
             stats_.pivot_selection_timer_.Start();
-            SelectPivots(pivots, left, width);
+            SelectPivots(left, width, pivots);
             stats_.pivot_selection_timer_.Stop();
 
             LOG << "Final Pivots " << VToStr(pivots);
