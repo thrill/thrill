@@ -560,7 +560,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
     }
 
     assert(triple_chars.Size() == size_mod1);
-    assert(ranks_mod1.Size() == size_mod1);
+    die_unless(ranks_mod1.Size() == size_mod1);
     assert(ranks_mod2.Size() == size_mod1 - (input_size % 3 ? 1 : 0));
 
     size_t zip_size = size_mod1;
@@ -767,7 +767,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
 
     // check result
 
-    assert(CheckSA(input_dia, suffix_array));
+    die_unless(CheckSA(input_dia, suffix_array));
 
     return suffix_array.Collapse();
 }
