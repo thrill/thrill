@@ -61,6 +61,10 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
+    void StopPreOp(size_t /* id */) final {
+        writer_.Close();
+    }
+
     //! Executes the window operation.
     void Execute() final {
         MainOp();
@@ -131,8 +135,6 @@ private:
     size_t first_rank_;
 
     void MainOp() {
-        writer_.Close();
-
         // get rank of our first element
         first_rank_ = context_.ExPrefixSum(file_.num_items());
 

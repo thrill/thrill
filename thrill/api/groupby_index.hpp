@@ -105,10 +105,13 @@ public:
                          });
     }
 
-    /*!
-     * Actually executes the reduce operation. Uses the member functions PreOp,
-     * MainOp and PostOp.
-     */
+    void StopPreOp(size_t /* id */) final {
+        // data has been pushed during pre-op -> close emitters
+        for (size_t i = 0; i < emitter_.size(); i++) {
+            emitter_[i].Close();
+        }
+    }
+
     void Execute() override {
         MainOp();
     }
@@ -247,11 +250,6 @@ private:
         const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
-
-        // close all emitters
-        for (auto& e : emitter_) {
-            e.Close();
-        }
 
         // get incoming elements
         auto reader = stream_->OpenCatReader(true /* consume */);

@@ -55,6 +55,10 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
+    void StopPreOp(size_t /* id */) final {
+        writer_.Close();
+    }
+
     //! Executes the sum operation.
     void Execute() final {
         MainOp();
@@ -94,8 +98,6 @@ private:
     }
 
     void MainOp() {
-        writer_.Close();
-
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.flow_control_channel();
 

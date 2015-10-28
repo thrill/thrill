@@ -57,14 +57,19 @@ public:
         // node for output
         auto lop_chain = parent.stack().push(pre_op_function).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
+
+        // close all but the target
+        for (size_t i = 0; i < emitters_.size(); i++) {
+            if (i == target_id_) continue;
+            emitters_[i].Close();
+        }
+    }
+
+    void StopPreOp(size_t /* id */) final {
+        emitters_[target_id_].Close();
     }
 
     void Execute() final {
-        // data has been pushed during pre-op -> close emitters
-        for (size_t i = 0; i < emitters_.size(); i++) {
-            emitters_[i].Close();
-        }
-
         auto reader = stream_->OpenCatReader(true /* consume */);
 
         while (reader.HasNext()) {

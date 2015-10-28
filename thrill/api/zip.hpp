@@ -114,6 +114,10 @@ public:
             RegisterParent(this), parent0, parents ...);
     }
 
+    void StopPreOp(size_t id) final {
+        writers_[id].Close();
+    }
+
     void Execute() final {
         MainOp();
     }
@@ -262,9 +266,6 @@ private:
 
     //! Receive elements from other workers.
     void MainOp() {
-        for (size_t i = 0; i != writers_.size(); ++i)
-            writers_[i].Close();
-
         // first: calculate total size of the DIAs to Zip
 
         net::FlowControlChannel& fcc = context_.flow_control_channel();

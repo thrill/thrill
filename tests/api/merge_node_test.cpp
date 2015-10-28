@@ -57,10 +57,10 @@ void DoMergeAndCheckResult(
 
 TEST(MergeNode, TwoBalancedIntegerArrays) {
 
-    const size_t test_size = 5000;
+    static const size_t test_size = 5000;
 
     std::function<void(Context&)> start_func =
-        [test_size](Context& ctx) {
+        [](Context& ctx) {
 
             // even numbers in 0..9998 (evenly distributed to workers)
             auto merge_input1 = Generate(
@@ -85,11 +85,11 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
 
 TEST(MergeNode, FourBalancedIntegerArrays) {
 
-    const size_t test_size = 5000;
+    static const size_t test_size = 5000;
     static const bool debug = false;
 
     std::function<void(Context&)> start_func =
-        [test_size](Context& ctx) {
+        [](Context& ctx) {
 
             auto merge_input1 = Generate(
                 ctx,
@@ -136,10 +136,10 @@ TEST(MergeNode, FourBalancedIntegerArrays) {
 
 TEST(MergeNode, TwoImbalancedIntegerArrays) {
 
-    const size_t test_size = 5000;
+    static const size_t test_size = 5000;
 
     std::function<void(Context&)> start_func =
-        [test_size](Context& ctx) {
+        [](Context& ctx) {
 
             // numbers in 0..4999 (evenly distributed to workers)
             auto merge_input1 = Generate(
@@ -170,11 +170,11 @@ TEST(MergeNode, TwoImbalancedIntegerArrays) {
 
 TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
 
-    const size_t test_size = 5000;
-    const size_t offset = 2500;
+    static const size_t test_size = 5000;
+    static const size_t offset = 2500;
 
     std::function<void(Context&)> start_func =
-        [test_size, offset](Context& ctx) {
+        [](Context& ctx) {
 
             // numbers in 0..4999 (evenly distributed to workers)
             auto merge_input1 = Generate(
@@ -185,7 +185,7 @@ TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
             // numbers in 2500..12499
             auto merge_input2 = Generate(
                 ctx,
-                [=](size_t index) { return index + offset; },
+                [](size_t index) { return index + offset; },
                 test_size * 2);
 
             std::vector<size_t> expected;

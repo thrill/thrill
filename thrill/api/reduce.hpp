@@ -118,16 +118,15 @@ public:
                          });
     }
 
-    /*!
-     * Actually executes the reduce operation.
-     */
-    void Execute() final {
-        LOG << this->label() << " running main op";
+    void StopPreOp(size_t /* id */) final {
+        LOG << this->label() << " running StopPreOp";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
         stream_->Close();
     }
+
+    void Execute() final { }
 
     void PushData(bool consume) final {
 

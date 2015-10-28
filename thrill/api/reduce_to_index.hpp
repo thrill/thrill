@@ -128,10 +128,7 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    /*!
-     * Actually executes the reduce to index operation.
-     */
-    void Execute() final {
+    void StopPreOp(size_t /* id */) final {
         LOG << this->label() << " running main op";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
@@ -139,6 +136,11 @@ public:
         stream_->Close();
         this->WriteStreamStats(stream_);
     }
+
+    /*!
+     * Actually executes the reduce to index operation.
+     */
+    void Execute() final { }
 
     void PushData(bool consume) final {
 
