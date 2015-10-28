@@ -33,8 +33,7 @@ unsigned int size = 1000 * 1000 * 10;
 //! Network benchmarking.
 void merge_test(thrill::api::Context& ctx) {
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(std::random_device { }());
 
     auto merge_input1 = thrill::api::Generate(
         ctx,
