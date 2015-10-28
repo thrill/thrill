@@ -123,9 +123,9 @@ public:
  * finishes.
  *
  * \tparam ValueType The type of the first and second input DIA
- * \tparam ParentDiaRef0 The type of the first input DIA
- * \tparam ParentDiaRef1 The type of the second input DIA
  * \tparam Comparator The comparator defining input and output order.
+ * \tparam ParentDIA0 The type of the first input DIA
+ * \tparam ParentDIAs The types of the other input DIAs
  */
 template <typename ValueType, typename Comparator,
           typename ParentDIA0,
@@ -159,16 +159,16 @@ public:
             files_[i] = context_.GetFilePtr();
 
         for (size_t i = 0; i < num_inputs_; ++i)
-            writers_[i] = files_[i]->GetWriterPtr();
+            writers_[i] = files_[i]->GetWriter();
 
         common::VarCallForeachIndex(
             RegisterParent(this), parent0, parents ...);
     }
 
-    /*!
-     * Actually executes the merge operation. Uses the member functions PreOp,
-     * MainOp and PostOp.
-     */
+    void StopPreOp(size_t id) final {
+        writers_[id].Close();
+    }
+
     void Execute() final {
         MainOp();
     }
@@ -264,7 +264,7 @@ private:
     std::array<data::FilePtr, num_inputs_> files_;
 
     //! Writers to intermediate files
-    std::array<std::shared_ptr<data::File::Writer>, num_inputs_> writers_;
+    std::array<data::File::Writer, num_inputs_> writers_;
 
     //! Array of inbound CatStreams
     std::array<data::CatStreamPtr, num_inputs_> streams_;
@@ -336,7 +336,7 @@ private:
         void operator () (const Index&, Parent& parent) {
 
             // construct lambda with only the writer in the closure
-            data::File::Writer* writer = merge_node_->writers_[Index::index].get();
+            data::File::Writer* writer = &merge_node_->writers_[Index::index];
             auto pre_op_fn = [writer](const ValueType& input) -> void {
                                  writer->PutItem(input);
                              };
@@ -534,10 +534,6 @@ private:
      * has the same amount after merging.
      */
     void MainOp() {
-        for (size_t i = 0; i != writers_.size(); ++i) {
-            writers_[i]->Close();
-        }
-
         // *** Setup Environment for merging ***
 
         // Count of all workers (and count of target partitions)
