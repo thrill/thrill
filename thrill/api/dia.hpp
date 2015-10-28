@@ -619,7 +619,8 @@ public:
      * \param second_dia DIA, which is merged with this DIA.
      */
     template <typename Comparator = std::less<ValueType>, typename SecondDIA>
-    auto Merge(const Comparator &comparator, const SecondDIA &second_dia) const;
+    auto Merge(const SecondDIA &second_dia,
+               const Comparator& comparator = Comparator()) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum

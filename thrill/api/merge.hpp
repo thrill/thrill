@@ -775,7 +775,7 @@ auto Merge(const Comparator &comparator,
 template <typename ValueType, typename Stack>
 template <typename Comparator, typename SecondDIA>
 auto DIA<ValueType, Stack>::Merge(
-    const Comparator &comparator, const SecondDIA &second_dia) const {
+    const SecondDIA &second_dia, const Comparator &comparator) const {
     return api::Merge(comparator, *this, second_dia);
 }
 
