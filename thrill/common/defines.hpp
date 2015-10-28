@@ -60,6 +60,15 @@ namespace common {
 #define THRILL_ATTRIBUTE_PACKED
 #endif
 
+/******************************************************************************/
+// __attribute__ ((warn_unused_result))
+
+#if defined(__GNUC__) || defined(__clang__)
+#define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT __attribute__ ((warn_unused_result))
+#else
+#define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+#endif
+
 } // namespace common
 } // namespace thrill
 
