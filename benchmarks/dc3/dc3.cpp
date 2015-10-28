@@ -15,6 +15,7 @@
 #include <thrill/api/distribute_from.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
+#include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/size.hpp>
@@ -672,87 +673,77 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
 
     using StringFragment = ::StringFragment<Char>;
 
-    // Multi-way merge the three string fragment arrays: TODO(tb): currently
-    // not distributed, FAKE FAKE FAKE!
-
-    using StringFragmentIterator = typename std::vector<StringFragment>::iterator;
-
-    std::vector<StringFragment> vec_fragments_mod0 =
+    auto string_fragments_mod0 =
         sorted_fragments_mod0
         .Map([](const StringFragmentMod0& mod0)
-             { return StringFragment(mod0); })
-        .AllGather();
+             { return StringFragment(mod0); });
 
-    std::vector<StringFragment> vec_fragments_mod1 =
+    auto string_fragments_mod1 =
         sorted_fragments_mod1
         .Map([](const StringFragmentMod1& mod1)
-             { return StringFragment(mod1); })
-        .AllGather();
+             { return StringFragment(mod1); });
 
-    std::vector<StringFragment> vec_fragments_mod2 =
+    auto string_fragments_mod2 =
         sorted_fragments_mod2
         .Map([](const StringFragmentMod2& mod2)
-             { return StringFragment(mod2); })
-        .AllGather();
+             { return StringFragment(mod2); });
 
-    std::pair<StringFragmentIterator, StringFragmentIterator> seqs[3];
-    seqs[0] = std::make_pair(
-        vec_fragments_mod0.begin(), vec_fragments_mod0.end());
-    seqs[1] = std::make_pair(
-        vec_fragments_mod1.begin(), vec_fragments_mod1.end());
-    seqs[2] = std::make_pair(
-        vec_fragments_mod2.begin(), vec_fragments_mod2.end());
-
-    std::vector<StringFragment> output(input_size);
-
-    auto fragmentComparator =
+    auto fragment_comparator =
         [](const StringFragment& a, const StringFragment& b)
         {
             unsigned ai = a.index % 3, bi = b.index % 3;
-            assert(ai != bi);
 
-            if (ai == 0 && bi == 1)
+            if (ai == 0 && bi == 0)
+                return a.mod0.t0 == b.mod0.t0 ?
+                       a.mod0.r1 < b.mod0.r1 :
+                       a.mod0.t0 < b.mod0.t0;
+
+            else if (ai == 0 && bi == 1)
                 return a.mod0.t0 == b.mod1.t0 ?
                        a.mod0.r1 < b.mod1.r1 :
                        a.mod0.t0 < b.mod1.t0;
 
-            if (ai == 0 && bi == 2)
+            else if (ai == 0 && bi == 2)
                 return a.mod0.t0 == b.mod2.t0 ? (
                     a.mod0.t1 == b.mod2.t1 ?
                     a.mod0.r2 < b.mod2.r2 :
                     a.mod0.t1 < b.mod2.t1)
                        : a.mod0.t0 < b.mod2.t0;
 
-            if (ai == 1 && bi == 0)
+            else if (ai == 1 && bi == 0)
                 return a.mod1.t0 == b.mod0.t0 ?
                        a.mod1.r1 < b.mod0.r1 :
                        a.mod1.t0 < b.mod0.t0;
 
-            if (ai == 1 && bi == 2)
+            else if (ai == 1 && bi == 1)
+                return a.mod1.r0 < b.mod1.r0;
+
+            else if (ai == 1 && bi == 2)
                 return a.mod1.r0 < b.mod2.r0;
 
-            if (ai == 2 && bi == 0)
+            else if (ai == 2 && bi == 0)
                 return a.mod2.t0 == b.mod0.t0 ? (
                     a.mod2.t1 == b.mod0.t1 ?
                     a.mod2.r2 < b.mod0.r2 :
                     a.mod2.t1 < b.mod0.t1)
                        : a.mod2.t0 < b.mod0.t0;
 
-            if (ai == 2 && bi == 1)
+            else if (ai == 2 && bi == 1)
                 return a.mod2.r0 < b.mod1.r0;
+
+            else if (ai == 2 && bi == 2)
+                return a.mod2.r0 < b.mod2.r0;
 
             abort();
         };
 
-    core::sequential_multiway_merge<false, false>(
-        seqs, seqs + 3,
-        output.begin(), input_size,
-        fragmentComparator);
-
-    // map to only suffix array
+    // merge and map to only suffix array
 
     auto suffix_array =
-        Distribute<StringFragment>(ctx, output)
+        Merge(fragment_comparator,
+              string_fragments_mod0,
+              string_fragments_mod1,
+              string_fragments_mod2)
         .Map([](const StringFragment& a) { return a.index; });
 
     // debug output
