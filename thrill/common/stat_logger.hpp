@@ -39,8 +39,11 @@ private:
 
     size_t elements_ = 0;
 
+	size_t my_rank_ = 0;
+
 public:
-    StatLogger() {
+    StatLogger(size_t rank) :
+		my_rank_(rank) {
         oss_ << "{";
     }
 
@@ -116,7 +119,12 @@ public:
     ~StatLogger() {
         assert(elements_ % 2 == 0);
         oss_ << "}\n";
-        std::cout << oss_.str();
+
+
+		std::ofstream logfile(
+			"logfile" + std::to_string(my_rank_) + ".txt", std::ios_base::out | std::ios_base::app );
+        logfile << oss_.str() << std::endl;
+		logfile.close();
     }
 };
 
@@ -125,19 +133,22 @@ class StatLogger<false>
 {
 
 public:
+	
+    StatLogger(size_t) { }
+
     template <typename AnyType>
     StatLogger& operator << (const AnyType&) {
         return *this;
     }
 };
 
-#define STAT_NO_RANK ::thrill::common::StatLogger<::thrill::common::stats_enabled>()
+#define STAT_NO_RANK ::thrill::common::StatLogger<::thrill::common::stats_enabled>(0u)
 
 //! Creates a common::StatLogger with {"WorkerID":my rank in the beginning
-#define STAT(ctx) ::thrill::common::StatLogger<::thrill::common::stats_enabled>() << "worker_id" << ctx.my_rank()
-#define STATC ::thrill::common::StatLogger<::thrill::common::stats_enabled>() << "worker_id" << context_.my_rank()
+#define STAT(ctx) ::thrill::common::StatLogger<::thrill::common::stats_enabled>(ctx.my_rank()) << "worker_id" << ctx.my_rank()
+#define STATC ::thrill::common::StatLogger<::thrill::common::stats_enabled>(context_.my_rank()) << "worker_id" << context_.my_rank()
 
-#define STATC1 ::thrill::common::StatLogger<true>() << "worker_id" << context_.my_rank()
+#define STATC1 ::thrill::common::StatLogger<true>(context_.my_rank()) << "worker_id" << context_.my_rank()
 
 } // namespace common
 } // namespace thrill
