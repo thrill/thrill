@@ -68,7 +68,7 @@ public:
         size_t partition_id = hashed % ht->NumFrames();
         return IndexResult(partition_id, partition_id *
                                          ht->FrameSize() +
-                                         hashed % ht->FrameSize());
+                hashed % ht->FrameSize());
     }
 
 private:
@@ -243,6 +243,8 @@ public:
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0 && "max_partition_fill_rate "
                 "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
 
+        std::cout << "partitions: " << num_partitions << std::endl;
+
         table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_partitions_), 0.5);
 
         num_items_per_partition_ = std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_))
@@ -295,7 +297,7 @@ public:
         frame_sequence_.resize(num_partitions_, 0);
         if (flush_mode == 0)
         {
-            ComputeOneFactor(num_partitions_, ctx_.my_rank());
+ //           ComputeOneFactor(num_partitions_, ctx_.my_rank());
         }
         else if (flush_mode == 4)
         {
@@ -380,11 +382,11 @@ public:
             // flush partition, if all slots are reserved
             if (current == initial) {
 
-                if (FullPreReduce) {
-                    SpillPartition(h.partition_id);
-                } else {
+//                if (FullPreReduce) {
+//                    SpillPartition(h.partition_id);
+//                } else {
                     FlushPartition(h.partition_id);
-                }
+//                }
 
                 current->first = kv.first;
                 current->second = kv.second;
@@ -402,11 +404,11 @@ public:
 
         if (items_per_partition_[h.partition_id] > fill_rate_num_items_per_partition_)
         {
-            if (FullPreReduce) {
-                SpillPartition(h.partition_id);
-            } else {
+//            if (FullPreReduce) {
+//                SpillPartition(h.partition_id);
+//            } else {
                 FlushPartition(h.partition_id);
-            }
+//            }
         }
     }
 
@@ -450,47 +452,47 @@ public:
      */
     void Flush(bool consume = true) {
 
-        if (flush_mode == 1) {
-            size_t idx = 0;
-            for (size_t i = 0; i != num_partitions_; i++) {
-                if (i != ctx_.my_rank())
-                    frame_sequence_[idx++] = i;
-            }
-
-            if (FullPreReduce) {
-                std::vector<size_t> sum_items_per_partition_;
-                sum_items_per_partition_.resize(num_partitions_, 0);
-                for (size_t i = 0; i != num_partitions_; ++i) {
-                    sum_items_per_partition_[i] += items_per_partition_[i];
-                    sum_items_per_partition_[i] += total_items_per_partition_[i];
-                    if (consume)
-                        total_items_per_partition_[i] = 0;
-                }
-                std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
-                          [&](size_t i1, size_t i2) {
-                              return sum_items_per_partition_[i1] < sum_items_per_partition_[i2];
-                          });
-
-            } else {
-                std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
-                          [&](size_t i1, size_t i2) {
-                              return items_per_partition_[i1] < items_per_partition_[i2];
-                          });
-            }
-
-            frame_sequence_[num_partitions_-1] = ctx_.my_rank();
-        }
-
-        if (FullPreReduce) {
-            flush_function_(consume, this);
-
-        } else {
+//        if (flush_mode == 1) {
+//            size_t idx = 0;
+//            for (size_t i = 0; i != num_partitions_; i++) {
+//                if (i != ctx_.my_rank())
+//                    frame_sequence_[idx++] = i;
+//            }
+//
+//            if (FullPreReduce) {
+//                std::vector<size_t> sum_items_per_partition_;
+//                sum_items_per_partition_.resize(num_partitions_, 0);
+//                for (size_t i = 0; i != num_partitions_; ++i) {
+//                    sum_items_per_partition_[i] += items_per_partition_[i];
+//                    sum_items_per_partition_[i] += total_items_per_partition_[i];
+//                    if (consume)
+//                        total_items_per_partition_[i] = 0;
+//                }
+//                std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
+//                          [&](size_t i1, size_t i2) {
+//                              return sum_items_per_partition_[i1] < sum_items_per_partition_[i2];
+//                          });
+//
+//            } else {
+//                std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
+//                          [&](size_t i1, size_t i2) {
+//                              return items_per_partition_[i1] < items_per_partition_[i2];
+//                          });
+//            }
+//
+//            frame_sequence_[num_partitions_-1] = ctx_.my_rank();
+//        }
+//
+//        if (FullPreReduce) {
+//            flush_function_(consume, this);
+//
+//        } else {
 
             for (size_t i : frame_sequence_)
             {
                 FlushPartition(i);
             }
-        }
+//        }
     }
 
     /*!

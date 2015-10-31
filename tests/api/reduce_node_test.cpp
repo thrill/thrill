@@ -22,7 +22,7 @@
 
 using namespace thrill; // NOLINT
 
-TEST(ReduceNode, ReduceModulo2CorrectResults) {
+TEST(ReduceNode, DISABLED_ReduceModulo2CorrectResults) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -98,7 +98,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
     api::RunLocalTests(start_func);
 }
 
-TEST(ReduceNode, ReducePairToIndexCorrectResults) {
+TEST(ReduceNode, DISABLED_ReducePairToIndexCorrectResults) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -160,7 +160,7 @@ TEST(ReduceNode, ReducePairToIndexCorrectResults) {
     api::RunLocalTests(start_func);
 }
 
-TEST(ReduceNode, ReduceToIndexCorrectResults) {
+TEST(ReduceNode, DISABLED_ReduceToIndexCorrectResults) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {

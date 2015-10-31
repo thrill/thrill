@@ -37,22 +37,27 @@
 namespace thrill {
 namespace core {
 
+template <typename Key>
 class PreBucketReduceByIndexSpill
 {
 public:
     PreBucketReduceByIndexSpill() { }
 
     size_t
-    operator () (const size_t& k, const size_t& begin_local_index, const size_t& size) const {
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
-        return (k - begin_local_index) % size;
+        return (k - offset) % num_buckets_per_table;
     }
 };
 
 template <typename Key,
         typename Value,
         typename ReduceFunction,
-        typename IndexFunction = core::PreBucketReduceByIndexSpill,
+        typename IndexFunction = core::PreBucketReduceByIndexSpill<Key>,
         typename EqualToFunction = std::equal_to<Key>,
         typename KeyValuePair = std::pair<Key, Value> >
 class PreBucketReduceFlushToIndex
@@ -124,8 +129,10 @@ public:
             while (current != nullptr) {
                 for (KeyValuePair *from = current->items;
                      from != current->items + current->size; ++from) {
+
                     // insert in second reduce table
-                    size_t global_index = index_function_(from->first, begin_local_index, second_reduce.size());
+                    size_t global_index = index_function_(from->first, 1, second_reduce.size(), second_reduce.size(), begin_local_index);
+
                     BucketBlock *current_second = second_reduce[global_index];
                     while (current_second != nullptr) {
                         // iterate over valid items in a block
@@ -239,7 +246,7 @@ public:
 
             KeyValuePair kv = reader.Next<KeyValuePair>();
 
-            size_t global_index = index_function_(kv.first, begin_local_index, second_reduce.size());
+            size_t global_index = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), begin_local_index);
 
             BucketBlock *current = second_reduce[global_index];
             while (current != nullptr) {

@@ -97,7 +97,7 @@ public:
           emitters_(stream_->OpenWriters()),
           reduce_pre_table_(context_,
               parent.ctx().num_workers(), key_extractor,
-              reduce_function_, emitters_, core::PreBucketReduceByIndex(result_size),
+              reduce_function_, emitters_, core::PreBucketReduceByIndex<Key>(result_size),
               core::PreBucketReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
               neutral_element_,
               1024 * 1024 * 128 * 8, 0.9, 0.6),
@@ -106,9 +106,9 @@ public:
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostBucketReduceByIndex(),
+              core::PostBucketReduceByIndex<Key>(),
               core::PostBucketReduceFlushToIndex<Key,
-                          Value, ReduceFunction, core::PostBucketReduceByIndex>(reduce_function),
+                          Value, ReduceFunction, core::PostBucketReduceByIndex<Key> >(reduce_function),
               std::get<0>(common::CalculateLocalRange(
                               result_size_, context_.num_workers(), context_.my_rank())),
               std::get<1>(common::CalculateLocalRange(
@@ -188,12 +188,12 @@ private:
     Value neutral_element_;
 
     core::ReducePreTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PreBucketReduceFlushToIndex<Key, Value, ReduceFunction>, core::PreBucketReduceByIndex,
+        core::PreBucketReduceFlushToIndex<Key, Value, ReduceFunction>, core::PreBucketReduceByIndex<Key>,
         std::equal_to<Key>, 16*16> reduce_pre_table_;
 
     core::ReducePostTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-        core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction, core::PostBucketReduceByIndex>,
-        core::PostBucketReduceByIndex,
+        core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction, core::PostBucketReduceByIndex<Key> >,
+        core::PostBucketReduceByIndex<Key>,
         std::equal_to<Key>, 16*16> reduce_post_table_;
 
     bool reduced = false;
