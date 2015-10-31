@@ -61,7 +61,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
 }
 
 //! Test sums of integers 0..n-1 for n=100 in 1000 buckets in the reduce table
-TEST(ReduceNode, DISABLED_ReduceModulo2PairsCorrectResults) {
+TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
