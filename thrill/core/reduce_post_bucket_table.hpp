@@ -51,15 +51,16 @@ public:
             : hash_function_(hash_function)
     { }
 
-    template <typename Table>
     size_t
-    operator () (const Key& k, Table* ht, const size_t& size) const {
-
-        (void)ht;
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
         size_t hashed = hash_function_(k);
 
-        return hashed % size;
+        return hashed % num_buckets_per_table;
     }
 
 private:
@@ -67,16 +68,20 @@ private:
 };
 
 
+template <typename Key>
 class PostBucketReduceByIndex
 {
 public:
     PostBucketReduceByIndex() { }
 
-    template <typename Table>
     size_t
-    operator () (const size_t& k, Table* ht, const size_t& size) const {
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
-        return (k - ht->BeginLocalIndex()) % size;
+        return (k - offset) % num_buckets_per_table;
     }
 };
 
@@ -389,7 +394,7 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        size_t global_index = index_function_(kv.first, this, num_buckets_per_table_);
+        size_t global_index = index_function_(kv.first, num_frames_, num_buckets_per_frame_, num_buckets_per_table_, 0);
 
         assert(global_index >= 0 && global_index < num_buckets_per_table_);
 

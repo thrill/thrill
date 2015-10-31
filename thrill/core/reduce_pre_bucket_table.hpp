@@ -59,16 +59,19 @@ public:
             : hash_function_(hash_function)
     { }
 
-    template <typename Table>
     IndexResult
-    operator () (const Key& k, Table* ht) const {
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
         size_t hashed = hash_function_(k);
 
-        size_t partition_id = hashed % ht->NumFrames();
+        size_t partition_id = hashed % num_frames;
 
         return IndexResult(partition_id,
-                           partition_id * ht->NumBucketsPerFrame() + (hashed % ht->NumBucketsPerFrame()));
+                           partition_id * num_buckets_per_frame + (hashed % num_buckets_per_frame));
     }
 
 private:
@@ -76,6 +79,7 @@ private:
 };
 
 
+template <typename Key>
 class PreBucketReduceByIndex
 {
 public:
@@ -98,12 +102,15 @@ public:
             : size_(size)
     { }
 
-    template <typename Table>
     IndexResult
-    operator () (const size_t k, Table* ht) const {
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
-        return IndexResult(std::min(k * ht->NumFrames() / size_, ht->NumFrames() - 1),
-                           std::min(ht->NumBucketsPerTable() - 1, k * ht->NumBucketsPerTable() / size_));
+        return IndexResult(std::min(k * num_frames / size_, num_frames - 1),
+                           std::min(num_buckets_per_table - 1, k * num_buckets_per_table / size_));
     }
 };
 
@@ -429,7 +436,8 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        typename IndexFunction::IndexResult h = index_function_(kv.first, this);
+        typename IndexFunction::IndexResult h = index_function_(kv.first, num_partitions_,
+                                                                num_buckets_per_partition_, num_buckets_per_table_, 0);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.global_index >= 0 && h.global_index < num_buckets_per_table_);

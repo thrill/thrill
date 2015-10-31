@@ -115,8 +115,10 @@ public:
             while (current != nullptr) {
                 for (KeyValuePair *from = current->items;
                      from != current->items + current->size; ++from) {
+
                     // insert in second reduce table
-                    size_t global_index = index_function_(from->first, ht, second_reduce.size());
+                    size_t global_index = index_function_(from->first, 1, second_reduce.size(), second_reduce.size(), 0);
+
                     BucketBlock *current_second = second_reduce[global_index];
                     while (current_second != nullptr) {
                         // iterate over valid items in a block
@@ -230,7 +232,7 @@ public:
 
             KeyValuePair kv = reader.Next<KeyValuePair>();
 
-            size_t global_index = index_function_(kv.first, ht, second_reduce.size());
+            size_t global_index = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
 
             BucketBlock *current = second_reduce[global_index];
             while (current != nullptr) {
