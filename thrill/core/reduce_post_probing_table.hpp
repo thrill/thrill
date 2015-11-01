@@ -171,7 +171,7 @@ struct PostProbingEmitImpl<false, EmitterFunction, KeyValuePair, SendType>{
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename FlushFunction = core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
+          typename FlushFunction = PostProbingReduceFlush<Key, Value, ReduceFunction>,
           typename IndexFunction = PostProbingReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class ReducePostProbingTable

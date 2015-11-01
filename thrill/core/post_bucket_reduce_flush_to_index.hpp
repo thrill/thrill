@@ -117,7 +117,8 @@ public:
                      from != current->items + current->size; ++from) {
 
                     // insert in second reduce table
-                    typename IndexFunction::IndexResult h = index_function_(from->first, 1, second_reduce.size(), second_reduce.size(), 0);
+                    typename IndexFunction::IndexResult h = index_function_(from->first, 1, second_reduce.size(),
+                                                                            second_reduce.size(), begin_local_index);
 
                     BucketBlock *current_second = second_reduce[h.global_index];
                     while (current_second != nullptr) {
@@ -232,7 +233,8 @@ public:
 
             KeyValuePair kv = reader.Next<KeyValuePair>();
 
-            typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
+            typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(),
+                                                                    second_reduce.size(), begin_local_index);
 
             BucketBlock *current = second_reduce[h.global_index];
             while (current != nullptr) {

@@ -95,7 +95,8 @@ public:
             KeyValuePair &kv = items[i];
             if (kv.first != sentinel.first) {
 
-                typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
+                typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(),
+                                                                        second_reduce.size(), begin_local_index);
 
                 KeyValuePair *initial = &second_reduce[h.global_index];
                 KeyValuePair *current = initial;
@@ -159,7 +160,8 @@ public:
 
             KeyValuePair kv = reader.Next<KeyValuePair>();
 
-            typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
+            typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(),
+                                                                    second_reduce.size(), begin_local_index);
 
             KeyValuePair *initial = &second_reduce[h.global_index];
             KeyValuePair *current = initial;
@@ -275,7 +277,7 @@ public:
 
         size_t end_local_index = ht->EndLocalIndex();
 
-        std::vector <Value> elements_to_emit(end_local_index - end_local_index, neutral_element);
+        std::vector <Value> elements_to_emit(end_local_index - begin_local_index, neutral_element);
 
         Context &ctx = ht->Ctx();
 
@@ -296,8 +298,7 @@ public:
                 data::File::Reader reader = file.GetReader(consume);
 
                 Reduce(ctx, consume, ht, items, offset, length, reader, second_reduce, elements_to_emit,
-                       fill_rate_num_items_per_frame, frame_id, num_items_per_frame, sentinel,
-                       begin_local_index);
+                       fill_rate_num_items_per_frame, frame_id, num_items_per_frame, sentinel, begin_local_index);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current frame
