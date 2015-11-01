@@ -724,6 +724,24 @@ public:
         return neutral_element_;
     }
 
+    /*!
+     * Returns the begin local index.
+     *
+     * \return Begin local index.
+     */
+    size_t BeginLocalIndex() const {
+        return 0;
+    }
+
+    /*!
+     * Returns the end local index.
+     *
+     * \return End local index.
+     */
+    size_t EndLocalIndex() const {
+        return size_-1;
+    }
+
     void incrRecursiveSpills() {
         num_recursive_spills_++;
     }

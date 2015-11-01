@@ -22,6 +22,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_pre_bucket_table.hpp>
 #include <thrill/core/reduce_post_bucket_table.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
 
 #include <functional>
 #include <string>
@@ -98,7 +100,7 @@ public:
           reduce_pre_table_(context_,
               parent.ctx().num_workers(), key_extractor,
               reduce_function_, emitters_, core::PreProbingReduceByIndex<Key>(result_size),
-              core::PreBucketReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
+              core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
               neutral_element_,
               1024 * 1024 * 128 * 8, 0.9, 0.6),
           result_size_(result_size),
@@ -188,7 +190,7 @@ private:
     Value neutral_element_;
 
     core::ReducePreTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PreBucketReduceFlushToIndex<Key, Value, ReduceFunction>, core::PreProbingReduceByIndex<Key>,
+        core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>, core::PreProbingReduceByIndex<Key>,
         std::equal_to<Key>, 16*16> reduce_pre_table_;
 
     core::ReducePostTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,

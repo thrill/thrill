@@ -21,10 +21,9 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
-#include <thrill/core/pre_bucket_reduce_flush_to_index.hpp>
 #include <thrill/core/post_bucket_reduce_flush.hpp>
+#include <thrill/core/post_bucket_reduce_flush_to_index.hpp>
 #include <thrill/core/reduce_pre_probing_table.hpp>
-
 
 #include <algorithm>
 #include <cassert>
@@ -843,6 +842,24 @@ public:
     */
     Value NeutralElement() const {
         return neutral_element_;
+    }
+
+    /*!
+     * Returns the begin local index.
+     *
+     * \return Begin local index.
+     */
+    size_t BeginLocalIndex() const {
+        return 0;
+    }
+
+    /*!
+     * Returns the end local index.
+     *
+     * \return End local index.
+     */
+    size_t EndLocalIndex() const {
+        return num_buckets_per_table_-1;
     }
 
     void incrRecursiveSpills() {
