@@ -38,12 +38,12 @@ namespace thrill {
 namespace core {
 
 template <typename Key, typename HashFunction>
-class PostBucketReduceByHashKey;
+class PostProbingReduceByHashKey;
 
 template <typename Key,
         typename Value,
         typename ReduceFunction,
-        typename IndexFunction = PostBucketReduceByHashKey<Key, std::hash<Key> >,
+        typename IndexFunction = PostProbingReduceByHashKey<Key, std::hash<Key> >,
         typename EqualToFunction = std::equal_to<Key>,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostBucketReduceFlushToIndex
@@ -117,9 +117,9 @@ public:
                      from != current->items + current->size; ++from) {
 
                     // insert in second reduce table
-                    size_t global_index = index_function_(from->first, 1, second_reduce.size(), second_reduce.size(), 0);
+                    typename IndexFunction::IndexResult h = index_function_(from->first, 1, second_reduce.size(), second_reduce.size(), 0);
 
-                    BucketBlock *current_second = second_reduce[global_index];
+                    BucketBlock *current_second = second_reduce[h.global_index];
                     while (current_second != nullptr) {
                         // iterate over valid items in a block
                         for (KeyValuePair *bi = current_second->items;
@@ -144,7 +144,7 @@ public:
                         continue;
                     }
 
-                    current_second = second_reduce[global_index];
+                    current_second = second_reduce[h.global_index];
 
                     //////
                     // have an item that needs to be added.
@@ -178,8 +178,8 @@ public:
                         // allocate a new block of uninitialized items, postpend to bucket
                         current_second = block_pool.GetBlock();
                         blocks_secondary_used++;
-                        current_second->next = second_reduce[global_index];
-                        second_reduce[global_index] = current_second;
+                        current_second->next = second_reduce[h.global_index];
+                        second_reduce[h.global_index] = current_second;
                     }
 
                     // in-place construct/insert new item in current bucket block
@@ -232,9 +232,9 @@ public:
 
             KeyValuePair kv = reader.Next<KeyValuePair>();
 
-            size_t global_index = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
+            typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
 
-            BucketBlock *current = second_reduce[global_index];
+            BucketBlock *current = second_reduce[h.global_index];
             while (current != nullptr) {
                 // iterate over valid items in a block
                 for (KeyValuePair *bi = current->items;
@@ -259,7 +259,7 @@ public:
                 continue;
             }
 
-            current = second_reduce[global_index];
+            current = second_reduce[h.global_index];
 
             // have an item that needs to be added.
             if (current == nullptr ||
@@ -290,8 +290,8 @@ public:
                 // allocate a new block of uninitialized items, postpend to bucket
                 current = block_pool.GetBlock();
                 blocks_secondary_used++;
-                current->next = second_reduce[global_index];
-                second_reduce[global_index] = current;
+                current->next = second_reduce[h.global_index];
+                second_reduce[h.global_index] = current;
             }
 
             // in-place construct/insert new item in current bucket block

@@ -27,6 +27,7 @@
 #include <thrill/core/bucket_block_pool.hpp>
 #include <thrill/core/post_bucket_reduce_flush_to_index.hpp>
 #include <thrill/core/post_bucket_reduce_flush.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -42,48 +43,6 @@
 
 namespace thrill {
 namespace core {
-
-template <typename Key, typename HashFunction = std::hash<Key> >
-class PostBucketReduceByHashKey
-{
-public:
-    explicit PostBucketReduceByHashKey(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
-    { }
-
-    size_t
-    operator () (const Key& k,
-                 const size_t& num_frames,
-                 const size_t& num_buckets_per_frame,
-                 const size_t& num_buckets_per_table,
-                 const size_t& offset) const {
-
-        size_t hashed = hash_function_(k);
-
-        return hashed % num_buckets_per_table;
-    }
-
-private:
-    HashFunction hash_function_;
-};
-
-
-template <typename Key>
-class PostBucketReduceByIndex
-{
-public:
-    PostBucketReduceByIndex() { }
-
-    size_t
-    operator () (const Key& k,
-                 const size_t& num_frames,
-                 const size_t& num_buckets_per_frame,
-                 const size_t& num_buckets_per_table,
-                 const size_t& offset) const {
-
-        return (k - offset) % num_buckets_per_table;
-    }
-};
 
 /**
  *
@@ -159,7 +118,7 @@ template <typename ValueType, typename Key, typename Value, // TODO: dont need b
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
           typename FlushFunction = PostBucketReduceFlush<Key, Value, ReduceFunction>,
-          typename IndexFunction = PostBucketReduceByHashKey<Key>,
+          typename IndexFunction = PostProbingReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           size_t TargetBlockSize = 16*16
           >
@@ -394,15 +353,13 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        size_t global_index = index_function_(kv.first, num_frames_, num_buckets_per_frame_, num_buckets_per_table_, 0);
+        typename IndexFunction::IndexResult h = index_function_(kv.first, num_frames_, num_buckets_per_frame_, num_buckets_per_table_, 0);
 
-        assert(global_index >= 0 && global_index < num_buckets_per_table_);
+        assert(h.global_index >= 0 && h.global_index < num_buckets_per_table_);
 
-        size_t frame_id = global_index / num_buckets_per_frame_;
+        LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
-        LOG << "key: " << kv.first << " to bucket id: " << global_index;
-
-        BucketBlock* current = buckets_[global_index];
+        BucketBlock* current = buckets_[h.global_index];
 
         while (current != nullptr)
         {
@@ -430,7 +387,7 @@ public:
         // have an item that needs to be added.
         //////
 
-        current = buckets_[global_index];
+        current = buckets_[h.global_index];
 
         // have an item that needs to be added.
         if (current == nullptr || current->size == block_size_)
@@ -447,8 +404,8 @@ public:
 
             // allocate a new block of uninitialized items, prepend to bucket
             current = block_pool.GetBlock();
-            current->next = buckets_[global_index];
-            buckets_[global_index] = current;
+            current->next = buckets_[h.global_index];
+            buckets_[h.global_index] = current;
 
             // Total number of blocks
             num_blocks_per_table_++;
@@ -458,11 +415,11 @@ public:
         new (current->items + current->size++)KeyValuePair(kv);
 
         // Number of items per frame.
-        num_items_mem_per_frame_[frame_id]++;
+        num_items_mem_per_frame_[h.partition_id]++;
 
-        if (num_items_mem_per_frame_[frame_id] > fill_rate_num_items_mem_per_frame_)
+        if (num_items_mem_per_frame_[h.partition_id] > fill_rate_num_items_mem_per_frame_)
         {
-            SpillFrame(frame_id);
+            SpillFrame(h.partition_id);
         }
     }
 
