@@ -94,7 +94,8 @@ public:
         for (size_t i = offset; i < length; i++) {
             KeyValuePair &kv = items[i];
             if (kv.first != sentinel.first) {
-                size_t global_index = index_function_(kv.first, ht, second_reduce.size());
+
+                size_t global_index = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
 
                 KeyValuePair *initial = &second_reduce[global_index];
                 KeyValuePair *current = initial;
@@ -158,7 +159,7 @@ public:
 
             KeyValuePair kv = reader.Next<KeyValuePair>();
 
-            size_t global_index = index_function_(kv.first, ht, second_reduce.size());
+            size_t global_index = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
 
             KeyValuePair *initial = &second_reduce[global_index];
             KeyValuePair *current = initial;

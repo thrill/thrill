@@ -32,6 +32,7 @@
 #include <vector>
 #include <limits.h>
 #include <stddef.h>
+#include <sstream>
 
 namespace thrill {
 namespace core {
@@ -100,7 +101,7 @@ public:
             KeyValuePair& kv = items[i];
             if (kv.first != sentinel.first)
             {
-                size_t global_index = index_function_(kv.first, ht, second_reduce.size());
+                size_t global_index = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
 
                 KeyValuePair* initial = &second_reduce[global_index];
                 KeyValuePair* current = initial;
@@ -122,6 +123,11 @@ public:
                     else
                     {
                         ++current;
+                    }
+
+                    if (current == initial)
+                    {
+                        std::cout << "!!!!!!!Overflow!!!!!!!" << std::endl;
                     }
                 }
 
@@ -171,7 +177,7 @@ public:
 
             KeyValuePair kv = reader.Next<KeyValuePair>();
 
-            size_t global_index = index_function_(kv.first, ht, second_reduce.size());
+            size_t global_index = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
 
             KeyValuePair* initial = &second_reduce[global_index];
             KeyValuePair* current = initial;
@@ -234,19 +240,25 @@ public:
 
         // nothing spilled in second reduce
         if (frame_files_.size() == 0) {
+
             for (size_t i = 0; i < second_reduce.size(); i++) {
                 KeyValuePair &current = second_reduce[i];
                 if (current.first != sentinel.first) {
+
                     if (emit) {
                         ht->EmitAll(current, frame_id);
                     }
-                    second_reduce[i] = sentinel;
+                    second_reduce[i].first = sentinel.first;
+                    second_reduce[i].second = sentinel.second;
                 }
             }
         }
 
-            // spilling was required, need to reduce again
+        // spilling was required, need to reduce again
         else {
+
+            std::cout << "!!!!!recursive spill!!!!" << std::endl;
+
             // spill into files
             Spill(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], sentinel);
             Spill(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], sentinel);
@@ -305,7 +317,7 @@ public:
 
             // compute frame offset of current frame
             size_t offset = frame_id * frame_size;
-            size_t length = offset + frame_size;
+            size_t length = (frame_id + 1) * frame_size;
 
             // only if items have been spilled, process a second reduce
             if (file.num_items() > 0)
@@ -315,8 +327,8 @@ public:
                 Reduce(ctx, consume, ht, items, offset, length, reader, second_reduce,
                        fill_rate_num_items_per_frame, frame_id, sentinel);
 
-                // no spilled items, just flush already reduced
-                // data in primary table in current frame
+            // no spilled items, just flush already reduced
+            // data in primary table in current frame
             }
             else
             {
