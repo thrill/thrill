@@ -46,31 +46,36 @@ public:
             : hash_function_(hash_function)
     { }
 
-    template <typename Table>
     size_t
-    operator () (const Key& k, Table* ht, const size_t& size) const {
-
-        (void)ht;
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
         size_t hashed = hash_function_(k);
 
-        return hashed % size;
+        return hashed % num_buckets_per_table;
     }
 
 private:
     HashFunction hash_function_;
 };
 
+template <typename Key>
 class PostProbingReduceByIndex
 {
 public:
     PostProbingReduceByIndex() { }
 
-    template <typename Table>
     size_t
-    operator () (const size_t& k, Table* ht, const size_t& size) const {
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
-        return (k - ht->BeginLocalIndex()) % size;
+        return (k - offset) % num_buckets_per_table;
     }
 };
 
@@ -120,7 +125,7 @@ struct PostProbingEmitImpl;
 template <typename EmitterFunction, typename KeyValuePair, typename SendType>
 struct PostProbingEmitImpl<true, EmitterFunction, KeyValuePair, SendType>{
     void EmitElement(const KeyValuePair& p, EmitterFunction emit) {
-        emit(p);
+        emit(std::make_pair(p.first, p.second));
     }
 };
 
@@ -188,7 +193,7 @@ public:
                            double max_frame_fill_rate = 0.5,
                            double frame_rate = 0.01,
                            const EqualToFunction& equal_to_function = EqualToFunction(),
-                           double table_rate_multiplier = 1.1)
+                           double table_rate_multiplier = 4.0)
         : ctx_(ctx),
           byte_size_(byte_size),
           max_frame_fill_rate_(max_frame_fill_rate),
@@ -241,9 +246,7 @@ public:
 
         // set up second table
         second_table_size_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
-                                                              / static_cast<double>(sizeof(KeyValuePair))), 1);
-
-        fill_rate_num_items_second_reduce_ = (size_t)(second_table_size_ * max_frame_fill_rate_);
+                                                              / static_cast<double>(sizeof(KeyValuePair))), 2);
 
         // ensure size of second table is even, in order to be able to split by half for spilling
         if (second_table_size_ % 2 != 0) {
@@ -255,11 +258,13 @@ public:
 
         second_table_.resize(second_table_size_, sentinel_);
 
+        fill_rate_num_items_second_reduce_ = (size_t)(second_table_size_ * max_frame_fill_rate_);
+
         frame_sequence_.resize(num_frames_, 0);
         size_t idx = 0;
         for (size_t i=0; i<num_frames_; i++)
         {
-            frame_sequence_[idx++] = i;
+            frame_sequence_[i] = i;
         }
     }
 
@@ -280,6 +285,7 @@ public:
      * inserts the pair into the hashtable.
      */
     void Insert(const Value& p) {
+
         Insert(std::make_pair(key_extractor_(p), p));
     }
 
@@ -297,15 +303,15 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        size_t global_index = index_function_(kv.first, this, size_);
+        size_t global_index = index_function_(kv.first, num_frames_, frame_size_, size_, 0);
+
+        size_t frame_id = global_index / frame_size_;
 
         assert(global_index >= 0 && global_index < size_);
 
         KeyValuePair* initial = &items_[global_index];
         KeyValuePair* current = initial;
-        KeyValuePair* last_item = &items_[size_ - 1];
-
-        size_t frame_id = global_index / frame_size_;
+        KeyValuePair* last_item = &items_[(frame_id + 1) * frame_size_ - 1];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
@@ -322,7 +328,7 @@ public:
 
             if (current == last_item)
             {
-                current -= (size_ - 1);
+                current -= (frame_size_ - 1);
             }
             else
             {
@@ -346,7 +352,9 @@ public:
         }
 
         // insert data
-        *current = kv;
+        //*current = kv;
+        current->first = kv.first;
+        current->second = kv.second;
         // increase counter for frame
         items_per_frame_[frame_id]++;
 
@@ -362,19 +370,18 @@ public:
      * \param frame_id The id of the frame to be spilled.
      */
     void SpillFrame(size_t frame_id) {
+
         data::File::Writer& writer = frame_writers_[frame_id];
 
-        size_t offset = frame_id * frame_size_;
-        size_t length = (frame_id != num_frames_ - 1) ? offset + frame_size_ : size_;
-
-        for (size_t global_index = offset;
-             global_index < length; global_index++)
+        for (size_t i = frame_id * frame_size_;
+             i < (frame_id + 1) * frame_size_; i++)
         {
-            KeyValuePair& current = items_[global_index];
+            KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
             {
                 writer.PutItem(current);
-                items_[global_index] = sentinel_;
+                items_[i].first = sentinel_.first;
+                items_[i].second = sentinel_.second;
             }
         }
 

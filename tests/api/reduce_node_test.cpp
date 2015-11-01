@@ -22,7 +22,7 @@
 
 using namespace thrill; // NOLINT
 
-TEST(ReduceNode, DISABLED_ReduceModulo2CorrectResults) {
+TEST(ReduceNode, ReduceModulo2CorrectResults) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -71,7 +71,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return IntPair(index % 1000, index / 1000);
+                    return IntPair((index % 1000) + 1, index / 1000);
                 },
                 100000u);
 

@@ -59,23 +59,26 @@ public:
             : hash_function_(hash_function)
     { }
 
-    template <typename Table>
     IndexResult
-    operator () (const Key& k, Table* ht) const {
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
         size_t hashed = hash_function_(k);
 
-        size_t partition_id = hashed % ht->NumFrames();
+        size_t partition_id = hashed % num_frames;
         return IndexResult(partition_id, partition_id *
-                                         ht->FrameSize() +
-                hashed % ht->FrameSize());
+                                                 num_buckets_per_frame +
+                hashed % num_buckets_per_frame);
     }
 
 private:
     HashFunction hash_function_;
 };
 
-
+template <typename Key>
 class PreProbingReduceByIndex
 {
 public:
@@ -98,12 +101,15 @@ public:
             : size_(size)
     { }
 
-    template <typename Table>
     IndexResult
-    operator () (const size_t& k, Table* ht) const {
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
-        return IndexResult(std::min(k * ht->NumFrames() / size_, ht->NumFrames()-1),
-                           std::min(k * ht->Size() / size_, ht->Size()-1));
+        return IndexResult(std::min(k * num_frames / size_, num_frames-1),
+                           std::min(k * num_buckets_per_table / size_, num_buckets_per_table-1));
     }
 };
 
@@ -161,7 +167,7 @@ struct PreProbingEmitImpl<true, Emitters, KeyValuePair>{
 template <typename Emitters, typename KeyValuePair>
 struct PreProbingEmitImpl<false, Emitters, KeyValuePair>{
     void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
-        emit[partition_id](p);
+        emit[partition_id](std::make_pair(p.first, p.second));
     }
 };
 
@@ -243,8 +249,6 @@ public:
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0 && "max_partition_fill_rate "
                 "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
 
-        std::cout << "partitions: " << num_partitions << std::endl;
-
         table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_partitions_), 0.5);
 
         num_items_per_partition_ = std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_))
@@ -276,9 +280,7 @@ public:
 
         // set up second table
         second_table_size_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
-                                                       / static_cast<double>(sizeof(KeyValuePair))), 1);
-
-        fill_rate_num_items_second_reduce_ = (size_t)(second_table_size_ * max_partition_fill_rate_);
+                                                       / static_cast<double>(sizeof(KeyValuePair))), 2);
 
         // ensure size of second table is even, in order to be able to split by half for spilling
         if (second_table_size_ % 2 != 0) {
@@ -290,6 +292,8 @@ public:
 
         second_table_.resize(second_table_size_, sentinel_);
 
+        fill_rate_num_items_second_reduce_ = (size_t)(second_table_size_ * max_partition_fill_rate_);
+
         for (size_t i = 0; i < emit.size(); i++) {
             emit_stats_.push_back(0);
         }
@@ -297,7 +301,7 @@ public:
         frame_sequence_.resize(num_partitions_, 0);
         if (flush_mode == 0)
         {
- //           ComputeOneFactor(num_partitions_, ctx_.my_rank());
+            ComputeOneFactor(num_partitions_, ctx_.my_rank());
         }
         else if (flush_mode == 4)
         {
@@ -347,15 +351,15 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        typename IndexFunction::IndexResult h = index_function_(kv.first, this);
+        typename IndexFunction::IndexResult h = index_function_(kv.first, num_partitions_,
+                                                                num_items_per_partition_, size_, 0);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.global_index >= 0 && h.global_index < size_);
 
-        KeyValuePair *initial = &items_[h.global_index];
-        KeyValuePair *current = initial;
-        KeyValuePair *last_item = &items_[h.global_index - (h.global_index % num_items_per_partition_)
-                                          + num_items_per_partition_ - 1];
+        KeyValuePair* initial = &items_[h.global_index];
+        KeyValuePair* current = initial;
+        KeyValuePair* last_item = &items_[(h.partition_id + 1) * num_items_per_partition_ - 1];
 
         while (!equal_to_function_(current->first, sentinel_.first)) {
             if (equal_to_function_(current->first, kv.first)) {
@@ -382,11 +386,11 @@ public:
             // flush partition, if all slots are reserved
             if (current == initial) {
 
-//                if (FullPreReduce) {
-//                    SpillPartition(h.partition_id);
-//                } else {
+                if (FullPreReduce) {
+                    SpillPartition(h.partition_id);
+                } else {
                     FlushPartition(h.partition_id);
-//                }
+                }
 
                 current->first = kv.first;
                 current->second = kv.second;
@@ -398,17 +402,19 @@ public:
         }
 
         // insert new pair
-        *current = kv;
+        //*current = kv;
+        current->first = kv.first;
+        current->second = kv.second;
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
 
         if (items_per_partition_[h.partition_id] > fill_rate_num_items_per_partition_)
         {
-//            if (FullPreReduce) {
-//                SpillPartition(h.partition_id);
-//            } else {
+            if (FullPreReduce) {
+                SpillPartition(h.partition_id);
+            } else {
                 FlushPartition(h.partition_id);
-//            }
+            }
         }
     }
 
@@ -422,14 +428,14 @@ public:
         size_t offset = partition_id * num_items_per_partition_;
         size_t length = offset + num_items_per_partition_;
 
-        for (size_t global_index = offset;
-             global_index < length; global_index++)
+        for (size_t i = partition_id * num_items_per_partition_;
+             i < (partition_id + 1) * num_items_per_partition_; i++)
         {
-            KeyValuePair& current = items_[global_index];
+            KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
             {
                 writer.PutItem(current);
-                items_[global_index] = sentinel_;
+                items_[i] = sentinel_;
             }
         }
 
@@ -452,47 +458,47 @@ public:
      */
     void Flush(bool consume = true) {
 
-//        if (flush_mode == 1) {
-//            size_t idx = 0;
-//            for (size_t i = 0; i != num_partitions_; i++) {
-//                if (i != ctx_.my_rank())
-//                    frame_sequence_[idx++] = i;
-//            }
-//
-//            if (FullPreReduce) {
-//                std::vector<size_t> sum_items_per_partition_;
-//                sum_items_per_partition_.resize(num_partitions_, 0);
-//                for (size_t i = 0; i != num_partitions_; ++i) {
-//                    sum_items_per_partition_[i] += items_per_partition_[i];
-//                    sum_items_per_partition_[i] += total_items_per_partition_[i];
-//                    if (consume)
-//                        total_items_per_partition_[i] = 0;
-//                }
-//                std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
-//                          [&](size_t i1, size_t i2) {
-//                              return sum_items_per_partition_[i1] < sum_items_per_partition_[i2];
-//                          });
-//
-//            } else {
-//                std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
-//                          [&](size_t i1, size_t i2) {
-//                              return items_per_partition_[i1] < items_per_partition_[i2];
-//                          });
-//            }
-//
-//            frame_sequence_[num_partitions_-1] = ctx_.my_rank();
-//        }
-//
-//        if (FullPreReduce) {
-//            flush_function_(consume, this);
-//
-//        } else {
+        if (flush_mode == 1) {
+            size_t idx = 0;
+            for (size_t i = 0; i != num_partitions_; i++) {
+                if (i != ctx_.my_rank())
+                    frame_sequence_[idx++] = i;
+            }
+
+            if (FullPreReduce) {
+                std::vector<size_t> sum_items_per_partition_;
+                sum_items_per_partition_.resize(num_partitions_, 0);
+                for (size_t i = 0; i != num_partitions_; ++i) {
+                    sum_items_per_partition_[i] += items_per_partition_[i];
+                    sum_items_per_partition_[i] += total_items_per_partition_[i];
+                    if (consume)
+                        total_items_per_partition_[i] = 0;
+                }
+                std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
+                          [&](size_t i1, size_t i2) {
+                              return sum_items_per_partition_[i1] < sum_items_per_partition_[i2];
+                          });
+
+            } else {
+                std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
+                          [&](size_t i1, size_t i2) {
+                              return items_per_partition_[i1] < items_per_partition_[i2];
+                          });
+            }
+
+            frame_sequence_[num_partitions_-1] = ctx_.my_rank();
+        }
+
+        if (FullPreReduce) {
+            flush_function_(consume, this);
+
+        } else {
 
             for (size_t i : frame_sequence_)
             {
                 FlushPartition(i);
             }
-//        }
+        }
     }
 
     /*!
@@ -505,7 +511,7 @@ public:
         << partition_id;
 
         for (size_t i = partition_id * num_items_per_partition_;
-             i < partition_id * num_items_per_partition_ + num_items_per_partition_; i++)
+             i < (partition_id + 1) * num_items_per_partition_; i++)
         {
             KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
@@ -514,7 +520,8 @@ public:
                     EmitAll(current, partition_id);
                 }
 
-                items_[i] = sentinel_;
+                items_[i].first = sentinel_.first;
+                items_[i].second = sentinel_.second;
             }
         }
 
