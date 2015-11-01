@@ -69,6 +69,7 @@ public:
         size_t hashed = hash_function_(k);
 
         size_t partition_id = hashed % num_frames;
+
         return IndexResult(partition_id, partition_id *
                                                  num_buckets_per_frame +
                 hashed % num_buckets_per_frame);

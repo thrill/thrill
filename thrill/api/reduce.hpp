@@ -98,12 +98,12 @@ public:
 //          reduce_pre_table_(context_,
 //              parent.ctx().num_workers(), key_extractor,
 //              reduce_function_, emitters_,
-//              core::PreBucketReduceByHashKey<Key>(),
+//              core::PreProbingReduceByHashKey<Key>(),
 //              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function), Value(), 1000000000, 1.0, 0.6),
 //          reduce_post_table_(
 //              context_, key_extractor_, reduce_function_,
 //              [this](const ValueType& item) { return this->PushItem(item); },
-//              core::PostBucketReduceByHashKey<Key>(),
+//              core::PostProbingReduceByHashKey<Key>(),
 //              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
 //              0, 0, Value(), 1000000000, 1.0, 0.6, 0.01)
           reduce_pre_table_(context_,
@@ -200,12 +200,12 @@ private:
 
 //    core::ReducePreTable<
 //            ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-//            core::PostBucketReduceFlush<Key, Value, ReduceFunction>, core::PreBucketReduceByHashKey<Key>,
+//            core::PostBucketReduceFlush<Key, Value, ReduceFunction>, core::PreProbingReduceByHashKey<Key>,
 //            std::equal_to<Key>, 32 * 16, false> reduce_pre_table_;
 //
 //    core::ReducePostTable<
 //            ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-//            core::PostBucketReduceFlush<Key, Value, ReduceFunction>, core::PostBucketReduceByHashKey<Key>,
+//            core::PostBucketReduceFlush<Key, Value, ReduceFunction>, core::PostProbingReduceByHashKey<Key>,
 //            std::equal_to<Key>, 32 * 16> reduce_post_table_;
 
     bool reduced = false;

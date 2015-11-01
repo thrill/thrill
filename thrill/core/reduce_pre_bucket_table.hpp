@@ -23,6 +23,7 @@
 #include <thrill/core/bucket_block_pool.hpp>
 #include <thrill/core/pre_bucket_reduce_flush_to_index.hpp>
 #include <thrill/core/post_bucket_reduce_flush.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
 
 
 #include <algorithm>
@@ -37,82 +38,6 @@
 
 namespace thrill {
 namespace core {
-
-template <typename Key, typename HashFunction = std::hash<Key> >
-class PreBucketReduceByHashKey
-{
-public:
-    struct IndexResult {
-    public:
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the whole hashtable
-        size_t global_index;
-
-        IndexResult(size_t p_id, size_t g_id) {
-            partition_id = p_id;
-            global_index = g_id;
-        }
-    };
-
-    explicit PreBucketReduceByHashKey(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
-    { }
-
-    IndexResult
-    operator () (const Key& k,
-                 const size_t& num_frames,
-                 const size_t& num_buckets_per_frame,
-                 const size_t& num_buckets_per_table,
-                 const size_t& offset) const {
-
-        size_t hashed = hash_function_(k);
-
-        size_t partition_id = hashed % num_frames;
-
-        return IndexResult(partition_id,
-                           partition_id * num_buckets_per_frame + (hashed % num_buckets_per_frame));
-    }
-
-private:
-    HashFunction hash_function_;
-};
-
-
-template <typename Key>
-class PreBucketReduceByIndex
-{
-public:
-    size_t size_;
-
-    struct IndexResult {
-    public:
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the whole hashtable
-        size_t global_index;
-
-        IndexResult(size_t p_id, size_t g_id) {
-            partition_id = p_id;
-            global_index = g_id;
-        }
-    };
-
-    explicit PreBucketReduceByIndex(size_t size)
-            : size_(size)
-    { }
-
-    IndexResult
-    operator () (const Key& k,
-                 const size_t& num_frames,
-                 const size_t& num_buckets_per_frame,
-                 const size_t& num_buckets_per_table,
-                 const size_t& offset) const {
-
-        return IndexResult(std::min(k * num_frames / size_, num_frames - 1),
-                           std::min(num_buckets_per_table - 1, k * num_buckets_per_table / size_));
-    }
-};
 
 /**
  *
@@ -188,7 +113,7 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
           typename FlushFunction = PostBucketReduceFlush<Key, Value, ReduceFunction>,
-          typename IndexFunction = PreBucketReduceByHashKey<Key>,
+          typename IndexFunction = PreProbingReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           size_t TargetBlockSize = 16*16,
           const bool FullPreReduce = false>

@@ -101,9 +101,9 @@ public:
             KeyValuePair& kv = items[i];
             if (kv.first != sentinel.first)
             {
-                size_t global_index = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
+                typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
 
-                KeyValuePair* initial = &second_reduce[global_index];
+                KeyValuePair* initial = &second_reduce[h.global_index];
                 KeyValuePair* current = initial;
                 KeyValuePair* last_item = &second_reduce[second_reduce.size() - 1];
 
@@ -177,9 +177,9 @@ public:
 
             KeyValuePair kv = reader.Next<KeyValuePair>();
 
-            size_t global_index = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
+            typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
 
-            KeyValuePair* initial = &second_reduce[global_index];
+            KeyValuePair* initial = &second_reduce[h.global_index];
             KeyValuePair* current = initial;
             KeyValuePair* last_item = &second_reduce[second_reduce.size() - 1];
 

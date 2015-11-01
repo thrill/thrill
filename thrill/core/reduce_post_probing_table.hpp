@@ -42,11 +42,24 @@ template <typename Key, typename HashFunction = std::hash<Key> >
 class PostProbingReduceByHashKey
 {
 public:
+    struct IndexResult {
+    public:
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the whole hashtable
+        size_t global_index;
+
+        IndexResult(size_t p_id, size_t g_id) {
+            partition_id = p_id;
+            global_index = g_id;
+        }
+    };
+
     explicit PostProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
             : hash_function_(hash_function)
     { }
 
-    size_t
+    IndexResult
     operator () (const Key& k,
                  const size_t& num_frames,
                  const size_t& num_buckets_per_frame,
@@ -55,7 +68,11 @@ public:
 
         size_t hashed = hash_function_(k);
 
-        return hashed % num_buckets_per_table;
+        size_t partition_id = hashed % num_frames;
+
+        return IndexResult(partition_id, partition_id *
+                                         num_buckets_per_frame +
+                                         hashed % num_buckets_per_frame);
     }
 
 private:
@@ -66,16 +83,31 @@ template <typename Key>
 class PostProbingReduceByIndex
 {
 public:
+    struct IndexResult {
+    public:
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the whole hashtable
+        size_t global_index;
+
+        IndexResult(size_t p_id, size_t g_id) {
+            partition_id = p_id;
+            global_index = g_id;
+        }
+    };
+
     PostProbingReduceByIndex() { }
 
-    size_t
+    IndexResult
     operator () (const Key& k,
                  const size_t& num_frames,
                  const size_t& num_buckets_per_frame,
                  const size_t& num_buckets_per_table,
                  const size_t& offset) const {
 
-        return (k - offset) % num_buckets_per_table;
+        size_t result = (k - offset) % num_buckets_per_table;
+
+        return IndexResult(result / num_frames, result);
     }
 };
 
@@ -303,15 +335,13 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        size_t global_index = index_function_(kv.first, num_frames_, frame_size_, size_, 0);
+        typename IndexFunction::IndexResult h = index_function_(kv.first, num_frames_, frame_size_, size_, 0);
 
-        size_t frame_id = global_index / frame_size_;
+        assert(h.global_index >= 0 && h.global_index < size_);
 
-        assert(global_index >= 0 && global_index < size_);
-
-        KeyValuePair* initial = &items_[global_index];
+        KeyValuePair* initial = &items_[h.global_index];
         KeyValuePair* current = initial;
-        KeyValuePair* last_item = &items_[(frame_id + 1) * frame_size_ - 1];
+        KeyValuePair* last_item = &items_[(h.partition_id + 1) * frame_size_ - 1];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
@@ -339,13 +369,13 @@ public:
             // are occupied
             if (current == initial)
             {
-                SpillFrame(frame_id);
+                SpillFrame(h.partition_id);
 
                 current->first = kv.first;
                 current->second = kv.second;
 
                 // increase counter for partition
-                items_per_frame_[frame_id]++;
+                items_per_frame_[h.partition_id]++;
 
                 return;
             }
@@ -356,11 +386,11 @@ public:
         current->first = kv.first;
         current->second = kv.second;
         // increase counter for frame
-        items_per_frame_[frame_id]++;
+        items_per_frame_[h.partition_id]++;
 
-        if (items_per_frame_[frame_id] > fill_rate_num_items_per_frame_)
+        if (items_per_frame_[h.partition_id] > fill_rate_num_items_per_frame_)
         {
-            SpillFrame(frame_id);
+            SpillFrame(h.partition_id);
         }
     }
 
