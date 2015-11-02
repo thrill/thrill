@@ -195,9 +195,9 @@ public:
                     size_t byte_size = 1024 * 16,
                     double bucket_rate = 1.0,
                     double max_frame_fill_rate = 0.5,
-                    double frame_rate = 0.01,
+                    double frame_rate = 0.1,
                     const EqualToFunction& equal_to_function = EqualToFunction(),
-                    double table_rate_multiplier = 1.1)
+                    double table_rate_multiplier = 1.05)
         : ctx_(ctx),
           max_frame_fill_rate_(max_frame_fill_rate),
           emit_(emit),

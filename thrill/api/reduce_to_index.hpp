@@ -102,7 +102,7 @@ public:
               reduce_function_, emitters_, core::PreProbingReduceByIndex<Key>(result_size),
               core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
               neutral_element_,
-              1024 * 1024 * 128 * 8, 0.9, 0.6),
+              1024 * 16, 0.9, 0.6),
           result_size_(result_size),
           neutral_element_(neutral_element),
           reduce_post_table_(
@@ -116,7 +116,7 @@ public:
               std::get<1>(common::CalculateLocalRange(
                               result_size_, context_.num_workers(), context_.my_rank())),
               neutral_element_,
-              1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
+              1024 * 16, 0.9, 0.6, 0.01)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another

@@ -98,7 +98,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
     api::RunLocalTests(start_func);
 }
 
-TEST(ReduceNode, DISABLED_ReducePairToIndexCorrectResults) {
+TEST(ReduceNode, ReducePairToIndexCorrectResults) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -160,7 +160,7 @@ TEST(ReduceNode, DISABLED_ReducePairToIndexCorrectResults) {
     api::RunLocalTests(start_func);
 }
 
-TEST(ReduceNode, DISABLED_ReduceToIndexCorrectResults) {
+TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
