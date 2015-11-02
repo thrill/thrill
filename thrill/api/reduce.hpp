@@ -99,13 +99,13 @@ public:
               parent.ctx().num_workers(), key_extractor,
               reduce_function_, emitters_,
               core::PreProbingReduceByHashKey<Key>(),
-              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function), Value(), 1000000000, 1.0, 0.6),
+              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function), Value(), 1000000, 1.0, 0.6),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
               core::PostProbingReduceByHashKey<Key>(),
               core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-              0, 0, Value(), 1000000000, 1.0, 0.6, 0.01)
+              0, 0, Value(), 100000, 1.0, 0.6, 0.1)
 //          reduce_pre_table_(context_,
 //                            parent.ctx().num_workers(), key_extractor,
 //                            reduce_function_, emitters_,

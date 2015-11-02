@@ -66,6 +66,9 @@ public:
                  const size_t& num_buckets_per_table,
                  const size_t& offset) const {
 
+        (void)num_buckets_per_table;
+        (void)offset;
+
         size_t hashed = hash_function_(k);
 
         size_t partition_id = hashed % num_frames;
@@ -109,8 +112,11 @@ public:
                  const size_t& num_buckets_per_table,
                  const size_t& offset) const {
 
-        return IndexResult(std::min(k * num_frames / size_, num_frames-1),
-                           std::min(k * num_buckets_per_table / size_, num_buckets_per_table-1));
+        (void)num_buckets_per_frame;
+        (void)offset;
+
+        return IndexResult(k * num_frames / size_,
+                           k * num_buckets_per_table / size_);
     }
 };
 

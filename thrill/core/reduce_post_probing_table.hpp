@@ -66,6 +66,9 @@ public:
                  const size_t& num_buckets_per_table,
                  const size_t& offset) const {
 
+        (void)num_buckets_per_table;
+        (void)offset;
+
         size_t hashed = hash_function_(k);
 
         size_t partition_id = hashed % num_frames;
@@ -104,6 +107,8 @@ public:
                  const size_t& num_buckets_per_frame,
                  const size_t& num_buckets_per_table,
                  const size_t& offset) const {
+
+        (void)num_buckets_per_frame;
 
         size_t result = (k - offset) % num_buckets_per_table;
 
@@ -223,9 +228,9 @@ public:
                            const Value& neutral_element = Value(),
                            size_t byte_size = 1024 * 16,
                            double max_frame_fill_rate = 0.5,
-                           double frame_rate = 0.01,
+                           double frame_rate = 0.1,
                            const EqualToFunction& equal_to_function = EqualToFunction(),
-                           double table_rate_multiplier = 4.0)
+                           double table_rate_multiplier = 1.05)
         : ctx_(ctx),
           byte_size_(byte_size),
           max_frame_fill_rate_(max_frame_fill_rate),
