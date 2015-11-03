@@ -55,6 +55,7 @@ ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool swapable, bool pin
 }
 
 void BlockPool::UnpinBlock(ByteBlock* block_ptr) {
+    return; // -tb: disable for now
     std::lock_guard<std::mutex> lock(pin_mutex_);
     LOG << "unpinning block @" << block_ptr;
     if (--(block_ptr->pin_count_) == 0) {

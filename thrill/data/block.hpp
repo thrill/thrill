@@ -60,6 +60,7 @@ public:
           first_item_(first_item), num_items_(num_items), pinned_(false)
     { }
 
+#if 0
     //! Moves the block - the pinned property is moved as well
     //! the 'other' block is afterwards unpinned
     Block(Block&& other) {
@@ -98,6 +99,7 @@ public:
             byte_block_->IncreasePinCount();
         return *this;
     }
+#endif
 
     //! Return whether the enclosed ByteBlock is valid.
     bool IsValid() const {
@@ -180,7 +182,7 @@ public:
         // future required for passing result from backgroud thread (which calls the callback) back to caller's thread
         common::Future<Block>* result = new common::Future<Block>();
         // pinned blocks can be returned straigt away
-        if (pinned_) {
+        if (pinned_ || 1) {
             sLOG << "block " << byte_block_->data_ << " was already pinned";
             *result << Block(*this);
         }
@@ -198,9 +200,11 @@ public:
         return result;
     }
 
+#if 0
     Block && UnpinnedCopy() {
         return std::move(Block(byte_block_, begin_, end_, first_item_, num_items_, false));
     }
+#endif
 
 protected:
     //! Creates a block that points to the given data::ByteBlock with the given offsets
@@ -240,6 +244,7 @@ protected:
 
     //! Unpins the underlying byte block if it is valid and pinned
     void UnpinMaybe() {
+        return; // -tb: disable for now.
         if (byte_block_ && pinned_)
             byte_block_->DecreasePinCount();
     }
