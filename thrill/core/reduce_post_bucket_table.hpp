@@ -263,16 +263,14 @@ public:
 
         // set up second table
         max_num_blocks_second_reduce_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
-                                                              / static_cast<double>(sizeof(BucketBlock))), 0);
-
-        max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 1);
+                                                              / static_cast<double>(sizeof(BucketBlock))), 2);
 
         max_num_items_second_reduce_ = max_num_blocks_second_reduce_ * block_size_;
 
         fill_rate_num_items_second_reduce_ = (size_t)(max_num_items_second_reduce_ * max_frame_fill_rate_);
 
         second_table_size_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_second_reduce_)
-                                                           * bucket_rate), 1);
+                                                           * bucket_rate), 2);
 
         // ensure size of second table is even, in order to be able to split by half for spilling
         if (second_table_size_ % 2 != 0) {
@@ -283,7 +281,7 @@ public:
         max_num_blocks_second_reduce_ -= std::max<size_t>((size_t)(std::ceil(
                 static_cast<double>(second_table_size_ * sizeof(BucketBlock*))
                 / static_cast<double>(sizeof(BucketBlock)))), 0);
-        max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 1);
+        max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 2);
 
         assert(max_num_blocks_second_reduce_ > 0);
         assert(max_num_items_second_reduce_ > 0);
