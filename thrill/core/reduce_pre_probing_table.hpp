@@ -425,9 +425,6 @@ public:
 
         data::File::Writer& writer = partition_writers_[partition_id];
 
-        size_t offset = partition_id * num_items_per_partition_;
-        size_t length = offset + num_items_per_partition_;
-
         for (size_t i = partition_id * num_items_per_partition_;
              i < (partition_id + 1) * num_items_per_partition_; i++)
         {
