@@ -13,7 +13,7 @@
 #include <thrill/net/manager.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/core/reduce_pre_probing_table.hpp>
-#include <thrill/core/post_probing_reduce_flush.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
 
 #include <functional>
 #include <string>
@@ -50,14 +50,20 @@ public:
         : hash_function_(hash_function)
     { }
 
-    template <typename Table>
     IndexResult
-    operator () (const Key& v, Table* ht) const {
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
-        size_t global_index = v / 2;
+        size_t global_index = k / 2;
         size_t partition_id = 0;
 
-        (void)ht;
+        (void)num_frames;
+        (void)num_buckets_per_frame;
+        (void)num_buckets_per_table;
+        (void)offset;
 
         return IndexResult(partition_id, global_index);
     }
@@ -85,9 +91,9 @@ TEST_F(PreTable, CustomHashFunction) {
         writers.emplace_back(output.GetDynWriter());
 
         CustomKeyHashFunction<int> cust_hash;
-                core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
-                        core::PostProbingReduceFlush<int, int, decltype(red_fn) >,
-                                    CustomKeyHashFunction<int> >
+        core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
+                core::PostProbingReduceFlush<int, int, decltype(red_fn) >,
+                CustomKeyHashFunction<int> >
         table(ctx, 1, key_ex, red_fn, writers, -1, cust_hash,
               core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 1024 * 16, 0.5);
 
@@ -348,7 +354,8 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
 
     core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
         table(ctx, 1, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
-              core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 2 * 4 * 2 * 4, 0.5);
+              core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 2 * 4 * 2 * 4, 0.5,
+              std::equal_to<int>(), 0.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -457,7 +464,8 @@ TEST_F(PreTable, ComplexType) {
 
     core::ReducePreProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, "", core::PreProbingReduceByHashKey<std::string>(),
-                  core::PostProbingReduceFlush<std::string, StringPair, decltype(red_fn)>(red_fn), sp, 2 * 3 * kv_size, 0.5);
+                  core::PostProbingReduceFlush<std::string, StringPair, decltype(red_fn)>(red_fn), sp, 2 * 3 * kv_size, 0.5,
+                  std::equal_to<std::string>(), 0.0);
 
     table.Insert(StringPair("hallo", 1));
     table.Insert(StringPair("hello", 1));
@@ -501,7 +509,8 @@ TEST_F(PreTable, MultipleWorkers) {
 
     core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 2, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 6 * 8, 0.5);
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 6 * 8, 0.5,
+                  std::equal_to<int>(), 0.0);
 
     ASSERT_EQ(0u, table.NumItems());
 
@@ -596,7 +605,8 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
     // Hashtable with smaller block size for testing.
     core::ReducePreProbingTable<IntPair, int, IntPair, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlush<int, IntPair, decltype(red_fn)>(red_fn), p, nitems * 16, 1.0);
+                  core::PostProbingReduceFlush<int, IntPair, decltype(red_fn)>(red_fn), p, nitems * 16, 1.0,
+                  std::equal_to<int>(), 0.0);
 
     // insert lots of items
     size_t sum = 0;
@@ -663,7 +673,8 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
 
     core::ReducePreProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, "", core::PreProbingReduceByHashKey<std::string>(),
-                  core::PostProbingReduceFlush<std::string, StringPair, decltype(red_fn)>(red_fn), sp, nitems * kv_size, 1.0);
+                  core::PostProbingReduceFlush<std::string, StringPair, decltype(red_fn)>(red_fn), sp, nitems * kv_size, 1.0,
+                  std::equal_to<std::string>(), 0.0);
 
     // insert lots of items
     size_t sum = 0;

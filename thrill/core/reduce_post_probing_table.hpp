@@ -568,15 +568,6 @@ public:
     }
 
     /*!
-     * Returns the number of spills.
-     *
-     * \return Number of spills.
-     */
-    size_t NumSpills() const {
-        return num_spills_;
-    }
-
-    /*!
      * Returns the vector of key/value pairs.
      *
      * \return Vector of key/value pairs.
@@ -600,10 +591,6 @@ public:
      */
     std::vector<size_t>& FrameSequence() {
         return frame_sequence_;
-    }
-
-    void incrRecursiveSpills() {
-        num_recursive_spills_++;
     }
 
 private:
@@ -666,9 +653,6 @@ private:
     //! Number of items per frame.
     std::vector<size_t> items_per_frame_;
 
-    //! Total num of spills.
-    size_t num_spills_ = 0;
-
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 
@@ -688,9 +672,6 @@ private:
 
     //! Frame Sequence.
     std::vector<size_t> frame_sequence_;
-
-    //! Number of recursive spills.
-    size_t num_recursive_spills_ = 0;
 };
 
 } // namespace core

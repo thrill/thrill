@@ -568,24 +568,6 @@ public:
     }
 
     /*!
-     * Returns the number of flushes.
-     *
-     * \return Number of flushes.
-     */
-    size_t NumFlushes() const {
-        return num_flushes_;
-    }
-
-    /*!
-     * Returns the number of collisions.
-     *
-     * \return Number of collisions.
-     */
-    size_t NumCollisions() const {
-        return num_collisions_;
-    }
-
-    /*!
      * Returns the number of partitions.
      *
      * \return The number of partitions.
@@ -667,15 +649,6 @@ public:
     }
 
     /*!
-     * Returns the number of spills.
-     *
-     * \return Number of spills.
-     */
-    size_t NumSpills() const {
-        return num_spills_;
-    }
-
-    /*!
      * Returns the vector of key/value pairs.
      *
      * \return Vector of key/value pairs.
@@ -729,14 +702,6 @@ public:
      */
     size_t EndLocalIndex() const {
         return size_-1;
-    }
-
-    void incrRecursiveSpills() {
-        num_recursive_spills_++;
-    }
-
-    size_t RecursiveSpills() {
-        return num_recursive_spills_;
     }
 
     /*!
@@ -862,9 +827,6 @@ private:
     //! Number of items per partition.
     std::vector<size_t> total_items_per_partition_;
 
-    //! Total num of spills.
-    size_t num_spills_ = 0;
-
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 
@@ -880,12 +842,6 @@ private:
     //! Size of the second table.
     size_t second_table_size_ = 0;
 
-    //! Number of flushes.
-    size_t num_flushes_ = 0;
-
-    //! Number of collisions.
-    size_t num_collisions_ = 0;
-
     size_t fill_rate_num_items_second_reduce_ = 0;
 
     //! Neutral element (reduce to index).
@@ -893,9 +849,6 @@ private:
 
     //! Frame Sequence.
     std::vector<size_t> frame_sequence_;
-
-    //! Number of recursive spills.
-    size_t num_recursive_spills_ = 0;
 };
 
 } // namespace core
