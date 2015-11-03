@@ -2,7 +2,7 @@
 ################################################################################
 # misc/analyze-source.pl
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 # Copyright (C) 2014-2015 Timo Bingmann <tb@panthema.net>
 #
@@ -250,7 +250,9 @@ sub process_cpp {
 
     # check "Part of Project Thrill"
     expect($path, $i-1, @data, " *\n");
-    expect($path, $i, @data, " * Part of Project Thrill.\n"); ++$i;
+    expectr($path, $i, @data,
+            " * Part of Project Thrill - http://project-thrill.org\n",
+            qr/^ \* Part of Project Thrill/); ++$i;
     expect($path, $i, @data, " *\n"); ++$i;
 
     # read authors
@@ -456,7 +458,9 @@ sub process_pl_cmake {
 
     # check "Part of Project Thrill"
     expect($path, $i-1, @data, "#\n");
-    expect($path, $i, @data, "# Part of Project Thrill.\n"); ++$i;
+    expectr($path, $i, @data,
+            "# Part of Project Thrill - http://project-thrill.org\n",
+            qr/^# Part of Project Thrill/); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
 
     # read authors
@@ -524,7 +528,9 @@ sub process_py {
 
     # check "Part of Project Thrill"
     expect($path, $i-1, @data, "#\n");
-    expect($path, $i, @data, "# Part of Project Thrill.\n"); ++$i;
+    expectr($path, $i, @data,
+            "# Part of Project Thrill - http://project-thrill.org\n",
+            qr/^# Part of Project Thrill/); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
 
     # read authors
@@ -614,7 +620,9 @@ sub process_swig {
 
     # check "Part of Project Thrill"
     expect($path, $i-1, @data, " *\n");
-    expect($path, $i, @data, " * Part of Project Thrill.\n"); ++$i;
+    expectr($path, $i, @data,
+            " * Part of Project Thrill - http://project-thrill.org\n",
+            qr/^ \* Part of Project Thrill/); ++$i;
     expect($path, $i, @data, " *\n"); ++$i;
 
     # read authors

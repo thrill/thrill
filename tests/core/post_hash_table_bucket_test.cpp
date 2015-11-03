@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/core/post_hash_table_bucket_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *

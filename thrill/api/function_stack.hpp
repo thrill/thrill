@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/function_stack.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *

@@ -6,7 +6,7 @@
  * copied from SimpleOpt/SimpleGlob under MIT License
  * Copyright (c) 2006-2013, Brodie Thiesfield
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

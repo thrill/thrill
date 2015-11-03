@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/api/sort_node_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
@@ -213,6 +213,36 @@ TEST(Sort, SortWithEmptyWorkers) {
             }
 
             ASSERT_EQ(10000u, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Sort, SortOneInteger) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+        LOG1 << "Sorting with " << ctx.num_workers() << " workers";
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& i) -> size_t {
+                    return i;
+                },
+                1);
+
+            auto sorted = integers.Sort();
+
+            std::vector<size_t> out_vec;
+
+            sorted.AllGather(&out_vec);
+
+            for (size_t i = 0; i < out_vec.size() - 1; i++) {
+                ASSERT_EQ(i, out_vec[i]);
+            }
+
+            ASSERT_EQ(1u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);

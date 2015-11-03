@@ -3,7 +3,7 @@
  *
  * DIANode for a generate operation. Performs the actual generate operation
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
@@ -113,7 +113,7 @@ auto Generate(Context & ctx,
             >::value,
         "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", DIANodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", DIANodeType::GENERATOR);
     auto shared_node =
         std::make_shared<GenerateNode>(
             ctx, generator_function, size, stats_node);
