@@ -315,7 +315,7 @@ public:
             file_->blocks_.pop_front();
             f->Wait();
             Block b = f->Get();
-            free(f);
+            delete f;
             return b;
         }
 
@@ -329,7 +329,7 @@ public:
         fetching_blocks_.front()->Wait();
 
         Block b = fetching_blocks_.front()->Get();
-        free(fetching_blocks_.front());
+        delete fetching_blocks_.front();
         fetching_blocks_.pop();
         return b;
     }
@@ -342,7 +342,7 @@ public:
             while (!fetching_blocks_.empty()) {
                 auto f = fetching_blocks_.front();
                 fetching_blocks_.pop();
-                free(f);
+                delete f;
             }
         }
     }
@@ -352,7 +352,7 @@ protected:
     File* file_;
 
     //! number of concurrent prefetch operations
-    size_t desired_prefetched_;
+    size_t desired_prefetched_ = 0;
 
     //! current prefetch operations
     std::queue<common::Future<Block>*> fetching_blocks_;
