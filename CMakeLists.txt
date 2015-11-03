@@ -3,7 +3,7 @@
 #
 # Root CMake build script for Thrill.
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 # Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
 #
@@ -37,9 +37,9 @@ option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(THRILL_USE_TBB "Use (optional) Intel TBB library if available." ON)
 
-option(THRILL_USE_MPI "Use (optional) MPI net backend." ON)
+option(THRILL_USE_MPI "Use (optional) MPI net backend." OFF)
 
-option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
+option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." OFF)
 
 option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
@@ -246,8 +246,18 @@ enable_testing()
 
 # this fixes compilation with static libs on MSVC
 set(gtest_force_shared_crt ON CACHE BOOL "on" FORCE)
+if(NOT MSVC)
+  # silence some warnings
+  set(GTEST_SAVE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated")
+endif()
+
 add_subdirectory(extlib/googletest/googletest)
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+
+if(NOT MSVC)
+  set(CMAKE_CXX_FLAGS "${GTEST_SAVE_CXX_FLAGS}")
+endif()
 
 ### general valgrind setting, if run with USE_VALGRIND=ON.
 
@@ -268,7 +278,7 @@ endif()
 ###############################################################################
 # add cereal
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
+include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
 ################################################################################
 ### Find Required Libraries
@@ -296,7 +306,7 @@ elseif(TBB_INTERFACE_VERSION LESS 8000)
     "No problem, using slower replacements.")
   add_definitions(-DTHRILL_HAVE_INTELTBB=0)
 else(NOT TBB_FOUND)
-  include_directories(${TBB_INCLUDE_DIRS})
+  include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
   link_directories(${TBB_LIBRARY_DIRS})
   set(ALL_LIBRARIES ${TBB_LIBRARIES} ${ALL_LIBRARIES})
   add_definitions(-DTHRILL_HAVE_INTELTBB=1)
@@ -310,7 +320,7 @@ if(THRILL_USE_MPI)
   if(NOT MPI_FOUND)
     message(STATUS "No MPI library found. No problem, it is optional.")
   else()
-    include_directories(${MPI_INCLUDE_PATH})
+    include_directories(SYSTEM ${MPI_INCLUDE_PATH})
     set(ALL_LIBRARIES ${MPI_LIBRARIES} ${ALL_LIBRARIES})
     add_definitions(-DTHRILL_HAVE_NET_MPI=1)
   endif()
@@ -319,7 +329,7 @@ endif()
 # example: use Boost libraries:
 
 #find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
-#include_directories(${Boost_INCLUDE_DIRS})
+#include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
@@ -375,7 +385,7 @@ if(SWIG_FOUND)
 endif()
 
 ###############################################################################
-### cmake script TRY_COMPILE all stxxl header files
+### cmake script TRY_COMPILE all Thrill header files
 
 if(TRY_COMPILE_HEADERS)
 

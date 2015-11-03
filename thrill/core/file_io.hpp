@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/core/file_io.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -40,7 +40,7 @@ std::string FillFilePattern(const std::string& pathbase,
                             size_t worker, size_t file_part);
 
 // Returns true, if file at filepath is compressed (e.g, ends with
-// '.[gz/bz2,xz,lzo]')
+// '.{gz,bz2,xz,lzo}')
 static inline
 bool IsCompressed(const std::string& path) {
     return common::EndsWith(path, ".gz") ||
@@ -52,13 +52,41 @@ bool IsCompressed(const std::string& path) {
 
 using FileSizePair = std::pair<std::string, size_t>;
 
+//! General information of system file.
+struct SysFileInfo {
+    //! path to file
+    std::string path;
+    //! size of file.
+    uint64_t    size;
+    //! exclusive prefix sum of file sizes.
+    uint64_t    size_ex_psum;
+
+    //! inclusive prefix sum of file sizes.
+    uint64_t    size_inc_psum() const { return size_ex_psum + size; }
+};
+
+//! List of file info and overall info.
+struct SysFileList {
+    //! list of files.
+    std::vector<SysFileInfo> list;
+
+    //! number of files, list.size() - 1.
+    size_t                   count() const { return list.size() - 1; }
+
+    //! total size of files
+    uint64_t                 total_size;
+
+    //! whether the list contains a compressed file.
+    bool                     contains_compressed;
+};
+
 /*!
- * Adds a pair of filename and size prefixsum (in bytes) for all files in
- * the input path.
+ * Reads a path as a file list contains, sizes and prefixsums (in bytes) for all
+ * files in the input path.
  *
  * \param path Input path
  */
-std::vector<FileSizePair> GlobFileSizePrefixSum(const std::string& path);
+SysFileList GlobFileSizePrefixSum(const std::string& path);
 
 /*!
  * Returns a vector of all files found by glob in the input path.

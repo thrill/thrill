@@ -3,7 +3,7 @@
  *
  * DIANode for a groupby operation. Performs the actual groupby operation
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
@@ -98,10 +98,13 @@ public:
                          });
     }
 
-    /*!
-     * Actually executes the reduce operation. Uses the member functions PreOp,
-     * MainOp and PostOp.
-     */
+    void StopPreOp(size_t /* id */) final {
+        // data has been pushed during pre-op -> close emitters
+        for (size_t i = 0; i < emitter_.size(); i++) {
+            emitter_[i].Close();
+        }
+    }
+
     void Execute() override {
         MainOp();
     }
@@ -149,9 +152,9 @@ public:
     void Dispose() override { }
 
 private:
-    const KeyExtractor& key_extractor_;
-    const GroupFunction& groupby_function_;
-    const HashFunction& hash_function_;
+    KeyExtractor key_extractor_;
+    GroupFunction groupby_function_;
+    HashFunction hash_function_;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream() };
     std::vector<data::Stream::Writer> emitter_ { stream_->OpenWriters() };
@@ -211,11 +214,6 @@ private:
         // const size_t FIXED_VECTOR_SIZE = 4;
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
-
-        // close all emitters
-        for (auto& e : emitter_) {
-            e.Close();
-        }
 
         // get incoming elements
         auto reader = stream_->OpenCatReader(true /* consume */);

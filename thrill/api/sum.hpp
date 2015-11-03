@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/sum.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
@@ -92,8 +92,6 @@ private:
         // process the reduce
         global_sum_ = channel.AllReduce(local_sum_, sum_function_);
     }
-
-    void PostOp() { }
 };
 
 template <typename ValueType, typename Stack>

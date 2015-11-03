@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/collapse.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
@@ -81,7 +81,8 @@ DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs) {
 
     // Create new CollapseNode. Transfer stack from rhs to CollapseNode. Build
     // new DIA with empty stack and CollapseNode
-    using CollapseNode = api::CollapseNode<ValueType, DIA>;
+    using CollapseNode =
+              api::CollapseNode<ValueType, DIA<ValueType, AnyStack> >;
 
     LOG0 << "WARNING: cast to DIA creates CollapseNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIA.";

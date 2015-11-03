@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/data/stream_read_write.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *

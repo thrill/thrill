@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/data/multiplexer.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
@@ -79,6 +79,7 @@ public:
             if (id == group_.my_host_rank()) continue;
             AsyncReadBlockHeader(group_.connection(id));
         }
+        (void)mem_manager_; // silence unused variable warning.
     }
 
     //! non-copyable: delete copy-constructor

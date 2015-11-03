@@ -3,7 +3,7 @@
  *
  * Minimalistic broadcast benchmark to test different net implementations.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
@@ -33,26 +33,37 @@ unsigned int size = 1000 * 1000 * 10;
 //! Network benchmarking.
 void merge_test(thrill::api::Context& ctx) {
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(std::random_device { }());
 
-    auto merge_input1 = thrill::api::Generate(
+    auto merge_input1 = thrill::Generate(
         ctx,
         [&gen](size_t /* index */) { return gen(); },
         size);
 
-    auto merge_input2 = thrill::api::Generate(
+    auto merge_input2 = thrill::Generate(
         ctx,
         [&gen](size_t /* index */) { return gen(); },
         size);
 
-    merge_input1 = merge_input1.Sort();
-    merge_input2 = merge_input2.Sort();
+    merge_input1 = merge_input1.Sort().Keep();
+    merge_input2 = merge_input2.Sort().Keep();
 
-    auto merge_result = merge_input1.Merge(
-        merge_input2, std::less<size_t>());
+    // Force sorting of dia before we run merge.
+    size_t sum = merge_input1.Sum();
+    size_t sum2 = merge_input2.Sum();
+    std::swap(sum, sum2);
 
-    merge_result.Size();
+    thrill::common::StatsTimer<true> timer(true);
+
+    auto merge_result = merge_input1.Merge(merge_input2);
+
+    assert(merge_result.Size() == size * 2);
+    timer.Stop();
+
+    LOG1 << "RESULT"
+         << " operation=merge"
+         << " time=" << timer.Microseconds()
+         << " workers=" << ctx.num_workers();
 }
 
 int main(int argc, char** argv) {

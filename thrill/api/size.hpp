@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/size.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
@@ -72,8 +72,6 @@ private:
     // Global size resulting from all reduce.
     size_t global_size_ = 0;
 
-    void PreOp() { }
-
     void MainOp() {
         // get the number of elements that are stored on this worker
         LOG << "MainOp processing, sum: " << local_size_;
@@ -82,8 +80,6 @@ private:
         // process the reduce, default argument is SumOp.
         global_size_ = channel.AllReduce(local_size_);
     }
-
-    void PostOp() { }
 };
 
 template <typename ValueType, typename Stack>

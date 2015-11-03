@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/write_lines_many.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -114,7 +114,7 @@ public:
     }
 
     //! Closes the output file, write last buffer
-    void Execute() final {
+    void StopPreOp(size_t /* id */) final {
         sLOG << "closing file";
         stats_total_writes_++;
         stats_total_bytes_ += current_buffer_size_;
@@ -130,6 +130,8 @@ public:
                        << "TotalFiles" << out_serial_
                        << "WriteTime" << timer.Milliseconds();
     }
+
+    void Execute() final { }
 
     void Dispose() final { }
 

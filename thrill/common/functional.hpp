@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/common/functional.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
@@ -27,6 +27,26 @@ struct Identity {
     ->decltype(std::forward<Type>(v)) {
         return std::forward<Type>(v);
     }
+};
+
+//! The noop functor, which takes any arguments and does nothing. This is a good
+//! default argument for lambda function parameters.
+template <typename ReturnType>
+struct NoOperation {
+    ReturnType return_value_;
+
+    explicit NoOperation(ReturnType return_value = ReturnType())
+        : return_value_(return_value) { }
+
+    ReturnType operator () (...) const noexcept {
+        return return_value_;
+    }
+};
+
+//! Specialized noop functor which returns a void.
+template <>
+struct NoOperation<void>{
+    void operator () (...) const noexcept { }
 };
 
 // thanks to http://stackoverflow.com/a/7127988

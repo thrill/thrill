@@ -3,7 +3,7 @@
  *
  * DIANode for a generate operation. Performs the actual generate operation
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
@@ -64,10 +64,9 @@ public:
     { }
 
     void PushData(bool /* consume */) final {
-        size_t local_begin, local_end;
-        std::tie(local_begin, local_end) = context_.CalculateLocalRange(size_);
+        common::Range local = context_.CalculateLocalRange(size_);
 
-        for (size_t i = local_begin; i < local_end; i++) {
+        for (size_t i = local.begin; i < local.end; i++) {
             this->PushItem(generator_function_(i));
         }
 
@@ -113,7 +112,7 @@ auto Generate(Context & ctx,
             >::value,
         "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", DIANodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", DIANodeType::GENERATOR);
     auto shared_node =
         std::make_shared<GenerateNode>(
             ctx, generator_function, size, stats_node);
@@ -121,9 +120,25 @@ auto Generate(Context & ctx,
     return DIA<GeneratorResult>(shared_node, { stats_node });
 }
 
+/*!
+ * Generate is a Source-DOp, which creates a DIA of given size containing the
+ * size_t indexes `[0,size)`.
+ *
+ * \param ctx Reference to the Context object
+ *
+ * \param size Size of the output DIA
+ */
+auto Generate(Context & ctx, size_t size) {
+    return Generate(ctx, [](const size_t& index) { return index; }, size);
+}
+
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::Generate;
+
 } // namespace thrill
 
 #endif // !THRILL_API_GENERATE_HEADER

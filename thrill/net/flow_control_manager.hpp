@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/net/flow_control_manager.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
@@ -42,6 +42,9 @@ private:
     //! Array of thread local data, one for each thread.
     std::vector<LocalData> shmem_;
 
+    //! Host-global generation counter
+    std::atomic<size_t> generation_ { 0 };
+
 public:
     /*!
      * Initializes a certain count of flow control channels.
@@ -55,7 +58,7 @@ public:
         assert(shmem_.size() == local_worker_count);
         for (size_t i = 0; i < local_worker_count; i++) {
             channels_.emplace_back(group, i, local_worker_count,
-                                   barrier_, shmem_.data());
+                                   barrier_, shmem_.data(), generation_);
         }
     }
 

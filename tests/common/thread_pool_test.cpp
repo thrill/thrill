@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/common/thread_pool_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
@@ -117,6 +117,6 @@ TEST_P(ThreadPool2, LoopUntilTerminate) {
 }
 
 INSTANTIATE_TEST_CASE_P(
-    ThreadPoolTerminate, ThreadPool2, ::testing::Values(1, 10));
+    ThreadPoolTerminate, ThreadPool2, ::testing::Values(1, 10), );
 
 /******************************************************************************/

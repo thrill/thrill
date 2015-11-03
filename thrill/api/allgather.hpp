@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/allgather.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
@@ -60,12 +60,15 @@ public:
         }
     }
 
-    //! Closes the output file
-    void Execute() final {
+    void StopPreOp(size_t /* id */) final {
         // data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
         }
+    }
+
+    //! Closes the output file
+    void Execute() final {
 
         bool consume = false;
         auto reader = stream_->OpenCatReader(consume);

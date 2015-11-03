@@ -3,7 +3,7 @@
  *
  * DIANode for a generate operation. Performs the actual generate operation
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
@@ -153,7 +153,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
         "GeneratorFunction needs a const std::string& as input");
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "GenerateFromFile", DIANodeType::DOP);
+        "GenerateFromFile", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<GenerateNode>(
@@ -165,6 +165,10 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::GenerateFromFile;
+
 } // namespace thrill
 
 #endif // !THRILL_API_GENERATE_FROM_FILE_HEADER

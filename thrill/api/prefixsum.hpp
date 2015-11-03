@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/prefixsum.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -55,6 +55,10 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
+    void StopPreOp(size_t /* id */) final {
+        writer_.Close();
+    }
+
     //! Executes the sum operation.
     void Execute() final {
         MainOp();
@@ -94,8 +98,6 @@ private:
     }
 
     void MainOp() {
-        writer_.Close();
-
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.flow_control_channel();
 

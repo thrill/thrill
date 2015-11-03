@@ -4,7 +4,7 @@
  * Runner program for WordCount example. See thrill/examples/word_count.hpp for
  * the source to the example.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
@@ -55,6 +55,8 @@ int main(int argc, char* argv[]) {
 
     auto start_func =
         [&input, &output](api::Context& ctx) {
+            ctx.set_consume(true);
+
             auto input_dia = ReadLines(ctx, input);
 
             auto word_pairs = input_dia.template FlatMap<WordCountPair>(

@@ -3,7 +3,7 @@
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
@@ -109,11 +109,10 @@ public:
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostReduceByIndex(), core::PostReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
-              std::get<0>(common::CalculateLocalRange(
-                              result_size_, context_.num_workers(), context_.my_rank())),
-              std::get<1>(common::CalculateLocalRange(
-                              result_size_, context_.num_workers(), context_.my_rank())),
+              core::PostReduceByIndex(),
+              core::PostReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
+              common::CalculateLocalRange(
+                  result_size_, context_.num_workers(), context_.my_rank()),
               neutral_element_, 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
@@ -129,10 +128,7 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    /*!
-     * Actually executes the reduce to index operation.
-     */
-    void Execute() final {
+    void StopPreOp(size_t /* id */) final {
         LOG << this->label() << " running main op";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
@@ -140,6 +136,11 @@ public:
         stream_->Close();
         this->WriteStreamStats(stream_);
     }
+
+    /*!
+     * Actually executes the reduce to index operation.
+     */
+    void Execute() final { }
 
     void PushData(bool consume) final {
 

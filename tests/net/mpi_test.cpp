@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/net/mpi_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
@@ -125,6 +125,15 @@ TEST(MpiGroup, MultiThreadAllReduce) {
 }
 TEST(MpiGroup, MultiThreadPrefixSum) {
     MpiTest(TestMultiThreadPrefixSum);
+}
+TEST(MpiGroup, PredecessorManyItems) {
+    MpiTest(TestPredecessorManyItems);
+}
+TEST(MpiGroup, PredecessorFewItems) {
+    MpiTest(TestPredecessorFewItems);
+}
+TEST(MpiGroup, PredecessorOneItem) {
+    MpiTest(TestPredecessorOneItem);
 }
 TEST(MpiGroup, HardcoreRaceConditionTest) {
     MpiTest(TestHardcoreRaceConditionTest);
