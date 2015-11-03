@@ -13,7 +13,7 @@
 #include <thrill/net/manager.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/core/reduce_pre_bucket_table.hpp>
-#include <thrill/core/post_bucket_reduce_flush.hpp>
+#include <thrill/core/reduce_post_bucket_table.hpp>
 
 #include <functional>
 #include <string>
@@ -39,7 +39,7 @@ using MyPair = std::pair<int, MyStruct>;
 
 template <typename Key, typename HashFunction = std::hash<Key> >
 class CustomKeyHashFunction
-        : public core::PreBucketReduceByHashKey<int>
+        : public core::PreProbingReduceByHashKey<int>
 {
 public:
     struct IndexResult {
@@ -59,15 +59,21 @@ public:
             : hash_function_(hash_function)
     { }
 
-    template <typename Table>
     IndexResult
-    operator () (const Key& k, Table* ht) const {
+    operator () (const Key& k,
+        const size_t& num_frames,
+        const size_t& num_buckets_per_frame,
+        const size_t& num_buckets_per_table,
+        const size_t& offset) const {
 
         size_t global_index = 0;
         size_t partition_id = 0;
 
         (void)k;
-        (void)ht;
+        (void)num_frames;
+        (void)num_buckets_per_frame;
+        (void)num_buckets_per_table;
+        (void)offset;
 
         return IndexResult(partition_id, global_index);
     }
@@ -211,13 +217,13 @@ TEST_F(PreTable, PopIntegers) {
 
     const size_t TargetBlockSize = 8 * 8;
     const size_t bucket_block_size = sizeof(core::ReducePreTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
-                    core::PostBucketReduceFlush<int, int, decltype(red_fn)>, core::PreBucketReduceByHashKey<int>,
+                    core::PostBucketReduceFlush<int, int, decltype(red_fn)>, core::PreProbingReduceByHashKey<int>,
                     std::equal_to<int>, TargetBlockSize>::BucketBlock);
 
     core::ReducePreTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
             core::PostBucketReduceFlush<int, int, decltype(red_fn)>,
-            core::PreBucketReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(ctx, 1, key_ex, red_fn, writers, core::PreBucketReduceByHashKey<int>(),
+            core::PreProbingReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+    table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<int>(),
           core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, bucket_block_size * 2, 0.0, 1.0);
 
     table.Insert(0);
@@ -260,7 +266,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
-    table(ctx, 1, key_ex, red_fn, writers, core::PreBucketReduceByHashKey<int>(),
+    table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<int>(),
           core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 8 * 1024, 0.001, 1.0);
 
     table.Insert(0);
@@ -309,7 +315,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     writers.emplace_back(output2.GetDynWriter());
 
     core::ReducePreTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
-    table(ctx, 2, key_ex, red_fn, writers, core::PreBucketReduceByHashKey<int>(),
+    table(ctx, 2, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<int>(),
           core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 8 * 1024, 0.001, 1.0);
 
     table.Insert(0);
@@ -366,13 +372,13 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
     const size_t TargetBlockSize = 8 * 8;
     const size_t bucket_block_size = sizeof(core::ReducePreTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
             core::PostBucketReduceFlush<int, int, decltype(red_fn)>,
-            core::PreBucketReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+            core::PreProbingReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
 
     core::ReducePreTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
             core::PostBucketReduceFlush<int, int, decltype(red_fn)>,
-            core::PreBucketReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(ctx, 1, key_ex, red_fn, writers, core::PreBucketReduceByHashKey<int>(),
-          core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, bucket_block_size * 2, 0.5, 0.5);
+            core::PreProbingReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+    table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<int>(),
+          core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, bucket_block_size * 2, 0.5, 0.5, std::equal_to<int>(), 0.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -423,7 +429,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     writers.emplace_back(output2.GetDynWriter());
 
     core::ReducePreTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
-    table(ctx, 2, key_ex, red_fn, writers, core::PreBucketReduceByHashKey<int>(),
+    table(ctx, 2, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<int>(),
           core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 8 * 1024, 0.001, 1.0);
 
     table.Insert(0);
@@ -480,7 +486,7 @@ TEST_F(PreTable, ComplexType) {
     StringPair sp;
 
     core::ReducePreTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-    table(ctx, 1, key_ex, red_fn, writers, core::PreBucketReduceByHashKey<std::string>(),
+    table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<std::string>(),
           core::PostBucketReduceFlush<std::string, StringPair,
                   decltype(red_fn)>(red_fn), sp, 16 * 1024, 0.001, 0.5);
 
@@ -527,12 +533,12 @@ TEST_F(PreTable, MultipleWorkers) {
     const size_t TargetBlockSize = 8 * 8;
     const size_t bucket_block_size = sizeof(core::ReducePreTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
             core::PostBucketReduceFlush<int, int, decltype(red_fn)>,
-            core::PreBucketReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+            core::PreProbingReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
 
     core::ReducePreTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
             core::PostBucketReduceFlush<int, int, decltype(red_fn)>,
-            core::PreBucketReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(ctx, 2, key_ex, red_fn, writers, core::PreBucketReduceByHashKey<int>(),
+            core::PreProbingReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+    table(ctx, 2, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<int>(),
           core::PostBucketReduceFlush<int, int,
                   decltype(red_fn)>(red_fn), -1, bucket_block_size * 2, 1.0, 0.5);
 
@@ -577,7 +583,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     // Hashtable with smaller block size for testing.
     core::ReducePreTable<MyStruct, size_t, MyStruct, decltype(key_ex), decltype(red_fn), true>
-    table(ctx, 1, key_ex, red_fn, writers, core::PreBucketReduceByHashKey<size_t>(),
+    table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<size_t>(),
           core::PostBucketReduceFlush<size_t, MyStruct, decltype(red_fn)>(red_fn), sp, nitems * 16, 0.001, 0.5);
 
     // insert lots of items
@@ -630,12 +636,12 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
     const size_t TargetBlockSize = nitems * sizeof(MyStruct);
     const size_t bucket_block_size = sizeof(core::ReducePreTable<MyStruct, int, MyStruct, decltype(key_ex), decltype(red_fn), true,
             core::PostBucketReduceFlush<int, MyStruct, decltype(red_fn)>,
-            core::PreBucketReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+            core::PreProbingReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
 
     core::ReducePreTable<MyStruct, int, MyStruct, decltype(key_ex), decltype(red_fn), true,
             core::PostBucketReduceFlush<int, MyStruct, decltype(red_fn)>,
-            core::PreBucketReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(ctx, 1, key_ex, red_fn, writers, core::PreBucketReduceByHashKey<int>(),
+            core::PreProbingReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+    table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<int>(),
           core::PostBucketReduceFlush<int, MyStruct,
                   decltype(red_fn)>(red_fn), sp, bucket_block_size * bucket_block_size, 1.0, 1.0);
 
@@ -700,12 +706,12 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
     const size_t nitems_per_key = 10;
     const size_t nitems = core::ReducePreTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true,
             core::PostBucketReduceFlush<std::string, StringPair, decltype(red_fn)>,
-            core::PreBucketReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>::block_size_;
+            core::PreProbingReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>::block_size_;
 
   core::ReducePreTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true,
           core::PostBucketReduceFlush<std::string, StringPair, decltype(red_fn)>,
-          core::PreBucketReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>
-          table(ctx, 1, key_ex, red_fn, writers, core::PreBucketReduceByHashKey<std::string>(),
+          core::PreProbingReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>
+          table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<std::string>(),
                 core::PostBucketReduceFlush<std::string, StringPair,
                         decltype(red_fn)>(red_fn), sp, TargetBlockSize * 2, 0.0, 1.0);
 

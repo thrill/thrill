@@ -11,10 +11,11 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/core/reduce_pre_probing_table.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -94,10 +95,10 @@ int main(int argc, char* argv[]) {
             writers.emplace_back(sinks[i].GetDynWriter());
         }
 
-         core::ReducePreProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-         core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreProbingReduceByHashKey<size_t>,
-         std::equal_to<size_t>, full_reduce>
-         table(ctx, workers, key_ex, red_fn, writers, 0, core::PreProbingReduceByHashKey<size_t>(),
+        core::ReducePreProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
+        core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreProbingReduceByHashKey<size_t>,
+        std::equal_to<size_t>, full_reduce>
+        table(ctx, workers, key_ex, red_fn, writers, 0, core::PreProbingReduceByHashKey<size_t>(),
                core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
                0, byte_size, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
 
@@ -108,10 +109,6 @@ int main(int argc, char* argv[]) {
             table.Insert(dist(rng));
         }
 
-        size_t num_flushes = table.NumFlushes();
-        size_t num_spills = table.NumSpills();
-        size_t num_collisions = table.NumCollisions();
-
         table.Flush();
 
         timer.Stop();
@@ -119,10 +116,7 @@ int main(int argc, char* argv[]) {
         std::cout << "RESULT" << " benchmark=" << title << " size=" << size << " byte_size=" << byte_size << " workers="
         << workers << " max_partition_fill_rate=" << max_partition_fill_rate
         << " table_rate_multiplier=" << table_rate << " full_reduce=" << full_reduce << " final_reduce=true"
-        << " time=" << timer.Milliseconds()
-        << " num_flushes=" << num_flushes << " num_spills=" << num_spills
-        << " num_collisions=" << num_collisions << " recursive_spills=" << table.RecursiveSpills() << std::endl;
-
+        << " time=" << timer.Milliseconds() << std::endl;
     });
 
     return 0;

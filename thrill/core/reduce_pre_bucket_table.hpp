@@ -240,7 +240,6 @@ public:
         assert(max_num_blocks_per_table_ > 0);
 
         buckets_.resize(num_buckets_per_table_, nullptr);
-        buckets_length_.resize(num_buckets_per_table_, 0);
 
         num_items_per_partition_.resize(num_partitions_, 0);
 
@@ -665,24 +664,6 @@ public:
     }
 
     /*!
-     * Returns the number of flushes.
-     *
-     * \return Number of flushes.
-     */
-    size_t NumFlushes() const {
-        return num_flushes_;
-    }
-
-    /*!
-     * Returns the number of collisions.
-     *
-     * \return Number of collisions.
-     */
-    size_t NumCollisions() const {
-        return num_collisions_;
-    }
-
-    /*!
      * Returns the vector of bucket blocks.
      *
      * \return Vector of bucket blocks.
@@ -727,15 +708,6 @@ public:
      */
     std::vector<size_t> & NumItemsMemPerFrame() {
         return num_items_per_partition_;
-    }
-
-    /*!
-     * Returns the number of spills.
-     *
-     * \return Number of spills.
-     */
-    size_t NumSpills() const {
-        return num_spills_;
     }
 
     /*!
@@ -826,26 +798,6 @@ public:
      */
     size_t EndLocalIndex() const {
         return num_buckets_per_table_-1;
-    }
-
-    void incrRecursiveSpills() {
-        num_recursive_spills_++;
-    }
-
-    size_t RecursiveSpills() {
-        return num_recursive_spills_;
-    }
-
-    double BucketLengthMedian() {
-        double sum = std::accumulate(buckets_length_.begin(), buckets_length_.end(), 0.0);
-        return sum / buckets_length_.size();
-    }
-
-    double BucketLengthStdv() {
-        double sum = std::accumulate(buckets_length_.begin(), buckets_length_.end(), 0.0);
-        double mean = sum / buckets_length_.size();
-        double sq_sum = std::inner_product(buckets_length_.begin(), buckets_length_.end(), buckets_length_.begin(), 0.0);
-        return std::sqrt(sq_sum / buckets_length_.size() - mean * mean);
     }
 
     /*!
@@ -981,15 +933,6 @@ private:
     //! Maximal number of blocks per partition.
     size_t max_num_blocks_per_partition_ = 0;
 
-    //! Number of flushes.
-    size_t num_flushes_ = 0;
-
-    //! Number of collisions.
-    size_t num_collisions_ = 0;
-
-    //! Number of spills.
-    size_t num_spills_ = 0;
-
     //! Bucket block pool.
     BucketBlockPool<BucketBlock> block_pool;
 
@@ -1015,12 +958,6 @@ private:
 
     //! Frame Sequence.
     std::vector<size_t> frame_sequence_;
-
-    //! Number of recursive spills.
-    size_t num_recursive_spills_ = 0;
-
-    //! Storing the items.
-    std::vector<size_t> buckets_length_;
 };
 
 } // namespace core

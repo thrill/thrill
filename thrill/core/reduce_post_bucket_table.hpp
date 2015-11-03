@@ -627,15 +627,6 @@ public:
     }
 
     /*!
-     * Returns the number of spills.
-     *
-     * \return Number of spills.
-     */
-    size_t NumSpills() const {
-        return num_spills_;
-    }
-
-    /*!
      * Returns the block size.
      *
      * \return Block size.
@@ -706,10 +697,6 @@ public:
         return frame_sequence_;
     }
 
-    void incrRecursiveSpills() {
-        num_recursive_spills_++;
-    }
-
 private:
     //! Context
     Context& ctx_;
@@ -772,9 +759,6 @@ private:
     //! Maximal number of items per partition.
     size_t max_num_items_mem_per_frame_ = 0;
 
-    //! Number of spills.
-    size_t num_spills_ = 0;
-
     //! Number of buckets per frame.
     size_t num_buckets_per_frame_ = 0;
 
@@ -806,9 +790,6 @@ private:
 
     //! Frame Sequence.
     std::vector<size_t> frame_sequence_;
-
-    //! Number of recursive spills.
-    size_t num_recursive_spills_ = 0;
 };
 
 } // namespace core

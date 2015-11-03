@@ -13,6 +13,7 @@
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/core/reduce_pre_bucket_table.hpp>
+#include <thrill/core/reduce_post_bucket_table.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -102,11 +103,11 @@ int main(int argc, char* argv[]) {
         }
 
          core::ReducePreTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-            core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreBucketReduceByHashKey<size_t>,
+            core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreProbingReduceByHashKey<size_t>,
             std::equal_to<size_t>, target_block_size, full_reduce>
          table(ctx,
                   workers, key_ex, red_fn, writers,
-                  core::PreBucketReduceByHashKey<size_t>(),
+                  core::PreProbingReduceByHashKey<size_t>(),
                   core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn), 0, byte_size,
                                                   bucket_rate, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
 
@@ -116,25 +117,15 @@ int main(int argc, char* argv[]) {
         {
             table.Insert(dist(rng));
         }
-   
-        size_t num_flushes = table.NumFlushes();
-        size_t num_spills = table.NumSpills();
-        size_t num_collisions = table.NumCollisions();
-        double block_length_median = table.BucketLengthMedian();
-        double block_length_stdev = table.BucketLengthStdv();
 
         table.Flush();
 
-   	timer.Stop();
+   	    timer.Stop();
 
         std::cout << "RESULT" << " benchmark=" << title << " size=" << size << " byte_size=" << byte_size << " workers="
         << workers << " bucket_rate=" << bucket_rate << " max_partition_fill_rate=" << max_partition_fill_rate
         << " table_rate_multiplier=" << table_rate << " full_reduce=" << full_reduce << " final_reduce=true" << " block_size=" << target_block_size
-        << " time=" << timer.Milliseconds()
-        << " num_flushes=" << num_flushes << " num_spills=" << num_spills
-        << " num_collisions=" << num_collisions << " block_length_median=" << block_length_median
-        << " block_length_stdv=" << block_length_stdev << std::endl;
-
+        << " time=" << timer.Milliseconds() << std::endl;
     });
 
     return 0;
