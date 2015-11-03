@@ -30,28 +30,50 @@ namespace data {
  */
 class BlockPool
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
-    //! Creates a BlockPool without memory limitations
-    //! \param mem_manager Memory Manager that tracks amount of RAM allocated. the BlockPool will create a child manager.
-    //! \param mem_manager_external Memory Manager that tracks amount of memory allocated on disk. The BlockPool will create a child manager.
-    //! \param swap_file_suffix suffix to append on file nam of the swap file
-    explicit BlockPool(mem::Manager* mem_manager, mem::Manager* mem_manager_external, std::string swap_file_suffix = "")
+    /*!
+     * Creates a BlockPool without memory limitations
+     *
+     * \param mem_manager Memory Manager that tracks amount of RAM
+     * allocated. the BlockPool will create a child manager.
+     *
+     * \param mem_manager_external Memory Manager that tracks amount of memory
+     * allocated on disk. The BlockPool will create a child manager.
+     *
+     * \param swap_file_suffix suffix to append on file nam of the swap file
+     */
+    explicit BlockPool(mem::Manager* mem_manager,
+                       mem::Manager* mem_manager_external,
+                       std::string swap_file_suffix = "")
         : BlockPool(0, 0, mem_manager, mem_manager_external, swap_file_suffix)
     { }
 
-    //! Creates a BlockPool with given memory constrains
-    //! \param soft_memory_limit limit (bytes) that causes the BlockPool to swap out victim pages. Enter 0 for no soft limit
-    //! \param hard_memory_limit limit (bytes) that causes the BlockPool to block new allocations until some blocks are free'd. Enter 0 for no hard limit.
-    //! \param mem_manager Memory Manager that tracks amount of RAM allocated. the BlockPool will create a child manager.
-    //! \param mem_manager_external Memory Manager that tracks amount of memory allocated on disk. The BlockPool will create a child manager.
-    //! \param swap_file_suffix suffix to append on file nam of the swap file
-    explicit BlockPool(size_t soft_memory_limit, size_t hard_memory_limit, mem::Manager* mem_manager, mem::Manager* mem_manager_external, std::string swap_file_suffix = "")
+    /*!
+     * Creates a BlockPool with given memory constrains
+     *
+     * \param soft_memory_limit limit (bytes) that causes the BlockPool to swap
+     * out victim pages. Enter 0 for no soft limit
+     *
+     * \param hard_memory_limit limit (bytes) that causes the BlockPool to block
+     * new allocations until some blocks are free'd. Enter 0 for no hard limit.
+     *
+     * \param mem_manager Memory Manager that tracks amount of RAM
+     * allocated. the BlockPool will create a child manager.
+     *
+     * \param mem_manager_external Memory Manager that tracks amount of memory
+     * allocated on disk. The BlockPool will create a child manager.
+     *
+     * \param swap_file_suffix suffix to append on file nam of the swap file
+     */
+    explicit BlockPool(size_t soft_memory_limit, size_t hard_memory_limit,
+                       mem::Manager* mem_manager,
+                       mem::Manager* mem_manager_external,
+                       std::string swap_file_suffix = "")
         : mem_manager_(mem_manager, "BlockPool"),
           ext_mem_manager_(mem_manager_external, "BlockPool"),
           page_mapper_("/tmp/thrill.swapfile" + swap_file_suffix),
-          tasks_(1),
           soft_memory_limit_(soft_memory_limit),
           hard_memory_limit_(hard_memory_limit) {
         tasks_.Enqueue([]() {
@@ -101,7 +123,7 @@ protected:
     std::condition_variable memory_change_;
 
     //! ThreadPool used for I/O tasks
-    common::ThreadPool tasks_;
+    common::ThreadPool tasks_ { 1 };
 
     //! Limits for the block pool. 0 for no limits.
     size_t soft_memory_limit_, hard_memory_limit_;
