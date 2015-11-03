@@ -1,7 +1,7 @@
 ################################################################################
 # tests/CMakeLists.txt
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 # Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
 #
@@ -87,6 +87,7 @@ build_test_group(common/tests
   common/future_test.cpp
   common/math_test.cpp
   common/matrix_test.cpp
+  common/meta_test.cpp
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
   common/thread_barrier_test.cpp

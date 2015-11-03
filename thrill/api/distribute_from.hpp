@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/distribute_from.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
@@ -104,7 +104,7 @@ auto DistributeFrom(
     using DistributeFromNode = api::DistributeFromNode<ValueType>;
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "DistributeFrom", DIANodeType::DOP);
+        "DistributeFrom", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<DistributeFromNode>(

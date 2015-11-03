@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/core/multiway_merge_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *

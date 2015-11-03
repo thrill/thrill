@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/distribute.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
@@ -81,7 +81,7 @@ auto Distribute(Context & ctx,
     using DistributeNode = api::DistributeNode<ValueType>;
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "Distribute", DIANodeType::DOP);
+        "Distribute", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<DistributeNode>(ctx, in_vector, stats_node);
@@ -107,7 +107,7 @@ auto Distribute(Context & ctx,
     using DistributeNode = api::DistributeNode<ValueType>;
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "Distribute", DIANodeType::DOP);
+        "Distribute", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<DistributeNode>(ctx, std::move(in_vector), stats_node);

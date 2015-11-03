@@ -3,7 +3,7 @@
 #
 # Root CMake build script for Thrill.
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 # Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
 #
@@ -37,9 +37,9 @@ option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(THRILL_USE_TBB "Use (optional) Intel TBB library if available." ON)
 
-option(THRILL_USE_MPI "Use (optional) MPI net backend." ON)
+option(THRILL_USE_MPI "Use (optional) MPI net backend." OFF)
 
-option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
+option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." OFF)
 
 option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
@@ -115,8 +115,8 @@ if(NOT MSVC)
 
     if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
       message(STATUS "compiler does not support -g debug info with auto returns")
-      string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-      string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+      string(REPLACE "-g" "" ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS})
+      string(REPLACE "-g" "" ${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_DEBUG})
     endif()
 
     set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")

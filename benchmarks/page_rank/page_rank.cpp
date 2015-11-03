@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/page_rank/page_rank.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
@@ -396,7 +396,7 @@ int main(int argc, char* argv[]) {
                             LOG << "ranks2 " << f + s * p.second;
                             return f + s * p.second;
                         }
-                    }).Cache();
+                    }).Keep().Collapse();
             }
 
             // write result to line. add 1 to node_ids to revert back to normal
@@ -423,6 +423,8 @@ int main(int argc, char* argv[]) {
                  << std::setw(10) << "#iter: " << iter
                  << "\n"
                  << std::setw(10) << "time: " << timer.Milliseconds() << "ms";
+
+            ctx.stats_graph().BuildLayout("pagerank.out");
         };
 
     return api::Run(start_func);
