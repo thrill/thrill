@@ -3,7 +3,7 @@
  *
  * Hash table with support for reduce.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
@@ -123,7 +123,7 @@ public:
     size_t
     operator () (const size_t& k, ReducePostTable* ht, const size_t& size) const {
 
-        return (k - ht->BeginLocalIndex()) % size;
+        return (k - ht->LocalIndex().begin) % size;
     }
 };
 
@@ -530,7 +530,7 @@ public:
 
         Value neutral_element = ht->NeutralElement();
 
-        std::vector<Value> elements_to_emit(ht->EndLocalIndex() - ht->BeginLocalIndex(), neutral_element);
+        std::vector<Value> elements_to_emit(ht->LocalIndex().size(), neutral_element);
 
         // in worst case, sum of number of blocks in internal and external memory
         // per frame needed
@@ -773,7 +773,7 @@ public:
                         for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi)
                         {
-                            elements_to_emit[bi->first - ht->BeginLocalIndex()] = bi->second;
+                            elements_to_emit[bi->first - ht->LocalIndex().begin] = bi->second;
                         }
 
                         // destroy block and advance to next
@@ -803,7 +803,7 @@ public:
                         for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi)
                         {
-                            elements_to_emit[bi->first - ht->BeginLocalIndex()] = bi->second;
+                            elements_to_emit[bi->first - ht->LocalIndex().begin] = bi->second;
                         }
 
                         // advance to next
@@ -836,13 +836,13 @@ public:
             }
         }
 
-        size_t index = ht->BeginLocalIndex();
+        size_t index = ht->LocalIndex().begin;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
             ht->EmitAll(index++, elements_to_emit[i]);
             elements_to_emit[i] = neutral_element;
         }
 
-        assert(index == ht->EndLocalIndex());
+        assert(index == ht->LocalIndex().end);
 
         if (consume)
         {
@@ -927,8 +927,7 @@ public:
      * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
      * \param index_function Function to be used for computing the bucket the item to be inserted.
      * \param flush_function Function to be used for flushing all items in the table.
-     * \param begin_local_index Begin index for reduce to index.
-     * \param end_local_index End index for reduce to index.
+     * \param local_index [Begin,End) range of index for reduce to index.
      * \param neutral element Neutral element for reduce to index.
      * \param byte_size Maximal size of the table in byte. In case size of table exceeds that value, items
      *                  are flushed.
@@ -944,8 +943,7 @@ public:
                     const EmitterFunction& emit,
                     const IndexFunction& index_function,
                     const FlushFunction& flush_function,
-                    size_t begin_local_index = 0,
-                    size_t end_local_index = 0,
+                    const common::Range& local_index = common::Range(),
                     const Value& neutral_element = Value(),
                     size_t byte_size = 1024* 1024* 128* 4,
                     double bucket_rate = 0.9,
@@ -956,8 +954,7 @@ public:
           emit_(emit),
           byte_size_(byte_size),
           bucket_rate_(bucket_rate),
-          begin_local_index_(begin_local_index),
-          end_local_index_(end_local_index),
+          local_index_(local_index),
           neutral_element_(neutral_element),
           key_extractor_(key_extractor),
           index_function_(index_function),
@@ -970,8 +967,8 @@ public:
         assert(frame_rate > 0.0 && frame_rate <= 1.0);
         assert(byte_size > 0 && "byte_size must be greater than 0");
         assert(bucket_rate >= 0.0 && bucket_rate <= 1.0);
-        assert(begin_local_index >= 0);
-        assert(end_local_index >= 0);
+        assert(local_index.begin >= 0);
+        assert(local_index.end >= 0);
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
 
@@ -1310,21 +1307,12 @@ public:
     }
 
     /*!
-     * Returns the begin local index.
+     * Returns the local index range.
      *
      * \return Begin local index.
      */
-    size_t BeginLocalIndex() const {
-        return begin_local_index_;
-    }
-
-    /*!
-     * Returns the end local index.
-     *
-     * \return End local index.
-     */
-    size_t EndLocalIndex() const {
-        return end_local_index_;
+    common::Range LocalIndex() const {
+        return local_index_;
     }
 
     /*!
@@ -1488,11 +1476,8 @@ private:
     //! Store the writers for frames.
     std::vector<data::File::Writer> frame_writers_;
 
-    //! Begin local index (reduce to index).
-    size_t begin_local_index_;
-
-    //! End local index (reduce to index).
-    size_t end_local_index_;
+    //! [Begin,end) local index (reduce to index).
+    common::Range local_index_;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;

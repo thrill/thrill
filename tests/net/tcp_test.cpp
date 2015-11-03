@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/net/tcp_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
@@ -163,6 +163,15 @@ TEST(LocalTcpGroup, MultiThreadAllReduce) {
 }
 TEST(LocalTcpGroup, MultiThreadPrefixSum) {
     LocalGroupTest(TestMultiThreadPrefixSum);
+}
+TEST(LocalTcpGroup, PredecessorManyItems) {
+    LocalGroupTest(TestPredecessorManyItems);
+}
+TEST(LocalTcpGroup, PredecessorFewItems) {
+    LocalGroupTest(TestPredecessorFewItems);
+}
+TEST(LocalTcpGroup, PredecessorOneItem) {
+    LocalGroupTest(TestPredecessorOneItem);
 }
 TEST(LocalTcpGroup, HardcoreRaceConditionTest) {
     LocalGroupTest(TestHardcoreRaceConditionTest);

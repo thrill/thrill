@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/write_lines.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -66,10 +66,12 @@ public:
         stats_total_elements_++;
     }
 
+    void StopPreOp(size_t /* id */) final {
+        writer_.Close();
+    }
+
     //! Closes the output file
     void Execute() override {
-        writer_.Close();
-
         STAT(context_) << "NodeType" << "WriteLines"
                        << "TotalBytes" << size_
                        << "TotalLines" << stats_total_elements_;

@@ -4,7 +4,7 @@
  * net::Group is a collection of net::Connections providing simple MPI-like
  * collectives and point-to-point communication.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
@@ -131,9 +131,9 @@ public:
     template <typename T, typename BinarySumOp = std::plus<T> >
     void ExPrefixSum(T& value, BinarySumOp sum_op = BinarySumOp());
 
-    //! Broadcast a value from the worker 0
+    //! Broadcast a value from the worker "origin"
     template <typename T>
-    void Broadcast(T& value);
+    void Broadcast(T& value, size_t origin = 0);
 
     //! Reduce a value from all workers to the worker 0
     template <typename T, typename BinarySumOp = std::plus<T> >

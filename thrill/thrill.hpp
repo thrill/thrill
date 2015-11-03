@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/thrill.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -14,7 +14,7 @@
 #define THRILL_THRILL_HEADER
 
 /*[[[perl
-print "#include <$_>\n" foreach (sort <thrill/api/*.hpp>);
+print "#include <$_>\n" foreach sort <thrill/api/*.hpp>;
 ]]]*/
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/allgather.hpp>
@@ -45,6 +45,7 @@ print "#include <$_>\n" foreach (sort <thrill/api/*.hpp>);
 #include <thrill/api/source_node.hpp>
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>

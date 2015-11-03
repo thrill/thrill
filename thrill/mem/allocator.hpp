@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/mem/allocator.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
@@ -59,6 +59,9 @@ public:
     template <typename OtherType>
     Allocator(const Allocator<OtherType>& other) noexcept
         : manager_(other.manager_) { }
+
+    //! copy-assignment operator
+    Allocator& operator = (const Allocator&) noexcept = default;
 
     //! Attempts to allocate a block of storage with a size large enough to
     //! contain n elements of member type value_type, and returns a pointer to

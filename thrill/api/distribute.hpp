@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/distribute.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
@@ -47,11 +47,9 @@ public:
     { }
 
     void PushData(bool /* consume */) final {
-        size_t local_begin, local_end;
-        std::tie(local_begin, local_end) =
-            context_.CalculateLocalRange(in_vector_.size());
+        common::Range local = context_.CalculateLocalRange(in_vector_.size());
 
-        for (size_t i = local_begin; i < local_end; ++i) {
+        for (size_t i = local.begin; i < local.end; ++i) {
             this->PushItem(in_vector_[i]);
         }
     }
@@ -81,7 +79,7 @@ auto Distribute(Context & ctx,
     using DistributeNode = api::DistributeNode<ValueType>;
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "Distribute", DIANodeType::DOP);
+        "Distribute", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<DistributeNode>(ctx, in_vector, stats_node);
@@ -107,7 +105,7 @@ auto Distribute(Context & ctx,
     using DistributeNode = api::DistributeNode<ValueType>;
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "Distribute", DIANodeType::DOP);
+        "Distribute", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<DistributeNode>(ctx, std::move(in_vector), stats_node);
@@ -118,6 +116,10 @@ auto Distribute(Context & ctx,
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::Distribute;
+
 } // namespace thrill
 
 #endif // !THRILL_API_DISTRIBUTE_HEADER

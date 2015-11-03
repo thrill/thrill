@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/data/data_benchmark.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -524,6 +524,134 @@ private:
 
 /******************************************************************************/
 
+class ScatterExperiment : public DataGeneratorExperiment
+{
+public:
+    int Run(int argc, char* argv[]) {
+
+        common::CmdlineParser clp;
+
+        clp.SetDescription("thrill::data benchmark for disk I/O");
+        clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
+
+        DataGeneratorExperiment::AddCmdline(clp);
+
+        clp.AddUInt('n', "iterations", iterations_, "Iterations (default: 1)");
+
+        clp.AddParamString("reader", reader_type_,
+                           "reader type (consume, keep)");
+
+        if (!clp.Process(argc, argv)) return -1;
+
+        api::Run(
+            [=](api::Context& ctx) {
+                // make a copy of this for local workers
+                ScatterExperiment local = *this;
+
+                if (type_as_string_ == "size_t")
+                    local.Test<size_t>(ctx);
+                else if (type_as_string_ == "string")
+                    local.Test<std::string>(ctx);
+                else if (type_as_string_ == "pair")
+                    local.Test<pair_type>(ctx);
+                else if (type_as_string_ == "triple")
+                    local.Test<triple_type>(ctx);
+                else
+                    abort();
+            });
+
+        return 0;
+    }
+
+    template <typename Type>
+    void Test(api::Context& ctx) {
+
+        if (reader_type_ != "consume" && reader_type_ != "keep")
+            abort();
+        bool consume = reader_type_ == "consume";
+
+        for (unsigned i = 0; i < iterations_; i++) {
+
+            StatsTimer<true> total_timer(true);
+            StatsTimer<true> read_timer;
+            auto stream = ctx.GetNewStream<data::CatStream>();
+            data::File file(ctx.block_pool());
+            auto writer = file.GetWriter();
+            if (ctx.my_rank() == 0) {
+                Generator<Type> data = Generator<Type>(bytes_, min_size_, max_size_);
+                while (data.HasNext())
+                    writer(data.Next());
+            }
+            else {
+                Generator<Type> data = Generator<Type>(0, min_size_, max_size_);
+                while (data.HasNext())
+                    writer(data.Next());
+            }
+
+            // start reader thread
+            common::ThreadPool threads(2);
+            threads.Enqueue(
+                [&]() {
+                    read_timer.Start();
+                    auto reader = stream->OpenAnyReader(consume);
+                    while (reader.HasNext())
+                        reader.template Next<Type>();
+                    read_timer.Stop();
+                });
+
+            // start writer threads: send to all workers
+            std::chrono::microseconds::rep write_time = 0;
+            threads.Enqueue(
+                [&]() {
+                    writer.Close();
+                    std::vector<size_t> offsets;
+                    for (unsigned int w = 0; w < ctx.num_workers(); w++) {
+                        if (ctx.my_rank() == 0) {
+                            offsets.push_back(file.num_items() / ctx.num_workers() * (w + 1));
+                            std::cout << offsets.back() << std::endl;
+                        }
+                        else
+                            offsets.push_back(0);
+                    }
+
+                    StatsTimer<true> write_timer(true);
+                    stream->Scatter<Type>(file, offsets);
+                    stream->Close();
+                    write_timer.Stop();
+                    write_time = std::max(write_time, write_timer.Microseconds());
+                });
+            threads.LoopUntilEmpty();
+
+            total_timer.Stop();
+            LOG1 << "RESULT"
+                 << " experiment=" << "stream_all_to_all"
+                 << " stream=" << typeid(data::CatStream).name()
+                 << " workers=" << ctx.num_workers()
+                 << " hosts=" << ctx.num_hosts()
+                 << " datatype=" << type_as_string_
+                 << " size=" << bytes_
+                 << " block_size=" << block_size_
+                 << " avg_element_size="
+                 << static_cast<double>(min_size_ + max_size_) / 2.0
+                 << " total_time=" << total_timer.Microseconds()
+                 << " write_time=" << write_time
+                 << " read_time=" << read_timer.Microseconds()
+                 << " total_speed_MiBs=" << CalcMiBs(bytes_, total_timer)
+                 << " write_speed_MiBs=" << CalcMiBs(bytes_, write_time)
+                 << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
+        }
+    }
+
+private:
+    //! number of iterations to run
+    unsigned iterations_ = 1;
+
+    //! reader type: consume or keep
+    std::string reader_type_;
+};
+
+/******************************************************************************/
+
 #if SORRY_HOW_IS_THIS_DIFFERENT_FROM_ABOVE_TB
 
 template <typename Type>
@@ -780,6 +908,9 @@ int main(int argc, char* argv[]) {
     }
     else if (benchmark == "blockqueue") {
         return BlockQueueExperiment().Run(argc - 1, argv + 1);
+    }
+    else if (benchmark == "scatter") {
+        return ScatterExperiment().Run(argc - 1, argv + 1);
     }
     else {
         Usage(argv[0]);

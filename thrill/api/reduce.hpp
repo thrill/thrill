@@ -3,7 +3,7 @@
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
@@ -100,7 +100,7 @@ public:
               core::PostReduceByHashKey<Key>(),
               core::PostReduceFlushToDefault<Key,
                                              ReduceFunction>(reduce_function),
-              0, 0, Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
+              common::Range(), Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -118,16 +118,15 @@ public:
                          });
     }
 
-    /*!
-     * Actually executes the reduce operation.
-     */
-    void Execute() final {
-        LOG << this->label() << " running main op";
+    void StopPreOp(size_t /* id */) final {
+        LOG << this->label() << " running StopPreOp";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
         stream_->Close();
     }
+
+    void Execute() final { }
 
     void PushData(bool consume) final {
 

@@ -2,7 +2,7 @@
 ##########################################################################
 # scripts/ec2/terminate_all.py
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 # Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
 #
@@ -10,6 +10,7 @@
 ##########################################################################
 
 import boto3
+import os
 from subprocess import call
 
 ec2 = boto3.resource('ec2')

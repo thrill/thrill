@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/write_binary.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
@@ -70,7 +70,7 @@ public:
     }
 
     //! Closes the output file
-    void Execute() final {
+    void StopPreOp(size_t /* id */) final {
         sLOG << "closing file" << out_pathbase_;
         writer_.reset();
         sink_.reset();
@@ -78,6 +78,8 @@ public:
                        << "TotalElements" << stats_total_elements_
                        << "TotalWrites" << stats_total_writes_;
     }
+
+    void Execute() final { }
 
     void Dispose() final { }
 

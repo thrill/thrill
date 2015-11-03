@@ -1,7 +1,7 @@
 ################################################################################
 # benchmarks/CMakeLists.txt
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 # Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
 #
@@ -58,6 +58,7 @@ thrill_build_prog(serialization/bench_serialization)
 
 add_subdirectory(word_count)
 add_subdirectory(page_rank)
+add_subdirectory(dc3)
 add_subdirectory(net)
 add_subdirectory(merge)
 

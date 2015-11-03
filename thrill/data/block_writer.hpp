@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/data/block_writer.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
@@ -64,6 +64,9 @@ public:
           block_size_(block_size) {
         assert(block_size_ > 0);
     }
+
+    //! default constructor
+    BlockWriter() = default;
 
     //! non-copyable: delete copy-constructor
     BlockWriter(const BlockWriter&) = delete;
@@ -400,7 +403,7 @@ private:
     size_t first_offset_ = 0;
 
     //! file or stream sink to output blocks to.
-    BlockSink* sink_;
+    BlockSink* sink_ = nullptr;
 
     //! boolean whether to queue blocks
     bool do_queue_ = false;
