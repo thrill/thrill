@@ -185,7 +185,8 @@ public:
 
         // cache block in file_ (but not the termination block from the queue)
         if (b.IsValid())
-            queue_->file_.AppendBlock(b.UnpinnedCopy());
+            //queue_->file_.AppendBlock(b.UnpinnedCopy());
+            queue_->file_.AppendBlock(b);
 
         return b;
     }
