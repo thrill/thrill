@@ -162,7 +162,7 @@ struct PostProbingEmitImpl;
 template <typename EmitterFunction, typename KeyValuePair, typename SendType>
 struct PostProbingEmitImpl<true, EmitterFunction, KeyValuePair, SendType>{
     void EmitElement(const KeyValuePair& p, EmitterFunction emit) {
-        emit(std::make_pair(p.first, p.second));
+        emit(p);
     }
 };
 
@@ -182,10 +182,6 @@ template <typename ValueType, typename Key, typename Value,
 class ReducePostProbingTable
 {
     static const bool debug = false;
-
-    static const bool bench = true;
-
-    static const bool emit = true;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -376,8 +372,9 @@ public:
             {
                 SpillFrame(h.partition_id);
 
-                current->first = kv.first;
-                current->second = kv.second;
+                *current = kv;
+                //current->first = kv.first;
+                //current->second = kv.second;
 
                 // increase counter for partition
                 items_per_frame_[h.partition_id]++;
@@ -387,9 +384,10 @@ public:
         }
 
         // insert data
-        //*current = kv;
-        current->first = kv.first;
-        current->second = kv.second;
+        *current = kv;
+        //current->first = kv.first;
+        //current->second = kv.second;
+
         // increase counter for frame
         items_per_frame_[h.partition_id]++;
 
@@ -415,18 +413,15 @@ public:
             if (current.first != sentinel_.first)
             {
                 writer.PutItem(current);
-                items_[i].first = sentinel_.first;
-                items_[i].second = sentinel_.second;
+                //items_[i].first = sentinel_.first;
+                //items_[i].second = sentinel_.second;
+
+                items_[i] = sentinel_;
             }
         }
 
         // reset partition specific counter
         items_per_frame_[frame_id] = 0;
-
-        if (bench) {
-            // increase spill counter
-            num_spills_++;
-        }
     }
 
     /*!

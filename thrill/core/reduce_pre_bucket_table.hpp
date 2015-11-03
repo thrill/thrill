@@ -120,10 +120,6 @@ class ReducePreTable
 {
     static const bool debug = false;
 
-    static const bool bench = true;
-
-    static const bool emit = true;
-
     static const size_t flush_mode = 4; // 0... 1-factor, 1... fullest, 2... LRU, 3... LFU, 4... random
 
 public:
@@ -387,10 +383,6 @@ public:
                     LOG << "...finished reduce!";
                     return;
                 }
-
-                if (bench) {
-                    num_collisions_++;
-                }
             }
 
             current = current->next;
@@ -425,10 +417,6 @@ public:
 
             // Total number of blocks
             num_blocks_per_table_++;
-
-            if (bench) {
-                buckets_length_[h.global_index]++;
-            }
         }
 
         // in-place construct/insert new item in current bucket block
@@ -477,10 +465,6 @@ public:
             }
 
             buckets_[i] = nullptr;
-
-            if (bench) {
-                buckets_length_[i] = 0;
-            }
         }
 
         if (flush_mode == 1)
@@ -490,11 +474,6 @@ public:
 
         // reset partition specific counter
         num_items_per_partition_[partition_id] = 0;
-
-        if (bench) {
-            // debug: increase flush counter
-            num_spills_++;
-        }
     }
 
     /*!
@@ -606,9 +585,7 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    if (emit) {
-                        EmitAll(*bi, partition_id);
-                    }
+                    EmitAll(*bi, partition_id);
                 }
 
                 // destroy block and advance to next
@@ -618,10 +595,6 @@ public:
             }
 
             buckets_[i] = nullptr;
-
-            if (bench) {
-                buckets_length_[i] = 0;
-            }
         }
 
         if (flush_mode == 1)
@@ -633,11 +606,6 @@ public:
         num_items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
-
-        if (bench) {
-            // debug: increase flush counter
-            num_flushes_++;
-        }
 
         LOG << "Flushed items of partition with id: " << partition_id;
     }

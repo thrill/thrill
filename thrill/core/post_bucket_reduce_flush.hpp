@@ -48,10 +48,6 @@ template<typename Key,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostBucketReduceFlush {
 
-    static const bool emit = true;
-
-    static const bool bench = true;
-
 public:
     PostBucketReduceFlush(ReduceFunction reduce_function,
                     const IndexFunction &index_function = IndexFunction(),
@@ -89,7 +85,8 @@ public:
                 size_t fill_rate_num_items_per_frame,
                 size_t frame_id, std::vector <size_t> &num_items_per_frame,
                 BucketBlockPool <BucketBlock> &block_pool,
-                size_t max_num_blocks_second_reduce, size_t block_size) const {
+                size_t max_num_blocks_second_reduce, size_t block_size) const
+    {
         size_t item_count = 0;
 
         std::vector <data::File> frame_files_;
@@ -330,9 +327,7 @@ public:
                 while (current != nullptr) {
                     for (KeyValuePair *bi = current->items;
                          bi != current->items + current->size; ++bi) {
-                        if (emit) {
-                            ht->EmitAll(*bi, frame_id);
-                        }
+                        ht->EmitAll(*bi, frame_id);
                     }
 
                     // destroy block and advance to next
@@ -368,11 +363,6 @@ public:
             Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce,
                    fill_rate_num_items_per_frame, frame_id, num_items_per_frame,
                    block_pool, max_num_blocks_second_reduce, block_size);
-
-            if (bench)
-            {
-                ht->incrRecursiveSpills();
-            }
         }
     }
 
@@ -442,9 +432,7 @@ public:
                     while (current != nullptr) {
                         for (KeyValuePair *bi = current->items;
                              bi != current->items + current->size; ++bi) {
-                            if (emit) {
-                                ht->EmitAll(*bi, frame_id);
-                            }
+                            ht->EmitAll(*bi, frame_id);
                         }
 
                         // advance to next

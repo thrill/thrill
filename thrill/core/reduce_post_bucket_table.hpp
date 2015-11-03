@@ -126,10 +126,6 @@ class ReducePostTable
 {
     static const bool debug = false;
 
-    static const bool bench = true;
-
-    static const bool emit = true;
-
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
@@ -353,7 +349,8 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        typename IndexFunction::IndexResult h = index_function_(kv.first, num_frames_, num_buckets_per_frame_, num_buckets_per_table_, 0);
+        typename IndexFunction::IndexResult h = index_function_(kv.first, num_frames_,
+                                                                num_buckets_per_frame_, num_buckets_per_table_, 0);
 
         assert(h.global_index >= 0 && h.global_index < num_buckets_per_table_);
 
@@ -518,10 +515,6 @@ public:
 
         // reset number of blocks in external memory
         num_items_mem_per_frame_[frame_id] = 0;
-        if (bench) {
-            // increase spill counter
-            num_spills_++;
-        }
     }
 
     /*!
