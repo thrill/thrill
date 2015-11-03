@@ -6,6 +6,7 @@
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
+
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/byte_block.hpp>
 
@@ -41,7 +42,8 @@ ByteBlock::ByteBlock(Byte* data, size_t size, BlockPool* block_pool, bool pinned
     : data_(data), size_(size), block_pool_(block_pool), pin_count_(pinned ? 1 : 0), swap_token_(swap_token) { }
 
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;
-}
-}
+
+} // namespace data
+} // namespace thrill
 
 /******************************************************************************/

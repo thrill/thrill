@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/channel.cpp
+ * benchmarks/data/allocate.cpp
  *
  * Part of Project Thrill.
  *
@@ -17,7 +17,6 @@
 #include <random>
 #include <string>
 #include <tuple>
-
 
 using namespace thrill; // NOLINT
 using common::StatsTimer;
@@ -56,8 +55,8 @@ int main(int argc, const char** argv) {
             wall_time.Stop();
             for (auto a : allocations)
                 free(a);
-
-        } else {
+        }
+        else {
             static const int permission = S_IRUSR | S_IWUSR | S_IRGRP;
             static int file_flags = O_RDWR | O_CREAT | O_TRUNC | O_LARGEFILE | O_NOATIME;
             int fd_ = open("/tmp/swapfile", file_flags, permission);
@@ -70,7 +69,7 @@ int main(int argc, const char** argv) {
             for (unsigned int i = 0; i < g_allocations; i++) {
                 if (i >= allocated_swapspace) {
                     allocated_swapspace += g_swapfile_growth;
-                    die_unless(lseek(fd_, (allocated_swapspace * default_block_size)- 1, SEEK_SET) != -1);
+                    die_unless(lseek(fd_, (allocated_swapspace * default_block_size) - 1, SEEK_SET) != -1);
                     die_unless(write(fd_, "\0", 1) == 1); //expect 1byte written
                 }
                 off_t offset = i * default_block_size;
@@ -89,7 +88,6 @@ int main(int argc, const char** argv) {
             << " time(us)=" << wall_time.Microseconds()
             << std::endl;
     }
-
 }
 
 /******************************************************************************/

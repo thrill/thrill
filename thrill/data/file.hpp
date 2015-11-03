@@ -12,8 +12,8 @@
 #ifndef THRILL_DATA_FILE_HEADER
 #define THRILL_DATA_FILE_HEADER
 
-#include <thrill/common/logger.hpp>
 #include <thrill/common/future.hpp>
+#include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
 #include <thrill/data/block_sink.hpp>
@@ -309,7 +309,7 @@ public:
         if (file_->blocks_.empty() && fetching_blocks_.empty())
             return Block();
 
-        //operate without prefetching
+        // operate without prefetching
         if (desired_prefetched_ == 0) {
             common::Future<Block>* f = file_->blocks_.front().Pin();
             file_->blocks_.pop_front();
@@ -319,13 +319,13 @@ public:
             return b;
         }
 
-        //prefetch #desired + 1
-        while(fetching_blocks_.size() <= desired_prefetched_ && !file_->blocks_.empty()) {
+        // prefetch #desired + 1
+        while (fetching_blocks_.size() <= desired_prefetched_ && !file_->blocks_.empty()) {
             fetching_blocks_.push(file_->blocks_.front().Pin());
             file_->blocks_.pop_front();
         }
 
-        //this might block if the prefetching is not finished
+        // this might block if the prefetching is not finished
         fetching_blocks_.front()->Wait();
 
         Block b = fetching_blocks_.front()->Get();
@@ -339,7 +339,7 @@ public:
         if (file_) {
             file_->blocks_.clear();
             file_->num_items_sum_.clear();
-            while(!fetching_blocks_.empty()) {
+            while (!fetching_blocks_.empty()) {
                 auto f = fetching_blocks_.front();
                 fetching_blocks_.pop();
                 free(f);

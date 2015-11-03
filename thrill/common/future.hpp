@@ -58,7 +58,7 @@ public:
     }
 
     //! Fills future with the given data and wakes up waiting parties
-    void operator<<(T&& data) {
+    void operator << (T&& data) {
         std::unique_lock<std::mutex> lock(mutex_);
         value_ = std::move(data);
         triggered_ = true;

@@ -12,11 +12,11 @@
 #ifndef THRILL_DATA_BLOCK_POOL_HEADER
 #define THRILL_DATA_BLOCK_POOL_HEADER
 
+#include <thrill/common/signal.hpp>
+#include <thrill/common/thread_pool.hpp>
 #include <thrill/data/byte_block.hpp>
 #include <thrill/mem/manager.hpp>
 #include <thrill/mem/page_mapper.hpp>
-#include <thrill/common/thread_pool.hpp>
-#include <thrill/common/signal.hpp>
 
 #include <deque>
 #include <mutex>
@@ -53,11 +53,10 @@ public:
           page_mapper_("/tmp/thrill.swapfile" + swap_file_suffix),
           tasks_(1),
           soft_memory_limit_(soft_memory_limit),
-          hard_memory_limit_(hard_memory_limit)
-    {
-        tasks_.Enqueue([](){
-            common::NameThisThread("I/O");
-        });
+          hard_memory_limit_(hard_memory_limit) {
+        tasks_.Enqueue([]() {
+                           common::NameThisThread("I/O");
+                       });
     }
 
     ~BlockPool() {
@@ -107,9 +106,8 @@ protected:
     //! Limits for the block pool. 0 for no limits.
     size_t soft_memory_limit_, hard_memory_limit_;
 
-    //for calling [Un]PinBlock
+    // for calling [Un]PinBlock
     friend class ByteBlock;
-
 
     //! Unpins a block. If all pins are removed, the block might be swapped.
     //! Returns immediately. Actual unpinning is async.
@@ -135,7 +133,6 @@ protected:
     //! Updates the memory manager for the internal memory
     //! wakes up waiting BlockPool::RequestInternalMemory calls
     inline void ReleaseInternalMemory(size_t amount);
-
 };
 
 } // namespace data

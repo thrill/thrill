@@ -26,7 +26,7 @@ using StringPair = std::pair<std::string, int>;
 struct PreTable : public::testing::Test {
     PreTable() : block_pool(nullptr, nullptr, "pre-table"), output(block_pool) { }
     data::BlockPool block_pool;
-    data::File output;
+    data::File      output;
 };
 
 struct MyStruct

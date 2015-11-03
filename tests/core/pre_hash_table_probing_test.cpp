@@ -26,7 +26,7 @@ struct ReducePreProbingTable : public::testing::Test {
     ReducePreProbingTable() : block_pool(nullptr, nullptr, "pre-probing-table"), output(block_pool) { }
 
     data::BlockPool block_pool;
-    data::File output;
+    data::File      output;
 };
 
 template <typename Key, typename HashFunction = std::hash<Key> >
@@ -67,7 +67,6 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
                       return in1 + in2;
                   };
 
-
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -102,7 +101,6 @@ TEST_F(ReducePreProbingTable, AddIntegers) {
                       return in1 + in2;
                   };
 
-
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -130,7 +128,6 @@ TEST_F(ReducePreProbingTable, CreateEmptyTable) {
                       return in1 + in2;
                   };
 
-
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -157,7 +154,6 @@ TEST_F(ReducePreProbingTable, DISABLED_TestSetMaxSizeSetter) {
     auto key_ex = [](int in) {
                       return in;
                   };
-
 
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
@@ -188,7 +184,6 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
                   };
-
 
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
@@ -279,7 +274,6 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
                       return in1 + in2;
                   };
 
-
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -367,7 +361,6 @@ TEST_F(ReducePreProbingTable, ComplexType) {
                       return StringPair(in1.first, in1.second + in2.second);
                   };
 
-
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -433,7 +426,6 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
 
     size_t total_sum = 0, total_count = 0;
 
-
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -471,7 +463,6 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
     auto red_fn = [](const IntPair in1, const IntPair in2) {
                       return IntPair(in1.first, in1.second + in2.second);
                   };
-
 
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
@@ -526,7 +517,6 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
     auto red_fn = [](StringPair in1, StringPair in2) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
-
 
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
