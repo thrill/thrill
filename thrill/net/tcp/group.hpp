@@ -4,12 +4,12 @@
  * net::Group is a collection of NetConnections providing simple MPI-like
  * collectives and point-to-point communication.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -47,12 +47,12 @@ public:
     //! \{
 
     /*!
-     * Construct a test network with an underlying full mesh of local stream
-     * sockets for testing. Returns vector of net::Group interfaces for each
-     * virtual client. This is ideal for testing network communication
+     * Construct a test network with an underlying full mesh of local loopback
+     * stream sockets for testing. Returns vector of net::Group interfaces for
+     * each virtual client. This is ideal for testing network communication
      * protocols.
      */
-    static std::vector<std::unique_ptr<Group> > ConstructLocalMesh(
+    static std::vector<std::unique_ptr<Group> > ConstructLoopbackMesh(
         size_t num_hosts);
 
     /*!

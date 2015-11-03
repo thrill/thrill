@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/common/system_exception.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -42,7 +42,7 @@ public:
     { }
 
     explicit ErrnoException(const std::string& what)
-        : ErrnoException(what, errno) { }
+        : ErrnoException(what, -1) { }
 };
 
 } // namespace common

@@ -3,11 +3,11 @@
  *
  * Simple Graph to represent execution stages.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -31,6 +31,7 @@ enum class DIANodeType {
     ACTION,
     COLLAPSE,
     CACHE,
+    GENERATOR,
     LAMBDA
 };
 
@@ -122,17 +123,22 @@ public:
      * Set the node style according to the nodes type.
      */
     std::string NodeStyle() const {
-        std::string style = std::string(label_) + " [";
+        std::string style = std::string(label_) + std::to_string(id_) + " [";
         switch (type_) {
+        case DIANodeType::GENERATOR:
+            style += "colorscheme=accent5, style=filled, color=1, shape=invhouse";
+            break;
         case DIANodeType::DOP:
-            style += "style=filled, fillcolor=red, shape=box";
+            style += "colorscheme=accent5, style=filled, color=2, shape=box";
             break;
         case DIANodeType::ACTION:
-            style += "style=filled, fillcolor=yellow, shape=diamond";
+            style += "colorscheme=accent5, style=filled, color=3, shape=house";
             break;
         case DIANodeType::CACHE:
+            style += "colorscheme=accent5, style=filled, color=4, shape=oval";
+            break;
         case DIANodeType::COLLAPSE:
-            style += "style=filled, fillcolor=blue, shape=hexagon";
+            style += "colorscheme=accent5, style=filled, color=5, shape=oval";
             break;
         default:
             break;
@@ -231,7 +237,7 @@ public:
         file << "\n";
         for (const auto& node : nodes_) {
             for (const auto& neighbor : node->adjacent_nodes()) {
-                file << "\t" << *node << " -> " << *neighbor << ";\n";
+                file << "\t" << *node << std::to_string(node->id()) << " -> " << *neighbor << std::to_string(neighbor->id()) << ";\n";
             }
         }
         file << "}";

@@ -4,11 +4,11 @@
  * Asynchronous callback wrapper around select(), epoll(), or other kernel-level
  * dispatchers.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -110,15 +110,15 @@ public:
     void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
                    AsyncReadByteBlockCallback done_cb);
 
+    //! asynchronously write byte and block and callback when delivered. The
+    //! block is reference counted by the async writer.
+    void AsyncWrite(Connection& c, Buffer&& buffer,
+                    AsyncWriteCallback done_cb = AsyncWriteCallback());
+
     //! asynchronously write TWO buffers and callback when delivered. The
     //! buffer2 are MOVED into the async writer. This is most useful to write a
     //! header and a payload Buffers that are hereby guaranteed to be written in
     //! order.
-    void AsyncWrite(Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback());
-
-    //! asynchronously write byte and block and callback when delivered. The
-    //! block is reference counted by the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer, const data::Block& block,
                     AsyncWriteCallback done_cb = AsyncWriteCallback());
 
@@ -134,7 +134,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Enqueue job in queue for dispatching thread to run at its discretion.
     void Enqueue(Job&& job);
 

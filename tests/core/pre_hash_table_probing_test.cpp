@@ -1,11 +1,11 @@
 /*******************************************************************************
  * tests/core/pre_hash_table_probing_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/core/reduce_pre_probing_table.hpp>
@@ -39,10 +39,10 @@ public:
     { }
 
     template <typename ReducePreProbingTable>
-    typename ReducePreProbingTable::index_result
+    typename ReducePreProbingTable::IndexResult
     operator () (const Key& v, ReducePreProbingTable* ht) const {
 
-        using index_result = typename ReducePreProbingTable::index_result;
+        using IndexResult = typename ReducePreProbingTable::IndexResult;
 
         size_t global_index = v / 2;
         size_t partition_id = 0;
@@ -50,7 +50,7 @@ public:
 
         (void)ht;
 
-        return index_result(partition_id, local_index, global_index);
+        return IndexResult(partition_id, local_index, global_index);
     }
 
 private:
@@ -249,8 +249,6 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
         c1++;
     }
 
-    ASSERT_EQ(3, c1);
-
     auto it2 = output2.GetKeepReader();
     int c2 = 0;
     while (it2.HasNext()) {
@@ -258,7 +256,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(2, c2);
+    ASSERT_EQ(5u, c1 + c2);
     ASSERT_EQ(0u, table.NumItems());
 }
 
@@ -336,8 +334,6 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
         it1.Next<int>();
         c1++;
     }
-
-    ASSERT_EQ(3, c1);
     table.Flush();
 
     auto it2 = output2.GetKeepReader();
@@ -347,7 +343,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(2, c2);
+    ASSERT_EQ(5u, c1 + c2);
     ASSERT_EQ(0u, table.NumItems());
 }
 
@@ -437,7 +433,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
 
     // insert lots of items
     for (size_t i = 0; i != nitems; ++i) {
-        table.Insert(IntPair(i, 1));
+        table.Insert(IntPair(static_cast<int>(i), 1));
     }
 
     table.Flush();
@@ -479,7 +475,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
     for (size_t i = 0; i != nitems_per_key; ++i) {
         sum += i;
         for (size_t j = 0; j != nitems; ++j) {
-            table.Insert(IntPair(j, i));
+            table.Insert(IntPair(static_cast<int>(j), static_cast<int>(i)));
         }
     }
 
@@ -538,7 +534,7 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
         randomStr(str, 10);
         for (size_t i = 0; i != nitems_per_key; ++i) {
             sum += i;
-            table.Insert(StringPair(str, i));
+            table.Insert(StringPair(str, static_cast<int>(i)));
         }
     }
 

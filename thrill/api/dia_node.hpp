@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/api/dia_node.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -28,7 +28,7 @@ namespace api {
 template <typename ValueType>
 struct CallbackPair {
     CallbackPair(const std::function<void(const ValueType&)>& cb,
-                 DIANodeType type)
+                 const DIANodeType& type)
         : cb_(cb), type_(type) { }
 
     void operator () (const ValueType& elem) const {
@@ -94,16 +94,22 @@ public:
         callbacks_.erase(
             std::remove_if(
                 callbacks_.begin(), callbacks_.end(),
-                [](const auto& cb) { return cb.type_ != DIANodeType::COLLAPSE; }),
+                [](const CallbackPair<ValueType>& cb) {
+                    return cb.type_ != DIANodeType::COLLAPSE;
+                }),
             callbacks_.end());
+
+        children_.erase(
+            std::remove_if(
+                children_.begin(), children_.end(),
+                [](const Child& c) {
+                    return c.node->type() != DIANodeType::COLLAPSE;
+                }),
+            children_.end());
     }
 
     std::vector<CallbackPair<ValueType> > & callbacks() {
         return callbacks_;
-    }
-
-    void callback_functions(std::vector<std::function<void(const ValueType&)> >& cbs) {
-        for (auto& cb_pair : callbacks_) cbs.push_back(cb_pair.cb_);
     }
 
     void PushItem(const ValueType& elem) const {
@@ -112,7 +118,7 @@ public:
         }
     }
 
-protected:
+private:
     //! Callback functions from the child nodes.
     std::vector<CallbackPair<ValueType> > callbacks_;
 };

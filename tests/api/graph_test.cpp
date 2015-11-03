@@ -1,10 +1,10 @@
 /*******************************************************************************
  * tests/api/graph_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/allgather.hpp>
@@ -50,7 +50,7 @@ TEST(Graph, SimpleGraph) {
 
             auto zip_result = prefixsums.Zip(emitted, [](int input1, int input2) {
                                                  return input1 + input2;
-                                             });
+                                             }).Label("Zippy").LinkStatsNodeFrom(doubled);
 
             ctx.stats_graph().BuildLayout("simple.out");
         };
@@ -79,7 +79,7 @@ TEST(Graph, WhileLoop) {
                                     return 2 * in;
                                 };
 
-            DIARef<size_t> squares = integers.Collapse();
+            DIA<size_t> squares = integers.Collapse();
             size_t sum = 0;
 
             // run loop four times, inflating DIA of 16 items -> 256

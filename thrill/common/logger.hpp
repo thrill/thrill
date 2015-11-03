@@ -3,11 +3,11 @@
  *
  * Simple and less simple logging classes.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -95,22 +95,14 @@ execution and communication are collected for later analysis. Something else is
 needed here.
 
  */
-template <bool Active>
 class Logger
-{ };
-
-template <>
-class Logger<true>
 {
-protected:
+private:
     //! collector stream
     std::basic_ostringstream<
         char, std::char_traits<char>, LoggerAllocator<char> > oss_;
 
 public:
-    //! Real active flag
-    static const bool active = true;
-
     Logger();
 
     //! output any type, including io manipulators
@@ -124,32 +116,13 @@ public:
     ~Logger();
 };
 
-template <>
-class Logger<false>
-{
-public:
-    //! Real active flag
-    static const bool active = false;
-
-    //! output any type, including io manipulators
-    template <typename AnyType>
-    Logger& operator << (const AnyType&) {
-        return *this;
-    }
-};
-
 /*!
  * A logging class which outputs spaces between elements pushed via
  * operator<<. Depending on the real parameter the output may be suppressed.
  */
-template <bool Real>
 class SpacingLogger
-{ };
-
-template <>
-class SpacingLogger<true>
 {
-protected:
+private:
     //! true until the first element it outputted.
     bool first_ = true;
 
@@ -158,9 +131,6 @@ protected:
         char, std::char_traits<char>, LoggerAllocator<char> > oss_;
 
 public:
-    //! Real active flag
-    static const bool active = true;
-
     SpacingLogger();
 
     //! output any type, including io manipulators
@@ -178,39 +148,36 @@ public:
     ~SpacingLogger();
 };
 
-template <>
-class SpacingLogger<false>
+class LoggerVoidify
 {
 public:
-    //! Real active flag
-    static const bool active = false;
-
-    //! output any type, including io manipulators
-    template <typename AnyType>
-    SpacingLogger& operator << (const AnyType&) {
-        return *this;
-    }
+    void operator & (Logger&) { }
+    void operator & (SpacingLogger&) { }
 };
 
-// //! Default logging method: output if the local debug variable is true.
-#define LOG ::thrill::common::Logger<debug>()
-
-// //! Override default output: never or always output log.
-#define LOG0 ::thrill::common::Logger<false>()
-#define LOG1 ::thrill::common::Logger<true>()
-
-// //! Explicitly specify the condition for logging
-#define LOGC(cond) ::thrill::common::Logger<cond>()
+//! Explicitly specify the condition for logging
+#define LOGC(cond)      \
+    !(cond) ? (void)0 : \
+    ::thrill::common::LoggerVoidify() & ::thrill::common::Logger()
 
 //! Default logging method: output if the local debug variable is true.
-#define sLOG ::thrill::common::SpacingLogger<debug>()
+#define LOG LOGC(debug)
 
 //! Override default output: never or always output log.
-#define sLOG0 ::thrill::common::SpacingLogger<false>()
-#define sLOG1 ::thrill::common::SpacingLogger<true>()
+#define LOG0 LOGC(false)
+#define LOG1 LOGC(true)
 
 //! Explicitly specify the condition for logging
-#define sLOGC(cond) ::thrill::common::SpacingLogger(cond)
+#define sLOGC(cond)     \
+    !(cond) ? (void)0 : \
+    ::thrill::common::LoggerVoidify() & ::thrill::common::SpacingLogger()
+
+//! Default logging method: output if the local debug variable is true.
+#define sLOG sLOGC(debug)
+
+//! Override default output: never or always output log.
+#define sLOG0 sLOGC(false)
+#define sLOG1 sLOGC(true)
 
 /******************************************************************************/
 
@@ -229,11 +196,11 @@ public:
 
 //! Check that X == Y or die miserably, but output the values of X and Y for
 //! better debugging.
-#define die_unequal(X, Y)                         \
-    do {                                          \
-        if ((X) != (Y))                           \
-            die("Inequality: " #X " != " #Y " : " \
-                "\"" << "\" != \"" << Y << "\""); \
+#define die_unequal(X, Y)                              \
+    do {                                               \
+        if ((X) != (Y))                                \
+            die("Inequality: " #X " != " #Y " : "      \
+                "\"" << X << "\" != \"" << Y << "\""); \
     } while (0)
 
 } // namespace common

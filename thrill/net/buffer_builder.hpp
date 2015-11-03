@@ -6,11 +6,11 @@
  * and read them using BufferReader::Get<type>(). The operation sequences must
  * match. See test-binary-builder.cpp for an example.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -40,7 +40,7 @@ namespace net {
 class BufferBuilder
     : public common::ItemWriterToolsBase<BufferBuilder>
 {
-protected:
+private:
     //! type used to store the bytes
     using Byte = unsigned char;
 
@@ -54,31 +54,28 @@ protected:
     using const_reference = const Byte &;
 
     //! Allocated buffer pointer.
-    Byte* data_;
+    Byte* data_ = nullptr;
 
     //! Size of valid data.
-    size_t size_;
+    size_t size_ = 0;
 
     //! Total capacity of buffer.
-    size_t capacity_;
+    size_t capacity_ = 0;
 
 public:
     //! \name Construction, Movement, Destruction
     //! \{
 
     //! Create a new empty object
-    BufferBuilder()
-        : data_(nullptr), size_(0), capacity_(0)
-    { }
+    BufferBuilder() = default;
 
     //! Copy-Constructor, duplicates memory content.
-    BufferBuilder(const BufferBuilder& other)
-        : data_(nullptr), size_(0), capacity_(0) {
+    BufferBuilder(const BufferBuilder& other) {
         Assign(other);
     }
 
     //! Move-Constructor, moves memory area.
-    BufferBuilder(BufferBuilder&& other)
+    BufferBuilder(BufferBuilder&& other) noexcept
         : data_(other.data_), size_(other.size_), capacity_(other.capacity_) {
         other.data_ = nullptr;
         other.size_ = 0;
@@ -86,20 +83,17 @@ public:
     }
 
     //! Constructor, copy memory area.
-    BufferBuilder(const void* data, size_t n)
-        : data_(nullptr), size_(0), capacity_(0) {
+    BufferBuilder(const void* data, size_t n) {
         Assign(data, n);
     }
 
     //! Constructor, create object with n bytes pre-allocated.
-    explicit BufferBuilder(size_t n)
-        : data_(nullptr), size_(0), capacity_(0) {
+    explicit BufferBuilder(size_t n) {
         Reserve(n);
     }
 
     //! Constructor from std::string, COPIES string content.
-    explicit BufferBuilder(const std::string& str)
-        : data_(nullptr), size_(0), capacity_(0) {
+    explicit BufferBuilder(const std::string& str) {
         Assign(str.data(), str.size());
     }
 
@@ -112,7 +106,7 @@ public:
     }
 
     //! Move-Assignment operator: move other's memory area into buffer.
-    BufferBuilder& operator = (BufferBuilder&& other) {
+    BufferBuilder& operator = (BufferBuilder&& other) noexcept {
         if (this != &other)
         {
             if (data_) free(data_);
@@ -228,12 +222,6 @@ public:
     //! Explicit conversion to std::string (copies memory of course).
     std::string ToString() const {
         return std::string(reinterpret_cast<const char*>(data_), size_);
-    }
-
-    //! copy part of contents into std::string
-    std::string PartialToString(size_t begin, size_t length) const {
-        assert(size_ >= begin + length);
-        return std::string(reinterpret_cast<const char*>(data_ + begin), length);
     }
 
     //! Explicit conversion to Buffer MOVING the memory ownership.

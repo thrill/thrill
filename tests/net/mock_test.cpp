@@ -1,16 +1,15 @@
 /*******************************************************************************
  * tests/net/mock_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
 #include <thrill/common/logger.hpp>
-#include <thrill/net/collective_communication.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/mock/group.hpp>
 
@@ -26,7 +25,7 @@ void MockTestOne(size_t num_hosts,
     sLOG0 << "MockTestOne num_hosts" << num_hosts;
     // construct mock network mesh and run threads
     net::ExecuteGroupThreads(
-        net::mock::Group::ConstructLocalMesh(num_hosts),
+        net::mock::Group::ConstructLoopbackMesh(num_hosts),
         thread_function);
 }
 
@@ -51,12 +50,10 @@ void MockTestLess(const std::function<void(net::Group*)>& thread_function) {
     MockTestOne(8, thread_function);
 }
 
-/*[[[cog
-import tests.net.test_gen as m
-
-m.generate_group_tests('MockGroup', 'MockTest')
-m.generate_dispatcher_tests('MockGroup', 'MockTest', 'net::mock::Dispatcher')
-m.generate_flow_control_tests('MockGroup', 'MockTestLess')
+/*[[[perl
+  require("tests/net/test_gen.pm");
+  generate_group_tests("MockGroup", "MockTest");
+  generate_flow_control_tests("MockGroup", "MockTestLess");
   ]]]*/
 TEST(MockGroup, NoOperation) {
     MockTest(TestNoOperation);
@@ -70,11 +67,17 @@ TEST(MockGroup, BroadcastIntegral) {
 TEST(MockGroup, SendReceiveAll2All) {
     MockTest(TestSendReceiveAll2All);
 }
-TEST(MockGroup, PrefixSumForPowersOfTwo) {
-    MockTest(TestPrefixSumForPowersOfTwo);
+TEST(MockGroup, PrefixSumHypercube) {
+    MockTest(TestPrefixSumHypercube);
 }
-TEST(MockGroup, PrefixSumForPowersOfTwoString) {
-    MockTest(TestPrefixSumForPowersOfTwoString);
+TEST(MockGroup, PrefixSumHypercubeString) {
+    MockTest(TestPrefixSumHypercubeString);
+}
+TEST(MockGroup, PrefixSum) {
+    MockTest(TestPrefixSum);
+}
+TEST(MockGroup, Broadcast) {
+    MockTest(TestBroadcast);
 }
 TEST(MockGroup, ReduceToRoot) {
     MockTest(TestReduceToRoot);
@@ -82,8 +85,14 @@ TEST(MockGroup, ReduceToRoot) {
 TEST(MockGroup, ReduceToRootString) {
     MockTest(TestReduceToRootString);
 }
-TEST(MockGroup, Broadcast) {
-    MockTest(TestBroadcast);
+TEST(MockGroup, AllReduceString) {
+    MockTest(TestAllReduceString);
+}
+TEST(MockGroup, AllReduceHypercubeString) {
+    MockTest(TestAllReduceHypercubeString);
+}
+TEST(MockGroup, DispatcherSyncSendAsyncRead) {
+    MockTest(TestDispatcherSyncSendAsyncRead);
 }
 TEST(MockGroup, DispatcherLaunchAndTerminate) {
     MockTest(TestDispatcherLaunchAndTerminate);
@@ -94,32 +103,37 @@ TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFuture) {
 TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
     MockTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
 }
-TEST(MockGroup, DispatcherSyncSendAsyncRead) {
-    MockTest(
-        DispatcherTestSyncSendAsyncRead<net::mock::Dispatcher>);
-}
-TEST(FlowControlMockGroup, SingleThreadPrefixSum) {
+TEST(MockGroup, SingleThreadPrefixSum) {
     MockTestLess(TestSingleThreadPrefixSum);
 }
-TEST(FlowControlMockGroup, SingleThreadVectorPrefixSum) {
+TEST(MockGroup, SingleThreadVectorPrefixSum) {
     MockTestLess(TestSingleThreadVectorPrefixSum);
 }
-TEST(FlowControlMockGroup, SingleThreadBroadcast) {
+TEST(MockGroup, SingleThreadBroadcast) {
     MockTestLess(TestSingleThreadBroadcast);
 }
-TEST(FlowControlMockGroup, MultiThreadBroadcast) {
+TEST(MockGroup, MultiThreadBroadcast) {
     MockTestLess(TestMultiThreadBroadcast);
 }
-TEST(FlowControlMockGroup, SingleThreadAllReduce) {
+TEST(MockGroup, SingleThreadAllReduce) {
     MockTestLess(TestSingleThreadAllReduce);
 }
-TEST(FlowControlMockGroup, MultiThreadAllReduce) {
+TEST(MockGroup, MultiThreadAllReduce) {
     MockTestLess(TestMultiThreadAllReduce);
 }
-TEST(FlowControlMockGroup, MultiThreadPrefixSum) {
+TEST(MockGroup, MultiThreadPrefixSum) {
     MockTestLess(TestMultiThreadPrefixSum);
 }
-TEST(FlowControlMockGroup, HardcoreRaceConditionTest) {
+TEST(MockGroup, PredecessorManyItems) {
+    MockTestLess(TestPredecessorManyItems);
+}
+TEST(MockGroup, PredecessorFewItems) {
+    MockTestLess(TestPredecessorFewItems);
+}
+TEST(MockGroup, PredecessorOneItem) {
+    MockTestLess(TestPredecessorOneItem);
+}
+TEST(MockGroup, HardcoreRaceConditionTest) {
     MockTestLess(TestHardcoreRaceConditionTest);
 }
 // [[[end]]]

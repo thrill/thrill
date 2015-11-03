@@ -1,12 +1,12 @@
 /*******************************************************************************
  * thrill/api/size.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -28,21 +28,24 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
-class SizeNode : public ActionNode
+template <typename ParentDIA>
+class SizeNode final : public ActionNode
 {
     static const bool debug = false;
 
     using Super = ActionNode;
     using Super::context_;
 
+    //! input type is the parent's output value type.
+    using Input = typename ParentDIA::ValueType;
+
 public:
-    SizeNode(const ParentDIARef& parent,
+    SizeNode(const ParentDIA& parent,
              StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
+        auto pre_op_fn = [=](const Input&) { ++local_size_; };
 
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
@@ -69,8 +72,6 @@ private:
     // Global size resulting from all reduce.
     size_t global_size_ = 0;
 
-    void PreOp() { }
-
     void MainOp() {
         // get the number of elements that are stored on this worker
         LOG << "MainOp processing, sum: " << local_size_;
@@ -79,19 +80,17 @@ private:
         // process the reduce, default argument is SumOp.
         global_size_ = channel.AllReduce(local_size_);
     }
-
-    void PostOp() { }
 };
 
 template <typename ValueType, typename Stack>
-size_t DIARef<ValueType, Stack>::Size() const {
+size_t DIA<ValueType, Stack>::Size() const {
     assert(IsValid());
 
-    using SizeResultNode = SizeNode<ValueType, DIARef>;
+    using SizeNode = api::SizeNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Size", DIANodeType::ACTION);
     auto shared_node
-        = std::make_shared<SizeResultNode>(*this, stats_node);
+        = std::make_shared<SizeNode>(*this, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();

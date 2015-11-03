@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/data/block_writer.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -65,30 +65,62 @@ public:
         assert(block_size_ > 0);
     }
 
+    //! default constructor
+    BlockWriter() = default;
+
     //! non-copyable: delete copy-constructor
     BlockWriter(const BlockWriter&) = delete;
     //! non-copyable: delete assignment operator
     BlockWriter& operator = (const BlockWriter&) = delete;
 
     //! move-constructor
-    BlockWriter(BlockWriter&&) = default;
+    BlockWriter(BlockWriter&& bw) noexcept
+        : bytes_(std::move(bw.bytes_)),
+          current_(std::move(bw.current_)),
+          end_(std::move(bw.end_)),
+          nitems_(std::move(bw.nitems_)),
+          first_offset_(std::move(bw.first_offset_)),
+          sink_(std::move(bw.sink_)),
+          do_queue_(std::move(bw.do_queue_)),
+          sink_queue_(std::move(bw.sink_queue_)),
+          block_size_(std::move(bw.block_size_)),
+          closed_(std::move(bw.closed_)) {
+        // set closed flag -> disables destructor
+        bw.closed_ = true;
+    }
+
     //! move-assignment
-    BlockWriter& operator = (BlockWriter&&) = default;
+    BlockWriter& operator = (BlockWriter&& bw) noexcept {
+        if (this == &bw) return *this;
+
+        bytes_ = std::move(bw.bytes_);
+        current_ = std::move(bw.current_);
+        end_ = std::move(bw.end_);
+        nitems_ = std::move(bw.nitems_);
+        first_offset_ = std::move(bw.first_offset_);
+        sink_ = std::move(bw.sink_);
+        do_queue_ = std::move(bw.do_queue_);
+        sink_queue_ = std::move(bw.sink_queue_);
+        block_size_ = std::move(bw.block_size_);
+        closed_ = std::move(bw.closed_);
+        // set closed flag -> disables destructor
+        bw.closed_ = true;
+        return *this;
+    }
 
     //! On destruction, the last partial block is flushed.
     ~BlockWriter() {
-        if (bytes_)
+        if (!closed_)
             Close();
     }
 
     //! Explicitly close the writer
     void Close() {
-        if (!closed_) {
-            closed_ = true;
-            Flush();
-            if (sink_)
-                sink_->Close();
-        }
+        if (closed_) return;
+        closed_ = true;
+        Flush();
+        if (sink_)
+            sink_->Close();
     }
 
     //! Return whether an actual BlockSink is attached.
@@ -184,7 +216,7 @@ public:
             try {
                 Flush(), AllocateBlock();
             }
-            catch (FullException& e) {
+            catch (FullException&) {
                 // non-fatal allocation error: will be handled below.
             }
         }
@@ -218,7 +250,7 @@ public:
 
             return *this;
         }
-        catch (FullException& e) {
+        catch (FullException&) {
             // if BlockSink signaled full, then unwind adding of the item.
 
             while (!sink_queue_.empty()) {
@@ -260,7 +292,7 @@ public:
             }
             Serialization<BlockWriter, T>::Serialize(x, *this);
         }
-        catch (FullException& e) {
+        catch (FullException&) {
             throw std::runtime_error(
                       "BlockSink was full even though declared infinite");
         }
@@ -337,7 +369,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
         bytes_ = sink_->AllocateByteBlock(block_size_);
@@ -365,13 +397,13 @@ protected:
     Byte* end_ = nullptr;
 
     //! number of items in current block
-    size_t nitems_;
+    size_t nitems_ = 0;
 
     //! offset of first item
-    size_t first_offset_;
+    size_t first_offset_ = 0;
 
     //! file or stream sink to output blocks to.
-    BlockSink* sink_;
+    BlockSink* sink_ = nullptr;
 
     //! boolean whether to queue blocks
     bool do_queue_ = false;

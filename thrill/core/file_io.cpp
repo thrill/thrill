@@ -1,24 +1,44 @@
 /*******************************************************************************
  * thrill/core/file_io.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
+#include <thrill/core/simple_glob.hpp>
 
 #include <fcntl.h>
-#include <glob.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
 
+#if !defined(_MSC_VER)
+
+#include <dirent.h>
+#include <glob.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#if !defined(O_BINARY)
+#define O_BINARY 0
+#endif
+
+#else
+
+#include <io.h>
+#include <windows.h>
+
+#define S_ISREG(m)       (((m) & _S_IFMT) == _S_IFREG)
+
+#endif
+
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -34,18 +54,18 @@ std::string FillFilePattern(const std::string& pathbase,
 
     std::string out_path = pathbase;
     {
-        // replace dollar
-        size_type dollar_end = out_path.rfind('$');
-        size_type dollar_begin = out_path.find_last_not_of('$', dollar_end);
+        // replace @
+        size_type at_end = out_path.rfind('@');
+        size_type at_begin = out_path.find_last_not_of('@', at_end);
 
-        size_type dollar_length =
-            dollar_end != std::string::npos && dollar_end > dollar_begin
-            ? dollar_end - dollar_begin : 4;
+        size_type at_length =
+            at_end != std::string::npos && at_end > at_begin
+            ? at_end - at_begin : 4;
 
-        sLOG << "dollar_length" << dollar_length;
-        out_path.replace(dollar_begin + 1, dollar_length,
-                         common::str_snprintf<>(dollar_length + 2, "%0*zu",
-                                                static_cast<int>(dollar_length),
+        sLOG << "at_length" << at_length;
+        out_path.replace(at_begin + 1, at_length,
+                         common::str_snprintf<>(at_length + 2, "%0*zu",
+                                                static_cast<int>(at_length),
                                                 worker));
     }
     {
@@ -69,6 +89,14 @@ std::string FillFilePattern(const std::string& pathbase,
 std::vector<std::string> GlobFilePattern(const std::string& path) {
 
     std::vector<std::string> files;
+
+#if defined(_MSC_VER)
+    glob_local::CSimpleGlob sglob;
+    sglob.Add(path.c_str());
+    for (int n = 0; n < sglob.FileCount(); ++n) {
+        files.emplace_back(sglob.File(n));
+    }
+#else
     glob_t glob_result;
     glob(path.c_str(), GLOB_TILDE, nullptr, &glob_result);
 
@@ -76,16 +104,20 @@ std::vector<std::string> GlobFilePattern(const std::string& path) {
         files.push_back(glob_result.gl_pathv[i]);
     }
     globfree(&glob_result);
+#endif
+
+    std::sort(files.begin(), files.end());
 
     return files;
 }
 
-std::vector<FileSizePair> GlobFileSizePrefixSum(const std::string& path) {
+SysFileList GlobFileSizePrefixSum(const std::string& path) {
 
-    std::vector<FileSizePair> file_size_pairs;
+    std::vector<SysFileInfo> file_info;
     struct stat filestat;
-    size_t directory_size = 0;
+    uint64_t total_size = 0;
     std::vector<std::string> files = GlobFilePattern(path);
+    bool contains_compressed = false;
 
     for (const std::string& file : files) {
 
@@ -95,12 +127,23 @@ std::vector<FileSizePair> GlobFileSizePrefixSum(const std::string& path) {
         }
         if (!S_ISREG(filestat.st_mode)) continue;
 
-        file_size_pairs.emplace_back(std::move(file), directory_size);
-        directory_size += filestat.st_size;
-    }
-    file_size_pairs.emplace_back("", directory_size);
+        contains_compressed = contains_compressed || IsCompressed(file);
 
-    return file_size_pairs;
+        file_info.emplace_back(
+            SysFileInfo { std::move(file),
+                          static_cast<uint64_t>(filestat.st_size), total_size });
+
+        total_size += filestat.st_size;
+    }
+
+    // sentinel entry
+    file_info.emplace_back(
+        SysFileInfo { std::string(),
+                      static_cast<uint64_t>(0), total_size });
+
+    return SysFileList {
+               std::move(file_info), total_size, contains_compressed
+    };
 }
 
 /******************************************************************************/
@@ -117,6 +160,7 @@ void SysFile::close() {
         }
         fd_ = -1;
     }
+#if !defined(_MSC_VER)
     if (pid_ != 0) {
         sLOG << "SysFile::close(): waitpid for" << pid_;
         int status;
@@ -147,13 +191,14 @@ void SysFile::close() {
         }
         pid_ = 0;
     }
+#endif
 }
 
 SysFile SysFile::OpenForRead(const std::string& path) {
 
     // first open the file and see if it exists at all.
 
-    int fd = open(path.c_str(), O_RDONLY, 0);
+    int fd = ::open(path.c_str(), O_RDONLY | O_BINARY, 0);
     if (fd < 0) {
         throw common::ErrnoException("Cannot open file " + path);
     }
@@ -162,38 +207,41 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
     const char* decompressor;
 
-    if (common::ends_with(path, ".gz")) {
+    if (common::EndsWith(path, ".gz")) {
         decompressor = "gzip";
     }
-    else if (common::ends_with(path, ".bz2")) {
+    else if (common::EndsWith(path, ".bz2")) {
         decompressor = "bzip2";
     }
-    else if (common::ends_with(path, ".xz")) {
+    else if (common::EndsWith(path, ".xz")) {
         decompressor = "xz";
     }
-    else if (common::ends_with(path, ".lzo")) {
+    else if (common::EndsWith(path, ".lzo")) {
         decompressor = "lzop";
     }
-    else if (common::ends_with(path, ".lz4")) {
+    else if (common::EndsWith(path, ".lz4")) {
         decompressor = "lz4";
     }
     else {
         // not a compressed file
-        if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::ErrnoException("Error setting FD_CLOEXEC on SysFile");
-        }
+        common::PortSetCloseOnExec(fd);
 
         sLOG << "SysFile::OpenForRead(): filefd" << fd;
 
         return SysFile(fd);
     }
 
+#if defined(_MSC_VER)
+    throw common::SystemException(
+              "Reading compressed files is not supported on windows, yet. "
+              "Please submit a patch.");
+#else
     // if decompressor: fork a child program which calls the decompressor and
     // connect file descriptors via a pipe.
 
     // pipe[0] = read, pipe[1] = write
     int pipefd[2];
-    common::make_pipe(pipefd);
+    common::MakePipe(pipefd);
 
     pid_t pid = fork();
     if (pid == 0) {
@@ -227,13 +275,14 @@ SysFile SysFile::OpenForRead(const std::string& path) {
     ::close(fd);
 
     return SysFile(pipefd[0], pid);
+#endif
 }
 
 SysFile SysFile::OpenForWrite(const std::string& path) {
 
     // first create the file and see if we can write it at all.
 
-    int fd = open(path.c_str(), O_CREAT | O_WRONLY, 0666);
+    int fd = ::open(path.c_str(), O_CREAT | O_WRONLY | O_BINARY, 0666);
     if (fd < 0) {
         throw common::ErrnoException("Cannot create file " + path);
     }
@@ -242,38 +291,41 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     const char* compressor;
 
-    if (common::ends_with(path, ".gz")) {
+    if (common::EndsWith(path, ".gz")) {
         compressor = "gzip";
     }
-    else if (common::ends_with(path, ".bz2")) {
+    else if (common::EndsWith(path, ".bz2")) {
         compressor = "bzip2";
     }
-    else if (common::ends_with(path, ".xz")) {
+    else if (common::EndsWith(path, ".xz")) {
         compressor = "xz";
     }
-    else if (common::ends_with(path, ".lzo")) {
+    else if (common::EndsWith(path, ".lzo")) {
         compressor = "lzop";
     }
-    else if (common::ends_with(path, ".lz4")) {
+    else if (common::EndsWith(path, ".lz4")) {
         compressor = "lz4";
     }
     else {
         // not a compressed file
-        if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::ErrnoException("Error setting FD_CLOEXEC on SysFile");
-        }
+        common::PortSetCloseOnExec(fd);
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;
 
         return SysFile(fd);
     }
 
+#if defined(_MSC_VER)
+    throw common::SystemException(
+              "Reading compressed files is not supported on windows, yet. "
+              "Please submit a patch.");
+#else
     // if compressor: fork a child program which calls the compressor and
     // connect file descriptors via a pipe.
 
     // pipe[0] = read, pipe[1] = write
     int pipefd[2];
-    common::make_pipe(pipefd);
+    common::MakePipe(pipefd);
 
     pid_t pid = fork();
     if (pid == 0) {
@@ -307,7 +359,122 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
     ::close(fd);
 
     return SysFile(pipefd[1], pid);
+#endif
 }
+
+/******************************************************************************/
+
+#if defined(_MSC_VER)
+
+std::string TemporaryDirectory::make_directory(const char* sample) {
+
+    char temp_file_path[MAX_PATH + 1] = { 0 };
+    unsigned success = ::GetTempFileName(".", sample, 0, temp_file_path);
+    if (!success) {
+        throw common::ErrnoException(
+                  "Could not allocate temporary directory "
+                  + std::string(temp_file_path));
+    }
+
+    if (!DeleteFile(temp_file_path)) {
+        throw common::ErrnoException(
+                  "Could not create temporary directory "
+                  + std::string(temp_file_path));
+    }
+
+    if (!CreateDirectory(temp_file_path, nullptr)) {
+        throw common::ErrnoException(
+                  "Could not create temporary directory "
+                  + std::string(temp_file_path));
+    }
+
+    return temp_file_path;
+}
+
+void TemporaryDirectory::wipe_directory(
+    const std::string& tmp_dir, bool do_rmdir) {
+
+    WIN32_FIND_DATA ff_data;
+    HANDLE h = FindFirstFile((tmp_dir + "\\*").c_str(), &ff_data);
+
+    if (h == INVALID_HANDLE_VALUE) {
+        throw common::ErrnoException(
+                  "FindFirstFile failed:" + std::to_string(GetLastError()));
+    }
+
+    do {
+        if (!(ff_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            std::string path = tmp_dir + "\\" + ff_data.cFileName;
+
+            if (!DeleteFile(path.c_str())) {
+                sLOG1 << "Could not unlink temporary file" << path
+                      << ":" << strerror(errno);
+            }
+        }
+    } while (FindNextFile(h, &ff_data) != 0);
+
+    DWORD e = GetLastError();
+    if (e != ERROR_NO_MORE_FILES) {
+        throw common::ErrnoException(
+                  "FindFirstFile failed:" + std::to_string(GetLastError()));
+    }
+
+    if (!do_rmdir) return;
+
+    if (!RemoveDirectory(tmp_dir.c_str())) {
+        throw common::ErrnoException(
+                  "Could not remove temporary directory " + tmp_dir);
+    }
+}
+
+#else
+
+std::string TemporaryDirectory::make_directory(const char* sample) {
+
+    std::string tmp_dir = std::string(sample) + "XXXXXX";
+    // evil const_cast, but mkdtemp replaces the XXXXXX with something
+    // unique. it also mkdirs.
+    char* p = mkdtemp(const_cast<char*>(tmp_dir.c_str()));
+
+    if (p == nullptr) {
+        throw common::ErrnoException(
+                  "Could create temporary directory " + tmp_dir);
+    }
+
+    return tmp_dir;
+}
+
+void TemporaryDirectory::wipe_directory(
+    const std::string& tmp_dir, bool do_rmdir) {
+    DIR* d = opendir(tmp_dir.c_str());
+    if (d == nullptr) {
+        throw common::ErrnoException(
+                  "Could open temporary directory " + tmp_dir);
+    }
+
+    struct dirent* de, entry;
+    while (readdir_r(d, &entry, &de) == 0 && de != nullptr) {
+        // skip ".", "..", and also hidden files (don't create them).
+        if (de->d_name[0] == '.') continue;
+
+        std::string path = tmp_dir + "/" + de->d_name;
+        int r = unlink(path.c_str());
+        if (r != 0)
+            sLOG1 << "Could not unlink temporary file" << path
+                  << ":" << strerror(errno);
+    }
+
+    closedir(d);
+
+    if (!do_rmdir) return;
+
+    if (rmdir(tmp_dir.c_str()) != 0) {
+        sLOG1 << "Could not unlink temporary directory" << tmp_dir
+              << ":" << strerror(errno);
+    }
+}
+
+#endif
 
 } // namespace core
 } // namespace thrill

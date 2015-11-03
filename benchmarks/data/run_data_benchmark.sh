@@ -1,16 +1,32 @@
+################################################################################
+# benchmarks/data/run_data_benchmark.sh
+#
 # runs the bench_data_file_read_write benchmark with different types and
 # different data types
+#
+# Part of Project Thrill - http://project-thrill.org
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 githash=$(eval "git rev-parse --short HEAD")
 timestamp=$(date)
 echo ${timestamp}
-for benchmark in bench_data_file_read_write bench_data_channel_read_write bench_data_channel_a_to_b bench_data_channel_scatter
+for benchmark in block_queue file
 do
-  for type in int string pair triple
+for type in size_t string
+do
+  for reader in consume
   do
-    for size in 1K 100K 1M 100M 2G
+    for size in 1M 1G 10G
     do
-      eval ./${benchmark} -b ${size} $1 ${type}| grep 'RESULT' | sed -e "s/^/version=${githash}  benchmark=${benchmark} timestamp=${timestamp} /"
+      for block_size in 8K 16K 32K 64K 128K 256K 512K 1024K 2048K 4096K
+      do
+          eval ./data_data_benchmarks ${benchmark} -n 10 -l 1 -u 1K -s ${block_size} -b ${size} ${type} ${reader} | grep "RESULT" |  sed -e "s/$/ version=${githash} timestamp=${timestamp} /"
+      done
     done
   done
 done
+done
+################################################################################

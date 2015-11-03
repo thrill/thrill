@@ -3,11 +3,11 @@
  *
  * Lightweight wrapper around BSD socket API.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/net/tcp/socket.hpp>
@@ -60,9 +60,9 @@ void Socket::SetReuseAddr(bool activate) {
 void Socket::SetNoDelay(bool activate) {
     assert(IsValid());
 
+#if __linux__ || __FreeBSD__ || __APPLE__
     int sockoptflag = (activate ? 1 : 0);
 
-#if __linux__ || __FreeBSD__ || __APPLE__
     /* TCP_NODELAY If set, disable the Nagle algorithm. This means that
        segments are always sent as soon as possible, even if there is only a
        small amount of data.  When not set, data is buffered until there is a
@@ -73,6 +73,56 @@ void Socket::SetNoDelay(bool activate) {
                      &sockoptflag, sizeof(sockoptflag)) != 0)
     {
         LOG << "Cannot set TCP_NODELAY on socket fd " << fd_
+            << ": " << strerror(errno);
+    }
+#endif
+}
+
+void Socket::SetSndBuf(size_t size) {
+    assert(IsValid());
+
+#if __linux__ || __FreeBSD__ || __APPLE__
+
+    int sockoptflag = static_cast<int>(size);
+
+    /*
+     * SO_SNDBUF Sets or gets the maximum socket send buffer in bytes. The
+     * kernel doubles this value (to allow space for bookkeeping overhead) when
+     * it is set using setsockopt(2), and this doubled value is returned by
+     * getsockopt(2). The default value is set by the
+     * /proc/sys/net/core/wmem_default file and the maximum allowed value is set
+     * by the /proc/sys/net/core/wmem_max file. The minimum (doubled) value for
+     * this option is 2048.
+     */
+    if (::setsockopt(fd_, SOL_SOCKET, SO_SNDBUF,
+                     &sockoptflag, sizeof(sockoptflag)) != 0)
+    {
+        LOG << "Cannot set SO_SNDBUF on socket fd " << fd_
+            << ": " << strerror(errno);
+    }
+#endif
+}
+
+void Socket::SetRcvBuf(size_t size) {
+    assert(IsValid());
+
+#if __linux__ || __FreeBSD__ || __APPLE__
+
+    int sockoptflag = static_cast<int>(size);
+
+    /*
+     * SO_RCVBUF Sets or gets the maximum socket receive buffer in bytes. The
+     * kernel doubles this value (to allow space for bookkeeping overhead) when
+     * it is set using setsockopt(2), and this doubled value is returned by
+     * getsockopt(2). The default value is set by the
+     * /proc/sys/net/core/rmem_default file, and the maximum allowed value is
+     * set by the /proc/sys/net/core/rmem_max file. The minimum (doubled) value
+     * for this option is 256.
+     */
+    if (::setsockopt(fd_, SOL_SOCKET, SO_RCVBUF,
+                     &sockoptflag, sizeof(sockoptflag)) != 0)
+    {
+        LOG << "Cannot set SO_RCVBUF on socket fd " << fd_
             << ": " << strerror(errno);
     }
 #endif

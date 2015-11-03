@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/api/distribute_from.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -26,7 +26,7 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class DistributeFromNode : public SourceNode<ValueType>
+class DistributeFromNode final : public SourceNode<ValueType>
 {
 public:
     using Super = SourceNode<ValueType>;
@@ -38,9 +38,16 @@ public:
                        StatsNode* stats_node)
         : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(in_vector),
-          source_id_(source_id),
-          channel_(ctx.GetNewChannel()),
-          emitters_(channel_->OpenWriters())
+          source_id_(source_id)
+    { }
+
+    DistributeFromNode(Context& ctx,
+                       std::vector<ValueType>&& in_vector,
+                       size_t source_id,
+                       StatsNode* stats_node)
+        : SourceNode<ValueType>(ctx, { }, stats_node),
+          in_vector_(std::move(in_vector)),
+          source_id_(source_id)
     { }
 
     //! Executes the scatter operation: source sends out its data.
@@ -52,47 +59,43 @@ public:
 
             for (size_t w = 0; w < emitters_.size(); ++w) {
 
-                size_t local_begin, local_end;
-                std::tie(local_begin, local_end) =
+                common::Range local =
                     common::CalculateLocalRange(in_size, emitters_.size(), w);
 
-                for (size_t i = local_begin; i < local_end; ++i) {
+                for (size_t i = local.begin; i < local.end; ++i) {
                     emitters_[w](in_vector_[i]);
                 }
             }
         }
 
-        // close channel inputs.
+        // close stream inputs.
         for (size_t w = 0; w < emitters_.size(); ++w) {
             emitters_[w].Close();
         }
     }
 
     void PushData(bool consume) final {
-        data::Channel::ConcatReader readers = channel_->OpenConcatReader(consume);
+        data::CatStream::CatReader readers = stream_->OpenCatReader(consume);
 
         while (readers.HasNext()) {
             this->PushItem(readers.Next<ValueType>());
         }
 
-        channel_->Close();
-        this->WriteChannelStats(channel_);
+        stream_->Close();
+        this->WriteStreamStats(stream_);
     }
 
     void Dispose() final { }
 
-    auto ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
-
 private:
     //! Vector pointer to read elements from.
-    const std::vector<ValueType>& in_vector_;
+    std::vector<ValueType> in_vector_;
     //! source worker id, which sends vector
     size_t source_id_;
 
-    data::ChannelPtr channel_;
-    std::vector<data::Channel::Writer> emitters_;
+    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+
+    std::vector<data::CatStream::Writer> emitters_ { stream_->OpenWriters() };
 };
 
 /*!
@@ -103,7 +106,29 @@ private:
 template <typename ValueType>
 auto DistributeFrom(
     Context & ctx,
-    const std::vector<ValueType>&in_vector, size_t source_id) {
+    const std::vector<ValueType>&in_vector, size_t source_id = 0) {
+
+    using DistributeFromNode = api::DistributeFromNode<ValueType>;
+
+    StatsNode* stats_node = ctx.stats_graph().AddNode(
+        "DistributeFrom", DIANodeType::GENERATOR);
+
+    auto shared_node =
+        std::make_shared<DistributeFromNode>(
+            ctx, in_vector, source_id, stats_node);
+
+    return DIA<ValueType>(shared_node, { stats_node });
+}
+
+/*!
+ * DistributeFrom is a Source DOp, which scatters the vector data from the
+ * source_id to all workers, partitioning equally, and returning the data in a
+ * DIA.
+ */
+template <typename ValueType>
+auto DistributeFrom(
+    Context & ctx,
+    std::vector<ValueType>&& in_vector, size_t source_id = 0) {
 
     using DistributeFromNode = api::DistributeFromNode<ValueType>;
 
@@ -112,17 +137,18 @@ auto DistributeFrom(
 
     auto shared_node =
         std::make_shared<DistributeFromNode>(
-            ctx, in_vector, source_id, stats_node);
+            ctx, std::move(in_vector), source_id, stats_node);
 
-    auto scatter_stack = shared_node->ProduceStack();
-
-    return DIARef<ValueType, decltype(scatter_stack)>(
-        shared_node, scatter_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::DistributeFrom;
+
 } // namespace thrill
 
 #endif // !THRILL_API_DISTRIBUTE_FROM_HEADER

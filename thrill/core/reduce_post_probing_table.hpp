@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/core/reduce_post_probing_table.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -419,15 +419,15 @@ public:
      * \param spill_function Function implementing a strategy to spill items to disk.
      */
     ReducePostProbingTable(Context& ctx,
-                           KeyExtractor key_extractor,
-                           ReduceFunction reduce_function,
+                           const KeyExtractor& key_extractor,
+                           const ReduceFunction& reduce_function,
                            std::vector<EmitterFunction>& emit,
-                           Key sentinel,
+                           const Key& sentinel,
                            const IndexFunction& index_function = IndexFunction(),
                            const FlushFunction& flush_function = FlushFunction(),
                            size_t begin_local_index = 0,
                            size_t end_local_index = 0,
-                           Value neutral_element = Value(),
+                           const Value& neutral_element = Value(),
                            size_t byte_size = 1024* 16,
                            double max_frame_fill_rate = 0.5,
                            size_t frame_size = 32, // TODO(ms): use percentage instead
@@ -483,9 +483,7 @@ public:
      * inserts the pair into the hashtable.
      */
     void Insert(const Value& p) {
-        Key key = key_extractor_(p);
-
-        Insert(std::make_pair(key, p));
+        Insert(std::make_pair(key_extractor_(p), p));
     }
 
     /*!
@@ -557,8 +555,7 @@ public:
         }
 
         // insert data
-        current->first = kv.first;
-        current->second = kv.second;
+        *current = kv;
 
         // increase counter for frame
         items_per_frame_[frame_id]++;
@@ -615,7 +612,7 @@ public:
             KeyValuePair& current = items_[global_index];
             if (current.first != sentinel_.first)
             {
-                writer(current);
+                writer.PutItem(current);
             }
         }
 
@@ -796,7 +793,7 @@ public:
         return;
     }
 
-protected:
+private:
     //! Size of the table in bytes
     size_t byte_size_ = 0;
 

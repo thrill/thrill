@@ -1,12 +1,12 @@
 /*******************************************************************************
  * thrill/common/future.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -29,21 +29,20 @@ namespace common {
  * Handles the use-case where a callback is expected to be called exactly once!
  * If you expect multiple  calls use \ref FutureQueue
  *
- * Future can currently only be consumed by a single thread.//TODO(ts) change that.
+ * Future can currently only be consumed by a single thread. //TODO(ts) change that.
  *
  */
 template <typename T>
 class Future
 {
-protected:
+private:
     //! Mutex for the condition variable
     std::mutex mutex_;
 
-    //! For Notifications to the blocking thread
+    //! For notifications to the blocking thread
     std::condition_variable cv_;
 
-    //! Indicates if emulator was triggered before waitForNext
-    //! / WaitForEnd was called
+    //! Indicates if promise was fulfilled.
     std::atomic<bool> triggered_ { false };
 
     //! state that indicates whether get was already called
@@ -55,6 +54,7 @@ protected:
 public:
     ~Future() {
         std::unique_lock<std::mutex> lock(mutex_);
+        // lock the Future before freeing it.
     }
 
     //! Fills future with the given data and wakes up waiting parties
@@ -80,10 +80,15 @@ public:
         return std::move(value_);
     }
 
+    //! Returns true when the future was fulfilled.
+    bool Test() const noexcept {
+        return triggered_;
+    }
+
     //! Indicates if get was invoked and returned
     //! Can be used at the end of a job to see if outstanding
     //! futures were not called.
-    bool is_finished() {
+    bool is_finished() const noexcept {
         return finished_;
     }
 };
@@ -107,7 +112,7 @@ public:
     //! tuple to hold all values given by callback
     using Values = std::tuple<Ts ...>;
 
-protected:
+private:
     //! Mutex for the condition variable
     std::mutex mutex_;
 
@@ -157,7 +162,7 @@ public:
     //! Indicates if get was invoked and returned
     //! Can be used at the end of a job to see if outstanding
     //! futures were not called.
-    bool is_finished() {
+    bool is_finished() const noexcept {
         return finished_;
     }
 };

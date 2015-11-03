@@ -3,11 +3,11 @@
  *
  * Lightweight wrapper around BSD socket API.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/net/tcp/select_dispatcher.hpp>
@@ -26,7 +26,7 @@ void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
 
     if (self_verify_)
     {
-        for (size_t fd = 3; fd < watch_.size(); ++fd) {
+        for (int fd = 3; fd < static_cast<int>(watch_.size()); ++fd) {
             Watch& w = watch_[fd];
 
             if (!w.active) continue;
@@ -150,11 +150,9 @@ void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
         {
             if (w->except_cb) {
                 if (!w->except_cb()) {
-                    w = &watch_[fd];
                     // callback returned false: remove fd from set
                     select_.ClearException(fd);
                 }
-                w = &watch_[fd];
             }
             else {
                 DefaultExceptionCallback();

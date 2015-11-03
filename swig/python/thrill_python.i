@@ -1,11 +1,11 @@
 /*******************************************************************************
  * swig/python/thrill_python.i
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 %module(directors="1") thrill
@@ -36,39 +36,43 @@ using namespace thrill;
     }
 }
 
-/*[[[cog
-import cog
-
-def callback_wrapper(func, arglist):
-  cog.outl('%%feature("pythonprepend") %s %%{' % func)
-  cog.outl('  wa = []')
-  for i, arg in enumerate(arglist):
-    if arg != '':
-      cog.outl('  if not isinstance(args[%d], %s) and callable(args[0]):' % (i, arg))
-      cog.outl('    class CallableWrapper(%s):' % arg)
-      cog.outl('      def __init__(self, f):')
-      cog.outl('        super(CallableWrapper, self).__init__()')
-      cog.outl('        self.f_ = f')
-      cog.outl('      def __call__(self, *args):')
-      cog.outl('        return self.f_(*args)')
-      cog.outl('    wa.append(CallableWrapper(args[%d]))' % i)
-      cog.outl('  else:')
-      cog.outl('    wa.append(args[%d])' % i)
-    else:
-      cog.outl('  wa.append(args[%d])' % i)
-  cog.outl('  args = tuple(wa)')
-  cog.outl('%}')
+/*[[[perl
+sub callback_wrapper {
+    my $func = shift @_;
+    my @arglist = @_;
+    print('%feature("pythonprepend") '.$func.' %{'."\n");
+    print("  wa = []\n");
+    foreach my $i (0..@arglist-1) {
+        my $arg = $arglist[$i];
+        if ($arg) {
+            print("  if not isinstance(args[$i], $arg) and callable(args[0]):\n");
+            print("    class CallableWrapper($arg):\n");
+            print("      def __init__(self, f):\n");
+            print("        super(CallableWrapper, self).__init__()\n");
+            print("        self.f_ = f\n");
+            print("      def __call__(self, *args):\n");
+            print("        return self.f_(*args)\n");
+            print("    wa.append(CallableWrapper(args[$i]))\n");
+            print("  else:\n");
+            print("    wa.append(args[$i])\n");
+        }
+        else {
+            print("  wa.append(args[$i])\n");
+        }
+    }
+    print("  args = tuple(wa)\n");
+    print("%}\n");
+}
 
 callback_wrapper('thrill::PyContext::Generate(GeneratorFunction&, size_t)',
-                 ['GeneratorFunction', ''])
+                 'GeneratorFunction', '');
 
 callback_wrapper('thrill::PyDIA::Map(MapFunction&) const',
-                 ['MapFunction'])
+                 'MapFunction');
 
 callback_wrapper('thrill::PyDIA::Filter(FilterFunction&) const',
-                 ['FilterFunction'])
-
-  ]]]*/
+                 'FilterFunction');
+]]]*/
 %feature("pythonprepend") thrill::PyContext::Generate(GeneratorFunction&, size_t) %{
   wa = []
   if not isinstance(args[0], GeneratorFunction) and callable(args[0]):
@@ -162,11 +166,12 @@ CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_func
 
 %template(VectorPyContext) std::vector<std::shared_ptr<thrill::PyContext> >;
 
-%ignore thrill::api::HostContext::ConstructLocalMock;
-
 // ignore all Context methods: forward them via PyContext if they should be
 // available.
 %ignore thrill::api::Context;
+
+// ignore constructor
+%ignore thrill::api::HostContext::HostContext;
 
 %feature("pythonappend") thrill::PyContext::PyContext(HostContext&, size_t) %{
     # acquire a reference to the HostContext

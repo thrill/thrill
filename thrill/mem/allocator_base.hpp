@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/mem/allocator_base.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -70,6 +70,10 @@ public:
 
     //! Destroys in-place the object pointed by p.
     void destroy(pointer p) const noexcept {
+#if defined(_MSC_VER)
+        // disable false-positive warning C4100: 'p': unreferenced formal parameter
+#pragma warning(suppress:4100)
+#endif
         p->~Type();
     }
 
@@ -120,6 +124,14 @@ public:
     template <typename OtherType>
     FixedAllocator(const FixedAllocator<OtherType, manager_>&) noexcept
     { }
+
+#if !defined(_MSC_VER)
+    //! copy-assignment operator: default
+    FixedAllocator& operator = (FixedAllocator&) noexcept = default;
+
+    //! move-assignment operator: default
+    FixedAllocator& operator = (FixedAllocator&&) noexcept = default;
+#endif
 
     //! Attempts to allocate a block of storage with a size large enough to
     //! contain n elements of member type value_type, and returns a pointer to

@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+##########################################################################
+# benchmarks/hashtable/bench_probing_hashtable.py
+#
+# Part of Project Thrill - http://project-thrill.org
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+##########################################################################
 
 import os
 import sys
@@ -38,3 +46,5 @@ def bench(workers, sizes, intervals, max_partition_fill_rates, num_items_per_par
 num_runs = 5
 bench([100], [2000000000], [[5, 15]], [0.5], [1], [500000000], num_runs);
 #5 not applied
+
+##########################################################################

@@ -3,18 +3,17 @@
  *
  * Logger for Stat-Lines, which creates basic JSON lines
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
 #ifndef THRILL_COMMON_STAT_LOGGER_HEADER
 #define THRILL_COMMON_STAT_LOGGER_HEADER
 
-#include <thrill/api/context.hpp>
 #include <thrill/common/logger.hpp>
 
 #include <iostream>
@@ -24,7 +23,7 @@
 namespace thrill {
 namespace common {
 
-static const bool stats_enabled = true;
+static const bool stats_enabled = false;
 
 template <bool Enabled>
 class StatLogger
@@ -33,7 +32,7 @@ class StatLogger
 template <>
 class StatLogger<true>
 {
-protected:
+private:
     //! collector stream
     std::basic_ostringstream<
         char, std::char_traits<char>, LoggerAllocator<char> > oss_;
@@ -41,11 +40,6 @@ protected:
     size_t elements_ = 0;
 
 public:
-    StatLogger(Context& ctx) {
-        oss_ << "{\"WorkerID\":" << ctx.my_rank();
-        elements_ = 2;
-    }
-
     StatLogger() {
         oss_ << "{";
     }
@@ -140,8 +134,10 @@ public:
 #define STAT_NO_RANK ::thrill::common::StatLogger<::thrill::common::stats_enabled>()
 
 //! Creates a common::StatLogger with {"WorkerID":my rank in the beginning
-#define STAT(ctx) ::thrill::common::StatLogger<::thrill::common::stats_enabled>(ctx)
-#define STATC ::thrill::common::StatLogger<::thrill::common::stats_enabled>(context_)
+#define STAT(ctx) ::thrill::common::StatLogger<::thrill::common::stats_enabled>() << "worker_id" << ctx.my_rank()
+#define STATC ::thrill::common::StatLogger<::thrill::common::stats_enabled>() << "worker_id" << context_.my_rank()
+
+#define STATC1 ::thrill::common::StatLogger<true>() << "worker_id" << context_.my_rank()
 
 } // namespace common
 } // namespace thrill

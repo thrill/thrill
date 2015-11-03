@@ -1,10 +1,10 @@
 /*******************************************************************************
  * tests/data/serialization_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -20,8 +20,6 @@
 #include <vector>
 
 using namespace thrill; // NOLINT
-
-static const bool debug = false;
 
 struct Serialization : public::testing::Test {
     data::BlockPool block_pool_ { nullptr, nullptr };
@@ -97,7 +95,7 @@ TEST_F(Serialization, pod_struct) {
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<MyPodStruct>();
     ASSERT_EQ(foo.i1, fooserial.i1);
-    ASSERT_FLOAT_EQ(foo.d2, fooserial.d2);
+    ASSERT_DOUBLE_EQ(foo.d2, fooserial.d2);
     static_assert(
         data::Serialization<data::DynBlockWriter, MyPodStruct>::is_fixed_size,
         "Serialization::is_fixed_size is wrong");
@@ -138,7 +136,7 @@ TEST_F(Serialization, tuple_w_pair) {
     ASSERT_EQ(std::get<0>(foo), std::get<0>(fooserial));
     ASSERT_EQ(std::get<1>(foo), std::get<1>(fooserial));
     ASSERT_EQ(std::get<2>(foo), std::get<2>(fooserial));
-    ASSERT_FLOAT_EQ(std::get<3>(foo).first, std::get<3>(fooserial).first);
+    ASSERT_DOUBLE_EQ(std::get<3>(foo).first, std::get<3>(fooserial).first);
     ASSERT_EQ(std::get<3>(foo).second, std::get<3>(fooserial).second);
 }
 
@@ -191,6 +189,53 @@ TEST_F(Serialization, StringArray) {
 
     auto check42 = r.Next<int>();
     ASSERT_EQ(42, check42);
+}
+
+struct MyMethodStruct
+{
+    int                 i1;
+    double              d2;
+    std::string         s3;
+
+    MyMethodStruct() = default;
+
+    MyMethodStruct(int _i1, double _d2, const std::string& _s3)
+        : i1(_i1), d2(_d2), s3(_s3) { }
+
+    static const bool   thrill_is_fixed_size = false;
+    static const size_t thrill_fixed_size = 0;
+
+    template <typename Archive>
+    void ThrillSerialize(Archive& ar) const {
+        ar.template Put<int>(i1);
+        ar.template Put<double>(d2);
+        ar.PutString(s3);
+    }
+
+    template <typename Archive>
+    static MyMethodStruct ThrillDeserialize(Archive& ar) {
+        int i1 = ar.template Get<int>();
+        double d2 = ar.template Get<double>();
+        std::string s3 = ar.GetString();
+        return MyMethodStruct(i1, d2, s3);
+    }
+};
+
+TEST_F(Serialization, MethodStruct) {
+    MyMethodStruct foo(6 * 9, 42, "abc");
+    data::File f(block_pool_);
+    {
+        auto w = f.GetWriter();
+        w.PutItem(foo);
+    }
+    auto r = f.GetKeepReader();
+    auto fooserial = r.Next<MyMethodStruct>();
+    ASSERT_EQ(foo.i1, fooserial.i1);
+    ASSERT_DOUBLE_EQ(foo.d2, fooserial.d2);
+    ASSERT_EQ(foo.s3, fooserial.s3);
+    static_assert(
+        !data::Serialization<data::DynBlockWriter, MyMethodStruct>::is_fixed_size,
+        "Serialization::is_fixed_size is wrong");
 }
 
 /******************************************************************************/

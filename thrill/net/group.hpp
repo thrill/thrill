@@ -4,22 +4,24 @@
  * net::Group is a collection of net::Connections providing simple MPI-like
  * collectives and point-to-point communication.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
 #ifndef THRILL_NET_GROUP_HEADER
 #define THRILL_NET_GROUP_HEADER
 
+#include <thrill/common/math.hpp>
 #include <thrill/net/connection.hpp>
 
 #include <algorithm>
 #include <cstring>
+#include <functional>
 #include <thread>
 #include <vector>
 
@@ -77,6 +79,17 @@ public:
     virtual mem::mm_unique_ptr<class Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const = 0;
 
+    //! Number of of 1-factor iterations
+    size_t OneFactorSize() const {
+        return common::CalcOneFactorSize(num_hosts());
+    }
+
+    //! Calculate the peer of this host in the k-th iteration (of 0..p-1) of a
+    //! 1-factor based network exchange algorithm.
+    size_t OneFactorPeer(size_t round) const {
+        return common::CalcOneFactorPeer(round, my_host_rank(), num_hosts());
+    }
+
     //! \}
 
     //! \name Convenience Functions
@@ -103,6 +116,32 @@ public:
     void ReceiveFrom(size_t src, T* data) {
         connection(src).Receive(data);
     }
+
+    //! \}
+
+    //! \name Synchronous Collective Communication Functions
+    //! \{
+
+    //! Calculate inclusive prefix sum
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void PrefixSum(T& value, BinarySumOp sum_op = BinarySumOp(),
+                   bool inclusive = true);
+
+    //! Calculate exclusive prefix sum
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void ExPrefixSum(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    //! Broadcast a value from the worker "origin"
+    template <typename T>
+    void Broadcast(T& value, size_t origin = 0);
+
+    //! Reduce a value from all workers to the worker 0
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void ReduceToRoot(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    //! Reduce a value from all workers to all workers
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void AllReduce(T& value, BinarySumOp sum_op = BinarySumOp());
 
     //! \}
 
@@ -141,10 +180,10 @@ void ExecuteGroupThreads(
     }
 }
 
-//! Construct a mock Group network and run a thread for each client. The
-//! selected network implementation is platform dependent and must run without
-//! further configuration.
-void RunGroupTest(
+//! Construct a mock or tcp-lookback Group network and run a thread for each
+//! client. The selected network implementation is platform dependent and must
+//! run without further configuration.
+void RunLoopbackGroupTest(
     size_t num_hosts,
     const std::function<void(Group*)>& thread_function);
 

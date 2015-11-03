@@ -2,11 +2,11 @@
 /*******************************************************************************
  * doc/mem.dox
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 namespace thrill {
@@ -45,12 +45,12 @@ std::vector<T, mem::BypassAllocator<T> > vec;
 \endcode
 No additional objects need by given to the constructor, as the allocator is default constructible. Any items allocated by the vector are not counted by the framework.
 
-The namespace mem contains \ref mem::vector, \ref mem::string, \ref mem::stringbuf etc which are appropriate `template using` declarations with the BypassAllocator. There are drop-in replacements for the `std::` versions.
+The namespace mem contains \ref mem::by_vector, \ref mem::by_string, \ref mem::by_stringbuf etc which are appropriate `template using` declarations with the BypassAllocator. There are drop-in replacements for the `std::` versions.
 
 Hence, to bypass the user allocation tracker (and have the allocation be counted in the global bypass pool), it is sufficient to use
 
 \code
-mem::vector<T> vec;
+mem::by_vector<T> vec;
 \endcode
 
 ## Manager and Allocator

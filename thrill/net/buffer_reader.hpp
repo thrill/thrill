@@ -3,11 +3,11 @@
  *
  * Look at the Doxygen below....
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -34,7 +34,7 @@ class BufferReader
     : public BufferRef,
       public common::ItemReaderToolsBase<BufferReader>
 {
-protected:
+private:
     //! Current read cursor
     size_t cursor_ = 0;
 

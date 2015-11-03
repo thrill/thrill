@@ -1,10 +1,10 @@
 /*******************************************************************************
  * thrill/common/timed_counter.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -30,7 +30,7 @@ public:
     TimedCounter(const TimedCounter& that) = delete;
     // move is okay
     TimedCounter(TimedCounter&& rhs) {
-        occurences_ = rhs.occurences_;
+        occurences_ = std::move(rhs.occurences_);
     }
 
     TimedCounter() { }

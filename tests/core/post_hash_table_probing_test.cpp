@@ -1,11 +1,11 @@
 /*******************************************************************************
  * tests/core/post_hash_table_probing_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -91,7 +91,7 @@ TEST_F(PostTable, CustomHashFunction) {
             ASSERT_EQ(0u, table.NumItems());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, AddIntegers) {
@@ -132,7 +132,7 @@ TEST_F(PostTable, AddIntegers) {
             ASSERT_EQ(3u, writer1.size());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, CreateEmptyTable) {
@@ -161,7 +161,7 @@ TEST_F(PostTable, CreateEmptyTable) {
             ASSERT_EQ(0u, table.NumItems());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, FlushIntegers) {
@@ -202,7 +202,7 @@ TEST_F(PostTable, FlushIntegers) {
             ASSERT_EQ(1u, table.NumItems());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, FlushIntegersInSequence) {
@@ -243,7 +243,7 @@ TEST_F(PostTable, FlushIntegersInSequence) {
             ASSERT_EQ(1u, table.NumItems());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, MultipleEmitters) {
@@ -292,7 +292,7 @@ TEST_F(PostTable, MultipleEmitters) {
             ASSERT_EQ(1u, table.NumItems());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, ComplexType) {
@@ -334,7 +334,7 @@ TEST_F(PostTable, ComplexType) {
             ASSERT_EQ(4u, table.NumItems());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, WithinTableItemsLimit) {
@@ -373,7 +373,7 @@ TEST_F(PostTable, WithinTableItemsLimit) {
             size_t num_items = (size_t)(static_cast<double>(total_items) * fill_rate);
 
             for (size_t i = 0; i < num_items; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
             ASSERT_EQ(num_items, table.NumItems());
 
@@ -385,7 +385,7 @@ TEST_F(PostTable, WithinTableItemsLimit) {
             ASSERT_EQ(num_items, writer1.size());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, WithinTableItemsLimit2) {
@@ -424,7 +424,7 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
             size_t num_items = (size_t)(static_cast<double>(total_items) * fill_rate);
 
             for (size_t i = 0; i < num_items; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
             ASSERT_EQ(num_items - 1, table.NumItems());
 
@@ -436,7 +436,7 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
             ASSERT_EQ(num_items, writer1.size());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 TEST_F(PostTable, AboveTableItemsLimit) {
@@ -476,7 +476,7 @@ TEST_F(PostTable, AboveTableItemsLimit) {
             ASSERT_EQ(0u, table.NumItems());
 
             for (size_t i = 0; i < num_items; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
 
             ASSERT_EQ(num_items, table.NumItems());
@@ -484,7 +484,7 @@ TEST_F(PostTable, AboveTableItemsLimit) {
             size_t on_top = 10;
 
             for (size_t i = num_items; i < num_items + on_top; ++i) {
-                table.Insert(pair(i));
+                table.Insert(pair(static_cast<int>(i)));
             }
 
             ASSERT_TRUE(table.NumItems() <= num_items);
@@ -497,7 +497,7 @@ TEST_F(PostTable, AboveTableItemsLimit) {
             ASSERT_EQ(0u, table.NumItems());
         };
 
-    api::RunSameThread(start_func);
+    api::RunLocalSameThread(start_func);
 }
 
 /******************************************************************************/

@@ -5,11 +5,11 @@
  *
  * Borrowed of STXXL. See http://stxxl.sourceforge.net
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/common/counting_ptr.hpp>
@@ -73,8 +73,8 @@ TEST(CountingPtr, RunTest) {
         // check number of objects destructed
         ASSERT_EQ(2, count_deletes);
 
-        // create a const pointer from a normal ptr.
-        IntegerCPtr i4 = MakeIntegerPtr();
+        // get a pointer from a function
+        IntegerPtr i4 = MakeIntegerPtr();
 
         // quitting the block will release the ptr
     }

@@ -3,11 +3,11 @@
  *
  * Look at the Doxygen below....
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -86,13 +86,13 @@ public:
     }
 
     //! Compare contents of two BufferRefs.
-    bool operator == (const BufferRef& br) const {
+    bool operator == (const BufferRef& br) const noexcept {
         if (size_ != br.size_) return false;
         return std::equal(data_, data_ + size_, br.data_);
     }
 
     //! Compare contents of two BufferRefs.
-    bool operator != (const BufferRef& br) const {
+    bool operator != (const BufferRef& br) const noexcept {
         if (size_ != br.size_) return true;
         return !std::equal(data_, data_ + size_, br.data_);
     }

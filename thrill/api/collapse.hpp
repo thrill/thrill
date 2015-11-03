@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/api/collapse.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -31,8 +31,8 @@ namespace api {
  * \tparam ParentStack Function chain, which contains the chained lambdas between
  * the last and this DIANode.
  */
-template <typename ValueType, typename ParentDIARef>
-class CollapseNode : public DIANode<ValueType>
+template <typename ValueType, typename ParentDIA>
+class CollapseNode final : public DIANode<ValueType>
 {
 public:
     using Super = DIANode<ValueType>;
@@ -41,9 +41,9 @@ public:
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      *
-     * \param parent Parent DIARef.
+     * \param parent Parent DIA.
      */
-    CollapseNode(const ParentDIARef& parent,
+    CollapseNode(const ParentDIA& parent,
                  StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
@@ -56,9 +56,6 @@ public:
         auto lop_chain = parent.stack().push(propagate_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
     }
-
-    //! Virtual destructor for a LOpNode.
-    virtual ~CollapseNode() { }
 
     /*!
      * Pushes elements to next node.
@@ -79,20 +76,37 @@ public:
 };
 
 template <typename ValueType, typename Stack>
-auto DIARef<ValueType, Stack>::Collapse() const {
+template <typename AnyStack>
+DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs) {
+
+    // Create new CollapseNode. Transfer stack from rhs to CollapseNode. Build
+    // new DIA with empty stack and CollapseNode
+    using CollapseNode =
+              api::CollapseNode<ValueType, DIA<ValueType, AnyStack> >;
+
+    LOG0 << "WARNING: cast to DIA creates CollapseNode instead of inline chaining.";
+    LOG0 << "Consider whether you can use auto instead of DIA.";
+
+    StatsNode* stats_node = rhs.AddChildStatsNode("Collapse", DIANodeType::COLLAPSE);
+
+    node_ = std::make_shared<CollapseNode>(rhs, stats_node);
+    // stack_ is default constructed.
+    stats_parents_.emplace_back(stats_node);
+}
+
+template <typename ValueType, typename Stack>
+auto DIA<ValueType, Stack>::Collapse() const {
     assert(IsValid());
 
-    // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-    // DIARef with empty stack and LOpNode
-    using LOpChainNode = CollapseNode<ValueType, DIARef>;
+    // Create new CollapseNode. Transfer stack from rhs to CollapseNode. Build
+    // new DIA with empty stack and CollapseNode
+    using CollapseNode = api::CollapseNode<ValueType, DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Collapse", DIANodeType::COLLAPSE);
     auto shared_node
-        = std::make_shared<LOpChainNode>(*this, stats_node);
-    auto lop_stack = FunctionStack<ValueType>();
+        = std::make_shared<CollapseNode>(*this, stats_node);
 
-    return DIARef<ValueType, decltype(lop_stack)>(
-        shared_node, lop_stack, { stats_node });
+    return DIA<ValueType>(shared_node, { stats_node });
 }
 
 //! \}

@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+##########################################################################
+# benchmarks/hashtable/bench_bucket_hashtable.py
+#
+# Part of Project Thrill - http://project-thrill.org
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+##########################################################################
 
 import os
 import sys
@@ -40,3 +48,5 @@ num_runs = 5
 bench([100], [2000000000], [[5, 15]], [1], [0.5], [1], [500000000], num_runs);
 #4 not applied
 #6 not applied
+
+##########################################################################

@@ -3,11 +3,11 @@
  *
  * Asynchronous callback wrapper around select()
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -25,6 +25,8 @@
 #include <thrill/net/tcp/connection.hpp>
 #include <thrill/net/tcp/select.hpp>
 #include <thrill/net/tcp/socket.hpp>
+
+#include <unistd.h>
 
 #include <cerrno>
 #include <chrono>
@@ -59,7 +61,7 @@ public:
     explicit SelectDispatcher(mem::Manager& mem_manager)
         : net::Dispatcher(mem_manager) {
         // allocate self-pipe
-        common::make_pipe(self_pipe_);
+        common::MakePipe(self_pipe_);
 
         // Ignore PIPE signals (received when writing to closed sockets)
         signal(SIGPIPE, SIG_IGN);
@@ -174,7 +176,7 @@ public:
         die_unless(wb == 1);
     }
 
-protected:
+private:
     //! select() manager object
     Select select_;
 

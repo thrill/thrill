@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/core/stage_builder.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -15,8 +15,14 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia_base.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stat_logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <algorithm>
+#include <chrono>
+#include <ctime>
+#include <functional>
+#include <iomanip>
 #include <set>
 #include <stack>
 #include <string>
@@ -31,35 +37,61 @@ using api::DIABase;
 class Stage
 {
 public:
-    explicit Stage(DIABase* node) : node_(node) {
-        sLOG << "CREATING stage" << node_->label() << "id" << node_->id()
-             << "node" << node_;
-    }
+    explicit Stage(DIABase* node) : node_(node) { }
 
     void Execute() {
-        sLOG << "EXECUTING stage " << node_->label() << "id" << node_->id()
-             << "node" << node_;
-        node_->StartExecutionTimer();
+        // time_t tt;
+        // timer.Start();
         node_->Execute();
-        node_->StopExecutionTimer();
+        // timer.Stop();
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (EXECUTING) stage" << node_->label() << node_->id();
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
 
-        node_->PushData(node_->consume_on_push_data());
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // timer.Start();
+        node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
+        // timer.Stop();
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (PUSHING) stage" << node_->label() << node_->id();
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
 
     void PushData() {
-        sLOG << "PUSHING stage " << node_->label() << "id" << node_->id()
-             << "node" << node_;
-        die_unless(!node_->consume_on_push_data());
-        node_->PushData(node_->consume_on_push_data());
+        // time_t tt;
+        if (node_->consume_on_push_data() && node_->context().consume()) {
+            sLOG1 << "StageBuilder: Attempt to PushData on"
+                  << "stage" << node_->label()
+                  << "failed, it was already consumed. Add .Keep()";
+            abort();
+        }
+        // timer.Start();
+        node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
+        // timer.Stop();
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (PUSHING) stage" << node_->label() << node_->id();
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time: " << std::put_time(std::localtime(&tt), "%T");
     }
 
     void Dispose() {
-        sLOG << "DISPOSING stage " << node_->label() << "id" << node_->id()
-             << "node" << node_;
+        // time_t tt;
+        // timer.Start();
         node_->Dispose();
+        // timer.Stop();
         node_->set_state(api::DIAState::DISPOSED);
+        // tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // STAT(node_->context())
+        //    << "FINISH (DISPOSING) stage" << node_->label()
+        //    << "took (ms)" << timer.Milliseconds()
+        //    << "time:" << std::put_time(std::localtime(&tt), "%T");
     }
 
     DIABase * node() {
@@ -68,6 +100,7 @@ public:
 
 private:
     static const bool debug = false;
+    common::StatsTimer<true> timer;
     DIABase* node_;
 };
 
@@ -100,6 +133,7 @@ public:
                     // If not add parent to stages found and result stages
                     stages_found.insert(p);
                     stages_result.push_back(Stage(p));
+                    LOG << "FOUND: " << p->label() << " " << p->id();
                     // If parent was not executed push it to the DFS
                     if (p->state() != api::DIAState::EXECUTED ||
                         p->type() == api::DIANodeType::COLLAPSE) {
@@ -119,7 +153,15 @@ public:
         FindStages(action, result);
         for (auto s : result)
         {
-            if (s.node()->state() == api::DIAState::EXECUTED) s.PushData();
+            if (s.node()->state() == api::DIAState::EXECUTED) {
+                bool skip = true;
+                for (const DIABase::Child& child : s.node()->children())
+                    if (child.node->state() != api::DIAState::EXECUTED ||
+                        child.node->type() == api::DIANodeType::COLLAPSE)
+                        skip = false;
+                if (skip) continue;
+                else s.PushData();
+            }
             if (s.node()->state() == api::DIAState::NEW) s.Execute();
             s.node()->UnregisterChilds();
         }

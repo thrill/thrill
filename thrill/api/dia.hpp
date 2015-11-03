@@ -3,13 +3,14 @@
  *
  * Interface for Operations, holds pointer to node and lambda from node to state
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -26,6 +27,7 @@
 #include <cassert>
 #include <functional>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,22 +39,23 @@ namespace api {
 //! \{
 
 /*!
- * DIARef is the interface between the user and the Thrill framework. A DIARef
- * can be imagined as an immutable array, even though the data does not need to
- * be which represents the state after the previous DOp or Action. Additionally,
- * a DIARef stores the local lambda function chain of type Stack, which can
- * transform elements of the DIANode to elements of this DIARef. DOps/Actions
- * create a DIARef and a new DIANode, to which the DIARef links to. LOps only
- * create a new DIARef, which link to the previous DIANode.
+ * DIA is the interface between the user and the Thrill framework. A DIA can be
+ * imagined as an immutable array, even though the data does not need to be
+ * which represents the state after the previous DOp or Action. Additionally, a
+ * DIA stores the local lambda function chain of type Stack, which can transform
+ * elements of the DIANode to elements of this DIA. DOps/Actions create a DIA
+ * and a new DIANode, to which the DIA links to. LOps only create a new DIA,
+ * which link to the previous DIANode.
  *
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
 template <typename _ValueType, typename _Stack = FunctionStack<_ValueType> >
-class DIARef
+class DIA
 {
     friend class Context;
 
+    //! alias for convenience.
     template <typename Function>
     using FunctionTraits = common::FunctionTraits<Function>;
 
@@ -75,63 +78,76 @@ public:
     //! input type.
     using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
 
-    //! default-constructor: invalid DIARef
-    DIARef()
-        : node_(nullptr)
-    { }
+    //! default-constructor: invalid DIA
+    DIA() = default;
 
-    //! Return whether the DIARef is valid.
-    bool IsValid() const { return node_.get(); }
+    //! Return whether the DIA is valid.
+    bool IsValid() const { return node_.get() != nullptr; }
+
+    //! Assert that the DIA is valid.
+    void AssertValid() const { assert(IsValid()); }
 
     /*!
-     * Constructor of a new DIARef with a pointer to a DIANode and a
-     * function chain from the DIANode to this DIARef.
+     * Constructor of a new DIA with a pointer to a DIANode and a
+     * function chain from the DIANode to this DIA.
      *
      * \param node Pointer to the last DIANode, DOps and Actions create a new
-     * DIANode, LOps link to the DIANode of the previous DIARef.
+     * DIANode, LOps link to the DIANode of the previous DIA.
      *
      * \param stack Function stack consisting of functions between last DIANode
-     * and this DIARef.
+     * and this DIA.
      */
-    DIARef(const DIANodePtr& node, const Stack& stack,
-           const std::vector<StatsNode*>& stats_parents)
+    DIA(const DIANodePtr& node, const Stack& stack,
+        const std::vector<StatsNode*>& stats_parents)
         : node_(node),
           stack_(stack),
           stats_parents_(stats_parents)
     { }
 
     /*!
-     * Constructor of a new DIARef supporting move semantics of nodes.
+     * Constructor of a new DIA supporting move semantics of nodes.
      *
      * \param node Pointer to the last DIANode, DOps and Actions create a new
-     * DIANode, LOps link to the DIANode of the previous DIARef.
+     * DIANode, LOps link to the DIANode of the previous DIA.
      *
      * \param stack Function stack consisting of functions between last DIANode
-     * and this DIARef.
+     * and this DIA.
      */
-    DIARef(DIANodePtr&& node, const Stack& stack,
-           const std::vector<StatsNode*>& stats_parents)
+    DIA(DIANodePtr&& node, const Stack& stack,
+        const std::vector<StatsNode*>& stats_parents)
         : node_(std::move(node)),
           stack_(stack),
           stats_parents_(stats_parents)
     { }
 
     /*!
-     * Copy-Constructor of a DIARef with empty function chain from a DIARef with
+     * Constructor of a new DIA supporting move semantics of nodes.
+     *
+     * \param node Pointer to the last DIANode, DOps and Actions create a new
+     * DIANode, LOps link to the DIANode of the previous DIA.
+     *
+     * \param stack Function stack consisting of functions between last DIANode
+     * and this DIA.
+     */
+    DIA(DIANodePtr&& node, const std::vector<StatsNode*>& stats_parents)
+        : DIA(std::move(node), FunctionStack<ValueType>(), stats_parents) { }
+
+    /*!
+     * Copy-Constructor of a DIA with empty function chain from a DIA with
      * a non-empty chain.  The functionality of the chain is stored in a newly
-     * created LOpNode.  The current DIARef than points to this LOpNode.  This
-     * is needed to support assignment operations between DIARef's.
+     * created LOpNode.  The current DIA than points to this LOpNode.  This
+     * is needed to support assignment operations between DIA's.
      *
      * \param rhs DIA containing a non-empty function chain.
      */
     template <typename AnyStack>
-    DIARef(const DIARef<ValueType, AnyStack>& rhs)
+    DIA(const DIA<ValueType, AnyStack>& rhs)
 #if __GNUC__ && !__clang__
     // the attribute warning does not work with gcc?
     __attribute__ ((warning(     // NOLINT
-                        "Casting to DIARef creates LOpNode instead of inline chaining.\n"
-                        "Consider whether you can use auto instead of DIARef.")))
-#else
+                        "Casting to DIA creates LOpNode instead of inline chaining.\n"
+                        "Consider whether you can use auto instead of DIA.")))
+#elif __GNUC__ && __clang__
     __attribute__ ((deprecated)) // NOLINT
 #endif
     ;                            // NOLINT
@@ -140,6 +156,12 @@ public:
     const DIANodePtr & node() const {
         assert(IsValid());
         return node_;
+    }
+
+    //! Returns a the corresponding stats nodes
+    const std::vector<StatsNode*> & stats_parents() const {
+        assert(IsValid());
+        return stats_parents_;
     }
 
     //! Returns the number of references to the according DIANode.
@@ -166,6 +188,15 @@ public:
             node_->context().stats_graph().AddEdge(parent, stats_node);
     }
 
+    template <typename AnyType, typename AnyStack>
+    auto LinkStatsNodeFrom(const DIA<AnyType, AnyStack>&rhs) {
+        for (const auto& parent : stats_parents_) {
+            for (const auto& rhs_parent : rhs.stats_parents())
+                node_->context().stats_graph().AddEdge(rhs_parent, parent);
+        }
+        return *this;
+    }
+
     Context & ctx() const {
         assert(IsValid());
         return node_->context();
@@ -176,7 +207,7 @@ public:
      * the data when executing. This does not create a new DIA, but returns the
      * existing one.
      */
-    DIARef & Keep() {
+    DIA & Keep() {
         assert(IsValid());
         node_->SetConsume(false);
         return *this;
@@ -186,17 +217,17 @@ public:
      * Mark the referenced DIANode as consuming, which makes it only executable
      * once. This does not create a new DIA, but returns the existing one.
      */
-    DIARef & Consume() {
+    DIA & Consume() {
         assert(IsValid());
         node_->SetConsume(true);
         return *this;
     }
 
     /*!
-     * Map is a LOp, which maps this DIARef according to the map_fn given by the
+     * Map is a LOp, which maps this DIA according to the map_fn given by the
      * user.  The map_fn maps each element to another
      * element of a possibly different type. The function chain of the returned
-     * DIARef is this DIARef's stack_ chained with map_fn.
+     * DIA is this DIA's stack_ chained with map_fn.
      *
      * \tparam MapFunction Type of the map function.
      *
@@ -208,25 +239,27 @@ public:
         assert(IsValid());
 
         using MapArgument
-                  = typename FunctionTraits<MapFunction>::template arg<0>;
+                  = typename FunctionTraits<MapFunction>::template arg_plain<0>;
         using MapResult
                   = typename FunctionTraits<MapFunction>::result_type;
-        auto conv_map_function = [=](MapArgument input, auto emit_func) {
-                                     emit_func(map_function(input));
-                                 };
+        auto conv_map_function =
+            [=](const MapArgument& input, auto emit_func) {
+                emit_func(map_function(input));
+            };
 
         static_assert(
             std::is_convertible<ValueType, MapArgument>::value,
             "MapFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_map_function);
-        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Map", DIANodeType::LAMBDA) });
+        return DIA<MapResult, decltype(new_stack)>(
+            node_, new_stack, { AddChildStatsNode("Map", DIANodeType::LAMBDA) });
     }
 
     /*!
-     * Filter is a LOp, which filters elements from this DIARef according to the
+     * Filter is a LOp, which filters elements from this DIA according to the
      * filter_function given by the user. The filter_function maps each element
-     * to a boolean.  The function chain of the returned DIARef is this DIARef's
+     * to a boolean.  The function chain of the returned DIA is this DIA's
      * stack_ chained with filter_function.
      *
      * \tparam FilterFunction Type of the map function.
@@ -240,26 +273,28 @@ public:
         assert(IsValid());
 
         using FilterArgument
-                  = typename FunctionTraits<FilterFunction>::template arg<0>;
-        auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
-                                        if (filter_function(input)) emit_func(input);
-                                    };
+                  = typename FunctionTraits<FilterFunction>::template arg_plain<0>;
+        auto conv_filter_function =
+            [=](const FilterArgument& input, auto emit_func) {
+                if (filter_function(input)) emit_func(input);
+            };
 
         static_assert(
             std::is_convertible<ValueType, FilterArgument>::value,
             "FilterFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_filter_function);
-        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Filter", DIANodeType::LAMBDA) });
+        return DIA<ValueType, decltype(new_stack)>(
+            node_, new_stack, { AddChildStatsNode("Filter", DIANodeType::LAMBDA) });
     }
 
     /*!
-     * FlatMap is a LOp, which maps this DIARef according to the
+     * FlatMap is a LOp, which maps this DIA according to the
      * flatmap_function given by the user. The flatmap_function maps each
      * element to elements of a possibly different type. The flatmap_function
      * has an emitter function as it's second parameter. This emitter is called
      * once for each element to be emitted. The function chain of the returned
-     * DIARef is this DIARef's stack_ chained with flatmap_function.
+     * DIA is this DIA's stack_ chained with flatmap_function.
      *
      * \tparam ResultType ResultType of the FlatmapFunction, if different from
      * item type of DIA.
@@ -274,17 +309,18 @@ public:
         assert(IsValid());
 
         auto new_stack = stack_.push(flatmap_function);
-        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", DIANodeType::LAMBDA) });
+        return DIA<ResultType, decltype(new_stack)>(
+            node_, new_stack, { AddChildStatsNode("FlatMap", DIANodeType::LAMBDA) });
     }
 
     /*!
-     * ReduceBy is a DOp, which groups elements of the DIARef with the
+     * ReduceBy is a DOp, which groups elements of the DIA with the
      * key_extractor and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type. The key of the reduced
      * element has to be equal to the keys of the input elements. Since ReduceBy
-     * is a DOp, it creates a new DIANode. The DIARef returned by Reduce links
-     * to this newly created DIANode. The stack_ of the returned DIARef consists
+     * is a DOp, it creates a new DIANode. The DIA returned by Reduce links
+     * to this newly created DIANode. The stack_ of the returned DIA consists
      * of the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
@@ -307,15 +343,15 @@ public:
                   const ReduceFunction &reduce_function) const;
 
     /*!
-    * ReduceByKey is a DOp, which groups elements of the DIARef with the
+    * ReduceByKey is a DOp, which groups elements of the DIA with the
     * key_extractor and reduces each key-bucket to a single element using the
     * associative reduce_function. The reduce_function defines how two elements
     * can be reduced to a single element of equal type.In contrast to ReduceBy,
     * the reduce_function is allowed to change the key (Example: Integers
     * with modulo function as key_extractor). Creates overhead as both key and
     * value have to be sent in shuffle step. Since ReduceByKey
-    * is a DOp, it creates a new DIANode. The DIARef returned by Reduce links
-    * to this newly created DIANode. The stack_ of the returned DIARef consists
+    * is a DOp, it creates a new DIANode. The DIA returned by Reduce links
+    * to this newly created DIANode. The stack_ of the returned DIA consists
     * of the PostOp of Reduce, as a reduced element can
     * directly be chained to the following LOps.
     *
@@ -338,13 +374,13 @@ public:
                      const ReduceFunction &reduce_function) const;
 
     /*!
-     * ReducePair is a DOp, which groups key-value-pairs in the input DIARef by
+     * ReducePair is a DOp, which groups key-value-pairs in the input DIA by
      * their key and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type. The reduce_function is
      * allowed to change the key. Since ReducePair
-     * is a DOp, it creates a new DIANode. The DIARef returned by Reduce links
-     * to this newly created DIANode. The stack_ of the returned DIARef consists
+     * is a DOp, it creates a new DIANode. The DIA returned by Reduce links
+     * to this newly created DIANode. The stack_ of the returned DIA consists
      * of the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
@@ -360,7 +396,7 @@ public:
     auto ReducePair(const ReduceFunction &reduce_function) const;
 
     /*!
-     * ReduceToIndex is a DOp, which groups elements of the DIARef with the
+     * ReduceToIndex is a DOp, which groups elements of the DIA with the
      * key_extractor returning an unsigned integers and reduces each key-bucket
      * to a single element using the associative reduce_function.
      * In contrast to ReduceBy, ReduceToIndex returns a DIA in a defined order,
@@ -368,8 +404,8 @@ public:
      * The reduce_function defines how two elements can be reduced to a single
      * element of equal type. The key of the reduced element has to be equal
      * to the keys of the input elements. Since ReduceToIndex is a DOp,
-     * it creates a new DIANode. The DIARef returned by ReduceToIndex links to
-     * this newly created DIANode. The stack_ of the returned DIARef consists
+     * it creates a new DIANode. The DIA returned by ReduceToIndex links to
+     * this newly created DIANode. The stack_ of the returned DIA consists
      * of the PostOp of ReduceToIndex, as a reduced element can
      * directly be chained to the following LOps.
      *
@@ -398,10 +434,10 @@ public:
     auto ReduceToIndex(const KeyExtractor &key_extractor,
                        const ReduceFunction &reduce_function,
                        size_t size,
-                       ValueType neutral_element = ValueType()) const;
+                       const ValueType& neutral_element = ValueType()) const;
 
     /*!
-     * ReduceToIndexByKey is a DOp, which groups elements of the DIARef with the
+     * ReduceToIndexByKey is a DOp, which groups elements of the DIA with the
      * key_extractor returning an unsigned integers and reduces each key-bucket
      * to a single element using the associative reduce_function.
      * In contrast to ReduceByKey, ReduceToIndexByKey returns a DIA in a defined
@@ -410,8 +446,8 @@ public:
      * element of equal type. ReduceToIndexByKey is the equivalent to
      * ReduceByKey, as the reduce_function is allowed to change the key.
      * Since ReduceToIndexByKey is a DOp,
-     * it creates a new DIANode. The DIARef returned by ReduceToIndex links to
-     * this newly created DIANode. The stack_ of the returned DIARef consists
+     * it creates a new DIANode. The DIA returned by ReduceToIndex links to
+     * this newly created DIANode. The stack_ of the returned DIA consists
      * of the PostOp of ReduceToIndex, as a reduced element can
      * directly be chained to the following LOps.
      *
@@ -440,19 +476,19 @@ public:
     auto ReduceToIndexByKey(const KeyExtractor &key_extractor,
                             const ReduceFunction &reduce_function,
                             size_t size,
-                            ValueType neutral_element = ValueType()) const;
+                            const ValueType& neutral_element = ValueType()) const;
 
     /*!
      * ReducePairToIndex is a DOp, which groups key-value-pairs of the input
-     * DIARef by their key, which has to be an unsigned integer. Each key-bucket
+     * DIA by their key, which has to be an unsigned integer. Each key-bucket
      * is reduced to a single element using the associative reduce_function.
      * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
      * which has the reduced element with key i in position i.
      * The reduce_function defines how two elements can be reduced to a single
      * element of equal type. The reduce_function is allowed to change the key.
      * Since ReduceToIndex is a DOp,
-     * it creates a new DIANode. The DIARef returned by ReduceToIndex links to
-     * this newly created DIANode. The stack_ of the returned DIARef consists
+     * it creates a new DIANode. The DIA returned by ReduceToIndex links to
+     * this newly created DIANode. The stack_ of the returned DIA consists
      * of the PostOp of ReduceToIndex, as a reduced element can
      * directly be chained to the following LOps.
      *
@@ -471,18 +507,90 @@ public:
      * each array cell.
      */
     template <typename ReduceFunction>
-    auto ReducePairToIndex(const ReduceFunction &reduce_function,
-                           size_t size,
-                           typename common::FunctionTraits<ReduceFunction>
-                           ::result_type neutral_element =
-                               typename common::FunctionTraits<ReduceFunction>
-                               ::result_type()) const;
+    auto ReducePairToIndex(
+        const ReduceFunction &reduce_function, size_t size,
+        const typename FunctionTraits<ReduceFunction>::result_type&
+        neutral_element = typename FunctionTraits<ReduceFunction>::result_type()) const;
+
+    /*!
+     * GroupBy is a DOp, which groups elements of the DIA by its key.
+     * After having grouped all elements of one key, all elements of one key
+     * will be processed according to the GroupByFunction and returns an output
+     * Contrary to Reduce, GroupBy allows usage of functions that require all
+     * elements of one key at once as GroupByFunction will be applied _after_
+     * all elements with the same key have been grouped. However because of this
+     * reason, the communication overhead is also higher. If possible, usage of
+     * Reduce is therefore recommended.
+     * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIA consists of the PostOp of Reduce, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam GroupByFunction Type of the groupby_function. This is a function
+     * taking an iterator for all elements of the same key as input.
+     *
+     * \param groupby_function Reduce function, which defines how the key
+     * buckets are grouped and processed.
+     *      input param: api::GroupByReader with functions HasNext() and Next()
+     */
+    template <typename ValueOut,
+              typename KeyExtractor,
+              typename GroupByFunction,
+              typename HashFunction =
+                  std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+    auto GroupBy(const KeyExtractor &key_extractor,
+                 const GroupByFunction &reduce_function) const;
+
+    /*!
+     * GroupBy is a DOp, which groups elements of the DIA by its key.
+     * After having grouped all elements of one key, all elements of one key
+     * will be processed according to the GroupByFunction and returns an output
+     * Contrary to Reduce, GroupBy allows usage of functions that require all
+     * elements of one key at once as GroupByFunction will be applied _after_
+     * all elements with the same key have been grouped. However because of this
+     * reason, the communication overhead is also higher. If possible, usage of
+     * Reduce is therefore recommended.
+     * In contrast to GroupBy, GroupByIndex returns a DIA in a defined order,
+     * which has the reduced element with key i in position i.
+     * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIA consists of the PostOp of Reduce, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam GroupByFunction Type of the groupby_function. This is a function
+     * taking an iterator for all elements of the same key as input.
+     *
+     * \param groupby_function Reduce function, which defines how the key
+     * buckets are grouped and processed.
+     *      input param: api::GroupByReader with functions HasNext() and Next()
+     */
+    template <typename ValueOut,
+              typename KeyExtractor,
+              typename GroupByFunction,
+              typename HashFunction =
+                  std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+    auto GroupByIndex(const KeyExtractor &key_extractor,
+                      const GroupByFunction &reduce_function,
+                      const size_t size,
+                      const ValueOut& neutral_element = ValueOut()) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
      * zip_function is used to zip the i-th elements of both input DIAs together
-     * to form the i-th element of the output DIARef. The type of the output
-     * DIARef can be inferred from the zip_function.
+     * to form the i-th element of the output DIA. The type of the output
+     * DIA can be inferred from the zip_function.
      *
      * \tparam ZipFunction Type of the zip_function. This is a function with two
      * input elements, both of the local type, and one output element, which is
@@ -490,18 +598,29 @@ public:
      *
      * \param zip_function Zip function, which zips two elements together
      *
-     * \param second_dia DIARef, which is zipped together with the original
-     * DIARef.
+     * \param second_dia DIA, which is zipped together with the original
+     * DIA.
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(SecondDIA second_dia, const ZipFunction &zip_function) const;
+    auto Zip(const SecondDIA &second_dia, const ZipFunction &zip_function) const;
 
     /*!
-     * TODO
+     * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.
+     * Both input DIAs must be used sorted conforming to the given comparator.
+     * The type of the output DIA will be the type of this DIA.
+     *
+     * The merge operation balances all input data, so that each worker will
+     * have an equal number of elements when the merge completes.
+     *
+     * \tparam Comparator Comparator to specify the order of input and output.
+     *
+     * \param comparator Comparator to specify the order of input and output.
+     *
+     * \param second_dia DIA, which is merged with this DIA.
      */
-    template <typename MergeFunction, typename SecondDIA>
-    auto Merge(
-        SecondDIA second_dia, const MergeFunction &zip_function) const;
+    template <typename Comparator = std::less<ValueType>, typename SecondDIA>
+    auto Merge(const SecondDIA &second_dia,
+               const Comparator& comparator = Comparator()) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
@@ -515,7 +634,37 @@ public:
      */
     template <typename SumFunction = std::plus<ValueType> >
     auto PrefixSum(const SumFunction& sum_function = SumFunction(),
-                   ValueType initial_element = ValueType()) const;
+                   const ValueType& initial_element = ValueType()) const;
+
+    /*!
+     * Window is a DOp, which applies a window function to every k
+     * consecutive items in a DIA. The window function is also given the index
+     * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \tparam WindowFunction Type of the window_function.
+     *
+     * \param window_size the size of the delivered window. Signature: TODO(tb).
+     *
+     * \param window_function Window function applied to each k item.
+     */
+    template <typename WindowFunction>
+    auto Window(size_t window_size,
+                const WindowFunction& window_function = WindowFunction()) const;
+
+    /*!
+     * FlatWindow is a DOp, which applies a window function to every k
+     * consecutive items in a DIA. The window function is also given the index
+     * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \tparam WindowFunction Type of the window_function.
+     *
+     * \param window_size the size of the delivered window. Signature: TODO(tb).
+     *
+     * \param window_function Window function applied to each k item.
+     */
+    template <typename ValueOut, typename WindowFunction>
+    auto FlatWindow(size_t window_size,
+                    const WindowFunction& window_function = WindowFunction()) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
@@ -527,7 +676,7 @@ public:
      * first element is smaller than second. False otherwise.
      */
     template <typename CompareFunction = std::less<ValueType> >
-    auto Sort(const CompareFunction& compare_function = std::less<ValueType>()) const;
+    auto Sort(const CompareFunction& compare_function = CompareFunction()) const;
 
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
@@ -538,9 +687,9 @@ public:
      *
      * \param initial_value Initial value of the sum.
      */
-    template <typename SumFunction>
-    auto Sum(const SumFunction& sum_function = std::plus<ValueType>(),
-             ValueType initial_value = ValueType()) const;
+    template <typename SumFunction = std::plus<ValueType> >
+    auto Sum(const SumFunction& sum_function = SumFunction(),
+             const ValueType& initial_value = ValueType()) const;
 
     /*!
      * Size is an Action, which computes the size of all elements in all workers.
@@ -606,7 +755,7 @@ public:
      * the given worker. This should only be done if the received data can fit
      * into RAM of the one worker.
      */
-    std::vector<ValueType> Gather(size_t target_id) const;
+    std::vector<ValueType> Gather(size_t target_id = 0) const;
 
     /*!
      * Gather is an Action, which collects all data of the DIA into a vector at
@@ -615,9 +764,26 @@ public:
      */
     void Gather(size_t target_id, std::vector<ValueType>* out_vector)  const;
 
+    /*!
+     * Print is an Action, which collects all data of the DIA at the worker 0
+     * and prints using ostream serialization. It is implemented using Gather().
+     */
+    void Print(const std::string& name) const;
+
+    /*!
+     * Print is an Action, which collects all data of the DIA at the worker 0
+     * and prints using ostream serialization. It is implemented using Gather().
+     */
+    void Print(const std::string& name, std::ostream& out) const;
+
     auto Collapse() const;
 
     auto Cache() const;
+
+    auto Label(const std::string & msg) const {
+        node_->AddStats(msg);
+        return *this;
+    }
 
     /*!
      * Returns the string which defines the DIANode node_.
@@ -629,51 +795,23 @@ public:
     }
 
 private:
-    //! The DIANode which DIARef points to. The node represents the latest DOp
+    //! The DIANode which DIA points to. The node represents the latest DOp
     //! or Action performed previously.
     DIANodePtr node_;
 
     //! The local function chain, which stores the chained lambda function from
-    //! the last DIANode to this DIARef.
+    //! the last DIANode to this DIA.
     Stack stack_;
 
     std::vector<StatsNode*> stats_parents_;
 };
-
-/*!
- * ReadLines is a DOp, which reads a file from the file system and
- * creates an ordered DIA according to a given read function.
- *
- * \param ctx Reference to the context object
- * \param filepath Path of the file in the file system
- */
-DIARef<std::string> ReadLines(Context& ctx, std::string filepath);
-
-/*!
- * GenerateFromFile is a DOp, which reads a file from the file system and
- * applies the generate function on each line. The DIA is generated by
- * pulling random (possibly duplicate) elements out of those generated
- * elements.
- *
- * \tparam GeneratorFunction Type of the generator function.
- *
- * \param ctx Reference to the context object
- * \param filepath Path of the file in the file system
- * \param generator_function Generator function, which is performed on each
- * element
- * \param size Size of the output DIA
- */
-template <typename GeneratorFunction>
-auto GenerateFromFile(Context & ctx, std::string filepath,
-                      const GeneratorFunction &generator_function,
-                      size_t size);
 
 //! \}
 
 } // namespace api
 
 //! imported from api namespace
-using api::DIARef;
+using api::DIA;
 
 } // namespace thrill
 

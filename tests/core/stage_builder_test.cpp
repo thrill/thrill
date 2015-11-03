@@ -1,14 +1,17 @@
 /*******************************************************************************
  * tests/core/stage_builder_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
-#include <thrill/thrill.hpp>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/cache.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/reduce.hpp>
 
 #include <algorithm>
 #include <random>
@@ -93,7 +96,7 @@ TEST(Stage, CountReferencesLOpNode) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
+            DIA<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
 
             // Create new child reference to LOpNode
             auto reduced = quadruples.ReduceBy(modulo_two, add_function);
@@ -143,7 +146,7 @@ TEST(Stage, OverwriteReferenceLOpNode) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
+            DIA<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
 
             // Overwrite reference to LOpNode
             quadruples = quadruples.ReduceBy(modulo_two, add_function).Cache();
@@ -193,12 +196,12 @@ TEST(Stage, DISABLED_AdditionalChildReferences) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
+            DIA<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
 
             // Create a child reference to LOpNode
-            DIARef<int> octuples = quadruples.ReduceBy(modulo_two, add_function).Cache();
+            DIA<int> octuples = quadruples.ReduceBy(modulo_two, add_function).Cache();
             // Create a child reference to LOpNode
-            DIARef<int> octuples_second = quadruples.ReduceBy(modulo_two, add_function).Cache();
+            DIA<int> octuples_second = quadruples.ReduceBy(modulo_two, add_function).Cache();
 
             // Trigger execution
             std::vector<int> out_vec = octuples.AllGather();
