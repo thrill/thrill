@@ -4,7 +4,7 @@
  * net::Group is a collection of NetConnections providing simple MPI-like
  * collectives and point-to-point communication.
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>

@@ -3,7 +3,7 @@
  *
  * Interface for Operations, holds pointer to node and lambda from node to state
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
@@ -154,12 +154,6 @@ public:
         return node_;
     }
 
-    //! Returns a the corresponding stats nodes
-    const std::vector<StatsNode*> & stats_parents() const {
-        assert(IsValid());
-        return stats_parents_;
-    }
-
     //! Returns the number of references to the according DIANode.
     size_t node_refcount() const {
         assert(IsValid());
@@ -182,15 +176,6 @@ public:
     void AppendChildStatsNode(StatsNode* stats_node) const {
         for (const auto& parent : stats_parents_)
             node_->context().stats_graph().AddEdge(parent, stats_node);
-    }
-
-    template <typename AnyType, typename AnyStack>
-    auto LinkStatsNodeFrom(const DIA<AnyType, AnyStack>& rhs) {
-        for (const auto& parent : stats_parents_) {
-            for (const auto& rhs_parent : rhs.stats_parents())
-                node_->context().stats_graph().AddEdge(rhs_parent, parent);
-        }
-        return *this;
     }
 
     Context & ctx() const {
@@ -235,13 +220,12 @@ public:
         assert(IsValid());
 
         using MapArgument
-                  = typename FunctionTraits<MapFunction>::template arg_plain<0>;
+                  = typename FunctionTraits<MapFunction>::template arg<0>;
         using MapResult
                   = typename FunctionTraits<MapFunction>::result_type;
-        auto conv_map_function =
-            [=](const MapArgument& input, auto emit_func) {
-                emit_func(map_function(input));
-            };
+        auto conv_map_function = [=](MapArgument input, auto emit_func) {
+                                     emit_func(map_function(input));
+                                 };
 
         static_assert(
             std::is_convertible<ValueType, MapArgument>::value,
@@ -269,11 +253,10 @@ public:
         assert(IsValid());
 
         using FilterArgument
-                  = typename FunctionTraits<FilterFunction>::template arg_plain<0>;
-        auto conv_filter_function =
-            [=](const FilterArgument& input, auto emit_func) {
-                if (filter_function(input)) emit_func(input);
-            };
+                  = typename FunctionTraits<FilterFunction>::template arg<0>;
+        auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
+                                        if (filter_function(input)) emit_func(input);
+                                    };
 
         static_assert(
             std::is_convertible<ValueType, FilterArgument>::value,
@@ -603,21 +586,10 @@ public:
     // duplicate.
 
     /*!
-     * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.
-     * Both input DIAs must be used sorted conforming to the given comparator. 
-     * The type of the output DIA will be the type of this DIA. 
-     *
-     * The merge operation balances all input data, so that each worker will 
-     * have an equal number of elements when the merge completes. 
-     *
-     * \tparam Comparator Comparator to specify the order of input and output. 
-     *
-     * \param comparator Comparator to specify the order of input and output. 
-     *
-     * \param second_dia DIA, which is merged with this DIA. 
+     * TODO
      */
-    template <typename SecondDIA, typename Comparator = std::less<ValueType> >
-    auto Merge(SecondDIA second_dia, const Comparator& comparator = Comparator()) const;
+    template <typename SecondDIA, typename Comperator = std::less<ValueType> >
+    auto Merge(SecondDIA second_dia, const Comperator& comperator = Comperator()) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
@@ -734,11 +706,6 @@ public:
     auto Collapse() const;
 
     auto Cache() const;
-
-    auto Label(const std::string& msg) const {
-        node_->AddStats(msg);
-        return *this;
-    }
 
     /*!
      * Returns the string which defines the DIANode node_.

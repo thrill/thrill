@@ -2,7 +2,7 @@
 ##########################################################################
 # benchmarks/hashtable/graph_gen.py
 #
-# Part of Project Thrill - http://project-thrill.org
+# Part of Project Thrill.
 #
 #
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.

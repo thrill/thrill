@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/core/reduce_post_probing_table.hpp
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *

@@ -6,7 +6,7 @@
  * and read them using BufferReader::Get<type>(). The operation sequences must
  * match. See test-binary-builder.cpp for an example.
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *

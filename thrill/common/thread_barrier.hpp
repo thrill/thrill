@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/common/thread_barrier.hpp
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>

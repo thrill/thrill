@@ -3,7 +3,7 @@
  *
  * Untyped super class of DIANode. Used to build the execution graph.
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
@@ -181,10 +181,6 @@ public:
 
     bool consume_on_push_data() const {
         return consume_on_push_data_;
-    }
-
-    void AddStats(const std::string& msg) const {
-        stats_node_->AddStatsMsg(msg, LogType::INFO);
     }
 
     // Why are these stupid functions here?

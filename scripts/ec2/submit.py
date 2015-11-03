@@ -2,7 +2,7 @@
 ##########################################################################
 # scripts/ec2/submit.py
 #
-# Part of Project Thrill - http://project-thrill.org
+# Part of Project Thrill.
 #
 # Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
 #
@@ -10,7 +10,6 @@
 ##########################################################################
 
 import boto3
-<<<<<<< HEAD
 import time
 import json
 import datetime
@@ -88,7 +87,3 @@ if data["VOL_SNAPSHOT_ID"]:
     print "volumes attached..."
 
 print job_id
-=======
-
-##########################################################################
->>>>>>> origin/master

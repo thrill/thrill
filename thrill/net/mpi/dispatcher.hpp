@@ -4,7 +4,7 @@
  * A Thrill network layer Implementation which uses MPI to transmit messages to
  * peers. See group.hpp for more.
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

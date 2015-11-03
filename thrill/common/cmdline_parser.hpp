@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/common/cmdline_parser.hpp
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *

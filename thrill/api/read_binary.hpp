@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/read_binary.hpp
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -186,7 +186,7 @@ template <typename ValueType>
 DIA<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
 
     StatsNode* stats_node =
-        ctx.stats_graph().AddNode("ReadBinary", DIANodeType::GENERATOR);
+        ctx.stats_graph().AddNode("ReadBinary", DIANodeType::DOP);
 
     auto shared_node =
         std::make_shared<ReadBinaryNode<ValueType> >(

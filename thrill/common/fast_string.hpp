@@ -3,7 +3,7 @@
  *
  * (Hopefully) fast static-length string implementation.
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *

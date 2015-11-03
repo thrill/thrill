@@ -3,7 +3,7 @@
  *
  * DIANode for a merge operation. Performs the actual merge operation
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
@@ -35,52 +35,31 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-/*!
- * merge_local holds functions internally used by merge. 
- */
 namespace merge_local {
 
-//! Set this variable to true to enable generation and output of merge stats. 
 static const bool stats_enabled = false;
 
-/*!
- * MergeStatsBase holds timers for measuring merge performance. 
- */
 class MergeStatsBase
 {
 public:
-    //! A Timer accumulating all time spent in File operations. 
-    thrill::common::StatsTimer<stats_enabled> FileOpTimer;
-    //! A Timer accumulating all time spent while actually merging. 
+    thrill::common::StatsTimer<stats_enabled> IndexOfTimer;
+    thrill::common::StatsTimer<stats_enabled> GetAtIndexTimer;
     thrill::common::StatsTimer<stats_enabled> MergeTimer;
-    //! A Timer accumulating all time spent while re-balancing the data. 
     thrill::common::StatsTimer<stats_enabled> BalancingTimer;
-    //! A Timer accumulating all time spent for selecting the global pivot elements. 
     thrill::common::StatsTimer<stats_enabled> PivotSelectionTimer;
-    //! A Timer accumulating all time spent in global search steps. 
-    thrill::common::StatsTimer<stats_enabled> SearchStepTimer;
-    //! A Timer accumulating all time spent communicating.
+    thrill::common::StatsTimer<stats_enabled> PivotLocationTimer;
     thrill::common::StatsTimer<stats_enabled> CommTimer;
-    //! A Timer accumulating all time spent calling the scatter method of the data subsystem. 
-    thrill::common::StatsTimer<stats_enabled> ScatterTimer;
-    //! The count of all elements processed on this host. 
     size_t result_size = 0;
-    //! The count of search iterations needed for balancing. 
     size_t iterations = 0;
 };
 
-/*!
- * MergeStats is an implementation of MergeStatsBase, 
- * that supports accumulating the output and printing it
- * to the standard out stream. 
- */
 class MergeStats : public MergeStatsBase
 {
 public:
     void PrintToSQLPlotTool(std::string label, size_t p, size_t value) {
         static const bool debug = true;
 
-        LOG << "RESULT " << "operation=" << label << " time=" << value << " workers=" << p << " result_size=" << result_size;
+        LOG << "RESULT " << label << "=" << value << " workers=" << p << " result_size=" << result_size;
     }
 
     void Print(Context& ctx) {
@@ -89,23 +68,23 @@ public:
             net::FlowControlChannel& flow = ctx.flow_control_channel();
             size_t p = ctx.num_workers();
 
-            size_t merge = flow.AllReduce(MergeTimer.Milliseconds()) / p;
-            size_t balance = flow.AllReduce(BalancingTimer.Milliseconds()) / p;
-            size_t pivotSelection = flow.AllReduce(PivotSelectionTimer.Milliseconds()) / p;
-            size_t searchStep = flow.AllReduce(SearchStepTimer.Milliseconds()) / p;
-            size_t fileOp = flow.AllReduce(FileOpTimer.Milliseconds()) / p;
-            size_t comm = flow.AllReduce(CommTimer.Milliseconds()) / p;
-            size_t scatter = flow.AllReduce(ScatterTimer.Milliseconds()) / p;
+            size_t merge = flow.AllReduce(MergeTimer.Microseconds()) / p;
+            size_t balance = flow.AllReduce(BalancingTimer.Microseconds()) / p;
+            size_t pivotSelection = flow.AllReduce(PivotSelectionTimer.Microseconds()) / p;
+            size_t pivotLocation = flow.AllReduce(PivotLocationTimer.Microseconds()) / p;
+            size_t indexOf = flow.AllReduce(IndexOfTimer.Microseconds()) / p;
+            size_t getAtIndex = flow.AllReduce(GetAtIndexTimer.Microseconds()) / p;
+            size_t comm = flow.AllReduce(CommTimer.Microseconds()) / p;
             result_size = flow.AllReduce(result_size);
 
             if (ctx.my_rank() == 0) {
                 PrintToSQLPlotTool("merge", p, merge);
                 PrintToSQLPlotTool("balance", p, balance);
                 PrintToSQLPlotTool("pivotSelection", p, pivotSelection);
-                PrintToSQLPlotTool("searchStep", p, searchStep);
-                PrintToSQLPlotTool("fileOp", p, fileOp);
+                PrintToSQLPlotTool("pivotLocation", p, pivotLocation);
+                PrintToSQLPlotTool("getIndexOf", p, indexOf);
+                PrintToSQLPlotTool("getAtIndex", p, getAtIndex);
                 PrintToSQLPlotTool("communication", p, comm);
-                PrintToSQLPlotTool("scatter", p, scatter);
                 PrintToSQLPlotTool("iterations", p, iterations);
             }
         }
@@ -114,16 +93,6 @@ public:
 
 } // namespace merge_local
 
-/*!
- * Implementation of Thrill's merge. This merge implementation
- * balances all data before merging, so each worker has 
- * the same amount of data when merge finishes. 
- *
- * \tparam ValueType The type of the first and second input DIA
- * \tparam ParentDiaRef0 The type of the first input DIA
- * \tparam ParentDiaRef1 The type of the second input DIA
- * \tparam Comparator The comparator defining input and output order. 
- */
 template <typename ValueType,
           typename ParentDIARef0, typename ParentDIARef1,
           typename Comparator>
@@ -131,21 +100,12 @@ class TwoMergeNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
-    //! Instance of merge statistics
     merge_local::MergeStats stats;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
 public:
-    /*! 
-     * Creates a new instance of this class.
-     *
-     * \param parent0 The first input DIA
-     * \param parent1 The second input DIA
-     * \param comparator The comparator defining input and output order. 
-     * \param StatsNode The stat node. 
-     */
     TwoMergeNode(const ParentDIARef0& parent0,
                  const ParentDIARef1& parent1,
                  Comparator comparator,
@@ -189,14 +149,12 @@ public:
 
         using Reader = data::BufferedBlockReader<ValueType, data::CatBlockSource<data::DynBlockSource> >;
 
-        // Get buffered inbound readers from all Channels
+        // get buffered inbound readers from all Channels
         std::vector<Reader> readers;
         for (size_t i = 0; i < streams_.size(); i++) {
             readers.emplace_back(std::move(streams_[i]->GetCatBlockSource(consume)));
         }
 
-        // As long as we habe input, 
-        // push the larger element further.  
         while (true) {
 
             auto& a = readers[0];
@@ -269,7 +227,6 @@ private:
     size_t dataSize;   //Count of items on this worker.
     size_t prefixSize; //Count of items on all prev workers.
 
-    //! Logging helper to print vectors. 
     template <typename T>
     std::string VToStr(const std::vector<T>& data) {
         std::stringstream ss;
@@ -280,7 +237,6 @@ private:
         return ss.str();
     }
 
-    //! Logging helper to print vectors of vectors of size_t 
     std::string VToStr(const std::vector<std::vector<size_t> >& data) {
         std::stringstream ss;
 
@@ -291,7 +247,6 @@ private:
         return ss.str();
     }
 
-    //! Logging helper to print vectors of vectors of pivots. 
     std::string VToStr(const std::vector<Pivot>& data) {
         std::stringstream ss;
 
@@ -301,8 +256,6 @@ private:
         return ss.str();
     }
 
-    //! Helper method that adds two size_t Vector. This is used
-    //! for global reduce operations. 
     static std::vector<size_t> AddSizeTVectors
         (const std::vector<size_t>& a, const std::vector<size_t>& b) {
         assert(a.size() == b.size());
@@ -313,50 +266,28 @@ private:
         return res;
     }
 
-    /*!
-     * Selects random global pivots for all splitter searches based on all worker's search ranges. 
-     *
-     * \param pivots The output pivots.
-     *
-     * \param left The left bounds of all search ranges for all files. 
-     *             The first index identifies the splitter, the second index identifies the file. 
-     *
-     * \param width The width of all search ranges for all files. 
-     *              The first index identifies the splitter, the second index identifies the file. 
-     *
-     * \param flowControl The flow control channel used for global communication. 
-     */
+    // Globally selects pivots based on the given left/right
     // dim 1: Different splitters, dim 2: different files
-    void SelectPivots(
-            std::vector<Pivot>& pivots, 
-            const std::vector<std::vector<size_t> >& left, 
-            const std::vector<std::vector<size_t> >& width, 
-            net::FlowControlChannel& flowControl) {
+    void SelectPivots(std::vector<Pivot>& pivots, const std::vector<std::vector<size_t> >& left, const std::vector<std::vector<size_t> >& width, net::FlowControlChannel& flowControl) {
 
-        // Select a random pivot for the largest range we have
-        // For each splitter. 
+        // Select the best pivot we have from our ranges.
+
         for (size_t s = 0; s < width.size(); s++) {
-            size_t mp = 0; 
+            size_t mp = 0; //biggest range
 
-            // Search for the largest range. 
             for (size_t p = 1; p < width[s].size(); p++) {
                 if (width[s][p] > width[s][mp]) {
                     mp = p;
                 }
             }
 
-            // We can leave pivotElem uninitialzed. 
-            // If it is not initialized below, then 
-            // an other worker's pivot will be taken for
-            // this range, since our range is zero. 
-            ValueType pivotElem = pivotElem;
+            // TODO(ej) get default val from somewhere.
+            ValueType pivotElem = 0;
             size_t pivotIdx = left[s][mp];
 
             if (width[s][mp] > 0) {
                 pivotIdx = left[s][mp] + (ran() % width[s][mp]);
-                stats.FileOpTimer.Start();
                 pivotElem = files_[mp].template GetItemAt<ValueType>(pivotIdx);
-                stats.FileOpTimer.Stop();
             }
 
             pivots[s] = Pivot {
@@ -367,12 +298,9 @@ private:
         }
 
         LOG << "Local Pivots " << VToStr(pivots);
-
         // Distribute pivots globally.
 
-        // Reduce function that returns the pivot originating from the biggest range.
-        // That removes some nasty corner cases, like selecting the same pivot over and
-        // over again from a tiny range. 
+        // Return pivot from biggest range (makes sure that we actually split)
         auto reducePivots = [this](const Pivot a, const Pivot b) {
                                 if (a.segment_len > b.segment_len) {
                                     return a;
@@ -382,10 +310,7 @@ private:
                                 }
                             };
 
-        stats.CommTimer.Start();
-
-        // Reduce vectors of pivots globally to select the pivots from the
-        // largest ranges.   
+        // stats.CommTimer.Start();
         pivots = flowControl.AllReduce(pivots,
                                        [reducePivots]
                                            (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
@@ -396,73 +321,26 @@ private:
                                            }
                                            return res;
                                        });
-        stats.CommTimer.Stop();
+        // stats.CommTimer.Stop();
     }
 
-    /*!
-     * Calculates the global ranks of the given pivots. 
-     * Additionally retruns the local ranks so we can use them in the next step. 
-     *
-     * \param pivots The pivots. 
-     * \param ranks The global ranks of the pivots. This is an output parameter. 
-     * \params localRanks The local ranks. The first index corresponds to the splitter, 
-     *                    the second one to the file. This is an output parameter. 
-     *
-     * \flowControl The FlowControlChannel to do global communication. 
-     */
-    void GetGlobalRanks(
-            const std::vector<Pivot>& pivots, 
-            std::vector<size_t>& ranks, 
-            std::vector<std::vector<size_t> >& localRanks, 
-            net::FlowControlChannel& flowControl) {
-
-        // Simply get the rank of each pivot in each file. 
-        // Sum the ranks up locally. 
+    void GetGlobalRanks(const std::vector<Pivot>& pivots, std::vector<size_t>& ranks, std::vector<std::vector<size_t> >& localRanks, net::FlowControlChannel& flowControl) {
         for (size_t s = 0; s < pivots.size(); s++) {
             size_t rank = 0;
             for (size_t i = 0; i < num_inputs_; i++) {
-                stats.FileOpTimer.Start();
                 size_t idx = files_[i].GetIndexOf(pivots[s].value, pivots[s].tie_idx, comparator_);
-                stats.FileOpTimer.Stop();
-
                 rank += idx;
-                
+
                 localRanks[s][i] = idx;
             }
             ranks[s] = rank;
         }
 
-        stats.CommTimer.Start();
-        // Sum up ranks globally. 
         ranks = flowControl.AllReduce(ranks, &AddSizeTVectors);
-        stats.CommTimer.Stop();
     }
 
-    /*!
-     * Shrinks the search ranges accoring to the global ranks of the pivots. 
-     *
-     * \param ranks The global ranks of all pivots. 
-     * \param localRanks The local ranks of each pivot in each file. 
-     * \param target_ranks The desired ranks of the splitters we are looking for. 
-     * \param left The left bounds of all search ranges for all files. 
-     *             The first index identifies the splitter, the second index identifies the file. 
-     *             This parameter will be modified. 
-     * \param width The width of all search ranges for all files. 
-     *              The first index identifies the splitter, the second index identifies the file. 
-     *             This parameter will be modified. 
-     *  
-     * TODO: This implementation
-     * suffers from an off-by-one error when there is only 
-     * a single global range left per splitter. The binary search never
-     * terminates because the rank never gets zero. The result is
-     * the sloppy termination condition in MainOp and a worst-case 
-     * balancing error of p * m, with p equals number of workers, m number of files.
-     */
-    void SearchStep(const std::vector<size_t>& ranks, std::vector<std::vector<size_t> >& localRanks, const std::vector<size_t>& target_ranks, std::vector<std::vector<size_t> >& left, std::vector<std::vector<size_t> >& width) {
-
-        // This is basically a binary search for each 
-        // splitter and each file. 
-        for (size_t s = 0; s < width.size(); s++) {
+    void SearchStep(const std::vector<Pivot>& pivots, const std::vector<size_t>& ranks, std::vector<std::vector<size_t> >& localRanks, const std::vector<size_t>& target_ranks, std::vector<std::vector<size_t> >& left, std::vector<std::vector<size_t> >& width) {
+        for (size_t s = 0; s < pivots.size(); s++) {
 
             for (size_t p = 0; p < width[s].size(); p++) {
 
@@ -471,6 +349,8 @@ private:
 
                 size_t idx = localRanks[s][p];
                 size_t oldWidth = width[s][p];
+
+                LOG << "idx: " << idx << " tie_idx: " << pivots[s].tie_idx;
 
                 if (ranks[s] <= target_ranks[s]) {
                     width[s][p] -= idx - left[s][p];
@@ -487,48 +367,43 @@ private:
         }
     }
 
-    /*!
-     * Receives elements from other workers and re-balance
-     * them, so each worker has the same amount after merging. 
-     */
+    //! Receive elements from other workers.
     void MainOp() {
         for (size_t i = 0; i != writers_.size(); ++i) {
             writers_[i].Close();
         }
         net::FlowControlChannel& flowControl = context_.flow_control_channel();
 
+        // Partitioning happens here.
+        stats.BalancingTimer.Start();
 
-        // Setup Environment for merging
+        // Environment
         my_rank_ = context_.my_rank();     //Local rank.
         size_t p = context_.num_workers(); //Count of all workers (and count of target partitions)
 
         LOG << "Splitting to " << p << " workers";
 
-        // Count of all local elements.
+        // Partitions in rank over all local collections.
         dataSize = 0;
 
         for (size_t i = 0; i < files_.size(); i++) {
             dataSize += files_[i].num_items();
         }
 
-        // Count of all global elements. 
+        // Global size off all data.
         stats.CommTimer.Start();
         size_t globalSize = flowControl.AllReduce(dataSize);
         stats.CommTimer.Stop();
 
         LOG << "Global size: " << globalSize;
 
-        // Calculate and remember the ranks we search for.
-        // In our case, we search for ranks that split the data into equal parts.
+        // Rank we search for
         std::vector<size_t> targetRanks(p - 1);
         std::vector<size_t> globalRanks(p - 1);
 
         for (size_t r = 0; r < p - 1; r++) {
             targetRanks[r] = (globalSize / p) * (r + 1);
         }
-
-        // Modify all ranks 0..(globalSize % p), in case globalSize is 
-        // not divisible by p. 
         for (size_t r = 0; r < globalSize % p; r++) {
             targetRanks[r] += 1;
         }
@@ -544,16 +419,14 @@ private:
             }
         }
 
-        // Search range bounds. 
+        // Partition borders. Let there by binary search.
         std::vector<std::vector<size_t> > left(p - 1);
         std::vector<std::vector<size_t> > width(p - 1);
 
-        // Auxillary arrays. 
+        // Auxillary Arrays
         std::vector<Pivot> pivots(p - 1);
         std::vector<std::vector<size_t> > localRanks(p - 1);
 
-        // Initialize all lefts with 0 and all
-        // widths with size of their respective file. 
         for (size_t r = 0; r < p - 1; r++) {
             left[r] = std::vector<size_t>(num_inputs_);
             width[r] = std::vector<size_t>(num_inputs_);
@@ -566,35 +439,25 @@ private:
         }
 
         bool finished = false;
-        stats.BalancingTimer.Start();
 
-        // TODO: Iterate until all splitters are found.
-        // Theoretically, the condition 
-        //
-        // while(globalRanks != targetRanks) 
-        //
-        // could be used here. If the binary-search error
-        // mentioned in SearchStep is fixed. 
+        // Partition loop
+        // while(globalRanks != targetRanks) {
         while (!finished) {
+            stats.PivotSelectionTimer.Start();
 
             LOG << "left: " << VToStr(left);
             LOG << "width: " << VToStr(width);
 
-            // Find pivots. 
-            stats.PivotSelectionTimer.Start();
             SelectPivots(pivots, left, width, flowControl);
-            stats.PivotSelectionTimer.Stop();
 
             LOG << "Final Pivots " << VToStr(pivots);
 
-            // Get global ranks and shrink ranges. 
-            stats.SearchStepTimer.Start();
-            GetGlobalRanks(pivots, globalRanks, localRanks, flowControl);
-            SearchStep(globalRanks, localRanks, targetRanks, left, width);
+            stats.PivotSelectionTimer.Stop();
+            stats.PivotLocationTimer.Start();
 
-            // Check if all our ranges have at most size one.
-            // TODO: This can potentially be omitted. See comment
-            // above.  
+            GetGlobalRanks(pivots, globalRanks, localRanks, flowControl);
+            SearchStep(pivots, globalRanks, localRanks, targetRanks, left, width);
+
             finished = true;
 
             for (size_t i = 0; i < p - 1; i++) {
@@ -609,24 +472,21 @@ private:
             LOG << "srank: " << VToStr(targetRanks);
             LOG << "grank: " << VToStr(globalRanks);
 
-            stats.SearchStepTimer.Stop();
+            stats.PivotLocationTimer.Stop();
             stats.iterations++;
         }
-        stats.BalancingTimer.Stop();
 
         LOG << "Creating channels";
 
-        // Initialize channels for distributing data. 
+        // Init channels and offsets.
         for (size_t j = 0; j < num_inputs_; j++) {
             streams_[j] = context_.GetNewCatStream();
         }
 
-        stats.ScatterTimer.Start();
+        stats.BalancingTimer.Stop();
 
         LOG << "Scattering.";
 
-        // For each file, initialize an array of offsets according
-        // to the splitters we found. Then call scatter to distribute the data.
         for (size_t j = 0; j < num_inputs_; j++) {
 
             std::vector<size_t> offsets(p);
@@ -643,19 +503,14 @@ private:
 
             streams_[j]->template Scatter<ValueType>(files_[j], offsets);
         }
-        stats.ScatterTimer.Stop();
     }
 };
 
-/*!
- * Implementation of corresponding method in dia.hpp
- */
 template <typename ValueType, typename Stack>
 template <typename SecondDIA, typename Comparator>
 auto DIA<ValueType, Stack>::Merge(
     SecondDIA second_dia, const Comparator &comparator) const {
 
-    // Assert that all dias are valid. 
     assert(IsValid());
     assert(second_dia.IsValid());
 
@@ -665,8 +520,6 @@ auto DIA<ValueType, Stack>::Merge(
     using MergeResultNode
               = TwoMergeNode<ValueType, DIA, SecondDIA, Comparator>;
 
-    // Assert that type of input DIA1 can be compared to type of
-    // input DIA0. 
     static_assert(
         std::is_convertible<
             typename SecondDIA::ValueType,
@@ -674,7 +527,6 @@ auto DIA<ValueType, Stack>::Merge(
             >::value,
         "DIA 1 and DIA 0 have different types");
 
-    // Assert comperator types. 
     static_assert(
         std::is_convertible<
             ValueType,
@@ -689,7 +541,6 @@ auto DIA<ValueType, Stack>::Merge(
             >::value,
         "Comparator has the wrong input type in DIA 1");
 
-    // Assert meaningful return type of comperator. 
     static_assert(
         std::is_convertible<
             bool,
@@ -697,7 +548,6 @@ auto DIA<ValueType, Stack>::Merge(
             >::value,
         "Comparator must return bool");
 
-    // Create merge node. 
     StatsNode* stats_node = AddChildStatsNode("Merge", DIANodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto merge_node

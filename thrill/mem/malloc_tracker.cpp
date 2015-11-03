@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/mem/malloc_tracker.cpp
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
@@ -40,8 +40,6 @@ namespace mem {
 
 static const int log_operations = 0; //! <-- set this to 1 for log output
 static const size_t log_operations_threshold = 1;
-
-#define LOG_MALLOC_PROFILER 0
 
 //! to each allocation additional data is added for bookkeeping.
 static const size_t padding = 16;    /* bytes (>= 2*sizeof(size_t)) */
@@ -358,55 +356,30 @@ void * malloc(size_t size) NOEXCEPT {
                 size, size_used, ret, curr);
     }
     {
-#if __linux__ && LOG_MALLOC_PROFILER
+#if __linux__ && 0
         static thread_local bool recursive = false;
 
         if (!recursive) {
             recursive = true;
 
-/*[[[perl
-  # depth of call stack to print
-  my $depth = 12;
-
-  print <<EOF;
             // storage array for stack trace address data
-            void* addrlist[$depth + 1];
-
-            // retrieve current stack addresses
-            int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
-
-EOF
-
-  for my $d (3...$depth-1) {
-    print("fprintf(stdout, PPREFIX \"caller".(" %p"x$d)." size %zu\\n\",\n");
-    print("        ".join("", map("addrlist[$_], ", 0...$d-1))." size);");
-  }
-  ]]]*/
-            // storage array for stack trace address data
-            void* addrlist[12 + 1];
+            void* addrlist[6 + 1];
 
             // retrieve current stack addresses
             int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
 
             fprintf(stdout, PPREFIX "caller %p %p %p size %zu\n",
                     addrlist[0], addrlist[1], addrlist[2], size);
+
             fprintf(stdout, PPREFIX "caller %p %p %p %p size %zu\n",
                     addrlist[0], addrlist[1], addrlist[2], addrlist[3], size);
+
             fprintf(stdout, PPREFIX "caller %p %p %p %p %p size %zu\n",
                     addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], size);
+
             fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], size);
-// [[[end]]]
+                    addrlist[0], addrlist[1], addrlist[2],
+                    addrlist[3], addrlist[4], addrlist[5], size);
 
             // fprintf(stderr, "--- begin stack -------------------------------\n");
             // backtrace_symbols_fd(addrlist, addrlen, STDERR_FILENO);

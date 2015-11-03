@@ -11,7 +11,7 @@
  * within a system process. We cannot start independent test threads as MPI
  * would not distinguish them.
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

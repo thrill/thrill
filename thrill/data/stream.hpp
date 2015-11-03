@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/data/stream.hpp
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>

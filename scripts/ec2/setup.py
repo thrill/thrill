@@ -2,7 +2,7 @@
 ##########################################################################
 # scripts/ec2/setup.py
 #
-# Part of Project Thrill - http://project-thrill.org
+# Part of Project Thrill.
 #
 # Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
 #
@@ -58,5 +58,3 @@ print job_id
 
 # TODO: uncomment tag once rights are granted
 # TODO: move create volume from snapshot to create_instances to be able to set delete on termination
-
-##########################################################################
