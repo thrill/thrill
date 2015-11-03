@@ -4,7 +4,7 @@
 #
 # Test speedup for local parallelization with 1 to 4 workers on a single node.
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 #
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
