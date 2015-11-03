@@ -174,7 +174,7 @@ struct PreProbingEmitImpl<true, Emitters, KeyValuePair>{
 template <typename Emitters, typename KeyValuePair>
 struct PreProbingEmitImpl<false, Emitters, KeyValuePair>{
     void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
-        emit[partition_id](std::make_pair(p.first, p.second));
+        emit[partition_id](p);
     }
 };
 
@@ -188,10 +188,6 @@ template <typename ValueType, typename Key, typename Value,
 class ReducePreProbingTable
 {
     static const bool debug = false;
-
-    static const bool bench = true;
-
-    static const bool emit = true;
 
     static const size_t flush_mode = 4; // 0... 1-factor, 1... fullest, 2... LRU, 3... LFU, 4... random
 
@@ -379,10 +375,6 @@ public:
                 return;
             }
 
-            if (bench) {
-                num_collisions_++;
-            }
-
             if (current == last_item) {
                 current -= (num_items_per_partition_ - 1);
             }
@@ -399,8 +391,10 @@ public:
                     FlushPartition(h.partition_id);
                 }
 
-                current->first = kv.first;
-                current->second = kv.second;
+                //current->first = kv.first;
+                //current->second = kv.second;
+                *current = kv;
+
                 // increase counter for partition
                 items_per_partition_[h.partition_id]++;
 
@@ -409,9 +403,8 @@ public:
         }
 
         // insert new pair
-        //*current = kv;
-        current->first = kv.first;
-        current->second = kv.second;
+        *current = kv;
+
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
 
@@ -453,11 +446,6 @@ public:
 
         // reset partition specific counter
         items_per_partition_[partition_id] = 0;
-
-        if (bench) {
-            // increase spill counter
-            num_spills_++;
-        }
     }
 
     /*!
@@ -523,12 +511,12 @@ public:
             KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
             {
-                if (emit) {
-                    EmitAll(current, partition_id);
-                }
+                EmitAll(current, partition_id);
 
-                items_[i].first = sentinel_.first;
-                items_[i].second = sentinel_.second;
+                //items_[i].first = sentinel_.first;
+                //items_[i].second = sentinel_.second;
+
+                items_[i] = sentinel_;
             }
         }
 
@@ -541,11 +529,6 @@ public:
         items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
-
-        if (bench) {
-            // increase flush counter
-            num_flushes_++;
-        }
 
         LOG << "Flushed items of partition with id: "
         << partition_id;

@@ -47,7 +47,6 @@ template<typename Key,
         typename KeyValuePair = std::pair <Key, Value> >
 class PostProbingReduceFlushToIndex
 {
-    static const bool emit = true;
 
 public:
     PostProbingReduceFlushToIndex(ReduceFunction reduce_function,
@@ -126,8 +125,10 @@ public:
                 }
 
                 // insert new pair
-                current->first = kv.first;
-                current->second = kv.second;
+                //current->first = kv.first;
+                //current->second = kv.second;
+                *current = kv;
+
                 item_count++;
 
                 if (consume) {
@@ -188,8 +189,10 @@ public:
             }
 
             // insert new pair
-            current->first = kv.first;
-            current->second = kv.second;
+            //current->first = kv.first;
+            //current->second = kv.second;
+            *current = kv;
+
             item_count++;
 
             // flush current partition if max partition fill rate reached
@@ -330,11 +333,7 @@ public:
 
         size_t index = begin_local_index;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
-            if (emit) {
-                ht->EmitAll(std::make_pair(index++, elements_to_emit[i]), 0);
-            } else {
-                index++;
-            }
+            ht->EmitAll(std::make_pair(index++, elements_to_emit[i]), 0);
             elements_to_emit[i] = neutral_element;
         }
 

@@ -48,7 +48,6 @@ template <typename Key,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostBucketReduceFlushToIndex
 {
-    static const bool emit = true;
 
 public:
     PostBucketReduceFlushToIndex(ReduceFunction reduce_function,
@@ -481,11 +480,7 @@ public:
 
         size_t index = begin_local_index;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
-            if (emit) {
-                ht->EmitAll(std::make_pair(index++, elements_to_emit[i]), 0);
-            } else {
-                index++;
-            }
+            ht->EmitAll(std::make_pair(index++, elements_to_emit[i]), 0);
             elements_to_emit[i] = neutral_element;
         }
         assert(index == end_local_index);

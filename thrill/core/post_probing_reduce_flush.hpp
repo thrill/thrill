@@ -48,9 +48,6 @@ template <typename Key,
         typename KeyValuePair = std::pair<Key, Value> >
 class PostProbingReduceFlush
 {
-    static const bool emit = true;
-
-    static const bool bench = true;
 
 public:
     PostProbingReduceFlush(ReduceFunction reduce_function,
@@ -142,8 +139,10 @@ public:
                 }
 
                 // insert new pair
-                current->first = kv.first;
-                current->second = kv.second;
+                *current = kv;
+                //current->first = kv.first;
+                //current->second = kv.second;
+
                 item_count++;
 
                 if (consume)
@@ -209,8 +208,10 @@ public:
             }
 
             // insert new pair
-            current->first = kv.first;
-            current->second = kv.second;
+            *current = kv;
+            //current->first = kv.first;
+            //current->second = kv.second;
+
             item_count++;
 
             // flush current partition if max partition fill rate reached
@@ -244,10 +245,7 @@ public:
             for (size_t i = 0; i < second_reduce.size(); i++) {
                 KeyValuePair &current = second_reduce[i];
                 if (current.first != sentinel.first) {
-
-                    if (emit) {
-                        ht->EmitAll(current, frame_id);
-                    }
+                    ht->EmitAll(current, frame_id);
                     second_reduce[i].first = sentinel.first;
                     second_reduce[i].second = sentinel.second;
                 }
@@ -256,8 +254,6 @@ public:
 
         // spilling was required, need to reduce again
         else {
-
-            std::cout << "!!!!!recursive spill!!!!" << std::endl;
 
             // spill into files
             Spill(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], sentinel);
@@ -274,11 +270,6 @@ public:
             writer2.Close();
             data::File::Reader reader2 = file2.GetReader(true);
             Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce, fill_rate_num_items_per_frame, frame_id, sentinel);
-
-            if (bench)
-            {
-                ht->incrRecursiveSpills();
-            }
         }
     }
 
@@ -340,9 +331,7 @@ public:
                     KeyValuePair& current = items[i];
                     if (current.first != sentinel.first)
                     {
-                        if (emit) {
-                            ht->EmitAll(current, frame_id);
-                        }
+                        ht->EmitAll(current, frame_id);
 
                         if (consume)
                         {
