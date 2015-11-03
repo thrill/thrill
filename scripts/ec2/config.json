@@ -7,8 +7,14 @@
   "ZONE" : "us-east-1a",
 
   "AMI_ID" : "ami-9183fdf4",
-  "INSTANCE_TYPE" : "t2.micro",
+  "INSTANCE_TYPE" : "m4.large",
+  "VOLUME_TYPE" : "gp2",
   "COUNT" : 1,
 
-  "VOL_SNAPSHOT_ID" : "snap-effdec9d"
+  "VOL_SNAPSHOT_ID" : "snap-effdec9d",
+  "DEVICE" : "/dev/sdy",
+  "EC2_ATTACH_VOLUME" : "/dev/xvdy",
+
+  "SPOT_PRICE" : "0.016",
+  "TYPE" : "one-time"
 }
