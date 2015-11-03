@@ -234,6 +234,8 @@ public:
 
             // spilling was required, need to reduce again
         else {
+            throw std::invalid_argument("recursive spill not active");
+
             // spill into files
             Spill(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], sentinel);
             Spill(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], sentinel);

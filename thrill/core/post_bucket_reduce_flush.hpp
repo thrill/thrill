@@ -112,7 +112,8 @@ public:
                      from != current->items + current->size; ++from) {
 
                     // insert in second reduce table
-                    typename IndexFunction::IndexResult h = index_function_(from->first, 1, second_reduce.size(), second_reduce.size(), 0);
+                    typename IndexFunction::IndexResult h = index_function_(from->first, 1,
+                                                                            second_reduce.size(), second_reduce.size(), 0);
 
                     BucketBlock *current_second = second_reduce[h.global_index];
                     while (current_second != nullptr) {
@@ -166,7 +167,7 @@ public:
                             Spill<Table, BucketBlock>(second_reduce, second_reduce.size() / 2,
                                                                 second_reduce.size(), frame_writers_[1],
                                                                 block_pool);
-
+                            item_count = 0;
                             blocks_secondary_used = 0;
                         }
 
@@ -218,6 +219,7 @@ public:
                                                     second_reduce.size(), frame_writers_[1], block_pool);
 
                 item_count = 0;
+                blocks_secondary_used = 0;
             }
         }
 
@@ -227,7 +229,8 @@ public:
 
             KeyValuePair kv = reader.Next<KeyValuePair>();
 
-            typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
+            typename IndexFunction::IndexResult h = index_function_(kv.first, 1,
+                                                                    second_reduce.size(), second_reduce.size(), 0);
 
             BucketBlock *current = second_reduce[h.global_index];
             while (current != nullptr) {
@@ -262,11 +265,14 @@ public:
 
                 // spill largest frame if max number of blocks reached
                 if (blocks_secondary_used == max_num_blocks_second_reduce) {
+
                     // set up files (if not set up already)
                     if (frame_files_.size() == 0) {
+
                         for (size_t i = 0; i < 2; i++) {
                             frame_files_.push_back(ctx.GetFile());
                         }
+
                         for (size_t i = 0; i < 2; i++) {
                             frame_writers_.push_back(frame_files_[i].GetWriter());
                         }
@@ -278,6 +284,7 @@ public:
                     Spill<Table, BucketBlock>(second_reduce, second_reduce.size() / 2,
                                                         second_reduce.size(), frame_writers_[1], block_pool);
 
+                    item_count = 0;
                     blocks_secondary_used = 0;
                 }
 
@@ -297,9 +304,11 @@ public:
             if (item_count > fill_rate_num_items_per_frame) {
                 // set up files (if not set up already)
                 if (frame_files_.size() == 0) {
+
                     for (size_t i = 0; i < 2; i++) {
                         frame_files_.push_back(ctx.GetFile());
                     }
+
                     for (size_t i = 0; i < 2; i++) {
                         frame_writers_.push_back(frame_files_[i].GetWriter());
                     }
@@ -312,6 +321,7 @@ public:
                                                     second_reduce.size(), frame_writers_[1], block_pool);
 
                 item_count = 0;
+                blocks_secondary_used = 0;
             }
         }
 
@@ -340,13 +350,18 @@ public:
             }
         }
 
-            // spilling was required, need to reduce again
+        // spilling was required, need to reduce again
         else {
+            throw std::invalid_argument("recursive spill not active");
+
             // spill into files
             Spill<Table, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
                                                 frame_writers_[0], block_pool);
             Spill<Table, BucketBlock>(second_reduce, second_reduce.size() / 2,
                                                 second_reduce.size(), frame_writers_[1], block_pool);
+
+            item_count = 0;
+            blocks_secondary_used = 0;
 
             data::File &file1 = frame_files_[0];
             data::File::Writer &writer1 = frame_writers_[0];
@@ -399,6 +414,7 @@ public:
         std::vector<size_t>& frame_sequence = ht->FrameSequence();
 
         for (size_t frame_id : frame_sequence) {
+
             // get the actual reader from the file
             data::File &file = frame_files[frame_id];
             data::File::Writer &writer = frame_writers[frame_id];
@@ -423,9 +439,9 @@ public:
                 // data in primary table in current frame
             }
             else {
-                /////
-                // emit data
-                /////
+            /////
+            // emit data
+            /////
                 for (size_t i = offset; i < length; i++) {
                     BucketBlock *current = items[i];
 
