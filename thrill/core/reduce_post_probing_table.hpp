@@ -294,7 +294,6 @@ public:
         fill_rate_num_items_second_reduce_ = (size_t)(second_table_size_ * max_frame_fill_rate_);
 
         frame_sequence_.resize(num_frames_, 0);
-        size_t idx = 0;
         for (size_t i=0; i<num_frames_; i++)
         {
             frame_sequence_[i] = i;
