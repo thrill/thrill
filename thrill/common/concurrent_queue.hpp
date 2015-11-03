@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/common/concurrent_queue.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -46,7 +46,7 @@ public:
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
-protected:
+private:
     //! the actual data queue
     std::deque<T, Allocator> queue_;
 
@@ -76,7 +76,7 @@ public:
     template <typename ... Arguments>
     void emplace(Arguments&& ... args) {
         std::unique_lock<std::mutex> lock(mutex_);
-        queue_.emplace_back(args ...);
+        queue_.emplace_back(std::forward<Arguments>(args) ...);
     }
 
     //! Returns: true if queue has no items; false otherwise.

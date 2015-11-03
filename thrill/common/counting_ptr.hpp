@@ -6,12 +6,12 @@
  *
  * Borrowed of STXXL under the Boost license. See http://stxxl.sourceforge.net
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2010-2011 Raoul Steffen <R-Steffen@gmx.de>
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -32,7 +32,7 @@ using CountingPtrDeleter = void (*)(Type*);
 
 //! default deleter for CountingPtr
 template <typename Type>
-void default_deleter(Type* ptr) noexcept {
+void DefaultDeleter(Type* ptr) noexcept {
     delete ptr;
 }
 
@@ -57,7 +57,7 @@ void default_deleter(Type* ptr) noexcept {
  * which are only related if constructed with std::make_shared.
  */
 template <typename Type,
-          CountingPtrDeleter<Type> deleter = default_deleter<Type> >
+          CountingPtrDeleter<Type> deleter = DefaultDeleter<Type> >
 class CountingPtr
 {
 public:
@@ -68,7 +68,6 @@ private:
     //! the pointer to the currently referenced object.
     Type* ptr_;
 
-protected:
     //! increment reference count for current object.
     void IncReference() noexcept
     { IncReference(ptr_); }
@@ -87,33 +86,26 @@ public:
     friend class CountingPtr;
 
     //! default constructor: contains a nullptr pointer.
-    CountingPtr() : ptr_(nullptr)
+    CountingPtr() noexcept : ptr_(nullptr)
     { }
 
     //! constructor with pointer: initializes new reference to ptr.
-    explicit CountingPtr(Type* ptr) : ptr_(ptr)
+    explicit CountingPtr(Type* ptr) noexcept : ptr_(ptr)
     { IncReference(); }
 
     //! copy-constructor: also initializes new reference to ptr.
-    CountingPtr(const CountingPtr& other_ptr) : ptr_(other_ptr.ptr_)
+    CountingPtr(const CountingPtr& other_ptr) noexcept : ptr_(other_ptr.ptr_)
     { IncReference(); }
 
     //! move-constructor: just moves pointer, does not change reference counts.
-    CountingPtr(CountingPtr&& other_ptr) : ptr_(other_ptr.ptr_) {
+    CountingPtr(CountingPtr&& other_ptr) noexcept : ptr_(other_ptr.ptr_) {
         other_ptr.ptr_ = nullptr;
     }
-
-    //! copy-constructor from other counting pointer (pointer types must be
-    //! convertible): also initializes new reference to ptr.
-    template <typename Other, CountingPtrDeleter<Other> other_deleter>
-    CountingPtr(const CountingPtr<Other, other_deleter>& other_ptr)
-        : ptr_(other_ptr.ptr_)
-    { IncReference(); }
 
     //! move-constructor from other counting pointer (pointer types must be
     //! convertible): also initializes new reference to ptr.
     template <typename Other>
-    CountingPtr(CountingPtr<Other>&& other_ptr) : ptr_(other_ptr.ptr_)
+    CountingPtr(CountingPtr<Other>&& other_ptr) noexcept : ptr_(other_ptr.ptr_)
     { other_ptr.ptr_ = nullptr; }
 
     //! copy-assignment operator: dereference current object and acquire
@@ -217,7 +209,7 @@ public:
 //! swap enclosed object with another counting pointer (no reference counts need
 //! change)
 template <class A>
-void swap(CountingPtr<A>& a1, CountingPtr<A>& a2) {
+void swap(CountingPtr<A>& a1, CountingPtr<A>& a2) noexcept {
     a1.swap(a2);
 }
 
@@ -237,15 +229,15 @@ private:
 
 public:
     //! new objects have zero reference count
-    ReferenceCount()
+    ReferenceCount() noexcept
         : reference_count_(0) { }
 
     //! coping still creates a new object with zero reference count
-    ReferenceCount(const ReferenceCount&)
+    ReferenceCount(const ReferenceCount&) noexcept
         : reference_count_(0) { }
 
     //! assignment operator, leaves pointers unchanged
-    ReferenceCount& operator = (const ReferenceCount&)
+    ReferenceCount& operator = (const ReferenceCount&) noexcept
     { return *this; } // changing the contents leaves pointers unchanged
 
     ~ReferenceCount()

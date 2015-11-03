@@ -1,10 +1,10 @@
 /*******************************************************************************
  * tests/data/serialization_cereal_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <cereal/types/string.hpp>

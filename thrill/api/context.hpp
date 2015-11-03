@@ -1,12 +1,13 @@
 /*******************************************************************************
  * thrill/api/context.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -15,10 +16,12 @@
 
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
+#include <thrill/common/defines.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/data/block_pool.hpp>
-#include <thrill/data/channel.hpp>
+#include <thrill/data/cat_stream.hpp>
 #include <thrill/data/file.hpp>
+#include <thrill/data/mix_stream.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
@@ -27,6 +30,7 @@
 #include <cassert>
 #include <functional>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace thrill {
@@ -43,13 +47,15 @@ namespace api {
 class HostContext
 {
 public:
+#if THRILL_HAVE_NET_TCP
     //! Construct one real host connected via TCP to others.
     HostContext(size_t my_host_rank,
                 const std::vector<std::string>& endpoints,
                 size_t workers_per_host);
+#endif
 
 #ifndef SWIG
-    //! constructor from existing net Groups for use from ConstructLocalMock().
+    //! constructor from existing net Groups. Used by the construction methods.
     HostContext(std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host)
         : workers_per_host_(workers_per_host),
@@ -63,7 +69,7 @@ public:
 
     //! Construct a number of mock hosts running in this process.
     static std::vector<std::unique_ptr<HostContext> >
-    ConstructLocalMock(size_t host_count, size_t workers_per_host);
+    ConstructLoopback(size_t host_count, size_t workers_per_host);
 #endif
 
     //! number of workers per host (all have the same).
@@ -84,7 +90,7 @@ public:
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer & data_multiplexer() { return data_multiplexer_; }
 
-protected:
+private:
     //! number of workers per host (all have the same).
     size_t workers_per_host_;
 
@@ -110,9 +116,9 @@ protected:
 /*!
  * The Context of a job is a unique instance per worker which holds references
  * to all underlying parts of Thrill. The context is able to give references to
- * the \ref data::Multiplexer "channel multiplexer", the \ref net::Group "net
+ * the \ref data::Multiplexer "stream multiplexer", the \ref net::Group "net
  * group" \ref common::Stats "stats" and \ref common::StatsGraph "stats graph".
- * Threads share the channel multiplexer and the net group via the context
+ * Threads share the stream multiplexer and the net group via the context
  * object.
  */
 class Context
@@ -180,32 +186,58 @@ public:
         return local_worker_id_;
     }
 
+#ifndef SWIG
+    //! Outputs the context as [host id]:[local worker id] to an std::ostream
+    friend std::ostream& operator << (std::ostream& os, const Context& ctx) {
+        return os << ctx.host_rank() << ":" << ctx.local_worker_id();
+    }
+#endif
     //! \}
 
     //! \name Network Subsystem
     //! \{
 
-    /**
-     * \brief Gets the flow control channel for the current worker.
-     *
-     * \return The flow control channel instance for this worker.
-     */
+    //! Gets the flow control channel for the current worker.
     net::FlowControlChannel & flow_control_channel() {
         return flow_manager_.GetFlowControlChannel(local_worker_id_);
     }
 
+#ifdef SWIG
+#define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+#endif
+
     //! Broadcasts a value of an integral type T from the master (the worker
     //! with rank 0) to all other workers.
     template <typename T>
-    T Broadcast(const T& value) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    Broadcast(const T& value) {
         return flow_control_channel().Broadcast(value);
     }
 
     //! Reduces a value of an integral type T over all workers given a certain
     //! reduce function.
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
-        return flow_control_channel().AllReduce(value, sumOp);
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    AllReduce(const T& value, const BinarySumOp& sum_op = BinarySumOp()) {
+        return flow_control_channel().AllReduce(value, sum_op);
+    }
+
+    //! Calculates the prefix sum over all workers, given a certain sum
+    //! operation.
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    PrefixSum(const T& value, const T& initial = T(),
+              const BinarySumOp& sum_op = BinarySumOp()) {
+        return flow_control_channel().PrefixSum(value, initial, sum_op);
+    }
+
+    //! Calculates the exclusive prefix sum over all workers, given a certain
+    //! sum operation.
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    ExPrefixSum(const T& value, const T& initial = T(),
+                const BinarySumOp& sum_op = BinarySumOp()) {
+        return flow_control_channel().ExPrefixSum(value, initial, sum_op);
     }
 
     //! A collective global barrier.
@@ -223,19 +255,37 @@ public:
         return data::File(block_pool_);
     }
 
-    //! Returns a reference to a new Channel.  This method alters the state of
+    //! Returns a new File, wrapped in a shared_ptr, containing a
+    //! sequence of local Blocks.
+    data::FilePtr GetFilePtr() {
+        return std::make_shared<data::File>(block_pool_);
+    }
+
+    //! Returns a reference to a new CatStream. This method alters the state of
     //! the context and must be called on all Workers to ensure correct
     //! communication coordination.
-    data::ChannelPtr GetNewChannel() {
-        return multiplexer_.GetNewChannel(local_worker_id_);
+    data::CatStreamPtr GetNewCatStream() {
+        return multiplexer_.GetNewCatStream(local_worker_id_);
     }
+
+    //! Returns a reference to a new MixStream. This method alters the state
+    //! of the context and must be called on all Workers to ensure correct
+    //! communication coordination.
+    data::MixStreamPtr GetNewMixStream() {
+        return multiplexer_.GetNewMixStream(local_worker_id_);
+    }
+
+    //! Returns a reference to a new CatStream or MixStream, selectable via
+    //! template parameter.
+    template <typename Stream>
+    std::shared_ptr<Stream> GetNewStream();
 
     //! the block manager keeps all data blocks moving through the system.
     data::BlockPool & block_pool() { return block_pool_; }
 
     //! \}
 
-    //! Returns the stas object for this worker
+    //! Returns the stats object for this worker
     common::Stats<common::g_enable_stats> & stats() {
         return stats_;
     }
@@ -251,7 +301,23 @@ public:
     //! given a global range [0,global_size) and p PEs to split the range, calculate
     //! the [local_begin,local_end) index range assigned to the PE i. Takes the
     //! information from the Context.
-    std::tuple<size_t, size_t> CalculateLocalRange(size_t global_size);
+    common::Range CalculateLocalRange(size_t global_size) const {
+        return common::CalculateLocalRange(
+            global_size, num_workers(), my_rank());
+    }
+
+    //! return value of consume flag.
+    bool consume() const { return consume_; }
+
+    /*!
+     * Sets consume-mode flag such that DIA contents may be consumed during
+     * PushData(). When in consume mode the DIA contents is destroyed online
+     * when it is transmitted to the next operation. This enables reusing the
+     * space of the consume operations. This enabled processing more data with
+     * less space. However, by default this mode is DISABLED, because it
+     * requires deliberate insertion of .Keep() calls.
+     */
+    void set_consume(bool consume) { consume_ = consume; }
 
 private:
     //! host-global memory manager
@@ -278,49 +344,62 @@ private:
 
     //! number of workers hosted per host
     size_t workers_per_host_;
+
+    //! flag to set which enables selective consumption of DIA contents!
+    bool consume_ = false;
 };
 
-//! Outputs the context as [host id]:[local worker id] to an std::ostream
-static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
-    return os << ctx.host_rank() << ":" << ctx.local_worker_id();
-}
+//! \name Run Methods with Internal Networks for Testing
+//! \{
 
 /*!
  * Function to run a number of mock hosts as locally independent
  * threads, which communicate via internal stream sockets.
  */
-void
-RunLocalMock(size_t host_count, size_t local_host_count,
-             const std::function<void(Context&)>& job_startpoint);
+void RunLocalMock(size_t host_count, size_t local_host_count,
+                  const std::function<void(Context&)>& job_startpoint);
 
 /*!
- * Helper Function to execute tests using mock networks in test suite for many
- * different numbers of workers and hosts as independent threads in one program.
+ * Helper Function to execute RunLocalMock() tests using mock networks in test
+ * suite for many different numbers of workers and hosts as independent threads
+ * in one program. Use this function in most test cases.
  */
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint);
 
 /*!
- * Runs the given job_startpoint within the same thread -->
- * one host with one thread
+ * Runs the given job_startpoint within the same thread with a test network -->
+ * run test with one host and one thread.
  */
-void RunSameThread(const std::function<void(Context&)>& job_startpoint);
+void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint);
+
+//! \}
 
 /*!
- * Runs the given job startpoint with a context instance.  Startpoints may be
+ * Runs the given job startpoint with a Context instance.  Startpoints may be
  * called multiple times with concurrent threads and different context instances
  * across different workers.  The Thrill configuration is taken from environment
  * variables starting the THRILL_.
  *
+ * THRILL_NET is the network backend to use, e.g.: mock, local, tcp, or mpi.
+ *
  * THRILL_RANK contains the rank of this worker
  *
- * THRILL_HOSTLIST contains a space- or comma-separated list of host:ports to connect to.
+ * THRILL_HOSTLIST contains a space- or comma-separated list of host:ports to
+ * connect to.
  *
- * \returns 0 if execution was fine on all threads. Otherwise, the first
- * non-zero return value of any thread is returned.
+ * THRILL_WORKERS_PER_HOST is the number of workers (threads) per host.
+ *
+ * Additional variables:
+ *
+ * THRILL_DIE_WITH_PARENT sets a flag which terminates the program if the caller
+ * terminates (this is automatically set by ssh/invoke.sh). No more zombies.
+ *
+ * THRILL_UNLINK_BINARY deletes a file. Used by ssh/invoke.sh to unlink a copied
+ * program binary while it is running. Hence, it can keep /tmp clean.
+ *
+ * \returns 0 if execution was fine on all threads.
  */
-int Run(
-    const std::function<void(Context&)>& job_startpoint,
-    const std::string& log_prefix = std::string());
+int Run(const std::function<void(Context&)>& job_startpoint);
 
 //! \}
 
@@ -328,7 +407,12 @@ int Run(
 
 //! imported from api namespace
 using api::HostContext;
+
+//! imported from api namespace
 using api::Context;
+
+//! imported from api namespace
+using api::Run;
 
 } // namespace thrill
 

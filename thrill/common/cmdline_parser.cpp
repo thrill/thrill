@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/common/cmdline_parser.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/common/cmdline_parser.hpp>
@@ -91,7 +91,7 @@ struct CmdlineParser::Argument
 };
 
 //! specialization of argument for boolean flags (can only be set to true).
-struct CmdlineParser::ArgumentFlag : public Argument
+struct CmdlineParser::ArgumentFlag final : public Argument
 {
     //! reference to boolean to set to true
     bool& dest_;
@@ -118,7 +118,7 @@ struct CmdlineParser::ArgumentFlag : public Argument
 };
 
 //! specialization of argument for integer options or parameters
-struct CmdlineParser::ArgumentInt : public Argument
+struct CmdlineParser::ArgumentInt final : public Argument
 {
     int& dest_;
 
@@ -150,7 +150,7 @@ struct CmdlineParser::ArgumentInt : public Argument
 };
 
 //! specialization of argument for unsigned integer options or parameters
-struct CmdlineParser::ArgumentUInt : public Argument
+struct CmdlineParser::ArgumentUInt final : public Argument
 {
     unsigned int& dest_;
 
@@ -183,7 +183,7 @@ struct CmdlineParser::ArgumentUInt : public Argument
 };
 
 //! specialization of argument for double options or parameters
-struct CmdlineParser::ArgumentDouble : public Argument
+struct CmdlineParser::ArgumentDouble final : public Argument
 {
     double& dest_;
 
@@ -217,7 +217,7 @@ struct CmdlineParser::ArgumentDouble : public Argument
 
 //! specialization of argument for SI/IEC suffixes byte size options or
 //! parameters
-struct CmdlineParser::ArgumentBytes32 : public Argument
+struct CmdlineParser::ArgumentBytes32 final : public Argument
 {
     uint32_t& dest_;
 
@@ -252,7 +252,7 @@ struct CmdlineParser::ArgumentBytes32 : public Argument
 
 //! specialization of argument for SI/IEC suffixes byte size options or
 //! parameters
-struct CmdlineParser::ArgumentBytes64 : public Argument
+struct CmdlineParser::ArgumentBytes64 final : public Argument
 {
     uint64_t& dest_;
 
@@ -284,7 +284,7 @@ struct CmdlineParser::ArgumentBytes64 : public Argument
 };
 
 //! specialization of argument for string options or parameters
-struct CmdlineParser::ArgumentString : public Argument
+struct CmdlineParser::ArgumentString final : public Argument
 {
     std::string& dest_;
 
@@ -313,7 +313,7 @@ struct CmdlineParser::ArgumentString : public Argument
 };
 
 //! specialization of argument for multiple string options or parameters
-struct CmdlineParser::ArgumentStringlist : public Argument
+struct CmdlineParser::ArgumentStringlist final : public Argument
 {
     std::vector<std::string>& dest_;
 
@@ -530,41 +530,47 @@ void CmdlineParser::AddInt(char key, const std::string& longkey, int& dest,
 
 //! add unsigned integer option -key, --longkey [keytype] with description
 //! and store to dest
-void CmdlineParser::AddUInt(char key, const std::string& longkey, unsigned int& dest,
-                            const std::string& desc) {
+void CmdlineParser::AddUInt(
+    char key, const std::string& longkey, unsigned int& dest,
+    const std::string& desc) {
     return AddUInt(key, longkey, "", dest, desc);
 }
 
 //! add double option -key, --longkey [keytype] with description and store
 //! to dest
-void CmdlineParser::AddDouble(char key, const std::string& longkey, double& dest,
-                              const std::string& desc) {
+void CmdlineParser::AddDouble(
+    char key, const std::string& longkey, double& dest,
+    const std::string& desc) {
     return AddDouble(key, longkey, "", dest, desc);
 }
 
 //! add SI/IEC suffixes byte size option -key, --longkey [keytype] and
 //! store to 32-bit dest
-void CmdlineParser::AddBytes(char key, const std::string& longkey, uint32_t& dest,
-                             const std::string& desc) {
+void CmdlineParser::AddBytes(
+    char key, const std::string& longkey, uint32_t& dest,
+    const std::string& desc) {
     return AddBytes(key, longkey, "", dest, desc);
 }
 
 //! add SI/IEC suffixes byte size option -key, --longkey [keytype] and
 //! store to 64-bit dest
-void CmdlineParser::AddBytes(char key, const std::string& longkey, uint64_t& dest,
-                             const std::string& desc) {
+void CmdlineParser::AddBytes(
+    char key, const std::string& longkey, uint64_t& dest,
+    const std::string& desc) {
     return AddBytes(key, longkey, "", dest, desc);
 }
 
 //! add string option -key, --longkey [keytype] and store to dest
-void CmdlineParser::AddString(char key, const std::string& longkey, std::string& dest,
-                              const std::string& desc) {
+void CmdlineParser::AddString(
+    char key, const std::string& longkey, std::string& dest,
+    const std::string& desc) {
     return AddString(key, longkey, "", dest, desc);
 }
 
 //! add string list option -key, --longkey [keytype] and store to dest
-void CmdlineParser::AddStringlist(char key, const std::string& longkey,
-                                  std::vector<std::string>& dest, const std::string& desc) {
+void CmdlineParser::AddStringlist(
+    char key, const std::string& longkey,
+    std::vector<std::string>& dest, const std::string& desc) {
     return AddStringlist(key, longkey, "", dest, desc);
 }
 
@@ -635,8 +641,8 @@ void CmdlineParser::AddParamStringlist(const std::string& name,
 
 //! add optional signed integer parameter [name] with description and store
 //! to dest
-void CmdlineParser::AddOptParamInt(const std::string& name, int& dest,
-                                   const std::string& desc) {
+void CmdlineParser::AddOptParamInt(
+    const std::string& name, int& dest, const std::string& desc) {
     paramlist_.push_back(
         new ArgumentInt(0, name, "", desc, false, dest));
     CalcParamMax(paramlist_.back());
@@ -644,16 +650,16 @@ void CmdlineParser::AddOptParamInt(const std::string& name, int& dest,
 
 //! add optional unsigned integer parameter [name] with description and
 //! store to dest
-void CmdlineParser::AddOptParamUInt(const std::string& name, unsigned int& dest,
-                                    const std::string& desc) {
+void CmdlineParser::AddOptParamUInt(
+    const std::string& name, unsigned int& dest, const std::string& desc) {
     paramlist_.push_back(
         new ArgumentUInt(0, name, "", desc, false, dest));
     CalcParamMax(paramlist_.back());
 }
 
 //! add optional double parameter [name] with description and store to dest
-void CmdlineParser::AddOptParamDouble(const std::string& name, double& dest,
-                                      const std::string& desc) {
+void CmdlineParser::AddOptParamDouble(
+    const std::string& name, double& dest, const std::string& desc) {
     paramlist_.push_back(
         new ArgumentDouble(0, name, "", desc, false, dest));
     CalcParamMax(paramlist_.back());
@@ -661,8 +667,8 @@ void CmdlineParser::AddOptParamDouble(const std::string& name, double& dest,
 
 //! add optional SI/IEC suffixes byte size parameter [name] with
 //! description and store to dest
-void CmdlineParser::AddOptParamBytes(const std::string& name, uint32_t& dest,
-                                     const std::string& desc) {
+void CmdlineParser::AddOptParamBytes(
+    const std::string& name, uint32_t& dest, const std::string& desc) {
     paramlist_.push_back(
         new ArgumentBytes32(0, name, "", desc, false, dest));
     CalcParamMax(paramlist_.back());
@@ -670,16 +676,16 @@ void CmdlineParser::AddOptParamBytes(const std::string& name, uint32_t& dest,
 
 //! add optional SI/IEC suffixes byte size parameter [name] with
 //! description and store to dest
-void CmdlineParser::AddOptParamBytes(const std::string& name, uint64_t& dest,
-                                     const std::string& desc) {
+void CmdlineParser::AddOptParamBytes(
+    const std::string& name, uint64_t& dest, const std::string& desc) {
     paramlist_.push_back(
         new ArgumentBytes64(0, name, "", desc, false, dest));
     CalcParamMax(paramlist_.back());
 }
 
 //! add optional string parameter [name] with description and store to dest
-void CmdlineParser::AddOptParamString(const std::string& name, std::string& dest,
-                                      const std::string& desc) {
+void CmdlineParser::AddOptParamString(
+    const std::string& name, std::string& dest, const std::string& desc) {
     paramlist_.push_back(
         new ArgumentString(0, name, "", desc, false, dest));
     CalcParamMax(paramlist_.back());
@@ -699,8 +705,7 @@ void CmdlineParser::AddOptParamStringlist(const std::string& name,
 /******************************************************************************/
 
 void CmdlineParser::PrintUsage(std::ostream& os) {
-    std::ios state(nullptr);
-    state.copyfmt(os);
+    std::ios::fmtflags flags(os.flags());
 
     os << "Usage: " << progname_
        << (optlist_.size() ? " [options]" : "");
@@ -763,7 +768,7 @@ void CmdlineParser::PrintUsage(std::ostream& os) {
         }
     }
 
-    os.copyfmt(state);
+    os.flags(flags);
 }
 
 void CmdlineParser::PrintOptionError(
@@ -792,7 +797,8 @@ void CmdlineParser::PrintParamError(
     PrintUsage(os);
 }
 
-bool CmdlineParser::Process(int argc, const char* const* argv, std::ostream& os) {
+bool CmdlineParser::Process(
+    int argc, const char* const* argv, std::ostream& os) {
     progname_ = argv[0];
     --argc, ++argv;
 
@@ -943,8 +949,7 @@ bool CmdlineParser::Process(int argc, const char* const* argv, std::ostream& os)
 }
 
 void CmdlineParser::PrintResult(std::ostream& os) {
-    std::ios state(nullptr);
-    state.copyfmt(os);
+    std::ios::fmtflags flags(os.flags());
 
     int maxlong = std::max(param_maxlong_, opt_maxlong_);
 
@@ -988,7 +993,7 @@ void CmdlineParser::PrintResult(std::ostream& os) {
         }
     }
 
-    os.copyfmt(state);
+    os.flags(flags);
 }
 
 /******************************************************************************/

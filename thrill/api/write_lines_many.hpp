@@ -1,13 +1,13 @@
 /*******************************************************************************
  * thrill/api/write_lines_many.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -21,7 +21,7 @@
 #include <thrill/core/stage_builder.hpp>
 #include <thrill/net/buffer_builder.hpp>
 
-#include <fstream>
+#include <algorithm>
 #include <string>
 
 namespace thrill {
@@ -30,8 +30,8 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
-class WriteLinesManyNode : public ActionNode
+template <typename ParentDIA>
+class WriteLinesManyNode final : public ActionNode
 {
     static const bool debug = false;
 
@@ -39,7 +39,10 @@ public:
     using Super = ActionNode;
     using Super::context_;
 
-    WriteLinesManyNode(const ParentDIARef& parent,
+    //! input type is the parent's output value type.
+    using Input = typename ParentDIA::ValueType;
+
+    WriteLinesManyNode(const ParentDIA& parent,
                        const std::string& path_out,
                        size_t target_file_size,
                        StatsNode* stats_node)
@@ -52,12 +55,13 @@ public:
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [=](std::string input) {
+        auto pre_op_fn = [=](const std::string& input) {
                              PreOp(input);
                          };
 
-        max_buffer_size_ = std::min(data::default_block_size,
-                                    common::RoundUpToPowerOfTwo(target_file_size_));
+        max_buffer_size_ =
+            std::min(data::default_block_size,
+                     common::RoundUpToPowerOfTwo(target_file_size_));
 
         write_buffer_.Reserve(max_buffer_size_);
 
@@ -67,14 +71,16 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    void PreOp(std::string input) {
+    void PreOp(const std::string& input) {
         stats_total_elements_++;
 
         if (THRILL_UNLIKELY(current_buffer_size_ + input.size() + 1
                             >= max_buffer_size_)) {
             stats_total_writes_++;
             stats_total_bytes_ += current_buffer_size_;
+            timer.Start();
             file_.write(write_buffer_.data(), current_buffer_size_);
+            timer.Stop();
             write_buffer_.set_size(0);
             current_file_size_ += current_buffer_size_;
             current_buffer_size_ = 0;
@@ -93,7 +99,9 @@ public:
                 stats_total_writes_++;
                 stats_total_bytes_ += input.size();
                 current_file_size_ += input.size() + 1;
+                timer.Start();
                 file_.write(input.data(), input.size());
+                timer.Stop();
                 current_buffer_size_ = 1;
                 write_buffer_.PutByte('\n');
                 return;
@@ -106,19 +114,24 @@ public:
     }
 
     //! Closes the output file, write last buffer
-    void Execute() final {
+    void StopPreOp(size_t /* id */) final {
         sLOG << "closing file";
         stats_total_writes_++;
         stats_total_bytes_ += current_buffer_size_;
+        timer.Start();
         file_.write(write_buffer_.data(), current_buffer_size_);
+        timer.Stop();
         file_.close();
 
         STAT(context_) << "NodeType" << "WriteLinesMany"
                        << "TotalBytes" << stats_total_bytes_
                        << "TotalLines" << stats_total_elements_
                        << "TotalWrites" << stats_total_writes_
-                       << "TotalFiles" << out_serial_;
+                       << "TotalFiles" << out_serial_
+                       << "WriteTime" << timer.Milliseconds();
     }
+
+    void Execute() final { }
 
     void Dispose() final { }
 
@@ -147,28 +160,29 @@ private:
     //! Targetl file size in bytes
     size_t target_file_size_;
 
+    common::StatsTimer<true> timer;
+
     size_t stats_total_bytes_ = 0;
     size_t stats_total_elements_ = 0;
     size_t stats_total_writes_ = 0;
 };
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::WriteLinesMany(
+void DIA<ValueType, Stack>::WriteLinesMany(
     const std::string& filepath, size_t target_file_size) const {
     assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,
                   "WriteLinesMany needs an std::string as input parameter");
 
-    using WriteResultNode = WriteLinesManyNode<ValueType, DIARef>;
+    using WriteLinesManyNode = api::WriteLinesManyNode<DIA>;
 
-    StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", DIANodeType::ACTION);
+    StatsNode* stats_node =
+        AddChildStatsNode("WriteLinesMany", DIANodeType::ACTION);
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(*this,
-                                          filepath,
-                                          target_file_size,
-                                          stats_node);
+        std::make_shared<WriteLinesManyNode>(
+            *this, filepath, target_file_size, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
 }

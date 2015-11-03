@@ -1,18 +1,16 @@
 /*******************************************************************************
  * thrill/net/dispatcher_thread.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/net/dispatcher.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/group.hpp>
-
-#include <unistd.h>
 
 #include <deque>
 #include <string>

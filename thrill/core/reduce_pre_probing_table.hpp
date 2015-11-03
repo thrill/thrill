@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/core/reduce_pre_probing_table.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -80,21 +80,20 @@ public:
     { }
 
     template <typename ReducePreProbingTable>
-    typename ReducePreProbingTable::index_result
+    typename ReducePreProbingTable::IndexResult
     operator () (const Key& k, ReducePreProbingTable* ht) const {
 
-        using index_result = typename ReducePreProbingTable::index_result;
+        using IndexResult = typename ReducePreProbingTable::IndexResult;
 
         size_t hashed = hash_function_(k);
 
-        size_t local_index = hashed %
-                             ht->NumItemsPerPartition();
+        size_t local_index = hashed % ht->NumItemsPerPartition();
         size_t partition_id = hashed % ht->NumPartitions();
         size_t global_index = partition_id *
                               ht->NumItemsPerPartition() +
                               local_index;
 
-        return index_result(partition_id, local_index, global_index);
+        return IndexResult(partition_id, local_index, global_index);
     }
 
 private:
@@ -111,16 +110,16 @@ public:
     { }
 
     template <typename ReducePreProbingTable>
-    typename ReducePreProbingTable::index_result
+    typename ReducePreProbingTable::IndexResult
     operator () (const size_t& k, ReducePreProbingTable* ht) const {
 
-        using index_result = typename ReducePreProbingTable::index_result;
+        using IndexResult = typename ReducePreProbingTable::IndexResult;
 
         size_t global_index = k * ht->Size() / size_;
         size_t partition_id = k * ht->NumPartitions() / size_;
         size_t local_index = global_index - partition_id * ht->NumItemsPerPartition();
 
-        return index_result(partition_id, local_index, global_index);
+        return IndexResult(partition_id, local_index, global_index);
     }
 };
 
@@ -137,7 +136,7 @@ class ReducePreProbingTable
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
-    struct index_result {
+    struct IndexResult {
     public:
         //! which partition number the item belongs to.
         size_t partition_id;
@@ -146,7 +145,7 @@ public:
         //! index within the whole hashtable
         size_t global_index;
 
-        index_result(size_t p_id, size_t p_off, size_t g_id) {
+        IndexResult(size_t p_id, size_t p_off, size_t g_id) {
             partition_id = p_id;
             local_index = p_off;
             global_index = g_id;
@@ -218,9 +217,7 @@ public:
      * inserts the pair into the hashtable.
      */
     void Insert(const Value& p) {
-        Key key = key_extractor_(p);
-
-        Insert(std::make_pair(key, p));
+        Insert(std::make_pair(key_extractor_(p), p));
     }
 
     /*!
@@ -233,11 +230,11 @@ public:
      * Alternatively, it may trigger a resize of the table in case the maximal fill ratio
      * per partition is reached.
      *
-     * \param p Value to be inserted into the table.
+     * \param kv Value to be inserted into the table.
      */
     void Insert(const KeyValuePair& kv) {
 
-        index_result h = index_function_(kv.first, this);
+        IndexResult h = index_function_(kv.first, this);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.local_index >= 0 && h.local_index < num_items_per_partition_);
@@ -272,8 +269,7 @@ public:
                 ++current;
             }
 
-            // flush partition, if all slots
-            // are occupied
+            // flush partition, if all slots are occupied
             if (current == initial)
             {
                 FlushPartition(h.partition_id);
@@ -295,8 +291,7 @@ public:
         }
 
         // insert new pair
-        current->first = kv.first;
-        current->second = kv.second;
+        *current = kv;
 
         // increase counter for partition
         items_per_partition_[h.partition_id]++;

@@ -1,11 +1,11 @@
 /*******************************************************************************
  * tests/api/zip_node_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <random>
 #include <string>
+#include <tuple>
 #include <vector>
 
 using namespace thrill; // NOLINT
@@ -46,7 +47,9 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
 
             // zip
             auto zip_result = zip_input1.Zip(
-                zip_input2, [](size_t a, short b) -> long { return a + b; });
+                zip_input2, [](size_t a, short b) -> long {
+                    return static_cast<long>(a) + b;
+                });
 
             // check result
             std::vector<long> res = zip_result.AllGather();
@@ -139,7 +142,9 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
 
             // zip
             auto zip_result = input1.Zip(
-                input2_short, [](size_t a, short b) -> long { return a + b; });
+                input2_short, [](size_t a, short b) -> long {
+                    return static_cast<long>(a) + b;
+                });
 
             // check result
             std::vector<long> res = zip_result.AllGather();
@@ -160,8 +165,9 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
             auto input_gen = Generate(
                 ctx,
                 [](size_t index) -> std::string {
-                    std::default_random_engine rng(123456 + index);
-                    std::uniform_int_distribution<int> length(10, 20);
+                    std::default_random_engine rng(
+                        123456 + static_cast<unsigned>(index));
+                    std::uniform_int_distribution<size_t> length(10, 20);
                     rng(); // skip one number
 
                     return common::RandomString(
@@ -170,7 +176,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
                 },
                 test_size);
 
-            DIARef<std::string> input = input_gen.Cache();
+            DIA<std::string> input = input_gen.Cache();
 
             std::vector<std::string> vinput = input.AllGather();
             ASSERT_EQ(test_size, vinput.size());
@@ -218,6 +224,111 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
 
             ASSERT_EQ(check.size(), res.size());
             ASSERT_EQ(check, res);
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(ZipNode, ThreeIntegerArrays) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            // numbers 0..999 (evenly distributed to workers)
+            auto input1 = Generate(
+                ctx,
+                [](size_t index) { return static_cast<short>(index); },
+                test_size);
+
+            // numbers 0..1999 (evenly distributed to workers)
+            auto input2 = Generate(
+                ctx,
+                [](size_t index) { return index; },
+                test_size * 2);
+
+            // numbers 0..0.999 (evenly distributed to workers)
+            auto input3 = Generate(
+                ctx,
+                [](size_t index) {
+                    return static_cast<double>(index)
+                    / static_cast<double>(test_size);
+                },
+                test_size);
+
+            // zip
+            auto zip_result = Zip(
+                [](short a, size_t b, double c) {
+                    return std::make_tuple(a, b, c);
+                },
+                input1, input2, input3);
+
+            // check result
+            std::vector<std::tuple<short, size_t, double> > res
+                = zip_result.AllGather();
+
+            ASSERT_EQ(test_size, res.size());
+            for (size_t i = 0; i < test_size; ++i) {
+                ASSERT_EQ(static_cast<short>(i), std::get<0>(res[i]));
+                ASSERT_EQ(static_cast<size_t>(i), std::get<1>(res[i]));
+                ASSERT_DOUBLE_EQ(
+                    static_cast<double>(i) / static_cast<double>(test_size),
+                    std::get<2>(res[i]));
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(ZipNode, ThreeIntegerArraysPadded) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            // numbers 0..999 (evenly distributed to workers)
+            auto input1 = Generate(
+                ctx,
+                [](size_t index) { return static_cast<short>(index); },
+                test_size);
+
+            // numbers 0..1999 (evenly distributed to workers)
+            auto input2 = Generate(
+                ctx,
+                [](size_t index) { return index; },
+                test_size * 2);
+
+            // numbers 0..0.999 (evenly distributed to workers)
+            auto input3 = Generate(
+                ctx,
+                [](size_t index) {
+                    return static_cast<double>(index)
+                    / static_cast<double>(test_size);
+                },
+                test_size);
+
+            // zip
+            auto zip_result = ZipPadding(
+                [](short a, size_t b, double c) {
+                    return std::make_tuple(a, b, c);
+                },
+                std::make_tuple(42, 42, 42),
+                input1, input2, input3);
+
+            // check result
+            std::vector<std::tuple<short, size_t, double> > res
+                = zip_result.AllGather();
+
+            ASSERT_EQ(2 * test_size, res.size());
+            for (size_t i = 0; i < 2 * test_size; ++i) {
+                ASSERT_EQ(i < test_size ? static_cast<short>(i) : 42,
+                          std::get<0>(res[i]));
+                ASSERT_EQ(static_cast<size_t>(i),
+                          std::get<1>(res[i]));
+                ASSERT_DOUBLE_EQ(
+                    i < test_size
+                    ? static_cast<double>(i) / static_cast<double>(test_size)
+                    : 42,
+                    std::get<2>(res[i]));
+            }
         };
 
     api::RunLocalTests(start_func);

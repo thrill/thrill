@@ -1,12 +1,12 @@
 /*******************************************************************************
  * thrill/api/read_lines.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -38,7 +38,7 @@ namespace api {
  * A DIANode which performs a line-based Read operation. Read reads a file from
  * the file system and emits it as a DIA.
  */
-class ReadLinesNode : public SourceNode<std::string>
+class ReadLinesNode final : public SourceNode<std::string>
 {
 public:
     using Super = SourceNode<std::string>;
@@ -65,20 +65,13 @@ public:
     {
         LOG << "Opening read notes for " << path_;
 
-        filesize_prefix_ = core::GlobFileSizePrefixSum(path_);
-
-        for (auto file : filesize_prefix_) {
-            if (core::IsCompressed(file.first)) {
-                contains_compressed_file_ = true;
-                break;
-            }
-        }
+        filelist_ = core::GlobFileSizePrefixSum(path_);
     }
 
     void PushData(bool /* consume */) final {
-        if (contains_compressed_file_) {
+        if (filelist_.contains_compressed) {
             InputLineIteratorCompressed it = InputLineIteratorCompressed(
-                filesize_prefix_, context_);
+                filelist_, context_);
 
             // Hook Read
             while (it.HasNext()) {
@@ -87,7 +80,7 @@ public:
         }
         else {
             InputLineIteratorUncompressed it = InputLineIteratorUncompressed(
-                filesize_prefix_, context_);
+                filelist_, context_);
 
             // Hook Read
             while (it.HasNext()) {
@@ -98,31 +91,28 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     *
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        return FunctionStack<std::string>();
-    }
-
 private:
-    //! True, if at least one input file is compressed.
-    bool contains_compressed_file_ = false;
     //! Path of the input file.
     std::string path_;
 
-    std::vector<std::pair<std::string, size_t> > filesize_prefix_;
+    core::SysFileList filelist_;
 
     class InputLineIterator
     {
     public:
-        InputLineIterator(const std::vector<FileSizePair>& files, Context& ctx)
+        InputLineIterator(const core::SysFileList& files, Context& ctx)
             : files_(files), context_(ctx) { }
 
         static const bool debug = false;
+
+        //! non-copyable: delete copy-constructor
+        InputLineIterator(const InputLineIterator&) = delete;
+        //! non-copyable: delete assignment operator
+        InputLineIterator& operator = (const InputLineIterator&) = delete;
+        //! move-constructor: default
+        InputLineIterator(InputLineIterator&&) = default;
+        //! move-assignment operator: default
+        InputLineIterator& operator = (InputLineIterator&&) = default;
 
     protected:
         //! Block read size
@@ -130,24 +120,28 @@ private:
         //! String, which Next() references to
         std::string data_;
         //! Input files with size prefixsum.
-        const std::vector<FileSizePair>& files_;
+        const core::SysFileList& files_;
         //! Index of current file in files_
         size_t current_file_ = 0;
-        //! Byte buffer to create line-std::strings
+        //! Byte buffer to create line std::string values.
         net::BufferBuilder buffer_;
         //! Start of next element in current buffer.
         unsigned char* current_;
-        //! (exclusive) end of local block
-        size_t my_end_;
+        //! (exclusive) [begin,end) of local block
+        common::Range my_range_;
         //! Reference to context
         Context& context_;
+
+        common::StatsTimer<true> read_timer;
 
         size_t stats_total_bytes_ = 0;
         size_t stats_total_reads_ = 0;
         size_t stats_total_elements_ = 0;
 
         bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
+            read_timer.Start();
             ssize_t bytes = file.read(buffer.data(), read_size);
+            read_timer.Stop();
             if (bytes < 0) {
                 throw common::ErrnoException("Read error");
             }
@@ -163,7 +157,8 @@ private:
             STAT(context_) << "NodeType" << "ReadLines"
                            << "TotalBytes" << stats_total_bytes_
                            << "TotalReads" << stats_total_reads_
-                           << "TotalLines" << stats_total_elements_;
+                           << "TotalLines" << stats_total_elements_
+                           << "ReadTime" << read_timer.Milliseconds();
         }
     };
 
@@ -172,31 +167,29 @@ private:
     {
     public:
         //! Creates an instance of iterator that reads file line based
-        InputLineIteratorUncompressed(
-            const std::vector<FileSizePair>& files,
-            Context& ctx)
+        InputLineIteratorUncompressed(const core::SysFileList& files,
+                                      Context& ctx)
             : InputLineIterator(files, ctx) {
 
             // Go to start of 'local part'.
-            size_t my_start;
-            std::tie(my_start, my_end_) =
-                context_.CalculateLocalRange(files[NumFiles()].second);
+            my_range_ = context_.CalculateLocalRange(files.total_size);
 
-            while (files_[current_file_ + 1].second <= my_start) {
+            while (files_.list[current_file_].size_inc_psum() <= my_range_.begin) {
                 current_file_++;
             }
-            if (my_start < my_end_) {
+            if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
-                file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
             }
             else {
-                LOG << "my_start : " << my_start << " my_end_: " << my_end_;
+                LOG << "my_range : " << my_range_;
                 return;
             }
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
-            offset_ = file_.lseek(my_start - files_[current_file_].second);
+            offset_ = file_.lseek(
+                static_cast<off_t>(my_range_.begin - files_.list[current_file_].size_ex_psum));
             buffer_.Reserve(read_size);
             ReadBlock(file_, buffer_);
 
@@ -248,14 +241,14 @@ private:
                     current_file_++;
                     offset_ = 0;
 
-                    if (current_file_ < NumFiles()) {
-                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                    if (current_file_ < files_.count()) {
+                        file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
                         offset_ += buffer_.size();
                         ReadBlock(file_, buffer_);
                     }
                     else {
                         current_ = buffer_.begin() +
-                                   files_[current_file_].second - files_[current_file_ - 1].second;
+                                   files_.list[current_file_ - 1].size;
                     }
 
                     if (data_.length()) {
@@ -269,15 +262,10 @@ private:
         bool HasNext() {
             size_t position_in_buf = current_ - buffer_.begin();
             assert(current_ >= buffer_.begin());
-            size_t global_index = offset_ + position_in_buf + files_[current_file_].second;
-            return global_index < my_end_ ||
-                   (global_index == my_end_ &&
-                    files_[current_file_ + 1].second - files_[current_file_].second >
-                    offset_ + position_in_buf);
-        }
-
-        size_t NumFiles() {
-            return files_.size() - 1;
+            size_t global_index = offset_ + position_in_buf + files_.list[current_file_].size_ex_psum;
+            return global_index < my_range_.end ||
+                   (global_index == my_range_.end &&
+                    files_.list[current_file_].size > offset_ + position_in_buf);
         }
 
     private:
@@ -292,38 +280,35 @@ private:
     {
     public:
         //! Creates an instance of iterator that reads file line based
-        InputLineIteratorCompressed(
-            const std::vector<FileSizePair>& files,
-            Context& ctx)
+        InputLineIteratorCompressed(const core::SysFileList& files,
+                                    Context& ctx)
             : InputLineIterator(files, ctx) {
 
             // Go to start of 'local part'.
-            size_t my_start;
-            std::tie(my_start, my_end_) =
-                context_.CalculateLocalRange(files[NumFiles()].second);
+            my_range_ = context_.CalculateLocalRange(files.total_size);
 
-            while (files_[current_file_ + 1].second <= my_start) {
+            while (files_.list[current_file_].size_inc_psum() <= my_range_.begin) {
                 current_file_++;
             }
 
-            for (size_t file_nr = current_file_; file_nr < NumFiles(); file_nr++) {
-                if (files[file_nr + 1].second == my_end_) {
+            for (size_t file_nr = current_file_; file_nr < files_.count(); file_nr++) {
+                if (files.list[file_nr].size_inc_psum() == my_range_.end) {
                     break;
                 }
-                if (files[file_nr + 1].second > my_end_) {
-                    my_end_ = files_[file_nr].second;
+                if (files.list[file_nr].size_inc_psum() > my_range_.end) {
+                    my_range_.end = files_.list[file_nr].size_ex_psum;
                     break;
                 }
             }
 
-            if (my_start < my_end_) {
+            if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
-                LOG << "my_start : " << my_start << " my_end_: " << my_end_;
-                file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                LOG << "my_range : " << my_range_;
+                file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
             }
             else {
                 // No local files, set buffer size to 2, so HasNext() does not try to read
-                LOG << "my_start : " << my_start << " my_end_: " << my_end_;
+                LOG << "my_range : " << my_range_;
                 buffer_.Reserve(2);
                 buffer_.set_size(2);
                 current_ = buffer_.begin();
@@ -356,8 +341,8 @@ private:
                     file_.close();
                     current_file_++;
 
-                    if (current_file_ < NumFiles()) {
-                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                    if (current_file_ < files_.count()) {
+                        file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
                         ReadBlock(file_, buffer_);
                     }
                     else {
@@ -373,13 +358,9 @@ private:
             }
         }
 
-        size_t NumFiles() {
-            return files_.size() - 1;
-        }
-
         //! returns true, if an element is available in local part
         bool HasNext() {
-            if (files_[current_file_].second >= my_end_) {
+            if (files_.list[current_file_].size_ex_psum >= my_range_.end) {
                 return false;
             }
 
@@ -395,14 +376,14 @@ private:
                 else {
                     LOG << "Opening new file in HasNext()";
                     // already at last file
-                    if (current_file_ >= NumFiles() - 1) {
+                    if (current_file_ >= files_.count() - 1) {
                         return false;
                     }
                     file_.close();
                     // if (this worker reads at least one more file)
-                    if (my_end_ > files_[current_file_ + 1].second) {
+                    if (my_range_.end > files_.list[current_file_].size_inc_psum()) {
                         current_file_++;
-                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                        file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
                         ReadBlock(file_, buffer_);
                         return true;
                     }
@@ -422,24 +403,32 @@ private:
     };
 };
 
-DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
+/*!
+ * ReadLines is a DOp, which reads a file from the file system and
+ * creates an ordered DIA according to a given read function.
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ */
+DIA<std::string> ReadLines(Context& ctx, std::string filepath) {
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "ReadLines", DIANodeType::DOP);
+        "ReadLines", DIANodeType::GENERATOR);
 
     auto shared_node =
         std::make_shared<ReadLinesNode>(
             ctx, filepath, stats_node);
 
-    auto read_stack = shared_node->ProduceStack();
-
-    return DIARef<std::string, decltype(read_stack)>(
-        shared_node, read_stack, { stats_node });
+    return DIA<std::string>(shared_node, { stats_node });
 }
 
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::ReadLines;
+
 } // namespace thrill
 
 #endif // !THRILL_API_READ_LINES_HEADER

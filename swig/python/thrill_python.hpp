@@ -1,11 +1,11 @@
 /*******************************************************************************
  * swig/python/thrill_python.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -136,7 +136,7 @@ struct Serialization<Archive, PyObjectRef>
 
         PyBytes_AsStringAndSize(mar, &data, &len);
         if (debug)
-            sLOG0 << "Serialized:" << common::hexdump(data, len);
+            sLOG0 << "Serialized:" << common::Hexdump(data, len);
 
         ar.PutVarint(len).Append(data, len);
         Py_DECREF(mar);
@@ -206,7 +206,7 @@ namespace std {
 template <>
 struct hash<thrill::PyObjectRef>
     : public std::unary_function<thrill::PyObjectRef, size_t>{
-    std::size_t operator () (const thrill::PyObjectRef& ob) const {
+    size_t operator () (const thrill::PyObjectRef& ob) const {
         auto h = PyObject_Hash(ob.get());
         if (h == -1) {
             throw std::exception();
@@ -223,10 +223,10 @@ namespace thrill {
 
 //! all DIAs used in the python code contain PyObjectRefs, which are reference
 //! counted PyObjects.
-typedef api::DIARef<PyObjectRef> PyDIARef;
+typedef api::DIA<PyObjectRef> PyObjDIA;
 
 /*!
- * This is a wrapper around the C++ DIARef class, which returns plain PyDIAs
+ * This is a wrapper around the C++ DIA class, which returns plain PyDIAs
  * again. The C++ function stack is always collapsed.
  */
 class PyDIA
@@ -234,13 +234,16 @@ class PyDIA
     static const bool debug = false;
 
 public:
-    //! underlying C++ DIARef class, which can be freely copied by the object.
-    PyDIARef dia_;
+    //! underlying C++ DIA class, which can be freely copied by the object.
+    PyObjDIA dia_;
 
-    explicit PyDIA(const PyDIARef& dia)
+    explicit PyDIA(const PyObjDIA& dia)
         : dia_(dia) {
         sLOG << "create PyDIA" << this;
     }
+
+    //! copy-constructor: default
+    PyDIA(const PyDIA& dia) = default;
 
     ~PyDIA() {
         sLOG << "delete PyDIA" << this;
@@ -374,9 +377,9 @@ public:
     }
 
     static std::vector<std::shared_ptr<PyContext> >
-    ConstructLocalMock(size_t host_count, size_t workers_per_host) {
+    ConstructLoopback(size_t host_count, size_t workers_per_host) {
         std::vector<std::unique_ptr<HostContext> > host_contexts
-            = HostContext::ConstructLocalMock(host_count, workers_per_host);
+            = HostContext::ConstructLoopback(host_count, workers_per_host);
 
         std::vector<std::shared_ptr<PyContext> > contexts;
 
@@ -396,7 +399,7 @@ public:
         SwigDirector_GeneratorFunction& director =
             *dynamic_cast<SwigDirector_GeneratorFunction*>(&generator_function);
 
-        PyDIARef dia = api::Generate(
+        PyObjDIA dia = api::Generate(
             *this, [&generator_function,
                     // this holds a reference count to the callback object for the
                     // lifetime of the capture object.
@@ -413,7 +416,7 @@ public:
         // this acquires a reference count on the objects
         std::vector<PyObjectRef> list_refed(list.begin(), list.end());
 
-        PyDIARef dia = api::Distribute(*this, std::move(list_refed));
+        PyObjDIA dia = api::Distribute(*this, std::move(list_refed));
 
         return PyDIA(dia);
     }

@@ -1,12 +1,12 @@
 /*******************************************************************************
  * thrill/common/functional.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -29,6 +29,26 @@ struct Identity {
     }
 };
 
+//! The noop functor, which takes any arguments and does nothing. This is a good
+//! default argument for lambda function parameters.
+template <typename ReturnType>
+struct NoOperation {
+    ReturnType return_value_;
+
+    explicit NoOperation(ReturnType return_value = ReturnType())
+        : return_value_(return_value) { }
+
+    ReturnType operator () (...) const noexcept {
+        return return_value_;
+    }
+};
+
+//! Specialized noop functor which returns a void.
+template <>
+struct NoOperation<void>{
+    void operator () (...) const noexcept { }
+};
+
 // thanks to http://stackoverflow.com/a/7127988
 template <typename T>
 struct is_pair : public std::false_type { };
@@ -36,10 +56,22 @@ struct is_pair : public std::false_type { };
 template <typename S, typename T>
 struct is_pair<std::pair<S, T> >: public std::true_type { };
 
+//! test if is std::array<T>
+template <typename T>
+struct is_std_array : public std::false_type { };
+
+template <typename T, size_t N>
+struct is_std_array<std::array<T, N> >: public std::true_type { };
+
+//! template for constexpr min, because std::min is not good enough.
+template <typename T>
+constexpr static inline const T & min(const T& a, const T& b) {
+    return a < b ? a : b;
+}
+
 //! template for constexpr max, because std::max is not good enough.
 template <typename T>
-constexpr
-static inline const T & max(const T& a, const T& b) {
+constexpr static inline const T & max(const T& a, const T& b) {
     return a > b ? a : b;
 }
 

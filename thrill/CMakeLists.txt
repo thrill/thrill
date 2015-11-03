@@ -2,16 +2,40 @@
 # thrill/CMakeLists.txt
 #
 # CMake file for Thrill library
+#
+# Part of Project Thrill - http://project-thrill.org
+#
+# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-file(GLOB_RECURSE SRCS
+# glob general sources
+file(GLOB SRCS
   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*/*.hpp
-)
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*/mock/*.[ch]pp
+  )
 
-add_library(thrill STATIC ${SRCS})
+# add net/tcp on all platforms except Windows
+if(NOT MSVC)
+  file(GLOB NET_TCP_SRCS
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/net/tcp/*.[ch]pp
+    )
+  list(APPEND SRCS ${NET_TCP_SRCS})
+endif()
+
+# add net/mpi if MPI is wanted
+if(MPI_FOUND)
+  file(GLOB NET_MPI_SRCS
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/net/mpi/*.[ch]pp
+    )
+  list(APPEND SRCS ${NET_MPI_SRCS})
+endif()
+
+add_library(thrill ${SRCS})
 
 ################################################################################

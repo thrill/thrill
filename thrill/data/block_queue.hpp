@@ -1,11 +1,12 @@
 /*******************************************************************************
  * thrill/data/block_queue.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -147,7 +148,7 @@ public:
         return queue_.Pop();
     }
 
-protected:
+private:
     //! BlockQueue that blocks are retrieved from
     BlockQueue& queue_;
 };
@@ -185,7 +186,7 @@ public:
 
         // cache block in file_ (but not the termination block from the queue)
         if (b.IsValid())
-            //queue_->file_.AppendBlock(b.UnpinnedCopy());
+            // queue_->file_.AppendBlock(b.UnpinnedCopy());
             queue_->file_.AppendBlock(b);
 
         return b;
@@ -198,7 +199,7 @@ public:
         }
     }
 
-protected:
+private:
     //! Reference to BlockQueue
     BlockQueue* queue_;
 };

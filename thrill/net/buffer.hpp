@@ -3,11 +3,11 @@
  *
  * Contains binary byte buffer used by most network classes.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -54,7 +54,7 @@ public:
     //! simple pointer references
     using const_reference = const value_type &;
 
-protected:
+private:
     //! protected constructor used to acquire ownership of a buffer
     Buffer(bool /* acquire_tag */, void* data, size_type size)
         : data_(reinterpret_cast<value_type*>(data)), size_(size)
@@ -65,12 +65,12 @@ public:
     //! \{
 
     //! allocate empty buffer
-    Buffer()
+    Buffer() noexcept
         : data_(nullptr), size_(0)
     { }
 
     //! allocate buffer containing n bytes
-    explicit Buffer(size_type n)
+    explicit Buffer(size_type n) noexcept
         : Buffer(true, malloc(n), n)
     { }
 
@@ -87,20 +87,21 @@ public:
     Buffer& operator = (const Buffer&) = delete;
 
     //! move-construct other buffer into this one
-    Buffer(Buffer&& other)
+    Buffer(Buffer&& other) noexcept
         : data_(other.data_), size_(other.size_) {
         other.data_ = nullptr;
         other.size_ = 0;
     }
 
     //! move-assignment of other buffer into this one
-    Buffer& operator = (Buffer&& other) {
-        assert(this != &other);
-        if (data_) free(data_);
-        data_ = other.data_;
-        size_ = other.size_;
-        other.data_ = nullptr;
-        other.size_ = 0;
+    Buffer& operator = (Buffer&& other) noexcept {
+        if (this != &other) {
+            if (data_) free(data_);
+            data_ = other.data_;
+            size_ = other.size_;
+            other.data_ = nullptr;
+            other.size_ = 0;
+        }
         return *this;
     }
 
@@ -115,14 +116,14 @@ public:
     }
 
     //! swap buffer with another one
-    friend void swap(Buffer& a, Buffer& b) {
+    friend void swap(Buffer& a, Buffer& b) noexcept {
         using std::swap;
         swap(a.data_, b.data_);
         swap(a.size_, b.size_);
     }
 
     //! Check for Buffer contents is valid.
-    bool IsValid() const { return (data_ != nullptr); }
+    bool IsValid() const noexcept { return (data_ != nullptr); }
 
     //! \}
 
@@ -130,14 +131,14 @@ public:
     //! \{
 
     //! return iterator to beginning of Buffer
-    iterator data()
+    iterator data() noexcept
     { return data_; }
     //! return iterator to beginning of Buffer
-    const_iterator data() const
+    const_iterator data() const noexcept
     { return data_; }
 
     //! return number of items in Buffer
-    size_type size() const
+    size_type size() const noexcept
     { return size_; }
 
     //! return the i-th position of the Buffer
@@ -156,23 +157,23 @@ public:
     //! \name Iterator Access
 
     //! return mutable iterator to first element
-    iterator begin()
+    iterator begin() noexcept
     { return data_; }
     //! return constant iterator to first element
-    const_iterator begin() const
+    const_iterator begin() const noexcept
     { return data_; }
     //! return constant iterator to first element
-    const_iterator cbegin() const
+    const_iterator cbegin() const noexcept
     { return begin(); }
 
     //! return mutable iterator beyond last element
-    iterator end()
+    iterator end() noexcept
     { return data_ + size_; }
     //! return constant iterator beyond last element
-    const_iterator end() const
+    const_iterator end() const noexcept
     { return data_ + size_; }
     //! return constant iterator beyond last element
-    const_iterator cend() const
+    const_iterator cend() const noexcept
     { return end(); }
 
     //! \}
@@ -226,7 +227,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! the buffer, typed as character data
     value_type* data_;
 

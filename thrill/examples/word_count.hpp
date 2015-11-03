@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/examples/word_count.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -32,12 +32,12 @@ using WordCountPair = std::pair<std::string, size_t>;
 //! The WordCount user program: reads a DIA containing std::string words, and
 //! returns a DIA containing WordCountPairs.
 template <typename InStack>
-auto WordCount(const DIARef<std::string, InStack>&input) {
+auto WordCount(const DIA<std::string, InStack>&input) {
 
     auto word_pairs = input.template FlatMap<WordCountPair>(
         [](const std::string& line, auto emit) -> void {
                 /* map lambda: emit each word */
-            for (const std::string& word : common::split(line, ' ')) {
+            for (const std::string& word : common::Split(line, ' ')) {
                 if (word.size() != 0)
                     emit(WordCountPair(word, 1));
             }

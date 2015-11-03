@@ -3,11 +3,11 @@
  *
  * Lightweight wrapper around BSD socket API.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -57,7 +57,12 @@ public:
     //! \{
 
     //! construct new Socket object from existing file descriptor.
-    explicit Socket(int fd) : fd_(fd) { }
+    explicit Socket(int fd)
+        : fd_(fd) {
+        SetNoDelay(true);
+        SetSndBuf(128 * 1024);
+        SetRcvBuf(128 * 1024);
+    }
 
     //! default constructor: invalid socket.
     Socket() : fd_(-1) { }
@@ -67,7 +72,7 @@ public:
     //! non-copyable: delete assignment operator
     Socket& operator = (const Socket&) = delete;
     //! move-constructor: move file descriptor
-    Socket(Socket&& s) : fd_(s.fd_) { s.fd_ = -1; }
+    Socket(Socket&& s) noexcept : fd_(s.fd_) { s.fd_ = -1; }
     //! move-assignment operator: move file descriptor
     Socket& operator = (Socket&& s) {
         if (this == &s) return *this;
@@ -100,6 +105,7 @@ public:
                       "Error setting FD_CLOEXEC on network socket");
         }
 #endif
+
         return Socket(fd);
     }
 
@@ -152,9 +158,10 @@ public:
     }
 
     //! Turn socket into non-blocking state.
-    //! \return old blocking value (0 or 1) or -1 for error
-    int SetNonBlocking(bool non_blocking) const {
+    bool SetNonBlocking(bool non_blocking) {
         assert(IsValid());
+
+        if (non_blocking == non_blocking_) return true;
 
         int old_opts = fcntl(fd_, F_GETFL);
 
@@ -167,10 +174,11 @@ public:
                 << " fd_=" << fd_
                 << " non_blocking=" << non_blocking
                 << " error=" << strerror(errno);
-            return -1;
+            return false;
         }
 
-        return old_opts;
+        non_blocking_ = non_blocking;
+        return true;
     }
 
     //! Return the current local socket address.
@@ -231,23 +239,6 @@ public:
         LOG << "Socket::close()"
             << " fd_=" << fd_
             << " closed";
-
-        fd_ = -1;
-
-        return true;
-    }
-
-    //! Shutdown one or both directions of socket.
-    bool shutdown(int how = SHUT_RDWR) {
-        assert(IsValid());
-
-        if (::shutdown(fd_, how) != 0)
-        {
-            LOG << "Socket::shutdown()"
-                << " fd_=" << fd_
-                << " error=" << strerror(errno);
-            return false;
-        }
 
         fd_ = -1;
 
@@ -354,7 +345,7 @@ public:
             LOG << "Socket::send_one()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << maybe_hexdump(data, size)
+                << " data=" << MaybeHexdump(data, size)
                 << " flags=" << flags;
         }
 
@@ -375,7 +366,7 @@ public:
             LOG << "Socket::send()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << maybe_hexdump(data, size)
+                << " data=" << MaybeHexdump(data, size)
                 << " flags=" << flags;
         }
 
@@ -417,7 +408,7 @@ public:
             LOG << "Socket::sendto()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << maybe_hexdump(data, size)
+                << " data=" << MaybeHexdump(data, size)
                 << " flags=" << flags
                 << " dest=" << dest;
         }
@@ -432,65 +423,35 @@ public:
         return r;
     }
 
-    //! Send message to socket.
-    ssize_t sendmsg(const struct msghdr* msg, int flags = 0) {
+    //! Recv (out_data,max_size) from socket (BSD socket API function wrapper)
+    ssize_t recv_one(void* out_data, size_t max_size, int flags = 0) {
         assert(IsValid());
 
-        if (debug) {
-            SocketAddress msg_name(
-                reinterpret_cast<struct sockaddr*>(msg->msg_name),
-                msg->msg_namelen);
-
-            LOG << "Socket::sendmsg()"
-                << " fd_=" << fd_
-                << " msg_name=" << msg_name
-                << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
-                << " control=" << maybe_hexdump(msg->msg_control, msg->msg_controllen)
-                << " flags=" << flags;
-        }
-
-        ssize_t r = ::sendmsg(fd_, msg, flags);
-
-        if (r < 0) {
-            LOG << "error! Socket::send()"
-                << " fd_=" << fd_
-                << " return=" << r
-                << " errno=" << strerror(errno);
-        }
-
-        return r;
-    }
-
-    //! Recv (outdata,maxsize) from socket (BSD socket API function wrapper)
-    ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0) {
-        assert(IsValid());
-
-#if __APPLE__
-        // this is a work-around, since on MacOSX errno is spontaneously ==
-        // EINVAL, with no relationship to recv -tb 2015-08-28
+        // this is a work-around, since on errno is spontaneously == EINVAL,
+        // with no relationship to recv() -tb 2015-08-28
         errno = 0;
-#endif
+
         LOG << "Socket::recv_one()"
             << " fd_=" << fd_
-            << " maxsize=" << maxsize
+            << " max_size=" << max_size
             << " flags=" << flags
             << " errno=" << errno;
 
-        ssize_t r = ::recv(fd_, outdata, maxsize, flags);
+        ssize_t r = ::recv(fd_, out_data, max_size, flags);
 
         if (debug) {
             LOG << "done Socket::recv_one()"
                 << " fd_=" << fd_
                 << " return=" << r
                 << " errno=" << errno
-                << " data=" << (r >= 0 ? maybe_hexdump(outdata, r) : "<error>");
+                << " data=" << (r >= 0 ? MaybeHexdump(out_data, r) : "<error>");
         }
 
         return r;
     }
 
     //! Receive (data,size) from socket, retry recvs if short-reads occur.
-    ssize_t recv(void* outdata, size_t size, int flags = 0) {
+    ssize_t recv(void* out_data, size_t size, int flags = 0) {
         assert(IsValid());
 
         LOG << "Socket::recv()"
@@ -498,7 +459,7 @@ public:
             << " size=" << size
             << " flags=" << flags;
 
-        char* cdata = static_cast<char*>(outdata);
+        char* cdata = static_cast<char*>(out_data);
         size_t rb = 0; // read bytes
 
         while (rb < size)
@@ -525,27 +486,27 @@ public:
             LOG << "done Socket::recv()"
                 << " fd_=" << fd_
                 << " return=" << rb
-                << " data=" << maybe_hexdump(outdata, rb);
+                << " data=" << MaybeHexdump(out_data, rb);
         }
 
         return rb;
     }
 
-    //! Recv (outdata,maxsize) and source address from socket (BSD socket API
+    //! Recv (out_data,max_size) and source address from socket (BSD socket API
     //! function wrapper)
-    ssize_t recvfrom(void* outdata, size_t maxsize, int flags = 0,
+    ssize_t recvfrom(void* out_data, size_t max_size, int flags = 0,
                      SocketAddress* out_source = nullptr) {
         assert(IsValid());
 
         LOG << "Socket::recvfrom()"
             << " fd_=" << fd_
-            << " maxsize=" << maxsize
+            << " max_size=" << max_size
             << " flags=" << flags
             << " out_socklen=" << (out_source ? out_source->socklen() : 0);
 
         socklen_t out_socklen = out_source ? out_source->socklen() : 0;
 
-        ssize_t r = ::recvfrom(fd_, outdata, maxsize, flags,
+        ssize_t r = ::recvfrom(fd_, out_data, max_size, flags,
                                out_source ? out_source->sockaddr() : nullptr,
                                &out_socklen);
 
@@ -554,50 +515,9 @@ public:
                 << " fd_=" << fd_
                 << " return=" << r
                 << " data="
-                << (r >= 0 ? maybe_hexdump(outdata, r) : "<error>")
+                << (r >= 0 ? MaybeHexdump(out_data, r) : "<error>")
                 << " out_source="
                 << (out_source ? out_source->ToStringHostPort() : "<null>");
-        }
-
-        return r;
-    }
-
-    //! Send message to socket.
-    ssize_t recvmsg(struct msghdr* msg, int flags = 0) {
-        assert(IsValid());
-
-        if (debug) {
-            SocketAddress msg_name(
-                reinterpret_cast<struct sockaddr*>(msg->msg_name),
-                msg->msg_namelen);
-
-            LOG << "Socket::recvmsg()"
-                << " fd_=" << fd_
-                << " msg_name=" << msg_name
-                << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
-                << " control=" << maybe_hexdump(msg->msg_control, msg->msg_controllen)
-                << " flags=" << flags;
-        }
-
-        ssize_t r = ::recvmsg(fd_, msg, flags);
-
-        if (r < 0) {
-            LOG << "error! Socket::send()"
-                << " fd_=" << fd_
-                << " return=" << r
-                << " errno=" << strerror(errno);
-        }
-        else {
-            SocketAddress msg_name(
-                reinterpret_cast<struct sockaddr*>(msg->msg_name),
-                msg->msg_namelen);
-
-            LOG << "Socket::recvmsg()"
-                << " fd_=" << fd_
-                << " msg_name=" << msg_name
-                << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
-                << " control=" << maybe_hexdump(msg->msg_control, msg->msg_controllen)
-                << " flags=" << flags;
         }
 
         return r;
@@ -657,34 +577,25 @@ public:
     //! sent as soon as possible, even if there is only a small amount of data.
     void SetNoDelay(bool activate = true);
 
+    //! Set SO_SNDBUF socket option.
+    void SetSndBuf(size_t size);
+
+    //! Set SO_RCVBUF socket option.
+    void SetRcvBuf(size_t size);
+
     //! \}
 
-    //! Output a list of scattered iovec vectors for debugging.
-    static inline
-    std::string iovec_tostring(struct iovec* iov, size_t iovlen) {
-        if (iovlen == 0)
-            return "[empty]";
-        if (iovlen == 1)
-            return maybe_hexdump(iov[0].iov_base, iov[0].iov_len);
-
-        std::ostringstream oss;
-        oss << '[';
-        for (size_t i = 0; i < iovlen; ++i) {
-            if (i != 0) oss << ',';
-            oss << maybe_hexdump(iov[i].iov_base, iov[i].iov_len);
-        }
-        oss << ']';
-        return oss.str();
-    }
-
-protected:
+private:
     //! the file descriptor of the socket.
     int fd_;
 
+    //! flag whether the socket is set to non-blocking
+    bool non_blocking_ = false;
+
     //! return hexdump or just [data] if not debugging
-    static std::string maybe_hexdump(const void* data, size_t size) {
+    static std::string MaybeHexdump(const void* data, size_t size) {
         if (debug_data)
-            return common::hexdump(data, size);
+            return common::Hexdump(data, size);
         else
             return "[data]";
     }

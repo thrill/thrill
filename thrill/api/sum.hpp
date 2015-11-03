@@ -1,12 +1,12 @@
 /*******************************************************************************
  * thrill/api/sum.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -29,26 +29,28 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef, typename SumFunction>
-class SumNode : public ActionNode
+template <typename ParentDIA, typename SumFunction>
+class SumNode final : public ActionNode
 {
     static const bool debug = false;
 
     using Super = ActionNode;
     using Super::context_;
-    using SumArg0 = ValueType;
+
+    //! input and result type is the parent's output value type.
+    using ValueType = typename ParentDIA::ValueType;
 
 public:
-    SumNode(const ParentDIARef& parent,
-            SumFunction sum_function,
-            ValueType initial_value,
+    SumNode(const ParentDIA& parent,
+            const SumFunction& sum_function,
+            const ValueType& initial_value,
             StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           sum_function_(sum_function),
           local_sum_(initial_value)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](ValueType input) {
+        auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
                          };
 
@@ -80,7 +82,6 @@ private:
     ValueType global_sum_;
 
     void PreOp(ValueType input) {
-        LOG << "PreOp: " << input;
         local_sum_ = sum_function_(local_sum_, input);
     }
 
@@ -91,18 +92,15 @@ private:
         // process the reduce
         global_sum_ = channel.AllReduce(local_sum_, sum_function_);
     }
-
-    void PostOp() { }
 };
 
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
-auto DIARef<ValueType, Stack>::Sum(
-    const SumFunction &sum_function, ValueType initial_value) const {
+auto DIA<ValueType, Stack>::Sum(
+    const SumFunction &sum_function, const ValueType &initial_value) const {
     assert(IsValid());
 
-    using SumResultNode
-              = SumNode<ValueType, DIARef, SumFunction>;
+    using SumNode = api::SumNode<DIA, SumFunction>;
 
     static_assert(
         std::is_convertible<
@@ -124,10 +122,9 @@ auto DIARef<ValueType, Stack>::Sum(
 
     StatsNode* stats_node = AddChildStatsNode("Sum", DIANodeType::ACTION);
     auto shared_node
-        = std::make_shared<SumResultNode>(*this,
-                                          sum_function,
-                                          initial_value,
-                                          stats_node);
+        = std::make_shared<SumNode>(
+        *this, sum_function, initial_value, stats_node);
+
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }

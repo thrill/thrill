@@ -3,11 +3,11 @@
  *
  * Lightweight wrapper around select()
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -112,7 +112,7 @@ public:
         }
     }
 
-protected:
+private:
     //! read bit-field
     fd_set read_set_;
 

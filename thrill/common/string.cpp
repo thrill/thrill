@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/common/string.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/common/string.hpp>
@@ -15,7 +15,7 @@
 namespace thrill {
 namespace common {
 
-std::string hexdump(const void* const data, size_t size) {
+std::string Hexdump(const void* const data, size_t size) {
     const unsigned char* const cdata
         = static_cast<const unsigned char* const>(data);
 
@@ -37,8 +37,8 @@ std::string hexdump(const void* const data, size_t size) {
     return out;
 }
 
-std::string hexdump(const std::string& str) {
-    return hexdump(str.data(), str.size());
+std::string Hexdump(const std::string& str) {
+    return Hexdump(str.data(), str.size());
 }
 
 } // namespace common

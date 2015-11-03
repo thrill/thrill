@@ -3,13 +3,13 @@
  *
  * Hash table with support for reduce and partitions.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -96,10 +96,10 @@ public:
     { }
 
     template <typename ReducePreTable>
-    typename ReducePreTable::index_result
+    typename ReducePreTable::IndexResult
     operator () (const Key& k, ReducePreTable* ht) const {
 
-        using index_result = typename ReducePreTable::index_result;
+        using IndexResult = typename ReducePreTable::IndexResult;
 
         size_t hashed = hash_function_(k);
 
@@ -107,7 +107,8 @@ public:
         size_t partition_id = hashed % ht->NumPartitions();
         size_t global_index = partition_id *
                               ht->NumBucketsPerPartition() + local_index;
-        return index_result(partition_id, local_index, global_index);
+
+        return IndexResult(partition_id, local_index, global_index);
     }
 
 private:
@@ -124,16 +125,16 @@ public:
     { }
 
     template <typename ReducePreTable>
-    typename ReducePreTable::index_result
+    typename ReducePreTable::IndexResult
     operator () (const size_t k, ReducePreTable* ht) const {
 
-        using index_result = typename ReducePreTable::index_result;
+        using IndexResult = typename ReducePreTable::IndexResult;
 
-        size_t global_index = k * ht->NumBucketsPerTable() / size_;
-        size_t partition_id = k * ht->NumPartitions() / size_;
+        size_t global_index = std::min(ht->NumBucketsPerTable() - 1, k * ht->NumBucketsPerTable() / size_);
+        size_t partition_id = std::min(k * ht->NumPartitions() / size_, ht->NumPartitions() - 1);
         size_t local_index = global_index -
                              partition_id * ht->NumBucketsPerPartition();
-        return index_result(partition_id, local_index, global_index);
+        return IndexResult(partition_id, local_index, global_index);
     }
 };
 
@@ -149,7 +150,7 @@ class ReducePreTable
     static const bool debug = false;
 
 public:
-    struct index_result
+    struct IndexResult
     {
     public:
         //! which partition number the item belongs to.
@@ -159,7 +160,7 @@ public:
         //! index within the whole hashtable
         size_t global_index;
 
-        index_result(size_t p_id, size_t p_off, size_t g_id) {
+        IndexResult(size_t p_id, size_t p_off, size_t g_id) {
             partition_id = p_id;
             local_index = p_off;
             global_index = g_id;
@@ -233,20 +234,24 @@ public:
         assert(bucket_rate > 0.0 && bucket_rate <= 1.0);
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
 
-        max_num_blocks_per_table_ = std::max<size_t>((size_t)(static_cast<double>(byte_size_)
-                                                              / static_cast<double>(sizeof(BucketBlock))), 1);
-        max_num_blocks_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
-                                                                  / static_cast<double>(num_partitions_)), 1);
-        num_buckets_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_partition_)
-                                                               * bucket_rate), 1);
+        max_num_blocks_per_table_ =
+            std::max<size_t>((size_t)(static_cast<double>(byte_size_)
+                                      / static_cast<double>(sizeof(BucketBlock))), 1);
+        max_num_blocks_per_partition_ =
+            std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
+                                      / static_cast<double>(num_partitions_)), 1);
+        num_buckets_per_partition_ =
+            std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_partition_)
+                                      * bucket_rate), 1);
         num_buckets_per_table_ = num_buckets_per_partition_ * num_partitions_;
 
         // reduce number of blocks once we know how many buckets we have, thus
         // knowing the size of pointers in the bucket vector
 
-        max_num_blocks_per_table_ -= std::max<size_t>((size_t)(std::ceil(
-                                                                   static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
-                                                                   / static_cast<double>(sizeof(BucketBlock)))), 0);
+        max_num_blocks_per_table_ -=
+            std::max<size_t>((size_t)(std::ceil(
+                                          static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
+                                          / static_cast<double>(sizeof(BucketBlock)))), 0);
 
         assert(max_num_blocks_per_table_ > 0);
         assert(max_num_blocks_per_partition_ > 0);
@@ -303,13 +308,13 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        index_result h = index_function_(kv.first, this);
+        IndexResult h = index_function_(kv.first, this);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.local_index >= 0 && h.local_index < num_buckets_per_partition_);
         assert(h.global_index >= 0 && h.global_index < num_buckets_per_table_);
 
-        LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
+        // LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
         BucketBlock* current = buckets_[h.global_index];
 
@@ -322,8 +327,8 @@ public:
                 // if item and key equals, then reduce.
                 if (equal_to_function_(kv.first, bi->first))
                 {
-                    LOG << "match of key: " << kv.first
-                        << " and " << bi->first << " ... reducing...";
+                    // LOG << "match of key: " << kv.first
+                    //     << " and " << bi->first << " ... reducing...";
 
                     bi->second = reduce_function_(bi->second, kv.second);
 
@@ -341,15 +346,13 @@ public:
 
         current = buckets_[h.global_index];
 
-        if (current == nullptr ||
-            current->size == block_size_)
+        if (current == nullptr || current->size == block_size_)
         {
             //////
             // new block needed.
             //////
 
-            // flush current partition if max partition fill rate
-            // reached
+            // flush current partition if max partition fill rate reached
             if (static_cast<double>(num_blocks_per_partition_[h.partition_id] + 1)
                 / static_cast<double>(max_num_blocks_per_partition_)
                 > max_partition_fill_rate_)
@@ -357,8 +360,7 @@ public:
                 FlushPartition(h.partition_id);
             }
 
-            // flush largest partition if max number of blocks
-            // reached
+            // flush largest partition if max number of blocks reached
             if (num_blocks_per_table_ == max_num_blocks_per_table_)
             {
                 FlushLargestPartition();
@@ -379,7 +381,7 @@ public:
         }
 
         // in-place construct/insert new item in current bucket block
-        new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
+        new (current->items + current->size++)KeyValuePair(kv);
         // Increase total item count
         num_items_per_table_++;
     }
@@ -450,7 +452,7 @@ public:
             << partition_id;
 
         for (size_t i = partition_id * num_buckets_per_partition_;
-             i < partition_id * num_buckets_per_partition_ + num_buckets_per_partition_; i++)
+             i < (partition_id + 1) * num_buckets_per_partition_; i++)
         {
             BucketBlock* current = buckets_[i];
 
@@ -460,18 +462,18 @@ public:
                      bi != current->items + current->size; ++bi)
                 {
                     if (RobustKey) {
-                        emit_[partition_id](bi->second);
+                        emit_[partition_id].PutItem(bi->second);
                         sLOG << "Pushing value";
                         emit_stats_[partition_id]++;
                     }
                     else {
-                        emit_[partition_id](*bi);
+                        emit_[partition_id].PutItem(*bi);
                         sLOG << "pushing pair";
                         emit_stats_[partition_id]++;
                     }
-
-                    num_items_per_table_--;
                 }
+
+                num_items_per_table_ -= current->size;
 
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -492,8 +494,7 @@ public:
         // increase flush counter
         num_flushes_++;
 
-        LOG << "Flushed items of partition with id: "
-            << partition_id;
+        LOG << "Flushed items of partition with id: " << partition_id;
     }
 
     /*!
@@ -570,7 +571,7 @@ public:
     void Print() {
         LOG << "Printing";
 
-        for (int i = 0; i < num_buckets_per_table_; i++)
+        for (size_t i = 0; i < num_buckets_per_table_; i++)
         {
             if (buckets_[i] == nullptr)
             {
@@ -612,7 +613,7 @@ public:
         return;
     }
 
-protected:
+private:
     //! Number of partitions
     size_t num_partitions_;
 
@@ -654,7 +655,7 @@ protected:
     std::vector<size_t> num_blocks_per_partition_;
 
     //! Emitter stats.
-    std::vector<int> emit_stats_;
+    std::vector<size_t> emit_stats_;
 
     //! Storing the items.
     std::vector<BucketBlock*> buckets_;

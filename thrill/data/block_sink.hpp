@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/data/block_sink.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -34,6 +34,15 @@ public:
     explicit BlockSink(BlockPool& block_pool)
         : block_pool_(block_pool)
     { }
+
+    //! non-copyable: delete copy-constructor
+    BlockSink(const BlockSink&) = delete;
+    //! non-copyable: delete assignment operator
+    BlockSink& operator = (const BlockSink&) = delete;
+    //! move-constructor: default
+    BlockSink(BlockSink&&) = default;
+    //! move-assignment operator: default
+    BlockSink& operator = (BlockSink&&) = default;
 
     //! required virtual destructor
     virtual ~BlockSink() { }
@@ -94,7 +103,7 @@ public:
 
     enum { allocate_can_fail_ = true };
 
-protected:
+private:
     //! maximum allocation of ByteBlock for this BlockSink
     size_t max_size_;
 

@@ -1,7 +1,11 @@
 ################################################################################
 # tests/CMakeLists.txt
 #
-# CMake file for Thrill testsuite
+# Part of Project Thrill - http://project-thrill.org
+#
+# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
 # macro for building test programs with correct libraries
@@ -71,14 +75,19 @@ endmacro(build_test_group)
 
 build_plain(common/cmdline_parser_example)
 build_test_group(common/tests
+  common/aggregate_test
   common/cmdline_parser_test.cpp
   common/concurrent_bounded_queue_test.cpp
   common/concurrent_queue_test.cpp
   common/counting_ptr_test.cpp
   common/delegate_test.cpp
+  common/fast_string_test.cpp
   common/function_traits_test.cpp
   common/future_queue_test.cpp
   common/future_test.cpp
+  common/math_test.cpp
+  common/matrix_test.cpp
+  common/meta_test.cpp
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
   common/thread_barrier_test.cpp
@@ -88,18 +97,29 @@ build_test_group(common/tests
 
 build_test(mem/allocator_test)
 build_test(mem/page_mapper_test)
-build_test(mem/malloc_tracker_test)
+build_test(mem/stack_allocator_test)
+if(NOT MSVC)
+  build_test(mem/malloc_tracker_test)
+endif()
 
 build_test(net/binary_builder_test)
 build_test(net/buffer_test)
 build_test(net/mock_test)
-build_test(net/tcp_test)
+if(NOT MSVC)
+  build_test(net/tcp_test)
+endif()
+if(MPI_FOUND)
+  build_only(net/mpi_test)
+  # run test with mpirun
+  add_test(net_mpi_test ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8 net_mpi_test)
+endif()
 
 build_test(data/block_queue_test)
 build_test(data/block_pool_test)
 build_test(data/file_test)
 build_test(data/multiplexer_header_test)
 build_test(data/multiplexer_test)
+build_test(data/stream_set_test)
 build_test(data/serialization_cereal_test)
 build_test(data/serialization_test)
 
@@ -107,7 +127,7 @@ build_test(core/pre_hash_table_test)
 build_test(core/pre_hash_table_probing_test)
 build_test(core/post_hash_table_test)
 build_test(core/post_hash_table_probing_test)
-
+build_test(core/multiway_merge_test)
 build_test(core/stage_builder_test)
 
 build_test(api/function_stack_test)
@@ -115,9 +135,11 @@ build_test(api/graph_test)
 build_test(api/operations_test)
 build_test(api/read_write_test)
 build_test(api/reduce_node_test)
+build_test(api/groupby_node_test)
 build_test(api/sort_node_test)
 build_test(api/sum_node_test)
 build_test(api/zip_node_test)
+build_test(api/merge_node_test)
 
 build_test(examples/wordcount_test)
 

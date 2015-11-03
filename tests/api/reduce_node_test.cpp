@@ -1,12 +1,12 @@
 /*******************************************************************************
  * tests/api/reduce_node_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -48,7 +48,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
 
             std::sort(out_vec.begin(), out_vec.end());
 
-            int i = 1;
+            size_t i = 1;
 
             for (const size_t& element : out_vec) {
                 ASSERT_EQ(element, 56 + (8 * i++));

@@ -1,12 +1,12 @@
 /*******************************************************************************
  * tests/api/operations_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <gtest/gtest.h>
@@ -21,6 +21,7 @@
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
+#include <thrill/api/window.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
 
@@ -31,6 +32,35 @@
 #include <vector>
 
 using namespace thrill; // NOLINT
+
+class Integer
+{
+public:
+    explicit Integer(size_t v)
+        : value_(v) { }
+
+    size_t value() const { return value_; }
+
+    static const bool thrill_is_fixed_size = true;
+    static const size_t thrill_fixed_size = sizeof(size_t);
+
+    template <typename Archive>
+    void ThrillSerialize(Archive& ar) const {
+        ar.template Put<size_t>(value_);
+    }
+
+    template <typename Archive>
+    static Integer ThrillDeserialize(Archive& ar) {
+        return Integer(ar.template Get<size_t>());
+    }
+
+    friend std::ostream& operator << (std::ostream& os, const Integer& i) {
+        return os << i.value_;
+    }
+
+protected:
+    size_t value_;
+};
 
 TEST(Operations, DistributeAndAllGatherElements) {
 
@@ -50,7 +80,7 @@ TEST(Operations, DistributeAndAllGatherElements) {
             std::default_random_engine gen(123456);
             std::shuffle(in_vector.begin(), in_vector.end(), gen);
 
-            DIARef<size_t> integers = Distribute(ctx, in_vector).Collapse();
+            DIA<size_t> integers = Distribute(ctx, in_vector).Collapse();
 
             std::vector<size_t> out_vec = integers.AllGather();
 
@@ -83,7 +113,7 @@ TEST(Operations, DistributeFromAndAllGatherElements) {
                 std::random_shuffle(in_vector.begin(), in_vector.end());
             }
 
-            DIARef<size_t> integers = DistributeFrom(ctx, in_vector, 0).Collapse();
+            DIA<size_t> integers = DistributeFrom(ctx, in_vector, 0).Collapse();
 
             std::vector<size_t> out_vec = integers.AllGather();
 
@@ -116,7 +146,7 @@ TEST(Operations, DistributeAndGatherElements) {
             std::default_random_engine gen(123456);
             std::shuffle(in_vector.begin(), in_vector.end(), gen);
 
-            DIARef<size_t> integers = Distribute(ctx, in_vector).Cache();
+            DIA<size_t> integers = Distribute(ctx, in_vector).Cache();
 
             std::vector<size_t> out_vec = integers.Gather(0);
 
@@ -174,7 +204,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
             std::function<double(size_t)> double_elements =
                 [](size_t in) {
-                    return static_cast<double>(2.0 * in);
+                    return 2.0 * static_cast<double>(in);
                 };
 
             auto doubled = integers.Map(double_elements);
@@ -219,8 +249,11 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
             ASSERT_EQ(32u, out_vec.size());
 
             for (size_t i = 0; i != out_vec.size() / 2; ++i) {
-                ASSERT_DOUBLE_EQ(out_vec[2 * i + 0], 2.0 * i);
-                ASSERT_DOUBLE_EQ(out_vec[2 * i + 1], 2.0 * (i + 16));
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 0],
+                                 2.0 * static_cast<double>(i));
+
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 1],
+                                 2.0 * static_cast<double>(i + 16));
             }
 
             static_assert(
@@ -294,6 +327,55 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
     api::RunLocalTests(start_func);
 }
 
+TEST(Operations, WindowCorrectResults) {
+
+    static const bool debug = false;
+    static const size_t test_size = 144;
+    static const size_t window_size = 10;
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            sLOG << ctx.num_hosts();
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& input) { return input * input; },
+                test_size);
+
+            auto window = integers.Window(
+                window_size, [](size_t rank,
+                                const common::RingBuffer<size_t>& window) {
+
+                    // check received window
+                    die_unequal(window_size, window.size());
+
+                    for (size_t i = 0; i < window.size(); ++i) {
+                        sLOG << rank + i << window[i];
+                        die_unequal((rank + i) * (rank + i), window[i]);
+                    }
+
+                    // return rank to check completeness
+                    return Integer(rank);
+                });
+
+            // check rank completeness
+
+            std::vector<Integer> out_vec = window.AllGather();
+
+            if (ctx.my_rank() == 0)
+                sLOG << common::Join(" - ", out_vec);
+
+            for (size_t i = 0; i < out_vec.size(); i++) {
+                ASSERT_EQ(i, out_vec[i].value());
+            }
+
+            ASSERT_EQ(test_size - window_size + 1, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(Operations, FilterResultsCorrectly) {
 
     std::function<void(Context&)> start_func =
@@ -317,7 +399,7 @@ TEST(Operations, FilterResultsCorrectly) {
             size_t i = 1;
 
             for (size_t element : out_vec) {
-                ASSERT_DOUBLE_EQ(element, (i++ *2));
+                ASSERT_EQ(element, (i++ *2));
             }
 
             ASSERT_EQ(8u, out_vec.size());
@@ -326,7 +408,7 @@ TEST(Operations, FilterResultsCorrectly) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, DIARefCasting) {
+TEST(Operations, DIACasting) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -342,14 +424,14 @@ TEST(Operations, DIARefCasting) {
                 },
                 16);
 
-            DIARef<size_t> doubled = integers.Filter(even).Collapse();
+            DIA<size_t> doubled = integers.Filter(even).Collapse();
 
             std::vector<size_t> out_vec = doubled.AllGather();
 
             size_t i = 1;
 
             for (size_t element : out_vec) {
-                ASSERT_DOUBLE_EQ(element, (i++ *2));
+                ASSERT_EQ(element, (i++ *2));
             }
 
             ASSERT_EQ(8u, out_vec.size());
@@ -379,7 +461,7 @@ TEST(Operations, ForLoop) {
                                     return 2 * in;
                                 };
 
-            DIARef<size_t> squares = integers.Collapse();
+            DIA<size_t> squares = integers.Collapse();
 
             // run loop four times, inflating DIA of 16 items -> 256
             for (size_t i = 0; i < 4; ++i) {
@@ -421,7 +503,7 @@ TEST(Operations, WhileLoop) {
                                     return 2 * in;
                                 };
 
-            DIARef<size_t> squares = integers.Collapse();
+            DIA<size_t> squares = integers.Collapse();
             size_t sum = 0;
 
             // run loop four times, inflating DIA of 16 items -> 256

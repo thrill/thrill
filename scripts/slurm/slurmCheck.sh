@@ -1,4 +1,13 @@
 #!/bin/bash
+################################################################################
+# scripts/slurm/slurmCheck.sh
+#
+# Part of Project Thrill - http://project-thrill.org
+#
+# Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 set -e
 
@@ -17,11 +26,13 @@ if [ -z $SLURM_NNODES ]; then
   exit -1
 fi
 
-if [ $SLURM_NNODES -ne $SLURM_NTASKS ]; then 
-  echo "Error: Multiple Thrill instances running on a single node."
-  exit -1
-fi
+#if [ $SLURM_NNODES -ne $SLURM_NTASKS ]; then 
+#  echo "Error: Multiple Thrill instances running on a single node."
+#  exit -1
+#fi
 
 echo "More SLURM Environment:"
 set | grep ^SLURM
 echo "END SLURM Environment:"
+
+################################################################################

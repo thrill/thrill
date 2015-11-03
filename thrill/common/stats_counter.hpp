@@ -5,12 +5,12 @@
  * (See accompanying file LICENSE_1_0.txt or copy at
  * http://www.boost.org/LICENSE_1_0.txt)
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2014 Thomas Keh <thomas.keh@student.kit.edu>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -39,7 +39,7 @@ public:
     //! The counter's value type
     using ValueType = _ValueType;
 
-protected:
+private:
     //! The counter's value
     ValueType value_;
 

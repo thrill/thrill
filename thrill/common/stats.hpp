@@ -1,10 +1,10 @@
 /*******************************************************************************
  * thrill/common/stats.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -158,8 +158,9 @@ private:
     const TimeStamp program_start_;
 
     //! relative duration in microseconds to creation of this instance.
-    inline long Relative(const TimeStamp& time_point) {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(time_point - program_start_).count();
+    std::chrono::milliseconds::rep Relative(const TimeStamp& time_point) {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            time_point - program_start_).count();
     }
 };
 

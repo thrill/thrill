@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/api/gather.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -16,6 +16,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/core/stage_builder.hpp>
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -25,22 +26,25 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentDIARef>
-class GatherNode : public ActionNode
+template <typename ParentDIA>
+class GatherNode final : public ActionNode
 {
 public:
     using Super = ActionNode;
     using Super::context_;
 
-    GatherNode(const ParentDIARef& parent,
+    //! input and output type is the parent's output value type.
+    using ValueType = typename ParentDIA::ValueType;
+
+    GatherNode(const ParentDIA& parent,
                size_t target_id,
                std::vector<ValueType>* out_vector,
                StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           target_id_(target_id),
           out_vector_(out_vector),
-          channel_(parent.ctx().GetNewChannel()),
-          emitters_(channel_->OpenWriters())
+          stream_(parent.ctx().GetNewCatStream()),
+          emitters_(stream_->OpenWriters())
     {
         assert(target_id_ < context_.num_workers());
 
@@ -53,22 +57,26 @@ public:
         // node for output
         auto lop_chain = parent.stack().push(pre_op_function).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
+
+        // close all but the target
+        for (size_t i = 0; i < emitters_.size(); i++) {
+            if (i == target_id_) continue;
+            emitters_[i].Close();
+        }
+    }
+
+    void StopPreOp(size_t /* id */) final {
+        emitters_[target_id_].Close();
     }
 
     void Execute() final {
-        // data has been pushed during pre-op -> close emitters
-        for (size_t i = 0; i < emitters_.size(); i++) {
-            emitters_[i].Close();
-        }
-
-        bool consume = false;
-        auto reader = channel_->OpenConcatReader(consume);
+        auto reader = stream_->OpenCatReader(true /* consume */);
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
 
-        this->WriteChannelStats(channel_);
+        this->WriteStreamStats(stream_);
     }
 
     void Dispose() final { }
@@ -80,21 +88,16 @@ private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::ChannelPtr channel_;
-    std::vector<data::Channel::Writer> emitters_;
+    data::CatStreamPtr stream_;
+    std::vector<data::CatStream::Writer> emitters_;
 };
 
-/*!
- * Gather is an Action, which collects all data of the DIA into a vector at the
- * given worker. This should only be done if the received data can fit into RAM
- * of the one worker.
- */
 template <typename ValueType, typename Stack>
 std::vector<ValueType>
-DIARef<ValueType, Stack>::Gather(size_t target_id) const {
+DIA<ValueType, Stack>::Gather(size_t target_id) const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<ValueType, DIARef>;
+    using GatherNode = api::GatherNode<DIA>;
 
     std::vector<ValueType> output;
 
@@ -107,23 +110,49 @@ DIARef<ValueType, Stack>::Gather(size_t target_id) const {
     return std::move(output);
 }
 
-/*!
- * Gather is an Action, which collects all data of the DIA into a vector at the
- * given worker. This should only be done if the received data can fit into RAM
- * of the one worker.
- */
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::Gather(
-    size_t target_id, std::vector<ValueType>* out_vector)  const {
+void DIA<ValueType, Stack>::Gather(
+    size_t target_id, std::vector<ValueType>* out_vector) const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<ValueType, DIARef>;
+    using GatherNode = api::GatherNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<GatherNode>(*this, target_id, out_vector, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
+}
+
+template <typename ValueType, typename Stack>
+void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) const {
+    assert(IsValid());
+
+    using GatherNode = api::GatherNode<DIA>;
+
+    std::vector<ValueType> output;
+
+    StatsNode* stats_node = AddChildStatsNode("Print", DIANodeType::ACTION);
+    auto shared_node =
+        std::make_shared<GatherNode>(*this, 0, &output, stats_node);
+
+    core::StageBuilder().RunScope(shared_node.get());
+
+    if (shared_node->context().my_rank() == 0)
+    {
+        os << name
+           << " --- Begin DIA.Print() --- size=" << output.size() << '\n';
+        for (size_t i = 0; i < output.size(); ++i) {
+            os << name << '[' << i << "]: " << output[i] << '\n';
+        }
+        os << name
+           << " --- End DIA.Print() --- size=" << output.size() << std::endl;
+    }
+}
+
+template <typename ValueType, typename Stack>
+void DIA<ValueType, Stack>::Print(const std::string& name) const {
+    return Print(name, std::cout);
 }
 
 //! \}

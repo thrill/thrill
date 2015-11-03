@@ -1,11 +1,11 @@
 /*******************************************************************************
  * thrill/data/block_reader.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
@@ -42,9 +42,12 @@ class BlockReader
 public:
     static const bool self_verify = common::g_self_verify;
 
-    //! Start reading a File
+    //! Start reading a BlockSource
     explicit BlockReader(BlockSource&& source)
         : source_(std::move(source)) { }
+
+    //! default constructor
+    BlockReader() = default;
 
     //! Return reference to enclosed BlockSource
     BlockSource & source() { return source_; }
@@ -53,6 +56,7 @@ public:
     BlockReader(const BlockReader&) = delete;
     //! non-copyable: delete assignment operator
     BlockReader& operator = (const BlockReader&) = delete;
+
     //! move-constructor: default
     BlockReader(BlockReader&&) = default;
     //! move-assignment operator: default
@@ -88,7 +92,7 @@ public:
         return Serialization<BlockReader, T>::Deserialize(*this);
     }
 
-    //! HasNext() returns true if at least one more byte is available.
+    //! HasNext() returns true if at least one more item is available.
     bool HasNext() {
         while (current_ == end_) {
             if (!NextBlock()) {
@@ -305,7 +309,7 @@ public:
 
     //! \}
 
-protected:
+private:
     //! Instance of BlockSource. This is NOT a reference, as to enable embedding
     //! of FileBlockSource to compose classes into File::Reader.
     BlockSource source_;

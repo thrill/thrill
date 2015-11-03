@@ -1,11 +1,11 @@
 /*******************************************************************************
  * benchmarks/data/disk.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
@@ -34,16 +34,17 @@ int main(int argc, const char** argv) {
     if (!clp.Process(argc, argv)) return -1;
 
     for (int i = 0; i < iterations; i++) {
-        api::RunSameThread([&input_file, &output_file](api::Context& ctx) {
-                               StatsTimer<true> timer(true);
-                               auto lines = ReadLines(ctx, input_file);
-                               lines.WriteLinesMany(output_file);
-                               timer.Stop();
-                               std::cout << "RESULT"
-                                         << " input_file=" << input_file
-                                         << " time=" << timer.Microseconds()
-                                         << std::endl;
-                           });
+        api::Run(
+            [&input_file, &output_file](api::Context& ctx) {
+                StatsTimer<true> timer(true);
+                auto lines = ReadLines(ctx, input_file);
+                lines.WriteLinesMany(output_file);
+                timer.Stop();
+                std::cout << "RESULT"
+                          << " input_file=" << input_file
+                          << " time=" << timer.Microseconds()
+                          << std::endl;
+            });
     }
 }
 

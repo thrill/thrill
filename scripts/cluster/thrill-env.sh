@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
-
-# Load current dir
-cluster="`dirname "$0"`"
-cluster="`cd "$cluster"; pwd`"
+################################################################################
+# scripts/cluster/thrill-env.sh
+#
+# Part of Project Thrill - http://project-thrill.org
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 # Cluster Options
 export CLUSTER_NODES="1"
 export CLUSTER_PPN="1"
 export CLUSTER_WALLTIME="2:00:00"
-export THRILL_TASK="${cluster}/worker.sh"
+export WORKER_TIMER="2h"
+export THRILL_WORKERS_PER_HOST="1"
+export THRILL_TASK="worker.sh"
+
+################################################################################
