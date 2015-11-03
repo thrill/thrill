@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/sort.hpp
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -310,9 +310,8 @@ private:
 
         size_t num_total_workers = context_.num_workers();
         size_t sample_size =
-            std::max(common::IntegerLog2Ceil(total_elem) *
-            static_cast<size_t>(1 / (desired_imbalance_ * desired_imbalance_)),
-                     (size_t) 1);
+            common::IntegerLog2Ceil(total_elem) *
+            static_cast<size_t>(1 / (desired_imbalance_ * desired_imbalance_));
 
         sample_size = std::min(data_.size(), sample_size);
 

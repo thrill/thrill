@@ -2,7 +2,7 @@
 ################################################################################
 # compile.sh
 #
-# Part of Project Thrill - http://project-thrill.org
+# Part of Project Thrill.
 #
 #
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
@@ -17,8 +17,8 @@ if [ ! -d "build" ]; then
     mkdir build
 fi
 cd build
-cmake .. $@ -DCMAKE_BUILD_TYPE=Release
-make $MAKEOPTS -j8
+cmake .. $@
+make $MAKEOPTS
 ctest -V
 
 ################################################################################

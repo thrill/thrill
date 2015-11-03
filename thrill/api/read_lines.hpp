@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/read_lines.hpp
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -437,7 +437,7 @@ private:
 DIA<std::string> ReadLines(Context& ctx, std::string filepath) {
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "ReadLines", DIANodeType::GENERATOR);
+        "ReadLines", DIANodeType::DOP);
 
     auto shared_node =
         std::make_shared<ReadLinesNode>(

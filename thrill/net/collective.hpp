@@ -4,7 +4,7 @@
  * This file provides collective communication primitives, which are to be used
  * with net::Groups.
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Robert Hangu <robert.hangu@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>

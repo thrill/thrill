@@ -7,7 +7,7 @@
  * - fcc Broadcast
  * - fcc PrefixSum
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
@@ -457,7 +457,6 @@ public:
             if (ctx.my_rank() == 0) {
                 LOG1 << "RESULT"
                      << " datatype=" << "size_t"
-                     << " operation=" << "broadcast"
                      << " workers=" << n
                      << " inner_repeats=" << inner_repeats_
                      << " time[us]=" << time
@@ -525,7 +524,6 @@ public:
             if (ctx.my_rank() == 0) {
                 LOG1 << "RESULT"
                      << " datatype=" << "size_t"
-                     << " operation=" << "prefixsum"
                      << " workers=" << n
                      << " inner_repeats=" << inner_repeats_
                      << " time[us]=" << time
@@ -543,73 +541,6 @@ private:
     unsigned int inner_repeats_ = 200;
 };
 
-/******************************************************************************/
-
-class AllReduce
-{
-public:
-    int Run(int argc, char* argv[]) {
-
-        common::CmdlineParser clp;
-
-        clp.AddUInt('r', "inner_repeats", inner_repeats_,
-                    "Repeat inner experiment a number of times.");
-
-        clp.AddUInt('R', "outer_repeats", outer_repeats_,
-                    "Repeat whole experiment a number of times.");
-
-        if (!clp.Process(argc, argv)) return -1;
-
-        return api::Run(
-            [=](api::Context& ctx) {
-                // make a copy of this for local workers
-                AllReduce local = *this;
-                return local.Test(ctx);
-            });
-    }
-
-    void Test(api::Context& ctx) {
-
-        for (size_t outer = 0; outer < outer_repeats_; ++outer) {
-
-            common::StatsTimer<true> t;
-
-            size_t n = ctx.num_workers();
-
-            t.Start();
-            for (size_t inner = 0; inner < inner_repeats_; ++inner) {
-                // prefixsum a different value in each iteration
-                size_t value = inner + ctx.my_rank();
-                value = ctx.AllReduce(value);
-                size_t expected = (n + inner) * ((n + inner) - 1) / 2 - inner * (inner - 1) / 2;
-                die_unequal(value, expected);
-            }
-            t.Stop();
-
-            size_t time = t.Microseconds();
-            // calculate maximum time.
-            time = ctx.AllReduce(time, common::maximum<size_t>());
-
-            if (ctx.my_rank() == 0) {
-                LOG1 << "RESULT"
-                     << " datatype=" << "size_t"
-                     << " operation=" << "allreduce"
-                     << " workers=" << n
-                     << " inner_repeats=" << inner_repeats_
-                     << " time[us]=" << time
-                     << " time_per_op[us]="
-                     << static_cast<double>(time) / inner_repeats_;
-            }
-        }
-    }
-
-private:
-    //! whole experiment
-    unsigned int outer_repeats_ = 1;
-
-    //! inner repetitions
-    unsigned int inner_repeats_ = 200;
-};
 /******************************************************************************/
 
 void Usage(const char* argv0) {
@@ -620,7 +551,6 @@ void Usage(const char* argv0) {
         << "    bandwidth  - 1-factor bandwidth" << std::endl
         << "    broadcast  - FCC Broadcast operation" << std::endl
         << "    prefixsum  - FCC PrefixSum operation" << std::endl
-        << "    allreduce  - FCC PrefixSum operation" << std::endl
         << std::endl;
 }
 
@@ -644,9 +574,6 @@ int main(int argc, char** argv) {
     }
     else if (benchmark == "prefixsum") {
         return PrefixSum().Run(argc - 1, argv + 1);
-    }
-    else if (benchmark == "allreduce") {
-        return AllReduce().Run(argc - 1, argv + 1);
     }
     else {
         Usage(argv[0]);

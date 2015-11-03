@@ -4,7 +4,7 @@
 # runs the bench_data_file_read_write benchmark with different types and
 # different data types
 #
-# Part of Project Thrill - http://project-thrill.org
+# Part of Project Thrill.
 #
 #
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.

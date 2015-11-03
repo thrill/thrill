@@ -4,7 +4,7 @@
  * DIANode for a groupby to indx operation.
  * Performs the actual groupby operation
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
  *
@@ -173,12 +173,12 @@ public:
     void Dispose() override { }
 
 private:
-    KeyExtractor key_extractor_;
-    GroupFunction groupby_function_;
+    const KeyExtractor& key_extractor_;
+    const GroupFunction& groupby_function_;
     const size_t number_keys_;
     const size_t key_range_start_;
     const size_t key_range_end_;
-    ValueOut neutral_element_;
+    const ValueOut& neutral_element_;
     HashFunction hash_function_;
     size_t totalsize_ = 0;
 

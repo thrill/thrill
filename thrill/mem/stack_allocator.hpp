@@ -9,7 +9,7 @@
  * and from
  * http://codereview.stackexchange.com/questions/31528/a-working-stack-allocator
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

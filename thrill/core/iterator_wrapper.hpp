@@ -6,7 +6,7 @@
  * Extracted and modified from Sound of Sorting (SortAlgo.h)
  * http://panthema.net/2013/sound-of-sorting/
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2013-2014 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>

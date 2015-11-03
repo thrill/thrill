@@ -3,7 +3,7 @@
  *
  * Minimalistic broadcast benchmark to test different net implementations.
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
@@ -46,25 +46,13 @@ void merge_test(thrill::api::Context& ctx) {
         [&gen](size_t /* index */) { return gen(); },
         size);
 
-    merge_input1 = merge_input1.Sort().Keep();
-    merge_input2 = merge_input2.Sort().Keep();
+    merge_input1 = merge_input1.Sort();
+    merge_input2 = merge_input2.Sort();
 
-    //Force sorting of dia before we run merge.
-    size_t sum = merge_input1.Sum();
-    size_t sum2 = merge_input2.Sum();
-    std::swap(sum, sum2);
-   
-    thrill::common::StatsTimer<true> timer(true); 
-    
     auto merge_result = merge_input1.Merge(
         merge_input2, std::less<size_t>());
 
-    assert(merge_result.Size() == size * 2);
-    timer.Stop();
-    
-    static const bool debug = true;
-    
-    LOG << "RESULT operation=merge time=" << timer.Microseconds() << " workers=" << ctx.num_workers();
+    merge_result.Size();
 }
 
 int main(int argc, char** argv) {

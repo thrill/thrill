@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/data/disk.cpp
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *

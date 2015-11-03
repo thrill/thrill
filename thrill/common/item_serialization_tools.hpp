@@ -5,7 +5,7 @@
  * Varint (7-bit encoding), and Strings by prefixing them with their length.
  * Included by BlockWriter and BinaryBufferBuilder via CRTP.
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

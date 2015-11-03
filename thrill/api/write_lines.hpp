@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/write_lines.hpp
  *
- * Part of Project Thrill - http://project-thrill.org
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>

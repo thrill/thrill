@@ -9,7 +9,7 @@ This mean your computer uploads lots of copies of binary! It is a good idea to `
 Install the AWS command line tools and boto3 python frontend.
 
 ```
-pip install awscli boto3
+pip install aws_cli boto3
 ```
 
 Depending on Linux distro, you may have to replace `pip` with `pip3` or install the python libraries only as user with `pip install --user`.
@@ -50,4 +50,4 @@ aws ec2 describe-instances
 
 ## Example
 
-./invoke.sh -u ec2-user -c ../../build/benchmarks/net/net_benchmark broadcast -r 100
+./invoke.sh -c ../../build/benchmarks/net/broadcast -r 100
