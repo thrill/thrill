@@ -10,8 +10,10 @@
 #pragma once
 #ifndef THRILL_DATA_BYTE_BLOCK_HEADER
 #define THRILL_DATA_BYTE_BLOCK_HEADER
+
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/delegate.hpp>
+
 #include <limits>       // std::numeric_limits
 
 namespace thrill {
@@ -25,6 +27,7 @@ using Byte = uint8_t;
 
 // forward declaration (definition further below)
 class BlockPool;
+
 /*!
  * A ByteBlock is the basic storage units of containers like File, BlockQueue,
  * etc. It consists of a fixed number of bytes without any type and meta
@@ -125,8 +128,10 @@ public:
 };
 
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;
-} //namespace data
+
+} // namespace data
+} // namespace thrill
+
 #endif // !THRILL_DATA_BYTE_BLOCK_HEADER
-} //namespace thrill
 
 /******************************************************************************/

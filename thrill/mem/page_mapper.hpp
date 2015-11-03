@@ -12,7 +12,7 @@
 #ifndef THRILL_MEM_PAGE_MAPPER_HEADER
 #define THRILL_MEM_PAGE_MAPPER_HEADER
 
-//aliases - MAC does not support these flags
+// aliases - MAC does not support these flags
 #ifdef __APPLE__
 #define O_NOATIME 0
 #define O_LARGEFILE 0
@@ -20,19 +20,19 @@
 #endif
 
 #include <fcntl.h>           //open
+#include <stdio.h>           //remove
 #include <sys/mman.h>        //mappings + advice
 #include <sys/stat.h>        //open
 #include <sys/types.h>       //open
 #include <unistd.h>          //sysconfig
-#include <stdio.h>            //remove
 
 #ifdef USE_EXPLAIN
 #include <libexplain/lseek.h>
 #include <libexplain/mmap.h> // explain mmap errors
 #endif
 
-#include <queue>
 #include <mutex>
+#include <queue>
 
 #include <thrill/common/concurrent_queue.hpp>
 #include <thrill/common/logger.hpp>
@@ -86,7 +86,7 @@ public:
     //! file-backing. Returns the memory address of this region and a
     //! result_token that can be used to address the memory region.
     //! \param result_token is the will be filled with the token associated with the block
-    uint8_t * Allocate(uint32_t & result_token) {
+    uint8_t * Allocate(uint32_t& result_token) {
         sLOG << "allocate memory w/ disk backing";
         result_token = next_free_token();
         return SwapIn(result_token, false /*prefetch*/);
@@ -181,7 +181,7 @@ private:
             sLOG << "reuse swap token" << result;
             return result;
         }
-        std::lock_guard<std::mutex>lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
 
         // remember result
         result = next_token_;

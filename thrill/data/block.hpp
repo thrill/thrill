@@ -46,6 +46,8 @@ namespace data {
  */
 class Block
 {
+    static const bool debug = false;
+
 public:
     Block() : pinned_(false) { }
 
@@ -56,8 +58,7 @@ public:
         : byte_block_(byte_block),
           begin_(begin), end_(end),
           first_item_(first_item), num_items_(num_items), pinned_(false)
-    {
-    }
+    { }
 
     //! Moves the block - the pinned property is moved as well
     //! the 'other' block is afterwards unpinned
@@ -175,27 +176,29 @@ public:
     //! Otherwise an async pin call will be issued
     //! The future is allocated on the heap, ownership is transfered to caller
     //! This is required since Future is not moveable because ot mutexes
-    common::Future<Block>* Pin() {
-        //future required for passing result from backgroud thread (which calls the callback) back to caller's thread
+    common::Future<Block> * Pin() {
+        // future required for passing result from backgroud thread (which calls the callback) back to caller's thread
         common::Future<Block>* result = new common::Future<Block>();
-        //pinned blocks can be returned straigt away
+        // pinned blocks can be returned straigt away
         if (pinned_) {
             sLOG << "block " << byte_block_->data_ << " was already pinned";
             *result << Block(*this);
-        } else {
+        }
+        else {
             sLOG << "request pin for block " << byte_block_->swap_token_;
-            //call pin with callback that creates new, pinned block
-            byte_block_->Pin([&](){
-                Block b(*this);
-                b.pinned_ = true;
-                sLOG << "block " << byte_block_->swap_token_ << "/" << byte_block_->data_ << " is now pinned";
-                *result << std::move(b);
-            });
+            // call pin with callback that creates new, pinned block
+            byte_block_->Pin(
+                [&]() {
+                    Block b(*this);
+                    b.pinned_ = true;
+                    sLOG << "block " << byte_block_->swap_token_ << "/" << byte_block_->data_ << " is now pinned";
+                    *result << std::move(b);
+                });
         }
         return result;
     }
 
-    Block&& UnpinnedCopy() {
+    Block && UnpinnedCopy() {
         return std::move(Block(byte_block_, begin_, end_, first_item_, num_items_, false));
     }
 
@@ -208,12 +211,10 @@ protected:
         : byte_block_(byte_block),
           begin_(begin), end_(end),
           first_item_(first_item), num_items_(num_items),
-          pinned_(pinned)
-    {
+          pinned_(pinned) {
         if (pinned_ && IsValid())
             byte_block_->IncreasePinCount();
     }
-
 
     //! referenced ByteBlock
     ByteBlockPtr byte_block_;
@@ -237,10 +238,9 @@ protected:
     //! during initialization
     bool pinned_;
 
-
     //! Unpins the underlying byte block if it is valid and pinned
     void UnpinMaybe() {
-        if(byte_block_ && pinned_)
+        if (byte_block_ && pinned_)
             byte_block_->DecreasePinCount();
     }
 };

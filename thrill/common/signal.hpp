@@ -70,7 +70,6 @@ public:
     }
 };
 
-
 } // namespace common
 } // namespace thrill
 
