@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/api/graph_test.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
@@ -50,7 +50,7 @@ TEST(Graph, SimpleGraph) {
 
             auto zip_result = prefixsums.Zip(emitted, [](int input1, int input2) {
                                                  return input1 + input2;
-                                             });
+                                             }).Label("Zippy").LinkStatsNodeFrom(doubled);
 
             ctx.stats_graph().BuildLayout("simple.out");
         };

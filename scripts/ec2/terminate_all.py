@@ -2,7 +2,7 @@
 ##########################################################################
 # scripts/ec2/terminate_all.py
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 # Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
 #
@@ -10,12 +10,13 @@
 ##########################################################################
 
 import boto3
+import os
 from subprocess import call
 
 ec2 = boto3.resource('ec2')
 
 filters = [{'Name': 'instance-state-name', 'Values': ['running']}]
-if "EC2_KEY_NAME" not in os.environ:
+if "EC2_KEY_NAME" in os.environ:
     filters.append({'Name': 'key-name', 'Values': [os.environ['EC2_KEY_NAME']]})
 
 instances = ec2.instances.filter(Filters=filters)
