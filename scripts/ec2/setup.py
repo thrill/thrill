@@ -43,11 +43,12 @@ if data["VOL_SNAPSHOT_ID"]:
 #                    {'Name': 'tag:JobId', 'Values':[str(job_id)]}
                      ])
         for instance in instances:
+            print "1"
             if instance.id not in attached:
-                volume = ec2.create_volume(SnapshotId = data["VOL_SNAPSHOT_ID"], AvailabilityZone = data["ZONE"], VolumeType = data["VOLUME_TYPE"])
+                volume = ec2.create_volume(SnapshotId = data["VOL_SNAPSHOT_ID"], AvailabilityZone = data["ZONE"], VolumeType = 'gp2')
                 while ec2.Volume(volume.id).state != "available":
                     time.sleep(1)
-                ec2.Instance(instance.id).attach_volume(VolumeId = volume.id, Device=data["DEVICE"])
+                ec2.Instance(instance.id).attach_volume(VolumeId = volume.id, Device='/dev/sdy')
                 attached.append(instance.id)
         if len(attached) == int(data["COUNT"]):
             break;
