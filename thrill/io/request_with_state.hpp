@@ -18,7 +18,6 @@
 
 #include <thrill/common/state.hpp>
 #include <thrill/io/request.hpp>
-#include <thrill/io/request_with_waiters.hpp>
 
 namespace thrill {
 namespace io {
@@ -27,7 +26,7 @@ namespace io {
 //! \{
 
 //! Request with completion state.
-class request_with_state : public request_with_waiters
+class request_with_state : public request
 {
 protected:
     //! states of request
@@ -44,7 +43,7 @@ protected:
         offset_type off,
         size_type b,
         ReadOrWriteType t)
-        : request_with_waiters(on_cmpl, f, buf, off, b, t),
+        : request(on_cmpl, f, buf, off, b, t),
           m_state(OP)
     { }
 

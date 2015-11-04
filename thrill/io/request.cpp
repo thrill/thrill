@@ -82,6 +82,40 @@ std::ostream& request::print(std::ostream& out) const {
     return out;
 }
 
+bool request::add_waiter(common::onoff_switch* sw) {
+    // this lock needs to be obtained before poll(), otherwise a race
+    // condition might occur: the state might change and notify_waiters()
+    // could be called between poll() and insert() resulting in waiter sw
+    // never being notified
+    std::unique_lock<std::mutex> lock(waiters_mutex_);
+
+    if (poll())                     // request already finished
+    {
+        return true;
+    }
+
+    waiters_.insert(sw);
+
+    return false;
+}
+
+void request::delete_waiter(common::onoff_switch* sw) {
+    std::unique_lock<std::mutex> lock(waiters_mutex_);
+    waiters_.erase(sw);
+}
+
+void request::notify_waiters() {
+    std::unique_lock<std::mutex> lock(waiters_mutex_);
+    std::for_each(waiters_.begin(),
+                  waiters_.end(),
+                  std::mem_fun(&common::onoff_switch::on));
+}
+
+size_t request::num_waiters() {
+    std::unique_lock<std::mutex> lock(waiters_mutex_);
+    return waiters_.size();
+}
+
 } // namespace io
 } // namespace thrill
 
