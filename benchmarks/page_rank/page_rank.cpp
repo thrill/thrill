@@ -344,6 +344,9 @@ int main(int argc, char* argv[]) {
                 // (linked_url, rank / OUTGOING.size)
                 // ...
 
+                std::cout << links.Size() << std::endl;
+                std::cout << ranks.Size() << std::endl;
+
                 assert(links.Size() == ranks.Size());
 
                 auto contribs = links.Zip(ranks,

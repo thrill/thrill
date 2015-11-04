@@ -8,116 +8,153 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/core/reduce_pre_probing_table.hpp>
-
 #include <gtest/gtest.h>
+#include <thrill/api/context.hpp>
+#include <thrill/net/manager.hpp>
 #include <thrill/data/file.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
 
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
+#include <algorithm>
 
 using namespace thrill;
 
 using StringPair = std::pair<std::string, int>;
 using IntPair = std::pair<int, int>;
 
-struct ReducePreProbingTable : public::testing::Test { };
+struct PreTable : public::testing::Test { };
 
 template <typename Key, typename HashFunction = std::hash<Key> >
 class CustomKeyHashFunction
     : public core::PreProbingReduceByHashKey<int>
 {
 public:
+    struct IndexResult {
+    public:
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the whole hashtable
+        size_t global_index;
+
+        IndexResult(size_t p_id, size_t g_id) {
+            partition_id = p_id;
+            global_index = g_id;
+        }
+    };
+
     explicit CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
-    template <typename ReducePreProbingTable>
-    typename ReducePreProbingTable::IndexResult
-    operator () (const Key& v, ReducePreProbingTable* ht) const {
+    IndexResult
+    operator () (const Key& k,
+                 const size_t& num_frames,
+                 const size_t& num_buckets_per_frame,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
 
-        using IndexResult = typename ReducePreProbingTable::IndexResult;
-
-        size_t global_index = v / 2;
+        size_t global_index = k / 2;
         size_t partition_id = 0;
-        size_t local_index = v / 2;
 
-        (void)ht;
+        (void)num_frames;
+        (void)num_buckets_per_frame;
+        (void)num_buckets_per_table;
+        (void)offset;
 
-        return IndexResult(partition_id, local_index, global_index);
+        return IndexResult(partition_id, global_index);
     }
 
 private:
     HashFunction hash_function_;
 };
 
-TEST_F(ReducePreProbingTable, CustomHashFunction) {
+TEST_F(PreTable, CustomHashFunction) {
 
-    auto key_ex = [](int in) {
-                      return in;
-                  };
+    std::function<void(Context&)> start_func =
+            [](Context& ctx) {
 
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
+        auto key_ex = [](int in) {
+                          return in;
+                      };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
-    std::vector<data::File::DynWriter> writers;
-    writers.emplace_back(output.GetDynWriter());
+        auto red_fn = [](int in1, int in2) {
+                          return in1 + in2;
+                      };
 
-    CustomKeyHashFunction<int> cust_hash;
-    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true,
-                                CustomKeyHashFunction<int> >
-    table(1, key_ex, red_fn, writers, -1, 1024 * 16, 0.5, cust_hash);
+        data::BlockPool block_pool(nullptr);
+        data::File output(block_pool);
+        std::vector<data::File::DynWriter> writers;
+        writers.emplace_back(output.GetDynWriter());
 
-    for (int i = 0; i < 16; i++) {
-        table.Insert(i);
-    }
+        CustomKeyHashFunction<int> cust_hash;
+        core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
+                core::PostProbingReduceFlush<int, int, decltype(red_fn) >,
+                CustomKeyHashFunction<int> >
+        table(ctx, 1, key_ex, red_fn, writers, -1, cust_hash,
+              core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 1024 * 16, 0.5);
 
-    table.Flush();
+        for (int i = 0; i < 16; i++) {
+            table.Insert(i);
+        }
 
-    auto it = output.GetKeepReader();
-    int c = 0;
-    while (it.HasNext()) {
-        it.Next<int>();
-        c++;
-    }
+        table.Flush();
 
-    ASSERT_EQ(16, c);
+        auto it = output.GetKeepReader();
+        int c = 0;
+        while (it.HasNext()) {
+            it.Next<int>();
+            c++;
+        }
+
+        ASSERT_EQ(16, c);
+    };
+    api::RunLocalSameThread(start_func);
 }
 
-TEST_F(ReducePreProbingTable, AddIntegers) {
+TEST_F(PreTable, AddIntegers) {
 
-    auto key_ex = [](int in) {
-                      return in;
-                  };
+    std::function<void(Context&)> start_func =
+            [](Context& ctx) {
 
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
+        auto key_ex = [](int in) {
+                          return in;
+                      };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
-    std::vector<data::File::DynWriter> writers;
-    writers.emplace_back(output.GetDynWriter());
+        auto red_fn = [](int in1, int in2) {
+                          return in1 + in2;
+                      };
 
-    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
+        data::BlockPool block_pool(nullptr);
+        data::File output(block_pool);
+        std::vector<data::File::DynWriter> writers;
+        writers.emplace_back(output.GetDynWriter());
 
-    table.Insert(0);
-    table.Insert(1);
-    table.Insert(2);
+        core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+        table(ctx, 1, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
+              core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 1024 * 16, 1.0);
 
-    ASSERT_EQ(3u, table.NumItems());
+        table.Insert(0);
+        table.Insert(1);
+        table.Insert(2);
 
-    table.Insert(2);
+        ASSERT_EQ(3u, table.NumItems());
 
-    ASSERT_EQ(3u, table.NumItems());
+        table.Insert(2);
+
+        ASSERT_EQ(3u, table.NumItems());
+
+    };
+    api::RunLocalSameThread(start_func);
 }
 
-TEST_F(ReducePreProbingTable, CreateEmptyTable) {
+TEST_F(PreTable, CreateEmptyTable) {
+
+            std::function<void(Context&)> start_func =
+                    [](Context& ctx) {
 
     auto key_ex = [](int in) {
                       return in;
@@ -132,8 +169,9 @@ TEST_F(ReducePreProbingTable, CreateEmptyTable) {
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
-    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
+    core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            table(ctx, 1, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -144,9 +182,16 @@ TEST_F(ReducePreProbingTable, CreateEmptyTable) {
     table.Insert(0u);
 
     ASSERT_EQ(3u, table.NumItems());
+
+                    };
+
+    api::RunLocalSameThread(start_func);
 }
 
-TEST_F(ReducePreProbingTable, DISABLED_TestSetMaxSizeSetter) {
+TEST_F(PreTable, DISABLED_TestSetMaxSizeSetter) {
+
+                std::function<void(Context&)> start_func =
+                        [](Context& ctx) {
 
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
@@ -161,8 +206,9 @@ TEST_F(ReducePreProbingTable, DISABLED_TestSetMaxSizeSetter) {
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
-    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
+    core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+    table(ctx, 1, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
+          core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -174,11 +220,18 @@ TEST_F(ReducePreProbingTable, DISABLED_TestSetMaxSizeSetter) {
     table.Insert(0);
 
     ASSERT_EQ(1u, table.NumItems());
+
+                        };
+
+    api::RunLocalSameThread(start_func);
 }
 
 // Manually flush all items in table,
 // no size constraint, one partition
-TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
+TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
+
+                    std::function<void(Context&)> start_func =
+                            [](Context& ctx) {
 
     auto key_ex = [](int in) {
                       return in;
@@ -193,8 +246,9 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
-    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
+    core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            table(ctx, 1, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -215,11 +269,18 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
 
     ASSERT_EQ(5, c);
     ASSERT_EQ(0u, table.NumItems());
+
+                            };
+
+    api::RunLocalSameThread(start_func);
 }
 
 // Manually flush all items in table,
 // no size constraint, two partitions
-TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
+TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
+
+                        std::function<void(Context&)> start_func =
+                                [](Context& ctx) {
 
     auto key_ex = [](int in) {
                       return in;
@@ -235,8 +296,9 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
     writers.emplace_back(output1.GetDynWriter());
     writers.emplace_back(output2.GetDynWriter());
 
-    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
+    core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+    table(ctx, 2, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
+          core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -264,11 +326,18 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
 
     ASSERT_EQ(5u, c1 + c2);
     ASSERT_EQ(0u, table.NumItems());
+
+                                };
+
+    api::RunLocalSameThread(start_func);
 }
 
 // Partial flush of items in table due to
 // max table size constraint, one partition
-TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
+TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
+
+                            std::function<void(Context&)> start_func =
+                                    [](Context& ctx) {
 
     auto key_ex = [](int in) {
                       return in;
@@ -283,8 +352,10 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
-    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, 2 * 4 * 2 * 4, 0.5);
+    core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+        table(ctx, 1, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
+              core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 2 * 4 * 2 * 4, 0.5,
+              std::equal_to<int>(), 0.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -302,13 +373,20 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
         c++;
     }
 
-    ASSERT_EQ(4, c);
-    ASSERT_EQ(1u, table.NumItems());
+    ASSERT_EQ(5, c);
+    ASSERT_EQ(0, table.NumItems());
+
+                                    };
+
+    api::RunLocalSameThread(start_func);
 }
 
 //// Partial flush of items in table due to
 //// max table size constraint, two partitions
-TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
+TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
+
+    std::function<void(Context&)> start_func =
+            [](Context& ctx) {
 
     auto key_ex = [](int in) {
                       return in;
@@ -324,8 +402,9 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     writers.emplace_back(output1.GetDynWriter());
     writers.emplace_back(output2.GetDynWriter());
 
-    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
+    core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            table(ctx, 2, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -354,9 +433,16 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
 
     ASSERT_EQ(5u, c1 + c2);
     ASSERT_EQ(0u, table.NumItems());
+
+            };
+
+    api::RunLocalSameThread(start_func);
 }
 
-TEST_F(ReducePreProbingTable, ComplexType) {
+TEST_F(PreTable, ComplexType) {
+
+    std::function<void(Context&)> start_func =
+            [](Context& ctx) {
 
     auto key_ex = [](StringPair in) {
                       return in.first;
@@ -371,11 +457,15 @@ TEST_F(ReducePreProbingTable, ComplexType) {
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
-    size_t kv_size = sizeof(core::ReducePreProbingTable<std::string, StringPair,
+    StringPair sp;
+
+    size_t kv_size = sizeof(core::ReducePreProbingTable<StringPair, std::string, StringPair,
                                                         decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
 
-    core::ReducePreProbingTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, "", 2 * 3 * kv_size, 0.5);
+    core::ReducePreProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
+            table(ctx, 1, key_ex, red_fn, writers, "", core::PreProbingReduceByHashKey<std::string>(),
+                  core::PostProbingReduceFlush<std::string, StringPair, decltype(red_fn)>(red_fn), sp, 2 * 3 * kv_size, 0.5,
+                  std::equal_to<std::string>(), 0.0);
 
     table.Insert(StringPair("hallo", 1));
     table.Insert(StringPair("hello", 1));
@@ -389,10 +479,19 @@ TEST_F(ReducePreProbingTable, ComplexType) {
 
     table.Insert(StringPair("baguette", 1));
 
-    ASSERT_EQ(1u, table.NumItems());
+    ASSERT_EQ(0, table.NumItems());
+
+
+            };
+
+    api::RunLocalSameThread(start_func);
 }
 
-TEST_F(ReducePreProbingTable, MultipleWorkers) {
+TEST_F(PreTable, MultipleWorkers) {
+
+
+    std::function<void(Context&)> start_func =
+            [](Context& ctx) {
 
     auto key_ex = [](int in) {
                       return in;
@@ -408,8 +507,10 @@ TEST_F(ReducePreProbingTable, MultipleWorkers) {
     writers.emplace_back(output1.GetDynWriter());
     writers.emplace_back(output2.GetDynWriter());
 
-    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, -1, 6 * 8, 0.5);
+    core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            table(ctx, 2, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, 6 * 8, 0.5,
+                  std::equal_to<int>(), 0.0);
 
     ASSERT_EQ(0u, table.NumItems());
 
@@ -419,10 +520,17 @@ TEST_F(ReducePreProbingTable, MultipleWorkers) {
 
     ASSERT_LE(table.NumItems(), 3u);
     ASSERT_GT(table.NumItems(), 0u);
+
+            };
+
+    api::RunLocalSameThread(start_func);
 }
 
 // Insert several items with same key and test application of local reduce
-TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
+TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
+
+    std::function<void(Context&)> start_func =
+            [](Context& ctx) {
 
     auto key_ex = [](const IntPair in) {
                       return in.first % 500;
@@ -441,9 +549,12 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
 
     size_t nitems = 1 * 1024 * 1024;
 
+    IntPair p;
+
     // Hashtable with smaller block size for testing.
-    core::ReducePreProbingTable<int, IntPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, nitems * 16, 1.0);
+    core::ReducePreProbingTable<IntPair, int, IntPair, decltype(key_ex), decltype(red_fn), true>
+            table(ctx, 1, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlush<int, IntPair, decltype(red_fn)>(red_fn), p, nitems * 16, 1.0);
 
     // insert lots of items
     for (size_t i = 0; i != nitems; ++i) {
@@ -462,9 +573,16 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
     // actually check that the reduction worked
     ASSERT_EQ(500u, total_count);
     ASSERT_EQ(nitems, total_sum);
+
+            };
+
+    api::RunLocalSameThread(start_func);
 }
 
-TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
+TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
+
+    std::function<void(Context&)> start_func =
+            [](Context& ctx) {
 
     auto key_ex = [](const IntPair in) {
                       return in.first;
@@ -482,9 +600,13 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 32 * 1024;
 
+    IntPair p;
+
     // Hashtable with smaller block size for testing.
-    core::ReducePreProbingTable<int, IntPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, nitems * 16, 1.0);
+    core::ReducePreProbingTable<IntPair, int, IntPair, decltype(key_ex), decltype(red_fn), true>
+            table(ctx, 1, key_ex, red_fn, writers, -1, core::PreProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlush<int, IntPair, decltype(red_fn)>(red_fn), p, nitems * 16, 1.0,
+                  std::equal_to<int>(), 0.0);
 
     // insert lots of items
     size_t sum = 0;
@@ -506,6 +628,9 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
         auto n = it1.Next<IntPair>();
         ASSERT_EQ(sum, n.second);
     }
+            };
+
+    api::RunLocalSameThread(start_func);
 }
 
 void randomStr(std::string& s, const int len) {
@@ -520,7 +645,10 @@ void randomStr(std::string& s, const int len) {
     s[len] = 0;
 }
 
-TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
+TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
+
+    std::function<void(Context&)> start_func =
+                                          [](Context& ctx) {
 
     auto key_ex = [](StringPair in) {
                       return in.first;
@@ -538,11 +666,15 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
     size_t nitems_per_key = 2;
     size_t nitems = 1 * 4 * 1024;
 
-    size_t kv_size = sizeof(core::ReducePreProbingTable<std::string, StringPair,
+    StringPair sp;
+
+    size_t kv_size = sizeof(core::ReducePreProbingTable<StringPair, std::string, StringPair,
                                                         decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
 
-    core::ReducePreProbingTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, "", nitems * kv_size, 1.0);
+    core::ReducePreProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
+            table(ctx, 1, key_ex, red_fn, writers, "", core::PreProbingReduceByHashKey<std::string>(),
+                  core::PostProbingReduceFlush<std::string, StringPair, decltype(red_fn)>(red_fn), sp, nitems * kv_size, 1.0,
+                  std::equal_to<std::string>(), 0.0);
 
     // insert lots of items
     size_t sum = 0;
@@ -567,6 +699,10 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
         auto n = it1.Next<StringPair>();
         ASSERT_EQ(sum, n.second);
     }
+
+                                          };
+
+    api::RunLocalSameThread(start_func);
 }
 
 /******************************************************************************/

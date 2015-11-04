@@ -316,6 +316,8 @@ private:
 
         sample_size = std::min(data_.size(), sample_size);
 
+        sample_size = std::min(data_.size(), sample_size);
+
         LOG << prefix_elem << " elements, out of " << total_elem;
 
         std::default_random_engine generator(std::random_device { } ());

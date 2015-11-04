@@ -10,9 +10,10 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
+#include <thrill/core/reduce_pre_bucket_table.hpp>
+#include <thrill/core/reduce_post_bucket_table.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -24,6 +25,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <limits.h>
+#include <stddef.h>
 
 using IntPair = std::pair<int, int>;
 
@@ -35,7 +38,11 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    unsigned int size = 1500000000;
+    std::string title = "";
+    clp.AddString('t', "title", "T", title,
+                "Load in byte to be inserted");
+
+    unsigned int size = 1000000000;
     clp.AddUInt('s', "size", "S", size,
                 "Load in byte to be inserted");
 
@@ -43,15 +50,7 @@ int main(int argc, char* argv[]) {
     clp.AddUInt('w', "workers", "W", workers,
                 "Open hashtable with W workers, default = 1.");
 
-    unsigned int l = 5;
-    clp.AddUInt('l', "num_buckets_init_scale", "L", l,
-                "Lower string length, default = 5.");
-
-    unsigned int u = 15;
-    clp.AddUInt('u', "num_buckets_resize_scale", "U", u,
-                "Upper string length, default = 15.");
-
-    double bucket_rate = 0.5;
+    double bucket_rate = 1.0;
     clp.AddDouble('b', "bucket_rate", "B", bucket_rate,
                   "bucket_rate, default = 0.5.");
 
@@ -59,13 +58,19 @@ int main(int argc, char* argv[]) {
     clp.AddDouble('f', "max_partition_fill_rate", "F", max_partition_fill_rate,
                   "Open hashtable with max_partition_fill_rate, default = 0.5.");
 
-    const unsigned int target_block_size = 4 * 16;
+    double table_rate = 1.0;
+    clp.AddDouble('r', "table_rate", "R", table_rate,
+                  "Open hashtable with max_partition_fill_rate, default = 1.0.");
+
+    const unsigned int target_block_size = 8 * 16;
 //    clp.AddUInt('z', "target_block_size", "Z", target_block_size,
 //                "Target block size, default = 1024 * 16.");
 
-    unsigned int table_size = 2000000000;
-    clp.AddUInt('t', "table_size", "T", table_size,
+    unsigned int byte_size = 1000000000;
+    clp.AddUInt('m', "table_size", "M", byte_size,
                 "Table size, default = 500000000.");
+
+    const bool full_reduce = false;
 
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -75,59 +80,53 @@ int main(int argc, char* argv[]) {
     // strings mode
     ///////
 
-    auto key_ex = [](std::string in) { return in; };
+    api::Run([&](api::Context& ctx) {
 
-    auto red_fn = [](std::string in1, std::string in2) {
-                      (void)in2;
-                      return in1;
-                  };
+        auto key_ex = [](size_t in) { return in; };
 
-    static const char alphanum[] =
-        "abcdefghijklmnopqrstuvwxyz"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "0123456789";
+        auto red_fn = [](size_t in1, size_t in2) {
+                          (void)in2;
+                          return in1;
+                      };
 
-    std::default_random_engine rng(std::random_device { } ());
-    std::uniform_int_distribution<> dist(l, u);
+        size_t num_items = size / sizeof(std::pair<size_t, size_t>);
 
-    std::vector<std::string> strings;
-    size_t current_size = 0; // size of data in byte
+        std::default_random_engine rng(std::random_device { } ());
+        std::uniform_int_distribution<size_t> dist(1, std::numeric_limits<size_t>::max());
 
-    while (current_size < size)
-    {
-        size_t length = dist(rng);
-        std::string str;
-        for (size_t i = 0; i < length; ++i)
-        {
-
-            str += alphanum[rand() % sizeof(alphanum)];
+        data::BlockPool block_pool(nullptr);
+        std::vector<data::File> sinks;
+        std::vector<data::File::DynWriter> writers;
+        for (size_t i = 0; i != workers; ++i) {
+            sinks.emplace_back(block_pool);
+            writers.emplace_back(sinks[i].GetDynWriter());
         }
-        strings.push_back(str);
-        current_size += sizeof(str) + str.capacity();
-    }
 
-    data::BlockPool block_pool(nullptr);
-    std::vector<data::DiscardSink> sinks;
-    std::vector<data::DynBlockWriter> writers;
-    for (size_t i = 0; i != workers; ++i) {
-        sinks.emplace_back(block_pool);
-        writers.emplace_back(sinks[i].GetDynWriter());
-    }
+         core::ReducePreTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
+            core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreProbingReduceByHashKey<size_t>,
+            std::equal_to<size_t>, target_block_size, full_reduce>
+         table(ctx,
+                  workers, key_ex, red_fn, writers,
+                  core::PreProbingReduceByHashKey<size_t>(),
+                  core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn), 0, byte_size,
+                                                  bucket_rate, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
 
-    core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,
-                         core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>
-    table(workers, key_ex, red_fn, writers, table_size, bucket_rate, max_partition_fill_rate);
+        common::StatsTimer<true> timer(true);
 
-    common::StatsTimer<true> timer(true);
+        for (size_t i = 0; i < num_items; i++)
+        {
+            table.Insert(dist(rng));
+        }
 
-    for (size_t i = 0; i < strings.size(); i++)
-    {
-        table.Insert(std::move(strings[i]));
-    }
+        table.Flush();
 
-    timer.Stop();
+   	    timer.Stop();
 
-    std::cout << timer.Microseconds() << " " << table.NumFlushes() << " " << strings.size() << std::endl;
+        std::cout << "RESULT" << " benchmark=" << title << " size=" << size << " byte_size=" << byte_size << " workers="
+        << workers << " bucket_rate=" << bucket_rate << " max_partition_fill_rate=" << max_partition_fill_rate
+        << " table_rate_multiplier=" << table_rate << " full_reduce=" << full_reduce << " final_reduce=true" << " block_size=" << target_block_size
+        << " time=" << timer.Milliseconds() << std::endl;
+    });
 
     return 0;
 }

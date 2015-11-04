@@ -23,6 +23,7 @@
 #include <random>
 #include <string>
 #include <utility>
+#include <iostream>
 
 namespace thrill {
 namespace examples {
