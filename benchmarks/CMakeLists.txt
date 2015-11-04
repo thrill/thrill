@@ -39,8 +39,7 @@ thrill_build_prog(data/disk)
 thrill_build_prog(data/stream)
 thrill_build_prog(data/data_benchmark)
 
-
-thrill_build_prog(io/string_test)
+thrill_build_prog(api/string_test)
 
 if(NOT MSVC)
   # these benchmarks use a non-portable method to initialize the network,
