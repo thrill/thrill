@@ -18,12 +18,14 @@
 #define THRILL_IO_REQUEST_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
+#include <thrill/common/onoff_switch.hpp>
 #include <thrill/io/completion_handler.hpp>
 #include <thrill/io/exceptions.hpp>
-#include <thrill/common/onoff_switch.hpp>
 
 #include <cassert>
 #include <memory>
+#include <mutex>
+#include <set>
 
 namespace thrill {
 namespace io {
@@ -70,13 +72,13 @@ public:
             ReadOrWriteType type);
 
     //! non-copyable: delete copy-constructor
-    request(const request &) = delete;
+    request(const request&) = delete;
     //! non-copyable: delete assignment operator
-    request & operator = (const request &) = delete;
+    request& operator = (const request&) = delete;
     //! move-constructor: default
-    request(request &&) = default;
+    request(request&&) = default;
     //! move-assignment operator: default
-    request & operator = (request &&) = default;
+    request& operator = (request&&) = default;
 
     virtual ~request();
 
@@ -94,6 +96,9 @@ public:
 
     //! Dumps properties of a request.
     std::ostream & print(std::ostream& out) const;
+
+    //! returns number of waiters
+    size_t num_waiters();
 
     //! \}
 
@@ -115,12 +120,16 @@ public:
             throw *(error_.get());
     }
 
+private:
+    std::mutex waiters_mutex_;
+    std::set<common::onoff_switch*> waiters_;
+
 public:
-    virtual bool add_waiter(common::onoff_switch* sw) = 0;
-    virtual void delete_waiter(common::onoff_switch* sw) = 0;
+    bool add_waiter(common::onoff_switch* sw);
+    void delete_waiter(common::onoff_switch* sw);
 
 protected:
-    virtual void notify_waiters() = 0;
+    void notify_waiters();
 
 protected:
     virtual void completed(bool canceled) = 0;
