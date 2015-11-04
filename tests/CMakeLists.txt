@@ -122,6 +122,8 @@ endif()
 build_only(io/syscall_file_test)
 build_only(io/file_io_sizes_test)
 build_only(io/cancel_io_test)
+build_test(io/block_manager_test)
+build_test(io/config_file_test)
 
 # run io tests with different backend files
 test_only(io_syscall_file_test ".")

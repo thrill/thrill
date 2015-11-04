@@ -16,6 +16,8 @@
 #ifndef THRILL_IO_ERROR_HANDLING_HEADER
 #define THRILL_IO_ERROR_HANDLING_HEADER
 
+#include <thrill/io/exceptions.hpp>
+
 #include <cerrno>
 #include <cstring>
 #include <sstream>
