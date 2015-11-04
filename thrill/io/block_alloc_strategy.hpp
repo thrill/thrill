@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/io/block_alloc.hpp
+ * thrill/io/block_alloc_strategy.hpp
  *
  * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
  * distributed under the Boost Software License, Version 1.0.
@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_IO_BLOCK_ALLOC_HEADER
-#define THRILL_IO_BLOCK_ALLOC_HEADER
+#ifndef THRILL_IO_BLOCK_ALLOC_STRATEGY_HEADER
+#define THRILL_IO_BLOCK_ALLOC_STRATEGY_HEADER
 
 #include <algorithm>
 // #include <stxxl/bits/common/rand.h>
@@ -248,6 +248,6 @@ struct offset_allocator
 } // namespace io
 } // namespace thrill
 
-#endif // !THRILL_IO_BLOCK_ALLOC_HEADER
+#endif // !THRILL_IO_BLOCK_ALLOC_STRATEGY_HEADER
 
 /******************************************************************************/
