@@ -20,7 +20,7 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/io/bid.hpp>
-#include <thrill/io/block_alloc.hpp>
+#include <thrill/io/block_alloc_strategy.hpp>
 #include <thrill/io/config_file.hpp>
 #include <thrill/io/create_file.hpp>
 #include <thrill/io/disk_allocator.hpp>
