@@ -38,8 +38,8 @@ struct file_offset_match : public std::binary_function<request_ptr, request_ptr,
         const request_ptr& a,
         const request_ptr& b) const {
         // matching file and offset are enough to cause problems
-        return (a->get_offset() == b->get_offset()) &&
-               (a->get_file() == b->get_file());
+        return (a->offset() == b->offset()) &&
+               (a->file() == b->file());
     }
 };
 
@@ -57,7 +57,7 @@ void request_queue_impl_qwqr::add_request(request_ptr& req) {
     if (!dynamic_cast<serving_request*>(req.get()))
         LOG1 << "Incompatible request submitted to running queue.";
 
-    if (req.get()->get_type() == request::READ)
+    if (req.get()->type() == request::READ)
     {
 #if STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
         {
@@ -102,7 +102,7 @@ bool request_queue_impl_qwqr::cancel_request(request_ptr& req) {
         LOG1 << "Incompatible request submitted to running queue.";
 
     bool was_still_in_queue = false;
-    if (req.get()->get_type() == request::READ)
+    if (req.get()->type() == request::READ)
     {
         std::unique_lock<std::mutex> Lock(m_read_mutex);
         queue_type::iterator pos

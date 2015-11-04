@@ -39,8 +39,8 @@ struct file_offset_match : public std::binary_function<request_ptr, request_ptr,
         const request_ptr& a,
         const request_ptr& b) const {
         // matching file and offset are enough to cause problems
-        return (a->get_offset() == b->get_offset()) &&
-               (a->get_file() == b->get_file());
+        return (a->offset() == b->offset()) &&
+               (a->file() == b->file());
     }
 };
 

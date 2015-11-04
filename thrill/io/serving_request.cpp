@@ -14,7 +14,7 @@
 
 #include <thrill/common/state.hpp>
 #include <thrill/io/file.hpp>
-#include <thrill/io/request_interface.hpp>
+#include <thrill/io/request.hpp>
 #include <thrill/io/request_with_state.hpp>
 #include <thrill/io/serving_request.hpp>
 
@@ -25,11 +25,11 @@ namespace io {
 
 serving_request::serving_request(
     const completion_handler& on_cmpl,
-    file* f,
+    io::file* f,
     void* buf,
     offset_type off,
     size_type b,
-    request_type t)
+    ReadOrWriteType t)
     : request_with_state(on_cmpl, f, buf, off, b, t) {
 #ifdef STXXL_CHECK_BLOCK_ALIGNING
     // Direct I/O requires file system block size alignment for file offsets,
@@ -42,15 +42,15 @@ serving_request::serving_request(
 void serving_request::serve() {
     check_nref();
     LOG << "serving_request::serve(): "
-        << m_buffer << " @ ["
-        << m_file << "|" << m_file->get_allocator_id() << "]0x"
+        << buffer_ << " @ ["
+        << file_ << "|" << file_->get_allocator_id() << "]0x"
         << std::hex << std::setfill('0') << std::setw(8)
-        << m_offset << "/0x" << m_bytes
-        << ((m_type == request::READ) ? " READ" : " WRITE");
+        << offset_ << "/0x" << bytes_
+        << ((type_ == request::READ) ? " READ" : " WRITE");
 
     try
     {
-        m_file->serve(m_buffer, m_offset, m_bytes, m_type);
+        file_->serve(buffer_, offset_, bytes_, type_);
     }
     catch (const io_error& ex)
     {
@@ -63,7 +63,7 @@ void serving_request::serve() {
 }
 
 const char* serving_request::io_type() const {
-    return m_file->io_type();
+    return file_->io_type();
 }
 
 } // namespace io

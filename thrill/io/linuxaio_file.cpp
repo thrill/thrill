@@ -46,7 +46,7 @@ request_ptr linuxaio_file::awrite(
 }
 
 void linuxaio_file::serve(void* buffer, offset_type offset, size_type bytes,
-                          request::request_type type) {
+                          request::ReadOrWriteType type) {
     // req need not be an linuxaio_request
     if (type == request::READ)
         aread(buffer, offset, bytes)->wait();
