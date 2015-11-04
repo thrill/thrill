@@ -278,11 +278,7 @@ public:
 
         Value neutral_element = ht->NeutralElement();
 
-        size_t begin_local_index = ht->BeginLocalIndex();
-
-        size_t end_local_index = ht->EndLocalIndex();
-
-        std::vector <Value> elements_to_emit(end_local_index - begin_local_index, neutral_element);
+        std::vector <Value> elements_to_emit(ht->LocalIndex().size(), neutral_element);
 
         Context &ctx = ht->Ctx();
 
@@ -303,7 +299,7 @@ public:
                 data::File::Reader reader = file.GetReader(consume);
 
                 Reduce(ctx, consume, ht, items, offset, length, reader, second_reduce, elements_to_emit,
-                       fill_rate_num_items_per_frame, frame_id, num_items_per_frame, sentinel, begin_local_index);
+                       fill_rate_num_items_per_frame, frame_id, num_items_per_frame, sentinel, ht->LocalIndex().begin);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current frame
@@ -315,7 +311,7 @@ public:
                 for (size_t i = offset; i < length; i++) {
                     KeyValuePair &current = items[i];
                     if (current.first != sentinel.first) {
-                        elements_to_emit[current.first - begin_local_index] = current.second;
+                        elements_to_emit[current.first - ht->LocalIndex().begin] = current.second;
 
                         if (consume) {
                             items[i] = sentinel;
@@ -333,13 +329,13 @@ public:
             }
         }
 
-        size_t index = begin_local_index;
+        size_t index = ht->LocalIndex().begin;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
             ht->EmitAll(std::make_pair(index++, elements_to_emit[i]), 0);
             elements_to_emit[i] = neutral_element;
         }
 
-        assert(index == end_local_index);
+        assert(index == ht->LocalIndex().end);
     }
 
 private:

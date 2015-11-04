@@ -78,8 +78,8 @@ public:
                   "DIABase::lifetime", stats_node->label(), true)),
           stats_node_(stats_node) {
 
-        for (auto parent : parents_) {
-            parent->add_child(this);
+        for (size_t i = 0; i < parents.size(); ++i) {
+            parents[i]->AddChild(this, i);
         }
     }
 
@@ -108,16 +108,16 @@ public:
     virtual void Dispose() = 0;
 
     //! Virtual method for preparing start of data.
-    virtual void StartPreOp() { }
+    virtual void StartPreOp(size_t /* id */) { }
 
     //! Virtual method for preparing end of data.
-    virtual void StopPreOp() { }
+    virtual void StopPreOp(size_t /* id */) { }
 
     //! Performing push operation. Notifies children and calls actual push method.
     void DoPushData(bool consume) {
-        for (DIABase* child : children_) child->StartPreOp();
-        PushData(consume);
-        for (DIABase* child : children_) child->StopPreOp();
+        for (const Child& child : children_) child.node->StartPreOp(child.id);
+        PushData(consume && context().consume());
+        for (const Child& child : children_) child.node->StopPreOp(child.id);
     }
 
     //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
@@ -140,8 +140,16 @@ public:
         return stats_node_->type();
     }
 
+    struct Child {
+        //! reference to child node
+        DIABase* node;
+        //! id this node has among the parents of the child (passed to
+        //! callbacks)
+        size_t id;
+    };
+
     //! Returns the children of this DIABase.
-    const std::vector<DIABase*> & children() {
+    const std::vector<Child> & children() {
         return children_;
     }
 
@@ -161,8 +169,8 @@ public:
     }
 
     //! Adds a child to the vector of children. This method is called in the constructor.
-    void add_child(DIABase* child) {
-        children_.push_back(child);
+    void AddChild(DIABase* node, size_t id) {
+        children_.emplace_back(Child { node, id });
     }
 
     //! Returns the unique ID of this DIABase.
@@ -196,7 +204,10 @@ public:
 
     inline void StopExecutionTimer() {
         STOP_TIMER(execution_timer_);
-        if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms", LogType::EXECUTION);
+        if (execution_timer_)
+            stats_node_->AddStatsMsg(
+                std::to_string(execution_timer_->Milliseconds()) + "ms",
+                LogType::EXECUTION);
     }
 
     inline void WriteStreamStats(const data::StreamPtr& c) {
@@ -240,9 +251,11 @@ protected:
     //! Context, which can give iterators to data.
     Context& context_;
 
-    //! Children and parents of this DIABase.
-    std::vector<DIABase*> children_;
+    //! Parents of this DIABase.
     std::vector<std::shared_ptr<DIABase> > parents_;
+
+    //! Children of this DIABase.
+    std::vector<Child> children_;
 
     //! Timer that tracks execution of this node
     common::TimerPtr execution_timer_;

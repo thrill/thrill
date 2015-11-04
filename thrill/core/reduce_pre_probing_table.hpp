@@ -350,7 +350,7 @@ public:
      * Alternatively, it may trigger a resize of the table in case the maximal fill ratio
      * per partition is reached.
      *
-     * \param p Value to be inserted into the table.
+     * \param kv Value to be inserted into the table.
      */
     void Insert(const KeyValuePair& kv) {
 
@@ -684,21 +684,12 @@ public:
     }
 
     /*!
-     * Returns the begin local index.
-     *
-     * \return Begin local index.
-     */
-    size_t BeginLocalIndex() const {
-        return 0;
-    }
-
-    /*!
-     * Returns the end local index.
-     *
-     * \return End local index.
-     */
-    size_t EndLocalIndex() const {
-        return size_-1;
+    * Returns the local index range.
+    *
+    * \return Begin local index.
+    */
+    common::Range LocalIndex() const {
+        return common::Range(0, size_-1);
     }
 
     /*!

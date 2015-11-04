@@ -64,13 +64,12 @@ public:
 
     void PushData() {
         // time_t tt;
-        if (node_->consume_on_push_data()) {
+        if (node_->consume_on_push_data() && node_->context().consume()) {
             sLOG1 << "StageBuilder: Attempt to PushData on"
                   << "stage" << node_->label()
                   << "failed, it was already consumed. Add .Keep()";
             abort();
         }
-        die_unless(!node_->consume_on_push_data());
         // timer.Start();
         node_->DoPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
@@ -156,9 +155,9 @@ public:
         {
             if (s.node()->state() == api::DIAState::EXECUTED) {
                 bool skip = true;
-                for (DIABase* child : s.node()->children())
-                    if (child->state() != api::DIAState::EXECUTED
-                        || child->type() == api::DIANodeType::COLLAPSE)
+                for (const DIABase::Child& child : s.node()->children())
+                    if (child.node->state() != api::DIAState::EXECUTED ||
+                        child.node->type() == api::DIANodeType::COLLAPSE)
                         skip = false;
                 if (skip) continue;
                 else s.PushData();

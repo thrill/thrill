@@ -65,6 +65,9 @@ public:
         assert(block_size_ > 0);
     }
 
+    //! default constructor
+    BlockWriter() = default;
+
     //! non-copyable: delete copy-constructor
     BlockWriter(const BlockWriter&) = delete;
     //! non-copyable: delete assignment operator
@@ -400,7 +403,7 @@ private:
     size_t first_offset_ = 0;
 
     //! file or stream sink to output blocks to.
-    BlockSink* sink_;
+    BlockSink* sink_ = nullptr;
 
     //! boolean whether to queue blocks
     bool do_queue_ = false;

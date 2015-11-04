@@ -34,7 +34,6 @@
 #include <vector>
 
 namespace thrill {
-
 namespace core {
 
 using thread_index_t = int;

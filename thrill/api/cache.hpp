@@ -59,14 +59,12 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    /*!
-     * Pushes elements to next node.
-     * Can be skipped for LOps.
-     */
-    void Execute() final {
+    void StopPreOp(size_t /* id */) final {
         // Push local elements to children
         writer_.Close();
     }
+
+    void Execute() final { }
 
     void PushData(bool consume) final {
         data::File::Reader reader = file_.GetReader(consume);

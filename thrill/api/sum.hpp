@@ -92,8 +92,6 @@ private:
         // process the reduce
         global_sum_ = channel.AllReduce(local_sum_, sum_function_);
     }
-
-    void PostOp() { }
 };
 
 template <typename ValueType, typename Stack>

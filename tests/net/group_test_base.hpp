@@ -152,18 +152,19 @@ static void TestPrefixSum(net::Group* net) {
 
 //! construct group of p workers which perform an Broadcast collective
 static void TestBroadcast(net::Group* net) {
-    size_t local_value;
-    if (net->my_host_rank() == 0) local_value = 42;
-    net::collective::Broadcast(*net, local_value);
-    ASSERT_EQ(42u, local_value);
-    // repeat with a different value.
-    local_value = net->my_host_rank() == 0 ? 6 * 9 : 0;
-    net::collective::BroadcastBinomialTree(*net, local_value);
-    ASSERT_EQ(6 * 9u, local_value);
-    // check trivial broadcast
-    local_value = net->my_host_rank() == 0 ? 5 : 0;
-    net::collective::BroadcastTrivial(*net, local_value);
-    ASSERT_EQ(5u, local_value);
+    for (size_t origin = 0; origin < net->num_hosts(); ++origin) {
+        size_t local_value = net->my_host_rank() == origin ? 42 : 0;
+        net::collective::Broadcast(*net, local_value, origin);
+        ASSERT_EQ(42u, local_value);
+        // repeat with a different value.
+        local_value = net->my_host_rank() == origin ? 6 * 9 : 0;
+        net::collective::BroadcastBinomialTree(*net, local_value, origin);
+        ASSERT_EQ(6 * 9u, local_value);
+        // check trivial broadcast
+        local_value = net->my_host_rank() == origin ? 5 : 0;
+        net::collective::BroadcastTrivial(*net, local_value, origin);
+        ASSERT_EQ(5u, local_value);
+    }
 }
 
 // let group of p hosts perform an ReduceToRoot collective

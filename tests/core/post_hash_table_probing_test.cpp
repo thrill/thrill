@@ -92,7 +92,7 @@ TEST_F(PostTable, CustomHashFunction) {
             core::PostProbingReduceFlush<int, int, decltype(red_fn)> flush_func(red_fn);
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                          core::PostProbingReduceFlush<int, int, decltype(red_fn)>, CustomKeyHashFunction<int> >
-            table(ctx, key_ex, red_fn, emit, -1, cust_hash, flush_func, 0, 0, 0, 1024 * 32);
+            table(ctx, key_ex, red_fn, emit, -1, cust_hash, flush_func, common::Range(0, 0), 0, 1024 * 32);
 
             ASSERT_EQ(0u, writer1.size());
             ASSERT_EQ(0u, table.NumItems());
@@ -375,7 +375,7 @@ TEST_F(PostTable, WithinTableItemsLimit) {
                                          core::PostProbingReduceFlush<int, int, decltype(red_fn)>,
                                          core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emit, -1, core::PostProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), 0, 0, 0, byte_size, fill_rate,
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), 0, byte_size, fill_rate,
                   1,
                   std::equal_to<int>());
 
@@ -425,7 +425,7 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
                                          core::PostProbingReduceFlush<int, int, decltype(red_fn)>,
                                          core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emit, -1, core::PostProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), 0, 0, 0, byte_size, fill_rate,
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), 0, byte_size, fill_rate,
                   1,
                   std::equal_to<int>());
 
@@ -478,7 +478,7 @@ TEST_F(PostTable, AboveTableItemsLimit) {
             table(ctx, key_ex, red_fn, emit, -1,
                   core::PostProbingReduceByHashKey<int>(),
                   core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn),
-                  0, 0, 0, byte_size, fill_rate, 1,
+                  common::Range(0, 0), 0, byte_size, fill_rate, 1,
                   std::equal_to<int>());
 
             size_t num_items = (size_t)(static_cast<double>(total_items) * fill_rate);

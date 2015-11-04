@@ -129,6 +129,11 @@ public:
         return Writer(this, block_size);
     }
 
+    //! Get BlockWriterPtr.
+    std::shared_ptr<Writer> GetWriterPtr(size_t block_size = default_block_size) {
+        return std::make_shared<Writer>(this, block_size);
+    }
+
     //! Get BlockWriter.
     DynWriter GetDynWriter(size_t block_size = default_block_size) {
         return DynWriter(this, block_size);
@@ -164,20 +169,21 @@ public:
     KeepReader GetReaderAt(size_t index) const;
 
     //! Get item at the corresponding position. Do not use this
-    // method for reading multiple successive items.
+    //! method for reading multiple successive items.
     template <typename ItemType>
     ItemType GetItemAt(size_t index) const;
 
     //! Get index of the given item, or the next greater item,
-    // in this file. The file has to be ordered according to the
-    // given compare function. The tie value can be used to
-    // make a decision in case of many successive equal elements.
-    // The tie is compared with the local rank of the element.
-    //
-    // WARNING: This method uses GetItemAt combined with a binary search and
-    // is therefore not efficient. The method will be reimplemented in near future.
-    template <typename ItemType, typename CompareFunction = std::greater<ItemType> >
-    size_t GetIndexOf(ItemType item, size_t tie, const CompareFunction func = CompareFunction()) const;
+    //! in this file. The file has to be ordered according to the
+    //! given compare function. The tie value can be used to
+    //! make a decision in case of many successive equal elements.
+    //! The tie is compared with the local rank of the element.
+    //!
+    //! WARNING: This method uses GetItemAt combined with a binary search and
+    //! is therefore not efficient. The method will be reimplemented in near future.
+    template <typename ItemType, typename CompareFunction = std::less<ItemType> >
+    size_t GetIndexOf(const ItemType& item, size_t tie,
+                      const CompareFunction& func = CompareFunction()) const;
 
     //! Seek in File: return a Block range containing items begin, end of
     //! given type.
@@ -222,6 +228,8 @@ private:
     //! Closed files can not be altered
     bool closed_ = false;
 };
+
+using FilePtr = std::shared_ptr<File>;
 
 /*!
  * A BlockSource to read Blocks from a File. The KeepFileBlockSource mainly contains
@@ -410,7 +418,8 @@ ItemType File::GetItemAt(size_t index) const {
 }
 
 template <typename ItemType, typename CompareFunction>
-size_t File::GetIndexOf(ItemType item, size_t tie, const CompareFunction less) const {
+size_t File::GetIndexOf(
+    const ItemType& item, size_t tie, const CompareFunction& less) const {
 
     static const bool debug = false;
 
@@ -434,7 +443,7 @@ size_t File::GetIndexOf(ItemType item, size_t tie, const CompareFunction less) c
         LOG << "Left: " << left;
         LOG << "Right: " << right;
         LOG << "Mid: " << mid;
-        ItemType cur = this->GetItemAt<ItemType>(mid);
+        ItemType cur = GetItemAt<ItemType>(mid);
         LOG << "Item at mid: " << cur;
         if (less(item, cur) || (!less(item, cur) && !less(cur, item) && tie <= mid)) {
             right = mid;

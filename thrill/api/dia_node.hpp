@@ -28,7 +28,7 @@ namespace api {
 template <typename ValueType>
 struct CallbackPair {
     CallbackPair(const std::function<void(const ValueType&)>& cb,
-                 DIANodeType type)
+                 const DIANodeType& type)
         : cb_(cb), type_(type) { }
 
     void operator () (const ValueType& elem) const {
@@ -94,24 +94,22 @@ public:
         callbacks_.erase(
             std::remove_if(
                 callbacks_.begin(), callbacks_.end(),
-                [](const auto& cb) { return cb.type_ != DIANodeType::COLLAPSE; }),
+                [](const CallbackPair<ValueType>& cb) {
+                    return cb.type_ != DIANodeType::COLLAPSE;
+                }),
             callbacks_.end());
 
         children_.erase(
             std::remove_if(
                 children_.begin(), children_.end(),
-                [](const auto& c) { return c->type() != DIANodeType::COLLAPSE; }),
+                [](const Child& c) {
+                    return c.node->type() != DIANodeType::COLLAPSE;
+                }),
             children_.end());
     }
 
     std::vector<CallbackPair<ValueType> > & callbacks() {
         return callbacks_;
-    }
-
-    void AddCallbackFunctions(
-        const std::vector<std::function<void(const ValueType&)> >& cbs) {
-        for (auto& cb_pair : callbacks_)
-            cbs.push_back(cb_pair.cb_);
     }
 
     void PushItem(const ValueType& elem) const {

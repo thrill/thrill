@@ -111,12 +111,13 @@ std::vector<std::string> GlobFilePattern(const std::string& path) {
     return files;
 }
 
-std::vector<FileSizePair> GlobFileSizePrefixSum(const std::string& path) {
+SysFileList GlobFileSizePrefixSum(const std::string& path) {
 
-    std::vector<FileSizePair> file_size_pairs;
+    std::vector<SysFileInfo> file_info;
     struct stat filestat;
-    size_t directory_size = 0;
+    uint64_t total_size = 0;
     std::vector<std::string> files = GlobFilePattern(path);
+    bool contains_compressed = false;
 
     for (const std::string& file : files) {
 
@@ -126,12 +127,23 @@ std::vector<FileSizePair> GlobFileSizePrefixSum(const std::string& path) {
         }
         if (!S_ISREG(filestat.st_mode)) continue;
 
-        file_size_pairs.emplace_back(std::move(file), directory_size);
-        directory_size += filestat.st_size;
-    }
-    file_size_pairs.emplace_back("", directory_size);
+        contains_compressed = contains_compressed || IsCompressed(file);
 
-    return file_size_pairs;
+        file_info.emplace_back(
+            SysFileInfo { std::move(file),
+                          static_cast<uint64_t>(filestat.st_size), total_size });
+
+        total_size += filestat.st_size;
+    }
+
+    // sentinel entry
+    file_info.emplace_back(
+        SysFileInfo { std::string(),
+                      static_cast<uint64_t>(0), total_size });
+
+    return SysFileList {
+               std::move(file_info), total_size, contains_compressed
+    };
 }
 
 /******************************************************************************/
