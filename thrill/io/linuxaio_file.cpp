@@ -1,30 +1,31 @@
-/***************************************************************************
- *  lib/io/linuxaio_file.cpp
+/*******************************************************************************
+ * thrill/io/linuxaio_file.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2011 Johannes Singler <singler@kit.edu>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2011 Johannes Singler <singler@kit.edu>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/io/linuxaio_file.h>
+#include <thrill/io/linuxaio_file.hpp>
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
-#include <stxxl/bits/io/linuxaio_request.h>
-#include <stxxl/bits/io/disk_queues.h>
+#include <thrill/io/disk_queues.hpp>
+#include <thrill/io/linuxaio_request.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 request_ptr linuxaio_file::aread(
     void* buffer,
     offset_type pos,
     size_type bytes,
-    const completion_handler& on_cmpl)
-{
+    const completion_handler& on_cmpl) {
     request_ptr req(new linuxaio_request(on_cmpl, this, buffer, pos, bytes, request::READ));
 
     disk_queues::get_instance()->add_request(req, get_queue_id());
@@ -36,8 +37,7 @@ request_ptr linuxaio_file::awrite(
     void* buffer,
     offset_type pos,
     size_type bytes,
-    const completion_handler& on_cmpl)
-{
+    const completion_handler& on_cmpl) {
     request_ptr req(new linuxaio_request(on_cmpl, this, buffer, pos, bytes, request::WRITE));
 
     disk_queues::get_instance()->add_request(req, get_queue_id());
@@ -46,8 +46,7 @@ request_ptr linuxaio_file::awrite(
 }
 
 void linuxaio_file::serve(void* buffer, offset_type offset, size_type bytes,
-                          request::request_type type)
-{
+                          request::request_type type) {
     // req need not be an linuxaio_request
     if (type == request::READ)
         aread(buffer, offset, bytes)->wait();
@@ -55,12 +54,13 @@ void linuxaio_file::serve(void* buffer, offset_type offset, size_type bytes,
         awrite(buffer, offset, bytes)->wait();
 }
 
-const char* linuxaio_file::io_type() const
-{
+const char* linuxaio_file::io_type() const {
     return "linuxaio";
 }
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
 #endif // #if STXXL_HAVE_LINUXAIO_FILE
-// vim: et:ts=4:sw=4
+
+/******************************************************************************/

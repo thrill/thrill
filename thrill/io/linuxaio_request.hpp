@@ -1,29 +1,32 @@
-/***************************************************************************
- *  include/stxxl/bits/io/linuxaio_request.h
+/*******************************************************************************
+ * thrill/io/linuxaio_request.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2011 Johannes Singler <singler@kit.edu>
- *  Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2011 Johannes Singler <singler@kit.edu>
+ * Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_LINUXAIO_REQUEST_HEADER
-#define STXXL_IO_LINUXAIO_REQUEST_HEADER
+#pragma once
+#ifndef THRILL_IO_LINUXAIO_REQUEST_HEADER
+#define THRILL_IO_LINUXAIO_REQUEST_HEADER
 
-#include <stxxl/bits/io/linuxaio_file.h>
+#include <thrill/io/linuxaio_file.hpp>
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
 #include <linux/aio_abi.h>
-#include <stxxl/bits/io/request_with_state.h>
+#include <thrill/io/request_with_state.h>
 
 #define STXXL_VERBOSE_LINUXAIO(msg) STXXL_VERBOSE2(msg)
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup reqlayer
 //! \{
@@ -47,8 +50,7 @@ public:
         offset_type offset,
         size_type bytes,
         request_type type)
-        : request_with_state(on_cmpl, file, buffer, offset, bytes, type)
-    {
+        : request_with_state(on_cmpl, file, buffer, offset, bytes, type) {
         assert(dynamic_cast<linuxaio_file*>(file));
         STXXL_VERBOSE_LINUXAIO("linuxaio_request[" << this << "]" <<
                                " linuxaio_request" <<
@@ -66,9 +68,11 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
 #endif // #if STXXL_HAVE_LINUXAIO_FILE
 
-#endif // !STXXL_IO_LINUXAIO_REQUEST_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_LINUXAIO_REQUEST_HEADER
+
+/******************************************************************************/

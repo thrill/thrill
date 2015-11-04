@@ -1,30 +1,33 @@
-/***************************************************************************
- *  include/stxxl/bits/io/linuxaio_queue.h
+/*******************************************************************************
+ * thrill/io/linuxaio_queue.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2011 Johannes Singler <singler@kit.edu>
- *  Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2011 Johannes Singler <singler@kit.edu>
+ * Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_LINUXAIO_QUEUE_HEADER
-#define STXXL_IO_LINUXAIO_QUEUE_HEADER
+#pragma once
+#ifndef THRILL_IO_LINUXAIO_QUEUE_HEADER
+#define THRILL_IO_LINUXAIO_QUEUE_HEADER
 
-#include <stxxl/bits/io/linuxaio_file.h>
+#include <thrill/io/linuxaio_file.hpp>
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
 #include <linux/aio_abi.h>
 #include <list>
 
-#include <stxxl/bits/io/request_queue_impl_worker.h>
 #include <stxxl/bits/common/mutex.h>
+#include <thrill/io/request_queue_impl_worker.h>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup reqlayer
 //! \{
@@ -36,14 +39,14 @@ class linuxaio_queue : public request_queue_impl_worker
 {
     friend class linuxaio_request;
 
-    typedef linuxaio_queue self_type;
+    using self_type = linuxaio_queue;
 
 private:
     //! OS context
     aio_context_t context;
 
     //! storing linuxaio_request* would drop ownership
-    typedef std::list<request_ptr> queue_type;
+    using queue_type = std::list<request_ptr>;
 
     // "waiting" request have submitted to this queue, but not yet to the OS,
     // those are "posted"
@@ -92,9 +95,11 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
 #endif // #if STXXL_HAVE_LINUXAIO_FILE
 
-#endif // !STXXL_IO_LINUXAIO_QUEUE_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_LINUXAIO_QUEUE_HEADER
+
+/******************************************************************************/

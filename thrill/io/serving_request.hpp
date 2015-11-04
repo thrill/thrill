@@ -1,22 +1,25 @@
-/***************************************************************************
- *  include/stxxl/bits/io/serving_request.h
+/*******************************************************************************
+ * thrill/io/serving_request.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_SERVING_REQUEST_HEADER
-#define STXXL_IO_SERVING_REQUEST_HEADER
+#pragma once
+#ifndef THRILL_IO_SERVING_REQUEST_HEADER
+#define THRILL_IO_SERVING_REQUEST_HEADER
 
-#include <stxxl/bits/io/request_with_state.h>
+#include <thrill/io/request_with_state.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup reqlayer
 //! \{
@@ -47,7 +50,9 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_SERVING_REQUEST_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_SERVING_REQUEST_HEADER
+
+/******************************************************************************/

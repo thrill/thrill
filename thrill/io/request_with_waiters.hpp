@@ -1,27 +1,29 @@
-/***************************************************************************
- *  include/stxxl/bits/io/request_with_waiters.h
+/*******************************************************************************
+ * thrill/io/request_with_waiters.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_REQUEST_WITH_WAITERS_HEADER
-#define STXXL_IO_REQUEST_WITH_WAITERS_HEADER
+#pragma once
+#ifndef THRILL_IO_REQUEST_WITH_WAITERS_HEADER
+#define THRILL_IO_REQUEST_WITH_WAITERS_HEADER
 
+#include <mutex>
 #include <set>
 
-#include <stxxl/bits/common/mutex.h>
-#include <stxxl/bits/common/onoff_switch.h>
-#include <stxxl/bits/io/request.h>
-#include <stxxl/bits/namespace.h>
+#include <thrill/common/onoff_switch.hpp>
+#include <thrill/io/request.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup reqlayer
 //! \{
@@ -29,12 +31,12 @@ STXXL_BEGIN_NAMESPACE
 //! Request that is aware of threads waiting for it to complete.
 class request_with_waiters : public request
 {
-    mutex m_waiters_mutex;
-    std::set<onoff_switch*> m_waiters;
+    std::mutex m_waiters_mutex;
+    std::set<common::onoff_switch*> m_waiters;
 
 protected:
-    bool add_waiter(onoff_switch* sw);
-    void delete_waiter(onoff_switch* sw);
+    bool add_waiter(common::onoff_switch* sw);
+    void delete_waiter(common::onoff_switch* sw);
     void notify_waiters();
 
     //! returns number of waiters
@@ -54,7 +56,9 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_REQUEST_WITH_WAITERS_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_REQUEST_WITH_WAITERS_HEADER
+
+/******************************************************************************/

@@ -1,38 +1,32 @@
-/***************************************************************************
- *  include/stxxl/bits/io/request_queue_impl_worker.h
+/*******************************************************************************
+ * thrill/io/request_queue_impl_worker.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008, 2009 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
- *  Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008, 2009 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_REQUEST_QUEUE_IMPL_WORKER_HEADER
-#define STXXL_IO_REQUEST_QUEUE_IMPL_WORKER_HEADER
+#pragma once
+#ifndef THRILL_IO_REQUEST_QUEUE_IMPL_WORKER_HEADER
+#define THRILL_IO_REQUEST_QUEUE_IMPL_WORKER_HEADER
 
-#include <stxxl/bits/config.h>
+#include <thrill/common/config.hpp>
+#include <thrill/common/semaphore.hpp>
+#include <thrill/common/state.hpp>
+#include <thrill/io/request_queue.hpp>
 
-#if STXXL_STD_THREADS
- #include <thread>
-#elif STXXL_BOOST_THREADS
- #include <boost/thread/thread.hpp>
-#elif STXXL_POSIX_THREADS
- #include <pthread.h>
-#else
- #error "Thread implementation not detected."
-#endif
+#include <thread>
 
-#include <stxxl/bits/io/request_queue.h>
-#include <stxxl/bits/common/semaphore.h>
-#include <stxxl/bits/common/state.h>
-
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup reqlayer
 //! \{
@@ -45,22 +39,18 @@ class request_queue_impl_worker : public request_queue
 protected:
     enum thread_state { NOT_RUNNING, RUNNING, TERMINATING, TERMINATED };
 
-#if STXXL_STD_THREADS
-    typedef std::thread* thread_type;
-#elif STXXL_BOOST_THREADS
-    typedef boost::thread* thread_type;
-#else
-    typedef pthread_t thread_type;
-#endif
+    using thread_type = std::thread *;
 
 protected:
-    void start_thread(void* (*worker)(void*), void* arg, thread_type& t, state<thread_state>& s);
-    void stop_thread(thread_type& t, state<thread_state>& s, semaphore& sem);
+    void start_thread(void* (*worker)(void*), void* arg, thread_type& t, common::state<thread_state>& s);
+    void stop_thread(thread_type& t, common::state<thread_state>& s, common::semaphore& sem);
 };
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_REQUEST_QUEUE_IMPL_WORKER_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_REQUEST_QUEUE_IMPL_WORKER_HEADER
+
+/******************************************************************************/

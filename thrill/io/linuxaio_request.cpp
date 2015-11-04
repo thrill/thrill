@@ -1,31 +1,32 @@
-/***************************************************************************
- *  lib/io/linuxaio_request.cpp
+/*******************************************************************************
+ * thrill/io/linuxaio_request.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2011 Johannes Singler <singler@kit.edu>
- *  Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2011 Johannes Singler <singler@kit.edu>
+ * Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/io/linuxaio_request.h>
+#include <thrill/io/linuxaio_request.hpp>
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
-#include <stxxl/bits/io/disk_queues.h>
-#include <stxxl/bits/verbose.h>
 #include <stxxl/bits/common/error_handling.h>
+#include <stxxl/bits/verbose.h>
+#include <thrill/io/disk_queues.hpp>
 
-#include <unistd.h>
 #include <sys/syscall.h>
+#include <unistd.h>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
-void linuxaio_request::completed(bool posted, bool canceled)
-{
+void linuxaio_request::completed(bool posted, bool canceled) {
     STXXL_VERBOSE_LINUXAIO("linuxaio_request[" << this << "] completed(" <<
                            posted << "," << canceled << ")");
 
@@ -46,8 +47,7 @@ void linuxaio_request::completed(bool posted, bool canceled)
     request_with_state::completed(canceled);
 }
 
-void linuxaio_request::fill_control_block()
-{
+void linuxaio_request::fill_control_block() {
     linuxaio_file* af = dynamic_cast<linuxaio_file*>(m_file);
 
     memset(&cb, 0, sizeof(cb));
@@ -63,8 +63,7 @@ void linuxaio_request::fill_control_block()
 
 //! Submits an I/O request to the OS
 //! \returns false if submission fails
-bool linuxaio_request::post()
-{
+bool linuxaio_request::post() {
     STXXL_VERBOSE_LINUXAIO("linuxaio_request[" << this << "] post()");
 
     fill_control_block();
@@ -93,8 +92,7 @@ bool linuxaio_request::post()
 //! Cancel the request
 //!
 //! Routine is called by user, as part of the request interface.
-bool linuxaio_request::cancel()
-{
+bool linuxaio_request::cancel() {
     STXXL_VERBOSE_LINUXAIO("linuxaio_request[" << this << "] cancel()");
 
     if (!m_file) return false;
@@ -107,8 +105,7 @@ bool linuxaio_request::cancel()
 }
 
 //! Cancel already posted request
-bool linuxaio_request::cancel_aio()
-{
+bool linuxaio_request::cancel_aio() {
     STXXL_VERBOSE_LINUXAIO("linuxaio_request[" << this << "] cancel_aio()");
 
     if (!m_file) return false;
@@ -123,7 +120,9 @@ bool linuxaio_request::cancel_aio()
     return result == 0;
 }
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
 #endif // #if STXXL_HAVE_LINUXAIO_FILE
-// vim: et:ts=4:sw=4
+
+/******************************************************************************/

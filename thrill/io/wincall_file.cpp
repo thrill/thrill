@@ -1,33 +1,34 @@
-/***************************************************************************
- *  lib/io/wincall_file.cpp
+/*******************************************************************************
+ * thrill/io/wincall_file.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2005-2006 Roman Dementiev <dementiev@ira.uka.de>
- *  Copyright (C) 2008-2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2005-2006 Roman Dementiev <dementiev@ira.uka.de>
+ * Copyright (C) 2008-2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/io/wincall_file.h>
+#include <thrill/io/wincall_file.hpp>
 
 #if STXXL_HAVE_WINCALL_FILE
 
-#include <stxxl/bits/io/iostats.h>
 #include <stxxl/bits/common/error_handling.h>
+#include <thrill/io/iostats.h>
 
 #ifndef NOMINMAX
   #define NOMINMAX
 #endif
 #include <windows.h>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 void wincall_file::serve(void* buffer, offset_type offset, size_type bytes,
-                         request::request_type type)
-{
+                         request::request_type type) {
     scoped_mutex_lock fd_lock(fd_mutex);
 
     if (bytes > 32 * 1024 * 1024) {
@@ -37,7 +38,7 @@ void wincall_file::serve(void* buffer, offset_type offset, size_type bytes,
     HANDLE handle = file_des;
     LARGE_INTEGER desired_pos;
     desired_pos.QuadPart = offset;
-    if (!SetFilePointerEx(handle, desired_pos, NULL, FILE_BEGIN))
+    if (!SetFilePointerEx(handle, desired_pos, nullptr, FILE_BEGIN))
     {
         STXXL_THROW_WIN_LASTERROR(io_error,
                                   "SetFilePointerEx in wincall_request::serve()" <<
@@ -55,7 +56,7 @@ void wincall_file::serve(void* buffer, offset_type offset, size_type bytes,
         {
             DWORD NumberOfBytesRead = 0;
             assert(bytes <= std::numeric_limits<DWORD>::max());
-            if (!ReadFile(handle, buffer, (DWORD)bytes, &NumberOfBytesRead, NULL))
+            if (!ReadFile(handle, buffer, (DWORD)bytes, &NumberOfBytesRead, nullptr))
             {
                 STXXL_THROW_WIN_LASTERROR(io_error,
                                           "ReadFile" <<
@@ -74,7 +75,7 @@ void wincall_file::serve(void* buffer, offset_type offset, size_type bytes,
         {
             DWORD NumberOfBytesWritten = 0;
             assert(bytes <= std::numeric_limits<DWORD>::max());
-            if (!WriteFile(handle, buffer, (DWORD)bytes, &NumberOfBytesWritten, NULL))
+            if (!WriteFile(handle, buffer, (DWORD)bytes, &NumberOfBytesWritten, nullptr))
             {
                 STXXL_THROW_WIN_LASTERROR(io_error,
                                           "WriteFile" <<
@@ -92,12 +93,13 @@ void wincall_file::serve(void* buffer, offset_type offset, size_type bytes,
     }
 }
 
-const char* wincall_file::io_type() const
-{
+const char* wincall_file::io_type() const {
     return "wincall";
 }
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
 #endif  // #if STXXL_HAVE_WINCALL_FILE
-// vim: et:ts=4:sw=4
+
+/******************************************************************************/

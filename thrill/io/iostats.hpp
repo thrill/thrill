@@ -1,52 +1,135 @@
-/***************************************************************************
- *  include/stxxl/bits/io/iostats.h
+/*******************************************************************************
+ * thrill/io/iostats.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002-2004 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008-2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009, 2010 Johannes Singler <singler@kit.edu>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002-2004 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008-2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009, 2010 Johannes Singler <singler@kit.edu>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_IOSTATS_HEADER
-#define STXXL_IO_IOSTATS_HEADER
+#pragma once
+#ifndef THRILL_IO_IOSTATS_HEADER
+#define THRILL_IO_IOSTATS_HEADER
 
 #ifndef STXXL_IO_STATS
  #define STXXL_IO_STATS 1
 #endif
 
-#include <stxxl/bits/namespace.h>
-#include <stxxl/bits/deprecated.h>
-#include <stxxl/bits/common/mutex.h>
-#include <stxxl/bits/common/timer.h>
-#include <stxxl/bits/common/types.h>
-#include <stxxl/bits/common/utils.h>
-#include <stxxl/bits/unused.h>
-#include <stxxl/bits/singleton.h>
+// #include <stxxl/bits/common/timer.h>
+// #include <stxxl/bits/common/types.h>
+// #include <stxxl/bits/common/utils.h>
+#include <thrill/common/defines.hpp>
 
 #include <iostream>
+#include <mutex>
 #include <string>
 
-STXXL_BEGIN_NAMESPACE
+#include <sys/time.h>
+
+namespace thrill {
+namespace io {
 
 //! \addtogroup iolayer
 //!
 //! \{
 
+/******************************************************************************/
+
+template <typename INSTANCE, bool destroy_on_exit = true>
+class singleton
+{
+    using instance_type = INSTANCE;
+    using instance_pointer = instance_type *;
+    using volatile_instance_pointer = volatile instance_pointer;
+
+    static volatile_instance_pointer instance;
+
+    static instance_pointer create_instance();
+    static void destroy_instance();
+
+public:
+    singleton() = default;
+
+    //! non-copyable: delete copy-constructor
+    singleton(const singleton&) = delete;
+    //! non-copyable: delete assignment operator
+    singleton& operator = (const singleton&) = delete;
+    //! move-constructor: default
+    singleton(singleton&&) = default;
+    //! move-assignment operator: default
+    singleton& operator = (singleton&&) = default;
+
+    inline static instance_pointer get_instance() {
+        if (!instance)
+            return create_instance();
+
+        return instance;
+    }
+};
+
+template <typename INSTANCE, bool destroy_on_exit>
+typename singleton<INSTANCE, destroy_on_exit>::instance_pointer
+singleton<INSTANCE, destroy_on_exit>::create_instance() {
+    static std::mutex create_mutex;
+    std::unique_lock<std::mutex> lock(create_mutex);
+    if (!instance) {
+        instance = new instance_type();
+        if (destroy_on_exit)
+            atexit(destroy_instance);
+    }
+    return instance;
+}
+
+template <typename INSTANCE, bool destroy_on_exit>
+void singleton<INSTANCE, destroy_on_exit>::destroy_instance() {
+    instance_pointer inst = instance;
+    // instance = nullptr;
+    instance = reinterpret_cast<instance_pointer>(size_t(-1));     // bomb if used again
+    delete inst;
+}
+
+template <typename INSTANCE, bool destroy_on_exit>
+typename singleton<INSTANCE, destroy_on_exit>::volatile_instance_pointer
+singleton<INSTANCE, destroy_on_exit>::instance = nullptr;
+
+//! Returns number of seconds since the epoch, high resolution.
+static inline double
+timestamp() {
+#if STXXL_BOOST_TIMESTAMP
+    boost::posix_time::ptime MyTime = boost::posix_time::microsec_clock::local_time();
+    boost::posix_time::time_duration Duration =
+        MyTime - boost::posix_time::time_from_string("1970-01-01 00:00:00.000");
+    double sec = double(Duration.hours()) * 3600. +
+                 double(Duration.minutes()) * 60. +
+                 double(Duration.seconds()) +
+                 double(Duration.fractional_seconds()) / (pow(10., Duration.num_fractional_digits()));
+    return sec;
+#elif STXXL_WINDOWS
+    return GetTickCount() / 1000.0;
+#else
+    struct timeval tp;
+    gettimeofday(&tp, nullptr);
+    return double(tp.tv_sec) + double(tp.tv_usec) / 1000000.;
+#endif
+}
+
+/******************************************************************************/
+
 //! Collects various I/O statistics.
-//! \remarks is a singleton
 class stats : public singleton<stats>
 {
-    friend class singleton<stats>;
+    friend class singleton;
 
     unsigned reads, writes;                     // number of operations
-    int64 volume_read, volume_written;          // number of bytes read/written
+    int64_t volume_read, volume_written;        // number of bytes read/written
     unsigned c_reads, c_writes;                 // number of cached operations
-    int64 c_volume_read, c_volume_written;      // number of bytes read/written from/to cache
+    int64_t c_volume_read, c_volume_written;    // number of bytes read/written from/to cache
     double t_reads, t_writes;                   // seconds spent in operations
     double p_reads, p_writes;                   // seconds spent in parallel operations
     double p_begin_read, p_begin_write;         // start time of parallel operation
@@ -63,7 +146,7 @@ class stats : public singleton<stats>
     int acc_waits;
     int acc_wait_read, acc_wait_write;
     double last_reset;
-    mutex read_mutex, write_mutex, io_mutex, wait_mutex;
+    std::mutex read_mutex, write_mutex, io_mutex, wait_mutex;
 
     stats();
 
@@ -76,7 +159,7 @@ public:
 
     class scoped_read_write_timer
     {
-        typedef unsigned_type size_type;
+        using size_type = size_t;
 
         bool is_write;
 #if STXXL_IO_STATS
@@ -93,13 +176,11 @@ public:
             start(size);
         }
 
-        ~scoped_read_write_timer()
-        {
+        ~scoped_read_write_timer() {
             stop();
         }
 
-        void start(size_type size)
-        {
+        void start(size_type size) {
 #if STXXL_IO_STATS
             if (!running) {
                 running = true;
@@ -109,12 +190,11 @@ public:
                     stats::get_instance()->read_started(size);
             }
 #else
-            STXXL_UNUSED(size);
+            common::THRILL_UNUSED(size);
 #endif
         }
 
-        void stop()
-        {
+        void stop() {
 #if STXXL_IO_STATS
             if (running) {
                 if (is_write)
@@ -129,7 +209,7 @@ public:
 
     class scoped_write_timer
     {
-        typedef unsigned_type size_type;
+        using size_type = size_t;
 
 #if STXXL_IO_STATS
         bool running;
@@ -144,25 +224,22 @@ public:
             start(size);
         }
 
-        ~scoped_write_timer()
-        {
+        ~scoped_write_timer() {
             stop();
         }
 
-        void start(size_type size)
-        {
+        void start(size_type size) {
 #if STXXL_IO_STATS
             if (!running) {
                 running = true;
                 stats::get_instance()->write_started(size);
             }
 #else
-            STXXL_UNUSED(size);
+            common::THRILL_UNUSED(size);
 #endif
         }
 
-        void stop()
-        {
+        void stop() {
 #if STXXL_IO_STATS
             if (running) {
                 stats::get_instance()->write_finished();
@@ -174,7 +251,7 @@ public:
 
     class scoped_read_timer
     {
-        typedef unsigned_type size_type;
+        using size_type = size_t;
 
 #if STXXL_IO_STATS
         bool running;
@@ -189,25 +266,22 @@ public:
             start(size);
         }
 
-        ~scoped_read_timer()
-        {
+        ~scoped_read_timer() {
             stop();
         }
 
-        void start(size_type size)
-        {
+        void start(size_type size) {
 #if STXXL_IO_STATS
             if (!running) {
                 running = true;
                 stats::get_instance()->read_started(size);
             }
 #else
-            STXXL_UNUSED(size);
+            common::THRILL_UNUSED(size);
 #endif
         }
 
-        void stop()
-        {
+        void stop() {
 #if STXXL_IO_STATS
             if (running) {
                 stats::get_instance()->read_finished();
@@ -234,13 +308,11 @@ public:
                 start();
         }
 
-        ~scoped_wait_timer()
-        {
+        ~scoped_wait_timer() {
             stop();
         }
 
-        void start()
-        {
+        void start() {
 #ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
             if (!running) {
                 running = true;
@@ -249,8 +321,7 @@ public:
 #endif
         }
 
-        void stop()
-        {
+        void stop() {
 #ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
             if (running) {
                 stats::get_instance()->wait_finished(wait_op);
@@ -263,160 +334,131 @@ public:
 public:
     //! Returns total number of reads.
     //! \return total number of reads
-    unsigned get_reads() const
-    {
+    unsigned get_reads() const {
         return reads;
     }
 
     //! Returns total number of writes.
     //! \return total number of writes
-    unsigned get_writes() const
-    {
+    unsigned get_writes() const {
         return writes;
     }
 
     //! Returns number of bytes read from disks.
     //! \return number of bytes read
-    int64 get_read_volume() const
-    {
+    int64_t get_read_volume() const {
         return volume_read;
     }
 
     //! Returns number of bytes written to the disks.
     //! \return number of bytes written
-    int64 get_written_volume() const
-    {
+    int64_t get_written_volume() const {
         return volume_written;
     }
 
     //! Returns total number of reads served from cache.
     //! \return total number of cached reads
-    unsigned get_cached_reads() const
-    {
+    unsigned get_cached_reads() const {
         return c_reads;
     }
 
     //! Returns total number of cached writes.
     //! \return total number of cached writes
-    unsigned get_cached_writes() const
-    {
+    unsigned get_cached_writes() const {
         return c_writes;
     }
 
     //! Returns number of bytes read from cache.
     //! \return number of bytes read from cache
-    int64 get_cached_read_volume() const
-    {
+    int64_t get_cached_read_volume() const {
         return c_volume_read;
     }
 
     //! Returns number of bytes written to the cache.
     //! \return number of bytes written to cache
-    int64 get_cached_written_volume() const
-    {
+    int64_t get_cached_written_volume() const {
         return c_volume_written;
     }
 
     //! Time that would be spent in read syscalls if all parallel reads were serialized.
     //! \return seconds spent in reading
-    double get_read_time() const
-    {
+    double get_read_time() const {
         return t_reads;
     }
 
     //! Time that would be spent in write syscalls if all parallel writes were serialized.
     //! \return seconds spent in writing
-    double get_write_time() const
-    {
+    double get_write_time() const {
         return t_writes;
     }
 
     //! Period of time when at least one I/O thread was executing a read.
     //! \return seconds spent in reading
-    double get_pread_time() const
-    {
+    double get_pread_time() const {
         return p_reads;
     }
 
     //! Period of time when at least one I/O thread was executing a write.
     //! \return seconds spent in writing
-    double get_pwrite_time() const
-    {
+    double get_pwrite_time() const {
         return p_writes;
     }
 
     //! Period of time when at least one I/O thread was executing a read or a write.
     //! \return seconds spent in I/O
-    double get_pio_time() const
-    {
+    double get_pio_time() const {
         return p_ios;
     }
 
     //! I/O wait time counter.
     //! \return number of seconds spent in I/O waiting functions \link
     //! request::wait request::wait \endlink, \c wait_any and \c wait_all
-    double get_io_wait_time() const
-    {
+    double get_io_wait_time() const {
         return t_waits;
     }
 
-    double get_wait_read_time() const
-    {
+    double get_wait_read_time() const {
         return t_wait_read;
     }
 
-    double get_wait_write_time() const
-    {
+    double get_wait_write_time() const {
         return t_wait_write;
     }
 
     //! Return time of the last reset.
     //! \return seconds passed from the last reset()
-    double get_last_reset_time() const
-    {
+    double get_last_reset_time() const {
         return last_reset;
     }
 
-#ifndef STXXL_IO_STATS_RESET_FORBIDDEN
-    //! Resets I/O time counters (including I/O wait counter).
-    STXXL_DEPRECATED(void reset());
-#endif
-
-    //! Resets I/O wait time counter.
-    STXXL_DEPRECATED(void _reset_io_wait_time());
-
     // for library use
-    void write_started(unsigned_type size_, double now = 0.0);
-    void write_canceled(unsigned_type size_);
+    void write_started(size_t size_, double now = 0.0);
+    void write_canceled(size_t size_);
     void write_finished();
-    void write_cached(unsigned_type size_);
-    void read_started(unsigned_type size_, double now = 0.0);
-    void read_canceled(unsigned_type size_);
+    void write_cached(size_t size_);
+    void read_started(size_t size_, double now = 0.0);
+    void read_canceled(size_t size_);
     void read_finished();
-    void read_cached(unsigned_type size_);
+    void read_cached(size_t size_);
     void wait_started(wait_op_type wait_op);
     void wait_finished(wait_op_type wait_op);
 };
 
 #if !STXXL_IO_STATS
-inline void stats::write_started(unsigned_type size_, double now)
-{
-    STXXL_UNUSED(size_);
-    STXXL_UNUSED(now);
+inline void stats::write_started(size_t size_, double now) {
+    common::THRILL_UNUSED(size_);
+    common::THRILL_UNUSED(now);
 }
-inline void stats::write_cached(unsigned_type size_)
-{
-    STXXL_UNUSED(size_);
+inline void stats::write_cached(size_t size_) {
+    common::THRILL_UNUSED(size_);
 }
 inline void stats::write_finished() { }
-inline void stats::read_started(unsigned_type size_, double now)
-{
-    STXXL_UNUSED(size_);
-    STXXL_UNUSED(now);
+inline void stats::read_started(size_t size_, double now) {
+    common::THRILL_UNUSED(size_);
+    common::THRILL_UNUSED(now);
 }
-inline void stats::read_cached(unsigned_type size_)
-{
-    STXXL_UNUSED(size_);
+inline void stats::read_cached(size_t size_) {
+    common::THRILL_UNUSED(size_);
 }
 inline void stats::read_finished() { }
 #endif
@@ -430,11 +472,11 @@ class stats_data
     //! number of operations
     unsigned reads, writes;
     //! number of bytes read/written
-    int64 volume_read, volume_written;
+    int64_t volume_read, volume_written;
     //! number of cached operations
     unsigned c_reads, c_writes;
     //! number of bytes read/written from/to cache
-    int64 c_volume_read, c_volume_written;
+    int64_t c_volume_read, c_volume_written;
     //! seconds spent in operations
     double t_reads, t_writes;
     //! seconds spent in parallel operations
@@ -487,8 +529,7 @@ public:
           elapsed(timestamp() - s.get_last_reset_time())
     { }
 
-    stats_data operator + (const stats_data& a) const
-    {
+    stats_data operator + (const stats_data& a) const {
         stats_data s;
         s.reads = reads + a.reads;
         s.writes = writes + a.writes;
@@ -510,8 +551,7 @@ public:
         return s;
     }
 
-    stats_data operator - (const stats_data& a) const
-    {
+    stats_data operator - (const stats_data& a) const {
         stats_data s;
         s.reads = reads - a.reads;
         s.writes = writes - a.writes;
@@ -533,115 +573,97 @@ public:
         return s;
     }
 
-    unsigned get_reads() const
-    {
+    unsigned get_reads() const {
         return reads;
     }
 
-    unsigned get_writes() const
-    {
+    unsigned get_writes() const {
         return writes;
     }
 
-    int64 get_read_volume() const
-    {
+    int64_t get_read_volume() const {
         return volume_read;
     }
 
-    int64 get_written_volume() const
-    {
+    int64_t get_written_volume() const {
         return volume_written;
     }
 
-    unsigned get_cached_reads() const
-    {
+    unsigned get_cached_reads() const {
         return c_reads;
     }
 
-    unsigned get_cached_writes() const
-    {
+    unsigned get_cached_writes() const {
         return c_writes;
     }
 
-    int64 get_cached_read_volume() const
-    {
+    int64_t get_cached_read_volume() const {
         return c_volume_read;
     }
 
-    int64 get_cached_written_volume() const
-    {
+    int64_t get_cached_written_volume() const {
         return c_volume_written;
     }
 
-    double get_read_time() const
-    {
+    double get_read_time() const {
         return t_reads;
     }
 
-    double get_write_time() const
-    {
+    double get_write_time() const {
         return t_writes;
     }
 
-    double get_pread_time() const
-    {
+    double get_pread_time() const {
         return p_reads;
     }
 
-    double get_pwrite_time() const
-    {
+    double get_pwrite_time() const {
         return p_writes;
     }
 
-    double get_pio_time() const
-    {
+    double get_pio_time() const {
         return p_ios;
     }
 
-    double get_elapsed_time() const
-    {
+    double get_elapsed_time() const {
         return elapsed;
     }
 
-    double get_io_wait_time() const
-    {
+    double get_io_wait_time() const {
         return t_wait;
     }
 
-    double get_wait_read_time() const
-    {
+    double get_wait_read_time() const {
         return t_wait_read;
     }
 
-    double get_wait_write_time() const
-    {
+    double get_wait_write_time() const {
         return t_wait_write;
     }
 };
 
 std::ostream& operator << (std::ostream& o, const stats_data& s);
 
-inline std::ostream& operator << (std::ostream& o, const stats& s)
-{
-    o << stxxl::stats_data(s);
+inline std::ostream& operator << (std::ostream& o, const stats& s) {
+    o << stats_data(s);
     return o;
 }
 
-std::string format_with_SI_IEC_unit_multiplier(uint64 number, const char* unit = "", int multiplier = 1000);
+std::string format_with_SI_IEC_unit_multiplier(uint64_t number, const char* unit = "", int multiplier = 1000);
 
-inline std::string add_IEC_binary_multiplier(uint64 number, const char* unit = "")
-{
+inline std::string add_IEC_binary_multiplier(uint64_t number, const char* unit = "") {
     return format_with_SI_IEC_unit_multiplier(number, unit, 1024);
 }
 
-inline std::string add_SI_multiplier(uint64 number, const char* unit = "")
-{
+inline std::string add_SI_multiplier(uint64_t number, const char* unit = "") {
     return format_with_SI_IEC_unit_multiplier(number, unit, 1000);
 }
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_IOSTATS_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_IOSTATS_HEADER
+
+/******************************************************************************/

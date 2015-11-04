@@ -1,28 +1,31 @@
-/***************************************************************************
- *  include/stxxl/bits/io/linuxaio_file.h
+/*******************************************************************************
+ * thrill/io/linuxaio_file.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2011 Johannes Singler <singler@kit.edu>
- *  Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2011 Johannes Singler <singler@kit.edu>
+ * Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_LINUXAIO_FILE_HEADER
-#define STXXL_IO_LINUXAIO_FILE_HEADER
+#pragma once
+#ifndef THRILL_IO_LINUXAIO_FILE_HEADER
+#define THRILL_IO_LINUXAIO_FILE_HEADER
 
-#include <stxxl/bits/config.h>
+#include <thrill/common/config.hpp>
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
-#include <stxxl/bits/io/ufs_file_base.h>
-#include <stxxl/bits/io/disk_queued_file.h>
-#include <stxxl/bits/io/linuxaio_queue.h>
+#include <thrill/io/disk_queued_file.h>
+#include <thrill/io/linuxaio_queue.h>
+#include <thrill/io/ufs_file_base.h>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 class linuxaio_queue;
 
@@ -66,17 +69,18 @@ public:
                        const completion_handler& on_cmpl = completion_handler());
     const char * io_type() const;
 
-    int get_desired_queue_length() const
-    {
+    int get_desired_queue_length() const {
         return desired_queue_length;
     }
 };
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
 #endif // #if STXXL_HAVE_LINUXAIO_FILE
 
-#endif // !STXXL_IO_LINUXAIO_FILE_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_LINUXAIO_FILE_HEADER
+
+/******************************************************************************/

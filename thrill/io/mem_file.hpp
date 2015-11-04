@@ -1,24 +1,29 @@
-/***************************************************************************
- *  include/stxxl/bits/io/mem_file.h
+/*******************************************************************************
+ * thrill/io/mem_file.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
- *  Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ * Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_MEM_FILE_HEADER
-#define STXXL_IO_MEM_FILE_HEADER
+#pragma once
+#ifndef THRILL_IO_MEM_FILE_HEADER
+#define THRILL_IO_MEM_FILE_HEADER
 
-#include <stxxl/bits/io/disk_queued_file.h>
-#include <stxxl/bits/io/request.h>
+#include <thrill/io/disk_queued_file.hpp>
+#include <thrill/io/request.hpp>
 
-STXXL_BEGIN_NAMESPACE
+#include <mutex>
+
+namespace thrill {
+namespace io {
 
 //! \addtogroup fileimpl
 //! \{
@@ -33,7 +38,7 @@ class mem_file : public disk_queued_file
     offset_type m_size;
 
     //! sequentialize function calls
-    mutex m_mutex;
+    std::mutex m_mutex;
 
 public:
     //! constructs file object.
@@ -43,7 +48,7 @@ public:
         unsigned int device_id = DEFAULT_DEVICE_ID)
         : file(device_id),
           disk_queued_file(queue_id, allocator_id),
-          m_ptr(NULL), m_size(0)
+          m_ptr(nullptr), m_size(0)
     { }
     void serve(void* buffer, offset_type offset, size_type bytes,
                request::request_type type);
@@ -57,6 +62,9 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_MEM_FILE_HEADER
+#endif // !THRILL_IO_MEM_FILE_HEADER
+
+/******************************************************************************/

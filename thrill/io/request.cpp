@@ -1,22 +1,24 @@
-/***************************************************************************
- *  lib/io/request.cpp
+/*******************************************************************************
+ * thrill/io/request.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
 #include <ostream>
 
-#include <stxxl/bits/io/request.h>
-#include <stxxl/bits/io/file.h>
+#include <thrill/io/file.hpp>
+#include <thrill/io/request.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 request::request(
     const completion_handler& on_compl,
@@ -30,55 +32,48 @@ request::request(
       m_buffer(buffer),
       m_offset(offset),
       m_bytes(bytes),
-      m_type(type)
-{
-    STXXL_VERBOSE3_THIS("request::(...), ref_cnt=" << get_reference_count());
+      m_type(type) {
+    LOG << "request::(...), ref_cnt=" << reference_count();
     m_file->add_request_ref();
 }
 
-request::~request()
-{
-    STXXL_VERBOSE3_THIS("request::~request(), ref_cnt=" << get_reference_count());
+request::~request() {
+    LOG << "request::~request(), ref_cnt=" << reference_count();
 }
 
-void request::check_alignment() const
-{
+void request::check_alignment() const {
     if (m_offset % STXXL_BLOCK_ALIGN != 0)
-        STXXL_ERRMSG("Offset is not aligned: modulo " <<
-                     STXXL_BLOCK_ALIGN << " = " << m_offset % STXXL_BLOCK_ALIGN);
+        LOG1 << "Offset is not aligned: modulo "
+             << STXXL_BLOCK_ALIGN << " = " << m_offset % STXXL_BLOCK_ALIGN;
 
     if (m_bytes % STXXL_BLOCK_ALIGN != 0)
-        STXXL_ERRMSG("Size is not a multiple of " <<
-                     STXXL_BLOCK_ALIGN << ", = " << m_bytes % STXXL_BLOCK_ALIGN);
+        LOG1 << "Size is not a multiple of "
+             << STXXL_BLOCK_ALIGN << ", = " << m_bytes % STXXL_BLOCK_ALIGN;
 
-    if (unsigned_type(m_buffer) % STXXL_BLOCK_ALIGN != 0)
-        STXXL_ERRMSG("Buffer is not aligned: modulo " <<
-                     STXXL_BLOCK_ALIGN << " = " << unsigned_type(m_buffer) % STXXL_BLOCK_ALIGN <<
-                     " (" << m_buffer << ")");
+    if (size_t(m_buffer) % STXXL_BLOCK_ALIGN != 0)
+        LOG1 << "Buffer is not aligned: modulo "
+             << STXXL_BLOCK_ALIGN << " = " << size_t(m_buffer) % STXXL_BLOCK_ALIGN
+             << " (" << m_buffer << ")";
 }
 
-void request::check_nref_failed(bool after)
-{
-    STXXL_ERRMSG("WARNING: serious error, reference to the request is lost " <<
-                 (after ? "after" : "before") << " serve()" <<
-                 " nref=" << get_reference_count() <<
-                 " this=" << this <<
-                 " offset=" << m_offset <<
-                 " buffer=" << m_buffer <<
-                 " bytes=" << m_bytes <<
-                 " type=" << ((m_type == READ) ? "READ" : "WRITE") <<
-                 " file=" << m_file <<
-                 " iotype=" << m_file->io_type()
-                 );
+void request::check_nref_failed(bool after) {
+    LOG1 << "WARNING: serious error, reference to the request is lost "
+         << (after ? "after" : "before") << " serve()"
+         << " nref=" << reference_count()
+         << " this=" << this
+         << " offset=" << m_offset
+         << " buffer=" << m_buffer
+         << " bytes=" << m_bytes
+         << " type=" << ((m_type == READ) ? "READ" : "WRITE")
+         << " file=" << m_file
+         << " iotype=" << m_file->io_type();
 }
 
-const char* request::io_type() const
-{
+const char* request::io_type() const {
     return m_file->io_type();
 }
 
-std::ostream& request::print(std::ostream& out) const
-{
+std::ostream& request::print(std::ostream& out) const {
     out << "File object address: " << static_cast<void*>(m_file);
     out << " Buffer address: " << static_cast<void*>(m_buffer);
     out << " File offset: " << m_offset;
@@ -87,5 +82,7 @@ std::ostream& request::print(std::ostream& out) const
     return out;
 }
 
-STXXL_END_NAMESPACE
-// vim: et:ts=4:sw=4
+} // namespace io
+} // namespace thrill
+
+/******************************************************************************/

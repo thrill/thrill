@@ -1,23 +1,27 @@
-/***************************************************************************
- *  lib/io/file.cpp
+/*******************************************************************************
+ * thrill/io/file.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/io/file.h>
-#include "ufs_platform.h"
+#include "ufs_platform.hpp"
+#include <thrill/io/file.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
-int file::unlink(const char* path)
-{
+int file::unlink(const char* path) {
     return ::unlink(path);
 }
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
+
+/******************************************************************************/

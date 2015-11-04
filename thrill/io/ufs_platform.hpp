@@ -1,21 +1,23 @@
-/***************************************************************************
- *  lib/io/ufs_platform.h
+/*******************************************************************************
+ * thrill/io/ufs_platform.hpp
  *
- *  Platform porting code local the I/O file implementations. This header is
- *  not part of STXXL's template library interface and must only be used inside
- *  libstxxl.
+ * Platform porting code local the I/O file implementations. This header is
+ * not part of STXXL's template library interface and must only be used inside
+ * libstxxl.
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_UFS_PLATFORM_HEADER
-#define STXXL_IO_UFS_PLATFORM_HEADER
+#pragma once
+#ifndef THRILL_IO_UFS_PLATFORM_HEADER
+#define THRILL_IO_UFS_PLATFORM_HEADER
 
 #if STXXL_WINDOWS || defined(__MINGW32__)
   #ifndef NOMINMAX
@@ -30,8 +32,8 @@
 
 // these exist on Windows and Unixs
 #include <fcntl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 // required for ::remove()
 #include <cstdio>
@@ -76,4 +78,6 @@
   #endif
 #endif
 
-#endif // !STXXL_IO_UFS_PLATFORM_HEADER
+#endif // !THRILL_IO_UFS_PLATFORM_HEADER
+
+/******************************************************************************/

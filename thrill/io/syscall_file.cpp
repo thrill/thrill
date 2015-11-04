@@ -1,32 +1,32 @@
-/***************************************************************************
- *  lib/io/syscall_file.cpp
+/*******************************************************************************
+ * thrill/io/syscall_file.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2010 Johannes Singler <singler@kit.edu>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2010 Johannes Singler <singler@kit.edu>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/common/error_handling.h>
-#include <stxxl/bits/common/mutex.h>
-#include <stxxl/bits/config.h>
-#include <stxxl/bits/io/iostats.h>
-#include <stxxl/bits/io/request.h>
-#include <stxxl/bits/io/request_interface.h>
-#include <stxxl/bits/io/syscall_file.h>
-#include "ufs_platform.h"
+#include "error_handling.hpp"
+#include "ufs_platform.hpp"
+#include <thrill/common/config.hpp>
+#include <thrill/io/iostats.hpp>
+#include <thrill/io/request.hpp>
+#include <thrill/io/request_interface.hpp>
+#include <thrill/io/syscall_file.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 void syscall_file::serve(void* buffer, offset_type offset, size_type bytes,
-                         request::request_type type)
-{
-    scoped_mutex_lock fd_lock(fd_mutex);
+                         request::request_type type) {
+    std::unique_lock<std::mutex> fd_lock(fd_mutex);
 
     char* cbuffer = static_cast<char*>(buffer);
 
@@ -37,17 +37,16 @@ void syscall_file::serve(void* buffer, offset_type offset, size_type bytes,
         off_t rc = ::lseek(file_des, offset, SEEK_SET);
         if (rc < 0)
         {
-            STXXL_THROW_ERRNO
-                (io_error,
-                " this=" << this <<
-                " call=::lseek(fd,offset,SEEK_SET)" <<
-                " path=" << filename <<
-                " fd=" << file_des <<
-                " offset=" << offset <<
-                " buffer=" << cbuffer <<
-                " bytes=" << bytes <<
-                " type=" << ((type == request::READ) ? "READ" : "WRITE") <<
-                " rc=" << rc);
+            STXXL_THROW_ERRNO(io_error,
+                              " this=" << this <<
+                              " call=::lseek(fd,offset,SEEK_SET)" <<
+                              " path=" << filename <<
+                              " fd=" << file_des <<
+                              " offset=" << offset <<
+                              " buffer=" << cbuffer <<
+                              " bytes=" << bytes <<
+                              " type=" << ((type == request::READ) ? "READ" : "WRITE") <<
+                              " rc=" << rc);
         }
 
         if (type == request::READ)
@@ -111,10 +110,11 @@ void syscall_file::serve(void* buffer, offset_type offset, size_type bytes,
     }
 }
 
-const char* syscall_file::io_type() const
-{
+const char* syscall_file::io_type() const {
     return "syscall";
 }
 
-STXXL_END_NAMESPACE
-// vim: et:ts=4:sw=4
+} // namespace io
+} // namespace thrill
+
+/******************************************************************************/

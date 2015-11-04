@@ -1,28 +1,29 @@
-/***************************************************************************
- *  lib/io/linuxaio_queue.cpp
+/*******************************************************************************
+ * thrill/io/linuxaio_queue.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2011 Johannes Singler <singler@kit.edu>
- *  Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2011 Johannes Singler <singler@kit.edu>
+ * Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/io/linuxaio_queue.h>
+#include <thrill/io/linuxaio_queue.hpp>
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
-#include <unistd.h>
 #include <sys/syscall.h>
+#include <unistd.h>
 
-#include <stxxl/bits/verbose.h>
-#include <stxxl/bits/mng/block_manager.h>
 #include <stxxl/bits/common/error_handling.h>
-#include <stxxl/bits/io/linuxaio_request.h>
-#include <stxxl/bits/io/linuxaio_queue.h>
+#include <stxxl/bits/mng/block_manager.h>
+#include <stxxl/bits/verbose.h>
+#include <thrill/io/linuxaio_queue.h>
+#include <thrill/io/linuxaio_request.h>
 
 #include <algorithm>
 
@@ -30,12 +31,12 @@
 #define STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION 1
 #endif
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 linuxaio_queue::linuxaio_queue(int desired_queue_length)
     : num_waiting_requests(0), num_free_events(0), num_posted_requests(0),
-      post_thread_state(NOT_RUNNING), wait_thread_state(NOT_RUNNING)
-{
+      post_thread_state(NOT_RUNNING), wait_thread_state(NOT_RUNNING) {
     if (desired_queue_length == 0) {
         // default value, 64 entries per queue (i.e. usually per disk) should
         // be enough
@@ -66,15 +67,13 @@ linuxaio_queue::linuxaio_queue(int desired_queue_length)
     start_thread(wait_async, static_cast<void*>(this), wait_thread, wait_thread_state);
 }
 
-linuxaio_queue::~linuxaio_queue()
-{
+linuxaio_queue::~linuxaio_queue() {
     stop_thread(post_thread, post_thread_state, num_waiting_requests);
     stop_thread(wait_thread, wait_thread_state, num_posted_requests);
     syscall(SYS_io_destroy, context);
 }
 
-void linuxaio_queue::add_request(request_ptr& req)
-{
+void linuxaio_queue::add_request(request_ptr& req) {
     if (req.empty())
         STXXL_THROW_INVALID_ARGUMENT("Empty request submitted to disk_queue.");
     if (post_thread_state() != RUNNING)
@@ -88,8 +87,7 @@ void linuxaio_queue::add_request(request_ptr& req)
     num_waiting_requests++;
 }
 
-bool linuxaio_queue::cancel_request(request_ptr& req)
-{
+bool linuxaio_queue::cancel_request(request_ptr& req) {
     if (req.empty())
         STXXL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
     if (post_thread_state() != RUNNING)
@@ -144,8 +142,7 @@ bool linuxaio_queue::cancel_request(request_ptr& req)
 }
 
 // internal routines, run by the posting thread
-void linuxaio_queue::post_requests()
-{
+void linuxaio_queue::post_requests() {
     request_ptr req;
     io_event* events = new io_event[max_events];
 
@@ -174,7 +171,7 @@ void linuxaio_queue::post_requests()
                 // empty, then try again.
 
                 // wait for at least one event to complete, no time limit
-                long num_events = syscall(SYS_io_getevents, context, 1, max_events, events, NULL);
+                long num_events = syscall(SYS_io_getevents, context, 1, max_events, events, nullptr);
                 if (num_events < 0) {
                     STXXL_THROW_ERRNO(io_error, "linuxaio_queue::post_requests"
                                       " io_getevents() nr_events=" << num_events);
@@ -203,12 +200,11 @@ void linuxaio_queue::post_requests()
     delete[] events;
 }
 
-void linuxaio_queue::handle_events(io_event* events, long num_events, bool canceled)
-{
+void linuxaio_queue::handle_events(io_event* events, long num_events, bool canceled) {
     for (int e = 0; e < num_events; ++e)
     {
-        // unsigned_type is as long as a pointer, and like this, we avoid an icpc warning
-        request_ptr* r = reinterpret_cast<request_ptr*>(static_cast<unsigned_type>(events[e].data));
+        // size_t is as long as a pointer, and like this, we avoid an icpc warning
+        request_ptr* r = reinterpret_cast<request_ptr*>(static_cast<size_t>(events[e].data));
         r->get()->completed(canceled);
         delete r;              // release auto_ptr reference
         num_free_events++;
@@ -217,8 +213,7 @@ void linuxaio_queue::handle_events(io_event* events, long num_events, bool cance
 }
 
 // internal routines, run by the waiting thread
-void linuxaio_queue::wait_requests()
-{
+void linuxaio_queue::wait_requests() {
     request_ptr req;
     io_event* events = new io_event[max_events];
 
@@ -232,7 +227,7 @@ void linuxaio_queue::wait_requests()
             break;
 
         // wait for at least one of them to finish
-        long num_events = syscall(SYS_io_getevents, context, 1, max_events, events, NULL);
+        long num_events = syscall(SYS_io_getevents, context, 1, max_events, events, nullptr);
         if (num_events < 0) {
             STXXL_THROW_ERRNO(io_error, "linuxaio_queue::wait_requests"
                               " io_getevents() nr_events=" << max_events);
@@ -246,8 +241,7 @@ void linuxaio_queue::wait_requests()
     delete[] events;
 }
 
-void* linuxaio_queue::post_async(void* arg)
-{
+void* linuxaio_queue::post_async(void* arg) {
     (static_cast<linuxaio_queue*>(arg))->post_requests();
 
     self_type* pthis = static_cast<self_type*>(arg);
@@ -256,14 +250,13 @@ void* linuxaio_queue::post_async(void* arg)
 #if STXXL_STD_THREADS && STXXL_MSVC >= 1700
     // Workaround for deadlock bug in Visual C++ Runtime 2012 and 2013, see
     // request_queue_impl_worker.cpp. -tb
-    ExitThread(NULL);
+    ExitThread(nullptr);
 #else
-    return NULL;
+    return nullptr;
 #endif
 }
 
-void* linuxaio_queue::wait_async(void* arg)
-{
+void* linuxaio_queue::wait_async(void* arg) {
     (static_cast<linuxaio_queue*>(arg))->wait_requests();
 
     self_type* pthis = static_cast<self_type*>(arg);
@@ -272,13 +265,15 @@ void* linuxaio_queue::wait_async(void* arg)
 #if STXXL_STD_THREADS && STXXL_MSVC >= 1700
     // Workaround for deadlock bug in Visual C++ Runtime 2012 and 2013, see
     // request_queue_impl_worker.cpp. -tb
-    ExitThread(NULL);
+    ExitThread(nullptr);
 #else
-    return NULL;
+    return nullptr;
 #endif
 }
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
 #endif // #if STXXL_HAVE_LINUXAIO_FILE
-// vim: et:ts=4:sw=4
+
+/******************************************************************************/

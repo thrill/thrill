@@ -1,19 +1,20 @@
-/***************************************************************************
- *  lib/io/wfs_file_base.cpp
+/*******************************************************************************
+ * thrill/io/wfs_file_base.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2005 Roman Dementiev <dementiev@ira.uka.de>
- *  Copyright (C) 2008, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009, 2010 Johannes Singler <singler@kit.edu>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2005 Roman Dementiev <dementiev@ira.uka.de>
+ * Copyright (C) 2008, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009, 2010 Johannes Singler <singler@kit.edu>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/io/wfs_file_base.h>
-#include <stxxl/bits/common/error_handling.h>
+#include "error_handling.hpp"
+#include <thrill/io/wfs_file_base.hpp>
 
 #if STXXL_WINDOWS
 
@@ -22,15 +23,14 @@
 #endif
 #include <windows.h>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
-const char* wfs_file_base::io_type() const
-{
+const char* wfs_file_base::io_type() const {
     return "wfs_base";
 }
 
-static HANDLE open_file_impl(const std::string& filename, int mode)
-{
+static HANDLE open_file_impl(const std::string& filename, int mode) {
     DWORD dwDesiredAccess = 0;
     DWORD dwShareMode = 0;
     DWORD dwCreationDisposition = 0;
@@ -87,8 +87,8 @@ static HANDLE open_file_impl(const std::string& filename, int mode)
         // ignored
     }
 
-    HANDLE file_des = ::CreateFile(filename.c_str(), dwDesiredAccess, dwShareMode, NULL,
-                                   dwCreationDisposition, dwFlagsAndAttributes, NULL);
+    HANDLE file_des = ::CreateFile(filename.c_str(), dwDesiredAccess, dwShareMode, nullptr,
+                                   dwCreationDisposition, dwFlagsAndAttributes, nullptr);
 
     if (file_des != INVALID_HANDLE_VALUE)
         return file_des;
@@ -100,8 +100,8 @@ static HANDLE open_file_impl(const std::string& filename, int mode)
 
         dwFlagsAndAttributes &= ~FILE_FLAG_NO_BUFFERING;
 
-        HANDLE file_des = ::CreateFile(filename.c_str(), dwDesiredAccess, dwShareMode, NULL,
-                                       dwCreationDisposition, dwFlagsAndAttributes, NULL);
+        HANDLE file_des = ::CreateFile(filename.c_str(), dwDesiredAccess, dwShareMode, nullptr,
+                                       dwCreationDisposition, dwFlagsAndAttributes, nullptr);
 
         if (file_des != INVALID_HANDLE_VALUE)
             return file_des;
@@ -113,8 +113,7 @@ static HANDLE open_file_impl(const std::string& filename, int mode)
 
 wfs_file_base::wfs_file_base(
     const std::string& filename,
-    int mode) : file_des(INVALID_HANDLE_VALUE), mode_(mode), filename(filename), locked(false)
-{
+    int mode) : file_des(INVALID_HANDLE_VALUE), mode_(mode), filename(filename), locked(false) {
     file_des = open_file_impl(filename, mode);
 
     if (!(mode & NO_LOCK))
@@ -134,7 +133,7 @@ wfs_file_base::wfs_file_base(
         {
             part[0] = char();
             DWORD bytes_per_sector_;
-            if (!GetDiskFreeSpace(buf, NULL, &bytes_per_sector_, NULL, NULL))
+            if (!GetDiskFreeSpace(buf, nullptr, &bytes_per_sector_, nullptr, nullptr))
             {
                 STXXL_ERRMSG("wfs_file_base::wfs_file_base(): GetDiskFreeSpace() error for path " << buf);
                 bytes_per_sector = 512;
@@ -145,13 +144,11 @@ wfs_file_base::wfs_file_base(
     }
 }
 
-wfs_file_base::~wfs_file_base()
-{
+wfs_file_base::~wfs_file_base() {
     close();
 }
 
-void wfs_file_base::close()
-{
+void wfs_file_base::close() {
     scoped_mutex_lock fd_lock(fd_mutex);
 
     if (file_des == INVALID_HANDLE_VALUE)
@@ -163,8 +160,7 @@ void wfs_file_base::close()
     file_des = INVALID_HANDLE_VALUE;
 }
 
-void wfs_file_base::lock()
-{
+void wfs_file_base::lock() {
     scoped_mutex_lock fd_lock(fd_mutex);
     if (locked)
         return;  // already locked
@@ -173,8 +169,7 @@ void wfs_file_base::lock()
     locked = true;
 }
 
-file::offset_type wfs_file_base::_size()
-{
+file::offset_type wfs_file_base::_size() {
     LARGE_INTEGER result;
     if (!GetFileSizeEx(file_des, &result))
         STXXL_THROW_WIN_LASTERROR(io_error, "GetFileSizeEx() fd=" << file_des);
@@ -182,14 +177,12 @@ file::offset_type wfs_file_base::_size()
     return result.QuadPart;
 }
 
-file::offset_type wfs_file_base::size()
-{
+file::offset_type wfs_file_base::size() {
     scoped_mutex_lock fd_lock(fd_mutex);
     return _size();
 }
 
-void wfs_file_base::set_size(offset_type newsize)
-{
+void wfs_file_base::set_size(offset_type newsize) {
     scoped_mutex_lock fd_lock(fd_mutex);
     offset_type cur_size = _size();
 
@@ -208,7 +201,7 @@ void wfs_file_base::set_size(offset_type newsize)
             file_des = open_file_impl(filename, WRONLY);
         }
 
-        if (!SetFilePointerEx(file_des, desired_pos, NULL, FILE_BEGIN))
+        if (!SetFilePointerEx(file_des, desired_pos, nullptr, FILE_BEGIN))
             STXXL_THROW_WIN_LASTERROR(io_error,
                                       "SetFilePointerEx() in wfs_file_base::set_size(..) oldsize=" << cur_size <<
                                       " newsize=" << newsize << " ");
@@ -228,13 +221,14 @@ void wfs_file_base::set_size(offset_type newsize)
     }
 }
 
-void wfs_file_base::close_remove()
-{
+void wfs_file_base::close_remove() {
     close();
     ::DeleteFile(filename.c_str());
 }
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
 #endif // STXXL_WINDOWS
-// vim: et:ts=4:sw=4
+
+/******************************************************************************/

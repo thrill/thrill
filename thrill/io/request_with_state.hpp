@@ -1,25 +1,27 @@
-/***************************************************************************
- *  include/stxxl/bits/io/request_with_state.h
+/*******************************************************************************
+ * thrill/io/request_with_state.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_REQUEST_WITH_STATE_HEADER
-#define STXXL_IO_REQUEST_WITH_STATE_HEADER
+#pragma once
+#ifndef THRILL_IO_REQUEST_WITH_STATE_HEADER
+#define THRILL_IO_REQUEST_WITH_STATE_HEADER
 
-#include <stxxl/bits/common/state.h>
-#include <stxxl/bits/io/request.h>
-#include <stxxl/bits/io/request_with_waiters.h>
-#include <stxxl/bits/namespace.h>
+#include <thrill/common/state.hpp>
+#include <thrill/io/request.hpp>
+#include <thrill/io/request_with_waiters.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup reqlayer
 //! \{
@@ -32,7 +34,7 @@ protected:
     //! OP - operating, DONE - request served, READY2DIE - can be destroyed
     enum request_state { OP = 0, DONE = 1, READY2DIE = 2 };
 
-    state<request_state> m_state;
+    common::state<request_state> m_state;
 
 protected:
     request_with_state(
@@ -58,7 +60,9 @@ protected:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_REQUEST_WITH_STATE_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_REQUEST_WITH_STATE_HEADER
+
+/******************************************************************************/

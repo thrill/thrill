@@ -1,48 +1,59 @@
-/***************************************************************************
- *  include/stxxl/bits/io/request_interface.h
+/*******************************************************************************
+ * thrill/io/request_interface.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008, 2009, 2011 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008-2011 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_REQUEST_INTERFACE_HEADER
-#define STXXL_IO_REQUEST_INTERFACE_HEADER
+#pragma once
+#ifndef THRILL_IO_REQUEST_INTERFACE_HEADER
+#define THRILL_IO_REQUEST_INTERFACE_HEADER
+
+#include <thrill/common/onoff_switch.hpp>
 
 #include <ostream>
 
-#include <stxxl/bits/namespace.h>
-#include <stxxl/bits/noncopyable.h>
-#include <stxxl/bits/common/types.h>
-
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup reqlayer
 //! \{
-
-class onoff_switch;
 
 //! Functional interface of a request.
 //!
 //! Since all library I/O operations are asynchronous,
 //! one needs to keep track of their status:
 //! e.g. whether an I/O operation completed or not.
-class request_interface : private noncopyable
+class request_interface
 {
 public:
-    typedef stxxl::external_size_type offset_type;
-    typedef stxxl::internal_size_type size_type;
+    using offset_type = size_t;
+    using size_type = size_t;
     enum request_type { READ, WRITE };
 
+    //! default constructor
+    request_interface() = default;
+
+    //! non-copyable: delete copy-constructor
+    request_interface(const request_interface&) = delete;
+    //! non-copyable: delete assignment operator
+    request_interface& operator = (const request_interface&) = delete;
+    //! move-constructor: default
+    request_interface(request_interface&&) = default;
+    //! move-assignment operator: default
+    request_interface& operator = (request_interface&&) = default;
+
 public:
-    virtual bool add_waiter(onoff_switch* sw) = 0;
-    virtual void delete_waiter(onoff_switch* sw) = 0;
+    virtual bool add_waiter(common::onoff_switch* sw) = 0;
+    virtual void delete_waiter(common::onoff_switch* sw) = 0;
 
 protected:
     virtual void notify_waiters() = 0;
@@ -57,7 +68,7 @@ public:
     //! Cancel a request.
     //!
     //! The request is canceled unless already being processed.
-    //! However, cancelation cannot be guaranteed.
+    //! However, cancellation cannot be guaranteed.
     //! Canceled requests must still be waited for in order to ensure correct operation.
     //! If the request was canceled successfully, the completion handler will not be called.
     //! \return \c true iff the request was canceled successfully
@@ -80,7 +91,9 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_REQUEST_INTERFACE_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_REQUEST_INTERFACE_HEADER
+
+/******************************************************************************/
