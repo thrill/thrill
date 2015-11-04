@@ -32,23 +32,19 @@ macro(thrill_test_single TESTNAME ENVIRON PROG)
 
 endmacro(thrill_test_single)
 
-thrill_build_prog(hashtable/bench_bucket_hashtable)
-thrill_build_prog(hashtable/bench_probing_hashtable)
+thrill_build_prog(io/benchmark_files)
+thrill_build_prog(io/benchmark_disks)
+thrill_build_prog(io/benchmark_disks_random)
 
+if(off)
 thrill_build_prog(data/disk)
 thrill_build_prog(data/stream)
 thrill_build_prog(data/data_benchmark)
 
-thrill_build_prog(api/string_test)
+thrill_build_prog(hashtable/bench_bucket_hashtable)
+thrill_build_prog(hashtable/bench_probing_hashtable)
 
-if(NOT MSVC)
-  # these benchmarks use a non-portable method to initialize the network,
-  # TODO(ts): change to use RunXYZ().
-  thrill_build_prog(data/stream_read_write)
-  thrill_build_prog(data/stream_a_to_b)
-  thrill_build_prog(data/stream_scatter)
-  file(COPY "data/run_data_benchmark.sh" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-endif()
+thrill_build_prog(api/string_test)
 
 thrill_build_prog(sort/generate_data)
 thrill_build_prog(sort/sort)
@@ -60,5 +56,6 @@ add_subdirectory(page_rank)
 add_subdirectory(dc3)
 add_subdirectory(net)
 add_subdirectory(merge)
+endif()
 
 ################################################################################

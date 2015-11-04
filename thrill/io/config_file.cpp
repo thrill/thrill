@@ -112,8 +112,8 @@ void config::find_config() {
 }
 
 void config::load_default_config() {
-    LOG << "Warning: no config file found.";
-    LOG << "Using default disk configuration.";
+    LOG1 << "Warning: no config file found.";
+    LOG1 << "Using default disk configuration.";
 #if !STXXL_WINDOWS
     disk_config entry1("/var/tmp/stxxl", 1000 * 1024 * 1024, "syscall");
     entry1.delete_on_exit = true;

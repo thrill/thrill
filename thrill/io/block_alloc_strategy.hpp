@@ -16,9 +16,10 @@
 #ifndef THRILL_IO_BLOCK_ALLOC_STRATEGY_HEADER
 #define THRILL_IO_BLOCK_ALLOC_STRATEGY_HEADER
 
-#include <algorithm>
-// #include <stxxl/bits/common/rand.h>
 #include <thrill/io/config_file.hpp>
+
+#include <algorithm>
+#include <random>
 
 namespace thrill {
 namespace io {
@@ -61,15 +62,12 @@ public:
     }
 };
 
-#if 0
-
 //! Fully randomized disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
 struct FR : public striping
 {
 private:
-    using rnd_type = random_number<random_uniform_fast>;
-    rnd_type rnd;
+    mutable std::default_random_engine rng_ { std::random_device { } () };
 
 public:
     FR(size_t b, size_t e) : striping(b, e)
@@ -79,7 +77,7 @@ public:
     { }
 
     size_t operator () (size_t /*i*/) const {
-        return begin + rnd(rnd_type::value_type(diff));
+        return begin + rng_() % diff;
     }
 
     static const char * name() {
@@ -94,11 +92,9 @@ struct SR : public striping
 private:
     size_t offset;
 
-    using rnd_type = random_number<random_uniform_fast>;
-
     void init() {
-        rnd_type rnd;
-        offset = rnd(rnd_type::value_type(diff));
+        std::default_random_engine rng { std::random_device { } () };
+        offset = rng() % diff;
     }
 
 public:
@@ -130,8 +126,7 @@ private:
         for (size_t i = 0; i < diff; i++)
             perm[i] = i;
 
-        stxxl::random_number<random_uniform_fast> rnd;
-        std::random_shuffle(perm.begin(), perm.end(), rnd _STXXL_FORCE_SEQUENTIAL);
+        std::random_shuffle(perm.begin(), perm.end());
     }
 
 public:
@@ -177,8 +172,6 @@ struct RC_flash : public RC
         return "Randomized cycling striping on flash devices";
     }
 };
-
-#endif
 
 //! 'Single disk' disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
@@ -240,7 +233,7 @@ struct offset_allocator
 };
 
 #ifndef STXXL_DEFAULT_ALLOC_STRATEGY
-    #define STXXL_DEFAULT_ALLOC_STRATEGY stxxl::RC
+  #define STXXL_DEFAULT_ALLOC_STRATEGY ::thrill::io::FR
 #endif
 
 //! \}

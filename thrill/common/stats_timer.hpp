@@ -74,38 +74,43 @@ public:
     }
 
     //! start timer
-    void Start() {
+    StatsTimer & Start() {
         assert(!running_);
         running_ = true;
         last_start_ = steady_clock::now();
+        return *this;
     }
 
     //! start timer only if it not running
-    void StartEventually() {
+    StatsTimer & StartEventually() {
         if (!running_) {
             running_ = true;
             last_start_ = steady_clock::now();
         }
+        return *this;
     }
 
     //! stop timer
-    void Stop() {
+    StatsTimer & Stop() {
         assert(running_);
         running_ = false;
         accumulated_ += std::chrono::duration_cast<duration>(
             steady_clock::now() - last_start_);
+        return *this;
     }
 
     //! stop timer if it is running
-    void StopEventually() {
+    StatsTimer & StopEventually() {
         if (running_)
             Stop();
+        return *this;
     }
 
     //! return accumulated time
-    void Reset() {
+    StatsTimer & Reset() {
         accumulated_ = duration(0);
         last_start_ = steady_clock::now();
+        return *this;
     }
 
     //! return currently accumulated time
@@ -172,23 +177,29 @@ public:
     }
 
     //! start timer
-    void Start()
-    { }
+    StatsTimer & Start() {
+        return *this;
+    }
 
     //! start timer only if it not running
-    void StartEventually()
-    { }
+    StatsTimer & StartEventually() {
+        return *this;
+    }
 
     //! stop timer
-    void Stop()
-    { }
+    StatsTimer & Stop() {
+        return *this;
+    }
 
     //! stop timer if it is running
-    void StopEventually() { }
+    StatsTimer & StopEventually() {
+        return *this;
+    }
 
     //! return accumulated time
-    void Reset()
-    { }
+    StatsTimer & Reset() {
+        return *this;
+    }
 
     //! return currently accumulated time
     duration Accumulated() const {

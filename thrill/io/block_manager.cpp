@@ -53,15 +53,15 @@ block_manager::block_manager() {
         {
             disk_files[i] = create_file(cfg, file::CREAT | file::RDWR, i);
 
-            LOG << "Disk '" << cfg.path << "' is allocated, space: "
-                << (cfg.size) / (1024 * 1024)
-                << " MiB, I/O implementation: " << cfg.fileio_string();
+            LOG1 << "Disk '" << cfg.path << "' is allocated, space: "
+                 << (cfg.size) / (1024 * 1024)
+                 << " MiB, I/O implementation: " << cfg.fileio_string();
         }
         catch (io_error&)
         {
-            LOG << "Error allocating disk '" << cfg.path << "', space: "
-                << (cfg.size) / (1024 * 1024)
-                << " MiB, I/O implementation: " << cfg.fileio_string();
+            LOG1 << "Error allocating disk '" << cfg.path << "', space: "
+                 << (cfg.size) / (1024 * 1024)
+                 << " MiB, I/O implementation: " << cfg.fileio_string();
             throw;
         }
 
@@ -72,8 +72,8 @@ block_manager::block_manager() {
 
     if (ndisks > 1)
     {
-        LOG << "In total " << ndisks << " disks are allocated, space: "
-            << (total_size / (1024 * 1024)) << " MiB";
+        LOG1 << "In total " << ndisks << " disks are allocated, space: "
+             << (total_size / (1024 * 1024)) << " MiB";
     }
 
 #if STXXL_MNG_COUNT_ALLOCATION
