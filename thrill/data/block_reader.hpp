@@ -42,9 +42,12 @@ class BlockReader
 public:
     static const bool self_verify = common::g_self_verify;
 
-    //! Start reading a File
+    //! Start reading a BlockSource
     explicit BlockReader(BlockSource&& source)
         : source_(std::move(source)) { }
+
+    //! default constructor
+    BlockReader() = default;
 
     //! Return reference to enclosed BlockSource
     BlockSource & source() { return source_; }
@@ -53,6 +56,7 @@ public:
     BlockReader(const BlockReader&) = delete;
     //! non-copyable: delete assignment operator
     BlockReader& operator = (const BlockReader&) = delete;
+
     //! move-constructor: default
     BlockReader(BlockReader&&) = default;
     //! move-assignment operator: default

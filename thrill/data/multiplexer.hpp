@@ -79,6 +79,7 @@ public:
             if (id == group_.my_host_rank()) continue;
             AsyncReadBlockHeader(group_.connection(id));
         }
+        (void)mem_manager_; // silence unused variable warning.
     }
 
     //! non-copyable: delete copy-constructor

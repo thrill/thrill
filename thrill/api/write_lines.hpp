@@ -66,10 +66,12 @@ public:
         stats_total_elements_++;
     }
 
+    void StopPreOp(size_t /* id */) final {
+        writer_.Close();
+    }
+
     //! Closes the output file
     void Execute() override {
-        writer_.Close();
-
         STAT(context_) << "NodeType" << "WriteLines"
                        << "TotalBytes" << size_
                        << "TotalLines" << stats_total_elements_;

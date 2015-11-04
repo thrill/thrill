@@ -60,12 +60,15 @@ public:
         }
     }
 
-    //! Closes the output file
-    void Execute() final {
+    void StopPreOp(size_t /* id */) final {
         // data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
         }
+    }
+
+    //! Closes the output file
+    void Execute() final {
 
         bool consume = false;
         auto reader = stream_->OpenCatReader(consume);

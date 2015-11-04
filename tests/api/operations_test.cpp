@@ -21,6 +21,7 @@
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
+#include <thrill/api/window.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
 
@@ -31,6 +32,35 @@
 #include <vector>
 
 using namespace thrill; // NOLINT
+
+class Integer
+{
+public:
+    explicit Integer(size_t v)
+        : value_(v) { }
+
+    size_t value() const { return value_; }
+
+    static const bool thrill_is_fixed_size = true;
+    static const size_t thrill_fixed_size = sizeof(size_t);
+
+    template <typename Archive>
+    void ThrillSerialize(Archive& ar) const {
+        ar.template Put<size_t>(value_);
+    }
+
+    template <typename Archive>
+    static Integer ThrillDeserialize(Archive& ar) {
+        return Integer(ar.template Get<size_t>());
+    }
+
+    friend std::ostream& operator << (std::ostream& os, const Integer& i) {
+        return os << i.value_;
+    }
+
+protected:
+    size_t value_;
+};
 
 TEST(Operations, DistributeAndAllGatherElements) {
 
@@ -292,6 +322,55 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
             }
 
             ASSERT_EQ(10u, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, WindowCorrectResults) {
+
+    static const bool debug = false;
+    static const size_t test_size = 144;
+    static const size_t window_size = 10;
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            sLOG << ctx.num_hosts();
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& input) { return input * input; },
+                test_size);
+
+            auto window = integers.Window(
+                window_size, [](size_t rank,
+                                const common::RingBuffer<size_t>& window) {
+
+                    // check received window
+                    die_unequal(window_size, window.size());
+
+                    for (size_t i = 0; i < window.size(); ++i) {
+                        sLOG << rank + i << window[i];
+                        die_unequal((rank + i) * (rank + i), window[i]);
+                    }
+
+                    // return rank to check completeness
+                    return Integer(rank);
+                });
+
+            // check rank completeness
+
+            std::vector<Integer> out_vec = window.AllGather();
+
+            if (ctx.my_rank() == 0)
+                sLOG << common::Join(" - ", out_vec);
+
+            for (size_t i = 0; i < out_vec.size(); i++) {
+                ASSERT_EQ(i, out_vec[i].value());
+            }
+
+            ASSERT_EQ(test_size - window_size + 1, out_vec.size());
         };
 
     api::RunLocalTests(start_func);

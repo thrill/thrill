@@ -404,11 +404,7 @@ public:
 
         Value neutral_element = ht->NeutralElement();
 
-        size_t begin_local_index = ht->BeginLocalIndex();
-
-        size_t end_local_index = ht->EndLocalIndex();
-
-        std::vector<Value> elements_to_emit(end_local_index - begin_local_index, neutral_element);
+        std::vector<Value> elements_to_emit(ht->LocalIndex().size(), neutral_element);
 
         Context &ctx = ht->Ctx();
 
@@ -435,7 +431,7 @@ public:
                                                      fill_rate_num_items_per_frame,
                                                      frame_id, num_items_mem_per_frame, block_pool,
                                                      max_num_blocks_second_reduce,
-                                                     block_size, begin_local_index);
+                                                     block_size, ht->LocalIndex().begin);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current frame
@@ -451,7 +447,7 @@ public:
                         for (KeyValuePair *bi = current->items;
                              bi != current->items + current->size; ++bi) {
 
-                            elements_to_emit[bi->first - begin_local_index] = bi->second;
+                            elements_to_emit[bi->first - ht->LocalIndex().begin] = bi->second;
                         }
 
                         // advance to next
@@ -480,12 +476,12 @@ public:
             }
         }
 
-        size_t index = begin_local_index;
+        size_t index = ht->LocalIndex().begin;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
             ht->EmitAll(std::make_pair(index++, elements_to_emit[i]), 0);
             elements_to_emit[i] = neutral_element;
         }
-        assert(index == end_local_index);
+        assert(index == ht->LocalIndex().end);
     }
 
 public:

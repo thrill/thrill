@@ -131,9 +131,9 @@ public:
     template <typename T, typename BinarySumOp = std::plus<T> >
     void ExPrefixSum(T& value, BinarySumOp sum_op = BinarySumOp());
 
-    //! Broadcast a value from the worker 0
+    //! Broadcast a value from the worker "origin"
     template <typename T>
-    void Broadcast(T& value);
+    void Broadcast(T& value, size_t origin = 0);
 
     //! Reduce a value from all workers to the worker 0
     template <typename T, typename BinarySumOp = std::plus<T> >

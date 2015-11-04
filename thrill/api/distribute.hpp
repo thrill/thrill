@@ -47,11 +47,9 @@ public:
     { }
 
     void PushData(bool /* consume */) final {
-        size_t local_begin, local_end;
-        std::tie(local_begin, local_end) =
-            context_.CalculateLocalRange(in_vector_.size());
+        common::Range local = context_.CalculateLocalRange(in_vector_.size());
 
-        for (size_t i = local_begin; i < local_end; ++i) {
+        for (size_t i = local.begin; i < local.end; ++i) {
             this->PushItem(in_vector_[i]);
         }
     }
@@ -118,6 +116,10 @@ auto Distribute(Context & ctx,
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::Distribute;
+
 } // namespace thrill
 
 #endif // !THRILL_API_DISTRIBUTE_HEADER

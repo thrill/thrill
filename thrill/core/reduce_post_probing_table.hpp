@@ -219,8 +219,7 @@ public:
                            const Key& sentinel,
                            const IndexFunction& index_function,
                            const FlushFunction& flush_function,
-                           size_t begin_local_index = 0,
-                           size_t end_local_index = 0,
+                           const common::Range& local_index = common::Range(),
                            const Value& neutral_element = Value(),
                            size_t byte_size = 1024 * 16,
                            double max_frame_fill_rate = 0.5,
@@ -235,8 +234,7 @@ public:
           index_function_(index_function),
           equal_to_function_(equal_to_function),
           flush_function_(flush_function),
-          begin_local_index_(begin_local_index),
-          end_local_index_(end_local_index),
+          local_index_(local_index),
           neutral_element_(neutral_element),
           reduce_function_(reduce_function) {
 
@@ -245,8 +243,6 @@ public:
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0 && "max_partition_fill_rate "
                 "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
         assert(frame_rate > 0.0 && frame_rate <= 1.0 && "a frame rate of 1.0 causes exactly one frame.");
-        assert(begin_local_index >= 0);
-        assert(end_local_index >= 0);
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
 
@@ -522,21 +518,12 @@ public:
     }
 
     /*!
-     * Returns the begin local index.
-     *
-     * \return Begin local index.
-     */
-    size_t BeginLocalIndex() const {
-        return begin_local_index_;
-    }
-
-    /*!
-     * Returns the end local index.
-     *
-     * \return End local index.
-     */
-    size_t EndLocalIndex() const {
-        return end_local_index_;
+    * Returns the local index range.
+    *
+    * \return Begin local index.
+    */
+    common::Range LocalIndex() const {
+        return local_index_;
     }
 
     /*!
@@ -625,11 +612,8 @@ private:
     //! Comparator function for keys.
     FlushFunction flush_function_;
 
-    //! Begin local index (reduce to index).
-    size_t begin_local_index_ = 0;
-
-    //! End local index (reduce to index).
-    size_t end_local_index_ = 0;
+    //! [Begin,end) local index (reduce to index).
+    common::Range local_index_;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;

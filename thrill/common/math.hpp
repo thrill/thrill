@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <tuple>
+#include <ostream>
 
 namespace thrill {
 namespace common {
@@ -65,13 +65,36 @@ static inline IntegerType IntegerDivRoundUp(const IntegerType& n, const IntegerT
 
 /******************************************************************************/
 
+//! represents a 1 dimensional range (interval) [begin,end)
+class Range
+{
+public:
+    Range() = default;
+    Range(size_t _begin, size_t _end) : begin(_begin), end(_end) { }
+
+    //! begin index
+    size_t begin = 0;
+    //! end index
+    size_t end = 0;
+
+    //! valid range (begin <= end)
+    bool valid() const { return begin <= end; }
+    //! size of range
+    size_t size() const { return end - begin; }
+
+    //! ostream-able
+    friend std::ostream& operator << (std::ostream& os, const Range& r) {
+        return os << '[' << r.begin << ',' << r.end << ')';
+    }
+};
+
 //! given a global range [0,global_size) and p PEs to split the range, calculate
 //! the [local_begin,local_end) index range assigned to the PE i.
-static inline std::tuple<size_t, size_t> CalculateLocalRange(
+static inline Range CalculateLocalRange(
     size_t global_size, size_t p, size_t i) {
 
     double per_pe = static_cast<double>(global_size) / static_cast<double>(p);
-    return std::make_tuple(
+    return Range(
         static_cast<size_t>(std::ceil(static_cast<double>(i) * per_pe)),
         std::min(static_cast<size_t>(
                      std::ceil(static_cast<double>(i + 1) * per_pe)),

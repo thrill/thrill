@@ -228,6 +228,8 @@ int main(int argc, char* argv[]) {
 
     auto start_func =
         [&input, &output, &iter](api::Context& ctx) {
+            ctx.set_consume(true);
+
             thrill::common::StatsTimer<true> timer(false);
             static const double s = 0.85;
             static const double f = 0.15;

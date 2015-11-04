@@ -16,6 +16,7 @@
 
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
+#include <thrill/common/defines.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/cat_stream.hpp>
@@ -200,30 +201,34 @@ public:
     //! Broadcasts a value of an integral type T from the master (the worker
     //! with rank 0) to all other workers.
     template <typename T>
-    T Broadcast(const T& value) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    Broadcast(const T& value) {
         return flow_control_channel().Broadcast(value);
     }
 
     //! Reduces a value of an integral type T over all workers given a certain
     //! reduce function.
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T AllReduce(const T& value, BinarySumOp sum_op = BinarySumOp()) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    AllReduce(const T& value, const BinarySumOp& sum_op = BinarySumOp()) {
         return flow_control_channel().AllReduce(value, sum_op);
     }
 
     //! Calculates the prefix sum over all workers, given a certain sum
     //! operation.
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T PrefixSum(const T& value,
-                const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    PrefixSum(const T& value, const T& initial = T(),
+              const BinarySumOp& sum_op = BinarySumOp()) {
         return flow_control_channel().PrefixSum(value, initial, sum_op);
     }
 
     //! Calculates the exclusive prefix sum over all workers, given a certain
     //! sum operation.
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T ExPrefixSum(const T& value,
-                  const T& initial = T(), BinarySumOp sum_op = BinarySumOp()) {
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    ExPrefixSum(const T& value, const T& initial = T(),
+                const BinarySumOp& sum_op = BinarySumOp()) {
         return flow_control_channel().ExPrefixSum(value, initial, sum_op);
     }
 
@@ -240,6 +245,12 @@ public:
     //! Returns a new File object containing a sequence of local Blocks.
     data::File GetFile() {
         return data::File(block_pool_);
+    }
+
+    //! Returns a new File, wrapped in a shared_ptr, containing a
+    //! sequence of local Blocks.
+    data::FilePtr GetFilePtr() {
+        return std::make_shared<data::File>(block_pool_);
     }
 
     //! Returns a reference to a new CatStream. This method alters the state of
@@ -266,7 +277,7 @@ public:
 
     //! \}
 
-    //! Returns the stas object for this worker
+    //! Returns the stats object for this worker
     common::Stats<common::g_enable_stats> & stats() {
         return stats_;
     }
@@ -282,10 +293,23 @@ public:
     //! given a global range [0,global_size) and p PEs to split the range, calculate
     //! the [local_begin,local_end) index range assigned to the PE i. Takes the
     //! information from the Context.
-    std::tuple<size_t, size_t> CalculateLocalRange(size_t global_size) {
+    common::Range CalculateLocalRange(size_t global_size) const {
         return common::CalculateLocalRange(
             global_size, num_workers(), my_rank());
     }
+
+    //! return value of consume flag.
+    bool consume() const { return consume_; }
+
+    /*!
+     * Sets consume-mode flag such that DIA contents may be consumed during
+     * PushData(). When in consume mode the DIA contents is destroyed online
+     * when it is transmitted to the next operation. This enables reusing the
+     * space of the consume operations. This enabled processing more data with
+     * less space. However, by default this mode is DISABLED, because it
+     * requires deliberate insertion of .Keep() calls.
+     */
+    void set_consume(bool consume) { consume_ = consume; }
 
 private:
     //! host-global memory manager
@@ -312,6 +336,9 @@ private:
 
     //! number of workers hosted per host
     size_t workers_per_host_;
+
+    //! flag to set which enables selective consumption of DIA contents!
+    bool consume_ = false;
 };
 
 //! \name Run Methods with Internal Networks for Testing
@@ -372,7 +399,12 @@ int Run(const std::function<void(Context&)>& job_startpoint);
 
 //! imported from api namespace
 using api::HostContext;
+
+//! imported from api namespace
 using api::Context;
+
+//! imported from api namespace
+using api::Run;
 
 } // namespace thrill
 

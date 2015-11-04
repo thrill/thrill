@@ -783,21 +783,12 @@ public:
     }
 
     /*!
-     * Returns the begin local index.
-     *
-     * \return Begin local index.
-     */
-    size_t BeginLocalIndex() const {
-        return 0;
-    }
-
-    /*!
-     * Returns the end local index.
-     *
-     * \return End local index.
-     */
-    size_t EndLocalIndex() const {
-        return num_buckets_per_table_-1;
+    * Returns the local index range.
+    *
+    * \return Begin local index.
+    */
+    common::Range LocalIndex() const {
+        return common::Range(0, num_buckets_per_table_-1);
     }
 
     /*!

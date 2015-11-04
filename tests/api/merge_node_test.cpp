@@ -29,13 +29,15 @@ using thrill::api::Context;
 using thrill::api::DIA;
 
 template <typename stackA, typename stackB>
-void DoMergeAndCheckResult(api::DIA<size_t, stackA> merge_input1, api::DIA<size_t, stackB> merge_input2, const std::vector<size_t>& expected, int num_workers) {
+void DoMergeAndCheckResult(
+    const api::DIA<size_t, stackA>& merge_input1,
+    const api::DIA<size_t, stackB>& merge_input2,
+    const std::vector<size_t>& expected, size_t num_workers) {
     // merge
-    auto merge_result = merge_input1.Merge(
-        merge_input2, std::less<size_t>());
+    auto merge_result = merge_input1.Merge(merge_input2);
 
     // check if order was kept while merging.
-    int count = 0;
+    size_t count = 0;
     auto res = merge_result.Map([&count](size_t in) {
                                     count++;
                                     return in;
@@ -48,16 +50,17 @@ void DoMergeAndCheckResult(api::DIA<size_t, stackA> merge_input1, api::DIA<size_
     // TODO(EJ) There seems to be a bug with inbalanced arrays on a very
     // low number of workers. I'm not sure why though.
     // LOG << "count: " << count << " expected: " << ((float)res.size() / (float)num_workers);
-    float expectedCount = (float)res.size() / (float)num_workers;
-    ASSERT_TRUE(std::abs(expectedCount - count) <= num_workers + 50);
+    float expectedCount =
+        static_cast<float>(res.size()) / static_cast<float>(num_workers);
+    ASSERT_LE(std::abs(expectedCount - count), num_workers + 100);
 }
 
 TEST(MergeNode, TwoBalancedIntegerArrays) {
 
-    const size_t test_size = 5000;
+    static const size_t test_size = 5000;
 
     std::function<void(Context&)> start_func =
-        [test_size](Context& ctx) {
+        [](Context& ctx) {
 
             // even numbers in 0..9998 (evenly distributed to workers)
             auto merge_input1 = Generate(
@@ -80,12 +83,63 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
     thrill::api::RunLocalTests(start_func);
 }
 
-TEST(MergeNode, TwoImbalancedIntegerArrays) {
+TEST(MergeNode, FourBalancedIntegerArrays) {
 
-    const size_t test_size = 5000;
+    static const size_t test_size = 5000;
+    static const bool debug = false;
 
     std::function<void(Context&)> start_func =
-        [test_size](Context& ctx) {
+        [](Context& ctx) {
+
+            auto merge_input1 = Generate(
+                ctx,
+                [](size_t index) { return index * 4; },
+                test_size);
+
+            auto merge_input2 = merge_input1.Map(
+                [](size_t i) { return i + 1; });
+            auto merge_input3 = merge_input1.Map(
+                [](size_t i) { return i + 2; });
+            auto merge_input4 = merge_input1.Map(
+                [](size_t i) { return i + 3; });
+
+            std::vector<size_t> expected(test_size * 4);
+            for (size_t i = 0; i < test_size * 4; i++) {
+                expected[i] = i;
+            }
+
+            auto merge_result = Merge(
+                std::less<size_t>(),
+                merge_input1, merge_input2, merge_input3, merge_input4);
+
+            // check if order was kept while merging.
+            size_t count = 0;
+            auto res = merge_result.Map([&count](size_t in) {
+                                            count++;
+                                            return in;
+                                        }).AllGather();
+
+            // Check if res is as expected.
+            ASSERT_EQ(expected, res);
+
+            LOG << "count: " << count << " expected: "
+                << (static_cast<float>(res.size())
+                / static_cast<float>(ctx.num_workers()));
+
+            float expectedCount = static_cast<float>(res.size())
+                                  / static_cast<float>(ctx.num_workers());
+            ASSERT_LE(std::abs(expectedCount - count), ctx.num_workers() + 100);
+        };
+
+    thrill::api::RunLocalTests(start_func);
+}
+
+TEST(MergeNode, TwoImbalancedIntegerArrays) {
+
+    static const size_t test_size = 5000;
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
             // numbers in 0..4999 (evenly distributed to workers)
             auto merge_input1 = Generate(
@@ -116,11 +170,11 @@ TEST(MergeNode, TwoImbalancedIntegerArrays) {
 
 TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
 
-    const size_t test_size = 5000;
-    const size_t offset = 2500;
+    static const size_t test_size = 5000;
+    static const size_t offset = 2500;
 
     std::function<void(Context&)> start_func =
-        [test_size, offset](Context& ctx) {
+        [](Context& ctx) {
 
             // numbers in 0..4999 (evenly distributed to workers)
             auto merge_input1 = Generate(
@@ -131,7 +185,7 @@ TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
             // numbers in 2500..12499
             auto merge_input2 = Generate(
                 ctx,
-                [=](size_t index) { return index + offset; },
+                [](size_t index) { return index + offset; },
                 test_size * 2);
 
             std::vector<size_t> expected;

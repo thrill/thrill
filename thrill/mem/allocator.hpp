@@ -60,6 +60,9 @@ public:
     Allocator(const Allocator<OtherType>& other) noexcept
         : manager_(other.manager_) { }
 
+    //! copy-assignment operator
+    Allocator& operator = (const Allocator&) noexcept = default;
+
     //! Attempts to allocate a block of storage with a size large enough to
     //! contain n elements of member type value_type, and returns a pointer to
     //! the first element.

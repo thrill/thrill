@@ -62,7 +62,9 @@ matrix:
 env:
   global:
     # LeakSanitizer suppressions
-    - LSAN_OPTIONS=suppressions=$PWD/misc/leak_sanitizer.supp
+    - LSAN_OPTIONS="suppressions=$PWD/misc/leak_sanitizer.supp"
+    # die on ThreadSanitizer errors
+    - TSAN_OPTIONS="halt_on_error=1"
 
 before_script:
 
@@ -83,6 +85,12 @@ before_script:
   - gzip --version || true
   - bzip2 --version || true
   - xz --version || true
+
+  # enable -Werror on thrill/thrill master branch
+  - if [ "$TRAVIS_BRANCH" == "master" -a "$TRAVIS_REPO_SLUG" == "thrill/thrill" ]; then
+      COMPILER_FLAGS="$COMPILER_FLAGS -Werror";
+    fi
+
   # configure
   - mkdir build; cd build
   - cmake
@@ -93,6 +101,7 @@ before_script:
 
 script:
   - make -j4 && ctest -V
+
 notifications:
   slack:
     rooms:

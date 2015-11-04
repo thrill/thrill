@@ -70,7 +70,7 @@ public:
     }
 
     //! Closes the output file
-    void Execute() final {
+    void StopPreOp(size_t /* id */) final {
         sLOG << "closing file" << out_pathbase_;
         writer_.reset();
         sink_.reset();
@@ -78,6 +78,8 @@ public:
                        << "TotalElements" << stats_total_elements_
                        << "TotalWrites" << stats_total_writes_;
     }
+
+    void Execute() final { }
 
     void Dispose() final { }
 

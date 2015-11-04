@@ -61,8 +61,6 @@ class ReduceNode final : public DOpNode<ValueType>
 {
     static const bool debug = true;
 
-    static const size_t ht_type = 0; // 0: linear probing ht, 1: bucket ht
-
     using Super = DOpNode<ValueType>;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
@@ -112,13 +110,13 @@ public:
                             Key(),
                             core::PreProbingReduceByHashKey<Key>(),
                             core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-                            Value(), 1000000, 0.6),
+                            Value(), 10000000, 0.6),
           reduce_post_table_(context_, key_extractor_, reduce_function_,
                             [this](const ValueType& item) { return this->PushItem(item); },
                             Key(),
                             core::PostProbingReduceByHashKey<Key>(),
                             core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-                                    0, 0, Value(), 100000, 0.6, 0.1)
+                            common::Range(), Value(), 10000000, 0.6, 0.1)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -136,16 +134,15 @@ public:
                          });
     }
 
-    /*!
-     * Actually executes the reduce operation.
-     */
-    void Execute() final {
-        LOG << this->label() << " running main op";
+    void StopPreOp(size_t /* id */) final {
+        LOG << this->label() << " running StopPreOp";
         // Flush hash table before the postOp
-        reduce_pre_table_.Flush(true);
+        reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
         stream_->Close();
     }
+
+    void Execute() final { }
 
     void PushData(bool consume) final {
 
