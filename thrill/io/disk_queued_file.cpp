@@ -15,7 +15,6 @@
 #include <thrill/io/disk_queues.hpp>
 #include <thrill/io/file.hpp>
 #include <thrill/io/request.hpp>
-#include <thrill/io/request_interface.hpp>
 #include <thrill/io/serving_request.hpp>
 
 namespace thrill {

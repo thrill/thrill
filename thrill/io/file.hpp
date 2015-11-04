@@ -32,7 +32,6 @@
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/io/request.hpp>
-#include <thrill/io/request_interface.hpp>
 
 namespace thrill {
 namespace io {
@@ -120,7 +119,7 @@ public:
                                const completion_handler& on_cmpl = completion_handler()) = 0;
 
     virtual void serve(void* buffer, offset_type offset, size_type bytes,
-                       request::request_type type) = 0;
+                       request::ReadOrWriteType type) = 0;
 
     //! Changes the size of the file.
     //! \param newsize new file size

@@ -23,7 +23,7 @@ namespace thrill {
 namespace io {
 
 void memory_file::serve(void* buffer, offset_type offset, size_type bytes,
-                        request::request_type type) {
+                        request::ReadOrWriteType type) {
     std::unique_lock<std::mutex> lock(m_mutex);
 
     if (type == request::READ)

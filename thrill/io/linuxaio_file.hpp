@@ -62,7 +62,7 @@ public:
     { }
 
     void serve(void* buffer, offset_type offset, size_type bytes,
-               request::request_type type);
+               request::ReadOrWriteType type);
     request_ptr aread(void* buffer, offset_type pos, size_type bytes,
                       const completion_handler& on_cmpl = completion_handler());
     request_ptr awrite(void* buffer, offset_type pos, size_type bytes,

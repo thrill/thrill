@@ -43,11 +43,11 @@ class linuxaio_request : public request_with_state
 public:
     linuxaio_request(
         const completion_handler& on_cmpl,
-        file* file,
+        io::file* file,
         void* buffer,
         offset_type offset,
         size_type bytes,
-        request_type type)
+        ReadOrWriteType type)
         : request_with_state(on_cmpl, file, buffer, offset, bytes, type) {
         assert(dynamic_cast<linuxaio_file*>(file));
         LOG << "linuxaio_request[" << this << "]" << " linuxaio_request"

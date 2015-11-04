@@ -39,11 +39,11 @@ protected:
 protected:
     request_with_state(
         const completion_handler& on_cmpl,
-        file* f,
+        io::file* f,
         void* buf,
         offset_type off,
         size_type b,
-        request_type t)
+        ReadOrWriteType t)
         : request_with_waiters(on_cmpl, f, buf, off, b, t),
           m_state(OP)
     { }

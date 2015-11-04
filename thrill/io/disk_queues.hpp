@@ -61,7 +61,7 @@ public:
 #if STXXL_HAVE_LINUXAIO_FILE
             if (dynamic_cast<linuxaio_request*>(req.get()))
                 q = queues[disk] = new linuxaio_queue(
-                        dynamic_cast<linuxaio_file*>(req->get_file())->get_desired_queue_length()
+                        dynamic_cast<linuxaio_file*>(req->file())->get_desired_queue_length()
                         );
             else
 #endif

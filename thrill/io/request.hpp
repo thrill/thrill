@@ -20,7 +20,7 @@
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/io/completion_handler.hpp>
 #include <thrill/io/exceptions.hpp>
-#include <thrill/io/request_interface.hpp>
+#include <thrill/common/onoff_switch.hpp>
 
 #include <cassert>
 #include <memory>
@@ -36,22 +36,30 @@ namespace io {
 class file;
 
 //! Request object encapsulating basic properties like file and offset.
-class request : virtual public request_interface, public common::ReferenceCount
+class request : public common::ReferenceCount
 {
     friend class linuxaio_queue;
 
+public:
+    //! type for offsets within a file
+    using offset_type = size_t;
+    //! type for block transfer sizes
+    using size_type = size_t;
+
+    enum ReadOrWriteType { READ, WRITE };
+
 protected:
-    completion_handler m_on_complete;
-    std::unique_ptr<io_error> m_error;
+    completion_handler on_complete_;
+    std::unique_ptr<io_error> error_;
 
     static const bool debug = false;
 
 protected:
-    file* m_file;
-    void* m_buffer;
-    offset_type m_offset;
-    size_type m_bytes;
-    request_type m_type;
+    io::file* file_;
+    void* buffer_;
+    offset_type offset_;
+    size_type bytes_;
+    ReadOrWriteType type_;
 
 public:
     request(const completion_handler& on_compl,
@@ -59,39 +67,94 @@ public:
             void* buffer,
             offset_type offset,
             size_type bytes,
-            request_type type);
+            ReadOrWriteType type);
+
+    //! non-copyable: delete copy-constructor
+    request(const request &) = delete;
+    //! non-copyable: delete assignment operator
+    request & operator = (const request &) = delete;
+    //! move-constructor: default
+    request(request &&) = default;
+    //! move-assignment operator: default
+    request & operator = (request &&) = default;
 
     virtual ~request();
 
-    file * get_file() const { return m_file; }
-    void * get_buffer() const { return m_buffer; }
-    offset_type get_offset() const { return m_offset; }
-    size_type get_size() const { return m_bytes; }
-    request_type get_type() const { return m_type; }
+public:
+    //! \name Accessors
+    //! \{
+
+    io::file * file() const { return file_; }
+    void * buffer() const { return buffer_; }
+    offset_type offset() const { return offset_; }
+    size_type bytes() const { return bytes_; }
+    ReadOrWriteType type() const { return type_; }
 
     void check_alignment() const;
 
+    //! Dumps properties of a request.
     std::ostream & print(std::ostream& out) const;
+
+    //! \}
 
     //! Inform the request object that an error occurred during the I/O
     //! execution.
     void error_occured(const char* msg) {
-        m_error.reset(new io_error(msg));
+        error_.reset(new io_error(msg));
     }
 
     //! Inform the request object that an error occurred during the I/O
     //! execution.
     void error_occured(const std::string& msg) {
-        m_error.reset(new io_error(msg));
+        error_.reset(new io_error(msg));
     }
 
     //! Rises an exception if there were error with the I/O.
     void check_errors() {
-        if (m_error.get())
-            throw *(m_error.get());
+        if (error_.get())
+            throw *(error_.get());
     }
 
-    virtual const char * io_type() const;
+public:
+    virtual bool add_waiter(common::onoff_switch* sw) = 0;
+    virtual void delete_waiter(common::onoff_switch* sw) = 0;
+
+protected:
+    virtual void notify_waiters() = 0;
+
+protected:
+    virtual void completed(bool canceled) = 0;
+
+public:
+    //! Suspends calling thread until completion of the request.
+    virtual void wait(bool measure_time = true) = 0;
+
+    /*!
+     * Cancel a request.
+     *
+     * The request is canceled unless already being processed.  However,
+     * cancellation cannot be guaranteed.  Canceled requests must still be
+     * waited for in order to ensure correct operation.  If the request was
+     * canceled successfully, the completion handler will not be called.
+     *
+     * \return \c true iff the request was canceled successfully
+     */
+    virtual bool cancel() = 0;
+
+    /*!
+     * Polls the status of the request.
+     *
+     * \return \c true if request is completed, otherwise \c false
+     */
+    virtual bool poll() = 0;
+
+    /*!
+     * Identifies the type of I/O implementation.
+     *
+     * \return pointer to null terminated string of characters, containing the
+     * name of I/O implementation
+     */
+    const char * io_type() const;
 
 protected:
     void check_nref(bool after = false) {
@@ -103,7 +166,8 @@ private:
     void check_nref_failed(bool after);
 };
 
-inline std::ostream& operator << (std::ostream& out, const request& req) {
+static inline
+std::ostream& operator << (std::ostream& out, const request& req) {
     return req.print(out);
 }
 

@@ -18,14 +18,13 @@
 #include <thrill/common/config.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request.hpp>
-#include <thrill/io/request_interface.hpp>
 #include <thrill/io/syscall_file.hpp>
 
 namespace thrill {
 namespace io {
 
 void syscall_file::serve(void* buffer, offset_type offset, size_type bytes,
-                         request::request_type type) {
+                         request::ReadOrWriteType type) {
     std::unique_lock<std::mutex> fd_lock(fd_mutex);
 
     char* cbuffer = static_cast<char*>(buffer);

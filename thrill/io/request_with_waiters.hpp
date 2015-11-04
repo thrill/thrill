@@ -45,11 +45,11 @@ protected:
 public:
     request_with_waiters(
         const completion_handler& on_cmpl,
-        file* f,
+        io::file* f,
         void* buf,
         offset_type off,
         size_type b,
-        request_type t)
+        ReadOrWriteType t)
         : request(on_cmpl, f, buf, off, b, t)
     { }
 };

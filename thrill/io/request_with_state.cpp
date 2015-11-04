@@ -40,7 +40,7 @@ request_with_state::~request_with_state() {
 void request_with_state::wait(bool measure_time) {
     LOG << "request_with_state::wait()";
 
-    stats::scoped_wait_timer wait_timer(m_type == READ ? stats::WAIT_OP_READ : stats::WAIT_OP_WRITE, measure_time);
+    stats::scoped_wait_timer wait_timer(type_ == READ ? stats::WAIT_OP_READ : stats::WAIT_OP_WRITE, measure_time);
 
     m_state.wait_for(READY2DIE);
 
@@ -48,17 +48,17 @@ void request_with_state::wait(bool measure_time) {
 }
 
 bool request_with_state::cancel() {
-    LOG << "request_with_state::cancel() " << m_file << " " << m_buffer << " " << m_offset;
+    LOG << "request_with_state::cancel() " << file_ << " " << buffer_ << " " << offset_;
 
-    if (m_file)
+    if (file_)
     {
         request_ptr rp(this);
-        if (disk_queues::get_instance()->cancel_request(rp, m_file->get_queue_id()))
+        if (disk_queues::get_instance()->cancel_request(rp, file_->get_queue_id()))
         {
             m_state.set_to(DONE);
             notify_waiters();
-            m_file->delete_request_ref();
-            m_file = 0;
+            file_->delete_request_ref();
+            file_ = 0;
             m_state.set_to(READY2DIE);
             return true;
         }
@@ -78,10 +78,10 @@ void request_with_state::completed(bool canceled) {
     LOG << "request_with_state::completed()";
     m_state.set_to(DONE);
     if (!canceled)
-        m_on_complete(this);
+        on_complete_(this);
     notify_waiters();
-    m_file->delete_request_ref();
-    m_file = 0;
+    file_->delete_request_ref();
+    file_ = 0;
     m_state.set_to(READY2DIE);
 }
 

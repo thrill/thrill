@@ -48,7 +48,7 @@ public:
           disk_queued_file(queue_id, allocator_id)
     { }
     void serve(void* buffer, offset_type offset, size_type bytes,
-               request::request_type type);
+               request::ReadOrWriteType type);
     const char * io_type() const;
 };
 

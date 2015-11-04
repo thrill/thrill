@@ -26,7 +26,7 @@ namespace thrill {
 namespace io {
 
 void mmap_file::serve(void* buffer, offset_type offset, size_type bytes,
-                      request::request_type type) {
+                      request::ReadOrWriteType type) {
     std::unique_lock<std::mutex> fd_lock(fd_mutex);
 
     // assert(offset + bytes <= _size());

@@ -35,11 +35,11 @@ class serving_request : public request_with_state
 public:
     serving_request(
         const completion_handler& on_cmpl,
-        file* f,
+        io::file* f,
         void* buf,
         offset_type off,
         size_type b,
-        request_type t);
+        ReadOrWriteType t);
 
 protected:
     virtual void serve();

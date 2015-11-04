@@ -22,19 +22,19 @@ namespace io {
 
 request::request(
     const completion_handler& on_compl,
-    file* file,
+    io::file* file,
     void* buffer,
     offset_type offset,
     size_type bytes,
-    request_type type)
-    : m_on_complete(on_compl),
-      m_file(file),
-      m_buffer(buffer),
-      m_offset(offset),
-      m_bytes(bytes),
-      m_type(type) {
+    ReadOrWriteType type)
+    : on_complete_(on_compl),
+      file_(file),
+      buffer_(buffer),
+      offset_(offset),
+      bytes_(bytes),
+      type_(type) {
     LOG << "request::(...), ref_cnt=" << reference_count();
-    m_file->add_request_ref();
+    file_->add_request_ref();
 }
 
 request::~request() {
@@ -42,18 +42,18 @@ request::~request() {
 }
 
 void request::check_alignment() const {
-    if (m_offset % STXXL_BLOCK_ALIGN != 0)
+    if (offset_ % STXXL_BLOCK_ALIGN != 0)
         LOG1 << "Offset is not aligned: modulo "
-             << STXXL_BLOCK_ALIGN << " = " << m_offset % STXXL_BLOCK_ALIGN;
+             << STXXL_BLOCK_ALIGN << " = " << offset_ % STXXL_BLOCK_ALIGN;
 
-    if (m_bytes % STXXL_BLOCK_ALIGN != 0)
+    if (bytes_ % STXXL_BLOCK_ALIGN != 0)
         LOG1 << "Size is not a multiple of "
-             << STXXL_BLOCK_ALIGN << ", = " << m_bytes % STXXL_BLOCK_ALIGN;
+             << STXXL_BLOCK_ALIGN << ", = " << bytes_ % STXXL_BLOCK_ALIGN;
 
-    if (size_t(m_buffer) % STXXL_BLOCK_ALIGN != 0)
+    if (size_t(buffer_) % STXXL_BLOCK_ALIGN != 0)
         LOG1 << "Buffer is not aligned: modulo "
-             << STXXL_BLOCK_ALIGN << " = " << size_t(m_buffer) % STXXL_BLOCK_ALIGN
-             << " (" << m_buffer << ")";
+             << STXXL_BLOCK_ALIGN << " = " << size_t(buffer_) % STXXL_BLOCK_ALIGN
+             << " (" << buffer_ << ")";
 }
 
 void request::check_nref_failed(bool after) {
@@ -61,24 +61,24 @@ void request::check_nref_failed(bool after) {
          << (after ? "after" : "before") << " serve()"
          << " nref=" << reference_count()
          << " this=" << this
-         << " offset=" << m_offset
-         << " buffer=" << m_buffer
-         << " bytes=" << m_bytes
-         << " type=" << ((m_type == READ) ? "READ" : "WRITE")
-         << " file=" << m_file
-         << " iotype=" << m_file->io_type();
+         << " offset=" << offset_
+         << " buffer=" << buffer_
+         << " bytes=" << bytes_
+         << " type=" << ((type_ == READ) ? "READ" : "WRITE")
+         << " file=" << file_
+         << " iotype=" << file_->io_type();
 }
 
 const char* request::io_type() const {
-    return m_file->io_type();
+    return file_->io_type();
 }
 
 std::ostream& request::print(std::ostream& out) const {
-    out << "File object address: " << static_cast<void*>(m_file);
-    out << " Buffer address: " << static_cast<void*>(m_buffer);
-    out << " File offset: " << m_offset;
-    out << " Transfer size: " << m_bytes << " bytes";
-    out << " Type of transfer: " << ((m_type == READ) ? "READ" : "WRITE");
+    out << "File object address: " << static_cast<void*>(file_);
+    out << " Buffer address: " << static_cast<void*>(buffer_);
+    out << " File offset: " << offset_;
+    out << " Transfer size: " << bytes_ << " bytes";
+    out << " Type of transfer: " << ((type_ == READ) ? "READ" : "WRITE");
     return out;
 }
 
