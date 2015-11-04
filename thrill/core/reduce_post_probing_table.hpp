@@ -66,16 +66,12 @@ public:
                  const size_t& num_buckets_per_table,
                  const size_t& offset) const {
 
-        (void)num_buckets_per_table;
+        (void)num_frames;
         (void)offset;
 
-        size_t hashed = hash_function_(k);
+        size_t global_index = hash_function_(k) % num_buckets_per_table;
 
-        size_t partition_id = hashed % num_frames;
-
-        return IndexResult(partition_id, partition_id *
-                                         num_buckets_per_frame +
-                                         hashed % num_buckets_per_frame);
+        return IndexResult(global_index / num_buckets_per_frame, global_index);
     }
 
 private:

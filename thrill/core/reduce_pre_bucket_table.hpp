@@ -120,7 +120,7 @@ class ReducePreTable
 {
     static const bool debug = false;
 
-    static const size_t flush_mode = 4; // 0... 1-factor, 1... fullest, 2... LRU, 3... LFU, 4... random
+    static const size_t flush_mode = 0; // 0... 1-factor, 1... fullest, 4... random
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -813,7 +813,7 @@ public:
         assert(j >= 0);
         assert(j < p_raw);
 
-        size_t p = (p_raw % 2 == 0) ? p_raw-1 : p_raw;
+        const size_t p = (p_raw % 2 == 0) ? p_raw-1 : p_raw;
         size_t p_i[p];
 
         for (size_t i=0; i<p; i++) {
