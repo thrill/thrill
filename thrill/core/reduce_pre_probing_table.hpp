@@ -66,16 +66,12 @@ public:
                  const size_t& num_buckets_per_table,
                  const size_t& offset) const {
 
-        (void)num_buckets_per_table;
+        (void)num_frames;
         (void)offset;
 
-        size_t hashed = hash_function_(k);
+        size_t global_index = hash_function_(k) % num_buckets_per_table;
 
-        size_t partition_id = hashed % num_frames;
-
-        return IndexResult(partition_id, partition_id *
-                                                 num_buckets_per_frame +
-                hashed % num_buckets_per_frame);
+        return IndexResult(global_index / num_buckets_per_frame, global_index);
     }
 
 private:
@@ -189,7 +185,7 @@ class ReducePreProbingTable
 {
     static const bool debug = false;
 
-    static const size_t flush_mode = 4; // 0... 1-factor, 1... fullest, 2... LRU, 3... LFU, 4... random
+    static const size_t flush_mode = 0; // 0... 1-factor, 1... fullest, 4... random
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -714,7 +710,7 @@ public:
         assert(j >= 0);
         assert(j < p_raw);
 
-        size_t p = (p_raw % 2 == 0) ? p_raw-1 : p_raw;
+        const size_t p = (p_raw % 2 == 0) ? p_raw-1 : p_raw;
         size_t p_i[p];
 
         for (size_t i=0; i<p; i++) {
