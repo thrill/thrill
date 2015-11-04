@@ -19,6 +19,7 @@
 
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/io/completion_handler.hpp>
+#include <thrill/io/exceptions.hpp>
 #include <thrill/io/request_interface.hpp>
 
 #include <cassert>
@@ -33,18 +34,6 @@ namespace io {
 #define STXXL_BLOCK_ALIGN 4096
 
 class file;
-
-class io_error : public std::ios_base::failure
-{
-public:
-    io_error() throw ()
-        : std::ios_base::failure("")
-    { }
-
-    io_error(const std::string& message) throw ()
-        : std::ios_base::failure(message)
-    { }
-};
 
 //! Request object encapsulating basic properties like file and offset.
 class request : virtual public request_interface, public common::ReferenceCount

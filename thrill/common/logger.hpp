@@ -203,6 +203,17 @@ public:
                 "\"" << X << "\" != \"" << Y << "\""); \
     } while (0)
 
+//! Check that code throws an Exception
+#define die_unless_throws(code, Exception)                        \
+    do {                                                          \
+        bool t_ = false; try { code; }                            \
+        catch (const Exception&) { t_ = true; }                   \
+        if (t_) break;                                            \
+        die("UNLESS-THROWS: " #code " - NO EXCEPTION " #Exception \
+            " @ " __FILE__ ":" << __LINE__);                      \
+        abort();                                                  \
+    } while (0)
+
 } // namespace common
 } // namespace thrill
 
