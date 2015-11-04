@@ -16,7 +16,7 @@
 
 #include <thrill/io/config_file.hpp>
 #include <thrill/io/create_file.hpp>
-#include <thrill/io/mem_file.hpp>
+#include <thrill/io/memory_file.hpp>
 #include <thrill/io/syscall_file.hpp>
 
 #include "error_handling.hpp"
@@ -100,7 +100,7 @@ file * create_file(disk_config& cfg, int mode, int disk_allocator_id) {
     }
     else if (cfg.io_impl == "memory")
     {
-        mem_file* result = new mem_file(cfg.queue, disk_allocator_id, cfg.device_id);
+        memory_file* result = new memory_file(cfg.queue, disk_allocator_id, cfg.device_id);
         result->lock();
         return result;
     }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/io/mem_file.hpp
+ * thrill/io/memory_file.hpp
  *
  * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
  * distributed under the Boost Software License, Version 1.0.
@@ -14,8 +14,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_IO_MEM_FILE_HEADER
-#define THRILL_IO_MEM_FILE_HEADER
+#ifndef THRILL_IO_MEMORY_FILE_HEADER
+#define THRILL_IO_MEMORY_FILE_HEADER
 
 #include <thrill/io/disk_queued_file.hpp>
 #include <thrill/io/request.hpp>
@@ -29,7 +29,7 @@ namespace io {
 //! \{
 
 //! Implementation of file based on new[] and memcpy.
-class mem_file : public disk_queued_file
+class memory_file : public disk_queued_file
 {
     //! pointer to memory area of "file"
     char* m_ptr;
@@ -42,7 +42,7 @@ class mem_file : public disk_queued_file
 
 public:
     //! constructs file object.
-    mem_file(
+    memory_file(
         int queue_id = DEFAULT_QUEUE,
         int allocator_id = NO_ALLOCATOR,
         unsigned int device_id = DEFAULT_DEVICE_ID)
@@ -52,7 +52,7 @@ public:
     { }
     void serve(void* buffer, offset_type offset, size_type bytes,
                request::request_type type);
-    ~mem_file();
+    ~memory_file();
     offset_type size();
     void set_size(offset_type newsize);
     void lock();
@@ -65,6 +65,6 @@ public:
 } // namespace io
 } // namespace thrill
 
-#endif // !THRILL_IO_MEM_FILE_HEADER
+#endif // !THRILL_IO_MEMORY_FILE_HEADER
 
 /******************************************************************************/

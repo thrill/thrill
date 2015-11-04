@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/io/mem_file.cpp
+ * thrill/io/memory_file.cpp
  *
  * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
  * distributed under the Boost Software License, Version 1.0.
@@ -17,13 +17,13 @@
 #include <limits>
 
 #include <thrill/io/iostats.hpp>
-#include <thrill/io/mem_file.hpp>
+#include <thrill/io/memory_file.hpp>
 
 namespace thrill {
 namespace io {
 
-void mem_file::serve(void* buffer, offset_type offset, size_type bytes,
-                     request::request_type type) {
+void memory_file::serve(void* buffer, offset_type offset, size_type bytes,
+                        request::request_type type) {
     std::unique_lock<std::mutex> lock(m_mutex);
 
     if (type == request::READ)
@@ -38,24 +38,24 @@ void mem_file::serve(void* buffer, offset_type offset, size_type bytes,
     }
 }
 
-const char* mem_file::io_type() const {
+const char* memory_file::io_type() const {
     return "memory";
 }
 
-mem_file::~mem_file() {
+memory_file::~memory_file() {
     free(m_ptr);
     m_ptr = nullptr;
 }
 
-void mem_file::lock() {
+void memory_file::lock() {
     // nothing to do
 }
 
-file::offset_type mem_file::size() {
+file::offset_type memory_file::size() {
     return m_size;
 }
 
-void mem_file::set_size(offset_type newsize) {
+void memory_file::set_size(offset_type newsize) {
     std::unique_lock<std::mutex> lock(m_mutex);
     assert(newsize <= std::numeric_limits<offset_type>::max());
 
@@ -63,7 +63,7 @@ void mem_file::set_size(offset_type newsize) {
     m_size = newsize;
 }
 
-void mem_file::discard(offset_type offset, offset_type size) {
+void memory_file::discard(offset_type offset, offset_type size) {
     std::unique_lock<std::mutex> lock(m_mutex);
 #ifndef STXXL_MEMFILE_DONT_CLEAR_FREED_MEMORY
     // overwrite the freed region with uninitialized memory
