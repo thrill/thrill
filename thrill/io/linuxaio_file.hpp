@@ -20,9 +20,9 @@
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
-#include <thrill/io/disk_queued_file.h>
-#include <thrill/io/linuxaio_queue.h>
-#include <thrill/io/ufs_file_base.h>
+#include <thrill/io/disk_queued_file.hpp>
+#include <thrill/io/linuxaio_queue.hpp>
+#include <thrill/io/ufs_file_base.hpp>
 
 namespace thrill {
 namespace io {

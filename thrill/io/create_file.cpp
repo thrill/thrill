@@ -16,7 +16,9 @@
 
 #include <thrill/io/config_file.hpp>
 #include <thrill/io/create_file.hpp>
+#include <thrill/io/linuxaio_file.hpp>
 #include <thrill/io/memory_file.hpp>
+#include <thrill/io/mmap_file.hpp>
 #include <thrill/io/syscall_file.hpp>
 
 #include "error_handling.hpp"

@@ -16,14 +16,12 @@
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
+#include "error_handling.hpp"
+#include <thrill/io/linuxaio_queue.hpp>
+#include <thrill/io/linuxaio_request.hpp>
+
 #include <sys/syscall.h>
 #include <unistd.h>
-
-#include <stxxl/bits/common/error_handling.h>
-#include <stxxl/bits/mng/block_manager.h>
-#include <stxxl/bits/verbose.h>
-#include <thrill/io/linuxaio_queue.h>
-#include <thrill/io/linuxaio_request.h>
 
 #include <algorithm>
 
@@ -61,7 +59,7 @@ linuxaio_queue::linuxaio_queue(int desired_queue_length)
     for (int e = 0; e < max_events; ++e)
         num_free_events++;  // cannot set semaphore to value directly
 
-    STXXL_MSG("Set up an linuxaio queue with " << max_events << " entries.");
+    LOG1 << "Set up an linuxaio queue with " << max_events << " entries.";
 
     start_thread(post_async, static_cast<void*>(this), post_thread, post_thread_state);
     start_thread(wait_async, static_cast<void*>(this), wait_thread, wait_thread_state);
@@ -77,11 +75,11 @@ void linuxaio_queue::add_request(request_ptr& req) {
     if (req.empty())
         STXXL_THROW_INVALID_ARGUMENT("Empty request submitted to disk_queue.");
     if (post_thread_state() != RUNNING)
-        STXXL_ERRMSG("Request submitted to stopped queue.");
+        LOG1 << "Request submitted to stopped queue.";
     if (!dynamic_cast<linuxaio_request*>(req.get()))
-        STXXL_ERRMSG("Non-LinuxAIO request submitted to LinuxAIO queue.");
+        LOG1 << "Non-LinuxAIO request submitted to LinuxAIO queue.";
 
-    scoped_mutex_lock lock(waiting_mtx);
+    std::unique_lock<std::mutex> lock(waiting_mtx);
 
     waiting_requests.push_back(req);
     num_waiting_requests++;
@@ -91,16 +89,15 @@ bool linuxaio_queue::cancel_request(request_ptr& req) {
     if (req.empty())
         STXXL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
     if (post_thread_state() != RUNNING)
-        STXXL_ERRMSG("Request canceled in stopped queue.");
+        LOG1 << "Request canceled in stopped queue.";
     if (!dynamic_cast<linuxaio_request*>(req.get()))
-        STXXL_ERRMSG("Non-LinuxAIO request submitted to LinuxAIO queue.");
+        LOG1 << "Non-LinuxAIO request submitted to LinuxAIO queue.";
 
     queue_type::iterator pos;
     {
-        scoped_mutex_lock lock(waiting_mtx);
+        std::unique_lock<std::mutex> lock(waiting_mtx);
 
-        pos = std::find(waiting_requests.begin(), waiting_requests.end(),
-                        req _STXXL_FORCE_SEQUENTIAL);
+        pos = std::find(waiting_requests.begin(), waiting_requests.end(), req);
         if (pos != waiting_requests.end())
         {
             waiting_requests.erase(pos);
@@ -114,10 +111,9 @@ bool linuxaio_queue::cancel_request(request_ptr& req) {
         }
     }
 
-    scoped_mutex_lock lock(posted_mtx);
+    std::unique_lock<std::mutex> lock(posted_mtx);
 
-    pos = std::find(posted_requests.begin(), posted_requests.end(),
-                    req _STXXL_FORCE_SEQUENTIAL);
+    pos = std::find(posted_requests.begin(), posted_requests.end(), req);
     if (pos != posted_requests.end())
     {
         // polymorphic_downcast to linuxaio_request,
@@ -155,7 +151,7 @@ void linuxaio_queue::post_requests() {
         if (post_thread_state() == TERMINATING && num_currently_waiting_requests == 0)
             break;
 
-        scoped_mutex_lock lock(waiting_mtx);
+        std::unique_lock<std::mutex> lock(waiting_mtx);
         if (!waiting_requests.empty())
         {
             req = waiting_requests.front();
@@ -183,7 +179,7 @@ void linuxaio_queue::post_requests() {
             // request is finally posted
 
             {
-                scoped_mutex_lock lock(posted_mtx);
+                std::unique_lock<std::mutex> lock(posted_mtx);
                 posted_requests.push_back(req);
                 num_posted_requests++;
             }

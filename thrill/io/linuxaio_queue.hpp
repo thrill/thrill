@@ -16,15 +16,13 @@
 #ifndef THRILL_IO_LINUXAIO_QUEUE_HEADER
 #define THRILL_IO_LINUXAIO_QUEUE_HEADER
 
-#include <thrill/io/linuxaio_file.hpp>
+#include <thrill/io/request_queue_impl_worker.hpp>
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
 #include <linux/aio_abi.h>
 #include <list>
-
-#include <stxxl/bits/common/mutex.h>
-#include <thrill/io/request_queue_impl_worker.h>
+#include <mutex>
 
 namespace thrill {
 namespace io {
@@ -50,17 +48,17 @@ private:
 
     // "waiting" request have submitted to this queue, but not yet to the OS,
     // those are "posted"
-    mutex waiting_mtx, posted_mtx;
+    std::mutex waiting_mtx, posted_mtx;
     queue_type waiting_requests, posted_requests;
 
     //! max number of OS requests
     int max_events;
     //! number of requests in waitings_requests
-    semaphore num_waiting_requests, num_free_events, num_posted_requests;
+    common::semaphore num_waiting_requests, num_free_events, num_posted_requests;
 
     // two threads, one for posting, one for waiting
     thread_type post_thread, wait_thread;
-    state<thread_state> post_thread_state, wait_thread_state;
+    common::state<thread_state> post_thread_state, wait_thread_state;
 
     // Why do we need two threads, one for posting, and one for waiting?  Is
     // one not enough?

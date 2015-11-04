@@ -16,8 +16,7 @@
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
-#include <stxxl/bits/common/error_handling.h>
-#include <stxxl/bits/verbose.h>
+#include "error_handling.hpp"
 #include <thrill/io/disk_queues.hpp>
 
 #include <sys/syscall.h>
@@ -27,8 +26,8 @@ namespace thrill {
 namespace io {
 
 void linuxaio_request::completed(bool posted, bool canceled) {
-    STXXL_VERBOSE_LINUXAIO("linuxaio_request[" << this << "] completed(" <<
-                           posted << "," << canceled << ")");
+    LOG << "linuxaio_request[" << this << "] completed("
+        << posted << "," << canceled << ")";
 
     if (!canceled)
     {
@@ -64,7 +63,7 @@ void linuxaio_request::fill_control_block() {
 //! Submits an I/O request to the OS
 //! \returns false if submission fails
 bool linuxaio_request::post() {
-    STXXL_VERBOSE_LINUXAIO("linuxaio_request[" << this << "] post()");
+    LOG << "linuxaio_request[" << this << "] post()";
 
     fill_control_block();
     iocb* cb_pointer = &cb;
@@ -93,7 +92,7 @@ bool linuxaio_request::post() {
 //!
 //! Routine is called by user, as part of the request interface.
 bool linuxaio_request::cancel() {
-    STXXL_VERBOSE_LINUXAIO("linuxaio_request[" << this << "] cancel()");
+    LOG1 << "linuxaio_request[" << this << "] cancel()";
 
     if (!m_file) return false;
 
@@ -106,7 +105,7 @@ bool linuxaio_request::cancel() {
 
 //! Cancel already posted request
 bool linuxaio_request::cancel_aio() {
-    STXXL_VERBOSE_LINUXAIO("linuxaio_request[" << this << "] cancel_aio()");
+    LOG1 << "linuxaio_request[" << this << "] cancel_aio()";
 
     if (!m_file) return false;
 
