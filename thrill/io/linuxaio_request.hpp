@@ -21,9 +21,7 @@
 #if STXXL_HAVE_LINUXAIO_FILE
 
 #include <linux/aio_abi.h>
-#include <thrill/io/request_with_state.h>
-
-#define STXXL_VERBOSE_LINUXAIO(msg) STXXL_VERBOSE2(msg)
+#include <thrill/io/request_with_state.hpp>
 
 namespace thrill {
 namespace io {
@@ -52,11 +50,10 @@ public:
         request_type type)
         : request_with_state(on_cmpl, file, buffer, offset, bytes, type) {
         assert(dynamic_cast<linuxaio_file*>(file));
-        STXXL_VERBOSE_LINUXAIO("linuxaio_request[" << this << "]" <<
-                               " linuxaio_request" <<
-                               "(file=" << file << " buffer=" << buffer <<
-                               " offset=" << offset << " bytes=" << bytes <<
-                               " type=" << type << ")");
+        LOG << "linuxaio_request[" << this << "]" << " linuxaio_request"
+            << "(file=" << file << " buffer=" << buffer
+            << " offset=" << offset << " bytes=" << bytes
+            << " type=" << type << ")";
     }
 
     bool post();

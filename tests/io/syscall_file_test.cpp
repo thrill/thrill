@@ -14,6 +14,7 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/io/file.hpp>
+#include <thrill/io/mmap_file.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/syscall_file.hpp>
 #include <thrill/mem/aligned_alloc.hpp>

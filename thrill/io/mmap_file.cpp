@@ -16,17 +16,18 @@
 
 #if STXXL_HAVE_MMAP_FILE
 
-#include "ufs_platform.h"
-#include <stxxl/bits/common/error_handling.h>
+#include "error_handling.hpp"
+#include "ufs_platform.hpp"
+#include <thrill/io/iostats.hpp>
+
 #include <sys/mman.h>
-#include <thrill/io/iostats.h>
 
 namespace thrill {
 namespace io {
 
 void mmap_file::serve(void* buffer, offset_type offset, size_type bytes,
                       request::request_type type) {
-    scoped_mutex_lock fd_lock(fd_mutex);
+    std::unique_lock<std::mutex> fd_lock(fd_mutex);
 
     // assert(offset + bytes <= _size());
 

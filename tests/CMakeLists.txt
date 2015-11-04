@@ -128,9 +128,13 @@ test_only(io_syscall_file_test ".")
 
 test_only(io_cancel_io_test memory "./testdisk1")
 test_only(io_cancel_io_test syscall "./testdisk1")
+test_only(io_cancel_io_test mmap "./testdisk1")
+test_only(io_cancel_io_test linuxaio "./testdisk1")
 
 test_only(io_file_io_sizes_test memory "./testdisk1" 134217728)
 test_only(io_file_io_sizes_test syscall "./testdisk1" 134217728)
+test_only(io_file_io_sizes_test mmap "./testdisk1" 134217728)
+test_only(io_file_io_sizes_test linuxaio "./testdisk1" 134217728)
 
 build_test(data/block_queue_test)
 build_test(data/block_pool_test)

@@ -45,6 +45,9 @@ static const unsigned g_cache_line_size = 64;
 #define THRILL_HAVE_NET_TCP 1
 #endif
 
+#define STXXL_HAVE_MMAP_FILE 1
+#define STXXL_HAVE_LINUXAIO_FILE 1
+
 } // namespace common
 } // namespace thrill
 
