@@ -1,30 +1,33 @@
-/***************************************************************************
- *  include/stxxl/bits/io/wfs_file_base.h
+/*******************************************************************************
+ * thrill/io/wfs_file_base.hpp
  *
- *  Windows file system file base
+ * Windows file system file base
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2005 Roman Dementiev <dementiev@ira.uka.de>
- *  Copyright (C) 2008, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009, 2010 Johannes Singler <singler@kit.edu>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2005 Roman Dementiev <dementiev@ira.uka.de>
+ * Copyright (C) 2008, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009, 2010 Johannes Singler <singler@kit.edu>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_WFS_FILE_BASE_HEADER
-#define STXXL_IO_WFS_FILE_BASE_HEADER
+#pragma once
+#ifndef THRILL_IO_WFS_FILE_BASE_HEADER
+#define THRILL_IO_WFS_FILE_BASE_HEADER
 
-#include <stxxl/bits/config.h>
+#include <thrill/common/config.hpp>
 
 #if STXXL_WINDOWS
 
-#include <stxxl/bits/io/file.h>
-#include <stxxl/bits/io/request.h>
+#include <thrill/io/file.h>
+#include <thrill/io/request.h>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup fileimpl
 //! \{
@@ -33,7 +36,7 @@ STXXL_BEGIN_NAMESPACE
 class wfs_file_base : public virtual file
 {
 protected:
-    typedef void* HANDLE;
+    using HANDLE = void*;
 
     mutex fd_mutex;        // sequentialize function calls involving file_des
     HANDLE file_des;       // file descriptor
@@ -56,8 +59,11 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
 #endif // STXXL_WINDOWS
 
-#endif // !STXXL_IO_WFS_FILE_BASE_HEADER
+#endif // !THRILL_IO_WFS_FILE_BASE_HEADER
+
+/******************************************************************************/

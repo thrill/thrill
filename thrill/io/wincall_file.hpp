@@ -1,21 +1,23 @@
-/***************************************************************************
- *  include/stxxl/bits/io/wincall_file.h
+/*******************************************************************************
+ * thrill/io/wincall_file.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2005-2006 Roman Dementiev <dementiev@ira.uka.de>
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009-2010 Johannes Singler <singler@kit.edu>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2005-2006 Roman Dementiev <dementiev@ira.uka.de>
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009-2010 Johannes Singler <singler@kit.edu>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_WINCALL_FILE_HEADER
-#define STXXL_IO_WINCALL_FILE_HEADER
+#pragma once
+#ifndef THRILL_IO_WINCALL_FILE_HEADER
+#define THRILL_IO_WINCALL_FILE_HEADER
 
-#include <stxxl/bits/config.h>
+#include <thrill/common/config.hpp>
 
 #ifndef STXXL_HAVE_WINCALL_FILE
 #if STXXL_WINDOWS
@@ -27,10 +29,11 @@
 
 #if STXXL_HAVE_WINCALL_FILE
 
-#include <stxxl/bits/io/wfs_file_base.h>
-#include <stxxl/bits/io/disk_queued_file.h>
+#include <thrill/io/disk_queued_file.h>
+#include <thrill/io/wfs_file_base.h>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup fileimpl
 //! \{
@@ -62,8 +65,11 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
 #endif // #if STXXL_HAVE_WINCALL_FILE
 
-#endif // !STXXL_IO_WINCALL_FILE_HEADER
+#endif // !THRILL_IO_WINCALL_FILE_HEADER
+
+/******************************************************************************/

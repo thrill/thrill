@@ -1,33 +1,32 @@
-/***************************************************************************
- *  lib/io/request_with_state.cpp
+/*******************************************************************************
+ * thrill/io/request_with_state.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002, 2005, 2008 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002, 2005, 2008 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/common/state.h>
-#include <stxxl/bits/io/disk_queues.h>
-#include <stxxl/bits/io/file.h>
-#include <stxxl/bits/io/iostats.h>
-#include <stxxl/bits/io/request.h>
-#include <stxxl/bits/io/request_with_state.h>
-#include <stxxl/bits/singleton.h>
-#include <stxxl/bits/verbose.h>
+#include <thrill/common/state.hpp>
+#include <thrill/io/disk_queues.hpp>
+#include <thrill/io/file.hpp>
+#include <thrill/io/iostats.hpp>
+#include <thrill/io/request.hpp>
+#include <thrill/io/request_with_state.hpp>
 
 #include <cassert>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
-request_with_state::~request_with_state()
-{
-    STXXL_VERBOSE3_THIS("request_with_state::~(), ref_cnt: " << get_reference_count());
+request_with_state::~request_with_state() {
+    LOG << "request_with_state::~(), ref_cnt: " << reference_count();
 
     assert(m_state() == DONE || m_state() == READY2DIE);
 
@@ -38,9 +37,8 @@ request_with_state::~request_with_state()
     // m_state.wait_for (READY2DIE); // does not make sense ?
 }
 
-void request_with_state::wait(bool measure_time)
-{
-    STXXL_VERBOSE3_THIS("request_with_state::wait()");
+void request_with_state::wait(bool measure_time) {
+    LOG << "request_with_state::wait()";
 
     stats::scoped_wait_timer wait_timer(m_type == READ ? stats::WAIT_OP_READ : stats::WAIT_OP_WRITE, measure_time);
 
@@ -49,9 +47,8 @@ void request_with_state::wait(bool measure_time)
     check_errors();
 }
 
-bool request_with_state::cancel()
-{
-    STXXL_VERBOSE3_THIS("request_with_state::cancel() " << m_file << " " << m_buffer << " " << m_offset);
+bool request_with_state::cancel() {
+    LOG << "request_with_state::cancel() " << m_file << " " << m_buffer << " " << m_offset;
 
     if (m_file)
     {
@@ -69,8 +66,7 @@ bool request_with_state::cancel()
     return false;
 }
 
-bool request_with_state::poll()
-{
+bool request_with_state::poll() {
     const request_state s = m_state();
 
     check_errors();
@@ -78,9 +74,8 @@ bool request_with_state::poll()
     return s == DONE || s == READY2DIE;
 }
 
-void request_with_state::completed(bool canceled)
-{
-    STXXL_VERBOSE3_THIS("request_with_state::completed()");
+void request_with_state::completed(bool canceled) {
+    LOG << "request_with_state::completed()";
     m_state.set_to(DONE);
     if (!canceled)
         m_on_complete(this);
@@ -90,6 +85,7 @@ void request_with_state::completed(bool canceled)
     m_state.set_to(READY2DIE);
 }
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-// vim: et:ts=4:sw=4
+/******************************************************************************/

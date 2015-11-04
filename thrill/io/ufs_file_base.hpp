@@ -1,30 +1,32 @@
-/***************************************************************************
- *  include/stxxl/bits/io/ufs_file_base.h
+/*******************************************************************************
+ * thrill/io/ufs_file_base.hpp
  *
- *  UNIX file system file base
+ * UNIX file system file base
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
- *  Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_UFS_FILE_BASE_HEADER
-#define STXXL_IO_UFS_FILE_BASE_HEADER
+#pragma once
+#ifndef THRILL_IO_UFS_FILE_BASE_HEADER
+#define THRILL_IO_UFS_FILE_BASE_HEADER
 
-#include <stxxl/bits/common/mutex.h>
-#include <stxxl/bits/io/file.h>
-#include <stxxl/bits/namespace.h>
+#include <thrill/io/file.hpp>
 
+#include <mutex>
 #include <string>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup fileimpl
 //! \{
@@ -33,7 +35,7 @@ STXXL_BEGIN_NAMESPACE
 class ufs_file_base : public virtual file
 {
 protected:
-    mutex fd_mutex;        // sequentialize function calls involving file_des
+    std::mutex fd_mutex;   // sequentialize function calls involving file_des
     int file_des;          // file descriptor
     int m_mode;            // open mode
     const std::string filename;
@@ -59,6 +61,9 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_UFS_FILE_BASE_HEADER
+#endif // !THRILL_IO_UFS_FILE_BASE_HEADER
+
+/******************************************************************************/

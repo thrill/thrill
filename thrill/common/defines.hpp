@@ -69,6 +69,13 @@ namespace common {
 #define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
 #endif
 
+/******************************************************************************/
+// THRILL_UNUSED(variable)
+
+template <typename U>
+void THRILL_UNUSED(U&&)
+{ }
+
 } // namespace common
 } // namespace thrill
 

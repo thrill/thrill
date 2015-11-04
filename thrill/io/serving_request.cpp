@@ -1,28 +1,27 @@
-/***************************************************************************
- *  lib/io/serving_request.cpp
+/*******************************************************************************
+ * thrill/io/serving_request.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/common/exceptions.h>
-#include <stxxl/bits/common/state.h>
-#include <stxxl/bits/io/file.h>
-#include <stxxl/bits/io/request_interface.h>
-#include <stxxl/bits/io/request_with_state.h>
-#include <stxxl/bits/io/serving_request.h>
-#include <stxxl/bits/namespace.h>
-#include <stxxl/bits/verbose.h>
+#include <thrill/common/state.hpp>
+#include <thrill/io/file.hpp>
+#include <thrill/io/request_interface.hpp>
+#include <thrill/io/request_with_state.hpp>
+#include <thrill/io/serving_request.hpp>
 
 #include <iomanip>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 serving_request::serving_request(
     const completion_handler& on_cmpl,
@@ -31,8 +30,7 @@ serving_request::serving_request(
     offset_type off,
     size_type b,
     request_type t)
-    : request_with_state(on_cmpl, f, buf, off, b, t)
-{
+    : request_with_state(on_cmpl, f, buf, off, b, t) {
 #ifdef STXXL_CHECK_BLOCK_ALIGNING
     // Direct I/O requires file system block size alignment for file offsets,
     // memory buffer addresses, and transfer(buffer) size must be multiple
@@ -41,16 +39,14 @@ serving_request::serving_request(
 #endif
 }
 
-void serving_request::serve()
-{
+void serving_request::serve() {
     check_nref();
-    STXXL_VERBOSE2_THIS(
-        "serving_request::serve(): " <<
-        m_buffer << " @ [" <<
-        m_file << "|" << m_file->get_allocator_id() << "]0x" <<
-        std::hex << std::setfill('0') << std::setw(8) <<
-        m_offset << "/0x" << m_bytes <<
-        ((m_type == request::READ) ? " READ" : " WRITE"));
+    LOG << "serving_request::serve(): "
+        << m_buffer << " @ ["
+        << m_file << "|" << m_file->get_allocator_id() << "]0x"
+        << std::hex << std::setfill('0') << std::setw(8)
+        << m_offset << "/0x" << m_bytes
+        << ((m_type == request::READ) ? " READ" : " WRITE");
 
     try
     {
@@ -66,10 +62,11 @@ void serving_request::serve()
     completed(false);
 }
 
-const char* serving_request::io_type() const
-{
+const char* serving_request::io_type() const {
     return m_file->io_type();
 }
 
-STXXL_END_NAMESPACE
-// vim: et:ts=4:sw=4
+} // namespace io
+} // namespace thrill
+
+/******************************************************************************/

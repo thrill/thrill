@@ -1,25 +1,27 @@
-/***************************************************************************
- *  include/stxxl/bits/io/disk_queued_file.h
+/*******************************************************************************
+ * thrill/io/disk_queued_file.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
- *  Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ * Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_DISK_QUEUED_FILE_HEADER
-#define STXXL_IO_DISK_QUEUED_FILE_HEADER
+#pragma once
+#ifndef THRILL_IO_DISK_QUEUED_FILE_HEADER
+#define THRILL_IO_DISK_QUEUED_FILE_HEADER
 
-#include <stxxl/bits/io/file.h>
-#include <stxxl/bits/io/request.h>
-#include <stxxl/bits/namespace.h>
+#include <thrill/io/file.hpp>
+#include <thrill/io/request.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup fileimpl
 //! \{
@@ -48,20 +50,20 @@ public:
         size_type bytes,
         const completion_handler& on_cmpl = completion_handler());
 
-    virtual int get_queue_id() const
-    {
+    virtual int get_queue_id() const {
         return m_queue_id;
     }
 
-    virtual int get_allocator_id() const
-    {
+    virtual int get_allocator_id() const {
         return m_allocator_id;
     }
 };
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_DISK_QUEUED_FILE_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_DISK_QUEUED_FILE_HEADER
+
+/******************************************************************************/

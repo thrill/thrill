@@ -382,7 +382,9 @@ add_subdirectory(thrill)
 add_subdirectory(tests)
 
 # descend into benchmarks and examples programs
-add_subdirectory(benchmarks)
+if(OFF)
+  add_subdirectory(benchmarks)
+endif()
 
 if(SWIG_FOUND)
   # build swig frontends

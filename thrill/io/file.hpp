@@ -1,22 +1,24 @@
-/***************************************************************************
- *  include/stxxl/bits/io/file.h
+/*******************************************************************************
+ * thrill/io/file.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2008, 2009 Johannes Singler <singler@ira.uka.de>
- *  Copyright (C) 2013-2014 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2008, 2009 Johannes Singler <singler@ira.uka.de>
+ * Copyright (C) 2013-2014 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_FILE_HEADER
-#define STXXL_IO_FILE_HEADER
+#pragma once
+#ifndef THRILL_IO_FILE_HEADER
+#define THRILL_IO_FILE_HEADER
 
-#include <stxxl/bits/config.h>
+#include <thrill/common/config.hpp>
 
 #if defined (__linux__)
  #define STXXL_CHECK_BLOCK_ALIGNING
@@ -26,18 +28,14 @@
 #include <ostream>
 #include <string>
 
-#include <stxxl/bits/common/exceptions.h>
-#include <stxxl/bits/common/counting_ptr.h>
-#include <stxxl/bits/common/types.h>
-#include <stxxl/bits/io/request.h>
-#include <stxxl/bits/io/request_interface.h>
-#include <stxxl/bits/libstxxl.h>
-#include <stxxl/bits/namespace.h>
-#include <stxxl/bits/noncopyable.h>
-#include <stxxl/bits/unused.h>
-#include <stxxl/bits/verbose.h>
+#include <thrill/common/counting_ptr.hpp>
+#include <thrill/common/defines.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/io/request.hpp>
+#include <thrill/io/request_interface.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup iolayer
 //! \{
@@ -53,13 +51,24 @@ class completion_handler;
 //!
 //! It is a base class for different implementations that might
 //! base on various file systems or even remote storage interfaces
-class file : private noncopyable
+class file
 {
 public:
+    static const bool debug = false;
+
     //! the offset of a request, also the size of the file
-    typedef request::offset_type offset_type;
+    using offset_type = request::offset_type;
     //! the size of a request
-    typedef request::size_type size_type;
+    using size_type = request::size_type;
+
+    //! non-copyable: delete copy-constructor
+    file(const file&) = delete;
+    //! non-copyable: delete assignment operator
+    file& operator = (const file&) = delete;
+    //! move-constructor: default
+    file(file&&) = default;
+    //! move-assignment operator: default
+    file& operator = (file&&) = default;
 
     //! Definition of acceptable file open modes.
     //!
@@ -72,7 +81,7 @@ public:
         RDWR = 4,            //!< read and write of the file are allowed
         CREAT = 8,           //!< in case file does not exist no error occurs and file is newly created
         DIRECT = 16,         //!< I/Os proceed bypassing file system buffers, i.e. unbuffered I/O.
-                             //!< Tries to open with appropriate flags, if fails print warning and open normally.
+                             //! < Tries to open with appropriate flags, if fails print warning and open normally.
         TRUNC = 32,          //!< once file is opened its length becomes zero
         SYNC = 64,           //!< open the file with O_SYNC | O_DSYNC | O_RSYNC flags set
         NO_LOCK = 128,       //!< do not acquire an exclusive lock by default
@@ -134,30 +143,26 @@ public:
 
     //! Discard a region of the file (mark it unused).
     //! Some specialized file types may need to know freed regions
-    virtual void discard(offset_type offset, offset_type size)
-    {
-        STXXL_UNUSED(offset);
-        STXXL_UNUSED(size);
+    virtual void discard(offset_type offset, offset_type size) {
+        common::THRILL_UNUSED(offset);
+        common::THRILL_UNUSED(size);
     }
 
     virtual void export_files(offset_type offset, offset_type length,
-                              std::string prefix)
-    {
-        STXXL_UNUSED(offset);
-        STXXL_UNUSED(length);
-        STXXL_UNUSED(prefix);
+                              std::string prefix) {
+        common::THRILL_UNUSED(offset);
+        common::THRILL_UNUSED(length);
+        common::THRILL_UNUSED(prefix);
     }
 
     //! close and remove file
     virtual void close_remove() { }
 
-    virtual ~file()
-    {
-        unsigned_type nr = get_request_nref();
+    virtual ~file() {
+        size_t nr = get_request_nref();
         if (nr != 0)
-            STXXL_ERRMSG("stxxl::file is being deleted while there are "
-                         "still " << nr << " (unfinished) requests "
-                         "referencing it");
+            LOG1 << "thrill::file is being deleted while there are "
+                 << "still " << nr << " (unfinished) requests referencing it";
     }
 
     //! Identifies the type of I/O implementation.
@@ -172,32 +177,28 @@ protected:
 
 public:
     //! Returns the file's physical device id
-    unsigned int get_device_id() const
-    {
+    unsigned int get_device_id() const {
         return m_device_id;
     }
 
 protected:
     //! count the number of requests referencing this file
-    atomic_counted_object m_request_ref;
+    common::ReferenceCount m_request_ref;
 
 public:
     //! increment referenced requests
-    void add_request_ref()
-    {
-        m_request_ref.inc_reference();
+    void add_request_ref() {
+        m_request_ref.IncReference();
     }
 
     //! decrement referenced requests
-    void delete_request_ref()
-    {
-        m_request_ref.dec_reference();
+    void delete_request_ref() {
+        m_request_ref.DecReference();
     }
 
     //! return number of referenced requests
-    unsigned_type get_request_nref()
-    {
-        return m_request_ref.get_reference_count();
+    size_t get_request_nref() {
+        return m_request_ref.reference_count();
     }
 
 public:
@@ -209,7 +210,7 @@ public:
 
     //! truncate a path to given length. Use this only if you dont have a
     //! fileio-specific object, which provides truncate().
-    static int truncate(const char* path, external_size_type length);
+    static int truncate(const char* path, size_t length);
 
     //! \}
 };
@@ -224,7 +225,9 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_FILE_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_FILE_HEADER
+
+/******************************************************************************/

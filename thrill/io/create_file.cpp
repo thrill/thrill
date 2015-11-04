@@ -1,33 +1,35 @@
-/***************************************************************************
- *  lib/io/create_file.cpp
+/*******************************************************************************
+ * thrill/io/create_file.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2008, 2009 Johannes Singler <singler@ira.uka.de>
- *  Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2008, 2009 Johannes Singler <singler@ira.uka.de>
+ * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/common/error_handling.h>
-#include <stxxl/bits/common/exceptions.h>
-#include <stxxl/bits/io/create_file.h>
-#include <stxxl/bits/io/io.h>
-#include <stxxl/bits/mng/config.h>
+#include <thrill/io/config_file.hpp>
+#include <thrill/io/create_file.hpp>
+#include <thrill/io/mem_file.hpp>
+#include <thrill/io/syscall_file.hpp>
+
+#include "error_handling.hpp"
 
 #include <ostream>
 #include <stdexcept>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 file * create_file(const std::string& io_impl,
                    const std::string& filename,
-                   int options, int physical_device_id, int disk_allocator_id)
-{
+                   int options, int physical_device_id, int disk_allocator_id) {
     // construct temporary disk_config structure
     disk_config cfg(filename, 0, io_impl);
     cfg.queue = physical_device_id;
@@ -39,8 +41,7 @@ file * create_file(const std::string& io_impl,
     return create_file(cfg, options, disk_allocator_id);
 }
 
-file * create_file(disk_config& cfg, int mode, int disk_allocator_id)
-{
+file * create_file(disk_config& cfg, int mode, int disk_allocator_id) {
     // apply disk_config settings to open mode
 
     mode &= ~(file::DIRECT | file::REQUIRE_DIRECT); // clear DIRECT and REQUIRE_DIRECT
@@ -97,14 +98,6 @@ file * create_file(disk_config& cfg, int mode, int disk_allocator_id)
 
         return result;
     }
-    else if (cfg.io_impl == "fileperblock_syscall")
-    {
-        fileperblock_file<syscall_file>* result =
-            new fileperblock_file<syscall_file>(cfg.path, mode, cfg.queue,
-                                                disk_allocator_id, cfg.device_id);
-        result->lock();
-        return result;
-    }
     else if (cfg.io_impl == "memory")
     {
         mem_file* result = new mem_file(cfg.queue, disk_allocator_id, cfg.device_id);
@@ -159,25 +152,6 @@ file * create_file(disk_config& cfg, int mode, int disk_allocator_id)
 
         return result;
     }
-    else if (cfg.io_impl == "fileperblock_mmap")
-    {
-        fileperblock_file<mmap_file>* result =
-            new fileperblock_file<mmap_file>(cfg.path, mode, cfg.queue,
-                                             disk_allocator_id, cfg.device_id);
-        result->lock();
-        return result;
-    }
-#endif
-#if STXXL_HAVE_SIMDISK_FILE
-    else if (cfg.io_impl == "simdisk")
-    {
-        mode &= ~(file::DIRECT | file::REQUIRE_DIRECT);  // clear the DIRECT flag, this file is supposed to be on tmpfs
-        ufs_file_base* result =
-            new sim_disk_file(cfg.path, mode, cfg.queue, disk_allocator_id,
-                              cfg.device_id);
-        result->lock();
-        return result;
-    }
 #endif
 #if STXXL_HAVE_WINCALL_FILE
     else if (cfg.io_impl == "wincall")
@@ -188,53 +162,13 @@ file * create_file(disk_config& cfg, int mode, int disk_allocator_id)
         result->lock();
         return result;
     }
-    else if (cfg.io_impl == "fileperblock_wincall")
-    {
-        fileperblock_file<wincall_file>* result =
-            new fileperblock_file<wincall_file>(cfg.path, mode, cfg.queue,
-                                                disk_allocator_id, cfg.device_id);
-        result->lock();
-        return result;
-    }
-#endif
-#if STXXL_HAVE_BOOSTFD_FILE
-    else if (cfg.io_impl == "boostfd")
-    {
-        boostfd_file* result =
-            new boostfd_file(cfg.path, mode, cfg.queue, disk_allocator_id,
-                             cfg.device_id);
-        result->lock();
-        return result;
-    }
-    else if (cfg.io_impl == "fileperblock_boostfd")
-    {
-        fileperblock_file<boostfd_file>* result =
-            new fileperblock_file<boostfd_file>(cfg.path, mode, cfg.queue,
-                                                disk_allocator_id, cfg.device_id);
-        result->lock();
-        return result;
-    }
-#endif
-#if STXXL_HAVE_WBTL_FILE
-    else if (cfg.io_impl == "wbtl")
-    {
-        ufs_file_base* backend =
-            new syscall_file(cfg.path, mode, -1, -1); // FIXME: ID
-        wbtl_file* result =
-            new stxxl::wbtl_file(backend, 16 * 1024 * 1024, 2, cfg.queue,
-                                 disk_allocator_id);
-        result->lock();
-
-        if (cfg.unlink_on_open)
-            backend->unlink();
-
-        return result;
-    }
 #endif
 
     STXXL_THROW(std::runtime_error,
                 "Unsupported disk I/O implementation '" << cfg.io_impl << "'.");
 }
 
-STXXL_END_NAMESPACE
-// vim: et:ts=4:sw=4
+} // namespace io
+} // namespace thrill
+
+/******************************************************************************/

@@ -1,26 +1,28 @@
-/***************************************************************************
- *  include/stxxl/bits/io/request_operations.h
+/*******************************************************************************
+ * thrill/io/request_operations.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008, 2009 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008, 2009 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_REQUEST_OPERATIONS_HEADER
-#define STXXL_IO_REQUEST_OPERATIONS_HEADER
+#pragma once
+#ifndef THRILL_IO_REQUEST_OPERATIONS_HEADER
+#define THRILL_IO_REQUEST_OPERATIONS_HEADER
 
-#include <stxxl/bits/namespace.h>
-#include <stxxl/bits/io/request.h>
-#include <stxxl/bits/io/iostats.h>
-#include <stxxl/bits/common/onoff_switch.h>
+#include <thrill/common/onoff_switch.hpp>
+#include <thrill/io/iostats.hpp>
+#include <thrill/io/request.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup reqlayer
 //! \{
@@ -31,8 +33,7 @@ STXXL_BEGIN_NAMESPACE
 //! \param reqs_begin begin of request sequence to wait for
 //! \param reqs_end end of request sequence to wait for
 template <class RequestIterator>
-void wait_all(RequestIterator reqs_begin, RequestIterator reqs_end)
-{
+void wait_all(RequestIterator reqs_begin, RequestIterator reqs_end) {
     for ( ; reqs_begin != reqs_end; ++reqs_begin)
         (request_ptr(*reqs_begin))->wait();
 }
@@ -40,8 +41,7 @@ void wait_all(RequestIterator reqs_begin, RequestIterator reqs_end)
 //! Suspends calling thread until \b all given requests are completed.
 //! \param req_array array of request_ptr objects
 //! \param count size of req_array
-inline void wait_all(request_ptr req_array[], size_t count)
-{
+static inline void wait_all(request_ptr req_array[], size_t count) {
     wait_all(req_array, req_array + count);
 }
 
@@ -55,8 +55,7 @@ inline void wait_all(request_ptr req_array[], size_t count)
 //! \return number of request canceled
 template <class RequestIterator>
 typename std::iterator_traits<RequestIterator>::difference_type
-cancel_all(RequestIterator reqs_begin, RequestIterator reqs_end)
-{
+cancel_all(RequestIterator reqs_begin, RequestIterator reqs_end) {
     typename std::iterator_traits<RequestIterator>::difference_type num_canceled = 0;
     while (reqs_begin != reqs_end)
     {
@@ -72,8 +71,7 @@ cancel_all(RequestIterator reqs_begin, RequestIterator reqs_end)
 //! \param reqs_end end of request sequence to poll
 //! \return \c true if any of requests is completed, then index contains valid value, otherwise \c false
 template <class RequestIterator>
-RequestIterator poll_any(RequestIterator reqs_begin, RequestIterator reqs_end)
-{
+RequestIterator poll_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
     while (reqs_begin != reqs_end)
     {
         if ((request_ptr(*reqs_begin))->poll())
@@ -89,8 +87,7 @@ RequestIterator poll_any(RequestIterator reqs_begin, RequestIterator reqs_end)
 //! \param count size of req_array
 //! \param index contains index of the \b first completed request if any
 //! \return \c true if any of requests is completed, then index contains valid value, otherwise \c false
-inline bool poll_any(request_ptr req_array[], size_t count, size_t& index)
-{
+inline bool poll_any(request_ptr req_array[], size_t count, size_t& index) {
     request_ptr* res = poll_any(req_array, req_array + count);
     index = res - req_array;
     return res != (req_array + count);
@@ -101,11 +98,10 @@ inline bool poll_any(request_ptr req_array[], size_t count, size_t& index)
 //! \param reqs_end end of request sequence to wait for
 //! \return index in req_array pointing to the \b first completed request
 template <class RequestIterator>
-RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end)
-{
+RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
     stats::scoped_wait_timer wait_timer(stats::WAIT_OP_ANY);
 
-    onoff_switch sw;
+    common::onoff_switch sw;
 
     RequestIterator cur = reqs_begin, result = reqs_end;
 
@@ -146,14 +142,15 @@ RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end)
 //! \param req_array array of \c request_ptr objects
 //! \param count size of req_array
 //! \return index in req_array pointing to the \b first completed request
-inline size_t wait_any(request_ptr req_array[], size_t count)
-{
+static inline size_t wait_any(request_ptr req_array[], size_t count) {
     return wait_any(req_array, req_array + count) - req_array;
 }
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_REQUEST_OPERATIONS_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_REQUEST_OPERATIONS_HEADER
+
+/******************************************************************************/

@@ -1,26 +1,28 @@
-/***************************************************************************
- *  include/stxxl/bits/io/completion_handler.h
+/*******************************************************************************
+ * thrill/io/completion_handler.hpp
  *
- *  Loki-style completion handler (functors)
+ * Loki-style completion handler (functors)
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2003 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2003 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_COMPLETION_HANDLER_HEADER
-#define STXXL_IO_COMPLETION_HANDLER_HEADER
+#pragma once
+#ifndef THRILL_IO_COMPLETION_HANDLER_HEADER
+#define THRILL_IO_COMPLETION_HANDLER_HEADER
 
-#include <stxxl/bits/namespace.h>
-#include <stxxl/bits/compat/unique_ptr.h>
 #include <cstdlib>
+#include <memory>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 class request;
 
@@ -42,12 +44,10 @@ public:
     completion_handler1(const HandlerType& handler)
         : m_handler(handler)
     { }
-    completion_handler1 * clone() const
-    {
+    completion_handler1 * clone() const {
         return new completion_handler1(*this);
     }
-    void operator () (request* req)
-    {
+    void operator () (request* req) {
         m_handler(req);
     }
 };
@@ -60,17 +60,17 @@ public:
 //! \c stxxl::file::aread and \c stxxl::file::awrite .
 class completion_handler
 {
-    compat_unique_ptr<completion_handler_impl>::result m_ptr;
+    std::unique_ptr<completion_handler_impl> m_ptr;
 
 public:
     //! Construct default, no operation completion handler.
     completion_handler()
-        : m_ptr(static_cast<completion_handler_impl*>(NULL))
+        : m_ptr(static_cast<completion_handler_impl*>(nullptr))
     { }
 
     //! Copy constructor.
     completion_handler(const completion_handler& obj)
-        : m_ptr(obj.m_ptr.get() ? obj.m_ptr.get()->clone() : NULL)
+        : m_ptr(obj.m_ptr.get() ? obj.m_ptr.get()->clone() : nullptr)
     { }
 
     //! Construct a completion handler which calls some function.
@@ -80,21 +80,21 @@ public:
     { }
 
     //! Assignment operator
-    completion_handler& operator = (const completion_handler& obj)
-    {
-        m_ptr.reset(obj.m_ptr.get() ? obj.m_ptr.get()->clone() : NULL);
+    completion_handler& operator = (const completion_handler& obj) {
+        m_ptr.reset(obj.m_ptr.get() ? obj.m_ptr.get()->clone() : nullptr);
         return *this;
     }
 
     //! Call the enclosed completion handler.
-    void operator () (request* req)
-    {
+    void operator () (request* req) {
         if (m_ptr.get())
             (*m_ptr)(req);
     }
 };
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_COMPLETION_HANDLER_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_COMPLETION_HANDLER_HEADER
+
+/******************************************************************************/

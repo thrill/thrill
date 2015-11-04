@@ -1,33 +1,34 @@
-/***************************************************************************
- *  include/stxxl/bits/io/disk_queues.h
+/*******************************************************************************
+ * thrill/io/disk_queues.hpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008-2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
- *  Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008-2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
+ * Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#ifndef STXXL_IO_DISK_QUEUES_HEADER
-#define STXXL_IO_DISK_QUEUES_HEADER
+#pragma once
+#ifndef THRILL_IO_DISK_QUEUES_HEADER
+#define THRILL_IO_DISK_QUEUES_HEADER
 
 #include <map>
 
-#include <stxxl/bits/namespace.h>
-#include <stxxl/bits/singleton.h>
-#include <stxxl/bits/io/iostats.h>
-#include <stxxl/bits/io/request.h>
-#include <stxxl/bits/io/request_queue_impl_qwqr.h>
-#include <stxxl/bits/io/linuxaio_queue.h>
-#include <stxxl/bits/io/linuxaio_request.h>
-#include <stxxl/bits/io/serving_request.h>
+#include <thrill/io/iostats.hpp>
+#include <thrill/io/linuxaio_queue.hpp>
+#include <thrill/io/linuxaio_request.hpp>
+#include <thrill/io/request.hpp>
+#include <thrill/io/request_queue_impl_qwqr.hpp>
+#include <thrill/io/serving_request.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 //! \addtogroup reqlayer
 //! \{
@@ -38,19 +39,17 @@ class disk_queues : public singleton<disk_queues>
 {
     friend class singleton<disk_queues>;
 
-    typedef stxxl::int64 DISKID;
-    typedef std::map<DISKID, request_queue*> request_queue_map;
+    using DISKID = int64_t;
+    using request_queue_map = std::map<DISKID, request_queue*>;
 
 protected:
     request_queue_map queues;
-    disk_queues()
-    {
-        stxxl::stats::get_instance(); // initialize stats before ourselves
+    disk_queues() {
+        stats::get_instance(); // initialize stats before ourselves
     }
 
 public:
-    void add_request(request_ptr& req, DISKID disk)
-    {
+    void add_request(request_ptr& req, DISKID disk) {
 #ifdef STXXL_HACK_SINGLE_IO_THREAD
         disk = 42;
 #endif
@@ -82,8 +81,7 @@ public:
     //! \param req request to cancel
     //! \param disk disk number for disk that \c req was scheduled on
     //! \return \c true iff the request was canceled successfully
-    bool cancel_request(request_ptr& req, DISKID disk)
-    {
+    bool cancel_request(request_ptr& req, DISKID disk) {
 #ifdef STXXL_HACK_SINGLE_IO_THREAD
         disk = 42;
 #endif
@@ -93,16 +91,14 @@ public:
             return false;
     }
 
-    request_queue * get_queue(DISKID disk)
-    {
+    request_queue * get_queue(DISKID disk) {
         if (queues.find(disk) != queues.end())
             return queues[disk];
         else
-            return NULL;
+            return nullptr;
     }
 
-    ~disk_queues()
-    {
+    ~disk_queues() {
         // deallocate all queues
         for (request_queue_map::iterator i = queues.begin(); i != queues.end(); i++)
             delete (*i).second;
@@ -113,8 +109,7 @@ public:
     //!                 - READ, read requests are served before write requests within a disk queue
     //!                 - WRITE, write requests are served before read requests within a disk queue
     //!                 - NONE, read and write requests are served by turns, alternately
-    void set_priority_op(request_queue::priority_op op)
-    {
+    void set_priority_op(request_queue::priority_op op) {
         for (request_queue_map::iterator i = queues.begin(); i != queues.end(); i++)
             i->second->set_priority_op(op);
     }
@@ -122,7 +117,9 @@ public:
 
 //! \}
 
-STXXL_END_NAMESPACE
+} // namespace io
+} // namespace thrill
 
-#endif // !STXXL_IO_DISK_QUEUES_HEADER
-// vim: et:ts=4:sw=4
+#endif // !THRILL_IO_DISK_QUEUES_HEADER
+
+/******************************************************************************/

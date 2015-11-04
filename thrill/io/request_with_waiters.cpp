@@ -1,33 +1,33 @@
-/***************************************************************************
- *  lib/io/request_with_waiters.cpp
+/*******************************************************************************
+ * thrill/io/request_with_waiters.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/common/mutex.h>
-#include <stxxl/bits/common/onoff_switch.h>
-#include <stxxl/bits/io/request_with_waiters.h>
-#include <stxxl/bits/parallel.h>
+#include <thrill/common/onoff_switch.hpp>
+#include <thrill/io/request_with_waiters.hpp>
 
 #include <algorithm>
 #include <functional>
+#include <mutex>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
-bool request_with_waiters::add_waiter(onoff_switch* sw)
-{
+bool request_with_waiters::add_waiter(common::onoff_switch* sw) {
     // this lock needs to be obtained before poll(), otherwise a race
     // condition might occur: the state might change and notify_waiters()
     // could be called between poll() and insert() resulting in waiter sw
     // never being notified
-    scoped_mutex_lock lock(m_waiters_mutex);
+    std::unique_lock<std::mutex> lock(m_waiters_mutex);
 
     if (poll())                     // request already finished
     {
@@ -39,26 +39,24 @@ bool request_with_waiters::add_waiter(onoff_switch* sw)
     return false;
 }
 
-void request_with_waiters::delete_waiter(onoff_switch* sw)
-{
-    scoped_mutex_lock lock(m_waiters_mutex);
+void request_with_waiters::delete_waiter(common::onoff_switch* sw) {
+    std::unique_lock<std::mutex> lock(m_waiters_mutex);
     m_waiters.erase(sw);
 }
 
-void request_with_waiters::notify_waiters()
-{
-    scoped_mutex_lock lock(m_waiters_mutex);
+void request_with_waiters::notify_waiters() {
+    std::unique_lock<std::mutex> lock(m_waiters_mutex);
     std::for_each(m_waiters.begin(),
                   m_waiters.end(),
-                  std::mem_fun(&onoff_switch::on)
-                  _STXXL_FORCE_SEQUENTIAL);
+                  std::mem_fun(&common::onoff_switch::on));
 }
 
-size_t request_with_waiters::num_waiters()
-{
-    scoped_mutex_lock lock(m_waiters_mutex);
+size_t request_with_waiters::num_waiters() {
+    std::unique_lock<std::mutex> lock(m_waiters_mutex);
     return m_waiters.size();
 }
 
-STXXL_END_NAMESPACE
-// vim: et:ts=4:sw=4
+} // namespace io
+} // namespace thrill
+
+/******************************************************************************/

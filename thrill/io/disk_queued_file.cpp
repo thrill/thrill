@@ -1,32 +1,31 @@
-/***************************************************************************
- *  lib/io/disk_queued_file.cpp
+/*******************************************************************************
+ * thrill/io/disk_queued_file.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2008 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/io/disk_queued_file.h>
-#include <stxxl/bits/io/disk_queues.h>
-#include <stxxl/bits/io/file.h>
-#include <stxxl/bits/io/request.h>
-#include <stxxl/bits/io/request_interface.h>
-#include <stxxl/bits/io/serving_request.h>
-#include <stxxl/bits/namespace.h>
-#include <stxxl/bits/singleton.h>
+#include <thrill/io/disk_queued_file.hpp>
+#include <thrill/io/disk_queues.hpp>
+#include <thrill/io/file.hpp>
+#include <thrill/io/request.hpp>
+#include <thrill/io/request_interface.hpp>
+#include <thrill/io/serving_request.hpp>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 request_ptr disk_queued_file::aread(
     void* buffer,
     offset_type pos,
     size_type bytes,
-    const completion_handler& on_cmpl)
-{
+    const completion_handler& on_cmpl) {
     request_ptr req(new serving_request(on_cmpl, this, buffer, pos, bytes,
                                         request::READ));
 
@@ -39,8 +38,7 @@ request_ptr disk_queued_file::awrite(
     void* buffer,
     offset_type pos,
     size_type bytes,
-    const completion_handler& on_cmpl)
-{
+    const completion_handler& on_cmpl) {
     request_ptr req(new serving_request(on_cmpl, this, buffer, pos, bytes,
                                         request::WRITE));
 
@@ -49,5 +47,7 @@ request_ptr disk_queued_file::awrite(
     return req;
 }
 
-STXXL_END_NAMESPACE
-// vim: et:ts=4:sw=4
+} // namespace io
+} // namespace thrill
+
+/******************************************************************************/

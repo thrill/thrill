@@ -1,30 +1,31 @@
-/***************************************************************************
- *  lib/io/iostats.cpp
+/*******************************************************************************
+ * thrill/io/iostats.cpp
  *
- *  Part of the STXXL. See http://stxxl.sourceforge.net
+ * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
+ * distributed under the Boost Software License, Version 1.0.
  *
- *  Copyright (C) 2002-2004 Roman Dementiev <dementiev@mpi-sb.mpg.de>
- *  Copyright (C) 2008-2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
- *  Copyright (C) 2009, 2010 Johannes Singler <singler@kit.edu>
+ * Part of Project Thrill - http://project-thrill.org
  *
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or copy at
- *  http://www.boost.org/LICENSE_1_0.txt)
- **************************************************************************/
+ * Copyright (C) 2002-2004 Roman Dementiev <dementiev@mpi-sb.mpg.de>
+ * Copyright (C) 2008-2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2009, 2010 Johannes Singler <singler@kit.edu>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
 
-#include <stxxl/bits/io/iostats.h>
-#include <stxxl/bits/common/log.h>
-#include <stxxl/bits/verbose.h>
-#include <stxxl/bits/common/mutex.h>
-#include <stxxl/bits/common/timer.h>
-#include <stxxl/bits/common/types.h>
-#include <stxxl/bits/namespace.h>
+#include <thrill/io/iostats.hpp>
+// #include <stxxl/bits/common/log.h>
+// #include <stxxl/bits/verbose.h>
+// #include <stxxl/bits/common/mutex.h>
+// #include <stxxl/bits/common/timer.h>
+// #include <stxxl/bits/common/types.h>
 
-#include <string>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <string>
 
-STXXL_BEGIN_NAMESPACE
+namespace thrill {
+namespace io {
 
 stats::stats()
     : reads(0),
@@ -59,76 +60,12 @@ stats::stats()
       last_reset(timestamp())
 { }
 
-#ifndef STXXL_IO_STATS_RESET_FORBIDDEN
-void stats::reset()
-{
-    {
-        scoped_mutex_lock ReadLock(read_mutex);
-
-        //assert(acc_reads == 0);
-        if (acc_reads)
-            STXXL_ERRMSG("Warning: " << acc_reads <<
-                         " read(s) not yet finished");
-
-        reads = 0;
-        volume_read = 0;
-        c_reads = 0;
-        c_volume_read = 0;
-        t_reads = 0;
-        p_reads = 0.0;
-    }
-    {
-        scoped_mutex_lock WriteLock(write_mutex);
-
-        //assert(acc_writes == 0);
-        if (acc_writes)
-            STXXL_ERRMSG("Warning: " << acc_writes <<
-                         " write(s) not yet finished");
-
-        writes = 0;
-        volume_written = 0;
-        c_writes = 0;
-        c_volume_written = 0;
-        t_writes = 0.0;
-        p_writes = 0.0;
-    }
-    {
-        scoped_mutex_lock IOLock(io_mutex);
-
-        //assert(acc_ios == 0);
-        if (acc_ios)
-            STXXL_ERRMSG("Warning: " << acc_ios <<
-                         " io(s) not yet finished");
-
-        p_ios = 0.0;
-    }
-    {
-        scoped_mutex_lock WaitLock(wait_mutex);
-
-        //assert(acc_waits == 0);
-        if (acc_waits)
-            STXXL_ERRMSG("Warning: " << acc_waits <<
-                         " wait(s) not yet finished");
-
-        t_waits = 0.0;
-        p_waits = 0.0;
-        t_wait_read = 0.0;
-        p_wait_read = 0.0;
-        t_wait_write = 0.0;
-        p_wait_write = 0.0;
-    }
-
-    last_reset = timestamp();
-}
-#endif
-
 #if STXXL_IO_STATS
-void stats::write_started(unsigned_type size_, double now)
-{
+void stats::write_started(size_t size_, double now) {
     if (now == 0.0)
         now = timestamp();
     {
-        scoped_mutex_lock WriteLock(write_mutex);
+        std::unique_lock<std::mutex> write_lock(write_mutex);
 
         ++writes;
         volume_written += size_;
@@ -138,7 +75,7 @@ void stats::write_started(unsigned_type size_, double now)
         p_writes += (acc_writes++) ? diff : 0.0;
     }
     {
-        scoped_mutex_lock IOLock(io_mutex);
+        std::unique_lock<std::mutex> io_lock(io_mutex);
 
         double diff = now - p_begin_io;
         p_ios += (acc_ios++) ? diff : 0.0;
@@ -146,10 +83,9 @@ void stats::write_started(unsigned_type size_, double now)
     }
 }
 
-void stats::write_canceled(unsigned_type size_)
-{
+void stats::write_canceled(size_t size_) {
     {
-        scoped_mutex_lock WriteLock(write_mutex);
+        std::unique_lock<std::mutex> write_lock(write_mutex);
 
         --writes;
         volume_written -= size_;
@@ -157,11 +93,10 @@ void stats::write_canceled(unsigned_type size_)
     write_finished();
 }
 
-void stats::write_finished()
-{
+void stats::write_finished() {
     double now = timestamp();
     {
-        scoped_mutex_lock WriteLock(write_mutex);
+        std::unique_lock<std::mutex> write_lock(write_mutex);
 
         double diff = now - p_begin_write;
         t_writes += double(acc_writes) * diff;
@@ -169,7 +104,7 @@ void stats::write_finished()
         p_writes += (acc_writes--) ? diff : 0.0;
     }
     {
-        scoped_mutex_lock IOLock(io_mutex);
+        std::unique_lock<std::mutex> io_lock(io_mutex);
 
         double diff = now - p_begin_io;
         p_ios += (acc_ios--) ? diff : 0.0;
@@ -177,20 +112,18 @@ void stats::write_finished()
     }
 }
 
-void stats::write_cached(unsigned_type size_)
-{
-    scoped_mutex_lock WriteLock(write_mutex);
+void stats::write_cached(size_t size_) {
+    std::unique_lock<std::mutex> write_lock(write_mutex);
 
     ++c_writes;
     c_volume_written += size_;
 }
 
-void stats::read_started(unsigned_type size_, double now)
-{
+void stats::read_started(size_t size_, double now) {
     if (now == 0.0)
         now = timestamp();
     {
-        scoped_mutex_lock ReadLock(read_mutex);
+        std::unique_lock<std::mutex> read_lock(read_mutex);
 
         ++reads;
         volume_read += size_;
@@ -200,7 +133,7 @@ void stats::read_started(unsigned_type size_, double now)
         p_reads += (acc_reads++) ? diff : 0.0;
     }
     {
-        scoped_mutex_lock IOLock(io_mutex);
+        std::unique_lock<std::mutex> io_lock(io_mutex);
 
         double diff = now - p_begin_io;
         p_ios += (acc_ios++) ? diff : 0.0;
@@ -208,10 +141,9 @@ void stats::read_started(unsigned_type size_, double now)
     }
 }
 
-void stats::read_canceled(unsigned_type size_)
-{
+void stats::read_canceled(size_t size_) {
     {
-        scoped_mutex_lock ReadLock(read_mutex);
+        std::unique_lock<std::mutex> read_lock(read_mutex);
 
         --reads;
         volume_read -= size_;
@@ -219,11 +151,10 @@ void stats::read_canceled(unsigned_type size_)
     read_finished();
 }
 
-void stats::read_finished()
-{
+void stats::read_finished() {
     double now = timestamp();
     {
-        scoped_mutex_lock ReadLock(read_mutex);
+        std::unique_lock<std::mutex> read_lock(read_mutex);
 
         double diff = now - p_begin_read;
         t_reads += double(acc_reads) * diff;
@@ -231,7 +162,7 @@ void stats::read_finished()
         p_reads += (acc_reads--) ? diff : 0.0;
     }
     {
-        scoped_mutex_lock IOLock(io_mutex);
+        std::unique_lock<std::mutex> io_lock(io_mutex);
 
         double diff = now - p_begin_io;
         p_ios += (acc_ios--) ? diff : 0.0;
@@ -239,9 +170,8 @@ void stats::read_finished()
     }
 }
 
-void stats::read_cached(unsigned_type size_)
-{
-    scoped_mutex_lock ReadLock(read_mutex);
+void stats::read_cached(size_t size_) {
+    std::unique_lock<std::mutex> read_lock(read_mutex);
 
     ++c_reads;
     c_volume_read += size_;
@@ -249,11 +179,10 @@ void stats::read_cached(unsigned_type size_)
 #endif
 
 #ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
-void stats::wait_started(wait_op_type wait_op)
-{
+void stats::wait_started(wait_op_type wait_op) {
     double now = timestamp();
     {
-        scoped_mutex_lock WaitLock(wait_mutex);
+        std::unique_lock<std::mutex> wait_lock(wait_mutex);
 
         double diff = now - p_begin_wait;
         t_waits += double(acc_waits) * diff;
@@ -276,11 +205,10 @@ void stats::wait_started(wait_op_type wait_op)
     }
 }
 
-void stats::wait_finished(wait_op_type wait_op)
-{
+void stats::wait_finished(wait_op_type wait_op) {
     double now = timestamp();
     {
-        scoped_mutex_lock WaitLock(wait_mutex);
+        std::unique_lock<std::mutex> wait_lock(wait_mutex);
 
         double diff = now - p_begin_wait;
         t_waits += double(acc_waits) * diff;
@@ -311,25 +239,7 @@ void stats::wait_finished(wait_op_type wait_op)
 }
 #endif
 
-void stats::_reset_io_wait_time()
-{
-#ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
-    {
-        scoped_mutex_lock WaitLock(wait_mutex);
-
-        //assert(acc_waits == 0);
-        if (acc_waits)
-            STXXL_ERRMSG("Warning: " << acc_waits <<
-                         " wait(s) not yet finished");
-
-        t_waits = 0.0;
-        p_waits = 0.0;
-    }
-#endif
-}
-
-std::string format_with_SI_IEC_unit_multiplier(uint64 number, const char* unit, int multiplier)
-{
+std::string format_with_SI_IEC_unit_multiplier(uint64_t number, const char* unit, int multiplier) {
     // may not overflow, std::numeric_limits<uint64>::max() == 16 EB
     static const char* endings[] = { "", "k", "M", "G", "T", "P", "E" };
     static const char* binary_endings[] = { "", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei" };
@@ -352,8 +262,7 @@ std::string format_with_SI_IEC_unit_multiplier(uint64 number, const char* unit, 
     return out.str();
 }
 
-std::ostream& operator << (std::ostream& o, const stats_data& s)
-{
+std::ostream& operator << (std::ostream& o, const stats_data& s) {
 #define hr add_IEC_binary_multiplier
     o << "STXXL I/O statistics" << std::endl;
 #if STXXL_IO_STATS
@@ -405,5 +314,7 @@ std::ostream& operator << (std::ostream& o, const stats_data& s)
 #undef hr
 }
 
-STXXL_END_NAMESPACE
-// vim: et:ts=4:sw=4
+} // namespace io
+} // namespace thrill
+
+/******************************************************************************/

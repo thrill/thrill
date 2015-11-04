@@ -202,6 +202,45 @@ std::vector<std::string> Split(
     return out;
 }
 
+//! Split a string by given separator string. Returns a vector of strings with
+//! at least min_fields and at most limit_fields
+static inline std::vector<std::string>
+Split(const std::string& str, const std::string& sep,
+      unsigned int min_fields,
+      unsigned int limit_fields = std::numeric_limits<unsigned int>::max()) {
+    std::vector<std::string> result;
+    if (str.empty()) {
+        result.resize(min_fields);
+        return result;
+    }
+
+    std::string::size_type cur_pos(0), last_pos(0);
+    while (1)
+    {
+        if (result.size() + 1 == limit_fields)
+            break;
+
+        cur_pos = str.find(sep, last_pos);
+        if (cur_pos == std::string::npos)
+            break;
+
+        result.push_back(
+            str.substr(last_pos,
+                       std::string::size_type(cur_pos - last_pos))
+            );
+
+        last_pos = cur_pos + sep.size();
+    }
+
+    std::string sub = str.substr(last_pos);
+    result.push_back(sub);
+
+    if (result.size() < min_fields)
+        result.resize(min_fields);
+
+    return result;
+}
+
 /*!
  * Join a sequence of strings by some glue string between each pair from the
  * sequence. The sequence in given as a range between two iterators.

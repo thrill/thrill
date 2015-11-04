@@ -19,8 +19,8 @@
 #define MAP_POPULATE 0
 #endif
 
+#include <cstdio>            //remove
 #include <fcntl.h>           //open
-#include <stdio.h>           //remove
 #include <sys/mman.h>        //mappings + advice
 #include <sys/stat.h>        //open
 #include <sys/types.h>       //open
