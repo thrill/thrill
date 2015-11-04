@@ -33,7 +33,7 @@ namespace io {
 //! Queue for linuxaio_file(s)
 //!
 //! Only one queue exists in a program, i.e. it is a singleton.
-class linuxaio_queue : public request_queue_impl_worker
+class linuxaio_queue final : public request_queue_impl_worker
 {
     friend class linuxaio_request;
 
@@ -85,8 +85,8 @@ public:
     //! submitted to disk, 0 means as many as possible
     linuxaio_queue(int desired_queue_length = 0);
 
-    void add_request(request_ptr& req);
-    bool cancel_request(request_ptr& req);
+    void add_request(request_ptr& req) final;
+    bool cancel_request(request_ptr& req) final;
     void complete_request(request_ptr& req);
     ~linuxaio_queue();
 };

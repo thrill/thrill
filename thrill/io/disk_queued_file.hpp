@@ -42,19 +42,19 @@ public:
         void* buffer,
         offset_type pos,
         size_type bytes,
-        const completion_handler& on_cmpl = completion_handler());
+        const completion_handler& on_cmpl = completion_handler()) override;
 
     request_ptr awrite(
         void* buffer,
         offset_type pos,
         size_type bytes,
-        const completion_handler& on_cmpl = completion_handler());
+        const completion_handler& on_cmpl = completion_handler()) override;
 
-    virtual int get_queue_id() const {
+    virtual int get_queue_id() const override {
         return m_queue_id;
     }
 
-    virtual int get_allocator_id() const {
+    virtual int get_allocator_id() const override {
         return m_allocator_id;
     }
 };

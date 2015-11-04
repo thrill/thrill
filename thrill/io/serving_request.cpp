@@ -62,10 +62,6 @@ void serving_request::serve() {
     completed(false);
 }
 
-const char* serving_request::io_type() const {
-    return file_->io_type();
-}
-
 } // namespace io
 } // namespace thrill
 

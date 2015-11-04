@@ -60,6 +60,11 @@ public:
           first_item_(first_item), num_items_(num_items), pinned_(false)
     { }
 
+    Block(const Block& other) = default;
+    Block& operator = (Block& other) = default;
+    Block(Block&& other) = default;
+    Block& operator = (Block&& other) = default;
+
 #if 0
     //! Moves the block - the pinned property is moved as well
     //! the 'other' block is afterwards unpinned

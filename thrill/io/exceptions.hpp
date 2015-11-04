@@ -28,11 +28,11 @@ namespace io {
 class io_error : public std::ios_base::failure
 {
 public:
-    io_error() throw ()
-        : std::ios_base::failure("")
+    io_error() noexcept
+        : std::ios_base::failure(std::string())
     { }
 
-    io_error(const std::string& message) throw ()
+    io_error(const std::string& message) noexcept
         : std::ios_base::failure(message)
     { }
 };
@@ -40,11 +40,11 @@ public:
 class bad_ext_alloc : public std::runtime_error
 {
 public:
-    bad_ext_alloc() throw ()
-        : std::runtime_error("")
+    bad_ext_alloc() noexcept
+        : std::runtime_error(std::string())
     { }
 
-    bad_ext_alloc(const std::string& message) throw ()
+    bad_ext_alloc(const std::string& message) noexcept
         : std::runtime_error(message)
     { }
 };

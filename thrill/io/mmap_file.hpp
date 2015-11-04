@@ -31,7 +31,7 @@ namespace io {
 //! \{
 
 //! Implementation of memory mapped access file.
-class mmap_file : public ufs_file_base, public disk_queued_file
+class mmap_file final : public ufs_file_base, public disk_queued_file
 {
 public:
     //! Constructs file object.
@@ -51,8 +51,8 @@ public:
           disk_queued_file(queue_id, allocator_id)
     { }
     void serve(void* buffer, offset_type offset, size_type bytes,
-               request::ReadOrWriteType type);
-    const char * io_type() const;
+               request::ReadOrWriteType type) final;
+    const char * io_type() const final;
 };
 
 //! \}
