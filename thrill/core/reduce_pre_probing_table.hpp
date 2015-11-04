@@ -711,7 +711,7 @@ public:
         assert(j < p_raw);
 
         const size_t p = (p_raw % 2 == 0) ? p_raw-1 : p_raw;
-        size_t p_i[p];
+        std::vector<size_t> p_i(p);
 
         for (size_t i=0; i<p; i++) {
             if (i == 0) {
