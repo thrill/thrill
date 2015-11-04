@@ -48,11 +48,11 @@ protected:
 
 public:
     ~ufs_file_base();
-    offset_type size();
-    void set_size(offset_type newsize);
-    void lock();
-    const char * io_type() const;
-    void close_remove();
+    offset_type size() final;
+    void set_size(offset_type newsize) final;
+    void lock() final;
+    const char * io_type() const override;
+    void close_remove() final;
     //! unlink file without closing it.
     void unlink();
     //! return true if file is special device node

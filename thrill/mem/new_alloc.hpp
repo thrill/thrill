@@ -66,11 +66,11 @@ public:
         return &value;
     }
 
-    new_alloc() throw () { }
-    new_alloc(const new_alloc&) throw () { }
+    new_alloc() noexcept { }
+    new_alloc(const new_alloc&) noexcept { }
     template <class Rebind>
-    new_alloc(const new_alloc<Rebind>&) throw () { }
-    ~new_alloc() throw () { }
+    new_alloc(const new_alloc<Rebind>&) noexcept { }
+    ~new_alloc() noexcept { }
 
     template <class Rebind>
     operator std::allocator<Rebind>()
@@ -80,7 +80,7 @@ public:
     }
 
     // return maximum number of elements that can be allocated
-    size_type max_size() const throw () {
+    size_type max_size() const noexcept {
         return std::numeric_limits<size_type>::max() / sizeof(Type);
     }
 
@@ -118,14 +118,14 @@ public:
 
 // return that all specializations of this allocator are interchangeable
 template <class Type1, class Type2>
-inline bool operator == (const new_alloc<Type1>&,
-                         const new_alloc<Type2>&) throw () {
+bool operator == (const new_alloc<Type1>&,
+                  const new_alloc<Type2>&) noexcept {
     return true;
 }
 
 template <class Type1, class Type2>
-inline bool operator != (const new_alloc<Type1>&,
-                         const new_alloc<Type2>&) throw () {
+bool operator != (const new_alloc<Type1>&,
+                  const new_alloc<Type2>&) noexcept {
     return false;
 }
 

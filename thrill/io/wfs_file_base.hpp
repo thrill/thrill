@@ -50,11 +50,11 @@ protected:
 
 public:
     ~wfs_file_base();
-    offset_type size();
-    void set_size(offset_type newsize);
-    void lock();
-    const char * io_type() const;
-    void close_remove();
+    offset_type size() final;
+    void set_size(offset_type newsize) final;
+    void lock() final;
+    const char * io_type() const final;
+    void close_remove() final;
 };
 
 //! \}

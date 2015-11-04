@@ -49,12 +49,12 @@ protected:
 
 public:
     virtual ~request_with_state();
-    void wait(bool measure_time = true);
-    bool poll();
-    bool cancel();
+    void wait(bool measure_time = true) final;
+    bool poll() final;
+    bool cancel() override;
 
 protected:
-    void completed(bool canceled);
+    void completed(bool canceled) override;
 };
 
 //! \}

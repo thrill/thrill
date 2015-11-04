@@ -25,7 +25,7 @@ namespace io {
 //! \{
 
 //! Request which serves an I/O by calling the synchronous routine of the file.
-class serving_request : public request_with_state
+class serving_request final : public request_with_state
 {
     template <class base_file_type>
     friend class fileperblock_file;
@@ -42,10 +42,7 @@ public:
         ReadOrWriteType t);
 
 protected:
-    virtual void serve();
-
-public:
-    const char * io_type() const;
+    virtual void serve() final;
 };
 
 //! \}

@@ -29,7 +29,7 @@ namespace io {
 //! \{
 
 //! Implementation of file based on new[] and memcpy.
-class memory_file : public disk_queued_file
+class memory_file final : public disk_queued_file
 {
     //! pointer to memory area of "file"
     char* m_ptr;
@@ -53,11 +53,11 @@ public:
     void serve(void* buffer, offset_type offset, size_type bytes,
                request::ReadOrWriteType type);
     ~memory_file();
-    offset_type size();
-    void set_size(offset_type newsize);
-    void lock();
-    void discard(offset_type offset, offset_type size);
-    const char * io_type() const;
+    offset_type size() final;
+    void set_size(offset_type newsize) final;
+    void lock() final;
+    void discard(offset_type offset, offset_type size) final;
+    const char * io_type() const final;
 };
 
 //! \}

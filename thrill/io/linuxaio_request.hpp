@@ -30,7 +30,7 @@ namespace io {
 //! \{
 
 //! Request for an linuxaio_file.
-class linuxaio_request : public request_with_state
+class linuxaio_request final : public request_with_state
 {
     template <class base_file_type>
     friend class fileperblock_file;
@@ -57,10 +57,10 @@ public:
     }
 
     bool post();
-    bool cancel();
+    bool cancel() final;
     bool cancel_aio();
     void completed(bool posted, bool canceled);
-    void completed(bool canceled) { completed(true, canceled); }
+    void completed(bool canceled) final { completed(true, canceled); }
 };
 
 //! \}

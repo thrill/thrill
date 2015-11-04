@@ -62,6 +62,8 @@ struct BID
     BID(const BID& obj) : storage(obj.storage), offset(obj.offset)
     { }
 
+    BID& operator = (BID&) = default;
+
     template <unsigned BlockSize>
     explicit BID(const BID<BlockSize>& obj)
         : storage(obj.storage), offset(obj.offset)
