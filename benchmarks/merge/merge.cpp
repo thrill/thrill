@@ -36,14 +36,14 @@ void merge_test(thrill::api::Context& ctx) {
     std::mt19937 gen(std::random_device { }());
 
     auto merge_input1 = thrill::Generate(
-        ctx,
-        [&gen](size_t /* index */) { return gen(); },
-        size);
+            ctx,
+            [&gen](size_t /* index */) { return gen(); },
+            size);
 
     auto merge_input2 = thrill::Generate(
-        ctx,
-        [&gen](size_t /* index */) { return gen(); },
-        size);
+            ctx,
+            [&gen](size_t /* index */) { return gen(); },
+            size);
 
     merge_input1 = merge_input1.Sort().Keep();
     merge_input2 = merge_input2.Sort().Keep();

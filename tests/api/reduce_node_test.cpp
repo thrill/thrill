@@ -35,7 +35,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
                 16);
 
             auto modulo_two = [](size_t in) {
-                                  return (in % 2);
+                                  return (in % 2) + 1;
                               };
 
             auto add_function = [](const size_t& in1, const size_t& in2) {
@@ -71,7 +71,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return IntPair(index % 1000, index / 1000);
+                    return IntPair((index % 1000) + 1, index / 1000);
                 },
                 100000u);
 

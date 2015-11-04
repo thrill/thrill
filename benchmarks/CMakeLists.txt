@@ -34,6 +34,8 @@ endmacro(thrill_test_single)
 
 thrill_build_prog(hashtable/bench_bucket_hashtable)
 thrill_build_prog(hashtable/bench_probing_hashtable)
+thrill_build_prog(hashtable/generate_data)
+thrill_build_prog(hashtable/reduce)
 
 thrill_build_prog(data/disk)
 thrill_build_prog(data/stream)

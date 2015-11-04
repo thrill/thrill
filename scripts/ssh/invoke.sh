@@ -87,6 +87,13 @@ fi
 # get absolute path
 <<<<<<< HEAD
 if [[ "$(uname)" == "Darwin" ]]; then
+  cmd=`greadlink -f "$cmd"` # requires package coreutils
+else
+  cmd=`readlink -f "$cmd"`
+fi
+=======
+<<<<<<< HEAD
+if [[ "$(uname)" == "Darwin" ]]; then
     cmd=`greadlink -f "$cmd"` # requires package coreutils
 else
     cmd=`readlink -f "$cmd"`
@@ -96,6 +103,7 @@ else
 # install coreutils (brew install coreutils) and use greadlink instead
 cmd=`readlink -f "$cmd"`
 >>>>>>> origin/master
+>>>>>>> master
 
 if [ -z "$THRILL_HOSTLIST" ]; then
     if [ -z "$THRILL_SSHLIST" ]; then
@@ -120,6 +128,13 @@ fi
 rank=0
 <<<<<<< HEAD
 if [[ "$(uname)" == "Darwin" ]]; then
+  uuid=uuidgen
+else
+  uuid=$(cat /proc/sys/kernel/random/uuid)
+fi
+=======
+<<<<<<< HEAD
+if [[ "$(uname)" == "Darwin" ]]; then
     uuid=uuidgen
 else
     uuid=$(cat /proc/sys/kernel/random/uuid)
@@ -129,6 +144,7 @@ fi
 # uuid=$(uuidgen)
 uuid=$(cat /proc/sys/kernel/random/uuid)
 >>>>>>> origin/master
+>>>>>>> master
 
 # check THRILL_HOSTLIST for hosts without port numbers: add 10000+rank
 hostlist=()
@@ -148,8 +164,12 @@ THRILL_HOSTLIST="${hostlist[@]}"
 EC2_ATTACH_VOLUME="$EC2_ATTACH_VOLUME"
 attach_vol=""
 if [ $EC2_ATTACH_VOLUME ]; then
+<<<<<<< HEAD
+  attach_vol="mountpoint -q ./data && echo \"$EC2_ATTACH_VOLUME already mounted\" || \"mkdir ./data && sudo mount $EC2_ATTACH_VOLUME ./data && echo \"$EC2_ATTACH_VOLUME mounted\"\""
+=======
     attach_vol="mountpoint -q ./data && echo \"$EC2_ATTACH_VOLUME already mounted\" || \"mkdir ./data"
     attach_vol="$attach_vol && sudo mount $EC2_ATTACH_VOLUME ./data && echo \"$EC2_ATTACH_VOLUME mounted\"\""
+>>>>>>> master
 fi
 
 for hostport in $THRILL_SSHLIST; do
@@ -171,11 +191,17 @@ for hostport in $THRILL_SSHLIST; do
             "$cmd" "ubuntu@$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
             ubuntu@$host \
+=======
+<<<<<<< HEAD
+            "$cmd" "ubuntu@$host:$REMOTENAME" &&
+        ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
+            ubuntu@$host \
             "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && exec sudo \"$REMOTENAME\" $*"
 =======
             "$cmd" "$user@$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
             $user@$host \
+>>>>>>> master
             "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && exec \"$REMOTENAME\" $*"
 >>>>>>> origin/master
       ) &
@@ -183,10 +209,14 @@ for hostport in $THRILL_SSHLIST; do
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
 <<<<<<< HEAD
+          ubuntu$host \
+=======
+<<<<<<< HEAD
           ubuntu@$host \
           "$attach_vol && export $THRILL_EXPORTS && cd $dir && exec $cmd $*" &
 =======
           $user@$host \
+>>>>>>> master
           "export $THRILL_EXPORTS && cd $dir && exec $cmd $*" &
 >>>>>>> origin/master
   fi

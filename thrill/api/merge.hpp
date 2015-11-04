@@ -38,98 +38,98 @@ namespace api {
 //! \{
 
 /*!
- * merge_local holds functions internally used by merge.
- */
+* merge_local holds functions internally used by merge.
+*/
 namespace merge_local {
 
 //! Set this variable to true to enable generation and output of merge stats.
-static const bool stats_enabled = false;
+    static const bool stats_enabled = false;
 
-using StatsTimer = common::StatsTimer<stats_enabled>;
-
-/*!
- * MergeStatsBase holds timers for measuring merge performance.
- */
-class MergeStatsBase
-{
-public:
-    //! A Timer accumulating all time spent in File operations.
-    StatsTimer file_op_timer_;
-    //! A Timer accumulating all time spent while actually merging.
-    StatsTimer merge_timer_;
-    //! A Timer accumulating all time spent while re-balancing the data.
-    StatsTimer balancing_timer_;
-    //! A Timer accumulating all time spent for selecting the global pivot elements.
-    StatsTimer pivot_selection_timer_;
-    //! A Timer accumulating all time spent in global search steps.
-    StatsTimer search_step_timer_;
-    //! A Timer accumulating all time spent communicating.
-    StatsTimer comm_timer_;
-    //! A Timer accumulating all time spent calling the scatter method of the data subsystem.
-    StatsTimer scatter_timer_;
-    //! The count of all elements processed on this host.
-    size_t result_size_ = 0;
-    //! The count of search iterations needed for balancing.
-    size_t iterations_ = 0;
-};
+    using StatsTimer = common::StatsTimer<stats_enabled>;
 
 /*!
- * MergeStats is an implementation of MergeStatsBase, that supports accumulating
- * the output and printing it to the standard out stream.
- */
-class MergeStats : public MergeStatsBase
-{
-public:
-    void PrintToSQLPlotTool(const std::string& label, size_t p, size_t value) {
-        static const bool debug = true;
+* MergeStatsBase holds timers for measuring merge performance.
+*/
+    class MergeStatsBase
+    {
+    public:
+        //! A Timer accumulating all time spent in File operations.
+        StatsTimer file_op_timer_;
+        //! A Timer accumulating all time spent while actually merging.
+        StatsTimer merge_timer_;
+        //! A Timer accumulating all time spent while re-balancing the data.
+        StatsTimer balancing_timer_;
+        //! A Timer accumulating all time spent for selecting the global pivot elements.
+        StatsTimer pivot_selection_timer_;
+        //! A Timer accumulating all time spent in global search steps.
+        StatsTimer search_step_timer_;
+        //! A Timer accumulating all time spent communicating.
+        StatsTimer comm_timer_;
+        //! A Timer accumulating all time spent calling the scatter method of the data subsystem.
+        StatsTimer scatter_timer_;
+        //! The count of all elements processed on this host.
+        size_t result_size_ = 0;
+        //! The count of search iterations needed for balancing.
+        size_t iterations_ = 0;
+    };
 
-        LOG << "RESULT " << "operation=" << label << " time=" << value
-            << " workers=" << p << " result_size_=" << result_size_;
-    }
+/*!
+* MergeStats is an implementation of MergeStatsBase, that supports accumulating
+* the output and printing it to the standard out stream.
+*/
+    class MergeStats : public MergeStatsBase
+    {
+    public:
+        void PrintToSQLPlotTool(const std::string& label, size_t p, size_t value) {
+            static const bool debug = true;
 
-    void Print(Context& ctx) {
-        if (stats_enabled) {
+            LOG << "RESULT " << "operation=" << label << " time=" << value
+                << " workers=" << p << " result_size_=" << result_size_;
+        }
 
-            size_t p = ctx.num_workers();
+        void Print(Context& ctx) {
+            if (stats_enabled) {
 
-            size_t merge = ctx.AllReduce(merge_timer_.Milliseconds()) / p;
-            size_t balance = ctx.AllReduce(balancing_timer_.Milliseconds()) / p;
-            size_t pivot_selection = ctx.AllReduce(pivot_selection_timer_.Milliseconds()) / p;
-            size_t search_step = ctx.AllReduce(search_step_timer_.Milliseconds()) / p;
-            size_t file_op = ctx.AllReduce(file_op_timer_.Milliseconds()) / p;
-            size_t comm = ctx.AllReduce(comm_timer_.Milliseconds()) / p;
-            size_t scatter = ctx.AllReduce(scatter_timer_.Milliseconds()) / p;
-            result_size_ = ctx.AllReduce(result_size_);
+                size_t p = ctx.num_workers();
 
-            if (ctx.my_rank() == 0) {
-                PrintToSQLPlotTool("merge", p, merge);
-                PrintToSQLPlotTool("balance", p, balance);
-                PrintToSQLPlotTool("pivot_selection", p, pivot_selection);
-                PrintToSQLPlotTool("search_step", p, search_step);
-                PrintToSQLPlotTool("file_op", p, file_op);
-                PrintToSQLPlotTool("communication", p, comm);
-                PrintToSQLPlotTool("scatter", p, scatter);
-                PrintToSQLPlotTool("iterations", p, iterations_);
+                size_t merge = ctx.AllReduce(merge_timer_.Milliseconds()) / p;
+                size_t balance = ctx.AllReduce(balancing_timer_.Milliseconds()) / p;
+                size_t pivot_selection = ctx.AllReduce(pivot_selection_timer_.Milliseconds()) / p;
+                size_t search_step = ctx.AllReduce(search_step_timer_.Milliseconds()) / p;
+                size_t file_op = ctx.AllReduce(file_op_timer_.Milliseconds()) / p;
+                size_t comm = ctx.AllReduce(comm_timer_.Milliseconds()) / p;
+                size_t scatter = ctx.AllReduce(scatter_timer_.Milliseconds()) / p;
+                result_size_ = ctx.AllReduce(result_size_);
+
+                if (ctx.my_rank() == 0) {
+                    PrintToSQLPlotTool("merge", p, merge);
+                    PrintToSQLPlotTool("balance", p, balance);
+                    PrintToSQLPlotTool("pivot_selection", p, pivot_selection);
+                    PrintToSQLPlotTool("search_step", p, search_step);
+                    PrintToSQLPlotTool("file_op", p, file_op);
+                    PrintToSQLPlotTool("communication", p, comm);
+                    PrintToSQLPlotTool("scatter", p, scatter);
+                    PrintToSQLPlotTool("iterations", p, iterations_);
+                }
             }
         }
-    }
-};
+    };
 
 } // namespace merge_local
 
 /*!
- * Implementation of Thrill's merge. This merge implementation balances all data
- * before merging, so each worker has the same amount of data when merge
- * finishes.
- *
- * \tparam ValueType The type of the first and second input DIA
- * \tparam Comparator The comparator defining input and output order.
- * \tparam ParentDIA0 The type of the first input DIA
- * \tparam ParentDIAs The types of the other input DIAs
- */
+* Implementation of Thrill's merge. This merge implementation balances all data
+* before merging, so each worker has the same amount of data when merge
+* finishes.
+*
+* \tparam ValueType The type of the first and second input DIA
+* \tparam Comparator The comparator defining input and output order.
+* \tparam ParentDIA0 The type of the first input DIA
+* \tparam ParentDIAs The types of the other input DIAs
+*/
 template <typename ValueType, typename Comparator,
-          typename ParentDIA0,
-          typename ... ParentDIAs>
+        typename ParentDIA0,
+        typename ... ParentDIAs>
 class MergeNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -151,9 +151,9 @@ public:
               StatsNode* stats_node,
               const ParentDIA0& parent0,
               const ParentDIAs& ... parents)
-        : DOpNode<ValueType>(parent0.ctx(),
-                             { parent0.node(), parents.node() ... }, stats_node),
-          comparator_(comparator)
+            : DOpNode<ValueType>(parent0.ctx(),
+                                 { parent0.node(), parents.node() ... }, stats_node),
+              comparator_(comparator)
     {
         // allocate files.
         for (size_t i = 0; i < num_inputs_; ++i)
@@ -163,7 +163,7 @@ public:
             writers_[i] = files_[i]->GetWriter();
 
         common::VarCallForeachIndex(
-            RegisterParent(this), parent0, parents ...);
+                RegisterParent(this), parent0, parents ...);
     }
 
     void StopPreOp(size_t id) final {
@@ -183,7 +183,7 @@ public:
         stats_.merge_timer_.Start();
 
         using Reader = data::BufferedBlockReader<
-                  ValueType, data::CatBlockSource<data::DynBlockSource> >;
+                ValueType, data::CatBlockSource<data::DynBlockSource> >;
 
         // get buffered inbound readers from all Channels
         std::vector<Reader> readers;
@@ -338,7 +338,7 @@ private:
     //! Helper method that adds two size_t Vector. This is used
     //! for global reduce operations.
     static std::vector<size_t> AddSizeTVectors
-        (const std::vector<size_t>& a, const std::vector<size_t>& b) {
+            (const std::vector<size_t>& a, const std::vector<size_t>& b) {
         assert(a.size() == b.size());
         std::vector<size_t> res(a.size());
         for (size_t i = 0; i < a.size(); i++) {
@@ -353,7 +353,7 @@ private:
     {
     public:
         explicit RegisterParent(MergeNode* merge_node)
-            : merge_node_(merge_node) { }
+                : merge_node_(merge_node) { }
 
         template <typename Index, typename Parent>
         void operator () (const Index&, Parent& parent) {
@@ -361,8 +361,8 @@ private:
             // construct lambda with only the writer in the closure
             data::File::Writer* writer = &merge_node_->writers_[Index::index];
             auto pre_op_fn = [writer](const ValueType& input) -> void {
-                                 writer->PutItem(input);
-                             };
+                writer->PutItem(input);
+            };
 
             // close the function stacks with our pre ops and register it at
             // parent nodes for output
@@ -390,9 +390,9 @@ private:
      */
     // dim 1: Different splitters, dim 2: different files
     void SelectPivots(
-        const std::vector<ArrayNumInputsSizeT>& left,
-        const std::vector<ArrayNumInputsSizeT>& width,
-        std::vector<Pivot>& out_pivots) {
+            const std::vector<ArrayNumInputsSizeT>& left,
+            const std::vector<ArrayNumInputsSizeT>& width,
+            std::vector<Pivot>& out_pivots) {
 
         // Select a random pivot for the largest range we have
         // For each splitter.
@@ -421,9 +421,9 @@ private:
             }
 
             out_pivots[s] = Pivot {
-                pivot_elem,
-                pivot_idx,
-                width[s][mp]
+                    pivot_elem,
+                    pivot_idx,
+                    width[s][mp]
             };
         }
 
@@ -435,29 +435,29 @@ private:
         // range.  That removes some nasty corner cases, like selecting the same
         // pivot over and over again from a tiny range.
         auto reduce_pivots = [](const Pivot& a, const Pivot& b) {
-                                 if (a.segment_len > b.segment_len) {
-                                     return a;
-                                 }
-                                 else {
-                                     return b;
-                                 }
-                             };
+            if (a.segment_len > b.segment_len) {
+                return a;
+            }
+            else {
+                return b;
+            }
+        };
 
         stats_.comm_timer_.Start();
 
         // Reduce vectors of pivots globally to select the pivots from the
         // largest ranges.
         out_pivots = context_.AllReduce(
-            out_pivots,
-            [reduce_pivots]
-                (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
-                assert(a.size() == b.size());
-                std::vector<Pivot> res(a.size());
-                for (size_t i = 0; i < a.size(); i++) {
-                    res[i] = reduce_pivots(a[i], b[i]);
-                }
-                return res;
-            });
+                out_pivots,
+                [reduce_pivots]
+                        (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
+                    assert(a.size() == b.size());
+                    std::vector<Pivot> res(a.size());
+                    for (size_t i = 0; i < a.size(); i++) {
+                        res[i] = reduce_pivots(a[i], b[i]);
+                    }
+                    return res;
+                });
         stats_.comm_timer_.Stop();
     }
 
@@ -473,9 +473,9 @@ private:
      * splitter, the second one to the file. This is an output parameter.
      */
     void GetGlobalRanks(
-        const std::vector<Pivot>& pivots,
-        std::vector<size_t>& ranks,
-        std::vector<ArrayNumInputsSizeT>& local_ranks) {
+            const std::vector<Pivot>& pivots,
+            std::vector<size_t>& ranks,
+            std::vector<ArrayNumInputsSizeT>& local_ranks) {
 
         // Simply get the rank of each pivot in each file.
         // Sum the ranks up locally.
@@ -520,11 +520,11 @@ private:
      * balancing error of p * m, with p equals number of workers, m number of files.
      */
     void SearchStep(
-        const std::vector<size_t>& ranks,
-        std::vector<ArrayNumInputsSizeT>& local_ranks,
-        const std::vector<size_t>& target_ranks,
-        std::vector<ArrayNumInputsSizeT>& left,
-        std::vector<ArrayNumInputsSizeT>& width) {
+            const std::vector<size_t>& ranks,
+            std::vector<ArrayNumInputsSizeT>& local_ranks,
+            const std::vector<size_t>& target_ranks,
+            std::vector<ArrayNumInputsSizeT>& left,
+            std::vector<ArrayNumInputsSizeT>& width) {
 
         // This is basically a binary search for each
         // splitter and each file.
@@ -727,19 +727,19 @@ private:
 };
 
 /*!
- * Merge is a DOp, which merges any number of sorted DIAs to a single sorted
- * DIA.  All input DIAs must be sorted conforming to the given comparator.  The
- * type of the output DIA will be the type of this DIA.
- *
- * The merge operation balances all input data, so that each worker will have an
- * equal number of elements when the merge completes.
- *
- * \tparam Comparator Comparator to specify the order of input and output.
- *
- * \param comparator Comparator to specify the order of input and output.
- *
- * \param second_dia DIA, which is merged with this DIA.
- */
+* Merge is a DOp, which merges any number of sorted DIAs to a single sorted
+* DIA.  All input DIAs must be sorted conforming to the given comparator.  The
+* type of the output DIA will be the type of this DIA.
+*
+* The merge operation balances all input data, so that each worker will have an
+* equal number of elements when the merge completes.
+*
+* \tparam Comparator Comparator to specify the order of input and output.
+*
+* \param comparator Comparator to specify the order of input and output.
+*
+* \param second_dia DIA, which is merged with this DIA.
+*/
 template <typename Comparator, typename FirstDIA, typename ... DIAs>
 auto Merge(const Comparator &comparator,
            const FirstDIA &first_dia, const DIAs &... dias) {
@@ -748,48 +748,48 @@ auto Merge(const Comparator &comparator,
 
     first_dia.AssertValid();
     (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
+            (dias.AssertValid(), 0) ...
     };
 
     using ValueType = typename FirstDIA::ValueType;
 
     using CompareResult =
-              typename common::FunctionTraits<Comparator>::result_type;
+    typename common::FunctionTraits<Comparator>::result_type;
 
     using MergeNode =
-              api::MergeNode<ValueType, Comparator, FirstDIA, DIAs ...>;
+    api::MergeNode<ValueType, Comparator, FirstDIA, DIAs ...>;
 
     // Assert comparator types.
     static_assert(
-        std::is_convertible<
-            ValueType,
-            typename common::FunctionTraits<Comparator>::template arg<0>
+            std::is_convertible<
+                    ValueType,
+                    typename common::FunctionTraits<Comparator>::template arg<0>
             >::value,
-        "Comparator has the wrong input type in argument 0");
+            "Comparator has the wrong input type in argument 0");
 
     static_assert(
-        std::is_convertible<
-            ValueType,
-            typename common::FunctionTraits<Comparator>::template arg<1>
+            std::is_convertible<
+                    ValueType,
+                    typename common::FunctionTraits<Comparator>::template arg<1>
             >::value,
-        "Comparator has the wrong input type in argument 1");
+            "Comparator has the wrong input type in argument 1");
 
     // Assert meaningful return type of comperator.
     static_assert(
-        std::is_convertible<
-            CompareResult,
-            bool
+            std::is_convertible<
+                    CompareResult,
+                    bool
             >::value,
-        "Comparator must return bool");
+            "Comparator must return bool");
 
     // Create merge node.
     StatsNode* stats_node = first_dia.AddChildStatsNode("Merge", DIANodeType::DOP);
     (void)VarForeachExpander {
-        (dias.AppendChildStatsNode(stats_node), 0) ...
+            (dias.AppendChildStatsNode(stats_node), 0) ...
     };
 
     auto merge_node =
-        std::make_shared<MergeNode>(comparator, stats_node, first_dia, dias ...);
+            std::make_shared<MergeNode>(comparator, stats_node, first_dia, dias ...);
 
     return DIA<ValueType>(merge_node, { stats_node });
 }
@@ -797,7 +797,7 @@ auto Merge(const Comparator &comparator,
 template <typename ValueType, typename Stack>
 template <typename Comparator, typename SecondDIA>
 auto DIA<ValueType, Stack>::Merge(
-    const SecondDIA &second_dia, const Comparator &comparator) const {
+        const SecondDIA &second_dia, const Comparator &comparator) const {
     return api::Merge(comparator, *this, second_dia);
 }
 

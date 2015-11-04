@@ -10,13 +10,15 @@
 
 #include <gtest/gtest.h>
 #include <thrill/api/context.hpp>
-#include <thrill/core/reduce_post_probing_table.hpp>
 #include <thrill/net/manager.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
 
 #include <functional>
 #include <string>
 #include <utility>
 #include <vector>
+#include <algorithm>
 
 using namespace thrill;
 
@@ -31,18 +33,36 @@ class CustomKeyHashFunction
     : public core::PostProbingReduceByHashKey<int>
 {
 public:
+    struct IndexResult {
+    public:
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the whole hashtable
+        size_t global_index;
+
+        IndexResult(size_t p_id, size_t g_id) {
+            partition_id = p_id;
+            global_index = g_id;
+        }
+    };
+
     explicit CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
-    template <typename ReducePostProbingTable>
-    size_t
-    operator () (const Key& v, ReducePostProbingTable* ht, const size_t& size) const {
+    IndexResult
+    operator () (const Key& k,
+        const size_t& num_frames,
+        const size_t& num_buckets_per_frame,
+        const size_t& num_buckets_per_table,
+        const size_t& offset) const {
 
-        (void)ht;
-        (void)size;
+        (void)num_frames;
+        (void)num_buckets_per_frame;
+        (void)num_buckets_per_table;
+        (void)offset;
 
-        return v / 2;
+        return IndexResult(0, k / 2);
     }
 
 private:
@@ -63,17 +83,16 @@ TEST_F(PostTable, CustomHashFunction) {
                           };
 
             using EmitterFunction = std::function<void(const int&)>;
-            std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) {
-                                   writer1.push_back(value);
-                               });
+            EmitterFunction emit = ([&writer1](const int value) {
+                writer1.push_back(value);
+            });
 
             CustomKeyHashFunction<int> cust_hash;
-            core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true> flush_func;
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true,
-                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>, CustomKeyHashFunction<int> >
-            table(ctx, key_ex, red_fn, emitters, -1, cust_hash, flush_func);
+            core::PostProbingReduceFlush<int, int, decltype(red_fn)> flush_func(red_fn);
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+                                         core::PostProbingReduceFlush<int, int, decltype(red_fn)>, CustomKeyHashFunction<int> >
+            table(ctx, key_ex, red_fn, emit, -1, cust_hash, flush_func, common::Range(0, 0), 0, 1024 * 32);
 
             ASSERT_EQ(0u, writer1.size());
             ASSERT_EQ(0u, table.NumItems());
@@ -85,7 +104,7 @@ TEST_F(PostTable, CustomHashFunction) {
             ASSERT_EQ(0u, writer1.size());
             ASSERT_EQ(16u, table.NumItems());
 
-            table.Flush();
+            table.Flush(true);
 
             ASSERT_EQ(16u, writer1.size());
             ASSERT_EQ(0u, table.NumItems());
@@ -108,14 +127,13 @@ TEST_F(PostTable, AddIntegers) {
                           };
 
             using EmitterFunction = std::function<void(const int&)>;
-            std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) {
-                                   writer1.push_back(value);
-                               });
+            EmitterFunction emit = ([&writer1](const int value) {
+                writer1.push_back(value);
+            });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-            table(ctx, key_ex, red_fn, emitters, -1);
+            table(ctx, key_ex, red_fn, emit, -1);
 
             table.Insert(pair(1));
             table.Insert(pair(2));
@@ -149,14 +167,13 @@ TEST_F(PostTable, CreateEmptyTable) {
                           };
 
             using EmitterFunction = std::function<void(const int&)>;
-            std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) {
-                                   writer1.push_back(value);
-                               });
+            EmitterFunction emit = ([&writer1](const int value) {
+                writer1.push_back(value);
+            });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-            table(ctx, key_ex, red_fn, emitters, -1);
+            table(ctx, key_ex, red_fn, emit, -1);
 
             ASSERT_EQ(0u, table.NumItems());
         };
@@ -177,14 +194,13 @@ TEST_F(PostTable, FlushIntegers) {
                           };
 
             using EmitterFunction = std::function<void(const int&)>;
-            std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) {
-                                   writer1.push_back(value);
-                               });
+            EmitterFunction emit = ([&writer1](const int value) {
+                writer1.push_back(value);
+            });
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true>
-            table(ctx, key_ex, red_fn, emitters, -1);
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false>
+            table(ctx, key_ex, red_fn, emit, -1);
 
             table.Insert(pair(1));
             table.Insert(pair(2));
@@ -192,7 +208,7 @@ TEST_F(PostTable, FlushIntegers) {
 
             ASSERT_EQ(3u, table.NumItems());
 
-            table.Flush();
+            table.Flush(true);
 
             ASSERT_EQ(3u, writer1.size());
             ASSERT_EQ(0u, table.NumItems());
@@ -218,14 +234,13 @@ TEST_F(PostTable, FlushIntegersInSequence) {
                           };
 
             using EmitterFunction = std::function<void(const int&)>;
-            std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) {
-                                   writer1.push_back(value);
-                               });
+            EmitterFunction emit = ([&writer1](const int value) {
+                writer1.push_back(value);
+            });
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true>
-            table(ctx, key_ex, red_fn, emitters, -1);
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false>
+            table(ctx, key_ex, red_fn, emit, -1);
 
             table.Insert(pair(1));
             table.Insert(pair(2));
@@ -233,7 +248,7 @@ TEST_F(PostTable, FlushIntegersInSequence) {
 
             ASSERT_EQ(3u, table.NumItems());
 
-            table.Flush();
+            table.Flush(true);
 
             ASSERT_EQ(3u, writer1.size());
             ASSERT_EQ(0u, table.NumItems());
@@ -261,19 +276,17 @@ TEST_F(PostTable, MultipleEmitters) {
                               return in1 + in2;
                           };
 
+
             using EmitterFunction = std::function<void(const int&)>;
-            std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             std::vector<int> writer2;
-            emitters.push_back([&writer1](const int value) {
-                                   writer1.push_back(value);
-                               });
-            emitters.push_back([&writer2](const int value) {
-                                   writer2.push_back(value);
-                               });
+            EmitterFunction emit = ([&writer1, &writer2](const int value) {
+                writer1.push_back(value);
+                writer2.push_back(value);
+            });
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true>
-            table(ctx, key_ex, red_fn, emitters, -1);
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false>
+            table(ctx, key_ex, red_fn, emit, -1);
 
             table.Insert(pair(1));
             table.Insert(pair(2));
@@ -281,7 +294,7 @@ TEST_F(PostTable, MultipleEmitters) {
 
             ASSERT_EQ(3u, table.NumItems());
 
-            table.Flush();
+            table.Flush(true);
 
             ASSERT_EQ(0u, table.NumItems());
             ASSERT_EQ(3u, writer1.size());
@@ -310,14 +323,13 @@ TEST_F(PostTable, ComplexType) {
                           };
 
             using EmitterFunction = std::function<void(const StringPair&)>;
-            std::vector<EmitterFunction> emitters;
             std::vector<StringPair> writer1;
-            emitters.push_back([&writer1](const StringPair value) {
-                                   writer1.push_back(value);
-                               });
+            EmitterFunction emit = ([&writer1](const StringPair& value) {
+                writer1.push_back(value);
+            });
 
             core::ReducePostProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn)>
-            table(ctx, key_ex, red_fn, emitters, "");
+            table(ctx, key_ex, red_fn, emit, "");
 
             table.Insert(std::make_pair("hallo", std::make_pair("hallo", 1)));
             table.Insert(std::make_pair("hello", std::make_pair("hello", 2)));
@@ -350,21 +362,20 @@ TEST_F(PostTable, WithinTableItemsLimit) {
                           };
 
             using EmitterFunction = std::function<void(const int&)>;
-            std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) {
-                                   writer1.push_back(value);
-                               });
+            EmitterFunction emit = ([&writer1](const int value) {
+                writer1.push_back(value);
+            });
 
-            size_t byte_size = 4 * 32 * 1024;
+            size_t byte_size = 1024 * 1024;
             size_t total_items = 32 * 1024;
             double fill_rate = 0.5;
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true,
-                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>,
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+                                         core::PostProbingReduceFlush<int, int, decltype(red_fn)>,
                                          core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emitters, -1, core::PostProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>(), 0, 0, 0, byte_size, fill_rate,
+            table(ctx, key_ex, red_fn, emit, -1, core::PostProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), 0, byte_size, fill_rate,
                   1,
                   std::equal_to<int>());
 
@@ -379,7 +390,7 @@ TEST_F(PostTable, WithinTableItemsLimit) {
 
             ASSERT_EQ(0u, writer1.size());
 
-            table.Flush();
+            table.Flush(true);
 
             ASSERT_EQ(0u, table.NumItems());
             ASSERT_EQ(num_items, writer1.size());
@@ -401,21 +412,20 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
                           };
 
             using EmitterFunction = std::function<void(const int&)>;
-            std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) {
-                                   writer1.push_back(value);
-                               });
+            EmitterFunction emit = ([&writer1](const int value) {
+                writer1.push_back(value);
+            });
 
-            size_t byte_size = 4 * 32 * 1024 - 1;
-            size_t total_items = 32 * 1024;
+            size_t byte_size = 16 * 32 * 1024;
+            size_t total_items = 16 * 1024;
             double fill_rate = 0.5;
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true,
-                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>,
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+                                         core::PostProbingReduceFlush<int, int, decltype(red_fn)>,
                                          core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emitters, -1, core::PostProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>(), 0, 0, 0, byte_size, fill_rate,
+            table(ctx, key_ex, red_fn, emit, -1, core::PostProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), 0, byte_size, fill_rate,
                   1,
                   std::equal_to<int>());
 
@@ -426,11 +436,12 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
             for (size_t i = 0; i < num_items; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
-            ASSERT_EQ(num_items - 1, table.NumItems());
+
+            ASSERT_EQ(num_items, table.NumItems());
 
             ASSERT_EQ(0u, writer1.size());
 
-            table.Flush();
+            table.Flush(true);
 
             ASSERT_EQ(0u, table.NumItems());
             ASSERT_EQ(num_items, writer1.size());
@@ -451,24 +462,23 @@ TEST_F(PostTable, AboveTableItemsLimit) {
                           };
 
             using EmitterFunction = std::function<void(const int&)>;
-            std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back(
-                [&writer1](const int value) {
-                    writer1.push_back(value);
-                });
+            EmitterFunction emit = ([&writer1](const int value) {
+                writer1.push_back(value);
+            });
 
-            size_t byte_size = 4 * 32 * 1024;
-            size_t total_items = 32 * 1024;
+            size_t byte_size = 8 * 8 * 1024;
+            size_t total_items = 1 * 4 * 1024;
+            size_t on_top = 10;
             double fill_rate = 0.5;
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true,
-                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>,
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+                                         core::PostProbingReduceFlush<int, int, decltype(red_fn)>,
                                          core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emitters, -1,
+            table(ctx, key_ex, red_fn, emit, -1,
                   core::PostProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>(),
-                  0, 0, 0, byte_size, fill_rate, 1,
+                  core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn),
+                  common::Range(0, 0), 0, byte_size, fill_rate, 1,
                   std::equal_to<int>());
 
             size_t num_items = (size_t)(static_cast<double>(total_items) * fill_rate);
@@ -479,19 +489,17 @@ TEST_F(PostTable, AboveTableItemsLimit) {
                 table.Insert(pair(static_cast<int>(i)));
             }
 
-            ASSERT_EQ(num_items, table.NumItems());
-
-            size_t on_top = 10;
+            ASSERT_TRUE(table.NumItems() <= num_items);
 
             for (size_t i = num_items; i < num_items + on_top; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
 
-            ASSERT_TRUE(table.NumItems() <= num_items);
+            ASSERT_TRUE(table.NumItems() <= num_items + on_top);
 
             ASSERT_EQ(0u, writer1.size());
 
-            table.Flush();
+            table.Flush(true);
 
             ASSERT_EQ(num_items + on_top, writer1.size());
             ASSERT_EQ(0u, table.NumItems());
