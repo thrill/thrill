@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/io/string_test.cpp
+ * benchmarks/api/string_test.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
