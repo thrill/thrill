@@ -46,7 +46,10 @@ static const unsigned g_cache_line_size = 64;
 #endif
 
 #define STXXL_HAVE_MMAP_FILE 1
+
+#if __linux__
 #define STXXL_HAVE_LINUXAIO_FILE 1
+#endif
 
 } // namespace common
 } // namespace thrill
