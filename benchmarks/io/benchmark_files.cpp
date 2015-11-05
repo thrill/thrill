@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
     bool sync_io = false;
     bool resize_after_open = false;
     std::string file_type = default_file_type;
-    size_t block_size = 0;
+    uint64_t block_size = 0;
     unsigned int batch_size = 1;
     std::string opstr = "wv";
     unsigned pattern = 0;
@@ -244,7 +244,8 @@ int main(int argc, char* argv[]) {
         {
             const uint64_t current_step_size = (length == 0) ? int64_t(step_size) : std::min<int64_t>(step_size, endpos - offset);
             const uint64_t current_step_size_int = current_step_size / sizeof(int);
-            const size_t current_num_blocks = (size_t)common::IntegerDivRoundUp(current_step_size, block_size);
+            const size_t current_num_blocks =
+                (size_t)common::IntegerDivRoundUp<uint64_t>(current_step_size, block_size);
 
             std::cout << "File offset    " << std::setw(8) << offset / MB << " MiB: " << std::fixed;
 
