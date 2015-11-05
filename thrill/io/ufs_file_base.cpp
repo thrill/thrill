@@ -146,12 +146,12 @@ void ufs_file_base::_after_open() {
     }
     else if (m_mode & DIRECT) {
         if (fcntl(file_des, F_NOCACHE, 1) != 0) {
-            STXXL_MSG("fcntl(fd,F_NOCACHE,1) failed on path=" << filename <<
-                      " fd=" << file_des << " : " << strerror(errno));
+            LOG1 << "fcntl(fd,F_NOCACHE,1) failed on path=" << filename
+                 << " fd=" << file_des << " : " << strerror(errno);
         }
         if (fcntl(file_des, F_RDAHEAD, 0) != 0) {
-            STXXL_MSG("fcntl(fd,F_RDAHEAD,0) failed on path=" << filename <<
-                      " fd=" << file_des << " : " << strerror(errno));
+            LOG1 << "fcntl(fd,F_RDAHEAD,0) failed on path=" << filename
+                 << " fd=" << file_des << " : " << strerror(errno);
         }
     }
 #endif

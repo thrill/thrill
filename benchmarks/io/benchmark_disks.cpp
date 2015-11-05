@@ -73,7 +73,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
     // calculate total bytes processed in a batch
     batch_size = raw_block_size * batch_size;
 
-    size_t num_blocks_per_batch = (size_t)common::IntegerDivRoundUp(batch_size, raw_block_size);
+    size_t num_blocks_per_batch = (size_t)common::IntegerDivRoundUp<uint32_t>(batch_size, raw_block_size);
     batch_size = num_blocks_per_batch * raw_block_size;
 
     block_type* buffer = new block_type[num_blocks_per_batch];
@@ -104,7 +104,8 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
 #if CHECK_AFTER_READ
             const uint64_t current_batch_size_int = current_batch_size / sizeof(int);
 #endif
-            const size_t current_num_blocks_per_batch = (size_t)common::IntegerDivRoundUp(current_batch_size, raw_block_size);
+            const size_t current_num_blocks_per_batch =
+                (size_t)common::IntegerDivRoundUp<uint64_t>(current_batch_size, raw_block_size);
 
             size_t num_total_blocks = blocks.size();
             blocks.resize(num_total_blocks + current_num_blocks_per_batch);
@@ -193,7 +194,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
 
 template <typename AllocStrategy>
 int benchmark_disks_alloc(uint64_t length, uint64_t offset, uint64_t batch_size,
-                          size_t block_size, std::string optrw) {
+                          uint64_t block_size, std::string optrw) {
 #define run(bs) benchmark_disks_blocksize_alloc<bs, AllocStrategy>(length, offset, batch_size, optrw)
     if (block_size == 4 * KiB)
         run(4 * KiB);
@@ -243,7 +244,7 @@ int main(int argc, char* argv[]) {
 
     uint64_t length = 0, offset = 0;
     unsigned int batch_size = 0;
-    size_t block_size = 8 * MiB;
+    uint64_t block_size = 8 * MiB;
     std::string optrw = "rw", allocstr;
 
     cp.AddParamBytes("size", length,

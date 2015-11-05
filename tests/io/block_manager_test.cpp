@@ -61,23 +61,22 @@ TEST(BlockManager, Test1) {
     LOG << "Allocated block address + 1: " << (block + 1);
     LOG << std::dec;
 
-    unsigned i = 0;
-    for (i = 0; i < block_type::size; ++i)
+    for (size_t i = 0; i < block_type::size; ++i)
     {
         block->elem[i].integer = i;
         // memcpy (block->elem[i].chars, "STXXL", 4);
     }
-    for (i = 0; i < nblocks; ++i)
+    for (size_t i = 0; i < nblocks; ++i)
         reqs[i] = block->write(bids[i], my_handler());
 
     std::cout << "Waiting " << std::endl;
     wait_all(reqs, nblocks);
 
-    for (i = 0; i < nblocks; ++i)
+    for (size_t i = 0; i < nblocks; ++i)
     {
         reqs[i] = block->read(bids[i], my_handler());
         reqs[i]->wait();
-        for (int j = 0; j < block_type::size; ++j)
+        for (size_t j = 0; j < block_type::size; ++j)
         {
             die_unequal(j, block->elem[j].integer);
         }
@@ -112,13 +111,12 @@ TEST(BlockManager, Test2) {
     io::block_manager* bm = io::block_manager::get_instance();
     bm->new_blocks<block_type>(32, io::striping(), std::back_inserter(bids));
     std::vector<block_type, mem::new_alloc<block_type> > blocks(32);
-    int vIndex;
-    for (vIndex = 0; vIndex < 32; ++vIndex) {
+    for (size_t vIndex = 0; vIndex < 32; ++vIndex) {
         for (int vIndex2 = 0; vIndex2 < block_type::size; ++vIndex2) {
             blocks[vIndex][vIndex2] = vIndex2;
         }
     }
-    for (vIndex = 0; vIndex < 32; ++vIndex) {
+    for (size_t vIndex = 0; vIndex < 32; ++vIndex) {
         requests.push_back(blocks[vIndex].write(bids[vIndex]));
     }
     wait_all(requests.begin(), requests.end());

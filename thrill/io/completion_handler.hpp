@@ -32,6 +32,9 @@ public:
     virtual void operator () (request*) = 0;
     virtual completion_handler_impl * clone() const = 0;
     virtual ~completion_handler_impl() { }
+    completion_handler_impl() = default;
+    completion_handler_impl(const completion_handler_impl&) = default;
+    completion_handler_impl& operator = (completion_handler_impl&) = default;
 };
 
 template <typename HandlerType>
