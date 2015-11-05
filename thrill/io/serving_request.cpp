@@ -15,7 +15,6 @@
 #include <thrill/common/state.hpp>
 #include <thrill/io/file.hpp>
 #include <thrill/io/request.hpp>
-#include <thrill/io/request_with_state.hpp>
 #include <thrill/io/serving_request.hpp>
 
 #include <iomanip>
@@ -30,7 +29,7 @@ serving_request::serving_request(
     offset_type off,
     size_type b,
     ReadOrWriteType t)
-    : request_with_state(on_cmpl, f, buf, off, b, t) {
+    : request(on_cmpl, f, buf, off, b, t) {
 #ifdef STXXL_CHECK_BLOCK_ALIGNING
     // Direct I/O requires file system block size alignment for file offsets,
     // memory buffer addresses, and transfer(buffer) size must be multiple

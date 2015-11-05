@@ -43,7 +43,7 @@ void linuxaio_request::completed(bool posted, bool canceled) {
         else
             stats::get_instance()->write_canceled(bytes_);
     }
-    request_with_state::completed(canceled);
+    request::completed(canceled);
 }
 
 void linuxaio_request::fill_control_block() {
