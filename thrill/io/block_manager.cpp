@@ -35,13 +35,13 @@ block_manager::block_manager() {
     config->check_initialized();
 
     // allocate disk_allocators
-    ndisks = config->disks_number();
-    disk_allocators = new disk_allocator*[ndisks];
-    disk_files = new file*[ndisks];
+    ndisks_ = config->disks_number();
+    disk_allocators_ = new disk_allocator*[ndisks_];
+    disk_files_ = new file*[ndisks_];
 
     uint64_t total_size = 0;
 
-    for (unsigned i = 0; i < ndisks; ++i)
+    for (size_t i = 0; i < ndisks_; ++i)
     {
         disk_config& cfg = config->disk(i);
 
@@ -51,7 +51,7 @@ block_manager::block_manager() {
 
         try
         {
-            disk_files[i] = create_file(cfg, file::CREAT | file::RDWR, i);
+            disk_files_[i] = create_file(cfg, file::CREAT | file::RDWR, i);
 
             LOG1 << "Disk '" << cfg.path << "' is allocated, space: "
                  << (cfg.size) / (1024 * 1024)
@@ -67,39 +67,39 @@ block_manager::block_manager() {
 
         total_size += cfg.size;
 
-        disk_allocators[i] = new disk_allocator(disk_files[i], cfg);
+        disk_allocators_[i] = new disk_allocator(disk_files_[i], cfg);
     }
 
-    if (ndisks > 1)
+    if (ndisks_ > 1)
     {
-        LOG1 << "In total " << ndisks << " disks are allocated, space: "
+        LOG1 << "In total " << ndisks_ << " disks are allocated, space: "
              << (total_size / (1024 * 1024)) << " MiB";
     }
 
 #if STXXL_MNG_COUNT_ALLOCATION
-    m_current_allocation = 0;
-    m_total_allocation = 0;
-    m_maximum_allocation = 0;
+    current_allocation_ = 0;
+    total_allocation_ = 0;
+    maximum_allocation_ = 0;
 #endif      // STXXL_MNG_COUNT_ALLOCATION
 }
 
 block_manager::~block_manager() {
     LOG << "Block manager destructor";
-    for (size_t i = ndisks; i > 0; )
+    for (size_t i = ndisks_; i > 0; )
     {
         --i;
-        delete disk_allocators[i];
-        delete disk_files[i];
+        delete disk_allocators_[i];
+        delete disk_files_[i];
     }
-    delete[] disk_allocators;
-    delete[] disk_files;
+    delete[] disk_allocators_;
+    delete[] disk_files_;
 }
 
 uint64_t block_manager::get_total_bytes() const {
     uint64_t total = 0;
 
-    for (unsigned i = 0; i < ndisks; ++i)
-        total += disk_allocators[i]->get_total_bytes();
+    for (size_t i = 0; i < ndisks_; ++i)
+        total += disk_allocators_[i]->get_total_bytes();
 
     return total;
 }
@@ -107,8 +107,8 @@ uint64_t block_manager::get_total_bytes() const {
 uint64_t block_manager::get_free_bytes() const {
     uint64_t total = 0;
 
-    for (unsigned i = 0; i < ndisks; ++i)
-        total += disk_allocators[i]->get_free_bytes();
+    for (size_t i = 0; i < ndisks_; ++i)
+        total += disk_allocators_[i]->get_free_bytes();
 
     return total;
 }

@@ -52,21 +52,21 @@ class disk_allocator
         }
     };
 
-    using sortseq = std::map<int64_t, int64_t>;
+    using SortSeq = std::map<int64_t, int64_t>;
 
-    std::mutex mutex;
-    sortseq free_space;
-    int64_t free_bytes;
-    int64_t disk_bytes;
-    int64_t cfg_bytes;
-    file* storage;
-    bool autogrow;
+    std::mutex mutex_;
+    SortSeq free_space_;
+    int64_t free_bytes_;
+    int64_t disk_bytes_;
+    int64_t cfg_bytes_;
+    file* storage_;
+    bool autogrow_;
 
     void dump() const;
 
     void deallocation_error(
         int64_t block_pos, int64_t block_size,
-        const sortseq::iterator& pred, const sortseq::iterator& succ) const;
+        const SortSeq::iterator& pred, const SortSeq::iterator& succ) const;
 
     // expects the mutex to be locked to prevent concurrent access
     void add_free_region(int64_t block_pos, int64_t block_size);
@@ -76,18 +76,18 @@ class disk_allocator
         if (!extend_bytes)
             return;
 
-        storage->set_size(disk_bytes + extend_bytes);
-        add_free_region(disk_bytes, extend_bytes);
-        disk_bytes += extend_bytes;
+        storage_->set_size(disk_bytes_ + extend_bytes);
+        add_free_region(disk_bytes_, extend_bytes);
+        disk_bytes_ += extend_bytes;
     }
 
 public:
     disk_allocator(file* storage, const disk_config& cfg)
-        : free_bytes(0),
-          disk_bytes(0),
-          cfg_bytes(cfg.size),
-          storage(storage),
-          autogrow(cfg.autogrow) {
+        : free_bytes_(0),
+          disk_bytes_(0),
+          cfg_bytes_(cfg.size),
+          storage_(storage),
+          autogrow_(cfg.autogrow) {
         // initial growth to configured file size
         grow_file(cfg.size);
     }
@@ -98,56 +98,56 @@ public:
     disk_allocator& operator = (const disk_allocator&) = delete;
 
     ~disk_allocator() {
-        if (disk_bytes > cfg_bytes) { // reduce to original size
-            storage->set_size(cfg_bytes);
+        if (disk_bytes_ > cfg_bytes_) { // reduce to original size
+            storage_->set_size(cfg_bytes_);
         }
     }
 
     inline int64_t get_free_bytes() const {
-        return free_bytes;
+        return free_bytes_;
     }
 
     inline int64_t get_used_bytes() const {
-        return disk_bytes - free_bytes;
+        return disk_bytes_ - free_bytes_;
     }
 
     inline int64_t get_total_bytes() const {
-        return disk_bytes;
+        return disk_bytes_;
     }
 
-    template <unsigned BlockSize>
+    template <size_t BlockSize>
     void new_blocks(BIDArray<BlockSize>& bids) {
         new_blocks<BlockSize>(bids.begin(), bids.end());
     }
 
-    template <unsigned BlockSize>
+    template <size_t BlockSize>
     void new_blocks(typename BIDArray<BlockSize>::iterator begin,
                     typename BIDArray<BlockSize>::iterator end);
 
 #if 0
-    template <unsigned BlockSize>
+    template <size_t BlockSize>
     void delete_blocks(const BIDArray<BlockSize>& bids) {
-        for (unsigned i = 0; i < bids.size(); ++i)
+        for (size_t i = 0; i < bids.size(); ++i)
             delete_block(bids[i]);
     }
 #endif
 
-    template <unsigned BlockSize>
+    template <size_t BlockSize>
     void delete_block(const BID<BlockSize>& bid) {
-        std::unique_lock<std::mutex> lock(mutex);
+        std::unique_lock<std::mutex> lock(mutex_);
 
         LOG << "disk_allocator::delete_block<" << BlockSize
             << ">(pos=" << bid.offset << ", size=" << bid.size
-            << "), free:" << free_bytes << " total:" << disk_bytes;
+            << "), free:" << free_bytes_ << " total:" << disk_bytes_;
 
         add_free_region(bid.offset, bid.size);
     }
 };
 
-template <unsigned BlockSize>
+template <size_t BlockSize>
 void disk_allocator::new_blocks(typename BIDArray<BlockSize>::iterator begin,
                                 typename BIDArray<BlockSize>::iterator end) {
-    int64_t requested_size = 0;
+    uint64_t requested_size = 0;
 
     for (typename BIDArray<BlockSize>::iterator cur = begin; cur != end; ++cur)
     {
@@ -155,26 +155,26 @@ void disk_allocator::new_blocks(typename BIDArray<BlockSize>::iterator begin,
         requested_size += cur->size;
     }
 
-    std::unique_lock<std::mutex> lock(mutex);
+    std::unique_lock<std::mutex> lock(mutex_);
 
     LOG << "disk_allocator::new_blocks<BlockSize>,  BlockSize = " << BlockSize
-        << ", free:" << free_bytes << " total:" << disk_bytes
+        << ", free:" << free_bytes_ << " total:" << disk_bytes_
         << ", blocks: " << (end - begin)
         << " begin: " << static_cast<void*>(&(*begin))
         << " end: " << static_cast<void*>(&(*end))
         << ", requested_size=" << requested_size;
 
-    if (free_bytes < requested_size)
+    if (free_bytes_ < (int64_t)requested_size)
     {
-        if (!autogrow) {
+        if (!autogrow_) {
             STXXL_THROW(bad_ext_alloc,
                         "Out of external memory error: " << requested_size <<
-                        " requested, " << free_bytes << " bytes free. "
+                        " requested, " << free_bytes_ << " bytes free. "
                         "Maybe enable autogrow flags?");
         }
 
         LOG << "External memory block allocation error: " << requested_size <<
-            " bytes requested, " << free_bytes <<
+            " bytes requested, " << free_bytes_ <<
             " bytes free. Trying to extend the external memory space...";
 
         grow_file(requested_size);
@@ -182,43 +182,43 @@ void disk_allocator::new_blocks(typename BIDArray<BlockSize>::iterator begin,
 
     // dump();
 
-    sortseq::iterator space;
-    space = std::find_if(free_space.begin(), free_space.end(),
+    SortSeq::iterator space;
+    space = std::find_if(free_space_.begin(), free_space_.end(),
                          bind2nd(first_fit(), requested_size));
 
-    if (space == free_space.end() && requested_size == BlockSize)
+    if (space == free_space_.end() && requested_size == BlockSize)
     {
         assert(end - begin == 1);
 
-        if (!autogrow) {
+        if (!autogrow_) {
             LOG1 << "Warning: Severe external memory space fragmentation!";
             dump();
 
             LOG1 << "External memory block allocation error: " << requested_size
-                 << " bytes requested, " << free_bytes
+                 << " bytes requested, " << free_bytes_
                  << " bytes free. Trying to extend the external memory space...";
         }
 
         grow_file(BlockSize);
 
-        space = std::find_if(free_space.begin(), free_space.end(),
+        space = std::find_if(free_space_.begin(), free_space_.end(),
                              bind2nd(first_fit(), requested_size));
     }
 
-    if (space != free_space.end())
+    if (space != free_space_.end())
     {
         int64_t region_pos = (*space).first;
         int64_t region_size = (*space).second;
-        free_space.erase(space);
-        if (region_size > requested_size)
-            free_space[region_pos + requested_size] = region_size - requested_size;
+        free_space_.erase(space);
+        if (region_size > (int64_t)requested_size)
+            free_space_[region_pos + requested_size] = region_size - requested_size;
 
         for (int64_t pos = region_pos; begin != end; ++begin)
         {
             begin->offset = pos;
             pos += begin->size;
         }
-        free_bytes -= requested_size;
+        free_bytes_ -= requested_size;
         // dump();
 
         return;

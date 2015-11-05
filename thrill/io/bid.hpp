@@ -9,7 +9,7 @@
  * Copyright (C) 2002-2004 Roman Dementiev <dementiev@mpi-sb.mpg.de>
  * Copyright (C) 2009, 2010 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
  * Copyright (C) 2009 Johannes Singler <singler@ira.uka.de>
- * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -24,10 +24,6 @@
 #include <iomanip>
 #include <ostream>
 
-#ifndef STXXL_VERBOSE_BLOCK_LIFE_CYCLE
-#define STXXL_VERBOSE_BLOCK_LIFE_CYCLE STXXL_VERBOSE2
-#endif
-
 namespace thrill {
 namespace io {
 
@@ -37,7 +33,7 @@ namespace io {
 //! Block identifier class.
 //!
 //! Stores block identity, given by file and offset within the file
-template <unsigned Size>
+template <size_t Size>
 struct BID
 {
     enum
@@ -64,12 +60,12 @@ struct BID
 
     BID& operator = (BID&) = default;
 
-    template <unsigned BlockSize>
+    template <size_t BlockSize>
     explicit BID(const BID<BlockSize>& obj)
         : storage(obj.storage), offset(obj.offset)
     { }
 
-    template <unsigned BlockSize>
+    template <size_t BlockSize>
     BID& operator = (const BID<BlockSize>& obj) {
         storage = obj.storage;
         offset = obj.offset;
@@ -87,19 +83,19 @@ struct BID
 template <>
 struct BID<0>
 {
-    file     * storage; //!< pointer to the file of the block
-    int64_t  offset;    //!< offset within the file of the block
-    unsigned size;      //!< size of the block in bytes
+    file    * storage; //!< pointer to the file of the block
+    int64_t offset;    //!< offset within the file of the block
+    size_t  size;      //!< size of the block in bytes
 
     enum
     {
-        t_size = 0      //!< Blocks size, given by the parameter
+        t_size = 0     //!< Blocks size, given by the parameter
     };
 
     BID() : storage(nullptr), offset(0), size(0)
     { }
 
-    BID(file* f, int64_t o, unsigned s) : storage(f), offset(o), size(s)
+    BID(file* f, int64_t o, size_t s) : storage(f), offset(o), size(s)
     { }
 
     bool valid() const {
@@ -107,17 +103,17 @@ struct BID<0>
     }
 };
 
-template <unsigned BlockSize>
+template <size_t BlockSize>
 bool operator == (const BID<BlockSize>& a, const BID<BlockSize>& b) {
     return (a.storage == b.storage) && (a.offset == b.offset) && (a.size == b.size);
 }
 
-template <unsigned BlockSize>
+template <size_t BlockSize>
 bool operator != (const BID<BlockSize>& a, const BID<BlockSize>& b) {
     return (a.storage != b.storage) || (a.offset != b.offset) || (a.size != b.size);
 }
 
-template <unsigned BlockSize>
+template <size_t BlockSize>
 std::ostream& operator << (std::ostream& s, const BID<BlockSize>& bid) {
     // [0x12345678|0]0x00100000/0x00010000
     // [file ptr|file id]offset/size
@@ -136,18 +132,8 @@ std::ostream& operator << (std::ostream& s, const BID<BlockSize>& bid) {
     return s;
 }
 
-template <unsigned BlockSize>
-class BIDArray : public std::vector<BID<BlockSize> >
-{
-public:
-    BIDArray()
-        : std::vector<BID<BlockSize> >()
-    { }
-
-    BIDArray(size_t size)
-        : std::vector<BID<BlockSize> >(size)
-    { }
-};
+template <size_t BlockSize>
+using BIDArray = std::vector<BID<BlockSize> >;
 
 //! \}
 

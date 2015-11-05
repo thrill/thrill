@@ -126,16 +126,16 @@ class stats : public singleton<stats>
 {
     friend class singleton;
 
-    unsigned reads, writes;                     // number of operations
-    int64_t volume_read, volume_written;        // number of bytes read/written
-    unsigned c_reads, c_writes;                 // number of cached operations
-    int64_t c_volume_read, c_volume_written;    // number of bytes read/written from/to cache
-    double t_reads, t_writes;                   // seconds spent in operations
-    double p_reads, p_writes;                   // seconds spent in parallel operations
-    double p_begin_read, p_begin_write;         // start time of parallel operation
-    double p_ios;                               // seconds spent in all parallel I/O operations (read and write)
+    size_t reads, writes;                     // number of operations
+    int64_t volume_read, volume_written;      // number of bytes read/written
+    size_t c_reads, c_writes;                 // number of cached operations
+    int64_t c_volume_read, c_volume_written;  // number of bytes read/written from/to cache
+    double t_reads, t_writes;                 // seconds spent in operations
+    double p_reads, p_writes;                 // seconds spent in parallel operations
+    double p_begin_read, p_begin_write;       // start time of parallel operation
+    double p_ios;                             // seconds spent in all parallel I/O operations (read and write)
     double p_begin_io;
-    double t_waits, p_waits;                    // seconds spent waiting for completion of I/O operations
+    double t_waits, p_waits;                  // seconds spent waiting for completion of I/O operations
     double p_begin_wait;
     double t_wait_read, p_wait_read;
     double p_begin_wait_read;
@@ -334,13 +334,13 @@ public:
 public:
     //! Returns total number of reads.
     //! \return total number of reads
-    unsigned get_reads() const {
+    size_t get_reads() const {
         return reads;
     }
 
     //! Returns total number of writes.
     //! \return total number of writes
-    unsigned get_writes() const {
+    size_t get_writes() const {
         return writes;
     }
 
@@ -358,13 +358,13 @@ public:
 
     //! Returns total number of reads served from cache.
     //! \return total number of cached reads
-    unsigned get_cached_reads() const {
+    size_t get_cached_reads() const {
         return c_reads;
     }
 
     //! Returns total number of cached writes.
     //! \return total number of cached writes
-    unsigned get_cached_writes() const {
+    size_t get_cached_writes() const {
         return c_writes;
     }
 
@@ -470,11 +470,11 @@ inline void stats::wait_finished(wait_op_type) { }
 class stats_data
 {
     //! number of operations
-    unsigned reads, writes;
+    size_t reads, writes;
     //! number of bytes read/written
     int64_t volume_read, volume_written;
     //! number of cached operations
-    unsigned c_reads, c_writes;
+    size_t c_reads, c_writes;
     //! number of bytes read/written from/to cache
     int64_t c_volume_read, c_volume_written;
     //! seconds spent in operations
@@ -573,11 +573,11 @@ public:
         return s;
     }
 
-    unsigned get_reads() const {
+    size_t get_reads() const {
         return reads;
     }
 
-    unsigned get_writes() const {
+    size_t get_writes() const {
         return writes;
     }
 
@@ -589,11 +589,11 @@ public:
         return volume_written;
     }
 
-    unsigned get_cached_reads() const {
+    size_t get_cached_reads() const {
         return c_reads;
     }
 
-    unsigned get_cached_writes() const {
+    size_t get_cached_writes() const {
         return c_writes;
     }
 
