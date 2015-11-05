@@ -43,7 +43,7 @@ namespace mng_local {
 //! Internals and support classes
 //! \{
 
-template <unsigned Bytes>
+template <size_t Bytes>
 class filler_struct
 {
     using byte_type = unsigned char;
@@ -67,7 +67,7 @@ public:
 };
 
 //! Contains data elements for \c stxxl::typed_block , not intended for direct use.
-template <typename Type, unsigned Size>
+template <typename Type, size_t Size>
 class element_block
 {
 public:
@@ -128,7 +128,7 @@ public:
 };
 
 //! Contains BID references for \c stxxl::typed_block , not intended for direct use.
-template <typename Type, unsigned Size, unsigned RawSize, unsigned NBids = 0>
+template <typename Type, size_t Size, size_t RawSize, size_t NBids = 0>
 class block_w_bids : public element_block<Type, Size>
 {
 public:
@@ -153,7 +153,7 @@ public:
     }
 };
 
-template <typename Type, unsigned Size, unsigned RawSize>
+template <typename Type, size_t Size, size_t RawSize>
 class block_w_bids<Type, Size, RawSize, 0>
     : public element_block<Type, Size>
 {
@@ -172,7 +172,7 @@ public:
 };
 
 //! Contains per block information for \c stxxl::typed_block , not intended for direct use.
-template <typename Type, unsigned RawSize, unsigned NBids, typename MetaInfoType = void>
+template <typename Type, size_t RawSize, size_t NBids, typename MetaInfoType = void>
 class block_w_info
     : public block_w_bids<Type, ((RawSize - sizeof(BID<RawSize>)* NBids - sizeof(MetaInfoType)) / sizeof(Type)), RawSize, NBids>
 {
@@ -188,7 +188,7 @@ public:
     }
 };
 
-template <typename Type, unsigned RawSize, unsigned NBids>
+template <typename Type, size_t RawSize, size_t NBids>
 class block_w_info<Type, RawSize, NBids, void>
     : public block_w_bids<Type, ((RawSize - sizeof(BID<RawSize>)* NBids) / sizeof(Type)), RawSize, NBids>
 {
@@ -201,7 +201,7 @@ public:
 };
 
 //! Contains per block filler for \c stxxl::typed_block , not intended for direct use.
-template <typename BaseType, unsigned FillSize = 0>
+template <typename BaseType, size_t FillSize = 0>
 class add_filler : public BaseType
 {
 private:
@@ -225,7 +225,7 @@ public:
 };
 
 //! Helper to compute the size of the filler , not intended for direct use.
-template <typename Type, unsigned RawSize>
+template <typename Type, size_t RawSize>
 class expand_struct : public add_filler<Type, RawSize - sizeof(Type)>
 { };
 
@@ -246,7 +246,7 @@ class expand_struct : public add_filler<Type, RawSize - sizeof(Type)>
 //!  \warning If \c RawSize > 2MB object(s) of this type can not be allocated on the stack (as a
 //! function variable for example), because Linux POSIX library limits the stack size for the
 //! main thread to (2MB - system page size)
-template <unsigned RawSize, typename Type, unsigned NRef = 0, typename MetaInfoType = void>
+template <size_t RawSize, typename Type, size_t NRef = 0, typename MetaInfoType = void>
 class typed_block
     : public mng_local::expand_struct<mng_local::block_w_info<Type, RawSize, NRef, MetaInfoType>, RawSize>
 {
