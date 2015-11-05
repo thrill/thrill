@@ -52,10 +52,10 @@ public:
     enum ReadOrWriteType { READ, WRITE };
 
 protected:
+    static const bool debug = false;
+
     completion_handler on_complete_;
     std::unique_ptr<io_error> error_;
-
-    static const bool debug = false;
 
 protected:
     //! \name Base Parameter of an I/O Request
