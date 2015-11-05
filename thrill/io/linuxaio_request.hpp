@@ -21,7 +21,7 @@
 #if STXXL_HAVE_LINUXAIO_FILE
 
 #include <linux/aio_abi.h>
-#include <thrill/io/request_with_state.hpp>
+#include <thrill/io/request.hpp>
 
 namespace thrill {
 namespace io {
@@ -30,7 +30,7 @@ namespace io {
 //! \{
 
 //! Request for an linuxaio_file.
-class linuxaio_request final : public request_with_state
+class linuxaio_request final : public request
 {
     template <class base_file_type>
     friend class fileperblock_file;
@@ -42,13 +42,13 @@ class linuxaio_request final : public request_with_state
 
 public:
     linuxaio_request(
-        const completion_handler& on_cmpl,
+        const completion_handler& on_complete,
         io::file* file,
         void* buffer,
         offset_type offset,
         size_type bytes,
         ReadOrWriteType type)
-        : request_with_state(on_cmpl, file, buffer, offset, bytes, type) {
+        : request(on_complete, file, buffer, offset, bytes, type) {
         assert(dynamic_cast<linuxaio_file*>(file));
         LOG << "linuxaio_request[" << this << "]" << " linuxaio_request"
             << "(file=" << file << " buffer=" << buffer

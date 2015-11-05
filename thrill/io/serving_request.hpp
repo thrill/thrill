@@ -16,7 +16,7 @@
 #ifndef THRILL_IO_SERVING_REQUEST_HEADER
 #define THRILL_IO_SERVING_REQUEST_HEADER
 
-#include <thrill/io/request_with_state.hpp>
+#include <thrill/io/request.hpp>
 
 namespace thrill {
 namespace io {
@@ -25,7 +25,7 @@ namespace io {
 //! \{
 
 //! Request which serves an I/O by calling the synchronous routine of the file.
-class serving_request final : public request_with_state
+class serving_request final : public request
 {
     template <class base_file_type>
     friend class fileperblock_file;
@@ -42,7 +42,7 @@ public:
         ReadOrWriteType t);
 
 protected:
-    virtual void serve() final;
+    void serve();
 };
 
 //! \}

@@ -14,20 +14,24 @@
 
 #include <ostream>
 
+#include <thrill/io/disk_queues.hpp>
 #include <thrill/io/file.hpp>
+#include <thrill/io/iostats.hpp>
 #include <thrill/io/request.hpp>
 
 namespace thrill {
 namespace io {
 
+/******************************************************************************/
+
 request::request(
-    const completion_handler& on_compl,
+    const completion_handler& on_complete,
     io::file* file,
     void* buffer,
     offset_type offset,
     size_type bytes,
     ReadOrWriteType type)
-    : on_complete_(on_compl),
+    : on_complete_(on_complete),
       file_(file),
       buffer_(buffer),
       offset_(offset),
@@ -39,6 +43,7 @@ request::request(
 
 request::~request() {
     LOG << "request::~request(), ref_cnt=" << reference_count();
+    assert(state_() == DONE || state_() == READY2DIE);
 }
 
 void request::check_alignment() const {
@@ -50,7 +55,7 @@ void request::check_alignment() const {
         LOG1 << "Size is not a multiple of "
              << STXXL_BLOCK_ALIGN << ", = " << bytes_ % STXXL_BLOCK_ALIGN;
 
-    if (size_t(buffer_) % STXXL_BLOCK_ALIGN != 0)
+    if (uintptr_t(buffer_) % STXXL_BLOCK_ALIGN != 0)
         LOG1 << "Buffer is not aligned: modulo "
              << STXXL_BLOCK_ALIGN << " = " << size_t(buffer_) % STXXL_BLOCK_ALIGN
              << " (" << buffer_ << ")";
@@ -82,6 +87,9 @@ std::ostream& request::print(std::ostream& out) const {
     return out;
 }
 
+/******************************************************************************/
+// Waiters
+
 bool request::add_waiter(common::onoff_switch* sw) {
     // this lock needs to be obtained before poll(), otherwise a race
     // condition might occur: the state might change and notify_waiters()
@@ -89,8 +97,8 @@ bool request::add_waiter(common::onoff_switch* sw) {
     // never being notified
     std::unique_lock<std::mutex> lock(waiters_mutex_);
 
-    if (poll())                     // request already finished
-    {
+    if (poll()) {
+        // request already finished
         return true;
     }
 
@@ -114,6 +122,58 @@ void request::notify_waiters() {
 size_t request::num_waiters() {
     std::unique_lock<std::mutex> lock(waiters_mutex_);
     return waiters_.size();
+}
+
+/******************************************************************************/
+// Request Completion State
+
+void request::wait(bool measure_time) {
+    LOG << "request::wait()";
+
+    stats::scoped_wait_timer wait_timer(
+        type_ == READ ? stats::WAIT_OP_READ : stats::WAIT_OP_WRITE,
+        measure_time);
+
+    state_.wait_for(READY2DIE);
+
+    check_errors();
+}
+
+bool request::cancel() {
+    LOG << "request::cancel() " << file_ << " " << buffer_ << " " << offset_;
+
+    if (file_) {
+        request_ptr rp(this);
+        if (disk_queues::get_instance()->cancel_request(rp, file_->get_queue_id()))
+        {
+            state_.set_to(DONE);
+            notify_waiters();
+            file_->delete_request_ref();
+            file_ = 0;
+            state_.set_to(READY2DIE);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool request::poll() {
+    const State s = state_();
+
+    check_errors();
+
+    return s == DONE || s == READY2DIE;
+}
+
+void request::completed(bool canceled) {
+    LOG << "request::completed()";
+    state_.set_to(DONE);
+    if (!canceled)
+        on_complete_(this);
+    notify_waiters();
+    file_->delete_request_ref();
+    file_ = 0;
+    state_.set_to(READY2DIE);
 }
 
 } // namespace io
