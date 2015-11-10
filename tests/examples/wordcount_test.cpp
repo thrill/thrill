@@ -11,7 +11,7 @@
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/distribute_from.hpp>
 #include <thrill/common/string.hpp>
-#include <thrill/examples/word_count.hpp>
+#include <examples/word_count.hpp>
 
 #include <gtest/gtest.h>
 
@@ -71,15 +71,55 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
 
 TEST(WordCount, Generate1024DoesNotCrash) {
 
+    using examples::WordCountPair;
+
+    size_t size = 1024;
+
     std::function<void(Context&)> start_func =
-        [](Context& ctx) { examples::WordCountGenerated(ctx, 1024); };
+        [&size](Context& ctx) {
+
+            auto lines = GenerateFromFile(
+                    ctx, "inputs/headwords",
+                    [](const std::string& line) {
+                        return line;
+                    },
+                    size);
+
+            auto reduced_words = examples::WordCount(lines);
+
+            reduced_words.Map(
+                            [](const WordCountPair& wc) {
+                                return wc.first + ": " + std::to_string(wc.second);
+                            })
+                    .WriteLinesMany(
+                            "outputs/wordcount-");
+
+            return 42;
+        };
 
     api::RunLocalTests(start_func);
 }
 
 TEST(WordCount, ReadBaconDoesNotCrash) {
+
+    using examples::WordCountPair;
+
     std::function<void(Context&)> start_func =
-        [](Context& ctx) { examples::WordCountBasic(ctx); };
+        [](Context& ctx) {
+
+            auto lines = ReadLines(ctx, "inputs/wordcount.in");
+
+            auto red_words = examples::WordCount(lines);
+
+            red_words.Map(
+                            [](const WordCountPair& wc) {
+                                return wc.first + ": " + std::to_string(wc.second);
+                            })
+                    .WriteLinesMany(
+                            "outputs/wordcount-");
+
+            return 0;
+        };
 
     api::RunLocalTests(start_func);
 }
