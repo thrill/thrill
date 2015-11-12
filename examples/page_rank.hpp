@@ -64,9 +64,10 @@ auto PageRank(const DIA<std::string, InStack> &in, api::Context &ctx, int iter) 
                         << " "
                         << (std::stoi(split[1]) - 1);
                 // set base of page_id to 0
-                return std::make_pair((size_t) (std::stoi(split[0]) - 1),
-                                      (size_t) (std::stoi(split[1]) - 1));
-            });
+                return Page_Link((size_t) (std::stoi(split[0]) - 1),
+                                 (size_t) (std::stoi(split[1]) - 1));
+            }).Cache(); // TODO(SL): when Cache() is removed, code doesn't compile,
+            // auto cannot be used either
 
     // aggregate all outgoing links of a page in this format:
     //
@@ -88,7 +89,7 @@ auto PageRank(const DIA<std::string, InStack> &in, api::Context &ctx, int iter) 
     LOG << "number_nodes " << number_nodes;
 
     // group outgoing links
-    DIA<Outgoings> links = input.GroupByIndex<Outgoings>(
+    auto links = input.GroupByIndex<Outgoings>(
             [](Page_Link p) { return p.first; },
             [](auto &r, Key) {
                 std::vector<Node> all;
@@ -162,7 +163,7 @@ auto PageRank(const DIA<std::string, InStack> &in, api::Context &ctx, int iter) 
 
                                                       return std::make_pair(l, r);
                                                   });
-        DIA<Page_Rank> contribs = outs_rank.FlatMap<Page_Rank>(
+        auto contribs = outs_rank.FlatMap<Page_Rank>(
                 [](const Outgoings_Rank &p, auto emit) {
                     if (p.first.size() > 0) {
                         Rank rank_contrib = p.second / p.first.size();
