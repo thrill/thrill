@@ -23,6 +23,9 @@
 
 using namespace thrill;
 
+using thrill::DIA;
+using thrill::Context;
+
 TEST(WordCount, WordCountSmallFileCorrectResults) {
 
     using examples::WordCountPair;
@@ -77,6 +80,7 @@ TEST(WordCount, Generate1024DoesNotCrash) {
 
     std::function<void(Context&)> start_func =
         [&size](Context& ctx) {
+            ctx.set_consume(true);
 
             auto lines = GenerateFromFile(
                     ctx, "inputs/headwords",
@@ -93,8 +97,6 @@ TEST(WordCount, Generate1024DoesNotCrash) {
                             })
                     .WriteLinesMany(
                             "outputs/wordcount-");
-
-            return 42;
         };
 
     api::RunLocalTests(start_func);
@@ -106,6 +108,7 @@ TEST(WordCount, ReadBaconDoesNotCrash) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
+            ctx.set_consume(true);
 
             auto lines = ReadLines(ctx, "inputs/wordcount.in");
 
@@ -117,8 +120,6 @@ TEST(WordCount, ReadBaconDoesNotCrash) {
                             })
                     .WriteLinesMany(
                             "outputs/wordcount-");
-
-            return 0;
         };
 
     api::RunLocalTests(start_func);
