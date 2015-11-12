@@ -35,6 +35,9 @@
 #include <utility>
 #include <iostream>
 
+using thrill::DIA;
+using thrill::Context;
+
 using namespace thrill; // NOLINT
 
 using WordCountPair = std::pair<std::string, size_t>;
@@ -56,21 +59,20 @@ int main(int argc, char *argv[]) {
     clp.PrintResult();
 
     auto start_func = [elements](api::Context &ctx) {
+        ctx.set_consume(true);
 
         auto lines = GenerateFromFile(
-                ctx, "inputs/headwords",
+                ctx, "../../tests/inputs/headwords",
                 [](const std::string &line) {
                     return line;
                 },
                 elements);
 
-        auto reduced_words = examples::WordCount(lines);
+        auto word_pairs = examples::WordCount(lines);
 
-        reduced_words.Map([](const WordCountPair &wc) {
+        word_pairs.Map([](const WordCountPair &wc) {
             return wc.first + ": " + std::to_string(wc.second);
         }).WriteLinesMany("outputs/wordcount-");
-
-        return 0;
     };
 
     return api::Run(start_func);

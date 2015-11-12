@@ -39,8 +39,6 @@ using thrill::Context;
 
 using namespace thrill; // NOLINT
 
-static const bool debug = false;
-
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
