@@ -8,25 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/api/generate_from_file.hpp>
-#include <thrill/api/read_lines.hpp>
-#include <thrill/api/reduce.hpp>
-#include <thrill/api/size.hpp>
-#include <thrill/api/write_lines_many.hpp>
-#include <thrill/common/string.hpp>
-#include <thrill/api/generate.hpp>
-#include <thrill/api/groupby_index.hpp>
-#include <thrill/api/read_lines.hpp>
-#include <thrill/api/reduce.hpp>
-#include <thrill/api/reduce_to_index.hpp>
-#include <thrill/api/size.hpp>
-#include <thrill/api/sort.hpp>
-#include <thrill/api/sum.hpp>
-#include <thrill/api/write_lines.hpp>
-#include <thrill/api/zip.hpp>
-#include <thrill/common/cmdline_parser.hpp>
-#include <thrill/common/logger.hpp>
-#include <thrill/common/stats_timer.hpp>
+#include <thrill/thrill.hpp>
 
 #include <algorithm>
 #include <random>
@@ -51,10 +33,9 @@ auto WordCount(const DIA<std::string, InStack> &input) {
     auto word_pairs = input.template FlatMap<WordCountPair>(
             [](const std::string &line, auto emit) -> void {
                 /* map lambda: emit each word */
-                for (const std::string &word : common::Split(line, ' ')) {
-                    if (word.size() != 0)
-                        emit(WordCountPair(word, 1));
-                }
+                thrill::common::SplitCallback(
+                    line, ' ', [&](const auto begin, const auto end)
+                    { emit(WordCountPair(std::string(begin, end), 1)); });
             });
 
     return word_pairs.ReduceBy(
