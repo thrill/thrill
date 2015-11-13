@@ -40,17 +40,12 @@ auto WordCount(const DIA<std::string, InStack>& input) {
             [](const std::string& line, auto emit) -> void {
                 /* map lambda: emit each word */
                 auto last = line.begin();
-                for (auto it = line.begin(); it != line.end(); it++) {
-                    if (*it == ' ') {
-                        if (it > last) {
-                            emit(CreateWCPair(last, it - last));
-                        }
-                        last = it + 1;
-                    }
-                }
-                if (line.end() > last) {
-                    emit(CreateWCPair(last, line.end() - last));
-                }
+                thrill::common::SplitCallback(
+                    line, ' ', [&](const auto begin, const auto end) {
+                        if (end > last)
+                            emit(CreateWCPair(begin, end - begin));
+                        last = end + 1;
+                    });
             }).ReducePair(
             [](const size_t& a, const size_t& b) {
                 return a + b;
