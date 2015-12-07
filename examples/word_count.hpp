@@ -51,10 +51,9 @@ auto WordCount(const DIA<std::string, InStack> &input) {
     auto word_pairs = input.template FlatMap<WordCountPair>(
             [](const std::string &line, auto emit) -> void {
                 /* map lambda: emit each word */
-                for (const std::string &word : common::Split(line, ' ')) {
-                    if (word.size() != 0)
-                        emit(WordCountPair(word, 1));
-                }
+                thrill::common::SplitCallback(
+                    line, ' ', [&](const auto begin, const auto end)
+                    { emit(WordCountPair(std::string(begin, end), 1)); });
             });
 
     return word_pairs.ReduceBy(
