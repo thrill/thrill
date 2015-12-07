@@ -11,23 +11,24 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/reduce_pre_probing_table.hpp>
-#include <thrill/core/reduce_post_probing_table.hpp>
 
 #include <algorithm>
+#include <climits>
 #include <cmath>
+#include <functional>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <numeric>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
-#include <limits.h>
-#include <stddef.h>
 
 using IntPair = std::pair<int, int>;
 
@@ -75,49 +76,49 @@ int main(int argc, char* argv[]) {
 
     api::Run([&](api::Context& ctx) {
 
-        auto key_ex = [](size_t in) { return in; };
+                 auto key_ex = [](size_t in) { return in; };
 
-        auto red_fn = [](size_t in1, size_t in2) {
-                          (void)in2;
-                          return in1;
-                      };
+                 auto red_fn = [](size_t in1, size_t in2) {
+                                   (void)in2;
+                                   return in1;
+                               };
 
-        size_t num_items = size / sizeof(std::pair<size_t, size_t>);
+                 size_t num_items = size / sizeof(std::pair<size_t, size_t>);
 
-        std::default_random_engine rng(std::random_device { } ());
-        std::uniform_int_distribution<size_t> dist(1, std::numeric_limits<size_t>::max());
+                 std::default_random_engine rng(std::random_device { } ());
+                 std::uniform_int_distribution<size_t> dist(1, std::numeric_limits<size_t>::max());
 
-        data::BlockPool block_pool(nullptr);
-        std::vector<data::File> sinks;
-        std::vector<data::File::DynWriter> writers;
-        for (size_t i = 0; i != workers; ++i) {
-            sinks.emplace_back(block_pool);
-            writers.emplace_back(sinks[i].GetDynWriter());
-        }
+                 data::BlockPool block_pool(nullptr);
+                 std::vector<data::File> sinks;
+                 std::vector<data::File::DynWriter> writers;
+                 for (size_t i = 0; i != workers; ++i) {
+                     sinks.emplace_back(block_pool);
+                     writers.emplace_back(sinks[i].GetDynWriter());
+                 }
 
-        core::ReducePreProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-        core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreProbingReduceByHashKey<size_t>,
-        std::equal_to<size_t>, full_reduce>
-        table(ctx, workers, key_ex, red_fn, writers, 0, core::PreProbingReduceByHashKey<size_t>(),
-               core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
-               0, byte_size, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
+                 core::ReducePreProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
+                                             core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreProbingReduceByHashKey<size_t>,
+                                             std::equal_to<size_t>, full_reduce>
+                 table(ctx, workers, key_ex, red_fn, writers, 0, core::PreProbingReduceByHashKey<size_t>(),
+                       core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
+                       0, byte_size, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
 
-        common::StatsTimer<true> timer(true);
+                 common::StatsTimer<true> timer(true);
 
-        for (size_t i = 0; i < num_items; i++)
-        {
-            table.Insert(dist(rng));
-        }
+                 for (size_t i = 0; i < num_items; i++)
+                 {
+                     table.Insert(dist(rng));
+                 }
 
-        table.Flush();
+                 table.Flush();
 
-        timer.Stop();
+                 timer.Stop();
 
-        std::cout << "RESULT" << " benchmark=" << title << " size=" << size << " byte_size=" << byte_size << " workers="
-        << workers << " max_partition_fill_rate=" << max_partition_fill_rate
-        << " table_rate_multiplier=" << table_rate << " full_reduce=" << full_reduce << " final_reduce=true"
-        << " time=" << timer.Milliseconds() << std::endl;
-    });
+                 std::cout << "RESULT" << " benchmark=" << title << " size=" << size << " byte_size=" << byte_size << " workers="
+                           << workers << " max_partition_fill_rate=" << max_partition_fill_rate
+                           << " table_rate_multiplier=" << table_rate << " full_reduce=" << full_reduce << " final_reduce=true"
+                           << " time=" << timer.Milliseconds() << std::endl;
+             });
 
     return 0;
 }

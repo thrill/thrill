@@ -1,9 +1,9 @@
 /*******************************************************************************
- * thrill/core/reduce_pre_table.hpp
+ * thrill/core/reduce_pre_bucket_table.hpp
  *
  * Hash table with support for reduce and partitions.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
@@ -13,17 +13,17 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_PRE_TABLE_HEADER
-#define THRILL_CORE_REDUCE_PRE_TABLE_HEADER
+#ifndef THRILL_CORE_REDUCE_PRE_BUCKET_TABLE_HEADER
+#define THRILL_CORE_REDUCE_PRE_BUCKET_TABLE_HEADER
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/data/block_writer.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
 #include <thrill/core/post_bucket_reduce_flush.hpp>
 #include <thrill/core/post_bucket_reduce_flush_to_index.hpp>
 #include <thrill/core/reduce_pre_probing_table.hpp>
+#include <thrill/data/block_writer.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -147,7 +147,7 @@ public:
         KeyValuePair items[block_size_]; // NOLINT
 
         //! helper to destroy all allocated items
-        void destroy_items() {
+        void         destroy_items() {
             for (KeyValuePair* i = items; i != items + size; ++i) {
                 i->~KeyValuePair();
             }
@@ -178,7 +178,7 @@ public:
                    const IndexFunction& index_function,
                    const FlushFunction& flush_function,
                    const Value& neutral_element = Value(),
-                   size_t byte_size = 1024 * 16,
+                   size_t byte_size = 1024* 16,
                    double bucket_rate = 1.0,
                    double max_partition_fill_rate = 0.5,
                    const EqualToFunction& equal_to_function = EqualToFunction(),
@@ -193,24 +193,23 @@ public:
           index_function_(index_function),
           flush_function_(flush_function),
           equal_to_function_(equal_to_function),
-          neutral_element_(neutral_element)
-    {
+          neutral_element_(neutral_element) {
         sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
 
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
         assert(byte_size >= 0 && "byte_size must be greater than or equal to 0. "
-                "a byte size of zero results in exactly one item per partition");
+               "a byte size of zero results in exactly one item per partition");
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0 && "max_partition_fill_rate "
-                "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
+               "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
         assert(bucket_rate >= 0.0 && "bucket_rate must be greater than or equal 0. "
-                                             "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
+               "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
 
         table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_partitions_), 0.5);
 
         max_num_blocks_per_partition_ =
-                std::max<size_t>((size_t)(((byte_size_ * (1.0 - table_rate_)) / num_partitions_)
-                                          / static_cast<double>(sizeof(BucketBlock))), 1);
+            std::max<size_t>((size_t)(((byte_size_ * (1.0 - table_rate_)) / num_partitions_)
+                                      / static_cast<double>(sizeof(BucketBlock))), 1);
 
         max_num_items_per_partition_ = max_num_blocks_per_partition_ * block_size_;
 
@@ -270,8 +269,8 @@ public:
         second_table_size_ = std::max<size_t>(2, second_table_size_);
         // reduce max number of blocks of second table to cope for the memory needed for pointers
         max_num_blocks_second_reduce_ -= std::max<size_t>((size_t)(std::ceil(
-                static_cast<double>(second_table_size_ * sizeof(BucketBlock*))
-                / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                                       static_cast<double>(second_table_size_ * sizeof(BucketBlock*))
+                                                                       / static_cast<double>(sizeof(BucketBlock)))), 0);
         max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 2);
 
         assert(max_num_blocks_second_reduce_ > 0);
@@ -293,21 +292,21 @@ public:
         else if (flush_mode == 4)
         {
             size_t idx = 0;
-            for (size_t i=0; i<num_partitions_; i++)
+            for (size_t i = 0; i < num_partitions_; i++)
             {
                 if (i != ctx_.my_rank()) {
                     frame_sequence_[idx++] = i;
                 }
             }
-            std::random_shuffle(frame_sequence_.begin(), frame_sequence_.end()-1);
-            frame_sequence_[num_partitions_-1] = ctx_.my_rank();
+            std::random_shuffle(frame_sequence_.begin(), frame_sequence_.end() - 1);
+            frame_sequence_[num_partitions_ - 1] = ctx_.my_rank();
         }
     }
 
     ReducePreTable(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
-            ReduceFunction reduce_function, std::vector<data::DynBlockWriter>& emit)
-    : ReducePreTable(ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction(),
-            FlushFunction(reduce_function)) { }
+                   ReduceFunction reduce_function, std::vector<data::DynBlockWriter>& emit)
+        : ReducePreTable(ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction(),
+                         FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
     ReducePreTable(const ReducePreTable&) = delete;
@@ -402,7 +401,8 @@ public:
             {
                 if (FullPreReduce) {
                     SpillPartition(h.partition_id);
-                } else {
+                }
+                else {
                     FlushPartition(h.partition_id);
                 }
             }
@@ -427,7 +427,8 @@ public:
         {
             if (FullPreReduce) {
                 SpillPartition(h.partition_id);
-            } else {
+            }
+            else {
                 FlushPartition(h.partition_id);
             }
         }
@@ -498,21 +499,21 @@ public:
                           [&](size_t i1, size_t i2) {
                               return sum_items_per_partition_[i1] < sum_items_per_partition_[i2];
                           });
-
-            } else {
+            }
+            else {
                 std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
                           [&](size_t i1, size_t i2) {
                               return num_items_per_partition_[i1] < num_items_per_partition_[i2];
                           });
             }
 
-            frame_sequence_[num_partitions_-1] = ctx_.my_rank();
+            frame_sequence_[num_partitions_ - 1] = ctx_.my_rank();
         }
 
         if (FullPreReduce) {
             flush_function_(consume, this);
-
-        } else {
+        }
+        else {
 
             for (size_t i : frame_sequence_)
             {
@@ -742,7 +743,7 @@ public:
      *
      * \return Vector of key/value pairs.
      */
-    Context& Ctx() {
+    Context & Ctx() {
         return ctx_;
     }
 
@@ -788,7 +789,7 @@ public:
     * \return Begin local index.
     */
     common::Range LocalIndex() const {
-        return common::Range(0, num_buckets_per_table_-1);
+        return common::Range(0, num_buckets_per_table_ - 1);
     }
 
     /*!
@@ -807,38 +808,38 @@ public:
      * Computes the one 1-factor sequence
      */
     void ComputeOneFactor(const size_t& p_raw,
-                          const size_t& j)
-    {
+                          const size_t& j) {
         assert(p_raw > 0);
         assert(j >= 0);
         assert(j < p_raw);
 
-        const size_t p = (p_raw % 2 == 0) ? p_raw-1 : p_raw;
+        const size_t p = (p_raw % 2 == 0) ? p_raw - 1 : p_raw;
         std::vector<size_t> p_i(p);
 
-        for (size_t i=0; i<p; i++) {
+        for (size_t i = 0; i < p; i++) {
             if (i == 0) {
                 p_i[i] = 0;
                 continue;
             }
-            p_i[i] = p-i;
+            p_i[i] = p - i;
         }
 
         size_t a = 0;
-        for (size_t i=0; i<p; i++) {
+        for (size_t i = 0; i < p; i++) {
             if (p != p_raw && j == p) {
-                frame_sequence_[i] = ((p_raw/2)*i) % (p_raw-1);
+                frame_sequence_[i] = ((p_raw / 2) * i) % (p_raw - 1);
                 continue;
             }
 
-            int idx = j-i;
+            int idx = j - i;
             if (idx < 0) {
-                idx = p+(j-i);
+                idx = p + (j - i);
             }
             if (p_i[idx] == j) {
                 if (p == p_raw) {
                     continue;
-                } else {
+                }
+                else {
                     frame_sequence_[a++] = p;
                     continue;
                 }
@@ -846,14 +847,14 @@ public:
             frame_sequence_[a++] = p_i[idx];
         }
 
-        frame_sequence_[p_raw-1] = j;
+        frame_sequence_[p_raw - 1] = j;
     }
 
     /*!
      * Returns the sequence of frame ids to
      * be processed on flush.
      */
-    std::vector<size_t>& FrameSequence() {
+    std::vector<size_t> & FrameSequence() {
         return frame_sequence_;
     }
 
@@ -954,6 +955,6 @@ private:
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_PRE_TABLE_HEADER
+#endif // !THRILL_CORE_REDUCE_PRE_BUCKET_TABLE_HEADER
 
 /******************************************************************************/

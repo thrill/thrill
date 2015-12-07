@@ -15,15 +15,16 @@
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/post_probing_reduce_flush.hpp>
+#include <thrill/core/post_probing_reduce_flush_to_index.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/post_probing_reduce_flush.hpp>
-#include <thrill/core/post_probing_reduce_flush_to_index.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -32,8 +33,6 @@
 #include <typeinfo>
 #include <utility>
 #include <vector>
-#include <limits.h>
-#include <stddef.h>
 
 namespace thrill {
 namespace core {
@@ -56,7 +55,7 @@ public:
     };
 
     explicit PostProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
+        : hash_function_(hash_function)
     { }
 
     IndexResult
@@ -217,7 +216,7 @@ public:
                            const FlushFunction& flush_function,
                            const common::Range& local_index = common::Range(),
                            const Value& neutral_element = Value(),
-                           size_t byte_size = 1024 * 16,
+                           size_t byte_size = 1024* 16,
                            double max_frame_fill_rate = 0.5,
                            double frame_rate = 0.1,
                            const EqualToFunction& equal_to_function = EqualToFunction(),
@@ -235,9 +234,9 @@ public:
           reduce_function_(reduce_function) {
 
         assert(byte_size >= 0 && "byte_size must be greater than or equal to 0. "
-                "a byte size of zero results in exactly one item per partition");
+               "a byte size of zero results in exactly one item per partition");
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0 && "max_partition_fill_rate "
-                "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
+               "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
         assert(frame_rate > 0.0 && frame_rate <= 1.0 && "a frame rate of 1.0 causes exactly one frame.");
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
@@ -246,7 +245,7 @@ public:
 
         frame_size_ = std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_))
                                                  / static_cast<double>(sizeof(KeyValuePair)))
-                      / static_cast<double>(num_frames_)), 1);
+                                                / static_cast<double>(num_frames_)), 1);
 
         size_ = frame_size_ * num_frames_;
 
@@ -271,7 +270,7 @@ public:
 
         // set up second table
         second_table_size_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
-                                                              / static_cast<double>(sizeof(KeyValuePair))), 2);
+                                                       / static_cast<double>(sizeof(KeyValuePair))), 2);
 
         // ensure size of second table is even, in order to be able to split by half for spilling
         if (second_table_size_ % 2 != 0) {
@@ -286,16 +285,16 @@ public:
         fill_rate_num_items_second_reduce_ = (size_t)(second_table_size_ * max_frame_fill_rate_);
 
         frame_sequence_.resize(num_frames_, 0);
-        for (size_t i=0; i<num_frames_; i++)
+        for (size_t i = 0; i < num_frames_; i++)
         {
             frame_sequence_[i] = i;
         }
     }
 
     ReducePostProbingTable(Context& ctx, KeyExtractor key_extractor,
-            ReduceFunction reduce_function, EmitterFunction emit, const Key& sentinel)
-    : ReducePostProbingTable(ctx, key_extractor, reduce_function, emit, sentinel, IndexFunction(),
-            FlushFunction(reduce_function)) { }
+                           ReduceFunction reduce_function, EmitterFunction emit, const Key& sentinel)
+        : ReducePostProbingTable(ctx, key_extractor, reduce_function, emit, sentinel, IndexFunction(),
+                                 FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
     ReducePostProbingTable(const ReducePostProbingTable&) = delete;
@@ -364,8 +363,8 @@ public:
                 SpillFrame(h.partition_id);
 
                 *current = kv;
-                //current->first = kv.first;
-                //current->second = kv.second;
+                // current->first = kv.first;
+                // current->second = kv.second;
 
                 // increase counter for partition
                 items_per_frame_[h.partition_id]++;
@@ -376,8 +375,8 @@ public:
 
         // insert data
         *current = kv;
-        //current->first = kv.first;
-        //current->second = kv.second;
+        // current->first = kv.first;
+        // current->second = kv.second;
 
         // increase counter for frame
         items_per_frame_[h.partition_id]++;
@@ -404,8 +403,8 @@ public:
             if (current.first != sentinel_.first)
             {
                 writer.PutItem(current);
-                //items_[i].first = sentinel_.first;
-                //items_[i].second = sentinel_.second;
+                // items_[i].first = sentinel_.first;
+                // items_[i].second = sentinel_.second;
 
                 items_[i] = sentinel_;
             }
@@ -563,7 +562,7 @@ public:
      *
      * \return Vector of key/value pairs.
      */
-    Context& Ctx() {
+    Context & Ctx() {
         return ctx_;
     }
 
@@ -571,7 +570,7 @@ public:
      * Returns the sequence of frame ids to
      * be processed on flush.
      */
-    std::vector<size_t>& FrameSequence() {
+    std::vector<size_t> & FrameSequence() {
         return frame_sequence_;
     }
 

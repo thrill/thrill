@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/core/post_probing_reduce_flush.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
@@ -22,17 +22,16 @@
 
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <cmath>
 #include <functional>
 #include <iostream>
 #include <limits>
+#include <sstream>
 #include <string>
 #include <typeinfo>
 #include <utility>
 #include <vector>
-#include <limits.h>
-#include <stddef.h>
-#include <sstream>
 
 namespace thrill {
 namespace core {
@@ -41,26 +40,25 @@ template <typename Key, typename HashFunction>
 class PostProbingReduceByHashKey;
 
 template <typename Key,
-        typename Value,
-        typename ReduceFunction,
-        typename IndexFunction = PostProbingReduceByHashKey<Key, std::hash<Key> >,
-        typename EqualToFunction = std::equal_to<Key>,
-        typename KeyValuePair = std::pair<Key, Value> >
+          typename Value,
+          typename ReduceFunction,
+          typename IndexFunction = PostProbingReduceByHashKey<Key, std::hash<Key> >,
+          typename EqualToFunction = std::equal_to<Key>,
+          typename KeyValuePair = std::pair<Key, Value> >
 class PostProbingReduceFlush
 {
 
 public:
     PostProbingReduceFlush(ReduceFunction reduce_function,
-                       const IndexFunction& index_function = IndexFunction(),
-                       const EqualToFunction& equal_to_function = EqualToFunction())
-            : reduce_function_(reduce_function),
-              index_function_(index_function),
-              equal_to_function_(equal_to_function)
+                           const IndexFunction& index_function = IndexFunction(),
+                           const EqualToFunction& equal_to_function = EqualToFunction())
+        : reduce_function_(reduce_function),
+          index_function_(index_function),
+          equal_to_function_(equal_to_function)
     { }
     void Spill(std::vector<KeyValuePair>& second_reduce, size_t offset,
                size_t length, data::File::Writer& writer,
-               KeyValuePair& sentinel) const
-    {
+               KeyValuePair& sentinel) const {
         for (size_t idx = offset; idx < length; idx++)
         {
             KeyValuePair& current = second_reduce[idx];
@@ -76,8 +74,7 @@ public:
     void Reduce(Context& ctx, bool consume, Table* ht,
                 std::vector<KeyValuePair>& items, size_t offset, size_t length,
                 data::File::Reader& reader, std::vector<KeyValuePair>& second_reduce,
-                size_t fill_rate_num_items_per_frame, size_t frame_id, KeyValuePair& sentinel) const
-    {
+                size_t fill_rate_num_items_per_frame, size_t frame_id, KeyValuePair& sentinel) const {
         size_t item_count = 0;
 
         std::vector<data::File> frame_files_;
@@ -140,8 +137,8 @@ public:
 
                 // insert new pair
                 *current = kv;
-                //current->first = kv.first;
-                //current->second = kv.second;
+                // current->first = kv.first;
+                // current->second = kv.second;
 
                 item_count++;
 
@@ -209,8 +206,8 @@ public:
 
             // insert new pair
             *current = kv;
-            //current->first = kv.first;
-            //current->second = kv.second;
+            // current->first = kv.first;
+            // current->second = kv.second;
 
             item_count++;
 
@@ -243,7 +240,7 @@ public:
         if (frame_files_.size() == 0) {
 
             for (size_t i = 0; i < second_reduce.size(); i++) {
-                KeyValuePair &current = second_reduce[i];
+                KeyValuePair& current = second_reduce[i];
                 if (current.first != sentinel.first) {
                     ht->EmitAll(current, frame_id);
                     second_reduce[i].first = sentinel.first;
@@ -251,7 +248,6 @@ public:
                 }
             }
         }
-
         // spilling was required, need to reduce again
         else {
             throw std::invalid_argument("recursive spill not active");
@@ -319,8 +315,8 @@ public:
                 Reduce(ctx, consume, ht, items, offset, length, reader, second_reduce,
                        fill_rate_num_items_per_frame, frame_id, sentinel);
 
-            // no spilled items, just flush already reduced
-            // data in primary table in current frame
+                // no spilled items, just flush already reduced
+                // data in primary table in current frame
             }
             else
             {
@@ -357,7 +353,9 @@ private:
     EqualToFunction equal_to_function_;
 };
 
-}
-}
+} // namespace core
+} // namespace thrill
 
-#endif //THRILL_CORE_POST_PROBING_REDUCE_FLUSH_HEADER
+#endif // !THRILL_CORE_POST_PROBING_REDUCE_FLUSH_HEADER
+
+/******************************************************************************/

@@ -15,15 +15,16 @@
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/post_probing_reduce_flush.hpp>
+#include <thrill/core/post_probing_reduce_flush_to_index.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/post_probing_reduce_flush.hpp>
-#include <thrill/core/post_probing_reduce_flush_to_index.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -32,8 +33,6 @@
 #include <typeinfo>
 #include <utility>
 #include <vector>
-#include <limits.h>
-#include <stddef.h>
 
 namespace thrill {
 namespace core {
@@ -56,7 +55,7 @@ public:
     };
 
     explicit PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
+        : hash_function_(hash_function)
     { }
 
     IndexResult
@@ -98,7 +97,7 @@ public:
     size_t size_;
 
     explicit PreProbingReduceByIndex(size_t size)
-            : size_(size)
+        : size_(size)
     { }
 
     IndexResult
@@ -175,12 +174,12 @@ struct PreProbingEmitImpl<false, Emitters, KeyValuePair>{
 };
 
 template <typename ValueType, typename Key, typename Value,
-        typename KeyExtractor, typename ReduceFunction,
-        const bool RobustKey = false,
-        typename FlushFunction = PostProbingReduceFlush<Key, Value, ReduceFunction>,
-        typename IndexFunction = PreProbingReduceByHashKey<Key>,
-        typename EqualToFunction = std::equal_to<Key>,
-        const bool FullPreReduce = false>
+          typename KeyExtractor, typename ReduceFunction,
+          const bool RobustKey = false,
+          typename FlushFunction = PostProbingReduceFlush<Key, Value, ReduceFunction>,
+          typename IndexFunction = PreProbingReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key>,
+          const bool FullPreReduce = false>
 class ReducePreProbingTable
 {
     static const bool debug = false;
@@ -217,42 +216,41 @@ public:
      * \param spill_function Function implementing a strategy to spill items to disk.
      */
     ReducePreProbingTable(Context& ctx,
-                           size_t num_partitions,
-                           const KeyExtractor& key_extractor,
-                           const ReduceFunction& reduce_function,
-                           std::vector<data::DynBlockWriter>& emit,
-                           const Key& sentinel,
-                           const IndexFunction& index_function,
-                           const FlushFunction& flush_function,
-                           const Value& neutral_element = Value(),
-                           size_t byte_size = 1024 * 16,
-                           double max_partition_fill_rate = 0.5,
-                           const EqualToFunction& equal_to_function = EqualToFunction(),
-                           double table_rate_multiplier = 1.05)
-            : ctx_(ctx),
-              num_partitions_(num_partitions),
-              byte_size_(byte_size),
-              max_partition_fill_rate_(max_partition_fill_rate),
-              key_extractor_(key_extractor),
-              emit_(emit),
-              index_function_(index_function),
-              equal_to_function_(equal_to_function),
-              flush_function_(flush_function),
-              reduce_function_(reduce_function),
-              neutral_element_(neutral_element)
-    {
+                          size_t num_partitions,
+                          const KeyExtractor& key_extractor,
+                          const ReduceFunction& reduce_function,
+                          std::vector<data::DynBlockWriter>& emit,
+                          const Key& sentinel,
+                          const IndexFunction& index_function,
+                          const FlushFunction& flush_function,
+                          const Value& neutral_element = Value(),
+                          size_t byte_size = 1024* 16,
+                          double max_partition_fill_rate = 0.5,
+                          const EqualToFunction& equal_to_function = EqualToFunction(),
+                          double table_rate_multiplier = 1.05)
+        : ctx_(ctx),
+          num_partitions_(num_partitions),
+          byte_size_(byte_size),
+          max_partition_fill_rate_(max_partition_fill_rate),
+          key_extractor_(key_extractor),
+          emit_(emit),
+          index_function_(index_function),
+          equal_to_function_(equal_to_function),
+          flush_function_(flush_function),
+          reduce_function_(reduce_function),
+          neutral_element_(neutral_element) {
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
         assert(byte_size >= 0 && "byte_size must be greater than or equal to 0. "
-                "a byte size of zero results in exactly one item per partition");
+               "a byte size of zero results in exactly one item per partition");
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0 && "max_partition_fill_rate "
-                "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
+               "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
 
         table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_partitions_), 0.5);
 
         num_items_per_partition_ = std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_))
-                                                 / static_cast<double>(sizeof(KeyValuePair)))
-                                                / static_cast<double>(num_partitions_)), 1);
+                                                              / static_cast<double>(sizeof(KeyValuePair)))
+                                                             / static_cast<double>(num_partitions_)), 1);
 
         size_ = num_items_per_partition_ * num_partitions_;
 
@@ -305,21 +303,21 @@ public:
         else if (flush_mode == 4)
         {
             size_t idx = 0;
-            for (size_t i=0; i<num_partitions_; i++)
+            for (size_t i = 0; i < num_partitions_; i++)
             {
                 if (i != ctx_.my_rank()) {
                     frame_sequence_[idx++] = i;
                 }
             }
-            std::random_shuffle(frame_sequence_.begin(), frame_sequence_.end()-1);
-            frame_sequence_[num_partitions_-1] = ctx_.my_rank();
+            std::random_shuffle(frame_sequence_.begin(), frame_sequence_.end() - 1);
+            frame_sequence_[num_partitions_ - 1] = ctx_.my_rank();
         }
     }
 
     ReducePreProbingTable(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
-                           ReduceFunction reduce_function, std::vector<data::DynBlockWriter>& emit, const Key& sentinel)
-            : ReducePreProbingTable(ctx, num_partitions, key_extractor, reduce_function, emit, sentinel, IndexFunction(),
-                                     FlushFunction(reduce_function)) { }
+                          ReduceFunction reduce_function, std::vector<data::DynBlockWriter>& emit, const Key& sentinel)
+        : ReducePreProbingTable(ctx, num_partitions, key_extractor, reduce_function, emit, sentinel, IndexFunction(),
+                                FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
     ReducePreProbingTable(const ReducePreProbingTable&) = delete;
@@ -363,7 +361,7 @@ public:
         while (!equal_to_function_(current->first, sentinel_.first)) {
             if (equal_to_function_(current->first, kv.first)) {
                 LOG << "match of key: " << kv.first
-                << " and " << current->first << " ... reducing...";
+                    << " and " << current->first << " ... reducing...";
 
                 current->second = reduce_function_(current->second, kv.second);
 
@@ -383,12 +381,13 @@ public:
 
                 if (FullPreReduce) {
                     SpillPartition(h.partition_id);
-                } else {
+                }
+                else {
                     FlushPartition(h.partition_id);
                 }
 
-                //current->first = kv.first;
-                //current->second = kv.second;
+                // current->first = kv.first;
+                // current->second = kv.second;
                 *current = kv;
 
                 // increase counter for partition
@@ -408,7 +407,8 @@ public:
         {
             if (FullPreReduce) {
                 SpillPartition(h.partition_id);
-            } else {
+            }
+            else {
                 FlushPartition(h.partition_id);
             }
         }
@@ -466,21 +466,21 @@ public:
                           [&](size_t i1, size_t i2) {
                               return sum_items_per_partition_[i1] < sum_items_per_partition_[i2];
                           });
-
-            } else {
+            }
+            else {
                 std::sort(frame_sequence_.begin(), frame_sequence_.end() - 1,
                           [&](size_t i1, size_t i2) {
                               return items_per_partition_[i1] < items_per_partition_[i2];
                           });
             }
 
-            frame_sequence_[num_partitions_-1] = ctx_.my_rank();
+            frame_sequence_[num_partitions_ - 1] = ctx_.my_rank();
         }
 
         if (FullPreReduce) {
             flush_function_(consume, this);
-
-        } else {
+        }
+        else {
 
             for (size_t i : frame_sequence_)
             {
@@ -496,7 +496,7 @@ public:
      */
     void FlushPartition(size_t partition_id) {
         LOG << "Flushing items of partition with id: "
-        << partition_id;
+            << partition_id;
 
         for (size_t i = partition_id * num_items_per_partition_;
              i < (partition_id + 1) * num_items_per_partition_; i++)
@@ -506,8 +506,8 @@ public:
             {
                 EmitAll(current, partition_id);
 
-                //items_[i].first = sentinel_.first;
-                //items_[i].second = sentinel_.second;
+                // items_[i].first = sentinel_.first;
+                // items_[i].second = sentinel_.second;
 
                 items_[i] = sentinel_;
             }
@@ -524,7 +524,7 @@ public:
         emit_[partition_id].Flush();
 
         LOG << "Flushed items of partition with id: "
-        << partition_id;
+            << partition_id;
     }
 
     /*!
@@ -666,7 +666,7 @@ public:
      *
      * \return Vector of key/value pairs.
      */
-    Context& Ctx() {
+    Context & Ctx() {
         return ctx_;
     }
 
@@ -685,7 +685,7 @@ public:
     * \return Begin local index.
     */
     common::Range LocalIndex() const {
-        return common::Range(0, size_-1);
+        return common::Range(0, size_ - 1);
     }
 
     /*!
@@ -704,38 +704,38 @@ public:
      * Computes the one 1-factor sequence
      */
     void ComputeOneFactor(const size_t& p_raw,
-                          const size_t& j)
-    {
+                          const size_t& j) {
         assert(p_raw > 0);
         assert(j >= 0);
         assert(j < p_raw);
 
-        const size_t p = (p_raw % 2 == 0) ? p_raw-1 : p_raw;
+        const size_t p = (p_raw % 2 == 0) ? p_raw - 1 : p_raw;
         std::vector<size_t> p_i(p);
 
-        for (size_t i=0; i<p; i++) {
+        for (size_t i = 0; i < p; i++) {
             if (i == 0) {
                 p_i[i] = 0;
                 continue;
             }
-            p_i[i] = p-i;
+            p_i[i] = p - i;
         }
 
         size_t a = 0;
-        for (size_t i=0; i<p; i++) {
+        for (size_t i = 0; i < p; i++) {
             if (p != p_raw && j == p) {
-                frame_sequence_[i] = ((p_raw/2)*i) % (p_raw-1);
+                frame_sequence_[i] = ((p_raw / 2) * i) % (p_raw - 1);
                 continue;
             }
 
-            int idx = j-i;
+            int idx = j - i;
             if (idx < 0) {
-                idx = p+(j-i);
+                idx = p + (j - i);
             }
             if (p_i[idx] == j) {
                 if (p == p_raw) {
                     continue;
-                } else {
+                }
+                else {
                     frame_sequence_[a++] = p;
                     continue;
                 }
@@ -743,14 +743,14 @@ public:
             frame_sequence_[a++] = p_i[idx];
         }
 
-        frame_sequence_[p_raw-1] = j;
+        frame_sequence_[p_raw - 1] = j;
     }
 
     /*!
      * Returns the sequence of frame ids to
      * be processed on flush.
      */
-    std::vector<size_t>& FrameSequence() {
+    std::vector<size_t> & FrameSequence() {
         return frame_sequence_;
     }
 

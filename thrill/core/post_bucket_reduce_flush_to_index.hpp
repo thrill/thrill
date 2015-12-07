@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/core/post_bucket_reduce_flush_to_index.hpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
@@ -15,14 +15,15 @@
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/bucket_block_pool.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/bucket_block_pool.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -31,8 +32,6 @@
 #include <typeinfo>
 #include <utility>
 #include <vector>
-#include <limits.h>
-#include <stddef.h>
 
 namespace thrill {
 namespace core {
@@ -41,39 +40,38 @@ template <typename Key, typename HashFunction>
 class PostProbingReduceByHashKey;
 
 template <typename Key,
-        typename Value,
-        typename ReduceFunction,
-        typename IndexFunction = PostProbingReduceByHashKey<Key, std::hash<Key> >,
-        typename EqualToFunction = std::equal_to<Key>,
-        typename KeyValuePair = std::pair<Key, Value> >
+          typename Value,
+          typename ReduceFunction,
+          typename IndexFunction = PostProbingReduceByHashKey<Key, std::hash<Key> >,
+          typename EqualToFunction = std::equal_to<Key>,
+          typename KeyValuePair = std::pair<Key, Value> >
 class PostBucketReduceFlushToIndex
 {
 
 public:
     PostBucketReduceFlushToIndex(ReduceFunction reduce_function,
-                           const IndexFunction& index_function = IndexFunction(),
-                           const EqualToFunction& equal_to_function = EqualToFunction())
-            : reduce_function_(reduce_function),
-              index_function_(index_function),
-              equal_to_function_(equal_to_function)
+                                 const IndexFunction& index_function = IndexFunction(),
+                                 const EqualToFunction& equal_to_function = EqualToFunction())
+        : reduce_function_(reduce_function),
+          index_function_(index_function),
+          equal_to_function_(equal_to_function)
     { }
 
-    template<typename Table, typename BucketBlock>
-    void Spill(std::vector<BucketBlock*> &second_reduce, size_t offset,
+    template <typename Table, typename BucketBlock>
+    void Spill(std::vector<BucketBlock*>& second_reduce, size_t offset,
                size_t length, data::File::Writer& writer,
-               BucketBlockPool<BucketBlock> &block_pool) const
-    {
+               BucketBlockPool<BucketBlock>& block_pool) const {
         for (size_t idx = offset; idx < length; idx++) {
-            BucketBlock *current = second_reduce[idx];
+            BucketBlock* current = second_reduce[idx];
 
             while (current != nullptr) {
-                for (KeyValuePair *bi = current->items;
+                for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi) {
                     writer.PutItem(*bi);
                 }
 
                 // destroy block and advance to next
-                BucketBlock *next = current->next;
+                BucketBlock* next = current->next;
                 block_pool.Deallocate(current);
                 current = next;
             }
@@ -82,15 +80,14 @@ public:
         }
     }
 
-    template<typename Table, typename BucketBlock>
-    void Reduce(Context &ctx, bool consume, Table *ht,
-                std::vector<BucketBlock*> &items, size_t offset, size_t length,
-                data::File::Reader &reader, std::vector<BucketBlock*> &second_reduce,
+    template <typename Table, typename BucketBlock>
+    void Reduce(Context& ctx, bool consume, Table* ht,
+                std::vector<BucketBlock*>& items, size_t offset, size_t length,
+                data::File::Reader& reader, std::vector<BucketBlock*>& second_reduce,
                 std::vector<Value>& elements_to_emit, size_t fill_rate_num_items_per_frame,
                 size_t frame_id, std::vector<size_t>& num_items_per_frame,
-                BucketBlockPool<BucketBlock> &block_pool, size_t max_num_blocks_second_reduce,
-                size_t block_size, size_t begin_local_index) const
-    {
+                BucketBlockPool<BucketBlock>& block_pool, size_t max_num_blocks_second_reduce,
+                size_t block_size, size_t begin_local_index) const {
         size_t item_count = 0;
 
         std::vector<data::File> frame_files_;
@@ -109,20 +106,20 @@ public:
         // reduce data from primary table
         /////
         for (size_t i = offset; i < length; i++) {
-            BucketBlock *current = items[i];
+            BucketBlock* current = items[i];
 
             while (current != nullptr) {
-                for (KeyValuePair *from = current->items;
+                for (KeyValuePair* from = current->items;
                      from != current->items + current->size; ++from) {
 
                     // insert in second reduce table
                     typename IndexFunction::IndexResult h = index_function_(from->first, 1, second_reduce.size(),
                                                                             second_reduce.size(), begin_local_index);
 
-                    BucketBlock *current_second = second_reduce[h.global_index];
+                    BucketBlock* current_second = second_reduce[h.global_index];
                     while (current_second != nullptr) {
                         // iterate over valid items in a block
-                        for (KeyValuePair *bi = current_second->items;
+                        for (KeyValuePair* bi = current_second->items;
                              bi != current_second->items + current_second->size; ++bi) {
                             // if item and key equals, then reduce.
                             if (equal_to_function_(from->first, bi->first)) {
@@ -168,9 +165,9 @@ public:
 
                             // spill into files
                             Spill<Table, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
-                                                                frame_writers_[0], block_pool);
+                                                      frame_writers_[0], block_pool);
                             Spill<Table, BucketBlock>(second_reduce, second_reduce.size() / 2,
-                                                                second_reduce.size(), frame_writers_[1], block_pool);
+                                                      second_reduce.size(), frame_writers_[1], block_pool);
 
                             blocks_secondary_used = 0;
                         }
@@ -183,15 +180,15 @@ public:
                     }
 
                     // in-place construct/insert new item in current bucket block
-                    new(current_second->items + current_second->size++)KeyValuePair(from->first,
-                                                                                    std::move(from->second));
+                    new (current_second->items + current_second->size++)KeyValuePair(from->first,
+                                                                                     std::move(from->second));
 
                     item_count++;
                 }
 
                 // advance to next
                 if (consume) {
-                    BucketBlock *next = current->next;
+                    BucketBlock* next = current->next;
                     block_pool.Deallocate(current);
                     current = next;
                 }
@@ -218,9 +215,9 @@ public:
 
                 // spill into files
                 Spill<Table, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
-                                                    frame_writers_[0], block_pool);
+                                          frame_writers_[0], block_pool);
                 Spill<Table, BucketBlock>(second_reduce, second_reduce.size() / 2,
-                                                    second_reduce.size(), frame_writers_[1], block_pool);
+                                          second_reduce.size(), frame_writers_[1], block_pool);
 
                 item_count = 0;
             }
@@ -235,10 +232,10 @@ public:
             typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(),
                                                                     second_reduce.size(), begin_local_index);
 
-            BucketBlock *current = second_reduce[h.global_index];
+            BucketBlock* current = second_reduce[h.global_index];
             while (current != nullptr) {
                 // iterate over valid items in a block
-                for (KeyValuePair *bi = current->items;
+                for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi) {
                     // if item and key equals, then reduce.
                     if (equal_to_function_(kv.first, bi->first)) {
@@ -281,9 +278,9 @@ public:
 
                     // spill into files
                     Spill<Table, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
-                                                        frame_writers_[0], block_pool);
+                                              frame_writers_[0], block_pool);
                     Spill<Table, BucketBlock>(second_reduce, second_reduce.size() / 2,
-                                                        second_reduce.size(), frame_writers_[1], block_pool);
+                                              second_reduce.size(), frame_writers_[1], block_pool);
 
                     blocks_secondary_used = 0;
                 }
@@ -296,7 +293,7 @@ public:
             }
 
             // in-place construct/insert new item in current bucket block
-            new(current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
+            new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
 
             item_count++;
 
@@ -314,9 +311,9 @@ public:
 
                 // spill into files
                 Spill<Table, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
-                                                    frame_writers_[0], block_pool);
+                                          frame_writers_[0], block_pool);
                 Spill<Table, BucketBlock>(second_reduce, second_reduce.size() / 2,
-                                                    second_reduce.size(), frame_writers_[1], block_pool);
+                                          second_reduce.size(), frame_writers_[1], block_pool);
 
                 item_count = 0;
             }
@@ -329,17 +326,17 @@ public:
         // nothing spilled in second reduce
         if (frame_files_.size() == 0) {
             for (size_t i = 0; i < second_reduce.size(); i++) {
-                BucketBlock *current = second_reduce[i];
+                BucketBlock* current = second_reduce[i];
 
                 while (current != nullptr) {
-                    for (KeyValuePair *bi = current->items;
+                    for (KeyValuePair* bi = current->items;
                          bi != current->items + current->size; ++bi) {
 
                         elements_to_emit[bi->first - begin_local_index] = bi->second;
                     }
 
                     // destroy block and advance to next
-                    BucketBlock *next = current->next;
+                    BucketBlock* next = current->next;
                     block_pool.Deallocate(current);
                     current = next;
                 }
@@ -347,27 +344,26 @@ public:
                 second_reduce[i] = nullptr;
             }
         }
-
-            // spilling was required, need to reduce again
+        // spilling was required, need to reduce again
         else {
             throw std::invalid_argument("recursive spill not active");
 
             // spill into files
             Spill<Table, BucketBlock>(second_reduce, 0, second_reduce.size() / 2,
-                                                frame_writers_[0], block_pool);
+                                      frame_writers_[0], block_pool);
             Spill<Table, BucketBlock>(second_reduce, second_reduce.size() / 2,
-                                                second_reduce.size(), frame_writers_[1], block_pool);
+                                      second_reduce.size(), frame_writers_[1], block_pool);
 
-            data::File &file1 = frame_files_[0];
-            data::File::Writer &writer1 = frame_writers_[0];
+            data::File& file1 = frame_files_[0];
+            data::File::Writer& writer1 = frame_writers_[0];
             writer1.Close();
             data::File::Reader reader1 = file1.GetReader(true);
             Reduce(ctx, false, ht, second_reduce, 0, 0, reader1, second_reduce, elements_to_emit,
                    fill_rate_num_items_per_frame, frame_id, num_items_per_frame,
                    block_pool, max_num_blocks_second_reduce, block_size, begin_local_index);
 
-            data::File &file2 = frame_files_[1];
-            data::File::Writer &writer2 = frame_writers_[1];
+            data::File& file2 = frame_files_[1];
+            data::File::Writer& writer2 = frame_writers_[1];
             writer2.Close();
             data::File::Reader reader2 = file2.GetReader(true);
             Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce, elements_to_emit,
@@ -376,21 +372,21 @@ public:
         }
     }
 
-    template<typename Table>
+    template <typename Table>
     void
-    operator()(bool consume, Table *ht) const {
+    operator () (bool consume, Table* ht) const {
 
         using BucketBlock = typename Table::BucketBlock;
 
-        std::vector<BucketBlock *>& items = ht->Items();
+        std::vector<BucketBlock*>& items = ht->Items();
 
-        std::vector<BucketBlock *>& second_reduce = ht->SecondTable();
+        std::vector<BucketBlock*>& second_reduce = ht->SecondTable();
 
-        std::vector<size_t> &num_items_mem_per_frame = ht->NumItemsMemPerFrame();
+        std::vector<size_t>& num_items_mem_per_frame = ht->NumItemsMemPerFrame();
 
-        std::vector<data::File> &frame_files = ht->FrameFiles();
+        std::vector<data::File>& frame_files = ht->FrameFiles();
 
-        std::vector<data::File::Writer> &frame_writers = ht->FrameWriters();
+        std::vector<data::File::Writer>& frame_writers = ht->FrameWriters();
 
         size_t num_buckets_per_frame = ht->NumBucketsPerFrame();
 
@@ -400,21 +396,21 @@ public:
 
         size_t max_num_blocks_second_reduce = ht->MaxNumBlocksSecondReduce();
 
-        BucketBlockPool<BucketBlock> &block_pool = ht->BlockPool();
+        BucketBlockPool<BucketBlock>& block_pool = ht->BlockPool();
 
         Value neutral_element = ht->NeutralElement();
 
         std::vector<Value> elements_to_emit(ht->LocalIndex().size(), neutral_element);
 
-        Context &ctx = ht->Ctx();
+        Context& ctx = ht->Ctx();
 
         size_t block_size = ht->BlockSize();
 
         for (size_t frame_id = 0; frame_id < num_frames; frame_id++)
         {
             // get the actual reader from the file
-            data::File &file = frame_files[frame_id];
-            data::File::Writer &writer = frame_writers[frame_id];
+            data::File& file = frame_files[frame_id];
+            data::File::Writer& writer = frame_writers[frame_id];
             writer.Close(); // also closes the file
 
             // compute frame offset of current frame
@@ -427,11 +423,11 @@ public:
                 data::File::Reader reader = file.GetReader(consume);
 
                 Reduce<Table, BucketBlock>(ctx, consume, ht, items, offset,
-                                                     length, reader, second_reduce, elements_to_emit,
-                                                     fill_rate_num_items_per_frame,
-                                                     frame_id, num_items_mem_per_frame, block_pool,
-                                                     max_num_blocks_second_reduce,
-                                                     block_size, ht->LocalIndex().begin);
+                                           length, reader, second_reduce, elements_to_emit,
+                                           fill_rate_num_items_per_frame,
+                                           frame_id, num_items_mem_per_frame, block_pool,
+                                           max_num_blocks_second_reduce,
+                                           block_size, ht->LocalIndex().begin);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current frame
@@ -441,10 +437,10 @@ public:
                 // emit data
                 /////
                 for (size_t i = offset; i < length; i++) {
-                    BucketBlock *current = items[i];
+                    BucketBlock* current = items[i];
 
                     while (current != nullptr) {
-                        for (KeyValuePair *bi = current->items;
+                        for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi) {
 
                             elements_to_emit[bi->first - ht->LocalIndex().begin] = bi->second;
@@ -452,7 +448,7 @@ public:
 
                         // advance to next
                         if (consume) {
-                            BucketBlock *next = current->next;
+                            BucketBlock* next = current->next;
                             block_pool.Deallocate(current);
                             current = next;
                         }
@@ -490,7 +486,9 @@ public:
     EqualToFunction equal_to_function_;
 };
 
-}
-}
+} // namespace core
+} // namespace thrill
 
-#endif //THRILL_CORE_POST_BUCKET_REDUCE_FLUSH_TO_INDEX_HEADER
+#endif // !THRILL_CORE_POST_BUCKET_REDUCE_FLUSH_TO_INDEX_HEADER
+
+/******************************************************************************/
