@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 ##########################################################################
-# scripts/ec2/terminate_all.py
+# scripts/ec2/terminate.py
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 # Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
 #

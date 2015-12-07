@@ -7,6 +7,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <examples/page_rank.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/generate.hpp>
@@ -22,7 +23,6 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <examples/page_rank.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -39,7 +39,7 @@ using thrill::Context;
 
 using namespace thrill; // NOLINT
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
 
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     clp.PrintResult();
 
     auto start_func =
-        [&input, &output, &iter](api::Context &ctx) {
+        [&input, &output, &iter](api::Context& ctx) {
             ctx.set_consume(true);
 
             // read input file and create links in this format:
@@ -79,18 +79,19 @@ int main(int argc, char *argv[]) {
             res.WriteLines(output);
 
             auto number_edges = in.Size();
-            LOG1    << "\n"
-                    << "FINISHED PAGERANK COMPUTATION"
-                    << "\n"
-                    << std::left << std::setfill(' ')
-                    //                 << std::setw(10) << "#nodes: " << number_nodes
-                    //                 << "\n"
-                    << std::setw(10) << "#edges: " << number_edges
-                    << "\n"
-                    << std::setw(10) << "#iter: " << iter;
+            LOG1 << "\n"
+                 << "FINISHED PAGERANK COMPUTATION"
+                 << "\n"
+                 << std::left << std::setfill(' ')
+                //                 << std::setw(10) << "#nodes: " << number_nodes
+                //                 << "\n"
+                 << std::setw(10) << "#edges: " << number_edges
+                 << "\n"
+                 << std::setw(10) << "#iter: " << iter;
 
             ctx.stats_graph().BuildLayout("pagerank.out");
         };
 
     return api::Run(start_func);
 }
+/******************************************************************************/

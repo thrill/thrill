@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/word_count/word_count.cpp
+ * benchmarks/word_count/word_count_bench.cpp
  *
  * Runner program for WordCount example. See thrill/examples/word_count.hpp for
  * the source to the example.
@@ -34,27 +34,27 @@ WordCountPair CreateWCPair(std::string::const_iterator start, size_t length) {
 }
 
 template <typename InStack>
-auto WordCount(const DIA<std::string, InStack>& input) {
+auto WordCount(const DIA<std::string, InStack>&input) {
 
     auto word_pairs = input.template FlatMap<WordCountPair>(
-            [](const std::string& line, auto emit) -> void {
-                /* map lambda: emit each word */
-                auto last = line.begin();
-                thrill::common::SplitCallback(
-                    line, ' ', [&](const auto begin, const auto end) {
-                        if (end > last)
-                            emit(CreateWCPair(begin, end - begin));
-                        last = end + 1;
-                    });
-            }).ReducePair(
-            [](const size_t& a, const size_t& b) {
-                return a + b;
-            });
+        [](const std::string& line, auto emit) -> void {
+            /* map lambda: emit each word */
+            auto last = line.begin();
+            thrill::common::SplitCallback(
+                line, ' ', [&](const auto begin, const auto end) {
+                    if (end > last)
+                        emit(CreateWCPair(begin, end - begin));
+                    last = end + 1;
+                });
+        }).ReducePair(
+        [](const size_t& a, const size_t& b) {
+            return a + b;
+        });
 
     return word_pairs.Map(
-            [](const WordCountPair& wc) {
-                return wc.first.ToString() + ": " + std::to_string(wc.second);
-            });
+        [](const WordCountPair& wc) {
+            return wc.first.ToString() + ": " + std::to_string(wc.second);
+        });
 }
 
 int main(int argc, char* argv[]) {
@@ -78,14 +78,14 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func = [&input, &output](api::Context& ctx) {
-            ctx.set_consume(true);
+                          ctx.set_consume(true);
 
-        auto lines = ReadLines(ctx, input);
+                          auto lines = ReadLines(ctx, input);
 
-        auto word_pairs = WordCount(lines);
+                          auto word_pairs = WordCount(lines);
 
-        word_pairs.WriteLinesMany(output);
-    };
+                          word_pairs.WriteLinesMany(output);
+                      };
 
     return api::Run(start_func);
 }

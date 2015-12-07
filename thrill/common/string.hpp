@@ -228,7 +228,7 @@ void SplitCallback(
     std::string::size_type count = 0;
     auto it = str.begin(), last = it;
 
-    for (; it != str.end(); ++it)
+    for ( ; it != str.end(); ++it)
     {
         if (*it == sep)
         {
@@ -244,7 +244,6 @@ void SplitCallback(
     }
     callback(last, it);
 }
-
 
 /*!
  * Join a sequence of strings by some glue string between each pair from the

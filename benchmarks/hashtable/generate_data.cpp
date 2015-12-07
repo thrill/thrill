@@ -1,12 +1,12 @@
 /*******************************************************************************
- * benchmarks/sort/generate_data.cpp
+ * benchmarks/hashtable/generate_data.cpp
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
- * This file has no license. Only Chuck Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/api/dia.hpp>
@@ -45,14 +45,14 @@ int main(int argc, char* argv[]) {
 
     api::Run([&output, &elements](api::Context& ctx) {
 
-        std::default_random_engine generator(std::random_device { } ());
-        std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
+                 std::default_random_engine generator(std::random_device { } ());
+                 std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
 
-        Generate(ctx,
-                 [&distribution, &generator](size_t) {
-                     return distribution(generator);
-                 }, (size_t)elements).WriteBinary(output, 125000000);
-    });
+                 Generate(ctx,
+                          [&distribution, &generator](size_t) {
+                              return distribution(generator);
+                          }, (size_t)elements).WriteBinary(output, 125000000);
+             });
 }
 
 /******************************************************************************/

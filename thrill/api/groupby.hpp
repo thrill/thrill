@@ -153,11 +153,11 @@ public:
             }
         }
         timer.Stop();
-        LOG1 //<< "\n"
-             << "RESULT"
-             << " name=multiwaymerge"
-             << " time=" << timer.Milliseconds()
-             << " multiwaymerge=" << (num_runs > 1);
+        LOG1    //<< "\n"
+            << "RESULT"
+            << " name=multiwaymerge"
+            << " time=" << timer.Milliseconds()
+            << " multiwaymerge=" << (num_runs > 1);
     }
 
     void Dispose() override { }
@@ -226,7 +226,7 @@ private:
 
         LOG << "running group by main op";
 
-        const size_t FIXED_VECTOR_SIZE = 1024*1024*1024 / sizeof(ValueIn) / 2;
+        const size_t FIXED_VECTOR_SIZE = 1024 * 1024 * 1024 / sizeof(ValueIn) / 2;
         // const size_t FIXED_VECTOR_SIZE = 4;
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
@@ -256,12 +256,12 @@ private:
 
         timer.Stop();
 
-        LOG1 //<< "\n"
-             << "RESULT"
-             << " name=mainop"
-             << " time=" << (double)timer.Milliseconds()
-             << " number_files=" << files_.size()
-             << " vector_size=" << FIXED_VECTOR_SIZE;
+        LOG1    //<< "\n"
+            << "RESULT"
+            << " name=mainop"
+            << " time=" << timer.Milliseconds()
+            << " number_files=" << files_.size()
+            << " vector_size=" << FIXED_VECTOR_SIZE;
     }
 };
 
@@ -300,10 +300,5 @@ auto DIA<ValueType, Stack>::GroupBy(
 } // namespace thrill
 
 #endif // !THRILL_API_GROUPBY_HEADER
-
-
-
-
-
 
 /******************************************************************************/

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 ##########################################################################
-# scripts/ec2/setup.py
+# scripts/ec2/instant.py
 #
-# Part of Project Thrill.
+# Part of Project Thrill - http://project-thrill.org
 #
 # Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
 #
@@ -64,3 +64,5 @@ while loop:
             loop = True
 
 print str(data["COUNT"]) + " instances up and running! JobId: " + str(job_id)
+
+##########################################################################

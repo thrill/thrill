@@ -8,10 +8,10 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <examples/word_count.hpp>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/distribute_from.hpp>
 #include <thrill/common/string.hpp>
-#include <examples/word_count.hpp>
 
 #include <gtest/gtest.h>
 
@@ -83,20 +83,20 @@ TEST(WordCount, Generate1024DoesNotCrash) {
             ctx.set_consume(true);
 
             auto lines = GenerateFromFile(
-                    ctx, "inputs/headwords",
-                    [](const std::string& line) {
-                        return line;
-                    },
-                    size);
+                ctx, "inputs/headwords",
+                [](const std::string& line) {
+                    return line;
+                },
+                size);
 
             auto reduced_words = examples::WordCount(lines);
 
             reduced_words.Map(
-                            [](const WordCountPair& wc) {
-                                return wc.first + ": " + std::to_string(wc.second);
-                            })
-                    .WriteLinesMany(
-                            "outputs/wordcount-");
+                [](const WordCountPair& wc) {
+                    return wc.first + ": " + std::to_string(wc.second);
+                })
+            .WriteLinesMany(
+                "outputs/wordcount-");
         };
 
     api::RunLocalTests(start_func);
@@ -115,11 +115,11 @@ TEST(WordCount, ReadBaconDoesNotCrash) {
             auto red_words = examples::WordCount(lines);
 
             red_words.Map(
-                            [](const WordCountPair& wc) {
-                                return wc.first + ": " + std::to_string(wc.second);
-                            })
-                    .WriteLinesMany(
-                            "outputs/wordcount-");
+                [](const WordCountPair& wc) {
+                    return wc.first + ": " + std::to_string(wc.second);
+                })
+            .WriteLinesMany(
+                "outputs/wordcount-");
         };
 
     api::RunLocalTests(start_func);

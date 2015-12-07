@@ -1,9 +1,9 @@
 /*******************************************************************************
- * thrill/core/reduce_post_table.hpp
+ * thrill/core/reduce_post_bucket_table.hpp
  *
  * Hash table with support for reduce.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
@@ -20,17 +20,18 @@
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/bucket_block_pool.hpp>
+#include <thrill/core/post_bucket_reduce_flush.hpp>
+#include <thrill/core/post_bucket_reduce_flush_to_index.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/core/bucket_block_pool.hpp>
-#include <thrill/core/post_bucket_reduce_flush_to_index.hpp>
-#include <thrill/core/post_bucket_reduce_flush.hpp>
-#include <thrill/core/reduce_post_probing_table.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <cmath>
 #include <cstring>
 #include <functional>
@@ -38,8 +39,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <limits.h>
-#include <stddef.h>
 
 namespace thrill {
 namespace core {
@@ -114,7 +113,7 @@ struct PostBucketEmitImpl<false, EmitterFunction, KeyValuePair, SendType>{
     }
 };
 
-template <typename ValueType, typename Key, typename Value, // TODO: dont need both ValueType and Value
+template <typename ValueType, typename Key, typename Value, // TODO(ms): dont need both ValueType and Value
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
           typename FlushFunction = PostBucketReduceFlush<Key, Value, ReduceFunction>,
@@ -151,7 +150,7 @@ public:
         KeyValuePair items[block_size_]; // NOLINT
 
         //! helper to destroy all allocated items
-        void destroy_items() {
+        void         destroy_items() {
             for (KeyValuePair* i = items; i != items + size; ++i) {
                 i->~KeyValuePair();
             }
@@ -187,7 +186,7 @@ public:
                     const FlushFunction& flush_function,
                     const common::Range& local_index = common::Range(),
                     const Value& neutral_element = Value(),
-                    size_t byte_size = 1024 * 16,
+                    size_t byte_size = 1024* 16,
                     double bucket_rate = 1.0,
                     double max_frame_fill_rate = 0.5,
                     double frame_rate = 0.1,
@@ -206,33 +205,33 @@ public:
           reduce_function_(reduce_function) {
 
         assert(byte_size >= 0 && "byte_size must be greater than or equal to 0. "
-                "a byte size of zero results in exactly one item per partition");
+               "a byte size of zero results in exactly one item per partition");
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0 && "max_partition_fill_rate "
-                "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
+               "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
         assert(frame_rate > 0.0 && frame_rate <= 1.0 && "a frame rate of 1.0 causes exactly one frame.");
         assert(bucket_rate >= 0.0 && "bucket_rate must be greater than or equal 0. "
-                "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
+               "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
 
         table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_frames_), 0.5);
 
         max_num_blocks_mem_per_frame_ =
-                std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_)) / num_frames_)
-                                          / static_cast<double>(sizeof(BucketBlock))), 1);
+            std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_)) / num_frames_)
+                                      / static_cast<double>(sizeof(BucketBlock))), 1);
 
         max_num_items_mem_per_frame_ = max_num_blocks_mem_per_frame_ * block_size_;
 
         fill_rate_num_items_mem_per_frame_ = (size_t)(max_num_items_mem_per_frame_ * max_frame_fill_rate_);
 
         num_buckets_per_frame_ =
-                std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_mem_per_frame_)
-                                          * bucket_rate), 1);
+            std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_mem_per_frame_)
+                                      * bucket_rate), 1);
 
         // reduce max number of blocks per frame to cope for the memory needed for pointers
         max_num_blocks_mem_per_frame_ -= std::max<size_t>((size_t)(std::ceil(
-                                                                   static_cast<double>(num_buckets_per_frame_ * sizeof(BucketBlock*))
-                                                                   / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                                       static_cast<double>(num_buckets_per_frame_ * sizeof(BucketBlock*))
+                                                                       / static_cast<double>(sizeof(BucketBlock)))), 0);
 
         max_num_blocks_mem_per_frame_ = std::max<size_t>(max_num_blocks_mem_per_frame_, 1);
 
@@ -259,14 +258,14 @@ public:
 
         // set up second table
         max_num_blocks_second_reduce_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
-                                                              / static_cast<double>(sizeof(BucketBlock))), 2);
+                                                                  / static_cast<double>(sizeof(BucketBlock))), 2);
 
         max_num_items_second_reduce_ = max_num_blocks_second_reduce_ * block_size_;
 
         fill_rate_num_items_second_reduce_ = (size_t)(max_num_items_second_reduce_ * max_frame_fill_rate_);
 
         second_table_size_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_second_reduce_)
-                                                           * bucket_rate), 2);
+                                                       * bucket_rate), 2);
 
         // ensure size of second table is even, in order to be able to split by half for spilling
         if (second_table_size_ % 2 != 0) {
@@ -275,8 +274,8 @@ public:
         second_table_size_ = std::max<size_t>(2, second_table_size_);
         // reduce max number of blocks of second table to cope for the memory needed for pointers
         max_num_blocks_second_reduce_ -= std::max<size_t>((size_t)(std::ceil(
-                static_cast<double>(second_table_size_ * sizeof(BucketBlock*))
-                / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                                       static_cast<double>(second_table_size_ * sizeof(BucketBlock*))
+                                                                       / static_cast<double>(sizeof(BucketBlock)))), 0);
         max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 2);
 
         assert(max_num_blocks_second_reduce_ > 0);
@@ -288,7 +287,7 @@ public:
 
         frame_sequence_.resize(num_frames_, 0);
         size_t idx = 0;
-        for (size_t i=0; i<num_frames_; i++)
+        for (size_t i = 0; i < num_frames_; i++)
         {
             frame_sequence_[idx++] = i;
         }
@@ -645,7 +644,7 @@ public:
      *
      * \return Vector of key/value pairs.
      */
-    Context& Ctx() {
+    Context & Ctx() {
         return ctx_;
     }
 
@@ -680,7 +679,7 @@ public:
      * Returns the sequence of frame ids to
      * be processed on flush.
      */
-    std::vector<size_t>& FrameSequence() {
+    std::vector<size_t> & FrameSequence() {
         return frame_sequence_;
     }
 

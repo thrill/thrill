@@ -20,10 +20,10 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_pre_bucket_table.hpp>
 #include <thrill/core/reduce_post_bucket_table.hpp>
-#include <thrill/core/reduce_pre_probing_table.hpp>
 #include <thrill/core/reduce_post_probing_table.hpp>
+#include <thrill/core/reduce_pre_bucket_table.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
 
 #include <functional>
 #include <string>
@@ -112,19 +112,19 @@ public:
                             core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
                             Value(), 10000000, 0.6),
           reduce_post_table_(context_, key_extractor_, reduce_function_,
-                            [this](const ValueType& item) { return this->PushItem(item); },
-                            Key(),
-                            core::PostProbingReduceByHashKey<Key>(),
-                            core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-                            common::Range(), Value(), 10000000, 0.6, 0.1)
+                             [this](const ValueType& item) { return this->PushItem(item); },
+                             Key(),
+                             core::PostProbingReduceByHashKey<Key>(),
+                             core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+                             common::Range(), Value(), 10000000, 0.6, 0.1)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.
 
         auto pre_op_fn = [=](const ValueType& input) {
-                            reduce_pre_table_.Insert(input);
-                        };
+                             reduce_pre_table_.Insert(input);
+                         };
         // close the function stack with our pre op and register it at
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
@@ -186,14 +186,14 @@ private:
     std::vector<data::CatStream::Writer> emitters_;
 
     core::ReducePreProbingTable<
-            ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-            core::PostProbingReduceFlush<Key, Value, ReduceFunction>, core::PreProbingReduceByHashKey<Key>,
-            std::equal_to<Key>, false> reduce_pre_table_;
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+        core::PostProbingReduceFlush<Key, Value, ReduceFunction>, core::PreProbingReduceByHashKey<Key>,
+        std::equal_to<Key>, false> reduce_pre_table_;
 
     core::ReducePostProbingTable<
-            ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-            core::PostProbingReduceFlush<Key, Value, ReduceFunction>, core::PostProbingReduceByHashKey<Key>,
-            std::equal_to<Key>> reduce_post_table_;
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
+        core::PostProbingReduceFlush<Key, Value, ReduceFunction>, core::PostProbingReduceByHashKey<Key>,
+        std::equal_to<Key> > reduce_post_table_;
 
 //    core::ReducePreTable<
 //            ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,

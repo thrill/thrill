@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/page_rank/page_rank.cpp
+ * benchmarks/page_rank/page_rank_bench.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -7,6 +7,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <examples/page_rank.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/generate.hpp>
@@ -22,7 +23,6 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <examples/page_rank.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -94,3 +94,4 @@ int main(int argc, char* argv[]) {
 
     return api::Run(start_func);
 }
+/******************************************************************************/

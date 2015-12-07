@@ -21,6 +21,7 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
 
+#include <algorithm>
 #include <random>
 #include <string>
 #include <thread>
@@ -33,17 +34,17 @@ unsigned int size = 1000 * 1000 * 10;
 //! Network benchmarking.
 void merge_test(thrill::api::Context& ctx) {
 
-    std::mt19937 gen(std::random_device { }());
+    std::mt19937 gen(std::random_device { } ());
 
     auto merge_input1 = thrill::Generate(
-            ctx,
-            [&gen](size_t /* index */) { return gen(); },
-            size);
+        ctx,
+        [&gen](size_t /* index */) { return gen(); },
+        size);
 
     auto merge_input2 = thrill::Generate(
-            ctx,
-            [&gen](size_t /* index */) { return gen(); },
-            size);
+        ctx,
+        [&gen](size_t /* index */) { return gen(); },
+        size);
 
     merge_input1 = merge_input1.Sort().Keep();
     merge_input2 = merge_input2.Sort().Keep();

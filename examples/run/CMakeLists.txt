@@ -1,5 +1,5 @@
 ################################################################################
-# examples/CMakeLists.txt
+# examples/run/CMakeLists.txt
 #
 # Part of Project Thrill - http://project-thrill.org
 #
