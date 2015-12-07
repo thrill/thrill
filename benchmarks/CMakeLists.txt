@@ -38,6 +38,8 @@ thrill_build_prog(hashtable/generate_data)
 thrill_build_prog(hashtable/reduce)
 
 thrill_build_prog(data/disk)
+thrill_build_prog(generate_data)
+thrill_build_prog(generate_numbers)
 thrill_build_prog(data/stream)
 thrill_build_prog(data/data_benchmark)
 
@@ -57,10 +59,12 @@ thrill_build_prog(sort/generate_data)
 thrill_build_prog(sort/sort)
 
 thrill_build_prog(serialization/bench_serialization)
+thrill_build_prog(serialization/cpp-serializers)
 
 add_subdirectory(word_count)
 add_subdirectory(page_rank)
 add_subdirectory(dc3)
+add_subdirectory(groupby)
 add_subdirectory(net)
 add_subdirectory(merge)
 
