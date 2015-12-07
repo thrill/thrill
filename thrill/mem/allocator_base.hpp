@@ -73,8 +73,10 @@ public:
 #if defined(_MSC_VER)
         // disable false-positive warning C4100: 'p': unreferenced formal parameter
 #pragma warning(suppress:4100)
-#endif
         p->~Type();
+#else
+        p->~Type();
+#endif
     }
 
     //! Constructs an element object on the location pointed by p.

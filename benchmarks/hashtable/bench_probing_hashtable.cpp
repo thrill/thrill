@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
     clp.AddUInt('m', "max_num_items_table", "M", byte_size,
                 "Table size, default = 500000000.");
 
-    const bool full_reduce = false;
+    static const bool full_reduce = false;
 
     if (!clp.Process(argc, argv)) {
         return -1;

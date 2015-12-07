@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
     clp.AddUInt('m', "table_size", "M", byte_size,
                 "Table size, default = 500000000.");
 
-    const bool full_reduce = false;
+    static const bool full_reduce = false;
 
     if (!clp.Process(argc, argv)) {
         return -1;
