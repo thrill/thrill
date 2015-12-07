@@ -23,7 +23,9 @@
  * test string to benchmark serialization;
  * comparable to results in https://github.com/thekvs/cpp-serializers
  */
-const std::string bench_string = "shgfkghsdfjhgsfjhfgjhfgjsffghgsfdhgsfdfkdjhfioukjhkfdljgdfkgvjafdhasgdfwurtjkghfsdjkfg";
+const std::string bench_string =
+    "shgfkghsdfjhgsfjhfgjhfgjsffghgsfdhgsfdfkdjh"
+    "fioukjhkfdljgdfkgvjafdhasgdfwurtjkghfsdjkfg";
 
 /*
  * test string to serialize int vectoren;
@@ -31,7 +33,7 @@ const std::string bench_string = "shgfkghsdfjhgsfjhfgjhfgjsffghgsfdhgsfdfkdjhfio
  */
 struct BenchVector {
     BenchVector() { }
-    explicit BenchVector(std::vector<int64_t> bv) : bench_vector(bv) { }
+    explicit BenchVector(const std::vector<int64_t>& bv) : bench_vector(bv) { }
 
     std::vector<int64_t> bench_vector;
 
@@ -41,7 +43,7 @@ struct BenchVector {
     }
 };
 
-const BenchVector bench_vector = BenchVector(
+static const BenchVector bench_vector = BenchVector(
     {
         34492, 6603, 44033, 8874, 47607, 38416, 20395, 29192, 38620, 36775,
         35058, 20501, 39664, 64574, 11261, 35679, 16607, 26020, 39476, 16699,
@@ -146,16 +148,16 @@ const BenchVector bench_vector = BenchVector(
     });
 
 using p_is = std::pair<int, std::string>;
-p_is p_is0 = std::make_pair(9, "blablablabalbalbla");
+static const p_is p_is0 = std::make_pair(9, "blablablabalbalbla");
 using p_pi = std::pair<p_is, int>;
-p_pi p_pi0 = std::make_pair(p_is0, 89);
+static const p_pi p_pi0 = std::make_pair(p_is0, 89);
 using t_pp = std::tuple<p_is, p_pi>;
-t_pp t_pp0 = std::make_tuple(p_is0, p_pi0);
+static const t_pp t_pp0 = std::make_tuple(p_is0, p_pi0);
 using t_ttpi = std::tuple<t_pp, t_pp, p_pi, int>;
-t_ttpi t_ttpi0 = std::make_tuple(t_pp0, t_pp0, p_pi0, 8769);
-t_ttpi t_ttpi1 = std::make_tuple(t_pp0, t_pp0, p_pi0, 870999);
+static const t_ttpi t_ttpi0 = std::make_tuple(t_pp0, t_pp0, p_pi0, 8769);
+static const t_ttpi t_ttpi1 = std::make_tuple(t_pp0, t_pp0, p_pi0, 870999);
 using t_tt = std::tuple<t_ttpi, t_ttpi, t_ttpi, t_ttpi>;
-t_tt bench_tuple = std::make_tuple(t_ttpi0, t_ttpi0, t_ttpi1, t_ttpi1);
+static const t_tt bench_tuple = std::make_tuple(t_ttpi0, t_ttpi0, t_ttpi1, t_ttpi1);
 
 #endif // !THRILL_BENCHMARKS_SERIALIZATION_DATA_HEADER
 
