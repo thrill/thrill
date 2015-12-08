@@ -36,7 +36,7 @@ thrill_build_prog(io/benchmark_files)
 thrill_build_prog(io/benchmark_disks)
 thrill_build_prog(io/benchmark_disks_random)
 
-if(off)
+if(ON)
 thrill_build_prog(data/disk)
 thrill_build_prog(data/stream)
 thrill_build_prog(data/data_benchmark)
