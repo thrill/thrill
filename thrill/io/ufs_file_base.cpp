@@ -15,11 +15,13 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include "error_handling.hpp"
-#include "ufs_platform.hpp"
 #include <thrill/common/config.hpp>
+#include <thrill/io/error_handling.hpp>
 #include <thrill/io/file.hpp>
 #include <thrill/io/ufs_file_base.hpp>
+#include <thrill/io/ufs_platform.hpp>
+
+#include <string>
 
 namespace thrill {
 namespace io {

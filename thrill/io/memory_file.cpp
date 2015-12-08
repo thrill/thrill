@@ -12,12 +12,12 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/io/iostats.hpp>
+#include <thrill/io/memory_file.hpp>
+
 #include <cassert>
 #include <cstring>
 #include <limits>
-
-#include <thrill/io/iostats.hpp>
-#include <thrill/io/memory_file.hpp>
 
 namespace thrill {
 namespace io {
@@ -59,7 +59,7 @@ void memory_file::set_size(offset_type newsize) {
     std::unique_lock<std::mutex> lock(m_mutex);
     assert(newsize <= std::numeric_limits<offset_type>::max());
 
-    m_ptr = (char*)realloc(m_ptr, (size_t)newsize);
+    m_ptr = static_cast<char*>(realloc(m_ptr, static_cast<size_t>(newsize)));
     m_size = newsize;
 }
 

@@ -21,11 +21,13 @@
 #include <thrill/io/typed_block.hpp>
 #include <thrill/mem/aligned_alloc.hpp>
 
+#include <algorithm>
 #include <ctime>
 #include <iomanip>
+#include <string>
 #include <vector>
 
-using namespace thrill;
+using namespace thrill; // NOLINT
 
 #define KiB (1024)
 #define MiB (1024 * 1024)
@@ -34,7 +36,7 @@ struct print_number
 {
     int n;
 
-    print_number(int n) : n(n) { }
+    explicit print_number(int n) : n(n) { }
 
     void operator () (io::request*) {
         // std::cout << n << " " << std::flush;
@@ -96,8 +98,8 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
             elapsed = t_run.Microseconds() / 1e6;
             std::cout << "Written "
                       << std::setw(12) << num_blocks_in_span << " blocks in " << std::fixed << std::setw(9) << std::setprecision(2) << elapsed << " seconds: "
-                      << std::setw(9) << std::setprecision(1) << (double(num_blocks_in_span) / elapsed) << " blocks/s "
-                      << std::setw(7) << std::setprecision(1) << (double(num_blocks_in_span * raw_block_size) / MiB / elapsed) << " MiB/s write " << std::endl;
+                      << std::setw(9) << std::setprecision(1) << (static_cast<double>(num_blocks_in_span) / elapsed) << " blocks/s "
+                      << std::setw(7) << std::setprecision(1) << (static_cast<double>(num_blocks_in_span * raw_block_size) / MiB / elapsed) << " MiB/s write " << std::endl;
         }
 
         std::cout << "Random block access..." << std::endl;
@@ -116,8 +118,8 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
             elapsed = t_run.Microseconds() / 1e6;
 
             std::cout << "Read    " << num_blocks << " blocks in " << std::fixed << std::setw(5) << std::setprecision(2) << elapsed << " seconds: "
-                      << std::setw(5) << std::setprecision(1) << (double(num_blocks) / elapsed) << " blocks/s "
-                      << std::setw(5) << std::setprecision(1) << (double(num_blocks * raw_block_size) / MiB / elapsed) << " MiB/s read" << std::endl;
+                      << std::setw(5) << std::setprecision(1) << (static_cast<double>(num_blocks) / elapsed) << " blocks/s "
+                      << std::setw(5) << std::setprecision(1) << (static_cast<double>(num_blocks * raw_block_size) / MiB / elapsed) << " MiB/s read" << std::endl;
         }
 
         std::random_shuffle(blocks.begin(), blocks.end());
@@ -133,8 +135,8 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
             elapsed = t_run.Microseconds() / 1e6;
 
             std::cout << "Written " << num_blocks << " blocks in " << std::fixed << std::setw(5) << std::setprecision(2) << elapsed << " seconds: "
-                      << std::setw(5) << std::setprecision(1) << (double(num_blocks) / elapsed) << " blocks/s "
-                      << std::setw(5) << std::setprecision(1) << (double(num_blocks * raw_block_size) / MiB / elapsed) << " MiB/s write " << std::endl;
+                      << std::setw(5) << std::setprecision(1) << (static_cast<double>(num_blocks) / elapsed) << " blocks/s "
+                      << std::setw(5) << std::setprecision(1) << (static_cast<double>(num_blocks * raw_block_size) / MiB / elapsed) << " MiB/s write " << std::endl;
         }
     }
     catch (const std::exception& ex)

@@ -16,8 +16,7 @@
 
 #if STXXL_HAVE_LINUXAIO_FILE
 
-#include "error_handling.hpp"
-#include <thrill/io/linuxaio_queue.hpp>
+#include <thrill/io/error_handling.hpp>
 #include <thrill/io/linuxaio_request.hpp>
 
 #include <sys/syscall.h>

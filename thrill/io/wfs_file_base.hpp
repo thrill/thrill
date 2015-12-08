@@ -26,6 +26,8 @@
 #include <thrill/io/file.h>
 #include <thrill/io/request.h>
 
+#include <string>
+
 namespace thrill {
 namespace io {
 

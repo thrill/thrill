@@ -20,6 +20,7 @@
 
 #include <deque>
 #include <mutex>
+#include <string>
 
 namespace thrill {
 namespace data {

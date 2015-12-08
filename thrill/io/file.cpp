@@ -11,8 +11,8 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include "ufs_platform.hpp"
 #include <thrill/io/file.hpp>
+#include <thrill/io/ufs_platform.hpp>
 
 namespace thrill {
 namespace io {

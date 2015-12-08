@@ -17,10 +17,10 @@
 #ifndef THRILL_IO_REQUEST_QUEUE_IMPL_1Q_HEADER
 #define THRILL_IO_REQUEST_QUEUE_IMPL_1Q_HEADER
 
+#include <thrill/io/request_queue_impl_worker.hpp>
+
 #include <list>
 #include <mutex>
-
-#include <thrill/io/request_queue_impl_worker.hpp>
 
 namespace thrill {
 namespace io {
@@ -49,7 +49,7 @@ private:
 
 public:
     // \param n max number of requests simultaneously submitted to disk
-    request_queue_impl_1q(int n = 1);
+    explicit request_queue_impl_1q(int n = 1);
 
     // in a multi-threaded setup this does not work as intended
     // also there were race conditions possible

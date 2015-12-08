@@ -18,14 +18,14 @@
 #ifndef THRILL_IO_DISK_QUEUES_HEADER
 #define THRILL_IO_DISK_QUEUES_HEADER
 
-#include <map>
-
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/linuxaio_queue.hpp>
 #include <thrill/io/linuxaio_request.hpp>
 #include <thrill/io/request.hpp>
 #include <thrill/io/request_queue_impl_qwqr.hpp>
 #include <thrill/io/serving_request.hpp>
+
+#include <map>
 
 namespace thrill {
 namespace io {
@@ -61,8 +61,7 @@ public:
 #if STXXL_HAVE_LINUXAIO_FILE
             if (dynamic_cast<linuxaio_request*>(req.get()))
                 q = queues[disk] = new linuxaio_queue(
-                        dynamic_cast<linuxaio_file*>(req->file())->get_desired_queue_length()
-                        );
+                        dynamic_cast<linuxaio_file*>(req->file())->get_desired_queue_length());
             else
 #endif
             q = queues[disk] = new request_queue_impl_qwqr();

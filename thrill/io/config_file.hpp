@@ -22,6 +22,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -57,7 +58,7 @@ public:
     disk_config(const std::string& path, uint64_t size, const std::string& fileio);
 
     //! initializing constructor, parse full line as in config files
-    disk_config(const std::string& line);
+    explicit disk_config(const std::string& line);
 
     //! parse a disk=\<path>,\<size>,\<fileio> options line into disk_config,
     //! throws std::runtime_error on parse errors.

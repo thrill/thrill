@@ -38,7 +38,7 @@ class onoff_switch
 
 public:
     //! construct switch
-    onoff_switch(bool flag = false)
+    explicit onoff_switch(bool flag = false)
         : m_on(flag)
     { }
 

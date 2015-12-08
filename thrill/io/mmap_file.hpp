@@ -24,6 +24,8 @@
 #include <thrill/io/disk_queued_file.hpp>
 #include <thrill/io/ufs_file_base.hpp>
 
+#include <string>
+
 namespace thrill {
 namespace io {
 

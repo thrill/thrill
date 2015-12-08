@@ -20,6 +20,7 @@
 #include <thrill/mem/aligned_alloc.hpp>
 
 #include <cstring>
+#include <vector>
 
 using namespace thrill;
 
@@ -38,17 +39,16 @@ int main(int argc, char** argv) {
     }
 
     const uint64_t size = 4 * 1024 * 1024, num_blocks = 16;
-    char* buffer = (char*)mem::aligned_alloc<4096>(size);
+    char* buffer = static_cast<char*>(mem::aligned_alloc<4096>(size));
     memset(buffer, 0, size);
 
     std::unique_ptr<io::file> file(
         io::create_file(
             argv[1], argv[2],
-            io::file::CREAT | io::file::RDWR | io::file::DIRECT)
-        );
+            io::file::CREAT | io::file::RDWR | io::file::DIRECT));
 
     file->set_size(num_blocks * size);
-    io::request_ptr req[num_blocks];
+    std::vector<io::request_ptr> req(num_blocks);
 
     // without cancelation
     std::cout << "Posting " << num_blocks << " requests." << std::endl;
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
     unsigned i = 0;
     for ( ; i < num_blocks; i++)
         req[i] = file->awrite(buffer, i * size, size, print_completion());
-    wait_all(req, num_blocks);
+    wait_all(req.begin(), req.end());
     std::cout << io::stats_data(*io::stats::get_instance()) - stats1;
 
     // with cancelation
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
         req[i] = file->awrite(buffer, i * size, size, print_completion());
     // cancel first half
     std::cout << "Canceling first " << num_blocks / 2 << " requests." << std::endl;
-    size_t num_canceled = cancel_all(req, req + num_blocks / 2);
+    size_t num_canceled = cancel_all(req.begin(), req.begin() + num_blocks / 2);
     std::cout << "Successfully canceled " << num_canceled << " requests." << std::endl;
     // cancel every second in second half
     for (unsigned i = num_blocks / 2; i < num_blocks; i += 2)
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
         else
             std::cout << "Request not canceled: " << &(*(req[i])) << std::endl;
     }
-    wait_all(req, num_blocks);
+    wait_all(req.begin(), req.end());
     std::cout << io::stats_data(*io::stats::get_instance()) - stats2;
 
     mem::aligned_dealloc<4096>(buffer);

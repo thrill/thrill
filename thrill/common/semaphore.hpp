@@ -46,7 +46,7 @@ public:
 
     //! function increments the semaphore and signals any threads that are
     //! blocked waiting a change in the semaphore
-    int operator ++ (int) {
+    int operator ++ (int) { // NOLINT
         std::unique_lock<std::mutex> lock(m_mutex);
         int res = ++v;
         lock.unlock();
@@ -55,7 +55,7 @@ public:
     }
     //! function decrements the semaphore and blocks if the semaphore is <= 0
     //! until another thread signals a change
-    int operator -- (int) {
+    int operator -- (int) { // NOLINT
         std::unique_lock<std::mutex> lock(m_mutex);
         while (v <= 0)
             m_cond.wait(lock);

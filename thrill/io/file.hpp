@@ -19,6 +19,10 @@
 #define THRILL_IO_FILE_HEADER
 
 #include <thrill/common/config.hpp>
+#include <thrill/common/counting_ptr.hpp>
+#include <thrill/common/defines.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/io/request.hpp>
 
 #if defined (__linux__)
  #define STXXL_CHECK_BLOCK_ALIGNING
@@ -27,11 +31,6 @@
 #include <cassert>
 #include <ostream>
 #include <string>
-
-#include <thrill/common/counting_ptr.hpp>
-#include <thrill/common/defines.hpp>
-#include <thrill/common/logger.hpp>
-#include <thrill/io/request.hpp>
 
 namespace thrill {
 namespace io {
@@ -93,7 +92,7 @@ public:
     static const unsigned int DEFAULT_DEVICE_ID = (unsigned int)(-1);
 
     //! Construct a new file, usually called by a subclass.
-    file(unsigned int device_id = DEFAULT_DEVICE_ID)
+    explicit file(unsigned int device_id = DEFAULT_DEVICE_ID)
         : m_device_id(device_id)
     { }
 

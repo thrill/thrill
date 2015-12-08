@@ -14,10 +14,10 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include "error_handling.hpp"
 #include <thrill/common/config.hpp>
 #include <thrill/common/semaphore.hpp>
 #include <thrill/common/state.hpp>
+#include <thrill/io/error_handling.hpp>
 #include <thrill/io/request_queue_impl_worker.hpp>
 
 #include <cassert>

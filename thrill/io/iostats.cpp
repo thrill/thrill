@@ -70,7 +70,7 @@ void stats::write_started(size_t size_, double now) {
         ++writes;
         volume_written += size_;
         double diff = now - p_begin_write;
-        t_writes += double(acc_writes) * diff;
+        t_writes += static_cast<double>(acc_writes) * diff;
         p_begin_write = now;
         p_writes += (acc_writes++) ? diff : 0.0;
     }
@@ -99,7 +99,7 @@ void stats::write_finished() {
         std::unique_lock<std::mutex> write_lock(write_mutex);
 
         double diff = now - p_begin_write;
-        t_writes += double(acc_writes) * diff;
+        t_writes += static_cast<double>(acc_writes) * diff;
         p_begin_write = now;
         p_writes += (acc_writes--) ? diff : 0.0;
     }
@@ -128,7 +128,7 @@ void stats::read_started(size_t size_, double now) {
         ++reads;
         volume_read += size_;
         double diff = now - p_begin_read;
-        t_reads += double(acc_reads) * diff;
+        t_reads += static_cast<double>(acc_reads) * diff;
         p_begin_read = now;
         p_reads += (acc_reads++) ? diff : 0.0;
     }
@@ -157,7 +157,7 @@ void stats::read_finished() {
         std::unique_lock<std::mutex> read_lock(read_mutex);
 
         double diff = now - p_begin_read;
-        t_reads += double(acc_reads) * diff;
+        t_reads += static_cast<double>(acc_reads) * diff;
         p_begin_read = now;
         p_reads += (acc_reads--) ? diff : 0.0;
     }
@@ -185,20 +185,20 @@ void stats::wait_started(wait_op_type wait_op) {
         std::unique_lock<std::mutex> wait_lock(wait_mutex);
 
         double diff = now - p_begin_wait;
-        t_waits += double(acc_waits) * diff;
+        t_waits += static_cast<double>(acc_waits) * diff;
         p_begin_wait = now;
         p_waits += (acc_waits++) ? diff : 0.0;
 
         if (wait_op == WAIT_OP_READ) {
             diff = now - p_begin_wait_read;
-            t_wait_read += double(acc_wait_read) * diff;
+            t_wait_read += static_cast<double>(acc_wait_read) * diff;
             p_begin_wait_read = now;
             p_wait_read += (acc_wait_read++) ? diff : 0.0;
         }
         else /* if (wait_op == WAIT_OP_WRITE) */ {
             // wait_any() is only used from write_pool and buffered_writer, so account WAIT_OP_ANY for WAIT_OP_WRITE, too
             diff = now - p_begin_wait_write;
-            t_wait_write += double(acc_wait_write) * diff;
+            t_wait_write += static_cast<double>(acc_wait_write) * diff;
             p_begin_wait_write = now;
             p_wait_write += (acc_wait_write++) ? diff : 0.0;
         }
@@ -211,19 +211,19 @@ void stats::wait_finished(wait_op_type wait_op) {
         std::unique_lock<std::mutex> wait_lock(wait_mutex);
 
         double diff = now - p_begin_wait;
-        t_waits += double(acc_waits) * diff;
+        t_waits += static_cast<double>(acc_waits) * diff;
         p_begin_wait = now;
         p_waits += (acc_waits--) ? diff : 0.0;
 
         if (wait_op == WAIT_OP_READ) {
             double diff = now - p_begin_wait_read;
-            t_wait_read += double(acc_wait_read) * diff;
+            t_wait_read += static_cast<double>(acc_wait_read) * diff;
             p_begin_wait_read = now;
             p_wait_read += (acc_wait_read--) ? diff : 0.0;
         }
         else /* if (wait_op == WAIT_OP_WRITE) */ {
             double diff = now - p_begin_wait_write;
-            t_wait_write += double(acc_wait_write) * diff;
+            t_wait_write += static_cast<double>(acc_wait_write) * diff;
             p_begin_wait_write = now;
             p_wait_write += (acc_wait_write--) ? diff : 0.0;
         }
@@ -246,7 +246,7 @@ std::string format_with_SI_IEC_unit_multiplier(uint64_t number, const char* unit
     std::ostringstream out;
     out << number << ' ';
     int scale = 0;
-    double number_d = (double)number;
+    double number_d = static_cast<double>(number);
     double multiplier_d = multiplier;
     while (number_d >= multiplier_d)
     {
@@ -271,10 +271,10 @@ std::ostream& operator << (std::ostream& o, const stats_data& s) {
       << hr(s.get_reads() ? s.get_read_volume() / s.get_reads() : 0, "B") << std::endl;
     o << " number of bytes read from disks            : " << hr(s.get_read_volume(), "B") << std::endl;
     o << " time spent in serving all read requests    : " << s.get_read_time() << " s"
-      << " @ " << ((double)s.get_read_volume() / 1048576.0 / s.get_read_time()) << " MiB/s"
+      << " @ " << (static_cast<double>(s.get_read_volume()) / 1048576.0 / s.get_read_time()) << " MiB/s"
       << std::endl;
     o << " time spent in reading (parallel read time) : " << s.get_pread_time() << " s"
-      << " @ " << ((double)s.get_read_volume() / 1048576.0 / s.get_pread_time()) << " MiB/s"
+      << " @ " << (static_cast<double>(s.get_read_volume()) / 1048576.0 / s.get_pread_time()) << " MiB/s"
       << std::endl;
     if (s.get_cached_reads()) {
         o << " total number of cached reads               : " << hr(s.get_cached_reads()) << std::endl;
@@ -291,13 +291,13 @@ std::ostream& operator << (std::ostream& o, const stats_data& s) {
       << hr(s.get_writes() ? s.get_written_volume() / s.get_writes() : 0, "B") << std::endl;
     o << " number of bytes written to disks           : " << hr(s.get_written_volume(), "B") << std::endl;
     o << " time spent in serving all write requests   : " << s.get_write_time() << " s"
-      << " @ " << ((double)s.get_written_volume() / 1048576.0 / s.get_write_time()) << " MiB/s"
+      << " @ " << (static_cast<double>(s.get_written_volume()) / 1048576.0 / s.get_write_time()) << " MiB/s"
       << std::endl;
     o << " time spent in writing (parallel write time): " << s.get_pwrite_time() << " s"
-      << " @ " << ((double)s.get_written_volume() / 1048576.0 / s.get_pwrite_time()) << " MiB/s"
+      << " @ " << (static_cast<double>(s.get_written_volume()) / 1048576.0 / s.get_pwrite_time()) << " MiB/s"
       << std::endl;
     o << " time spent in I/O (parallel I/O time)      : " << s.get_pio_time() << " s"
-      << " @ " << ((double)(s.get_read_volume() + s.get_written_volume()) / 1048576.0 / s.get_pio_time()) << " MiB/s"
+      << " @ " << ((static_cast<double>(s.get_read_volume()) + s.get_written_volume()) / 1048576.0 / s.get_pio_time()) << " MiB/s"
       << std::endl;
 #else
     o << " n/a" << std::endl;

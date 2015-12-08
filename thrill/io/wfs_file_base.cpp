@@ -13,7 +13,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include "error_handling.hpp"
+#include <thrill/io/error_handling.hpp>
 #include <thrill/io/wfs_file_base.hpp>
 
 #if STXXL_WINDOWS
@@ -22,6 +22,8 @@
   #define NOMINMAX
 #endif
 #include <windows.h>
+
+#include <string>
 
 namespace thrill {
 namespace io {
@@ -70,7 +72,7 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
     {
 #if !STXXL_DIRECT_IO_OFF
         dwFlagsAndAttributes |= FILE_FLAG_NO_BUFFERING;
-        // TODO: try also FILE_FLAG_WRITE_THROUGH option ?
+        // TODO(?): try also FILE_FLAG_WRITE_THROUGH option ?
 #else
         if (mode & file::REQUIRE_DIRECT) {
             STXXL_ERRMSG("Error: open()ing " << filename << " with DIRECT mode required, but the system does not support it.");

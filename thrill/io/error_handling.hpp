@@ -129,22 +129,22 @@ namespace io {
 #if STXXL_WINDOWS || defined(__MINGW32__)
 
 //! Throws exception_type with "Error in [function] : [error_message] : [formatted GetLastError()]"
-#define STXXL_THROW_WIN_LASTERROR(exception_type, error_message)         \
-    do {                                                                 \
-        LPVOID lpMsgBuf;                                                 \
-        DWORD dw = GetLastError();                                       \
-        FormatMessage(                                                   \
-            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, \
-            nullptr, dw,                                                 \
-            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),                   \
-            (LPTSTR)&lpMsgBuf,                                           \
-            0, nullptr);                                                 \
-        std::ostringstream msg;                                          \
-        msg << "Error in " << STXXL_PRETTY_FUNCTION_NAME                 \
-            << " : " << error_message                                    \
-            << " : error code " << dw << " : " << ((char*)lpMsgBuf);     \
-        LocalFree(lpMsgBuf);                                             \
-        throw exception_type(msg.str());                                 \
+#define STXXL_THROW_WIN_LASTERROR(exception_type, error_message)                \
+    do {                                                                        \
+        LPVOID lpMsgBuf;                                                        \
+        DWORD dw = GetLastError();                                              \
+        FormatMessage(                                                          \
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,        \
+            nullptr, dw,                                                        \
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),                          \
+            (LPTSTR)&lpMsgBuf,                                                  \
+            0, nullptr);                                                        \
+        std::ostringstream msg;                                                 \
+        msg << "Error in " << STXXL_PRETTY_FUNCTION_NAME                        \
+            << " : " << error_message                                           \
+            << " : error code " << dw << " : " << static_cast<char*>(lpMsgBuf); \
+        LocalFree(lpMsgBuf);                                                    \
+        throw exception_type(msg.str());                                        \
     } while (false)
 
 #endif

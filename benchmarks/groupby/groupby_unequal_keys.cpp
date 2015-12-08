@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
                                << "RESULT"
                                << " name=total"
                                << " rank=" << ctx.my_rank()
-                               << " time=" << (double)timer.Milliseconds() / (double)n
+                               << " time=" << static_cast<double>(timer.Milliseconds()) / static_cast<double>(n)
                                << " filename=" << input;
                       };
 

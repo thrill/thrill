@@ -32,6 +32,8 @@
 #include <thrill/io/disk_queued_file.h>
 #include <thrill/io/wfs_file_base.h>
 
+#include <string>
+
 namespace thrill {
 namespace io {
 

@@ -16,9 +16,9 @@
 
 #if STXXL_HAVE_MMAP_FILE
 
-#include "error_handling.hpp"
-#include "ufs_platform.hpp"
+#include <thrill/io/error_handling.hpp>
 #include <thrill/io/iostats.hpp>
+#include <thrill/io/ufs_platform.hpp>
 
 #include <sys/mman.h>
 

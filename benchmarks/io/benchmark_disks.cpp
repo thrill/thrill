@@ -24,11 +24,14 @@
 #include <thrill/io/typed_block.hpp>
 #include <thrill/mem/aligned_alloc.hpp>
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <limits>
+#include <string>
 #include <vector>
 
-using namespace thrill;
+using namespace thrill; // NOLINT
 
 #ifdef BLOCK_ALIGN
  #undef BLOCK_ALIGN
@@ -134,7 +137,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
                 elapsed = 0.0;
 
             std::cout << std::setw(5) << std::setprecision(1)
-                      << (double(current_batch_size) / MiB / elapsed) << " MiB/s write, ";
+                      << (static_cast<double>(current_batch_size) / MiB / elapsed) << " MiB/s write, ";
 
             t_run.Reset();
 
@@ -152,7 +155,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
             else
                 elapsed = 0.0;
 
-            std::cout << std::setw(5) << std::setprecision(1) << (double(current_batch_size) / MiB / elapsed) << " MiB/s read" << std::endl;
+            std::cout << std::setw(5) << std::setprecision(1) << (static_cast<double>(current_batch_size) / MiB / elapsed) << " MiB/s read" << std::endl;
 
 #if CHECK_AFTER_READ
             for (unsigned j = 0; j < current_num_blocks_per_batch; j++)
@@ -183,8 +186,8 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
 
     std::cout << "=============================================================================================" << std::endl;
     std::cout << "# Average over " << std::setw(7) << totalsizewrite / MiB << " MiB: ";
-    std::cout << std::setw(5) << std::setprecision(1) << (double(totalsizewrite) / MiB / totaltimewrite) << " MiB/s write, ";
-    std::cout << std::setw(5) << std::setprecision(1) << (double(totalsizeread) / MiB / totaltimeread) << " MiB/s read" << std::endl;
+    std::cout << std::setw(5) << std::setprecision(1) << (static_cast<double>(totalsizewrite) / MiB / totaltimewrite) << " MiB/s write, ";
+    std::cout << std::setw(5) << std::setprecision(1) << (static_cast<double>(totalsizeread) / MiB / totaltimeread) << " MiB/s read" << std::endl;
 
     delete[] reqs;
     delete[] buffer;

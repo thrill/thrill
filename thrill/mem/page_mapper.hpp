@@ -12,6 +12,10 @@
 #ifndef THRILL_MEM_PAGE_MAPPER_HEADER
 #define THRILL_MEM_PAGE_MAPPER_HEADER
 
+#include <thrill/common/concurrent_queue.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/byte_block.hpp>
+
 // aliases - MAC does not support these flags
 #ifdef __APPLE__
 #define O_NOATIME 0
@@ -19,7 +23,6 @@
 #define MAP_POPULATE 0
 #endif
 
-#include <cstdio>            //remove
 #include <fcntl.h>           //open
 #include <sys/mman.h>        //mappings + advice
 #include <sys/stat.h>        //open
@@ -31,12 +34,11 @@
 #include <libexplain/mmap.h> // explain mmap errors
 #endif
 
+#include <cstdio>
+#include <memory>
 #include <mutex>
 #include <queue>
-
-#include <thrill/common/concurrent_queue.hpp>
-#include <thrill/common/logger.hpp>
-#include <thrill/data/byte_block.hpp>
+#include <string>
 
 namespace thrill {
 namespace mem {
@@ -57,7 +59,7 @@ public:
     //! Creates a PageMapper for objects of given size.
     //! Removes and creates a temporal file (PageMapper::swap_file_name)
     //! Checks if the object size is valid
-    PageMapper(std::string swap_file_name) : swap_file_name_(swap_file_name) {
+    explicit PageMapper(std::string swap_file_name) : swap_file_name_(swap_file_name) {
         // runtime check if OBJECT_SIZE is correct
         die_unless(OBJECT_SIZE % page_size() == 0);
 
@@ -132,7 +134,7 @@ public:
         static const int protection_flags = PROT_READ | PROT_WRITE;
         //- not shared with other processes -> no automatic writebacks
         //- no swap space reserved (we like to live dangerously)
-        // TODO we want MAP_HUGE_2MB
+        // TODO(?): we want MAP_HUGE_2MB
         int flags = MAP_SHARED | MAP_NORESERVE;
 
         // we don't want to prefetch when we allocate a fresh mapping

@@ -18,9 +18,9 @@
 #ifndef THRILL_IO_DISK_ALLOCATOR_HEADER
 #define THRILL_IO_DISK_ALLOCATOR_HEADER
 
-#include "error_handling.hpp"
 #include <thrill/io/bid.hpp>
 #include <thrill/io/config_file.hpp>
+#include <thrill/io/error_handling.hpp>
 #include <thrill/io/file.hpp>
 
 #include <algorithm>
