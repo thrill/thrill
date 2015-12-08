@@ -638,7 +638,7 @@ private:
         bool finished = false;
         stats_.balancing_timer_.Start();
 
-        // TODO: Iterate until all splitters are found.
+        // TODO(?): Iterate until all splitters are found.
         // Theoretically, the condition
         //
         // while(global_ranks != target_ranks)
@@ -667,11 +667,11 @@ private:
             SearchStep(global_ranks, local_ranks, target_ranks, left, width);
 
             // Check if all our ranges have at most size one.
-            // TODO: This can potentially be omitted. See comment
+            // TODO(?): This can potentially be omitted. See comment
             // above.
             finished = true;
 
-            // TODO: We check for accuracy of num_inputs_ + 1
+            // TODO(?): We check for accuracy of num_inputs_ + 1
             // There is a off-by one error in the last search step.
             // We need special treatment of search ranges with width 1, when the pivot
             // originates from our host.

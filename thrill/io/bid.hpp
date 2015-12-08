@@ -23,6 +23,7 @@
 #include <cstring>
 #include <iomanip>
 #include <ostream>
+#include <vector>
 
 namespace thrill {
 namespace io {

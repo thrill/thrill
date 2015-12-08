@@ -14,13 +14,15 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include "error_handling.hpp"
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/config.hpp>
 #include <thrill/io/config_file.hpp>
+#include <thrill/io/error_handling.hpp>
 #include <thrill/io/file.hpp>
 
 #include <fstream>
+#include <string>
+#include <vector>
 
 #if STXXL_WINDOWS
    #ifndef NOMINMAX
@@ -338,7 +340,7 @@ void disk_config::parse_fileio() {
         }
         else if (*p == "autogrow" || *p == "noautogrow" || eq[0] == "autogrow")
         {
-            // TODO: which fileio implementation support autogrow?
+            // TODO(?): which fileio implementation support autogrow?
 
             if (*p == "autogrow") autogrow = true;
             else if (*p == "noautogrow") autogrow = false;
@@ -381,7 +383,7 @@ void disk_config::parse_fileio() {
             }
 
             char* endp;
-            queue = (int)strtoul(eq[1].c_str(), &endp, 10);
+            queue = static_cast<int>(strtoul(eq[1].c_str(), &endp, 10));
             if (endp && *endp != 0) {
                 STXXL_THROW(std::runtime_error,
                             "Invalid parameter '" << *p << "' in disk configuration file.");
@@ -396,7 +398,7 @@ void disk_config::parse_fileio() {
             }
 
             char* endp;
-            queue_length = (int)strtoul(eq[1].c_str(), &endp, 10);
+            queue_length = static_cast<int>(strtoul(eq[1].c_str(), &endp, 10));
             if (endp && *endp != 0) {
                 STXXL_THROW(std::runtime_error,
                             "Invalid parameter '" << *p << "' in disk configuration file.");
@@ -405,7 +407,7 @@ void disk_config::parse_fileio() {
         else if (eq[0] == "device_id" || eq[0] == "devid")
         {
             char* endp;
-            device_id = (int)strtoul(eq[1].c_str(), &endp, 10);
+            device_id = static_cast<int>(strtoul(eq[1].c_str(), &endp, 10));
             if (endp && *endp != 0) {
                 STXXL_THROW(std::runtime_error,
                             "Invalid parameter '" << *p << "' in disk configuration file.");
@@ -451,8 +453,9 @@ std::string disk_config::fileio_string() const {
     // tristate direct variable: OFF, TRY, ON
     if (direct == DIRECT_OFF)
         oss << " direct=off";
-    else if (direct == DIRECT_TRY)
-        ;   // silenced: oss << " direct=try";
+    else if (direct == DIRECT_TRY) {
+        // silenced: oss << " direct=try";
+    }
     else if (direct == DIRECT_ON)
         oss << " direct=on";
     else

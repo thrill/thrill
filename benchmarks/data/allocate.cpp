@@ -17,6 +17,7 @@
 #include <random>
 #include <string>
 #include <tuple>
+#include <vector>
 
 using namespace thrill; // NOLINT
 using common::StatsTimer;

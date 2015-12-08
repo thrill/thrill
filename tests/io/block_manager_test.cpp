@@ -19,6 +19,7 @@
 #include <thrill/mem/new_alloc.hpp>
 
 #include <iostream>
+#include <vector>
 
 using namespace thrill;
 
@@ -63,7 +64,7 @@ TEST(BlockManager, Test1) {
 
     for (size_t i = 0; i < block_type::size; ++i)
     {
-        block->elem[i].integer = i;
+        block->elem_[i].integer = i;
         // memcpy (block->elem[i].chars, "STXXL", 4);
     }
     for (size_t i = 0; i < nblocks; ++i)
@@ -78,7 +79,7 @@ TEST(BlockManager, Test1) {
         reqs[i]->wait();
         for (size_t j = 0; j < block_type::size; ++j)
         {
-            die_unequal(j, static_cast<size_t>(block->elem[j].integer));
+            die_unequal(j, static_cast<size_t>(block->elem_[j].integer));
         }
     }
 

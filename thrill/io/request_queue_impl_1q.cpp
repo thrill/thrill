@@ -14,17 +14,18 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <algorithm>
-
-#include "error_handling.hpp"
 #include <thrill/common/config.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/io/error_handling.hpp>
 #include <thrill/io/request_queue_impl_1q.hpp>
 #include <thrill/io/serving_request.hpp>
 
 #if STXXL_STD_THREADS && STXXL_MSVC >= 1700
  #include <windows.h>
 #endif
+
+#include <algorithm>
+#include <functional>
 
 #ifndef STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
 #define STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION 1

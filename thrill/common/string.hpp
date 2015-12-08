@@ -15,6 +15,7 @@
 #define THRILL_COMMON_STRING_HEADER
 
 #include <cstdarg>
+#include <limits>
 #include <random>
 #include <sstream>
 #include <string>
@@ -226,8 +227,7 @@ Split(const std::string& str, const std::string& sep,
 
         result.push_back(
             str.substr(last_pos,
-                       std::string::size_type(cur_pos - last_pos))
-            );
+                       std::string::size_type(cur_pos - last_pos)));
 
         last_pos = cur_pos + sep.size();
     }

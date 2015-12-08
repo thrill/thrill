@@ -25,6 +25,8 @@
 #include <thrill/io/request.hpp>
 #include <thrill/mem/aligned_alloc.hpp>
 
+#include <array>
+
 #ifndef STXXL_VERBOSE_TYPED_BLOCK
 #define STXXL_VERBOSE_TYPED_BLOCK STXXL_VERBOSE2
 #endif
@@ -51,7 +53,7 @@ class filler_struct
 
 public:
     filler_struct() {
-        LOG0 << "[" << (void*)this << "] filler_struct is constructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] filler_struct is constructed";
     }
 };
 
@@ -62,7 +64,7 @@ class filler_struct<0>
 
 public:
     filler_struct() {
-        LOG0 << "[" << (void*)this << "] filler_struct<> is constructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] filler_struct<> is constructed";
     }
 };
 
@@ -85,25 +87,25 @@ public:
     };
 
     //! Array of elements of type Type
-    value_type elem[size];
+    std::array<value_type, size> elem_;
 
     element_block() {
-        LOG0 << "[" << (void*)this << "] element_block is constructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] element_block is constructed";
     }
 
     //! An operator to access elements in the block
     reference operator [] (size_t i) {
-        return elem[i];
+        return elem_[i];
     }
 
     //! Returns \c iterator pointing to the first element.
     iterator begin() {
-        return elem;
+        return elem_.data();
     }
 
     //! Returns \c const_iterator pointing to the first element.
     const_iterator begin() const {
-        return elem;
+        return elem_.data();
     }
 
     //! Returns \c const_iterator pointing to the first element.
@@ -113,12 +115,12 @@ public:
 
     //! Returns \c iterator pointing to the end element.
     iterator end() {
-        return elem + size;
+        return elem_.data() + size;
     }
 
     //! Returns \c const_iterator pointing to the end element.
     const_iterator end() const {
-        return elem + size;
+        return elem_.data() + size;
     }
 
     //! Returns \c const_iterator pointing to the end element.
@@ -141,15 +143,15 @@ public:
     using bid_type = BID<raw_size>;
 
     //! Array of BID references
-    bid_type ref[nbids];
+    std::array<bid_type, nbids> ref_;
 
     //! An operator to access bid references
     bid_type& operator () (size_t i) {
-        return ref[i];
+        return ref_[i];
     }
 
     block_w_bids() {
-        LOG0 << "[" << (void*)this << "] block_w_bids is constructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] block_w_bids is constructed";
     }
 };
 
@@ -167,7 +169,7 @@ public:
     using bid_type = BID<raw_size>;
 
     block_w_bids() {
-        LOG0 << "[" << (void*)this << "] block_w_bids<> is constructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] block_w_bids<> is constructed";
     }
 };
 
@@ -184,7 +186,7 @@ public:
     info_type info;
 
     block_w_info() {
-        LOG0 << "[" << (void*)this << "] block_w_info is constructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] block_w_info is constructed";
     }
 };
 
@@ -196,7 +198,7 @@ public:
     using info_type = void;
 
     block_w_info() {
-        LOG0 << "[" << (void*)this << "] block_w_info<> is constructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] block_w_info<> is constructed";
     }
 };
 
@@ -210,7 +212,7 @@ private:
 
 public:
     add_filler() {
-        LOG0 << "[" << (void*)this << "] add_filler is constructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] add_filler is constructed";
     }
 };
 
@@ -220,7 +222,7 @@ class add_filler<BaseType, 0>
 {
 public:
     add_filler() {
-        LOG0 << "[" << (void*)this << "] add_filler<> is constructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] add_filler<> is constructed";
     }
 };
 
@@ -272,7 +274,7 @@ public:
 
     typed_block() {
         static_assert(sizeof(typed_block) == raw_size, "Incorrect block size!");
-        LOG0 << "[" << (void*)this << "] typed_block is constructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] typed_block is constructed";
 #if 0
         assert(((long)this) % STXXL_BLOCK_ALIGN == 0);
 #endif
@@ -281,7 +283,7 @@ public:
 #if 0
     typed_block(const typed_block& tb) {
         STXXL_STATIC_ASSERT(sizeof(typed_block) == raw_size);
-        LOG0 << "[" << (void*)this << "] typed_block is copy constructed from [" << (void*)&tb << "]";
+        LOG0 << "[" << static_cast<void*>(this) << "] typed_block is copy constructed from [" << static_cast<void*>(&tb) << "]";
         STXXL_UNUSED(tb);
     }
 #endif
@@ -362,7 +364,7 @@ public:
     //  difference of delta for metadata a compiler needs. It happens to
     //  be 8 bytes long in g++."
     ~typed_block() {
-        LOG0 << "[" << (void*)this << "] typed_block is destructed";
+        LOG0 << "[" << static_cast<void*>(this) << "] typed_block is destructed";
     }
 #endif
 };

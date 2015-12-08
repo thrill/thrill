@@ -25,7 +25,9 @@
 #include <cassert>
 #include <deque>
 #include <functional>
+#include <limits>
 #include <memory>
+#include <queue>
 #include <string>
 #include <vector>
 

@@ -21,6 +21,8 @@
 
 #include <cstring>
 #include <limits>
+#include <string>
+#include <vector>
 
 using namespace thrill;
 
@@ -46,7 +48,7 @@ int main(int argc, char** argv) {
 
     LOG1 << sizeof(void*);
     const int size = 1024 * 384;
-    char* buffer = (char*)mem::aligned_alloc<4096>(size);
+    char* buffer = static_cast<char*>(mem::aligned_alloc<4096>(size));
     memset(buffer, 0, size);
 
 #if STXXL_HAVE_MMAP_FILE
@@ -56,12 +58,12 @@ int main(int argc, char** argv) {
 
     io::syscall_file file2(tempfilename[1], io::file::CREAT | io::file::RDWR | io::file::DIRECT, 1);
 
-    io::request_ptr req[16];
+    std::vector<io::request_ptr> req(16);
     unsigned i;
     for (i = 0; i < 16; i++)
         req[i] = file2.awrite(buffer, i * size, size, my_handler());
 
-    io::wait_all(req, 16);
+    io::wait_all(req.begin(), req.end());
 
     // check behaviour of having requests to the same location at the same time
     for (i = 2; i < 16; i++)
@@ -69,7 +71,7 @@ int main(int argc, char** argv) {
     req[0] = file2.aread(buffer, 0, size, my_handler());
     req[1] = file2.awrite(buffer, 0, size, my_handler());
 
-    wait_all(req, 16);
+    wait_all(req.begin(), req.end());
 
     mem::aligned_dealloc<4096>(buffer);
 

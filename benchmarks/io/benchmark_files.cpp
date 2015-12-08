@@ -21,12 +21,14 @@
 #include <thrill/io/request_operations.hpp>
 #include <thrill/mem/aligned_alloc.hpp>
 
+#include <algorithm>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <string>
 #include <vector>
 
-using namespace thrill;
+using namespace thrill; // NOLINT
 
 #ifdef BLOCK_ALIGN
  #undef BLOCK_ALIGN
@@ -84,7 +86,7 @@ void out_stat(double start, double end, double* times, unsigned n, const std::ve
 static inline double throughput(int64_t bytes, double seconds) {
     if (seconds == 0.0)
         return 0.0;
-    return (double)bytes / (1024 * 1024) / seconds;
+    return static_cast<double>(bytes) / (1024 * 1024) / seconds;
 }
 
 int main(int argc, char* argv[]) {
@@ -197,7 +199,7 @@ int main(int argc, char* argv[]) {
     const size_t block_size_int = block_size / sizeof(int);
     const uint64_t step_size_int = step_size / sizeof(int);
 
-    unsigned* buffer = (unsigned*)mem::aligned_alloc<BLOCK_ALIGN>(step_size * nfiles);
+    unsigned* buffer = static_cast<unsigned*>(mem::aligned_alloc<BLOCK_ALIGN>(step_size * nfiles));
     io::file** files = new io::file*[nfiles];
     io::request_ptr* reqs = new io::request_ptr[nfiles * batch_size];
 
@@ -300,7 +302,7 @@ int main(int argc, char* argv[]) {
                       << std::setw(8) << std::setprecision(3)
                       << (throughput(current_step_size, elapsed)) << " = "
                       << std::setw(8) << std::setprecision(3)
-                      << (throughput(current_step_size, elapsed) * (double)nfiles) << " MiB/s write,";
+                      << (throughput(current_step_size, elapsed) * static_cast<double>(nfiles)) << " MiB/s write,";
 
             t_run.Reset();
 
@@ -342,7 +344,7 @@ int main(int argc, char* argv[]) {
                       << std::setw(8) << std::setprecision(3)
                       << (throughput(current_step_size, elapsed)) << " = "
                       << std::setw(8) << std::setprecision(3)
-                      << (throughput(current_step_size, elapsed) * (double)nfiles) << " MiB/s read";
+                      << (throughput(current_step_size, elapsed) * static_cast<double>(nfiles)) << " MiB/s read";
 
 #ifdef WATCH_TIMES
             out_stat(begin, end, r_finish_times, nfiles, files_arr);
@@ -403,13 +405,13 @@ int main(int argc, char* argv[]) {
               << std::setw(8) << std::setprecision(3)
               << (throughput(totalsizewrite, totaltimewrite)) << " = "
               << std::setw(8) << std::setprecision(3)
-              << (throughput(totalsizewrite, totaltimewrite) * (double)nfiles) << " MiB/s write,";
+              << (throughput(totalsizewrite, totaltimewrite) * static_cast<double>(nfiles)) << " MiB/s write,";
 
     std::cout << std::setw(2) << nfiles << " * "
               << std::setw(8) << std::setprecision(3)
               << (throughput(totalsizeread, totaltimeread)) << " = "
               << std::setw(8) << std::setprecision(3)
-              << (throughput(totalsizeread, totaltimeread) * (double)nfiles) << " MiB/s read"
+              << (throughput(totalsizeread, totaltimeread) * static_cast<double>(nfiles)) << " MiB/s read"
               << std::endl;
 
     if (totaltimewrite != 0.0)
@@ -420,12 +422,12 @@ int main(int argc, char* argv[]) {
     std::cout << "# Non-I/O time " << std::setw(8) << std::setprecision(3)
               << (t_total.Seconds() - totaltimewrite - totaltimeread) << " s, average throughput "
               << std::setw(8) << std::setprecision(3)
-              << (throughput(totalsizewrite + totalsizeread, t_total.Seconds() - totaltimewrite - totaltimeread) * (double)nfiles) << " MiB/s"
+              << (throughput(totalsizewrite + totalsizeread, t_total.Seconds() - totaltimewrite - totaltimeread) * static_cast<double>(nfiles)) << " MiB/s"
               << std::endl;
 
     std::cout << "# Total time   " << std::setw(8) << std::setprecision(3) << t_total.Seconds() << " s, average throughput "
               << std::setw(8) << std::setprecision(3)
-              << (throughput(totalsizewrite + totalsizeread, t_total.Seconds()) * (double)nfiles) << " MiB/s"
+              << (throughput(totalsizewrite + totalsizeread, t_total.Seconds()) * static_cast<double>(nfiles)) << " MiB/s"
               << std::endl;
 
     if (do_verify)

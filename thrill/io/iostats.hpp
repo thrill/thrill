@@ -26,11 +26,11 @@
 // #include <stxxl/bits/common/utils.h>
 #include <thrill/common/defines.hpp>
 
+#include <sys/time.h>
+
 #include <iostream>
 #include <mutex>
 #include <string>
-
-#include <sys/time.h>
 
 namespace thrill {
 namespace io {
@@ -105,17 +105,17 @@ timestamp() {
     boost::posix_time::ptime MyTime = boost::posix_time::microsec_clock::local_time();
     boost::posix_time::time_duration Duration =
         MyTime - boost::posix_time::time_from_string("1970-01-01 00:00:00.000");
-    double sec = double(Duration.hours()) * 3600. +
-                 double(Duration.minutes()) * 60. +
-                 double(Duration.seconds()) +
-                 double(Duration.fractional_seconds()) / (pow(10., Duration.num_fractional_digits()));
+    double sec = static_cast<double>(Duration.hours()) * 3600. +
+                 static_cast<double>(Duration.minutes()) * 60. +
+                 static_cast<double>(Duration.seconds()) +
+                 static_cast<double>(Duration.fractional_seconds()) / (pow(10., Duration.num_fractional_digits()));
     return sec;
 #elif STXXL_WINDOWS
     return GetTickCount() / 1000.0;
 #else
     struct timeval tp;
     gettimeofday(&tp, nullptr);
-    return double(tp.tv_sec) + double(tp.tv_usec) / 1000000.;
+    return static_cast<double>(tp.tv_sec) + static_cast<double>(tp.tv_usec) / 1000000.;
 #endif
 }
 
@@ -167,7 +167,7 @@ public:
 #endif
 
     public:
-        scoped_read_write_timer(size_type size, bool is_write = false)
+        explicit scoped_read_write_timer(size_type size, bool is_write = false)
             : is_write(is_write)
 #if STXXL_IO_STATS
               , running(false)
@@ -216,7 +216,7 @@ public:
 #endif
 
     public:
-        scoped_write_timer(size_type size)
+        explicit scoped_write_timer(size_type size)
 #if STXXL_IO_STATS
             : running(false)
 #endif
@@ -258,7 +258,7 @@ public:
 #endif
 
     public:
-        scoped_read_timer(size_type size)
+        explicit scoped_read_timer(size_type size)
 #if STXXL_IO_STATS
             : running(false)
 #endif
@@ -299,7 +299,7 @@ public:
 #endif
 
     public:
-        scoped_wait_timer(wait_op_type wait_op, bool measure_time = true)
+        explicit scoped_wait_timer(wait_op_type wait_op, bool measure_time = true)
 #ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
             : running(false), wait_op(wait_op)
 #endif
@@ -509,7 +509,7 @@ public:
           elapsed(0.0)
     { }
 
-    stats_data(const stats& s)
+    explicit stats_data(const stats& s)
         : reads(s.get_reads()),
           writes(s.get_writes()),
           volume_read(s.get_read_volume()),

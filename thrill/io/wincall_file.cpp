@@ -16,13 +16,15 @@
 
 #if STXXL_HAVE_WINCALL_FILE
 
-#include <stxxl/bits/common/error_handling.h>
-#include <thrill/io/iostats.h>
+#include <thrill/io/error_handling.hpp>
+#include <thrill/io/iostats.hpp>
 
 #ifndef NOMINMAX
   #define NOMINMAX
 #endif
 #include <windows.h>
+
+#include <limits>
 
 namespace thrill {
 namespace io {

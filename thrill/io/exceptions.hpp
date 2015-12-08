@@ -18,6 +18,8 @@
 
 #include <ios>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace thrill {
 namespace io {
@@ -32,7 +34,7 @@ public:
         : std::ios_base::failure(std::string())
     { }
 
-    io_error(const std::string& message) noexcept
+    explicit io_error(const std::string& message) noexcept
         : std::ios_base::failure(message)
     { }
 };
@@ -44,7 +46,7 @@ public:
         : std::runtime_error(std::string())
     { }
 
-    bad_ext_alloc(const std::string& message) noexcept
+    explicit bad_ext_alloc(const std::string& message) noexcept
         : std::runtime_error(message)
     { }
 };

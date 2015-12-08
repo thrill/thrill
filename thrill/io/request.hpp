@@ -27,6 +27,7 @@
 #include <memory>
 #include <mutex>
 #include <set>
+#include <string>
 
 namespace thrill {
 namespace io {

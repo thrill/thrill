@@ -12,12 +12,12 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <ostream>
-
 #include <thrill/io/disk_queues.hpp>
 #include <thrill/io/file.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request.hpp>
+
+#include <ostream>
 
 namespace thrill {
 namespace io {

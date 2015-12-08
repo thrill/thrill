@@ -28,15 +28,14 @@ int main(int argc, char** argv) {
     }
 
     size_t max_size = atoi(argv[3]);
-    uint64_t* buffer = (uint64_t*)mem::aligned_alloc<4096>(max_size);
+    uint64_t* buffer = static_cast<uint64_t*>(mem::aligned_alloc<4096>(max_size));
 
     try
     {
         std::unique_ptr<io::file> file(
             io::create_file(
                 argv[1], argv[2],
-                io::file::CREAT | io::file::RDWR | io::file::DIRECT)
-            );
+                io::file::CREAT | io::file::RDWR | io::file::DIRECT));
         file->set_size(max_size);
 
         io::request_ptr req;

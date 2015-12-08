@@ -61,7 +61,7 @@ inline void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
     // accesses can't be detected easily.
     // Overhead: about Alignment bytes.
     size_t alloc_size = Alignment + sizeof(char*) + meta_info_size + size;
-    char* buffer = (char*)std::malloc(alloc_size);
+    char* buffer = static_cast<char*>(std::malloc(alloc_size));
 #else
     // More space consuming and memory fragmenting variant using
     // posix_memalign() instead of malloc()/realloc(). Ensures that the end
@@ -73,7 +73,7 @@ inline void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
     // Overhead: about 2 * Alignment bytes.
     size_t alloc_size = Alignment * div_ceil(sizeof(char*) + meta_info_size, Alignment) + size;
     char* buffer;
-    if (posix_memalign((void**)&buffer, Alignment, alloc_size) != 0)
+    if (posix_memalign(static_cast<void**>(&buffer), Alignment, alloc_size) != 0)
         throw std::bad_alloc();
 #endif
     if (buffer == nullptr)
@@ -84,7 +84,7 @@ inline void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
     char* reserve_buffer = buffer + sizeof(char*) + meta_info_size;
     char* result = reserve_buffer + Alignment -
                    (((size_t)reserve_buffer) % (Alignment)) - meta_info_size;
-    LOG << "aligned_alloc<" << Alignment << ">() address " << (void*)result
+    LOG << "aligned_alloc<" << Alignment << ">() address " << static_cast<void*>(result)
         << " lost " << (result - buffer) << " bytes";
     //-tb: check that there is space for one char* before the "result" pointer
     // delivered to the user. this char* is set below to the beginning of the
@@ -95,7 +95,7 @@ inline void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
     // so access behind the requested size can be recognized
     size_t realloc_size = (result - buffer) + meta_info_size + size;
     if (realloc_size < alloc_size && aligned_alloc_settings<int>::may_use_realloc) {
-        char* realloced = (char*)std::realloc(buffer, realloc_size);
+        char* realloced = static_cast<char*>(std::realloc(buffer, realloc_size));
         if (buffer != realloced) {
             // hmm, realloc does move the memory block around while shrinking,
             // might run under valgrind, so disable realloc and retry
@@ -107,12 +107,12 @@ inline void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
         assert(result + size <= buffer + realloc_size);
     }
 
-    *(((char**)result) - 1) = buffer;
+    *((reinterpret_cast<char**>(result)) - 1) = buffer;
     LOG << "aligned_alloc<" << Alignment << ">(), allocated at "
-        << (void*)buffer << " returning " << (void*)result;
+        << static_cast<void*>(buffer) << " returning " << static_cast<void*>(result);
     LOG << "aligned_alloc<" << Alignment << ">(size = " << size
         << ", meta info size = " << meta_info_size
-        << ") => buffer = " << (void*)buffer << ", ptr = " << (void*)result;
+        << ") => buffer = " << static_cast<void*>(buffer) << ", ptr = " << static_cast<void*>(result);
 
     return result;
 }
@@ -122,9 +122,9 @@ inline void
 aligned_dealloc(void* ptr) {
     if (!ptr)
         return;
-    char* buffer = *(((char**)ptr) - 1);
+    char* buffer = *((reinterpret_cast<char**>(ptr)) - 1);
     LOG0 << "aligned_dealloc<" << Alignment << ">(), ptr = " << ptr
-         << ", buffer = " << (void*)buffer;
+         << ", buffer = " << static_cast<void*>(buffer);
     std::free(buffer);
 }
 
