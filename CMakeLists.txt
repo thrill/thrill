@@ -378,6 +378,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # descend into library source
 add_subdirectory(thrill)
 
+# descend into examples source
+add_subdirectory(examples)
+
 # descend into testsuite
 add_subdirectory(tests)
 

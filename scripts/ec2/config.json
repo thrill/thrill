@@ -7,7 +7,7 @@
   "ZONE" : "us-east-1a",
 
   "AMI_ID" : "ami-9183fdf4",
-  "INSTANCE_TYPE" : "m4.large",
+  "INSTANCE_TYPE" : "t2.micro",
   "VOLUME_TYPE" : "gp2",
   "COUNT" : 1,
 
@@ -16,5 +16,7 @@
   "EC2_ATTACH_VOLUME" : "/dev/xvdy",
 
   "SPOT_PRICE" : "0.016",
-  "TYPE" : "one-time"
+  "TYPE" : "one-time",
+
+  "JOB_ID" : 1445088789
 }

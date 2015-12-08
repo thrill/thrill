@@ -38,8 +38,8 @@ namespace api {
 //! \{
 
 /*!
- * merge_local holds functions internally used by merge.
- */
+* merge_local holds functions internally used by merge.
+*/
 namespace merge_local {
 
 //! Set this variable to true to enable generation and output of merge stats.
@@ -48,8 +48,8 @@ static const bool stats_enabled = false;
 using StatsTimer = common::StatsTimer<stats_enabled>;
 
 /*!
- * MergeStatsBase holds timers for measuring merge performance.
- */
+* MergeStatsBase holds timers for measuring merge performance.
+*/
 class MergeStatsBase
 {
 public:
@@ -74,9 +74,9 @@ public:
 };
 
 /*!
- * MergeStats is an implementation of MergeStatsBase, that supports accumulating
- * the output and printing it to the standard out stream.
- */
+* MergeStats is an implementation of MergeStatsBase, that supports accumulating
+* the output and printing it to the standard out stream.
+*/
 class MergeStats : public MergeStatsBase
 {
 public:
@@ -118,15 +118,15 @@ public:
 } // namespace merge_local
 
 /*!
- * Implementation of Thrill's merge. This merge implementation balances all data
- * before merging, so each worker has the same amount of data when merge
- * finishes.
- *
- * \tparam ValueType The type of the first and second input DIA
- * \tparam Comparator The comparator defining input and output order.
- * \tparam ParentDIA0 The type of the first input DIA
- * \tparam ParentDIAs The types of the other input DIAs
- */
+* Implementation of Thrill's merge. This merge implementation balances all data
+* before merging, so each worker has the same amount of data when merge
+* finishes.
+*
+* \tparam ValueType The type of the first and second input DIA
+* \tparam Comparator The comparator defining input and output order.
+* \tparam ParentDIA0 The type of the first input DIA
+* \tparam ParentDIAs The types of the other input DIAs
+*/
 template <typename ValueType, typename Comparator,
           typename ParentDIA0,
           typename ... ParentDIAs>
@@ -727,19 +727,19 @@ private:
 };
 
 /*!
- * Merge is a DOp, which merges any number of sorted DIAs to a single sorted
- * DIA.  All input DIAs must be sorted conforming to the given comparator.  The
- * type of the output DIA will be the type of this DIA.
- *
- * The merge operation balances all input data, so that each worker will have an
- * equal number of elements when the merge completes.
- *
- * \tparam Comparator Comparator to specify the order of input and output.
- *
- * \param comparator Comparator to specify the order of input and output.
- *
- * \param second_dia DIA, which is merged with this DIA.
- */
+* Merge is a DOp, which merges any number of sorted DIAs to a single sorted
+* DIA.  All input DIAs must be sorted conforming to the given comparator.  The
+* type of the output DIA will be the type of this DIA.
+*
+* The merge operation balances all input data, so that each worker will have an
+* equal number of elements when the merge completes.
+*
+* \tparam Comparator Comparator to specify the order of input and output.
+*
+* \param comparator Comparator to specify the order of input and output.
+*
+* \param second_dia DIA, which is merged with this DIA.
+*/
 template <typename Comparator, typename FirstDIA, typename ... DIAs>
 auto Merge(const Comparator &comparator,
            const FirstDIA &first_dia, const DIAs &... dias) {

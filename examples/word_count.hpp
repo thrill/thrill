@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/examples/word_count.hpp
+ * examples/word_count.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -12,19 +12,34 @@
 #ifndef THRILL_EXAMPLES_WORD_COUNT_HEADER
 #define THRILL_EXAMPLES_WORD_COUNT_HEADER
 
+#include <thrill/api/generate.hpp>
 #include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/groupby_index.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/reduce.hpp>
+#include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
+#include <thrill/api/sort.hpp>
+#include <thrill/api/sum.hpp>
+#include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
+#include <thrill/api/zip.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
 
 #include <algorithm>
+#include <iostream>
 #include <random>
 #include <string>
 #include <utility>
 
-namespace thrill {
+using thrill::DIA;
+using thrill::Context;
+
+using namespace thrill; // NOLINT
+
 namespace examples {
 
 using WordCountPair = std::pair<std::string, size_t>;
@@ -36,11 +51,10 @@ auto WordCount(const DIA<std::string, InStack>&input) {
 
     auto word_pairs = input.template FlatMap<WordCountPair>(
         [](const std::string& line, auto emit) -> void {
-                /* map lambda: emit each word */
-            for (const std::string& word : common::Split(line, ' ')) {
-                if (word.size() != 0)
-                    emit(WordCountPair(word, 1));
-            }
+            /* map lambda: emit each word */
+            thrill::common::SplitCallback(
+                line, ' ', [&](const auto begin, const auto end)
+                { emit(WordCountPair(std::string(begin, end), 1)); });
         });
 
     return word_pairs.ReduceBy(
@@ -54,45 +68,7 @@ auto WordCount(const DIA<std::string, InStack>&input) {
         });
 }
 
-size_t WordCountBasic(Context& ctx) {
-
-    auto lines = ReadLines(ctx, "inputs/wordcount.in");
-
-    auto red_words = WordCount(lines);
-
-    red_words.Map(
-        [](const WordCountPair& wc) {
-            return wc.first + ": " + std::to_string(wc.second);
-        })
-    .WriteLinesMany(
-        "outputs/wordcount-");
-
-    return 0;
-}
-
-size_t WordCountGenerated(Context& ctx, size_t size) {
-
-    auto lines = GenerateFromFile(
-        ctx, "inputs/headwords",
-        [](const std::string& line) {
-            return line;
-        },
-        size);
-
-    auto reduced_words = WordCount(lines);
-
-    reduced_words.Map(
-        [](const WordCountPair& wc) {
-            return wc.first + ": " + std::to_string(wc.second);
-        })
-    .WriteLinesMany(
-        "outputs/wordcount-");
-
-    return 42;
-}
-
 } // namespace examples
-} // namespace thrill
 
 #endif // !THRILL_EXAMPLES_WORD_COUNT_HEADER
 
