@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/serialization/data.hpp
+ * benchmarks/serialization/cpp-serializers.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -7,44 +7,29 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#pragma once
-#ifndef THRILL_BENCHMARKS_SERIALIZATION_DATA_HEADER
-#define THRILL_BENCHMARKS_SERIALIZATION_DATA_HEADER
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/data/file.hpp>
+#include <thrill/data/serialization.hpp>
+#include <thrill/data/serialization_cereal.hpp>
 
-#include <cereal/types/vector.hpp>
-
-#include <stdint.h>
+#include <cstdlib>
+#include <iomanip>
+#include <iostream>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
-/*
- * test string to benchmark serialization;
- * comparable to results in https://github.com/thekvs/cpp-serializers
- */
-const std::string bench_string =
-    "shgfkghsdfjhgsfjhfgjhfgjsffghgsfdhgsfdfkdjh"
-    "fioukjhkfdljgdfkgvjafdhasgdfwurtjkghfsdjkfg";
+#include "data.hpp"
 
-/*
- * test string to serialize int vectoren;
- * comparable to results in https://github.com/thekvs/cpp-serializers
- */
-struct BenchVector {
-    BenchVector() { }
-    explicit BenchVector(const std::vector<int64_t>& bv) : bench_vector(bv) { }
+using namespace thrill; // NOLINT
 
-    std::vector<int64_t> bench_vector;
+//! serialize the same data as in https://github.com/thekvs/cpp-serializers
+int main() {
+    const size_t kStringsCount = 100;
+    const std::string kStringValue = "shgfkghsdfjhgsfjhfgjhfgjsffghgsfdhgsfdfkdjhfioukjhkfdljgdfkgvjafdhasgdfwurtjkghfsdjkfg";
 
-    template <typename Archive>
-    void serialize(Archive& archive) {
-        archive(bench_vector);
-    }
-};
-
-static const BenchVector bench_vector = BenchVector(
-    {
+    const std::vector<std::size_t> kIntegers = {
         34492, 6603, 44033, 8874, 47607, 38416, 20395, 29192, 38620, 36775,
         35058, 20501, 39664, 64574, 11261, 35679, 16607, 26020, 39476, 16699,
         21505, 20947, 53587, 24746, 45980, 18827, 137, 61753, 53340, 25406,
@@ -145,20 +130,30 @@ static const BenchVector bench_vector = BenchVector(
         47843, 61836, 25260, 36400, 22250, 17010, 29460, 51714, 42262, 28230,
         54088, 34531, 17424, 36588, 53806, 32847, 11804, 28344, 16504, 38941,
         23441, 53703, 31551, 61990, 59981, 19355, 32417, 16169, 64680, 1600
-    });
+    };
 
-using p_is = std::pair<int, std::string>;
-static const p_is p_is0 = std::make_pair(9, "blablablabalbalbla");
-using p_pi = std::pair<p_is, int>;
-static const p_pi p_pi0 = std::make_pair(p_is0, 89);
-using t_pp = std::tuple<p_is, p_pi>;
-static const t_pp t_pp0 = std::make_tuple(p_is0, p_pi0);
-using t_ttpi = std::tuple<t_pp, t_pp, p_pi, int>;
-static const t_ttpi t_ttpi0 = std::make_tuple(t_pp0, t_pp0, p_pi0, 8769);
-static const t_ttpi t_ttpi1 = std::make_tuple(t_pp0, t_pp0, p_pi0, 870999);
-using t_tt = std::tuple<t_ttpi, t_ttpi, t_ttpi, t_ttpi>;
-static const t_tt bench_tuple = std::make_tuple(t_ttpi0, t_ttpi0, t_ttpi1, t_ttpi1);
+    std::string str_serial = "";
+    for (std::size_t i = 0; i < kStringsCount; ++i) {
+        str_serial += kStringValue;
+    }
+    std::pair<std::string, std::vector<std::size_t> > pair_serial = std::make_pair(str_serial, kIntegers);
 
-#endif // !THRILL_BENCHMARKS_SERIALIZATION_DATA_HEADER
+    common::StatsTimer<true> timer(false);
+    data::BlockPool block_pool(nullptr, nullptr);
+    data::File f(block_pool);
+    auto w = f.GetWriter();
+
+    timer.Start();
+    for (std::size_t i = 0; i < 1000000; ++i) {
+        {
+            auto w = f.GetWriter();
+            w(pair_serial);
+        }
+        auto r = f.GetConsumeReader();
+        r.Next<std::pair<std::string, std::vector<std::size_t> > >();
+    }
+    timer.Stop();
+    LOG1 << timer.Milliseconds();
+}
 
 /******************************************************************************/

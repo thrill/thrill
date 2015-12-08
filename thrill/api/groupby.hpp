@@ -111,13 +111,17 @@ public:
 
     void PushData(bool consume) final {
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
+        thrill::common::StatsTimer<true> timer(false);
 
+        LOG << "sort data";
+        timer.Start();
         const size_t num_runs = files_.size();
         // if there's only one run, call user funcs
         if (num_runs == 1) {
             RunUserFunc(files_[0], consume);
         }       // otherwise sort all runs using multiway merge
         else {
+            LOG << "start multiwaymerge";
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
             for (size_t t = 0; t < num_runs; ++t) {
@@ -127,13 +131,14 @@ public:
                 Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
             }
-
+            LOG << "start multiwaymerge for real";
             auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
                 seq.begin(),
                 seq.end(),
                 totalsize_,
                 ValueComparator(*this));
 
+            LOG << "run user func";
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator<
@@ -147,6 +152,12 @@ public:
                 }
             }
         }
+        timer.Stop();
+        LOG1    //<< "\n"
+            << "RESULT"
+            << " name=multiwaymerge"
+            << " time=" << timer.Milliseconds()
+            << " multiwaymerge=" << (num_runs > 1);
     }
 
     void Dispose() override { }
@@ -166,7 +177,9 @@ private:
         auto r = f.GetReader(consume);
         if (r.HasNext()) {
             // create iterator to pass to user_function
+            LOG << "get iterator";
             auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
+            LOG << "start running user func";
             while (user_iterator.HasNextForReal()) {
                 // call user function
                 const ValueOut res = groupby_function_(user_iterator,
@@ -174,6 +187,7 @@ private:
                 // push result to callback functions
                 this->PushItem(res);
             }
+            LOG << "finished user func";
         }
     }
 
@@ -208,13 +222,22 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
+        thrill::common::StatsTimer<true> timer(false);
+
         LOG << "running group by main op";
 
-        const size_t FIXED_VECTOR_SIZE = 1000000000 / sizeof(ValueIn);
+        const size_t FIXED_VECTOR_SIZE = 1024 * 1024 * 1024 / sizeof(ValueIn) / 2;
         // const size_t FIXED_VECTOR_SIZE = 4;
         std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
 
+        // close all emitters
+        for (auto& e : emitter_) {
+            e.Close();
+        }
+        LOG << "closed all emitters";
+        LOG << "receive elems";
+        timer.Start();
         // get incoming elements
         auto reader = stream_->OpenCatReader(true /* consume */);
         while (reader.HasNext()) {
@@ -228,8 +251,17 @@ private:
         }
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
-
+        LOG << "finished receiving elems";
         stream_->Close();
+
+        timer.Stop();
+
+        LOG1    //<< "\n"
+            << "RESULT"
+            << " name=mainop"
+            << " time=" << timer.Milliseconds()
+            << " number_files=" << files_.size()
+            << " vector_size=" << FIXED_VECTOR_SIZE;
     }
 };
 

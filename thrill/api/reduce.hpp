@@ -20,8 +20,10 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_post_table.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
+#include <thrill/core/reduce_post_bucket_table.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
+#include <thrill/core/reduce_pre_bucket_table.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
 
 #include <functional>
 #include <string>
@@ -57,7 +59,7 @@ template <typename ValueType, typename ParentDIA,
           const bool RobustKey, const bool SendPair>
 class ReduceNode final : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
     using Super = DOpNode<ValueType>;
 
@@ -91,16 +93,30 @@ public:
           reduce_function_(reduce_function),
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters()),
-          reduce_pre_table_(
-              parent.ctx().num_workers(), key_extractor,
-              reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6),
-          reduce_post_table_(
-              context_, key_extractor_, reduce_function_,
-              [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostReduceByHashKey<Key>(),
-              core::PostReduceFlushToDefault<Key,
-                                             ReduceFunction>(reduce_function),
-              common::Range(), Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
+//          reduce_pre_table_(context_,
+//              parent.ctx().num_workers(), key_extractor,
+//              reduce_function_, emitters_,
+//              core::PreProbingReduceByHashKey<Key>(),
+//              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function), Value(), 1000000, 1.0, 0.6),
+//          reduce_post_table_(
+//              context_, key_extractor_, reduce_function_,
+//              [this](const ValueType& item) { return this->PushItem(item); },
+//              core::PostProbingReduceByHashKey<Key>(),
+//              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+//              0, 0, Value(), 100000, 1.0, 0.6, 0.1)
+          reduce_pre_table_(context_,
+                            parent.ctx().num_workers(), key_extractor,
+                            reduce_function_, emitters_,
+                            Key(),
+                            core::PreProbingReduceByHashKey<Key>(),
+                            core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+                            Value(), 10000000, 0.6),
+          reduce_post_table_(context_, key_extractor_, reduce_function_,
+                             [this](const ValueType& item) { return this->PushItem(item); },
+                             Key(),
+                             core::PostProbingReduceByHashKey<Key>(),
+                             core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+                             common::Range(), Value(), 10000000, 0.6, 0.1)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -169,14 +185,25 @@ private:
 
     std::vector<data::CatStream::Writer> emitters_;
 
-    core::ReducePreTable<
-        Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;
+    core::ReducePreProbingTable<
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+        core::PostProbingReduceFlush<Key, Value, ReduceFunction>, core::PreProbingReduceByHashKey<Key>,
+        std::equal_to<Key>, false> reduce_pre_table_;
 
-    core::ReducePostTable<
+    core::ReducePostProbingTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-        core::PostReduceFlushToDefault<Key, ReduceFunction>, core::PostReduceByHashKey<Key>,
-        std::equal_to<Key>, 16*16> reduce_post_table_;
+        core::PostProbingReduceFlush<Key, Value, ReduceFunction>, core::PostProbingReduceByHashKey<Key>,
+        std::equal_to<Key> > reduce_post_table_;
+
+//    core::ReducePreTable<
+//            ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+//            core::PostBucketReduceFlush<Key, Value, ReduceFunction>, core::PreProbingReduceByHashKey<Key>,
+//            std::equal_to<Key>, 32 * 16, false> reduce_pre_table_;
+//
+//    core::ReducePostTable<
+//            ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
+//            core::PostBucketReduceFlush<Key, Value, ReduceFunction>, core::PostProbingReduceByHashKey<Key>,
+//            std::equal_to<Key>, 32 * 16> reduce_post_table_;
 
     bool reduced = false;
 };

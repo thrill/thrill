@@ -201,7 +201,7 @@ public:
 
 #ifndef SWIG
 
-// TODO: this should not be used, parameterize our code to use a HashFunction.
+// TODO(tb): this should not be used, parameterize our code to use a HashFunction.
 namespace std {
 template <>
 struct hash<thrill::PyObjectRef>
@@ -326,7 +326,7 @@ public:
                         reduce_function(obj1.get_incref(), obj2.get_incref()),
                         true);
                 })
-            // TODO: remove the Cache one ReduceNode can be executed again.
+            // TODO(tb): remove the Cache one ReduceNode can be executed again.
             .Cache());
     }
 

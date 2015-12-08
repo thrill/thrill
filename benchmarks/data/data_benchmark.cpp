@@ -24,6 +24,7 @@
 #include <random>
 #include <string>
 #include <tuple>
+#include <vector>
 
 #include "data_generators.hpp"
 

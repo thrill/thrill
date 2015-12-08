@@ -8,7 +8,7 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-thrill_build_prog(word_count)
+thrill_build_prog(word_count_bench)
 thrill_build_prog(line_count)
 
 file(COPY "${CMAKE_SOURCE_DIR}/tests/inputs/wordcount.in"

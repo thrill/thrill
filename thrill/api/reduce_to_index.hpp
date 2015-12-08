@@ -20,8 +20,10 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_post_table.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
+#include <thrill/core/reduce_post_bucket_table.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
+#include <thrill/core/reduce_pre_bucket_table.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
 
 #include <functional>
 #include <string>
@@ -36,20 +38,20 @@ namespace api {
 //! \{
 
 /*!
- * A DIANode which performs a ReduceToIndex operation. ReduceToIndex groups the elements in a
- * DIA by their key and reduces every key bucket to a single element each. The
- * ReduceToIndexNode stores the key_extractor and the reduce_function UDFs. The
- * chainable LOps ahead of the Reduce operation are stored in the Stack. The
- * ReduceToIndexNode has the type ValueType, which is the result type of the
- * reduce_function. The key type is an unsigned integer and the output DIA will have element
- * with key K at index K.
- *
- * \tparam ParentType Input type of the Reduce operation
- * \tparam ValueType Output type of the Reduce operation
- * \tparam ParentStack Function stack, which contains the chained lambdas between the last and this DIANode.
- * \tparam KeyExtractor Type of the key_extractor function.
- * \tparam ReduceFunction Type of the reduce_function
- */
+* A DIANode which performs a ReduceToIndex operation. ReduceToIndex groups the elements in a
+* DIA by their key and reduces every key bucket to a single element each. The
+* ReduceToIndexNode stores the key_extractor and the reduce_function UDFs. The
+* chainable LOps ahead of the Reduce operation are stored in the Stack. The
+* ReduceToIndexNode has the type ValueType, which is the result type of the
+* reduce_function. The key type is an unsigned integer and the output DIA will have element
+* with key K at index K.
+*
+* \tparam ParentType Input type of the Reduce operation
+* \tparam ValueType Output type of the Reduce operation
+* \tparam ParentStack Function stack, which contains the chained lambdas between the last and this DIANode.
+* \tparam KeyExtractor Type of the key_extractor function.
+* \tparam ReduceFunction Type of the reduce_function
+*/
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
           bool RobustKey, bool SendPair>
@@ -73,11 +75,6 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
 public:
     using Emitter = data::DynBlockWriter;
 
-    using PreHashTable = typename core::ReducePreTable<
-              Key, Value,
-              KeyExtractor, ReduceFunction, RobustKey,
-              core::PreReduceByIndex, std::equal_to<Key>, 16*16>;
-
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
      * key_extractor and reduce_function.
@@ -100,20 +97,24 @@ public:
           reduce_function_(reduce_function),
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters()),
-          reduce_pre_table_(
-              parent.ctx().num_workers(), key_extractor,
-              reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6,
-              core::PreReduceByIndex(result_size)),
           result_size_(result_size),
           neutral_element_(neutral_element),
+          reduce_pre_table_(context_,
+                            parent.ctx().num_workers(), key_extractor,
+                            reduce_function_, emitters_, core::PreProbingReduceByIndex<Key>(result_size),
+                            core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
+                            neutral_element_,
+                            1024 * 1024 * 32, 1.0, 0.6),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostReduceByIndex(),
-              core::PostReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
+              core::PostProbingReduceByIndex<Key>(),
+              core::PostBucketReduceFlushToIndex<Key,
+                                                 Value, ReduceFunction, core::PostProbingReduceByIndex<Key> >(reduce_function),
               common::CalculateLocalRange(
                   result_size_, context_.num_workers(), context_.my_rank()),
-              neutral_element_, 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01)
+              neutral_element_,
+              1024 * 1024 * 32, 1.0, 0.6, 0.1)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -184,14 +185,17 @@ private:
 
     std::vector<data::CatStream::Writer> emitters_;
 
-    PreHashTable reduce_pre_table_;
-
     size_t result_size_;
 
     Value neutral_element_;
 
+    core::ReducePreTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+                         core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>, core::PreProbingReduceByIndex<Key>,
+                         std::equal_to<Key>, 16*16> reduce_pre_table_;
+
     core::ReducePostTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-                          core::PostReduceFlushToIndex<Key, Value, ReduceFunction>, core::PostReduceByIndex,
+                          core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction, core::PostProbingReduceByIndex<Key> >,
+                          core::PostProbingReduceByIndex<Key>,
                           std::equal_to<Key>, 16*16> reduce_post_table_;
 
     bool reduced = false;

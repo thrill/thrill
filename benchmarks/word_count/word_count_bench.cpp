@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/word_count/word_count.cpp
+ * benchmarks/word_count/word_count_bench.cpp
  *
  * Runner program for WordCount example. See thrill/examples/word_count.hpp for
  * the source to the example.
@@ -33,6 +33,30 @@ WordCountPair CreateWCPair(std::string::const_iterator start, size_t length) {
     return WordCountPair(FastString::Ref(start, length), 1);
 }
 
+template <typename InStack>
+auto WordCount(const DIA<std::string, InStack>&input) {
+
+    auto word_pairs = input.template FlatMap<WordCountPair>(
+        [](const std::string& line, auto emit) -> void {
+            /* map lambda: emit each word */
+            auto last = line.begin();
+            thrill::common::SplitCallback(
+                line, ' ', [&](const auto begin, const auto end) {
+                    if (end > last)
+                        emit(CreateWCPair(begin, end - begin));
+                    last = end + 1;
+                });
+        }).ReducePair(
+        [](const size_t& a, const size_t& b) {
+            return a + b;
+        });
+
+    return word_pairs.Map(
+        [](const WordCountPair& wc) {
+            return wc.first.ToString() + ": " + std::to_string(wc.second);
+        });
+}
+
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
@@ -53,37 +77,15 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
-    auto start_func =
-        [&input, &output](api::Context& ctx) {
-            ctx.set_consume(true);
+    auto start_func = [&input, &output](api::Context& ctx) {
+                          ctx.set_consume(true);
 
-            auto input_dia = ReadLines(ctx, input);
+                          auto lines = ReadLines(ctx, input);
 
-            auto word_pairs = input_dia.template FlatMap<WordCountPair>(
-                [](const std::string& line, auto emit) -> void {
-                    /* map lambda: emit each word */
-                    auto last = line.begin();
-                    for (auto it = line.begin(); it != line.end(); it++) {
-                        if (*it == ' ') {
-                            if (it > last) {
-                                emit(CreateWCPair(last, it - last));
-                            }
-                            last = it + 1;
-                        }
-                    }
-                    if (line.end() > last) {
-                        emit(CreateWCPair(last, line.end() - last));
-                    }
-                }).ReducePair(
-                [](const size_t& a, const size_t& b) {
-                    return a + b;
-                });
+                          auto word_pairs = WordCount(lines);
 
-            word_pairs.Map(
-                [](const WordCountPair& wc) {
-                    return wc.first.ToString() + ": " + std::to_string(wc.second);
-                }).WriteLinesMany(output);
-        };
+                          word_pairs.WriteLinesMany(output);
+                      };
 
     return api::Run(start_func);
 }

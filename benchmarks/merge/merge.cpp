@@ -21,6 +21,7 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
 
+#include <algorithm>
 #include <random>
 #include <string>
 #include <thread>
