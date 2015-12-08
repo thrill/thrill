@@ -151,7 +151,7 @@ build_test(data/stream_set_test)
 build_test(data/serialization_cereal_test)
 build_test(data/serialization_test)
 
-if(OFF)
+if(ON)
 build_test(core/pre_hash_table_test)
 build_test(core/pre_hash_table_probing_test)
 build_test(core/post_hash_table_test)

@@ -78,7 +78,7 @@ TEST(BlockManager, Test1) {
         reqs[i]->wait();
         for (size_t j = 0; j < block_type::size; ++j)
         {
-            die_unequal(j, block->elem[j].integer);
+            die_unequal(j, static_cast<size_t>(block->elem[j].integer));
         }
     }
 
