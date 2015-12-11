@@ -66,7 +66,7 @@ public:
     //! move-assignment operator: default
     BlockQueue& operator = (BlockQueue&&) = default;
 
-    void AppendBlock(const Block& b) final {
+    void AppendBlock(const PinnedBlock& b) final {
         queue_.emplace(b);
     }
 
@@ -81,9 +81,9 @@ public:
 
     enum { allocate_can_fail_ = false };
 
-    Block Pop() {
-        if (read_closed_) return Block();
-        Block b;
+    PinnedBlock Pop() {
+        if (read_closed_) return PinnedBlock();
+        PinnedBlock b;
         queue_.pop(b);
         read_closed_ = !b.IsValid();
         return b;
@@ -115,7 +115,7 @@ public:
     Reader GetReader(bool consume);
 
 private:
-    common::ConcurrentBoundedQueue<Block> queue_;
+    common::ConcurrentBoundedQueue<PinnedBlock> queue_;
 
     common::AtomicMovable<bool> write_closed_ = { false };
 
@@ -144,7 +144,7 @@ public:
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
-    Block NextBlock() {
+    PinnedBlock NextBlock() {
         return queue_.Pop();
     }
 
@@ -181,8 +181,8 @@ public:
         : queue_(s.queue_) { s.queue_ = nullptr; }
 
     //! Return next block for BlockQueue, store into caching File and return it.
-    Block NextBlock() {
-        Block b = queue_->Pop();
+    PinnedBlock NextBlock() {
+        PinnedBlock b = queue_->Pop();
 
         // cache block in file_ (but not the termination block from the queue)
         if (b.IsValid())

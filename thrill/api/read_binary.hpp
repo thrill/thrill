@@ -203,11 +203,11 @@ private:
             }
         }
 
-        data::Block NextBlock() {
-            if (done_) return data::Block();
+        data::PinnedBlock NextBlock() {
+            if (done_) return data::PinnedBlock();
 
-            data::ByteBlockPtr bytes
-                = context_.block_pool().AllocateBlock(block_size);
+            data::PinnedByteBlockPtr bytes
+                = context_.block_pool().AllocateByteBlock(block_size);
 
             size_t rb = std::min(block_size, remain_size_);
 
@@ -217,7 +217,7 @@ private:
 
             if (size > 0) {
                 remain_size_ -= rb;
-                return data::Block(bytes, 0, size, 0, 0);
+                return data::PinnedBlock(std::move(bytes), 0, size, 0, 0);
             }
             else if (size < 0) {
                 throw common::ErrnoException("File reading error");
@@ -226,7 +226,7 @@ private:
                 // size == 0 -> read finished
                 sysfile_.close();
                 done_ = true;
-                return data::Block();
+                return data::PinnedBlock();
             }
         }
 

@@ -79,7 +79,7 @@ public:
     StreamSink(StreamSink&&) = default;
 
     //! Appends data to the StreamSink.  Data may be sent but may be delayed.
-    void AppendBlock(const Block& block) final {
+    void AppendBlock(const PinnedBlock& block) final {
         if (block.size() == 0) return;
 
         tx_timespan_->StartEventually();

@@ -192,9 +192,10 @@ public:
         mpi_async_requests_.emplace_back(req);
     }
 
-    void AsyncRead(net::Connection& c, const data::ByteBlockPtr& block,
+    void AsyncRead(net::Connection& c, const data::PinnedByteBlockPtr& block,
                    AsyncReadByteBlockCallback done_cb) final {
         assert(c.IsValid());
+        assert(block.valid());
 
         if (block->size() == 0) {
             if (done_cb) done_cb(c);
@@ -291,7 +292,7 @@ private:
 
         //! Construct AsyncRead with ByteBuffer
         MpiAsync(net::Connection& conn,
-                 const data::ByteBlockPtr& block,
+                 const data::PinnedByteBlockPtr& block,
                  const AsyncReadByteBlockCallback& callback)
             : type_(READ_BYTE_BLOCK),
               read_byte_block_(conn, block, callback) { }

@@ -45,9 +45,9 @@ public:
      *
      * \param swap_file_suffix suffix to append on file nam of the swap file
      */
-    explicit BlockPool(mem::Manager* mem_manager,
-                       mem::Manager* mem_manager_external,
-                       std::string swap_file_suffix = "")
+    BlockPool(mem::Manager* mem_manager,
+              mem::Manager* mem_manager_external,
+              std::string swap_file_suffix = "")
         : BlockPool(0, 0, mem_manager, mem_manager_external, swap_file_suffix)
     { }
 
@@ -68,10 +68,10 @@ public:
      *
      * \param swap_file_suffix suffix to append on file nam of the swap file
      */
-    explicit BlockPool(size_t soft_memory_limit, size_t hard_memory_limit,
-                       mem::Manager* mem_manager,
-                       mem::Manager* mem_manager_external,
-                       std::string swap_file_suffix = "")
+    BlockPool(size_t soft_memory_limit, size_t hard_memory_limit,
+              mem::Manager* mem_manager,
+              mem::Manager* mem_manager_external,
+              std::string swap_file_suffix = "")
         : mem_manager_(mem_manager, "BlockPool"),
           ext_mem_manager_(mem_manager_external, "BlockPool"),
           page_mapper_("/tmp/thrill.swapfile" + swap_file_suffix),
@@ -87,15 +87,20 @@ public:
         tasks_.LoopUntilEmpty();
     }
 
-    //! Allocates a block the size that is requested
-    //! Maybe blocks if the hard memory limit is reached
-    //! \param swapable indicates whether the block can be swapped to disk
-    //! pinned indicates whether the block :q
-    //
-    ByteBlockPtr AllocateBlock(size_t block_size, bool swapable = true, bool pinned = false);
+    //! Allocates a byte block with the request size. May block this thread if
+    //! the hard memory limit is reached, until memory is freed by another
+    //! thread.  The returned Block is allocated in RAM, but with a zero pin
+    //! count.
+    PinnedByteBlockPtr AllocateByteBlock(size_t size);
 
     //! Total number of allocated blocks of this block pool
     size_t block_count() const noexcept;
+
+    //! Unpins a block. If all pins are removed, the block might be swapped.
+    //! Returns immediately. Actual unpinning is async.
+    //! out to disk and is not accessible
+    //! \param block_ptr the block to unpin
+    void UnpinBlock(ByteBlock* block_ptr);
 
 private:
     //! local Manager counting only ByteBlock allocations in internal memory.
@@ -107,15 +112,15 @@ private:
     //! PageMapper used for swapping-in/-out blocks
     mem::PageMapper<default_block_size> page_mapper_;
 
-    // list of all blocks that are not swapped but are not pinned
-    std::deque<ByteBlock*> victim_blocks_;
+    //! list of all blocks that are in memory but are not pinned. TODO(tb):
+    //! probably not the right data structure.
+    std::deque<ByteBlock*> unpinned_blocks_;
 
     size_t num_swapped_blocks_ = { 0 };
     size_t num_pinned_blocks_ = { 0 };
 
     //! locked before internal state is changed
-    std::mutex list_mutex_;
-    std::mutex pin_mutex_;
+    std::mutex mutex_;
 
     //! For implementing hard limit
     std::mutex memory_mutex_;
@@ -132,16 +137,12 @@ private:
     // for calling [Un]PinBlock
     friend class ByteBlock;
 
-    //! Unpins a block. If all pins are removed, the block might be swapped.
-    //! Returns immediately. Actual unpinning is async.
-    //! out to disk and is not accessible
-    //! \param block_ptr the block to unpin
-    void UnpinBlock(ByteBlock* block_ptr);
+#if 0
 
     //! Pins a block by swapping it in if required.
     //! \param block_ptr the block to pin
-    //! \param callback is called when the pinning is completed
-    void PinBlock(ByteBlock* block_ptr, common::delegate<void()>&& callback);
+    common::Future<PinnedBlock> PinBlock(ByteBlock* block_ptr);
+#endif
 
     //! Destroys the block. Only for internal purposes.
     //! Async call.
@@ -151,15 +152,16 @@ private:
     //! Updates the memory manager for internal memory
     //! If the hard limit is reached, the call is blocked intil
     //! memory is free'd
-    inline void RequestInternalMemory(size_t amount);
+    void RequestInternalMemory(size_t amount);
 
     //! Updates the memory manager for the internal memory
     //! wakes up waiting BlockPool::RequestInternalMemory calls
-    inline void ReleaseInternalMemory(size_t amount);
+    void ReleaseInternalMemory(size_t amount);
 };
 
 } // namespace data
 } // namespace thrill
+
 #endif // !THRILL_DATA_BLOCK_POOL_HEADER
 
 /******************************************************************************/

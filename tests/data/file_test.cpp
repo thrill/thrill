@@ -359,7 +359,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     data::File file(block_pool_);
 
     // yes, this is a prime number as block size. -tb
-    data::File::Writer fw = file.GetWriter(53);
+    data::File::Writer fw = file.GetWriter(/* block_size */ 53);
     for (size_t i = 0; i < 1000; ++i) {
         fw(i);
     }
@@ -377,14 +377,14 @@ TEST_F(File, SeekReadSlicesOfFiles) {
 
     // read items 95-144
     auto check_range =
-        [&](size_t begin, size_t end, bool do_more = true) {
+        [&](size_t begin, size_t end, bool at_end = false) {
             LOG << "Test range [" << begin << "," << end << ")";
 
             // seek in File to begin.
             data::File::KeepReader fr = file.GetReaderAt<size_t>(begin);
 
             // read a few items
-            if (end - begin > 5 && do_more) {
+            if (end - begin > 5 && !at_end) {
                 for (size_t i = 0; i < 5; ++i) {
                     ASSERT_TRUE(fr.HasNext());
                     ASSERT_EQ(begin, fr.Next<size_t>());
@@ -392,27 +392,32 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                 }
             }
 
+            LOG << "GetReaderAt() done";
+
             // read the items [begin,end)
             {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(end - begin);
 
+                LOG << "GetItemBatch -> " << blocks.size() << " blocks";
+
                 data::BlockQueue queue(block_pool_);
 
                 for (data::Block& b : blocks)
-                    queue.AppendBlock(b);
+                    queue.AppendBlock(b.PinNow());
                 queue.Close();
 
                 data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
 
                 for (size_t i = begin; i < end; ++i) {
                     ASSERT_TRUE(qr.HasNext());
+                    sLOG << "index" << i;
                     ASSERT_EQ(i, qr.Next<size_t>());
                 }
                 ASSERT_FALSE(qr.HasNext());
             }
 
-            if (!do_more) return;
+            if (at_end) return;
 
             sLOG << "read more";
             static const size_t more = 100;
@@ -425,7 +430,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                 data::BlockQueue queue(block_pool_);
 
                 for (data::Block& b : blocks)
-                    queue.AppendBlock(b);
+                    queue.AppendBlock(b.PinNow());
                 queue.Close();
 
                 data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
@@ -446,12 +451,13 @@ TEST_F(File, SeekReadSlicesOfFiles) {
         check_range(96, i);
     }
 
-    // some special cases.
+    // some special cases: beginning, zero ranges, end.
     check_range(0, 0);
     check_range(0, 1);
     check_range(1, 2);
-    check_range(990, 1000, false);
-    check_range(1000, 1000, false);
+    check_range(100, 100);
+    check_range(990, 1000, true);
+    check_range(1000, 1000, true);
 }
 
 //! A derivative of File which only contains a limited amount of Blocks

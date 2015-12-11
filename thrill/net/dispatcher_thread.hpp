@@ -38,10 +38,12 @@ using TimerCallback = common::delegate<bool()>;
 using AsyncCallback = common::delegate<bool()>;
 
 //! Signature of async read callbacks.
-using AsyncReadCallback = common::delegate<void(Connection& c, Buffer&& buffer)>;
+using AsyncReadCallback = common::delegate<
+          void(Connection& c, Buffer&& buffer)>;
 
 //! Signature of async read ByteBlock callbacks.
-using AsyncReadByteBlockCallback = common::delegate<void(Connection& c)>;
+using AsyncReadByteBlockCallback = common::delegate<
+          void(Connection& c, data::PinnedByteBlockPtr&& block)>;
 
 //! Signature of async write callbacks.
 using AsyncWriteCallback = common::delegate<void(Connection&)>;
@@ -107,7 +109,7 @@ public:
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb);
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
-    void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
+    void AsyncRead(Connection& c, data::PinnedByteBlockPtr&& block,
                    AsyncReadByteBlockCallback done_cb);
 
     //! asynchronously write byte and block and callback when delivered. The
@@ -119,7 +121,8 @@ public:
     //! buffer2 are MOVED into the async writer. This is most useful to write a
     //! header and a payload Buffers that are hereby guaranteed to be written in
     //! order.
-    void AsyncWrite(Connection& c, Buffer&& buffer, const data::Block& block,
+    void AsyncWrite(Connection& c,
+                    Buffer&& buffer, const data::PinnedBlock& block,
                     AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data

@@ -98,7 +98,7 @@ private:
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }
 
-        void AppendBlock(const data::Block& b) final {
+        void AppendBlock(const data::PinnedBlock& b) final {
             sLOG << "SysFileSink::AppendBlock()" << b;
             stats_total_writes_++;
             file_.write(b.data_begin(), b.size());

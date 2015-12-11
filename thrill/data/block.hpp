@@ -18,6 +18,7 @@
 #include <thrill/mem/manager.hpp>
 
 #include <cassert>
+#include <future>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -27,6 +28,8 @@ namespace data {
 
 //! \addtogroup data Data Subsystem
 //! \{
+
+class PinnedBlock;
 
 /**
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
@@ -46,86 +49,26 @@ namespace data {
  */
 class Block
 {
-    static const bool debug = false;
-
 public:
-    Block() : pinned_(false) { }
-
-    //! Creates a block that points to the given data::ByteBlock with the given offsets
-    //! The block is not pinned.
-    Block(const ByteBlockPtr& byte_block,
-          size_t begin, size_t end, size_t first_item, size_t num_items)
-        : byte_block_(byte_block),
-          begin_(begin), end_(end),
-          first_item_(first_item), num_items_(num_items), pinned_(false)
-    { }
+    //! default-ctor: create invalid Block.
+    Block() = default;
 
     Block(const Block& other) = default;
     Block& operator = (Block& other) = default;
     Block(Block&& other) = default;
     Block& operator = (Block&& other) = default;
 
-#if 0
-    //! Moves the block - the pinned property is moved as well
-    //! the 'other' block is afterwards unpinned
-    Block(Block&& other) {
-        byte_block_ = other.byte_block_;
-        begin_ = other.begin_;
-        end_ = other.end_;
-        first_item_ = other.first_item_;
-        num_items_ = other.num_items_;
-        pinned_ = other.pinned_;
-
-        // we do not have to change the pin_count_
-        other.pinned_ = false;
-
-        other.byte_block_ = nullptr;
-        other.begin_ = 0;
-        other.end_ = 0;
-        other.first_item_ = 0;
-        other.num_items_ = 0;
-    }
-
-    Block(const Block& other) {
-        *this = other;
-    }
-
-    //! assigns a block. If this block is pinned it is unpinned before
-    //! re-assigned.
-    Block& operator = (const Block& other) {
-        UnpinMaybe();
-        byte_block_ = other.byte_block_;
-        begin_ = other.begin_;
-        end_ = other.end_;
-        first_item_ = other.first_item_;
-        num_items_ = other.num_items_;
-        pinned_ = other.pinned_;
-        if (pinned_ && byte_block_)
-            byte_block_->IncreasePinCount();
-        return *this;
-    }
-#endif
+    //! Creates a block that points to the given data::ByteBlock with the given
+    //! offsets The block can be initialized as pinned or not.
+    Block(ByteBlockPtr&& byte_block,
+          size_t begin, size_t end, size_t first_item, size_t num_items)
+        : byte_block_(std::move(byte_block)),
+          begin_(begin), end_(end),
+          first_item_(first_item), num_items_(num_items) { }
 
     //! Return whether the enclosed ByteBlock is valid.
     bool IsValid() const {
         return byte_block_;
-    }
-
-    //! Releases the reference to the ByteBlock and resets book-keeping info
-    void Release() {
-        UnpinMaybe();
-        byte_block_ = ByteBlockPtr();
-    }
-
-    ~Block() {
-        UnpinMaybe();
-    }
-
-    // Return block as std::string (for debugging), includes eventually cut off
-    // elements form the beginning included
-    std::string ToString() const {
-        return std::string(
-            reinterpret_cast<const char*>(data_begin()), size());
     }
 
     //! access to byte_block_
@@ -137,23 +80,17 @@ public:
     //! return number of items beginning in this block
     size_t num_items() const { return num_items_; }
 
+    //! return number of pins in underlying ByteBlock
+    size_t pin_count() const {
+        assert(byte_block_);
+        return byte_block_->pin_count();
+    }
+
     //! accessor to begin_
     void set_begin(size_t i) { begin_ = i; }
 
     //! accessor to end_
     void set_end(size_t i) { end_ = i; }
-
-    //! return pointer to beginning of valid data
-    const Byte * data_begin() const {
-        assert(byte_block_);
-        return byte_block_->begin() + begin_;
-    }
-
-    //! return pointer to end of valid data
-    const Byte * data_end() const {
-        assert(byte_block_);
-        return byte_block_->begin() + end_;
-    }
 
     //! return length of valid data in bytes.
     size_t size() const { return end_ - begin_; }
@@ -164,66 +101,32 @@ public:
     //! return the first_item_offset relative to data_begin().
     size_t first_item_relative() const { return first_item_ - begin_; }
 
-    friend std::ostream&
-    operator << (std::ostream& os, const Block& b) {
+    friend std::ostream& operator << (std::ostream& os, const Block& b) {
         os << "[Block " << std::hex << &b << std::dec
            << " byte_block_=" << std::hex << b.byte_block_.get() << std::dec;
         if (b.IsValid()) {
             os << " begin_=" << b.begin_
                << " end_=" << b.end_
                << " first_item_=" << b.first_item_
-               << " num_items_=" << b.num_items_
-               << " pinned=" << (b.pinned_ ? "yes" : "no");
+               << " num_items_=" << b.num_items_;
+            // << " data=" << common::Hexdump(b.ToString());
         }
         return os << "]";
     }
 
-    //! Creates a pinned copy of the Block
-    //! If the underlying data::ByteBlock is already pinned, the Future is directly filled with a copy if this block
-    //! Otherwise an async pin call will be issued
-    //! The future is allocated on the heap, ownership is transfered to caller
-    //! This is required since Future is not moveable because ot mutexes
-    common::Future<Block> * Pin() {
-        // future required for passing result from backgroud thread (which calls the callback) back to caller's thread
-        common::Future<Block>* result = new common::Future<Block>();
-        // pinned blocks can be returned straigt away
-        if (pinned_ || 1) {
-            sLOG << "block " << byte_block_->data_ << " was already pinned";
-            *result << Block(*this);
-        }
-        else {
-            sLOG << "request pin for block " << byte_block_->swap_token_;
-            // call pin with callback that creates new, pinned block
-            byte_block_->Pin(
-                [&]() {
-                    Block b(*this);
-                    b.pinned_ = true;
-                    sLOG << "block " << byte_block_->swap_token_ << "/" << byte_block_->data_ << " is now pinned";
-                    *result << std::move(b);
-                });
-        }
-        return result;
-    }
+    //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
+    //! is already pinned, the Future is directly filled with a copy if this
+    //! block.  Otherwise an async pin call will be issued.
+    std::future<PinnedBlock> Pin() const;
 
-#if 0
-    Block && UnpinnedCopy() {
-        return std::move(Block(byte_block_, begin_, end_, first_item_, num_items_, false));
-    }
-#endif
+    PinnedBlock PinNow() const;
+
+    //! Return block as std::string (for debugging), includes eventually cut off
+    //! elements form the beginning included
+    std::string ToString() const;
 
 protected:
-    //! Creates a block that points to the given data::ByteBlock with the given offsets
-    //! The block can be initialized as pinned or not.
-    //! If the Block is set to be pinned, the underlying data::ByteBlock::ref_count will be increased
-    Block(const ByteBlockPtr& byte_block,
-          size_t begin, size_t end, size_t first_item, size_t num_items, bool pinned)
-        : byte_block_(byte_block),
-          begin_(begin), end_(end),
-          first_item_(first_item), num_items_(num_items),
-          pinned_(pinned) {
-        if (pinned_ && IsValid())
-            byte_block_->IncreasePinCount();
-    }
+    static const bool debug = false;
 
     //! referenced ByteBlock
     ByteBlockPtr byte_block_;
@@ -242,18 +145,142 @@ protected:
     //! number of valid items that _start_ in this block (includes cut-off
     //! element at the end)
     size_t num_items_ = 0;
-
-    //! whether this Block is pointing to a pinned ByteBlock. Can only be set
-    //! during initialization
-    bool pinned_;
-
-    //! Unpins the underlying byte block if it is valid and pinned
-    void UnpinMaybe() {
-        return; // -tb: disable for now.
-        if (byte_block_ && pinned_)
-            byte_block_->DecreasePinCount();
-    }
 };
+
+class PinnedBlock : public Block
+{
+public:
+    //! Create invalid PinnedBlock.
+    PinnedBlock() = default;
+
+    //! Creates a block that points to the given data::PinnedByteBlock with the
+    //! given offsets. The returned block is also pinned, the pin is transfered!
+    PinnedBlock(PinnedByteBlockPtr&& byte_block,
+                size_t begin, size_t end, size_t first_item, size_t num_items)
+        : Block(std::move(byte_block), begin, end, first_item, num_items) {
+        LOG << "PinnedBlock::Acquire() from new PinnedByteBlock";
+    }
+
+    //! copy-ctor: increment underlying's pin count
+    PinnedBlock(const PinnedBlock& pb) noexcept
+        : Block(pb) { if (byte_block_) byte_block_->IncPinCount(); }
+
+    //! move-ctor: move underlying's pin
+    PinnedBlock(PinnedBlock&& pb) noexcept : Block(std::move(pb)) {
+        assert(!pb.byte_block_);
+    }
+
+    //! copy-assignment: copy underlying and increase pin count
+    PinnedBlock& operator = (PinnedBlock& pb) noexcept {
+        if (this == &pb) return *this;
+        // first acquire other's pin count
+        if (pb.byte_block_) pb.byte_block_->IncPinCount();
+        // then release the current one
+        if (byte_block_) byte_block_->DecPinCount();
+        // copy over Block information
+        Block::operator = (pb);
+        return *this;
+    }
+
+    //! move-assignment: move underlying, release current's pin
+    PinnedBlock& operator = (PinnedBlock&& pb) noexcept {
+        if (this == &pb) return *this;
+        // release the current one
+        if (byte_block_)
+            byte_block_->DecPinCount();
+        // move over Block information, keep other's pin count
+        Block::operator = (std::move(pb));
+        // invalidate other block
+        assert(!pb.byte_block_);
+        return *this;
+    }
+
+    ~PinnedBlock() {
+        if (byte_block_)
+            byte_block_->DecPinCount();
+    }
+
+    //! return pointer to beginning of valid data
+    const Byte * data_begin() const {
+        assert(byte_block_);
+        return byte_block_->begin() + begin_;
+    }
+
+    //! return pointer to end of valid data
+    const Byte * data_end() const {
+        assert(byte_block_);
+        return byte_block_->begin() + end_;
+    }
+
+    //! extract ByteBlock including it's pin.
+    PinnedByteBlockPtr StealPinnedByteBlock() {
+        return PinnedByteBlockPtr(std::move(byte_block_));
+    }
+
+    //! access to byte_block_ which is pinned.
+    PinnedByteBlockPtr pinned_byte_block() const {
+        PinnedByteBlockPtr pbb(byte_block_);
+        if (pbb.valid()) pbb->IncPinCount();
+        return pbb;
+    }
+
+    //! Return block as std::string (for debugging), includes eventually cut off
+    //! elements form the beginning included
+    std::string ToString() const {
+        if (!IsValid()) return std::string();
+        return std::string(
+            reinterpret_cast<const char*>(data_begin()), size());
+    }
+
+protected:
+    //! protected construction from an unpinned block AFTER the pin was taken,
+    //! this method does NOT pin it.
+    explicit PinnedBlock(const Block& b) : Block(b) { }
+
+    //! friend for creating PinnedBlock in Pin() using protected constructor
+    friend class Block;
+};
+
+inline
+std::future<PinnedBlock> Block::Pin() const {
+
+    std::promise<PinnedBlock> result;
+
+    byte_block_->IncPinCount();
+    result.set_value(PinnedBlock(*this));
+
+#if 0
+    // pinned blocks can be returned straigt away
+    if (pinned_ || 1) {
+        sLOG << "block " << byte_block_->data_ << " was already pinned";
+        *result << Block(*this);
+    }
+    else {
+        sLOG << "request pin for block " << byte_block_->swap_token_;
+        // call pin with callback that creates new, pinned block
+        byte_block_->GetPin(
+            [&]() {
+                Block b(*this);
+                b.pinned_ = true;
+                sLOG << "block " << byte_block_->swap_token_ << "/" << byte_block_->data_ << " is now pinned";
+                *result << std::move(b);
+            });
+    }
+#endif
+
+    return result.get_future();
+}
+
+inline
+PinnedBlock Block::PinNow() const {
+    std::future<PinnedBlock> pin = Pin();
+    pin.wait();
+    return pin.get();
+}
+
+inline std::string Block::ToString() const {
+    return PinNow().ToString();
+}
 
 //! \}
 

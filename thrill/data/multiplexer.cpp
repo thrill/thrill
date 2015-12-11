@@ -88,12 +88,12 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
             sLOG << "stream header from" << s << "on CatStream" << id
                  << "from worker" << sender_worker_rank;
 
-            ByteBlockPtr bytes = block_pool_.AllocateBlock(header.size);
+            PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(header.size);
 
             dispatcher_.AsyncRead(
-                s, bytes,
-                [this, header, stream, bytes](Connection& s) {
-                    OnCatStreamBlock(s, header, stream, bytes);
+                s, std::move(bytes),
+                [this, header, stream](Connection& s, PinnedByteBlockPtr&& bytes) {
+                    OnCatStreamBlock(s, header, stream, std::move(bytes));
                 });
         }
     }
@@ -113,12 +113,12 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
             sLOG << "stream header from" << s << "on MixStream" << id
                  << "from worker" << sender_worker_rank;
 
-            ByteBlockPtr bytes = block_pool_.AllocateBlock(header.size);
+            PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(header.size);
 
             dispatcher_.AsyncRead(
-                s, bytes,
-                [this, header, stream, bytes](Connection& s) {
-                    OnMixStreamBlock(s, header, stream, bytes);
+                s, std::move(bytes),
+                [this, header, stream](Connection& s, PinnedByteBlockPtr&& bytes) mutable {
+                    OnMixStreamBlock(s, header, stream, std::move(bytes));
                 });
         }
     }
@@ -129,28 +129,30 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
 
 void Multiplexer::OnCatStreamBlock(
     Connection& s, const StreamBlockHeader& header,
-    const CatStreamPtr& stream, const ByteBlockPtr& bytes) {
+    const CatStreamPtr& stream, PinnedByteBlockPtr&& bytes) {
 
     size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
     sLOG << "got block on" << s << "in CatStream" << header.stream_id << "from worker" << sender_worker_rank;
 
     stream->OnStreamBlock(
         sender_worker_rank,
-        Block(bytes, 0, header.size, header.first_item, header.num_items));
+        PinnedBlock(std::move(bytes), 0, header.size,
+                    header.first_item, header.num_items));
 
     AsyncReadBlockHeader(s);
 }
 
 void Multiplexer::OnMixStreamBlock(
     Connection& s, const StreamBlockHeader& header,
-    const MixStreamPtr& stream, const ByteBlockPtr& bytes) {
+    const MixStreamPtr& stream, PinnedByteBlockPtr&& bytes) {
 
     size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
     sLOG << "got block on" << s << "in MixStream" << header.stream_id << "from worker" << sender_worker_rank;
 
     stream->OnStreamBlock(
         sender_worker_rank,
-        Block(bytes, 0, header.size, header.first_item, header.num_items));
+        PinnedBlock(std::move(bytes), 0, header.size,
+                    header.first_item, header.num_items));
 
     AsyncReadBlockHeader(s);
 }

@@ -242,7 +242,7 @@ private:
 
     //! called from Multiplexer when there is a new Block on a
     //! Stream.
-    void OnStreamBlock(size_t from, Block&& b) {
+    void OnStreamBlock(size_t from, PinnedBlock&& b) {
         assert(from < queues_.size());
         rx_timespan_.StartEventually();
         incoming_bytes_ += b.size();

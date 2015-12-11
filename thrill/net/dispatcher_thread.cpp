@@ -96,10 +96,12 @@ void DispatcherThread::AsyncRead(
 }
 
 //! asynchronously read the full ByteBlock and deliver it to the callback
-void DispatcherThread::AsyncRead(Connection& c, const data::ByteBlockPtr& block,
-                                 AsyncReadByteBlockCallback done_cb) {
-    Enqueue([=, &c]() {
-                dispatcher_->AsyncRead(c, block, done_cb);
+void DispatcherThread::AsyncRead(
+    Connection& c, data::PinnedByteBlockPtr&& block,
+    AsyncReadByteBlockCallback done_cb) {
+    assert(block.valid());
+    Enqueue([=, &c, b = std::move(block)]() mutable {
+                dispatcher_->AsyncRead(c, std::move(b), done_cb);
             });
     WakeUpThread();
 }
@@ -120,8 +122,9 @@ void DispatcherThread::AsyncWrite(
 //! asynchronously write buffer and callback when delivered. The buffer is
 //! MOVED into the async writer.
 void DispatcherThread::AsyncWrite(Connection& c, Buffer&& buffer,
-                                  const data::Block& block,
+                                  const data::PinnedBlock& block,
                                   AsyncWriteCallback done_cb) {
+    assert(block.IsValid());
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c,
               b1 = std::move(buffer), b2 = block]() mutable {
