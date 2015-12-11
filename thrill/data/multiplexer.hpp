@@ -216,12 +216,12 @@ private:
     //! Receives and dispatches a Block to a CatStream
     void OnCatStreamBlock(
         Connection& s, const StreamBlockHeader& header,
-        const CatStreamPtr& stream, const ByteBlockPtr& bytes);
+        const CatStreamPtr& stream, PinnedByteBlockPtr&& bytes);
 
     //! Receives and dispatches a Block to a MixStream
     void OnMixStreamBlock(
         Connection& s, const StreamBlockHeader& header,
-        const MixStreamPtr& stream, const ByteBlockPtr& bytes);
+        const MixStreamPtr& stream, PinnedByteBlockPtr&& bytes);
 };
 
 //! \}

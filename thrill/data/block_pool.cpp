@@ -18,10 +18,12 @@
 namespace thrill {
 namespace data {
 
-ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool swapable, bool pinned) {
-    assert(block_size <= default_block_size);
-    uint32_t swap_token;
-    std::lock_guard<std::mutex> lock(list_mutex_);
+PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size) {
+    assert(size <= default_block_size);
+    std::lock_guard<std::mutex> lock(mutex_);
+
+#if 0
+    // uint32_t swap_token;
 
     Byte* block_memory;
     if (swapable) {
@@ -36,41 +38,42 @@ ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool swapable, bool pin
     ByteBlock* block = new ByteBlock(block_memory, block_size, this, pinned, swap_token);
     ByteBlockPtr result(block);
 
-    RequestInternalMemory(block_size);
     // we store a raw pointer --> does not increase ref count
     if (!pinned) {
-        victim_blocks_.push_back(block); //implicit converts to raw
+        unpinned_blocks_.push_back(block); //implicit converts to raw
         LOG << "allocating unpinned block @" << block;
     }
     else {
         LOG << "allocating pinned block @" << block;
         num_pinned_blocks_++;
     }
+#endif
 
-    LOG << "AllocateBlock() total_count=" << block_count()
+    RequestInternalMemory(size);
+
+    // allocate block memory.
+    Byte* data = static_cast<Byte*>(malloc(size));
+
+    // create counting ptr, no need for special make_shared-equivalent
+    PinnedByteBlockPtr result
+        = PinnedByteBlockPtr::Acquire(new ByteBlock(data, size, this));
+
+    ++num_pinned_blocks_;
+
+    LOG << "BlockPool::AllocateBlock() size=" << size
+        << " total_count=" << block_count()
         << " total_size=" << mem_manager_.total();
 
-    // pack and ship as ref-counting pointer
     return result;
 }
 
-void BlockPool::UnpinBlock(ByteBlock* block_ptr) {
-    return; // -tb: disable for now
-    std::lock_guard<std::mutex> lock(pin_mutex_);
-    LOG << "unpinning block @" << block_ptr;
-    if (--(block_ptr->pin_count_) == 0) {
-        sLOG << "unpinned block reached ping-count 0";
-        // pin count reached 0 --> move to victim list
-        std::lock_guard<std::mutex> lock(list_mutex_);
-        victim_blocks_.push_back(block_ptr);
-        num_pinned_blocks_--;
-    }
-}
-
+#if 0
 //! Pins a block by swapping it in if required.
-void BlockPool::PinBlock(ByteBlock* block_ptr, common::delegate<void()>&& callback) {
+common::Future<Pin> BlockPool::PinBlock(ByteBlock* block_ptr) {
     pin_mutex_.lock();
-    LOG << "pinning block @" << block_ptr;
+    LOG << "BlockPool::PinBlock block_ptr=" << block_ptr;
+
+#if 0
 
     // first check, then increment
     if ((block_ptr->pin_count_)++ > 0) {
@@ -82,9 +85,9 @@ void BlockPool::PinBlock(ByteBlock* block_ptr, common::delegate<void()>&& callba
     }
     num_pinned_blocks_++;
 
-    // in memory & not pinned -> is in victim
+    // in memory & not pinned -> is in unpinned
     if (block_ptr->in_memory()) {
-        victim_blocks_.erase(std::find(victim_blocks_.begin(), victim_blocks_.end(), block_ptr));
+        unpinned_blocks_.erase(std::find(unpinned_blocks_.begin(), unpinned_blocks_.end(), block_ptr));
 
         pin_mutex_.unlock();
         callback();
@@ -107,37 +110,63 @@ void BlockPool::PinBlock(ByteBlock* block_ptr, common::delegate<void()>&& callba
                 callback();
             });
     }
+#endif
+}
+
+void BlockPool::UnpinBlock(ByteBlock* block_ptr) {
+    return; // -tb: disable for now
+    std::lock_guard<std::mutex> lock(pin_mutex_);
+    LOG << "unpinning block @" << block_ptr;
+    if (--(block_ptr->pin_count_) == 0) {
+        sLOG << "unpinned block reached ping-count 0";
+        // pin count reached 0 --> move to unpinned list
+        std::lock_guard<std::mutex> lock(list_mutex_);
+        unpinned_blocks_.push_back(block_ptr);
+        num_pinned_blocks_--;
+    }
+}
+#endif
+
+void BlockPool::UnpinBlock(ByteBlock* block_ptr) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    assert(block_ptr->pin_count() == 0);
+    unpinned_blocks_.push_back(block_ptr);
+    --num_pinned_blocks_;
 }
 
 size_t BlockPool::block_count() const noexcept {
-    return num_pinned_blocks_ + victim_blocks_.size() + num_swapped_blocks_;
+    return num_pinned_blocks_ + unpinned_blocks_.size() + num_swapped_blocks_;
 }
 
 void BlockPool::DestroyBlock(ByteBlock* block) {
-    std::lock_guard<std::mutex> lock(list_mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
     // pinned blocks cannot be destroyed since they are always unpinned first
     assert(block->pin_count_ == 0);
 
-    LOG << "destroying block @" << block;
+    LOG << "BlockPool::DestroyBlock() block=" << block;
 
     // we have one reference, but we decreased that by hand
     if (!block->in_memory()) {
+        abort();
         num_swapped_blocks_--;
-        ext_mem_manager_.subtract(block->size());
+        // ext_mem_manager_.subtract(block->size());
     }
+#if 0
     else if (!block->swapable()) {
         // there is no mmap'ed region - simply free the memory
         ReleaseInternalMemory(block->size());
         free(static_cast<void*>(block->data_));
         block->data_ = nullptr;
     }
+#endif
     else {
-        const auto pos = std::find(victim_blocks_.begin(), victim_blocks_.end(), block);
-        assert(pos != victim_blocks_.end());
-        victim_blocks_.erase(pos);
-        page_mapper_.SwapOut(block->data_, false);
-        page_mapper_.ReleaseToken(block->swap_token_);
+        // unpinned block in memory, remove from list
+        auto pos = std::find(unpinned_blocks_.begin(), unpinned_blocks_.end(), block);
+        assert(pos != unpinned_blocks_.end());
+        unpinned_blocks_.erase(pos);
+        // page_mapper_.SwapOut(block->data_, false);
+        // page_mapper_.ReleaseToken(block->swap_token_);
         ReleaseInternalMemory(block->size());
     }
 }
@@ -145,6 +174,8 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
 void BlockPool::RequestInternalMemory(size_t amount) {
     // allocate memory, then check limits and maybe block
     mem_manager_.add(amount);
+
+    return; // -tb later.
 
     if (!hard_memory_limit_ && !soft_memory_limit_) return;
 
@@ -155,19 +186,22 @@ void BlockPool::RequestInternalMemory(size_t amount) {
     }
     if (soft_memory_limit_ && mem_manager_.total() > soft_memory_limit_) {
         sLOG << "soft memory limit is reached";
-        // kill first page in victim list
+        // kill first page in unpinned list
         tasks_.Enqueue([&]() {
-                           std::lock_guard<std::mutex> lock(list_mutex_);
-                           sLOG << "removing a victim block";
-                           if (victim_blocks_.empty()) return;
-                           page_mapper_.SwapOut(victim_blocks_.front()->data_);
-                           victim_blocks_.pop_front();
+                           std::lock_guard<std::mutex> lock(mutex_);
+                           sLOG << "removing a unpinned block";
+                           if (unpinned_blocks_.empty()) return;
+                           page_mapper_.SwapOut(unpinned_blocks_.front()->data_);
+                           unpinned_blocks_.pop_front();
                        });
     }
 }
 
 void BlockPool::ReleaseInternalMemory(size_t amount) {
     mem_manager_.subtract(amount);
+
+    return; // -tb later.
+
     if (hard_memory_limit_ && mem_manager_.total() < hard_memory_limit_)
         memory_change_.notify_all();
 }

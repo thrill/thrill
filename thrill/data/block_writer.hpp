@@ -134,18 +134,20 @@ public:
 
         if (do_queue_) {
             sLOG << "Flush(): queue" << bytes_.get();
-            sink_queue_.emplace_back(bytes_, 0, current_ - bytes_->begin(),
-                                     first_offset_, nitems_);
+            sink_queue_.emplace_back(
+                std::move(bytes_), 0, current_ - bytes_->begin(),
+                first_offset_, nitems_);
         }
         else {
             sLOG << "Flush(): flush" << bytes_.get();
-            sink_->AppendBlock(Block(bytes_, 0, current_ - bytes_->begin(),
-                                     first_offset_, nitems_));
+            sink_->AppendBlock(
+                PinnedBlock(std::move(bytes_), 0, current_ - bytes_->begin(),
+                            first_offset_, nitems_));
         }
 
         // reset
         nitems_ = 0;
-        bytes_ = ByteBlockPtr();
+        bytes_ = PinnedByteBlockPtr();
         current_ = end_ = nullptr;
     }
 
@@ -155,7 +157,7 @@ public:
         Flush();
 
         for (const Block& b : blocks)
-            sink_->AppendBlock(b);
+            sink_->AppendBlock(b.PinNow());
 
         AllocateBlock();
     }
@@ -257,10 +259,10 @@ public:
                 sLOG << "releasing" << bytes_.get();
                 sink_->ReleaseByteBlock(bytes_);
 
-                Block b = sink_queue_.back();
+                PinnedBlock b = sink_queue_.back();
                 sink_queue_.pop_back();
 
-                bytes_ = std::move(b.byte_block());
+                bytes_ = std::move(b.StealPinnedByteBlock());
             }
 
             sLOG << "reset" << bytes_.get();
@@ -387,7 +389,7 @@ private:
 
     //! current block, already allocated as shared ptr, since we want to use
     //! make_shared.
-    ByteBlockPtr bytes_;
+    PinnedByteBlockPtr bytes_;
 
     //! current write pointer into block.
     Byte* current_ = nullptr;
@@ -409,7 +411,7 @@ private:
     bool do_queue_ = false;
 
     //! queue of blocks to flush when the current item has fully been serialized
-    std::deque<Block> sink_queue_;
+    std::deque<PinnedBlock> sink_queue_;
 
     //! size of data blocks to construct
     size_t block_size_;

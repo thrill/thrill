@@ -190,7 +190,7 @@ private:
     friend class Multiplexer;
 
     //! called from Multiplexer when there is a new Block for this Stream.
-    void OnStreamBlock(size_t from, Block&& b) {
+    void OnStreamBlock(size_t from, PinnedBlock&& b) {
         assert(from < multiplexer_.num_workers());
         rx_timespan_.StartEventually();
         incoming_bytes_ += b.size();

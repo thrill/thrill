@@ -72,7 +72,7 @@ public:
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(const Block& b) final {
+    void AppendBlock(const PinnedBlock& b) final {
         assert(!closed_);
         if (b.size() == 0) return;
         blocks_.push_back(b);
@@ -206,8 +206,9 @@ public:
     friend std::ostream& operator << (std::ostream& os, const File& f) {
         os << "[File " << std::hex << &f << std::dec
            << " Blocks=[";
+        size_t i = 0;
         for (const Block& b : f.blocks_)
-            os << "\n    " << b;
+            os << "\n    " << i++ << " " << b;
         return os << "]]";
     }
 
@@ -243,29 +244,30 @@ class KeepFileBlockSource
 {
 public:
     //! Start reading a File
-    KeepFileBlockSource(const File& file,
-                        size_t first_block = 0, size_t first_item = keep_first_item)
+    KeepFileBlockSource(
+        const File& file, size_t first_block = 0,
+        size_t first_item = keep_first_item)
         : file_(file), first_block_(first_block), first_item_(first_item) {
         current_block_ = first_block_ - 1;
     }
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader
-    Block NextBlock() {
+    PinnedBlock NextBlock() {
         ++current_block_;
 
         if (current_block_ >= file_.num_blocks())
-            return Block();
+            return PinnedBlock();
 
         if (current_block_ == first_block_) {
             // construct first block differently, in case we want to shorten it.
             Block b = file_.block(current_block_);
             if (first_item_ != keep_first_item)
                 b.set_begin(first_item_);
-            return b;
+            return b.PinNow();
         }
         else {
-            return file_.block(current_block_);
+            return file_.block(current_block_).PinNow();
         }
     }
 
@@ -305,8 +307,8 @@ public:
     //! Start reading a File
     //! Creates a source for the given file and set the numver of blocks
     //! that should be prefetched. 0 means that no blocks are prefetched.
-    explicit ConsumeFileBlockSource(File* file, size_t prefetch = std::numeric_limits<size_t>::max())
-        : file_(file), desired_prefetched_(prefetch) { }
+    explicit ConsumeFileBlockSource(File* file)
+        : file_(file) { }
 
     //! non-copyable: delete copy-constructor
     ConsumeFileBlockSource(const ConsumeFileBlockSource&) = delete;
@@ -317,20 +319,20 @@ public:
         : file_(s.file_) { s.file_ = nullptr; }
 
     //! Get the next block of file.
-    Block NextBlock() {
+    PinnedBlock NextBlock() {
         assert(file_);
         if (file_->blocks_.empty() && fetching_blocks_.empty())
-            return Block();
+            return PinnedBlock();
 
         // operate without prefetching
         if (desired_prefetched_ == 0) {
-            common::Future<Block>* f = file_->blocks_.front().Pin();
+            std::future<PinnedBlock> f = file_->blocks_.front().Pin();
             file_->blocks_.pop_front();
-            f->Wait();
-            Block b = f->Get();
-            delete f;
-            return b;
+            f.wait();
+            return f.get();
         }
+
+        die("fix");
 
         // prefetch #desired + 1
         while (fetching_blocks_.size() <= desired_prefetched_ && !file_->blocks_.empty()) {
@@ -339,10 +341,9 @@ public:
         }
 
         // this might block if the prefetching is not finished
-        fetching_blocks_.front()->Wait();
+        fetching_blocks_.front().wait();
 
-        Block b = fetching_blocks_.front()->Get();
-        delete fetching_blocks_.front();
+        PinnedBlock b = fetching_blocks_.front().get();
         fetching_blocks_.pop();
         return b;
     }
@@ -352,11 +353,6 @@ public:
         if (file_) {
             file_->blocks_.clear();
             file_->num_items_sum_.clear();
-            while (!fetching_blocks_.empty()) {
-                auto f = fetching_blocks_.front();
-                fetching_blocks_.pop();
-                delete f;
-            }
         }
     }
 
@@ -368,7 +364,7 @@ private:
     size_t desired_prefetched_ = 0;
 
     //! current prefetch operations
-    std::queue<common::Future<Block>*> fetching_blocks_;
+    std::queue<std::future<PinnedBlock> > fetching_blocks_;
 };
 
 inline
@@ -440,6 +436,8 @@ File::GetReaderAt(size_t index) const {
             fr.template Next<ItemType>();
         }
     }
+
+    sLOG << "after seek at" << fr.block();
 
     return fr;
 }

@@ -65,8 +65,8 @@ class MixBlockQueue
 public:
     //! pair of (source worker, Block) stored in the main mix queue.
     struct SrcBlockPair {
-        size_t src;
-        Block  block;
+        size_t      src;
+        PinnedBlock block;
     };
 
     using Reader = MixBlockQueueReader;
@@ -95,7 +95,7 @@ public:
     BlockPool & block_pool() { return block_pool_; }
 
     //! append block delivered via the network from src.
-    void AppendBlock(size_t src, const Block& block) {
+    void AppendBlock(size_t src, const PinnedBlock& block) {
         LOG << "MixBlockQueue::AppendBlock"
             << " src=" << src << " block=" << block;
         mix_queue_.emplace(SrcBlockPair { src, block });
@@ -109,12 +109,12 @@ public:
         --write_open_count_;
 
         // enqueue a closing Block.
-        mix_queue_.emplace(SrcBlockPair { src, Block() });
+        mix_queue_.emplace(SrcBlockPair { src, PinnedBlock() });
     }
 
     //! Blocking retrieval of a (source,block) pair.
     SrcBlockPair Pop() {
-        if (read_open_ == 0) return SrcBlockPair { size_t(-1), Block() };
+        if (read_open_ == 0) return SrcBlockPair { size_t(-1), PinnedBlock() };
         SrcBlockPair b;
         mix_queue_.pop(b);
         if (!b.block.IsValid()) --read_open_;
@@ -167,7 +167,7 @@ public:
           mix_queue_(mix_queue), from_(from)
     { }
 
-    void AppendBlock(const Block& b) final {
+    void AppendBlock(const PinnedBlock& b) final {
         LOG << "MixBlockQueueSink::AppendBlock()"
             << " from_=" << from_ << " b=" << b;
         mix_queue_.AppendBlock(from_, b);

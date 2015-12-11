@@ -86,8 +86,7 @@ public:
     friend class CountingPtr;
 
     //! default constructor: contains a nullptr pointer.
-    CountingPtr() noexcept : ptr_(nullptr)
-    { }
+    CountingPtr() noexcept : ptr_(nullptr) { }
 
     //! constructor with pointer: initializes new reference to ptr.
     explicit CountingPtr(Type* ptr) noexcept : ptr_(ptr)

@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -12,9 +13,7 @@
 #define THRILL_DATA_BYTE_BLOCK_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
-#include <thrill/common/delegate.hpp>
-
-#include <limits>       // std::numeric_limits
+#include <thrill/common/future.hpp>
 
 namespace thrill {
 namespace data {
@@ -25,7 +24,7 @@ static const size_t default_block_size = 2 * 1024 * 1024;
 //! type of underlying memory area
 using Byte = uint8_t;
 
-// forward declaration (definition further below)
+// forward declarations.
 class BlockPool;
 
 /*!
@@ -39,6 +38,8 @@ class BlockPool;
  */
 class ByteBlock : public common::ReferenceCount
 {
+    static const bool debug = false;
+
 public:
     //! deleter for CountingPtr<ByteBlock>
     static void deleter(ByteBlock* bb);
@@ -46,56 +47,6 @@ public:
 
     using ByteBlockPtr = common::CountingPtr<ByteBlock, deleter>;
     using ByteBlockCPtr = common::CountingPtr<const ByteBlock, deleter>;
-
-protected:
-    //! the memory block itself is referenced as it is in a a separate memory
-    //! region that can be swapped out
-    Byte* data_;
-
-    //! the allocated size of the buffer in bytes, excluding the size_ field
-    size_t size_;
-
-    //! reference to BlockPool for deletion.
-    BlockPool* block_pool_;
-
-    //! counts the number of pins in this block
-    //! this is not atomic since a) head would not be a POD and
-    //! b) the count is only modified by BlockPool which is thread-safe
-    uint8_t pin_count_;
-
-    //! token that is used with mem::PageMapper
-    uint32_t swap_token_;
-
-    // BlockPool is a friend to call ctor
-    friend class BlockPool;
-    // Block is a friend to call {Increase,Reduce}PinCount()
-    friend class Block;
-
-    //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
-    //! use BlockPoolAllocate() for construction.
-    //! \param memory the memory address of the byte-blocks data. nullptr if swapped out
-    //! \param size the size of the block in bytes
-    //! \param block_pool the block pool that manages this ByteBlock
-    //! \param pinned whether the block was created in pinned state
-    explicit ByteBlock(Byte* memory, size_t size, BlockPool* block_pool, bool pinned, size_t swap_token);
-
-    //! No default construction of Byteblock
-    ByteBlock() = delete;
-
-    //! Creates a copy of this ByteBlockPtr that is pinned
-    //! Does NOT Increase the PinCount of this ByteBlock. Do that manually via
-    //! ByteBlock::IncreasePinCount()
-    //! \param signal for signaling the end of the async pin
-    void Pin(common::delegate<void()>&& callback);
-
-    //! Decreases the pin count of this ByteBlock
-    void DecreasePinCount();
-
-    //! Increases the pin count of this ByteBlock
-    //! We need this method since Blocks can be copied. If they are in
-    //! pinned state, the PinCount has to increased without additional call
-    //! to Pin which has a higher overhead.
-    void IncreasePinCount();
 
 public:
     //! mutable data accessor to memory block
@@ -116,18 +67,127 @@ public:
     //! the block size
     size_t size() const { return size_; }
 
+    //! return current pin count
+    size_t pin_count() const { return pin_count_; }
+
     //! true if block resides in memory
     bool in_memory() const {
         return data_ != nullptr;
     }
 
-    //! indicates if this block can be swapped to disk or not
-    bool swapable() const {
-        return swap_token_ != std::numeric_limits<uint32_t>::max();
-    }
+    //! increment pin count, must be >= 1 before.
+    void IncPinCount();
+
+    //! decrement pin count, possibly signal block pool that if it reaches zero.
+    void DecPinCount();
+
+private:
+    //! the memory block itself is referenced as it is in a a separate memory
+    //! region that can be swapped out
+    Byte* data_;
+
+    //! the allocated size of the buffer in bytes, excluding the size_ field
+    size_t size_;
+
+    //! reference to BlockPool for deletion.
+    BlockPool* block_pool_;
+
+    //! counts the number of pins in this block
+    std::atomic<size_t> pin_count_;
+
+    //! token that is used with mem::PageMapper
+    uint32_t swap_token_ = 0;
+
+    // BlockPool is a friend to call ctor
+    friend class BlockPool;
+    // Block is a friend to call {Increase,Reduce}PinCount()
+    friend class Block;
+    friend class PinnedBlock;
+
+    /*!
+     * Constructor to initialize ByteBlock in a buffer of memory. Protected, use
+     * BlockPool::AllocateByteBlock() for construction. The returned object has
+     * pin_count_ = 1 due to initialize, this count should not be incremented
+     * when moved into a PinnedBlock.
+     *
+     * \param memory the memory address of the byte-blocks data. nullptr if swapped out
+     * \param size the size of the block in bytes
+     * \param block_pool the block pool that manages this ByteBlock
+     */
+    ByteBlock(Byte* data, size_t size, BlockPool* block_pool);
+
+    //! No default construction of Byteblock
+    ByteBlock() = delete;
 };
 
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;
+
+class PinnedByteBlockPtr : public ByteBlockPtr
+{
+public:
+    //! default ctor: contains a nullptr pointer.
+    PinnedByteBlockPtr() noexcept = default;
+
+    //! constructor with pointer: initializes new reference to ptr.
+    static PinnedByteBlockPtr Acquire(ByteBlock* ptr) noexcept {
+        PinnedByteBlockPtr result(ptr);
+        if (result.valid()) result->IncPinCount();
+        return result;
+    }
+
+    //! copy-ctor: increment underlying's pin count
+    PinnedByteBlockPtr(const PinnedByteBlockPtr& pbb) noexcept
+        : ByteBlockPtr(pbb) {
+        if (valid()) get()->IncPinCount();
+    }
+
+    //! move-ctor: move underlying's pin
+    PinnedByteBlockPtr(PinnedByteBlockPtr&& pbb) noexcept
+        : ByteBlockPtr(std::move(pbb)) {
+        assert(!pbb.valid());
+    }
+
+    //! copy-assignment: transfer underlying's pin count
+    PinnedByteBlockPtr& operator = (PinnedByteBlockPtr& pbb) noexcept {
+        if (this == &pbb) return *this;
+        // first acquire other's pin count
+        if (pbb.valid()) pbb->IncPinCount();
+        // then release the current one
+        if (valid()) get()->DecPinCount();
+        // copy over information, keep pin
+        ByteBlockPtr::operator = (pbb);
+        return *this;
+    }
+
+    //! move-assignment: move underlying's pin
+    PinnedByteBlockPtr& operator = (PinnedByteBlockPtr&& pbb) noexcept {
+        if (this == &pbb) return *this;
+        // release the current one
+        if (valid()) get()->DecPinCount();
+        // move over information, keep other's pin
+        ByteBlockPtr::operator = (std::move(pbb));
+        // invalidated other block
+        assert(!pbb.valid());
+        return *this;
+    }
+
+    //! destructor: remove pin
+    ~PinnedByteBlockPtr() {
+        if (valid()) get()->DecPinCount();
+    }
+
+private:
+    //! protected ctor for calling from Acquire().
+    explicit PinnedByteBlockPtr(ByteBlock* ptr) noexcept
+        : ByteBlockPtr(ptr) { }
+
+    //! protected ctor for calling from Acquire().
+    explicit PinnedByteBlockPtr(ByteBlockPtr&& ptr) noexcept
+        : ByteBlockPtr(std::move(ptr)) { }
+
+    //! for access to protected constructor to transfer pin
+    friend class PinnedBlock;
+};
 
 } // namespace data
 } // namespace thrill

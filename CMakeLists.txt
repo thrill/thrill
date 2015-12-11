@@ -10,6 +10,9 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
+# for smaller development builds -tb (temp)
+set(FULL_BUILD ON)
+
 cmake_minimum_required(VERSION 2.8)
 
 # custom cmake scripts
@@ -378,8 +381,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # descend into library source
 add_subdirectory(thrill)
 
-# descend into examples source
-add_subdirectory(examples)
+if(FULL_BUILD)
+  # descend into examples source
+  add_subdirectory(examples)
+endif()
 
 # descend into testsuite
 add_subdirectory(tests)

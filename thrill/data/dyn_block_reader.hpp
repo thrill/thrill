@@ -30,7 +30,7 @@ namespace data {
 class DynBlockSourceInterface
 {
 public:
-    virtual Block NextBlock() = 0;
+    virtual PinnedBlock NextBlock() = 0;
 };
 
 /*!
@@ -49,7 +49,7 @@ public:
         : block_source_ptr_(std::move(block_source_ptr))
     { }
 
-    Block NextBlock() {
+    PinnedBlock NextBlock() {
         return block_source_ptr_->NextBlock();
     }
 
@@ -81,7 +81,7 @@ public:
     //! move-assignment operator: default
     DynBlockSourceAdapter& operator = (DynBlockSourceAdapter&&) = default;
 
-    Block NextBlock() final {
+    PinnedBlock NextBlock() final {
         return block_source_.NextBlock();
     }
 

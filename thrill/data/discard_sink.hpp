@@ -38,7 +38,7 @@ public:
     { }
 
     //! Discards Block.
-    void AppendBlock(const Block&) final { }
+    void AppendBlock(const PinnedBlock&) final { }
 
     //! Closes the sink
     void Close() final {

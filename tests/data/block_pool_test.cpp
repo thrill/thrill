@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
+#include <thrill/data/block.hpp>
 #include <thrill/data/block_pool.hpp>
 
 #include <string>
@@ -26,41 +27,72 @@ struct BlockPoolTest : public::testing::Test {
     data::BlockPool block_pool_;
 };
 
-TEST_F(BlockPoolTest, AllocateAccountsSizeInManager) {
-    auto block = block_pool_.AllocateBlock(8);
-    ASSERT_EQ(8u, mem_manager_.total());
-    auto block2 = block_pool_.AllocateBlock(2);
-    ASSERT_EQ(10u, mem_manager_.total());
+TEST_F(BlockPoolTest, AllocateByteBlock) {
+    data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(8);
 }
 
-TEST_F(BlockPoolTest, AllocateIncreasesBlockCountByOne) {
-    auto block = block_pool_.AllocateBlock(8);
+TEST_F(BlockPoolTest, AllocatePinnedBlocks) {
+    data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(8);
+    data::PinnedBlock pblock(std::move(block), 0, 0, 0, 0);
+    ASSERT_EQ(8u, mem_manager_.total());
     ASSERT_EQ(1u, block_pool_.block_count());
+    data::PinnedByteBlockPtr block2 = block_pool_.AllocateByteBlock(2);
+    data::PinnedBlock pblock2(std::move(block2), 0, 0, 0, 0);
+    ASSERT_EQ(10u, mem_manager_.total());
 }
 
 TEST_F(BlockPoolTest, BlocksOutOfScopeReduceBlockCount) {
     {
-        auto block = block_pool_.AllocateBlock(8);
+        data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(8);
+        data::PinnedBlock pblock(std::move(block), 0, 0, 0, 0);
     }
     ASSERT_EQ(0u, block_pool_.block_count());
 }
 
 TEST_F(BlockPoolTest, BlocksOutOfScopeAreAccountetInMemManager) {
     {
-        auto block = block_pool_.AllocateBlock(8);
+        data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(8);
+        data::PinnedBlock pblock(std::move(block), 0, 0, 0, 0);
     }
     ASSERT_EQ(0u, mem_manager_.total());
 }
 
 TEST_F(BlockPoolTest, AllocatedBlocksHaveRefCountOne) {
-    auto block = block_pool_.AllocateBlock(8);
-    ASSERT_EQ(1u, block->reference_count());
+    data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(8);
+    data::PinnedBlock pblock(std::move(block), 0, 0, 0, 0);
+    ASSERT_EQ(1u, pblock.byte_block()->reference_count());
 }
 
 TEST_F(BlockPoolTest, CopiedBlocksHaveRefCountOne) {
-    auto block = block_pool_.AllocateBlock(8);
-    auto copy = block;
-    ASSERT_EQ(2u, block->reference_count());
+    data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(8);
+    data::PinnedBlock pblock(std::move(block), 0, 0, 0, 0);
+    ASSERT_FALSE(block.valid());
+
+    data::PinnedBlock pblock_copy = pblock;
+    ASSERT_EQ(2u, pblock.byte_block()->pin_count());
+}
+
+TEST_F(BlockPoolTest, PinnedBlock) {
+    data::ByteBlockPtr bbp; /* unpinned */
+    data::Block unpinned_block;
+    {
+        // allocate ByteBlock, construct PinnedBlock, and release pin.
+        data::PinnedByteBlockPtr byte_block = block_pool_.AllocateByteBlock(8);
+        bbp = byte_block;
+        data::PinnedBlock pinned_block(std::move(byte_block), 0, 0, 0, 0);
+        ASSERT_EQ(1u, bbp->pin_count());
+        unpinned_block = pinned_block;
+        ASSERT_EQ(1u, bbp->pin_count());
+    }
+    ASSERT_EQ(0u, bbp->pin_count());
+    {
+        // refetch Pin on the ByteBlock
+        std::future<data::PinnedBlock> pin = unpinned_block.Pin();
+        pin.wait();
+        data::PinnedBlock pinned_block = pin.get();
+        ASSERT_EQ(1u, bbp->pin_count());
+    }
+    ASSERT_EQ(0u, bbp->pin_count());
 }
 
 /******************************************************************************/
