@@ -61,7 +61,7 @@ public:
         for (size_t idx = offset; idx < length; idx++) {
             KeyValuePair& current = second_reduce[idx];
             if (current.first != sentinel.first) {
-                writer.PutItem(current);
+                writer.Put(current);
                 second_reduce[idx] = sentinel;
             }
         }

@@ -147,7 +147,7 @@ int main() {
     for (std::size_t i = 0; i < 1000000; ++i) {
         {
             auto w = f.GetWriter();
-            w(pair_serial);
+            w.Put(pair_serial);
         }
         auto r = f.GetConsumeReader();
         r.Next<std::pair<std::string, std::vector<std::size_t> > >();

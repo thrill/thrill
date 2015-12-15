@@ -88,8 +88,8 @@ TEST_F(SerializationCereal, cereal_w_FileWriter)
 
     CerealObject2 co2(1, 2, 3);
 
-    w(co);
-    w(co2);
+    w.Put(co);
+    w.Put(co2);
     w.Close();
 
     data::File::KeepReader r = f.GetKeepReader();
@@ -116,7 +116,7 @@ TEST_F(SerializationCereal, cereal_w_BlockQueue)
         CerealObject myData;
         myData.a = "asdfasdf";
         myData.b = { "asdf", "asdf" };
-        qw(myData);
+        qw.Put(myData);
     }
     {
         auto qr = q.GetConsumeReader();

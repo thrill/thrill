@@ -97,14 +97,14 @@ struct PreBucketEmitImpl;
 template <typename Emitters, typename KeyValuePair>
 struct PreBucketEmitImpl<true, Emitters, KeyValuePair>{
     void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
-        emit[partition_id](p.second);
+        emit[partition_id].Put(p.second);
     }
 };
 
 template <typename Emitters, typename KeyValuePair>
 struct PreBucketEmitImpl<false, Emitters, KeyValuePair>{
     void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
-        emit[partition_id](p);
+        emit[partition_id].Put(p);
     }
 };
 
@@ -453,7 +453,7 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    writer.PutItem(*bi);
+                    writer.Put(*bi);
                 }
 
                 // destroy block and advance to next

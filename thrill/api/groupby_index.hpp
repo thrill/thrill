@@ -222,7 +222,7 @@ private:
         assert(k < number_keys_);
         const auto recipient = k * emitter_.size() / number_keys_;
         assert(recipient < emitter_.size());
-        emitter_[recipient](v);
+        emitter_[recipient].Put(v);
     }
 
     /*
@@ -235,7 +235,7 @@ private:
         {
             Writer w = f.GetWriter();
             for (const ValueIn& e : v) {
-                w(e);
+                w.Put(e);
             }
             w.Close();
         }

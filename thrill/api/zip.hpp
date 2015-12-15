@@ -195,7 +195,7 @@ private:
             // construct lambda with only the writer in the closure
             data::File::Writer* writer = &zip_node_->writers_[Index::index];
             auto pre_op_fn = [writer](const ZipArg& input) -> void {
-                                 writer->PutItem(input);
+                                 writer->Put(input);
                              };
 
             // close the function stacks with our pre ops and register it at

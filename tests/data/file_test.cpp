@@ -146,10 +146,10 @@ TEST_F(File, SerializeSomeItems) {
     {
         // construct File with very small blocks for testing
         data::File::Writer fw = file.GetWriter(1024);
-        fw(static_cast<unsigned>(5));
-        fw(MyPair(5, "10abc"));
-        fw(static_cast<double>(42.0));
-        fw(std::string("test"));
+        fw.Put(static_cast<unsigned>(5));
+        fw.Put(MyPair(5, "10abc"));
+        fw.Put(static_cast<double>(42.0));
+        fw.Put(std::string("test"));
     }
 
     // std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
@@ -188,10 +188,10 @@ TEST_F(File, SerializeSomeItemsDynReader) {
     {
         // construct File with very small blocks for testing
         data::File::Writer fw = file.GetWriter(1024);
-        fw(static_cast<unsigned>(5));
-        fw(MyPair(5, "10abc"));
-        fw(static_cast<double>(42.0));
-        fw(std::string("test"));
+        fw.Put(static_cast<unsigned>(5));
+        fw.Put(MyPair(5, "10abc"));
+        fw.Put(static_cast<double>(42.0));
+        fw.Put(std::string("test"));
     }
     ASSERT_EQ(4u, file.num_items());
 
@@ -229,7 +229,7 @@ TEST_F(File, SerializeSomeItemsConsumeReader) {
         // construct File with very small blocks for testing
         data::File::Writer fw = file.GetWriter(53);
         for (unsigned i = 0; i < 50; ++i) {
-            fw.PutItem<unsigned>(i);
+            fw.Put<unsigned>(i);
         }
     }
 
@@ -258,7 +258,7 @@ TEST_F(File, RandomGetIndexOf) {
     data::File::Writer fw = file.GetWriter(53);
 
     for (size_t i = 0; i < size; i++) {
-        fw(size - i - 1);
+        fw.Put(size - i - 1);
     }
 
     fw.Close();
@@ -282,7 +282,7 @@ TEST_F(File, TieGetIndexOf) {
     data::File::Writer fw = file.GetWriter(53);
 
     for (size_t i = 0; i < size; i++) {
-        fw(i);
+        fw.Put(i);
     }
 
     fw.Close();
@@ -305,7 +305,7 @@ TEST_F(File, TieGetIndexOfWithDuplicates) {
     data::File::Writer fw = file.GetWriter(53);
 
     for (size_t i = 0; i < size; i++) {
-        fw(i / 4);
+        fw.Put(i / 4);
     }
 
     fw.Close();
@@ -337,7 +337,7 @@ TEST_F(File, ReadFileWithBufferedReader) {
     size_t size = 100;
 
     for (size_t i = 0; i < size; i++) {
-        fw(i);
+        fw.Put(i);
     }
     fw.Close();
 
@@ -361,7 +361,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     // yes, this is a prime number as block size. -tb
     data::File::Writer fw = file.GetWriter(/* block_size */ 53);
     for (size_t i = 0; i < 1000; ++i) {
-        fw(i);
+        fw.Put(i);
     }
     fw.Close();
 
@@ -490,7 +490,7 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
     try {
         data::BlockWriter<BoundedFile> bw(&file, 64);
         for (size_t i = 0; i != 1024000; ++i) {
-            bw(123456u + i);
+            bw.Put(123456u + i);
         }
         FAIL();
     }

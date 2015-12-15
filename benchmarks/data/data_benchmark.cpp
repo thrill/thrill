@@ -159,7 +159,7 @@ public:
 
             StatsTimer<true> write_timer(true);
             while (data.HasNext()) {
-                writer(data.Next());
+                writer.Put(data.Next());
             }
             writer.Close();
             write_timer.Stop();
@@ -255,7 +255,7 @@ public:
         {
             auto writers = stream->OpenWriters(block_size_);
             while (data.HasNext())
-                writers[peer_id].PutItem(data.Next());
+                writers[peer_id].Put(data.Next());
         }
         write_timer.Stop();
 
@@ -485,7 +485,7 @@ public:
 
                         StatsTimer<true> write_timer(true);
                         while (data.HasNext()) {
-                            writers[target](data.Next());
+                            writers[target].Put(data.Next());
                         }
                         writers[target].Close();
                         write_timer.Stop();
@@ -581,12 +581,12 @@ public:
             if (ctx.my_rank() == 0) {
                 Generator<Type> data = Generator<Type>(bytes_, min_size_, max_size_);
                 while (data.HasNext())
-                    writer(data.Next());
+                    writer.Put(data.Next());
             }
             else {
                 Generator<Type> data = Generator<Type>(0, min_size_, max_size_);
                 while (data.HasNext())
-                    writer(data.Next());
+                    writer.Put(data.Next());
             }
 
             // start reader thread
@@ -812,7 +812,7 @@ public:
                     auto writer = queue.GetWriter(block_size_);
                     write_timer.Start();
                     while (data.HasNext()) {
-                        writer(data.Next());
+                        writer.Put(data.Next());
                     }
                     writer.Close();
                     write_timer.Stop();

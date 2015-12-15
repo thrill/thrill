@@ -162,14 +162,14 @@ struct PreProbingEmitImpl;
 template <typename Emitters, typename KeyValuePair>
 struct PreProbingEmitImpl<true, Emitters, KeyValuePair>{
     void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
-        emit[partition_id](p.second);
+        emit[partition_id].Put(p.second);
     }
 };
 
 template <typename Emitters, typename KeyValuePair>
 struct PreProbingEmitImpl<false, Emitters, KeyValuePair>{
     void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
-        emit[partition_id](p);
+        emit[partition_id].Put(p);
     }
 };
 
@@ -427,7 +427,7 @@ public:
             KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
             {
-                writer.PutItem(current);
+                writer.Put(current);
                 items_[i] = sentinel_;
             }
         }

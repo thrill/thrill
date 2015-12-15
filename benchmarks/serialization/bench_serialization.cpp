@@ -37,7 +37,7 @@ int BenchmarkSerialization(T t, int iterations) {
         timer.Start();
         {
             auto w = f.GetWriter();
-            w(t);
+            w.Put(t);
         }
         auto r = f.GetConsumeReader();
         r.Next<T>();

@@ -178,38 +178,32 @@ public:
         return *this;
     }
 
-    //! PutItem appends a complete item, or fails with a FullException.
+    //! Put appends a complete item, or fails with a FullException.
     template <typename T>
-    BlockWriter & PutItem(const T& x) {
+    BlockWriter & Put(const T& x) {
         assert(!closed_);
 
         if (!BlockSink::allocate_can_fail_)
-            return PutItemUnsafe<T>(x);
+            return PutUnsafe<T>(x);
         else
-            return PutItemSafe<T>(x);
+            return PutSafe<T>(x);
     }
 
-    //! operator() appends a complete item, or fails with a FullException.
-    template <typename T>
-    BlockWriter& operator () (const T& x) {
-        return PutItem(x);
-    }
-
-    //! PutItemNoSelfVerify appends a complete item without any self
+    //! PutNoSelfVerify appends a complete item without any self
     //! verification information, or fails with a FullException.
     template <typename T>
-    BlockWriter & PutItemNoSelfVerify(const T& x) {
+    BlockWriter & PutNoSelfVerify(const T& x) {
         assert(!closed_);
 
         if (!BlockSink::allocate_can_fail_)
-            return PutItemUnsafe<T, true>(x);
+            return PutUnsafe<T, true>(x);
         else
-            return PutItemSafe<T, true>(x);
+            return PutSafe<T, true>(x);
     }
 
     //! appends a complete item, or fails safely with a FullException.
     template <typename T, bool NoSelfVerify = false>
-    BlockWriter & PutItemSafe(const T& x) {
+    BlockWriter & PutSafe(const T& x) {
         assert(!closed_);
 
         if (current_ == end_) {
@@ -279,7 +273,7 @@ public:
 
     //! appends a complete item, or aborts with a FullException.
     template <typename T, bool NoSelfVerify = false>
-    BlockWriter & PutItemUnsafe(const T& x) {
+    BlockWriter & PutUnsafe(const T& x) {
         assert(!closed_);
 
         try {

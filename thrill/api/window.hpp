@@ -128,7 +128,7 @@ private:
             window_.pop_front();
         window_.push_back(input);
 
-        writer_(input);
+        writer_.Put(input);
     }
 
     //! rank of our first element in file_

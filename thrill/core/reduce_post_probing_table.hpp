@@ -402,7 +402,7 @@ public:
             KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
             {
-                writer.PutItem(current);
+                writer.Put(current);
                 // items_[i].first = sentinel_.first;
                 // items_[i].second = sentinel_.second;
 

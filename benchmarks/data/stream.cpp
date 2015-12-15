@@ -48,7 +48,7 @@ void ExperimentAllPairs(
 
                     auto& writer = writers[tgt];
                     while (data.HasNext()) {
-                        writer(data.Next());
+                        writer.Put(data.Next());
                     }
                 }
             }
@@ -108,7 +108,7 @@ void ExperimentFull(
         while (data.HasNext()) {
             Type value = data.Next();
             for (size_t tgt = 0; tgt < ctx.num_workers(); ++tgt) {
-                writers[tgt](value);
+                writers[tgt].Put(value);
             }
         }
     }
