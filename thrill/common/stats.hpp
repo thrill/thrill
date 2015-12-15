@@ -56,8 +56,8 @@ public:
     Stats(Stats&&) = delete;
     Stats& operator = (const Stats&) = delete;
 
-    Stats() :
-        program_start_(std::chrono::high_resolution_clock::now()) { }
+    Stats()
+        : program_start_(std::chrono::high_resolution_clock::now()) { }
 
     TimedCounterPtr CreateTimedCounter(const std::string& group, const std::string& label) {
         auto result = timed_counters_.insert(std::make_pair(group, std::make_pair(label, std::make_shared<TimedCounter>())));

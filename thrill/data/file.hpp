@@ -198,7 +198,7 @@ public:
     std::string ReadComplete() const {
         std::string output;
         for (const Block& b : blocks_)
-            output += b.ToString();
+            output += b.PinNow().ToString();
         return output;
     }
 
