@@ -197,7 +197,7 @@ private:
     void PreOp(const ValueIn& v) {
         const Key k = key_extractor_(v);
         const auto recipient = hash_function_(k) % emitter_.size();
-        emitter_[recipient](v);
+        emitter_[recipient].Put(v);
     }
 
     /*
@@ -212,7 +212,7 @@ private:
         {
             Writer w = f.GetWriter();
             for (const ValueIn& e : v) {
-                w(e);
+                w.Put(e);
             }
             w.Close();
         }

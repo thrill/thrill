@@ -63,7 +63,7 @@ public:
                     common::CalculateLocalRange(in_size, emitters_.size(), w);
 
                 for (size_t i = local.begin; i < local.end; ++i) {
-                    emitters_[w](in_vector_[i]);
+                    emitters_[w].Put(in_vector_[i]);
                 }
             }
         }

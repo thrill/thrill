@@ -52,7 +52,7 @@ public:
         : writer_(writer) { }
 
     void operator () (const ArrayItem& a) const {
-        (*writer_)(a);
+        writer_->Put(a);
     }
 };
 

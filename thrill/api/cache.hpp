@@ -53,7 +53,7 @@ public:
 
         auto save_fn =
             [=](const ValueType& input) {
-                writer_(input);
+                writer_.Put(input);
             };
         auto lop_chain = parent.stack().push(save_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());

@@ -56,7 +56,7 @@ public:
 
     void PreOp(const ValueType& element) {
         for (size_t i = 0; i < emitters_.size(); i++) {
-            emitters_[i](element);
+            emitters_[i].Put(element);
         }
     }
 

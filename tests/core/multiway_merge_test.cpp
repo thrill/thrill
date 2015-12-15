@@ -169,7 +169,7 @@ TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
         {
             auto w = f.GetWriter();
             for (auto& t : tmp) {
-                w(t);
+                w.Put(t);
             }
         }
         in.emplace_back(std::move(f));
@@ -240,7 +240,7 @@ TEST_F(MultiwayMerge, File_Wrapper_with_1_Runs) {
         {
             auto w = f.GetWriter();
             for (auto& t : tmp) {
-                w(t);
+                w.Put(t);
             }
         }
         in.emplace_back(std::move(f));
@@ -309,7 +309,7 @@ TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
         {
             auto w = f.GetWriter();
             for (auto& t : tmp) {
-                w(t);
+                w.Put(t);
             }
         }
         in.emplace_back(std::move(f));

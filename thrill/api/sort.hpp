@@ -142,7 +142,7 @@ private:
         for (size_t i = 1; i < num_total_workers; i++) {
             splitters.push_back(samples[i * splitting_size]);
             for (size_t j = 1; j < num_total_workers; j++) {
-                emitters_samples_[j](samples[i * splitting_size]);
+                emitters_samples_[j].Put(samples[i * splitting_size]);
             }
         }
 
@@ -260,7 +260,7 @@ private:
             }
 
             assert(emitters_data_[b0].IsValid());
-            emitters_data_[b0](el0);
+            emitters_data_[b0].Put(el0);
 
             if (b1 && Equal(el1, sorted_splitters[b1 - 1])) {
                 while (b1 && Equal(el1, sorted_splitters[b1 - 1])
@@ -274,7 +274,7 @@ private:
             }
 
             assert(emitters_data_[b1].IsValid());
-            emitters_data_[b1](el1);
+            emitters_data_[b1].Put(el1);
         }
 
         // last iteration of loop if we have an odd number of items.
@@ -298,7 +298,7 @@ private:
             }
 
             assert(emitters_data_[b].IsValid());
-            emitters_data_[b](data_[i]);
+            emitters_data_[b].Put(data_[i]);
         }
     }
 
@@ -326,7 +326,7 @@ private:
         // Send samples to worker 0
         for (size_t i = 0; i < sample_size; i++) {
             size_t sample = distribution(generator);
-            emitters_samples_[0](data_[sample]);
+            emitters_samples_[0].Put(data_[sample]);
         }
         emitters_samples_[0].Close();
 

@@ -67,7 +67,7 @@ public:
             while (current != nullptr) {
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi) {
-                    writer.PutItem(*bi);
+                    writer.Put(*bi);
                 }
 
                 // destroy block and advance to next

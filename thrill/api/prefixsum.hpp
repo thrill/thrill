@@ -94,7 +94,7 @@ private:
     void PreOp(const ValueType& input) {
         LOG << "Input: " << input;
         local_sum_ = sum_function_(local_sum_, input);
-        writer_(input);
+        writer_.Put(input);
     }
 
     void MainOp() {

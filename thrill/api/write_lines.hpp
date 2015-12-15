@@ -61,7 +61,7 @@ public:
     }
 
     void PreOp(const Input& input) {
-        writer_(input);
+        writer_.Put(input);
         size_ += input.size() + 1;
         stats_total_elements_++;
     }
