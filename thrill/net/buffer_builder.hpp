@@ -303,7 +303,7 @@ public:
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    BufferBuilder & Put(const Type item) {
+    BufferBuilder & Put(const Type& item) {
         static_assert(std::is_pod<Type>::value,
                       "You only want to Put() POD types as raw values.");
 
@@ -318,6 +318,13 @@ public:
     //! Put a single byte to the buffer (used via CRTP from ItemWriterToolsBase)
     BufferBuilder & PutByte(Byte data) {
         return Put<uint8_t>(data);
+    }
+
+    //! Put (append) a single item of the template type T to the buffer. Be
+    //! careful with implicit type conversions!
+    template <typename Type>
+    BufferBuilder & PutRaw(const Type& item) {
+        return Put<Type>(item);
     }
 
     //! \}

@@ -207,15 +207,15 @@ struct MyMethodStruct
 
     template <typename Archive>
     void ThrillSerialize(Archive& ar) const {
-        ar.template Put<int>(i1);
-        ar.template Put<double>(d2);
+        ar.template PutRaw<int>(i1);
+        ar.template PutRaw<double>(d2);
         ar.PutString(s3);
     }
 
     template <typename Archive>
     static MyMethodStruct ThrillDeserialize(Archive& ar) {
-        int i1 = ar.template Get<int>();
-        double d2 = ar.template Get<double>();
+        int i1 = ar.template GetRaw<int>();
+        double d2 = ar.template GetRaw<double>();
         std::string s3 = ar.GetString();
         return MyMethodStruct(i1, d2, s3);
     }

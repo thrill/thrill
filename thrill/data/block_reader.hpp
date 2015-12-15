@@ -86,7 +86,7 @@ public:
 
         if (self_verify) {
             // for self-verification, T is prefixed with its hash code
-            size_t code = Get<size_t>();
+            size_t code = GetRaw<size_t>();
             if (code != typeid(T).hash_code()) {
                 throw std::runtime_error(
                           "BlockReader::Next() attempted to retrieve item "
@@ -303,9 +303,9 @@ public:
     //! Fetch a single item of the template type Type from the buffer,
     //! advancing the cursor. Be careful with implicit type conversions!
     template <typename Type>
-    Type Get() {
+    Type GetRaw() {
         static_assert(std::is_pod<Type>::value,
-                      "You only want to Get() POD types as raw values.");
+                      "You only want to GetRaw() POD types as raw values.");
 
         Type ret;
 
