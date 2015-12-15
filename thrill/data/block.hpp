@@ -121,10 +121,6 @@ public:
 
     PinnedBlock PinNow() const;
 
-    //! Return block as std::string (for debugging), includes eventually cut off
-    //! elements form the beginning included
-    std::string ToString() const;
-
 protected:
     static const bool debug = false;
 
@@ -232,6 +228,12 @@ public:
             reinterpret_cast<const char*>(data_begin()), size());
     }
 
+    //! not available in PinnedBlock
+    std::future<PinnedBlock> Pin() const = delete;
+
+    //! not available in PinnedBlock
+    PinnedBlock PinNow() const = delete;
+
 protected:
     //! protected construction from an unpinned block AFTER the pin was taken,
     //! this method does NOT pin it.
@@ -276,10 +278,6 @@ PinnedBlock Block::PinNow() const {
     std::future<PinnedBlock> pin = Pin();
     pin.wait();
     return pin.get();
-}
-
-inline std::string Block::ToString() const {
-    return PinNow().ToString();
 }
 
 //! \}

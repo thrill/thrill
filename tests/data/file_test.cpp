@@ -84,7 +84,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 
     if (0) {
         for (size_t i = 0; i != file.num_blocks(); ++i) {
-            std::cout << common::Hexdump(file.block(i).ToString())
+            std::cout << common::Hexdump(file.block(i).PinNow().ToString())
                       << std::endl;
         }
     }

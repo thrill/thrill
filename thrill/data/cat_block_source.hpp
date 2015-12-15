@@ -53,7 +53,7 @@ public:
     PinnedBlock NextBlock() {
         for ( ; current_ < sources_.size(); ++current_) {
             PinnedBlock b = sources_[current_].NextBlock();
-            if (b.IsValid()) return b.PinNow();
+            if (b.IsValid()) return b;
         }
         return PinnedBlock();
     }
