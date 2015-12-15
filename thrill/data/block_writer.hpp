@@ -238,7 +238,7 @@ public:
             MarkItem();
             if (self_verify && !NoSelfVerify) {
                 // for self-verification, prefix T with its hash code
-                Put(typeid(T).hash_code());
+                PutRaw(typeid(T).hash_code());
             }
             Serialization<BlockWriter, T>::Serialize(x, *this);
 
@@ -290,7 +290,7 @@ public:
             MarkItem();
             if (self_verify && !NoSelfVerify) {
                 // for self-verification, prefix T with its hash code
-                Put(typeid(T).hash_code());
+                PutRaw(typeid(T).hash_code());
             }
             Serialization<BlockWriter, T>::Serialize(x, *this);
         }
@@ -352,9 +352,9 @@ public:
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    BlockWriter & Put(const Type& item) {
+    BlockWriter & PutRaw(const Type& item) {
         static_assert(std::is_pod<Type>::value,
-                      "You only want to Put() POD types as raw values.");
+                      "You only want to PutRaw() POD types as raw values.");
 
         assert(!closed_);
 

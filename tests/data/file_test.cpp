@@ -43,7 +43,7 @@ TEST_F(File, PutSomeItemsGetItems) {
         // long item spanning multiple blocks
         fw.PutString(std::string(64, '1'));
         fw.MarkItem();
-        fw.Put<uint16_t>(42);
+        fw.PutRaw<uint16_t>(42);
     }
 
     ASSERT_EQ(file.num_blocks(), 6u);
@@ -109,8 +109,8 @@ TEST_F(File, PutSomeItemsGetItems) {
         ASSERT_EQ(fr.GetVarint(), 123456u);
         ASSERT_EQ(fr.GetString(), "test1test2test3");
         ASSERT_EQ(fr.GetString(), std::string(64, '1'));
-        ASSERT_EQ(fr.Get<uint16_t>(), 42);
-        ASSERT_THROW(fr.Get<uint16_t>(), std::runtime_error);
+        ASSERT_EQ(fr.GetRaw<uint16_t>(), 42);
+        ASSERT_THROW(fr.GetRaw<uint16_t>(), std::runtime_error);
     }
 }
 
