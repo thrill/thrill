@@ -49,8 +49,9 @@ public:
 
     //! Allocate a ByteBlock with n bytes backing memory. If returned
     //! ByteBlockPtr is a nullptr, then memory of this BlockSink is exhausted.
-    virtual PinnedByteBlockPtr AllocateByteBlock(size_t block_size) {
-        return block_pool_.AllocateByteBlock(block_size);
+    virtual PinnedByteBlockPtr
+    AllocateByteBlock(size_t block_size, size_t local_worker_id) {
+        return block_pool_.AllocateByteBlock(block_size, local_worker_id);
     }
 
     //! Release an unused ByteBlock with n bytes backing memory.
@@ -87,10 +88,10 @@ public:
           max_size_(max_size), available_(max_size)
     { }
 
-    PinnedByteBlockPtr AllocateByteBlock(size_t block_size) final {
+    PinnedByteBlockPtr AllocateByteBlock(size_t block_size, size_t local_worker_id) final {
         if (available_ < block_size) return PinnedByteBlockPtr();
         available_ -= block_size;
-        return BlockSink::AllocateByteBlock(block_size);
+        return BlockSink::AllocateByteBlock(block_size, local_worker_id);
     }
 
     void ReleaseByteBlock(ByteBlockPtr& block) final {

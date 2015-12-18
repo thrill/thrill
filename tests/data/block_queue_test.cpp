@@ -22,7 +22,7 @@ using MyBlockSource = data::ConsumeBlockQueueSource;
 using CatBlockSource = data::CatBlockSource<MyBlockSource>;
 
 struct BlockQueue : public::testing::Test {
-    data::BlockPool block_pool_ { nullptr, nullptr };
+    data::BlockPool block_pool_;
 };
 
 TEST_F(BlockQueue, FreshQueueIsNotClosed) {
@@ -43,7 +43,7 @@ TEST_F(BlockQueue, FreshQueueIsEmpty) {
 
 TEST_F(BlockQueue, QueueNonEmptyAfterAppend) {
     data::BlockQueue q(block_pool_);
-    data::PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(16);
+    data::PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(16, 0);
     q.AppendBlock(data::PinnedBlock(std::move(bytes), 0, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
@@ -51,8 +51,8 @@ TEST_F(BlockQueue, QueueNonEmptyAfterAppend) {
 TEST_F(BlockQueue, BlockWriterToQueue) {
     data::BlockQueue q(block_pool_);
     data::BlockQueue::Writer bw = q.GetWriter(16);
-    bw.Put(static_cast<int>(42));
-    bw.Put(std::string("hello there BlockQueue"));
+    bw.Put<int>(42);
+    bw.Put<std::string>("hello there BlockQueue");
     bw.Close();
     ASSERT_FALSE(q.empty());
     // two real block and one termination sentinel. with verify one more.

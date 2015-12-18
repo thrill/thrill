@@ -33,19 +33,21 @@ void ByteBlock::deleter(const ByteBlock* bb) {
     return deleter(const_cast<ByteBlock*>(bb));
 }
 
-void ByteBlock::IncPinCount() {
+void ByteBlock::IncPinCount(size_t local_worker_id) {
     size_t p = ++pin_count_;
-    LOG << "ByteBlock::IncPinCount() ++pin_count=" << p;
+    LOG << "ByteBlock::IncPinCount() ++pin_count=" << p
+        << " local_worker_id=" << local_worker_id;
 }
 
-void ByteBlock::DecPinCount() {
+void ByteBlock::DecPinCount(size_t local_worker_id) {
     size_t p = --pin_count_;
-    LOG << "ByteBlock::DecPinCount() --pin_count=" << p;
+    LOG << "ByteBlock::DecPinCount() --pin_count=" << p
+        << " local_worker_id=" << local_worker_id;
     if (p == 0) {
         // TODO(tb): this is a race condition: pin was zero and putting it into
         // blockpool's list must be an atomic operation, which cannot be
         // interrupted by another thread raising the pin again.
-        block_pool_->UnpinBlock(this);
+        block_pool_->UnpinBlock(this, local_worker_id);
     }
 }
 

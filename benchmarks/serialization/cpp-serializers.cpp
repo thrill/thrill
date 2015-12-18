@@ -139,7 +139,7 @@ int main() {
     std::pair<std::string, std::vector<std::size_t> > pair_serial = std::make_pair(str_serial, kIntegers);
 
     common::StatsTimer<true> timer(false);
-    data::BlockPool block_pool(nullptr, nullptr);
+    data::BlockPool block_pool;
     data::File f(block_pool);
     auto w = f.GetWriter();
 

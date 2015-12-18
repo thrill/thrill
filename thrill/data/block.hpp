@@ -117,9 +117,9 @@ public:
     //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
     //! is already pinned, the Future is directly filled with a copy if this
     //! block.  Otherwise an async pin call will be issued.
-    std::future<PinnedBlock> Pin() const;
+    std::future<PinnedBlock> Pin(size_t local_worker_id = -1 /* TODO */) const;
 
-    PinnedBlock PinNow() const;
+    PinnedBlock PinNow(size_t local_worker_id = -1 /* TODO */) const;
 
 protected:
     static const bool debug = false;
@@ -153,16 +153,20 @@ public:
     //! given offsets. The returned block is also pinned, the pin is transfered!
     PinnedBlock(PinnedByteBlockPtr&& byte_block,
                 size_t begin, size_t end, size_t first_item, size_t num_items)
-        : Block(std::move(byte_block), begin, end, first_item, num_items) {
+        : Block(std::move(byte_block), begin, end, first_item, num_items),
+          local_worker_id_(byte_block.local_worker_id()) {
         LOG << "PinnedBlock::Acquire() from new PinnedByteBlock";
     }
 
     //! copy-ctor: increment underlying's pin count
     PinnedBlock(const PinnedBlock& pb) noexcept
-        : Block(pb) { if (byte_block_) byte_block_->IncPinCount(); }
+        : Block(pb), local_worker_id_(pb.local_worker_id_) {
+        if (byte_block_) byte_block_->IncPinCount(local_worker_id_);
+    }
 
     //! move-ctor: move underlying's pin
-    PinnedBlock(PinnedBlock&& pb) noexcept : Block(std::move(pb)) {
+    PinnedBlock(PinnedBlock&& pb) noexcept
+        : Block(std::move(pb)), local_worker_id_(pb.local_worker_id_) {
         assert(!pb.byte_block_);
     }
 
@@ -170,11 +174,12 @@ public:
     PinnedBlock& operator = (PinnedBlock& pb) noexcept {
         if (this == &pb) return *this;
         // first acquire other's pin count
-        if (pb.byte_block_) pb.byte_block_->IncPinCount();
+        if (pb.byte_block_) pb.byte_block_->IncPinCount(pb.local_worker_id_);
         // then release the current one
-        if (byte_block_) byte_block_->DecPinCount();
+        if (byte_block_) byte_block_->DecPinCount(local_worker_id_);
         // copy over Block information
         Block::operator = (pb);
+        local_worker_id_ = pb.local_worker_id_;
         return *this;
     }
 
@@ -182,10 +187,10 @@ public:
     PinnedBlock& operator = (PinnedBlock&& pb) noexcept {
         if (this == &pb) return *this;
         // release the current one
-        if (byte_block_)
-            byte_block_->DecPinCount();
+        if (byte_block_) byte_block_->DecPinCount(local_worker_id_);
         // move over Block information, keep other's pin count
         Block::operator = (std::move(pb));
+        local_worker_id_ = pb.local_worker_id_;
         // invalidate other block
         assert(!pb.byte_block_);
         return *this;
@@ -193,7 +198,7 @@ public:
 
     ~PinnedBlock() {
         if (byte_block_)
-            byte_block_->DecPinCount();
+            byte_block_->DecPinCount(local_worker_id_);
     }
 
     //! return pointer to beginning of valid data
@@ -210,13 +215,13 @@ public:
 
     //! extract ByteBlock including it's pin.
     PinnedByteBlockPtr StealPinnedByteBlock() {
-        return PinnedByteBlockPtr(std::move(byte_block_));
+        return PinnedByteBlockPtr(std::move(byte_block_), local_worker_id_);
     }
 
     //! access to byte_block_ which is pinned.
     PinnedByteBlockPtr pinned_byte_block() const {
-        PinnedByteBlockPtr pbb(byte_block_);
-        if (pbb.valid()) pbb->IncPinCount();
+        PinnedByteBlockPtr pbb(byte_block_, local_worker_id_);
+        if (pbb.valid()) pbb->IncPinCount(local_worker_id_);
         return pbb;
     }
 
@@ -234,22 +239,26 @@ public:
     //! not available in PinnedBlock
     PinnedBlock PinNow() const = delete;
 
-protected:
+private:
     //! protected construction from an unpinned block AFTER the pin was taken,
     //! this method does NOT pin it.
-    explicit PinnedBlock(const Block& b) : Block(b) { }
+    explicit PinnedBlock(const Block& b, size_t local_worker_id)
+        : Block(b), local_worker_id_(local_worker_id) { }
+
+    //! thread id of holder of pin
+    size_t local_worker_id_;
 
     //! friend for creating PinnedBlock in Pin() using protected constructor
     friend class Block;
 };
 
 inline
-std::future<PinnedBlock> Block::Pin() const {
+std::future<PinnedBlock> Block::Pin(size_t local_worker_id) const {
 
     std::promise<PinnedBlock> result;
 
-    byte_block_->IncPinCount();
-    result.set_value(PinnedBlock(*this));
+    byte_block_->IncPinCount(local_worker_id);
+    result.set_value(PinnedBlock(*this, local_worker_id));
 
 #if 0
     // pinned blocks can be returned straigt away
@@ -274,8 +283,8 @@ std::future<PinnedBlock> Block::Pin() const {
 }
 
 inline
-PinnedBlock Block::PinNow() const {
-    std::future<PinnedBlock> pin = Pin();
+PinnedBlock Block::PinNow(size_t local_worker_id) const {
+    std::future<PinnedBlock> pin = Pin(local_worker_id);
     pin.wait();
     return pin.get();
 }

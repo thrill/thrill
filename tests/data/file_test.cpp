@@ -23,7 +23,7 @@
 using namespace thrill;
 
 struct File : public::testing::Test {
-    data::BlockPool block_pool_ { nullptr, nullptr };
+    data::BlockPool block_pool_;
 };
 
 TEST_F(File, PutSomeItemsGetItems) {

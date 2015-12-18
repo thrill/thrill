@@ -207,7 +207,8 @@ private:
             if (done_) return data::PinnedBlock();
 
             data::PinnedByteBlockPtr bytes
-                = context_.block_pool().AllocateByteBlock(block_size);
+                = context_.block_pool().AllocateByteBlock(
+                block_size, context_.local_worker_id());
 
             size_t rb = std::min(block_size, remain_size_);
 

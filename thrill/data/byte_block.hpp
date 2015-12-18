@@ -76,10 +76,10 @@ public:
     }
 
     //! increment pin count, must be >= 1 before.
-    void IncPinCount();
+    void IncPinCount(size_t local_worker_id);
 
     //! decrement pin count, possibly signal block pool that if it reaches zero.
-    void DecPinCount();
+    void DecPinCount(size_t local_worker_id);
 
 private:
     //! the memory block itself is referenced as it is in a a separate memory
@@ -128,17 +128,18 @@ public:
     //! default ctor: contains a nullptr pointer.
     PinnedByteBlockPtr() noexcept = default;
 
-    //! constructor with pointer: initializes new reference to ptr.
-    static PinnedByteBlockPtr Acquire(ByteBlock* ptr) noexcept {
-        PinnedByteBlockPtr result(ptr);
-        if (result.valid()) result->IncPinCount();
+    //! constructor with pointer: initializes new reference to ptr on behalf of
+    //! local_worker_id.
+    static PinnedByteBlockPtr Acquire(ByteBlock* ptr, size_t local_worker_id) noexcept {
+        PinnedByteBlockPtr result(ptr, local_worker_id);
+        if (result.valid()) result->IncPinCount(local_worker_id);
         return result;
     }
 
     //! copy-ctor: increment underlying's pin count
     PinnedByteBlockPtr(const PinnedByteBlockPtr& pbb) noexcept
-        : ByteBlockPtr(pbb) {
-        if (valid()) get()->IncPinCount();
+        : ByteBlockPtr(pbb), local_worker_id_(pbb.local_worker_id_) {
+        if (valid()) get()->IncPinCount(local_worker_id_);
     }
 
     //! move-ctor: move underlying's pin
@@ -151,11 +152,12 @@ public:
     PinnedByteBlockPtr& operator = (PinnedByteBlockPtr& pbb) noexcept {
         if (this == &pbb) return *this;
         // first acquire other's pin count
-        if (pbb.valid()) pbb->IncPinCount();
+        if (pbb.valid()) pbb->IncPinCount(pbb.local_worker_id_);
         // then release the current one
-        if (valid()) get()->DecPinCount();
+        if (valid()) get()->DecPinCount(local_worker_id_);
         // copy over information, keep pin
         ByteBlockPtr::operator = (pbb);
+        local_worker_id_ = pbb.local_worker_id_;
         return *this;
     }
 
@@ -163,9 +165,10 @@ public:
     PinnedByteBlockPtr& operator = (PinnedByteBlockPtr&& pbb) noexcept {
         if (this == &pbb) return *this;
         // release the current one
-        if (valid()) get()->DecPinCount();
+        if (valid()) get()->DecPinCount(local_worker_id_);
         // move over information, keep other's pin
         ByteBlockPtr::operator = (std::move(pbb));
+        local_worker_id_ = pbb.local_worker_id_;
         // invalidated other block
         assert(!pbb.valid());
         return *this;
@@ -173,17 +176,23 @@ public:
 
     //! destructor: remove pin
     ~PinnedByteBlockPtr() {
-        if (valid()) get()->DecPinCount();
+        if (valid()) get()->DecPinCount(local_worker_id_);
     }
+
+    //! local worker id of holder of pin
+    size_t local_worker_id() const { return local_worker_id_; }
 
 private:
     //! protected ctor for calling from Acquire().
-    explicit PinnedByteBlockPtr(ByteBlock* ptr) noexcept
-        : ByteBlockPtr(ptr) { }
+    explicit PinnedByteBlockPtr(ByteBlock* ptr, size_t local_worker_id) noexcept
+        : ByteBlockPtr(ptr), local_worker_id_(local_worker_id) { }
 
     //! protected ctor for calling from Acquire().
-    explicit PinnedByteBlockPtr(ByteBlockPtr&& ptr) noexcept
-        : ByteBlockPtr(std::move(ptr)) { }
+    explicit PinnedByteBlockPtr(ByteBlockPtr&& ptr, size_t local_worker_id) noexcept
+        : ByteBlockPtr(std::move(ptr)), local_worker_id_(local_worker_id) { }
+
+    //! local worker id of holder of pin
+    size_t local_worker_id_;
 
     //! for access to protected constructor to transfer pin
     friend class PinnedBlock;

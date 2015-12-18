@@ -368,7 +368,7 @@ public:
 private:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
-        bytes_ = sink_->AllocateByteBlock(block_size_);
+        bytes_ = sink_->AllocateByteBlock(block_size_, -1 /* TODO(tb) */);
         if (!bytes_) {
             sLOG << "AllocateBlock(): throw due to invalid block";
             throw FullException();

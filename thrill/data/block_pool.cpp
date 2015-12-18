@@ -18,8 +18,8 @@
 namespace thrill {
 namespace data {
 
-PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size) {
-    assert(size <= default_block_size);
+PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
+    assert(local_worker_id < workers_per_host_);
     std::lock_guard<std::mutex> lock(mutex_);
 
 #if 0
@@ -56,11 +56,13 @@ PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size) {
 
     // create counting ptr, no need for special make_shared-equivalent
     PinnedByteBlockPtr result
-        = PinnedByteBlockPtr::Acquire(new ByteBlock(data, size, this));
+        = PinnedByteBlockPtr::Acquire(new ByteBlock(data, size, this), local_worker_id);
 
-    ++num_pinned_blocks_;
+    ++total_pinned_blocks_;
+    ++num_pinned_blocks_[local_worker_id];
 
     LOG << "BlockPool::AllocateBlock() size=" << size
+        << " local_worker_id=" << local_worker_id
         << " total_count=" << block_count()
         << " total_size=" << mem_manager_.total();
 
@@ -127,15 +129,22 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr) {
 }
 #endif
 
-void BlockPool::UnpinBlock(ByteBlock* block_ptr) {
+void BlockPool::UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
+    assert(local_worker_id < workers_per_host_);
+
     std::lock_guard<std::mutex> lock(mutex_);
     assert(block_ptr->pin_count() == 0);
     unpinned_blocks_.push_back(block_ptr);
-    --num_pinned_blocks_;
+
+    assert(total_pinned_blocks_ > 0);
+    --total_pinned_blocks_;
+
+    assert(num_pinned_blocks_[local_worker_id] > 0);
+    --num_pinned_blocks_[local_worker_id];
 }
 
 size_t BlockPool::block_count() const noexcept {
-    return num_pinned_blocks_ + unpinned_blocks_.size() + num_swapped_blocks_;
+    return total_pinned_blocks_ + unpinned_blocks_.size() + num_swapped_blocks_;
 }
 
 void BlockPool::DestroyBlock(ByteBlock* block) {
@@ -176,7 +185,7 @@ void BlockPool::RequestInternalMemory(size_t amount) {
     mem_manager_.add(amount);
 
     return; // -tb later.
-
+#if 0
     if (!hard_memory_limit_ && !soft_memory_limit_) return;
 
     if (hard_memory_limit_ && mem_manager_.total() > hard_memory_limit_) {
@@ -195,6 +204,7 @@ void BlockPool::RequestInternalMemory(size_t amount) {
                            unpinned_blocks_.pop_front();
                        });
     }
+#endif
 }
 
 void BlockPool::ReleaseInternalMemory(size_t amount) {
