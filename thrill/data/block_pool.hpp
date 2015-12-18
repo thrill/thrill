@@ -21,6 +21,7 @@
 #include <deque>
 #include <mutex>
 #include <string>
+#include <vector>
 
 namespace thrill {
 namespace data {
@@ -35,20 +36,11 @@ class BlockPool
 
 public:
     /*!
-     * Creates a BlockPool without memory limitations
-     *
-     * \param mem_manager Memory Manager that tracks amount of RAM
-     * allocated. the BlockPool will create a child manager.
-     *
-     * \param mem_manager_external Memory Manager that tracks amount of memory
-     * allocated on disk. The BlockPool will create a child manager.
-     *
-     * \param swap_file_suffix suffix to append on file nam of the swap file
+     * Creates a simple BlockPool for tests: allows only one thread, enforces no
+     * memory limitations, never swaps to disk.
      */
-    BlockPool(mem::Manager* mem_manager,
-              mem::Manager* mem_manager_external,
-              std::string swap_file_suffix = "")
-        : BlockPool(0, 0, mem_manager, mem_manager_external, swap_file_suffix)
+    explicit BlockPool(size_t workers_per_host = 1)
+        : BlockPool(0, 0, nullptr, nullptr, workers_per_host)
     { }
 
     /*!
@@ -66,32 +58,25 @@ public:
      * \param mem_manager_external Memory Manager that tracks amount of memory
      * allocated on disk. The BlockPool will create a child manager.
      *
-     * \param swap_file_suffix suffix to append on file nam of the swap file
+     * \param workers_per_host number of workers on this host.
      */
     BlockPool(size_t soft_memory_limit, size_t hard_memory_limit,
               mem::Manager* mem_manager,
               mem::Manager* mem_manager_external,
-              std::string swap_file_suffix = "")
+              size_t workers_per_host)
         : mem_manager_(mem_manager, "BlockPool"),
-          ext_mem_manager_(mem_manager_external, "BlockPool"),
-          page_mapper_("/tmp/thrill.swapfile" + swap_file_suffix),
+          ext_mem_manager_(mem_manager_external, "BlockPoolEM"),
+          workers_per_host_(workers_per_host),
+          num_pinned_blocks_(workers_per_host),
           soft_memory_limit_(soft_memory_limit),
-          hard_memory_limit_(hard_memory_limit) {
-        tasks_.Enqueue([]() {
-                           common::NameThisThread("I/O");
-                       });
-    }
-
-    ~BlockPool() {
-        sLOG << "waiting for I/O background thread to end";
-        tasks_.LoopUntilEmpty();
-    }
+          hard_memory_limit_(hard_memory_limit)
+    { }
 
     //! Allocates a byte block with the request size. May block this thread if
     //! the hard memory limit is reached, until memory is freed by another
     //! thread.  The returned Block is allocated in RAM, but with a zero pin
     //! count.
-    PinnedByteBlockPtr AllocateByteBlock(size_t size);
+    PinnedByteBlockPtr AllocateByteBlock(size_t size, size_t local_worker_id);
 
     //! Total number of allocated blocks of this block pool
     size_t block_count() const noexcept;
@@ -100,7 +85,7 @@ public:
     //! Returns immediately. Actual unpinning is async.
     //! out to disk and is not accessible
     //! \param block_ptr the block to unpin
-    void UnpinBlock(ByteBlock* block_ptr);
+    void UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
 
 private:
     //! local Manager counting only ByteBlock allocations in internal memory.
@@ -109,15 +94,18 @@ private:
     //! local Manager counting only ByteBlocks in external memory.
     mem::Manager ext_mem_manager_;
 
-    //! PageMapper used for swapping-in/-out blocks
-    mem::PageMapper<default_block_size> page_mapper_;
+    //! number of workers per host
+    size_t workers_per_host_;
 
     //! list of all blocks that are in memory but are not pinned. TODO(tb):
     //! probably not the right data structure.
     std::deque<ByteBlock*> unpinned_blocks_;
 
-    size_t num_swapped_blocks_ = { 0 };
-    size_t num_pinned_blocks_ = { 0 };
+    size_t num_swapped_blocks_ = 0;
+    size_t total_pinned_blocks_ = 0;
+
+    //! number of pinned blocks per local worker id
+    std::vector<size_t> num_pinned_blocks_;
 
     //! locked before internal state is changed
     std::mutex mutex_;
@@ -127,9 +115,6 @@ private:
 
     //! For waiting on hard memory limit
     std::condition_variable memory_change_;
-
-    //! ThreadPool used for I/O tasks
-    common::ThreadPool tasks_ { 1 };
 
     //! Limits for the block pool. 0 for no limits.
     size_t soft_memory_limit_, hard_memory_limit_;

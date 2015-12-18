@@ -88,7 +88,8 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
             sLOG << "stream header from" << s << "on CatStream" << id
                  << "from worker" << sender_worker_rank;
 
-            PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(header.size);
+            PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
+                header.size, local_worker);
 
             dispatcher_.AsyncRead(
                 s, std::move(bytes),
@@ -113,7 +114,8 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
             sLOG << "stream header from" << s << "on MixStream" << id
                  << "from worker" << sender_worker_rank;
 
-            PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(header.size);
+            PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
+                header.size, local_worker);
 
             dispatcher_.AsyncRead(
                 s, std::move(bytes),
