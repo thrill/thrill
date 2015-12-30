@@ -93,7 +93,7 @@ auto kMeans(const DIA<std::string, InStack>&in1,
         centroids = accs.Map(
             [](const CentroidAcc& a) {
                 return Centrioid(a.first.first / a.second, a.first.second / a.second);
-            });
+            }).Cache();
 
         cs = centroids.AllGather();
     }
