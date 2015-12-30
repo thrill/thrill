@@ -7,20 +7,22 @@ Thrill is an EXPERIMENTAL C++ framework for distributed Big Data batch computati
 
 [http://project-thrill.org](http://project-thrill.org)
 
+If you'd like to contribute to Thrill, please review the [contribution guidelines](https://github.com/thrill/thrill/blob/master/CONTRIBUTING.md).
+
 # Building Thrill
 
-Thrill can be build using make. To build Thrill, run:
+Thrill can be build using ``make``. To build Thrill, run:
 
     ./compile.sh
 
 # Documentation
 
-You can find the latest documentation for Thrill on [Live Doxygen Documentation](http://i10login.iti.kit.edu/thrill-doxygen).
+You can find the latest documentation for Thrill on [Live Doxygen Documentation](http://i10login.iti.kit.edu/thrill-doxygen/).
 
 # Examples
 
-The directory ./examples contains examples for common applications such as WordCount, PageRank and kMeans.
+The directory ``./examples`` contains examples for common applications such as WordCount, PageRank and kMeans.
 
 # Tests
 
-The directory ./tests contains unit, integration and performance tests for various components of Thrill.
+The directory ``./tests`` contains unit, integration and performance tests for various components of Thrill.
