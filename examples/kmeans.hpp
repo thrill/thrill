@@ -49,7 +49,7 @@ auto kMeans(const DIA<std::string, InStack>&in1,
             auto split = thrill::common::Split(input, " ");
             return Centrioid(std::stof(split[0]),
                              std::stof(split[1]));
-        });
+        }).Cache();
 
     std::vector<Centrioid> cs = centroids.AllGather();
 
