@@ -9,7 +9,7 @@
 ################################################################################
 
 thrill_build_prog(page_rank)
-thrill_build_prog(kmeans)
+thrill_build_prog(kmeans_gen)
 thrill_build_prog(word_count)
 thrill_build_prog(word_count_gen)
 
