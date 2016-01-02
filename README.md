@@ -7,13 +7,14 @@ Thrill is an EXPERIMENTAL C++ framework for distributed Big Data batch computati
 
 [http://project-thrill.org](http://project-thrill.org)
 
-If you'd like to contribute to Thrill, please review the [contribution guidelines](https://github.com/thrill/thrill/blob/master/CONTRIBUTING.md).
+If you'd like to contribute to Thrill, please review the [contribution guidelines](CONTRIBUTING.md).
 
 # Building Thrill
 
-Thrill can be build using ``make``. To build Thrill, run:
+Thrill can be built with ``cmake``. A convenience wrapper combining building and testing is provided, simply run
 
     ./compile.sh
+
 
 # Documentation
 
