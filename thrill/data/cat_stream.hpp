@@ -78,7 +78,7 @@ public:
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
             for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
                 if (host == multiplexer_.my_host_rank()) {
-                    sinks_.emplace_back(multiplexer_.block_pool_);
+                    sinks_.emplace_back(multiplexer_.block_pool_, worker);
                 }
                 else {
                     sinks_.emplace_back(
@@ -92,7 +92,7 @@ public:
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
                 }
                 // construct inbound queues
-                queues_.emplace_back(multiplexer_.block_pool_);
+                queues_.emplace_back(multiplexer_.block_pool_, worker);
             }
         }
     }
@@ -255,7 +255,7 @@ private:
                  << common::Hexdump(b.ToString());
         }
 
-        queues_[from].AppendBlock(b);
+        queues_[from].AppendBlock(std::move(b));
     }
 
     //! called from Multiplexer when a CatStream closed notification was

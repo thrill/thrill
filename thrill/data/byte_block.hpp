@@ -68,7 +68,15 @@ public:
     size_t size() const { return size_; }
 
     //! return current pin count
-    size_t pin_count() const { return pin_count_; }
+    size_t pin_count(size_t local_worker_id) const {
+        return pin_count_[local_worker_id];
+    }
+
+    //! return string list of pin_counts
+    std::string pin_count_str() const;
+
+    //! return total pin count
+    size_t pin_count_total() const;
 
     //! true if block resides in memory
     bool in_memory() const {
@@ -92,8 +100,8 @@ private:
     //! reference to BlockPool for deletion.
     BlockPool* block_pool_;
 
-    //! counts the number of pins in this block
-    std::atomic<size_t> pin_count_;
+    //! counts the number of pins in this block per thread_id.
+    std::vector<size_t> pin_count_;
 
     //! token that is used with mem::PageMapper
     uint32_t swap_token_ = 0;
@@ -128,14 +136,6 @@ public:
     //! default ctor: contains a nullptr pointer.
     PinnedByteBlockPtr() noexcept = default;
 
-    //! constructor with pointer: initializes new reference to ptr on behalf of
-    //! local_worker_id.
-    static PinnedByteBlockPtr Acquire(ByteBlock* ptr, size_t local_worker_id) noexcept {
-        PinnedByteBlockPtr result(ptr, local_worker_id);
-        if (result.valid()) result->IncPinCount(local_worker_id);
-        return result;
-    }
-
     //! copy-ctor: increment underlying's pin count
     PinnedByteBlockPtr(const PinnedByteBlockPtr& pbb) noexcept
         : ByteBlockPtr(pbb), local_worker_id_(pbb.local_worker_id_) {
@@ -144,7 +144,7 @@ public:
 
     //! move-ctor: move underlying's pin
     PinnedByteBlockPtr(PinnedByteBlockPtr&& pbb) noexcept
-        : ByteBlockPtr(std::move(pbb)) {
+        : ByteBlockPtr(std::move(pbb)), local_worker_id_(pbb.local_worker_id_) {
         assert(!pbb.valid());
     }
 
@@ -196,6 +196,8 @@ private:
 
     //! for access to protected constructor to transfer pin
     friend class PinnedBlock;
+    //! for access to protected constructor to AllocateByteBlock().
+    friend class BlockPool;
 };
 
 } // namespace data

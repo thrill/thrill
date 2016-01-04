@@ -78,7 +78,7 @@ struct CerealObject
 
 TEST_F(SerializationCereal, cereal_w_FileWriter)
 {
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
 
     auto w = f.GetWriter();
 
@@ -110,7 +110,7 @@ TEST_F(SerializationCereal, cereal_w_FileWriter)
 
 TEST_F(SerializationCereal, cereal_w_BlockQueue)
 {
-    data::BlockQueue q(block_pool_);
+    data::BlockQueue q(block_pool_, 0);
     {
         auto qw = q.GetWriter(16);
         CerealObject myData;

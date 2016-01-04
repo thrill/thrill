@@ -33,8 +33,8 @@ public:
     using DynWriter = DynBlockWriter;
 
     //! Create discarding BlockSink.
-    explicit DiscardSink(BlockPool& block_pool)
-        : BlockSink(block_pool)
+    explicit DiscardSink(BlockPool& block_pool, size_t local_worker_id)
+        : BlockSink(block_pool, local_worker_id)
     { }
 
     //! Discards Block.

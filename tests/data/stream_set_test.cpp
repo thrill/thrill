@@ -28,7 +28,7 @@ TEST(StreamSet, TestLoopbacks) {
     auto groups = net::mock::Group::ConstructLoopbackMesh(hosts);
     net::Group* group = groups[0].get();
     mem::Manager mem_manager(nullptr, "Benchmark");
-    data::BlockPool block_pool;
+    data::BlockPool block_pool(workers_per_host);
     data::Multiplexer multiplexer(mem_manager, block_pool, workers_per_host, *group);
 
     auto producer = [workers_per_host](std::shared_ptr<data::CatStream> stream, size_t my_id) {

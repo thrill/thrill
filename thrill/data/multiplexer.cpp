@@ -86,7 +86,8 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
         }
         else {
             sLOG << "stream header from" << s << "on CatStream" << id
-                 << "from worker" << sender_worker_rank;
+                 << "from worker" << sender_worker_rank
+                 << "for local_worker" << local_worker;
 
             PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
                 header.size, local_worker);
@@ -112,7 +113,8 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
         }
         else {
             sLOG << "stream header from" << s << "on MixStream" << id
-                 << "from worker" << sender_worker_rank;
+                 << "from worker" << sender_worker_rank
+                 << "for local_worker" << local_worker;
 
             PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
                 header.size, local_worker);

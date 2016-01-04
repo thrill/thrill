@@ -78,7 +78,7 @@ public:
           write_closed_(num_workers) {
         queues_.reserve(num_workers);
         for (size_t w = 0; w < num_workers; ++w) {
-            queues_.emplace_back(block_pool_);
+            queues_.emplace_back(block_pool_, w);
         }
     }
 
@@ -163,7 +163,7 @@ class MixBlockQueueSink final : public BlockSink
 
 public:
     MixBlockQueueSink(MixBlockQueue& mix_queue, size_t from)
-        : BlockSink(mix_queue.block_pool()),
+        : BlockSink(mix_queue.block_pool(), from /* TODO(tb): correct? */),
           mix_queue_(mix_queue), from_(from)
     { }
 

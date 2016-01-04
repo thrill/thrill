@@ -157,7 +157,7 @@ public:
         Flush();
 
         for (const Block& b : blocks)
-            sink_->AppendBlock(b.PinNow());
+            sink_->AppendBlock(b.PinNow(sink_->local_worker_id()));
 
         AllocateBlock();
     }
@@ -368,7 +368,7 @@ public:
 private:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
-        bytes_ = sink_->AllocateByteBlock(block_size_, -1 /* TODO(tb) */);
+        bytes_ = sink_->AllocateByteBlock(block_size_);
         if (!bytes_) {
             sLOG << "AllocateBlock(): throw due to invalid block";
             throw FullException();

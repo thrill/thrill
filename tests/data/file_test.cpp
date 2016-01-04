@@ -29,7 +29,7 @@ struct File : public::testing::Test {
 TEST_F(File, PutSomeItemsGetItems) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     {
         data::File::Writer fw = file.GetWriter(16);
@@ -84,7 +84,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 
     if (0) {
         for (size_t i = 0; i != file.num_blocks(); ++i) {
-            std::cout << common::Hexdump(file.block(i).PinNow().ToString())
+            std::cout << common::Hexdump(file.block(i).PinNow(0).ToString())
                       << std::endl;
         }
     }
@@ -117,7 +117,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 TEST_F(File, WriteZeroItems) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     {
         // construct File with very small blocks for testing
@@ -138,7 +138,7 @@ TEST_F(File, WriteZeroItems) {
 TEST_F(File, SerializeSomeItems) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -180,7 +180,7 @@ TEST_F(File, SerializeSomeItems) {
 TEST_F(File, SerializeSomeItemsDynReader) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -222,7 +222,7 @@ TEST_F(File, SerializeSomeItemsDynReader) {
 TEST_F(File, SerializeSomeItemsConsumeReader) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     // put into File some items (all of different serialization bytes)
     {
@@ -253,7 +253,7 @@ TEST_F(File, RandomGetIndexOf) {
     std::minstd_rand0 rng(0);
 
     // Create test file.
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     data::File::Writer fw = file.GetWriter(53);
 
@@ -277,7 +277,7 @@ TEST_F(File, TieGetIndexOf) {
     const size_t size = 500;
 
     // Create test file.
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     data::File::Writer fw = file.GetWriter(53);
 
@@ -300,7 +300,7 @@ TEST_F(File, TieGetIndexOfWithDuplicates) {
     std::minstd_rand0 rng(0);
 
     // Create test file.
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     data::File::Writer fw = file.GetWriter(53);
 
@@ -331,7 +331,7 @@ TEST_F(File, TieGetIndexOfWithDuplicates) {
 }
 
 TEST_F(File, ReadFileWithBufferedReader) {
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
     data::File::Writer fw = file.GetWriter(53);
 
     size_t size = 100;
@@ -356,7 +356,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     static const bool debug = false;
 
     // construct a small-block File with lots of items.
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     // yes, this is a prime number as block size. -tb
     data::File::Writer fw = file.GetWriter(/* block_size */ 53);
@@ -401,10 +401,13 @@ TEST_F(File, SeekReadSlicesOfFiles) {
 
                 LOG << "GetItemBatch -> " << blocks.size() << " blocks";
 
-                data::BlockQueue queue(block_pool_);
+                for (data::Block& b : blocks)
+                    b.PinNow(0);
+
+                data::BlockQueue queue(block_pool_, 0);
 
                 for (data::Block& b : blocks)
-                    queue.AppendBlock(b.PinNow());
+                    queue.AppendBlock(b.PinNow(0));
                 queue.Close();
 
                 data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
@@ -427,10 +430,10 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(more);
 
-                data::BlockQueue queue(block_pool_);
+                data::BlockQueue queue(block_pool_, 0);
 
                 for (data::Block& b : blocks)
-                    queue.AppendBlock(b.PinNow());
+                    queue.AppendBlock(b.PinNow(0));
                 queue.Close();
 
                 data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
@@ -470,10 +473,10 @@ class BoundedFile : public virtual data::BoundedBlockSink,
 {
 public:
     //! constructor with reference to BlockPool
-    BoundedFile(data::BlockPool& block_pool, size_t max_size)
-        : BlockSink(block_pool),
-          BoundedBlockSink(block_pool, max_size),
-          File(block_pool)
+    BoundedFile(data::BlockPool& block_pool, size_t local_worker_id, size_t max_size)
+        : BlockSink(block_pool, local_worker_id),
+          BoundedBlockSink(block_pool, local_worker_id, max_size),
+          File(block_pool, local_worker_id)
     { }
 
     enum { allocate_can_fail_ = true };
@@ -485,7 +488,7 @@ public:
 TEST_F(File, BoundedFilePutIntegerUntilFull) {
 
     // construct Partition with very small blocks for testing
-    BoundedFile file(block_pool_, 32 * 64);
+    BoundedFile file(block_pool_, 0, 32 * 64);
 
     try {
         data::BlockWriter<BoundedFile> bw(&file, 64);

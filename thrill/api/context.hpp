@@ -252,13 +252,13 @@ public:
 
     //! Returns a new File object containing a sequence of local Blocks.
     data::File GetFile() {
-        return data::File(block_pool_);
+        return data::File(block_pool_, local_worker_id_);
     }
 
     //! Returns a new File, wrapped in a shared_ptr, containing a
     //! sequence of local Blocks.
     data::FilePtr GetFilePtr() {
-        return std::make_shared<data::File>(block_pool_);
+        return std::make_shared<data::File>(block_pool_, local_worker_id_);
     }
 
     //! Returns a reference to a new CatStream. This method alters the state of

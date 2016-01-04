@@ -69,7 +69,7 @@ TEST_F(BlockPoolTest, CopiedBlocksHaveRefCountOne) {
     ASSERT_FALSE(block.valid());
 
     data::PinnedBlock pblock_copy = pblock;
-    ASSERT_EQ(2u, pblock.byte_block()->pin_count());
+    ASSERT_EQ(2u, pblock.byte_block()->pin_count(0));
 }
 
 TEST_F(BlockPoolTest, PinnedBlock) {
@@ -80,19 +80,19 @@ TEST_F(BlockPoolTest, PinnedBlock) {
         data::PinnedByteBlockPtr byte_block = block_pool_.AllocateByteBlock(8, 0);
         bbp = byte_block;
         data::PinnedBlock pinned_block(std::move(byte_block), 0, 0, 0, 0);
-        ASSERT_EQ(1u, bbp->pin_count());
+        ASSERT_EQ(1u, bbp->pin_count(0));
         unpinned_block = pinned_block;
-        ASSERT_EQ(1u, bbp->pin_count());
+        ASSERT_EQ(1u, bbp->pin_count(0));
     }
-    ASSERT_EQ(0u, bbp->pin_count());
+    ASSERT_EQ(0u, bbp->pin_count(0));
     {
         // refetch Pin on the ByteBlock
-        std::future<data::PinnedBlock> pin = unpinned_block.Pin();
+        std::future<data::PinnedBlock> pin = unpinned_block.Pin(0);
         pin.wait();
         data::PinnedBlock pinned_block = pin.get();
-        ASSERT_EQ(1u, bbp->pin_count());
+        ASSERT_EQ(1u, bbp->pin_count(0));
     }
-    ASSERT_EQ(0u, bbp->pin_count());
+    ASSERT_EQ(0u, bbp->pin_count(0));
 }
 
 /******************************************************************************/
