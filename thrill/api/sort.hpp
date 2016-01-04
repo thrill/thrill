@@ -549,7 +549,7 @@ private:
               << "Workers" << num_total_workers
               << "local_out_size" << local_out_size_
               << "Balance Factor" << balance
-              << "Sample Size" << samples_.size();
+              << "Sample Size" << samples_.size() << common::endlog;
     }
 
     void PostOp() { }

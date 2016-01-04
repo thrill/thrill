@@ -32,18 +32,17 @@ class StatLogger
 template <>
 class StatLogger<true>
 {
-private:
+public:
     //! collector stream
     std::basic_ostringstream<
         char, std::char_traits<char>, LoggerAllocator<char> > oss_;
 
     size_t elements_ = 0;
 
-	size_t my_rank_ = 0;
+    size_t my_rank_ = 0;
 
-public:
-    StatLogger(size_t rank) :
-		my_rank_(rank) {
+    StatLogger(size_t rank)
+        : my_rank_(rank) {
         oss_ << "{";
     }
 
@@ -89,6 +88,12 @@ public:
     //! output any type, including io manipulators
     template <typename AnyType>
     StatLogger& operator << (const AnyType& at) {
+        if (std::is_function<AnyType>::value) {
+            //   oss_ << at;
+            oss_ << "}\n";
+            return *this;
+        }
+
         if (elements_ > 0) {
             if (elements_ % 2 == 0) {
                 oss_ << ",";
@@ -118,13 +123,12 @@ public:
     //! destructor: output a } and a newline
     ~StatLogger() {
         assert(elements_ % 2 == 0);
-        oss_ << "}\n";
+        // oss_ << "}\n";
 
-
-		std::ofstream logfile(
-			"logfile" + std::to_string(my_rank_) + ".txt", std::ios_base::out | std::ios_base::app );
+        std::ofstream logfile(
+            "logfile" + std::to_string(my_rank_) + ".txt", std::ios_base::out | std::ios_base::app);
         logfile << oss_.str() << std::endl;
-		logfile.close();
+        logfile.close();
     }
 };
 
@@ -133,7 +137,6 @@ class StatLogger<false>
 {
 
 public:
-	
     StatLogger(size_t) { }
 
     template <typename AnyType>
@@ -141,6 +144,10 @@ public:
         return *this;
     }
 };
+
+static StatLogger<stats_enabled> & endlog(StatLogger<stats_enabled>& logger) {
+    return logger;
+}
 
 #define STAT_NO_RANK ::thrill::common::StatLogger<::thrill::common::stats_enabled>(0u)
 
