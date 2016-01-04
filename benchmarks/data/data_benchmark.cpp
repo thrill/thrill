@@ -576,7 +576,7 @@ public:
             StatsTimer<true> total_timer(true);
             StatsTimer<true> read_timer;
             auto stream = ctx.GetNewStream<data::CatStream>();
-            data::File file(ctx.block_pool());
+            data::File file(ctx.block_pool(), 0);
             auto writer = file.GetWriter();
             if (ctx.my_rank() == 0) {
                 Generator<Type> data = Generator<Type>(bytes_, min_size_, max_size_);
@@ -803,7 +803,7 @@ public:
 
         common::ThreadPool threads(num_threads_ + 1);
         for (unsigned i = 0; i < iterations_; i++) {
-            auto queue = data::BlockQueue(ctx.block_pool());
+            auto queue = data::BlockQueue(ctx.block_pool(), 0);
             auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
             StatsTimer<true> write_timer;

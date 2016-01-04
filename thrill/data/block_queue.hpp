@@ -53,9 +53,11 @@ public:
     using ConsumeReader = BlockReader<ConsumeBlockQueueSource>;
 
     //! Constructor from BlockPool
-    explicit BlockQueue(BlockPool& block_pool)
-        : BlockSink(block_pool), file_(block_pool)
-    { }
+    explicit BlockQueue(BlockPool& block_pool, size_t local_worker_id)
+        : BlockSink(block_pool, local_worker_id),
+          file_(block_pool, local_worker_id) {
+        assert(local_worker_id < block_pool.workers_per_host());
+    }
 
     //! non-copyable: delete copy-constructor
     BlockQueue(const BlockQueue&) = delete;
@@ -68,6 +70,9 @@ public:
 
     void AppendBlock(const PinnedBlock& b) final {
         queue_.emplace(b);
+    }
+    void AppendBlock(PinnedBlock&& b) {
+        queue_.emplace(std::move(b));
     }
 
     //! Close called by BlockWriter.
@@ -186,7 +191,6 @@ public:
 
         // cache block in file_ (but not the termination block from the queue)
         if (b.IsValid())
-            // queue_->file_.AppendBlock(b.UnpinnedCopy());
             queue_->file_.AppendBlock(b);
 
         return b;

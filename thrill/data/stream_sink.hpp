@@ -41,8 +41,8 @@ public:
 
     //! Construct invalid StreamSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    explicit StreamSink(BlockPool& block_pool)
-        : BlockSink(block_pool), closed_(true) { }
+    explicit StreamSink(BlockPool& block_pool, size_t local_worker_id)
+        : BlockSink(block_pool, local_worker_id), closed_(true) { }
 
     /*!
      * StreamSink sending out to network.
@@ -62,7 +62,7 @@ public:
                size_t my_local_worker_id,
                size_t peer_rank,
                size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
-        : BlockSink(block_pool),
+        : BlockSink(block_pool, my_local_worker_id),
           dispatcher_(dispatcher),
           connection_(connection),
           magic_(magic),

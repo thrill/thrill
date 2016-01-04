@@ -62,7 +62,7 @@ public:
             for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
                 if (host == multiplexer_.my_host_rank()) {
                     // dummy entries
-                    sinks_.emplace_back(multiplexer_.block_pool_);
+                    sinks_.emplace_back(multiplexer_.block_pool_, worker);
                 }
                 else {
                     // StreamSink which transmits MIX_STREAM_BLOCKs
@@ -203,7 +203,7 @@ private:
                  << common::Hexdump(b.ToString());
         }
 
-        queue_.AppendBlock(from, b);
+        queue_.AppendBlock(from, std::move(b));
     }
 
     //! called from Multiplexer when a MixStream closed notification was

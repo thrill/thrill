@@ -66,8 +66,8 @@ public:
     using DynWriter = DynBlockWriter;
 
     //! Constructor from BlockPool
-    explicit File(BlockPool& block_pool)
-        : BlockSink(block_pool)
+    explicit File(BlockPool& block_pool, size_t local_worker_id)
+        : BlockSink(block_pool, local_worker_id)
     { }
 
     //! Append a block to this file, the block must contain given number of
@@ -198,7 +198,7 @@ public:
     std::string ReadComplete() const {
         std::string output;
         for (const Block& b : blocks_)
-            output += b.PinNow().ToString();
+            output += b.PinNow(0).ToString();
         return output;
     }
 
@@ -264,10 +264,10 @@ public:
             Block b = file_.block(current_block_);
             if (first_item_ != keep_first_item)
                 b.set_begin(first_item_);
-            return b.PinNow();
+            return b.PinNow(file_.local_worker_id());
         }
         else {
-            return file_.block(current_block_).PinNow();
+            return file_.block(current_block_).PinNow(file_.local_worker_id());
         }
     }
 
@@ -305,7 +305,7 @@ class ConsumeFileBlockSource
 {
 public:
     //! Start reading a File
-    //! Creates a source for the given file and set the numver of blocks
+    //! Creates a source for the given file and set the number of blocks
     //! that should be prefetched. 0 means that no blocks are prefetched.
     explicit ConsumeFileBlockSource(File* file)
         : file_(file) { }
@@ -326,7 +326,8 @@ public:
 
         // operate without prefetching
         if (desired_prefetched_ == 0) {
-            std::future<PinnedBlock> f = file_->blocks_.front().Pin();
+            std::future<PinnedBlock> f =
+                file_->blocks_.front().Pin(file_->local_worker_id());
             file_->blocks_.pop_front();
             f.wait();
             return f.get();
@@ -336,7 +337,8 @@ public:
 
         // prefetch #desired + 1
         while (fetching_blocks_.size() <= desired_prefetched_ && !file_->blocks_.empty()) {
-            fetching_blocks_.push(file_->blocks_.front().Pin());
+            fetching_blocks_.emplace(
+                file_->blocks_.front().Pin(file_->local_worker_id()));
             file_->blocks_.pop_front();
         }
 
@@ -357,7 +359,7 @@ public:
     }
 
 private:
-    //! file to consume blocks from
+    //! file to consume blocks from (ptr to make moving easier)
     File* file_;
 
     //! number of concurrent prefetch operations

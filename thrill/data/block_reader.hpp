@@ -124,7 +124,7 @@ public:
     }
 
     //! Read n items, however, do not deserialize them but deliver them as a
-    //! vector of Block objects. This is used to take out a range of
+    //! vector of (unpinned) Block objects. This is used to take out a range of
     //! items, the internal item cursor is advanced by n.
     template <typename ItemType>
     std::vector<Block> GetItemBatch(size_t n) {
@@ -345,6 +345,9 @@ private:
 
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
+        // first release old pin.
+        block_.Reset();
+        // request next pinned block
         block_ = source_.NextBlock();
         sLOG0 << "BlockReader::NextBlock" << block_;
 

@@ -11,16 +11,20 @@
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/byte_block.hpp>
 
+#include <sstream>
+
 namespace thrill {
 namespace data {
 
 ByteBlock::ByteBlock(Byte* data, size_t size, BlockPool* block_pool)
-    : data_(data), size_(size), block_pool_(block_pool), pin_count_(0)
+    : data_(data), size_(size),
+      block_pool_(block_pool),
+      pin_count_(block_pool_->workers_per_host())
 { }
 
 void ByteBlock::deleter(ByteBlock* bb) {
-    sLOG << "ByteBlock::deleter() pin_count_" << bb->pin_count_;
-    assert(bb->pin_count_ == 0);
+    sLOG << "ByteBlock::deleter() pin_count_" << bb->pin_count_str();
+    assert(bb->pin_count_total() == 0);
 
     if (bb->reference_count() == 0) {
         assert(bb->block_pool_);
@@ -33,22 +37,20 @@ void ByteBlock::deleter(const ByteBlock* bb) {
     return deleter(const_cast<ByteBlock*>(bb));
 }
 
+std::string ByteBlock::pin_count_str() const {
+    return "[" + common::Join(",", pin_count_) + "]";
+}
+
+size_t ByteBlock::pin_count_total() const {
+    return std::accumulate(pin_count_.begin(), pin_count_.end(), 0);
+}
+
 void ByteBlock::IncPinCount(size_t local_worker_id) {
-    size_t p = ++pin_count_;
-    LOG << "ByteBlock::IncPinCount() ++pin_count=" << p
-        << " local_worker_id=" << local_worker_id;
+    return block_pool_->IncBlockPinCount(this, local_worker_id);
 }
 
 void ByteBlock::DecPinCount(size_t local_worker_id) {
-    size_t p = --pin_count_;
-    LOG << "ByteBlock::DecPinCount() --pin_count=" << p
-        << " local_worker_id=" << local_worker_id;
-    if (p == 0) {
-        // TODO(tb): this is a race condition: pin was zero and putting it into
-        // blockpool's list must be an atomic operation, which cannot be
-        // interrupted by another thread raising the pin again.
-        block_pool_->UnpinBlock(this, local_worker_id);
-    }
+    return block_pool_->DecBlockPinCount(this, local_worker_id);
 }
 
 } // namespace data

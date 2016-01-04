@@ -19,12 +19,17 @@
 #include <thrill/mem/page_mapper.hpp>
 
 #include <deque>
+#include <future>
 #include <mutex>
 #include <string>
 #include <vector>
 
 namespace thrill {
 namespace data {
+
+// forward declarations
+class Block;
+class PinnedBlock;
 
 /*!
  * Pool to allocate, keep, swap out/in, and free all ByteBlocks on the host.
@@ -72,6 +77,12 @@ public:
           hard_memory_limit_(hard_memory_limit)
     { }
 
+    //! Checks that all blocks were freed
+    ~BlockPool();
+
+    //! return number of workers per host
+    size_t workers_per_host() const { return workers_per_host_; }
+
     //! Allocates a byte block with the request size. May block this thread if
     //! the hard memory limit is reached, until memory is freed by another
     //! thread.  The returned Block is allocated in RAM, but with a zero pin
@@ -81,11 +92,15 @@ public:
     //! Total number of allocated blocks of this block pool
     size_t block_count() const noexcept;
 
-    //! Unpins a block. If all pins are removed, the block might be swapped.
-    //! Returns immediately. Actual unpinning is async.
-    //! out to disk and is not accessible
-    //! \param block_ptr the block to unpin
-    void UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
+    //! Pins a block by swapping it in if required.
+    //! \param block_ptr the block to pin
+    std::future<PinnedBlock> PinBlock(const Block& block, size_t local_worker_id);
+
+    //! Increment a ByteBlock's pin count
+    void IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
+
+    //! Decrement a ByteBlock's pin count and possibly unpin it.
+    void DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
 
 private:
     //! local Manager counting only ByteBlock allocations in internal memory.
@@ -122,13 +137,6 @@ private:
     // for calling [Un]PinBlock
     friend class ByteBlock;
 
-#if 0
-
-    //! Pins a block by swapping it in if required.
-    //! \param block_ptr the block to pin
-    common::Future<PinnedBlock> PinBlock(ByteBlock* block_ptr);
-#endif
-
     //! Destroys the block. Only for internal purposes.
     //! Async call.
     //! Async call.
@@ -142,6 +150,15 @@ private:
     //! Updates the memory manager for the internal memory
     //! wakes up waiting BlockPool::RequestInternalMemory calls
     void ReleaseInternalMemory(size_t amount);
+
+    //! Increment a ByteBlock's pin count - without locking the mutex
+    void IncBlockPinCountNoLock(ByteBlock* block_ptr, size_t local_worker_id);
+
+    //! Unpins a block. If all pins are removed, the block might be swapped.
+    //! Returns immediately. Actual unpinning is async.
+    //! out to disk and is not accessible
+    //! \param block_ptr the block to unpin
+    void UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
 };
 
 } // namespace data

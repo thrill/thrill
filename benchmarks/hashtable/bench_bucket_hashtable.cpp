@@ -94,12 +94,12 @@ int main(int argc, char* argv[]) {
                  std::default_random_engine rng(std::random_device { } ());
                  std::uniform_int_distribution<size_t> dist(1, std::numeric_limits<size_t>::max());
 
-                 data::BlockPool block_pool;
+                 data::BlockPool block_pool(workers);
                  std::vector<data::File> sinks;
                  std::vector<data::File::DynWriter> writers;
-                 for (size_t i = 0; i != workers; ++i) {
-                     sinks.emplace_back(block_pool);
-                     writers.emplace_back(sinks[i].GetDynWriter());
+                 for (size_t w = 0; w < workers; ++w) {
+                     sinks.emplace_back(block_pool, w);
+                     writers.emplace_back(sinks[w].GetDynWriter());
                  }
 
                  core::ReducePreTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,

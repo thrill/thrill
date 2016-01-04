@@ -86,7 +86,7 @@ TEST_F(PreTable, CustomHashFunction) {
                           };
 
             data::BlockPool block_pool;
-            data::File output(block_pool);
+            data::File output(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
@@ -129,7 +129,7 @@ TEST_F(PreTable, AddIntegers) {
                           };
 
             data::BlockPool block_pool;
-            data::File output(block_pool);
+            data::File output(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
@@ -164,7 +164,7 @@ TEST_F(PreTable, CreateEmptyTable) {
                           };
 
             data::BlockPool block_pool;
-            data::File output(block_pool);
+            data::File output(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
@@ -200,7 +200,7 @@ TEST_F(PreTable, DISABLED_TestSetMaxSizeSetter) {
                           };
 
             data::BlockPool block_pool;
-            data::File output(block_pool);
+            data::File output(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
@@ -239,7 +239,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
                           };
 
             data::BlockPool block_pool;
-            data::File output(block_pool);
+            data::File output(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
@@ -287,7 +287,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
                           };
 
             data::BlockPool block_pool;
-            data::File output1(block_pool), output2(block_pool);
+            data::File output1(block_pool, 0), output2(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output1.GetDynWriter());
             writers.emplace_back(output2.GetDynWriter());
@@ -343,7 +343,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
                           };
 
             data::BlockPool block_pool;
-            data::File output(block_pool);
+            data::File output(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
@@ -391,7 +391,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
                           };
 
             data::BlockPool block_pool;
-            data::File output1(block_pool), output2(block_pool);
+            data::File output1(block_pool, 0), output2(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output1.GetDynWriter());
             writers.emplace_back(output2.GetDynWriter());
@@ -446,7 +446,7 @@ TEST_F(PreTable, ComplexType) {
                           };
 
             data::BlockPool block_pool;
-            data::File output(block_pool);
+            data::File output(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
@@ -492,7 +492,7 @@ TEST_F(PreTable, MultipleWorkers) {
                           };
 
             data::BlockPool block_pool;
-            data::File output1(block_pool), output2(block_pool);
+            data::File output1(block_pool, 0), output2(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output1.GetDynWriter());
             writers.emplace_back(output2.GetDynWriter());
@@ -532,7 +532,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
             size_t total_sum = 0, total_count = 0;
 
             data::BlockPool block_pool;
-            data::File output(block_pool);
+            data::File output(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
@@ -581,7 +581,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
                           };
 
             data::BlockPool block_pool;
-            data::File output(block_pool);
+            data::File output(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
@@ -647,7 +647,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
                           };
 
             data::BlockPool block_pool;
-            data::File output(block_pool);
+            data::File output(block_pool, 0);
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 

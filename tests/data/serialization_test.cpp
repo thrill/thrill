@@ -26,7 +26,7 @@ struct Serialization : public::testing::Test {
 };
 
 TEST_F(Serialization, string) {
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     std::string foo = "foo";
     {
         auto w = f.GetWriter();
@@ -40,7 +40,7 @@ TEST_F(Serialization, string) {
 
 TEST_F(Serialization, int) {
     int foo = -123;
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
         w.Put(foo); //gets serialized
@@ -53,7 +53,7 @@ TEST_F(Serialization, int) {
 
 TEST_F(Serialization, pair_string_int) {
     auto foo = std::make_pair(std::string("foo"), 123);
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
         w.Put(foo); //gets serialized
@@ -68,7 +68,7 @@ TEST_F(Serialization, pair_int_int) {
     int t1 = 3;
     int t2 = 4;
     std::pair<int, int> foo = std::make_pair(t1, t2);
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
         w.Put(foo); //gets serialized
@@ -87,7 +87,7 @@ struct MyPodStruct
 
 TEST_F(Serialization, pod_struct) {
     MyPodStruct foo = { 6 * 9, 42 };
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
         w.Put(foo); //gets serialized
@@ -107,7 +107,7 @@ TEST_F(Serialization, pod_struct) {
 
 TEST_F(Serialization, tuple) {
     auto foo = std::make_tuple(3, std::string("foo"), 5.5);
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
         w.Put(foo); //gets serialized
@@ -125,7 +125,7 @@ TEST_F(Serialization, tuple) {
 TEST_F(Serialization, tuple_w_pair) {
     auto p = std::make_pair(-4.673, std::string("string"));
     auto foo = std::make_tuple(3, std::string("foo"), 5.5, p);
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
         w.Put(foo); //gets serialized
@@ -141,7 +141,7 @@ TEST_F(Serialization, tuple_w_pair) {
 }
 
 TEST_F(Serialization, tuple_check_fixed_size) {
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
     auto y = std::make_tuple(1, 2, 3, 42.0);
     auto no = data::Serialization<data::DynBlockWriter, decltype(n)>::is_fixed_size;
@@ -155,7 +155,7 @@ TEST_F(Serialization, StringVector) {
     std::vector<std::string> vec1 = {
         "what", "a", "wonderful", "world", "this", "could", "be"
     };
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
         w.Put(vec1);
@@ -175,7 +175,7 @@ TEST_F(Serialization, StringArray) {
     std::array<std::string, 7> vec1 = {
         { "what", "a", "wonderful", "world", "this", "could", "be" }
     };
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
         w.Put(vec1);
@@ -223,7 +223,7 @@ struct MyMethodStruct
 
 TEST_F(Serialization, MethodStruct) {
     MyMethodStruct foo(6 * 9, 42, "abc");
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
         w.Put(foo);

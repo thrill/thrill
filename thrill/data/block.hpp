@@ -81,9 +81,9 @@ public:
     size_t num_items() const { return num_items_; }
 
     //! return number of pins in underlying ByteBlock
-    size_t pin_count() const {
+    size_t pin_count(size_t local_worker_id) const {
         assert(byte_block_);
-        return byte_block_->pin_count();
+        return byte_block_->pin_count(local_worker_id);
     }
 
     //! accessor to begin_
@@ -117,9 +117,9 @@ public:
     //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
     //! is already pinned, the Future is directly filled with a copy if this
     //! block.  Otherwise an async pin call will be issued.
-    std::future<PinnedBlock> Pin(size_t local_worker_id = -1 /* TODO */) const;
+    std::future<PinnedBlock> Pin(size_t local_worker_id) const;
 
-    PinnedBlock PinNow(size_t local_worker_id = -1 /* TODO */) const;
+    PinnedBlock PinNow(size_t local_worker_id) const;
 
 protected:
     static const bool debug = false;
@@ -155,7 +155,8 @@ public:
                 size_t begin, size_t end, size_t first_item, size_t num_items)
         : Block(std::move(byte_block), begin, end, first_item, num_items),
           local_worker_id_(byte_block.local_worker_id()) {
-        LOG << "PinnedBlock::Acquire() from new PinnedByteBlock";
+        LOG << "PinnedBlock::Acquire() from new PinnedByteBlock"
+            << " for local_worker_id=" << local_worker_id_;
     }
 
     //! copy-ctor: increment underlying's pin count
@@ -213,6 +214,14 @@ public:
         return byte_block_->begin() + end_;
     }
 
+    //! release pin on block and reset Block pointer to nullptr
+    void Reset() {
+        if (byte_block_) {
+            byte_block_->DecPinCount(local_worker_id_);
+            byte_block_.reset();
+        }
+    }
+
     //! extract ByteBlock including it's pin.
     PinnedByteBlockPtr StealPinnedByteBlock() {
         return PinnedByteBlockPtr(std::move(byte_block_), local_worker_id_);
@@ -239,6 +248,14 @@ public:
     //! not available in PinnedBlock
     PinnedBlock PinNow() const = delete;
 
+    friend std::ostream& operator << (std::ostream& os, const PinnedBlock& b) {
+        os << "[PinnedBlock "
+           << " block_=" << static_cast<const Block&>(b);
+        if (b.byte_block_)
+            os << " pin_count_=" << b.byte_block_->pin_count_str();
+        return os << "]";
+    }
+
 private:
     //! protected construction from an unpinned block AFTER the pin was taken,
     //! this method does NOT pin it.
@@ -248,17 +265,13 @@ private:
     //! thread id of holder of pin
     size_t local_worker_id_;
 
-    //! friend for creating PinnedBlock in Pin() using protected constructor
-    friend class Block;
+    //! friend for creating PinnedBlock from unpinned Block in PinBlock() using
+    //! protected constructor.
+    friend class BlockPool;
 };
 
 inline
 std::future<PinnedBlock> Block::Pin(size_t local_worker_id) const {
-
-    std::promise<PinnedBlock> result;
-
-    byte_block_->IncPinCount(local_worker_id);
-    result.set_value(PinnedBlock(*this, local_worker_id));
 
 #if 0
     // pinned blocks can be returned straigt away
@@ -279,7 +292,7 @@ std::future<PinnedBlock> Block::Pin(size_t local_worker_id) const {
     }
 #endif
 
-    return result.get_future();
+    return byte_block()->block_pool_->PinBlock(*this, local_worker_id);
 }
 
 inline

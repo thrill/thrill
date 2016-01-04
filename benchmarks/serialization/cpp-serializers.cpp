@@ -140,7 +140,7 @@ int main() {
 
     common::StatsTimer<true> timer(false);
     data::BlockPool block_pool;
-    data::File f(block_pool);
+    data::File f(block_pool, 0);
     auto w = f.GetWriter();
 
     timer.Start();
