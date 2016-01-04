@@ -91,6 +91,12 @@ public:
         if (std::is_function<AnyType>::value) {
             //   oss_ << at;
             oss_ << "}\n";
+            assert(elements_ % 2 == 0);
+            // oss_ << "}\n";
+
+            elements_ = 0;
+
+            oss_ << "{" << "worker_id" << my_rank_;
             return *this;
         }
 
@@ -145,7 +151,7 @@ public:
     }
 };
 
-static StatLogger<stats_enabled> & endlog(StatLogger<stats_enabled>& logger) {
+static inline StatLogger<stats_enabled> & endlog(StatLogger<stats_enabled>& logger) {
     return logger;
 }
 
