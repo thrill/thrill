@@ -107,10 +107,10 @@ TEST(BlockManager, Test1) {
 TEST(BlockManager, Test2) {
 
     using block_type = io::typed_block<128* 1024, double>;
-    std::vector<block_type::bid_type> bids;
+    std::vector<block_type::bid_type> bids(32);
     std::vector<io::request_ptr> requests;
     io::block_manager* bm = io::block_manager::get_instance();
-    bm->new_blocks<block_type>(32, io::striping(), std::back_inserter(bids));
+    bm->new_blocks(io::striping(), bids.begin(), bids.end());
     std::vector<block_type, mem::new_alloc<block_type> > blocks(32);
     for (size_t vIndex = 0; vIndex < 32; ++vIndex) {
         for (int vIndex2 = 0; vIndex2 < block_type::size; ++vIndex2) {

@@ -276,7 +276,7 @@ public:
         static_assert(sizeof(typed_block) == raw_size, "Incorrect block size!");
         LOG0 << "[" << static_cast<void*>(this) << "] typed_block is constructed";
 #if 0
-        assert(((long)this) % STXXL_BLOCK_ALIGN == 0);
+        assert(((long)this) % STXXL_DEFAULT_ALIGN == 0);
 #endif
     }
 
@@ -315,7 +315,7 @@ public:
         LOG0 << "typed::block operator new[]: bytes=" << bytes
              << ", meta_info_size=" << meta_info_size;
 
-        void* result = mem::aligned_alloc<STXXL_BLOCK_ALIGN>(
+        void* result = mem::aligned_alloc(
             bytes - meta_info_size, meta_info_size);
 
 #if STXXL_WITH_VALGRIND || STXXL_TYPED_BLOCK_INITIALIZE_ZERO
@@ -329,7 +329,7 @@ public:
         LOG0 << "typed::block operator new[]: bytes=" << bytes
              << ", meta_info_size=" << meta_info_size;
 
-        void* result = mem::aligned_alloc<STXXL_BLOCK_ALIGN>(
+        void* result = mem::aligned_alloc(
             bytes - meta_info_size, meta_info_size);
 
 #if STXXL_WITH_VALGRIND || STXXL_TYPED_BLOCK_INITIALIZE_ZERO
@@ -343,11 +343,11 @@ public:
     }
 
     static void operator delete (void* ptr) {
-        mem::aligned_dealloc<STXXL_BLOCK_ALIGN>(ptr);
+        mem::aligned_dealloc(ptr);
     }
 
     static void operator delete[] (void* ptr) {
-        mem::aligned_dealloc<STXXL_BLOCK_ALIGN>(ptr);
+        mem::aligned_dealloc(ptr);
     }
 
     static void operator delete (void*, void*)

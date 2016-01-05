@@ -30,12 +30,6 @@
 
 using namespace thrill; // NOLINT
 
-#ifdef BLOCK_ALIGN
- #undef BLOCK_ALIGN
-#endif
-
-#define BLOCK_ALIGN  4096
-
 #define POLL_DELAY 1000
 
 #if STXXL_WINDOWS
@@ -199,7 +193,7 @@ int main(int argc, char* argv[]) {
     const size_t block_size_int = block_size / sizeof(int);
     const uint64_t step_size_int = step_size / sizeof(int);
 
-    unsigned* buffer = static_cast<unsigned*>(mem::aligned_alloc<BLOCK_ALIGN>(step_size * nfiles));
+    unsigned* buffer = static_cast<unsigned*>(mem::aligned_alloc(step_size * nfiles));
     io::file** files = new io::file*[nfiles];
     io::request_ptr* reqs = new io::request_ptr[nfiles * batch_size];
 
@@ -443,7 +437,7 @@ int main(int argc, char* argv[]) {
     for (unsigned i = 0; i < nfiles; i++)
         delete files[i];
     delete[] files;
-    mem::aligned_dealloc<BLOCK_ALIGN>(buffer);
+    mem::aligned_dealloc(buffer);
 
     return (verify_failed ? 1 : 0);
 }

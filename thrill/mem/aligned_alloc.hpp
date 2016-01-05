@@ -25,6 +25,8 @@
 #define STXXL_VERBOSE_ALIGNED_ALLOC STXXL_VERBOSE2
 #endif
 
+#define STXXL_DEFAULT_ALIGN 4096
+
 namespace thrill {
 namespace mem {
 
@@ -48,7 +50,7 @@ bool aligned_alloc_settings<MustBeInt>::may_use_realloc = true;
 // (---) unallocated, (===) allocated memory
 
 template <size_t Alignment>
-inline void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
+inline void * aligned_alloc_base(size_t size, size_t meta_info_size = 0) {
     static const bool debug = false;
 
     LOG << "aligned_alloc<" << Alignment << ">(), size = " << size
@@ -102,7 +104,7 @@ inline void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
             LOG1 << "stxxl::aligned_alloc: disabling realloc()";
             std::free(realloced);
             aligned_alloc_settings<int>::may_use_realloc = false;
-            return aligned_alloc<Alignment>(size, meta_info_size);
+            return aligned_alloc_base<Alignment>(size, meta_info_size);
         }
         assert(result + size <= buffer + realloc_size);
     }
@@ -119,13 +121,23 @@ inline void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
 
 template <size_t Alignment>
 inline void
-aligned_dealloc(void* ptr) {
+aligned_dealloc_base(void* ptr) {
     if (!ptr)
         return;
     char* buffer = *((reinterpret_cast<char**>(ptr)) - 1);
     LOG0 << "aligned_dealloc<" << Alignment << ">(), ptr = " << ptr
          << ", buffer = " << static_cast<void*>(buffer);
     std::free(buffer);
+}
+
+static inline
+void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
+    return aligned_alloc_base<STXXL_DEFAULT_ALIGN>(size, meta_info_size);
+}
+
+static inline void
+aligned_dealloc(void* ptr) {
+    return aligned_dealloc_base<STXXL_DEFAULT_ALIGN>(ptr);
 }
 
 } // namespace mem

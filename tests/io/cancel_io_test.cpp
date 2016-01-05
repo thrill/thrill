@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
     }
 
     const uint64_t size = 4 * 1024 * 1024, num_blocks = 16;
-    char* buffer = static_cast<char*>(mem::aligned_alloc<4096>(size));
+    char* buffer = static_cast<char*>(mem::aligned_alloc(size));
     memset(buffer, 0, size);
 
     std::unique_ptr<io::file> file(
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
     wait_all(req.begin(), req.end());
     std::cout << io::stats_data(*io::stats::get_instance()) - stats2;
 
-    mem::aligned_dealloc<4096>(buffer);
+    mem::aligned_dealloc(buffer);
 
     return 0;
 }

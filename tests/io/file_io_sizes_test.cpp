@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     }
 
     size_t max_size = atoi(argv[3]);
-    uint64_t* buffer = static_cast<uint64_t*>(mem::aligned_alloc<4096>(max_size));
+    uint64_t* buffer = static_cast<uint64_t*>(mem::aligned_alloc(max_size));
 
     try
     {
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
         throw;
     }
 
-    mem::aligned_dealloc<4096>(buffer);
+    mem::aligned_dealloc(buffer);
 
     return 0;
 }
