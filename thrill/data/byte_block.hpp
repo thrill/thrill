@@ -15,6 +15,9 @@
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/future.hpp>
 
+#include <string>
+#include <vector>
+
 namespace thrill {
 namespace data {
 
@@ -103,6 +106,10 @@ private:
     //! counts the number of pins in this block per thread_id.
     std::vector<size_t> pin_count_;
 
+    //! counts the total number of pins, the data_ may be swapped out when this
+    //! reaches zero.
+    size_t total_pins_ = 0;
+
     //! token that is used with mem::PageMapper
     uint32_t swap_token_ = 0;
 
@@ -130,6 +137,15 @@ private:
 
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;
 
+/*!
+ * A pinned / pin-counted pointer to a ByteBlock. By holding a pin, it is a
+ * guaranteed that the ByteBlock's underlying memory is loaded in RAM. Since
+ * pins are counted per thread, the PinnedByteBlockPtr is a counting pointer
+ * plus a thread id.
+ *
+ * Be careful to move PinnedByteBlockPtr as must as possible, since copying
+ * costs a pinning and an unpinning operation, whereas moving is free.
+ */
 class PinnedByteBlockPtr : public ByteBlockPtr
 {
 public:
@@ -184,11 +200,11 @@ public:
 
 private:
     //! protected ctor for calling from Acquire().
-    explicit PinnedByteBlockPtr(ByteBlock* ptr, size_t local_worker_id) noexcept
+    PinnedByteBlockPtr(ByteBlock* ptr, size_t local_worker_id) noexcept
         : ByteBlockPtr(ptr), local_worker_id_(local_worker_id) { }
 
     //! protected ctor for calling from Acquire().
-    explicit PinnedByteBlockPtr(ByteBlockPtr&& ptr, size_t local_worker_id) noexcept
+    PinnedByteBlockPtr(ByteBlockPtr&& ptr, size_t local_worker_id) noexcept
         : ByteBlockPtr(std::move(ptr)), local_worker_id_(local_worker_id) { }
 
     //! local worker id of holder of pin

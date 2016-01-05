@@ -20,7 +20,7 @@ namespace thrill {
 namespace data {
 
 BlockPool::~BlockPool() {
-    assert(total_pinned_blocks_ == 0);
+    assert(total_pins_ == 0);
     for (size_t& p : num_pinned_blocks_) {
         assert(p == 0);
     }
@@ -62,18 +62,18 @@ PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker
     // allocate block memory.
     Byte* data = static_cast<Byte*>(malloc(size));
 
-    // create counting ptr, no need for special make_shared-equivalent
+    // create counting ptr, no need for special make_shared()-equivalent
     PinnedByteBlockPtr result(new ByteBlock(data, size, this), local_worker_id);
     IncBlockPinCountNoLock(result.get(), local_worker_id);
 
-    ++total_pinned_blocks_;
+    ++total_pins_;
     ++num_pinned_blocks_[local_worker_id];
 
     LOG << "BlockPool::AllocateBlock() size=" << size
         << " local_worker_id=" << local_worker_id
         << " total_count=" << block_count()
         << " total_size=" << mem_manager_.total()
-        << " ++total_pinned_blocks_=" << total_pinned_blocks_;
+        << " ++total_pins_=" << total_pins_;
 
     return result;
 }
@@ -88,27 +88,27 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     if (block.byte_block()->pin_count(local_worker_id) > 0)
     {
         // We may get a Block who's underlying is already pinned, since
-        // PinnedBlock -> Blocks when transfered between Files or delivered via
-        // GetItemRange().
+        // PinnedBlock become Blocks when transfered between Files or delivered
+        // via GetItemRange() or Scatter().
 
         IncBlockPinCountNoLock(block.byte_block(), local_worker_id);
         result.set_value(PinnedBlock(block, local_worker_id));
 
         LOG << "BlockPool::PinBlock block=" << &block
             << " already pinned by thread"
-            << " ++total_pinned_blocks_=" << total_pinned_blocks_;
+            << " ++total_pins_=" << total_pins_;
 
         return result.get_future();
     }
 
-    ++total_pinned_blocks_;
+    ++total_pins_;
     ++num_pinned_blocks_[local_worker_id];
 
     IncBlockPinCountNoLock(block.byte_block(), local_worker_id);
     result.set_value(PinnedBlock(block, local_worker_id));
 
     LOG << "BlockPool::PinBlock block=" << &block
-        << " ++total_pinned_blocks_=" << total_pinned_blocks_;
+        << " ++total_pins_=" << total_pins_;
 
     return result.get_future();
 
@@ -155,15 +155,20 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
 //! Increment a ByteBlock's pin count
 void BlockPool::IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
     std::lock_guard<std::mutex> lock(mutex_);
+    assert(block_ptr->pin_count_[local_worker_id] > 0);
     return IncBlockPinCountNoLock(block_ptr, local_worker_id);
 }
 
 //! Increment a ByteBlock's pin count
 void BlockPool::IncBlockPinCountNoLock(ByteBlock* block_ptr, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
+
     size_t p = ++block_ptr->pin_count_[local_worker_id];
+    size_t tp = ++block_ptr->total_pins_;
+
     LOG << "BlockPool::IncBlockPinCount()"
         << " ++pin_count[" << local_worker_id << "]=" << p
+        << " ++total_pins_=" << tp
         << " local_worker_id=" << local_worker_id;
 }
 
@@ -172,9 +177,14 @@ void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
 
     assert(local_worker_id < workers_per_host_);
     assert(block_ptr->pin_count_[local_worker_id] > 0);
+    assert(block_ptr->total_pins_ > 0);
+
     size_t p = --block_ptr->pin_count_[local_worker_id];
+    size_t tp = --block_ptr->total_pins_;
+
     LOG << "BlockPool::DecBlockPinCount()"
         << " --pin_count[" << local_worker_id << "]=" << p
+        << " --total_pins_=" << tp
         << " local_worker_id=" << local_worker_id;
 
     if (p == 0)
@@ -184,21 +194,30 @@ void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
 void BlockPool::UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
 
+    // decrease per-thread total pin count (memory locked by thread)
     assert(block_ptr->pin_count(local_worker_id) == 0);
-    unpinned_blocks_.push_back(block_ptr);
-
     assert(num_pinned_blocks_[local_worker_id] > 0);
     --num_pinned_blocks_[local_worker_id];
 
-    assert(total_pinned_blocks_ > 0);
-    --total_pinned_blocks_;
+    if (block_ptr->total_pins_ != 0) {
+        LOG << "BlockPool::UnpinBlock()"
+            << " --Block::total_pins_=" << block_ptr->total_pins_;
+        return;
+    }
+
+    // if all per-thread pins are zero, allow this Block to be swapped out.
+    assert(total_pins_ > 0);
+    --total_pins_;
+
+    unpinned_blocks_.push_back(block_ptr);
 
     LOG << "BlockPool::UnpinBlock()"
-        << " --total_pinned_blocks_=" << total_pinned_blocks_;
+        << " --total_pins_=" << block_ptr->total_pins_
+        << " allow swap out.";
 }
 
 size_t BlockPool::block_count() const noexcept {
-    return total_pinned_blocks_ + unpinned_blocks_.size() + num_swapped_blocks_;
+    return total_pins_ + unpinned_blocks_.size() + num_swapped_blocks_;
 }
 
 void BlockPool::DestroyBlock(ByteBlock* block) {
