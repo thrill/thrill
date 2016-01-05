@@ -11,8 +11,8 @@
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/byte_block.hpp>
 
-#include <string>
 #include <sstream>
+#include <string>
 
 namespace thrill {
 namespace data {
@@ -25,7 +25,7 @@ ByteBlock::ByteBlock(Byte* data, size_t size, BlockPool* block_pool)
 
 void ByteBlock::deleter(ByteBlock* bb) {
     sLOG << "ByteBlock::deleter() pin_count_" << bb->pin_count_str();
-    assert(bb->pin_count_total() == 0);
+    assert(bb->total_pins_ == 0);
 
     if (bb->reference_count() == 0) {
         assert(bb->block_pool_);
@@ -40,10 +40,6 @@ void ByteBlock::deleter(const ByteBlock* bb) {
 
 std::string ByteBlock::pin_count_str() const {
     return "[" + common::Join(",", pin_count_) + "]";
-}
-
-size_t ByteBlock::pin_count_total() const {
-    return std::accumulate(pin_count_.begin(), pin_count_.end(), 0);
 }
 
 void ByteBlock::IncPinCount(size_t local_worker_id) {

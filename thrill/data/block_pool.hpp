@@ -72,7 +72,8 @@ public:
         : mem_manager_(mem_manager, "BlockPool"),
           ext_mem_manager_(mem_manager_external, "BlockPoolEM"),
           workers_per_host_(workers_per_host),
-          num_pinned_blocks_(workers_per_host),
+          pin_count_(workers_per_host),
+          pinned_bytes_(workers_per_host),
           soft_memory_limit_(soft_memory_limit),
           hard_memory_limit_(hard_memory_limit)
     { }
@@ -102,6 +103,9 @@ public:
     //! Decrement a ByteBlock's pin count and possibly unpin it.
     void DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
 
+    //! Destroys the block. Called by ByteBlockPtr's deleter.
+    void DestroyBlock(ByteBlock* block);
+
 private:
     //! local Manager counting only ByteBlock allocations in internal memory.
     mem::Manager mem_manager_;
@@ -123,7 +127,10 @@ private:
 
     //! number of pinned blocks per local worker id - this is used to count the
     //! amount of memory locked per thread.
-    std::vector<size_t> num_pinned_blocks_;
+    std::vector<size_t> pin_count_;
+
+    //! number of bytes pinned per local worker id.
+    std::vector<size_t> pinned_bytes_;
 
     //! locked before internal state is changed
     std::mutex mutex_;
@@ -136,14 +143,6 @@ private:
 
     //! Limits for the block pool. 0 for no limits.
     size_t soft_memory_limit_, hard_memory_limit_;
-
-    // for calling [Un]PinBlock
-    friend class ByteBlock;
-
-    //! Destroys the block. Only for internal purposes.
-    //! Async call.
-    //! Async call.
-    void DestroyBlock(ByteBlock* block);
 
     //! Updates the memory manager for internal memory
     //! If the hard limit is reached, the call is blocked intil
