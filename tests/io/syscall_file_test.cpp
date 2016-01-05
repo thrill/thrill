@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 
     LOG1 << sizeof(void*);
     const int size = 1024 * 384;
-    char* buffer = static_cast<char*>(mem::aligned_alloc<4096>(size));
+    char* buffer = static_cast<char*>(mem::aligned_alloc(size));
     memset(buffer, 0, size);
 
 #if STXXL_HAVE_MMAP_FILE
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
 
     wait_all(req.begin(), req.end());
 
-    mem::aligned_dealloc<4096>(buffer);
+    mem::aligned_dealloc(buffer);
 
     std::cout << *(io::stats::get_instance());
 

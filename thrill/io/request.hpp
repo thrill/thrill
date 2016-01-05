@@ -35,8 +35,6 @@ namespace io {
 //! \addtogroup reqlayer
 //! \{
 
-#define STXXL_BLOCK_ALIGN 4096
-
 class file;
 
 //! Request object encapsulating basic properties like file and offset.

@@ -16,6 +16,7 @@
 #include <thrill/io/file.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request.hpp>
+#include <thrill/mem/aligned_alloc.hpp>
 
 #include <ostream>
 
@@ -47,17 +48,17 @@ request::~request() {
 }
 
 void request::check_alignment() const {
-    if (offset_ % STXXL_BLOCK_ALIGN != 0)
+    if (offset_ % STXXL_DEFAULT_ALIGN != 0)
         LOG1 << "Offset is not aligned: modulo "
-             << STXXL_BLOCK_ALIGN << " = " << offset_ % STXXL_BLOCK_ALIGN;
+             << STXXL_DEFAULT_ALIGN << " = " << offset_ % STXXL_DEFAULT_ALIGN;
 
-    if (bytes_ % STXXL_BLOCK_ALIGN != 0)
+    if (bytes_ % STXXL_DEFAULT_ALIGN != 0)
         LOG1 << "Size is not a multiple of "
-             << STXXL_BLOCK_ALIGN << ", = " << bytes_ % STXXL_BLOCK_ALIGN;
+             << STXXL_DEFAULT_ALIGN << ", = " << bytes_ % STXXL_DEFAULT_ALIGN;
 
-    if (uintptr_t(buffer_) % STXXL_BLOCK_ALIGN != 0)
+    if (uintptr_t(buffer_) % STXXL_DEFAULT_ALIGN != 0)
         LOG1 << "Buffer is not aligned: modulo "
-             << STXXL_BLOCK_ALIGN << " = " << size_t(buffer_) % STXXL_BLOCK_ALIGN
+             << STXXL_DEFAULT_ALIGN << " = " << size_t(buffer_) % STXXL_DEFAULT_ALIGN
              << " (" << buffer_ << ")";
 }
 

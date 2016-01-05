@@ -14,6 +14,7 @@
 
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/memory_file.hpp>
+#include <thrill/mem/aligned_alloc.hpp>
 
 #include <cassert>
 #include <cstring>
@@ -68,11 +69,11 @@ void memory_file::discard(offset_type offset, offset_type size) {
 #ifndef STXXL_MEMFILE_DONT_CLEAR_FREED_MEMORY
     // overwrite the freed region with uninitialized memory
     LOG << "discard at " << offset << " len " << size;
-    void* uninitialized = malloc(STXXL_BLOCK_ALIGN);
-    while (size >= STXXL_BLOCK_ALIGN) {
-        memcpy(m_ptr + offset, uninitialized, STXXL_BLOCK_ALIGN);
-        offset += STXXL_BLOCK_ALIGN;
-        size -= STXXL_BLOCK_ALIGN;
+    void* uninitialized = malloc(STXXL_DEFAULT_ALIGN);
+    while (size >= STXXL_DEFAULT_ALIGN) {
+        memcpy(m_ptr + offset, uninitialized, STXXL_DEFAULT_ALIGN);
+        offset += STXXL_DEFAULT_ALIGN;
+        size -= STXXL_DEFAULT_ALIGN;
     }
     assert(size <= std::numeric_limits<offset_type>::max());
     if (size > 0)
