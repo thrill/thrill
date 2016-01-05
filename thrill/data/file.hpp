@@ -439,7 +439,7 @@ File::GetReaderAt(size_t index) const {
         }
     }
 
-    sLOG << "after seek at" << fr.block();
+    sLOG << "after seek at" << fr.CopyBlock();
 
     return fr;
 }

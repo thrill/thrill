@@ -63,10 +63,10 @@ public:
     BlockReader& operator = (BlockReader&&) = default;
 
     //! return current block for debugging
-    PinnedBlock block() const {
+    PinnedBlock CopyBlock() const {
         if (!block_.byte_block()) return PinnedBlock();
         return PinnedBlock(
-            block_.pinned_byte_block(),
+            block_.CopyPinnedByteBlock(),
             current_ - block_.data_begin(), end_ - block_.data_begin(),
             block_.first_item_absolute(), num_items_);
     }

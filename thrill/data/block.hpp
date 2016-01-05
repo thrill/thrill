@@ -74,7 +74,7 @@ public:
     //! access to byte_block_
     const ByteBlockPtr & byte_block() const { return byte_block_; }
 
-    //! access to byte_block_ (mutable)
+    //! mutable access to byte_block_
     ByteBlockPtr & byte_block() { return byte_block_; }
 
     //! return number of items beginning in this block
@@ -117,8 +117,11 @@ public:
     //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
     //! is already pinned, the Future is directly filled with a copy if this
     //! block.  Otherwise an async pin call will be issued.
-    std::future<PinnedBlock> Pin(size_t local_worker_id) const;
+    std::future<PinnedBlock> Pin(size_t local_worker_id) const {
+        return byte_block()->block_pool_->PinBlock(*this, local_worker_id);
+    }
 
+    //! Convenience function to call Pin() and wait for the future.
     PinnedBlock PinNow(size_t local_worker_id) const;
 
 protected:
@@ -143,6 +146,16 @@ protected:
     size_t num_items_ = 0;
 };
 
+/*!
+ * A pinned / pin-counted derivative of a Block. By holding a pin, it is a
+ * guaranteed that the contained ByteBlock's data is loaded in RAM. Since pins
+ * are counted per thread, the PinnedBlock is a counting pointer plus a thread
+ * id. An ordinary Block can be pinned by calling Pin(), which delivers a future
+ * PinnedBlock, which is available once the data is actually loaded.
+ *
+ * Be careful to move PinnedBlock as must as possible, since copying costs a
+ * pinning and an unpinning operation, whereas moving is free.
+ */
 class PinnedBlock : public Block
 {
 public:
@@ -222,13 +235,16 @@ public:
         }
     }
 
-    //! extract ByteBlock including it's pin.
+    //! extract ByteBlock including it's pin. afterwards, this PinnedBlock is
+    //! invalid.
     PinnedByteBlockPtr StealPinnedByteBlock() {
         return PinnedByteBlockPtr(std::move(byte_block_), local_worker_id_);
     }
 
-    //! access to byte_block_ which is pinned.
-    PinnedByteBlockPtr pinned_byte_block() const {
+    //! copy the underlying byte_block_ into a new PinnedByteBlockPtr, which
+    //! increases the pin count. use StealPinnedByteBlock to move the underlying
+    //! pin out (cheaper).
+    PinnedByteBlockPtr CopyPinnedByteBlock() const {
         PinnedByteBlockPtr pbb(byte_block_, local_worker_id_);
         if (pbb.valid()) pbb->IncPinCount(local_worker_id_);
         return pbb;
@@ -248,6 +264,7 @@ public:
     //! not available in PinnedBlock
     PinnedBlock PinNow() const = delete;
 
+    //! make ostreamable for debugging
     friend std::ostream& operator << (std::ostream& os, const PinnedBlock& b) {
         os << "[PinnedBlock "
            << " block_=" << static_cast<const Block&>(b);
@@ -259,7 +276,7 @@ public:
 private:
     //! protected construction from an unpinned block AFTER the pin was taken,
     //! this method does NOT pin it.
-    explicit PinnedBlock(const Block& b, size_t local_worker_id)
+    PinnedBlock(const Block& b, size_t local_worker_id)
         : Block(b), local_worker_id_(local_worker_id) { }
 
     //! thread id of holder of pin
@@ -269,31 +286,6 @@ private:
     //! protected constructor.
     friend class BlockPool;
 };
-
-inline
-std::future<PinnedBlock> Block::Pin(size_t local_worker_id) const {
-
-#if 0
-    // pinned blocks can be returned straigt away
-    if (pinned_ || 1) {
-        sLOG << "block " << byte_block_->data_ << " was already pinned";
-        *result << Block(*this);
-    }
-    else {
-        sLOG << "request pin for block " << byte_block_->swap_token_;
-        // call pin with callback that creates new, pinned block
-        byte_block_->GetPin(
-            [&]() {
-                Block b(*this);
-                b.pinned_ = true;
-                sLOG << "block " << byte_block_->swap_token_ << "/" << byte_block_->data_ << " is now pinned";
-                *result << std::move(b);
-            });
-    }
-#endif
-
-    return byte_block()->block_pool_->PinBlock(*this, local_worker_id);
-}
 
 inline
 PinnedBlock Block::PinNow(size_t local_worker_id) const {

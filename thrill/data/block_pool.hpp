@@ -96,7 +96,7 @@ public:
     //! \param block_ptr the block to pin
     std::future<PinnedBlock> PinBlock(const Block& block, size_t local_worker_id);
 
-    //! Increment a ByteBlock's pin count
+    //! Increment a ByteBlock's pin count, requires the pin count to be > 0.
     void IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
 
     //! Decrement a ByteBlock's pin count and possibly unpin it.
@@ -112,14 +112,17 @@ private:
     //! number of workers per host
     size_t workers_per_host_;
 
-    //! list of all blocks that are in memory but are not pinned. TODO(tb):
+    //! list of all blocks that are _in_memory_ but are _not_ pinned. TODO(tb):
     //! probably not the right data structure.
     std::deque<ByteBlock*> unpinned_blocks_;
 
     size_t num_swapped_blocks_ = 0;
-    size_t total_pinned_blocks_ = 0;
 
-    //! number of pinned blocks per local worker id
+    //! current total number of pins, where each thread pin counts individually.
+    size_t total_pins_ = 0;
+
+    //! number of pinned blocks per local worker id - this is used to count the
+    //! amount of memory locked per thread.
     std::vector<size_t> num_pinned_blocks_;
 
     //! locked before internal state is changed

@@ -11,6 +11,7 @@
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/byte_block.hpp>
 
+#include <string>
 #include <sstream>
 
 namespace thrill {
