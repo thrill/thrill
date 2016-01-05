@@ -78,9 +78,6 @@ public:
     //! return string list of pin_counts
     std::string pin_count_str() const;
 
-    //! return total pin count
-    size_t pin_count_total() const;
-
     //! true if block resides in memory
     bool in_memory() const {
         return data_ != nullptr;
