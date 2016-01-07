@@ -30,7 +30,7 @@ static const bool debug = true;
 
 struct my_handler
 {
-    void operator () (io::request* ptr) {
+    void operator () (io::request* ptr, bool /* success */) {
         LOG1 << "Request completed: " << ptr;
     }
 };

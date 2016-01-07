@@ -148,6 +148,8 @@ bool request::cancel() {
         if (disk_queues::get_instance()->cancel_request(rp, file_->get_queue_id()))
         {
             state_.set_to(DONE);
+            // user callback
+            on_complete_(this, false);
             notify_waiters();
             file_->delete_request_ref();
             file_ = 0;
@@ -168,9 +170,11 @@ bool request::poll() {
 
 void request::completed(bool canceled) {
     LOG << "request::completed()";
+    // change state
     state_.set_to(DONE);
-    if (!canceled)
-        on_complete_(this);
+    // user callback
+    on_complete_(this, !canceled);
+    // notify waiters
     notify_waiters();
     file_->delete_request_ref();
     file_ = 0;

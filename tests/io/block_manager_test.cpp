@@ -34,7 +34,7 @@ struct MyType
 
 struct my_handler
 {
-    void operator () (io::request* req) {
+    void operator () (io::request* req, bool /* success */) {
         LOG1 << req << " done, type=" << req->io_type();
     }
 };

@@ -94,6 +94,7 @@ bool request_queue_impl_1q::cancel_request(request_ptr& req) {
         {
             m_queue.erase(pos);
             was_still_in_queue = true;
+            Lock.unlock();
             m_sem--;
         }
     }

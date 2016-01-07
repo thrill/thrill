@@ -26,7 +26,7 @@ using namespace thrill;
 
 struct print_completion
 {
-    void operator () (io::request* ptr) {
+    void operator () (io::request* ptr, bool /* success */) {
         std::cout << "Request completed: " << ptr << std::endl;
     }
 };
