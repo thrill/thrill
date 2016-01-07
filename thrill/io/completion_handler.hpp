@@ -29,7 +29,7 @@ class request;
 class completion_handler_impl
 {
 public:
-    virtual void operator () (request*) = 0;
+    virtual void operator () (request*, bool) = 0;
     virtual completion_handler_impl * clone() const = 0;
     virtual ~completion_handler_impl() { }
     completion_handler_impl() = default;
@@ -50,8 +50,8 @@ public:
     completion_handler1 * clone() const {
         return new completion_handler1(*this);
     }
-    void operator () (request* req) {
-        m_handler(req);
+    void operator () (request* req, bool success) {
+        m_handler(req, success);
     }
 };
 
@@ -89,9 +89,9 @@ public:
     }
 
     //! Call the enclosed completion handler.
-    void operator () (request* req) {
+    void operator () (request* req, bool success) {
         if (m_ptr.get())
-            (*m_ptr)(req);
+            (*m_ptr)(req, success);
     }
 };
 

@@ -135,6 +135,10 @@ private:
     //! locked before internal state is changed
     std::mutex mutex_;
 
+    //! total number of bytes used in RAM by pinned and unpinned blocks.
+    size_t total_ram_use_ = 0;
+    size_t total_ram_limit_ = 10240000lu;
+
     //! For implementing hard limit
     std::mutex memory_mutex_;
 
@@ -144,23 +148,24 @@ private:
     //! Limits for the block pool. 0 for no limits.
     size_t soft_memory_limit_, hard_memory_limit_;
 
-    //! Updates the memory manager for internal memory
-    //! If the hard limit is reached, the call is blocked intil
-    //! memory is free'd
-    void RequestInternalMemory(size_t amount);
+    //! Updates the memory manager for internal memory. If the hard limit is
+    //! reached, the call is blocked intil memory is free'd
+    void RequestInternalMemory(std::unique_lock<std::mutex>& lock, size_t size);
 
-    //! Updates the memory manager for the internal memory
-    //! wakes up waiting BlockPool::RequestInternalMemory calls
-    void ReleaseInternalMemory(size_t amount);
+    //! Updates the memory manager for the internal memory, wakes up waiting
+    //! BlockPool::RequestInternalMemory calls
+    void ReleaseInternalMemory(size_t size);
 
     //! Increment a ByteBlock's pin count - without locking the mutex
     void IncBlockPinCountNoLock(ByteBlock* block_ptr, size_t local_worker_id);
 
     //! Unpins a block. If all pins are removed, the block might be swapped.
     //! Returns immediately. Actual unpinning is async.
-    //! out to disk and is not accessible
     //! \param block_ptr the block to unpin
     void UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
+
+    //! Evict a block into external memory
+    void EvictBlock(ByteBlock* block_ptr);
 };
 
 } // namespace data

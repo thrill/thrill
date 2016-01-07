@@ -18,8 +18,6 @@
 #ifndef THRILL_IO_BID_HEADER
 #define THRILL_IO_BID_HEADER
 
-#include <thrill/io/file.hpp>
-
 #include <cstring>
 #include <iomanip>
 #include <ostream>
@@ -31,34 +29,38 @@ namespace io {
 //! \addtogroup mnglayer
 //! \{
 
+// forward declarations
+class file;
+
 //! Block identifier class.
 //!
 //! Stores block identity, given by file and offset within the file
 template <size_t Size>
-struct BID
+class BID
 {
+public:
     enum
     {
-        size = Size,    //!< Block size
-        t_size = Size   //!< Blocks size, given by the parameter
+        //! Block size
+        size = Size,
+        //! Blocks size, given by the parameter
+        t_size = Size
     };
 
-    file    * storage;  //!< pointer to the file of the block
-    int64_t offset;     //!< offset within the file of the block
+    //! pointer to the file of the block
+    file* storage = nullptr;
+    //! offset within the file of the block
+    int64_t offset = 0;
 
-    BID() : storage(nullptr), offset(0)
-    { }
+    BID() = default;
 
-    bool    valid() const {
+    bool valid() const {
         return storage != nullptr;
     }
 
-    BID(file* s, int64_t o) : storage(s), offset(o)
-    { }
+    BID(file* s, int64_t o) : storage(s), offset(o) { }
 
-    BID(const BID& obj) : storage(obj.storage), offset(obj.offset)
-    { }
-
+    BID(const BID& obj) = default;
     BID& operator = (BID&) = default;
 
     template <size_t BlockSize>
@@ -73,31 +75,31 @@ struct BID
         return *this;
     }
 
-    bool is_managed() const {
-        return storage->get_allocator_id() != file::NO_ALLOCATOR;
-    }
+    bool is_managed() const;
 };
 
 //! Specialization of block identifier class (BID) for variable size block size.
-//!
-//! Stores block identity, given by file, offset within the file, and size of the block
+//! Stores block identity, given by file, offset within the file, and size of
+//! the block
 template <>
-struct BID<0>
+class BID<0>
 {
-    file    * storage; //!< pointer to the file of the block
-    int64_t offset;    //!< offset within the file of the block
-    size_t  size;      //!< size of the block in bytes
+public:
+    //! pointer to the file of the block
+    file* storage = nullptr;
+    //! offset within the file of the block
+    int64_t offset = 0;
+    //! size of the block in bytes
+    size_t size = 0;
 
     enum
     {
         t_size = 0     //!< Blocks size, given by the parameter
     };
 
-    BID() : storage(nullptr), offset(0), size(0)
-    { }
+    BID() = default;
 
-    BID(file* f, int64_t o, size_t s) : storage(f), offset(o), size(s)
-    { }
+    BID(file* f, int64_t o, size_t s) : storage(f), offset(o), size(s) { }
 
     bool valid() const {
         return (storage != nullptr);
