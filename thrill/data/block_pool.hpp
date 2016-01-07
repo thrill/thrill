@@ -12,6 +12,7 @@
 #ifndef THRILL_DATA_BLOCK_POOL_HEADER
 #define THRILL_DATA_BLOCK_POOL_HEADER
 
+#include <thrill/common/lru_cache.hpp>
 #include <thrill/common/signal.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/byte_block.hpp>
@@ -118,7 +119,7 @@ private:
 
     //! list of all blocks that are _in_memory_ but are _not_ pinned. TODO(tb):
     //! probably not the right data structure.
-    std::deque<ByteBlock*> unpinned_blocks_;
+    common::LruCacheSet<ByteBlock*> unpinned_blocks_;
 
     size_t num_swapped_blocks_ = 0;
 
