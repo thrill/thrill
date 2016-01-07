@@ -51,7 +51,7 @@ PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker
 
     // we store a raw pointer --> does not increase ref count
     if (!pinned) {
-        unpinned_blocks_.push_back(block); //implicit converts to raw
+        unpinned_blocks_.put(block); //implicit converts to raw
         LOG << "allocating unpinned block @" << block;
     }
     else {
@@ -126,10 +126,8 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     }
 
     // unpinned block in memory, remove from list
-    auto pos = std::find(
-        unpinned_blocks_.begin(), unpinned_blocks_.end(), block.byte_block());
-    assert(pos != unpinned_blocks_.end());
-    unpinned_blocks_.erase(pos);
+    assert(unpinned_blocks_.exists(block.byte_block()));
+    unpinned_blocks_.erase(block.byte_block());
 
     IncBlockPinCountNoLock(block.byte_block(), local_worker_id);
 
@@ -248,11 +246,8 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
     }
 
     // if all per-thread pins are zero, allow this Block to be swapped out.
-
-    auto pos = std::find(unpinned_blocks_.begin(), unpinned_blocks_.end(), block_ptr);
-    assert(pos == unpinned_blocks_.end());
-
-    unpinned_blocks_.push_back(block_ptr);
+    assert(!unpinned_blocks_.exists(block_ptr));
+    unpinned_blocks_.put(block_ptr);
 
     LOG << "BlockPool::UnpinBlock()"
         << " --total_pins_=" << block_ptr->total_pins_
@@ -287,9 +282,8 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
 #endif
     {
         // unpinned block in memory, remove from list
-        auto pos = std::find(unpinned_blocks_.begin(), unpinned_blocks_.end(), block);
-        assert(pos != unpinned_blocks_.end());
-        unpinned_blocks_.erase(pos);
+        assert(unpinned_blocks_.exists(block));
+        unpinned_blocks_.erase(block);
         // page_mapper_.SwapOut(block->data_, false);
         // page_mapper_.ReleaseToken(block->swap_token_);
         ReleaseInternalMemory(block->size());
@@ -304,7 +298,7 @@ void BlockPool::RequestInternalMemory(
         // TODO: evict block, and signal memory_change_ cv.
 
         assert(unpinned_blocks_.size());
-        EvictBlock(unpinned_blocks_.front());
+        EvictBlock(unpinned_blocks_.pop_lru());
         abort();
 
         memory_change_.wait(lock);
