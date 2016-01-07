@@ -20,7 +20,7 @@
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/onoff_switch.hpp>
 #include <thrill/common/state.hpp>
-#include <thrill/io/completion_handler.hpp>
+#include <thrill/common/delegate.hpp>
 #include <thrill/io/exceptions.hpp>
 
 #include <cassert>
@@ -36,6 +36,9 @@ namespace io {
 //! \{
 
 class file;
+class request;
+
+using completion_handler = common::delegate<void(request*, bool)>;
 
 //! Request object encapsulating basic properties like file and offset.
 class request : public common::ReferenceCount
