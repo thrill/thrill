@@ -120,6 +120,9 @@ public:
         error_.reset(new io_error(msg));
     }
 
+    //! return error if one occured
+    io_error * error() const { return error_.get(); }
+
     //! Rises an exception if there were error with the I/O.
     void check_errors() {
         if (error_.get())

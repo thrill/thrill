@@ -49,7 +49,6 @@ public:
     int operator ++ (int) { // NOLINT
         std::unique_lock<std::mutex> lock(m_mutex);
         int res = ++v;
-        lock.unlock();
         m_cond.notify_one();
         return res;
     }

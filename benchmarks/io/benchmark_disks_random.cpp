@@ -38,7 +38,7 @@ struct print_number
 
     explicit print_number(int n) : n(n) { }
 
-    void operator () (io::request*) {
+    void operator () (io::request*, bool /* success */) {
         // std::cout << n << " " << std::flush;
     }
 };
