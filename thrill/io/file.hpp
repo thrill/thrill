@@ -22,6 +22,7 @@
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/io/bid.hpp>
 #include <thrill/io/request.hpp>
 
 #if defined (__linux__)
@@ -212,6 +213,12 @@ public:
 
     //! \}
 };
+
+// implementation here due to forward declaration of file.
+template <size_t Size>
+bool BID<Size>::is_managed() const {
+    return storage->get_allocator_id() != file::NO_ALLOCATOR;
+}
 
 //! \}
 

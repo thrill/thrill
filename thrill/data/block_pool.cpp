@@ -11,6 +11,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_pool.hpp>
+#include <thrill/io/block_manager.hpp>
+#include <thrill/mem/aligned_alloc.hpp>
 
 #include <sys/mman.h>
 
@@ -29,7 +31,7 @@ BlockPool::~BlockPool() {
 
 PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
 
 #if 0
     // uint32_t swap_token;
@@ -58,10 +60,10 @@ PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker
     }
 #endif
 
-    RequestInternalMemory(size);
+    RequestInternalMemory(lock, size);
 
     // allocate block memory.
-    Byte* data = static_cast<Byte*>(malloc(size));
+    Byte* data = static_cast<Byte*>(mem::aligned_alloc(size));
 
     // create counting ptr, no need for special make_shared()-equivalent
     PinnedByteBlockPtr result(new ByteBlock(data, size, this), local_worker_id);
@@ -173,7 +175,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
                 page_mapper_.SwapIn(block_ptr->swap_token_);
 
                 // we must aqcuire the lock for the background thread
-                std::lock_guard<std::mutex> lock(list_mutex_);
+                std::unique_lock<std::mutex> lock(list_mutex_);
                 num_swapped_blocks_--;
                 ext_mem_manager_.subtract(block_ptr->size());
                 callback();
@@ -184,7 +186,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
 
 //! Increment a ByteBlock's pin count
 void BlockPool::IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     assert(local_worker_id < workers_per_host_);
     assert(block_ptr->pin_count_[local_worker_id] > 0);
     return IncBlockPinCountNoLock(block_ptr, local_worker_id);
@@ -208,7 +210,7 @@ void BlockPool::IncBlockPinCountNoLock(ByteBlock* block_ptr, size_t local_worker
 }
 
 void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
 
     assert(local_worker_id < workers_per_host_);
     assert(block_ptr->pin_count_[local_worker_id] > 0);
@@ -266,7 +268,7 @@ size_t BlockPool::block_count() const noexcept {
 }
 
 void BlockPool::DestroyBlock(ByteBlock* block) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     // this method is called by ByteBlockPtr's deleter when the reference
     // counter reaches zero to deallocate the block.
 
@@ -294,9 +296,21 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
     }
 }
 
-void BlockPool::RequestInternalMemory(size_t amount) {
-    // allocate memory, then check limits and maybe block
-    mem_manager_.add(amount);
+void BlockPool::RequestInternalMemory(
+    std::unique_lock<std::mutex>& lock, size_t size) {
+
+    while (total_ram_use_ + size >= total_ram_limit_ && 0)
+    {
+        // TODO: evict block, and signal memory_change_ cv.
+
+        assert(unpinned_blocks_.size());
+        EvictBlock(unpinned_blocks_.front());
+        abort();
+
+        memory_change_.wait(lock);
+    }
+
+    total_ram_use_ += size;
 
     return; // -tb later.
 #if 0
@@ -311,7 +325,7 @@ void BlockPool::RequestInternalMemory(size_t amount) {
         sLOG << "soft memory limit is reached";
         // kill first page in unpinned list
         tasks_.Enqueue([&]() {
-                           std::lock_guard<std::mutex> lock(mutex_);
+                           std::unique_lock<std::mutex> lock(mutex_);
                            sLOG << "removing a unpinned block";
                            if (unpinned_blocks_.empty()) return;
                            page_mapper_.SwapOut(unpinned_blocks_.front()->data_);
@@ -321,13 +335,38 @@ void BlockPool::RequestInternalMemory(size_t amount) {
 #endif
 }
 
-void BlockPool::ReleaseInternalMemory(size_t amount) {
-    mem_manager_.subtract(amount);
+void BlockPool::ReleaseInternalMemory(size_t size) {
 
-    return; // -tb later.
+    assert(total_ram_use_ >= size);
+    total_ram_use_ -= size;
 
-    if (hard_memory_limit_ && mem_manager_.total() < hard_memory_limit_)
-        memory_change_.notify_all();
+    memory_change_.notify_all();
+}
+
+struct my_handler
+{
+    void operator () (io::request* req, bool success) {
+        LOG1 << req << " done, success = " << success << ", type=" << req->io_type();
+    }
+};
+
+void BlockPool::EvictBlock(ByteBlock* block_ptr) {
+    assert(block_ptr);
+    io::block_manager* bm = io::block_manager::get_instance();
+
+    block_ptr->em_bid_.size = block_ptr->size();
+    bm->new_block(io::striping(), block_ptr->em_bid_);
+
+    LOG1 << "EvictBlock(): " << *block_ptr;
+
+    io::request_ptr req =
+        block_ptr->em_bid_.storage->awrite(
+            block_ptr->data_, block_ptr->em_bid_.offset, block_ptr->size(),
+            my_handler());
+
+    bool c = req->cancel();
+    LOG1 << "canceled: " << c;
+    req->wait();
 }
 
 } // namespace data

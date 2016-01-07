@@ -122,11 +122,10 @@ public:
     //!
     //! The \c BlockType template parameter defines the type of block to allocate
     template <class BlockType, class DiskAssignFunctor, class BIDIteratorClass>
-    void new_blocks(
-        const size_t nblocks,
-        const DiskAssignFunctor& functor,
-        BIDIteratorClass out,
-        size_t offset = 0) {
+    void new_blocks(const size_t nblocks,
+                    const DiskAssignFunctor& functor,
+                    BIDIteratorClass out,
+                    size_t offset = 0) {
         using bid_type = typename BlockType::bid_type;
         new_blocks_int<bid_type>(nblocks, functor, offset, out);
     }
@@ -214,14 +213,16 @@ void block_manager::new_blocks_int(
     for (size_t i = 0; i != nblocks; ++it, ++i)
     {
         const int disk = disk_ptrs[i]->get_allocator_id();
-        BIDType bid(disk_ptrs[i], disk_bids[disk][bl[disk]++].offset);
-        *it = bid;
-        LOG0 << "BLC:new    " << bid;
-    }
+        it->storage = disk_ptrs[i];
+        it->offset = disk_bids[disk][bl[disk]++].offset;
+        LOG0 << "BLC:new    " << *it;
 
 #if STXXL_MNG_COUNT_ALLOCATION
-    total_allocation_ += nblocks * BIDType::size;
-    current_allocation_ += nblocks * BIDType::size;
+        total_allocation_ += it->size;
+        current_allocation_ += it->size;
+#endif      // STXXL_MNG_COUNT_ALLOCATION
+    }
+#if STXXL_MNG_COUNT_ALLOCATION
     maximum_allocation_ = std::max(maximum_allocation_, current_allocation_);
 #endif      // STXXL_MNG_COUNT_ALLOCATION
 }

@@ -118,19 +118,19 @@ public:
 
     //! Allocate the next stream
     size_t AllocateCatStreamId(size_t local_worker_id) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         return stream_sets_.AllocateId(local_worker_id);
     }
 
     //! Get stream with given id, if it does not exist, create it.
     CatStreamPtr GetOrCreateCatStream(size_t id, size_t local_worker_id) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         return _GetOrCreateCatStream(id, local_worker_id);
     }
 
     //! Request next stream.
     CatStreamPtr GetNewCatStream(size_t local_worker_id) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         return _GetOrCreateCatStream(
             stream_sets_.AllocateId(local_worker_id), local_worker_id);
     }
@@ -142,19 +142,19 @@ public:
 
     //! Allocate the next stream
     size_t AllocateMixStreamId(size_t local_worker_id) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         return stream_sets_.AllocateId(local_worker_id);
     }
 
     //! Get stream with given id, if it does not exist, create it.
     MixStreamPtr GetOrCreateMixStream(size_t id, size_t local_worker_id) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         return _GetOrCreateMixStream(id, local_worker_id);
     }
 
     //! Request next stream.
     MixStreamPtr GetNewMixStream(size_t local_worker_id) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         return _GetOrCreateMixStream(
             stream_sets_.AllocateId(local_worker_id), local_worker_id);
     }

@@ -14,6 +14,7 @@
 
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/future.hpp>
+#include <thrill/io/bid.hpp>
 
 #include <string>
 #include <vector>
@@ -107,8 +108,8 @@ private:
     //! reaches zero.
     size_t total_pins_ = 0;
 
-    //! token that is used with mem::PageMapper
-    uint32_t swap_token_ = 0;
+    //! external memory block id
+    io::BID<0> em_bid_;
 
     // BlockPool is a friend to call ctor
     friend class BlockPool;
@@ -127,6 +128,14 @@ private:
      * \param block_pool the block pool that manages this ByteBlock
      */
     ByteBlock(Byte* data, size_t size, BlockPool* block_pool);
+
+    friend std::ostream& operator << (std::ostream& os, const ByteBlock& b) {
+        os << "[ByteBlock"
+           << " size_=" << b.size_
+           << " block_pool_=" << b.block_pool_
+           << " total_pins_=" << b.total_pins_;
+        return os << "]";
+    }
 
     //! No default construction of Byteblock
     ByteBlock() = delete;
