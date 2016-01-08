@@ -124,18 +124,18 @@ TEST_F(MultiwayMerge, VectorWrapper) {
 
 TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
     static const bool debug = false;
-    std::mt19937 gen(0);
-    // get _a_ different runs with _a_ number of elements
-    size_t a = 400;
-    std::vector<size_t> b;
-    b.reserve(a);
+    std::minstd_rand gen(0);
+    // get _nruns_ different runs with _nitems_ number of elements
+    size_t nruns = 15;
+    std::vector<size_t> nitems;
+    nitems.reserve(nruns);
 
-    for (size_t t = 0; t < a; ++t) {
-        b.push_back(400 + gen() % 100);
+    for (size_t t = 0; t < nruns; ++t) {
+        nitems.push_back(1000000 + gen() % 4000000);
     }
 
     size_t total = 0;
-    for (auto t : b) {
+    for (auto t : nitems) {
         total += t;
     }
 
@@ -149,15 +149,15 @@ TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
     std::vector<size_t> output;
     std::vector<std::pair<Iterator, Iterator> > seq;
 
-    in.reserve(a);
+    in.reserve(nruns);
     ref.reserve(total);
-    seq.reserve(a);
+    seq.reserve(nruns);
     output.resize(total);
 
-    for (size_t i = 0; i < a; ++i) {
+    for (size_t i = 0; i < nruns; ++i) {
         std::vector<size_t> tmp;
-        tmp.reserve(b[i]);
-        for (size_t j = 0; j < b[i]; ++j) {
+        tmp.reserve(nitems[i]);
+        for (size_t j = 0; j < nitems[i]; ++j) {
             auto elem = rand() % 100;
             sLOG << "FILE" << i << "with elem" << elem;
             tmp.push_back(elem);
@@ -188,11 +188,8 @@ TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
         OIterator oiter(std::make_shared<Writer>(output_file.GetWriter()));
 
         std::sort(ref.begin(), ref.end());
-        core::sequential_file_multiway_merge<true, false>(seq.begin(),
-                                                          seq.end(),
-                                                          oiter,
-                                                          total,
-                                                          std::less<size_t>());
+        core::sequential_file_multiway_merge<true, false>(
+            seq.begin(), seq.end(), oiter, total, std::less<size_t>());
     }
 
     auto r = output_file.GetReader(true);
