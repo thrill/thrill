@@ -120,9 +120,8 @@ public:
         new_blocks<BlockSize>(bids.begin(), bids.end());
     }
 
-    template <size_t BlockSize>
-    void new_blocks(typename BIDArray<BlockSize>::iterator begin,
-                    typename BIDArray<BlockSize>::iterator end);
+    template <typename BidIterator>
+    void new_blocks(BidIterator begin, BidIterator end);
 
 #if 0
     template <size_t BlockSize>
@@ -144,20 +143,23 @@ public:
     }
 };
 
-template <size_t BlockSize>
-void disk_allocator::new_blocks(typename BIDArray<BlockSize>::iterator begin,
-                                typename BIDArray<BlockSize>::iterator end) {
+template <typename BidIterator>
+void disk_allocator::new_blocks(BidIterator begin, BidIterator end) {
     uint64_t requested_size = 0;
+    static const bool debug = false;
 
-    for (typename BIDArray<BlockSize>::iterator cur = begin; cur != end; ++cur)
+    size_t block_size = 0;
+
+    for (BidIterator cur = begin; cur != end; ++cur)
     {
         LOG << "Asking for a block with size: " << cur->size;
         requested_size += cur->size;
+        block_size = std::max<size_t>(block_size, cur->size);
     }
 
     std::unique_lock<std::mutex> lock(mutex_);
 
-    LOG << "disk_allocator::new_blocks<BlockSize>,  BlockSize = " << BlockSize
+    LOG << "disk_allocator::new_blocks<>"
         << ", free:" << free_bytes_ << " total:" << disk_bytes_
         << ", blocks: " << (end - begin)
         << " begin: " << static_cast<void*>(&(*begin))
@@ -186,7 +188,7 @@ void disk_allocator::new_blocks(typename BIDArray<BlockSize>::iterator begin,
     space = std::find_if(free_space_.begin(), free_space_.end(),
                          bind2nd(first_fit(), requested_size));
 
-    if (space == free_space_.end() && requested_size == BlockSize)
+    if (space == free_space_.end() && requested_size == block_size)
     {
         assert(end - begin == 1);
 
@@ -199,7 +201,7 @@ void disk_allocator::new_blocks(typename BIDArray<BlockSize>::iterator begin,
                  << " bytes free. Trying to extend the external memory space...";
         }
 
-        grow_file(BlockSize);
+        grow_file(block_size);
 
         space = std::find_if(free_space_.begin(), free_space_.end(),
                              bind2nd(first_fit(), requested_size));
@@ -228,14 +230,14 @@ void disk_allocator::new_blocks(typename BIDArray<BlockSize>::iterator begin,
     LOG1 << "Warning, when allocating an external memory space, no contiguous region found";
     LOG1 << "It might harm the performance";
 
-    assert(requested_size > BlockSize);
+    assert(requested_size > block_size);
     assert(end - begin > 1);
 
     lock.unlock();
 
-    typename BIDArray<BlockSize>::iterator middle = begin + ((end - begin) / 2);
-    new_blocks<BlockSize>(begin, middle);
-    new_blocks<BlockSize>(middle, end);
+    BidIterator middle = begin + ((end - begin) / 2);
+    new_blocks(begin, middle);
+    new_blocks(middle, end);
 }
 
 //! \}

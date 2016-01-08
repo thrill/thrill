@@ -75,7 +75,7 @@ public:
         return *this;
     }
 
-    bool is_managed() const;
+    inline bool is_managed() const;
 };
 
 //! Specialization of block identifier class (BID) for variable size block size.
@@ -94,7 +94,8 @@ public:
 
     enum
     {
-        t_size = 0     //!< Blocks size, given by the parameter
+        //! Blocks size, given by the parameter
+        t_size = 0
     };
 
     BID() = default;
@@ -104,6 +105,8 @@ public:
     bool valid() const {
         return (storage != nullptr);
     }
+
+    inline bool is_managed() const;
 };
 
 template <size_t BlockSize>
