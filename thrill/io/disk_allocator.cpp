@@ -23,7 +23,7 @@
 namespace thrill {
 namespace io {
 
-void disk_allocator::dump() const {
+void DiskAllocator::dump() const {
     int64_t total = 0;
     SortSeq::const_iterator cur = free_space_.begin();
     LOG1 << "Free regions dump:";
@@ -35,7 +35,7 @@ void disk_allocator::dump() const {
     LOG1 << "Total bytes: " << total;
 }
 
-void disk_allocator::deallocation_error(
+void DiskAllocator::deallocation_error(
     int64_t block_pos, int64_t block_size,
     const SortSeq::iterator& pred, const SortSeq::iterator& succ) const {
     LOG1 << "Error deallocating block at " << block_pos << " size " << block_size;
@@ -59,7 +59,7 @@ void disk_allocator::deallocation_error(
     dump();
 }
 
-void disk_allocator::add_free_region(int64_t block_pos, int64_t block_size) {
+void DiskAllocator::add_free_region(int64_t block_pos, int64_t block_size) {
     // assert(block_size);
     // dump();
     LOG << "Deallocating a block with size: " << block_size << " position: " << block_pos;
@@ -75,15 +75,15 @@ void disk_allocator::add_free_region(int64_t block_pos, int64_t block_size) {
         {
             if (pred->first <= region_pos && pred->first + pred->second > region_pos)
             {
-                STXXL_THROW2(bad_ext_alloc,
-                             "disk_allocator::check_corruption", "Error: double deallocation of external memory, trying to deallocate region " << region_pos << " + " << region_size << "  in empty space [" << pred->first << " + " << pred->second << "]");
+                THRILL_THROW2(BadExternalAlloc,
+                              "disk_allocator::check_corruption", "Error: double deallocation of external memory, trying to deallocate region " << region_pos << " + " << region_size << "  in empty space [" << pred->first << " + " << pred->second << "]");
             }
         }
         if (succ != free_space_.end())
         {
             if (region_pos <= succ->first && region_pos + region_size > succ->first)
             {
-                STXXL_THROW2(bad_ext_alloc, "disk_allocator::check_corruption", "Error: double deallocation of external memory, trying to deallocate region " << region_pos << " + " << region_size << "  which overlaps empty space [" << succ->first << " + " << succ->second << "]");
+                THRILL_THROW2(BadExternalAlloc, "disk_allocator::check_corruption", "Error: double deallocation of external memory, trying to deallocate region " << region_pos << " + " << region_size << "  which overlaps empty space [" << succ->first << " + " << succ->second << "]");
             }
         }
         if (succ == free_space_.end())

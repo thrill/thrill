@@ -19,18 +19,18 @@
 
 #include <thrill/common/config.hpp>
 
-#ifndef STXXL_HAVE_WINCALL_FILE
-#if STXXL_WINDOWS
- #define STXXL_HAVE_WINCALL_FILE 1
+#ifndef THRILL_HAVE_WINCALL_FILE
+#if THRILL_WINDOWS
+ #define THRILL_HAVE_WINCALL_FILE 1
 #else
- #define STXXL_HAVE_WINCALL_FILE 0
+ #define THRILL_HAVE_WINCALL_FILE 0
 #endif
 #endif
 
-#if STXXL_HAVE_WINCALL_FILE
+#if THRILL_HAVE_WINCALL_FILE
 
-#include <thrill/io/disk_queued_file.h>
-#include <thrill/io/wfs_file_base.h>
+#include <thrill/io/disk_queued_file.hpp>
+#include <thrill/io/wfs_file_base.hpp>
 
 #include <string>
 
@@ -41,7 +41,7 @@ namespace io {
 //! \{
 
 //! Implementation of file based on Windows native I/O calls.
-class wincall_file final : public wfs_file_base, public disk_queued_file
+class WincallFile final : public WfsFileBase, public DiskQueuedFile
 {
 public:
     //! Constructs file object.
@@ -50,14 +50,14 @@ public:
     //! \param queue_id disk queue identifier
     //! \param allocator_id linked disk_allocator
     //! \param device_id physical device identifier
-    wincall_file(
+    WincallFile(
         const std::string& filename,
         int mode,
         int queue_id = DEFAULT_QUEUE,
         int allocator_id = NO_ALLOCATOR,
         unsigned int device_id = DEFAULT_DEVICE_ID)
         : file(device_id),
-          wfs_file_base(filename, mode),
+          WfsFileBase(filename, mode),
           disk_queued_file(queue_id, allocator_id)
     { }
     void serve(void* buffer, offset_type offset, size_type bytes,
@@ -70,7 +70,7 @@ public:
 } // namespace io
 } // namespace thrill
 
-#endif // #if STXXL_HAVE_WINCALL_FILE
+#endif // #if THRILL_HAVE_WINCALL_FILE
 
 #endif // !THRILL_IO_WINCALL_FILE_HEADER
 

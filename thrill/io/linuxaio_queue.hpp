@@ -18,7 +18,7 @@
 
 #include <thrill/io/request_queue_impl_worker.hpp>
 
-#if STXXL_HAVE_LINUXAIO_FILE
+#if THRILL_HAVE_LINUXAIO_FILE
 
 #include <linux/aio_abi.h>
 
@@ -34,18 +34,18 @@ namespace io {
 //! Queue for linuxaio_file(s)
 //!
 //! Only one queue exists in a program, i.e. it is a singleton.
-class linuxaio_queue final : public request_queue_impl_worker
+class LinuxaioQueue final : public RequestQueueImplWorker
 {
-    friend class linuxaio_request;
+    friend class LinuxaioRequest;
 
-    using self_type = linuxaio_queue;
+    using self_type = LinuxaioQueue;
 
 private:
     //! OS context
     aio_context_t context;
 
     //! storing linuxaio_request* would drop ownership
-    using queue_type = std::list<request_ptr>;
+    using queue_type = std::list<RequestPtr>;
 
     // "waiting" request have submitted to this queue, but not yet to the OS,
     // those are "posted"
@@ -58,7 +58,7 @@ private:
     common::semaphore num_waiting_requests, num_free_events, num_posted_requests;
 
     // two threads, one for posting, one for waiting
-    thread_type post_thread, wait_thread;
+    Thread post_thread, wait_thread;
     common::state<thread_state> post_thread_state, wait_thread_state;
 
     // Why do we need two threads, one for posting, and one for waiting?  Is
@@ -84,12 +84,12 @@ private:
 public:
     //! Construct queue. Requests max number of requests simultaneously
     //! submitted to disk, 0 means as many as possible
-    explicit linuxaio_queue(int desired_queue_length = 0);
+    explicit LinuxaioQueue(int desired_queue_length = 0);
 
-    void add_request(request_ptr& req) final;
-    bool cancel_request(request_ptr& req) final;
-    void complete_request(request_ptr& req);
-    ~linuxaio_queue();
+    void add_request(RequestPtr& req) final;
+    bool cancel_request(RequestPtr& req) final;
+    void complete_request(RequestPtr& req);
+    ~LinuxaioQueue();
 };
 
 //! \}
@@ -97,7 +97,7 @@ public:
 } // namespace io
 } // namespace thrill
 
-#endif // #if STXXL_HAVE_LINUXAIO_FILE
+#endif // #if THRILL_HAVE_LINUXAIO_FILE
 
 #endif // !THRILL_IO_LINUXAIO_QUEUE_HEADER
 

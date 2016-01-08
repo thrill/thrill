@@ -17,7 +17,7 @@
 #include <thrill/io/config_file.hpp>
 #include <thrill/io/create_file.hpp>
 #include <thrill/io/disk_allocator.hpp>
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 
 #include <cstddef>
 #include <fstream>
@@ -26,38 +26,38 @@
 namespace thrill {
 namespace io {
 
-class io_error;
+class IoError;
 
-block_manager::block_manager() {
-    config* config = config::get_instance();
+BlockManager::BlockManager() {
+    Config* config = Config::get_instance();
 
     // initialize config (may read config files now)
     config->check_initialized();
 
     // allocate disk_allocators
     ndisks_ = config->disks_number();
-    disk_allocators_ = new disk_allocator*[ndisks_];
-    disk_files_ = new file*[ndisks_];
+    disk_allocators_ = new DiskAllocator*[ndisks_];
+    disk_files_ = new FileBase*[ndisks_];
 
     uint64_t total_size = 0;
 
     for (size_t i = 0; i < ndisks_; ++i)
     {
-        disk_config& cfg = config->disk(i);
+        DiskConfig& cfg = config->disk(i);
 
         // assign queues in order of disks.
-        if (cfg.queue == file::DEFAULT_QUEUE)
+        if (cfg.queue == FileBase::DEFAULT_QUEUE)
             cfg.queue = i;
 
         try
         {
-            disk_files_[i] = create_file(cfg, file::CREAT | file::RDWR, i);
+            disk_files_[i] = CreateFile(cfg, FileBase::CREAT | FileBase::RDWR, i);
 
             LOG1 << "Disk '" << cfg.path << "' is allocated, space: "
                  << (cfg.size) / (1024 * 1024)
                  << " MiB, I/O implementation: " << cfg.fileio_string();
         }
-        catch (io_error&)
+        catch (IoError&)
         {
             LOG1 << "Error allocating disk '" << cfg.path << "', space: "
                  << (cfg.size) / (1024 * 1024)
@@ -67,7 +67,7 @@ block_manager::block_manager() {
 
         total_size += cfg.size;
 
-        disk_allocators_[i] = new disk_allocator(disk_files_[i], cfg);
+        disk_allocators_[i] = new DiskAllocator(disk_files_[i], cfg);
     }
 
     if (ndisks_ > 1)
@@ -76,14 +76,14 @@ block_manager::block_manager() {
              << (total_size / (1024 * 1024)) << " MiB";
     }
 
-#if STXXL_MNG_COUNT_ALLOCATION
+#if THRILL_MNG_COUNT_ALLOCATION
     current_allocation_ = 0;
     total_allocation_ = 0;
     maximum_allocation_ = 0;
-#endif      // STXXL_MNG_COUNT_ALLOCATION
+#endif      // THRILL_MNG_COUNT_ALLOCATION
 }
 
-block_manager::~block_manager() {
+BlockManager::~BlockManager() {
     LOG << "Block manager destructor";
     for (size_t i = ndisks_; i > 0; )
     {
@@ -95,7 +95,7 @@ block_manager::~block_manager() {
     delete[] disk_files_;
 }
 
-uint64_t block_manager::get_total_bytes() const {
+uint64_t BlockManager::get_total_bytes() const {
     uint64_t total = 0;
 
     for (size_t i = 0; i < ndisks_; ++i)
@@ -104,7 +104,7 @@ uint64_t block_manager::get_total_bytes() const {
     return total;
 }
 
-uint64_t block_manager::get_free_bytes() const {
+uint64_t BlockManager::get_free_bytes() const {
     uint64_t total = 0;
 
     for (size_t i = 0; i < ndisks_; ++i)

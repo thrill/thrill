@@ -13,7 +13,7 @@
  ******************************************************************************/
 
 #include <thrill/io/disk_queues.hpp>
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request.hpp>
 #include <thrill/mem/aligned_alloc.hpp>
@@ -25,9 +25,9 @@ namespace io {
 
 /******************************************************************************/
 
-request::request(
-    const completion_handler& on_complete,
-    io::file* file,
+Request::Request(
+    const CompletionHandler& on_complete,
+    io::FileBase* file,
     void* buffer,
     offset_type offset,
     size_type bytes,
@@ -42,27 +42,27 @@ request::request(
     file_->add_request_ref();
 }
 
-request::~request() {
+Request::~Request() {
     LOG << "request::~request(), ref_cnt=" << reference_count();
     assert(state_() == DONE || state_() == READY2DIE);
 }
 
-void request::check_alignment() const {
-    if (offset_ % STXXL_DEFAULT_ALIGN != 0)
+void Request::check_alignment() const {
+    if (offset_ % THRILL_DEFAULT_ALIGN != 0)
         LOG1 << "Offset is not aligned: modulo "
-             << STXXL_DEFAULT_ALIGN << " = " << offset_ % STXXL_DEFAULT_ALIGN;
+             << THRILL_DEFAULT_ALIGN << " = " << offset_ % THRILL_DEFAULT_ALIGN;
 
-    if (bytes_ % STXXL_DEFAULT_ALIGN != 0)
+    if (bytes_ % THRILL_DEFAULT_ALIGN != 0)
         LOG1 << "Size is not a multiple of "
-             << STXXL_DEFAULT_ALIGN << ", = " << bytes_ % STXXL_DEFAULT_ALIGN;
+             << THRILL_DEFAULT_ALIGN << ", = " << bytes_ % THRILL_DEFAULT_ALIGN;
 
-    if (uintptr_t(buffer_) % STXXL_DEFAULT_ALIGN != 0)
+    if (uintptr_t(buffer_) % THRILL_DEFAULT_ALIGN != 0)
         LOG1 << "Buffer is not aligned: modulo "
-             << STXXL_DEFAULT_ALIGN << " = " << size_t(buffer_) % STXXL_DEFAULT_ALIGN
+             << THRILL_DEFAULT_ALIGN << " = " << size_t(buffer_) % THRILL_DEFAULT_ALIGN
              << " (" << buffer_ << ")";
 }
 
-void request::check_nref_failed(bool after) {
+void Request::check_nref_failed(bool after) {
     LOG1 << "WARNING: serious error, reference to the request is lost "
          << (after ? "after" : "before") << " serve()"
          << " nref=" << reference_count()
@@ -75,11 +75,11 @@ void request::check_nref_failed(bool after) {
          << " iotype=" << file_->io_type();
 }
 
-const char* request::io_type() const {
+const char* Request::io_type() const {
     return file_->io_type();
 }
 
-std::ostream& request::print(std::ostream& out) const {
+std::ostream& Request::print(std::ostream& out) const {
     out << "File object address: " << static_cast<void*>(file_);
     out << " Buffer address: " << static_cast<void*>(buffer_);
     out << " File offset: " << offset_;
@@ -91,7 +91,7 @@ std::ostream& request::print(std::ostream& out) const {
 /******************************************************************************/
 // Waiters
 
-bool request::add_waiter(common::onoff_switch* sw) {
+bool Request::add_waiter(common::onoff_switch* sw) {
     // this lock needs to be obtained before poll(), otherwise a race
     // condition might occur: the state might change and notify_waiters()
     // could be called between poll() and insert() resulting in waiter sw
@@ -108,19 +108,19 @@ bool request::add_waiter(common::onoff_switch* sw) {
     return false;
 }
 
-void request::delete_waiter(common::onoff_switch* sw) {
+void Request::delete_waiter(common::onoff_switch* sw) {
     std::unique_lock<std::mutex> lock(waiters_mutex_);
     waiters_.erase(sw);
 }
 
-void request::notify_waiters() {
+void Request::notify_waiters() {
     std::unique_lock<std::mutex> lock(waiters_mutex_);
     std::for_each(waiters_.begin(),
                   waiters_.end(),
                   std::mem_fun(&common::onoff_switch::on));
 }
 
-size_t request::num_waiters() {
+size_t Request::num_waiters() {
     std::unique_lock<std::mutex> lock(waiters_mutex_);
     return waiters_.size();
 }
@@ -128,11 +128,11 @@ size_t request::num_waiters() {
 /******************************************************************************/
 // Request Completion State
 
-void request::wait(bool measure_time) {
+void Request::wait(bool measure_time) {
     LOG << "request::wait()";
 
-    stats::scoped_wait_timer wait_timer(
-        type_ == READ ? stats::WAIT_OP_READ : stats::WAIT_OP_WRITE,
+    Stats::scoped_wait_timer wait_timer(
+        type_ == READ ? Stats::WAIT_OP_READ : Stats::WAIT_OP_WRITE,
         measure_time);
 
     state_.wait_for(READY2DIE);
@@ -140,12 +140,12 @@ void request::wait(bool measure_time) {
     check_error();
 }
 
-bool request::cancel() {
+bool Request::cancel() {
     LOG << "request::cancel() " << file_ << " " << buffer_ << " " << offset_;
 
     if (file_) {
-        request_ptr rp(this);
-        if (disk_queues::get_instance()->cancel_request(rp, file_->get_queue_id()))
+        RequestPtr rp(this);
+        if (DiskQueues::get_instance()->cancel_request(rp, file_->get_queue_id()))
         {
             state_.set_to(DONE);
             // user callback
@@ -161,7 +161,7 @@ bool request::cancel() {
     return false;
 }
 
-bool request::poll() {
+bool Request::poll() {
     const State s = state_();
 
     check_error();
@@ -169,7 +169,7 @@ bool request::poll() {
     return s == DONE || s == READY2DIE;
 }
 
-void request::completed(bool canceled) {
+void Request::completed(bool canceled) {
     LOG << "request::completed()";
     // change state
     state_.set_to(DONE);

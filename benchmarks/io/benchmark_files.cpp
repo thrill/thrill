@@ -32,7 +32,7 @@ using namespace thrill; // NOLINT
 
 #define POLL_DELAY 1000
 
-#if STXXL_WINDOWS
+#if THRILL_WINDOWS
 const char* default_file_type = "wincall";
 #else
 const char* default_file_type = "syscall";
@@ -41,7 +41,7 @@ const char* default_file_type = "syscall";
 using Timer = common::StatsTimer<true>;
 
 #ifdef WATCH_TIMES
-void watch_times(request_ptr reqs[], unsigned n, double* out) {
+void watch_times(RequestPtr reqs[], unsigned n, double* out) {
     bool* finished = new bool[n];
     unsigned count = 0;
     for (unsigned i = 0; i < n; i++)
@@ -176,8 +176,8 @@ int main(int argc, char* argv[]) {
     if (!myself || !*(++myself))
         myself = argv[0];
     std::cout << "# " << myself;
-#if STXXL_DIRECT_IO_OFF
-    std::cout << " STXXL_DIRECT_IO_OFF";
+#if THRILL_DIRECT_IO_OFF
+    std::cout << " THRILL_DIRECT_IO_OFF";
 #endif
     std::cout << std::endl;
 
@@ -194,8 +194,8 @@ int main(int argc, char* argv[]) {
     const uint64_t step_size_int = step_size / sizeof(int);
 
     unsigned* buffer = static_cast<unsigned*>(mem::aligned_alloc(step_size * nfiles));
-    io::file** files = new io::file*[nfiles];
-    io::request_ptr* reqs = new io::request_ptr[nfiles * batch_size];
+    io::FileBase** files = new io::FileBase*[nfiles];
+    io::RequestPtr* reqs = new io::RequestPtr[nfiles * batch_size];
 
 #ifdef WATCH_TIMES
     double* r_finish_times = new double[nfiles];
@@ -212,15 +212,15 @@ int main(int argc, char* argv[]) {
     // open files
     for (unsigned i = 0; i < nfiles; i++)
     {
-        int openmode = io::file::CREAT | io::file::RDWR;
+        int openmode = io::FileBase::CREAT | io::FileBase::RDWR;
         if (!no_direct_io) {
-            openmode |= io::file::DIRECT;
+            openmode |= io::FileBase::DIRECT;
         }
         if (sync_io) {
-            openmode |= io::file::SYNC;
+            openmode |= io::FileBase::SYNC;
         }
 
-        files[i] = io::create_file(file_type, files_arr[i], openmode, i);
+        files[i] = io::CreateFile(file_type, files_arr[i], openmode, i);
         if (resize_after_open)
             files[i]->set_size(endpos);
     }

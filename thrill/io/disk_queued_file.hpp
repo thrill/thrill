@@ -17,7 +17,7 @@
 #ifndef THRILL_IO_DISK_QUEUED_FILE_HEADER
 #define THRILL_IO_DISK_QUEUED_FILE_HEADER
 
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/request.hpp>
 
 namespace thrill {
@@ -27,33 +27,33 @@ namespace io {
 //! \{
 
 //! Implementation of some file methods based on serving_request.
-class disk_queued_file : public virtual file
+class DiskQueuedFile : public virtual FileBase
 {
-    int m_queue_id, m_allocator_id;
+    int queue_id_, allocator_id_;
 
 public:
-    disk_queued_file(int queue_id, int allocator_id)
-        : m_queue_id(queue_id), m_allocator_id(allocator_id)
+    DiskQueuedFile(int queue_id, int allocator_id)
+        : queue_id_(queue_id), allocator_id_(allocator_id)
     { }
 
-    request_ptr aread(
+    RequestPtr aread(
         void* buffer,
         offset_type pos,
         size_type bytes,
-        const completion_handler& on_cmpl = completion_handler()) override;
+        const CompletionHandler& on_cmpl = CompletionHandler()) override;
 
-    request_ptr awrite(
+    RequestPtr awrite(
         void* buffer,
         offset_type pos,
         size_type bytes,
-        const completion_handler& on_cmpl = completion_handler()) override;
+        const CompletionHandler& on_cmpl = CompletionHandler()) override;
 
     int get_queue_id() const override {
-        return m_queue_id;
+        return queue_id_;
     }
 
     int get_allocator_id() const override {
-        return m_allocator_id;
+        return allocator_id_;
     }
 };
 

@@ -34,16 +34,16 @@ namespace io {
 //! Implementation of request queue worker threads. Worker threads can be
 //! started by start_thread and stopped with stop_thread. The queue state is
 //! checked before termination and updated afterwards.
-class request_queue_impl_worker : public request_queue
+class RequestQueueImplWorker : public RequestQueue
 {
 protected:
     enum thread_state { NOT_RUNNING, RUNNING, TERMINATING, TERMINATED };
 
-    using thread_type = std::thread *;
+    using Thread = std::thread *;
 
 protected:
-    void start_thread(void* (*worker)(void*), void* arg, thread_type& t, common::state<thread_state>& s);
-    void stop_thread(thread_type& t, common::state<thread_state>& s, common::semaphore& sem);
+    void start_thread(void* (*worker)(void*), void* arg, Thread& t, common::state<thread_state>& s);
+    void stop_thread(Thread& t, common::state<thread_state>& s, common::semaphore& sem);
 };
 
 //! \}

@@ -29,30 +29,30 @@ namespace io {
 //! \{
 
 //! Implementation of file based on new[] and memcpy.
-class memory_file final : public disk_queued_file
+class MemoryFile final : public DiskQueuedFile
 {
     //! pointer to memory area of "file"
-    char* m_ptr;
+    char* ptr_;
 
     //! size of memory area
-    offset_type m_size;
+    offset_type size_;
 
     //! sequentialize function calls
-    std::mutex m_mutex;
+    std::mutex mutex_;
 
 public:
     //! constructs file object.
-    memory_file(
+    MemoryFile(
         int queue_id = DEFAULT_QUEUE,
         int allocator_id = NO_ALLOCATOR,
         unsigned int device_id = DEFAULT_DEVICE_ID)
-        : file(device_id),
-          disk_queued_file(queue_id, allocator_id),
-          m_ptr(nullptr), m_size(0)
+        : FileBase(device_id),
+          DiskQueuedFile(queue_id, allocator_id),
+          ptr_(nullptr), size_(0)
     { }
     void serve(void* buffer, offset_type offset, size_type bytes,
-               request::ReadOrWriteType type);
-    ~memory_file();
+               Request::ReadOrWriteType type);
+    ~MemoryFile();
     offset_type size() final;
     void set_size(offset_type newsize) final;
     void lock() final;

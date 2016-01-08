@@ -16,7 +16,7 @@
 #ifndef THRILL_IO_CREATE_FILE_HEADER
 #define THRILL_IO_CREATE_FILE_HEADER
 
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 
 #include <string>
 
@@ -24,18 +24,18 @@ namespace thrill {
 namespace io {
 
 //! create fileio object from io_impl string and a few parameters
-file * create_file(const std::string& io_impl,
-                   const std::string& filename,
-                   int options,
-                   int physical_device_id = file::DEFAULT_QUEUE,
-                   int disk_allocator_id = file::NO_ALLOCATOR);
+FileBase * CreateFile(const std::string& io_impl,
+                      const std::string& filename,
+                      int options,
+                      int physical_device_id = FileBase::DEFAULT_QUEUE,
+                      int disk_allocator_id = FileBase::NO_ALLOCATOR);
 
 // prototype
-class disk_config;
+class DiskConfig;
 
 //! create fileio object from disk_config parameter
-file * create_file(disk_config& config, int mode,
-                   int disk_allocator_id = file::NO_ALLOCATOR);
+FileBase * CreateFile(DiskConfig& config, int mode,
+                      int disk_allocator_id = FileBase::NO_ALLOCATOR);
 
 } // namespace io
 } // namespace thrill

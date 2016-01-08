@@ -23,61 +23,61 @@
 namespace thrill {
 namespace io {
 
-void memory_file::serve(void* buffer, offset_type offset, size_type bytes,
-                        request::ReadOrWriteType type) {
-    std::unique_lock<std::mutex> lock(m_mutex);
+void MemoryFile::serve(void* buffer, offset_type offset, size_type bytes,
+                       Request::ReadOrWriteType type) {
+    std::unique_lock<std::mutex> lock(mutex_);
 
-    if (type == request::READ)
+    if (type == Request::READ)
     {
-        stats::scoped_read_timer read_timer(bytes);
-        memcpy(buffer, m_ptr + offset, bytes);
+        Stats::scoped_read_timer read_timer(bytes);
+        memcpy(buffer, ptr_ + offset, bytes);
     }
     else
     {
-        stats::scoped_write_timer write_timer(bytes);
-        memcpy(m_ptr + offset, buffer, bytes);
+        Stats::scoped_write_timer write_timer(bytes);
+        memcpy(ptr_ + offset, buffer, bytes);
     }
 }
 
-const char* memory_file::io_type() const {
+const char* MemoryFile::io_type() const {
     return "memory";
 }
 
-memory_file::~memory_file() {
-    free(m_ptr);
-    m_ptr = nullptr;
+MemoryFile::~MemoryFile() {
+    free(ptr_);
+    ptr_ = nullptr;
 }
 
-void memory_file::lock() {
+void MemoryFile::lock() {
     // nothing to do
 }
 
-file::offset_type memory_file::size() {
-    return m_size;
+FileBase::offset_type MemoryFile::size() {
+    return size_;
 }
 
-void memory_file::set_size(offset_type newsize) {
-    std::unique_lock<std::mutex> lock(m_mutex);
+void MemoryFile::set_size(offset_type newsize) {
+    std::unique_lock<std::mutex> lock(mutex_);
     assert(newsize <= std::numeric_limits<offset_type>::max());
 
-    m_ptr = static_cast<char*>(realloc(m_ptr, static_cast<size_t>(newsize)));
-    m_size = newsize;
+    ptr_ = static_cast<char*>(realloc(ptr_, static_cast<size_t>(newsize)));
+    size_ = newsize;
 }
 
-void memory_file::discard(offset_type offset, offset_type size) {
-    std::unique_lock<std::mutex> lock(m_mutex);
-#ifndef STXXL_MEMFILE_DONT_CLEAR_FREED_MEMORY
+void MemoryFile::discard(offset_type offset, offset_type size) {
+    std::unique_lock<std::mutex> lock(mutex_);
+#ifndef THRILL_MEMFILE_DONT_CLEAR_FREED_MEMORY
     // overwrite the freed region with uninitialized memory
     LOG << "discard at " << offset << " len " << size;
-    void* uninitialized = malloc(STXXL_DEFAULT_ALIGN);
-    while (size >= STXXL_DEFAULT_ALIGN) {
-        memcpy(m_ptr + offset, uninitialized, STXXL_DEFAULT_ALIGN);
-        offset += STXXL_DEFAULT_ALIGN;
-        size -= STXXL_DEFAULT_ALIGN;
+    void* uninitialized = malloc(THRILL_DEFAULT_ALIGN);
+    while (size >= THRILL_DEFAULT_ALIGN) {
+        memcpy(ptr_ + offset, uninitialized, THRILL_DEFAULT_ALIGN);
+        offset += THRILL_DEFAULT_ALIGN;
+        size -= THRILL_DEFAULT_ALIGN;
     }
     assert(size <= std::numeric_limits<offset_type>::max());
     if (size > 0)
-        memcpy(m_ptr + offset, uninitialized, (size_t)size);
+        memcpy(ptr_ + offset, uninitialized, (size_t)size);
     free(uninitialized);
 #else
     common::THRILL_UNUSED(offset);

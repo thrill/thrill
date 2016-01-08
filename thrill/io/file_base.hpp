@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/io/file.hpp
+ * thrill/io/file_base.hpp
  *
  * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
  * distributed under the Boost Software License, Version 1.0.
@@ -15,8 +15,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_IO_FILE_HEADER
-#define THRILL_IO_FILE_HEADER
+#ifndef THRILL_IO_FILE_BASE_HEADER
+#define THRILL_IO_FILE_BASE_HEADER
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/counting_ptr.hpp>
@@ -26,7 +26,7 @@
 #include <thrill/io/request.hpp>
 
 #if defined (__linux__)
- #define STXXL_CHECK_BLOCK_ALIGNING
+ #define THRILL_CHECK_BLOCK_ALIGNING
 #endif
 
 #include <cassert>
@@ -48,24 +48,24 @@ namespace io {
 //!
 //! It is a base class for different implementations that might
 //! base on various file systems or even remote storage interfaces
-class file
+class FileBase
 {
 public:
     static const bool debug = false;
 
     //! the offset of a request, also the size of the file
-    using offset_type = request::offset_type;
+    using offset_type = Request::offset_type;
     //! the size of a request
-    using size_type = request::size_type;
+    using size_type = Request::size_type;
 
     //! non-copyable: delete copy-constructor
-    file(const file&) = delete;
+    FileBase(const FileBase&) = delete;
     //! non-copyable: delete assignment operator
-    file& operator = (const file&) = delete;
+    FileBase& operator = (const FileBase&) = delete;
     //! move-constructor: default
-    file(file&&) = default;
+    FileBase(FileBase&&) = default;
     //! move-assignment operator: default
-    file& operator = (file&&) = default;
+    FileBase& operator = (FileBase&&) = default;
 
     //! Definition of acceptable file open modes.
     //!
@@ -91,7 +91,7 @@ public:
     static const unsigned int DEFAULT_DEVICE_ID = (unsigned int)(-1);
 
     //! Construct a new file, usually called by a subclass.
-    explicit file(unsigned int device_id = DEFAULT_DEVICE_ID)
+    explicit FileBase(unsigned int device_id = DEFAULT_DEVICE_ID)
         : m_device_id(device_id)
     { }
 
@@ -103,8 +103,8 @@ public:
     //! \return \c request_ptr request object, which can be used to track the
     //! status of the operation
 
-    virtual request_ptr aread(void* buffer, offset_type pos, size_type bytes,
-                              const completion_handler& on_cmpl = completion_handler()) = 0;
+    virtual RequestPtr aread(void* buffer, offset_type pos, size_type bytes,
+                             const CompletionHandler& on_cmpl = CompletionHandler()) = 0;
 
     //! Schedules an asynchronous write request to the file.
     //! \param buffer pointer to memory buffer to write from
@@ -113,11 +113,11 @@ public:
     //! \param on_cmpl I/O completion handler
     //! \return \c request_ptr request object, which can be used to track the
     //! status of the operation
-    virtual request_ptr awrite(void* buffer, offset_type pos, size_type bytes,
-                               const completion_handler& on_cmpl = completion_handler()) = 0;
+    virtual RequestPtr awrite(void* buffer, offset_type pos, size_type bytes,
+                              const CompletionHandler& on_cmpl = CompletionHandler()) = 0;
 
     virtual void serve(void* buffer, offset_type offset, size_type bytes,
-                       request::ReadOrWriteType type) = 0;
+                       Request::ReadOrWriteType type) = 0;
 
     //! Changes the size of the file.
     //! \param newsize new file size
@@ -155,7 +155,7 @@ public:
     //! close and remove file
     virtual void close_remove() { }
 
-    virtual ~file() {
+    virtual ~FileBase() {
         size_t nr = get_request_nref();
         if (nr != 0)
             LOG1 << "thrill::file is being deleted while there are "
@@ -215,12 +215,12 @@ public:
 // implementation here due to forward declaration of file.
 template <size_t Size>
 bool BID<Size>::is_managed() const {
-    return storage->get_allocator_id() != file::NO_ALLOCATOR;
+    return storage->get_allocator_id() != FileBase::NO_ALLOCATOR;
 }
 
 inline
 bool BID<0>::is_managed() const {
-    return storage->get_allocator_id() != file::NO_ALLOCATOR;
+    return storage->get_allocator_id() != FileBase::NO_ALLOCATOR;
 }
 
 //! \}
@@ -236,6 +236,6 @@ bool BID<0>::is_managed() const {
 } // namespace io
 } // namespace thrill
 
-#endif // !THRILL_IO_FILE_HEADER
+#endif // !THRILL_IO_FILE_BASE_HEADER
 
 /******************************************************************************/

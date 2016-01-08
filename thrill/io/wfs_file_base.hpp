@@ -21,7 +21,7 @@
 
 #include <thrill/common/config.hpp>
 
-#if STXXL_WINDOWS
+#if THRILL_WINDOWS
 
 #include <thrill/io/file.h>
 #include <thrill/io/request.h>
@@ -35,7 +35,7 @@ namespace io {
 //! \{
 
 //! Base for Windows file system implementations.
-class wfs_file_base : public virtual file
+class WfsFileBase : public virtual FileBase
 {
 protected:
     using HANDLE = void*;
@@ -46,12 +46,12 @@ protected:
     const std::string filename;
     offset_type bytes_per_sector;
     bool locked;
-    wfs_file_base(const std::string& filename, int mode);
+    WfsFileBase(const std::string& filename, int mode);
     offset_type _size();
     void close();
 
 public:
-    ~wfs_file_base();
+    ~WfsFileBase();
     offset_type size() final;
     void set_size(offset_type newsize) final;
     void lock() final;
@@ -64,7 +64,7 @@ public:
 } // namespace io
 } // namespace thrill
 
-#endif // STXXL_WINDOWS
+#endif // THRILL_WINDOWS
 
 #endif // !THRILL_IO_WFS_FILE_BASE_HEADER
 

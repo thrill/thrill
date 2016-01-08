@@ -29,62 +29,62 @@
 namespace thrill {
 namespace io {
 
-file * create_file(const std::string& io_impl,
-                   const std::string& filename,
-                   int options, int physical_device_id, int disk_allocator_id) {
+FileBase * CreateFile(const std::string& io_impl,
+                      const std::string& filename,
+                      int options, int physical_device_id, int disk_allocator_id) {
     // construct temporary disk_config structure
-    disk_config cfg(filename, 0, io_impl);
+    DiskConfig cfg(filename, 0, io_impl);
     cfg.queue = physical_device_id;
     cfg.direct =
-        (options& file::REQUIRE_DIRECT) ? disk_config::DIRECT_ON :
-        (options& file::DIRECT) ? disk_config::DIRECT_TRY :
-        disk_config::DIRECT_OFF;
+        (options& FileBase::REQUIRE_DIRECT) ? DiskConfig::DIRECT_ON :
+        (options& FileBase::DIRECT) ? DiskConfig::DIRECT_TRY :
+        DiskConfig::DIRECT_OFF;
 
-    return create_file(cfg, options, disk_allocator_id);
+    return CreateFile(cfg, options, disk_allocator_id);
 }
 
-file * create_file(disk_config& cfg, int mode, int disk_allocator_id) {
+FileBase * CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
     // apply disk_config settings to open mode
 
-    mode &= ~(file::DIRECT | file::REQUIRE_DIRECT); // clear DIRECT and REQUIRE_DIRECT
+    mode &= ~(FileBase::DIRECT | FileBase::REQUIRE_DIRECT); // clear DIRECT and REQUIRE_DIRECT
 
     switch (cfg.direct) {
-    case disk_config::DIRECT_OFF:
+    case DiskConfig::DIRECT_OFF:
         break;
-    case disk_config::DIRECT_TRY:
-        mode |= file::DIRECT;
+    case DiskConfig::DIRECT_TRY:
+        mode |= FileBase::DIRECT;
         break;
-    case disk_config::DIRECT_ON:
-        mode |= file::DIRECT | file::REQUIRE_DIRECT;
+    case DiskConfig::DIRECT_ON:
+        mode |= FileBase::DIRECT | FileBase::REQUIRE_DIRECT;
         break;
     }
 
     // automatically enumerate disks as separate device ids
 
-    if (cfg.device_id == file::DEFAULT_DEVICE_ID)
+    if (cfg.device_id == FileBase::DEFAULT_DEVICE_ID)
     {
-        cfg.device_id = config::get_instance()->get_next_device_id();
+        cfg.device_id = Config::get_instance()->get_next_device_id();
     }
     else
     {
-        config::get_instance()->update_max_device_id(cfg.device_id);
+        Config::get_instance()->update_max_device_id(cfg.device_id);
     }
 
     // *** Select fileio Implementation
 
     if (cfg.io_impl == "syscall")
     {
-        ufs_file_base* result =
-            new syscall_file(cfg.path, mode, cfg.queue, disk_allocator_id,
-                             cfg.device_id);
+        UfsFileBase* result =
+            new SyscallFile(cfg.path, mode, cfg.queue, disk_allocator_id,
+                            cfg.device_id);
         result->lock();
 
         // if marked as device but file is not -> throw!
         if (cfg.raw_device && !result->is_device())
         {
             delete result;
-            STXXL_THROW(io_error, "Disk " << cfg.path << " was expected to be "
-                        "a raw block device, but it is a normal file!");
+            THRILL_THROW(IoError, "Disk " << cfg.path << " was expected to be "
+                         "a raw block device, but it is a normal file!");
         }
 
         // if is raw_device -> get size and remove some flags.
@@ -102,20 +102,20 @@ file * create_file(disk_config& cfg, int mode, int disk_allocator_id) {
     }
     else if (cfg.io_impl == "memory")
     {
-        memory_file* result = new memory_file(cfg.queue, disk_allocator_id, cfg.device_id);
+        MemoryFile* result = new MemoryFile(cfg.queue, disk_allocator_id, cfg.device_id);
         result->lock();
         return result;
     }
-#if STXXL_HAVE_LINUXAIO_FILE
+#if THRILL_HAVE_LINUXAIO_FILE
     // linuxaio can have the desired queue length, specified as queue_length=?
     else if (cfg.io_impl == "linuxaio")
     {
         // linuxaio_queue is a singleton.
-        cfg.queue = file::DEFAULT_LINUXAIO_QUEUE;
+        cfg.queue = FileBase::DEFAULT_LINUXAIO_QUEUE;
 
-        ufs_file_base* result =
-            new linuxaio_file(cfg.path, mode, cfg.queue, disk_allocator_id,
-                              cfg.device_id, cfg.queue_length);
+        UfsFileBase* result =
+            new LinuxaioFile(cfg.path, mode, cfg.queue, disk_allocator_id,
+                             cfg.device_id, cfg.queue_length);
 
         result->lock();
 
@@ -123,8 +123,8 @@ file * create_file(disk_config& cfg, int mode, int disk_allocator_id) {
         if (cfg.raw_device && !result->is_device())
         {
             delete result;
-            STXXL_THROW(io_error, "Disk " << cfg.path << " was expected to be "
-                        "a raw block device, but it is a normal file!");
+            THRILL_THROW(IoError, "Disk " << cfg.path << " was expected to be "
+                         "a raw block device, but it is a normal file!");
         }
 
         // if is raw_device -> get size and remove some flags.
@@ -141,12 +141,12 @@ file * create_file(disk_config& cfg, int mode, int disk_allocator_id) {
         return result;
     }
 #endif
-#if STXXL_HAVE_MMAP_FILE
+#if THRILL_HAVE_MMAP_FILE
     else if (cfg.io_impl == "mmap")
     {
-        ufs_file_base* result =
-            new mmap_file(cfg.path, mode, cfg.queue, disk_allocator_id,
-                          cfg.device_id);
+        UfsFileBase* result =
+            new MmapFile(cfg.path, mode, cfg.queue, disk_allocator_id,
+                         cfg.device_id);
         result->lock();
 
         if (cfg.unlink_on_open)
@@ -155,19 +155,19 @@ file * create_file(disk_config& cfg, int mode, int disk_allocator_id) {
         return result;
     }
 #endif
-#if STXXL_HAVE_WINCALL_FILE
+#if THRILL_HAVE_WINCALL_FILE
     else if (cfg.io_impl == "wincall")
     {
-        wfs_file_base* result =
-            new wincall_file(cfg.path, mode, cfg.queue, disk_allocator_id,
-                             cfg.device_id);
+        WfsFileBase* result =
+            new WincallFile(cfg.path, mode, cfg.queue, disk_allocator_id,
+                            cfg.device_id);
         result->lock();
         return result;
     }
 #endif
 
-    STXXL_THROW(std::runtime_error,
-                "Unsupported disk I/O implementation '" << cfg.io_impl << "'.");
+    THRILL_THROW(std::runtime_error,
+                 "Unsupported disk I/O implementation '" << cfg.io_impl << "'.");
 }
 
 } // namespace io

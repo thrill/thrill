@@ -32,30 +32,30 @@ namespace io {
 
 //! Example disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct basic_allocation_strategy
+struct BasicAllocationStrategy
 {
-    basic_allocation_strategy(int disks_begin, int disks_end);
-    basic_allocation_strategy();
+    BasicAllocationStrategy(int disks_begin, int disks_end);
+    BasicAllocationStrategy();
     int operator () (int i) const;
     static const char * name();
 };
 
 //! Striping disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct striping
+struct Striping
 {
-    size_t            begin, diff;
+    size_t            begin_, diff_;
 
 public:
-    striping(size_t b, size_t e) : begin(b), diff(e - b)
+    Striping(size_t b, size_t e) : begin_(b), diff_(e - b)
     { }
 
-    striping() : begin(0) {
-        diff = config::get_instance()->disks_number();
+    Striping() : begin_(0) {
+        diff_ = Config::get_instance()->disks_number();
     }
 
     size_t operator () (size_t i) const {
-        return begin + i % diff;
+        return begin_ + i % diff_;
     }
 
     static const char * name() {
@@ -65,20 +65,20 @@ public:
 
 //! Fully randomized disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct FR : public striping
+struct FR : public Striping
 {
 private:
     mutable std::default_random_engine rng_ { std::random_device { } () };
 
 public:
-    FR(size_t b, size_t e) : striping(b, e)
+    FR(size_t b, size_t e) : Striping(b, e)
     { }
 
-    FR() : striping()
+    FR() : Striping()
     { }
 
     size_t operator () (size_t /*i*/) const {
-        return begin + rng_() % diff;
+        return begin_ + rng_() % diff_;
     }
 
     static const char * name() {
@@ -88,27 +88,27 @@ public:
 
 //! Simple randomized disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct SR : public striping
+struct SR : public Striping
 {
 private:
-    size_t offset;
+    size_t offset_;
 
     void init() {
         std::default_random_engine rng { std::random_device { } () };
-        offset = rng() % diff;
+        offset_ = rng() % diff_;
     }
 
 public:
-    SR(size_t b, size_t e) : striping(b, e) {
+    SR(size_t b, size_t e) : Striping(b, e) {
         init();
     }
 
-    SR() : striping() {
+    SR() : Striping() {
         init();
     }
 
     size_t operator () (size_t i) const {
-        return begin + (i + offset) % diff;
+        return begin_ + (i + offset_) % diff_;
     }
 
     static const char * name() {
@@ -118,29 +118,29 @@ public:
 
 //! Randomized cycling disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct RC : public striping
+struct RC : public Striping
 {
 private:
-    std::vector<size_t> perm;
+    std::vector<size_t> perm_;
 
     void init() {
-        for (size_t i = 0; i < diff; i++)
-            perm[i] = i;
+        for (size_t i = 0; i < diff_; i++)
+            perm_[i] = i;
 
-        std::random_shuffle(perm.begin(), perm.end());
+        std::random_shuffle(perm_.begin(), perm_.end());
     }
 
 public:
-    RC(size_t b, size_t e) : striping(b, e), perm(diff) {
+    RC(size_t b, size_t e) : Striping(b, e), perm_(diff_) {
         init();
     }
 
-    RC() : striping(), perm(diff) {
+    RC() : Striping(), perm_(diff_) {
         init();
     }
 
     size_t operator () (size_t i) const {
-        return begin + perm[i % diff];
+        return begin_ + perm_[i % diff_];
     }
 
     static const char * name() {
@@ -148,12 +148,12 @@ public:
     }
 };
 
-struct RC_disk : public RC
+struct RCDisk : public RC
 {
-    RC_disk(size_t b, size_t e) : RC(b, e)
+    RCDisk(size_t b, size_t e) : RC(b, e)
     { }
 
-    RC_disk() : RC(config::get_instance()->regular_disk_range().first, config::get_instance()->regular_disk_range().second)
+    RCDisk() : RC(Config::get_instance()->regular_disk_range().first, Config::get_instance()->regular_disk_range().second)
     { }
 
     static const char * name() {
@@ -161,12 +161,12 @@ struct RC_disk : public RC
     }
 };
 
-struct RC_flash : public RC
+struct RCFlash : public RC
 {
-    RC_flash(size_t b, size_t e) : RC(b, e)
+    RCFlash(size_t b, size_t e) : RC(b, e)
     { }
 
-    RC_flash() : RC(config::get_instance()->flash_range().first, config::get_instance()->flash_range().second)
+    RCFlash() : RC(Config::get_instance()->flash_range().first, Config::get_instance()->flash_range().second)
     { }
 
     static const char * name() {
@@ -176,17 +176,17 @@ struct RC_flash : public RC
 
 //! 'Single disk' disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct single_disk
+struct SingleDisk
 {
-    size_t            disk;
-    explicit single_disk(size_t d, size_t = 0) : disk(d)
+    size_t            disk_;
+    explicit SingleDisk(size_t d, size_t = 0) : disk_(d)
     { }
 
-    single_disk() : disk(0)
+    SingleDisk() : disk_(0)
     { }
 
     size_t operator () (size_t /*i*/) const {
-        return disk;
+        return disk_;
     }
 
     static const char * name() {
@@ -198,43 +198,43 @@ struct single_disk
 //!
 //! Gives offset to disk number sequence defined in constructor
 template <class BaseAllocator>
-struct offset_allocator
+struct OffsetAllocator
 {
-    BaseAllocator base;
-    int           offset;
+    BaseAllocator base_;
+    size_t        offset_;
 
     //! Creates functor based on instance of \c BaseAllocator functor
     //! with offset \c offset_.
     //! \param offset_ offset
     //! \param base_ used to create a copy
-    offset_allocator(int offset_, const BaseAllocator& base_)
-        : base(base_), offset(offset_)
+    OffsetAllocator(int offset_, const BaseAllocator& base_)
+        : base_(base_), offset_(offset_)
     { }
 
     //! Creates functor based on instance of \c BaseAllocator functor.
     //! \param base_ used to create a copy
-    explicit offset_allocator(const BaseAllocator& base_) : base(base_), offset(0)
+    explicit OffsetAllocator(const BaseAllocator& base_) : base_(base_), offset_(0)
     { }
 
     //! Creates functor based on default \c BaseAllocator functor.
-    offset_allocator() : offset(0)
+    OffsetAllocator() : offset_(0)
     { }
 
     size_t operator () (size_t i) const {
-        return base(offset + i);
+        return base_(offset_ + i);
     }
 
     int  get_offset() const {
-        return offset;
+        return offset_;
     }
 
-    void set_offset(int i) {
-        offset = i;
+    void set_offset(size_t i) {
+        offset_ = i;
     }
 };
 
-#ifndef STXXL_DEFAULT_ALLOC_STRATEGY
-  #define STXXL_DEFAULT_ALLOC_STRATEGY ::thrill::io::FR
+#ifndef THRILL_DEFAULT_ALLOC_STRATEGY
+  #define THRILL_DEFAULT_ALLOC_STRATEGY ::thrill::io::FR
 #endif
 
 //! \}

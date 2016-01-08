@@ -27,8 +27,8 @@
 
 #include <array>
 
-#ifndef STXXL_VERBOSE_TYPED_BLOCK
-#define STXXL_VERBOSE_TYPED_BLOCK STXXL_VERBOSE2
+#ifndef THRILL_VERBOSE_TYPED_BLOCK
+#define THRILL_VERBOSE_TYPED_BLOCK THRILL_VERBOSE2
 #endif
 
 namespace thrill {
@@ -46,31 +46,31 @@ namespace mng_local {
 //! \{
 
 template <size_t Bytes>
-class filler_struct
+class FillerStruct
 {
-    using byte_type = unsigned char;
-    byte_type filler_array[Bytes];
+    using Byte = unsigned char;
+    Byte filler_array[Bytes];
 
 public:
-    filler_struct() {
+    FillerStruct() {
         LOG0 << "[" << static_cast<void*>(this) << "] filler_struct is constructed";
     }
 };
 
 template <>
-class filler_struct<0>
+class FillerStruct<0>
 {
     using byte_type = unsigned char;
 
 public:
-    filler_struct() {
+    FillerStruct() {
         LOG0 << "[" << static_cast<void*>(this) << "] filler_struct<> is constructed";
     }
 };
 
 //! Contains data elements for \c stxxl::typed_block , not intended for direct use.
 template <typename Type, size_t Size>
-class element_block
+class ElementBlock
 {
 public:
     using type = Type;
@@ -89,7 +89,7 @@ public:
     //! Array of elements of type Type
     std::array<value_type, size> elem_;
 
-    element_block() {
+    ElementBlock() {
         LOG0 << "[" << static_cast<void*>(this) << "] element_block is constructed";
     }
 
@@ -131,7 +131,7 @@ public:
 
 //! Contains BID references for \c stxxl::typed_block , not intended for direct use.
 template <typename Type, size_t Size, size_t RawSize, size_t NBids = 0>
-class block_w_bids : public element_block<Type, Size>
+class BlockWithBids : public ElementBlock<Type, Size>
 {
 public:
     enum
@@ -140,24 +140,24 @@ public:
         nbids = NBids
     };
 
-    using bid_type = BID<raw_size>;
+    using BidType = BID<raw_size>;
 
     //! Array of BID references
-    std::array<bid_type, nbids> ref_;
+    std::array<BidType, nbids> ref_;
 
     //! An operator to access bid references
-    bid_type& operator () (size_t i) {
+    BidType& operator () (size_t i) {
         return ref_[i];
     }
 
-    block_w_bids() {
+    BlockWithBids() {
         LOG0 << "[" << static_cast<void*>(this) << "] block_w_bids is constructed";
     }
 };
 
 template <typename Type, size_t Size, size_t RawSize>
-class block_w_bids<Type, Size, RawSize, 0>
-    : public element_block<Type, Size>
+class BlockWithBids<Type, Size, RawSize, 0>
+    : public ElementBlock<Type, Size>
 {
 public:
     enum
@@ -168,15 +168,15 @@ public:
 
     using bid_type = BID<raw_size>;
 
-    block_w_bids() {
+    BlockWithBids() {
         LOG0 << "[" << static_cast<void*>(this) << "] block_w_bids<> is constructed";
     }
 };
 
 //! Contains per block information for \c stxxl::typed_block , not intended for direct use.
 template <typename Type, size_t RawSize, size_t NBids, typename MetaInfoType = void>
-class block_w_info
-    : public block_w_bids<Type, ((RawSize - sizeof(BID<RawSize>)* NBids - sizeof(MetaInfoType)) / sizeof(Type)), RawSize, NBids>
+class BlockWithInfo
+    : public BlockWithBids<Type, ((RawSize - sizeof(BID<RawSize>)* NBids - sizeof(MetaInfoType)) / sizeof(Type)), RawSize, NBids>
 {
 public:
     //! Type of per block information element.
@@ -185,50 +185,50 @@ public:
     //! Per block information element.
     info_type info;
 
-    block_w_info() {
+    BlockWithInfo() {
         LOG0 << "[" << static_cast<void*>(this) << "] block_w_info is constructed";
     }
 };
 
 template <typename Type, size_t RawSize, size_t NBids>
-class block_w_info<Type, RawSize, NBids, void>
-    : public block_w_bids<Type, ((RawSize - sizeof(BID<RawSize>)* NBids) / sizeof(Type)), RawSize, NBids>
+class BlockWithInfo<Type, RawSize, NBids, void>
+    : public BlockWithBids<Type, ((RawSize - sizeof(BID<RawSize>)* NBids) / sizeof(Type)), RawSize, NBids>
 {
 public:
     using info_type = void;
 
-    block_w_info() {
+    BlockWithInfo() {
         LOG0 << "[" << static_cast<void*>(this) << "] block_w_info<> is constructed";
     }
 };
 
 //! Contains per block filler for \c stxxl::typed_block , not intended for direct use.
 template <typename BaseType, size_t FillSize = 0>
-class add_filler : public BaseType
+class AddFiller : public BaseType
 {
 private:
     //! Per block filler element.
-    filler_struct<FillSize> filler;
+    FillerStruct<FillSize> filler;
 
 public:
-    add_filler() {
+    AddFiller() {
         LOG0 << "[" << static_cast<void*>(this) << "] add_filler is constructed";
     }
 };
 
 template <typename BaseType>
-class add_filler<BaseType, 0>
+class AddFiller<BaseType, 0>
     : public BaseType
 {
 public:
-    add_filler() {
+    AddFiller() {
         LOG0 << "[" << static_cast<void*>(this) << "] add_filler<> is constructed";
     }
 };
 
 //! Helper to compute the size of the filler , not intended for direct use.
 template <typename Type, size_t RawSize>
-class expand_struct : public add_filler<Type, RawSize - sizeof(Type)>
+class ExpandStruct : public AddFiller<Type, RawSize - sizeof(Type)>
 { };
 
 //! \}
@@ -249,10 +249,10 @@ class expand_struct : public add_filler<Type, RawSize - sizeof(Type)>
 //! function variable for example), because Linux POSIX library limits the stack size for the
 //! main thread to (2MB - system page size)
 template <size_t RawSize, typename Type, size_t NRef = 0, typename MetaInfoType = void>
-class typed_block
-    : public mng_local::expand_struct<mng_local::block_w_info<Type, RawSize, NRef, MetaInfoType>, RawSize>
+class TypedBlock
+    : public mng_local::ExpandStruct<mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>
 {
-    using Base = mng_local::expand_struct<mng_local::block_w_info<Type, RawSize, NRef, MetaInfoType>, RawSize>;
+    using Base = mng_local::ExpandStruct<mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>;
 
 public:
     using value_type = Type;
@@ -272,19 +272,19 @@ public:
 
     using bid_type = BID<raw_size>;
 
-    typed_block() {
-        static_assert(sizeof(typed_block) == raw_size, "Incorrect block size!");
+    TypedBlock() {
+        static_assert(sizeof(TypedBlock) == raw_size, "Incorrect block size!");
         LOG0 << "[" << static_cast<void*>(this) << "] typed_block is constructed";
 #if 0
-        assert(((long)this) % STXXL_DEFAULT_ALIGN == 0);
+        assert(((long)this) % THRILL_DEFAULT_ALIGN == 0);
 #endif
     }
 
 #if 0
-    typed_block(const typed_block& tb) {
-        STXXL_STATIC_ASSERT(sizeof(typed_block) == raw_size);
+    TypedBlock(const TypedBlock& tb) {
+        THRILL_STATIC_ASSERT(sizeof(TypedBlock) == raw_size);
         LOG0 << "[" << static_cast<void*>(this) << "] typed_block is copy constructed from [" << static_cast<void*>(&tb) << "]";
-        STXXL_UNUSED(tb);
+        THRILL_UNUSED(tb);
     }
 #endif
 
@@ -293,8 +293,8 @@ public:
      *! \param on_cmpl completion handler
      *! \return \c pointer_ptr object to track status I/O operation after the call
      */
-    request_ptr write(const bid_type& bid,
-                      completion_handler on_cmpl = completion_handler()) {
+    RequestPtr write(const bid_type& bid,
+                     CompletionHandler on_cmpl = CompletionHandler()) {
         LOG0 << "BLC:write  " << bid;
         return bid.storage->awrite(this, bid.offset, raw_size, on_cmpl);
     }
@@ -304,8 +304,8 @@ public:
      *! \param on_cmpl completion handler
      *! \return \c pointer_ptr object to track status I/O operation after the call
      */
-    request_ptr read(const bid_type& bid,
-                     completion_handler on_cmpl = completion_handler()) {
+    RequestPtr read(const bid_type& bid,
+                    CompletionHandler on_cmpl = CompletionHandler()) {
         LOG0 << "BLC:read   " << bid;
         return bid.storage->aread(this, bid.offset, raw_size, on_cmpl);
     }
@@ -318,7 +318,7 @@ public:
         void* result = mem::aligned_alloc(
             bytes - meta_info_size, meta_info_size);
 
-#if STXXL_WITH_VALGRIND || STXXL_TYPED_BLOCK_INITIALIZE_ZERO
+#if THRILL_WITH_VALGRIND || THRILL_TYPED_BLOCK_INITIALIZE_ZERO
         memset(result, 0, bytes);
 #endif
         return result;
@@ -332,7 +332,7 @@ public:
         void* result = mem::aligned_alloc(
             bytes - meta_info_size, meta_info_size);
 
-#if STXXL_WITH_VALGRIND || STXXL_TYPED_BLOCK_INITIALIZE_ZERO
+#if THRILL_WITH_VALGRIND || THRILL_TYPED_BLOCK_INITIALIZE_ZERO
         memset(result, 0, bytes);
 #endif
         return result;
@@ -363,7 +363,7 @@ public:
     //  than the array size multiplied by the size of an element, by a
     //  difference of delta for metadata a compiler needs. It happens to
     //  be 8 bytes long in g++."
-    ~typed_block() {
+    ~TypedBlock() {
         LOG0 << "[" << static_cast<void*>(this) << "] typed_block is destructed";
     }
 #endif

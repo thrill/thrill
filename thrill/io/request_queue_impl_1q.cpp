@@ -20,131 +20,131 @@
 #include <thrill/io/request_queue_impl_1q.hpp>
 #include <thrill/io/serving_request.hpp>
 
-#if STXXL_STD_THREADS && STXXL_MSVC >= 1700
+#if THRILL_STD_THREADS && THRILL_MSVC >= 1700
  #include <windows.h>
 #endif
 
 #include <algorithm>
 #include <functional>
 
-#ifndef STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
-#define STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION 1
+#ifndef THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
+#define THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION 1
 #endif
 
 namespace thrill {
 namespace io {
 
-struct file_offset_match : public std::binary_function<request_ptr, request_ptr, bool>
+struct file_offset_match : public std::binary_function<RequestPtr, RequestPtr, bool>
 {
     bool operator () (
-        const request_ptr& a,
-        const request_ptr& b) const {
+        const RequestPtr& a,
+        const RequestPtr& b) const {
         // matching file and offset are enough to cause problems
         return (a->offset() == b->offset()) &&
                (a->file() == b->file());
     }
 };
 
-request_queue_impl_1q::request_queue_impl_1q(int n)
-    : m_thread_state(NOT_RUNNING), m_sem(0) {
+RequestQueueImpl1Q::RequestQueueImpl1Q(int n)
+    : thread_state_(NOT_RUNNING), sem_(0) {
     common::THRILL_UNUSED(n);
-    start_thread(worker, static_cast<void*>(this), m_thread, m_thread_state);
+    start_thread(worker, static_cast<void*>(this), thread_, thread_state_);
 }
 
-void request_queue_impl_1q::add_request(request_ptr& req) {
+void RequestQueueImpl1Q::add_request(RequestPtr& req) {
     if (req.empty())
-        STXXL_THROW_INVALID_ARGUMENT("Empty request submitted to disk_queue.");
-    if (m_thread_state() != RUNNING)
-        STXXL_THROW_INVALID_ARGUMENT("Request submitted to not running queue.");
-    if (!dynamic_cast<serving_request*>(req.get()))
+        THRILL_THROW_INVALID_ARGUMENT("Empty request submitted to disk_queue.");
+    if (thread_state_() != RUNNING)
+        THRILL_THROW_INVALID_ARGUMENT("Request submitted to not running queue.");
+    if (!dynamic_cast<ServingRequest*>(req.get()))
         LOG1 << "Incompatible request submitted to running queue.";
 
-#if STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
+#if THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
     {
-        std::unique_lock<std::mutex> Lock(m_queue_mutex);
-        if (std::find_if(m_queue.begin(), m_queue.end(),
+        std::unique_lock<std::mutex> Lock(queue_mutex_);
+        if (std::find_if(queue_.begin(), queue_.end(),
                          bind2nd(file_offset_match(), req))
-            != m_queue.end())
+            != queue_.end())
         {
             LOG1 << "request submitted for a BID with a pending request";
         }
     }
 #endif
-    std::unique_lock<std::mutex> Lock(m_queue_mutex);
-    m_queue.push_back(req);
+    std::unique_lock<std::mutex> Lock(queue_mutex_);
+    queue_.push_back(req);
 
-    m_sem++;
+    sem_++;
 }
 
-bool request_queue_impl_1q::cancel_request(request_ptr& req) {
+bool RequestQueueImpl1Q::cancel_request(RequestPtr& req) {
     if (req.empty())
-        STXXL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
-    if (m_thread_state() != RUNNING)
-        STXXL_THROW_INVALID_ARGUMENT("Request canceled to not running queue.");
-    if (!dynamic_cast<serving_request*>(req.get()))
+        THRILL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
+    if (thread_state_() != RUNNING)
+        THRILL_THROW_INVALID_ARGUMENT("Request canceled to not running queue.");
+    if (!dynamic_cast<ServingRequest*>(req.get()))
         LOG1 << "Incompatible request submitted to running queue.";
 
     bool was_still_in_queue = false;
     {
-        std::unique_lock<std::mutex> Lock(m_queue_mutex);
-        queue_type::iterator pos
-            = std::find(m_queue.begin(), m_queue.end(), req);
+        std::unique_lock<std::mutex> Lock(queue_mutex_);
+        Queue::iterator pos
+            = std::find(queue_.begin(), queue_.end(), req);
 
-        if (pos != m_queue.end())
+        if (pos != queue_.end())
         {
-            m_queue.erase(pos);
+            queue_.erase(pos);
             was_still_in_queue = true;
             Lock.unlock();
-            m_sem--;
+            sem_--;
         }
     }
 
     return was_still_in_queue;
 }
 
-request_queue_impl_1q::~request_queue_impl_1q() {
-    stop_thread(m_thread, m_thread_state, m_sem);
+RequestQueueImpl1Q::~RequestQueueImpl1Q() {
+    stop_thread(thread_, thread_state_, sem_);
 }
 
-void* request_queue_impl_1q::worker(void* arg) {
-    self* pthis = static_cast<self*>(arg);
+void* RequestQueueImpl1Q::worker(void* arg) {
+    Self* pthis = static_cast<Self*>(arg);
 
     for ( ; ; )
     {
-        pthis->m_sem--;
+        pthis->sem_--;
 
         {
-            std::unique_lock<std::mutex> Lock(pthis->m_queue_mutex);
-            if (!pthis->m_queue.empty())
+            std::unique_lock<std::mutex> Lock(pthis->queue_mutex_);
+            if (!pthis->queue_.empty())
             {
-                request_ptr req = pthis->m_queue.front();
-                pthis->m_queue.pop_front();
+                RequestPtr req = pthis->queue_.front();
+                pthis->queue_.pop_front();
 
                 Lock.unlock();
 
                 // assert(req->nref() > 1);
-                dynamic_cast<serving_request*>(req.get())->serve();
+                dynamic_cast<ServingRequest*>(req.get())->serve();
             }
             else
             {
                 Lock.unlock();
 
-                pthis->m_sem++;
+                pthis->sem_++;
             }
         }
 
         // terminate if it has been requested and queues are empty
-        if (pthis->m_thread_state() == TERMINATING) {
-            if ((pthis->m_sem--) == 0)
+        if (pthis->thread_state_() == TERMINATING) {
+            if ((pthis->sem_--) == 0)
                 break;
             else
-                pthis->m_sem++;
+                pthis->sem_++;
         }
     }
 
-    pthis->m_thread_state.set_to(TERMINATED);
+    pthis->thread_state_.set_to(TERMINATED);
 
-#if STXXL_STD_THREADS && STXXL_MSVC >= 1700
+#if THRILL_STD_THREADS && THRILL_MSVC >= 1700
     // Workaround for deadlock bug in Visual C++ Runtime 2012 and 2013, see
     // request_queue_impl_worker.cpp. -tb
     ExitThread(nullptr);

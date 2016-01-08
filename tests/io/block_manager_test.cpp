@@ -34,17 +34,17 @@ struct MyType
 
 struct my_handler
 {
-    void operator () (io::request* req, bool /* success */) {
+    void operator () (io::Request* req, bool /* success */) {
         LOG1 << req << " done, type=" << req->io_type();
     }
 };
-template class io::typed_block<BLOCK_SIZE, int>;    // forced instantiation
-template class io::typed_block<BLOCK_SIZE, MyType>; // forced instantiation
+template class io::TypedBlock<BLOCK_SIZE, int>;    // forced instantiation
+template class io::TypedBlock<BLOCK_SIZE, MyType>; // forced instantiation
 
 TEST(BlockManager, Test1) {
     static const bool debug = true;
 
-    using block_type = io::typed_block<BLOCK_SIZE, MyType>;
+    using block_type = io::TypedBlock<BLOCK_SIZE, MyType>;
 
     LOG << sizeof(MyType) << " " << (BLOCK_SIZE % sizeof(MyType));
     LOG << sizeof(block_type) << " " << BLOCK_SIZE;
@@ -52,9 +52,9 @@ TEST(BlockManager, Test1) {
     const unsigned nblocks = 2;
     io::BIDArray<BLOCK_SIZE> bids(nblocks);
     std::vector<int> disks(nblocks, 2);
-    io::request_ptr* reqs = new io::request_ptr[nblocks];
-    io::block_manager* bm = io::block_manager::get_instance();
-    bm->new_blocks(io::striping(), bids.begin(), bids.end());
+    io::RequestPtr* reqs = new io::RequestPtr[nblocks];
+    io::BlockManager* bm = io::BlockManager::get_instance();
+    bm->new_blocks(io::Striping(), bids.begin(), bids.end());
 
     block_type* block = new block_type[2];
     LOG << std::hex;
@@ -98,7 +98,7 @@ TEST(BlockManager, Test1) {
     bm->new_blocks(striping(), vbids.begin(), vbids.end());
 
     for (i = 0; i < nblocks; i++)
-        STXXL_MSG("Allocated block: offset=" << vbids[i].offset << ", size=" << vbids[i].size);
+        THRILL_MSG("Allocated block: offset=" << vbids[i].offset << ", size=" << vbids[i].size);
 
     bm->delete_blocks(vbids.begin(), vbids.end());
 #endif
@@ -106,11 +106,11 @@ TEST(BlockManager, Test1) {
 
 TEST(BlockManager, Test2) {
 
-    using block_type = io::typed_block<128* 1024, double>;
+    using block_type = io::TypedBlock<128* 1024, double>;
     std::vector<block_type::bid_type> bids(32);
-    std::vector<io::request_ptr> requests;
-    io::block_manager* bm = io::block_manager::get_instance();
-    bm->new_blocks(io::striping(), bids.begin(), bids.end());
+    std::vector<io::RequestPtr> requests;
+    io::BlockManager* bm = io::BlockManager::get_instance();
+    bm->new_blocks(io::Striping(), bids.begin(), bids.end());
     std::vector<block_type, mem::new_alloc<block_type> > blocks(32);
     for (size_t vIndex = 0; vIndex < 32; ++vIndex) {
         for (int vIndex2 = 0; vIndex2 < block_type::size; ++vIndex2) {
@@ -127,10 +127,10 @@ TEST(BlockManager, Test2) {
 TEST(BlockManager, Test3) {
     static const bool debug = true;
 
-    using block_type = io::typed_block<BLOCK_SIZE, int>;
+    using block_type = io::TypedBlock<BLOCK_SIZE, int>;
 
     int64_t totalsize = 0;
-    io::config* config = io::config::get_instance();
+    io::Config* config = io::Config::get_instance();
 
     for (size_t i = 0; i < config->disks_number(); ++i)
         totalsize += config->disk_size(i);
@@ -145,13 +145,13 @@ TEST(BlockManager, Test3) {
     io::BIDArray<BLOCK_SIZE> b5d(totalblocks / 5);
     io::BIDArray<BLOCK_SIZE> b2(totalblocks / 2);
 
-    io::block_manager* bm = io::block_manager::get_instance();
+    io::BlockManager* bm = io::BlockManager::get_instance();
 
     LOG << "get 4 x " << totalblocks / 5;
-    bm->new_blocks(io::striping(), b5a.begin(), b5a.end());
-    bm->new_blocks(io::striping(), b5b.begin(), b5b.end());
-    bm->new_blocks(io::striping(), b5c.begin(), b5c.end());
-    bm->new_blocks(io::striping(), b5d.begin(), b5d.end());
+    bm->new_blocks(io::Striping(), b5a.begin(), b5a.end());
+    bm->new_blocks(io::Striping(), b5b.begin(), b5b.end());
+    bm->new_blocks(io::Striping(), b5c.begin(), b5c.end());
+    bm->new_blocks(io::Striping(), b5d.begin(), b5d.end());
 
     LOG << "free 2 x " << totalblocks / 5;
     bm->delete_blocks(b5a.begin(), b5a.end());
@@ -160,7 +160,7 @@ TEST(BlockManager, Test3) {
     // the external memory should now be fragmented enough,
     // s.t. the following request needs to be split into smaller ones
     LOG << "get 1 x " << totalblocks / 2;
-    bm->new_blocks(io::striping(), b2.begin(), b2.end());
+    bm->new_blocks(io::Striping(), b2.begin(), b2.end());
 
     bm->delete_blocks(b5b.begin(), b5b.end());
     bm->delete_blocks(b5d.begin(), b5d.end());

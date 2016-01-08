@@ -20,7 +20,7 @@
 #ifndef THRILL_IO_UFS_FILE_BASE_HEADER
 #define THRILL_IO_UFS_FILE_BASE_HEADER
 
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 
 #include <mutex>
 #include <string>
@@ -32,22 +32,22 @@ namespace io {
 //! \{
 
 //! Base for UNIX file system implementations.
-class ufs_file_base : public virtual file
+class UfsFileBase : public virtual FileBase
 {
 protected:
-    std::mutex fd_mutex;   // sequentialize function calls involving file_des
+    std::mutex fd_mutex_;  // sequentialize function calls involving file_des
     int file_des;          // file descriptor
     int m_mode;            // open mode
     const std::string filename;
     bool m_is_device;      //!< is special device node
-    ufs_file_base(const std::string& filename, int mode);
+    UfsFileBase(const std::string& filename, int mode);
     void _after_open();
     offset_type _size();
     void _set_size(offset_type newsize);
     void close();
 
 public:
-    ~ufs_file_base();
+    ~UfsFileBase();
     offset_type size() final;
     void set_size(offset_type newsize) final;
     void lock() final;

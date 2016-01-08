@@ -14,7 +14,7 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/io/create_file.hpp>
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/syscall_file.hpp>
 #include <thrill/mem/aligned_alloc.hpp>
@@ -26,7 +26,7 @@ using namespace thrill;
 
 struct print_completion
 {
-    void operator () (io::request* ptr, bool /* success */) {
+    void operator () (io::Request* ptr, bool /* success */) {
         std::cout << "Request completed: " << ptr << std::endl;
     }
 };
@@ -42,26 +42,26 @@ int main(int argc, char** argv) {
     char* buffer = static_cast<char*>(mem::aligned_alloc(size));
     memset(buffer, 0, size);
 
-    std::unique_ptr<io::file> file(
-        io::create_file(
+    std::unique_ptr<io::FileBase> file(
+        io::CreateFile(
             argv[1], argv[2],
-            io::file::CREAT | io::file::RDWR | io::file::DIRECT));
+            io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT));
 
     file->set_size(num_blocks * size);
-    std::vector<io::request_ptr> req(num_blocks);
+    std::vector<io::RequestPtr> req(num_blocks);
 
     // without cancelation
     std::cout << "Posting " << num_blocks << " requests." << std::endl;
-    io::stats_data stats1(*io::stats::get_instance());
+    io::StatsData stats1(*io::Stats::get_instance());
     unsigned i = 0;
     for ( ; i < num_blocks; i++)
         req[i] = file->awrite(buffer, i * size, size, print_completion());
     wait_all(req.begin(), req.end());
-    std::cout << io::stats_data(*io::stats::get_instance()) - stats1;
+    std::cout << io::StatsData(*io::Stats::get_instance()) - stats1;
 
     // with cancelation
     std::cout << "Posting " << num_blocks << " requests." << std::endl;
-    io::stats_data stats2(*io::stats::get_instance());
+    io::StatsData stats2(*io::Stats::get_instance());
     for (unsigned i = 0; i < num_blocks; i++)
         req[i] = file->awrite(buffer, i * size, size, print_completion());
     // cancel first half
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
             std::cout << "Request not canceled: " << &(*(req[i])) << std::endl;
     }
     wait_all(req.begin(), req.end());
-    std::cout << io::stats_data(*io::stats::get_instance()) - stats2;
+    std::cout << io::StatsData(*io::Stats::get_instance()) - stats2;
 
     mem::aligned_dealloc(buffer);
 

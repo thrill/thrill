@@ -13,7 +13,7 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/io/create_file.hpp>
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/mem/aligned_alloc.hpp>
@@ -32,14 +32,14 @@ int main(int argc, char** argv) {
 
     try
     {
-        std::unique_ptr<io::file> file(
-            io::create_file(
+        std::unique_ptr<io::FileBase> file(
+            io::CreateFile(
                 argv[1], argv[2],
-                io::file::CREAT | io::file::RDWR | io::file::DIRECT));
+                io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT));
         file->set_size(max_size);
 
-        io::request_ptr req;
-        io::stats_data stats1(*io::stats::get_instance());
+        io::RequestPtr req;
+        io::StatsData stats1(*io::Stats::get_instance());
         for (size_t size = 4096; size < max_size; size *= 2)
         {
             // generate data
@@ -74,11 +74,11 @@ int main(int argc, char** argv) {
             if (wrong)
                 break;
         }
-        std::cout << io::stats_data(*io::stats::get_instance()) - stats1;
+        std::cout << io::StatsData(*io::Stats::get_instance()) - stats1;
 
         file->close_remove();
     }
-    catch (io::io_error e)
+    catch (io::IoError e)
     {
         std::cerr << e.what() << std::endl;
         throw;

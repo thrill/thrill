@@ -25,17 +25,17 @@ namespace io {
 //! \{
 
 //! Request which serves an I/O by calling the synchronous routine of the file.
-class serving_request final : public request
+class ServingRequest final : public Request
 {
     template <class base_file_type>
     friend class fileperblock_file;
-    friend class request_queue_impl_qwqr;
-    friend class request_queue_impl_1q;
+    friend class RequestQueueImplQwQr;
+    friend class RequestQueueImpl1Q;
 
 public:
-    serving_request(
-        const completion_handler& on_cmpl,
-        io::file* f,
+    ServingRequest(
+        const CompletionHandler& on_cmpl,
+        io::FileBase* f,
         void* buf,
         offset_type off,
         size_type b,

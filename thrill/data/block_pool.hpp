@@ -73,7 +73,7 @@ public:
               mem::Manager* mem_manager,
               size_t workers_per_host)
         : mem_manager_(mem_manager, "BlockPool"),
-          bm_(io::block_manager::get_instance()),
+          bm_(io::BlockManager::get_instance()),
           workers_per_host_(workers_per_host),
           pin_count_(workers_per_host),
           soft_memory_limit_(soft_memory_limit),
@@ -118,7 +118,7 @@ private:
     //! local Manager counting only ByteBlock allocations in internal memory.
     mem::Manager mem_manager_;
     //! reference to io block manager
-    io::block_manager* bm_;
+    io::BlockManager* bm_;
 
     //! number of workers per host
     size_t workers_per_host_;
@@ -165,7 +165,7 @@ private:
     PinCount pin_count_;
 
     //! set of ByteBlocks currently begin written to EM.
-    std::unordered_map<ByteBlock*, io::request_ptr> writing_;
+    std::unordered_map<ByteBlock*, io::RequestPtr> writing_;
 
     //! number of bytes currently begin requested from RAM.
     size_t requested_bytes_ = 0;
@@ -183,7 +183,7 @@ private:
     {
         std::promise<PinnedBlock> result;
         Byte                      * data;
-        io::request_ptr           req;
+        io::RequestPtr            req;
     };
 
     //! set of ByteBlocks currently begin read from EM.
@@ -216,12 +216,12 @@ private:
     void EvictBlock();
 
     //! callback for async write of blocks during eviction
-    void OnWriteComplete(ByteBlock* block_ptr, io::request* req, bool success);
+    void OnWriteComplete(ByteBlock* block_ptr, io::Request* req, bool success);
 
     //! callback for async read of blocks for pin requests
     void OnReadComplete(
         const Block& block, size_t local_worker_id, ReadRequest* read,
-        io::request* req, bool success);
+        io::Request* req, bool success);
 
     //! make ostream-able
     friend std::ostream& operator << (std::ostream& os, const PinCount& p);

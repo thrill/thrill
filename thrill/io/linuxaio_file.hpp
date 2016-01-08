@@ -18,7 +18,7 @@
 
 #include <thrill/common/config.hpp>
 
-#if STXXL_HAVE_LINUXAIO_FILE
+#if THRILL_HAVE_LINUXAIO_FILE
 
 #include <thrill/io/disk_queued_file.hpp>
 #include <thrill/io/linuxaio_queue.hpp>
@@ -29,16 +29,16 @@
 namespace thrill {
 namespace io {
 
-class linuxaio_queue;
+class LinuxaioQueue;
 
 //! \addtogroup fileimpl
 //! \{
 
 //! Implementation of \c file based on the Linux kernel interface for
 //! asynchronous I/O
-class linuxaio_file final : public ufs_file_base, public disk_queued_file
+class LinuxaioFile final : public UfsFileBase, public DiskQueuedFile
 {
-    friend class linuxaio_request;
+    friend class LinuxaioRequest;
 
 private:
     int desired_queue_length;
@@ -51,24 +51,24 @@ public:
     //! \param allocator_id linked disk_allocator
     //! \param device_id physical device identifier
     //! \param desired_queue_length queue length requested from kernel
-    linuxaio_file(
+    LinuxaioFile(
         const std::string& filename, int mode,
         int queue_id = DEFAULT_LINUXAIO_QUEUE,
         int allocator_id = NO_ALLOCATOR,
         unsigned int device_id = DEFAULT_DEVICE_ID,
         int desired_queue_length = 0)
-        : file(device_id),
-          ufs_file_base(filename, mode),
-          disk_queued_file(queue_id, allocator_id),
+        : FileBase(device_id),
+          UfsFileBase(filename, mode),
+          DiskQueuedFile(queue_id, allocator_id),
           desired_queue_length(desired_queue_length)
     { }
 
     void serve(void* buffer, offset_type offset, size_type bytes,
-               request::ReadOrWriteType type) final;
-    request_ptr aread(void* buffer, offset_type pos, size_type bytes,
-                      const completion_handler& on_cmpl = completion_handler()) final;
-    request_ptr awrite(void* buffer, offset_type pos, size_type bytes,
-                       const completion_handler& on_cmpl = completion_handler()) final;
+               Request::ReadOrWriteType type) final;
+    RequestPtr aread(void* buffer, offset_type pos, size_type bytes,
+                     const CompletionHandler& on_cmpl = CompletionHandler()) final;
+    RequestPtr awrite(void* buffer, offset_type pos, size_type bytes,
+                      const CompletionHandler& on_cmpl = CompletionHandler()) final;
     const char * io_type() const final;
 
     int get_desired_queue_length() const {
@@ -81,7 +81,7 @@ public:
 } // namespace io
 } // namespace thrill
 
-#endif // #if STXXL_HAVE_LINUXAIO_FILE
+#endif // #if THRILL_HAVE_LINUXAIO_FILE
 
 #endif // !THRILL_IO_LINUXAIO_FILE_HEADER
 

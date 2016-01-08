@@ -13,7 +13,7 @@
 
 #include <thrill/io/linuxaio_file.hpp>
 
-#if STXXL_HAVE_LINUXAIO_FILE
+#if THRILL_HAVE_LINUXAIO_FILE
 
 #include <thrill/io/disk_queues.hpp>
 #include <thrill/io/linuxaio_request.hpp>
@@ -21,46 +21,46 @@
 namespace thrill {
 namespace io {
 
-request_ptr linuxaio_file::aread(
+RequestPtr LinuxaioFile::aread(
     void* buffer,
     offset_type pos,
     size_type bytes,
-    const completion_handler& on_cmpl) {
-    request_ptr req(new linuxaio_request(on_cmpl, this, buffer, pos, bytes, request::READ));
+    const CompletionHandler& on_cmpl) {
+    RequestPtr req(new LinuxaioRequest(on_cmpl, this, buffer, pos, bytes, Request::READ));
 
-    disk_queues::get_instance()->add_request(req, get_queue_id());
+    DiskQueues::get_instance()->add_request(req, get_queue_id());
 
     return req;
 }
 
-request_ptr linuxaio_file::awrite(
+RequestPtr LinuxaioFile::awrite(
     void* buffer,
     offset_type pos,
     size_type bytes,
-    const completion_handler& on_cmpl) {
-    request_ptr req(new linuxaio_request(on_cmpl, this, buffer, pos, bytes, request::WRITE));
+    const CompletionHandler& on_cmpl) {
+    RequestPtr req(new LinuxaioRequest(on_cmpl, this, buffer, pos, bytes, Request::WRITE));
 
-    disk_queues::get_instance()->add_request(req, get_queue_id());
+    DiskQueues::get_instance()->add_request(req, get_queue_id());
 
     return req;
 }
 
-void linuxaio_file::serve(void* buffer, offset_type offset, size_type bytes,
-                          request::ReadOrWriteType type) {
+void LinuxaioFile::serve(void* buffer, offset_type offset, size_type bytes,
+                         Request::ReadOrWriteType type) {
     // req need not be an linuxaio_request
-    if (type == request::READ)
+    if (type == Request::READ)
         aread(buffer, offset, bytes)->wait();
     else
         awrite(buffer, offset, bytes)->wait();
 }
 
-const char* linuxaio_file::io_type() const {
+const char* LinuxaioFile::io_type() const {
     return "linuxaio";
 }
 
 } // namespace io
 } // namespace thrill
 
-#endif // #if STXXL_HAVE_LINUXAIO_FILE
+#endif // #if THRILL_HAVE_LINUXAIO_FILE
 
 /******************************************************************************/

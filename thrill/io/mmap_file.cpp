@@ -14,7 +14,7 @@
 
 #include <thrill/io/mmap_file.hpp>
 
-#if STXXL_HAVE_MMAP_FILE
+#if THRILL_HAVE_MMAP_FILE
 
 #include <thrill/io/error_handling.hpp>
 #include <thrill/io/iostats.hpp>
@@ -25,34 +25,34 @@
 namespace thrill {
 namespace io {
 
-void mmap_file::serve(void* buffer, offset_type offset, size_type bytes,
-                      request::ReadOrWriteType type) {
-    std::unique_lock<std::mutex> fd_lock(fd_mutex);
+void MmapFile::serve(void* buffer, offset_type offset, size_type bytes,
+                     Request::ReadOrWriteType type) {
+    std::unique_lock<std::mutex> fd_lock(fd_mutex_);
 
     // assert(offset + bytes <= _size());
 
-    stats::scoped_read_write_timer read_write_timer(bytes, type == request::WRITE);
+    Stats::scoped_read_write_timer read_write_timer(bytes, type == Request::WRITE);
 
-    int prot = (type == request::READ) ? PROT_READ : PROT_WRITE;
+    int prot = (type == Request::READ) ? PROT_READ : PROT_WRITE;
     void* mem = mmap(nullptr, bytes, prot, MAP_SHARED, file_des, offset);
     // void *mem = mmap (buffer, bytes, prot , MAP_SHARED|MAP_FIXED , file_des, offset);
-    // STXXL_MSG("Mmaped to "<<mem<<" , buffer suggested at "<<buffer);
+    // THRILL_MSG("Mmaped to "<<mem<<" , buffer suggested at "<<buffer);
     if (mem == MAP_FAILED)
     {
-        STXXL_THROW_ERRNO(io_error,
-                          " mmap() failed." <<
-                          " path=" << filename <<
-                          " bytes=" << bytes <<
-                          " Page size: " << sysconf(_SC_PAGESIZE) <<
-                          " offset modulo page size " << (offset % sysconf(_SC_PAGESIZE)));
+        THRILL_THROW_ERRNO(IoError,
+                           " mmap() failed." <<
+                           " path=" << filename <<
+                           " bytes=" << bytes <<
+                           " Page size: " << sysconf(_SC_PAGESIZE) <<
+                           " offset modulo page size " << (offset % sysconf(_SC_PAGESIZE)));
     }
     else if (mem == 0)
     {
-        STXXL_THROW_ERRNO(io_error, "mmap() returned nullptr");
+        THRILL_THROW_ERRNO(IoError, "mmap() returned nullptr");
     }
     else
     {
-        if (type == request::READ)
+        if (type == Request::READ)
         {
             memcpy(buffer, mem, bytes);
         }
@@ -60,18 +60,18 @@ void mmap_file::serve(void* buffer, offset_type offset, size_type bytes,
         {
             memcpy(mem, buffer, bytes);
         }
-        STXXL_THROW_ERRNO_NE_0(munmap(mem, bytes), io_error,
-                               "munmap() failed");
+        THRILL_THROW_ERRNO_NE_0(munmap(mem, bytes), IoError,
+                                "munmap() failed");
     }
 }
 
-const char* mmap_file::io_type() const {
+const char* MmapFile::io_type() const {
     return "mmap";
 }
 
 } // namespace io
 } // namespace thrill
 
-#endif  // #if STXXL_HAVE_MMAP_FILE
+#endif  // #if THRILL_HAVE_MMAP_FILE
 
 /******************************************************************************/

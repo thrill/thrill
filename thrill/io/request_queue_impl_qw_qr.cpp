@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/io/request_queue_impl_qwqr.cpp
+ * thrill/io/request_queue_impl_qw_qr.cpp
  *
  * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
  * distributed under the Boost Software License, Version 1.0.
@@ -16,153 +16,153 @@
 
 #include <thrill/common/logger.hpp>
 #include <thrill/io/error_handling.hpp>
-#include <thrill/io/request_queue_impl_qwqr.hpp>
+#include <thrill/io/request_queue_impl_qw_qr.hpp>
 #include <thrill/io/serving_request.hpp>
 
-#if STXXL_STD_THREADS && STXXL_MSVC >= 1700
+#if THRILL_STD_THREADS && THRILL_MSVC >= 1700
  #include <windows.h>
 #endif
 
 #include <algorithm>
 #include <functional>
 
-#ifndef STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
-#define STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION 1
+#ifndef THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
+#define THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION 1
 #endif
 
 namespace thrill {
 namespace io {
 
-struct file_offset_match : public std::binary_function<request_ptr, request_ptr, bool>
+struct file_offset_match : public std::binary_function<RequestPtr, RequestPtr, bool>
 {
     bool operator () (
-        const request_ptr& a,
-        const request_ptr& b) const {
+        const RequestPtr& a,
+        const RequestPtr& b) const {
         // matching file and offset are enough to cause problems
         return (a->offset() == b->offset()) &&
                (a->file() == b->file());
     }
 };
 
-request_queue_impl_qwqr::request_queue_impl_qwqr(int n)
-    : m_thread_state(NOT_RUNNING), m_sem(0) {
+RequestQueueImplQwQr::RequestQueueImplQwQr(int n)
+    : thread_state_(NOT_RUNNING), sem_(0) {
     common::THRILL_UNUSED(n);
-    start_thread(worker, static_cast<void*>(this), m_thread, m_thread_state);
+    start_thread(worker, static_cast<void*>(this), thread_, thread_state_);
 }
 
-void request_queue_impl_qwqr::add_request(request_ptr& req) {
+void RequestQueueImplQwQr::add_request(RequestPtr& req) {
     if (req.empty())
-        STXXL_THROW_INVALID_ARGUMENT("Empty request submitted to disk_queue.");
-    if (m_thread_state() != RUNNING)
-        STXXL_THROW_INVALID_ARGUMENT("Request submitted to not running queue.");
-    if (!dynamic_cast<serving_request*>(req.get()))
+        THRILL_THROW_INVALID_ARGUMENT("Empty request submitted to disk_queue.");
+    if (thread_state_() != RUNNING)
+        THRILL_THROW_INVALID_ARGUMENT("Request submitted to not running queue.");
+    if (!dynamic_cast<ServingRequest*>(req.get()))
         LOG1 << "Incompatible request submitted to running queue.";
 
-    if (req.get()->type() == request::READ)
+    if (req.get()->type() == Request::READ)
     {
-#if STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
+#if THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
         {
-            std::unique_lock<std::mutex> Lock(m_write_mutex);
-            if (std::find_if(m_write_queue.begin(), m_write_queue.end(),
+            std::unique_lock<std::mutex> Lock(write_mutex_);
+            if (std::find_if(write_queue_.begin(), write_queue_.end(),
                              bind2nd(file_offset_match(), req))
-                != m_write_queue.end())
+                != write_queue_.end())
             {
                 LOG1 << "READ request submitted for a BID with a pending WRITE request";
             }
         }
 #endif
-        std::unique_lock<std::mutex> Lock(m_read_mutex);
-        m_read_queue.push_back(req);
+        std::unique_lock<std::mutex> Lock(read_mutex_);
+        read_queue_.push_back(req);
     }
     else
     {
-#if STXXL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
+#if THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
         {
-            std::unique_lock<std::mutex> Lock(m_read_mutex);
-            if (std::find_if(m_read_queue.begin(), m_read_queue.end(),
+            std::unique_lock<std::mutex> Lock(read_mutex_);
+            if (std::find_if(read_queue_.begin(), read_queue_.end(),
                              bind2nd(file_offset_match(), req))
-                != m_read_queue.end())
+                != read_queue_.end())
             {
                 LOG1 << "WRITE request submitted for a BID with a pending READ request";
             }
         }
 #endif
-        std::unique_lock<std::mutex> Lock(m_write_mutex);
-        m_write_queue.push_back(req);
+        std::unique_lock<std::mutex> Lock(write_mutex_);
+        write_queue_.push_back(req);
     }
 
-    m_sem++;
+    sem_++;
 }
 
-bool request_queue_impl_qwqr::cancel_request(request_ptr& req) {
+bool RequestQueueImplQwQr::cancel_request(RequestPtr& req) {
     if (req.empty())
-        STXXL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
-    if (m_thread_state() != RUNNING)
-        STXXL_THROW_INVALID_ARGUMENT("Request canceled to not running queue.");
-    if (!dynamic_cast<serving_request*>(req.get()))
+        THRILL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
+    if (thread_state_() != RUNNING)
+        THRILL_THROW_INVALID_ARGUMENT("Request canceled to not running queue.");
+    if (!dynamic_cast<ServingRequest*>(req.get()))
         LOG1 << "Incompatible request submitted to running queue.";
 
     bool was_still_in_queue = false;
-    if (req.get()->type() == request::READ)
+    if (req.get()->type() == Request::READ)
     {
-        std::unique_lock<std::mutex> Lock(m_read_mutex);
+        std::unique_lock<std::mutex> Lock(read_mutex_);
         queue_type::iterator pos
-            = std::find(m_read_queue.begin(), m_read_queue.end(), req);
-        if (pos != m_read_queue.end())
+            = std::find(read_queue_.begin(), read_queue_.end(), req);
+        if (pos != read_queue_.end())
         {
-            m_read_queue.erase(pos);
+            read_queue_.erase(pos);
             was_still_in_queue = true;
             Lock.unlock();
-            m_sem--;
+            sem_--;
         }
     }
     else
     {
-        std::unique_lock<std::mutex> Lock(m_write_mutex);
+        std::unique_lock<std::mutex> Lock(write_mutex_);
         queue_type::iterator pos
-            = std::find(m_write_queue.begin(), m_write_queue.end(), req);
-        if (pos != m_write_queue.end())
+            = std::find(write_queue_.begin(), write_queue_.end(), req);
+        if (pos != write_queue_.end())
         {
-            m_write_queue.erase(pos);
+            write_queue_.erase(pos);
             was_still_in_queue = true;
             Lock.unlock();
-            m_sem--;
+            sem_--;
         }
     }
 
     return was_still_in_queue;
 }
 
-request_queue_impl_qwqr::~request_queue_impl_qwqr() {
-    stop_thread(m_thread, m_thread_state, m_sem);
+RequestQueueImplQwQr::~RequestQueueImplQwQr() {
+    stop_thread(thread_, thread_state_, sem_);
 }
 
-void* request_queue_impl_qwqr::worker(void* arg) {
+void* RequestQueueImplQwQr::worker(void* arg) {
     self* pthis = static_cast<self*>(arg);
 
     bool write_phase = true;
     for ( ; ; )
     {
-        pthis->m_sem--;
+        pthis->sem_--;
 
         if (write_phase)
         {
-            std::unique_lock<std::mutex> WriteLock(pthis->m_write_mutex);
-            if (!pthis->m_write_queue.empty())
+            std::unique_lock<std::mutex> WriteLock(pthis->write_mutex_);
+            if (!pthis->write_queue_.empty())
             {
-                request_ptr req = pthis->m_write_queue.front();
-                pthis->m_write_queue.pop_front();
+                RequestPtr req = pthis->write_queue_.front();
+                pthis->write_queue_.pop_front();
 
                 WriteLock.unlock();
 
                 // assert(req->get_reference_count()) > 1);
-                dynamic_cast<serving_request*>(req.get())->serve();
+                dynamic_cast<ServingRequest*>(req.get())->serve();
             }
             else
             {
                 WriteLock.unlock();
 
-                pthis->m_sem++;
+                pthis->sem_++;
 
                 if (pthis->m_priority_op == WRITE)
                     write_phase = false;
@@ -173,25 +173,25 @@ void* request_queue_impl_qwqr::worker(void* arg) {
         }
         else
         {
-            std::unique_lock<std::mutex> ReadLock(pthis->m_read_mutex);
+            std::unique_lock<std::mutex> ReadLock(pthis->read_mutex_);
 
-            if (!pthis->m_read_queue.empty())
+            if (!pthis->read_queue_.empty())
             {
-                request_ptr req = pthis->m_read_queue.front();
-                pthis->m_read_queue.pop_front();
+                RequestPtr req = pthis->read_queue_.front();
+                pthis->read_queue_.pop_front();
 
                 ReadLock.unlock();
 
                 LOG << "queue: before serve request has " << req->reference_count() << " references ";
                 // assert(req->get_reference_count() > 1);
-                dynamic_cast<serving_request*>(req.get())->serve();
+                dynamic_cast<ServingRequest*>(req.get())->serve();
                 LOG << "queue: after serve request has " << req->reference_count() << " references ";
             }
             else
             {
                 ReadLock.unlock();
 
-                pthis->m_sem++;
+                pthis->sem_++;
 
                 if (pthis->m_priority_op == READ)
                     write_phase = true;
@@ -202,17 +202,17 @@ void* request_queue_impl_qwqr::worker(void* arg) {
         }
 
         // terminate if it has been requested and queues are empty
-        if (pthis->m_thread_state() == TERMINATING) {
-            if ((pthis->m_sem--) == 0)
+        if (pthis->thread_state_() == TERMINATING) {
+            if ((pthis->sem_--) == 0)
                 break;
             else
-                pthis->m_sem++;
+                pthis->sem_++;
         }
     }
 
-    pthis->m_thread_state.set_to(TERMINATED);
+    pthis->thread_state_.set_to(TERMINATED);
 
-#if STXXL_STD_THREADS && STXXL_MSVC >= 1700
+#if THRILL_STD_THREADS && THRILL_MSVC >= 1700
     // Workaround for deadlock bug in Visual C++ Runtime 2012 and 2013, see
     // request_queue_impl_worker.cpp. -tb
     ExitThread(nullptr);

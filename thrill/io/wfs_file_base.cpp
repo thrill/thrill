@@ -16,7 +16,7 @@
 #include <thrill/io/error_handling.hpp>
 #include <thrill/io/wfs_file_base.hpp>
 
-#if STXXL_WINDOWS
+#if THRILL_WINDOWS
 
 #ifndef NOMINMAX
   #define NOMINMAX
@@ -28,7 +28,7 @@
 namespace thrill {
 namespace io {
 
-const char* wfs_file_base::io_type() const {
+const char* WfsFileBase::io_type() const {
     return "wfs_base";
 }
 
@@ -70,16 +70,16 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
 
     if (mode & file::DIRECT)
     {
-#if !STXXL_DIRECT_IO_OFF
+#if !THRILL_DIRECT_IO_OFF
         dwFlagsAndAttributes |= FILE_FLAG_NO_BUFFERING;
         // TODO(?): try also FILE_FLAG_WRITE_THROUGH option ?
 #else
         if (mode & file::REQUIRE_DIRECT) {
-            STXXL_ERRMSG("Error: open()ing " << filename << " with DIRECT mode required, but the system does not support it.");
+            THRILL_ERRMSG("Error: open()ing " << filename << " with DIRECT mode required, but the system does not support it.");
             return INVALID_HANDLE_VALUE;
         }
         else {
-            STXXL_MSG("Warning: open()ing " << filename << " without DIRECT mode, as the system does not support it.");
+            THRILL_MSG("Warning: open()ing " << filename << " without DIRECT mode, as the system does not support it.");
         }
 #endif
     }
@@ -95,10 +95,10 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
     if (file_des != INVALID_HANDLE_VALUE)
         return file_des;
 
-#if !STXXL_DIRECT_IO_OFF
+#if !THRILL_DIRECT_IO_OFF
     if ((mode& file::DIRECT) && !(mode & file::REQUIRE_DIRECT))
     {
-        STXXL_MSG("CreateFile() error on path=" << filename << " mode=" << mode << ", retrying without DIRECT mode.");
+        THRILL_MSG("CreateFile() error on path=" << filename << " mode=" << mode << ", retrying without DIRECT mode.");
 
         dwFlagsAndAttributes &= ~FILE_FLAG_NO_BUFFERING;
 
@@ -110,10 +110,10 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
     }
 #endif
 
-    STXXL_THROW_WIN_LASTERROR(io_error, "CreateFile() path=" << filename << " mode=" << mode);
+    THRILL_THROW_WIN_LASTERROR(IoError, "CreateFile() path=" << filename << " mode=" << mode);
 }
 
-wfs_file_base::wfs_file_base(
+WfsFileBase::WfsFileBase(
     const std::string& filename,
     int mode) : file_des(INVALID_HANDLE_VALUE), mode_(mode), filename(filename), locked(false) {
     file_des = open_file_impl(filename, mode);
@@ -128,7 +128,7 @@ wfs_file_base::wfs_file_base(
         char buf[32768], * part;
         if (!GetFullPathName(filename.c_str(), sizeof(buf), buf, &part))
         {
-            STXXL_ERRMSG("wfs_file_base::wfs_file_base(): GetFullPathName() error for file " << filename);
+            THRILL_ERRMSG("wfs_file_base::wfs_file_base(): GetFullPathName() error for file " << filename);
             bytes_per_sector = 512;
         }
         else
@@ -137,7 +137,7 @@ wfs_file_base::wfs_file_base(
             DWORD bytes_per_sector_;
             if (!GetDiskFreeSpace(buf, nullptr, &bytes_per_sector_, nullptr, nullptr))
             {
-                STXXL_ERRMSG("wfs_file_base::wfs_file_base(): GetDiskFreeSpace() error for path " << buf);
+                THRILL_ERRMSG("wfs_file_base::wfs_file_base(): GetDiskFreeSpace() error for path " << buf);
                 bytes_per_sector = 512;
             }
             else
@@ -146,45 +146,45 @@ wfs_file_base::wfs_file_base(
     }
 }
 
-wfs_file_base::~wfs_file_base() {
+WfsFileBase::~WfsFileBase() {
     close();
 }
 
-void wfs_file_base::close() {
+void WfsFileBase::close() {
     scoped_mutex_lock fd_lock(fd_mutex);
 
     if (file_des == INVALID_HANDLE_VALUE)
         return;
 
     if (!CloseHandle(file_des))
-        STXXL_THROW_WIN_LASTERROR(io_error, "CloseHandle() of file fd=" << file_des);
+        THRILL_THROW_WIN_LASTERROR(IoError, "CloseHandle() of file fd=" << file_des);
 
     file_des = INVALID_HANDLE_VALUE;
 }
 
-void wfs_file_base::lock() {
+void WfsFileBase::lock() {
     scoped_mutex_lock fd_lock(fd_mutex);
     if (locked)
         return;  // already locked
     if (LockFile(file_des, 0, 0, 0xffffffff, 0xffffffff) == 0)
-        STXXL_THROW_WIN_LASTERROR(io_error, "LockFile() fd=" << file_des);
+        THRILL_THROW_WIN_LASTERROR(IoError, "LockFile() fd=" << file_des);
     locked = true;
 }
 
-file::offset_type wfs_file_base::_size() {
+file::offset_type WfsFileBase::_size() {
     LARGE_INTEGER result;
     if (!GetFileSizeEx(file_des, &result))
-        STXXL_THROW_WIN_LASTERROR(io_error, "GetFileSizeEx() fd=" << file_des);
+        THRILL_THROW_WIN_LASTERROR(IoError, "GetFileSizeEx() fd=" << file_des);
 
     return result.QuadPart;
 }
 
-file::offset_type wfs_file_base::size() {
+file::offset_type WfsFileBase::size() {
     scoped_mutex_lock fd_lock(fd_mutex);
     return _size();
 }
 
-void wfs_file_base::set_size(offset_type newsize) {
+void WfsFileBase::set_size(offset_type newsize) {
     scoped_mutex_lock fd_lock(fd_mutex);
     offset_type cur_size = _size();
 
@@ -197,25 +197,25 @@ void wfs_file_base::set_size(offset_type newsize) {
         if (direct_with_bad_size)
         {
             if (!CloseHandle(file_des))
-                STXXL_THROW_WIN_LASTERROR(io_error, "closing file (call of ::CloseHandle() from set_size) ");
+                THRILL_THROW_WIN_LASTERROR(IoError, "closing file (call of ::CloseHandle() from set_size) ");
 
             file_des = INVALID_HANDLE_VALUE;
             file_des = open_file_impl(filename, WRONLY);
         }
 
         if (!SetFilePointerEx(file_des, desired_pos, nullptr, FILE_BEGIN))
-            STXXL_THROW_WIN_LASTERROR(io_error,
-                                      "SetFilePointerEx() in wfs_file_base::set_size(..) oldsize=" << cur_size <<
-                                      " newsize=" << newsize << " ");
+            THRILL_THROW_WIN_LASTERROR(IoError,
+                                       "SetFilePointerEx() in wfs_file_base::set_size(..) oldsize=" << cur_size <<
+                                       " newsize=" << newsize << " ");
 
         if (!SetEndOfFile(file_des))
-            STXXL_THROW_WIN_LASTERROR(io_error, "SetEndOfFile() oldsize=" << cur_size <<
-                                      " newsize=" << newsize << " ");
+            THRILL_THROW_WIN_LASTERROR(IoError, "SetEndOfFile() oldsize=" << cur_size <<
+                                       " newsize=" << newsize << " ");
 
         if (direct_with_bad_size)
         {
             if (!CloseHandle(file_des))
-                STXXL_THROW_WIN_LASTERROR(io_error, "closing file (call of ::CloseHandle() from set_size) ");
+                THRILL_THROW_WIN_LASTERROR(IoError, "closing file (call of ::CloseHandle() from set_size) ");
 
             file_des = INVALID_HANDLE_VALUE;
             file_des = open_file_impl(filename, mode_ & ~TRUNC);
@@ -223,7 +223,7 @@ void wfs_file_base::set_size(offset_type newsize) {
     }
 }
 
-void wfs_file_base::close_remove() {
+void WfsFileBase::close_remove() {
     close();
     ::DeleteFile(filename.c_str());
 }
@@ -231,6 +231,6 @@ void wfs_file_base::close_remove() {
 } // namespace io
 } // namespace thrill
 
-#endif // STXXL_WINDOWS
+#endif // THRILL_WINDOWS
 
 /******************************************************************************/

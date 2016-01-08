@@ -19,7 +19,7 @@
 #ifndef THRILL_IO_UFS_PLATFORM_HEADER
 #define THRILL_IO_UFS_PLATFORM_HEADER
 
-#if STXXL_WINDOWS || defined(__MINGW32__)
+#if THRILL_WINDOWS || defined(__MINGW32__)
   #ifndef NOMINMAX
     #define NOMINMAX
   #endif
@@ -69,7 +69,7 @@
 #endif
 
 // use 64-bit functions on Windows
-#if STXXL_WINDOWS
+#if THRILL_WINDOWS
   #ifndef lseek
     #define lseek _lseeki64
   #endif
