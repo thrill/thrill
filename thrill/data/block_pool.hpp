@@ -76,7 +76,6 @@ public:
           bm_(io::block_manager::get_instance()),
           workers_per_host_(workers_per_host),
           pin_count_(workers_per_host),
-          pinned_bytes_(workers_per_host),
           soft_memory_limit_(soft_memory_limit),
           hard_memory_limit_(hard_memory_limit)
     { }
@@ -127,15 +126,43 @@ private:
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
     common::LruCacheSet<ByteBlock*> unpinned_blocks_;
 
-    //! current total number of pins, where each thread pin counts individually.
-    size_t total_pins_ = 0;
+    struct PinCount
+    {
+        //! current total number of pins, where each thread pin counts
+        //! individually.
+        size_t              total_pins_ = 0;
 
-    //! number of pinned blocks per local worker id - this is used to count the
-    //! amount of memory locked per thread.
-    std::vector<size_t> pin_count_;
+        //! total number of bytes pinned.
+        size_t              total_pinned_bytes_ = 0;
 
-    //! number of bytes pinned per local worker id.
-    std::vector<size_t> pinned_bytes_;
+        //! maximum number of total pins
+        size_t              max_pins = 0;
+
+        //! maximum number of pinned bytes
+        size_t              max_pinned_bytes = 0;
+
+        //! number of pinned blocks per local worker id - this is used to count
+        //! the amount of memory locked per thread.
+        std::vector<size_t> pin_count_;
+
+        //! number of bytes pinned per local worker id.
+        std::vector<size_t> pinned_bytes_;
+
+        //! ctor: initializes vectors to correct size.
+        PinCount(size_t workers_per_host);
+
+        //! increment pin counter for thread_id by given size in bytes
+        void                Increment(size_t local_worker_id, size_t size);
+
+        //! decrement pin counter for thread_id by given size in bytes
+        void                Decrement(size_t local_worker_id, size_t size);
+
+        //! assert that it is zero.
+        void                AssertZero() const;
+    };
+
+    //! pin counter class
+    PinCount pin_count_;
 
     //! set of ByteBlocks currently begin written to EM.
     std::unordered_map<ByteBlock*, io::request_ptr> writing_;
@@ -195,6 +222,9 @@ private:
     void OnReadComplete(
         const Block& block, size_t local_worker_id, ReadRequest* read,
         io::request* req, bool success);
+
+    //! make ostream-able
+    friend std::ostream& operator << (std::ostream& os, const PinCount& p);
 };
 
 } // namespace data
