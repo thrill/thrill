@@ -81,11 +81,11 @@ TEST(MpiGroup, PrefixSum) {
 TEST(MpiGroup, Broadcast) {
     MpiTest(TestBroadcast);
 }
-TEST(MpiGroup, ReduceToRoot) {
-    MpiTest(TestReduceToRoot);
+TEST(MpiGroup, Reduce) {
+    MpiTest(TestReduce);
 }
-TEST(MpiGroup, ReduceToRootString) {
-    MpiTest(TestReduceToRootString);
+TEST(MpiGroup, ReduceString) {
+    MpiTest(TestReduceString);
 }
 TEST(MpiGroup, AllReduceString) {
     MpiTest(TestAllReduceString);

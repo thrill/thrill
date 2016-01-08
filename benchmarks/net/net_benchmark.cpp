@@ -224,7 +224,7 @@ void PingPongLatency::Test(api::Context& ctx) {
     }
 
     // reduce (add) matrix to root.
-    group.ReduceToRoot(latency_);
+    group.Reduce(latency_);
 
     // print matrix
     if (ctx.my_rank() == 0)
@@ -403,7 +403,7 @@ void Bandwidth::Test(api::Context& ctx) {
     }
 
     // reduce (add) matrix to root.
-    group.ReduceToRoot(bandwidth_);
+    group.Reduce(bandwidth_);
 
     // print matrix
     if (ctx.my_rank() == 0)

@@ -167,19 +167,19 @@ static void TestBroadcast(net::Group* net) {
     }
 }
 
-// let group of p hosts perform an ReduceToRoot collective
-static void TestReduceToRoot(net::Group* net) {
+// let group of p hosts perform an Reduce collective
+static void TestReduce(net::Group* net) {
     size_t local_value = net->my_host_rank();
-    net::collective::ReduceToRoot(*net, local_value);
+    net::collective::Reduce(*net, local_value);
     if (net->my_host_rank() == 0)
         ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
 }
 
-//! let group of p hosts perform a ReduceToRoot collective on std::string
-static void TestReduceToRootString(net::Group* net) {
+//! let group of p hosts perform a Reduce collective on std::string
+static void TestReduceString(net::Group* net) {
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
     std::string local_value = result.substr(net->my_host_rank(), 1);
-    net::collective::ReduceToRoot(*net, local_value);
+    net::collective::Reduce(*net, local_value);
     if (net->my_host_rank() == 0)
         ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
 }
