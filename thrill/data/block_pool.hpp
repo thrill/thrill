@@ -15,14 +15,17 @@
 #include <thrill/common/lru_cache.hpp>
 #include <thrill/common/signal.hpp>
 #include <thrill/common/thread_pool.hpp>
+#include <thrill/data/block.hpp>
 #include <thrill/data/byte_block.hpp>
+#include <thrill/io/block_manager.hpp>
+#include <thrill/io/request.hpp>
 #include <thrill/mem/manager.hpp>
-#include <thrill/mem/page_mapper.hpp>
 
 #include <deque>
 #include <future>
 #include <mutex>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace thrill {
@@ -72,6 +75,7 @@ public:
               size_t workers_per_host)
         : mem_manager_(mem_manager, "BlockPool"),
           ext_mem_manager_(mem_manager_external, "BlockPoolEM"),
+          bm_(io::block_manager::get_instance()),
           workers_per_host_(workers_per_host),
           pin_count_(workers_per_host),
           pinned_bytes_(workers_per_host),
@@ -108,20 +112,26 @@ public:
     void DestroyBlock(ByteBlock* block);
 
 private:
+    //! locked before internal state is changed
+    std::mutex mutex_;
+
+    //! For waiting on hard memory limit
+    std::condition_variable memory_change_;
+
     //! local Manager counting only ByteBlock allocations in internal memory.
     mem::Manager mem_manager_;
 
     //! local Manager counting only ByteBlocks in external memory.
     mem::Manager ext_mem_manager_;
 
+    //! reference to io block manager
+    io::block_manager* bm_;
+
     //! number of workers per host
     size_t workers_per_host_;
 
-    //! list of all blocks that are _in_memory_ but are _not_ pinned. TODO(tb):
-    //! probably not the right data structure.
+    //! list of all blocks that are _in_memory_ but are _not_ pinned.
     common::LruCacheSet<ByteBlock*> unpinned_blocks_;
-
-    size_t num_swapped_blocks_ = 0;
 
     //! current total number of pins, where each thread pin counts individually.
     size_t total_pins_ = 0;
@@ -133,18 +143,37 @@ private:
     //! number of bytes pinned per local worker id.
     std::vector<size_t> pinned_bytes_;
 
-    //! locked before internal state is changed
-    std::mutex mutex_;
+    //! set of ByteBlocks currently begin written to EM.
+    std::unordered_map<ByteBlock*, io::request_ptr> writing_;
+
+    //! number of bytes currently begin requested from RAM.
+    size_t requested_bytes_ = 0;
+
+    //! number of bytes currently being written to EM.
+    size_t writing_bytes_ = 0;
+
+    //! set of ByteBlock currently in EM.
+    std::unordered_set<ByteBlock*> swapped_;
+
+    //! number of blocks currently swapped to EM.
+    size_t num_swapped_blocks_ = 0;
+
+    struct ReadRequest
+    {
+        std::promise<PinnedBlock> result;
+        Byte                      * data;
+        io::request_ptr           req;
+    };
+
+    //! set of ByteBlocks currently begin read from EM.
+    std::unordered_map<ByteBlock*, ReadRequest> reading_;
 
     //! total number of bytes used in RAM by pinned and unpinned blocks.
     size_t total_ram_use_ = 0;
-    size_t total_ram_limit_ = 10240000lu;
+    static size_t total_ram_limit_;
 
     //! For implementing hard limit
-    std::mutex memory_mutex_;
-
-    //! For waiting on hard memory limit
-    std::condition_variable memory_change_;
+    // std::mutex memory_mutex_;
 
     //! Limits for the block pool. 0 for no limits.
     size_t soft_memory_limit_, hard_memory_limit_;
@@ -166,7 +195,7 @@ private:
     void UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
 
     //! Evict a block into external memory
-    void EvictBlock(ByteBlock* block_ptr);
+    void EvictBlock();
 };
 
 } // namespace data

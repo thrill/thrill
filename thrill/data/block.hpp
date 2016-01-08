@@ -13,8 +13,8 @@
 #define THRILL_DATA_BLOCK_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
-#include <thrill/common/future.hpp>
-#include <thrill/data/block_pool.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/byte_block.hpp>
 #include <thrill/mem/manager.hpp>
 
 #include <cassert>
@@ -117,9 +117,7 @@ public:
     //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
     //! is already pinned, the Future is directly filled with a copy if this
     //! block.  Otherwise an async pin call will be issued.
-    std::future<PinnedBlock> Pin(size_t local_worker_id) const {
-        return byte_block()->block_pool_->PinBlock(*this, local_worker_id);
-    }
+    std::future<PinnedBlock> Pin(size_t local_worker_id) const;
 
     //! Convenience function to call Pin() and wait for the future.
     PinnedBlock PinNow(size_t local_worker_id) const;

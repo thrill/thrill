@@ -111,7 +111,7 @@ private:
     //! external memory block id
     io::BID<0> em_bid_;
 
-    // BlockPool is a friend to call ctor
+    // BlockPool is a friend to call ctor and to manipulate data_.
     friend class BlockPool;
     // Block is a friend to call {Increase,Reduce}PinCount()
     friend class Block;

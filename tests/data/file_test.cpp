@@ -220,6 +220,7 @@ TEST_F(File, SerializeSomeItemsDynReader) {
 }
 
 TEST_F(File, SerializeSomeItemsConsumeReader) {
+    static const size_t size = 5000;
 
     // construct File with very small blocks for testing
     data::File file(block_pool_, 0);
@@ -228,7 +229,7 @@ TEST_F(File, SerializeSomeItemsConsumeReader) {
     {
         // construct File with very small blocks for testing
         data::File::Writer fw = file.GetWriter(53);
-        for (unsigned i = 0; i < 50; ++i) {
+        for (unsigned i = 0; i < size; ++i) {
             fw.Put<unsigned>(i);
         }
     }
@@ -236,7 +237,7 @@ TEST_F(File, SerializeSomeItemsConsumeReader) {
     // get items back from file, consuming it.
     {
         data::File::Reader fr = file.GetReader(true);
-        for (size_t i = 0; i < 50; ++i) {
+        for (size_t i = 0; i < size; ++i) {
             ASSERT_TRUE(fr.HasNext());
             unsigned iread = fr.Next<unsigned>();
             ASSERT_EQ(i, iread);
@@ -248,7 +249,7 @@ TEST_F(File, SerializeSomeItemsConsumeReader) {
 }
 
 TEST_F(File, RandomGetIndexOf) {
-    const size_t size = 500;
+    static const size_t size = 500;
 
     std::minstd_rand0 rng(0);
 
