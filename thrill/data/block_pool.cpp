@@ -31,11 +31,11 @@ static const bool debug_em = false;
 size_t BlockPool::total_ram_limit_ = 500000000lu;
 
 BlockPool::~BlockPool() {
-    assert(total_pins_ == 0);
-    for (size_t& pc : pin_count_)
-        assert(pc == 0);
-    for (size_t& pb : pinned_bytes_)
-        assert(pb == 0);
+    pin_count_.AssertZero();
+
+    LOG1 << "~BlockPool():"
+         << " max_pins=" << pin_count_.max_pins
+         << " max_pinned_bytes=" << pin_count_.max_pinned_bytes;
 }
 
 PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
@@ -51,20 +51,14 @@ PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker
     PinnedByteBlockPtr result(new ByteBlock(data, size, this), local_worker_id);
     IncBlockPinCountNoLock(result.get(), local_worker_id);
 
-    ++pin_count_[local_worker_id];
-    pinned_bytes_[local_worker_id] += size;
-    ++total_pins_;
+    pin_count_.Increment(local_worker_id, size);
 
     LOGC(debug_blc)
         << "BlockPool::AllocateBlock() size=" << size
         << " local_worker_id=" << local_worker_id
         << " total_count=" << block_count()
         << " total_size=" << mem_manager_.total()
-        << " pin_count_[" << local_worker_id << "]="
-        << pin_count_[local_worker_id]
-        << " pinned_bytes_[" << local_worker_id << "]="
-        << pinned_bytes_[local_worker_id]
-        << " ++total_pins_=" << total_pins_;
+        << pin_count_;
 
     return result;
 }
@@ -97,15 +91,12 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         // to get a pin for the new thread.
 
         IncBlockPinCountNoLock(byte_block, local_worker_id);
-
-        ++pin_count_[local_worker_id];
-        pinned_bytes_[local_worker_id] += byte_block->size();
-        ++total_pins_;
+        pin_count_.Increment(local_worker_id, byte_block->size());
 
         LOGC(debug_pin)
             << "BlockPool::PinBlock block=" << &block
             << " already pinned by another thread"
-            << " ++total_pins_=" << total_pins_;
+            << pin_count_;
 
         std::promise<PinnedBlock> result;
         result.set_value(PinnedBlock(block, local_worker_id));
@@ -121,15 +112,12 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         unpinned_blocks_.erase(byte_block);
 
         IncBlockPinCountNoLock(byte_block, local_worker_id);
-
-        ++pin_count_[local_worker_id];
-        pinned_bytes_[local_worker_id] += byte_block->size();
-        ++total_pins_;
+        pin_count_.Increment(local_worker_id, byte_block->size());
 
         LOGC(debug_pin)
             << "BlockPool::PinBlock block=" << &block
             << " pinned from internal memory"
-            << " ++total_pins_=" << total_pins_;
+            << pin_count_;
 
         std::promise<PinnedBlock> result;
         result.set_value(PinnedBlock(block, local_worker_id));
@@ -147,9 +135,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     RequestInternalMemory(lock, byte_block->size());
 
     // the requested memory is already counted as a pin.
-    ++pin_count_[local_worker_id];
-    pinned_bytes_[local_worker_id] += byte_block->size();
-    ++total_pins_;
+    pin_count_.Increment(local_worker_id, byte_block->size());
 
     // initiate reading from EM.
     assert(reading_.find(byte_block) == reading_.end());
@@ -164,7 +150,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     LOGC(debug_em)
         << "BlockPool::PinBlock block=" << &block
         << " requested from external memory"
-        << " ++total_pins_=" << total_pins_;
+        << pin_count_;
 
     read->req =
         byte_block->em_bid_.storage->aread(
@@ -222,10 +208,7 @@ void BlockPool::IncBlockPinCountNoLock(ByteBlock* block_ptr, size_t local_worker
         << " ++block.pin_count[" << local_worker_id << "]="
         << block_ptr->pin_count_[local_worker_id]
         << " ++block.total_pins_=" << block_ptr->total_pins_
-        << " pin_count_[" << local_worker_id << "]="
-        << pin_count_[local_worker_id]
-        << " total_pins_=" << total_pins_
-        << " local_worker_id=" << local_worker_id;
+        << pin_count_;
 }
 
 void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
@@ -253,13 +236,8 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
 
     // decrease per-thread total pin count (memory locked by thread)
     assert(block_ptr->pin_count(local_worker_id) == 0);
-    assert(pin_count_[local_worker_id] > 0);
-    assert(pinned_bytes_[local_worker_id] >= block_ptr->size());
-    assert(total_pins_ > 0);
 
-    --pin_count_[local_worker_id];
-    pinned_bytes_[local_worker_id] -= block_ptr->size();
-    --total_pins_;
+    pin_count_.Decrement(local_worker_id, block_ptr->size());
 
     if (block_ptr->total_pins_ != 0) {
         LOGC(debug_pin)
@@ -280,10 +258,10 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
 
 size_t BlockPool::block_count() const noexcept {
     LOG0 << "BlockPool::block_count()"
-         << " total_pins_" << total_pins_
+         << pin_count_
          << " unpinned_blocks_" << unpinned_blocks_.size()
          << " num_swapped_blocks_" << num_swapped_blocks_;
-    return total_pins_ + unpinned_blocks_.size() + num_swapped_blocks_;
+    return pin_count_.total_pins_ + unpinned_blocks_.size() + num_swapped_blocks_;
 }
 
 void BlockPool::DestroyBlock(ByteBlock* block) {
@@ -341,9 +319,7 @@ void BlockPool::RequestInternalMemory(
         << " writing_bytes_=" << writing_bytes_
         << " requested_bytes_=" << requested_bytes_
         << " total_ram_limit_=" << total_ram_limit_
-        << " pin_count_=[" << common::Join(",", pin_count_) << "]"
-        << " pinned_bytes_=[" << common::Join(",", pinned_bytes_) << "]"
-        << " total_pins_=" << total_pins_;
+        << pin_count_;
 
     while (total_ram_use_ - writing_bytes_ + requested_bytes_ > total_ram_limit_)
     {
@@ -416,6 +392,52 @@ void BlockPool::OnWriteComplete(
     block_ptr->data_ = nullptr;
 
     ReleaseInternalMemory(block_ptr->size());
+}
+
+/******************************************************************************/
+// BlockPool::PinCount
+
+//! ctor: initializes vectors to correct size.
+BlockPool::PinCount::PinCount(size_t workers_per_host)
+    : pin_count_(workers_per_host),
+      pinned_bytes_(workers_per_host) { }
+
+void BlockPool::PinCount::Increment(size_t local_worker_id, size_t size) {
+    ++pin_count_[local_worker_id];
+    pinned_bytes_[local_worker_id] += size;
+    ++total_pins_;
+    total_pinned_bytes_ += size;
+    max_pins = std::max(max_pins, total_pins_);
+    max_pinned_bytes = std::max(max_pinned_bytes, total_pinned_bytes_);
+}
+
+void BlockPool::PinCount::Decrement(size_t local_worker_id, size_t size) {
+    assert(pin_count_[local_worker_id] > 0);
+    assert(pinned_bytes_[local_worker_id] >= size);
+    assert(total_pins_ > 0);
+    assert(total_pinned_bytes_ >= size);
+
+    --pin_count_[local_worker_id];
+    pinned_bytes_[local_worker_id] -= size;
+    --total_pins_;
+    total_pinned_bytes_ -= size;
+}
+
+void BlockPool::PinCount::AssertZero() const {
+    assert(total_pins_ == 0);
+    assert(total_pinned_bytes_ == 0);
+    for (const size_t& pc : pin_count_)
+        assert(pc == 0);
+    for (const size_t& pb : pinned_bytes_)
+        assert(pb == 0);
+}
+
+std::ostream& operator << (std::ostream& os, const BlockPool::PinCount& p) {
+    os << " total_pins_=" << p.total_pins_
+       << " total_pinned_bytes_=" << p.total_pinned_bytes_
+       << " pin_count_=[" << common::Join(',', p.pin_count_) << "]"
+       << " pinned_bytes_=[" << common::Join(',', p.pinned_bytes_) << "]";
+    return os;
 }
 
 } // namespace data
