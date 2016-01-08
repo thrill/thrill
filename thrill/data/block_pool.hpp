@@ -49,7 +49,7 @@ public:
      * memory limitations, never swaps to disk.
      */
     explicit BlockPool(size_t workers_per_host = 1)
-        : BlockPool(0, 0, nullptr, nullptr, workers_per_host)
+        : BlockPool(0, 0, nullptr, workers_per_host)
     { }
 
     /*!
@@ -71,10 +71,8 @@ public:
      */
     BlockPool(size_t soft_memory_limit, size_t hard_memory_limit,
               mem::Manager* mem_manager,
-              mem::Manager* mem_manager_external,
               size_t workers_per_host)
         : mem_manager_(mem_manager, "BlockPool"),
-          ext_mem_manager_(mem_manager_external, "BlockPoolEM"),
           bm_(io::block_manager::get_instance()),
           workers_per_host_(workers_per_host),
           pin_count_(workers_per_host),
@@ -120,10 +118,6 @@ private:
 
     //! local Manager counting only ByteBlock allocations in internal memory.
     mem::Manager mem_manager_;
-
-    //! local Manager counting only ByteBlocks in external memory.
-    mem::Manager ext_mem_manager_;
-
     //! reference to io block manager
     io::block_manager* bm_;
 
@@ -172,9 +166,6 @@ private:
     size_t total_ram_use_ = 0;
     static size_t total_ram_limit_;
 
-    //! For implementing hard limit
-    // std::mutex memory_mutex_;
-
     //! Limits for the block pool. 0 for no limits.
     size_t soft_memory_limit_, hard_memory_limit_;
 
@@ -196,6 +187,14 @@ private:
 
     //! Evict a block into external memory
     void EvictBlock();
+
+    //! callback for async write of blocks during eviction
+    void OnWriteComplete(ByteBlock* block_ptr, io::request* req, bool success);
+
+    //! callback for async read of blocks for pin requests
+    void OnReadComplete(
+        const Block& block, size_t local_worker_id, ReadRequest* read,
+        io::request* req, bool success);
 };
 
 } // namespace data

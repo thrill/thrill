@@ -61,7 +61,7 @@ public:
         : workers_per_host_(workers_per_host),
           net_manager_(std::move(groups)),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-          block_pool_(0, 0, &mem_manager_, &mem_manager_external_, workers_per_host),
+          block_pool_(0, 0, &mem_manager_, workers_per_host),
           data_multiplexer_(mem_manager_,
                             block_pool_, workers_per_host,
                             net_manager_.GetDataGroup())
@@ -93,9 +93,6 @@ public:
 private:
     //! number of workers per host (all have the same).
     size_t workers_per_host_;
-
-    //! host-global memory manager for external memory only
-    mem::Manager mem_manager_external_ { nullptr, "HostContext-External" };
 
     //! host-global memory manager for internal memory only
     mem::Manager mem_manager_ { nullptr, "HostContext" };
