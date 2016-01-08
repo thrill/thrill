@@ -24,7 +24,7 @@
 #include <thrill/io/config_file.hpp>
 #include <thrill/io/create_file.hpp>
 #include <thrill/io/disk_allocator.hpp>
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/request.hpp>
 
 #include <algorithm>
@@ -33,16 +33,12 @@
 #include <string>
 #include <vector>
 
-#if STXXL_MSVC
+#if THRILL_MSVC
 #include <memory.h>
 #endif
 
 namespace thrill {
 namespace io {
-
-#ifndef STXXL_MNG_COUNT_ALLOCATION
-#define STXXL_MNG_COUNT_ALLOCATION 1
-#endif  // STXXL_MNG_COUNT_ALLOCATION
 
 //! \addtogroup mnglayer
 //! \{
@@ -51,36 +47,9 @@ namespace io {
 //!
 //! Manages allocation and deallocation of blocks in multiple/single disk setting
 //! \remarks is a singleton
-class block_manager : public singleton<block_manager>
+class BlockManager : public common::Singleton<BlockManager>
 {
     static const bool debug = false;
-
-    friend class singleton<block_manager>;
-
-    disk_allocator** disk_allocators_;
-    file** disk_files_;
-
-    size_t ndisks_;
-    block_manager();
-
-#if STXXL_MNG_COUNT_ALLOCATION
-    //! total requested allocation in bytes
-    uint64_t total_allocation_;
-
-    //! currently allocated bytes
-    uint64_t current_allocation_;
-
-    //! maximum number of bytes allocated during program run.
-    uint64_t maximum_allocation_;
-#endif      // STXXL_MNG_COUNT_ALLOCATION
-
-protected:
-    template <class BIDType, class DiskAssignFunctor, class BIDIteratorClass>
-    void new_blocks_int(
-        const size_t nblocks,
-        const DiskAssignFunctor& functor,
-        size_t offset,
-        BIDIteratorClass out);
 
 public:
     //! return total number of bytes available in all disks
@@ -151,32 +120,57 @@ public:
     //! \param bidend iterator object of \b bid_iterator concept
     template <class BIDIteratorClass>
     void delete_blocks(
-        const BIDIteratorClass& bid_begin, const BIDIteratorClass& bid_end);
+        const BIDIteratorClass& bid_begin, const BIDIteratorClass& bid_end) {
+        for (BIDIteratorClass it = bid_begin; it != bid_end; it++)
+            delete_block(*it);
+    }
 
     //! Deallocates a block.
     //! \param bid block identifier
     template <size_t BlockSize>
     void delete_block(const BID<BlockSize>& bid);
 
-    ~block_manager();
+    ~BlockManager();
 
-#if STXXL_MNG_COUNT_ALLOCATION
     //! return total requested allocation in bytes
-    uint64_t get_total_allocation() const
+    uint64_t total_allocation() const
     { return total_allocation_; }
 
     //! return currently allocated bytes
-    uint64_t get_current_allocation() const
+    uint64_t current_allocation() const
     { return current_allocation_; }
 
     //! return maximum number of bytes allocated during program run.
-    uint64_t get_maximum_allocation() const
+    uint64_t maximum_allocation() const
     { return maximum_allocation_; }
-#endif      // STXXL_MNG_COUNT_ALLOCATION
+
+protected:
+    template <class BIDType, class DiskAssignFunctor, class BIDIteratorClass>
+    void new_blocks_int(
+        const size_t nblocks, const DiskAssignFunctor& functor,
+        size_t offset, BIDIteratorClass out);
+
+private:
+    friend class common::Singleton<BlockManager>;
+
+    DiskAllocator** disk_allocators_;
+    FileBase** disk_files_;
+
+    size_t ndisks_;
+    BlockManager();
+
+    //! total requested allocation in bytes
+    uint64_t total_allocation_;
+
+    //! currently allocated bytes
+    uint64_t current_allocation_;
+
+    //! maximum number of bytes allocated during program run.
+    uint64_t maximum_allocation_;
 };
 
 template <class BIDType, class DiskAssignFunctor, class OutputIterator>
-void block_manager::new_blocks_int(
+void BlockManager::new_blocks_int(
     const size_t nblocks,
     const DiskAssignFunctor& functor,
     size_t offset,
@@ -186,8 +180,8 @@ void block_manager::new_blocks_int(
     for (size_t i = 0; i != nblocks; ++i, ++it)
     {
         size_t disk_id;
-        file* disk_file;
-        disk_allocator* disk_alloc;
+        FileBase* disk_file;
+        DiskAllocator* disk_alloc;
 
         for (size_t retry = 0; retry < 100; ++retry) {
             // choose disk by calling DiskAssignFunctor
@@ -207,21 +201,17 @@ void block_manager::new_blocks_int(
         disk_alloc->new_blocks(it, it + 1);
         LOG0 << "BLC:new    " << *it;
 
-#if STXXL_MNG_COUNT_ALLOCATION
         total_allocation_ += it->size;
         current_allocation_ += it->size;
-#endif          // STXXL_MNG_COUNT_ALLOCATION
     }
 
-#if STXXL_MNG_COUNT_ALLOCATION
     maximum_allocation_ = std::max(maximum_allocation_, current_allocation_);
-#endif      // STXXL_MNG_COUNT_ALLOCATION
 }
 
 template <size_t BlockSize>
-void block_manager::delete_block(const BID<BlockSize>& bid) {
+void BlockManager::delete_block(const BID<BlockSize>& bid) {
     if (!bid.valid()) {
-        // STXXL_MSG("Warning: invalid block to be deleted.");
+        // THRILL_MSG("Warning: invalid block to be deleted.");
         return;
     }
     if (!bid.is_managed())
@@ -231,24 +221,12 @@ void block_manager::delete_block(const BID<BlockSize>& bid) {
     disk_allocators_[bid.storage->get_allocator_id()]->delete_block(bid);
     disk_files_[bid.storage->get_allocator_id()]->discard(bid.offset, bid.size);
 
-#if STXXL_MNG_COUNT_ALLOCATION
     current_allocation_ -= BlockSize;
-#endif      // STXXL_MNG_COUNT_ALLOCATION
-}
-
-template <class BIDIteratorClass>
-void block_manager::delete_blocks(
-    const BIDIteratorClass& bidbegin,
-    const BIDIteratorClass& bidend) {
-    for (BIDIteratorClass it = bidbegin; it != bidend; it++)
-    {
-        delete_block(*it);
-    }
 }
 
 // in bytes
-#ifndef STXXL_DEFAULT_BLOCK_SIZE
-    #define STXXL_DEFAULT_BLOCK_SIZE(type) (2 * 1024 * 1024) // use traits
+#ifndef THRILL_DEFAULT_BLOCK_SIZE
+    #define THRILL_DEFAULT_BLOCK_SIZE(type) (2 * 1024 * 1024) // use traits
 #endif
 
 //! \}

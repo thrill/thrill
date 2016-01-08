@@ -35,15 +35,15 @@ namespace io {
 //! \addtogroup reqlayer
 //! \{
 
-class file;
-class request;
+class FileBase;
+class Request;
 
-using completion_handler = common::delegate<void(request*, bool)>;
+using CompletionHandler = common::delegate<void(Request*, bool)>;
 
 //! Request object encapsulating basic properties like file and offset.
-class request : public common::ReferenceCount
+class Request : public common::ReferenceCount
 {
-    friend class linuxaio_queue;
+    friend class LinuxaioQueue;
 
 public:
     //! type for offsets within a file
@@ -56,15 +56,15 @@ public:
 protected:
     static const bool debug = false;
 
-    completion_handler on_complete_;
-    std::unique_ptr<io_error> error_;
+    CompletionHandler on_complete_;
+    std::unique_ptr<IoError> error_;
 
 protected:
     //! \name Base Parameter of an I/O Request
     //! \{
 
     //! file implementation to perform I/O with
-    io::file* file_;
+    io::FileBase* file_;
     //! data buffer to transfer
     void* buffer_;
     //! offset within file
@@ -78,29 +78,29 @@ protected:
 
 public:
     //! ctor: initialize
-    request(const completion_handler& on_complete,
-            file* file,
+    Request(const CompletionHandler& on_complete,
+            FileBase* file,
             void* buffer,
             offset_type offset,
             size_type bytes,
             ReadOrWriteType type);
 
     //! non-copyable: delete copy-constructor
-    request(const request&) = delete;
+    Request(const Request&) = delete;
     //! non-copyable: delete assignment operator
-    request& operator = (const request&) = delete;
+    Request& operator = (const Request&) = delete;
     //! move-constructor: default
-    request(request&&) = default;
+    Request(Request&&) = default;
     //! move-assignment operator: default
-    request& operator = (request&&) = default;
+    Request& operator = (Request&&) = default;
 
-    virtual ~request();
+    virtual ~Request();
 
 public:
     //! \name Accessors
     //! \{
 
-    io::file * file() const { return file_; }
+    io::FileBase * file() const { return file_; }
     void * buffer() const { return buffer_; }
     offset_type offset() const { return offset_; }
     size_type bytes() const { return bytes_; }
@@ -114,11 +114,11 @@ public:
     //! Inform the request object that an error occurred during the I/O
     //! execution.
     void save_error(const std::string& msg) {
-        error_.reset(new io_error(msg));
+        error_.reset(new IoError(msg));
     }
 
     //! return error if one occured
-    io_error * error() const { return error_.get(); }
+    IoError * error() const { return error_.get(); }
 
     //! Rises an exception if there was an error with the I/O.
     void check_error() {
@@ -208,12 +208,12 @@ private:
 };
 
 static inline
-std::ostream& operator << (std::ostream& out, const request& req) {
+std::ostream& operator << (std::ostream& out, const Request& req) {
     return req.print(out);
 }
 
 //! A reference counting pointer for \c request.
-using request_ptr = common::CountingPtr<request>;
+using RequestPtr = common::CountingPtr<Request>;
 
 //! \}
 

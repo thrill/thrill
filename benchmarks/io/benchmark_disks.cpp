@@ -60,18 +60,18 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
     bool do_write = (optrw.find('w') != std::string::npos);
 
     // initialize disk configuration
-    io::block_manager::get_instance();
+    io::BlockManager::get_instance();
 
     // construct block type
 
     const size_t raw_block_size = RawBlockSize;
     const size_t block_size = raw_block_size / sizeof(int);
 
-    using block_type = io::typed_block<raw_block_size, unsigned>;
+    using block_type = io::TypedBlock<raw_block_size, unsigned>;
     using BID_type = io::BID<raw_block_size>;
 
     if (batch_size == 0)
-        batch_size = io::config::get_instance()->disks_number();
+        batch_size = io::Config::get_instance()->disks_number();
 
     // calculate total bytes processed in a batch
     batch_size = raw_block_size * batch_size;
@@ -80,7 +80,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
     batch_size = num_blocks_per_batch * raw_block_size;
 
     block_type* buffer = new block_type[num_blocks_per_batch];
-    io::request_ptr* reqs = new io::request_ptr[num_blocks_per_batch];
+    io::RequestPtr* reqs = new io::RequestPtr[num_blocks_per_batch];
     std::vector<BID_type> blocks;
     double totaltimeread = 0, totaltimewrite = 0;
     uint64_t totalsizeread = 0, totalsizewrite = 0;
@@ -112,7 +112,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
 
             size_t num_total_blocks = blocks.size();
             blocks.resize(num_total_blocks + current_num_blocks_per_batch);
-            io::block_manager::get_instance()->new_blocks(alloc, blocks.begin() + num_total_blocks, blocks.end());
+            io::BlockManager::get_instance()->new_blocks(alloc, blocks.begin() + num_total_blocks, blocks.end());
 
             if (offset < start_offset)
                 continue;
@@ -290,7 +290,7 @@ int main(int argc, char* argv[]) {
             return benchmark_disks_alloc<io::FR>(
                 length, offset, batch_size, block_size, optrw);
         if (allocstr == "striping")
-            return benchmark_disks_alloc<io::striping>(
+            return benchmark_disks_alloc<io::Striping>(
                 length, offset, batch_size, block_size, optrw);
 
         std::cout << "Unknown allocation strategy '" << allocstr << "'" << std::endl;
@@ -298,7 +298,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    return benchmark_disks_alloc<STXXL_DEFAULT_ALLOC_STRATEGY>(
+    return benchmark_disks_alloc<THRILL_DEFAULT_ALLOC_STRATEGY>(
         length, offset, batch_size, block_size, optrw);
 }
 

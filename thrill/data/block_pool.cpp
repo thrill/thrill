@@ -11,7 +11,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_pool.hpp>
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/mem/aligned_alloc.hpp>
 
 #include <limits>
@@ -156,7 +156,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         byte_block->em_bid_.storage->aread(
             read->data, byte_block->em_bid_.offset, byte_block->size(),
             [this, block, local_worker_id, read](
-                io::request* req, bool success) {
+                io::Request* req, bool success) {
                 return OnReadComplete(block, local_worker_id, read,
                                       req, success);
             });
@@ -166,7 +166,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
 
 void BlockPool::OnReadComplete(
     const Block& block, size_t local_worker_id, ReadRequest* read,
-    io::request* req, bool success) {
+    io::Request* req, bool success) {
     std::unique_lock<std::mutex> lock(mutex_);
 
     LOGC(debug_em)
@@ -354,7 +354,7 @@ void BlockPool::EvictBlock() {
 
     // allocate EM block
     block_ptr->em_bid_.size = block_ptr->size();
-    bm_->new_block(io::striping(), block_ptr->em_bid_);
+    bm_->new_block(io::Striping(), block_ptr->em_bid_);
 
     LOGC(debug_em)
         << "EvictBlock(): " << block_ptr << " - " << *block_ptr
@@ -366,13 +366,13 @@ void BlockPool::EvictBlock() {
     writing_[block_ptr] =
         block_ptr->em_bid_.storage->awrite(
             block_ptr->data_, block_ptr->em_bid_.offset, block_ptr->size(),
-            [this, block_ptr](io::request* req, bool success) {
+            [this, block_ptr](io::Request* req, bool success) {
                 return OnWriteComplete(block_ptr, req, success);
             });
 }
 
 void BlockPool::OnWriteComplete(
-    ByteBlock* block_ptr, io::request* req, bool success) {
+    ByteBlock* block_ptr, io::Request* req, bool success) {
     std::unique_lock<std::mutex> lock(mutex_);
 
     LOGC(debug_em)

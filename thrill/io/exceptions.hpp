@@ -27,26 +27,26 @@ namespace io {
 //! \addtogroup reqlayer
 //! \{
 
-class io_error : public std::ios_base::failure
+class IoError : public std::ios_base::failure
 {
 public:
-    io_error() noexcept
+    IoError() noexcept
         : std::ios_base::failure(std::string())
     { }
 
-    explicit io_error(const std::string& message) noexcept
+    explicit IoError(const std::string& message) noexcept
         : std::ios_base::failure(message)
     { }
 };
 
-class bad_ext_alloc : public std::runtime_error
+class BadExternalAlloc : public std::runtime_error
 {
 public:
-    bad_ext_alloc() noexcept
+    BadExternalAlloc() noexcept
         : std::runtime_error(std::string())
     { }
 
-    explicit bad_ext_alloc(const std::string& message) noexcept
+    explicit BadExternalAlloc(const std::string& message) noexcept
         : std::runtime_error(message)
     { }
 };

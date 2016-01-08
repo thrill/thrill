@@ -13,35 +13,35 @@
 
 #include <thrill/io/disk_queued_file.hpp>
 #include <thrill/io/disk_queues.hpp>
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/request.hpp>
 #include <thrill/io/serving_request.hpp>
 
 namespace thrill {
 namespace io {
 
-request_ptr disk_queued_file::aread(
+RequestPtr DiskQueuedFile::aread(
     void* buffer,
     offset_type pos,
     size_type bytes,
-    const completion_handler& on_cmpl) {
-    request_ptr req(new serving_request(on_cmpl, this, buffer, pos, bytes,
-                                        request::READ));
+    const CompletionHandler& on_cmpl) {
+    RequestPtr req(new ServingRequest(on_cmpl, this, buffer, pos, bytes,
+                                      Request::READ));
 
-    disk_queues::get_instance()->add_request(req, get_queue_id());
+    DiskQueues::get_instance()->add_request(req, get_queue_id());
 
     return req;
 }
 
-request_ptr disk_queued_file::awrite(
+RequestPtr DiskQueuedFile::awrite(
     void* buffer,
     offset_type pos,
     size_type bytes,
-    const completion_handler& on_cmpl) {
-    request_ptr req(new serving_request(on_cmpl, this, buffer, pos, bytes,
-                                        request::WRITE));
+    const CompletionHandler& on_cmpl) {
+    RequestPtr req(new ServingRequest(on_cmpl, this, buffer, pos, bytes,
+                                      Request::WRITE));
 
-    disk_queues::get_instance()->add_request(req, get_queue_id());
+    DiskQueues::get_instance()->add_request(req, get_queue_id());
 
     return req;
 }

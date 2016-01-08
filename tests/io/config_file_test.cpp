@@ -21,7 +21,7 @@ using namespace thrill;
 TEST(IO_ConfigFile, Test1) {
     // test disk_config parser:
 
-    io::disk_config cfg;
+    io::DiskConfig cfg;
 
     cfg.parse_line("disk=/var/tmp/stxxl.tmp, 100 GiB , syscall unlink direct=on");
 
@@ -37,7 +37,7 @@ TEST(IO_ConfigFile, Test1) {
     die_unequal(cfg.size, 100 * 1024 * uint64_t(1024));
     die_unequal(cfg.fileio_string(), "wincall delete_on_exit direct=on queue=5");
     die_unequal(cfg.queue, 5);
-    die_unequal(cfg.direct, io::disk_config::DIRECT_ON);
+    die_unequal(cfg.direct, io::DiskConfig::DIRECT_ON);
 
     // bad configurations
 
@@ -50,18 +50,18 @@ TEST(IO_ConfigFile, Test1) {
         std::runtime_error);
 }
 
-#if !STXXL_WINDOWS
+#if !THRILL_WINDOWS
 
 TEST(IO_ConfigFile, Test2) {
     // test user-supplied configuration
 
-    io::config* config = io::config::get_instance();
+    io::Config* config = io::Config::get_instance();
 
     {
-        io::disk_config disk1("/tmp/stxxl-1.tmp", 100 * 1024 * 1024,
-                              "syscall");
+        io::DiskConfig disk1("/tmp/stxxl-1.tmp", 100 * 1024 * 1024,
+                             "syscall");
         disk1.unlink_on_open = true;
-        disk1.direct = io::disk_config::DIRECT_OFF;
+        disk1.direct = io::DiskConfig::DIRECT_OFF;
 
         die_unequal(disk1.path, "/tmp/stxxl-1.tmp");
         die_unequal(disk1.size, 100 * 1024 * uint64_t(1024));
@@ -71,8 +71,8 @@ TEST(IO_ConfigFile, Test2) {
 
         config->add_disk(disk1);
 
-        io::disk_config disk2("/tmp/stxxl-2.tmp", 200 * 1024 * 1024,
-                              "syscall autogrow=no direct=off");
+        io::DiskConfig disk2("/tmp/stxxl-2.tmp", 200 * 1024 * 1024,
+                             "syscall autogrow=no direct=off");
         disk2.unlink_on_open = true;
 
         die_unequal(disk2.path, "/tmp/stxxl-2.tmp");
@@ -89,7 +89,7 @@ TEST(IO_ConfigFile, Test2) {
 
     // construct block_manager with user-supplied config
 
-    io::block_manager* bm = io::block_manager::get_instance();
+    io::BlockManager* bm = io::BlockManager::get_instance();
 
     die_unequal(bm->get_total_bytes(), 300 * 1024 * 1024);
     die_unequal(bm->get_free_bytes(), 300 * 1024 * 1024);

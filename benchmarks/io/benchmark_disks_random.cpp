@@ -38,7 +38,7 @@ struct print_number
 
     explicit print_number(int n) : n(n) { }
 
-    void operator () (io::request*, bool /* success */) {
+    void operator () (io::Request*, bool /* success */) {
         // std::cout << n << " " << std::flush;
     }
 };
@@ -49,7 +49,7 @@ template <unsigned BlockSize, typename AllocStrategy>
 void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool do_write) {
     const unsigned raw_block_size = BlockSize;
 
-    using block_type = io::typed_block<raw_block_size, unsigned>;
+    using block_type = io::TypedBlock<raw_block_size, unsigned>;
     using BID_type = io::BID<raw_block_size>;
 
     size_t num_blocks =
@@ -63,7 +63,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
     worksize = num_blocks * raw_block_size;
 
     block_type* buffer = new block_type;
-    io::request_ptr* reqs = new io::request_ptr[num_blocks_in_span];
+    io::RequestPtr* reqs = new io::RequestPtr[num_blocks_in_span];
     std::vector<BID_type> blocks;
 
     // touch data, so it is actually allocated
@@ -74,7 +74,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
         AllocStrategy alloc;
 
         blocks.resize(num_blocks_in_span);
-        io::block_manager::get_instance()->new_blocks(alloc, blocks.begin(), blocks.end());
+        io::BlockManager::get_instance()->new_blocks(alloc, blocks.begin(), blocks.end());
 
         std::cout << "# Span size: "
                   << io::add_IEC_binary_multiplier(span, "B") << " ("
@@ -148,7 +148,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
     delete[] reqs;
     delete buffer;
 
-    io::block_manager::get_instance()->delete_blocks(blocks.begin(), blocks.end());
+    io::BlockManager::get_instance()->delete_blocks(blocks.begin(), blocks.end());
 }
 
 template <typename AllocStrategy>
@@ -243,14 +243,14 @@ int main(int argc, char* argv[]) {
         if (allocstr == "FR")
             return run_alloc(io::FR);
         if (allocstr == "striping")
-            return run_alloc(io::striping);
+            return run_alloc(io::Striping);
 
         std::cout << "Unknown allocation strategy '" << allocstr << "'" << std::endl;
         cp.PrintUsage();
         return -1;
     }
 
-    return run_alloc(STXXL_DEFAULT_ALLOC_STRATEGY);
+    return run_alloc(THRILL_DEFAULT_ALLOC_STRATEGY);
 #undef run_alloc
 }
 

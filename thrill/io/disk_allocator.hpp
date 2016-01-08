@@ -21,7 +21,7 @@
 #include <thrill/io/bid.hpp>
 #include <thrill/io/config_file.hpp>
 #include <thrill/io/error_handling.hpp>
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -37,16 +37,16 @@ namespace io {
 //! \ingroup mnglayer
 //! \{
 
-class disk_allocator
+class DiskAllocator
 {
     static const bool debug = false;
 
-    using place = std::pair<int64_t, int64_t>;
+    using Place = std::pair<int64_t, int64_t>;
 
-    struct first_fit : public std::binary_function<place, int64_t, bool>
+    struct FirstFit : public std::binary_function<Place, int64_t, bool>
     {
         bool operator () (
-            const place& entry,
+            const Place& entry,
             const int64_t size) const {
             return (entry.second >= size);
         }
@@ -59,7 +59,7 @@ class disk_allocator
     int64_t free_bytes_;
     int64_t disk_bytes_;
     int64_t cfg_bytes_;
-    file* storage_;
+    FileBase* storage_;
     bool autogrow_;
 
     void dump() const;
@@ -82,7 +82,7 @@ class disk_allocator
     }
 
 public:
-    disk_allocator(file* storage, const disk_config& cfg)
+    DiskAllocator(FileBase* storage, const DiskConfig& cfg)
         : free_bytes_(0),
           disk_bytes_(0),
           cfg_bytes_(cfg.size),
@@ -93,11 +93,11 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    disk_allocator(const disk_allocator&) = delete;
+    DiskAllocator(const DiskAllocator&) = delete;
     //! non-copyable: delete assignment operator
-    disk_allocator& operator = (const disk_allocator&) = delete;
+    DiskAllocator& operator = (const DiskAllocator&) = delete;
 
-    ~disk_allocator() {
+    ~DiskAllocator() {
         if (disk_bytes_ > cfg_bytes_) { // reduce to original size
             storage_->set_size(cfg_bytes_);
         }
@@ -144,7 +144,7 @@ public:
 };
 
 template <typename BidIterator>
-void disk_allocator::new_blocks(BidIterator begin, BidIterator end) {
+void DiskAllocator::new_blocks(BidIterator begin, BidIterator end) {
     uint64_t requested_size = 0;
     static const bool debug = false;
 
@@ -169,10 +169,10 @@ void disk_allocator::new_blocks(BidIterator begin, BidIterator end) {
     if (free_bytes_ < (int64_t)requested_size)
     {
         if (!autogrow_) {
-            STXXL_THROW(bad_ext_alloc,
-                        "Out of external memory error: " << requested_size <<
-                        " requested, " << free_bytes_ << " bytes free. "
-                        "Maybe enable autogrow flags?");
+            THRILL_THROW(BadExternalAlloc,
+                         "Out of external memory error: " << requested_size <<
+                         " requested, " << free_bytes_ << " bytes free. "
+                         "Maybe enable autogrow flags?");
         }
 
         LOG << "External memory block allocation error: " << requested_size <<
@@ -186,7 +186,7 @@ void disk_allocator::new_blocks(BidIterator begin, BidIterator end) {
 
     SortSeq::iterator space;
     space = std::find_if(free_space_.begin(), free_space_.end(),
-                         bind2nd(first_fit(), requested_size));
+                         bind2nd(FirstFit(), requested_size));
 
     if (space == free_space_.end() && requested_size == block_size)
     {
@@ -204,7 +204,7 @@ void disk_allocator::new_blocks(BidIterator begin, BidIterator end) {
         grow_file(block_size);
 
         space = std::find_if(free_space_.begin(), free_space_.end(),
-                             bind2nd(first_fit(), requested_size));
+                             bind2nd(FirstFit(), requested_size));
     }
 
     if (space != free_space_.end())

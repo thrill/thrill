@@ -21,11 +21,11 @@
 #include <cassert>
 #include <cstdlib>
 
-#ifndef STXXL_VERBOSE_ALIGNED_ALLOC
-#define STXXL_VERBOSE_ALIGNED_ALLOC STXXL_VERBOSE2
+#ifndef THRILL_VERBOSE_ALIGNED_ALLOC
+#define THRILL_VERBOSE_ALIGNED_ALLOC THRILL_VERBOSE2
 #endif
 
-#define STXXL_DEFAULT_ALIGN 4096
+#define THRILL_DEFAULT_ALIGN 4096
 
 namespace thrill {
 namespace mem {
@@ -56,7 +56,7 @@ inline void * aligned_alloc_base(size_t size, size_t meta_info_size = 0) {
     LOG << "aligned_alloc<" << Alignment << ">(), size = " << size
         << ", meta info size = " << meta_info_size;
 
-#if !defined(STXXL_WASTE_MORE_MEMORY_FOR_IMPROVED_ACCESS_AFTER_ALLOCATED_MEMORY_CHECKS)
+#if !defined(THRILL_WASTE_MORE_MEMORY_FOR_IMPROVED_ACCESS_AFTER_ALLOCATED_MEMORY_CHECKS)
     // malloc()/realloc() variant that frees the unused amount of memory
     // after the data area of size 'size'. realloc() from valgrind does not
     // preserve the old memory area when shrinking, so out-of-bounds
@@ -80,7 +80,7 @@ inline void * aligned_alloc_base(size_t size, size_t meta_info_size = 0) {
 #endif
     if (buffer == nullptr)
         throw std::bad_alloc();
-#ifdef STXXL_ALIGNED_CALLOC
+#ifdef THRILL_ALIGNED_CALLOC
     memset(buffer, 0, alloc_size);
 #endif
     char* reserve_buffer = buffer + sizeof(char*) + meta_info_size;
@@ -132,12 +132,12 @@ aligned_dealloc_base(void* ptr) {
 
 static inline
 void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
-    return aligned_alloc_base<STXXL_DEFAULT_ALIGN>(size, meta_info_size);
+    return aligned_alloc_base<THRILL_DEFAULT_ALIGN>(size, meta_info_size);
 }
 
 static inline void
 aligned_dealloc(void* ptr) {
-    return aligned_dealloc_base<STXXL_DEFAULT_ALIGN>(ptr);
+    return aligned_dealloc_base<THRILL_DEFAULT_ALIGN>(ptr);
 }
 
 } // namespace mem

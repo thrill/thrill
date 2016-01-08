@@ -13,7 +13,7 @@
  ******************************************************************************/
 
 #include <thrill/common/cmdline_parser.hpp>
-#include <thrill/io/file.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/mmap_file.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/syscall_file.hpp>
@@ -30,7 +30,7 @@ static const bool debug = true;
 
 struct my_handler
 {
-    void operator () (io::request* ptr, bool /* success */) {
+    void operator () (io::Request* ptr, bool /* success */) {
         LOG1 << "Request completed: " << ptr;
     }
 };
@@ -51,14 +51,14 @@ int main(int argc, char** argv) {
     char* buffer = static_cast<char*>(mem::aligned_alloc(size));
     memset(buffer, 0, size);
 
-#if STXXL_HAVE_MMAP_FILE
-    io::mmap_file file1(tempfilename[0], io::file::CREAT | io::file::RDWR | io::file::DIRECT, 0);
+#if THRILL_HAVE_MMAP_FILE
+    io::MmapFile file1(tempfilename[0], io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT, 0);
     file1.set_size(size * 1024);
 #endif
 
-    io::syscall_file file2(tempfilename[1], io::file::CREAT | io::file::RDWR | io::file::DIRECT, 1);
+    io::SyscallFile file2(tempfilename[1], io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT, 1);
 
-    std::vector<io::request_ptr> req(16);
+    std::vector<io::RequestPtr> req(16);
     unsigned i;
     for (i = 0; i < 16; i++)
         req[i] = file2.awrite(buffer, i * size, size, my_handler());
@@ -75,9 +75,9 @@ int main(int argc, char** argv) {
 
     mem::aligned_dealloc(buffer);
 
-    std::cout << *(io::stats::get_instance());
+    std::cout << *(io::Stats::get_instance());
 
-#if STXXL_HAVE_MMAP_FILE
+#if THRILL_HAVE_MMAP_FILE
     file1.close_remove();
 #endif
 

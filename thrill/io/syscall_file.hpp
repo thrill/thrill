@@ -30,7 +30,7 @@ namespace io {
 //! \{
 
 //! Implementation of file based on UNIX syscalls.
-class syscall_file final : public ufs_file_base, public disk_queued_file
+class SyscallFile final : public UfsFileBase, public DiskQueuedFile
 {
 public:
     //! Constructs file object.
@@ -39,18 +39,18 @@ public:
     //! \param queue_id disk queue identifier
     //! \param allocator_id linked disk_allocator
     //! \param device_id physical device identifier
-    syscall_file(
+    SyscallFile(
         const std::string& filename,
         int mode,
         int queue_id = DEFAULT_QUEUE,
         int allocator_id = NO_ALLOCATOR,
         unsigned int device_id = DEFAULT_DEVICE_ID)
-        : file(device_id),
-          ufs_file_base(filename, mode),
-          disk_queued_file(queue_id, allocator_id)
+        : FileBase(device_id),
+          UfsFileBase(filename, mode),
+          DiskQueuedFile(queue_id, allocator_id)
     { }
     void serve(void* buffer, offset_type offset, size_type bytes,
-               request::ReadOrWriteType type) final;
+               Request::ReadOrWriteType type) final;
     const char * io_type() const final;
 };
 

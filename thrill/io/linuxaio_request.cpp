@@ -14,7 +14,7 @@
 
 #include <thrill/io/linuxaio_request.hpp>
 
-#if STXXL_HAVE_LINUXAIO_FILE
+#if THRILL_HAVE_LINUXAIO_FILE
 
 #include <thrill/io/disk_queues.hpp>
 #include <thrill/io/error_handling.hpp>
@@ -25,33 +25,33 @@
 namespace thrill {
 namespace io {
 
-void linuxaio_request::completed(bool posted, bool canceled) {
+void LinuxaioRequest::completed(bool posted, bool canceled) {
     LOG << "linuxaio_request[" << this << "] completed("
         << posted << "," << canceled << ")";
 
     if (!canceled)
     {
         if (type_ == READ)
-            stats::get_instance()->read_finished();
+            Stats::get_instance()->read_finished();
         else
-            stats::get_instance()->write_finished();
+            Stats::get_instance()->write_finished();
     }
     else if (posted)
     {
         if (type_ == READ)
-            stats::get_instance()->read_canceled(bytes_);
+            Stats::get_instance()->read_canceled(bytes_);
         else
-            stats::get_instance()->write_canceled(bytes_);
+            Stats::get_instance()->write_canceled(bytes_);
     }
-    request::completed(canceled);
+    Request::completed(canceled);
 }
 
-void linuxaio_request::fill_control_block() {
-    linuxaio_file* af = dynamic_cast<linuxaio_file*>(file_);
+void LinuxaioRequest::fill_control_block() {
+    LinuxaioFile* af = dynamic_cast<LinuxaioFile*>(file_);
 
     memset(&cb, 0, sizeof(cb));
     // indirection, so the I/O system retains a counting_ptr reference
-    cb.aio_data = reinterpret_cast<__u64>(new request_ptr(this));
+    cb.aio_data = reinterpret_cast<__u64>(new RequestPtr(this));
     cb.aio_fildes = af->file_des;
     cb.aio_lio_opcode = (type_ == READ) ? IOCB_CMD_PREAD : IOCB_CMD_PWRITE;
     cb.aio_reqprio = 0;
@@ -62,7 +62,7 @@ void linuxaio_request::fill_control_block() {
 
 //! Submits an I/O request to the OS
 //! \returns false if submission fails
-bool linuxaio_request::post() {
+bool LinuxaioRequest::post() {
     LOG << "linuxaio_request[" << this << "] post()";
 
     fill_control_block();
@@ -70,19 +70,19 @@ bool linuxaio_request::post() {
     // io_submit might considerable time, so we have to remember the current
     // time before the call.
     double now = timestamp();
-    linuxaio_queue* queue = dynamic_cast<linuxaio_queue*>(
-        disk_queues::get_instance()->get_queue(file_->get_queue_id()));
+    LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
+        DiskQueues::get_instance()->get_queue(file_->get_queue_id()));
     long success = syscall(SYS_io_submit, queue->get_io_context(), 1, &cb_pointer);
     if (success == 1)
     {
         if (type_ == READ)
-            stats::get_instance()->read_started(bytes_, now);
+            Stats::get_instance()->read_started(bytes_, now);
         else
-            stats::get_instance()->write_started(bytes_, now);
+            Stats::get_instance()->write_started(bytes_, now);
     }
     else if (success == -1 && errno != EAGAIN)
-        STXXL_THROW_ERRNO(io_error, "linuxaio_request::post"
-                          " io_submit()");
+        THRILL_THROW_ERRNO(IoError, "linuxaio_request::post"
+                           " io_submit()");
 
     return success == 1;
 }
@@ -90,26 +90,26 @@ bool linuxaio_request::post() {
 //! Cancel the request
 //!
 //! Routine is called by user, as part of the request interface.
-bool linuxaio_request::cancel() {
+bool LinuxaioRequest::cancel() {
     LOG1 << "linuxaio_request[" << this << "] cancel()";
 
     if (!file_) return false;
 
-    request_ptr req(this);
-    linuxaio_queue* queue = dynamic_cast<linuxaio_queue*>(
-        disk_queues::get_instance()->get_queue(file_->get_queue_id()));
+    RequestPtr req(this);
+    LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
+        DiskQueues::get_instance()->get_queue(file_->get_queue_id()));
     return queue->cancel_request(req);
 }
 
 //! Cancel already posted request
-bool linuxaio_request::cancel_aio() {
+bool LinuxaioRequest::cancel_aio() {
     LOG1 << "linuxaio_request[" << this << "] cancel_aio()";
 
     if (!file_) return false;
 
     io_event event;
-    linuxaio_queue* queue = dynamic_cast<linuxaio_queue*>(
-        disk_queues::get_instance()->get_queue(file_->get_queue_id()));
+    LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
+        DiskQueues::get_instance()->get_queue(file_->get_queue_id()));
     long result = syscall(SYS_io_cancel, queue->get_io_context(), &cb, &event);
     if (result == 0)    //successfully canceled
         queue->handle_events(&event, 1, true);
@@ -119,6 +119,6 @@ bool linuxaio_request::cancel_aio() {
 } // namespace io
 } // namespace thrill
 
-#endif // #if STXXL_HAVE_LINUXAIO_FILE
+#endif // #if THRILL_HAVE_LINUXAIO_FILE
 
 /******************************************************************************/

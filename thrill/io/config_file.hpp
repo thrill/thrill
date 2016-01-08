@@ -33,7 +33,7 @@ namespace io {
 
 //! Encapsulate the configuration of one "disk". The disk is actually a file
 //! I/O object which block_manager uses to read/write blocks.
-class disk_config
+class DiskConfig
 {
 public:
     //! \name Basic Disk Configuration Parameters
@@ -52,13 +52,13 @@ public:
 
 public:
     //! default constructor
-    disk_config();
+    DiskConfig();
 
     //! initializing constructor, also parses fileio parameter
-    disk_config(const std::string& path, uint64_t size, const std::string& fileio);
+    DiskConfig(const std::string& path, uint64_t size, const std::string& fileio);
 
     //! initializing constructor, parse full line as in config files
-    explicit disk_config(const std::string& line);
+    explicit DiskConfig(const std::string& line);
 
     //! parse a disk=\<path>,\<size>,\<fileio> options line into disk_config,
     //! throws std::runtime_error on parse errors.
@@ -111,13 +111,13 @@ public:
 //! Access point to disks properties. Since 1.4.0: no config files are read
 //! automatically!
 //! \remarks is a singleton
-class config : public singleton<config>
+class Config : public common::Singleton<Config>
 {
     static const bool debug = true;
-    friend class singleton<config>;
+    friend class common::Singleton<Config>;
 
     //! typedef of list of configured disks
-    using disk_list_type = std::vector<disk_config>;
+    using disk_list_type = std::vector<DiskConfig>;
 
     //! list of configured disks
     disk_list_type disks_list;
@@ -130,12 +130,12 @@ class config : public singleton<config>
 
     //! Constructor: this must be inlined to print the header version
     //! string.
-    config()
+    Config()
         : is_initialized(false)
     { }
 
     //! deletes autogrow files
-    ~config();
+    ~Config();
 
     //! Search several places for a config file.
     void find_config();
@@ -165,7 +165,7 @@ public:
     //!
     //! \warning This function should only be used during initialization, as it
     //! has no effect after construction of block_manager.
-    config & add_disk(const disk_config& cfg) {
+    Config & add_disk(const DiskConfig& cfg) {
         disks_list.push_back(cfg);
         return *this;
     }
@@ -217,13 +217,13 @@ public:
     }
 
     //! Returns mutable disk_config structure for additional disk parameters
-    disk_config & disk(size_t disk) {
+    DiskConfig & disk(size_t disk) {
         check_initialized();
         return disks_list[disk];
     }
 
     //! Returns constant disk_config structure for additional disk parameters
-    const disk_config & disk(size_t disk) const {
+    const DiskConfig & disk(size_t disk) const {
         assert(is_initialized);
         return disks_list[disk];
     }

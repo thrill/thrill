@@ -26,26 +26,26 @@ namespace io {
 //! \{
 
 //! Interface of a request_queue to which requests can be added and canceled.
-class request_queue
+class RequestQueue
 {
 public:
     enum priority_op { READ, WRITE, NONE };
 
-    request_queue() = default;
+    RequestQueue() = default;
 
     //! non-copyable: delete copy-constructor
-    request_queue(const request_queue&) = delete;
+    RequestQueue(const RequestQueue&) = delete;
     //! non-copyable: delete assignment operator
-    request_queue& operator = (const request_queue&) = delete;
+    RequestQueue& operator = (const RequestQueue&) = delete;
     //! move-constructor: default
-    request_queue(request_queue&&) = default;
+    RequestQueue(RequestQueue&&) = default;
     //! move-assignment operator: default
-    request_queue& operator = (request_queue&&) = default;
+    RequestQueue& operator = (RequestQueue&&) = default;
 
 public:
-    virtual void add_request(request_ptr& req) = 0;
-    virtual bool cancel_request(request_ptr& req) = 0;
-    virtual ~request_queue() { }
+    virtual void add_request(RequestPtr& req) = 0;
+    virtual bool cancel_request(RequestPtr& req) = 0;
+    virtual ~RequestQueue() { }
     virtual void set_priority_op(priority_op p) { common::THRILL_UNUSED(p); }
 };
 

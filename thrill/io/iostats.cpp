@@ -27,7 +27,7 @@
 namespace thrill {
 namespace io {
 
-stats::stats()
+Stats::Stats()
     : reads(0),
       writes(0),
       volume_read(0),
@@ -60,8 +60,8 @@ stats::stats()
       last_reset(timestamp())
 { }
 
-#if STXXL_IO_STATS
-void stats::write_started(size_t size_, double now) {
+#if THRILL_IO_STATS
+void Stats::write_started(size_t size_, double now) {
     if (now == 0.0)
         now = timestamp();
     {
@@ -83,7 +83,7 @@ void stats::write_started(size_t size_, double now) {
     }
 }
 
-void stats::write_canceled(size_t size_) {
+void Stats::write_canceled(size_t size_) {
     {
         std::unique_lock<std::mutex> write_lock(write_mutex);
 
@@ -93,7 +93,7 @@ void stats::write_canceled(size_t size_) {
     write_finished();
 }
 
-void stats::write_finished() {
+void Stats::write_finished() {
     double now = timestamp();
     {
         std::unique_lock<std::mutex> write_lock(write_mutex);
@@ -112,14 +112,14 @@ void stats::write_finished() {
     }
 }
 
-void stats::write_cached(size_t size_) {
+void Stats::write_cached(size_t size_) {
     std::unique_lock<std::mutex> write_lock(write_mutex);
 
     ++c_writes;
     c_volume_written += size_;
 }
 
-void stats::read_started(size_t size_, double now) {
+void Stats::read_started(size_t size_, double now) {
     if (now == 0.0)
         now = timestamp();
     {
@@ -141,7 +141,7 @@ void stats::read_started(size_t size_, double now) {
     }
 }
 
-void stats::read_canceled(size_t size_) {
+void Stats::read_canceled(size_t size_) {
     {
         std::unique_lock<std::mutex> read_lock(read_mutex);
 
@@ -151,7 +151,7 @@ void stats::read_canceled(size_t size_) {
     read_finished();
 }
 
-void stats::read_finished() {
+void Stats::read_finished() {
     double now = timestamp();
     {
         std::unique_lock<std::mutex> read_lock(read_mutex);
@@ -170,7 +170,7 @@ void stats::read_finished() {
     }
 }
 
-void stats::read_cached(size_t size_) {
+void Stats::read_cached(size_t size_) {
     std::unique_lock<std::mutex> read_lock(read_mutex);
 
     ++c_reads;
@@ -178,8 +178,8 @@ void stats::read_cached(size_t size_) {
 }
 #endif
 
-#ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
-void stats::wait_started(wait_op_type wait_op) {
+#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
+void Stats::wait_started(wait_op_type wait_op) {
     double now = timestamp();
     {
         std::unique_lock<std::mutex> wait_lock(wait_mutex);
@@ -205,7 +205,7 @@ void stats::wait_started(wait_op_type wait_op) {
     }
 }
 
-void stats::wait_finished(wait_op_type wait_op) {
+void Stats::wait_finished(wait_op_type wait_op) {
     double now = timestamp();
     {
         std::unique_lock<std::mutex> wait_lock(wait_mutex);
@@ -227,7 +227,7 @@ void stats::wait_finished(wait_op_type wait_op) {
             p_begin_wait_write = now;
             p_wait_write += (acc_wait_write--) ? diff : 0.0;
         }
-#ifdef STXXL_WAIT_LOG_ENABLED
+#ifdef THRILL_WAIT_LOG_ENABLED
         std::ofstream* waitlog = stxxl::logger::get_instance()->waitlog_stream();
         if (waitlog)
             *waitlog << (now - last_reset) << "\t"
@@ -262,10 +262,10 @@ std::string format_with_SI_IEC_unit_multiplier(uint64_t number, const char* unit
     return out.str();
 }
 
-std::ostream& operator << (std::ostream& o, const stats_data& s) {
+std::ostream& operator << (std::ostream& o, const StatsData& s) {
 #define hr add_IEC_binary_multiplier
     o << "STXXL I/O statistics" << std::endl;
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
     o << " total number of reads                      : " << hr(s.get_reads()) << std::endl;
     o << " average block size (read)                  : "
       << hr(s.get_reads() ? s.get_read_volume() / s.get_reads() : 0, "B") << std::endl;
@@ -302,7 +302,7 @@ std::ostream& operator << (std::ostream& o, const stats_data& s) {
 #else
     o << " n/a" << std::endl;
 #endif
-#ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
+#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
     o << " I/O wait time                              : " << s.get_io_wait_time() << " s" << std::endl;
     if (s.get_wait_read_time() != 0.0)
         o << " I/O wait4read time                         : " << s.get_wait_read_time() << " s" << std::endl;

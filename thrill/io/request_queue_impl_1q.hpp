@@ -30,18 +30,18 @@ namespace io {
 
 //! Implementation of a local request queue having only one queue for both read
 //! and write requests, thus having only one thread.
-class request_queue_impl_1q : public request_queue_impl_worker
+class RequestQueueImpl1Q : public RequestQueueImplWorker
 {
 private:
-    using self = request_queue_impl_1q;
-    using queue_type = std::list<request_ptr>;
+    using Self = RequestQueueImpl1Q;
+    using Queue = std::list<RequestPtr>;
 
-    std::mutex m_queue_mutex;
-    queue_type m_queue;
+    std::mutex queue_mutex_;
+    Queue queue_;
 
-    common::state<thread_state> m_thread_state;
-    thread_type m_thread;
-    common::semaphore m_sem;
+    common::state<thread_state> thread_state_;
+    Thread thread_;
+    common::semaphore sem_;
 
     static const priority_op m_priority_op = WRITE;
 
@@ -49,7 +49,7 @@ private:
 
 public:
     // \param n max number of requests simultaneously submitted to disk
-    explicit request_queue_impl_1q(int n = 1);
+    explicit RequestQueueImpl1Q(int n = 1);
 
     // in a multi-threaded setup this does not work as intended
     // also there were race conditions possible
@@ -59,9 +59,9 @@ public:
         // _priority_op = op;
         common::THRILL_UNUSED(op);
     }
-    void add_request(request_ptr& req) final;
-    bool cancel_request(request_ptr& req) final;
-    ~request_queue_impl_1q();
+    void add_request(RequestPtr& req) final;
+    bool cancel_request(RequestPtr& req) final;
+    ~RequestQueueImpl1Q();
 };
 
 //! \}

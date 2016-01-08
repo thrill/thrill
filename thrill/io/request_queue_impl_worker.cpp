@@ -23,24 +23,24 @@
 #include <cassert>
 #include <cstddef>
 
-#if STXXL_STD_THREADS && STXXL_MSVC >= 1700
+#if THRILL_STD_THREADS && THRILL_MSVC >= 1700
  #include <windows.h>
 #endif
 
 namespace thrill {
 namespace io {
 
-void request_queue_impl_worker::start_thread(void* (*worker)(void*), void* arg, thread_type& t, common::state<thread_state>& s) {
+void RequestQueueImplWorker::start_thread(void* (*worker)(void*), void* arg, Thread& t, common::state<thread_state>& s) {
     assert(s() == NOT_RUNNING);
     t = new std::thread(worker, arg);
     s.set_to(RUNNING);
 }
 
-void request_queue_impl_worker::stop_thread(thread_type& t, common::state<thread_state>& s, common::semaphore& sem) {
+void RequestQueueImplWorker::stop_thread(Thread& t, common::state<thread_state>& s, common::semaphore& sem) {
     assert(s() == RUNNING);
     s.set_to(TERMINATING);
     sem++;
-#if STXXL_MSVC >= 1700
+#if THRILL_MSVC >= 1700
     // In the Visual C++ Runtime 2012 and 2013, there is a deadlock bug, which
     // occurs when threads are joined after main() exits. Apparently, Microsoft
     // thinks this is not a big issue. It has not been fixed in VC++RT 2013.

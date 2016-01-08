@@ -18,7 +18,7 @@
 
 #include <thrill/io/linuxaio_file.hpp>
 
-#if STXXL_HAVE_LINUXAIO_FILE
+#if THRILL_HAVE_LINUXAIO_FILE
 
 #include <linux/aio_abi.h>
 #include <thrill/io/request.hpp>
@@ -30,26 +30,23 @@ namespace io {
 //! \{
 
 //! Request for an linuxaio_file.
-class linuxaio_request final : public request
+class LinuxaioRequest final : public Request
 {
-    template <class base_file_type>
-    friend class fileperblock_file;
-
     //! control block of async request
     iocb cb;
 
     void fill_control_block();
 
 public:
-    linuxaio_request(
-        const completion_handler& on_complete,
-        io::file* file,
+    LinuxaioRequest(
+        const CompletionHandler& on_complete,
+        FileBase* file,
         void* buffer,
         offset_type offset,
         size_type bytes,
         ReadOrWriteType type)
-        : request(on_complete, file, buffer, offset, bytes, type) {
-        assert(dynamic_cast<linuxaio_file*>(file));
+        : Request(on_complete, file, buffer, offset, bytes, type) {
+        assert(dynamic_cast<LinuxaioFile*>(file));
         LOG << "linuxaio_request[" << this << "]" << " linuxaio_request"
             << "(file=" << file << " buffer=" << buffer
             << " offset=" << offset << " bytes=" << bytes
@@ -68,7 +65,7 @@ public:
 } // namespace io
 } // namespace thrill
 
-#endif // #if STXXL_HAVE_LINUXAIO_FILE
+#endif // #if THRILL_HAVE_LINUXAIO_FILE
 
 #endif // !THRILL_IO_LINUXAIO_REQUEST_HEADER
 

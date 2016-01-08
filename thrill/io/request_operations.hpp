@@ -35,13 +35,13 @@ namespace io {
 template <class RequestIterator>
 void wait_all(RequestIterator reqs_begin, RequestIterator reqs_end) {
     for ( ; reqs_begin != reqs_end; ++reqs_begin)
-        (request_ptr(*reqs_begin))->wait();
+        (RequestPtr(*reqs_begin))->wait();
 }
 
 //! Suspends calling thread until \b all given requests are completed.
 //! \param req_array array of request_ptr objects
 //! \param count size of req_array
-static inline void wait_all(request_ptr req_array[], size_t count) {
+static inline void wait_all(RequestPtr req_array[], size_t count) {
     wait_all(req_array, req_array + count);
 }
 
@@ -59,7 +59,7 @@ cancel_all(RequestIterator reqs_begin, RequestIterator reqs_end) {
     typename std::iterator_traits<RequestIterator>::difference_type num_canceled = 0;
     while (reqs_begin != reqs_end)
     {
-        if ((request_ptr(*reqs_begin))->cancel())
+        if ((RequestPtr(*reqs_begin))->cancel())
             ++num_canceled;
         ++reqs_begin;
     }
@@ -74,7 +74,7 @@ template <class RequestIterator>
 RequestIterator poll_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
     while (reqs_begin != reqs_end)
     {
-        if ((request_ptr(*reqs_begin))->poll())
+        if ((RequestPtr(*reqs_begin))->poll())
             return reqs_begin;
 
         ++reqs_begin;
@@ -87,8 +87,8 @@ RequestIterator poll_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
 //! \param count size of req_array
 //! \param index contains index of the \b first completed request if any
 //! \return \c true if any of requests is completed, then index contains valid value, otherwise \c false
-inline bool poll_any(request_ptr req_array[], size_t count, size_t& index) {
-    request_ptr* res = poll_any(req_array, req_array + count);
+inline bool poll_any(RequestPtr req_array[], size_t count, size_t& index) {
+    RequestPtr* res = poll_any(req_array, req_array + count);
     index = res - req_array;
     return res != (req_array + count);
 }
@@ -99,7 +99,7 @@ inline bool poll_any(request_ptr req_array[], size_t count, size_t& index) {
 //! \return index in req_array pointing to the \b first completed request
 template <class RequestIterator>
 RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
-    stats::scoped_wait_timer wait_timer(stats::WAIT_OP_ANY);
+    Stats::scoped_wait_timer wait_timer(Stats::WAIT_OP_ANY);
 
     common::onoff_switch sw;
 
@@ -107,7 +107,7 @@ RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
 
     for ( ; cur != reqs_end; cur++)
     {
-        if ((request_ptr(*cur))->add_waiter(&sw))
+        if ((RequestPtr(*cur))->add_waiter(&sw))
         {
             // request is already done, no waiter was added to the request
             result = cur;
@@ -115,12 +115,12 @@ RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
             if (cur != reqs_begin)
             {
                 while (--cur != reqs_begin)
-                    (request_ptr(*cur))->delete_waiter(&sw);
+                    (RequestPtr(*cur))->delete_waiter(&sw);
 
-                (request_ptr(*cur))->delete_waiter(&sw);
+                (RequestPtr(*cur))->delete_waiter(&sw);
             }
 
-            (request_ptr(*result))->check_error();
+            (RequestPtr(*result))->check_error();
 
             return result;
         }
@@ -130,8 +130,8 @@ RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
 
     for (cur = reqs_begin; cur != reqs_end; cur++)
     {
-        (request_ptr(*cur))->delete_waiter(&sw);
-        if (result == reqs_end && (request_ptr(*cur))->poll())
+        (RequestPtr(*cur))->delete_waiter(&sw);
+        if (result == reqs_end && (RequestPtr(*cur))->poll())
             result = cur;
     }
 
@@ -142,7 +142,7 @@ RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
 //! \param req_array array of \c request_ptr objects
 //! \param count size of req_array
 //! \return index in req_array pointing to the \b first completed request
-static inline size_t wait_any(request_ptr req_array[], size_t count) {
+static inline size_t wait_any(RequestPtr req_array[], size_t count) {
     return wait_any(req_array, req_array + count) - req_array;
 }
 

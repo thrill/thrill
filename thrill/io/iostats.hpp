@@ -17,16 +17,12 @@
 #ifndef THRILL_IO_IOSTATS_HEADER
 #define THRILL_IO_IOSTATS_HEADER
 
-#ifndef STXXL_IO_STATS
- #define STXXL_IO_STATS 1
+#ifndef THRILL_IO_STATS
+ #define THRILL_IO_STATS 1
 #endif
 
-// #include <stxxl/bits/common/timer.h>
-// #include <stxxl/bits/common/types.h>
-// #include <stxxl/bits/common/utils.h>
 #include <thrill/common/defines.hpp>
-
-#include <sys/time.h>
+#include <thrill/common/singleton.hpp>
 
 #include <iostream>
 #include <mutex>
@@ -39,69 +35,10 @@ namespace io {
 //!
 //! \{
 
-/******************************************************************************/
-
-template <typename INSTANCE, bool destroy_on_exit = true>
-class singleton
-{
-    using instance_type = INSTANCE;
-    using instance_pointer = instance_type *;
-    using volatile_instance_pointer = volatile instance_pointer;
-
-    static volatile_instance_pointer instance;
-
-    static instance_pointer create_instance();
-    static void destroy_instance();
-
-public:
-    singleton() = default;
-
-    //! non-copyable: delete copy-constructor
-    singleton(const singleton&) = delete;
-    //! non-copyable: delete assignment operator
-    singleton& operator = (const singleton&) = delete;
-    //! move-constructor: default
-    singleton(singleton&&) = default;
-    //! move-assignment operator: default
-    singleton& operator = (singleton&&) = default;
-
-    inline static instance_pointer get_instance() {
-        if (!instance)
-            return create_instance();
-
-        return instance;
-    }
-};
-
-template <typename INSTANCE, bool destroy_on_exit>
-typename singleton<INSTANCE, destroy_on_exit>::instance_pointer
-singleton<INSTANCE, destroy_on_exit>::create_instance() {
-    static std::mutex create_mutex;
-    std::unique_lock<std::mutex> lock(create_mutex);
-    if (!instance) {
-        instance = new instance_type();
-        if (destroy_on_exit)
-            atexit(destroy_instance);
-    }
-    return instance;
-}
-
-template <typename INSTANCE, bool destroy_on_exit>
-void singleton<INSTANCE, destroy_on_exit>::destroy_instance() {
-    instance_pointer inst = instance;
-    // instance = nullptr;
-    instance = reinterpret_cast<instance_pointer>(size_t(-1));     // bomb if used again
-    delete inst;
-}
-
-template <typename INSTANCE, bool destroy_on_exit>
-typename singleton<INSTANCE, destroy_on_exit>::volatile_instance_pointer
-singleton<INSTANCE, destroy_on_exit>::instance = nullptr;
-
 //! Returns number of seconds since the epoch, high resolution.
 static inline double
 timestamp() {
-#if STXXL_BOOST_TIMESTAMP
+#if THRILL_BOOST_TIMESTAMP
     boost::posix_time::ptime MyTime = boost::posix_time::microsec_clock::local_time();
     boost::posix_time::time_duration Duration =
         MyTime - boost::posix_time::time_from_string("1970-01-01 00:00:00.000");
@@ -110,7 +47,7 @@ timestamp() {
                  static_cast<double>(Duration.seconds()) +
                  static_cast<double>(Duration.fractional_seconds()) / (pow(10., Duration.num_fractional_digits()));
     return sec;
-#elif STXXL_WINDOWS
+#elif THRILL_WINDOWS
     return GetTickCount() / 1000.0;
 #else
     struct timeval tp;
@@ -119,12 +56,10 @@ timestamp() {
 #endif
 }
 
-/******************************************************************************/
-
 //! Collects various I/O statistics.
-class stats : public singleton<stats>
+class Stats : public common::Singleton<Stats>
 {
-    friend class singleton;
+    friend class common::Singleton<Stats>;
 
     size_t reads, writes;                     // number of operations
     int64_t volume_read, volume_written;      // number of bytes read/written
@@ -148,7 +83,7 @@ class stats : public singleton<stats>
     double last_reset;
     std::mutex read_mutex, write_mutex, io_mutex, wait_mutex;
 
-    stats();
+    Stats();
 
 public:
     enum wait_op_type {
@@ -162,14 +97,14 @@ public:
         using size_type = size_t;
 
         bool is_write;
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
         bool running;
 #endif
 
     public:
         explicit scoped_read_write_timer(size_type size, bool is_write = false)
             : is_write(is_write)
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
               , running(false)
 #endif
         {
@@ -181,13 +116,13 @@ public:
         }
 
         void start(size_type size) {
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
             if (!running) {
                 running = true;
                 if (is_write)
-                    stats::get_instance()->write_started(size);
+                    Stats::get_instance()->write_started(size);
                 else
-                    stats::get_instance()->read_started(size);
+                    Stats::get_instance()->read_started(size);
             }
 #else
             common::THRILL_UNUSED(size);
@@ -195,12 +130,12 @@ public:
         }
 
         void stop() {
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
             if (running) {
                 if (is_write)
-                    stats::get_instance()->write_finished();
+                    Stats::get_instance()->write_finished();
                 else
-                    stats::get_instance()->read_finished();
+                    Stats::get_instance()->read_finished();
                 running = false;
             }
 #endif
@@ -211,13 +146,13 @@ public:
     {
         using size_type = size_t;
 
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
         bool running;
 #endif
 
     public:
         explicit scoped_write_timer(size_type size)
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
             : running(false)
 #endif
         {
@@ -229,10 +164,10 @@ public:
         }
 
         void start(size_type size) {
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
             if (!running) {
                 running = true;
-                stats::get_instance()->write_started(size);
+                Stats::get_instance()->write_started(size);
             }
 #else
             common::THRILL_UNUSED(size);
@@ -240,9 +175,9 @@ public:
         }
 
         void stop() {
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
             if (running) {
-                stats::get_instance()->write_finished();
+                Stats::get_instance()->write_finished();
                 running = false;
             }
 #endif
@@ -253,13 +188,13 @@ public:
     {
         using size_type = size_t;
 
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
         bool running;
 #endif
 
     public:
         explicit scoped_read_timer(size_type size)
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
             : running(false)
 #endif
         {
@@ -271,10 +206,10 @@ public:
         }
 
         void start(size_type size) {
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
             if (!running) {
                 running = true;
-                stats::get_instance()->read_started(size);
+                Stats::get_instance()->read_started(size);
             }
 #else
             common::THRILL_UNUSED(size);
@@ -282,9 +217,9 @@ public:
         }
 
         void stop() {
-#if STXXL_IO_STATS
+#if THRILL_IO_STATS
             if (running) {
-                stats::get_instance()->read_finished();
+                Stats::get_instance()->read_finished();
                 running = false;
             }
 #endif
@@ -293,14 +228,14 @@ public:
 
     class scoped_wait_timer
     {
-#ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
+#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
         bool running;
         wait_op_type wait_op;
 #endif
 
     public:
         explicit scoped_wait_timer(wait_op_type wait_op, bool measure_time = true)
-#ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
+#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
             : running(false), wait_op(wait_op)
 #endif
         {
@@ -313,18 +248,18 @@ public:
         }
 
         void start() {
-#ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
+#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
             if (!running) {
                 running = true;
-                stats::get_instance()->wait_started(wait_op);
+                Stats::get_instance()->wait_started(wait_op);
             }
 #endif
         }
 
         void stop() {
-#ifndef STXXL_DO_NOT_COUNT_WAIT_TIME
+#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
             if (running) {
-                stats::get_instance()->wait_finished(wait_op);
+                Stats::get_instance()->wait_finished(wait_op);
                 running = false;
             }
 #endif
@@ -444,30 +379,30 @@ public:
     void wait_finished(wait_op_type wait_op);
 };
 
-#if !STXXL_IO_STATS
-inline void stats::write_started(size_t size_, double now) {
+#if !THRILL_IO_STATS
+inline void Stats::write_started(size_t size_, double now) {
     common::THRILL_UNUSED(size_);
     common::THRILL_UNUSED(now);
 }
-inline void stats::write_cached(size_t size_) {
+inline void Stats::write_cached(size_t size_) {
     common::THRILL_UNUSED(size_);
 }
-inline void stats::write_finished() { }
-inline void stats::read_started(size_t size_, double now) {
+inline void Stats::write_finished() { }
+inline void Stats::read_started(size_t size_, double now) {
     common::THRILL_UNUSED(size_);
     common::THRILL_UNUSED(now);
 }
-inline void stats::read_cached(size_t size_) {
+inline void Stats::read_cached(size_t size_) {
     common::THRILL_UNUSED(size_);
 }
-inline void stats::read_finished() { }
+inline void Stats::read_finished() { }
 #endif
-#ifdef STXXL_DO_NOT_COUNT_WAIT_TIME
-inline void stats::wait_started(wait_op_type) { }
-inline void stats::wait_finished(wait_op_type) { }
+#ifdef THRILL_DO_NOT_COUNT_WAIT_TIME
+inline void Stats::wait_started(wait_op_type) { }
+inline void Stats::wait_finished(wait_op_type) { }
 #endif
 
-class stats_data
+class StatsData
 {
     //! number of operations
     size_t reads, writes;
@@ -489,7 +424,7 @@ class stats_data
     double elapsed;
 
 public:
-    stats_data()
+    StatsData()
         : reads(0),
           writes(0),
           volume_read(0),
@@ -509,7 +444,7 @@ public:
           elapsed(0.0)
     { }
 
-    explicit stats_data(const stats& s)
+    explicit StatsData(const Stats& s)
         : reads(s.get_reads()),
           writes(s.get_writes()),
           volume_read(s.get_read_volume()),
@@ -529,8 +464,8 @@ public:
           elapsed(timestamp() - s.get_last_reset_time())
     { }
 
-    stats_data operator + (const stats_data& a) const {
-        stats_data s;
+    StatsData operator + (const StatsData& a) const {
+        StatsData s;
         s.reads = reads + a.reads;
         s.writes = writes + a.writes;
         s.volume_read = volume_read + a.volume_read;
@@ -551,8 +486,8 @@ public:
         return s;
     }
 
-    stats_data operator - (const stats_data& a) const {
-        stats_data s;
+    StatsData operator - (const StatsData& a) const {
+        StatsData s;
         s.reads = reads - a.reads;
         s.writes = writes - a.writes;
         s.volume_read = volume_read - a.volume_read;
@@ -642,10 +577,10 @@ public:
     }
 };
 
-std::ostream& operator << (std::ostream& o, const stats_data& s);
+std::ostream& operator << (std::ostream& o, const StatsData& s);
 
-inline std::ostream& operator << (std::ostream& o, const stats& s) {
-    o << stats_data(s);
+inline std::ostream& operator << (std::ostream& o, const Stats& s) {
+    o << StatsData(s);
     return o;
 }
 

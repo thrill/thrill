@@ -30,7 +30,7 @@ namespace io {
 //! \{
 
 // forward declarations
-class file;
+class FileBase;
 
 //! Block identifier class.
 //!
@@ -48,7 +48,7 @@ public:
     };
 
     //! pointer to the file of the block
-    file* storage = nullptr;
+    FileBase* storage = nullptr;
     //! offset within the file of the block
     int64_t offset = 0;
 
@@ -58,7 +58,7 @@ public:
         return storage != nullptr;
     }
 
-    BID(file* s, int64_t o) : storage(s), offset(o) { }
+    BID(FileBase* s, int64_t o) : storage(s), offset(o) { }
 
     BID(const BID& obj) = default;
     BID& operator = (BID&) = default;
@@ -86,7 +86,7 @@ class BID<0>
 {
 public:
     //! pointer to the file of the block
-    file* storage = nullptr;
+    FileBase* storage = nullptr;
     //! offset within the file of the block
     int64_t offset = 0;
     //! size of the block in bytes
@@ -100,7 +100,7 @@ public:
 
     BID() = default;
 
-    BID(file* f, int64_t o, size_t s) : storage(f), offset(o), size(s) { }
+    BID(FileBase* f, int64_t o, size_t s) : storage(f), offset(o), size(s) { }
 
     bool valid() const {
         return (storage != nullptr);
