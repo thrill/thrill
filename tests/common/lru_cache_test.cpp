@@ -41,7 +41,7 @@ TEST(LruCacheTest1, KeepAllValuesWithinCapacity) {
         cache.put(i, i);
 
         while (cache.size() > kTest2CacheCapacity)
-            cache.pop_lru();
+            cache.pop();
     }
 
     for (int i = 0; i < kNumOfTest2Records - kTest2CacheCapacity; ++i) {

@@ -20,6 +20,7 @@
 #include <list>
 #include <stdexcept>
 #include <unordered_map>
+#include <utility>
 
 namespace thrill {
 namespace common {
@@ -82,7 +83,7 @@ public:
     }
 
     //! return the least recently used key value pair
-    KeyValuePair pop_lru() {
+    KeyValuePair pop() {
         assert(size());
         typename List::iterator last = list_.end();
         --last;
@@ -166,7 +167,7 @@ public:
     }
 
     //! return the least recently used key value pair
-    Key pop_lru() {
+    Key pop() {
         assert(size());
         typename List::iterator last = list_.end();
         --last;

@@ -11,15 +11,24 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_pool.hpp>
-#include <thrill/io/block_manager.hpp>
+#include <thrill/io/file.hpp>
 #include <thrill/mem/aligned_alloc.hpp>
-
-#include <sys/mman.h>
 
 #include <limits>
 
 namespace thrill {
 namespace data {
+
+//! debug block life cycle output: create, destroy
+static const bool debug_blc = false;
+
+//! debug block pinning:
+static const bool debug_pin = false;
+
+//! debug block eviction: evict, write complete, read complete
+static const bool debug_em = false;
+
+size_t BlockPool::total_ram_limit_ = 500000000lu;
 
 BlockPool::~BlockPool() {
     assert(total_pins_ == 0);
@@ -32,33 +41,6 @@ BlockPool::~BlockPool() {
 PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
     std::unique_lock<std::mutex> lock(mutex_);
-
-#if 0
-    // uint32_t swap_token;
-
-    Byte* block_memory;
-    if (swapable) {
-        block_memory = static_cast<Byte*>(page_mapper_.Allocate(swap_token));
-    }
-    else {
-        // malloc should use mmap internally if required
-        block_memory = static_cast<Byte*>(malloc(block_size));
-        swap_token = std::numeric_limits<uint32_t>::max();
-    }
-
-    ByteBlock* block = new ByteBlock(block_memory, block_size, this, pinned, swap_token);
-    ByteBlockPtr result(block);
-
-    // we store a raw pointer --> does not increase ref count
-    if (!pinned) {
-        unpinned_blocks_.put(block); //implicit converts to raw
-        LOG << "allocating unpinned block @" << block;
-    }
-    else {
-        LOG << "allocating pinned block @" << block;
-        pin_count_++;
-    }
-#endif
 
     RequestInternalMemory(lock, size);
 
@@ -73,7 +55,8 @@ PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker
     pinned_bytes_[local_worker_id] += size;
     ++total_pins_;
 
-    LOG << "BlockPool::AllocateBlock() size=" << size
+    LOGC(debug_blc)
+        << "BlockPool::AllocateBlock() size=" << size
         << " local_worker_id=" << local_worker_id
         << " total_count=" << block_count()
         << " total_size=" << mem_manager_.total()
@@ -91,95 +74,125 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     assert(local_worker_id < workers_per_host_);
     std::unique_lock<std::mutex> lock(mutex_);
 
-    std::promise<PinnedBlock> result;
+    ByteBlock* byte_block = block.byte_block();
 
-    if (block.byte_block()->pin_count_[local_worker_id] > 0) {
+    if (byte_block->pin_count_[local_worker_id] > 0) {
         // We may get a Block who's underlying is already pinned, since
         // PinnedBlock become Blocks when transfered between Files or delivered
         // via GetItemRange() or Scatter().
 
-        IncBlockPinCountNoLock(block.byte_block(), local_worker_id);
+        IncBlockPinCountNoLock(byte_block, local_worker_id);
 
-        LOG << "BlockPool::PinBlock block=" << &block
+        LOGC(debug_pin)
+            << "BlockPool::PinBlock block=" << &block
             << " already pinned by thread";
 
+        std::promise<PinnedBlock> result;
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
     }
 
-    if (block.byte_block()->total_pins_ > 0) {
+    if (byte_block->total_pins_ > 0) {
         // This block was already pinned by another thread, hence we only need
         // to get a pin for the new thread.
 
-        IncBlockPinCountNoLock(block.byte_block(), local_worker_id);
+        IncBlockPinCountNoLock(byte_block, local_worker_id);
 
         ++pin_count_[local_worker_id];
-        pinned_bytes_[local_worker_id] += block.byte_block()->size();
+        pinned_bytes_[local_worker_id] += byte_block->size();
         ++total_pins_;
 
-        LOG << "BlockPool::PinBlock block=" << &block
+        LOGC(debug_pin)
+            << "BlockPool::PinBlock block=" << &block
             << " already pinned by another thread"
             << " ++total_pins_=" << total_pins_;
 
+        std::promise<PinnedBlock> result;
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
     }
 
-    // unpinned block in memory, remove from list
-    assert(unpinned_blocks_.exists(block.byte_block()));
-    unpinned_blocks_.erase(block.byte_block());
+    if (byte_block->in_memory())
+    {
+        // unpinned block in memory, no need to load from EM.
 
-    IncBlockPinCountNoLock(block.byte_block(), local_worker_id);
+        // remove from unpinned list
+        assert(unpinned_blocks_.exists(byte_block));
+        unpinned_blocks_.erase(byte_block);
 
+        IncBlockPinCountNoLock(byte_block, local_worker_id);
+
+        ++pin_count_[local_worker_id];
+        pinned_bytes_[local_worker_id] += byte_block->size();
+        ++total_pins_;
+
+        LOGC(debug_pin)
+            << "BlockPool::PinBlock block=" << &block
+            << " pinned from internal memory"
+            << " ++total_pins_=" << total_pins_;
+
+        std::promise<PinnedBlock> result;
+        result.set_value(PinnedBlock(block, local_worker_id));
+        return result.get_future();
+    }
+
+    die_unless(reading_.find(byte_block) == reading_.end());
+
+    // else need to initiate an async read to get the data.
+
+    die_unless(byte_block->em_bid_.storage);
+
+    // maybe blocking call until memory is available, this also swaps out other
+    // blocks.
+    RequestInternalMemory(lock, byte_block->size());
+
+    // the requested memory is already counted as a pin.
     ++pin_count_[local_worker_id];
-    pinned_bytes_[local_worker_id] += block.byte_block()->size();
+    pinned_bytes_[local_worker_id] += byte_block->size();
     ++total_pins_;
 
-    LOG << "BlockPool::PinBlock block=" << &block
-        << " pinned from ram cache"
+    // initiate reading from EM.
+    assert(reading_.find(byte_block) == reading_.end());
+    ReadRequest* read = &reading_[byte_block];
+
+    // allocate block memory.
+    read->data = static_cast<Byte*>(mem::aligned_alloc(byte_block->size()));
+
+    swapped_.erase(byte_block);
+    --num_swapped_blocks_;
+
+    LOGC(debug_em)
+        << "BlockPool::PinBlock block=" << &block
+        << " requested from external memory"
         << " ++total_pins_=" << total_pins_;
 
-    result.set_value(PinnedBlock(block, local_worker_id));
-    return result.get_future();
+    read->req =
+        byte_block->em_bid_.storage->aread(
+            read->data, byte_block->em_bid_.offset, byte_block->size(),
+            [this, block, read, local_worker_id](
+                io::request* req, bool success) mutable {
+                std::unique_lock<std::mutex> lock(mutex_);
 
-#if 0
+                LOGC(debug_em)
+                << "OnReadComplete(): " << req << " done, from "
+                << block.byte_block()->em_bid_ << " success = " << success;
+                die_unless(success);
+                req->check_error();
 
-    // first check, then increment
-    if ((block_ptr->pin_count_)++ > 0) {
-        sLOG << "already pinned - return ptr";
+                // assign data
+                block.byte_block()->data_ = read->data;
 
-        pin_mutex_.unlock();
-        callback();
-        return;
-    }
-    pin_count_++;
+                // set pin on ByteBlock
+                IncBlockPinCountNoLock(block.byte_block(), local_worker_id);
 
-    // in memory & not pinned -> is in unpinned
-    if (block_ptr->in_memory()) {
-        unpinned_blocks_.erase(std::find(unpinned_blocks_.begin(), unpinned_blocks_.end(), block_ptr));
+                bm_->delete_block(block.byte_block()->em_bid_);
+                block.byte_block()->em_bid_ = io::BID<0>();
 
-        pin_mutex_.unlock();
-        callback();
-        return;
-    }
-    else {      //we need to swap it in
-        pin_mutex_.unlock();
-        tasks_.Enqueue(
-            [&]() {
-                // maybe blocking call until memory is available
-                RequestInternalMemory(block_ptr->size());
-
-                // use the memory
-                page_mapper_.SwapIn(block_ptr->swap_token_);
-
-                // we must aqcuire the lock for the background thread
-                std::unique_lock<std::mutex> lock(list_mutex_);
-                num_swapped_blocks_--;
-                ext_mem_manager_.subtract(block_ptr->size());
-                callback();
+                // deliver future
+                read->result.set_value(PinnedBlock(block, local_worker_id));
             });
-    }
-#endif
+
+    return read->result.get_future();
 }
 
 //! Increment a ByteBlock's pin count
@@ -197,7 +210,8 @@ void BlockPool::IncBlockPinCountNoLock(ByteBlock* block_ptr, size_t local_worker
     ++block_ptr->pin_count_[local_worker_id];
     ++block_ptr->total_pins_;
 
-    LOG << "BlockPool::IncBlockPinCount()"
+    LOGC(debug_pin)
+        << "BlockPool::IncBlockPinCount()"
         << " ++block.pin_count[" << local_worker_id << "]="
         << block_ptr->pin_count_[local_worker_id]
         << " ++block.total_pins_=" << block_ptr->total_pins_
@@ -217,7 +231,8 @@ void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
     size_t p = --block_ptr->pin_count_[local_worker_id];
     size_t tp = --block_ptr->total_pins_;
 
-    LOG << "BlockPool::DecBlockPinCount()"
+    LOGC(debug_pin)
+        << "BlockPool::DecBlockPinCount()"
         << " --block.pin_count[" << local_worker_id << "]=" << p
         << " --block.total_pins_=" << tp
         << " local_worker_id=" << local_worker_id;
@@ -240,7 +255,8 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
     --total_pins_;
 
     if (block_ptr->total_pins_ != 0) {
-        LOG << "BlockPool::UnpinBlock()"
+        LOGC(debug_pin)
+            << "BlockPool::UnpinBlock()"
             << " --block.total_pins_=" << block_ptr->total_pins_;
         return;
     }
@@ -249,7 +265,8 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
     assert(!unpinned_blocks_.exists(block_ptr));
     unpinned_blocks_.put(block_ptr);
 
-    LOG << "BlockPool::UnpinBlock()"
+    LOGC(debug_pin)
+        << "BlockPool::UnpinBlock()"
         << " --total_pins_=" << block_ptr->total_pins_
         << " allow swap out.";
 }
@@ -270,7 +287,39 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
     // pinned blocks cannot be destroyed since they are always unpinned first
     assert(block->total_pins_ == 0);
 
-    LOG << "BlockPool::DestroyBlock() block=" << block;
+    LOGC(debug_blc)
+        << "BlockPool::DestroyBlock() block=" << block;
+
+    if (block->in_memory())
+    {
+        // unpinned block in memory, remove from list
+        assert(unpinned_blocks_.exists(block));
+        unpinned_blocks_.erase(block);
+
+        // release memory
+        mem::aligned_dealloc(block->data_);
+        block->data_ = nullptr;
+
+        // page_mapper_.SwapOut(block->data_, false);
+        // page_mapper_.ReleaseToken(block->swap_token_);
+        ReleaseInternalMemory(block->size());
+    }
+    else
+    {
+        // block was evicted, may still be writing to EM.
+        auto req = writing_.find(block);
+        if (req != writing_.end()) {
+            // TODO(tb): maybe cancel instead someday.
+            req->second->wait();
+            assert(writing_.find(block) == writing_.end());
+        }
+
+        auto it = swapped_.find(block);
+        die_unless(it != swapped_.end());
+
+        swapped_.erase(it);
+        --num_swapped_blocks_;
+    }
 
 #if 0
     else if (!block->swapable()) {
@@ -280,53 +329,39 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
         block->data_ = nullptr;
     }
 #endif
-    {
-        // unpinned block in memory, remove from list
-        assert(unpinned_blocks_.exists(block));
-        unpinned_blocks_.erase(block);
-        // page_mapper_.SwapOut(block->data_, false);
-        // page_mapper_.ReleaseToken(block->swap_token_);
-        ReleaseInternalMemory(block->size());
-    }
 }
 
 void BlockPool::RequestInternalMemory(
     std::unique_lock<std::mutex>& lock, size_t size) {
 
-    while (total_ram_use_ + size >= total_ram_limit_ && 0)
+    requested_bytes_ += size;
+
+    LOGC(debug_em)
+        << "BlockPool::RequestInternalMemory()"
+        << " size=" << size
+        << " total_ram_use_=" << total_ram_use_
+        << " writing_bytes_=" << writing_bytes_
+        << " requested_bytes_=" << requested_bytes_
+        << " total_ram_limit_=" << total_ram_limit_
+        << " pin_count_=[" << common::Join(",", pin_count_) << "]"
+        << " pinned_bytes_=[" << common::Join(",", pinned_bytes_) << "]"
+        << " total_pins_=" << total_pins_;
+
+    while (total_ram_use_ - writing_bytes_ + requested_bytes_ > total_ram_limit_)
     {
-        // TODO: evict block, and signal memory_change_ cv.
-
-        assert(unpinned_blocks_.size());
-        EvictBlock(unpinned_blocks_.pop_lru());
-        abort();
-
-        memory_change_.wait(lock);
+        // evict blocks: schedule async writing which increases writing_bytes_.
+        EvictBlock();
     }
+
+    // wait for memory change due to blocks begin written and deallocated.
+    memory_change_.wait(
+        lock, [&]() {
+            return total_ram_use_ + size <= total_ram_limit_;
+        });
+
+    requested_bytes_ -= size;
 
     total_ram_use_ += size;
-
-    return; // -tb later.
-#if 0
-    if (!hard_memory_limit_ && !soft_memory_limit_) return;
-
-    if (hard_memory_limit_ && mem_manager_.total() > hard_memory_limit_) {
-        sLOG << "hard memory limit is reached";
-        std::unique_lock<std::mutex> lock(memory_mutex_);
-        memory_change_.wait(lock, [&]() { return mem_manager_.total() < hard_memory_limit_; });
-    }
-    if (soft_memory_limit_ && mem_manager_.total() > soft_memory_limit_) {
-        sLOG << "soft memory limit is reached";
-        // kill first page in unpinned list
-        tasks_.Enqueue([&]() {
-                           std::unique_lock<std::mutex> lock(mutex_);
-                           sLOG << "removing a unpinned block";
-                           if (unpinned_blocks_.empty()) return;
-                           page_mapper_.SwapOut(unpinned_blocks_.front()->data_);
-                           unpinned_blocks_.pop_front();
-                       });
-    }
-#endif
 }
 
 void BlockPool::ReleaseInternalMemory(size_t size) {
@@ -337,30 +372,46 @@ void BlockPool::ReleaseInternalMemory(size_t size) {
     memory_change_.notify_all();
 }
 
-struct my_handler
-{
-    void operator () (io::request* req, bool success) {
-        LOG1 << req << " done, success = " << success << ", type=" << req->io_type();
-    }
-};
+void BlockPool::EvictBlock() {
 
-void BlockPool::EvictBlock(ByteBlock* block_ptr) {
+    assert(unpinned_blocks_.size());
+    ByteBlock* block_ptr = unpinned_blocks_.pop();
     assert(block_ptr);
-    io::block_manager* bm = io::block_manager::get_instance();
 
+    // allocate EM block
     block_ptr->em_bid_.size = block_ptr->size();
-    bm->new_block(io::striping(), block_ptr->em_bid_);
+    bm_->new_block(io::striping(), block_ptr->em_bid_);
 
-    LOG1 << "EvictBlock(): " << *block_ptr;
+    LOGC(debug_em)
+        << "EvictBlock(): " << block_ptr << " - " << *block_ptr
+        << " to em_bid " << block_ptr->em_bid_;
 
-    io::request_ptr req =
+    writing_bytes_ += block_ptr->size();
+
+    // initiate writing to EM.
+    writing_[block_ptr] =
         block_ptr->em_bid_.storage->awrite(
             block_ptr->data_, block_ptr->em_bid_.offset, block_ptr->size(),
-            my_handler());
+            [this, block_ptr](io::request* req, bool success) {
+                std::unique_lock<std::mutex> lock(mutex_);
 
-    bool c = req->cancel();
-    LOG1 << "canceled: " << c;
-    req->wait();
+                LOGC(debug_em)
+                << "OnWriteComplete(): " << req
+                << " done, to " << block_ptr->em_bid_;
+                req->check_error();
+
+                writing_bytes_ -= block_ptr->size();
+                writing_.erase(block_ptr);
+
+                swapped_.insert(block_ptr);
+                ++num_swapped_blocks_;
+
+                // release memory
+                mem::aligned_dealloc(block_ptr->data_);
+                block_ptr->data_ = nullptr;
+
+                ReleaseInternalMemory(block_ptr->size());
+            });
 }
 
 } // namespace data
