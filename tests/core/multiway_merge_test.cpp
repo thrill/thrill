@@ -131,7 +131,7 @@ TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
     nitems.reserve(nruns);
 
     for (size_t t = 0; t < nruns; ++t) {
-        nitems.push_back(1000000 + gen() % 4000000);
+        nitems.push_back(10000 + gen() % 40000);
     }
 
     size_t total = 0;
