@@ -169,30 +169,37 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     read->req =
         byte_block->em_bid_.storage->aread(
             read->data, byte_block->em_bid_.offset, byte_block->size(),
-            [this, block, read, local_worker_id](
-                io::request* req, bool success) mutable {
-                std::unique_lock<std::mutex> lock(mutex_);
-
-                LOGC(debug_em)
-                << "OnReadComplete(): " << req << " done, from "
-                << block.byte_block()->em_bid_ << " success = " << success;
-                die_unless(success);
-                req->check_error();
-
-                // assign data
-                block.byte_block()->data_ = read->data;
-
-                // set pin on ByteBlock
-                IncBlockPinCountNoLock(block.byte_block(), local_worker_id);
-
-                bm_->delete_block(block.byte_block()->em_bid_);
-                block.byte_block()->em_bid_ = io::BID<0>();
-
-                // deliver future
-                read->result.set_value(PinnedBlock(block, local_worker_id));
+            [this, block, local_worker_id, read](
+                io::request* req, bool success) {
+                return OnReadComplete(block, local_worker_id, read,
+                                      req, success);
             });
 
     return read->result.get_future();
+}
+
+void BlockPool::OnReadComplete(
+    const Block& block, size_t local_worker_id, ReadRequest* read,
+    io::request* req, bool success) {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    LOGC(debug_em)
+        << "OnReadComplete(): " << req << " done, from "
+        << block.byte_block()->em_bid_ << " success = " << success;
+    die_unless(success);
+    req->check_error();
+
+    // assign data
+    block.byte_block()->data_ = read->data;
+
+    // set pin on ByteBlock
+    IncBlockPinCountNoLock(block.byte_block(), local_worker_id);
+
+    bm_->delete_block(block.byte_block()->em_bid_);
+    block.byte_block()->em_bid_ = io::BID<0>();
+
+    // deliver future
+    read->result.set_value(PinnedBlock(block, local_worker_id));
 }
 
 //! Increment a ByteBlock's pin count
@@ -320,15 +327,6 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
         swapped_.erase(it);
         --num_swapped_blocks_;
     }
-
-#if 0
-    else if (!block->swapable()) {
-        // there is no mmap'ed region - simply free the memory
-        ReleaseInternalMemory(block->size());
-        free(static_cast<void*>(block->data_));
-        block->data_ = nullptr;
-    }
-#endif
 }
 
 void BlockPool::RequestInternalMemory(
@@ -393,25 +391,31 @@ void BlockPool::EvictBlock() {
         block_ptr->em_bid_.storage->awrite(
             block_ptr->data_, block_ptr->em_bid_.offset, block_ptr->size(),
             [this, block_ptr](io::request* req, bool success) {
-                std::unique_lock<std::mutex> lock(mutex_);
-
-                LOGC(debug_em)
-                << "OnWriteComplete(): " << req
-                << " done, to " << block_ptr->em_bid_;
-                req->check_error();
-
-                writing_bytes_ -= block_ptr->size();
-                writing_.erase(block_ptr);
-
-                swapped_.insert(block_ptr);
-                ++num_swapped_blocks_;
-
-                // release memory
-                mem::aligned_dealloc(block_ptr->data_);
-                block_ptr->data_ = nullptr;
-
-                ReleaseInternalMemory(block_ptr->size());
+                return OnWriteComplete(block_ptr, req, success);
             });
+}
+
+void BlockPool::OnWriteComplete(
+    ByteBlock* block_ptr, io::request* req, bool success) {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    LOGC(debug_em)
+        << "OnWriteComplete(): " << req
+        << " done, to " << block_ptr->em_bid_ << " success = " << success;
+    req->check_error();
+    die_unless(success);
+
+    writing_bytes_ -= block_ptr->size();
+    writing_.erase(block_ptr);
+
+    swapped_.insert(block_ptr);
+    ++num_swapped_blocks_;
+
+    // release memory
+    mem::aligned_dealloc(block_ptr->data_);
+    block_ptr->data_ = nullptr;
+
+    ReleaseInternalMemory(block_ptr->size());
 }
 
 } // namespace data

@@ -19,11 +19,9 @@ using namespace thrill;
 struct BlockPoolTest : public::testing::Test {
     BlockPoolTest()
         : mem_manager_(nullptr, "mem"),
-          ext_mem_manager_(nullptr, "ext"),
-          block_pool_(0, 0, &mem_manager_, &ext_mem_manager_, /* workers_per_host */ 1) { }
+          block_pool_(0, 0, &mem_manager_, /* workers_per_host */ 1) { }
 
     mem::Manager    mem_manager_;
-    mem::Manager    ext_mem_manager_;
     data::BlockPool block_pool_;
 };
 
