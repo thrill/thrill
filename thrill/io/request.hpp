@@ -18,9 +18,9 @@
 #define THRILL_IO_REQUEST_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
+#include <thrill/common/delegate.hpp>
 #include <thrill/common/onoff_switch.hpp>
 #include <thrill/common/state.hpp>
-#include <thrill/common/delegate.hpp>
 #include <thrill/io/exceptions.hpp>
 
 #include <cassert>
@@ -113,21 +113,15 @@ public:
 
     //! Inform the request object that an error occurred during the I/O
     //! execution.
-    void error_occured(const char* msg) {
-        error_.reset(new io_error(msg));
-    }
-
-    //! Inform the request object that an error occurred during the I/O
-    //! execution.
-    void error_occured(const std::string& msg) {
+    void save_error(const std::string& msg) {
         error_.reset(new io_error(msg));
     }
 
     //! return error if one occured
     io_error * error() const { return error_.get(); }
 
-    //! Rises an exception if there were error with the I/O.
-    void check_errors() {
+    //! Rises an exception if there was an error with the I/O.
+    void check_error() {
         if (error_.get())
             throw *(error_.get());
     }

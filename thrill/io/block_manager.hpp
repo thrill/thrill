@@ -181,47 +181,38 @@ void block_manager::new_blocks_int(
     const DiskAssignFunctor& functor,
     size_t offset,
     OutputIterator out) {
-    using bid_array_type = BIDArray<BIDType::t_size>;
-
-    std::vector<int> bl(ndisks_, 0);
-    std::vector<bid_array_type> disk_bids(ndisks_);
-    std::vector<file*> disk_ptrs(nblocks);
-
-    // choose disks by calling DiskAssignFunctor
-
-    for (size_t i = 0; i < nblocks; ++i)
-    {
-        size_t disk = functor(offset + i);
-        disk_ptrs[i] = disk_files_[disk];
-        bl[disk]++;
-    }
-
-    // allocate blocks on disks
-
-    for (size_t i = 0; i < ndisks_; ++i)
-    {
-        if (bl[i])
-        {
-            disk_bids[i].resize(bl[i]);
-            disk_allocators_[i]->new_blocks(disk_bids[i]);
-        }
-    }
-
-    std::fill(bl.begin(), bl.end(), 0);
 
     OutputIterator it = out;
-    for (size_t i = 0; i != nblocks; ++it, ++i)
+    for (size_t i = 0; i != nblocks; ++i, ++it)
     {
-        const int disk = disk_ptrs[i]->get_allocator_id();
-        it->storage = disk_ptrs[i];
-        it->offset = disk_bids[disk][bl[disk]++].offset;
+        size_t disk_id;
+        file* disk_file;
+        disk_allocator* disk_alloc;
+
+        for (size_t retry = 0; retry < 100; ++retry) {
+            // choose disk by calling DiskAssignFunctor
+            disk_id = functor(offset + i);
+
+            disk_file = disk_files_[disk_id];
+            disk_alloc = disk_allocators_[disk_file->get_allocator_id()];
+
+            // check if disk has enough free space
+            if (disk_alloc->get_free_bytes() >= static_cast<int64_t>(it->size))
+                break;
+        }
+
+        // if no disk has free space, pick an arbitrary one after 100 rounds.
+
+        it->storage = disk_file;
+        disk_alloc->new_blocks(it, it + 1);
         LOG0 << "BLC:new    " << *it;
 
 #if STXXL_MNG_COUNT_ALLOCATION
         total_allocation_ += it->size;
         current_allocation_ += it->size;
-#endif      // STXXL_MNG_COUNT_ALLOCATION
+#endif          // STXXL_MNG_COUNT_ALLOCATION
     }
+
 #if STXXL_MNG_COUNT_ALLOCATION
     maximum_allocation_ = std::max(maximum_allocation_, current_allocation_);
 #endif      // STXXL_MNG_COUNT_ALLOCATION

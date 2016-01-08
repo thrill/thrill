@@ -53,7 +53,7 @@ void serving_request::serve() {
     }
     catch (const io_error& ex)
     {
-        error_occured(ex.what());
+        save_error(ex.what());
     }
 
     check_nref(true);

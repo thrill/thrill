@@ -137,7 +137,7 @@ void request::wait(bool measure_time) {
 
     state_.wait_for(READY2DIE);
 
-    check_errors();
+    check_error();
 }
 
 bool request::cancel() {
@@ -149,7 +149,8 @@ bool request::cancel() {
         {
             state_.set_to(DONE);
             // user callback
-            on_complete_(this, false);
+            if (on_complete_)
+                on_complete_(this, false);
             notify_waiters();
             file_->delete_request_ref();
             file_ = 0;
@@ -163,7 +164,7 @@ bool request::cancel() {
 bool request::poll() {
     const State s = state_();
 
-    check_errors();
+    check_error();
 
     return s == DONE || s == READY2DIE;
 }
@@ -173,7 +174,8 @@ void request::completed(bool canceled) {
     // change state
     state_.set_to(DONE);
     // user callback
-    on_complete_(this, !canceled);
+    if (on_complete_)
+        on_complete_(this, !canceled);
     // notify waiters
     notify_waiters();
     file_->delete_request_ref();

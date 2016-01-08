@@ -120,7 +120,7 @@ RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
                 (request_ptr(*cur))->delete_waiter(&sw);
             }
 
-            (request_ptr(*result))->check_errors();
+            (request_ptr(*result))->check_error();
 
             return result;
         }

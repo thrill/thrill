@@ -218,6 +218,11 @@ bool BID<Size>::is_managed() const {
     return storage->get_allocator_id() != file::NO_ALLOCATOR;
 }
 
+inline
+bool BID<0>::is_managed() const {
+    return storage->get_allocator_id() != file::NO_ALLOCATOR;
+}
+
 //! \}
 
 //! \defgroup reqlayer I/O Requests and Queues
