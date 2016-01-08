@@ -101,7 +101,6 @@ build_test_group(common/tests
   )
 
 build_test(mem/allocator_test)
-build_test(mem/page_mapper_test)
 build_test(mem/stack_allocator_test)
 if(NOT MSVC)
   build_test(mem/malloc_tracker_test)
@@ -169,6 +168,7 @@ build_test(api/groupby_node_test)
 build_test(api/sort_node_test)
 build_test(api/sum_node_test)
 build_test(api/zip_node_test)
+# currently disabled because it fails randomly when result is disbalanced
 #build_test(api/merge_node_test)
 
 build_test(examples/wordcount_test)

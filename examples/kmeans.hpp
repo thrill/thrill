@@ -74,8 +74,9 @@ auto kMeans(const DIA<std::string, InStack>&in1,
             }).Cache();
 
         auto accs = closest.GroupBy<CentroidAcc>(
-            [](ClosestCentroid p) { return 0.5 * (p.first.first + p.first.second)
-                                    * (p.first.first + p.first.second + 1.0) + p.first.second;
+            [](ClosestCentroid p) {
+                return 0.5 * (p.first.first + p.first.second)
+                * (p.first.first + p.first.second + 1.0) + p.first.second;
             },
             [](auto& r, float) {
                 Centrioid accPoint(0.0, 0.0);
@@ -100,6 +101,7 @@ auto kMeans(const DIA<std::string, InStack>&in1,
 
     return centroids;
 }
+
 } // namespace examples
 
 #endif // !THRILL_EXAMPLES_KMEANS_HEADER
