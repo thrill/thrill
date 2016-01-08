@@ -259,7 +259,7 @@ void Broadcast(Group& net, T& value, size_t origin = 0) {
  */
 template <typename T, typename BinarySumOp = std::plus<T> >
 static inline
-void ReduceToRoot(Group& net, T& value, size_t root = 0,
+void Reduce(Group& net, T& value, size_t root = 0,
                   BinarySumOp sum_op = BinarySumOp())
 {
     const size_t num_hosts = net.num_hosts();
@@ -292,7 +292,7 @@ void ReduceToRoot(Group& net, T& value, size_t root = 0,
 template <typename T, typename BinarySumOp = std::plus<T> >
 static inline
 void AllReduce(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
-    ReduceToRoot(net, value, 0, sum_op);
+    Reduce(net, value, 0, sum_op);
     Broadcast(net, value, 0);
 }
 
@@ -368,8 +368,8 @@ void Group::Broadcast(T& value, size_t origin) {
 
 //! Reduce a value from all workers to the worker 0
 template <typename T, typename BinarySumOp>
-void Group::ReduceToRoot(T& value, size_t root, BinarySumOp sum_op) {
-    return collective::ReduceToRoot(*this, value, root, sum_op);
+void Group::Reduce(T& value, size_t root, BinarySumOp sum_op) {
+    return collective::Reduce(*this, value, root, sum_op);
 }
 
 //! Reduce a value from all workers to all workers

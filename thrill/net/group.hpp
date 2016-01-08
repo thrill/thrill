@@ -137,7 +137,7 @@ public:
 
     //! Reduce a value from all workers to the worker 0
     template <typename T, typename BinarySumOp = std::plus<T> >
-    void ReduceToRoot(T& value, size_t root = 0, BinarySumOp sum_op = BinarySumOp());
+    void Reduce(T& value, size_t root = 0, BinarySumOp sum_op = BinarySumOp());
 
     //! Reduce a value from all workers to all workers
     template <typename T, typename BinarySumOp = std::plus<T> >
