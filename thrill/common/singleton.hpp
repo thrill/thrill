@@ -20,6 +20,7 @@
 #include <sys/time.h>
 
 #include <mutex>
+#include <cstdlib>
 
 namespace thrill {
 namespace common {
