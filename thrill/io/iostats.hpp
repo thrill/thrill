@@ -21,12 +21,14 @@
  #define THRILL_IO_STATS 1
 #endif
 
+#include <thrill/common/config.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/singleton.hpp>
 
 #include <iostream>
 #include <mutex>
 #include <string>
+#include <chrono>
 
 namespace thrill {
 namespace io {
@@ -38,22 +40,15 @@ namespace io {
 //! Returns number of seconds since the epoch, high resolution.
 static inline double
 timestamp() {
-#if THRILL_BOOST_TIMESTAMP
-    boost::posix_time::ptime MyTime = boost::posix_time::microsec_clock::local_time();
-    boost::posix_time::time_duration Duration =
-        MyTime - boost::posix_time::time_from_string("1970-01-01 00:00:00.000");
-    double sec = static_cast<double>(Duration.hours()) * 3600. +
-                 static_cast<double>(Duration.minutes()) * 60. +
-                 static_cast<double>(Duration.seconds()) +
-                 static_cast<double>(Duration.fractional_seconds()) / (pow(10., Duration.num_fractional_digits()));
-    return sec;
-#elif THRILL_WINDOWS
-    return GetTickCount() / 1000.0;
-#else
-    struct timeval tp;
-    gettimeofday(&tp, nullptr);
-    return static_cast<double>(tp.tv_sec) + static_cast<double>(tp.tv_usec) / 1000000.;
-#endif
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count() / 1e6;
+// #if THRILL_WINDOWS
+//     return GetTickCount() / 1000.0;
+// #else
+//     struct timeval tp;
+//     gettimeofday(&tp, nullptr);
+//     return static_cast<double>(tp.tv_sec) + static_cast<double>(tp.tv_usec) / 1000000.;
+// #endif
 }
 
 //! Collects various I/O statistics.

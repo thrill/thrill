@@ -17,8 +17,6 @@
 #ifndef THRILL_COMMON_SINGLETON_HEADER
 #define THRILL_COMMON_SINGLETON_HEADER
 
-#include <sys/time.h>
-
 #include <mutex>
 #include <cstdlib>
 

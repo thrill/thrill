@@ -69,12 +69,12 @@ UfsFileBase::UfsFileBase(
         flags |= O_DIRECT;
 #else
         if (mode & REQUIRE_DIRECT) {
-            THRILL_ERRMSG("Error: open()ing " << filename << " with DIRECT mode required, but the system does not support it.");
+            LOG1 << "Error: open()ing " << filename << " with DIRECT mode required, but the system does not support it.";
             file_des = -1;
             return;
         }
         else {
-            THRILL_MSG("Warning: open()ing " << filename << " without DIRECT mode, as the system does not support it.");
+            LOG1 << "Warning: open()ing " << filename << " without DIRECT mode, as the system does not support it.";
         }
 #endif
     }

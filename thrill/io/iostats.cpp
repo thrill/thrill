@@ -14,11 +14,6 @@
  ******************************************************************************/
 
 #include <thrill/io/iostats.hpp>
-// #include <stxxl/bits/common/log.h>
-// #include <stxxl/bits/verbose.h>
-// #include <stxxl/bits/common/mutex.h>
-// #include <stxxl/bits/common/timer.h>
-// #include <stxxl/bits/common/types.h>
 
 #include <iomanip>
 #include <sstream>

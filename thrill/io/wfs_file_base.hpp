@@ -23,10 +23,11 @@
 
 #if THRILL_WINDOWS
 
-#include <thrill/io/file.h>
-#include <thrill/io/request.h>
+#include <thrill/io/file_base.hpp>
+#include <thrill/io/request.hpp>
 
 #include <string>
+#include <mutex>
 
 namespace thrill {
 namespace io {
@@ -40,8 +41,8 @@ class WfsFileBase : public virtual FileBase
 protected:
     using HANDLE = void*;
 
-    mutex fd_mutex;        // sequentialize function calls involving file_des
-    HANDLE file_des;       // file descriptor
+    std::mutex fd_mutex_;  // sequentialize function calls involving file_des_
+    HANDLE file_des_;      // file descriptor
     int mode_;             // open mode
     const std::string filename;
     offset_type bytes_per_sector;
@@ -55,7 +56,7 @@ public:
     offset_type size() final;
     void set_size(offset_type newsize) final;
     void lock() final;
-    const char * io_type() const final;
+    const char * io_type() const override;
     void close_remove() final;
 };
 

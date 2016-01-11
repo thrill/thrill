@@ -47,11 +47,12 @@ BlockManager::BlockManager() {
 
         // assign queues in order of disks.
         if (cfg.queue == FileBase::DEFAULT_QUEUE)
-            cfg.queue = i;
+            cfg.queue = static_cast<int>(i);
 
         try
         {
-            disk_files_[i] = CreateFile(cfg, FileBase::CREAT | FileBase::RDWR, i);
+            disk_files_[i] = CreateFile(
+                cfg, FileBase::CREAT | FileBase::RDWR, static_cast<int>(i));
 
             LOG1 << "Disk '" << cfg.path << "' is allocated, space: "
                  << (cfg.size) / (1024 * 1024)

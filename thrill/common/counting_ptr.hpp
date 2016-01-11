@@ -101,11 +101,13 @@ public:
         other_ptr.ptr_ = nullptr;
     }
 
+#if !defined(_MSC_VER)
     //! move-constructor from other counting pointer (pointer types must be
     //! convertible): also initializes new reference to ptr.
     template <typename Other>
     CountingPtr(CountingPtr<Other>&& other_ptr) noexcept : ptr_(other_ptr.ptr_)
     { other_ptr.ptr_ = nullptr; }
+#endif
 
     //! copy-assignment operator: dereference current object and acquire
     //! reference on new one.
