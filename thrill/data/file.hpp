@@ -27,7 +27,6 @@
 #include <functional>
 #include <limits>
 #include <memory>
-#include <queue>
 #include <string>
 #include <vector>
 
@@ -307,8 +306,8 @@ public:
     //! Start reading a File
     //! Creates a source for the given file and set the number of blocks
     //! that should be prefetched. 0 means that no blocks are prefetched.
-    explicit ConsumeFileBlockSource(File* file)
-        : file_(file) { }
+    explicit ConsumeFileBlockSource(File* file, size_t num_prefetch = 2)
+        : file_(file), num_prefetch_(num_prefetch) { }
 
     //! non-copyable: delete copy-constructor
     ConsumeFileBlockSource(const ConsumeFileBlockSource&) = delete;
@@ -325,7 +324,7 @@ public:
             return PinnedBlock();
 
         // operate without prefetching
-        if (desired_prefetched_ == 0) {
+        if (num_prefetch_ == 0) {
             std::future<PinnedBlock> f =
                 file_->blocks_.front().Pin(file_->local_worker_id());
             file_->blocks_.pop_front();
@@ -333,11 +332,9 @@ public:
             return f.get();
         }
 
-        die("fix");
-
         // prefetch #desired + 1
-        while (fetching_blocks_.size() <= desired_prefetched_ && !file_->blocks_.empty()) {
-            fetching_blocks_.emplace(
+        while (fetching_blocks_.size() <= num_prefetch_ && !file_->blocks_.empty()) {
+            fetching_blocks_.emplace_back(
                 file_->blocks_.front().Pin(file_->local_worker_id()));
             file_->blocks_.pop_front();
         }
@@ -346,7 +343,7 @@ public:
         fetching_blocks_.front().wait();
 
         PinnedBlock b = fetching_blocks_.front().get();
-        fetching_blocks_.pop();
+        fetching_blocks_.pop_front();
         return b;
     }
 
@@ -362,11 +359,11 @@ private:
     //! file to consume blocks from (ptr to make moving easier)
     File* file_;
 
-    //! number of concurrent prefetch operations
-    size_t desired_prefetched_ = 0;
+    //! number of block prefetch operations
+    size_t num_prefetch_;
 
     //! current prefetch operations
-    std::queue<std::future<PinnedBlock> > fetching_blocks_;
+    std::deque<std::future<PinnedBlock> > fetching_blocks_;
 };
 
 inline
