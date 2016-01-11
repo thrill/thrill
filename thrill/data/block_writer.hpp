@@ -157,7 +157,7 @@ public:
         Flush();
 
         for (const Block& b : blocks)
-            sink_->AppendBlock(b.PinNow(sink_->local_worker_id()));
+            sink_->AppendBlock(b.PinWait(sink_->local_worker_id()));
 
         AllocateBlock();
     }

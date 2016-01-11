@@ -69,7 +69,7 @@ public:
     //! \param bidbegin bidirectional BID iterator object
     //! \param bidend bidirectional BID iterator object
     //! \param offset advance for \b functor to line up partial allocations
-    template <class DiskAssignFunctor, class BIDIteratorClass>
+    template <typename DiskAssignFunctor, typename BIDIteratorClass>
     void new_blocks(
         const DiskAssignFunctor& functor,
         BIDIteratorClass bidbegin,
@@ -90,7 +90,7 @@ public:
     //! \param offset advance for \b functor to line up partial allocations
     //!
     //! The \c BlockType template parameter defines the type of block to allocate
-    template <class BlockType, class DiskAssignFunctor, class BIDIteratorClass>
+    template <typename BlockType, typename DiskAssignFunctor, typename BIDIteratorClass>
     void new_blocks(const size_t nblocks,
                     const DiskAssignFunctor& functor,
                     BIDIteratorClass out,
@@ -118,7 +118,7 @@ public:
     //! Deallocates blocks in the range [ \b bidbegin, \b bidend)
     //! \param bidbegin iterator object of \b bid_iterator concept
     //! \param bidend iterator object of \b bid_iterator concept
-    template <class BIDIteratorClass>
+    template <typename BIDIteratorClass>
     void delete_blocks(
         const BIDIteratorClass& bid_begin, const BIDIteratorClass& bid_end) {
         for (BIDIteratorClass it = bid_begin; it != bid_end; it++)
@@ -133,19 +133,16 @@ public:
     ~BlockManager();
 
     //! return total requested allocation in bytes
-    uint64_t total_allocation() const
-    { return total_allocation_; }
+    uint64_t total_allocation() const { return total_allocation_; }
 
     //! return currently allocated bytes
-    uint64_t current_allocation() const
-    { return current_allocation_; }
+    uint64_t current_allocation() const { return current_allocation_; }
 
     //! return maximum number of bytes allocated during program run.
-    uint64_t maximum_allocation() const
-    { return maximum_allocation_; }
+    uint64_t maximum_allocation() const { return maximum_allocation_; }
 
 protected:
-    template <class BIDType, class DiskAssignFunctor, class BIDIteratorClass>
+    template <typename BIDType, typename DiskAssignFunctor, typename BIDIteratorClass>
     void new_blocks_int(
         const size_t nblocks, const DiskAssignFunctor& functor,
         size_t offset, BIDIteratorClass out);
@@ -160,16 +157,16 @@ private:
     BlockManager();
 
     //! total requested allocation in bytes
-    uint64_t total_allocation_;
+    uint64_t total_allocation_ = 0;
 
     //! currently allocated bytes
-    uint64_t current_allocation_;
+    uint64_t current_allocation_ = 0;
 
     //! maximum number of bytes allocated during program run.
-    uint64_t maximum_allocation_;
+    uint64_t maximum_allocation_ = 0;
 };
 
-template <class BIDType, class DiskAssignFunctor, class OutputIterator>
+template <typename BIDType, typename DiskAssignFunctor, typename OutputIterator>
 void BlockManager::new_blocks_int(
     const size_t nblocks,
     const DiskAssignFunctor& functor,

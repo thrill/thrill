@@ -19,8 +19,8 @@
 
 #include <limits>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 using thrill::DIA;
 using thrill::Context;

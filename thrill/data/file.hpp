@@ -197,7 +197,7 @@ public:
     std::string ReadComplete() const {
         std::string output;
         for (const Block& b : blocks_)
-            output += b.PinNow(0).ToString();
+            output += b.PinWait(0).ToString();
         return output;
     }
 
@@ -263,10 +263,10 @@ public:
             Block b = file_.block(current_block_);
             if (first_item_ != keep_first_item)
                 b.set_begin(first_item_);
-            return b.PinNow(file_.local_worker_id());
+            return b.PinWait(file_.local_worker_id());
         }
         else {
-            return file_.block(current_block_).PinNow(file_.local_worker_id());
+            return file_.block(current_block_).PinWait(file_.local_worker_id());
         }
     }
 
