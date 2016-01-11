@@ -136,7 +136,8 @@ public:
     }
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
-    virtual void AsyncRead(Connection& c, data::PinnedByteBlockPtr&& block,
+    virtual void AsyncRead(Connection& c, size_t n,
+                           data::PinnedByteBlockPtr&& block,
                            AsyncReadByteBlockCallback done_cb) {
         assert(c.IsValid());
 
@@ -147,7 +148,7 @@ public:
         }
 
         // add new async reader object
-        async_read_block_.emplace_back(c, std::move(block), done_cb);
+        async_read_block_.emplace_back(c, n, std::move(block), done_cb);
 
         // register read callback
         AsyncReadByteBlock& arbb = async_read_block_.back();
@@ -478,25 +479,26 @@ protected:
     {
     public:
         //! Construct block reader with callback
-        AsyncReadByteBlock(Connection& conn,
+        AsyncReadByteBlock(Connection& conn, size_t size,
                            data::PinnedByteBlockPtr&& block,
                            const AsyncReadByteBlockCallback& callback)
             : conn_(&conn),
               block_(std::move(block)),
+              size_(size),
               callback_(callback)
         { }
 
         //! Should be called when the socket is readable
         bool operator () () {
             ssize_t r = conn_->RecvOne(
-                block_->data() + size_, block_->size() - size_);
+                block_->data() + pos_, size_ - pos_);
 
             if (r <= 0) {
                 // these errors are acceptable: just redo the recv later.
                 if (errno == EINTR || errno == EAGAIN) return true;
 
                 // signal artificial IsDone, for clean up.
-                size_ = block_->size();
+                pos_ = size_;
 
                 // these errors are end-of-file indications (both good and bad)
                 if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
@@ -506,9 +508,9 @@ protected:
                 throw Exception("AsyncReadBlock() error in recv", errno);
             }
 
-            size_ += r;
+            pos_ += r;
 
-            if (size_ == block_->size()) {
+            if (pos_ == size_) {
                 DoCallback();
                 return false;
             }
@@ -519,7 +521,7 @@ protected:
 
         bool IsDone() const {
             // done if block is already delivered to callback or size matches
-            return !block_ || size_ == block_->size();
+            return !block_ || pos_ == size_;
         }
 
         data::PinnedByteBlockPtr & byte_block() { return block_; }
@@ -535,8 +537,11 @@ protected:
         //! Receive block, holds a pin on the memory.
         data::PinnedByteBlockPtr block_;
 
-        //! total size currently read
-        size_t size_ = 0;
+        //! size currently read
+        size_t pos_ = 0;
+
+        //! total size to read
+        size_t size_;
 
         //! functional object to call once data is complete
         AsyncReadByteBlockCallback callback_;

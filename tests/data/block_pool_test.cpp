@@ -17,11 +17,6 @@
 using namespace thrill;
 
 struct BlockPoolTest : public::testing::Test {
-    BlockPoolTest()
-        : mem_manager_(nullptr, "mem"),
-          block_pool_(0, 0, &mem_manager_, /* workers_per_host */ 1) { }
-
-    mem::Manager    mem_manager_;
     data::BlockPool block_pool_;
 };
 
@@ -32,11 +27,12 @@ TEST_F(BlockPoolTest, AllocateByteBlock) {
 TEST_F(BlockPoolTest, AllocatePinnedBlocks) {
     data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(8, 0);
     data::PinnedBlock pblock(std::move(block), 0, 0, 0, 0);
-    // ASSERT_EQ(8u, mem_manager_.total());
-    ASSERT_EQ(1u, block_pool_.block_count());
+    ASSERT_EQ(1u, block_pool_.total_blocks());
+    ASSERT_EQ(8u, block_pool_.total_bytes());
     data::PinnedByteBlockPtr block2 = block_pool_.AllocateByteBlock(2, 0);
     data::PinnedBlock pblock2(std::move(block2), 0, 0, 0, 0);
-    // ASSERT_EQ(10u, mem_manager_.total());
+    ASSERT_EQ(2u, block_pool_.total_blocks());
+    ASSERT_EQ(10u, block_pool_.total_bytes());
 }
 
 TEST_F(BlockPoolTest, BlocksOutOfScopeReduceBlockCount) {
@@ -44,15 +40,7 @@ TEST_F(BlockPoolTest, BlocksOutOfScopeReduceBlockCount) {
         data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(8, 0);
         data::PinnedBlock pblock(std::move(block), 0, 0, 0, 0);
     }
-    ASSERT_EQ(0u, block_pool_.block_count());
-}
-
-TEST_F(BlockPoolTest, BlocksOutOfScopeAreAccountetInMemManager) {
-    {
-        data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(8, 0);
-        data::PinnedBlock pblock(std::move(block), 0, 0, 0, 0);
-    }
-    ASSERT_EQ(0u, mem_manager_.total());
+    ASSERT_EQ(0u, block_pool_.total_blocks());
 }
 
 TEST_F(BlockPoolTest, AllocatedBlocksHaveRefCountOne) {
