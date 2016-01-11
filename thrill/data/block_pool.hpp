@@ -111,7 +111,7 @@ private:
     std::mutex mutex_;
 
     //! For waiting on hard memory limit
-    std::condition_variable memory_change_;
+    std::condition_variable cv_memory_change_;
 
     //! local Manager counting only ByteBlock allocations in internal memory.
     mem::Manager mem_manager_;

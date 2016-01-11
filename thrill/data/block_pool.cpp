@@ -26,7 +26,7 @@ static const bool debug_blc = false;
 static const bool debug_pin = false;
 
 //! debug block eviction: evict, write complete, read complete
-static const bool debug_em = true;
+static const bool debug_em = false;
 
 size_t BlockPool::soft_ram_limit_ = 300000000lu;
 size_t BlockPool::hard_ram_limit_ = 500000000lu;
@@ -76,6 +76,8 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         // PinnedBlock become Blocks when transfered between Files or delivered
         // via GetItemRange() or Scatter().
 
+        assert(!unpinned_blocks_.exists(byte_block));
+
         IncBlockPinCountNoLock(byte_block, local_worker_id);
 
         LOGC(debug_pin)
@@ -90,6 +92,8 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     if (byte_block->total_pins_ > 0) {
         // This block was already pinned by another thread, hence we only need
         // to get a pin for the new thread.
+
+        assert(!unpinned_blocks_.exists(byte_block));
 
         IncBlockPinCountNoLock(byte_block, local_worker_id);
         pin_count_.Increment(local_worker_id, byte_block->size());
@@ -107,6 +111,10 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     if (byte_block->in_memory())
     {
         // unpinned block in memory, no need to load from EM.
+
+        // check that not writing. TODO(tb): if this occurs, cancel I/O and fix
+        // I/O handler.
+        die_unless(writing_.find(byte_block) == writing_.end());
 
         // remove from unpinned list
         assert(unpinned_blocks_.exists(byte_block));
@@ -170,23 +178,48 @@ void BlockPool::OnReadComplete(
     io::Request* req, bool success) {
     std::unique_lock<std::mutex> lock(mutex_);
 
+    ByteBlock* byte_block = block.byte_block();
+
     LOGC(debug_em)
         << "OnReadComplete(): " << req << " done, from "
-        << block.byte_block()->em_bid_ << " success = " << success;
-    die_unless(success);
+        << byte_block->em_bid_ << " success = " << success;
     req->check_error();
 
-    // assign data
-    block.byte_block()->data_ = read->data;
+    if (!success)
+    {
+        // request was canceled. this is not an I/O error, but intentional,
+        // e.g. because the block was deleted.
 
-    // set pin on ByteBlock
-    IncBlockPinCountNoLock(block.byte_block(), local_worker_id);
+        swapped_.insert(byte_block);
+        ++num_swapped_blocks_;
 
-    bm_->delete_block(block.byte_block()->em_bid_);
-    block.byte_block()->em_bid_ = io::BID<0>();
+        // release memory
+        mem::aligned_dealloc(read->data);
 
-    // deliver future
-    read->result.set_value(PinnedBlock(block, local_worker_id));
+        // the requested memory was already counted as a pin.
+        pin_count_.Decrement(local_worker_id, byte_block->size());
+
+        ReleaseInternalMemory(byte_block->size());
+
+        // deliver future
+        read->result.set_value(PinnedBlock());
+    }
+    else    // success
+    {
+        // assign data
+        byte_block->data_ = read->data;
+
+        // set pin on ByteBlock
+        IncBlockPinCountNoLock(byte_block, local_worker_id);
+
+        bm_->delete_block(byte_block->em_bid_);
+        byte_block->em_bid_ = io::BID<0>();
+
+        // deliver future
+        read->result.set_value(PinnedBlock(block, local_worker_id));
+    }
+
+    reading_.erase(byte_block);
 }
 
 //! Increment a ByteBlock's pin count
@@ -278,6 +311,39 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
 
     if (block->in_memory())
     {
+        // block was evicted, may still be writing to EM.
+        auto it = writing_.find(block);
+        if (it != writing_.end()) {
+            lock.unlock();
+            // cancel I/O request
+            if (!it->second->cancel()) {
+                // must still wait for cancellation to complete and the I/O
+                // handler.
+                it->second->wait();
+            }
+            lock.lock();
+            assert(writing_.find(block) == writing_.end());
+        }
+    }
+    else
+    {
+        // block was being pinned. cancel read operation
+        auto it = reading_.find(block);
+        if (it != reading_.end()) {
+            lock.unlock();
+            // cancel I/O request
+            if (!it->second.req->cancel()) {
+                // must still wait for cancellation to complete and the I/O
+                // handler.
+                it->second.req->wait();
+            }
+            lock.lock();
+            assert(reading_.find(block) == reading_.end());
+        }
+    }
+
+    if (block->in_memory())
+    {
         // unpinned block in memory, remove from list
         assert(unpinned_blocks_.exists(block));
         unpinned_blocks_.erase(block);
@@ -286,20 +352,10 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
         mem::aligned_dealloc(block->data_);
         block->data_ = nullptr;
 
-        // page_mapper_.SwapOut(block->data_, false);
-        // page_mapper_.ReleaseToken(block->swap_token_);
         ReleaseInternalMemory(block->size());
     }
     else
     {
-        // block was evicted, may still be writing to EM.
-        auto req = writing_.find(block);
-        if (req != writing_.end()) {
-            // TODO(tb): maybe cancel instead someday.
-            req->second->wait();
-            assert(writing_.find(block) == writing_.end());
-        }
-
         auto it = swapped_.find(block);
         die_unless(it != swapped_.end());
 
@@ -330,7 +386,7 @@ void BlockPool::RequestInternalMemory(
     }
 
     // wait for memory change due to blocks begin written and deallocated.
-    memory_change_.wait(
+    cv_memory_change_.wait(
         lock, [&]() {
             return total_ram_use_ + size <= hard_ram_limit_;
         });
@@ -344,7 +400,7 @@ void BlockPool::ReleaseInternalMemory(size_t size) {
     assert(total_ram_use_ >= size);
     total_ram_use_ -= size;
 
-    memory_change_.notify_all();
+    cv_memory_change_.notify_all();
 }
 
 void BlockPool::EvictBlock() {
@@ -380,19 +436,32 @@ void BlockPool::OnWriteComplete(
         << "OnWriteComplete(): " << req
         << " done, to " << block_ptr->em_bid_ << " success = " << success;
     req->check_error();
-    die_unless(success);
 
     writing_bytes_ -= block_ptr->size();
     writing_.erase(block_ptr);
 
-    swapped_.insert(block_ptr);
-    ++num_swapped_blocks_;
+    if (!success)
+    {
+        // request was canceled. this is not an I/O error, but intentional,
+        // e.g. because the block was deleted.
 
-    // release memory
-    mem::aligned_dealloc(block_ptr->data_);
-    block_ptr->data_ = nullptr;
+        assert(!unpinned_blocks_.exists(block_ptr));
+        unpinned_blocks_.put(block_ptr);
 
-    ReleaseInternalMemory(block_ptr->size());
+        bm_->delete_block(block_ptr->em_bid_);
+        block_ptr->em_bid_ = io::BID<0>();
+    }
+    else    // success
+    {
+        swapped_.insert(block_ptr);
+        ++num_swapped_blocks_;
+
+        // release memory
+        mem::aligned_dealloc(block_ptr->data_);
+        block_ptr->data_ = nullptr;
+
+        ReleaseInternalMemory(block_ptr->size());
+    }
 }
 
 /******************************************************************************/
