@@ -56,12 +56,12 @@ public:
         int queue_id = DEFAULT_QUEUE,
         int allocator_id = NO_ALLOCATOR,
         unsigned int device_id = DEFAULT_DEVICE_ID)
-        : file(device_id),
+        : FileBase(device_id),
           WfsFileBase(filename, mode),
-          disk_queued_file(queue_id, allocator_id)
+          DiskQueuedFile(queue_id, allocator_id)
     { }
     void serve(void* buffer, offset_type offset, size_type bytes,
-               request::request_type type) final;
+               Request::ReadOrWriteType type) final;
     const char * io_type() const final;
 };
 

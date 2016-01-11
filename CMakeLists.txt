@@ -148,6 +148,8 @@ elseif(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4459")
   # warning C4702: unreachable code
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4702")
+  # warning C4250: ABC inherits XYZ via dominance
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4250")
   # disable lots of warnings about "unsecure" C runtime function
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
   # disable "The POSIX name for this item is deprecated. Instead, use the ISO C

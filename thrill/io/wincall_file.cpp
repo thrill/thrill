@@ -30,47 +30,52 @@ namespace thrill {
 namespace io {
 
 void WincallFile::serve(void* buffer, offset_type offset, size_type bytes,
-                        request::request_type type) {
-    scoped_mutex_lock fd_lock(fd_mutex);
+                        Request::ReadOrWriteType type) {
+    std::unique_lock<std::mutex> fd_lock(fd_mutex_);
 
     if (bytes > 32 * 1024 * 1024) {
-        THRILL_ERRMSG("Using a block size larger than 32 MiB may not work with the " << io_type() << " filetype");
+        LOG1 << "Using a block size larger than 32 MiB may not work with the " << io_type() << " filetype";
     }
 
-    HANDLE handle = file_des;
+    HANDLE handle = file_des_;
     LARGE_INTEGER desired_pos;
     desired_pos.QuadPart = offset;
     if (!SetFilePointerEx(handle, desired_pos, nullptr, FILE_BEGIN))
     {
-        THRILL_THROW_WIN_LASTERROR(IoError,
-                                   "SetFilePointerEx in wincall_request::serve()" <<
-                                   " offset=" << offset <<
-                                   " this=" << this <<
-                                   " buffer=" << buffer <<
-                                   " bytes=" << bytes <<
-                                   " type=" << ((type == request::READ) ? "READ" : "WRITE"));
+        THRILL_THROW_WIN_LASTERROR(
+            IoError,
+            "SetFilePointerEx in wincall_request::serve()" <<
+            " offset=" << offset <<
+            " this=" << this <<
+            " buffer=" << buffer <<
+            " bytes=" << bytes <<
+            " type=" << ((type == Request::READ) ? "READ" : "WRITE"));
     }
     else
     {
-        stats::scoped_read_write_timer read_write_timer(bytes, type == request::WRITE);
+        Stats::scoped_read_write_timer read_write_timer(bytes, type == Request::WRITE);
 
-        if (type == request::READ)
+        if (type == Request::READ)
         {
             DWORD NumberOfBytesRead = 0;
             assert(bytes <= std::numeric_limits<DWORD>::max());
             if (!ReadFile(handle, buffer, (DWORD)bytes, &NumberOfBytesRead, nullptr))
             {
-                THRILL_THROW_WIN_LASTERROR(IoError,
-                                           "ReadFile" <<
-                                           " this=" << this <<
-                                           " offset=" << offset <<
-                                           " buffer=" << buffer <<
-                                           " bytes=" << bytes <<
-                                           " type=" << ((type == request::READ) ? "READ" : "WRITE") <<
-                                           " NumberOfBytesRead= " << NumberOfBytesRead);
+                THRILL_THROW_WIN_LASTERROR(
+                    IoError,
+                    "ReadFile" <<
+                    " this=" << this <<
+                    " offset=" << offset <<
+                    " buffer=" << buffer <<
+                    " bytes=" << bytes <<
+                    " type=" << ((type == Request::READ) ? "READ" : "WRITE") <<
+                    " NumberOfBytesRead= " << NumberOfBytesRead);
             }
             else if (NumberOfBytesRead != bytes) {
-                THRILL_THROW_WIN_LASTERROR(IoError, " partial read: missing " << (bytes - NumberOfBytesRead) << " out of " << bytes << " bytes");
+                THRILL_THROW_WIN_LASTERROR(
+                    IoError, " partial read: missing " <<
+                    (bytes - NumberOfBytesRead) << " out of " <<
+                    bytes << " bytes");
             }
         }
         else
@@ -79,17 +84,21 @@ void WincallFile::serve(void* buffer, offset_type offset, size_type bytes,
             assert(bytes <= std::numeric_limits<DWORD>::max());
             if (!WriteFile(handle, buffer, (DWORD)bytes, &NumberOfBytesWritten, nullptr))
             {
-                THRILL_THROW_WIN_LASTERROR(IoError,
-                                           "WriteFile" <<
-                                           " this=" << this <<
-                                           " offset=" << offset <<
-                                           " buffer=" << buffer <<
-                                           " bytes=" << bytes <<
-                                           " type=" << ((type == request::READ) ? "READ" : "WRITE") <<
-                                           " NumberOfBytesWritten= " << NumberOfBytesWritten);
+                THRILL_THROW_WIN_LASTERROR(
+                    IoError,
+                    "WriteFile" <<
+                    " this=" << this <<
+                    " offset=" << offset <<
+                    " buffer=" << buffer <<
+                    " bytes=" << bytes <<
+                    " type=" << ((type == Request::READ) ? "READ" : "WRITE") <<
+                    " NumberOfBytesWritten= " << NumberOfBytesWritten);
             }
             else if (NumberOfBytesWritten != bytes) {
-                THRILL_THROW_WIN_LASTERROR(IoError, " partial write: missing " << (bytes - NumberOfBytesWritten) << " out of " << bytes << " bytes");
+                THRILL_THROW_WIN_LASTERROR(
+                    IoError, " partial write: missing " <<
+                    (bytes - NumberOfBytesWritten) << " out of " <<
+                    bytes << " bytes");
             }
         }
     }

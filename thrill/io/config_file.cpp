@@ -37,7 +37,7 @@ namespace thrill {
 namespace io {
 
 static inline bool exist_file(const std::string& path) {
-    // THRILL_MSG("Checking " << path << " for disk configuration.");
+    LOG0 << "Checking " << path << " for disk configuration.";
     std::ifstream in(path.c_str());
     return in.good();
 }
@@ -127,7 +127,7 @@ void Config::load_default_config() {
 
     char* tmpstr = new char[255];
     if (GetTempPath(255, tmpstr) == 0)
-        THRILL_THROW_WIN_LASTERROR(resource_error, "GetTempPath()");
+        THRILL_THROW_WIN_LASTERROR(IoError, "GetTempPath()");
     entry1.path = tmpstr;
     entry1.path += "stxxl.tmp";
     delete[] tmpstr;

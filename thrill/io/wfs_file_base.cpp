@@ -38,28 +38,28 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
     DWORD dwCreationDisposition = 0;
     DWORD dwFlagsAndAttributes = 0;
 
-    if (mode & file::RDONLY)
+    if (mode & FileBase::RDONLY)
     {
         dwFlagsAndAttributes |= FILE_ATTRIBUTE_READONLY;
         dwDesiredAccess |= GENERIC_READ;
     }
 
-    if (mode & file::WRONLY)
+    if (mode & FileBase::WRONLY)
     {
         dwDesiredAccess |= GENERIC_WRITE;
     }
 
-    if (mode & file::RDWR)
+    if (mode & FileBase::RDWR)
     {
         dwDesiredAccess |= (GENERIC_READ | GENERIC_WRITE);
     }
 
-    if (mode & file::CREAT)
+    if (mode & FileBase::CREAT)
     {
         // ignored
     }
 
-    if (mode & file::TRUNC)
+    if (mode & FileBase::TRUNC)
     {
         dwCreationDisposition |= TRUNCATE_EXISTING;
     }
@@ -68,23 +68,23 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
         dwCreationDisposition |= OPEN_ALWAYS;
     }
 
-    if (mode & file::DIRECT)
+    if (mode & FileBase::DIRECT)
     {
 #if !THRILL_DIRECT_IO_OFF
         dwFlagsAndAttributes |= FILE_FLAG_NO_BUFFERING;
         // TODO(?): try also FILE_FLAG_WRITE_THROUGH option ?
 #else
-        if (mode & file::REQUIRE_DIRECT) {
-            THRILL_ERRMSG("Error: open()ing " << filename << " with DIRECT mode required, but the system does not support it.");
+        if (mode & FileBase::REQUIRE_DIRECT) {
+            LOG1 << "Error: open()ing " << filename << " with DIRECT mode required, but the system does not support it.";
             return INVALID_HANDLE_VALUE;
         }
         else {
-            THRILL_MSG("Warning: open()ing " << filename << " without DIRECT mode, as the system does not support it.");
+            LOG1 << "Warning: open()ing " << filename << " without DIRECT mode, as the system does not support it.";
         }
 #endif
     }
 
-    if (mode & file::SYNC)
+    if (mode & FileBase::SYNC)
     {
         // ignored
     }
@@ -96,9 +96,9 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
         return file_des;
 
 #if !THRILL_DIRECT_IO_OFF
-    if ((mode& file::DIRECT) && !(mode & file::REQUIRE_DIRECT))
+    if ((mode& FileBase::DIRECT) && !(mode & FileBase::REQUIRE_DIRECT))
     {
-        THRILL_MSG("CreateFile() error on path=" << filename << " mode=" << mode << ", retrying without DIRECT mode.");
+        LOG1 << "CreateFile() error on path=" << filename << " mode=" << mode << ", retrying without DIRECT mode.";
 
         dwFlagsAndAttributes &= ~FILE_FLAG_NO_BUFFERING;
 
@@ -115,8 +115,8 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
 
 WfsFileBase::WfsFileBase(
     const std::string& filename,
-    int mode) : file_des(INVALID_HANDLE_VALUE), mode_(mode), filename(filename), locked(false) {
-    file_des = open_file_impl(filename, mode);
+    int mode) : file_des_(INVALID_HANDLE_VALUE), mode_(mode), filename(filename), locked(false) {
+    file_des_ = open_file_impl(filename, mode);
 
     if (!(mode & NO_LOCK))
     {
@@ -128,7 +128,7 @@ WfsFileBase::WfsFileBase(
         char buf[32768], * part;
         if (!GetFullPathName(filename.c_str(), sizeof(buf), buf, &part))
         {
-            THRILL_ERRMSG("wfs_file_base::wfs_file_base(): GetFullPathName() error for file " << filename);
+            LOG1 << "wfs_file_base::wfs_file_base(): GetFullPathName() error for file " << filename;
             bytes_per_sector = 512;
         }
         else
@@ -137,7 +137,7 @@ WfsFileBase::WfsFileBase(
             DWORD bytes_per_sector_;
             if (!GetDiskFreeSpace(buf, nullptr, &bytes_per_sector_, nullptr, nullptr))
             {
-                THRILL_ERRMSG("wfs_file_base::wfs_file_base(): GetDiskFreeSpace() error for path " << buf);
+                LOG1 << "wfs_file_base::wfs_file_base(): GetDiskFreeSpace() error for path " << buf;
                 bytes_per_sector = 512;
             }
             else
@@ -151,41 +151,41 @@ WfsFileBase::~WfsFileBase() {
 }
 
 void WfsFileBase::close() {
-    scoped_mutex_lock fd_lock(fd_mutex);
+    std::unique_lock<std::mutex> fd_lock(fd_mutex_);
 
-    if (file_des == INVALID_HANDLE_VALUE)
+    if (file_des_ == INVALID_HANDLE_VALUE)
         return;
 
-    if (!CloseHandle(file_des))
-        THRILL_THROW_WIN_LASTERROR(IoError, "CloseHandle() of file fd=" << file_des);
+    if (!CloseHandle(file_des_))
+        THRILL_THROW_WIN_LASTERROR(IoError, "CloseHandle() of file fd=" << file_des_);
 
-    file_des = INVALID_HANDLE_VALUE;
+    file_des_ = INVALID_HANDLE_VALUE;
 }
 
 void WfsFileBase::lock() {
-    scoped_mutex_lock fd_lock(fd_mutex);
+    std::unique_lock<std::mutex> fd_lock(fd_mutex_);
     if (locked)
         return;  // already locked
-    if (LockFile(file_des, 0, 0, 0xffffffff, 0xffffffff) == 0)
-        THRILL_THROW_WIN_LASTERROR(IoError, "LockFile() fd=" << file_des);
+    if (LockFile(file_des_, 0, 0, 0xffffffff, 0xffffffff) == 0)
+        THRILL_THROW_WIN_LASTERROR(IoError, "LockFile() fd=" << file_des_);
     locked = true;
 }
 
-file::offset_type WfsFileBase::_size() {
+FileBase::offset_type WfsFileBase::_size() {
     LARGE_INTEGER result;
-    if (!GetFileSizeEx(file_des, &result))
-        THRILL_THROW_WIN_LASTERROR(IoError, "GetFileSizeEx() fd=" << file_des);
+    if (!GetFileSizeEx(file_des_, &result))
+        THRILL_THROW_WIN_LASTERROR(IoError, "GetFileSizeEx() fd=" << file_des_);
 
     return result.QuadPart;
 }
 
-file::offset_type WfsFileBase::size() {
-    scoped_mutex_lock fd_lock(fd_mutex);
+FileBase::offset_type WfsFileBase::size() {
+    std::unique_lock<std::mutex> fd_lock(fd_mutex_);
     return _size();
 }
 
 void WfsFileBase::set_size(offset_type newsize) {
-    scoped_mutex_lock fd_lock(fd_mutex);
+    std::unique_lock<std::mutex> fd_lock(fd_mutex_);
     offset_type cur_size = _size();
 
     if (!(mode_ & RDONLY))
@@ -193,32 +193,32 @@ void WfsFileBase::set_size(offset_type newsize) {
         LARGE_INTEGER desired_pos;
         desired_pos.QuadPart = newsize;
 
-        bool direct_with_bad_size = (mode_& file::DIRECT) && (newsize % bytes_per_sector);
+        bool direct_with_bad_size = (mode_& FileBase::DIRECT) && (newsize % bytes_per_sector);
         if (direct_with_bad_size)
         {
-            if (!CloseHandle(file_des))
+            if (!CloseHandle(file_des_))
                 THRILL_THROW_WIN_LASTERROR(IoError, "closing file (call of ::CloseHandle() from set_size) ");
 
-            file_des = INVALID_HANDLE_VALUE;
-            file_des = open_file_impl(filename, WRONLY);
+            file_des_ = INVALID_HANDLE_VALUE;
+            file_des_ = open_file_impl(filename, WRONLY);
         }
 
-        if (!SetFilePointerEx(file_des, desired_pos, nullptr, FILE_BEGIN))
+        if (!SetFilePointerEx(file_des_, desired_pos, nullptr, FILE_BEGIN))
             THRILL_THROW_WIN_LASTERROR(IoError,
                                        "SetFilePointerEx() in wfs_file_base::set_size(..) oldsize=" << cur_size <<
                                        " newsize=" << newsize << " ");
 
-        if (!SetEndOfFile(file_des))
+        if (!SetEndOfFile(file_des_))
             THRILL_THROW_WIN_LASTERROR(IoError, "SetEndOfFile() oldsize=" << cur_size <<
                                        " newsize=" << newsize << " ");
 
         if (direct_with_bad_size)
         {
-            if (!CloseHandle(file_des))
+            if (!CloseHandle(file_des_))
                 THRILL_THROW_WIN_LASTERROR(IoError, "closing file (call of ::CloseHandle() from set_size) ");
 
-            file_des = INVALID_HANDLE_VALUE;
-            file_des = open_file_impl(filename, mode_ & ~TRUNC);
+            file_des_ = INVALID_HANDLE_VALUE;
+            file_des_ = open_file_impl(filename, mode_ & ~TRUNC);
         }
     }
 }
