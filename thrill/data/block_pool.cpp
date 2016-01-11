@@ -26,9 +26,10 @@ static const bool debug_blc = false;
 static const bool debug_pin = false;
 
 //! debug block eviction: evict, write complete, read complete
-static const bool debug_em = false;
+static const bool debug_em = true;
 
-size_t BlockPool::total_ram_limit_ = 500000000lu;
+size_t BlockPool::soft_ram_limit_ = 300000000lu;
+size_t BlockPool::hard_ram_limit_ = 500000000lu;
 
 BlockPool::~BlockPool() {
     pin_count_.AssertZero();
@@ -318,10 +319,11 @@ void BlockPool::RequestInternalMemory(
         << " total_ram_use_=" << total_ram_use_
         << " writing_bytes_=" << writing_bytes_
         << " requested_bytes_=" << requested_bytes_
-        << " total_ram_limit_=" << total_ram_limit_
+        << " soft_ram_limit_=" << soft_ram_limit_
+        << " hard_ram_limit_=" << hard_ram_limit_
         << pin_count_;
 
-    while (total_ram_use_ - writing_bytes_ + requested_bytes_ > total_ram_limit_)
+    while (total_ram_use_ - writing_bytes_ + requested_bytes_ > soft_ram_limit_)
     {
         // evict blocks: schedule async writing which increases writing_bytes_.
         EvictBlock();
@@ -330,11 +332,10 @@ void BlockPool::RequestInternalMemory(
     // wait for memory change due to blocks begin written and deallocated.
     memory_change_.wait(
         lock, [&]() {
-            return total_ram_use_ + size <= total_ram_limit_;
+            return total_ram_use_ + size <= hard_ram_limit_;
         });
 
     requested_bytes_ -= size;
-
     total_ram_use_ += size;
 }
 
