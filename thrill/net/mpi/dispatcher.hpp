@@ -133,7 +133,7 @@ public:
         mpi_async_status_.emplace_back();
     }
 
-    void AsyncWrite(net::Connection& c, const data::Block& block,
+    void AsyncWrite(net::Connection& c, const data::PinnedBlock& block,
                     AsyncWriteCallback done_cb = AsyncWriteCallback()) final {
         assert(c.IsValid());
 
@@ -192,13 +192,14 @@ public:
         mpi_async_requests_.emplace_back(req);
     }
 
-    void AsyncRead(net::Connection& c, const data::PinnedByteBlockPtr& block,
+    void AsyncRead(net::Connection& c, size_t n,
+                   data::PinnedByteBlockPtr&& block,
                    AsyncReadByteBlockCallback done_cb) final {
         assert(c.IsValid());
         assert(block.valid());
 
         if (block->size() == 0) {
-            if (done_cb) done_cb(c);
+            if (done_cb) done_cb(c, std::move(block));
             return;
         }
 
@@ -206,12 +207,12 @@ public:
         Connection* mpic = static_cast<Connection*>(&c);
 
         // associated Block's memory (Irecv needs memory).
-        mpi_async_.emplace_back(c, block, done_cb);
+        mpi_async_.emplace_back(c, n, std::move(block), done_cb);
         mpi_async_out_.emplace_back();
         mpi_async_status_.emplace_back();
 
         // perform Irecv.
-        MPI_Request req = IRecv(mpic->peer(), block->data(), block->size());
+        MPI_Request req = IRecv(mpic->peer(), block->data(), n);
         mpi_async_requests_.emplace_back(req);
     }
 
@@ -285,17 +286,18 @@ private:
 
         //! Construct AsyncWrite with Block
         MpiAsync(net::Connection& conn,
-                 const data::Block& block,
+                 const data::PinnedBlock& block,
                  const AsyncWriteCallback& callback)
             : type_(WRITE_BLOCK),
               write_block_(conn, block, callback) { }
 
         //! Construct AsyncRead with ByteBuffer
         MpiAsync(net::Connection& conn,
-                 const data::PinnedByteBlockPtr& block,
+                 size_t n,
+                 data::PinnedByteBlockPtr&& block,
                  const AsyncReadByteBlockCallback& callback)
             : type_(READ_BYTE_BLOCK),
-              read_byte_block_(conn, block, callback) { }
+              read_byte_block_(conn, n, std::move(block), callback) { }
 
         //! copy-constructor: default (work as long as union members are default
         //! copyable)

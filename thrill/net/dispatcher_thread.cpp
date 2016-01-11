@@ -97,11 +97,11 @@ void DispatcherThread::AsyncRead(
 
 //! asynchronously read the full ByteBlock and deliver it to the callback
 void DispatcherThread::AsyncRead(
-    Connection& c, data::PinnedByteBlockPtr&& block,
+    Connection& c, size_t n, data::PinnedByteBlockPtr&& block,
     AsyncReadByteBlockCallback done_cb) {
     assert(block.valid());
     Enqueue([=, &c, b = std::move(block)]() mutable {
-                dispatcher_->AsyncRead(c, std::move(b), done_cb);
+                dispatcher_->AsyncRead(c, n, std::move(b), done_cb);
             });
     WakeUpThread();
 }

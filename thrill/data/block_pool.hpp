@@ -48,9 +48,7 @@ public:
      * Creates a simple BlockPool for tests: allows only one thread, enforces no
      * memory limitations, never swaps to disk.
      */
-    explicit BlockPool(size_t workers_per_host = 1)
-        : BlockPool(0, 0, nullptr, workers_per_host)
-    { }
+    explicit BlockPool(size_t workers_per_host = 1);
 
     /*!
      * Creates a BlockPool with given memory constrains
@@ -71,12 +69,7 @@ public:
      */
     BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
               mem::Manager* mem_manager,
-              size_t workers_per_host)
-        : mem_manager_(mem_manager, "BlockPool"),
-          bm_(io::BlockManager::get_instance()),
-          workers_per_host_(workers_per_host),
-          pin_count_(workers_per_host)
-    { }
+              size_t workers_per_host);
 
     //! Checks that all blocks were freed
     ~BlockPool();
@@ -91,7 +84,10 @@ public:
     PinnedByteBlockPtr AllocateByteBlock(size_t size, size_t local_worker_id);
 
     //! Total number of allocated blocks of this block pool
-    size_t block_count() const noexcept;
+    size_t total_blocks() const noexcept;
+
+    //! Total number of bytes allocated in blocks of this block pool
+    size_t total_bytes() const noexcept;
 
     //! Pins a block by swapping it in if required.
     //! \param block_ptr the block to pin
@@ -124,6 +120,9 @@ private:
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
     common::LruCacheSet<ByteBlock*> unpinned_blocks_;
 
+    //! number of unpinned bytes
+    size_t unpinned_bytes_ = 0;
+
     struct PinCount
     {
         //! current total number of pins, where each thread pin counts
@@ -147,7 +146,7 @@ private:
         std::vector<size_t> pinned_bytes_;
 
         //! ctor: initializes vectors to correct size.
-        PinCount(size_t workers_per_host);
+        explicit PinCount(size_t workers_per_host);
 
         //! increment pin counter for thread_id by given size in bytes
         void                Increment(size_t local_worker_id, size_t size);
@@ -174,8 +173,8 @@ private:
     //! set of ByteBlock currently in EM.
     std::unordered_set<ByteBlock*> swapped_;
 
-    //! number of blocks currently swapped to EM.
-    size_t num_swapped_blocks_ = 0;
+    //! total number of bytes in swapped blocks
+    size_t swapped_bytes_ = 0;
 
     struct ReadRequest
     {
@@ -187,16 +186,19 @@ private:
     //! set of ByteBlocks currently begin read from EM.
     std::unordered_map<ByteBlock*, ReadRequest> reading_;
 
+    //! number of bytes currently being read from to EM.
+    size_t reading_bytes_ = 0;
+
     //! total number of bytes used in RAM by pinned and unpinned blocks.
     size_t total_ram_use_ = 0;
 
     //! Soft limit for the block pool, blocks will be written to disk if this
     //! limit is reached. 0 for no limit.
-    static size_t soft_ram_limit_;
+    size_t soft_ram_limit_;
 
     //! Hard limit for the block pool, memory requests will block if this limit
     //! is reached. 0 for no limit.
-    static size_t hard_ram_limit_;
+    size_t hard_ram_limit_;
 
     //! Updates the memory manager for internal memory. If the hard limit is
     //! reached, the call is blocked intil memory is free'd

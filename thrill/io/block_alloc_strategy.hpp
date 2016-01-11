@@ -207,18 +207,16 @@ struct OffsetAllocator
     //! with offset \c offset_.
     //! \param offset_ offset
     //! \param base_ used to create a copy
-    OffsetAllocator(int offset_, const BaseAllocator& base_)
-        : base_(base_), offset_(offset_)
-    { }
+    OffsetAllocator(int offset, const BaseAllocator& base)
+        : base_(base), offset_(offset) { }
 
     //! Creates functor based on instance of \c BaseAllocator functor.
     //! \param base_ used to create a copy
-    explicit OffsetAllocator(const BaseAllocator& base_) : base_(base_), offset_(0)
-    { }
+    explicit OffsetAllocator(const BaseAllocator& base)
+        : base_(base), offset_(0) { }
 
     //! Creates functor based on default \c BaseAllocator functor.
-    OffsetAllocator() : offset_(0)
-    { }
+    OffsetAllocator() : offset_(0) { }
 
     size_t operator () (size_t i) const {
         return base_(offset_ + i);

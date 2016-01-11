@@ -13,6 +13,7 @@
 #include <thrill/data/mix_stream.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/stream.hpp>
+#include <thrill/mem/aligned_alloc.hpp>
 
 #include <algorithm>
 
@@ -72,6 +73,11 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     size_t sender_worker_rank =
         header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
 
+    // round of allocation size to next power of two
+    size_t alloc_size = header.size;
+    if (alloc_size < THRILL_DEFAULT_ALIGN) alloc_size = THRILL_DEFAULT_ALIGN;
+    alloc_size = common::RoundUpToPowerOfTwo(alloc_size);
+
     if (header.magic == MagicByte::CatStreamBlock)
     {
         CatStreamPtr stream = GetOrCreateCatStream(id, local_worker);
@@ -90,10 +96,10 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
                  << "for local_worker" << local_worker;
 
             PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
-                header.size, local_worker);
+                alloc_size, local_worker);
 
             dispatcher_.AsyncRead(
-                s, std::move(bytes),
+                s, header.size, std::move(bytes),
                 [this, header, stream](Connection& s, PinnedByteBlockPtr&& bytes) {
                     OnCatStreamBlock(s, header, stream, std::move(bytes));
                 });
@@ -117,10 +123,10 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
                  << "for local_worker" << local_worker;
 
             PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
-                header.size, local_worker);
+                alloc_size, local_worker);
 
             dispatcher_.AsyncRead(
-                s, std::move(bytes),
+                s, header.size, std::move(bytes),
                 [this, header, stream](Connection& s, PinnedByteBlockPtr&& bytes) mutable {
                     OnMixStreamBlock(s, header, stream, std::move(bytes));
                 });
