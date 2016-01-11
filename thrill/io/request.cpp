@@ -153,7 +153,7 @@ bool Request::cancel() {
                 on_complete_(this, false);
             notify_waiters();
             file_->delete_request_ref();
-            file_ = 0;
+            file_ = nullptr;
             state_.set_to(READY2DIE);
             return true;
         }
@@ -179,7 +179,7 @@ void Request::completed(bool canceled) {
     // notify waiters
     notify_waiters();
     file_->delete_request_ref();
-    file_ = 0;
+    file_ = nullptr;
     state_.set_to(READY2DIE);
 }
 
