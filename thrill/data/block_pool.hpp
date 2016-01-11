@@ -55,10 +55,10 @@ public:
     /*!
      * Creates a BlockPool with given memory constrains
      *
-     * \param soft_memory_limit limit (bytes) that causes the BlockPool to swap
+     * \param soft_ram_limit limit (bytes) that causes the BlockPool to swap
      * out victim pages. Enter 0 for no soft limit
      *
-     * \param hard_memory_limit limit (bytes) that causes the BlockPool to block
+     * \param hard_ram_limit limit (bytes) that causes the BlockPool to block
      * new allocations until some blocks are free'd. Enter 0 for no hard limit.
      *
      * \param mem_manager Memory Manager that tracks amount of RAM
@@ -69,15 +69,13 @@ public:
      *
      * \param workers_per_host number of workers on this host.
      */
-    BlockPool(size_t soft_memory_limit, size_t hard_memory_limit,
+    BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
               mem::Manager* mem_manager,
               size_t workers_per_host)
         : mem_manager_(mem_manager, "BlockPool"),
           bm_(io::BlockManager::get_instance()),
           workers_per_host_(workers_per_host),
-          pin_count_(workers_per_host),
-          soft_memory_limit_(soft_memory_limit),
-          hard_memory_limit_(hard_memory_limit)
+          pin_count_(workers_per_host)
     { }
 
     //! Checks that all blocks were freed
@@ -191,10 +189,14 @@ private:
 
     //! total number of bytes used in RAM by pinned and unpinned blocks.
     size_t total_ram_use_ = 0;
-    static size_t total_ram_limit_;
 
-    //! Limits for the block pool. 0 for no limits.
-    size_t soft_memory_limit_, hard_memory_limit_;
+    //! Soft limit for the block pool, blocks will be written to disk if this
+    //! limit is reached. 0 for no limit.
+    static size_t soft_ram_limit_;
+
+    //! Hard limit for the block pool, memory requests will block if this limit
+    //! is reached. 0 for no limit.
+    static size_t hard_ram_limit_;
 
     //! Updates the memory manager for internal memory. If the hard limit is
     //! reached, the call is blocked intil memory is free'd
