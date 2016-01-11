@@ -120,7 +120,7 @@ public:
     std::future<PinnedBlock> Pin(size_t local_worker_id) const;
 
     //! Convenience function to call Pin() and wait for the future.
-    PinnedBlock PinNow(size_t local_worker_id) const;
+    PinnedBlock PinWait(size_t local_worker_id) const;
 
 protected:
     static const bool debug = false;
@@ -260,7 +260,7 @@ public:
     std::future<PinnedBlock> Pin() const = delete;
 
     //! not available in PinnedBlock
-    PinnedBlock PinNow() const = delete;
+    PinnedBlock PinWait() const = delete;
 
     //! make ostreamable for debugging
     friend std::ostream& operator << (std::ostream& os, const PinnedBlock& b) {
@@ -286,7 +286,7 @@ private:
 };
 
 inline
-PinnedBlock Block::PinNow(size_t local_worker_id) const {
+PinnedBlock Block::PinWait(size_t local_worker_id) const {
     std::future<PinnedBlock> pin = Pin(local_worker_id);
     pin.wait();
     return pin.get();

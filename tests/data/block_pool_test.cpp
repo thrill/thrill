@@ -81,4 +81,31 @@ TEST_F(BlockPoolTest, PinnedBlock) {
     ASSERT_EQ(0u, bbp->pin_count(0));
 }
 
+TEST_F(BlockPoolTest, EvictBlock) {
+    data::Block unpinned_block;
+    {
+        data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(4096, 0);
+        data::PinnedBlock pinned_block(std::move(block), 0, 4096, 0, 0);
+        unpinned_block = pinned_block;
+    }
+    // pin was removed by going out of scope
+    ASSERT_EQ(1u, block_pool_.total_blocks());
+    ASSERT_EQ(0u, block_pool_.pinned_blocks());
+    ASSERT_EQ(1u, block_pool_.unpinned_blocks());
+    // evict block
+    block_pool_.EvictBlock(unpinned_block.byte_block());
+    ASSERT_EQ(1u, block_pool_.total_blocks());
+    ASSERT_EQ(0u, block_pool_.pinned_blocks());
+    ASSERT_EQ(0u, block_pool_.unpinned_blocks());
+    ASSERT_EQ(1u, block_pool_.writing_blocks() + block_pool_.swapped_blocks());
+    // wait for write
+    // std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    // swap block back in by pinning it.
+    data::PinnedBlock pinned = unpinned_block.PinWait(0);
+    ASSERT_EQ(1u, block_pool_.total_blocks());
+    ASSERT_EQ(1u, block_pool_.pinned_blocks());
+    ASSERT_EQ(0u, block_pool_.unpinned_blocks());
+    ASSERT_EQ(0u, block_pool_.writing_blocks() + block_pool_.swapped_blocks());
+}
+
 /******************************************************************************/

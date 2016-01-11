@@ -84,7 +84,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 
     if (0) {
         for (size_t i = 0; i != file.num_blocks(); ++i) {
-            std::cout << common::Hexdump(file.block(i).PinNow(0).ToString())
+            std::cout << common::Hexdump(file.block(i).PinWait(0).ToString())
                       << std::endl;
         }
     }
@@ -403,12 +403,12 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                 LOG << "GetItemBatch -> " << blocks.size() << " blocks";
 
                 for (data::Block& b : blocks)
-                    b.PinNow(0);
+                    b.PinWait(0);
 
                 data::BlockQueue queue(block_pool_, 0);
 
                 for (data::Block& b : blocks)
-                    queue.AppendBlock(b.PinNow(0));
+                    queue.AppendBlock(b.PinWait(0));
                 queue.Close();
 
                 data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
@@ -434,7 +434,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                 data::BlockQueue queue(block_pool_, 0);
 
                 for (data::Block& b : blocks)
-                    queue.AppendBlock(b.PinNow(0));
+                    queue.AppendBlock(b.PinWait(0));
                 queue.Close();
 
                 data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();

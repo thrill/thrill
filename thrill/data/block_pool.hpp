@@ -83,12 +83,6 @@ public:
     //! count.
     PinnedByteBlockPtr AllocateByteBlock(size_t size, size_t local_worker_id);
 
-    //! Total number of allocated blocks of this block pool
-    size_t total_blocks() const noexcept;
-
-    //! Total number of bytes allocated in blocks of this block pool
-    size_t total_bytes() const noexcept;
-
     //! Pins a block by swapping it in if required.
     //! \param block_ptr the block to pin
     std::future<PinnedBlock> PinBlock(const Block& block, size_t local_worker_id);
@@ -100,7 +94,37 @@ public:
     void DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
 
     //! Destroys the block. Called by ByteBlockPtr's deleter.
-    void DestroyBlock(ByteBlock* block);
+    void DestroyBlock(ByteBlock* block_ptr);
+
+    //! Evict a block into external memory. The block must be unpinned and not
+    //! swapped.
+    void EvictBlock(ByteBlock* block_ptr);
+
+    //! \name Block Statistics
+    //! \{
+
+    //! Total number of allocated blocks of this block pool
+    size_t total_blocks()  noexcept;
+
+    //! Total number of bytes allocated in blocks of this block pool
+    size_t total_bytes()  noexcept;
+
+    //! Total number of pinned blocks of this block pool
+    size_t pinned_blocks()  noexcept;
+
+    //! Total number of unpinned blocks in memory of this block pool
+    size_t unpinned_blocks()  noexcept;
+
+    //! Total number of blocks currently begin written.
+    size_t writing_blocks()  noexcept;
+
+    //! Total number of swapped blocks
+    size_t swapped_blocks()  noexcept;
+
+    //! Total number of blocks currently begin read from EM.
+    size_t reading_blocks()  noexcept;
+
+    //! \}
 
 private:
     //! locked before internal state is changed
@@ -216,9 +240,6 @@ private:
     //! \param block_ptr the block to unpin
     void UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
 
-    //! Evict a block into external memory
-    void EvictBlock();
-
     //! callback for async write of blocks during eviction
     void OnWriteComplete(ByteBlock* block_ptr, io::Request* req, bool success);
 
@@ -227,8 +248,26 @@ private:
         const Block& block, size_t local_worker_id, ReadRequest* read,
         io::Request* req, bool success);
 
+    //! Evict a block from the lru list into external memory
+    void EvictBlockLRU();
+
+    //! Evict a block into external memory. The block must be unpinned and not
+    //! swapped.
+    void EvictBlockNoLock(ByteBlock* block_ptr);
+
     //! make ostream-able
     friend std::ostream& operator << (std::ostream& os, const PinCount& p);
+
+    //! \name Block Statistics
+    //! \{
+
+    //! Total number of allocated blocks of this block pool
+    size_t total_blocks_nolock()  noexcept;
+
+    //! Total number of bytes allocated in blocks of this block pool
+    size_t total_bytes_nolock()  noexcept;
+
+    //! \}
 };
 
 } // namespace data
