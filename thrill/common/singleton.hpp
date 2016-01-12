@@ -17,8 +17,8 @@
 #ifndef THRILL_COMMON_SINGLETON_HEADER
 #define THRILL_COMMON_SINGLETON_HEADER
 
-#include <mutex>
 #include <cstdlib>
+#include <mutex>
 
 namespace thrill {
 namespace common {

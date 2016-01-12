@@ -26,8 +26,8 @@
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/request.hpp>
 
-#include <string>
 #include <mutex>
+#include <string>
 
 namespace thrill {
 namespace io {

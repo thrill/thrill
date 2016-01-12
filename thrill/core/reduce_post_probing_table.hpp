@@ -27,7 +27,6 @@
 #include <climits>
 #include <cmath>
 #include <functional>
-#include <iostream>
 #include <limits>
 #include <string>
 #include <typeinfo>
@@ -58,12 +57,11 @@ public:
         : hash_function_(hash_function)
     { }
 
-    IndexResult
-    operator () (const Key& k,
-                 const size_t& num_frames,
-                 const size_t& num_buckets_per_frame,
-                 const size_t& num_buckets_per_table,
-                 const size_t& offset) const {
+    IndexResult operator () (const Key& k,
+                             const size_t& num_frames,
+                             const size_t& num_buckets_per_frame,
+                             const size_t& num_buckets_per_table,
+                             const size_t& offset) const {
 
         (void)num_frames;
         (void)offset;
@@ -96,12 +94,11 @@ public:
 
     PostProbingReduceByIndex() { }
 
-    IndexResult
-    operator () (const Key& k,
-                 const size_t& num_frames,
-                 const size_t& num_buckets_per_frame,
-                 const size_t& num_buckets_per_table,
-                 const size_t& offset) const {
+    IndexResult operator () (const Key& k,
+                             const size_t& num_frames,
+                             const size_t& num_buckets_per_frame,
+                             const size_t& num_buckets_per_table,
+                             const size_t& offset) const {
 
         (void)num_buckets_per_frame;
 
@@ -112,30 +109,32 @@ public:
 };
 
 /**
- * A data structure which takes an arbitrary value and extracts a key using
- * a key extractor function from that value. A key may also be provided initially as
- * part of a key/value pair, not requiring to extract a key.
+ * A data structure which takes an arbitrary value and extracts a key using a
+ * key extractor function from that value. A key may also be provided initially
+ * as part of a key/value pair, not requiring to extract a key.
  *
- * Afterwards, the key is hashed and the hash is used to assign that key/value pair
- * to some slot.
+ * Afterwards, the key is hashed and the hash is used to assign that key/value
+ * pair to some slot.
  *
- * In case a slot already has a key/value pair and the key of that value and the key of
- * the value to be inserted are them same, the values are reduced according to
- * some reduce function. No key/value is added to the data structure.
+ * In case a slot already has a key/value pair and the key of that value and the
+ * key of the value to be inserted are them same, the values are reduced
+ * according to some reduce function. No key/value is added to the data
+ * structure.
  *
  * If the keys are different, the next slot (moving to the right) is considered.
- * If the slot is occupied, the same procedure happens again (know as linear probing.)
+ * If the slot is occupied, the same procedure happens again (know as linear
+ * probing.)
  *
  * Finally, the key/value pair to be inserted may either:
  *
  * 1.) Be reduced with some other key/value pair, sharing the same key.
  * 2.) Inserted at a free slot.
- * 3.) Trigger a resize of the data structure in case there are no more free slots in
- *     the data structure.
+ * 3.) Trigger a resize of the data structure in case there are no more free
+ *     slots in the data structure.
  *
- * The following illustrations shows the general structure of the data structure.
- * The set of slots is divided into 1..n partitions. Each key is hashed into exactly
- * one partition.
+ * The following illustrations shows the general structure of the data
+ * structure.  The set of slots is divided into 1..n partitions. Each key is
+ * hashed into exactly one partition.
  *
  *
  *     Partition 0 Partition 1 Partition 2 Partition 3 Partition 4
@@ -176,51 +175,75 @@ template <typename ValueType, typename Key, typename Value,
           typename EqualToFunction = std::equal_to<Key> >
 class ReducePostProbingTable
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
     using EmitterFunction = std::function<void(const ValueType&)>;
 
-    PostProbingEmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
+    PostProbingEmitImpl<
+        SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
 
     /**
-     * A data structure which takes an arbitrary value and extracts a key using a key extractor
-     * function from that value. Afterwards, the value is hashed based on the key into some slot.
+     * A data structure which takes an arbitrary value and extracts a key using
+     * a key extractor function from that value. Afterwards, the value is hashed
+     * based on the key into some slot.
      *
      * \param context Context.
-     * \param key_extractor Key extractor function to extract a key from a value.
+     *
+     * \param key_extractor Key extractor function to extract a key from a
+     * value.
+     *
      * \param reduce_function Reduce function to reduce to values.
-     * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
+     *
+     * \param emit A set of BlockWriter to flush items. One BlockWriter per
+     * partition.
+     *
      * \param sentinel Sentinel element used to flag free slots.
+     *
      * \param begin_local_index Begin index for reduce to index.
-     * \param index_function Function to be used for computing the slot the item to be inserted.
-     * \param flush_function Function to be used for flushing all items in the table.
+     *
+     * \param index_function Function to be used for computing the slot the item
+     * to be inserted.
+     *
+     * \param flush_function Function to be used for flushing all items in the
+     * table.
+     *
      * \param end_local_index End index for reduce to index.
+     *
      * \param neutral element Neutral element for reduce to index.
-     * \param byte_size Maximal size of the table in byte. In case size of table exceeds that value, items
-     *                  are spilled to disk.
-     * \param max_frame_fill_rate Maximal number of items per frame relative to number of slots allowed to be filled.
-     *                            It the rate is exceeded, items get spilled to disk.
-     * \param frame_rate Rate of number of buckets to number of frames. There is one file writer per frame.
+     *
+     * \param byte_size Maximal size of the table in byte. In case size of table
+     * exceeds that value, items are spilled to disk.
+     *
+     * \param max_frame_fill_rate Maximal number of items per frame relative to
+     * number of slots allowed to be filled. It the rate is exceeded, items get
+     * spilled to disk.
+     *
+     * \param frame_rate Rate of number of buckets to number of frames. There is
+     * one file writer per frame.
+     *
      * \param equal_to_function Function for checking equality of two keys.
-     * \param spill_function Function implementing a strategy to spill items to disk.
+     *
+     * \param spill_function Function implementing a strategy to spill items to
+     * disk.
      */
-    ReducePostProbingTable(Context& ctx,
-                           const KeyExtractor& key_extractor,
-                           const ReduceFunction& reduce_function,
-                           const EmitterFunction& emit,
-                           const Key& sentinel,
-                           const IndexFunction& index_function,
-                           const FlushFunction& flush_function,
-                           const common::Range& local_index = common::Range(),
-                           const Value& neutral_element = Value(),
-                           size_t byte_size = 1024* 16,
-                           double max_frame_fill_rate = 0.5,
-                           double frame_rate = 0.1,
-                           const EqualToFunction& equal_to_function = EqualToFunction(),
-                           double table_rate_multiplier = 1.05)
+    ReducePostProbingTable(
+        Context& ctx,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
+        const EmitterFunction& emit,
+        const Key& sentinel,
+        const IndexFunction& index_function,
+        const FlushFunction& flush_function,
+        const common::Range& local_index = common::Range(),
+        const Value& neutral_element = Value(),
+        size_t byte_size = 1024* 16,
+        double max_frame_fill_rate = 0.5,
+        double frame_rate = 0.1,
+        const EqualToFunction& equal_to_function = EqualToFunction(),
+        double table_rate_multiplier = 1.05)
         : ctx_(ctx),
           byte_size_(byte_size),
           max_frame_fill_rate_(max_frame_fill_rate),
@@ -233,23 +256,31 @@ public:
           neutral_element_(neutral_element),
           reduce_function_(reduce_function) {
 
-        assert(byte_size >= 0 && "byte_size must be greater than or equal to 0. "
+        assert(byte_size >= 0 &&
+               "byte_size must be greater than or equal to 0. "
                "a byte size of zero results in exactly one item per partition");
-        assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0 && "max_partition_fill_rate "
-               "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
-        assert(frame_rate > 0.0 && frame_rate <= 1.0 && "a frame rate of 1.0 causes exactly one frame.");
+
+        assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0 &&
+               "max_partition_fill_rate must be between 0.0 and 1.0. "
+               "with a fill rate of 0.0, items are immediately flushed.");
+
+        assert(frame_rate > 0.0 && frame_rate <= 1.0 &&
+               "a frame rate of 1.0 causes exactly one frame.");
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
 
-        table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_frames_), 0.5);
+        table_rate_ = table_rate_multiplier * std::min<double>(
+            1.0 / static_cast<double>(num_frames_), 0.5);
 
-        frame_size_ = std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_))
-                                                 / static_cast<double>(sizeof(KeyValuePair)))
-                                                / static_cast<double>(num_frames_)), 1);
+        frame_size_ = std::max<size_t>(
+            (size_t)(((byte_size_ * (1 - table_rate_))
+                      / static_cast<double>(sizeof(KeyValuePair)))
+                     / static_cast<double>(num_frames_)), 1);
 
         size_ = frame_size_ * num_frames_;
 
-        fill_rate_num_items_per_frame_ = (size_t)(frame_size_ * max_frame_fill_rate_);
+        fill_rate_num_items_per_frame_ =
+            (size_t)(frame_size_ * max_frame_fill_rate_);
 
         assert(num_frames_ > 0);
         assert(frame_size_ > 0);
@@ -269,10 +300,12 @@ public:
         items_.resize(size_, sentinel_);
 
         // set up second table
-        second_table_size_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
-                                                       / static_cast<double>(sizeof(KeyValuePair))), 2);
+        second_table_size_ = std::max<size_t>(
+            (size_t)((byte_size_ * table_rate_)
+                     / static_cast<double>(sizeof(KeyValuePair))), 2);
 
-        // ensure size of second table is even, in order to be able to split by half for spilling
+        // ensure size of second table is even, in order to be able to split by
+        // half for spilling
         if (second_table_size_ % 2 != 0) {
             second_table_size_--;
         }
@@ -282,51 +315,54 @@ public:
 
         second_table_.resize(second_table_size_, sentinel_);
 
-        fill_rate_num_items_second_reduce_ = (size_t)(second_table_size_ * max_frame_fill_rate_);
+        fill_rate_num_items_second_reduce_ = (size_t)(
+            second_table_size_ * max_frame_fill_rate_);
 
         frame_sequence_.resize(num_frames_, 0);
         for (size_t i = 0; i < num_frames_; i++)
-        {
             frame_sequence_[i] = i;
-        }
     }
 
-    ReducePostProbingTable(Context& ctx, KeyExtractor key_extractor,
-                           ReduceFunction reduce_function, EmitterFunction emit, const Key& sentinel)
-        : ReducePostProbingTable(ctx, key_extractor, reduce_function, emit, sentinel, IndexFunction(),
-                                 FlushFunction(reduce_function)) { }
+    ReducePostProbingTable(
+        Context& ctx, KeyExtractor key_extractor,
+        ReduceFunction reduce_function, EmitterFunction emit,
+        const Key& sentinel)
+        : ReducePostProbingTable(
+              ctx, key_extractor, reduce_function, emit, sentinel,
+              IndexFunction(), FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
     ReducePostProbingTable(const ReducePostProbingTable&) = delete;
     //! non-copyable: delete assignment operator
     ReducePostProbingTable& operator = (const ReducePostProbingTable&) = delete;
 
-    ~ReducePostProbingTable() { }
-
     /*!
      * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
      * inserts the pair into the hashtable.
      */
     void Insert(const Value& p) {
-
         Insert(std::make_pair(key_extractor_(p), p));
     }
 
     /*!
-     * Inserts a value into the table, potentially reducing it in case both the key of the value
-     * already in the table and the key of the value to be inserted are the same.
+     * Inserts a value into the table, potentially reducing it in case both the
+     * key of the value already in the table and the key of the value to be
+     * inserted are the same.
      *
-     * An insert may trigger a partial flush of the partition with the most items if the maximal
-     * number of items in the table (max_num_items_table) is reached.
+     * An insert may trigger a partial flush of the partition with the most
+     * items if the maximal number of items in the table (max_num_items_table)
+     * is reached.
      *
-     * Alternatively, it may trigger a resize of the table in case the maximal fill ratio
-     * per partition is reached.
+     * Alternatively, it may trigger a resize of the table in case the maximal
+     * fill ratio per partition is reached.
      *
      * \param p Value to be inserted into the table.
      */
     void Insert(const KeyValuePair& kv) {
+        static const bool debug = false;
 
-        typename IndexFunction::IndexResult h = index_function_(kv.first, num_frames_, frame_size_, size_, 0);
+        typename IndexFunction::IndexResult h = index_function_(
+            kv.first, num_frames_, frame_size_, size_, 0);
 
         assert(h.global_index >= 0 && h.global_index < size_);
 
@@ -347,12 +383,10 @@ public:
                 return;
             }
 
-            if (current == last_item)
-            {
+            if (current == last_item) {
                 current -= (frame_size_ - 1);
             }
-            else
-            {
+            else {
                 ++current;
             }
 
@@ -363,8 +397,6 @@ public:
                 SpillFrame(h.partition_id);
 
                 *current = kv;
-                // current->first = kv.first;
-                // current->second = kv.second;
 
                 // increase counter for partition
                 items_per_frame_[h.partition_id]++;
@@ -375,16 +407,12 @@ public:
 
         // insert data
         *current = kv;
-        // current->first = kv.first;
-        // current->second = kv.second;
 
         // increase counter for frame
         items_per_frame_[h.partition_id]++;
 
         if (items_per_frame_[h.partition_id] > fill_rate_num_items_per_frame_)
-        {
             SpillFrame(h.partition_id);
-        }
     }
 
     /*!
@@ -393,6 +421,7 @@ public:
      * \param frame_id The id of the frame to be spilled.
      */
     void SpillFrame(size_t frame_id) {
+        LOG << "Spilling items of frame with id: " << frame_id;
 
         data::File::Writer& writer = frame_writers_[frame_id];
 
@@ -403,24 +432,23 @@ public:
             if (current.first != sentinel_.first)
             {
                 writer.Put(current);
-                // items_[i].first = sentinel_.first;
-                // items_[i].second = sentinel_.second;
-
                 items_[i] = sentinel_;
             }
         }
 
         // reset partition specific counter
         items_per_frame_[frame_id] = 0;
+
+        LOG << "Spilled items of frame with id: " << frame_id;
     }
 
     /*!
-    * Flushes all items in the whole table.
-    */
+     * Flushes all items in the whole table.
+     */
     void Flush(bool consume = false) {
         LOG << "Flushing items";
 
-        flush_function_(consume, this);
+        flush_function_.FlushTable(consume, *this);
 
         LOG << "Flushed items";
     }

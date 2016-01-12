@@ -373,8 +373,7 @@ public:
     }
 
     template <typename Table>
-    void
-    operator () (bool consume, Table* ht) const {
+    void FlushTable(bool consume, Table* ht) const {
 
         using BucketBlock = typename Table::BucketBlock;
 

@@ -64,11 +64,7 @@ class ReduceNode final : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
-
-    using ReduceArg = typename common::FunctionTraits<ReduceFunction>
-                      ::template arg<0>;
 
     using KeyValuePair = std::pair<Key, Value>;
 
@@ -104,19 +100,21 @@ public:
 //              core::PostProbingReduceByHashKey<Key>(),
 //              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
 //              0, 0, Value(), 100000, 1.0, 0.6, 0.1)
-          reduce_pre_table_(context_,
-                            parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_,
-                            Key(),
-                            core::PreProbingReduceByHashKey<Key>(),
-                            core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-                            Value(), 10000000, 0.6),
-          reduce_post_table_(context_, key_extractor_, reduce_function_,
-                             [this](const ValueType& item) { return this->PushItem(item); },
-                             Key(),
-                             core::PostProbingReduceByHashKey<Key>(),
-                             core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-                             common::Range(), Value(), 10000000, 0.6, 0.1)
+          reduce_pre_table_(
+              context_,
+              parent.ctx().num_workers(), key_extractor,
+              reduce_function_, emitters_,
+              Key(),
+              core::PreProbingReduceByHashKey<Key>(),
+              core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+              Value(), 100000000, 0.6),
+          reduce_post_table_(
+              context_, key_extractor_, reduce_function_,
+              [this](const ValueType& item) { return this->PushItem(item); },
+              Key(),
+              core::PostProbingReduceByHashKey<Key>(),
+              core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+              common::Range(), Value(), 100000000, 0.6, 0.1)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -187,12 +185,14 @@ private:
 
     core::ReducePreProbingTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PostProbingReduceFlush<Key, Value, ReduceFunction>, core::PreProbingReduceByHashKey<Key>,
+        core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
+        core::PreProbingReduceByHashKey<Key>,
         std::equal_to<Key>, false> reduce_pre_table_;
 
     core::ReducePostProbingTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-        core::PostProbingReduceFlush<Key, Value, ReduceFunction>, core::PostProbingReduceByHashKey<Key>,
+        core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
+        core::PostProbingReduceByHashKey<Key>,
         std::equal_to<Key> > reduce_post_table_;
 
 //    core::ReducePreTable<
@@ -296,18 +296,17 @@ auto DIA<ValueType, Stack>::ReducePair(
               = api::ReduceNode<ValueType, DIA, std::function<Key(Value)>,
                                 ReduceFunction, false, true>;
     auto shared_node
-        = std::make_shared<ReduceNode>(*this,
-                                       [](Value value) {
-                                           // This function should not be
-                                           // called, it is only here to
-                                           // give the key type to the
-                                           // hashtables.
-                                           assert(1 == 0);
-                                           value = value;
-                                           return Key();
-                                       },
-                                       reduce_function,
-                                       stats_node);
+        = std::make_shared<ReduceNode>(
+        *this, [](Value value) {
+            // This function should not be
+            // called, it is only here to
+            // give the key type to the
+            // hashtables.
+            assert(1 == 0);
+            value = value;
+            return Key();
+        },
+        reduce_function, stats_node);
 
     return DIA<ValueType>(shared_node, { stats_node });
 }
