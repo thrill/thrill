@@ -36,7 +36,7 @@ void MmapFile::serve(void* buffer, offset_type offset, size_type bytes,
     int prot = (type == Request::READ) ? PROT_READ : PROT_WRITE;
     void* mem = mmap(nullptr, bytes, prot, MAP_SHARED, file_des, offset);
     // void *mem = mmap (buffer, bytes, prot , MAP_SHARED|MAP_FIXED , file_des, offset);
-    LOG0 << "Mmaped to "<<mem<<" , buffer suggested at "<<buffer;
+    LOG0 << "Mmaped to " << mem << " , buffer suggested at " << buffer;
     if (mem == MAP_FAILED)
     {
         THRILL_THROW_ERRNO(IoError,

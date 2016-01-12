@@ -47,7 +47,6 @@ template <typename Key,
           typename KeyValuePair = std::pair<Key, Value> >
 class PostProbingReduceFlush
 {
-
 public:
     PostProbingReduceFlush(ReduceFunction reduce_function,
                            const IndexFunction& index_function = IndexFunction(),
@@ -56,10 +55,12 @@ public:
           index_function_(index_function),
           equal_to_function_(equal_to_function)
     { }
-    void Spill(std::vector<KeyValuePair>& second_reduce, size_t offset,
-               size_t length, data::File::Writer& writer,
-               KeyValuePair& sentinel) const {
-        for (size_t idx = offset; idx < length; idx++)
+
+    void Spill(std::vector<KeyValuePair>& second_reduce,
+               size_t fr_begin, size_t fr_end,
+               data::File::Writer& writer, KeyValuePair& sentinel) const {
+
+        for (size_t idx = fr_begin; idx < fr_end; idx++)
         {
             KeyValuePair& current = second_reduce[idx];
             if (current.first != sentinel.first)
@@ -71,10 +72,14 @@ public:
     }
 
     template <typename Table>
-    void Reduce(Context& ctx, bool consume, Table* ht,
-                std::vector<KeyValuePair>& items, size_t offset, size_t length,
-                data::File::Reader& reader, std::vector<KeyValuePair>& second_reduce,
-                size_t fill_rate_num_items_per_frame, size_t frame_id, KeyValuePair& sentinel) const {
+    void Reduce(Context& ctx, bool consume, Table& ht,
+                std::vector<KeyValuePair>& items,
+                size_t fr_begin, size_t fr_end,
+                data::File::Reader& reader,
+                std::vector<KeyValuePair>& second_reduce,
+                size_t fill_rate_num_items_per_frame,
+                size_t frame_id, KeyValuePair& sentinel) const {
+
         size_t item_count = 0;
 
         std::vector<data::File> frame_files_;
@@ -90,12 +95,13 @@ public:
         /////
         // reduce data from primary table
         /////
-        for (size_t i = offset; i < length; i++)
+        for (size_t i = fr_begin; i < fr_end; i++)
         {
             KeyValuePair& kv = items[i];
             if (kv.first != sentinel.first)
             {
-                typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
+                typename IndexFunction::IndexResult h = index_function_(
+                    kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
 
                 KeyValuePair* initial = &second_reduce[h.global_index];
                 KeyValuePair* current = initial;
@@ -137,15 +143,11 @@ public:
 
                 // insert new pair
                 *current = kv;
-                // current->first = kv.first;
-                // current->second = kv.second;
 
                 item_count++;
 
                 if (consume)
-                {
                     items[i] = sentinel;
-                }
 
                 // flush current partition if max partition fill rate reached
                 if (item_count > fill_rate_num_items_per_frame)
@@ -161,8 +163,13 @@ public:
                     }
 
                     // spill into files
-                    Spill(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], sentinel);
-                    Spill(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], sentinel);
+                    Spill(second_reduce,
+                          0, second_reduce.size() / 2,
+                          frame_writers_[0], sentinel);
+
+                    Spill(second_reduce,
+                          second_reduce.size() / 2, second_reduce.size(),
+                          frame_writers_[1], sentinel);
 
                     item_count = 0;
                 }
@@ -173,7 +180,9 @@ public:
 
             KeyValuePair kv = reader.Next<KeyValuePair>();
 
-            typename IndexFunction::IndexResult h = index_function_(kv.first, 1, second_reduce.size(), second_reduce.size(), 0);
+            typename IndexFunction::IndexResult h =
+                index_function_(kv.first, 1,
+                                second_reduce.size(), second_reduce.size(), 0);
 
             KeyValuePair* initial = &second_reduce[h.global_index];
             KeyValuePair* current = initial;
@@ -189,13 +198,9 @@ public:
                 }
 
                 if (current == last_item)
-                {
                     current -= (second_reduce.size() - 1);
-                }
                 else
-                {
                     ++current;
-                }
             }
 
             if (reduced)
@@ -206,8 +211,6 @@ public:
 
             // insert new pair
             *current = kv;
-            // current->first = kv.first;
-            // current->second = kv.second;
 
             item_count++;
 
@@ -225,8 +228,13 @@ public:
                 }
 
                 // spill into files
-                Spill(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], sentinel);
-                Spill(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], sentinel);
+                Spill(second_reduce,
+                      0, second_reduce.size() / 2,
+                      frame_writers_[0], sentinel);
+
+                Spill(second_reduce,
+                      second_reduce.size() / 2, second_reduce.size(),
+                      frame_writers_[1], sentinel);
 
                 item_count = 0;
             }
@@ -242,77 +250,83 @@ public:
             for (size_t i = 0; i < second_reduce.size(); i++) {
                 KeyValuePair& current = second_reduce[i];
                 if (current.first != sentinel.first) {
-                    ht->EmitAll(current, frame_id);
-                    second_reduce[i].first = sentinel.first;
-                    second_reduce[i].second = sentinel.second;
+                    ht.EmitAll(current, frame_id);
+                    second_reduce[i] = sentinel;
                 }
             }
         }
         // spilling was required, need to reduce again
         else {
-            throw std::invalid_argument("recursive spill not active");
+            throw std::invalid_argument("recursive spill not working yet");
 
             // spill into files
-            Spill(second_reduce, 0, second_reduce.size() / 2, frame_writers_[0], sentinel);
-            Spill(second_reduce, second_reduce.size() / 2, second_reduce.size(), frame_writers_[1], sentinel);
+            Spill(second_reduce,
+                  0, second_reduce.size() / 2,
+                  frame_writers_[0], sentinel);
 
-            data::File& file1 = frame_files_[0];
-            data::File::Writer& writer1 = frame_writers_[0];
-            writer1.Close();
+            Spill(second_reduce,
+                  second_reduce.size() / 2, second_reduce.size(),
+                  frame_writers_[1], sentinel);
+
+            data::File& file0 = frame_files_[0];
+            frame_writers_[0].Close();
+
+            data::File::Reader reader0 = file0.GetReader(true);
+            Reduce(ctx, false, ht, second_reduce, 0, 0,
+                   reader0, second_reduce, fill_rate_num_items_per_frame,
+                   frame_id, sentinel);
+
+            data::File& file1 = frame_files_[1];
+            frame_writers_[1].Close();
+
             data::File::Reader reader1 = file1.GetReader(true);
-            Reduce(ctx, false, ht, second_reduce, 0, 0, reader1, second_reduce, fill_rate_num_items_per_frame, frame_id, sentinel);
-
-            data::File& file2 = frame_files_[1];
-            data::File::Writer& writer2 = frame_writers_[1];
-            writer2.Close();
-            data::File::Reader reader2 = file2.GetReader(true);
-            Reduce(ctx, false, ht, second_reduce, 0, 0, reader2, second_reduce, fill_rate_num_items_per_frame, frame_id, sentinel);
+            Reduce(ctx, false, ht, second_reduce, 0, 0,
+                   reader1, second_reduce, fill_rate_num_items_per_frame,
+                   frame_id, sentinel);
         }
     }
 
     template <typename Table>
-    void
-    operator () (bool consume, Table* ht) const {
+    void FlushTable(bool consume, Table& ht) const {
 
-        std::vector<KeyValuePair>& items = ht->Items();
+        std::vector<KeyValuePair>& items = ht.Items();
 
-        std::vector<KeyValuePair>& second_reduce = ht->SecondTable();
+        std::vector<KeyValuePair>& second_reduce = ht.SecondTable();
 
-        std::vector<size_t>& num_items_per_frame = ht->NumItemsPerFrame();
+        std::vector<size_t>& num_items_per_frame = ht.NumItemsPerFrame();
 
-        std::vector<data::File>& frame_files = ht->FrameFiles();
+        std::vector<data::File>& frame_files = ht.FrameFiles();
 
-        std::vector<data::File::Writer>& frame_writers = ht->FrameWriters();
+        std::vector<data::File::Writer>& frame_writers = ht.FrameWriters();
 
-        size_t frame_size = ht->FrameSize();
+        size_t frame_size = ht.FrameSize();
 
-        size_t fill_rate_num_items_per_frame = ht->FillRateNumItemsSecondReduce();
+        size_t fill_rate_num_items_per_frame = ht.FillRateNumItemsSecondReduce();
 
-        size_t num_frames = ht->NumFrames();
+        size_t num_frames = ht.NumFrames();
 
-        Context& ctx = ht->Ctx();
+        Context& ctx = ht.Ctx();
 
-        KeyValuePair sentinel = ht->Sentinel();
+        KeyValuePair sentinel = ht.Sentinel();
 
-        std::vector<size_t>& frame_sequence = ht->FrameSequence();
+        std::vector<size_t>& frame_sequence = ht.FrameSequence();
 
         for (size_t frame_id : frame_sequence)
         {
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
-            data::File::Writer& writer = frame_writers[frame_id];
-            writer.Close(); // also closes the file
+            frame_writers[frame_id].Close();
 
             // compute frame offset of current frame
-            size_t offset = frame_id * frame_size;
-            size_t length = (frame_id + 1) * frame_size;
+            size_t fr_begin = frame_id * frame_size;
+            size_t fr_end = (frame_id + 1) * frame_size;
 
             // only if items have been spilled, process a second reduce
             if (file.num_items() > 0)
             {
                 data::File::Reader reader = file.GetReader(consume);
 
-                Reduce(ctx, consume, ht, items, offset, length, reader, second_reduce,
+                Reduce(ctx, consume, ht, items, fr_begin, fr_end, reader, second_reduce,
                        fill_rate_num_items_per_frame, frame_id, sentinel);
 
                 // no spilled items, just flush already reduced
@@ -323,12 +337,12 @@ public:
                 /////
                 // emit data
                 /////
-                for (size_t i = offset; i < length; i++)
+                for (size_t i = fr_begin; i < fr_end; i++)
                 {
                     KeyValuePair& current = items[i];
                     if (current.first != sentinel.first)
                     {
-                        ht->EmitAll(current, frame_id);
+                        ht.EmitAll(current, frame_id);
 
                         if (consume)
                         {

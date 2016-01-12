@@ -47,18 +47,20 @@ template <typename Key,
           typename KeyValuePair = std::pair<Key, Value> >
 class PostBucketReduceFlush
 {
-
 public:
-    PostBucketReduceFlush(ReduceFunction reduce_function,
-                          const IndexFunction& index_function = IndexFunction(),
-                          const EqualToFunction& equal_to_function = EqualToFunction())
+    PostBucketReduceFlush(
+        ReduceFunction reduce_function,
+        const IndexFunction& index_function = IndexFunction(),
+        const EqualToFunction& equal_to_function = EqualToFunction())
         : reduce_function_(reduce_function),
           index_function_(index_function),
           equal_to_function_(equal_to_function) { }
 
     template <typename Table, typename BucketBlock>
     void Spill(std::vector<BucketBlock*>& second_reduce, size_t offset,
-               size_t length, data::File::Writer& writer, BucketBlockPool<BucketBlock>& block_pool) const {
+               size_t length, data::File::Writer& writer,
+               BucketBlockPool<BucketBlock>& block_pool) const {
+
         for (size_t idx = offset; idx < length; idx++) {
             BucketBlock* current = second_reduce[idx];
 
@@ -380,8 +382,7 @@ public:
     }
 
     template <typename Table>
-    void
-    operator () (bool consume, Table* ht) const {
+    void FlushTable(bool consume, Table* ht) const {
 
         using BucketBlock = typename Table::BucketBlock;
 

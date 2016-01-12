@@ -98,7 +98,7 @@ TEST(BlockManager, Test1) {
     bm->new_blocks(striping(), vbids.begin(), vbids.end());
 
     for (i = 0; i < nblocks; i++)
-        LOG1 <<"Allocated block: offset=" << vbids[i].offset << ", size=" << vbids[i].size;
+        LOG1 << "Allocated block: offset=" << vbids[i].offset << ", size=" << vbids[i].size;
 
     bm->delete_blocks(vbids.begin(), vbids.end());
 #endif

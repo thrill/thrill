@@ -39,35 +39,35 @@ namespace thrill {
 namespace core {
 
 /**
- *
- * A data structure which takes an arbitrary value and extracts a key using
- * a key extractor function from that value. A key may also be provided initially
+ * A data structure which takes an arbitrary value and extracts a key using a
+ * key extractor function from that value. A key may also be provided initially
  * as part of a key/value pair, not requiring to extract a key.
  *
- * Afterwards, the key is hashed and the hash is used to assign that key/value pair
- * to some bucket. A bucket can have one or more slots to store items. There are
- * max_num_items_per_table_per_bucket slots in each bucket.
+ * Afterwards, the key is hashed and the hash is used to assign that key/value
+ * pair to some bucket. A bucket can have one or more slots to store
+ * items. There are max_num_items_per_table_per_bucket slots in each bucket.
  *
- * In case a slot already has a key/value pair and the key of that value and the key of
- * the value to be inserted are them same, the values are reduced according to
- * some reduce function. No key/value is added to the current bucket.
+ * In case a slot already has a key/value pair and the key of that value and the
+ * key of the value to be inserted are them same, the values are reduced
+ * according to some reduce function. No key/value is added to the current
+ * bucket.
  *
  * If the keys are different, the next slot (moving down) is considered. If the
- * slot is occupied, the same procedure happens again. This prociedure may be considered
- * as linear probing within the scope of a bucket.
+ * slot is occupied, the same procedure happens again. This prociedure may be
+ * considered as linear probing within the scope of a bucket.
  *
  * Finally, the key/value pair to be inserted may either:
  *
  * 1.) Be reduced with some other key/value pair, sharing the same key.
  * 2.) Inserted at a free slot in the bucket.
- * 3.) Trigger a resize of the data structure in case there are no more free slots
- *     in the bucket.
+ * 3.) Trigger a resize of the data structure in case there are no more free
+ *     slots in the bucket.
  *
- * The following illustrations shows the general structure of the data structure.
- * There are several buckets containing one or more slots. Each slot may store a item.
- * In order to optimize I/O, slots are organized in bucket blocks. Bucket blocks are
- * connected by pointers. Key/value pairs are directly stored in a bucket block, no
- * pointers are required here.
+ * The following illustrations shows the general structure of the data
+ * structure.  There are several buckets containing one or more slots. Each slot
+ * may store a item.  In order to optimize I/O, slots are organized in bucket
+ * blocks. Bucket blocks are connected by pointers. Key/value pairs are directly
+ * stored in a bucket block, no pointers are required here.
  *
  *
  *     Partition 0 Partition 1 Partition 2 Partition 3 Partition 4
@@ -155,8 +155,9 @@ public:
     };
 
     /**
-     * A data structure which takes an arbitrary value and extracts a key using a key extractor
-     * function from that value. Afterwards, the value is hashed based on the key into some slot.
+     * A data structure which takes an arbitrary value and extracts a key using
+     * a key extractor function from that value. Afterwards, the value is hashed
+     * based on the key into some slot.
      *
      * \param num_partitions The number of partitions.
      * \param key_extractor Key extractor function to extract a key from a value.

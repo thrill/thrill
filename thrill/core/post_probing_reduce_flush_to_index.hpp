@@ -255,32 +255,31 @@ public:
     }
 
     template <typename Table>
-    void
-    operator () (bool consume, Table* ht) const {
+    void FlushTable(bool consume, Table& ht) const {
 
-        std::vector<KeyValuePair>& items = ht->Items();
+        std::vector<KeyValuePair>& items = ht.Items();
 
-        std::vector<KeyValuePair>& second_reduce = ht->SecondTable();
+        std::vector<KeyValuePair>& second_reduce = ht.SecondTable();
 
-        std::vector<size_t>& num_items_per_frame = ht->NumItemsPerFrame();
+        std::vector<size_t>& num_items_per_frame = ht.NumItemsPerFrame();
 
-        std::vector<data::File>& frame_files = ht->FrameFiles();
+        std::vector<data::File>& frame_files = ht.FrameFiles();
 
-        std::vector<data::File::Writer>& frame_writers = ht->FrameWriters();
+        std::vector<data::File::Writer>& frame_writers = ht.FrameWriters();
 
-        size_t frame_size = ht->FrameSize();
+        size_t frame_size = ht.FrameSize();
 
-        size_t num_frames = ht->NumFrames();
+        size_t num_frames = ht.NumFrames();
 
-        size_t fill_rate_num_items_per_frame = ht->FillRateNumItemsSecondReduce();
+        size_t fill_rate_num_items_per_frame = ht.FillRateNumItemsSecondReduce();
 
-        Value neutral_element = ht->NeutralElement();
+        Value neutral_element = ht.NeutralElement();
 
-        std::vector<Value> elements_to_emit(ht->LocalIndex().size(), neutral_element);
+        std::vector<Value> elements_to_emit(ht.LocalIndex().size(), neutral_element);
 
-        Context& ctx = ht->Ctx();
+        Context& ctx = ht.Ctx();
 
-        KeyValuePair sentinel = ht->Sentinel();
+        KeyValuePair sentinel = ht.Sentinel();
 
         for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
             // get the actual reader from the file
@@ -297,7 +296,7 @@ public:
                 data::File::Reader reader = file.GetReader(consume);
 
                 Reduce(ctx, consume, ht, items, offset, length, reader, second_reduce, elements_to_emit,
-                       fill_rate_num_items_per_frame, frame_id, num_items_per_frame, sentinel, ht->LocalIndex().begin);
+                       fill_rate_num_items_per_frame, frame_id, num_items_per_frame, sentinel, ht.LocalIndex().begin);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current frame
@@ -309,7 +308,7 @@ public:
                 for (size_t i = offset; i < length; i++) {
                     KeyValuePair& current = items[i];
                     if (current.first != sentinel.first) {
-                        elements_to_emit[current.first - ht->LocalIndex().begin] = current.second;
+                        elements_to_emit[current.first - ht.LocalIndex().begin] = current.second;
 
                         if (consume) {
                             items[i] = sentinel;
@@ -326,13 +325,13 @@ public:
             }
         }
 
-        size_t index = ht->LocalIndex().begin;
+        size_t index = ht.LocalIndex().begin;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
-            ht->EmitAll(std::make_pair(index++, elements_to_emit[i]), 0);
+            ht.EmitAll(std::make_pair(index++, elements_to_emit[i]), 0);
             elements_to_emit[i] = neutral_element;
         }
 
-        assert(index == ht->LocalIndex().end);
+        assert(index == ht.LocalIndex().end);
     }
 
 private:

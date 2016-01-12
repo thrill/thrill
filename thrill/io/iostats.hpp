@@ -25,10 +25,10 @@
 #include <thrill/common/defines.hpp>
 #include <thrill/common/singleton.hpp>
 
+#include <chrono>
 #include <iostream>
 #include <mutex>
 #include <string>
-#include <chrono>
 
 namespace thrill {
 namespace io {
