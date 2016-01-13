@@ -419,7 +419,7 @@ public:
     void Flush(bool consume = false) {
         LOG << "Flushing items";
 
-        flush_function_(consume, this);
+        flush_function_.FlushTable(consume, this);
 
         LOG << "Flushed items";
     }
