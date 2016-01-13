@@ -512,7 +512,7 @@ public:
         }
 
         if (FullPreReduce) {
-            flush_function_(consume, this);
+            flush_function_.FlushTable(consume, this);
         }
         else {
 
