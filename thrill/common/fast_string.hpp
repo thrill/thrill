@@ -36,7 +36,7 @@ public:
     using iterator = const char*;
 
     //! Default constructor for a FastString. Doesn't do anything.
-    FastString() : size_(0) { }
+    FastString() = default;
 
     /*!
      * Copy constructor for a new FastString. Actually allocates memory.
@@ -44,9 +44,14 @@ public:
      * \return Copy of input
      */
     FastString(const FastString& input) {
-        char* begin = new char[input.size_];
-        std::copy(input.data_, input.data_ + input.size_, begin);
-        data_ = begin;
+        if (input.size_) {
+            char* begin = new char[input.size_];
+            std::copy(input.data_, input.data_ + input.size_, begin);
+            data_ = begin;
+        }
+        else {
+            data_ = nullptr;
+        }
         size_ = input.size_;
         owns_data_ = true;
     }
@@ -59,9 +64,8 @@ public:
 
     //! Destructor for a FastString. If it holds data, this data gets freed.
     ~FastString() {
-        if (owns_data_) {
-            delete[] (data_);
-        }
+        if (owns_data_)
+            delete[] data_;
     }
 
     /*!
@@ -109,9 +113,14 @@ public:
      * \return New FastString object.
      */
     static FastString Copy(const char* data, size_t size) {
-        char* mem = new char[size];
-        std::copy(data, data + size, mem);
-        return FastString(mem, size, true);
+        if (size) {
+            char* mem = new char[size];
+            std::copy(data, data + size, mem);
+            return FastString(mem, size, true);
+        }
+        else {
+            return FastString();
+        }
     }
 
     /**
@@ -122,9 +131,14 @@ public:
      * \return New FastString object.
      */
     static FastString Copy(const std::string::const_iterator& data, size_t size) {
-        char* mem = new char[size];
-        std::copy(data, data + size, mem);
-        return FastString(mem, size, true);
+        if (size) {
+            char* mem = new char[size];
+            std::copy(data, data + size, mem);
+            return FastString(mem, size, true);
+        }
+        else {
+            return FastString();
+        }
     }
 
     /**
@@ -163,10 +177,15 @@ public:
      * \return reference to this FastString
      */
     FastString& operator = (const FastString& other) {
-        if (owns_data_) delete[] (data_);
-        char* mem = new char[other.size_];
-        std::copy(other.data_, other.data_ + other.size_, mem);
-        data_ = mem;
+        if (owns_data_) delete[] data_;
+        if (other.size_) {
+            char* mem = new char[other.size_];
+            std::copy(other.data_, other.data_ + other.size_, mem);
+            data_ = mem;
+        }
+        else {
+            data_ = nullptr;
+        }
         size_ = other.size_;
         owns_data_ = true;
         return *this;
@@ -178,7 +197,7 @@ public:
      * \return reference to this FastString
      */
     FastString& operator = (FastString&& other) noexcept {
-        if (owns_data_) delete[] (data_);
+        if (owns_data_) delete[] data_;
         data_ = other.data_;
         size_ = other.Size();
         owns_data_ = other.owns_data_;
@@ -254,7 +273,7 @@ private:
     //! Pointer to data
     const char* data_ = 0;
     //! Size of data
-    size_t size_;
+    size_t size_ = 0;
     //! True, if this FastString has ownership of data
     bool owns_data_ = false;
 };

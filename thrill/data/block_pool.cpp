@@ -43,8 +43,8 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
       workers_per_host_(workers_per_host),
       pin_count_(workers_per_host) {
     // we need a config mechanism
-    soft_ram_limit_ = 500000000lu;
-    hard_ram_limit_ = 800000000lu;
+    soft_ram_limit_ = 800000000lu;
+    hard_ram_limit_ = 1000000000lu;
     die_unless(hard_ram_limit >= soft_ram_limit);
 }
 
