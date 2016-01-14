@@ -210,23 +210,15 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             2,
             [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 emit(IndexOneMer {index, rb[0]});
-                if(index == input_size - 2) emit(IndexOneMer {index + 1, rb[1]});
+                if(index == input_size - 2)
+                    emit(IndexOneMer {index + 1, rb[1]});
         })
         .Sort([](const IndexOneMer& a, const IndexOneMer& b) {
             return a.t < b.t;
         }).Keep();
 
-    if(debug_print)
-        one_mers_sorted.Print("one_mers_sorted");
-
-    DIA<size_t> sa =
-        one_mers_sorted
-        .Map([](const IndexOneMer& iom) {
-            return iom.index;
-        }).Collapse();
-
-    if (debug_print)
-        sa.Print("sa");
+    //if(debug_print)
+    //    one_mers_sorted.Print("one_mers_sorted");
 
     DIA<size_t> rebucket =
         one_mers_sorted
@@ -245,29 +237,37 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             return a > b ? a : b;
         });
 
-    if (debug_print)
-        rebucket.Print("rebucket");
+    //if (debug_print)
+    //    rebucket.Print("rebucket");
 
-    uint8_t shifted_exp = 1;
+    DIA<size_t> sa =
+        one_mers_sorted
+        .Map([](const IndexOneMer& iom) {
+            return iom.index;
+        }).Cache();
 
+    //if (debug_print)
+    //    sa.Print("sa");
+
+    uint8_t shifted_exp = 0;
     while(true) {
 
         DIA<IndexRank> isa =
             sa
             .Zip(
                 rebucket,
-                [](size_t sa, size_t rb) {
-                    return IndexRank {rb, sa};
+                [](size_t s, size_t r) {
+                    return IndexRank {r, s};
             })
             .Sort([](const IndexRank& a, const IndexRank& b) {
                 return a.rank < b.rank;   
             });
 
-        if (debug_print)
-            isa.Print("isa");
+        //if (debug_print)
+        //    isa.Print("isa");
 
-        size_t shift_by = 1 << shifted_exp++;
-        LOG << "Shift the ISA by " << shift_by << " positions";
+        size_t shift_by = (1 << shifted_exp++) + 1;
+        LOG << "Shift the ISA by " << shift_by - 1 << " positions. Hence the window has size " << shift_by;
 
         DIA<IndexRankRank> triple_sorted =
             isa
@@ -283,18 +283,15 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
                 return a < b;
             });
-        if (debug_print)
-            triple_sorted.Print("triple_sorted");
-        LOG << "Sorted the triples";
+        //if (debug_print)
+        //    triple_sorted.Print("triple_sorted");
 
         size_t non_singletons =
             triple_sorted
             .template FlatWindow<uint8_t>(
                 2,
-                [&](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+                [&](size_t /*index*/, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (rb[0] == rb[1]) emit(1);
-                    if (index == input_size - 2)
-                        if (rb[0] == rb[1]) emit(1);
                 }
             ).Sum();
 
@@ -304,7 +301,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             triple_sorted
             .Map([](const IndexRankRank& rri) {
                 return rri.index;
-        }).Collapse();
+        }).Cache();
 
         if (debug_print)
             sa.Print("sa");
@@ -312,7 +309,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
         // the suffix array and can return it. 
         if (non_singletons == 0) {
             die_unless(CheckSA(input_dia, sa));
-            return sa;
+            return sa.Collapse();
         }
 
         rebucket =
@@ -321,18 +318,19 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
                 2,
                 [input_size](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (index == 0) emit(0);
-                    if (rb[0] == rb[1]) emit(0);
-                    else emit(index + 1);
-                    if (index == input_size - 2)
+                    if (rb[0] == rb[1]) emit(0); 
+                    else { emit(index + 1); }
+                    if (index == input_size - 2) {
                         if (rb[0] == rb[1]) emit(0);
                         else emit(index + 2);
+                    }
             })
             .PrefixSum([](const size_t a, const size_t b) {
                 return a > b ? a : b;
             });
 
-        if (debug_print)
-            rebucket.Print("rebucket");
+        //if (debug_print)
+        //    rebucket.Print("rebucket");
         LOG << "Rebucket the partial SA";
     }
 }
@@ -360,8 +358,6 @@ public:
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
             auto input_dia = Distribute<uint8_t>(ctx_, input_vec);
-            if (debug_print) input_dia.Print("input");
-
             StartPrefixDoublingInput(input_dia, input_vec.size());
         } 
         else {
