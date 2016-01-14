@@ -199,7 +199,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 }
 
 template <typename InputDIA>
-DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input_size) {
+DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input_size, size_t computation_rounds) {
     
     using Char = typename InputDIA::ValueType;
     using IndexOneMer = ::IndexOneMer<Char>;
@@ -217,8 +217,8 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             return a.t < b.t;
         }).Keep();
 
-    //if(debug_print)
-    //    one_mers_sorted.Print("one_mers_sorted");
+    if(debug_print)
+        one_mers_sorted.Print("one_mers_sorted");
 
     DIA<size_t> rebucket =
         one_mers_sorted
@@ -237,8 +237,8 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             return a > b ? a : b;
         });
 
-    //if (debug_print)
-    //    rebucket.Print("rebucket");
+    if (debug_print)
+        rebucket.Print("rebucket");
 
     DIA<size_t> sa =
         one_mers_sorted
@@ -246,11 +246,12 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             return iom.index;
         }).Cache();
 
-    //if (debug_print)
-    //    sa.Print("sa");
+    if (debug_print)
+        sa.Print("sa");
 
     uint8_t shifted_exp = 0;
-    while(true) {
+    while(computation_rounds--) {
+        LOG << "Still " << computation_rounds << " rounds to go with all suffixes";
 
         DIA<IndexRank> isa =
             sa
@@ -263,8 +264,8 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
                 return a.rank < b.rank;   
             });
 
-        //if (debug_print)
-        //    isa.Print("isa");
+        if (debug_print)
+            isa.Print("isa");
 
         size_t shift_by = (1 << shifted_exp++) + 1;
         LOG << "Shift the ISA by " << shift_by - 1 << " positions. Hence the window has size " << shift_by;
@@ -283,8 +284,8 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
                 return a < b;
             });
-        //if (debug_print)
-        //    triple_sorted.Print("triple_sorted");
+        if (debug_print)
+            triple_sorted.Print("triple_sorted");
 
         size_t non_singletons =
             triple_sorted
@@ -294,8 +295,6 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
                     if (rb[0] == rb[1]) emit(1);
                 }
             ).Sum();
-
-        LOG << "There are " << non_singletons << " elements which need to be sorted";
 
         sa =
             triple_sorted
@@ -329,10 +328,11 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
                 return a > b ? a : b;
             });
 
-        //if (debug_print)
-        //    rebucket.Print("rebucket");
+        if (debug_print)
+            rebucket.Print("rebucket");
         LOG << "Rebucket the partial SA";
     }
+    return sa.Collapse();
 }
 
 /*!
@@ -358,19 +358,19 @@ public:
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
             auto input_dia = Distribute<uint8_t>(ctx_, input_vec);
-            StartPrefixDoublingInput(input_dia, input_vec.size());
+            StartPrefixDoublingInput(input_dia, input_vec.size(), input_vec.size());
         } 
         else {
             auto input_dia = ReadBinary<uint8_t>(ctx_, input_path_);
             size_t input_size = input_dia.Size();
-            StartPrefixDoublingInput(input_dia, input_size);
+            StartPrefixDoublingInput(input_dia, input_size, input_size);
         }
     }
 
     template <typename InputDIA>
-    void StartPrefixDoublingInput(const InputDIA& input_dia, uint64_t input_size) {
+    void StartPrefixDoublingInput(const InputDIA& input_dia, uint64_t input_size, size_t computation_rounds) {
 
-        auto suffix_array = PrefixDoubling(ctx_, input_dia, input_size);
+        auto suffix_array = PrefixDoubling(ctx_, input_dia, input_size, computation_rounds);
         if (output_path_.size()) {
             suffix_array.WriteBinary(output_path_);
         }
