@@ -47,7 +47,7 @@ using thrill::common::RingBuffer;
 //! A pair (index, t=T[index]).
 template <typename AlphabetType>  
 struct IndexOneMer {
-    size_t       index;
+    size_t index;
     AlphabetType t;
 
     friend std::ostream& operator << (std::ostream& os, const IndexOneMer& iom) {
@@ -106,8 +106,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
     if (debug_print)
         sa.Print("sa");
 
-    DIA<size_t> rebucket;
-    DIA<size_t> rebucket_final =
+    DIA<size_t> rebucket =
         one_mers_sorted
         .template FlatWindow<size_t>(
             2,
@@ -125,7 +124,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
         });
 
     if (debug_print)
-        rebucket_final.Print("rebucket_final");
+        rebucket.Print("rebucket");
 
     uint8_t shifted_exp = 1;
 
@@ -134,7 +133,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
         DIA<RankIndex> isa =
             sa
             .Zip(
-                rebucket_final,
+                rebucket,
                 [](size_t sa, size_t rb) {
                     return RankIndex {sa, rb};
             })
@@ -192,7 +191,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
         if (non_singletons == 0)
             return sa;
 
-        rebucket_final =
+        rebucket =
             triple_sorted
             .template FlatWindow<size_t>(
                 2,
@@ -214,7 +213,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             });
 
         if (debug_print)
-            rebucket_final.Print("rebucket_final");
+            rebucket.Print("rebucket");
         LOG << "Rebucket the partial SA";
     }
 
