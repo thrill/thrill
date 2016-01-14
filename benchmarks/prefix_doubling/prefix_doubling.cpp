@@ -56,22 +56,22 @@ struct IndexOneMer {
 } THRILL_ATTRIBUTE_PACKED;
 
 //! A pair (rank, index)
-struct RankIndex {
-    size_t rank;
+struct IndexRank {
     size_t index;
+    size_t rank;
 
-    friend std::ostream& operator << (std::ostream& os, const RankIndex& ri) {
+    friend std::ostream& operator << (std::ostream& os, const IndexRank& ri) {
         return os << '(' << ri.index << '|' << ri.rank << ')';
     }
 } THRILL_ATTRIBUTE_PACKED;
 
 //! A triple (rank_1, rank_2, index)
-struct RankRankIndex {
+struct IndexRankRank {
+    size_t index;
     size_t rank1;
     size_t rank2;
-    size_t index;
 
-    friend std::ostream& operator << (std::ostream& os, const RankRankIndex& rri) {
+    friend std::ostream& operator << (std::ostream& os, const IndexRankRank& rri) {
         return os << "( i: " << rri.index << "| r1: " << rri.rank1 << "| r2: " << rri.rank2 << ")";
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -130,14 +130,14 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
 
     while(true) {
 
-        DIA<RankIndex> isa =
+        DIA<IndexRank> isa =
             sa
             .Zip(
                 rebucket,
                 [](size_t sa, size_t rb) {
-                    return RankIndex {sa, rb};
+                    return IndexRank {rb, sa};
             })
-            .Sort([](const RankIndex& a, const RankIndex& b) {
+            .Sort([](const IndexRank& a, const IndexRank& b) {
                 return a.rank < b.rank;   
             });
 
@@ -148,18 +148,18 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
         size_t shift_by = 1 << shifted_exp++;
         LOG << "Shift the ISA by " << shift_by << " positions";
 
-        DIA<RankRankIndex> triple_sorted =
+        DIA<IndexRankRank> triple_sorted =
             isa
-            .template FlatWindow<RankRankIndex>(
+            .template FlatWindow<IndexRankRank>(
                 shift_by,
-                [input_size, shift_by](size_t index, const RingBuffer<RankIndex>& rb, auto emit) {
-                    emit(RankRankIndex {rb[0].index, rb[shift_by - 1].index, rb[0].rank});
+                [input_size, shift_by](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                    emit(IndexRankRank {rb[0].rank, rb[shift_by - 1].index, rb[0].index});
                     if(index == input_size - shift_by)
                         for(size_t i = 1; i < input_size - index; ++i)
-                            emit(RankRankIndex {rb[i].index, 0, rb[i].rank});
+                            emit(IndexRankRank {rb[i].rank, 0, rb[i].index});
                 }
             )
-            .Sort([](const RankRankIndex& a, const RankRankIndex& b) {
+            .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
                 if (a.rank1 == b.rank1) {
                     if (a.rank2 == b.rank2) return a.index < b.index;
                     else return a.rank2 < b.rank2;
@@ -171,7 +171,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             triple_sorted
             .template FlatWindow<uint8_t>(
                 2,
-                [](size_t /*index*/, const RingBuffer<RankRankIndex>& rb, auto emit) {
+                [](size_t /*index*/, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (rb[0].rank1 == rb[1].rank1 and rb[0].rank2 == rb[1].rank2)
                         emit(0);
                 }
@@ -181,7 +181,8 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
 
         sa =
             triple_sorted
-            .Map([](const RankRankIndex& rri) { return rri.index;
+            .Map([](const IndexRankRank& rri) {
+                return rri.index;
         }).Collapse();
 
         if (debug_print)
@@ -195,7 +196,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             triple_sorted
             .template FlatWindow<size_t>(
                 2,
-                [input_size](size_t index, const RingBuffer<RankRankIndex>& rb, auto emit) {
+                [input_size](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (index == 0) emit(0);
                     if (rb[0].rank1 == rb[1].rank1 and rb[0].rank2 == rb[1].rank2)
                         emit(0);
@@ -216,7 +217,6 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             rebucket.Print("rebucket");
         LOG << "Rebucket the partial SA";
     }
-
 }
 
 /*!
