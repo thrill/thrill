@@ -82,11 +82,6 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
     using Char = typename InputDIA::ValueType;
     using IndexOneMer = ::IndexOneMer<Char>;
 
-    auto all_indices = Generate(
-        ctx,
-        [](size_t index) { return index; },
-        input_size).Cache();
-
     auto one_mers_sorted = 
         input_dia
         .template FlatWindow<IndexOneMer>(
@@ -102,14 +97,17 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
     if(debug_print)
         one_mers_sorted.Print("one_mers_sorted");
 
-    auto sa =
+    DIA<size_t> sa =
         one_mers_sorted
-        .Map([](const IndexOneMer& iom) ->size_t { return iom.index; });
+        .Map([](const IndexOneMer& iom) {
+            return iom.index;
+        }).Collapse();
 
     if (debug_print)
         sa.Print("sa");
 
-    DIA<size_t> rebucket =
+    DIA<size_t> rebucket;
+    DIA<size_t> rebucket_final =
         one_mers_sorted
         .template FlatWindow<size_t>(
             2,
@@ -122,32 +120,8 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
                     else emit(index + 2);
                 }
         })
-        .template FlatWindow<size_t>(
-            2,
-            [input_size](size_t index, const RingBuffer<size_t>& rb, auto emit) {
-                if(index == 0) emit(0);
-                if(rb[0] != 0) emit(rb[0]);
-                if(index == input_size - 2 and rb[1] != 0) emit(rb[1]);
-        });
-
-    if (debug_print)
-        rebucket.Print("rebucket");
-
-    size_t rebucket_size =
-        rebucket.Size();
-
-    DIA<size_t> rebucket_final =
-        rebucket
-        .template FlatWindow<size_t>(
-            2,
-            [rebucket_size, input_size](size_t index, const RingBuffer<size_t>& rb, auto emit) {
-                assert(rb[1] > rb[0]);
-                for(size_t i = 0; i < rb[1] - rb[0]; ++i)
-                    emit(rb[0]);
-                if (index == rebucket_size - 2) {
-                    for(size_t i = 0; i < input_size - rb[1]; ++i)
-                        emit(rb[1]);
-                }
+        .PrefixSum([](const size_t a, const size_t b) {
+            return a > b ? a : b;
         });
 
     if (debug_print)
@@ -155,126 +129,10 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
 
     uint8_t shifted_exp = 1;
 
-    auto isa =
-        sa
-        .Zip(
-            rebucket_final,
-            [](size_t sa, size_t rb) {
-                return RankIndex {sa, rb};
-        })
-        .Sort([](const RankIndex& a, const RankIndex& b) {
-            return a.rank < b.rank;   
-        })
-        .Map(
-            [](const RankIndex& ri) { 
-                return ri.index;
-        });
-
-    if (debug_print)
-        isa.Print("isa");
-
-    size_t shift_by = 1 << shifted_exp++;
-
-    auto shifted_isa =
-        isa
-        .template FlatWindow<size_t>(
-            shift_by,
-            [input_size, shift_by](size_t index, const RingBuffer<size_t>& rb, auto emit) {
-                emit(rb[shift_by - 1]);
-                if(index == input_size - shift_by)
-                    for(size_t i = index + 1; i < input_size; ++i)
-                        emit(0);
-            }
-        );
-    
-    if (debug_print)
-        shifted_isa.Print("shifted_isa");
-
-    DIA<RankRankIndex> triple_sorted =
-        Zip(
-            [](size_t a, size_t b, size_t c) {
-                return RankRankIndex {a, b, c};
-            },
-            isa, shifted_isa, all_indices
-        )
-        .Sort([](const RankRankIndex& a, const RankRankIndex& b) {
-            if (a.rank1 == b.rank1) {
-                if (a.rank2 == b.rank2) return a.index < b.index;
-                else return a.rank2 < b.rank2;
-            } else return a.rank1 < b.rank1;
-        }).Keep();
-
-    if (debug_print)
-        triple_sorted.Print("triple_sorted_outside_loop");
-
     while(true) {
-        LOG << "Shift the SA by " << shift_by << " positions";
-        rebucket =
-            triple_sorted
-            .template FlatWindow<size_t>(
-                2,
-                [input_size](size_t index, const RingBuffer<RankRankIndex>& rb, auto emit) {
-                    if (index == 0) emit(0);
-                    if (rb[0].rank1 == rb[1].rank1 and rb[0].rank2 == rb[1].rank2) emit(0);
-                    else emit(index + 1);
-            })
-            .template FlatWindow<size_t>(
-                2,
-                [input_size](size_t index, const RingBuffer<size_t>& rb, auto emit) {
-                    if(index == 0) emit(0);
-                    if(rb[0] != 0) emit(rb[0]);
-                    if(index == input_size - 2 and rb[1] != 0) emit(rb[1]);
-            });
 
-        if (debug_print)
-            rebucket.Print("rebucket");
-
-        rebucket_size =
-            rebucket.Size();
-
-        // If each suffix is unique regarding their 2h-prefix, we have computed
-        // the suffix array and can return it. 
-        if (rebucket_size == input_size) {
-            auto suffix_array =
-                triple_sorted
-                .Map([](const RankRankIndex& rri) { return rri.index;
-            });
-
-            if (debug_print)
-                suffix_array.Print("suffix_array");
-
-            return suffix_array.Collapse();
-        }
-
-        rebucket_final =
-            rebucket
-            .template FlatWindow<size_t>(
-                2,
-                [rebucket_size, input_size](size_t index, const RingBuffer<size_t>& rb, auto emit) {
-                    assert(rb[1] > rb[0]);
-                    for(size_t i = 0; i < rb[1] - rb[0]; ++i)
-                        emit(rb[0]);
-                    if (index == rebucket_size - 2) {
-                        for(size_t i = 0; i < input_size - rb[1]; ++i)
-                            emit(rb[1]);
-                    }
-            });
-
-        if (debug_print)
-            rebucket_final.Print("rebucket_final");
-
-        auto sa_loop =
-            triple_sorted
-            .Map(
-                [](const RankRankIndex& rri) {
-                    return rri.index;
-            });
-
-        if (debug_print)
-            sa_loop.Print("sa_loop");
-
-        auto isa_loop =
-            sa_loop
+        DIA<RankIndex> isa =
+            sa
             .Zip(
                 rebucket_final,
                 [](size_t sa, size_t rb) {
@@ -282,48 +140,82 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             })
             .Sort([](const RankIndex& a, const RankIndex& b) {
                 return a.rank < b.rank;   
-            })
-            .Map(
-                [](const RankIndex& ri) { 
-                    return ri.index;
             });
 
         if (debug_print)
-            isa_loop.Print("isa_loop");
+            isa.Print("isa");
+        LOG << "Computed the ISA";
 
-        shift_by = 1 << shifted_exp++;
+        size_t shift_by = 1 << shifted_exp++;
+        LOG << "Shift the ISA by " << shift_by << " positions";
 
-        auto shifted_isa_loop =
-            isa_loop
-            .template FlatWindow<size_t>(
+        DIA<RankRankIndex> triple_sorted =
+            isa
+            .template FlatWindow<RankRankIndex>(
                 shift_by,
-                [input_size, shift_by](size_t index, const RingBuffer<size_t>& rb, auto emit) {
-                    emit(rb[shift_by - 1]);
+                [input_size, shift_by](size_t index, const RingBuffer<RankIndex>& rb, auto emit) {
+                    emit(RankRankIndex {rb[0].index, rb[shift_by - 1].index, rb[0].rank});
                     if(index == input_size - shift_by)
-                        for(size_t i = index + 1; i < input_size; ++i)
-                            emit(0);
+                        for(size_t i = 1; i < input_size - index; ++i)
+                            emit(RankRankIndex {rb[i].index, 0, rb[i].rank});
                 }
-            );
-
-        if (debug_print)
-            shifted_isa_loop.Print("shifted_isa_loop");
-
-        triple_sorted =
-            Zip(
-                [](size_t a, size_t b, size_t c) {
-                    return RankRankIndex {a, b, c};
-                },
-                isa_loop, shifted_isa_loop, all_indices
             )
             .Sort([](const RankRankIndex& a, const RankRankIndex& b) {
                 if (a.rank1 == b.rank1) {
                     if (a.rank2 == b.rank2) return a.index < b.index;
                     else return a.rank2 < b.rank2;
                 } else return a.rank1 < b.rank1;
-            }).Keep();
+            });
+        LOG << "Sorted the triples";
+
+        size_t non_singletons =
+            triple_sorted
+            .template FlatWindow<uint8_t>(
+                2,
+                [](size_t /*index*/, const RingBuffer<RankRankIndex>& rb, auto emit) {
+                    if (rb[0].rank1 == rb[1].rank1 and rb[0].rank2 == rb[1].rank2)
+                        emit(0);
+                }
+            ).Size();
+
+        LOG << "Computed the number of non singletons";
+
+        sa =
+            triple_sorted
+            .Map([](const RankRankIndex& rri) { return rri.index;
+        }).Collapse();
 
         if (debug_print)
-            triple_sorted.Print("triple_sorted");
+            sa.Print("sa");
+        // If each suffix is unique regarding their 2h-prefix, we have computed
+        // the suffix array and can return it. 
+        if (non_singletons == 0)
+            return sa;
+
+        rebucket_final =
+            triple_sorted
+            .template FlatWindow<size_t>(
+                2,
+                [input_size](size_t index, const RingBuffer<RankRankIndex>& rb, auto emit) {
+                    if (index == 0) emit(0);
+                    if (rb[0].rank1 == rb[1].rank1 and rb[0].rank2 == rb[1].rank2)
+                        emit(0);
+                    else
+                        emit(index + 1);
+                    if (index == input_size - 2) {
+                        if (rb[0].rank1 == rb[1].rank1 and rb[0].rank2 == rb[1].rank2)
+                            emit(0);
+                        else
+                            emit(index + 2);
+                    }
+            })
+            .PrefixSum([](const size_t a, const size_t b) {
+                return a > b ? a : b;
+            });
+
+        if (debug_print)
+            rebucket_final.Print("rebucket_final");
+        LOG << "Rebucket the partial SA";
     }
 
 }
