@@ -67,5 +67,6 @@ add_subdirectory(dc3)
 add_subdirectory(groupby)
 add_subdirectory(net)
 add_subdirectory(merge)
+add_subdirectory(prefix_doubling)
 
 ################################################################################
