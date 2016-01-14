@@ -71,6 +71,17 @@ struct IndexRankRank {
     size_t rank1;
     size_t rank2;
 
+    //! Two IndexRankRanks are equal iff their ranks are equal.
+    bool operator == (const IndexRankRank& b) const {
+        return rank1 == b.rank1 and rank2 == b.rank2;
+    }
+
+    //! A IndexRankRank is smaller than another iff either its fist rank is smaller
+    //! or if the first ranks are equal if its second rank is smaller.
+    bool operator < (const IndexRankRank& b) const {
+        return rank1 < b.rank1 or (rank1 == b.rank1 and rank2 < b.rank2);
+    }
+
     friend std::ostream& operator << (std::ostream& os, const IndexRankRank& rri) {
         return os << "( i: " << rri.index << "| r1: " << rri.rank1 << "| r2: " << rri.rank2 << ")";
     }
@@ -254,7 +265,6 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
 
         if (debug_print)
             isa.Print("isa");
-        LOG << "Computed the ISA";
 
         size_t shift_by = 1 << shifted_exp++;
         LOG << "Shift the ISA by " << shift_by << " positions";
@@ -264,31 +274,31 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             .template FlatWindow<IndexRankRank>(
                 shift_by,
                 [input_size, shift_by](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
-                    emit(IndexRankRank {rb[0].rank, rb[shift_by - 1].index, rb[0].index});
+                    emit(IndexRankRank {rb[0].rank, rb[0].index, rb[shift_by - 1].index});
                     if(index == input_size - shift_by)
                         for(size_t i = 1; i < input_size - index; ++i)
-                            emit(IndexRankRank {rb[i].rank, 0, rb[i].index});
+                            emit(IndexRankRank {rb[i].rank, rb[i].index, 0});
                 }
             )
             .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
-                if (a.rank1 == b.rank1) {
-                    if (a.rank2 == b.rank2) return a.index < b.index;
-                    else return a.rank2 < b.rank2;
-                } else return a.rank1 < b.rank1;
+                return a < b;
             });
+        if (debug_print)
+            triple_sorted.Print("triple_sorted");
         LOG << "Sorted the triples";
 
         size_t non_singletons =
             triple_sorted
             .template FlatWindow<uint8_t>(
                 2,
-                [](size_t /*index*/, const RingBuffer<IndexRankRank>& rb, auto emit) {
-                    if (rb[0].rank1 == rb[1].rank1 and rb[0].rank2 == rb[1].rank2)
-                        emit(0);
+                [&](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+                    if (rb[0] == rb[1]) emit(1);
+                    if (index == input_size - 2)
+                        if (rb[0] == rb[1]) emit(1);
                 }
-            ).Size();
+            ).Sum();
 
-        LOG << "Computed the number of non singletons";
+        LOG << "There are " << non_singletons << " elements which need to be sorted";
 
         sa =
             triple_sorted
@@ -311,16 +321,11 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
                 2,
                 [input_size](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (index == 0) emit(0);
-                    if (rb[0].rank1 == rb[1].rank1 and rb[0].rank2 == rb[1].rank2)
-                        emit(0);
-                    else
-                        emit(index + 1);
-                    if (index == input_size - 2) {
-                        if (rb[0].rank1 == rb[1].rank1 and rb[0].rank2 == rb[1].rank2)
-                            emit(0);
-                        else
-                            emit(index + 2);
-                    }
+                    if (rb[0] == rb[1]) emit(0);
+                    else emit(index + 1);
+                    if (index == input_size - 2)
+                        if (rb[0] == rb[1]) emit(0);
+                        else emit(index + 2);
             })
             .PrefixSum([](const size_t a, const size_t b) {
                 return a > b ? a : b;
