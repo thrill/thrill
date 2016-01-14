@@ -20,6 +20,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
+#include <thrill/data/file.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/group.hpp>
@@ -28,6 +29,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <cstdlib>
 
 namespace thrill {
 namespace api {
@@ -46,7 +48,7 @@ namespace api {
 template <typename ValueType, typename ParentDIA, typename CompareFunction>
 class SortNode final : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -73,6 +75,9 @@ public:
         auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
                          };
+
+        unsorted_data_ = context_.GetFilePtr();
+        unsorted_writer_ = unsorted_data_->GetWriter();
 
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
@@ -103,6 +108,13 @@ private:
     CompareFunction compare_function_;
     //! Local data
     std::vector<ValueType> data_;
+    std::vector<ValueType> samples_;
+
+    data::FilePtr unsorted_data_;
+    data::File::Writer unsorted_writer_;
+    size_t total_items_ = 0;
+    size_t after_sample_ = 0;
+    size_t next_sample_ = 0;
 
     //! Emitter to send samples to process 0
     data::CatStreamPtr stream_id_samples_;
@@ -116,7 +128,26 @@ private:
     static constexpr double desired_imbalance_ = 0.25;
 
     void PreOp(ValueType input) {
-        data_.push_back(input);
+        unsorted_writer_.Put(input);
+        total_items_++;
+        after_sample_++;
+        //In this stage we do not know how many elements are there in total.
+        //Therefore we draw samples based on current number of elements and
+        //randomly replace older samples when we have too many.
+        if (after_sample_ > next_sample_) {
+            if (samples_.size() >
+                std::log2(total_items_ * context_.num_workers())
+                * (1 / (desired_imbalance_ * desired_imbalance_))) {
+                samples_[std::rand() % samples_.size()] = input;
+            } else {
+                samples_.push_back(input);
+            }
+            after_sample_ = 0;
+            double sample = (double)total_items_ /
+                (std::log2(total_items_ * context_.num_workers())
+                 * (1 / (desired_imbalance_ * desired_imbalance_)));
+            next_sample_ = std::floor(sample);
+        }
     }
 
     void FindAndSendSplitters(
@@ -213,6 +244,8 @@ private:
         size_t prefix_elem,
         size_t total_elem) {
 
+        auto unsorted_reader_ = unsorted_data_->GetReader(/* consume */ true);
+
         // enlarge emitters array to next power of two to have direct access,
         // because we fill the splitter set up with sentinels == last splitter,
         // hence all items land in the last bucket.
@@ -229,14 +262,14 @@ private:
         const size_t stepsize = 2;
 
         size_t i = 0;
-        for ( ; i < RoundDown(data_.size(), stepsize); i += stepsize)
+        for ( ; i < RoundDown(total_items_, stepsize); i += stepsize)
         {
             // take two items
             size_t j0 = 1;
-            const ValueType& el0 = data_[i];
+            const ValueType& el0 = unsorted_reader_.Next<ValueType>();
 
             size_t j1 = 1;
-            const ValueType& el1 = data_[i + 1];
+            const ValueType& el1 = unsorted_reader_.Next<ValueType>();
 
             // run items down the tree
             for (size_t l = 0; l < log_k; l++)
@@ -278,17 +311,19 @@ private:
         }
 
         // last iteration of loop if we have an odd number of items.
-        for ( ; i < data_.size(); i++)
+        for ( ; i < total_items_; i++)
         {
+            
+            const ValueType& last_item = unsorted_reader_.Next<ValueType>();
             size_t j = 1;
             for (size_t l = 0; l < log_k; l++)
             {
-                j = j * 2 + !(compare_function_(data_[i], tree[j]));
+                j = j * 2 + !(compare_function_(last_item, tree[j]));
             }
 
             size_t b = j - k;
 
-            while (b && Equal(data_[i], sorted_splitters[b - 1])
+            while (b && Equal(last_item, sorted_splitters[b - 1])
                    && (prefix_elem + i) * actual_k < b * total_elem) {
                 b--;
             }
@@ -298,38 +333,31 @@ private:
             }
 
             assert(emitters_data_[b].IsValid());
-            emitters_data_[b].Put(data_[i]);
+            emitters_data_[b].Put(last_item);
         }
     }
 
     void MainOp() {
+        unsorted_writer_.Close();
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        size_t prefix_elem = channel.PrefixSum(data_.size(), (size_t)0, std::plus<size_t>(), false);
-        size_t total_elem = channel.AllReduce(data_.size());
+        size_t prefix_elem = channel.PrefixSum(total_items_, (size_t)0, std::plus<size_t>(), false);
+        size_t total_elem = channel.AllReduce(total_items_);
 
         size_t num_total_workers = context_.num_workers();
-        size_t sample_size =
-            std::max(common::IntegerLog2Ceil(total_elem) *
-                     static_cast<size_t>(1 / (desired_imbalance_ * desired_imbalance_)),
-                     (size_t)1);
 
-        sample_size = std::min(data_.size(), sample_size);
-
-        sample_size = std::min(data_.size(), sample_size);
-
-        LOG << prefix_elem << " elements, out of " << total_elem;
-
-        std::default_random_engine generator(std::random_device { } ());
-        std::uniform_int_distribution<size_t> distribution(0, data_.size() - 1);
-
-        // Send samples to worker 0
-        for (size_t i = 0; i < sample_size; i++) {
-            size_t sample = distribution(generator);
-            emitters_samples_[0].Put(data_[sample]);
+        LOG << "Local sample size on worker " << context_.my_rank() <<
+            ": " << samples_.size();
+        LOG << "Number of elements: " << total_items_;
+        
+        
+        //Send all samples to worker 0.
+        for (auto sample : samples_) {
+            emitters_samples_[0].Put(sample);
         }
-        emitters_samples_[0].Close();
-
+        emitters_samples_[0].Close();        
+        std::vector<ValueType>().swap(samples_);
+        
         // Get the ceiling of log(num_total_workers), as SSSS needs 2^n buckets.
         size_t ceil_log = common::IntegerLog2Ceil(num_total_workers);
         size_t workers_algo = 1 << ceil_log;
@@ -339,7 +367,7 @@ private:
         splitters.reserve(workers_algo);
 
         if (context_.my_rank() == 0) {
-            FindAndSendSplitters(splitters, sample_size);
+            FindAndSendSplitters(splitters, samples_.size());
         }
         else {
             // Close unused emitters
@@ -410,7 +438,7 @@ private:
               << "Workers" << num_total_workers
               << "LocalSize" << data_.size()
               << "Balance Factor" << balance
-              << "Sample Size" << sample_size;
+              << "Sample Size" << samples_.size();
 
         this->WriteStreamStats(stream_id_data_);
         this->WriteStreamStats(stream_id_samples_);
