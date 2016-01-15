@@ -108,7 +108,8 @@ int main(int argc, char* argv[]) {
                  table(ctx,
                        workers, key_ex, red_fn, writers,
                        core::PreProbingReduceByHashKey<size_t>(),
-                       core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn), 0, byte_size,
+                       core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
+                       0, 0, byte_size,
                        bucket_rate, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
 
                  common::StatsTimer<true> timer(true);

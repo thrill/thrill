@@ -38,6 +38,15 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
+class DefaultReduceConfig
+{
+public:
+    DefaultReduceConfig() = default;
+
+    size_t pre_table_memlimit = 500000000;
+    size_t post_table_memlimit = 500000000;
+};
+
 /*!
  * A DIANode which performs a Reduce operation. Reduce groups the elements in a
  * DIA by their key and reduces every key bucket to a single element each. The
@@ -56,6 +65,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
+          typename ReduceConfig,
           const bool RobustKey, const bool SendPair>
 class ReduceNode final : public DOpNode<ValueType>
 {
@@ -83,38 +93,46 @@ public:
     ReduceNode(const ParentDIA& parent,
                const KeyExtractor& key_extractor,
                const ReduceFunction& reduce_function,
+               const ReduceConfig& config,
                StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters()),
-//          reduce_pre_table_(context_,
-//              parent.ctx().num_workers(), key_extractor,
-//              reduce_function_, emitters_,
-//              core::PreProbingReduceByHashKey<Key>(),
-//              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function), Value(), 1000000, 1.0, 0.6),
-//          reduce_post_table_(
-//              context_, key_extractor_, reduce_function_,
-//              [this](const ValueType& item) { return this->PushItem(item); },
-//              core::PostProbingReduceByHashKey<Key>(),
-//              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-//              0, 0, Value(), 100000, 1.0, 0.6, 0.1)
+
           reduce_pre_table_(
               context_,
-              parent.ctx().num_workers(), key_extractor,
+              parent.ctx().num_workers(),
+              key_extractor,
               reduce_function_, emitters_,
-              Key(),
               core::PreProbingReduceByHashKey<Key>(),
               core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-              Value(), 100000000, 0.6),
+              Key(), Value(), config.pre_table_memlimit),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              Key(),
               core::PostProbingReduceByHashKey<Key>(),
               core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-              common::Range(), Value(), 100000000, 0.6, 0.1)
+              common::Range(),
+              Key(), Value(), config.post_table_memlimit)
+
+          // reduce_pre_table_(
+          //     context_,
+          //     parent.ctx().num_workers(),
+          //     key_extractor,
+          //     reduce_function_, emitters_,
+          //     core::PreProbingReduceByHashKey<Key>(),
+          //     core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+          //     Key(), Value(), config.pre_table_memlimit),
+          // reduce_post_table_(
+          //     context_, key_extractor_, reduce_function_,
+          //     [this](const ValueType& item) { return this->PushItem(item); },
+          //     core::PostProbingReduceByHashKey<Key>(),
+          //     core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+          //     common::Range(),
+          //     Key(), Value(), config.post_table_memlimit)
+
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -195,24 +213,27 @@ private:
         core::PostProbingReduceByHashKey<Key>,
         std::equal_to<Key> > reduce_post_table_;
 
-//    core::ReducePreTable<
-//            ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-//            core::PostBucketReduceFlush<Key, Value, ReduceFunction>, core::PreProbingReduceByHashKey<Key>,
-//            std::equal_to<Key>, 32 * 16, false> reduce_pre_table_;
-//
-//    core::ReducePostTable<
-//            ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-//            core::PostBucketReduceFlush<Key, Value, ReduceFunction>, core::PostProbingReduceByHashKey<Key>,
-//            std::equal_to<Key>, 32 * 16> reduce_post_table_;
+    // core::ReducePreTable<
+    //     ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+    //     core::PostBucketReduceFlush<Key, Value, ReduceFunction>,
+    //     core::PreProbingReduceByHashKey<Key>,
+    //     std::equal_to<Key>, 32* 16, false> reduce_pre_table_;
+
+    // core::ReducePostTable<
+    //     ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
+    //     core::PostBucketReduceFlush<Key, Value, ReduceFunction>,
+    //     core::PostProbingReduceByHashKey<Key>,
+    //     std::equal_to<Key>, 32* 16> reduce_post_table_;
 
     bool reduced = false;
 };
 
 template <typename ValueType, typename Stack>
-template <typename KeyExtractor, typename ReduceFunction>
+template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceBy(
     const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function) const {
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -247,19 +268,20 @@ auto DIA<ValueType, Stack>::ReduceBy(
 
     StatsNode* stats_node = AddChildStatsNode("ReduceBy", DIANodeType::DOP);
     using ReduceNode
-              = api::ReduceNode<DOpResult, DIA, KeyExtractor,
-                                ReduceFunction, true, false>;
+              = api::ReduceNode<DOpResult, DIA, KeyExtractor, ReduceFunction,
+                                ReduceConfig, true, false>;
     auto shared_node
         = std::make_shared<ReduceNode>(
-        *this, key_extractor, reduce_function, stats_node);
+        *this, key_extractor, reduce_function, reduce_config, stats_node);
 
     return DIA<DOpResult>(shared_node, { stats_node });
 }
 
 template <typename ValueType, typename Stack>
-template <typename ReduceFunction>
+template <typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReducePair(
-    const ReduceFunction &reduce_function) const {
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -293,8 +315,9 @@ auto DIA<ValueType, Stack>::ReducePair(
 
     StatsNode* stats_node = AddChildStatsNode("ReducePair", DIANodeType::DOP);
     using ReduceNode
-              = api::ReduceNode<ValueType, DIA, std::function<Key(Value)>,
-                                ReduceFunction, false, true>;
+              = api::ReduceNode<ValueType, DIA,
+                                std::function<Key(Value)>, ReduceFunction,
+                                ReduceConfig, false, true>;
     auto shared_node
         = std::make_shared<ReduceNode>(
         *this, [](Value value) {
@@ -306,16 +329,17 @@ auto DIA<ValueType, Stack>::ReducePair(
             value = value;
             return Key();
         },
-        reduce_function, stats_node);
+        reduce_function, reduce_config, stats_node);
 
     return DIA<ValueType>(shared_node, { stats_node });
 }
 
 template <typename ValueType, typename Stack>
-template <typename KeyExtractor, typename ReduceFunction>
+template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceByKey(
     const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function) const {
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -351,10 +375,10 @@ auto DIA<ValueType, Stack>::ReduceByKey(
     StatsNode* stats_node = AddChildStatsNode("ReduceByKey", DIANodeType::DOP);
     using ReduceNode
               = api::ReduceNode<DOpResult, DIA, KeyExtractor,
-                                ReduceFunction, false, false>;
+                                ReduceFunction, ReduceConfig, false, false>;
     auto shared_node
         = std::make_shared<ReduceNode>(
-        *this, key_extractor, reduce_function, stats_node);
+        *this, key_extractor, reduce_function, reduce_config, stats_node);
 
     return DIA<DOpResult>(shared_node, { stats_node });
 }

@@ -178,10 +178,11 @@ public:
                    std::vector<data::DynBlockWriter>& emit,
                    const IndexFunction& index_function,
                    const FlushFunction& flush_function,
+                   const Key& /* sentinel */ = Key(),
                    const Value& neutral_element = Value(),
                    size_t byte_size = 1024* 16,
                    double bucket_rate = 1.0,
-                   double max_partition_fill_rate = 0.5,
+                   double max_partition_fill_rate = 0.6,
                    const EqualToFunction& equal_to_function = EqualToFunction(),
                    double table_rate_multiplier = 1.05)
         : ctx_(ctx),

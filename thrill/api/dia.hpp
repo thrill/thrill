@@ -338,9 +338,11 @@ public:
      * are reduced to a single element. This function is applied associative but
      * not necessarily commutative.
      */
-    template <typename KeyExtractor, typename ReduceFunction>
+    template <typename KeyExtractor, typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig>
     auto ReduceBy(const KeyExtractor &key_extractor,
-                  const ReduceFunction &reduce_function) const;
+                  const ReduceFunction &reduce_function,
+                  const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
     * ReduceByKey is a DOp, which groups elements of the DIA with the
@@ -369,9 +371,11 @@ public:
     * are reduced to a single element. This function is applied associative but
     * not necessarily commutative.
     */
-    template <typename KeyExtractor, typename ReduceFunction>
+    template <typename KeyExtractor, typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig>
     auto ReduceByKey(const KeyExtractor &key_extractor,
-                     const ReduceFunction &reduce_function) const;
+                     const ReduceFunction &reduce_function,
+                     const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
      * ReducePair is a DOp, which groups key-value-pairs in the input DIA by
@@ -392,8 +396,10 @@ public:
      * are reduced to a single element. This function is applied associative but
      * not necessarily commutative.
      */
-    template <typename ReduceFunction>
-    auto ReducePair(const ReduceFunction &reduce_function) const;
+    template <typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig>
+    auto ReducePair(const ReduceFunction &reduce_function,
+                    const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
      * ReduceToIndex is a DOp, which groups elements of the DIA with the

@@ -101,19 +101,20 @@ public:
           neutral_element_(neutral_element),
           reduce_pre_table_(context_,
                             parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, core::PreProbingReduceByIndex<Key>(result_size),
+                            reduce_function_, emitters_,
+                            core::PreProbingReduceByIndex<Key>(result_size),
                             core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
-                            neutral_element_,
+                            Key(), neutral_element_,
                             1024 * 1024 * 32, 1.0, 0.6),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
               core::PostProbingReduceByIndex<Key>(),
-              core::PostBucketReduceFlushToIndex<Key,
-                                                 Value, ReduceFunction, core::PostProbingReduceByIndex<Key> >(reduce_function),
+              core::PostBucketReduceFlushToIndex<
+                  Key, Value, ReduceFunction, core::PostProbingReduceByIndex<Key> >(reduce_function),
               common::CalculateLocalRange(
                   result_size_, context_.num_workers(), context_.my_rank()),
-              neutral_element_,
+              Key(), neutral_element_,
               1024 * 1024 * 32, 1.0, 0.6, 0.1)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
