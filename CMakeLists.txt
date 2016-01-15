@@ -248,6 +248,7 @@ endif(USE_GCOV)
 # enable gtest framework, valgrind, and collection of results
 
 enable_testing()
+include(CTest)
 
 ### google test + mock - enable "make test" and add_test()
 
