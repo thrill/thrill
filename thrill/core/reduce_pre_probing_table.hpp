@@ -242,12 +242,12 @@ public:
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         std::vector<data::DynBlockWriter>& emit,
-        const Key& sentinel,
         const IndexFunction& index_function,
         const FlushFunction& flush_function,
+        const Key& sentinel = Key(),
         const Value& neutral_element = Value(),
         size_t byte_size = 1024* 16,
-        double max_partition_fill_rate = 0.5,
+        double max_partition_fill_rate = 0.6,
         const EqualToFunction& equal_to_function = EqualToFunction(),
         double table_rate_multiplier = 1.05)
         : ctx_(ctx),
@@ -269,8 +269,7 @@ public:
                "a byte size of zero results in exactly one item per partition");
 
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0
-               &&
-               "max_partition_fill_rate must be between 0.0 and 1.0. "
+               && "max_partition_fill_rate must be between 0.0 and 1.0. "
                "with a fill rate of 0.0, items are immediately flushed.");
 
         table_rate_ = table_rate_multiplier *

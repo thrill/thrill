@@ -234,13 +234,13 @@ public:
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         const EmitterFunction& emit,
-        const Key& sentinel,
         const IndexFunction& index_function,
         const FlushFunction& flush_function,
         const common::Range& local_index = common::Range(),
+        const Key& sentinel = Key(),
         const Value& neutral_element = Value(),
         size_t byte_size = 1024* 16,
-        double max_frame_fill_rate = 0.5,
+        double max_frame_fill_rate = 0.6,
         double frame_rate = 0.1,
         const EqualToFunction& equal_to_function = EqualToFunction(),
         double table_rate_multiplier = 1.05)
@@ -326,10 +326,11 @@ public:
     ReducePostProbingTable(
         Context& ctx, KeyExtractor key_extractor,
         ReduceFunction reduce_function, EmitterFunction emit,
-        const Key& sentinel)
+        const Value& sentinel = Value())
         : ReducePostProbingTable(
-              ctx, key_extractor, reduce_function, emit, sentinel,
-              IndexFunction(), FlushFunction(reduce_function)) { }
+              ctx, key_extractor, reduce_function, emit,
+              IndexFunction(), FlushFunction(reduce_function),
+              common::Range(), Key(), sentinel) { }
 
     //! non-copyable: delete copy-constructor
     ReducePostProbingTable(const ReducePostProbingTable&) = delete;

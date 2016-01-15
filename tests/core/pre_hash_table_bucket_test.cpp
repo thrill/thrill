@@ -106,7 +106,7 @@ TEST_F(PreTable, CustomHashFunction) {
                                  core::PostBucketReduceFlush<int, int, decltype(red_fn)>, CustomKeyHashFunction<int> >
             table(ctx, 1, key_ex, red_fn, writers, cust_hash,
                   core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn),
-                  -1, 1024 * 16, 0.001, 1.0);
+                  int(), -1, 1024 * 16, 0.001, 1.0);
 
             for (int i = 0; i < 16; i++) {
                 table.Insert(i);
@@ -373,7 +373,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
                                  core::PostBucketReduceFlush<int, int, decltype(red_fn)>,
                                  core::PreProbingReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<int>(),
-                  core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, bucket_block_size * 2, 0.5, 0.5, std::equal_to<int>(), 0.0);
+                  core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, -1, bucket_block_size * 2, 0.5, 0.5, std::equal_to<int>(), 0.0);
 
             table.Insert(0);
             table.Insert(1);
@@ -481,7 +481,7 @@ TEST_F(PreTable, ComplexType) {
             core::ReducePreTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<std::string>(),
                   core::PostBucketReduceFlush<std::string, StringPair,
-                                              decltype(red_fn)>(red_fn), sp, 16 * 1024, 0.001, 0.5);
+                                              decltype(red_fn)>(red_fn), "", sp, 16 * 1024, 0.001, 0.5);
 
             table.Insert(std::make_pair("hallo", 1));
             table.Insert(std::make_pair("hello", 2));
@@ -575,7 +575,8 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
             // Hashtable with smaller block size for testing.
             core::ReducePreTable<MyStruct, size_t, MyStruct, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<size_t>(),
-                  core::PostBucketReduceFlush<size_t, MyStruct, decltype(red_fn)>(red_fn), sp, nitems * 16, 0.001, 0.5);
+                  core::PostBucketReduceFlush<size_t, MyStruct, decltype(red_fn)>(red_fn),
+                  -1, sp, nitems * 16, 0.001, 0.5);
 
             // insert lots of items
             for (size_t i = 0; i != nitems; ++i) {
@@ -632,8 +633,8 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
                                  core::PostBucketReduceFlush<int, MyStruct, decltype(red_fn)>,
                                  core::PreProbingReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<int>(),
-                  core::PostBucketReduceFlush<int, MyStruct,
-                                              decltype(red_fn)>(red_fn), sp, bucket_block_size * bucket_block_size, 1.0, 1.0);
+                  core::PostBucketReduceFlush<
+                      int, MyStruct, decltype(red_fn)>(red_fn), -1, sp, bucket_block_size * bucket_block_size, 1.0, 1.0);
 
             // insert lots of items
             size_t sum = 0;
@@ -701,8 +702,8 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
                                  core::PostBucketReduceFlush<std::string, StringPair, decltype(red_fn)>,
                                  core::PreProbingReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>
             table(ctx, 1, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<std::string>(),
-                  core::PostBucketReduceFlush<std::string, StringPair,
-                                              decltype(red_fn)>(red_fn), sp, TargetBlockSize * 2, 0.0, 1.0);
+                  core::PostBucketReduceFlush<
+                      std::string, StringPair, decltype(red_fn)>(red_fn), "", sp, TargetBlockSize * 2, 0.0, 1.0);
 
             // insert lots of items
             size_t sum = 0;
