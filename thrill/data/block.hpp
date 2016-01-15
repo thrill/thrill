@@ -101,18 +101,7 @@ public:
     //! return the first_item_offset relative to data_begin().
     size_t first_item_relative() const { return first_item_ - begin_; }
 
-    friend std::ostream& operator << (std::ostream& os, const Block& b) {
-        os << "[Block " << std::hex << &b << std::dec
-           << " byte_block_=" << std::hex << b.byte_block_.get() << std::dec;
-        if (b.IsValid()) {
-            os << " begin_=" << b.begin_
-               << " end_=" << b.end_
-               << " first_item_=" << b.first_item_
-               << " num_items_=" << b.num_items_;
-            // << " data=" << common::Hexdump(b.ToString());
-        }
-        return os << "]";
-    }
+    friend std::ostream& operator << (std::ostream& os, const Block& b);
 
     //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
     //! is already pinned, the Future is directly filled with a copy if this
@@ -250,11 +239,7 @@ public:
 
     //! Return block as std::string (for debugging), includes eventually cut off
     //! elements form the beginning included
-    std::string ToString() const {
-        if (!IsValid()) return std::string();
-        return std::string(
-            reinterpret_cast<const char*>(data_begin()), size());
-    }
+    std::string ToString() const;
 
     //! not available in PinnedBlock
     std::future<PinnedBlock> Pin() const = delete;
@@ -263,13 +248,7 @@ public:
     PinnedBlock PinWait() const = delete;
 
     //! make ostreamable for debugging
-    friend std::ostream& operator << (std::ostream& os, const PinnedBlock& b) {
-        os << "[PinnedBlock "
-           << " block_=" << static_cast<const Block&>(b);
-        if (b.byte_block_)
-            os << " pin_count_=" << b.byte_block_->pin_count_str();
-        return os << "]";
-    }
+    friend std::ostream& operator << (std::ostream& os, const PinnedBlock& b);
 
 private:
     //! protected construction from an unpinned block AFTER the pin was taken,
@@ -284,13 +263,6 @@ private:
     //! protected constructor.
     friend class BlockPool;
 };
-
-inline
-PinnedBlock Block::PinWait(size_t local_worker_id) const {
-    std::future<PinnedBlock> pin = Pin(local_worker_id);
-    pin.wait();
-    return pin.get();
-}
 
 //! \}
 

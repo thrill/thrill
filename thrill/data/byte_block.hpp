@@ -129,13 +129,7 @@ private:
      */
     ByteBlock(Byte* data, size_t size, BlockPool* block_pool);
 
-    friend std::ostream& operator << (std::ostream& os, const ByteBlock& b) {
-        os << "[ByteBlock"
-           << " size_=" << b.size_
-           << " block_pool_=" << b.block_pool_
-           << " total_pins_=" << b.total_pins_;
-        return os << "]";
-    }
+    friend std::ostream& operator << (std::ostream& os, const ByteBlock& b);
 
     //! No default construction of Byteblock
     ByteBlock() = delete;
