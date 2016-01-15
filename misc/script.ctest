@@ -1,0 +1,29 @@
+# -*- mode: cmake -*-
+################################################################################
+# misc/script.ctest
+#
+# Part of Project Thrill - http://project-thrill.org
+#
+# Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
+
+set(CTEST_SOURCE_DIRECTORY "..")
+set(CTEST_BINARY_DIRECTORY ".")
+
+# set the site name
+if(NOT CTEST_SITE)
+  execute_process(
+    COMMAND hostname --fqdn
+    OUTPUT_VARIABLE CTEST_SITE OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(NOT CTEST_SITE)
+
+set(CTEST_BUILD_COMMAND "make -j4")
+
+ctest_start(Continuous)
+ctest_build()
+ctest_test()
+ctest_submit()
+
+################################################################################
