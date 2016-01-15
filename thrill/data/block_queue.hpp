@@ -158,12 +158,6 @@ private:
     BlockQueue& queue_;
 };
 
-inline
-BlockQueue::ConsumeReader BlockQueue::GetConsumeReader() {
-    assert(!read_closed_);
-    return ConsumeReader(ConsumeBlockQueueSource(*this));
-}
-
 /*!
  * A BlockSource to read Blocks from a BlockQueue using a BlockReader, and at
  * the same time CACHE all items received. All Blocks read from the BlockQueue
@@ -207,41 +201,6 @@ private:
     //! Reference to BlockQueue
     BlockQueue* queue_;
 };
-
-inline
-DynBlockSource BlockQueue::GetBlockSource(bool consume) {
-    if (consume && !read_closed_) {
-        // set to consume, and BlockQueue has not been read.
-        sLOG << "BlockQueue::GetBlockSource() consume, from queue.";
-        return ConstructDynBlockSource<ConsumeBlockQueueSource>(*this);
-    }
-    else if (consume && read_closed_) {
-        // consume the File, BlockQueue was already read.
-        sLOG << "BlockQueue::GetBlockSource() consume, from cache:"
-             << file_.num_items();
-        return ConstructDynBlockSource<ConsumeFileBlockSource>(&file_);
-    }
-    else if (!consume && !read_closed_) {
-        // non-consumer but the BlockQueue has not been read.
-        sLOG << "BlockQueue::GetBlockSource() non-consume, from queue.";
-        return ConstructDynBlockSource<CacheBlockQueueSource>(this);
-    }
-    else if (!consume && read_closed_) {
-        // non-consumer: reread the file that was cached.
-        sLOG << "BlockQueue::GetBlockSource() non-consume, from cache:"
-             << file_.num_items();
-        return ConstructDynBlockSource<KeepFileBlockSource>(file_, 0);
-    }
-    else {
-        // impossible
-        abort();
-    }
-}
-
-inline
-BlockQueue::Reader BlockQueue::GetReader(bool consume) {
-    return DynBlockReader(GetBlockSource(consume));
-}
 
 //! \}
 

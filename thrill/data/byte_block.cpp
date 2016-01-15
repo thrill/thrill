@@ -50,6 +50,14 @@ void ByteBlock::DecPinCount(size_t local_worker_id) {
     return block_pool_->DecBlockPinCount(this, local_worker_id);
 }
 
+std::ostream& operator << (std::ostream& os, const ByteBlock& b) {
+    os << "[ByteBlock"
+       << " size_=" << b.size_
+       << " block_pool_=" << b.block_pool_
+       << " total_pins_=" << b.total_pins_;
+    return os << "]";
+}
+
 } // namespace data
 } // namespace thrill
 

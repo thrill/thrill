@@ -43,8 +43,8 @@ class DefaultReduceConfig
 public:
     DefaultReduceConfig() = default;
 
-    size_t pre_table_memlimit = 500000000;
-    size_t post_table_memlimit = 500000000;
+    size_t pre_table_memlimit = 128 * 1024 * 1024llu;
+    size_t post_table_memlimit = 128 * 1024 * 1024llu;
 };
 
 /*!
