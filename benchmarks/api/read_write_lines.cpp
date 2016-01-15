@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/disk.cpp
+ * benchmarks/api/read_write_lines.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -20,7 +20,7 @@
 using namespace thrill;         // NOLINT
 using common::StatsTimer;
 
-//! Reads and Writes random data from disk and measures time for whole process
+//! Reads and Writes line data from disk and measures time for whole process
 int main(int argc, const char** argv) {
 
     common::CmdlineParser clp;
