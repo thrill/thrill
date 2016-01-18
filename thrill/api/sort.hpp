@@ -20,6 +20,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
+#include <thrill/core/iterator_wrapper.hpp>
+#include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
@@ -48,7 +50,7 @@ namespace api {
 template <typename ValueType, typename ParentDIA, typename CompareFunction>
 class SortNode final : public DOpNode<ValueType>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -88,33 +90,108 @@ public:
         MainOp();
     }
 
-    void PushData(bool consume) final {
+    void PushData(bool consume) final {	
+		assert(merge_degree_ > 1);
+		size_t numfiles = files_.size();
+		if (numfiles > 1) {
+			LOG << "start multiwaymerge with " << numfiles << " files";
+			using Iterator = thrill::core::FileIteratorWrapper<ValueType>;
+			std::vector<std::pair<Iterator, Iterator> > seq;
+			for (size_t t = 0; t < numfiles; ++t) {
+				std::shared_ptr<data::File::Reader> reader = std::make_shared<data::File::Reader>(
+					files_[t].GetReader(consume));
+				Iterator s = Iterator(&files_[t], reader, 0, true);
+				Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
+				seq.push_back(std::make_pair(std::move(s), std::move(e)));
+			}
+			
+			size_t first_file = 0;
 
-        for (size_t i = 0; i < data_.size(); i++) {
-            this->PushItem(data_[i]);
-        }
+			while (numfiles > merge_degree_) {
 
-        if (consume) {
-            std::vector<ValueType>().swap(data_);
-        }
+				size_t sumsizes_ = 0;
+				for (size_t i = 0; i < merge_degree_; ++i) {
+					sumsizes_ += files_[i].num_items();
+				}
+
+				auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
+					seq.begin() + first_file,
+					seq.begin() + first_file + merge_degree_,
+					sumsizes_,
+					compare_function_);
+
+				files_.emplace_back(context_.GetFile());
+				auto writer = files_.back().GetWriter();
+
+				while(puller.HasNext()) {
+					writer.Put(puller.Next());
+				}
+				writer.Close();
+
+
+
+				first_file += merge_degree_;
+				numfiles -= merge_degree_;
+				numfiles++;
+
+				for (size_t i = 0; i < merge_degree_; ++i) {
+					files_.pop_front();
+				}
+
+				std::shared_ptr<data::File::Reader> reader = std::make_shared<data::File::Reader>(
+					files_.back().GetReader(consume));
+				Iterator s = Iterator(&files_.back(), reader, 0, true);
+				Iterator e = Iterator(&files_.back(), reader, files_.back().num_items(), false);
+
+				seq.push_back(std::make_pair(std::move(s), std::move(e)));
+
+			}
+
+			auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
+				seq.begin() + first_file,
+				seq.end(),
+				totalsize_,
+				compare_function_);
+
+            while(puller.HasNext()) {
+				this->PushItem(puller.Next());
+			}
+		} else {
+			if (totalsize_) {
+				data::File::Reader reader =  files_[0].GetReader(consume);
+				while(reader.HasNext()) {
+					this->PushItem(reader.Next<ValueType>());
+				}
+			}
+		}
     }
 
-    void Dispose() final {
-        std::vector<ValueType>().swap(data_);
-    }
+    void Dispose() final {  }
 
 private:
     //! The sum function which is applied to two elements.
     CompareFunction compare_function_;
-    //! Local data
-    std::vector<ValueType> data_;
+    //! Sample vector
     std::vector<ValueType> samples_;
-
+	//! All local unsorted elements before communicaton
     data::FilePtr unsorted_data_;
+	//! Writer for unsorted_data_
     data::File::Writer unsorted_writer_;
+	//! Number of items on this worker
     size_t total_items_ = 0;
+	//! Number of items since last sample was drawn
     size_t after_sample_ = 0;
+	//! Number of items between this and next sample
     size_t next_sample_ = 0;
+
+	//! Maximum merging degree 
+	size_t merge_degree_ = 10;
+	//! Maximum number of elements per file while merging
+	size_t elements_per_file_ = 10000;
+	//! Total number of local elements after communication
+	size_t totalsize_ = 0;
+	//! Local data files
+	std::deque<data::File> files_;
 
     //! Emitter to send samples to process 0
     data::CatStreamPtr stream_id_samples_;
@@ -337,6 +414,17 @@ private:
         }
     }
 
+	void SortAndWriteToFile(std::vector<ValueType>& vec, std::deque<data::File>& files) {
+		std::sort(vec.begin(), vec.end(), compare_function_);
+		files.emplace_back(context_.GetFile());
+		auto writer = files.back().GetWriter();
+		for (auto ele : vec) {
+			writer.Put(ele);
+		}
+		writer.Close();
+		vec.clear();
+	}
+
     void MainOp() {
         unsorted_writer_.Close();
         net::FlowControlChannel& channel = context_.flow_control_channel();
@@ -411,19 +499,33 @@ private:
         for (size_t i = 0; i < emitters_data_.size(); i++)
             emitters_data_[i].Close();
 
-        data_.clear();
-
         bool consume = false;
         auto reader = stream_id_data_->OpenCatReader(consume);
 
+		std::vector<ValueType> temp_data;
+		temp_data.reserve(elements_per_file_);
+		size_t items_in_file = 0;
+		LOG << "Writing files";
         while (reader.HasNext()) {
-            data_.push_back(reader.template Next<ValueType>());
+			if (items_in_file < elements_per_file_) {
+				totalsize_++;
+				temp_data.push_back(reader.template Next<ValueType>());
+				items_in_file++;
+			} else {
+				SortAndWriteToFile(temp_data, files_);
+				items_in_file = 0;
+			}
         }
+		if (items_in_file) {
+			SortAndWriteToFile(temp_data, files_);
+		}
+		
+		
         stream_id_data_->Close();
 
         double balance = 0;
-        if (data_.size() > 0) {
-            balance = static_cast<double>(data_.size())
+        if (totalsize_ > 0) {
+            balance = static_cast<double>(totalsize_)
                       * static_cast<double>(num_total_workers)
                       / static_cast<double>(total_elem);
         }
@@ -432,11 +534,9 @@ private:
             balance = 1 / balance;
         }
 
-        std::sort(data_.begin(), data_.end(), compare_function_);
-
         STATC << "NodeType" << "Sort"
               << "Workers" << num_total_workers
-              << "LocalSize" << data_.size()
+              << "LocalSize" << totalsize_
               << "Balance Factor" << balance
               << "Sample Size" << samples_.size();
 
