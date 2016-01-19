@@ -37,8 +37,6 @@ thrill_build_prog(io/benchmark_disks)
 thrill_build_prog(io/benchmark_disks_random)
 
 if(FULL_BUILD)
-thrill_build_prog(data/data_benchmark)
-
 thrill_build_prog(hashtable/bench_bucket_hashtable)
 thrill_build_prog(hashtable/bench_probing_hashtable)
 thrill_build_prog(hashtable/generate_data)
@@ -48,10 +46,11 @@ thrill_build_prog(serialization/bench_serialization)
 thrill_build_prog(serialization/cpp-serializers)
 
 add_subdirectory(api)
-add_subdirectory(word_count)
-add_subdirectory(page_rank)
+add_subdirectory(data)
 add_subdirectory(dc3)
 add_subdirectory(net)
+add_subdirectory(page_rank)
+add_subdirectory(word_count)
 endif()
 
 ################################################################################
