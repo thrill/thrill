@@ -52,7 +52,8 @@ public:
     MixStream(Multiplexer& multiplexer, const StreamId& id,
               size_t my_local_worker_id)
         : Stream(multiplexer, id, my_local_worker_id),
-          queue_(multiplexer_.block_pool_, multiplexer_.num_workers()) {
+          queue_(multiplexer_.block_pool_, multiplexer_.num_workers(),
+                 my_local_worker_id) {
 
         sinks_.reserve(multiplexer_.num_workers());
         loopback_.reserve(multiplexer_.num_workers());
@@ -83,7 +84,8 @@ public:
         for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
             loopback_.emplace_back(
                 queue_,
-                multiplexer_.my_host_rank() * multiplexer_.num_workers_per_host() + worker);
+                multiplexer_.my_host_rank() * multiplexer_.num_workers_per_host() + worker,
+                worker);
         }
     }
 
