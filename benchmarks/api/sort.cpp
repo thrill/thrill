@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/sort/sort.cpp
+ * benchmarks/api/sort.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/groupby/groupby.cpp
+ * benchmarks/api/groupby.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *

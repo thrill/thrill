@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/groupby/groupby_unequal_keys.cpp
+ * benchmarks/api/groupby_unequal_keys.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
