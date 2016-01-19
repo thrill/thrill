@@ -194,6 +194,119 @@ private:
 };
 
 /******************************************************************************/
+//! Writes and reads random elements to / from block queue with 2 threads
+//! Elements are genreated before the timer startet Number of elements depends
+//! on the number of bytes.  one RESULT line will be printed for each iteration
+//! All iterations use the same generated data.  Variable-length elements range
+//! between 1 and 100 bytes per default
+
+class BlockQueueExperiment : public DataGeneratorExperiment
+{
+public:
+    int Run(int argc, char* argv[]) {
+
+        common::CmdlineParser clp;
+
+        clp.SetDescription("thrill::data benchmark for disk I/O");
+        clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
+
+        DataGeneratorExperiment::AddCmdline(clp);
+
+        clp.AddUInt('n', "iterations", iterations_, "Iterations (default: 1)");
+
+        clp.AddUInt('t', "threads", num_threads_, "Number of threads (default: 1)");
+
+        clp.AddParamString("reader", reader_type_,
+                           "reader type (consume, keep)");
+
+        if (!clp.Process(argc, argv)) return -1;
+
+        api::RunLocalSameThread(
+            [=](api::Context& ctx) {
+                if (type_as_string_ == "size_t")
+                    Test<size_t>(ctx);
+                else if (type_as_string_ == "string")
+                    Test<std::string>(ctx);
+                else if (type_as_string_ == "pair")
+                    Test<pair_type>(ctx);
+                else if (type_as_string_ == "triple")
+                    Test<triple_type>(ctx);
+                else
+                    abort();
+            });
+
+        return 0;
+    }
+
+    template <typename Type>
+    void Test(api::Context& ctx) {
+
+        if (reader_type_ != "consume" && reader_type_ != "keep")
+            abort();
+        bool consume = reader_type_ == "consume";
+
+        common::ThreadPool threads(num_threads_ + 1);
+        for (unsigned i = 0; i < iterations_; i++) {
+            auto queue = data::BlockQueue(ctx.block_pool(), 0);
+            auto data = Generator<Type>(bytes_, min_size_, max_size_);
+
+            StatsTimer<true> write_timer;
+            threads.Enqueue(
+                [&]() {
+                    auto writer = queue.GetWriter(block_size_);
+                    write_timer.Start();
+                    while (data.HasNext()) {
+                        writer.Put(data.Next());
+                    }
+                    writer.Close();
+                    write_timer.Stop();
+                });
+
+            std::chrono::microseconds::rep read_time = 0;
+
+            for (size_t thread = 0; thread < num_threads_; thread++) {
+                threads.Enqueue(
+                    [&]() {
+                        StatsTimer<true> read_timer(true);
+                        auto reader = queue.GetReader(consume);
+                        while (reader.HasNext())
+                            reader.Next<Type>();
+                        read_timer.Stop();
+                        // REVIEW(ts): this is a data race!
+                        read_time = std::max(read_time, read_timer.Microseconds());
+                    });
+            }
+            threads.LoopUntilEmpty();
+            LOG1 << "RESULT"
+                 << " experiment=" << "block_queue"
+                 << " workers=" << ctx.num_workers()
+                 << " hosts=" << ctx.num_hosts()
+                 << " datatype=" << type_as_string_
+                 << " size=" << bytes_
+                 << " block_size=" << block_size_
+                 << " avg_element_size="
+                 << static_cast<double>(min_size_ + max_size_) / 2.0
+                 << " reader=" << reader_type_
+                 << " write_time=" << write_timer.Microseconds()
+                 << " read_time=" << read_time
+                 << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
+                 << " read_speed_MiBs=" << CalcMiBs(bytes_, read_time)
+                 << " threads=" << num_threads_;
+        }
+    }
+
+private:
+    //! number of iterations to run
+    unsigned iterations_ = 1;
+
+    //! reader type: consume or keep
+    std::string reader_type_;
+
+    //! number of threads used
+    unsigned num_threads_ = 1;
+};
+
+/******************************************************************************/
 
 template <typename Stream>
 class StreamOneFactorExperiment : public DataGeneratorExperiment
@@ -653,227 +766,17 @@ private:
 
 /******************************************************************************/
 
-#if SORRY_HOW_IS_THIS_DIFFERENT_FROM_ABOVE_TB
-
-template <typename Type>
-void StreamP(uint64_t bytes, size_t min_size, size_t max_size, unsigned iterations, api::Context& ctx, const std::string& type_as_string, size_t block_size) {
-
-    for (unsigned i = 0; i < iterations; i++) {
-
-        StatsTimer<true> write_timer, read_timer;
-        for (size_t round = 0; round < ctx.num_workers(); round++) {
-            size_t send_to = (ctx.my_rank() + round + 1) % ctx.num_workers();
-
-            auto stream = ctx.GetNewMixStream();
-            auto data = Generator<Type>(bytes / ctx.num_workers(), min_size, max_size);
-            auto writers = stream->OpenWriters(block_size);
-            write_timer.Start();
-            while (data.HasNext()) {
-                writers[send_to](data.Next());
-            }
-            for (auto& w : writers)
-                w.Close();
-            write_timer.Stop();
-
-            read_timer.Start();
-            auto reader = stream->OpenMixReader(true /*consume*/);
-            while (reader.HasNext())
-                reader.Next<Type>();
-            read_timer.Stop();
-        }
-        LOG1 << "RESULT"
-             << " experiment=" << "stream_1p"
-             << " workers=" << ctx.num_workers()
-             << " hosts=" << ctx.num_hosts()
-             << " datatype=" << type_as_string
-             << " size=" << bytes
-             << " block_size=" << block_size
-             << " avg_element_size=" << (min_size + max_size) / 2.0
-             << " write_time=" << write_timer.Microseconds()
-             << " read_time=" << read_timer.Microseconds()
-             << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
-             << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
-    }
-}
-
-#endif
-
-/******************************************************************************/
-
-#if SORRY_I_DONT_UNDERSTAND_WHAT_THIS_TESTS_TB
-
-template <typename Type>
-void StreamAToBExperiment(api::Context& ctx) {
-
-    for (unsigned i = 0; i < iterations; i++) {
-        auto stream = ctx.GetNewCatStream();
-        auto writers = stream->OpenWriters(block_size);
-        auto data = Generator<Type>(bytes, min_size, max_size);
-
-        StatsTimer<true> write_timer;
-        if (ctx.my_rank() != 0) {
-            write_timer.Start();
-            while (data.HasNext()) {
-                writers[0](data.Next());
-            }
-            for (auto& w : writers)
-                w.Close();
-            write_timer.Stop();
-        }
-        else
-            for (auto& w : writers)
-                w.Close();
-
-        StatsTimer<true> read_timer;
-        if (ctx.my_rank() == 0) {
-            read_timer.Start();
-            auto reader = stream->OpenCatReader(true /*consume*/);
-            while (reader.HasNext())
-                reader.Next<Type>();
-            read_timer.Stop();
-        }
-        LOG1 << "RESULT"
-             << " experiment=" << "stream_a_to_b"
-             << " workers=" << ctx.num_workers()
-             << " hosts=" << ctx.num_hosts()
-             << " datatype=" << type_as_string
-             << " size=" << bytes
-             << " block_size=" << block_size
-             << " avg_element_size=" << (min_size + max_size) / 2.0
-             << " write_time=" << write_timer.Microseconds()
-             << " read_time=" << read_timer.Microseconds()
-             << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
-             << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
-    }
-}
-
-#endif
-
-/******************************************************************************/
-//! Writes and reads random elements to / from block queue with 2 threads
-//! Elements are genreated before the timer startet Number of elements depends
-//! on the number of bytes.  one RESULT line will be printed for each iteration
-//! All iterations use the same generated data.  Variable-length elements range
-//! between 1 and 100 bytes per default
-
-class BlockQueueExperiment : public DataGeneratorExperiment
-{
-public:
-    int Run(int argc, char* argv[]) {
-
-        common::CmdlineParser clp;
-
-        clp.SetDescription("thrill::data benchmark for disk I/O");
-        clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
-
-        DataGeneratorExperiment::AddCmdline(clp);
-
-        clp.AddUInt('n', "iterations", iterations_, "Iterations (default: 1)");
-
-        clp.AddUInt('t', "threads", num_threads_, "Number of threads (default: 1)");
-
-        clp.AddParamString("reader", reader_type_,
-                           "reader type (consume, keep)");
-
-        if (!clp.Process(argc, argv)) return -1;
-
-        api::RunLocalSameThread(
-            [=](api::Context& ctx) {
-                if (type_as_string_ == "size_t")
-                    Test<size_t>(ctx);
-                else if (type_as_string_ == "string")
-                    Test<std::string>(ctx);
-                else if (type_as_string_ == "pair")
-                    Test<pair_type>(ctx);
-                else if (type_as_string_ == "triple")
-                    Test<triple_type>(ctx);
-                else
-                    abort();
-            });
-
-        return 0;
-    }
-
-    template <typename Type>
-    void Test(api::Context& ctx) {
-
-        if (reader_type_ != "consume" && reader_type_ != "keep")
-            abort();
-        bool consume = reader_type_ == "consume";
-
-        common::ThreadPool threads(num_threads_ + 1);
-        for (unsigned i = 0; i < iterations_; i++) {
-            auto queue = data::BlockQueue(ctx.block_pool(), 0);
-            auto data = Generator<Type>(bytes_, min_size_, max_size_);
-
-            StatsTimer<true> write_timer;
-            threads.Enqueue(
-                [&]() {
-                    auto writer = queue.GetWriter(block_size_);
-                    write_timer.Start();
-                    while (data.HasNext()) {
-                        writer.Put(data.Next());
-                    }
-                    writer.Close();
-                    write_timer.Stop();
-                });
-
-            std::chrono::microseconds::rep read_time = 0;
-
-            for (size_t thread = 0; thread < num_threads_; thread++) {
-                threads.Enqueue(
-                    [&]() {
-                        StatsTimer<true> read_timer(true);
-                        auto reader = queue.GetReader(consume);
-                        while (reader.HasNext())
-                            reader.Next<Type>();
-                        read_timer.Stop();
-                        // REVIEW(ts): this is a data race!
-                        read_time = std::max(read_time, read_timer.Microseconds());
-                    });
-            }
-            threads.LoopUntilEmpty();
-            LOG1 << "RESULT"
-                 << " experiment=" << "block_queue"
-                 << " workers=" << ctx.num_workers()
-                 << " hosts=" << ctx.num_hosts()
-                 << " datatype=" << type_as_string_
-                 << " size=" << bytes_
-                 << " block_size=" << block_size_
-                 << " avg_element_size="
-                 << static_cast<double>(min_size_ + max_size_) / 2.0
-                 << " reader=" << reader_type_
-                 << " write_time=" << write_timer.Microseconds()
-                 << " read_time=" << read_time
-                 << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
-                 << " read_speed_MiBs=" << CalcMiBs(bytes_, read_time)
-                 << " threads=" << num_threads_;
-        }
-    }
-
-private:
-    //! number of iterations to run
-    unsigned iterations_ = 1;
-
-    //! reader type: consume or keep
-    std::string reader_type_;
-
-    //! number of threads used
-    unsigned num_threads_ = 1;
-};
-
-/******************************************************************************/
-
 void Usage(const char* argv0) {
     std::cout
         << "Usage: " << argv0 << " <benchmark>" << std::endl
         << std::endl
-        << "    file                - File and Serialization Speed" << std::endl
-        << "    cat_stream_1factor  - 1 factor bandwidth test using CatStream" << std::endl
-        << "    mix_stream_1factor  - 1 factor bandwidth test using MixStream" << std::endl
-        << "    cat_stream_all2all  - Full bandwidth test using CatStream" << std::endl
-        << "    mix_stream_all2all  - Full bandwidth test using MixStream" << std::endl
+        << "    file                - File and serialization speed" << std::endl
         << "    blockqueue          - BlockQueue test" << std::endl
+        << "    cat_stream_1factor  - 1-factor bandwidth test using CatStream" << std::endl
+        << "    mix_stream_1factor  - 1-factor bandwidth test using MixStream" << std::endl
+        << "    cat_stream_all2all  - full bandwidth test using CatStream" << std::endl
+        << "    mix_stream_all2all  - full bandwidth test using MixStream" << std::endl
+        << "    scatter             - CatStream scatter test" << std::endl
         << std::endl;
 }
 
@@ -891,6 +794,9 @@ int main(int argc, char* argv[]) {
     if (benchmark == "file") {
         return FileExperiment().Run(argc - 1, argv + 1);
     }
+    else if (benchmark == "blockqueue") {
+        return BlockQueueExperiment().Run(argc - 1, argv + 1);
+    }
     else if (benchmark == "cat_stream_1factor") {
         return StreamOneFactorExperiment<data::CatStream>().Run(
             argc - 1, argv + 1);
@@ -906,9 +812,6 @@ int main(int argc, char* argv[]) {
     else if (benchmark == "mix_stream_all2all") {
         return StreamAllToAllExperiment<data::MixStream>().Run(
             argc - 1, argv + 1);
-    }
-    else if (benchmark == "blockqueue") {
-        return BlockQueueExperiment().Run(argc - 1, argv + 1);
     }
     else if (benchmark == "scatter") {
         return ScatterExperiment().Run(argc - 1, argv + 1);
