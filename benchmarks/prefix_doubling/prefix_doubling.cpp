@@ -50,8 +50,34 @@ struct IndexOneMer {
     size_t index;
     AlphabetType t;
 
+    bool operator == (const IndexOneMer& b) const {
+        return t == b.t;
+    }
+
+    bool operator < (const IndexOneMer& b) const {
+        return t < b.t;
+    }
+
     friend std::ostream& operator << (std::ostream& os, const IndexOneMer& iom) {
         return os << '[' << iom.index << ',' << iom.t << ']';
+    }
+} THRILL_ATTRIBUTE_PACKED;
+
+template <typename CharsType> 
+struct IndexKMer {
+    size_t    index;
+    CharsType chars;
+
+    bool operator == (const IndexKMer& b) const {
+        return chars == b.chars;
+    }
+
+    bool operator < (const IndexKMer& b) const {
+        return chars < b.chars;
+    }
+
+    friend std::ostream& operator << (std::ostream& os, const IndexKMer& iom) {
+        return os << '[' << iom.index << ',' << iom.chars << ']';
     }
 } THRILL_ATTRIBUTE_PACKED;
 
@@ -198,23 +224,147 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     return (order_check_sum == 0);
 }
 
+// rebucket_sa = (index=rebucket, rank=sa)
+void/*DIA<size_t>*/ PartPrefixDoubling(DIA<IndexRankRank>& triple_sorted, size_t input_size, size_t shifted_exp) {
+    // while(true) {
+    //     size_t non_singletons =
+    //         triple_sorted
+    //         .template FlatWindow<uint8_t>(
+    //             2,
+    //             [&](size_t /*index*/, const RingBuffer<IndexRankRank>& rb, auto emit) {
+    //                 if (rb[0] == rb[1]) emit(1);
+    //             }
+    //         ).Sum();
+
+    //     DIA<size_t> sa =
+    //         triple_sorted
+    //         .Map([](const IndexRankRank& rri) {
+    //             return rri.index;
+    //     }).Cache();
+
+    //     if (debug_print)
+    //         sa.Print("sa");
+
+    //     // If each suffix is unique regarding their 2h-prefix, we have computed
+    //     // the suffix array and can return it. 
+    //     if (non_singletons == 0) {
+    //         die_unless(CheckSA(input_dia, sa));
+    //         return sa.Collapse();
+    //     }
+
+    //     DIA<size_t> rebucket =
+    //         triple_sorted
+    //         .template FlatWindow<size_t>(
+    //             2,
+    //             [input_size](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+    //                 if (index == 0) emit(0);
+    //                 if (rb[0] == rb[1]) emit(0); 
+    //                 else { emit(index + 1); }
+    //                 if (index == input_size - 2) {
+    //                     if (rb[0] == rb[1]) emit(0);
+    //                     else emit(index + 2);
+    //                 }
+    //         })
+    //         .PrefixSum([](const size_t a, const size_t b) {
+    //             return a > b ? a : b;
+    //         });
+
+    //     DIA<IndexRank> isa =
+    //         sa
+    //         .Zip(
+    //             rebucket,
+    //             [](size_t s, size_t r) {
+    //                 return IndexRank {r, s};
+    //         })
+    //         .Sort([](const IndexRank& a, const IndexRank& b) {
+    //             return a.rank < b.rank;   
+    //         });
+
+    //     // We need to increment the size in advance because we get the size of the
+    //     // already computed prefixes. 
+    //     size_t shift_by = (1 << ++shifted_exp) + 1;
+    //         LOG << "Shift the ISA by " << shift_by - 1 << " positions. Hence the window has size " << shift_by;
+
+    //     auto triples =
+    //         isa
+    //         .template FlatWindow<IndexRankRank>(
+    //             shift_by,
+    //             [&](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+    //                 emit(IndexRankRank {rb[0].rank, rb[0].index, rb[shift_by - 1].index});
+    //                 if(index == input_size - shift_by)
+    //                     for(size_t i = 1; i < input_size - index; ++i)
+    //                         emit(IndexRankRank {rb[i].rank, rb[i].index, 0});
+    //         })
+    //         .Keep();
+
+    //     auto triples_sorted =
+    //         triples
+    //         .template FlatWindow<IndexRankRank>(
+    //             3,
+    //             [&](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+    //                 if (index == 0 and rb[0] == rb[1]) emit(rb[0]);
+    //                 if (rb[0] == rb[1] or rb[1] == rb[2]) emit(rb[1]);
+    //                 if (index == input_size - 3 and rb[1] == rb[2]) emit(rb[2]);
+    //         })
+    //         .Sort(
+    //             [](const IndexRankRank& a, const IndexRankRank& b) {
+    //                 return a < b;
+    //         });
+
+    //     auto triples_merged =
+    //         triples
+    //         .template FlatWindow<IndexRankRank>(
+    //             3,
+    //             [&](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+    //                 if (index == 0 and rb[0] != rb[1]) emit(rb[0]);
+    //                 if (rb[0] != rb[1] and rb[1] != rb[2]) emit(rb[1]);
+    //                 if (index == input_size - 3 and rb[1] != rb[2]) emit(rb[2]);
+    //         })
+    //         .Merge(
+    //             triples_sorted,
+    //             [](const IndexRankRank& a, const IndexRankRank& b) {
+
+    //         });
+    // }
+}
+
 template <typename InputDIA>
 DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input_size, size_t computation_rounds) {
     
     using Char = typename InputDIA::ValueType;
-    using IndexOneMer = ::IndexOneMer<Char>;
+    using IndexKMer = ::IndexKMer<size_t>;
+
+    size_t input_bit_size = sizeof(Char) << 3;
+    size_t k_fitting = (sizeof(size_t) << 3) / input_bit_size;
+    size_t mask = 0;
+    for (size_t i = 0; i < input_bit_size; ++i)
+        mask = (mask << 1) | 1;
+
+    LOG << "size Char " << sizeof(Char) * 8;
+    LOG << "size size_t " << sizeof(size_t) * 8;
+    LOG << "limit " << std::numeric_limits<Char>::max();
 
     auto one_mers_sorted = 
         input_dia
-        .template FlatWindow<IndexOneMer>(
-            2,
-            [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                emit(IndexOneMer {index, rb[0]});
-                if(index == input_size - 2)
-                    emit(IndexOneMer {index + 1, rb[1]});
+        .template FlatWindow<IndexKMer>(
+            k_fitting,
+            [&](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                size_t result = rb[0];
+                for (size_t i = 1; i < k_fitting; ++i)
+                    result = (result << input_bit_size) | rb[i];
+                emit(IndexKMer {index, result});
+                if (index == input_size - k_fitting) {
+                    for (size_t i = 1; i < k_fitting; ++i) {
+                        result = rb[i];
+                        for (size_t j = i + 1; j < k_fitting; ++j)
+                            result = (result << input_bit_size) | rb[j];
+                        result <<= i * input_bit_size;
+                        emit(IndexKMer {index + i, result});
+                    }
+                }
         })
-        .Sort([](const IndexOneMer& a, const IndexOneMer& b) {
-            return a.t < b.t;
+        .Sort([](const IndexKMer& a, const IndexKMer& b) {
+            return a < b;
         }).Keep();
 
     if(debug_print)
@@ -224,12 +374,12 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
         one_mers_sorted
         .template FlatWindow<size_t>(
             2,
-            [input_size](size_t index, const RingBuffer<IndexOneMer>& rb, auto emit) {
+            [input_size](size_t index, const RingBuffer<IndexKMer>& rb, auto emit) {
                 if (index == 0) emit(0);
-                if (rb[0].t == rb[1].t) emit(0);
+                if (rb[0] == rb[1]) emit(0);
                 else emit(index + 1);
                 if (index == input_size - 2) {
-                    if (rb[0].t == rb[1].t) emit(0);
+                    if (rb[0] == rb[1]) emit(0);
                     else emit(index + 2);
                 }
         })
@@ -242,7 +392,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
 
     DIA<size_t> sa =
         one_mers_sorted
-        .Map([](const IndexOneMer& iom) {
+        .Map([](const IndexKMer& iom) {
             return iom.index;
         }).Cache();
 
@@ -250,8 +400,8 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
         sa.Print("sa");
 
     uint8_t shifted_exp = 0;
-    while(computation_rounds--) {
-        LOG << "Still " << computation_rounds << " rounds to go with all suffixes";
+    while(true) {
+        // LOG << "Still " << computation_rounds << " rounds to go with all suffixes";
 
         DIA<IndexRank> isa =
             sa
@@ -287,14 +437,22 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
         if (debug_print)
             triple_sorted.Print("triple_sorted");
 
+        // if (computation_rounds-- == 0) {
+        //     PartPrefixDoubling(triple_sorted, input_size, shifted_exp)
+        // }
+
         size_t non_singletons =
             triple_sorted
             .template FlatWindow<uint8_t>(
-                2,
-                [&](size_t /*index*/, const RingBuffer<IndexRankRank>& rb, auto emit) {
-                    if (rb[0] == rb[1]) emit(1);
+                3,
+                [&](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+                    if (index == 0 and rb[0] == rb[1]) emit(1);
+                    if (rb[0] == rb[1] or rb[1] == rb[2]) emit(1);
+                    if (index == input_size - 3 and rb[1] == rb[2]) emit(1);
                 }
             ).Sum();
+
+        LOG << "Still " << non_singletons << " to sort";
 
         sa =
             triple_sorted
@@ -304,6 +462,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
 
         if (debug_print)
             sa.Print("sa");
+
         // If each suffix is unique regarding their 2h-prefix, we have computed
         // the suffix array and can return it. 
         if (non_singletons == 0) {
@@ -332,7 +491,6 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             rebucket.Print("rebucket");
         LOG << "Rebucket the partial SA";
     }
-    return sa.Collapse();
 }
 
 /*!
