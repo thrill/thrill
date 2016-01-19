@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/sort/generate_data.cpp
+ * benchmarks/api/generate_numbers.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -11,6 +11,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/write_binary.hpp>
+#include <thrill/api/write_lines_many.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/fast_string.hpp>
 #include <thrill/common/logger.hpp>
@@ -31,8 +32,8 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    int elements;
-    clp.AddParamInt("n", elements, "Elements");
+    unsigned int elements;
+    clp.AddParamUInt("n", elements, "Elements");
 
     std::string output;
     clp.AddParamString("output", output,
@@ -50,10 +51,9 @@ int main(int argc, char* argv[]) {
                  std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
 
                  std::vector<FastString> copy_enforcer;
-                 Generate(ctx,
-                          [&distribution, &generator](size_t) {
-                              return distribution(generator);
-                          }, (size_t)elements).WriteBinary(output, 16 * 1024 * 1024);
+                 Generate(ctx, [&distribution, &generator](size_t) {
+                              return std::to_string(distribution(generator));
+                          }, (size_t)elements).WriteLinesMany(output);
              });
 }
 

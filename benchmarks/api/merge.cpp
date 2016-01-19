@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/merge/merge.cpp
+ * benchmarks/api/merge.cpp
  *
  * Minimalistic broadcast benchmark to test different net implementations.
  *
