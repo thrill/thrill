@@ -1,5 +1,5 @@
 ################################################################################
-# benchmarks/net/CMakeLists.txt
+# benchmarks/data/CMakeLists.txt
 #
 # Part of Project Thrill - http://project-thrill.org
 #
