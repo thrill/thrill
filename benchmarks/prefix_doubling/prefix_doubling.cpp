@@ -225,7 +225,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 }
 
 // rebucket_sa = (index=rebucket, rank=sa)
-void/*DIA<size_t>*/ PartPrefixDoubling(DIA<IndexRankRank>& triple_sorted, size_t input_size, size_t shifted_exp) {
+// DIA<size_t> PartPrefixDoubling(DIA<IndexRankRank>& triple_sorted, size_t input_size, size_t shifted_exp) {
     // while(true) {
     //     size_t non_singletons =
     //         triple_sorted
@@ -326,23 +326,16 @@ void/*DIA<size_t>*/ PartPrefixDoubling(DIA<IndexRankRank>& triple_sorted, size_t
 
     //         });
     // }
-}
+//}
 
 template <typename InputDIA>
-DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input_size, size_t computation_rounds) {
+DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t input_size, size_t /*computation_rounds*/) {
     
     using Char = typename InputDIA::ValueType;
     using IndexKMer = ::IndexKMer<size_t>;
 
     size_t input_bit_size = sizeof(Char) << 3;
     size_t k_fitting = (sizeof(size_t) << 3) / input_bit_size;
-    size_t mask = 0;
-    for (size_t i = 0; i < input_bit_size; ++i)
-        mask = (mask << 1) | 1;
-
-    LOG << "size Char " << sizeof(Char) * 8;
-    LOG << "size size_t " << sizeof(size_t) * 8;
-    LOG << "limit " << std::numeric_limits<Char>::max();
 
     auto one_mers_sorted = 
         input_dia
@@ -424,7 +417,7 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             isa
             .template FlatWindow<IndexRankRank>(
                 shift_by,
-                [input_size, shift_by](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                [&](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                     emit(IndexRankRank {rb[0].rank, rb[0].index, rb[shift_by - 1].index});
                     if(index == input_size - shift_by)
                         for(size_t i = 1; i < input_size - index; ++i)
@@ -434,25 +427,19 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
             .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
                 return a < b;
             });
+
         if (debug_print)
             triple_sorted.Print("triple_sorted");
 
-        // if (computation_rounds-- == 0) {
-        //     PartPrefixDoubling(triple_sorted, input_size, shifted_exp)
-        // }
-
+        // If we don't care about the number of singletons, its sufficient to test two.
         size_t non_singletons =
             triple_sorted
             .template FlatWindow<uint8_t>(
-                3,
-                [&](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
-                    if (index == 0 and rb[0] == rb[1]) emit(1);
-                    if (rb[0] == rb[1] or rb[1] == rb[2]) emit(1);
-                    if (index == input_size - 3 and rb[1] == rb[2]) emit(1);
+                2,
+                [&](size_t /*index*/, const RingBuffer<IndexRankRank>& rb, auto emit) {
+                    if (rb[0] == rb[1]) emit(1);
                 }
-            ).Sum();
-
-        LOG << "Still " << non_singletons << " to sort";
+            ).Size();
 
         sa =
             triple_sorted
@@ -489,7 +476,6 @@ DIA<size_t> PrefixDoubling(Context& ctx, const InputDIA& input_dia, size_t input
 
         if (debug_print)
             rebucket.Print("rebucket");
-        LOG << "Rebucket the partial SA";
     }
 }
 
@@ -583,7 +569,7 @@ int main(int argc, char* argv[]) {
                "suffix array on.");
     cp.AddFlag('d', "debug", debug_print,
                "Print debug info.");
-
+    debug = debug_print;
     // process command line
     if (!cp.Process(argc, argv))
         return -1;
