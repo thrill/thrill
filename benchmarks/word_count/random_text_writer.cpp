@@ -82,9 +82,12 @@ int main(int argc, char* argv[]) {
         std::string key_words = GenerateSentence(num_words_key, prng);
         std::string value_words = GenerateSentence(num_words_value, prng);
 
-        std::cout << key_words << value_words << '\n';
+        size_t out_size = key_words.size() + 1 + value_words.size() + 1;
+        if (written_bytes + out_size > totalbytes) break;
 
-        written_bytes += key_words.size() + value_words.size() + 1;
+        std::cout << key_words << '\t' << value_words << '\n';
+
+        written_bytes += out_size;
     }
 
     return 0;
