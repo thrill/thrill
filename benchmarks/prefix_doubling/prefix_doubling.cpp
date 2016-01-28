@@ -48,18 +48,18 @@ using thrill::common::RingBuffer;
 template <typename AlphabetType>  
 struct IndexOneMer {
     size_t index;
-    AlphabetType t;
+    AlphabetType chars;
 
     bool operator == (const IndexOneMer& b) const {
-        return t == b.t;
+        return chars == b.chars;
     }
 
     bool operator < (const IndexOneMer& b) const {
-        return t < b.t;
+        return chars < b.chars;
     }
 
     friend std::ostream& operator << (std::ostream& os, const IndexOneMer& iom) {
-        return os << '[' << iom.index << ',' << iom.t << ']';
+        return os << '[' << iom.index << ',' << iom.chars << ']';
     }
 } THRILL_ATTRIBUTE_PACKED;
 
@@ -358,7 +358,7 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
         })
         .Sort([](const IndexKMer& a, const IndexKMer& b) {
             return a < b;
-        }).Keep();
+        });
 
     if(debug_print)
         one_mers_sorted.Print("one_mers_sorted");
@@ -367,7 +367,7 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
         one_mers_sorted
         .template FlatWindow<size_t>(
             2,
-            [input_size](size_t index, const RingBuffer<IndexKMer>& rb, auto emit) {
+            [&](size_t index, const RingBuffer<IndexKMer>& rb, auto emit) {
                 if (index == 0) emit(0);
                 if (rb[0] == rb[1]) emit(0);
                 else emit(index + 1);
@@ -394,8 +394,6 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
 
     uint8_t shifted_exp = 0;
     while(true) {
-        // LOG << "Still " << computation_rounds << " rounds to go with all suffixes";
-
         DIA<IndexRank> isa =
             sa
             .Zip(
@@ -431,7 +429,7 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
         if (debug_print)
             triple_sorted.Print("triple_sorted");
 
-        // If we don't care about the number of singletons, its sufficient to test two.
+        // If we don't care about the number of singletons, it's sufficient to test two.
         size_t non_singletons =
             triple_sorted
             .template FlatWindow<uint8_t>(
@@ -454,14 +452,14 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
         // the suffix array and can return it. 
         if (non_singletons == 0) {
             die_unless(CheckSA(input_dia, sa));
-            return sa.Collapse();
+            return sa;
         }
 
         rebucket =
             triple_sorted
             .template FlatWindow<size_t>(
                 2,
-                [input_size](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+                [&](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (index == 0) emit(0);
                     if (rb[0] == rb[1]) emit(0); 
                     else { emit(index + 1); }
