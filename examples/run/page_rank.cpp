@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
             // ...
             auto in = ReadLines(ctx, input);
 
-            auto res = examples::PageRank(in, ctx, iter);
+            auto res = examples::PageRank(in, iter);
 
             res.WriteLines(output);
 
