@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
 
     std::function<void(Context&)> start_func =
         [&n, &k](api::Context& ctx) {
-            ctx.set_consume(false);
+            ctx.enable_consume(false);
 
             std::default_random_engine rng(std::random_device { } ());
             std::uniform_real_distribution<float> dist(0.0, 100000.0);
