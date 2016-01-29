@@ -37,25 +37,18 @@ namespace thrill {
 namespace core {
 
 template <typename Key, typename HashFunction = std::hash<Key> >
-class PreProbingReduceByHashKey
+class PreReduceByHashKey
 {
 public:
     struct IndexResult {
-    public:
         //! which partition number the item belongs to.
         size_t partition_id;
         //! index within the whole hashtable
         size_t global_index;
-
-        IndexResult(size_t p_id, size_t g_id) {
-            partition_id = p_id;
-            global_index = g_id;
-        }
     };
 
-    explicit PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
-        : hash_function_(hash_function)
-    { }
+    explicit PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
+        : hash_function_(hash_function) { }
 
     IndexResult operator () (const Key& k,
                              const size_t& num_frames,
@@ -68,7 +61,7 @@ public:
 
         size_t global_index = hash_function_(k) % num_buckets_per_table;
 
-        return IndexResult(global_index / num_buckets_per_frame, global_index);
+        return IndexResult { global_index / num_buckets_per_frame, global_index };
     }
 
 private:
@@ -76,27 +69,19 @@ private:
 };
 
 template <typename Key>
-class PreProbingReduceByIndex
+class PreReduceByIndex
 {
 public:
     struct IndexResult {
-    public:
         //! which partition number the item belongs to.
         size_t partition_id;
         //! index within the whole hashtable
         size_t global_index;
-
-        IndexResult(size_t p_id, size_t g_id) {
-            partition_id = p_id;
-            global_index = g_id;
-        }
     };
 
     size_t size_;
 
-    explicit PreProbingReduceByIndex(size_t size)
-        : size_(size)
-    { }
+    explicit PreReduceByIndex(size_t size) : size_(size) { }
 
     IndexResult
     operator () (const Key& k,
@@ -108,8 +93,7 @@ public:
         (void)num_buckets_per_frame;
         (void)offset;
 
-        return IndexResult(k * num_frames / size_,
-                           k * num_buckets_per_table / size_);
+        return IndexResult { k* num_frames / size_, k* num_buckets_per_table / size_ };
     }
 };
 
@@ -176,7 +160,7 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
           typename FlushFunction = PostProbingReduceFlush<Key, Value, ReduceFunction>,
-          typename IndexFunction = PreProbingReduceByHashKey<Key>,
+          typename IndexFunction = PreReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           const bool FullPreReduce = false>
 class ReducePreProbingTable
@@ -391,8 +375,8 @@ public:
         typename IndexFunction::IndexResult h = index_function_(
             kv.first, num_partitions_, num_items_per_partition_, size_, 0);
 
-        assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
-        assert(h.global_index >= 0 && h.global_index < size_);
+        assert(h.partition_id < num_partitions_);
+        assert(h.global_index < size_);
 
         KeyValuePair* initial = &items_[h.global_index];
         KeyValuePair* current = initial;

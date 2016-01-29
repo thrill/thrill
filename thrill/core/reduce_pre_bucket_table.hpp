@@ -112,11 +112,11 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
           typename FlushFunction = PostBucketReduceFlush<Key, Value, ReduceFunction>,
-          typename IndexFunction = PreProbingReduceByHashKey<Key>,
+          typename IndexFunction = PreReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           size_t TargetBlockSize = 16*16,
           const bool FullPreReduce = false>
-class ReducePreTable
+class ReducePreBucketTable
 {
     static const bool debug = false;
 
@@ -171,20 +171,20 @@ public:
      * \param index_function Function to be used for computing the bucket the item to be inserted.
      * \param equal_to_function Function for checking equality fo two keys.
      */
-    ReducePreTable(Context& ctx,
-                   size_t num_partitions,
-                   KeyExtractor key_extractor,
-                   ReduceFunction reduce_function,
-                   std::vector<data::DynBlockWriter>& emit,
-                   const IndexFunction& index_function,
-                   const FlushFunction& flush_function,
-                   const Key& /* sentinel */ = Key(),
-                   const Value& neutral_element = Value(),
-                   size_t byte_size = 1024* 16,
-                   double bucket_rate = 1.0,
-                   double max_partition_fill_rate = 0.6,
-                   const EqualToFunction& equal_to_function = EqualToFunction(),
-                   double table_rate_multiplier = 1.05)
+    ReducePreBucketTable(Context& ctx,
+                         size_t num_partitions,
+                         KeyExtractor key_extractor,
+                         ReduceFunction reduce_function,
+                         std::vector<data::DynBlockWriter>& emit,
+                         const IndexFunction& index_function,
+                         const FlushFunction& flush_function,
+                         const Key& /* sentinel */ = Key(),
+                         const Value& neutral_element = Value(),
+                         size_t byte_size = 1024* 16,
+                         double bucket_rate = 1.0,
+                         double max_partition_fill_rate = 0.6,
+                         const EqualToFunction& equal_to_function = EqualToFunction(),
+                         double table_rate_multiplier = 1.05)
         : ctx_(ctx),
           num_partitions_(num_partitions),
           max_partition_fill_rate_(max_partition_fill_rate),
@@ -196,7 +196,7 @@ public:
           flush_function_(flush_function),
           equal_to_function_(equal_to_function),
           neutral_element_(neutral_element) {
-        sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
+        sLOG << "creating ReducePreBucketTable with" << emit_.size() << "output emitters";
 
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
@@ -305,17 +305,17 @@ public:
         }
     }
 
-    ReducePreTable(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
-                   ReduceFunction reduce_function, std::vector<data::DynBlockWriter>& emit)
-        : ReducePreTable(ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction(),
-                         FlushFunction(reduce_function)) { }
+    ReducePreBucketTable(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
+                         ReduceFunction reduce_function, std::vector<data::DynBlockWriter>& emit)
+        : ReducePreBucketTable(ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction(),
+                               FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
-    ReducePreTable(const ReducePreTable&) = delete;
+    ReducePreBucketTable(const ReducePreBucketTable&) = delete;
     //! non-copyable: delete assignment operator
-    ReducePreTable& operator = (const ReducePreTable&) = delete;
+    ReducePreBucketTable& operator = (const ReducePreBucketTable&) = delete;
 
-    ~ReducePreTable() {
+    ~ReducePreBucketTable() {
         // destroy all block chains
         for (BucketBlock* b_block : buckets_)
         {

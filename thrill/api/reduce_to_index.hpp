@@ -38,20 +38,20 @@ namespace api {
 //! \{
 
 /*!
-* A DIANode which performs a ReduceToIndex operation. ReduceToIndex groups the elements in a
-* DIA by their key and reduces every key bucket to a single element each. The
-* ReduceToIndexNode stores the key_extractor and the reduce_function UDFs. The
-* chainable LOps ahead of the Reduce operation are stored in the Stack. The
-* ReduceToIndexNode has the type ValueType, which is the result type of the
-* reduce_function. The key type is an unsigned integer and the output DIA will have element
-* with key K at index K.
-*
-* \tparam ParentType Input type of the Reduce operation
-* \tparam ValueType Output type of the Reduce operation
-* \tparam ParentStack Function stack, which contains the chained lambdas between the last and this DIANode.
-* \tparam KeyExtractor Type of the key_extractor function.
-* \tparam ReduceFunction Type of the reduce_function
-*/
+ * A DIANode which performs a ReduceToIndex operation. ReduceToIndex groups the
+ * elements in a DIA by their key and reduces every key bucket to a single
+ * element each. The ReduceToIndexNode stores the key_extractor and the
+ * reduce_function UDFs. The chainable LOps ahead of the Reduce operation are
+ * stored in the Stack. The ReduceToIndexNode has the type ValueType, which is
+ * the result type of the reduce_function. The key type is an unsigned integer
+ * and the output DIA will have element with key K at index K.
+ *
+ * \tparam ParentType Input type of the Reduce operation
+ * \tparam ValueType Output type of the Reduce operation
+ * \tparam ParentStack Function stack, which contains the chained lambdas between the last and this DIANode.
+ * \tparam KeyExtractor Type of the key_extractor function.
+ * \tparam ReduceFunction Type of the reduce_function
+ */
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
           bool RobustKey, bool SendPair>
@@ -102,16 +102,16 @@ public:
           reduce_pre_table_(context_,
                             parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_,
-                            core::PreProbingReduceByIndex<Key>(result_size),
+                            core::PreReduceByIndex<Key>(result_size),
                             core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
                             Key(), neutral_element_,
                             1024 * 1024 * 32, 1.0, 0.6),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostProbingReduceByIndex<Key>(),
+              core::PostReduceByIndex<Key>(),
               core::PostBucketReduceFlushToIndex<
-                  Key, Value, ReduceFunction, core::PostProbingReduceByIndex<Key> >(reduce_function),
+                  Key, Value, ReduceFunction, core::PostReduceByIndex<Key> >(reduce_function),
               common::CalculateLocalRange(
                   result_size_, context_.num_workers(), context_.my_rank()),
               Key(), neutral_element_,
@@ -121,7 +121,7 @@ public:
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.
         auto pre_op_fn = [=](const ValueType& input) {
-                             reduce_pre_table_.Insert(std::move(input));
+                             reduce_pre_table_.Insert(input);
                          };
 
         // close the function stack with our pre op and register it at parent
@@ -190,14 +190,18 @@ private:
 
     Value neutral_element_;
 
-    core::ReducePreTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-                         core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>, core::PreProbingReduceByIndex<Key>,
-                         std::equal_to<Key>, 16*16> reduce_pre_table_;
+    core::ReducePreBucketTable<
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+        core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>,
+        core::PreReduceByIndex<Key>,
+        std::equal_to<Key>, 16*16> reduce_pre_table_;
 
-    core::ReducePostTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-                          core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction, core::PostProbingReduceByIndex<Key> >,
-                          core::PostProbingReduceByIndex<Key>,
-                          std::equal_to<Key>, 16*16> reduce_post_table_;
+    core::ReducePostBucketTable<
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
+        core::PostBucketReduceFlushToIndex<
+            Key, Value, ReduceFunction, core::PostReduceByIndex<Key> >,
+        core::PostReduceByIndex<Key>,
+        std::equal_to<Key>, 16*16> reduce_post_table_;
 
     bool reduced = false;
 };
