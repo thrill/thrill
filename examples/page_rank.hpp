@@ -15,8 +15,8 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/groupby_index.hpp>
+#include <thrill/api/print.hpp>
 #include <thrill/api/read_lines.hpp>
-#include <thrill/api/reduce.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
@@ -47,32 +47,45 @@ namespace examples {
 
 static const bool debug = false;
 
-static const double s = 0.85;
-static const double f = 0.15;
+static const double dampening = 0.85;
 
-using Key = std::size_t;
-using Node = std::size_t;
+using PageId = std::size_t;
 using Rank = double;
-using Page_Rank = std::pair<Node, Rank>;
-using Page_Link = std::pair<Node, Node>;
-using Outgoings_Rank = std::pair<std::vector<Node>, Rank>;
-using Outgoings = std::vector<Node>;
+
+//! A pair (page source, page target)
+struct PagePageLink {
+    PageId src, tgt;
+
+    friend std::ostream& operator << (std::ostream& os, const PagePageLink& a) {
+        return os << '(' << a.src << '>' << a.tgt << ')';
+    }
+} THRILL_ATTRIBUTE_PACKED;
+
+//! A pair (page, rank)
+struct PageRankPair {
+    PageId page;
+    double rank;
+
+    friend std::ostream& operator << (std::ostream& os, const PageRankPair& a) {
+        return os << '(' << a.page << '|' << a.rank << ')';
+    }
+} THRILL_ATTRIBUTE_PACKED;
+
+using OutgoingLinks = std::vector<PageId>;
+using OutgoingLinksRank = std::pair<std::vector<PageId>, Rank>;
 
 template <typename InStack>
-auto PageRank(const DIA<std::string, InStack>&in, api::Context & ctx, int iter) {
+auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
 
-    DIA<Page_Link> input = in.Map(
-        [](const std::string& input) {
-            auto split = thrill::common::Split(input, " ");
-            LOG0 << "input "
-                 << (std::stoi(split[0]) - 1)
-                 << " "
-                 << (std::stoi(split[1]) - 1);
-                    // set base of page_id to 0
-            return Page_Link((size_t)(std::stoi(split[0]) - 1),
-                             (size_t)(std::stoi(split[1]) - 1));
-        }).Cache(); // TODO(SL): when Cache() is removed, code doesn't compile,
-    // auto cannot be used either
+    api::Context& ctx = input_links.context();
+
+    auto input =
+        input_links
+        .Map([](const std::string& input) {
+                 auto split = thrill::common::Split(input, '\t');
+                 die_unequal(split.size(), 2);
+                 return PagePageLink { std::stoul(split[0]), std::stoul(split[1]) };
+             });
 
     // aggregate all outgoing links of a page in this format:
     //
@@ -82,35 +95,22 @@ auto PageRank(const DIA<std::string, InStack>&in, api::Context & ctx, int iter) 
     // ([linked_url, linked_url, ...])
     // ...
 
-    // get number of nodes by finding max page_id
-    // add 1 to max node_id to get number of nodes because of node_id 0
-    const auto number_nodes = input.Sum(
-        [](const Page_Link& in1, const Page_Link& in2) {
-            Node first = std::max(in1.first, in2.first);
-            Node second = std::max(in1.second, in2.second);
-            return std::make_pair(std::max(first, second), first);
-        }).first + 1;
+    PageId num_pages = 5000;
 
-    LOG << "number_nodes " << number_nodes;
+    LOG << "number_nodes " << num_pages;
 
-    // group outgoing links
-    auto links = input.GroupByIndex<Outgoings>(
-        [](Page_Link p) { return p.first; },
-        [](auto& r, Key) {
-            std::vector<Node> all;
+    // group outgoing links from input file
+    auto links = input.template GroupByIndex<OutgoingLinks>(
+        [](const PagePageLink& p) { return p.src; },
+        [num_pages](auto& r, const PageId&) {
+            std::vector<PageId> all;
             while (r.HasNext()) {
-                all.push_back(r.Next().second);
+                all.push_back(r.Next().tgt);
+                die_unless(all.back() < num_pages);
             }
-
-            // std::string s = "{";
-            // for (auto e : all) {
-            //     s+= std::to_string(e) + ", ";
-            // }
-            // LOG << "links " << s << "}";
-
             return all;
         },
-        number_nodes).Cache();
+        num_pages).Cache();
 
     // initialize all ranks to 1.0
     //
@@ -118,22 +118,13 @@ auto PageRank(const DIA<std::string, InStack>&in, api::Context & ctx, int iter) 
     // (url, rank)
     // (url, rank)
     // ...
-    // auto ranks = Generate(ctx, [](const size_t& index) {
-    //     return std::make_pair(index, 1.0);
-    // }, number_nodes).Cache();
-    auto ranks = Generate(ctx,
-                          [](const size_t&) {
-                              return (Rank)1.0;
-                          }, number_nodes).Cache();
 
-    auto node_ids = Generate(ctx,
-                             [](const size_t& index) {
-                                 return index + 1;
-                             }, number_nodes);
+    auto ranks = Generate(
+        ctx, [](const size_t&) { return (Rank)1.0; }, num_pages).Cache();
 
     // do iterations
-    for (int i = 0; i < iter; ++i) {
-        LOG << "iteration " << i;
+    for (size_t iter = 0; iter < iterations; ++iter) {
+        LOG << "iteration " << iter;
 
         // for all outgoing link, get their rank contribution from all
         // links by doing:
@@ -151,31 +142,32 @@ auto PageRank(const DIA<std::string, InStack>&in, api::Context & ctx, int iter) 
         // (linked_url, rank / OUTGOING.size)
         // ...
 
-        std::cout << links.Size() << std::endl;
-        std::cout << ranks.Size() << std::endl;
+        LOG << links.Size();
+        LOG << ranks.Size();
 
         assert(links.Size() == ranks.Size());
 
         // TODO(SL): when Zip/FlatMap chained, code doesn't compile, please check
-        DIA<Outgoings_Rank> outs_rank = links.Zip(ranks,
-                                                  [](const Outgoings& l, const Rank r) {
-                                                      // std::string s = "{";
-                                                      // for (auto e : l) {
-                                                      //     s += std::to_string(e) + ", ";
-                                                      // }
-                                                      // s += "}";
-                                                      // LOG << "contribs1 " << s << " " << r;
+        DIA<OutgoingLinksRank> outs_rank = links.Zip(
+            ranks,
+            [](const OutgoingLinks& ol, const Rank& r) {
+                return OutgoingLinksRank(ol, r);
+            });
 
-                                                      return std::make_pair(l, r);
-                                                  });
-        auto contribs = outs_rank.FlatMap<Page_Rank>(
-            [](const Outgoings_Rank& p, auto emit) {
+        outs_rank
+        .Map([](const OutgoingLinksRank& ol) {
+                 return common::Join(',', ol.first) + " <- " + std::to_string(ol.second);
+             })
+        .Print("outs_rank");
+
+        auto contribs = outs_rank.FlatMap<PageRankPair>(
+            [](const OutgoingLinksRank& p, auto emit) {
                 if (p.first.size() > 0) {
                     Rank rank_contrib = p.second / p.first.size();
                     // assert (rank_contrib <= 1);
-                    for (auto e : p.first) {
-                        LOG << "contribs2 " << e << " " << rank_contrib;
-                        emit(std::make_pair(e, rank_contrib));
+                    for (const PageId& tgt : p.first) {
+                        LOG << "contribs2 " << tgt << " " << rank_contrib;
+                        emit(PageRankPair { tgt, rank_contrib });
                     }
                 }
             });
@@ -188,35 +180,38 @@ auto PageRank(const DIA<std::string, InStack>&in, api::Context & ctx, int iter) 
         // (url, rank)
         // ...
 
-        // auto sum_rank_contrib_fn = [](const Page_Rank& p1, const Page_Rank& p2) {
-        //     assert(p1.first == p2.first);
-        //     return p1.second + p2.second;
-        // };
-        ranks = contribs.ReduceToIndex(
-            [](const Page_Rank& p) { return p.first; },
-            [](const Page_Rank& p1, const Page_Rank& p2) {
-                return std::make_pair(p1.first, p1.second + p2.second);
-            }, number_nodes)
-                .Map(
-            [](const Page_Rank p) {
-                LOG << "ranks2 in " << p.first << "-" << p.second;
-                if (std::fabs(p.second) <= 1E-5) {
-                    LOG << "ranks2 " << 0.0;
-                    return (Rank)0.0;
-                }
-                else {
-                    LOG << "ranks2 " << f + s * p.second;
-                    return f + s * p.second;
-                }
-            }).Keep().Collapse();
+        ranks =
+            contribs
+            .ReduceToIndex(
+                [](const PageRankPair& p) { return p.page; },
+                [](const PageRankPair& p1, const PageRankPair& p2) {
+                    return PageRankPair { p1.page, p1.rank + p2.rank };
+                }, num_pages)
+            .Map(
+                [num_pages](const PageRankPair p) {
+                    LOG << "ranks2 in " << p;
+                    if (std::fabs(p.rank) <= 1E-5) {
+                        LOG << "ranks2 " << 0.0;
+                        return (Rank)0.0;
+                    }
+                    else {
+                        LOG << "ranks2 " << dampening * p.rank + (1 - dampening) / num_pages;
+                        return dampening * p.rank + (1 - dampening) / num_pages;
+                    }
+                }).Keep().Collapse();
     }
 
+    // construct output as (pageid, rank)
+
+    auto node_ids = Generate(
+        ctx, [](const size_t& index) { return index; }, num_pages);
+
     // write result to line. add 1 to node_ids to revert back to normal
-    auto res = ranks.Zip(node_ids,
-                         [](const Rank r, const Node n) {
-                             return std::to_string(n)
-                             + ": " + std::to_string(r);
-                         });
+    auto res = ranks.Zip(
+        node_ids,
+        [](const Rank& r, const PageId& p) {
+            return std::to_string(p) + ": " + std::to_string(r);
+        });
 
     assert(res.Size() == links.Size());
 
