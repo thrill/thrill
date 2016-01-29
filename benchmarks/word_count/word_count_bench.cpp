@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func = [&input, &output](api::Context& ctx) {
-                          ctx.set_consume(true);
+                          ctx.enable_consume(true);
 
                           auto lines = ReadLines(ctx, input);
 

@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
 
     auto start_func =
         [&input, &output, &iter](api::Context& ctx) {
-            ctx.set_consume(true);
+            // ctx.enable_consume(true);
 
             thrill::common::StatsTimer<true> timer(false);
 

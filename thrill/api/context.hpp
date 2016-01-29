@@ -314,7 +314,7 @@ public:
      * less space. However, by default this mode is DISABLED, because it
      * requires deliberate insertion of .Keep() calls.
      */
-    void set_consume(bool consume) { consume_ = consume; }
+    void enable_consume(bool consume) { consume_ = consume; }
 
 private:
     //! host-global memory manager

@@ -197,6 +197,11 @@ public:
         return *this;
     }
 
+    Context & context() const {
+        assert(IsValid());
+        return node_->context();
+    }
+
     Context & ctx() const {
         assert(IsValid());
         return node_->context();
