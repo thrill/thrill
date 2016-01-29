@@ -45,20 +45,20 @@ int main(int argc, char* argv[]) {
     uint64_t totalbytes;
 
     cp.AddUInt('k', "min_words_key", "<N>", min_words_key,
-                "minimum words in a key");
+               "minimum words in a key");
     cp.AddUInt('K', "max_words_key", "<N>", max_words_key,
-                "maximum words in a key");
+               "maximum words in a key");
 
     cp.AddUInt('v', "min_words_value", "<N>", min_words_value,
-                "minimum words in a value");
+               "minimum words in a value");
     cp.AddUInt('V', "max_words_value", "<N>", max_words_value,
-                "maximum words in a value");
+               "maximum words in a value");
 
     cp.AddUInt('s', "seed", "<N>", seed,
-                "random seed (default: 123456)");
+               "random seed (default: 123456)");
 
     cp.AddParamBytes("totalbytes", totalbytes,
-                      "total number of bytes to generate (approximately)");
+                     "total number of bytes to generate (approximately)");
 
     cp.SetVerboseProcess(false);
     if (!cp.Process(argc, argv)) {
