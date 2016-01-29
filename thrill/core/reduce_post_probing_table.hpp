@@ -37,7 +37,7 @@ namespace thrill {
 namespace core {
 
 template <typename Key, typename HashFunction = std::hash<Key> >
-class PostProbingReduceByHashKey
+class PostReduceByHashKey
 {
 public:
     struct IndexResult {
@@ -46,16 +46,10 @@ public:
         size_t partition_id;
         //! index within the whole hashtable
         size_t global_index;
-
-        IndexResult(size_t p_id, size_t g_id) {
-            partition_id = p_id;
-            global_index = g_id;
-        }
     };
 
-    explicit PostProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
-        : hash_function_(hash_function)
-    { }
+    explicit PostReduceByHashKey(const HashFunction& hash_function = HashFunction())
+        : hash_function_(hash_function) { }
 
     IndexResult operator () (const Key& k,
                              const size_t& num_frames,
@@ -68,7 +62,7 @@ public:
 
         size_t global_index = hash_function_(k) % num_buckets_per_table;
 
-        return IndexResult(global_index / num_buckets_per_frame, global_index);
+        return IndexResult { global_index / num_buckets_per_frame, global_index };
     }
 
 private:
@@ -76,7 +70,7 @@ private:
 };
 
 template <typename Key>
-class PostProbingReduceByIndex
+class PostReduceByIndex
 {
 public:
     struct IndexResult {
@@ -85,14 +79,7 @@ public:
         size_t partition_id;
         //! index within the whole hashtable
         size_t global_index;
-
-        IndexResult(size_t p_id, size_t g_id) {
-            partition_id = p_id;
-            global_index = g_id;
-        }
     };
-
-    PostProbingReduceByIndex() { }
 
     IndexResult operator () (const Key& k,
                              const size_t& num_frames,
@@ -104,7 +91,7 @@ public:
 
         size_t result = (k - offset) % num_buckets_per_table;
 
-        return IndexResult(result / num_frames, result);
+        return IndexResult { result / num_frames, result };
     }
 };
 
@@ -171,7 +158,7 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
           typename FlushFunction = PostProbingReduceFlush<Key, Value, ReduceFunction>,
-          typename IndexFunction = PostProbingReduceByHashKey<Key>,
+          typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class ReducePostProbingTable
 {

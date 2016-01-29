@@ -37,12 +37,12 @@ namespace thrill {
 namespace core {
 
 template <typename Key, typename HashFunction>
-class PostProbingReduceByHashKey;
+class PostReduceByHashKey;
 
 template <typename Key,
           typename Value,
           typename ReduceFunction,
-          typename IndexFunction = PostProbingReduceByHashKey<Key, std::hash<Key> >,
+          typename IndexFunction = PostReduceByHashKey<Key, std::hash<Key> >,
           typename EqualToFunction = std::equal_to<Key>,
           typename KeyValuePair = std::pair<Key, Value> >
 class PostProbingReduceFlush

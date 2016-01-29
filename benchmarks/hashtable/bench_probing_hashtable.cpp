@@ -97,9 +97,9 @@ int main(int argc, char* argv[]) {
                  }
 
                  core::ReducePreProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-                                             core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreProbingReduceByHashKey<size_t>,
+                                             core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreReduceByHashKey<size_t>,
                                              std::equal_to<size_t>, full_reduce>
-                 table(ctx, workers, key_ex, red_fn, writers, core::PreProbingReduceByHashKey<size_t>(),
+                 table(ctx, workers, key_ex, red_fn, writers, core::PreReduceByHashKey<size_t>(),
                        core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
                        0, 0, byte_size, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
 

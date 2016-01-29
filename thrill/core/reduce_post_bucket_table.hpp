@@ -117,11 +117,11 @@ template <typename ValueType, typename Key, typename Value, // TODO(ms): dont ne
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
           typename FlushFunction = PostBucketReduceFlush<Key, Value, ReduceFunction>,
-          typename IndexFunction = PostProbingReduceByHashKey<Key>,
+          typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           size_t TargetBlockSize = 16*16
           >
-class ReducePostTable
+class ReducePostBucketTable
 {
     static const bool debug = false;
 
@@ -178,21 +178,21 @@ public:
      * \param frame_rate Rate of number of buckets to number of frames. There is one file writer per frame.
      * \param equal_to_function Function for checking equality of two keys.
      */
-    ReducePostTable(Context& ctx,
-                    const KeyExtractor& key_extractor,
-                    const ReduceFunction& reduce_function,
-                    const EmitterFunction& emit,
-                    const IndexFunction& index_function,
-                    const FlushFunction& flush_function,
-                    const common::Range& local_index = common::Range(),
-                    const Key& /* sentinel */ = Key(),
-                    const Value& neutral_element = Value(),
-                    size_t byte_size = 1024* 16,
-                    double bucket_rate = 1.0,
-                    double max_frame_fill_rate = 0.6,
-                    double frame_rate = 0.1,
-                    const EqualToFunction& equal_to_function = EqualToFunction(),
-                    double table_rate_multiplier = 1.05)
+    ReducePostBucketTable(Context& ctx,
+                          const KeyExtractor& key_extractor,
+                          const ReduceFunction& reduce_function,
+                          const EmitterFunction& emit,
+                          const IndexFunction& index_function,
+                          const FlushFunction& flush_function,
+                          const common::Range& local_index = common::Range(),
+                          const Key& /* sentinel */ = Key(),
+                          const Value& neutral_element = Value(),
+                          size_t byte_size = 1024* 16,
+                          double bucket_rate = 1.0,
+                          double max_frame_fill_rate = 0.6,
+                          double frame_rate = 0.1,
+                          const EqualToFunction& equal_to_function = EqualToFunction(),
+                          double table_rate_multiplier = 1.05)
         : ctx_(ctx),
           max_frame_fill_rate_(max_frame_fill_rate),
           emit_(emit),
@@ -223,7 +223,8 @@ public:
 
         max_num_items_mem_per_frame_ = max_num_blocks_mem_per_frame_ * block_size_;
 
-        fill_rate_num_items_mem_per_frame_ = (size_t)(max_num_items_mem_per_frame_ * max_frame_fill_rate_);
+        fill_rate_num_items_mem_per_frame_ =
+            (size_t)(max_num_items_mem_per_frame_ * max_frame_fill_rate_);
 
         num_buckets_per_frame_ =
             std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_mem_per_frame_)
@@ -294,17 +295,17 @@ public:
         }
     }
 
-    ReducePostTable(Context& ctx, KeyExtractor key_extractor,
-                    ReduceFunction reduce_function, EmitterFunction emit)
-        : ReducePostTable(ctx, key_extractor, reduce_function, emit, IndexFunction(),
-                          FlushFunction(reduce_function)) { }
+    ReducePostBucketTable(Context& ctx, KeyExtractor key_extractor,
+                          ReduceFunction reduce_function, EmitterFunction emit)
+        : ReducePostBucketTable(ctx, key_extractor, reduce_function, emit, IndexFunction(),
+                                FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
-    ReducePostTable(const ReducePostTable&) = delete;
+    ReducePostBucketTable(const ReducePostBucketTable&) = delete;
     //! non-copyable: delete assignment operator
-    ReducePostTable& operator = (const ReducePostTable&) = delete;
+    ReducePostBucketTable& operator = (const ReducePostBucketTable&) = delete;
 
-    ~ReducePostTable() {
+    ~ReducePostBucketTable() {
         // destroy all block chains
         for (BucketBlock* b_block : buckets_)
         {
@@ -330,23 +331,27 @@ public:
     }
 
     /*!
-     * Inserts a value into the table, potentially reducing it in case both the key of the value
-     * already in the table and the key of the value to be inserted are the same.
+     * Inserts a value into the table, potentially reducing it in case both the
+     * key of the value already in the table and the key of the value to be
+     * inserted are the same.
      *
-     * An insert may trigger a partial flush of the partition with the most items if the maximal
-     * number of items in the table (max_num_items_table) is reached.
+     * An insert may trigger a partial flush of the partition with the most
+     * items if the maximal number of items in the table (max_num_items_table)
+     * is reached.
      *
-     * Alternatively, it may trigger a resize of table in case maximal number of items per
-     * bucket is reached.
+     * Alternatively, it may trigger a resize of table in case maximal number of
+     * items per bucket is reached.
      *
      * \param p Value to be inserted into the table.
      */
     void Insert(const KeyValuePair& kv) {
 
-        typename IndexFunction::IndexResult h = index_function_(kv.first, num_frames_,
-                                                                num_buckets_per_frame_, num_buckets_per_table_, 0);
+        typename IndexFunction::IndexResult h = index_function_(
+            kv.first, num_frames_,
+            num_buckets_per_frame_, num_buckets_per_table_, 0);
 
-        assert(h.global_index >= 0 && h.global_index < num_buckets_per_table_);
+        assert(h.partition_id < num_frames_);
+        assert(h.global_index < num_buckets_per_table_);
 
         LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
@@ -405,6 +410,8 @@ public:
         // in-place construct/insert new item in current bucket block
         new (current->items + current->size++)KeyValuePair(kv);
 
+        sLOG1 << "num_items_mem_per_frame_.size()" << num_items_mem_per_frame_.size();
+        sLOG1 << "h.partition_id" << h.partition_id;
         // Number of items per frame.
         num_items_mem_per_frame_[h.partition_id]++;
 
