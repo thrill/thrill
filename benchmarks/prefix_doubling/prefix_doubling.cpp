@@ -40,7 +40,7 @@
 #include <vector>
 
 bool debug_print = false;
-bool debug = true;
+bool debug = false;
 
 using namespace thrill; // NOLINT
 using thrill::common::RingBuffer;
@@ -223,6 +223,194 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
         .Sum();
 
     return (order_check_sum == 0);
+}
+
+template <typename Char>
+struct CharCharIndex {
+    Char ch[2];
+    size_t index;
+
+    bool operator == (const CharCharIndex& b) const {
+        return std::equal(ch + 0, ch + 2, b.ch + 0);
+    }
+
+    bool operator < (const CharCharIndex& b) const {
+        return std::lexicographical_compare(
+            ch + 0, ch + 2, b.ch + 0, b.ch + 2);
+    }
+
+    friend std::ostream& operator << (std::ostream& os, const CharCharIndex& cci) {
+        return os << '[' << cci.ch[0] << ',' << cci.ch[1]
+                  << '|' << cci.index << ']';
+    }
+
+} THRILL_ATTRIBUTE_PACKED;
+
+template <typename InputDIA>
+DIA<size_t> PrefixDoublinDementiev(Context& /*ctx*/, const InputDIA& input_dia, size_t input_size) {
+    using Char = typename InputDIA::ValueType;
+    using CharCharIndex = ::CharCharIndex<Char>;
+
+    auto chars_sorted =
+        input_dia
+        .template FlatWindow<CharCharIndex>(
+            2,
+            [&](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                emit(CharCharIndex {rb[0], rb[1], index});
+                if (index == input_size - 2)
+                    emit(CharCharIndex {rb[1], std::numeric_limits<Char>::lowest(), index + 1});
+
+        })
+        .Sort([](const CharCharIndex& a, const CharCharIndex& b) {
+            return a < b;
+        });
+
+    DIA<size_t> renamed_ranks =
+        chars_sorted
+        .template FlatWindow<size_t>(
+            2,
+            [&](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
+                if (index == 0) emit(1);
+                if (rb[0] == rb[1]) emit(0);
+                else emit(index + 2);
+                if (index == input_size - 2) {
+                    if (rb[0] == rb[1]) emit(0);
+                    else emit(index + 3);
+                }
+
+        })
+        .PrefixSum([](const size_t a, const size_t b) {
+            return a > b ? a : b;
+        });
+
+    size_t non_singletons =
+        renamed_ranks
+        .Window(
+            2,
+            [&](size_t /*index*/, const RingBuffer<size_t>& rb) {
+                return rb[0] == rb[1];
+            }
+        ).Sum();
+
+    if (non_singletons == 0) {
+        auto sa =
+            chars_sorted
+            .Map([](const CharCharIndex& cci) {
+                return cci.index;
+            });
+
+        die_unless(CheckSA(input_dia, sa));
+        return sa.Collapse();
+    }
+    
+    size_t shift_by = 1;
+    auto mod_div_sort = [&] (const IndexRank& a, const IndexRank& b) {
+        size_t mod_mask = (1 << shift_by) - 1;
+        size_t div_mask = ~mod_mask;
+
+        if ((a.index & mod_mask) == (b.index & mod_mask))
+            return (a.index & div_mask) < (b.index & div_mask);
+        else
+            return (a.index & mod_mask) < (b.index & mod_mask);
+    };
+    
+    DIA<IndexRank> names =
+        chars_sorted
+        .Zip(
+            renamed_ranks,
+            [](const CharCharIndex& cci, const size_t r) {
+                return IndexRank {cci.index, r};
+        });
+        
+        
+    while (true) {
+
+        LOG << shift_by;
+
+        DIA<IndexRank> names_sorted =
+            names
+            .Sort(mod_div_sort);
+
+        if (debug_print)
+            names_sorted.Print("names_sorted");
+
+        size_t next_index = 1 << shift_by++;
+
+        auto triple_sorted =
+            names_sorted
+            .template FlatWindow<IndexRankRank>(
+                2,
+                [&](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                    if (rb[0].index + next_index == rb[1].index)
+                        emit(IndexRankRank {rb[0].index, rb[0].rank, rb[1].rank});
+                    else
+                        emit(IndexRankRank {rb[0].index, rb[0].rank, size_t(0)});
+
+                    if (index == input_size - 2)
+                        emit(IndexRankRank {rb[1].index, rb[1].rank, size_t(0)});
+            })
+            .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
+                return a < b;
+            });
+
+        if (debug_print)
+            triple_sorted.Print("triple_sorted");
+
+        renamed_ranks =
+            triple_sorted
+            .template FlatWindow<size_t>(
+                2,
+                [&](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+                    if (index == 0) emit(1);
+                    if (rb[0] == rb[1]) emit(0);
+                    else emit(index + 2);
+                    if (index == input_size - 2) {
+                        if (rb[0] == rb[1]) emit(0);
+                        else emit(index + 3);
+                    }
+
+            })
+            .PrefixSum([](const size_t a, const size_t b) {
+                return a > b ? a : b;
+            });
+
+        if (debug_print)
+            renamed_ranks.Print("renamed_ranks");
+
+        non_singletons =
+            renamed_ranks
+            .Window(
+                2,
+                [&](size_t /*index*/, const RingBuffer<size_t>& rb) {
+                    return rb[0] == rb[1];
+                }
+            ).Sum();
+
+        LOG << "Non singletons " << non_singletons;
+
+        if (non_singletons == 0) {
+            auto sa =
+                triple_sorted
+                .Map([](const IndexRankRank& irr) {
+                    return irr.index;
+            })
+            .Cache();
+
+            if (debug_print)
+                sa.Print("sa");
+
+            die_unless(CheckSA(input_dia, sa));
+            return sa.Collapse();
+        }
+
+        names =
+            triple_sorted
+            .Zip(
+                renamed_ranks,
+                [](const IndexRankRank& irr, const size_t r) {
+                    return IndexRank {irr.index, r};
+            });
+    }
 }
 
 template <typename InputDIA>
@@ -409,7 +597,7 @@ public:
     template <typename InputDIA>
     void StartPrefixDoublingInput(const InputDIA& input_dia, uint64_t input_size, size_t computation_rounds) {
 
-        auto suffix_array = PrefixDoubling(ctx_, input_dia, input_size, computation_rounds);
+        auto suffix_array = PrefixDoublinDementiev(ctx_, input_dia, input_size);
         if (output_path_.size()) {
             suffix_array.WriteBinary(output_path_);
         }
