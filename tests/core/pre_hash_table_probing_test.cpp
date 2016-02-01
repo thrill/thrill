@@ -329,7 +329,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
 
 // Partial flush of items in table due to
 // max table size constraint, one partition
-TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
+TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -350,7 +350,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
             core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, -1, 2 * 4 * 2 * 4, 0.5,
-                  std::equal_to<int>(), 0.0);
+                  std::equal_to<int>());
 
             table.Insert(0);
             table.Insert(1);
@@ -460,7 +460,7 @@ TEST_F(PreTable, ComplexType) {
             core::ReducePreProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<std::string>(),
                   core::PostProbingReduceFlush<std::string, StringPair, decltype(red_fn)>(red_fn), "", sp, 2 * 3 * kv_size, 0.5,
-                  std::equal_to<std::string>(), 0.0);
+                  std::equal_to<std::string>());
 
             table.Insert(StringPair("hallo", 1));
             table.Insert(StringPair("hello", 1));
@@ -502,7 +502,7 @@ TEST_F(PreTable, MultipleWorkers) {
             core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   core::PostProbingReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, -1, 6 * 8, 0.5,
-                  std::equal_to<int>(), 0.0);
+                  std::equal_to<int>());
 
             ASSERT_EQ(0u, table.NumItems());
 
@@ -596,7 +596,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
             core::ReducePreProbingTable<IntPair, int, IntPair, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   core::PostProbingReduceFlush<int, IntPair, decltype(red_fn)>(red_fn),
-                  -1, p, nitems * 16, 1.0, std::equal_to<int>(), 0.0);
+                  -1, p, nitems * 16, 1.0, std::equal_to<int>());
 
             // insert lots of items
             size_t sum = 0;
@@ -666,7 +666,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<std::string>(),
                   core::PostProbingReduceFlush<std::string, StringPair, decltype(red_fn)>(red_fn),
                   "", sp, nitems * kv_size, 1.0,
-                  std::equal_to<std::string>(), 0.0);
+                  std::equal_to<std::string>());
 
             // insert lots of items
             size_t sum = 0;

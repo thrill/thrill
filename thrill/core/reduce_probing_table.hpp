@@ -168,10 +168,33 @@ public:
         }
     }
 
+    //! \name Spilling Mechanisms to External Memory Files
+    //! \{
+
+    //! Spill all items of a partition into an external memory File.
     void SpillPartition(size_t partition_id) {
-        SubTable& t = *static_cast<SubTable*>(this);
-        t.SpillPartition(partition_id);
+        LOG << "Spilling items of partition with id: " << partition_id;
+
+        data::File::Writer writer = partition_files_[partition_id].GetWriter();
+
+        for (size_t i = partition_id * partition_size_;
+             i < (partition_id + 1) * partition_size_; i++)
+        {
+            KeyValuePair& current = items_[i];
+            if (current.first != sentinel_.first)
+            {
+                writer.Put(current);
+                items_[i] = sentinel_;
+            }
+        }
+
+        // reset partition specific counter
+        items_per_partition_[partition_id] = 0;
+
+        LOG << "Spilled items of partition with id: " << partition_id;
     }
+
+    //! \}
 
 protected:
     //! Key extractor function for extracting a key from a value.
@@ -191,6 +214,9 @@ protected:
 
     //! Sentinel element used to flag free slots.
     KeyValuePair sentinel_;
+
+    //! Store the files for partitions.
+    std::vector<data::File> partition_files_;
 
     //! \name Fixed Operational Parameters
     //! \{

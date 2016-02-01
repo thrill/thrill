@@ -204,8 +204,7 @@ public:
         size_t byte_size = 1024* 16,
         double max_partition_fill_rate = 0.6,
         double partition_rate = 0.1,
-        const EqualToFunction& equal_to_function = EqualToFunction(),
-        double table_rate_multiplier = 1.05)
+        const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(std::max<size_t>((size_t)(1.0 / partition_rate), 1),
                 key_extractor,
                 reduce_function,
@@ -229,11 +228,8 @@ public:
         assert(partition_rate > 0.0 && partition_rate <= 1.0 &&
                "a partition rate of 1.0 causes exactly one partition.");
 
-        table_rate_ = table_rate_multiplier * std::min<double>(
-            1.0 / static_cast<double>(num_partitions_), 0.5);
-
         partition_size_ = std::max<size_t>(
-            (size_t)(((byte_size_ * (1 - table_rate_))
+            (size_t)((byte_size_
                       / static_cast<double>(sizeof(KeyValuePair)))
                      / static_cast<double>(num_partitions_)), 1);
 
@@ -251,9 +247,6 @@ public:
 
         for (size_t i = 0; i < num_partitions_; i++) {
             partition_files_.push_back(ctx.GetFile());
-        }
-        for (size_t i = 0; i < num_partitions_; i++) {
-            partition_writers_.push_back(partition_files_[i].GetWriter());
         }
 
         sentinel_ = KeyValuePair(sentinel, Value());
@@ -277,33 +270,6 @@ public:
     ReducePostProbingTable(const ReducePostProbingTable&) = delete;
     //! non-copyable: delete assignment operator
     ReducePostProbingTable& operator = (const ReducePostProbingTable&) = delete;
-
-    /*!
-     * Spills all items of a partition.
-     *
-     * \param partition_id The id of the partition to be spilled.
-     */
-    void SpillPartition(size_t partition_id) {
-        LOG << "Spilling items of partition with id: " << partition_id;
-
-        data::File::Writer& writer = partition_writers_[partition_id];
-
-        for (size_t i = partition_id * partition_size_;
-             i < (partition_id + 1) * partition_size_; i++)
-        {
-            KeyValuePair& current = items_[i];
-            if (current.first != sentinel_.first)
-            {
-                writer.Put(current);
-                items_[i] = sentinel_;
-            }
-        }
-
-        // reset partition specific counter
-        items_per_partition_[partition_id] = 0;
-
-        LOG << "Spilled items of partition with id: " << partition_id;
-    }
 
     /*!
      * Flushes all items in the whole table.
@@ -365,15 +331,6 @@ public:
      */
     std::vector<data::File> & PartitionFiles() {
         return partition_files_;
-    }
-
-    /*!
-     * Returns the vector of partition writers.
-     *
-     * \return Vector of partition writers.
-     */
-    std::vector<data::File::Writer> & PartitionWriters() {
-        return partition_writers_;
     }
 
     /*!
@@ -459,6 +416,7 @@ private:
     using Super::items_per_partition_;
     using Super::partition_size_;
     using Super::sentinel_;
+    using Super::partition_files_;
 
     //! Context
     Context& ctx_;
@@ -477,15 +435,6 @@ private:
 
     //! Neutral element (reduce to index).
     Value neutral_element_;
-
-    //! Store the files for partitions.
-    std::vector<data::File> partition_files_;
-
-    //! Store the writers for partitions.
-    std::vector<data::File::Writer> partition_writers_;
-
-    //! Rate of sizes of primary to secondary table.
-    double table_rate_ = 0.0;
 
     //! Partition Sequence.
     std::vector<size_t> partition_sequence_;

@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
                                              std::equal_to<size_t>, full_reduce>
                  table(ctx, workers, key_ex, red_fn, writers, core::PreReduceByHashKey<size_t>(),
                        core::PostProbingReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
-                       0, 0, byte_size, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
+                       0, 0, byte_size, max_partition_fill_rate, std::equal_to<size_t>());
 
                  common::StatsTimer<true> timer(true);
 
