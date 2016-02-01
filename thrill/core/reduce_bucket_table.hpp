@@ -383,7 +383,7 @@ protected:
     //! Total number of blocks in the table.
     size_t num_blocks_ = 0;
 
-    //! Number of blocks per partition.
+    //! Current number of items per partition.
     std::vector<size_t> num_items_per_partition_;
 
     //! \}

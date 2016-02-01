@@ -77,13 +77,13 @@ public:
                 size_t fr_begin, size_t fr_end,
                 data::File::Reader& reader,
                 std::vector<KeyValuePair>& second_reduce,
-                size_t fill_rate_num_items_per_frame,
-                size_t frame_id, KeyValuePair& sentinel) const {
+                size_t fill_rate_num_items_per_partition,
+                size_t partition_id, KeyValuePair& sentinel) const {
 
         size_t item_count = 0;
 
-        std::vector<data::File> frame_files_;
-        std::vector<data::File::Writer> frame_writers_;
+        std::vector<data::File> partition_files_;
+        std::vector<data::File::Writer> partition_writers_;
 
         /////
         // reduce data from spilled files
@@ -150,26 +150,26 @@ public:
                     items[i] = sentinel;
 
                 // flush current partition if max partition fill rate reached
-                if (item_count > fill_rate_num_items_per_frame)
+                if (item_count > fill_rate_num_items_per_partition)
                 {
                     // set up files (if not set up already)
-                    if (frame_files_.size() == 0) {
+                    if (partition_files_.size() == 0) {
                         for (size_t i = 0; i < 2; i++) {
-                            frame_files_.push_back(ctx.GetFile());
+                            partition_files_.push_back(ctx.GetFile());
                         }
                         for (size_t i = 0; i < 2; i++) {
-                            frame_writers_.push_back(frame_files_[i].GetWriter());
+                            partition_writers_.push_back(partition_files_[i].GetWriter());
                         }
                     }
 
                     // spill into files
                     Spill(second_reduce,
                           0, second_reduce.size() / 2,
-                          frame_writers_[0], sentinel);
+                          partition_writers_[0], sentinel);
 
                     Spill(second_reduce,
                           second_reduce.size() / 2, second_reduce.size(),
-                          frame_writers_[1], sentinel);
+                          partition_writers_[1], sentinel);
 
                     item_count = 0;
                 }
@@ -215,26 +215,26 @@ public:
             item_count++;
 
             // flush current partition if max partition fill rate reached
-            if (item_count > fill_rate_num_items_per_frame)
+            if (item_count > fill_rate_num_items_per_partition)
             {
                 // set up files (if not set up already)
-                if (frame_files_.size() == 0) {
+                if (partition_files_.size() == 0) {
                     for (size_t i = 0; i < 2; i++) {
-                        frame_files_.push_back(ctx.GetFile());
+                        partition_files_.push_back(ctx.GetFile());
                     }
                     for (size_t i = 0; i < 2; i++) {
-                        frame_writers_.push_back(frame_files_[i].GetWriter());
+                        partition_writers_.push_back(partition_files_[i].GetWriter());
                     }
                 }
 
                 // spill into files
                 Spill(second_reduce,
                       0, second_reduce.size() / 2,
-                      frame_writers_[0], sentinel);
+                      partition_writers_[0], sentinel);
 
                 Spill(second_reduce,
                       second_reduce.size() / 2, second_reduce.size(),
-                      frame_writers_[1], sentinel);
+                      partition_writers_[1], sentinel);
 
                 item_count = 0;
             }
@@ -245,12 +245,12 @@ public:
         /////
 
         // nothing spilled in second reduce
-        if (frame_files_.size() == 0) {
+        if (partition_files_.size() == 0) {
 
             for (size_t i = 0; i < second_reduce.size(); i++) {
                 KeyValuePair& current = second_reduce[i];
                 if (current.first != sentinel.first) {
-                    ht.EmitAll(current, frame_id);
+                    ht.EmitAll(current, partition_id);
                     second_reduce[i] = sentinel;
                 }
             }
@@ -262,27 +262,27 @@ public:
             // spill into files
             Spill(second_reduce,
                   0, second_reduce.size() / 2,
-                  frame_writers_[0], sentinel);
+                  partition_writers_[0], sentinel);
 
             Spill(second_reduce,
                   second_reduce.size() / 2, second_reduce.size(),
-                  frame_writers_[1], sentinel);
+                  partition_writers_[1], sentinel);
 
-            data::File& file0 = frame_files_[0];
-            frame_writers_[0].Close();
+            data::File& file0 = partition_files_[0];
+            partition_writers_[0].Close();
 
             data::File::Reader reader0 = file0.GetReader(true);
             Reduce(ctx, false, ht, second_reduce, 0, 0,
-                   reader0, second_reduce, fill_rate_num_items_per_frame,
-                   frame_id, sentinel);
+                   reader0, second_reduce, fill_rate_num_items_per_partition,
+                   partition_id, sentinel);
 
-            data::File& file1 = frame_files_[1];
-            frame_writers_[1].Close();
+            data::File& file1 = partition_files_[1];
+            partition_writers_[1].Close();
 
             data::File::Reader reader1 = file1.GetReader(true);
             Reduce(ctx, false, ht, second_reduce, 0, 0,
-                   reader1, second_reduce, fill_rate_num_items_per_frame,
-                   frame_id, sentinel);
+                   reader1, second_reduce, fill_rate_num_items_per_partition,
+                   partition_id, sentinel);
         }
     }
 
@@ -291,29 +291,29 @@ public:
 
         std::vector<KeyValuePair>& items = ht.Items();
 
-        std::vector<size_t>& num_items_per_frame = ht.NumItemsPerFrame();
+        std::vector<size_t>& num_items_per_partition = ht.NumItemsPerPartition();
 
-        std::vector<data::File>& frame_files = ht.FrameFiles();
+        std::vector<data::File>& partition_files = ht.PartitionFiles();
 
-        std::vector<data::File::Writer>& frame_writers = ht.FrameWriters();
+        std::vector<data::File::Writer>& partition_writers = ht.PartitionWriters();
 
-        size_t frame_size = ht.FrameSize();
+        size_t partition_size = ht.PartitionSize();
 
-        size_t num_frames = ht.NumFrames();
+        size_t num_partitions = ht.NumPartitions();
 
         KeyValuePair sentinel = ht.Sentinel();
 
-        std::vector<size_t>& frame_sequence = ht.FrameSequence();
+        std::vector<size_t>& partition_sequence = ht.PartitionSequence();
 
-        for (size_t frame_id : frame_sequence)
+        for (size_t partition_id : partition_sequence)
         {
             // get the actual reader from the file
-            data::File& file = frame_files[frame_id];
-            frame_writers[frame_id].Close();
+            data::File& file = partition_files[partition_id];
+            partition_writers[partition_id].Close();
 
-            // compute frame offset of current frame
-            size_t fr_begin = frame_id * frame_size;
-            size_t fr_end = (frame_id + 1) * frame_size;
+            // compute partition offset of current partition
+            size_t fr_begin = partition_id * partition_size;
+            size_t fr_end = (partition_id + 1) * partition_size;
 
             // only if items have been spilled, process a second reduce
             if (file.num_items() > 0)
@@ -324,10 +324,10 @@ public:
                 abort();
 
                 // Reduce(ctx, consume, ht, items, fr_begin, fr_end, reader, second_reduce,
-                //        fill_rate_num_items_per_frame, frame_id, sentinel);
+                //        fill_rate_num_items_per_partition, partition_id, sentinel);
 
                 // no spilled items, just flush already reduced
-                // data in primary table in current frame
+                // data in primary table in current partition
             }
             else
             {
@@ -339,7 +339,7 @@ public:
                     KeyValuePair& current = items[i];
                     if (current.first != sentinel.first)
                     {
-                        ht.EmitAll(current, frame_id);
+                        ht.EmitAll(current, partition_id);
 
                         if (consume)
                         {
@@ -350,10 +350,10 @@ public:
             }
         }
 
-        // set num items per frame to 0
+        // set num items per partition to 0
         if (consume) {
-            for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
-                num_items_per_frame[frame_id] = 0;
+            for (size_t partition_id = 0; partition_id < num_partitions; partition_id++) {
+                num_items_per_partition[partition_id] = 0;
             }
         }
     }
