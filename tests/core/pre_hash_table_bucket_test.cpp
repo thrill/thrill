@@ -346,7 +346,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
 
 // Partial flush of items in table due to
 // max table size constraint, one partition
-TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
+TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {

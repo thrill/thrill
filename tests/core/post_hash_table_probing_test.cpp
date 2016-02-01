@@ -448,7 +448,7 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
     api::RunLocalSameThread(start_func);
 }
 
-TEST_F(PostTable, AboveTableItemsLimit) {
+TEST_F(PostTable, DISABLED_AboveTableItemsLimit) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
