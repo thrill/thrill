@@ -373,7 +373,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
                                        core::PostBucketReduceFlush<int, int, decltype(red_fn)>,
                                        core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
-                  core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, -1, bucket_block_size * 2, 0.5, 0.5, std::equal_to<int>(), 0.0);
+                  core::PostBucketReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, -1, bucket_block_size * 2, 0.5, 0.5, std::equal_to<int>());
 
             table.Insert(0);
             table.Insert(1);

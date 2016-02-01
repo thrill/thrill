@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
                        core::PreReduceByHashKey<size_t>(),
                        core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
                        0, 0, byte_size,
-                       bucket_rate, max_partition_fill_rate, std::equal_to<size_t>(), table_rate);
+                       bucket_rate, max_partition_fill_rate, std::equal_to<size_t>());
 
                  common::StatsTimer<true> timer(true);
 
