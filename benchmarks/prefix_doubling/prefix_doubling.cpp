@@ -313,9 +313,6 @@ DIA<size_t> PrefixDoublinDementiev(Context& /*ctx*/, const InputDIA& input_dia, 
     
     size_t shift_by = 1;
     while (true) {
-
-        printf("shift by %lu\n", shift_by);
-
         DIA<IndexRank> names_sorted =
             names
             .Sort([&](const IndexRank& a, const IndexRank& b) {
@@ -328,8 +325,14 @@ DIA<size_t> PrefixDoublinDementiev(Context& /*ctx*/, const InputDIA& input_dia, 
                     return (a.index & mod_mask) < (b.index & mod_mask);
             });
 
-        if (debug_print)
-            names_sorted.Print("names_sorted"); // Das hier ist wichtig für einer korrekte Ausgabe
+        // This is needed, as names_sorted is NOT collapsed otherwise.
+        size_t workaround =
+            names_sorted
+            .Size();
+        (void)workaround; // This shuts up the compiler regarding an unused variable.
+
+        if (debug_print) // If we have debug_print = true everything works fine.
+            names_sorted.Print("names_sorted");
 
         size_t next_index = 1 << shift_by++;
 
