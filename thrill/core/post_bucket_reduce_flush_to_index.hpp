@@ -383,8 +383,6 @@ public:
 
         std::vector<data::File>& frame_files = ht->FrameFiles();
 
-        std::vector<data::File::Writer>& frame_writers = ht->FrameWriters();
-
         size_t num_buckets_per_frame = ht->NumBucketsPerFrame();
 
         size_t num_frames = ht->NumFrames();
@@ -399,8 +397,6 @@ public:
         {
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
-            data::File::Writer& writer = frame_writers[frame_id];
-            writer.Close(); // also closes the file
 
             // compute frame offset of current frame
             size_t offset = frame_id * num_buckets_per_frame;

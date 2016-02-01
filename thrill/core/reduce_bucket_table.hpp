@@ -217,10 +217,8 @@ public:
             //////
 
             // flush largest partition if max number of blocks reached
-            if (num_blocks_ == limit_blocks_)
-            {
-                SpillAnyPartition(h.partition_id);
-            }
+            while (num_blocks_ > limit_blocks_)
+                SpillAnyPartition();
 
             // allocate a new block of uninitialized items, prepend to bucket
             current = block_pool_.GetBlock();
@@ -241,21 +239,95 @@ public:
         num_items_per_partition_[h.partition_id]++;
 
         // flush current partition if max partition fill rate reached
-        if (num_items_per_partition_[h.partition_id] > limit_items_per_partition_)
-        {
+        while (num_items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
-        }
     }
 
-    void SpillAnyPartition(size_t current_id) {
-        SubTable& t = *static_cast<SubTable*>(this);
-        t.SpillAnyPartition(current_id);
+    //! \name Spilling Mechanisms to External Memory Files
+    //! \{
+
+    //! Spill all items of an arbitrary partition into an external memory File.
+    void SpillAnyPartition() {
+        // maybe make a policy later -tb
+        return SpillLargestPartition();
     }
 
+    //! Spill all items of a partition into an external memory File.
     void SpillPartition(size_t partition_id) {
-        SubTable& t = *static_cast<SubTable*>(this);
-        t.SpillPartition(partition_id);
+
+        data::File::Writer writer = partition_files_[partition_id].GetWriter();
+
+        for (size_t i = partition_id * num_buckets_per_partition_;
+             i < (partition_id + 1) * num_buckets_per_partition_; i++)
+        {
+            BucketBlock* current = buckets_[i];
+
+            while (current != nullptr)
+            {
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
+                {
+                    writer.Put(*bi);
+                }
+
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                block_pool_.Deallocate(current);
+                current = next;
+            }
+
+            buckets_[i] = nullptr;
+        }
+
+        // reset partition specific counter
+        num_items_per_partition_[partition_id] = 0;
     }
+
+    //! Spill all items of the largest partition into an external memory File.
+    void SpillLargestPartition() {
+        // get partition with max size
+        size_t size_max = 0, index = 0;
+
+        for (size_t i = 0; i < num_partitions_; i++)
+        {
+            if (num_items_per_partition_[i] > size_max)
+            {
+                size_max = num_items_per_partition_[i];
+                index = i;
+            }
+        }
+
+        if (size_max == 0) {
+            return;
+        }
+
+        return SpillPartition(index);
+    }
+
+    //! Spill all items of the smallest non-empty partition into an external
+    //! memory File.
+    void SpillSmallestPartition() {
+        // get partition with min size
+        size_t size_min = std::numeric_limits<size_t>::max(), index = 0;
+
+        for (size_t i = 0; i < num_partitions_; i++)
+        {
+            if (num_items_per_partition_[i] < size_min
+                && num_items_per_partition_[i] != 0)
+            {
+                size_min = num_items_per_partition_[i];
+                index = i;
+            }
+        }
+
+        if (size_min == 0 || size_min == std::numeric_limits<size_t>::max()) {
+            return;
+        }
+
+        return SpillPartition(index);
+    }
+
+    //! \}
 
 protected:
     //! Storing the items.
@@ -275,6 +347,9 @@ protected:
 
     //! Bucket block pool.
     BucketBlockPool<BucketBlock> block_pool_;
+
+    //! Store the files for partitions.
+    std::vector<data::File> partition_files_;
 
     //! \name Fixed Operational Parameters
     //! \{
