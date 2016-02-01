@@ -388,8 +388,6 @@ public:
 
         std::vector<BucketBlock*>& items = ht->Items();
 
-        std::vector<BucketBlock*>& second_reduce = ht->SecondTable();
-
         std::vector<size_t>& num_items_mem_per_frame = ht->NumItemsMemPerFrame();
 
         std::vector<data::File>& frame_files = ht->FrameFiles();
@@ -400,15 +398,7 @@ public:
 
         size_t num_frames = ht->NumFrames();
 
-        size_t fill_rate_num_items_per_frame = ht->MaxNumItemsSecondReduce();
-
-        size_t max_num_blocks_second_reduce = ht->MaxNumBlocksSecondReduce();
-
         BucketBlockPool<BucketBlock>& block_pool = ht->BlockPool();
-
-        Context& ctx = ht->Ctx();
-
-        size_t block_size = ht->BlockSize();
 
         std::vector<size_t>& frame_sequence = ht->FrameSequence();
 
@@ -428,11 +418,13 @@ public:
 
                 data::File::Reader reader = file.GetReader(consume);
 
-                Reduce<Table, BucketBlock>(ctx, consume, ht, items, offset,
-                                           length, reader, second_reduce,
-                                           fill_rate_num_items_per_frame,
-                                           frame_id, num_items_mem_per_frame, block_pool,
-                                           max_num_blocks_second_reduce, block_size);
+                // this does not work -tb
+                abort();
+                // Reduce<Table, BucketBlock>(ctx, consume, ht, items, offset,
+                //                            length, reader, second_reduce,
+                //                            fill_rate_num_items_per_frame,
+                //                            frame_id, num_items_mem_per_frame, block_pool,
+                //                            max_num_blocks_second_reduce, block_size);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current frame

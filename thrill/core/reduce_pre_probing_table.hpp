@@ -289,26 +289,6 @@ public:
         sentinel_ = KeyValuePair(sentinel, Value());
         items_.resize(size_, sentinel_);
 
-        // set up second table
-        second_table_size_ = std::max<size_t>(
-            (size_t)((byte_size_ * table_rate_)
-                     / static_cast<double>(sizeof(KeyValuePair))),
-            2);
-
-        // ensure size of second table is even, in order to be able to split by
-        // half for spilling
-        if (second_table_size_ % 2 != 0) {
-            second_table_size_--;
-        }
-        second_table_size_ = std::max<size_t>(2, second_table_size_);
-
-        assert(second_table_size_ > 0);
-
-        second_table_.resize(second_table_size_, sentinel_);
-
-        fill_rate_num_items_second_reduce_ = (size_t)(
-            second_table_size_ * max_partition_fill_rate_);
-
         for (size_t i = 0; i < emit.size(); i++) {
             emit_stats_.push_back(0);
         }
@@ -595,19 +575,11 @@ public:
     //! Returns the vector of key/value pairs.
     std::vector<KeyValuePair> & Items() { return items_;    }
 
-    //! Returns the maximal fill rate.
-    double FillRateNumItemsSecondReduce() const {
-        return fill_rate_num_items_second_reduce_;
-    }
-
     //! Returns the sentinel element.
     KeyValuePair Sentinel() const { return sentinel_; }
 
     //! Returns the partition size.
     size_t FrameSize() const { return num_items_per_partition_; }
-
-    //! Returns the vector of key/value pairs.
-    std::vector<KeyValuePair> & SecondTable() { return second_table_; }
 
     /*!
      * Returns the number of items of a partition.
@@ -753,16 +725,8 @@ private:
     //! Rate of sizes of primary to secondary table.
     double table_rate_ = 0.0;
 
-    //! Storing the secondary table.
-    std::vector<KeyValuePair> second_table_;
-
     //! Number of items per partition considering fill rate.
     size_t fill_rate_num_items_per_partition_ = 0;
-
-    //! Size of the second table.
-    size_t second_table_size_ = 0;
-
-    size_t fill_rate_num_items_second_reduce_ = 0;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;

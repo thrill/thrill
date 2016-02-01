@@ -191,8 +191,7 @@ public:
                           double bucket_rate = 1.0,
                           double max_frame_fill_rate = 0.6,
                           double frame_rate = 0.1,
-                          const EqualToFunction& equal_to_function = EqualToFunction(),
-                          double table_rate_multiplier = 1.05)
+                          const EqualToFunction& equal_to_function = EqualToFunction())
         : ctx_(ctx),
           max_frame_fill_rate_(max_frame_fill_rate),
           emit_(emit),
@@ -215,10 +214,8 @@ public:
 
         num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
 
-        table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_frames_), 0.5);
-
         max_num_blocks_mem_per_frame_ =
-            std::max<size_t>((size_t)(((byte_size_ * (1 - table_rate_)) / num_frames_)
+            std::max<size_t>((size_t)((byte_size_ / num_frames_)
                                       / static_cast<double>(sizeof(BucketBlock))), 1);
 
         max_num_items_mem_per_frame_ = max_num_blocks_mem_per_frame_ * block_size_;
@@ -257,35 +254,6 @@ public:
         for (size_t i = 0; i < num_frames_; i++) {
             frame_writers_.push_back(frame_files_[i].GetWriter());
         }
-
-        // set up second table
-        max_num_blocks_second_reduce_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
-                                                                  / static_cast<double>(sizeof(BucketBlock))), 2);
-
-        max_num_items_second_reduce_ = max_num_blocks_second_reduce_ * block_size_;
-
-        fill_rate_num_items_second_reduce_ = (size_t)(max_num_items_second_reduce_ * max_frame_fill_rate_);
-
-        second_table_size_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_second_reduce_)
-                                                       * bucket_rate), 2);
-
-        // ensure size of second table is even, in order to be able to split by half for spilling
-        if (second_table_size_ % 2 != 0) {
-            second_table_size_--;
-        }
-        second_table_size_ = std::max<size_t>(2, second_table_size_);
-        // reduce max number of blocks of second table to cope for the memory needed for pointers
-        max_num_blocks_second_reduce_ -= std::max<size_t>((size_t)(std::ceil(
-                                                                       static_cast<double>(second_table_size_ * sizeof(BucketBlock*))
-                                                                       / static_cast<double>(sizeof(BucketBlock)))), 0);
-        max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 2);
-
-        assert(max_num_blocks_second_reduce_ > 0);
-        assert(max_num_items_second_reduce_ > 0);
-        assert(fill_rate_num_items_second_reduce_ >= 0);
-        assert(second_table_size_ > 0);
-
-        second_table_.resize(second_table_size_, nullptr);
 
         frame_sequence_.resize(num_frames_, 0);
         size_t idx = 0;
@@ -639,39 +607,12 @@ public:
     }
 
     /*!
-     * Returns the vector of key/value pairs.
-     *
-     * \return Vector of key/value pairs.
-     */
-    std::vector<BucketBlock*> & SecondTable() {
-        return second_table_;
-    }
-
-    /*!
      * Returns the vector of key/value pairs.s
      *
      * \return Vector of key/value pairs.
      */
     Context & Ctx() {
         return ctx_;
-    }
-
-    /*!
-     * Returns the number of spills.
-     *
-     * \return Number of spills.
-     */
-    size_t MaxNumItemsSecondReduce() const {
-        return max_num_items_second_reduce_;
-    }
-
-    /*!
-     * Returns the number of spills.
-     *
-     * \return Number of spills.
-     */
-    size_t MaxNumBlocksSecondReduce() const {
-        return max_num_blocks_second_reduce_;
     }
 
     /*!
@@ -762,22 +703,8 @@ private:
     //! Bucket block pool.
     BucketBlockPool<BucketBlock> block_pool;
 
-    //! Rate of sizes of primary to secondary table.
-    double table_rate_ = 0.0;
-
-    //! Storing the secondary table.
-    std::vector<BucketBlock*> second_table_;
-
-    size_t max_num_items_second_reduce_;
-
     //! Number of items per frame considering fill rate.
     size_t fill_rate_num_items_mem_per_frame_ = 0;
-
-    size_t second_table_size_;
-
-    size_t max_num_blocks_second_reduce_;
-
-    size_t fill_rate_num_items_second_reduce_;
 
     //! Frame Sequence.
     std::vector<size_t> frame_sequence_;

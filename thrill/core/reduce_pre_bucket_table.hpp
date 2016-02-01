@@ -183,8 +183,7 @@ public:
                          size_t byte_size = 1024* 16,
                          double bucket_rate = 1.0,
                          double max_partition_fill_rate = 0.6,
-                         const EqualToFunction& equal_to_function = EqualToFunction(),
-                         double table_rate_multiplier = 1.05)
+                         const EqualToFunction& equal_to_function = EqualToFunction())
         : ctx_(ctx),
           num_partitions_(num_partitions),
           max_partition_fill_rate_(max_partition_fill_rate),
@@ -207,10 +206,8 @@ public:
         assert(bucket_rate >= 0.0 && "bucket_rate must be greater than or equal 0. "
                "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
 
-        table_rate_ = table_rate_multiplier * std::min<double>(1.0 / static_cast<double>(num_partitions_), 0.5);
-
         max_num_blocks_per_partition_ =
-            std::max<size_t>((size_t)(((byte_size_ * (1.0 - table_rate_)) / num_partitions_)
+            std::max<size_t>((size_t)((byte_size_ / num_partitions_)
                                       / static_cast<double>(sizeof(BucketBlock))), 1);
 
         max_num_items_per_partition_ = max_num_blocks_per_partition_ * block_size_;
@@ -253,35 +250,6 @@ public:
             partition_writers_.push_back(partition_files_[i].GetWriter());
         }
 
-        // set up second table
-        max_num_blocks_second_reduce_ = std::max<size_t>((size_t)((byte_size_ * table_rate_)
-                                                                  / static_cast<double>(sizeof(BucketBlock))), 2);
-
-        max_num_items_second_reduce_ = max_num_blocks_second_reduce_ * block_size_;
-
-        fill_rate_num_items_second_reduce_ = (size_t)(max_num_items_second_reduce_ * max_partition_fill_rate_);
-
-        second_table_size_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_second_reduce_)
-                                                       * bucket_rate), 2);
-
-        // ensure size of second table is even, in order to be able to split by half for spilling
-        if (second_table_size_ % 2 != 0) {
-            second_table_size_--;
-        }
-        second_table_size_ = std::max<size_t>(2, second_table_size_);
-        // reduce max number of blocks of second table to cope for the memory needed for pointers
-        max_num_blocks_second_reduce_ -= std::max<size_t>((size_t)(std::ceil(
-                                                                       static_cast<double>(second_table_size_ * sizeof(BucketBlock*))
-                                                                       / static_cast<double>(sizeof(BucketBlock)))), 0);
-        max_num_blocks_second_reduce_ = std::max<size_t>(max_num_blocks_second_reduce_, 2);
-
-        assert(max_num_blocks_second_reduce_ > 0);
-        assert(max_num_items_second_reduce_ > 0);
-        assert(fill_rate_num_items_second_reduce_ >= 0);
-        assert(second_table_size_ > 0);
-
-        second_table_.resize(second_table_size_, nullptr);
-
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
 
@@ -306,9 +274,11 @@ public:
     }
 
     ReducePreBucketTable(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
-                         ReduceFunction reduce_function, std::vector<data::DynBlockWriter>& emit)
-        : ReducePreBucketTable(ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction(),
-                               FlushFunction(reduce_function)) { }
+                         ReduceFunction reduce_function,
+                         std::vector<data::DynBlockWriter>& emit)
+        : ReducePreBucketTable(
+              ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction(),
+              FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
     ReducePreBucketTable(const ReducePreBucketTable&) = delete;
@@ -341,24 +311,27 @@ public:
     }
 
     /*!
-     * Inserts a value into the table, potentially reducing it in case both the key of the value
-     * already in the table and the key of the value to be inserted are the same.
+     * Inserts a value into the table, potentially reducing it in case both the
+     * key of the value already in the table and the key of the value to be
+     * inserted are the same.
      *
-     * An insert may trigger a partial flush of the partition with the most items if the maximal
-     * number of items in the table (max_num_items_per_table_table) is reached.
+     * An insert may trigger a partial flush of the partition with the most
+     * items if the maximal number of items in the table
+     * (max_num_items_per_table_table) is reached.
      *
-     * Alternatively, it may trigger a resize of table in case maximal number of items per
-     * bucket is reached.
+     * Alternatively, it may trigger a resize of table in case maximal number of
+     * items per bucket is reached.
      *
      * \param p Value to be inserted into the table.
      */
     void Insert(const KeyValuePair& kv) {
 
-        typename IndexFunction::IndexResult h = index_function_(kv.first, num_partitions_,
-                                                                num_buckets_per_partition_, num_buckets_per_table_, 0);
+        typename IndexFunction::IndexResult h = index_function_(
+            kv.first, num_partitions_,
+            num_buckets_per_partition_, num_buckets_per_table_, 0);
 
-        assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
-        assert(h.global_index >= 0 && h.global_index < num_buckets_per_table_);
+        assert(h.partition_id < num_partitions_);
+        assert(h.global_index < num_buckets_per_table_);
 
         LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
@@ -732,39 +705,12 @@ public:
     }
 
     /*!
-     * Returns the vector of key/value pairs.
-     *
-     * \return Vector of key/value pairs.
-     */
-    std::vector<BucketBlock*> & SecondTable() {
-        return second_table_;
-    }
-
-    /*!
      * Returns the vector of key/value pairs.s
      *
      * \return Vector of key/value pairs.
      */
     Context & Ctx() {
         return ctx_;
-    }
-
-    /*!
-     * Returns the number of spills.
-     *
-     * \return Number of spills.
-     */
-    size_t MaxNumItemsSecondReduce() const {
-        return max_num_items_second_reduce_;
-    }
-
-    /*!
-     * Returns the number of spills.
-     *
-     * \return Number of spills.
-     */
-    size_t MaxNumBlocksSecondReduce() const {
-        return max_num_blocks_second_reduce_;
     }
 
     /*!
@@ -932,20 +878,6 @@ private:
 
     //! Number of items per partition considering fill rate.
     size_t fill_rate_num_items_per_partition_ = 0;
-
-    //! Rate of sizes of primary to secondary table.
-    double table_rate_ = 0.0;
-
-    //! Storing the secondary table.
-    std::vector<BucketBlock*> second_table_;
-
-    size_t max_num_items_second_reduce_;
-
-    size_t second_table_size_;
-
-    size_t max_num_blocks_second_reduce_;
-
-    size_t fill_rate_num_items_second_reduce_;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;

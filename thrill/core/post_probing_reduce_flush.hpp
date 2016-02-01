@@ -291,8 +291,6 @@ public:
 
         std::vector<KeyValuePair>& items = ht.Items();
 
-        std::vector<KeyValuePair>& second_reduce = ht.SecondTable();
-
         std::vector<size_t>& num_items_per_frame = ht.NumItemsPerFrame();
 
         std::vector<data::File>& frame_files = ht.FrameFiles();
@@ -301,11 +299,7 @@ public:
 
         size_t frame_size = ht.FrameSize();
 
-        size_t fill_rate_num_items_per_frame = ht.FillRateNumItemsSecondReduce();
-
         size_t num_frames = ht.NumFrames();
-
-        Context& ctx = ht.Ctx();
 
         KeyValuePair sentinel = ht.Sentinel();
 
@@ -326,8 +320,11 @@ public:
             {
                 data::File::Reader reader = file.GetReader(consume);
 
-                Reduce(ctx, consume, ht, items, fr_begin, fr_end, reader, second_reduce,
-                       fill_rate_num_items_per_frame, frame_id, sentinel);
+                // this does not work -tb
+                abort();
+
+                // Reduce(ctx, consume, ht, items, fr_begin, fr_end, reader, second_reduce,
+                //        fill_rate_num_items_per_frame, frame_id, sentinel);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current frame
