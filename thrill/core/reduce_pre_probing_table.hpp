@@ -207,8 +207,7 @@ public:
         const Value& neutral_element = Value(),
         size_t byte_size = 1024* 16,
         double max_partition_fill_rate = 0.6,
-        const EqualToFunction& equal_to_function = EqualToFunction(),
-        double table_rate_multiplier = 1.05)
+        const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(num_partitions,
                 key_extractor,
                 reduce_function,
@@ -230,12 +229,8 @@ public:
                && "max_partition_fill_rate must be between 0.0 and 1.0. "
                "with a fill rate of 0.0, items are immediately flushed.");
 
-        table_rate_ = table_rate_multiplier *
-                      std::min<double>(1.0 / static_cast<double>(num_partitions_), 0.5);
-
         partition_size_ = std::max<size_t>(
-            (size_t)(((byte_size_ * (1 - table_rate_))
-                      / static_cast<double>(sizeof(KeyValuePair)))
+            (size_t)((byte_size_ / static_cast<double>(sizeof(KeyValuePair)))
                      / static_cast<double>(num_partitions_)),
             1);
 
@@ -255,9 +250,6 @@ public:
 
         for (size_t i = 0; i < num_partitions_; i++) {
             partition_files_.push_back(ctx.GetFile());
-        }
-        for (size_t i = 0; i < num_partitions_; i++) {
-            partition_writers_.push_back(partition_files_[i].GetWriter());
         }
 
         sentinel_ = KeyValuePair(sentinel, Value());
@@ -301,44 +293,14 @@ public:
     //! non-copyable: delete assignment operator
     ReducePreProbingTable& operator = (const ReducePreProbingTable&) = delete;
 
-    void SpillPartition(size_t partition_id) {
+    void SpillOnePartition(size_t partition_id) {
 
         if (FullPreReduce) {
-            SpillPartition(partition_id);
+            this->SpillPartition(partition_id);
         }
         else {
             FlushPartition(partition_id);
         }
-    }
-
-    /*!
-     * Spill partition of certain partition id.
-     */
-    void SpillOnePartition(size_t partition_id) {
-        LOG << "Spilling items of partition with id: " << partition_id;
-
-        data::File::Writer& writer = partition_writers_[partition_id];
-
-        for (size_t i = partition_id * partition_size_;
-             i < (partition_id + 1) * partition_size_; i++)
-        {
-            KeyValuePair& current = items_[i];
-            if (current.first != sentinel_.first)
-            {
-                writer.Put(current);
-                items_[i] = sentinel_;
-            }
-        }
-
-        if (flush_mode == 1)
-        {
-            total_items_per_partition_[partition_id] += items_per_partition_[partition_id];
-        }
-
-        // reset partition specific counter
-        items_per_partition_[partition_id] = 0;
-
-        LOG << "Spilled items of partition with id: " << partition_id;
     }
 
     /*!
@@ -434,7 +396,7 @@ public:
      *
      * \return Size of the table.
      */
-    size_t Size() const { return size_;    }
+    size_t Size() const { return size_; }
 
     /*!
      * Returns the total num of items in the table.
@@ -456,9 +418,6 @@ public:
 
     //! Returns the vector of partition files.
     std::vector<data::File> & PartitionFiles() { return partition_files_; }
-
-    //! Returns the vector of partition writers.
-    std::vector<data::File::Writer> & PartitionWriters() { return partition_writers_; }
 
     //! Returns the vector of number of items per partition.
     std::vector<size_t> & NumItemsPerPartition() { return items_per_partition_; }
@@ -568,16 +527,13 @@ private:
     using Super::items_per_partition_;
     using Super::partition_size_;
     using Super::sentinel_;
+    using Super::partition_files_;
 
     //! Context
     Context& ctx_;
 
     //! Size of the table in bytes
     size_t byte_size_ = 0;
-
-    //! Maximal allowed fill rate per partition
-    //! before items get spilled.
-    double max_partition_fill_rate_ = 1.0;
 
     //! Set of emitters, one per partition.
     std::vector<data::DynBlockWriter>& emit_;
@@ -588,17 +544,8 @@ private:
     //! Emitter stats.
     std::vector<int> emit_stats_;
 
-    //! Store the files for partitions.
-    std::vector<data::File> partition_files_;
-
-    //! Store the writers for partitions.
-    std::vector<data::File::Writer> partition_writers_;
-
     //! Number of items per partition.
     std::vector<size_t> total_items_per_partition_;
-
-    //! Rate of sizes of primary to secondary table.
-    double table_rate_ = 0.0;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;

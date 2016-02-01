@@ -295,8 +295,6 @@ public:
 
         std::vector<data::File>& partition_files = ht.PartitionFiles();
 
-        std::vector<data::File::Writer>& partition_writers = ht.PartitionWriters();
-
         size_t partition_size = ht.PartitionSize();
 
         size_t num_partitions = ht.NumPartitions();
@@ -309,7 +307,6 @@ public:
         {
             // get the actual reader from the file
             data::File& file = partition_files[partition_id];
-            partition_writers[partition_id].Close();
 
             // compute partition offset of current partition
             size_t fr_begin = partition_id * partition_size;
