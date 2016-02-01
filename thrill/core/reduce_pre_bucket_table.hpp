@@ -183,9 +183,6 @@ public:
         for (size_t i = 0; i < num_partitions_; i++) {
             partition_files_.push_back(ctx.GetFile());
         }
-        for (size_t i = 0; i < num_partitions_; i++) {
-            partition_writers_.push_back(partition_files_[i].GetWriter());
-        }
 
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
@@ -231,53 +228,13 @@ public:
         }
     }
 
-    void SpillPartition(size_t partition_id) {
+    void SpillOnePartition(size_t partition_id) {
         if (FullPreReduce) {
-            SpillOnePartition(partition_id);
+            this->SpillPartition(partition_id);
         }
         else {
             FlushPartition(partition_id);
         }
-    }
-
-    /*!
-     * Spills all items of a partition.
-     *
-     * \param partition_id The id of the partition to be flushed.
-     */
-    void SpillOnePartition(size_t partition_id) {
-
-        data::File::Writer& writer = partition_writers_[partition_id];
-
-        for (size_t i = partition_id * num_buckets_per_partition_;
-             i < (partition_id + 1) * num_buckets_per_partition_; i++)
-        {
-            BucketBlock* current = buckets_[i];
-
-            while (current != nullptr)
-            {
-                for (KeyValuePair* bi = current->items;
-                     bi != current->items + current->size; ++bi)
-                {
-                    writer.Put(*bi);
-                }
-
-                // destroy block and advance to next
-                BucketBlock* next = current->next;
-                block_pool_.Deallocate(current);
-                current = next;
-            }
-
-            buckets_[i] = nullptr;
-        }
-
-        if (flush_mode == 1)
-        {
-            total_items_per_partition_[partition_id] += num_items_per_partition_[partition_id];
-        }
-
-        // reset partition specific counter
-        num_items_per_partition_[partition_id] = 0;
     }
 
     /*!
@@ -489,15 +446,6 @@ public:
     }
 
     /*!
-     * Returns the vector of partition_writers.
-     *
-     * \return Vector of partition_writers.
-     */
-    std::vector<data::File::Writer> & FrameWriters() {
-        return partition_writers_;
-    }
-
-    /*!
      * Returns the number of items of a partition.
      *
      * \param partition_id The id of the partition the number of
@@ -649,6 +597,7 @@ private:
     using Super::limit_blocks_;
     using Super::num_items_per_partition_;
     using Super::limit_items_per_partition_;
+    using Super::partition_files_;
 
     //! Context
     Context& ctx_;
@@ -667,12 +616,6 @@ private:
 
     //! Emitter stats.
     std::vector<size_t> emit_stats_;
-
-    //! Store the files for frames.
-    std::vector<data::File> partition_files_;
-
-    //! Store the writers for frames.
-    std::vector<data::File::Writer> partition_writers_;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;

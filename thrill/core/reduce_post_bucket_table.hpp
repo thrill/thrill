@@ -190,9 +190,6 @@ public:
         for (size_t i = 0; i < num_partitions_; i++) {
             partition_files_.push_back(ctx.GetFile());
         }
-        for (size_t i = 0; i < num_partitions_; i++) {
-            partition_writers_.push_back(partition_files_[i].GetWriter());
-        }
 
         partition_sequence_.resize(num_partitions_, 0);
         size_t idx = 0;
@@ -221,96 +218,6 @@ public:
         flush_function_.FlushTable(consume, this);
 
         LOG << "Flushed items";
-    }
-
-    void SpillAnyPartition(size_t /* current */) {
-        SpillLargestFrame();
-    }
-
-    /*!
-     * Retrieve all items belonging to the frame
-     * having the most items. Retrieved items are then spilled
-     * to the provided file.
-     */
-    void SpillLargestFrame() {
-        // get frame with max size
-        size_t p_size_max = 0;
-        size_t p_idx = 0;
-        for (size_t i = 0; i < num_partitions_; i++)
-        {
-            if (num_items_per_partition_[i] > p_size_max)
-            {
-                p_size_max = num_items_per_partition_[i];
-                p_idx = i;
-            }
-        }
-
-        if (p_size_max == 0) {
-            return;
-        }
-
-        SpillPartition(p_idx);
-    }
-
-    /*!
-     * Retrieve all items belonging to the frame
-     * having the most items. Retrieved items are then spilled
-     * to the provided file.
-     */
-    void SpillSmallestFrame() {
-        // get frame with min size
-        size_t p_size_min = ULONG_MAX;
-        size_t p_idx = 0;
-        for (size_t i = 0; i < num_partitions_; i++)
-        {
-            if (num_items_per_partition_[i] < p_size_min
-                && num_items_per_partition_[i] != 0)
-            {
-                p_size_min = num_items_per_partition_[i];
-                p_idx = i;
-            }
-        }
-
-        if (p_size_min == 0
-            || p_size_min == ULONG_MAX) {
-            return;
-        }
-
-        SpillPartition(p_idx);
-    }
-
-    /*!
-     * Spills all items of a frame.
-     *
-     * \param partition_id The id of the frame to be spilled.
-     */
-    void SpillPartition(size_t partition_id) {
-        data::File::Writer& writer = partition_writers_[partition_id];
-
-        for (size_t i = partition_id * num_buckets_per_partition_;
-             i < (partition_id + 1) * num_buckets_per_partition_; i++)
-        {
-            BucketBlock* current = buckets_[i];
-
-            while (current != nullptr)
-            {
-                for (KeyValuePair* bi = current->items;
-                     bi != current->items + current->size; ++bi)
-                {
-                    writer.Put(*bi);
-                }
-
-                // destroy block and advance to next
-                BucketBlock* next = current->next;
-                block_pool_.Deallocate(current);
-                current = next;
-            }
-
-            buckets_[i] = nullptr;
-        }
-
-        // reset number of blocks in external memory
-        num_items_per_partition_[partition_id] = 0;
     }
 
     /*!
@@ -386,15 +293,6 @@ public:
      */
     std::vector<data::File> & FrameFiles() {
         return partition_files_;
-    }
-
-    /*!
-     * Returns the vector of frame writers.
-     *
-     * \return Vector of frame writers.
-     */
-    std::vector<data::File::Writer> & FrameWriters() {
-        return partition_writers_;
     }
 
     /*!
@@ -475,6 +373,7 @@ private:
     using Super::limit_blocks_;
     using Super::num_items_per_partition_;
     using Super::limit_items_per_partition_;
+    using Super::partition_files_;
 
     //! Context
     Context& ctx_;
@@ -484,12 +383,6 @@ private:
 
     //! Size of the table in bytes.
     size_t byte_size_ = 0;
-
-    //! Store the files for frames.
-    std::vector<data::File> partition_files_;
-
-    //! Store the writers for frames.
-    std::vector<data::File::Writer> partition_writers_;
 
     //! [Begin,end) local index (reduce to index).
     common::Range local_index_;
