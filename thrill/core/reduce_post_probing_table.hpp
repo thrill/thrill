@@ -17,6 +17,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/core/post_probing_reduce_flush.hpp>
 #include <thrill/core/post_probing_reduce_flush_to_index.hpp>
+#include <thrill/core/reduce_probing_table.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
@@ -52,17 +53,17 @@ public:
         : hash_function_(hash_function) { }
 
     IndexResult operator () (const Key& k,
-                             const size_t& num_frames,
-                             const size_t& num_buckets_per_frame,
+                             const size_t& num_partitions,
+                             const size_t& num_buckets_per_partition,
                              const size_t& num_buckets_per_table,
                              const size_t& offset) const {
 
-        (void)num_frames;
+        (void)num_partitions;
         (void)offset;
 
         size_t global_index = hash_function_(k) % num_buckets_per_table;
 
-        return IndexResult { global_index / num_buckets_per_frame, global_index };
+        return IndexResult { global_index / num_buckets_per_partition, global_index };
     }
 
 private:
@@ -82,61 +83,19 @@ public:
     };
 
     IndexResult operator () (const Key& k,
-                             const size_t& num_frames,
-                             const size_t& num_buckets_per_frame,
+                             const size_t& num_partitions,
+                             const size_t& num_buckets_per_partition,
                              const size_t& num_buckets_per_table,
                              const size_t& offset) const {
 
-        (void)num_buckets_per_frame;
+        (void)num_buckets_per_partition;
 
         size_t result = (k - offset) % num_buckets_per_table;
 
-        return IndexResult { result / num_frames, result };
+        return IndexResult { result / num_partitions, result };
     }
 };
 
-/**
- * A data structure which takes an arbitrary value and extracts a key using a
- * key extractor function from that value. A key may also be provided initially
- * as part of a key/value pair, not requiring to extract a key.
- *
- * Afterwards, the key is hashed and the hash is used to assign that key/value
- * pair to some slot.
- *
- * In case a slot already has a key/value pair and the key of that value and the
- * key of the value to be inserted are them same, the values are reduced
- * according to some reduce function. No key/value is added to the data
- * structure.
- *
- * If the keys are different, the next slot (moving to the right) is considered.
- * If the slot is occupied, the same procedure happens again (know as linear
- * probing.)
- *
- * Finally, the key/value pair to be inserted may either:
- *
- * 1.) Be reduced with some other key/value pair, sharing the same key.
- * 2.) Inserted at a free slot.
- * 3.) Trigger a resize of the data structure in case there are no more free
- *     slots in the data structure.
- *
- * The following illustrations shows the general structure of the data
- * structure.  The set of slots is divided into 1..n partitions. Each key is
- * hashed into exactly one partition.
- *
- *
- *     Partition 0 Partition 1 Partition 2 Partition 3 Partition 4
- *     P00 P01 P02 P10 P11 P12 P20 P21 P22 P30 P31 P32 P40 P41 P42
- *    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
- *    ||  |   |   ||  |   |   ||  |   |   ||  |   |   ||  |   |  ||
- *    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
- *                <-   LI  ->
- *                     LI..Local Index
- *    <-        GI         ->
- *              GI..Global Index
- *         PI 0        PI 1        PI 2        PI 3        PI 4
- *         PI..Partition ID
- *
- */
 template <bool, typename EmitterFunction, typename KeyValuePair, typename SendType>
 struct PostProbingEmitImpl;
 
@@ -161,8 +120,24 @@ template <typename ValueType, typename Key, typename Value,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class ReducePostProbingTable
+    : public ReduceProbingTable<
+          ValueType, Key, Value,
+          KeyExtractor, ReduceFunction,
+          !SendPair,
+          IndexFunction, EqualToFunction,
+          ReducePostProbingTable<
+              ValueType, Key, Value,
+              KeyExtractor, ReduceFunction, SendPair, FlushFunction,
+              IndexFunction, EqualToFunction>
+          >
 {
     static const bool debug = true;
+
+    using Super = ReduceProbingTable<
+              ValueType, Key, Value,
+              KeyExtractor, ReduceFunction,
+              !SendPair,
+              IndexFunction, EqualToFunction, ReducePostProbingTable>;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -204,12 +179,12 @@ public:
      * \param byte_size Maximal size of the table in byte. In case size of table
      * exceeds that value, items are spilled to disk.
      *
-     * \param max_frame_fill_rate Maximal number of items per frame relative to
+     * \param max_partition_fill_rate Maximal number of items per partition relative to
      * number of slots allowed to be filled. It the rate is exceeded, items get
      * spilled to disk.
      *
-     * \param frame_rate Rate of number of buckets to number of frames. There is
-     * one file writer per frame.
+     * \param partition_rate Rate of number of buckets to number of partitions. There is
+     * one file writer per partition.
      *
      * \param equal_to_function Function for checking equality of two keys.
      *
@@ -227,68 +202,66 @@ public:
         const Key& sentinel = Key(),
         const Value& neutral_element = Value(),
         size_t byte_size = 1024* 16,
-        double max_frame_fill_rate = 0.6,
-        double frame_rate = 0.1,
+        double max_partition_fill_rate = 0.6,
+        double partition_rate = 0.1,
         const EqualToFunction& equal_to_function = EqualToFunction(),
         double table_rate_multiplier = 1.05)
-        : ctx_(ctx),
+        : Super(std::max<size_t>((size_t)(1.0 / partition_rate), 1),
+                key_extractor,
+                reduce_function,
+                index_function,
+                equal_to_function),
+          ctx_(ctx),
           byte_size_(byte_size),
-          max_frame_fill_rate_(max_frame_fill_rate),
-          key_extractor_(key_extractor),
-          emit_(emit),
-          index_function_(index_function),
-          equal_to_function_(equal_to_function),
           flush_function_(flush_function),
+          emit_(emit),
           local_index_(local_index),
-          neutral_element_(neutral_element),
-          reduce_function_(reduce_function) {
+          neutral_element_(neutral_element) {
 
         assert(byte_size >= 0 &&
                "byte_size must be greater than or equal to 0. "
                "a byte size of zero results in exactly one item per partition");
 
-        assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0 &&
+        assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0 &&
                "max_partition_fill_rate must be between 0.0 and 1.0. "
                "with a fill rate of 0.0, items are immediately flushed.");
 
-        assert(frame_rate > 0.0 && frame_rate <= 1.0 &&
-               "a frame rate of 1.0 causes exactly one frame.");
-
-        num_frames_ = std::max<size_t>((size_t)(1.0 / frame_rate), 1);
+        assert(partition_rate > 0.0 && partition_rate <= 1.0 &&
+               "a partition rate of 1.0 causes exactly one partition.");
 
         table_rate_ = table_rate_multiplier * std::min<double>(
-            1.0 / static_cast<double>(num_frames_), 0.5);
+            1.0 / static_cast<double>(num_partitions_), 0.5);
 
-        frame_size_ = std::max<size_t>(
+        partition_size_ = std::max<size_t>(
             (size_t)(((byte_size_ * (1 - table_rate_))
                       / static_cast<double>(sizeof(KeyValuePair)))
-                     / static_cast<double>(num_frames_)), 1);
+                     / static_cast<double>(num_partitions_)), 1);
 
-        size_ = frame_size_ * num_frames_;
+        size_ = partition_size_ * num_partitions_;
 
-        fill_rate_num_items_per_frame_ =
-            (size_t)(frame_size_ * max_frame_fill_rate_);
+        limit_items_per_partition_ =
+            (size_t)(partition_size_ * max_partition_fill_rate);
 
-        assert(num_frames_ > 0);
-        assert(frame_size_ > 0);
+        assert(num_partitions_ > 0);
+        assert(partition_size_ > 0);
         assert(size_ > 0);
-        assert(fill_rate_num_items_per_frame_ >= 0);
+        assert(limit_items_per_partition_ >= 0);
 
-        items_per_frame_.resize(num_frames_, 0);
+        items_per_partition_.resize(num_partitions_, 0);
 
-        for (size_t i = 0; i < num_frames_; i++) {
-            frame_files_.push_back(ctx.GetFile());
+        for (size_t i = 0; i < num_partitions_; i++) {
+            partition_files_.push_back(ctx.GetFile());
         }
-        for (size_t i = 0; i < num_frames_; i++) {
-            frame_writers_.push_back(frame_files_[i].GetWriter());
+        for (size_t i = 0; i < num_partitions_; i++) {
+            partition_writers_.push_back(partition_files_[i].GetWriter());
         }
 
         sentinel_ = KeyValuePair(sentinel, Value());
         items_.resize(size_, sentinel_);
 
-        frame_sequence_.resize(num_frames_, 0);
-        for (size_t i = 0; i < num_frames_; i++)
-            frame_sequence_[i] = i;
+        partition_sequence_.resize(num_partitions_, 0);
+        for (size_t i = 0; i < num_partitions_; i++)
+            partition_sequence_[i] = i;
     }
 
     ReducePostProbingTable(
@@ -306,96 +279,17 @@ public:
     ReducePostProbingTable& operator = (const ReducePostProbingTable&) = delete;
 
     /*!
-     * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
-     * inserts the pair into the hashtable.
+     * Spills all items of a partition.
+     *
+     * \param partition_id The id of the partition to be spilled.
      */
-    void Insert(const Value& p) {
-        Insert(std::make_pair(key_extractor_(p), p));
-    }
+    void SpillPartition(size_t partition_id) {
+        LOG << "Spilling items of partition with id: " << partition_id;
 
-    /*!
-     * Inserts a value into the table, potentially reducing it in case both the
-     * key of the value already in the table and the key of the value to be
-     * inserted are the same.
-     *
-     * An insert may trigger a partial flush of the partition with the most
-     * items if the maximal number of items in the table (max_num_items_table)
-     * is reached.
-     *
-     * Alternatively, it may trigger a resize of the table in case the maximal
-     * fill ratio per partition is reached.
-     *
-     * \param p Value to be inserted into the table.
-     */
-    void Insert(const KeyValuePair& kv) {
-        static const bool debug = false;
+        data::File::Writer& writer = partition_writers_[partition_id];
 
-        typename IndexFunction::IndexResult h = index_function_(
-            kv.first, num_frames_, frame_size_, size_, 0);
-
-        assert(h.global_index >= 0 && h.global_index < size_);
-
-        KeyValuePair* initial = &items_[h.global_index];
-        KeyValuePair* current = initial;
-        KeyValuePair* last_item = &items_[(h.partition_id + 1) * frame_size_ - 1];
-
-        while (!equal_to_function_(current->first, sentinel_.first))
-        {
-            if (equal_to_function_(current->first, kv.first))
-            {
-                LOG << "match of key: " << kv.first
-                    << " and " << current->first << " ... reducing...";
-
-                current->second = reduce_function_(current->second, kv.second);
-
-                LOG << "...finished reduce!";
-                return;
-            }
-
-            if (current == last_item) {
-                current -= (frame_size_ - 1);
-            }
-            else {
-                ++current;
-            }
-
-            // spill initial slot, if all the other slots
-            // are occupied
-            if (current == initial)
-            {
-                SpillFrame(h.partition_id);
-
-                *current = kv;
-
-                // increase counter for partition
-                items_per_frame_[h.partition_id]++;
-
-                return;
-            }
-        }
-
-        // insert data
-        *current = kv;
-
-        // increase counter for frame
-        items_per_frame_[h.partition_id]++;
-
-        if (items_per_frame_[h.partition_id] > fill_rate_num_items_per_frame_)
-            SpillFrame(h.partition_id);
-    }
-
-    /*!
-     * Spills all items of a frame.
-     *
-     * \param frame_id The id of the frame to be spilled.
-     */
-    void SpillFrame(size_t frame_id) {
-        LOG << "Spilling items of frame with id: " << frame_id;
-
-        data::File::Writer& writer = frame_writers_[frame_id];
-
-        for (size_t i = frame_id * frame_size_;
-             i < (frame_id + 1) * frame_size_; i++)
+        for (size_t i = partition_id * partition_size_;
+             i < (partition_id + 1) * partition_size_; i++)
         {
             KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
@@ -406,9 +300,9 @@ public:
         }
 
         // reset partition specific counter
-        items_per_frame_[frame_id] = 0;
+        items_per_partition_[partition_id] = 0;
 
-        LOG << "Spilled items of frame with id: " << frame_id;
+        LOG << "Spilled items of partition with id: " << partition_id;
     }
 
     /*!
@@ -448,7 +342,7 @@ public:
     size_t NumItems() const {
 
         size_t total_num_items = 0;
-        for (size_t num_items : items_per_frame_) {
+        for (size_t num_items : items_per_partition_) {
             total_num_items += num_items;
         }
 
@@ -456,39 +350,39 @@ public:
     }
 
     /*!
-     * Returns the number of frames.
+     * Returns the number of partitions.
      *
-     * \return Number of frames.
+     * \return Number of partitions.
      */
-    size_t NumFrames() const {
-        return num_frames_;
+    size_t NumPartitions() const {
+        return num_partitions_;
     }
 
     /*!
-     * Returns the vector of frame files.
+     * Returns the vector of partition files.
      *
      * \return Begin local index.
      */
-    std::vector<data::File> & FrameFiles() {
-        return frame_files_;
+    std::vector<data::File> & PartitionFiles() {
+        return partition_files_;
     }
 
     /*!
-     * Returns the vector of frame writers.
+     * Returns the vector of partition writers.
      *
-     * \return Vector of frame writers.
+     * \return Vector of partition writers.
      */
-    std::vector<data::File::Writer> & FrameWriters() {
-        return frame_writers_;
+    std::vector<data::File::Writer> & PartitionWriters() {
+        return partition_writers_;
     }
 
     /*!
-     * Returns the vector of number of items per frame.
+     * Returns the vector of number of items per partition.
      *
-     * \return Vector of number of items per frame.
+     * \return Vector of number of items per partition.
      */
-    std::vector<size_t> & NumItemsPerFrame() {
-        return items_per_frame_;
+    std::vector<size_t> & NumItemsPerPartition() {
+        return items_per_partition_;
     }
 
     /*!
@@ -528,12 +422,12 @@ public:
     }
 
     /*!
-     * Returns the frame size.
+     * Returns the partition size.
      *
-     * \return Frame size.
+     * \return Partition size.
      */
-    size_t FrameSize() const {
-        return frame_size_;
+    size_t PartitionSize() const {
+        return partition_size_;
     }
 
     /*!
@@ -546,45 +440,37 @@ public:
     }
 
     /*!
-     * Returns the sequence of frame ids to
+     * Returns the sequence of partition ids to
      * be processed on flush.
      */
-    std::vector<size_t> & FrameSequence() {
-        return frame_sequence_;
+    std::vector<size_t> & PartitionSequence() {
+        return partition_sequence_;
     }
 
 private:
+    using Super::num_partitions_;
+    using Super::key_extractor_;
+    using Super::reduce_function_;
+    using Super::index_function_;
+    using Super::equal_to_function_;
+    using Super::size_;
+    using Super::items_;
+    using Super::limit_items_per_partition_;
+    using Super::items_per_partition_;
+    using Super::partition_size_;
+    using Super::sentinel_;
+
     //! Context
     Context& ctx_;
 
     //! Size of the table in bytes
     size_t byte_size_ = 0;
 
-    //! Size of the table, which is the number of slots
-    //! available for items.
-    size_t size_ = 0;
-
-    //! Maximal allowed fill rate per partition
-    //! before items get spilled.
-    double max_frame_fill_rate_ = 1.0;
-
-    //! Key extractor function for extracting a key from a value.
-    KeyExtractor key_extractor_;
+    //! Comparator function for keys.
+    FlushFunction flush_function_;
 
     //! Emitter function.
     EmitterFunction emit_;
-
-    //! Frame size.
-    size_t frame_size_ = 0;
-
-    //! Index Calculation functions: Hash or ByIndex.
-    IndexFunction index_function_;
-
-    //! Comparator function for keys.
-    EqualToFunction equal_to_function_;
-
-    //! Comparator function for keys.
-    FlushFunction flush_function_;
 
     //! [Begin,end) local index (reduce to index).
     common::Range local_index_;
@@ -592,35 +478,17 @@ private:
     //! Neutral element (reduce to index).
     Value neutral_element_;
 
-    //! Number of frames.
-    size_t num_frames_ = 0;
+    //! Store the files for partitions.
+    std::vector<data::File> partition_files_;
 
-    //! Storing the items.
-    std::vector<KeyValuePair> items_;
-
-    //! Store the files for frames.
-    std::vector<data::File> frame_files_;
-
-    //! Store the writers for frames.
-    std::vector<data::File::Writer> frame_writers_;
-
-    //! Sentinel element used to flag free slots.
-    KeyValuePair sentinel_;
-
-    //! Number of items per frame.
-    std::vector<size_t> items_per_frame_;
-
-    //! Reduce function for reducing two values.
-    ReduceFunction reduce_function_;
+    //! Store the writers for partitions.
+    std::vector<data::File::Writer> partition_writers_;
 
     //! Rate of sizes of primary to secondary table.
     double table_rate_ = 0.0;
 
-    //! Number of items per frame considering fill rate.
-    size_t fill_rate_num_items_per_frame_ = 0;
-
-    //! Frame Sequence.
-    std::vector<size_t> frame_sequence_;
+    //! Partition Sequence.
+    std::vector<size_t> partition_sequence_;
 };
 
 } // namespace core
