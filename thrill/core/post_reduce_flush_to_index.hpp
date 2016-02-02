@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/post_bucket_reduce_flush_to_index.hpp
+ * thrill/core/post_reduce_flush_to_index.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_POST_BUCKET_REDUCE_FLUSH_TO_INDEX_HEADER
-#define THRILL_CORE_POST_BUCKET_REDUCE_FLUSH_TO_INDEX_HEADER
+#ifndef THRILL_CORE_POST_REDUCE_FLUSH_TO_INDEX_HEADER
+#define THRILL_CORE_POST_REDUCE_FLUSH_TO_INDEX_HEADER
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
@@ -45,13 +45,14 @@ template <typename Key,
           typename IndexFunction = PostReduceByHashKey<Key, std::hash<Key> >,
           typename EqualToFunction = std::equal_to<Key>,
           typename KeyValuePair = std::pair<Key, Value> >
-class PostBucketReduceFlushToIndex
+class PostReduceFlushToIndex
 {
 
 public:
-    PostBucketReduceFlushToIndex(ReduceFunction reduce_function,
-                                 const IndexFunction& index_function = IndexFunction(),
-                                 const EqualToFunction& equal_to_function = EqualToFunction())
+    PostReduceFlushToIndex(
+        ReduceFunction reduce_function,
+        const IndexFunction& index_function = IndexFunction(),
+        const EqualToFunction& equal_to_function = EqualToFunction())
         : reduce_function_(reduce_function),
           index_function_(index_function),
           equal_to_function_(equal_to_function)
@@ -119,6 +120,6 @@ public:
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_POST_BUCKET_REDUCE_FLUSH_TO_INDEX_HEADER
+#endif // !THRILL_CORE_POST_REDUCE_FLUSH_TO_INDEX_HEADER
 
 /******************************************************************************/

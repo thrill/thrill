@@ -15,8 +15,8 @@
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/post_probing_reduce_flush_to_index.hpp>
 #include <thrill/core/post_reduce_flush.hpp>
+#include <thrill/core/post_reduce_flush_to_index.hpp>
 #include <thrill/core/reduce_probing_table.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/block_sink.hpp>
