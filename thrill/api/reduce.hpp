@@ -101,37 +101,37 @@ public:
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters()),
 
-          reduce_pre_table_(
-              context_,
-              parent.ctx().num_workers(),
-              key_extractor,
-              reduce_function_, emitters_,
-              core::PreReduceByHashKey<Key>(),
-              core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-              Key(), Value(), config.pre_table_memlimit),
-          reduce_post_table_(
-              context_, key_extractor_, reduce_function_,
-              [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostReduceByHashKey<Key>(),
-              core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-              common::Range(),
-              Key(), Value(), config.post_table_memlimit)
-
           // reduce_pre_table_(
           //     context_,
           //     parent.ctx().num_workers(),
           //     key_extractor,
           //     reduce_function_, emitters_,
           //     core::PreReduceByHashKey<Key>(),
-          //     core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+          //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
           //     Key(), Value(), config.pre_table_memlimit),
           // reduce_post_table_(
           //     context_, key_extractor_, reduce_function_,
           //     [this](const ValueType& item) { return this->PushItem(item); },
           //     core::PostReduceByHashKey<Key>(),
-          //     core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+          //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
           //     common::Range(),
           //     Key(), Value(), config.post_table_memlimit)
+
+          reduce_pre_table_(
+              context_,
+              parent.ctx().num_workers(),
+              key_extractor,
+              reduce_function_, emitters_,
+              core::PreReduceByHashKey<Key>(),
+              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+              Key(), Value(), config.pre_table_memlimit),
+          reduce_post_table_(
+              context_, key_extractor_, reduce_function_,
+              [this](const ValueType& item) { return this->PushItem(item); },
+              core::PostReduceByHashKey<Key>(),
+              core::PostBucketReduceFlush<Key, Value, ReduceFunction>(reduce_function),
+              common::Range(),
+              Key(), Value(), config.post_table_memlimit)
 
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
@@ -201,29 +201,29 @@ private:
 
     std::vector<data::CatStream::Writer> emitters_;
 
-    core::ReducePreProbingTable<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
-        core::PreReduceByHashKey<Key>,
-        std::equal_to<Key>, false> reduce_pre_table_;
-
-    core::ReducePostProbingTable<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-        core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
-        core::PostReduceByHashKey<Key>,
-        std::equal_to<Key> > reduce_post_table_;
-
-    // core::ReducePreBucketTable<
+    // core::ReducePreProbingTable<
     //     ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-    //     core::PostBucketReduceFlush<Key, Value, ReduceFunction>,
+    //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
     //     core::PreReduceByHashKey<Key>,
-    //     std::equal_to<Key>, 32* 16, false> reduce_pre_table_;
+    //     std::equal_to<Key>, false> reduce_pre_table_;
 
-    // core::ReducePostBucketTable<
+    // core::ReducePostProbingTable<
     //     ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-    //     core::PostBucketReduceFlush<Key, Value, ReduceFunction>,
+    //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
     //     core::PostReduceByHashKey<Key>,
-    //     std::equal_to<Key>, 32* 16> reduce_post_table_;
+    //     std::equal_to<Key> > reduce_post_table_;
+
+    core::ReducePreBucketTable<
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+        core::PostBucketReduceFlush<Key, Value, ReduceFunction>,
+        core::PreReduceByHashKey<Key>,
+        std::equal_to<Key>, 32* 16, false> reduce_pre_table_;
+
+    core::ReducePostBucketTable<
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
+        core::PostBucketReduceFlush<Key, Value, ReduceFunction>,
+        core::PostReduceByHashKey<Key>,
+        std::equal_to<Key>, 32* 16> reduce_post_table_;
 
     bool reduced = false;
 };
