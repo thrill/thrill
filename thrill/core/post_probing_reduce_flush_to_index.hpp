@@ -128,7 +128,7 @@ public:
 
         size_t index = ht.LocalIndex().begin;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
-            ht.EmitAll(std::make_pair(index++, elements_to_emit[i]), 0);
+            ht.EmitAll(0, std::make_pair(index++, elements_to_emit[i]));
             elements_to_emit[i] = neutral_element;
         }
 

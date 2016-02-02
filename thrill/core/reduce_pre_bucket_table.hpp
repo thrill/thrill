@@ -292,48 +292,20 @@ public:
      */
     void FlushPartition(size_t partition_id) {
 
-        LOG << "Flushing items of partition with id: "
-            << partition_id;
+        Super::FlushPartitionE(
+            partition_id, true,
+            [=](const size_t& partition_id, const KeyValuePair& p) {
+                this->EmitAll(partition_id, p);
+            });
 
-        for (size_t i = partition_id * num_buckets_per_partition_;
-             i < (partition_id + 1) * num_buckets_per_partition_; i++)
-        {
-            BucketBlock* current = buckets_[i];
-
-            while (current != nullptr)
-            {
-                for (KeyValuePair* bi = current->items;
-                     bi != current->items + current->size; ++bi)
-                {
-                    EmitAll(*bi, partition_id);
-                }
-
-                // destroy block and advance to next
-                BucketBlock* next = current->next;
-                block_pool_.Deallocate(current);
-                current = next;
-            }
-
-            buckets_[i] = nullptr;
-        }
-
-        if (flush_mode == 1)
-        {
-            total_items_per_partition_[partition_id] -= num_items_per_partition_[partition_id];
-        }
-
-        // reset partition specific counter
-        num_items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
-
-        LOG << "Flushed items of partition with id: " << partition_id;
     }
 
     /*!
      * Emits element to all children
      */
-    void EmitAll(const KeyValuePair& p, const size_t& partition_id) {
+    void EmitAll(const size_t& partition_id, const KeyValuePair& p) {
         emit_stats_[partition_id]++;
         emit_impl_.EmitElement(p, partition_id, emit_);
     }
