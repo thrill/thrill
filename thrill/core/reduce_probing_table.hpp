@@ -248,6 +248,38 @@ public:
 
     //! \}
 
+    //! \name Flushing Mechanisms to Next Stage
+    //! \{
+
+    template <typename Emit>
+    void FlushPartitionE(size_t partition_id, bool consume, Emit emit) {
+        LOG << "Flushing items of partition: " << partition_id;
+
+        size_t begin = partition_id * partition_size_;
+        size_t end = (partition_id + 1) * partition_size_;
+
+        for (size_t i = begin; i != end; ++i)
+        {
+            KeyValuePair& current = items_[i];
+
+            if (current.first != sentinel_.first) {
+                emit(partition_id, current);
+
+                if (consume)
+                    items_[i] = sentinel_;
+            }
+        }
+
+        if (consume) {
+            // reset partition specific counter
+            items_per_partition_[partition_id] = 0;
+        }
+
+        LOG << "Done flushed items of partition: " << partition_id;
+    }
+
+    //! \}
+
 protected:
     //! Context
     Context& ctx_;

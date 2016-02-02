@@ -325,26 +325,15 @@ public:
      * \param partition_id The id of the partition to be flushed.
      */
     void FlushPartition(size_t partition_id) {
-        LOG << "Flushing items of partition with id: " << partition_id;
 
-        for (size_t i = partition_id * partition_size_;
-             i < (partition_id + 1) * partition_size_; i++)
-        {
-            KeyValuePair& current = items_[i];
-            if (current.first != sentinel_.first)
-            {
-                EmitAll(partition_id, current);
+        Super::FlushPartitionE(
+            partition_id, true,
+            [&](const size_t& partition_id, const KeyValuePair& p) {
+                EmitAll(partition_id, p);
+            });
 
-                items_[i] = sentinel_;
-            }
-        }
-
-        // reset partition specific counter
-        items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
-
-        LOG << "Flushed items of partition with id: " << partition_id;
     }
 
     /*!

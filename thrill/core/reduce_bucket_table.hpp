@@ -453,8 +453,10 @@ public:
                 buckets_[i] = nullptr;
         }
 
-        // reset partition specific counter
-        num_items_per_partition_[partition_id] = 0;
+        if (consume) {
+            // reset partition specific counter
+            num_items_per_partition_[partition_id] = 0;
+        }
 
         // flush elements pushed into emitter
         // emit_[partition_id].Flush();

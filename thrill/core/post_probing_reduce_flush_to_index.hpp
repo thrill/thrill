@@ -106,16 +106,12 @@ public:
                 /////
                 // emit data
                 /////
-                for (size_t i = offset; i < length; i++) {
-                    KeyValuePair& current = items[i];
-                    if (current.first != sentinel.first) {
-                        elements_to_emit[current.first - ht.LocalIndex().begin] = current.second;
 
-                        if (consume) {
-                            items[i] = sentinel;
-                        }
-                    }
-                }
+                ht.FlushPartitionE(
+                    frame_id, consume,
+                    [&](const size_t& /* partition_id */, const KeyValuePair& p) {
+                        elements_to_emit[p.first - ht.LocalIndex().begin] = p.second;
+                    });
             }
         }
 
