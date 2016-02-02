@@ -104,7 +104,7 @@ public:
      * \param key_extractor Key extractor function to extract a key from a value.
      * \param reduce_function Reduce function to reduce to values.
      * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
-     * \param byte_size Maximal size of the table in byte. In case size of table exceeds that value, items
+     * \param limit_memory_bytes Maximal size of the table in byte. In case size of table exceeds that value, items
      *                  are flushed.
      * \param bucket_rate Ratio of number of blocks to number of buckets in the table.
      * \param max_partition_fill_rate Maximal number of blocks per partition relative to number of slots allowed
@@ -121,68 +121,27 @@ public:
                          const FlushFunction& flush_function,
                          const Key& /* sentinel */ = Key(),
                          const Value& neutral_element = Value(),
-                         size_t byte_size = 1024* 16,
+                         size_t limit_memory_bytes = 1024* 16,
                          double bucket_rate = 1.0,
-                         double max_partition_fill_rate = 0.6,
+                         double limit_partition_fill_rate = 0.6,
                          const EqualToFunction& equal_to_function = EqualToFunction())
-        : Super(num_partitions,
+        : Super(ctx,
                 key_extractor,
                 reduce_function,
                 index_function,
-                equal_to_function),
-          ctx_(ctx),
+                equal_to_function,
+                num_partitions,
+                limit_memory_bytes,
+                limit_partition_fill_rate,
+                bucket_rate),
           emit_(emit),
-          byte_size_(byte_size),
           flush_function_(flush_function),
           neutral_element_(neutral_element) {
         sLOG << "creating ReducePreBucketTable with" << emit_.size() << "output emitters";
 
         assert(num_partitions == emit.size());
-        assert(byte_size >= 0 && "byte_size must be greater than or equal to 0. "
-               "a byte size of zero results in exactly one item per partition");
-        assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0 && "max_partition_fill_rate "
-               "must be between 0.0 and 1.0. with a fill rate of 0.0, items are immediately flushed.");
-        assert(bucket_rate >= 0.0 && "bucket_rate must be greater than or equal 0. "
-               "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
-
-        max_blocks_per_partition_ =
-            std::max<size_t>((size_t)((byte_size_ / num_partitions_)
-                                      / static_cast<double>(sizeof(BucketBlock))), 1);
-
-        max_items_per_partition_ = max_blocks_per_partition_ * block_size_;
-
-        limit_items_per_partition_ = (size_t)(static_cast<double>(max_items_per_partition_)
-                                              * max_partition_fill_rate);
-
-        num_buckets_per_partition_ =
-            std::max<size_t>((size_t)(static_cast<double>(max_blocks_per_partition_)
-                                      * bucket_rate), 1);
-
-        // reduce max number of blocks per partition to cope for the memory needed for pointers
-        max_blocks_per_partition_ -=
-            std::max<size_t>((size_t)(std::ceil(
-                                          static_cast<double>(num_buckets_per_partition_ * sizeof(BucketBlock*))
-                                          / static_cast<double>(sizeof(BucketBlock)))), 0);
-
-        max_blocks_per_partition_ = std::max<size_t>(max_blocks_per_partition_, 1);
-
-        num_buckets_ = num_buckets_per_partition_ * num_partitions_;
-        limit_blocks_ = max_blocks_per_partition_ * num_partitions_;
-
-        assert(max_blocks_per_partition_ > 0);
-        assert(max_items_per_partition_ > 0);
-        assert(limit_items_per_partition_ >= 0);
-        assert(num_buckets_per_partition_ > 0);
-        assert(num_buckets_ > 0);
-        assert(limit_blocks_ > 0);
-
-        buckets_.resize(num_buckets_, nullptr);
 
         total_items_per_partition_.resize(num_partitions_, 0);
-
-        for (size_t i = 0; i < num_partitions_; i++) {
-            partition_files_.push_back(ctx.GetFile());
-        }
 
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
@@ -598,15 +557,10 @@ private:
     using Super::num_items_per_partition_;
     using Super::limit_items_per_partition_;
     using Super::partition_files_;
-
-    //! Context
-    Context& ctx_;
+    using Super::ctx_;
 
     //! Set of emitters, one per partition.
     std::vector<data::DynBlockWriter>& emit_;
-
-    //! Size of the table in bytes
-    size_t byte_size_ = 0;
 
     //! Flush function.
     FlushFunction flush_function_;

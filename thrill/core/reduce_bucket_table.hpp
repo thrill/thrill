@@ -116,18 +116,99 @@ public:
     };
 
     ReduceBucketTable(
-        size_t num_partitions,
+        Context& ctx,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         const IndexFunction& index_function,
-        const EqualToFunction& equal_to_function)
-        : key_extractor_(key_extractor),
+        const EqualToFunction& equal_to_function,
+        size_t num_partitions,
+        size_t limit_memory_bytes,
+        double limit_partition_fill_rate,
+        double bucket_rate)
+        : ctx_(ctx),
+          key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           index_function_(index_function),
           equal_to_function_(equal_to_function),
           num_partitions_(num_partitions),
+          limit_memory_bytes_(limit_memory_bytes),
           num_items_per_partition_(num_partitions_, 0) {
+
         assert(num_partitions > 0);
+
+        // calculate maximum number of blocks allowed in a partition due to the
+        // memory limit.
+
+        assert(limit_memory_bytes >= 0 &&
+               "limit_memory_bytes must be greater than or equal to 0. "
+               "a byte size of zero results in exactly one item per partition");
+
+        max_blocks_per_partition_ = std::max<size_t>(
+            1,
+            (size_t)(limit_memory_bytes_
+                     / static_cast<double>(num_partitions_)
+                     / static_cast<double>(sizeof(BucketBlock))));
+
+        assert(max_blocks_per_partition_ > 0);
+
+        // calculate limit on the number of _items_ in a partition before these
+        // are spilled to disk or flushed to network.
+
+        assert(limit_partition_fill_rate >= 0.0 && limit_partition_fill_rate <= 1.0
+               && "limit_partition_fill_rate must be between 0.0 and 1.0. "
+               "with a fill rate of 0.0, items are immediately flushed.");
+
+        max_items_per_partition_ = max_blocks_per_partition_ * block_size_;
+
+        limit_items_per_partition_ = (size_t)(
+            static_cast<double>(max_items_per_partition_)
+            * limit_partition_fill_rate);
+
+        assert(max_items_per_partition_ > 0);
+        assert(limit_items_per_partition_ >= 0);
+
+        // calculate number of slots in a partition of the bucket table, i.e.,
+        // the number of bucket pointers per partition
+
+        assert(bucket_rate >= 0.0 &&
+               "bucket_rate must be greater than or equal 0. "
+               "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
+
+        num_buckets_per_partition_ = std::max<size_t>(
+            1,
+            (size_t)(static_cast<double>(max_blocks_per_partition_)
+                     * bucket_rate));
+
+        assert(num_buckets_per_partition_ > 0);
+
+        // reduce max number of blocks per frame to cope for the memory needed
+        // for pointers
+
+        max_blocks_per_partition_ -= std::max<size_t>(
+            0,
+            (size_t)(std::ceil(
+                         static_cast<double>(
+                             num_buckets_per_partition_ * sizeof(BucketBlock*))
+                         / static_cast<double>(sizeof(BucketBlock)))));
+
+        max_blocks_per_partition_ = std::max<size_t>(max_blocks_per_partition_, 1);
+
+        // finally, calculate number of buckets and allocate the table
+
+        num_buckets_ = num_buckets_per_partition_ * num_partitions_;
+        limit_blocks_ = max_blocks_per_partition_ * num_partitions_;
+
+        assert(num_buckets_ > 0);
+        assert(limit_blocks_ > 0);
+
+        buckets_.resize(num_buckets_, nullptr);
+
+        // allocate Files for each partition to spill into. TODO(tb): switch to
+        // FilePtr ondemand
+
+        for (size_t i = 0; i < num_partitions_; i++) {
+            partition_files_.push_back(ctx.GetFile());
+        }
     }
 
     //! non-copyable: delete copy-constructor
@@ -335,6 +416,9 @@ public:
     //! \}
 
 protected:
+    //! Context
+    Context& ctx_;
+
     //! Storing the items.
     std::vector<BucketBlock*> buckets_;
 
@@ -361,6 +445,9 @@ protected:
 
     //! Number of partitions
     size_t num_partitions_;
+
+    //! Size of the table in bytes
+    size_t limit_memory_bytes_;
 
     //! Number of buckets in the table.
     size_t num_buckets_;
