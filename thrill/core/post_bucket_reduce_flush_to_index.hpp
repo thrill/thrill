@@ -58,22 +58,20 @@ public:
     { }
 
     template <typename Table>
-    void FlushTable(bool consume, Table* ht) const {
+    void FlushTable(bool consume, Table& ht) const {
 
-        std::vector<size_t>& num_items_mem_per_frame = ht->NumItemsMemPerFrame();
+        std::vector<data::File>& partition_files = ht.PartitionFiles();
 
-        std::vector<data::File>& frame_files = ht->FrameFiles();
+        size_t num_partitions = ht.NumPartitions();
 
-        size_t num_frames = ht->NumFrames();
+        Value neutral_element = ht.NeutralElement();
 
-        Value neutral_element = ht->NeutralElement();
+        std::vector<Value> elements_to_emit(ht.LocalIndex().size(), neutral_element);
 
-        std::vector<Value> elements_to_emit(ht->LocalIndex().size(), neutral_element);
-
-        for (size_t frame_id = 0; frame_id < num_frames; frame_id++)
+        for (size_t partition_id = 0; partition_id < num_partitions; partition_id++)
         {
             // get the actual reader from the file
-            data::File& file = frame_files[frame_id];
+            data::File& file = partition_files[partition_id];
 
             // only if items have been spilled, process a second reduce
             if (file.num_items() > 0) {
@@ -85,39 +83,31 @@ public:
 
                 // Reduce<Table, BucketBlock>(ctx, consume, ht, items, offset,
                 //                            length, reader, elements_to_emit,
-                //                            fill_rate_num_items_per_frame,
-                //                            frame_id, num_items_mem_per_frame, block_pool,
-                //                            block_size, ht->LocalIndex().begin);
+                //                            fill_rate_num_items_per_partition,
+                //                            partition_id, num_items_mem_per_partition, block_pool,
+                //                            block_size, ht.LocalIndex().begin);
 
                 // no spilled items, just flush already reduced
-                // data in primary table in current frame
+                // data in primary table in current partition
             }
             else {
                 /////
                 // emit data
                 /////
-                ht->FlushPartitionE(
-                    frame_id, consume,
+                ht.FlushPartitionE(
+                    partition_id, consume,
                     [&](const size_t& /* partition_id */, const KeyValuePair& bi) {
-                        elements_to_emit[bi.first - ht->LocalIndex().begin] = bi.second;
+                        elements_to_emit[bi.first - ht.LocalIndex().begin] = bi.second;
                     });
             }
         }
 
-        // set num blocks for table/items per frame to 0
-        if (consume) {
-            ht->SetNumBlocksPerTable(0);
-            for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
-                num_items_mem_per_frame[frame_id] = 0;
-            }
-        }
-
-        size_t index = ht->LocalIndex().begin;
+        size_t index = ht.LocalIndex().begin;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
-            ht->EmitAll(0, std::make_pair(index++, elements_to_emit[i]));
+            ht.EmitAll(0, std::make_pair(index++, elements_to_emit[i]));
             elements_to_emit[i] = neutral_element;
         }
-        assert(index == ht->LocalIndex().end);
+        assert(index == ht.LocalIndex().end);
     }
 
 public:

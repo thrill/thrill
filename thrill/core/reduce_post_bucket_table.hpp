@@ -115,9 +115,9 @@ public:
      * \param limit_memory_bytes Maximal size of the table in byte. In case size of table exceeds that value, items
      *                  are flushed.
      * \param bucket_rate Ratio of number of blocks to number of buckets in the table.
-     * \param limit_partition_fill_rate Maximal number of items relative to maximal number of items in a frame.
+     * \param limit_partition_fill_rate Maximal number of items relative to maximal number of items in a partition.
      *        It the number is exceeded, no more blocks are added to a bucket, instead, items get spilled to disk.
-     * \param partition_rate Rate of number of buckets to number of frames. There is one file writer per frame.
+     * \param partition_rate Rate of number of buckets to number of partitions. There is one file writer per partition.
      * \param equal_to_function Function for checking equality of two keys.
      */
     ReducePostBucketTable(Context& ctx,
@@ -149,7 +149,7 @@ public:
           flush_function_(flush_function) {
 
         assert(partition_rate > 0.0 && partition_rate <= 1.0 &&
-               "a frame rate of 1.0 causes exactly one frame.");
+               "a partition rate of 1.0 causes exactly one partition.");
 
         partition_sequence_.resize(num_partitions_, 0);
         for (size_t i = 0; i < num_partitions_; i++)
@@ -172,7 +172,7 @@ public:
     void Flush(bool consume = false) {
         LOG << "Flushing items";
 
-        flush_function_.FlushTable(consume, this);
+        flush_function_.FlushTable(consume, *this);
 
         LOG << "Flushed items";
     }
@@ -186,11 +186,11 @@ public:
     }
 
     /*!
-     * Returns the num of buckets in a frame.
+     * Returns the num of buckets in a partition.
      *
-     * \return Number of buckets in a frame.
+     * \return Number of buckets in a partition.
      */
-    size_t NumBucketsPerFrame() const {
+    size_t NumBucketsPerPartition() const {
         return num_buckets_per_partition_;
     }
 
@@ -244,29 +244,29 @@ public:
     }
 
     /*!
-     * Returns the vector of frame files.
+     * Returns the vector of partition files.
      *
-     * \return Vector of frame files.
+     * \return Vector of partition files.
      */
-    std::vector<data::File> & FrameFiles() {
+    std::vector<data::File> & PartitionFiles() {
         return partition_files_;
     }
 
     /*!
-     * Returns the vector of number of items per frame in internal memory.
+     * Returns the vector of number of items per partition in internal memory.
      *
-     * \return Vector of number of items per frame in internal memory.
+     * \return Vector of number of items per partition in internal memory.
      */
-    std::vector<size_t> & NumItemsMemPerFrame() {
+    std::vector<size_t> & NumItemsMemPerPartition() {
         return num_items_per_partition_;
     }
 
     /*!
-     * Returns the number of frames.
+     * Returns the number of partitions.
      *
-     * \return Number of frames.
+     * \return Number of partitions.
      */
-    size_t NumFrames() const {
+    size_t NumPartitions() const {
         return num_partitions_;
     }
 
@@ -307,10 +307,10 @@ public:
     }
 
     /*!
-     * Returns the sequence of frame ids to
+     * Returns the sequence of partition ids to
      * be processed on flush.
      */
-    std::vector<size_t> & FrameSequence() {
+    std::vector<size_t> & PartitionSequence() {
         return partition_sequence_;
     }
 
@@ -345,7 +345,7 @@ private:
     //! Flush function.
     FlushFunction flush_function_;
 
-    //! Frame Sequence.
+    //! Partition Sequence.
     std::vector<size_t> partition_sequence_;
 };
 

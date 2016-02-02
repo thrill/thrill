@@ -233,7 +233,7 @@ public:
         }
 
         if (FullPreReduce) {
-            flush_function_.FlushTable(consume, this);
+            flush_function_.FlushTable(consume, *this);
         }
         else {
 
@@ -345,7 +345,7 @@ public:
      *
      * \return Number of buckets per partition.
      */
-    size_t NumBucketsPerFrame() const {
+    size_t NumBucketsPerPartition() const {
         return num_buckets_per_partition_;
     }
 
@@ -354,7 +354,7 @@ public:
      *
      * \return The number of partitions.
      */
-    size_t NumFrames() const {
+    size_t NumPartitions() const {
         return num_partitions_;
     }
 
@@ -372,7 +372,7 @@ public:
      *
      * \return Vector of partition_files.
      */
-    std::vector<data::File> & FrameFiles() {
+    std::vector<data::File> & PartitionFiles() {
         return partition_files_;
     }
 
@@ -392,7 +392,7 @@ public:
      *
      * \return Vector of number of items per partition_in internal memory.
      */
-    std::vector<size_t> & NumItemsMemPerFrame() {
+    std::vector<size_t> & NumItemsMemPerPartition() {
         return num_items_per_partition_;
     }
 
@@ -508,7 +508,7 @@ public:
      * Returns the sequence of partition_ids to
      * be processed on flush.
      */
-    std::vector<size_t> & FrameSequence() {
+    std::vector<size_t> & PartitionSequence() {
         return partition_sequence_;
     }
 

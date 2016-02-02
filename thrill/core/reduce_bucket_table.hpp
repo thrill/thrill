@@ -181,8 +181,8 @@ public:
 
         assert(num_buckets_per_partition_ > 0);
 
-        // reduce max number of blocks per frame to cope for the memory needed
-        // for pointers
+        // reduce max number of blocks per partition to cope for the memory
+        // needed for pointers
 
         max_blocks_per_partition_ -= std::max<size_t>(
             0,

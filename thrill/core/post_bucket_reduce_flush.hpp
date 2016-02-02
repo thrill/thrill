@@ -57,20 +57,16 @@ public:
           equal_to_function_(equal_to_function) { }
 
     template <typename Table>
-    void FlushTable(bool consume, Table* ht) const {
+    void FlushTable(bool consume, Table& ht) const {
 
-        std::vector<size_t>& num_items_mem_per_frame = ht->NumItemsMemPerFrame();
+        std::vector<data::File>& partition_files = ht.PartitionFiles();
 
-        std::vector<data::File>& frame_files = ht->FrameFiles();
+        std::vector<size_t>& partition_sequence = ht.PartitionSequence();
 
-        size_t num_frames = ht->NumFrames();
-
-        std::vector<size_t>& frame_sequence = ht->FrameSequence();
-
-        for (size_t frame_id : frame_sequence) {
+        for (size_t partition_id : partition_sequence) {
 
             // get the actual reader from the file
-            data::File& file = frame_files[frame_id];
+            data::File& file = partition_files[partition_id];
 
             // only if items have been spilled, process a second reduce
             if (file.num_items() > 0) {
@@ -81,30 +77,22 @@ public:
                 abort();
                 // Reduce<Table, BucketBlock>(ctx, consume, ht, items, offset,
                 //                            length, reader, second_reduce,
-                //                            fill_rate_num_items_per_frame,
-                //                            frame_id, num_items_mem_per_frame, block_pool,
+                //                            fill_rate_num_items_per_partition,
+                //                            partition_id, num_items_mem_per_partition, block_pool,
                 //                            max_num_blocks_second_reduce, block_size);
 
                 // no spilled items, just flush already reduced
-                // data in primary table in current frame
+                // data in primary table in current partition
             }
             else {
                 /////
                 // emit data
                 /////
-                ht->FlushPartitionE(
-                    frame_id, consume,
+                ht.FlushPartitionE(
+                    partition_id, consume,
                     [&](const size_t& partition_id, const KeyValuePair& bi) {
-                        ht->EmitAll(partition_id, bi);
+                        ht.EmitAll(partition_id, bi);
                     });
-            }
-        }
-
-        // set num blocks for table/items per frame to 0
-        if (consume) {
-            ht->SetNumBlocksPerTable(0);
-            for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
-                num_items_mem_per_frame[frame_id] = 0;
             }
         }
     }
