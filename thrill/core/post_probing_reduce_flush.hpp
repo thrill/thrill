@@ -59,17 +59,11 @@ public:
     template <typename Table>
     void FlushTable(bool consume, Table& ht) const {
 
-        std::vector<KeyValuePair>& items = ht.Items();
-
         std::vector<size_t>& num_items_per_partition = ht.NumItemsPerPartition();
 
         std::vector<data::File>& partition_files = ht.PartitionFiles();
 
-        size_t partition_size = ht.PartitionSize();
-
         size_t num_partitions = ht.NumPartitions();
-
-        KeyValuePair sentinel = ht.Sentinel();
 
         std::vector<size_t>& partition_sequence = ht.PartitionSequence();
 
@@ -77,10 +71,6 @@ public:
         {
             // get the actual reader from the file
             data::File& file = partition_files[partition_id];
-
-            // compute partition offset of current partition
-            size_t fr_begin = partition_id * partition_size;
-            size_t fr_end = (partition_id + 1) * partition_size;
 
             // only if items have been spilled, process a second reduce
             if (file.num_items() > 0)
@@ -101,19 +91,11 @@ public:
                 /////
                 // emit data
                 /////
-                for (size_t i = fr_begin; i < fr_end; i++)
-                {
-                    KeyValuePair& current = items[i];
-                    if (current.first != sentinel.first)
-                    {
-                        ht.EmitAll(partition_id, current);
-
-                        if (consume)
-                        {
-                            items[i] = sentinel;
-                        }
-                    }
-                }
+                ht.FlushPartitionE(
+                    partition_id, consume,
+                    [&](const size_t& partition_id, const KeyValuePair& p) {
+                        ht.EmitAll(partition_id, p);
+                    });
             }
         }
 
