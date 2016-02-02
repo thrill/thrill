@@ -15,6 +15,11 @@
 
 #include <thrill/core/bucket_block_pool.hpp>
 
+#include <algorithm>
+#include <limits>
+#include <utility>
+#include <vector>
+
 namespace thrill {
 namespace core {
 

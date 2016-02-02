@@ -16,6 +16,9 @@
 namespace thrill {
 namespace core {
 
+#include <utility>
+#include <vector>
+
 /**
  * A data structure which takes an arbitrary value and extracts a key using a
  * key extractor function from that value. A key may also be provided initially
@@ -72,18 +75,66 @@ public:
     using KeyValuePair = std::pair<Key, Value>;
 
     ReduceProbingTable(
-        size_t num_partitions,
+        Context& ctx,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         const IndexFunction& index_function,
-        const EqualToFunction& equal_to_function)
-        : key_extractor_(key_extractor),
+        const EqualToFunction& equal_to_function,
+        size_t num_partitions,
+        size_t limit_memory_bytes,
+        double limit_partition_fill_rate,
+        const Key& sentinel = Key())
+        : ctx_(ctx),
+          key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           index_function_(index_function),
           equal_to_function_(equal_to_function),
           num_partitions_(num_partitions),
+          limit_memory_bytes_(limit_memory_bytes),
           items_per_partition_(num_partitions_, 0) {
         assert(num_partitions > 0);
+
+        // calculate partition_size_ from the memory limit and the number of
+        // partitions required
+
+        assert(limit_memory_bytes >= 0 &&
+               "limit_memory_bytes must be greater than or equal to 0. "
+               "A byte size of zero results in exactly one item per partition");
+
+        partition_size_ = std::max<size_t>(
+            1,
+            (size_t)(limit_memory_bytes_
+                     / static_cast<double>(sizeof(KeyValuePair))
+                     / static_cast<double>(num_partitions_)));
+
+        size_ = partition_size_ * num_partitions_;
+
+        assert(partition_size_ > 0);
+        assert(size_ > 0);
+
+        // calculate limit on the number of items in a partition before these
+        // are spilled to disk or flushed to network.
+
+        assert(limit_partition_fill_rate >= 0.0 && limit_partition_fill_rate <= 1.0
+               && "limit_partition_fill_rate must be between 0.0 and 1.0. "
+               "with a fill rate of 0.0, items are immediately flushed.");
+
+        limit_items_per_partition_ =
+            (size_t)(partition_size_ * limit_partition_fill_rate);
+
+        assert(limit_items_per_partition_ >= 0);
+
+        // construct the hash table itself. fill it with sentinels
+
+        sentinel_ = KeyValuePair(sentinel, Value());
+        items_.resize(size_, sentinel_);
+
+        // allocate Files for each partition to spill into. TODO(tb): switch to
+        // FilePtr ondemand
+
+        for (size_t i = 0; i < num_partitions_; i++) {
+            partition_files_.push_back(ctx.GetFile());
+        }
     }
 
     /*!
@@ -197,6 +248,9 @@ public:
     //! \}
 
 protected:
+    //! Context
+    Context& ctx_;
+
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
 
@@ -223,6 +277,9 @@ protected:
 
     //! Number of partitions.
     size_t num_partitions_;
+
+    //! Limit on the number of bytes used by the table in memory.
+    size_t limit_memory_bytes_ = 0;
 
     //! Size of the table, which is the number of slots available for items.
     size_t size_;

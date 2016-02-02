@@ -180,7 +180,7 @@ public:
      *
      * \param neutral element Neutral element for reduce to index.
      *
-     * \param byte_size Maximal size of the table in byte. In case size of table
+     * \param limit_memory_bytes Maximal size of the table in byte. In case size of table
      * exceeds that value, items are spilled to disk.
      *
      * \param max_partition_fill_rate Maximal number of items per partition
@@ -205,55 +205,25 @@ public:
         const FlushFunction& flush_function,
         const Key& sentinel = Key(),
         const Value& neutral_element = Value(),
-        size_t byte_size = 1024* 16,
-        double max_partition_fill_rate = 0.6,
+        size_t limit_memory_bytes = 1024* 16,
+        double limit_partition_fill_rate = 0.6,
         const EqualToFunction& equal_to_function = EqualToFunction())
-        : Super(num_partitions,
+        : Super(ctx,
                 key_extractor,
                 reduce_function,
                 index_function,
-                equal_to_function),
-          ctx_(ctx),
-          byte_size_(byte_size),
+                equal_to_function,
+                num_partitions,
+                limit_memory_bytes,
+                limit_partition_fill_rate,
+                sentinel),
           emit_(emit),
           flush_function_(flush_function),
           neutral_element_(neutral_element) {
 
-        assert(num_partitions > 0);
         assert(num_partitions == emit.size());
-        assert(byte_size >= 0 &&
-               "byte_size must be greater than or equal to 0. "
-               "a byte size of zero results in exactly one item per partition");
-
-        assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0
-               && "max_partition_fill_rate must be between 0.0 and 1.0. "
-               "with a fill rate of 0.0, items are immediately flushed.");
-
-        partition_size_ = std::max<size_t>(
-            (size_t)((byte_size_ / static_cast<double>(sizeof(KeyValuePair)))
-                     / static_cast<double>(num_partitions_)),
-            1);
-
-        size_ = partition_size_ * num_partitions_;
-
-        limit_items_per_partition_ =
-            (size_t)(partition_size_ * max_partition_fill_rate);
-
-        assert(num_partitions_ > 0);
-        assert(partition_size_ > 0);
-        assert(size_ > 0);
-        assert(limit_items_per_partition_ >= 0);
-
-        items_per_partition_.resize(num_partitions_, 0);
 
         total_items_per_partition_.resize(num_partitions, 0);
-
-        for (size_t i = 0; i < num_partitions_; i++) {
-            partition_files_.push_back(ctx.GetFile());
-        }
-
-        sentinel_ = KeyValuePair(sentinel, Value());
-        items_.resize(size_, sentinel_);
 
         for (size_t i = 0; i < emit.size(); i++) {
             emit_stats_.push_back(0);
@@ -528,12 +498,7 @@ private:
     using Super::partition_size_;
     using Super::sentinel_;
     using Super::partition_files_;
-
-    //! Context
-    Context& ctx_;
-
-    //! Size of the table in bytes
-    size_t byte_size_ = 0;
+    using Super::ctx_;
 
     //! Set of emitters, one per partition.
     std::vector<data::DynBlockWriter>& emit_;
