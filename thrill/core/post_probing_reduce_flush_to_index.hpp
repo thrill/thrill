@@ -62,17 +62,17 @@ public:
 
         std::vector<KeyValuePair>& second_reduce = ht.SecondTable();
 
-        std::vector<size_t>& num_items_per_frame = ht.NumItemsPerFrame();
+        std::vector<size_t>& num_items_per_partition = ht.NumItemsPerPartition();
 
-        std::vector<data::File>& frame_files = ht.FrameFiles();
+        std::vector<data::File>& partition_files = ht.PartitionFiles();
 
-        std::vector<data::File::Writer>& frame_writers = ht.FrameWriters();
+        std::vector<data::File::Writer>& partition_writers = ht.PartitionWriters();
 
-        size_t frame_size = ht.FrameSize();
+        size_t partition_size = ht.PartitionSize();
 
-        size_t num_frames = ht.NumFrames();
+        size_t num_partitions = ht.NumPartitions();
 
-        size_t fill_rate_num_items_per_frame = ht.FillRateNumItemsSecondReduce();
+        size_t fill_rate_num_items_per_partition = ht.FillRateNumItemsSecondReduce();
 
         Value neutral_element = ht.NeutralElement();
 
@@ -82,25 +82,25 @@ public:
 
         KeyValuePair sentinel = ht.Sentinel();
 
-        for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
+        for (size_t partition_id = 0; partition_id < num_partitions; partition_id++) {
             // get the actual reader from the file
-            data::File& file = frame_files[frame_id];
-            data::File::Writer& writer = frame_writers[frame_id];
+            data::File& file = partition_files[partition_id];
+            data::File::Writer& writer = partition_writers[partition_id];
             writer.Close(); // also closes the file
 
-            // compute frame offset of current frame
-            size_t offset = frame_id * frame_size;
-            size_t length = offset + frame_size;
+            // compute partition offset of current partition
+            size_t offset = partition_id * partition_size;
+            size_t length = offset + partition_size;
 
             // only if items have been spilled, process a second reduce
             if (file.num_items() > 0) {
                 data::File::Reader reader = file.GetReader(consume);
 
                 Reduce(ctx, consume, ht, items, offset, length, reader, second_reduce, elements_to_emit,
-                       fill_rate_num_items_per_frame, frame_id, num_items_per_frame, sentinel, ht.LocalIndex().begin);
+                       fill_rate_num_items_per_partition, partition_id, num_items_per_partition, sentinel, ht.LocalIndex().begin);
 
                 // no spilled items, just flush already reduced
-                // data in primary table in current frame
+                // data in primary table in current partition
             }
             else {
                 /////
@@ -108,17 +108,17 @@ public:
                 /////
 
                 ht.FlushPartitionE(
-                    frame_id, consume,
+                    partition_id, consume,
                     [&](const size_t& /* partition_id */, const KeyValuePair& p) {
                         elements_to_emit[p.first - ht.LocalIndex().begin] = p.second;
                     });
             }
         }
 
-        // set num items per frame to 0
+        // set num items per partition to 0
         if (consume) {
-            for (size_t frame_id = 0; frame_id < num_frames; frame_id++) {
-                num_items_per_frame[frame_id] = 0;
+            for (size_t partition_id = 0; partition_id < num_partitions; partition_id++) {
+                num_items_per_partition[partition_id] = 0;
             }
         }
 

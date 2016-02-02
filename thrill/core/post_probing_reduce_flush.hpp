@@ -48,9 +48,10 @@ template <typename Key,
 class PostProbingReduceFlush
 {
 public:
-    PostProbingReduceFlush(ReduceFunction reduce_function,
-                           const IndexFunction& index_function = IndexFunction(),
-                           const EqualToFunction& equal_to_function = EqualToFunction())
+    PostProbingReduceFlush(
+        ReduceFunction reduce_function,
+        const IndexFunction& index_function = IndexFunction(),
+        const EqualToFunction& equal_to_function = EqualToFunction())
         : reduce_function_(reduce_function),
           index_function_(index_function),
           equal_to_function_(equal_to_function)
@@ -59,11 +60,7 @@ public:
     template <typename Table>
     void FlushTable(bool consume, Table& ht) const {
 
-        std::vector<size_t>& num_items_per_partition = ht.NumItemsPerPartition();
-
         std::vector<data::File>& partition_files = ht.PartitionFiles();
-
-        size_t num_partitions = ht.NumPartitions();
 
         std::vector<size_t>& partition_sequence = ht.PartitionSequence();
 
@@ -96,13 +93,6 @@ public:
                     [&](const size_t& partition_id, const KeyValuePair& p) {
                         ht.EmitAll(partition_id, p);
                     });
-            }
-        }
-
-        // set num items per partition to 0
-        if (consume) {
-            for (size_t partition_id = 0; partition_id < num_partitions; partition_id++) {
-                num_items_per_partition[partition_id] = 0;
             }
         }
     }
