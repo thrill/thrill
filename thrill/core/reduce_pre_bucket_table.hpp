@@ -19,8 +19,8 @@
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/post_bucket_reduce_flush.hpp>
 #include <thrill/core/post_bucket_reduce_flush_to_index.hpp>
+#include <thrill/core/post_reduce_flush.hpp>
 #include <thrill/core/reduce_bucket_table.hpp>
 #include <thrill/core/reduce_pre_probing_table.hpp>
 #include <thrill/data/block_writer.hpp>
@@ -58,7 +58,7 @@ struct PreBucketEmitImpl<false, Emitters, KeyValuePair>{
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
-          typename FlushFunction = PostBucketReduceFlush<Key, Value, ReduceFunction>,
+          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
           typename IndexFunction = PreReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           size_t TargetBlockSize = 16*16,

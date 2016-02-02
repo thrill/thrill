@@ -20,8 +20,8 @@
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/post_bucket_reduce_flush.hpp>
 #include <thrill/core/post_bucket_reduce_flush_to_index.hpp>
+#include <thrill/core/post_reduce_flush.hpp>
 #include <thrill/core/reduce_bucket_table.hpp>
 #include <thrill/core/reduce_post_probing_table.hpp>
 #include <thrill/data/block_pool.hpp>
@@ -63,7 +63,7 @@ struct PostBucketEmitImpl<false, EmitterFunction, KeyValuePair, SendType>{
 template <typename ValueType, typename Key, typename Value, // TODO(ms): dont need both ValueType and Value
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename FlushFunction = PostBucketReduceFlush<Key, Value, ReduceFunction>,
+          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           size_t TargetBlockSize = 16*16
