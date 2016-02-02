@@ -103,14 +103,14 @@ public:
                             parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_,
                             core::PreReduceByIndex<Key>(result_size),
-                            core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
+                            core::PostReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
                             Key(), neutral_element_,
                             1024 * 1024 * 32, 1.0, 0.6),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
               core::PostReduceByIndex<Key>(),
-              core::PostBucketReduceFlushToIndex<
+              core::PostReduceFlushToIndex<
                   Key, Value, ReduceFunction, core::PostReduceByIndex<Key> >(reduce_function),
               common::CalculateLocalRange(
                   result_size_, context_.num_workers(), context_.my_rank()),
@@ -192,13 +192,13 @@ private:
 
     core::ReducePreBucketTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>,
+        core::PostReduceFlushToIndex<Key, Value, ReduceFunction>,
         core::PreReduceByIndex<Key>,
         std::equal_to<Key>, 16*16> reduce_pre_table_;
 
     core::ReducePostBucketTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-        core::PostBucketReduceFlushToIndex<
+        core::PostReduceFlushToIndex<
             Key, Value, ReduceFunction, core::PostReduceByIndex<Key> >,
         core::PostReduceByIndex<Key>,
         std::equal_to<Key>, 16*16> reduce_post_table_;
