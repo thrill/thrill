@@ -415,6 +415,55 @@ public:
 
     //! \}
 
+    //! \name Flushing Mechanisms to Next Stage
+    //! \{
+
+    template <typename Emit>
+    void FlushPartitionE(size_t partition_id, bool consume, Emit emit) {
+        LOG << "Flushing items of partition: " << partition_id;
+
+        size_t begin = partition_id * num_buckets_per_partition_;
+        size_t end = (partition_id + 1) * num_buckets_per_partition_;
+
+        for (size_t i = begin; i != end; i++)
+        {
+            BucketBlock* current = buckets_[i];
+
+            while (current != nullptr)
+            {
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
+                {
+                    emit(partition_id, *bi);
+                }
+
+                if (consume) {
+                    // destroy block and advance to next
+                    BucketBlock* next = current->next;
+                    block_pool_.Deallocate(current);
+                    current = next;
+                }
+                else {
+                    // advance to next
+                    current = current->next;
+                }
+            }
+
+            if (consume)
+                buckets_[i] = nullptr;
+        }
+
+        // reset partition specific counter
+        num_items_per_partition_[partition_id] = 0;
+
+        // flush elements pushed into emitter
+        // emit_[partition_id].Flush();
+
+        LOG << "Done flushing items of partition:" << partition_id;
+    }
+
+    //! \}
+
 protected:
     //! Context
     Context& ctx_;

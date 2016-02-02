@@ -333,15 +333,10 @@ public:
             KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
             {
-                EmitAll(current, partition_id);
+                EmitAll(partition_id, current);
 
                 items_[i] = sentinel_;
             }
-        }
-
-        if (flush_mode == 1)
-        {
-            total_items_per_partition_[partition_id] -= items_per_partition_[partition_id];
         }
 
         // reset partition specific counter
@@ -355,7 +350,7 @@ public:
     /*!
      * Emits element to all children
      */
-    void EmitAll(const KeyValuePair& p, const size_t& partition_id) {
+    void EmitAll(const size_t& partition_id, const KeyValuePair& p) {
         emit_stats_[partition_id]++;
         emit_impl_.EmitElement(p, partition_id, emit_);
     }

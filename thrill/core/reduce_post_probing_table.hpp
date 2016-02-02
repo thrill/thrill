@@ -255,7 +255,7 @@ public:
     /*!
      * Emits element to all children
      */
-    void EmitAll(const KeyValuePair& p, const size_t& partition_id) {
+    void EmitAll(const size_t& partition_id, const KeyValuePair& p) {
         (void)partition_id;
         emit_impl_.EmitElement(p, emit_);
     }

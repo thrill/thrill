@@ -106,7 +106,7 @@ public:
                     KeyValuePair& current = items[i];
                     if (current.first != sentinel.first)
                     {
-                        ht.EmitAll(current, partition_id);
+                        ht.EmitAll(partition_id, current);
 
                         if (consume)
                         {

@@ -59,19 +59,11 @@ public:
     template <typename Table>
     void FlushTable(bool consume, Table* ht) const {
 
-        using BucketBlock = typename Table::BucketBlock;
-
-        std::vector<BucketBlock*>& items = ht->Items();
-
         std::vector<size_t>& num_items_mem_per_frame = ht->NumItemsMemPerFrame();
 
         std::vector<data::File>& frame_files = ht->FrameFiles();
 
-        size_t num_buckets_per_frame = ht->NumBucketsPerFrame();
-
         size_t num_frames = ht->NumFrames();
-
-        BucketBlockPool<BucketBlock>& block_pool = ht->BlockPool();
 
         std::vector<size_t>& frame_sequence = ht->FrameSequence();
 
@@ -79,10 +71,6 @@ public:
 
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
-
-            // compute frame offset of current frame
-            size_t offset = frame_id * num_buckets_per_frame;
-            size_t length = offset + num_buckets_per_frame;
 
             // only if items have been spilled, process a second reduce
             if (file.num_items() > 0) {
@@ -104,30 +92,11 @@ public:
                 /////
                 // emit data
                 /////
-                for (size_t i = offset; i < length; i++) {
-                    BucketBlock* current = items[i];
-
-                    while (current != nullptr) {
-                        for (KeyValuePair* bi = current->items;
-                             bi != current->items + current->size; ++bi) {
-                            ht->EmitAll(*bi, frame_id);
-                        }
-
-                        // advance to next
-                        if (consume) {
-                            BucketBlock* next = current->next;
-                            block_pool.Deallocate(current);
-                            current = next;
-                        }
-                        else {
-                            current = current->next;
-                        }
-                    }
-
-                    if (consume) {
-                        items[i] = nullptr;
-                    }
-                }
+                ht->FlushPartitionE(
+                    frame_id, consume,
+                    [&](const size_t& partition_id, const KeyValuePair& bi) {
+                        ht->EmitAll(partition_id, bi);
+                    });
             }
         }
 
