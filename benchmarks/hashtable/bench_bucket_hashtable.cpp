@@ -104,13 +104,13 @@ int main(int argc, char* argv[]) {
 
                  core::ReducePreBucketTable<
                      size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-                     core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>,
+                     core::PostReduceFlush<size_t, size_t, decltype(red_fn)>,
                      core::PreReduceByHashKey<size_t>,
                      std::equal_to<size_t>, target_block_size, full_reduce>
                  table(ctx,
                        workers, key_ex, red_fn, writers,
                        core::PreReduceByHashKey<size_t>(),
-                       core::PostBucketReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
+                       core::PostReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
                        0, 0, byte_size,
                        bucket_rate, max_partition_fill_rate, std::equal_to<size_t>());
 
