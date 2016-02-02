@@ -92,6 +92,7 @@ public:
           num_partitions_(num_partitions),
           limit_memory_bytes_(limit_memory_bytes),
           items_per_partition_(num_partitions_, 0) {
+
         assert(num_partitions > 0);
 
         // calculate partition_size_ from the memory limit and the number of
