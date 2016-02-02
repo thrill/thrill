@@ -152,11 +152,8 @@ public:
                "a frame rate of 1.0 causes exactly one frame.");
 
         partition_sequence_.resize(num_partitions_, 0);
-        size_t idx = 0;
         for (size_t i = 0; i < num_partitions_; i++)
-        {
-            partition_sequence_[idx++] = i;
-        }
+            partition_sequence_[i] = i;
     }
 
     ReducePostBucketTable(Context& ctx, KeyExtractor key_extractor,

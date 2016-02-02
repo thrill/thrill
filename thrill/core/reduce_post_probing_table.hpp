@@ -389,9 +389,6 @@ private:
     using Super::partition_files_;
     using Super::ctx_;
 
-    //! Size of the table in bytes
-    size_t limit_memory_bytes_ = 0;
-
     //! Comparator function for keys.
     FlushFunction flush_function_;
 

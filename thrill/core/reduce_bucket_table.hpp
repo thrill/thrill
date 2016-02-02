@@ -172,7 +172,7 @@ public:
 
         assert(bucket_rate >= 0.0 &&
                "bucket_rate must be greater than or equal 0. "
-               "a bucket rate of 0.0 causes exacty 1 bucket per partition.");
+               "a bucket rate of 0.0 causes exactly 1 bucket per partition.");
 
         num_buckets_per_partition_ = std::max<size_t>(
             1,
