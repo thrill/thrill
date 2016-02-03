@@ -13,8 +13,6 @@
 #ifndef THRILL_CORE_REDUCE_HASH_TABLE_HEADER
 #define THRILL_CORE_REDUCE_HASH_TABLE_HEADER
 
-#include <thrill/core/bucket_block_pool.hpp>
-
 #include <algorithm>
 #include <limits>
 #include <utility>
