@@ -61,7 +61,7 @@ public:
     template <typename Table>
     void FlushTable(bool consume, Table& ht) const {
 
-        std::vector<data::File>& partition_files = ht.PartitionFiles();
+        std::vector<data::File>& partition_files = ht.partition_files();
 
         size_t num_partitions = partition_files.size();
 

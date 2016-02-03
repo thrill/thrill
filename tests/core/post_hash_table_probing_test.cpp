@@ -94,19 +94,19 @@ TEST_F(PostTable, CustomHashFunction) {
             table(ctx, key_ex, red_fn, emit, cust_hash, flush_func, common::Range(0, 0), int(), 0, 1024 * 32);
 
             ASSERT_EQ(0u, writer1.size());
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
 
             for (int i = 0; i < 16; i++) {
                 table.Insert(std::move(pair(i)));
             }
 
             ASSERT_EQ(0u, writer1.size());
-            ASSERT_EQ(16u, table.NumItems());
+            ASSERT_EQ(16u, table.num_items());
 
             table.Flush(true);
 
             // ASSERT_EQ(16u, writer1.size());
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
         };
 
     api::RunLocalSameThread(start_func);
@@ -138,11 +138,11 @@ TEST_F(PostTable, AddIntegers) {
             table.Insert(pair(2));
             table.Insert(pair(3));
 
-            ASSERT_EQ(3u, table.NumItems());
+            ASSERT_EQ(3u, table.num_items());
 
             table.Insert(pair(2));
 
-            ASSERT_EQ(3u, table.NumItems());
+            ASSERT_EQ(3u, table.num_items());
 
             table.Flush();
 
@@ -174,7 +174,7 @@ TEST_F(PostTable, CreateEmptyTable) {
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
             table(ctx, key_ex, red_fn, emit, -1);
 
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
         };
 
     api::RunLocalSameThread(start_func);
@@ -205,16 +205,16 @@ TEST_F(PostTable, FlushIntegers) {
             table.Insert(pair(2));
             table.Insert(pair(3));
 
-            ASSERT_EQ(3u, table.NumItems());
+            ASSERT_EQ(3u, table.num_items());
 
             table.Flush(true);
 
             ASSERT_EQ(3u, writer1.size());
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
 
             table.Insert(pair(1));
 
-            ASSERT_EQ(1u, table.NumItems());
+            ASSERT_EQ(1u, table.num_items());
         };
 
     api::RunLocalSameThread(start_func);
@@ -245,16 +245,16 @@ TEST_F(PostTable, FlushIntegersInSequence) {
             table.Insert(pair(2));
             table.Insert(pair(3));
 
-            ASSERT_EQ(3u, table.NumItems());
+            ASSERT_EQ(3u, table.num_items());
 
             table.Flush(true);
 
             ASSERT_EQ(3u, writer1.size());
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
 
             table.Insert(pair(1));
 
-            ASSERT_EQ(1u, table.NumItems());
+            ASSERT_EQ(1u, table.num_items());
         };
 
     api::RunLocalSameThread(start_func);
@@ -290,17 +290,17 @@ TEST_F(PostTable, MultipleEmitters) {
             table.Insert(pair(2));
             table.Insert(pair(3));
 
-            ASSERT_EQ(3u, table.NumItems());
+            ASSERT_EQ(3u, table.num_items());
 
             table.Flush(true);
 
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
             ASSERT_EQ(3u, writer1.size());
             ASSERT_EQ(3u, writer2.size());
 
             table.Insert(pair(1));
 
-            ASSERT_EQ(1u, table.NumItems());
+            ASSERT_EQ(1u, table.num_items());
         };
 
     api::RunLocalSameThread(start_func);
@@ -333,15 +333,15 @@ TEST_F(PostTable, ComplexType) {
             table.Insert(std::make_pair("hello", std::make_pair("hello", 2)));
             table.Insert(std::make_pair("bonjour", std::make_pair("bonjour", 3)));
 
-            ASSERT_EQ(3u, table.NumItems());
+            ASSERT_EQ(3u, table.num_items());
 
             table.Insert(std::make_pair("hello", std::make_pair("hello", 5)));
 
-            ASSERT_EQ(3u, table.NumItems());
+            ASSERT_EQ(3u, table.num_items());
 
             table.Insert(std::make_pair("baguette", std::make_pair("baguette", 42)));
 
-            ASSERT_EQ(4u, table.NumItems());
+            ASSERT_EQ(4u, table.num_items());
         };
 
     api::RunLocalSameThread(start_func);
@@ -377,20 +377,20 @@ TEST_F(PostTable, WithinTableItemsLimit) {
                   1,
                   std::equal_to<int>());
 
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
 
             size_t num_items = (size_t)(static_cast<double>(total_items) * fill_rate);
 
             for (size_t i = 0; i < num_items; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
-            ASSERT_EQ(num_items, table.NumItems());
+            ASSERT_EQ(num_items, table.num_items());
 
             ASSERT_EQ(0u, writer1.size());
 
             table.Flush(true);
 
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
             ASSERT_EQ(num_items, writer1.size());
         };
 
@@ -427,7 +427,7 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
                   1,
                   std::equal_to<int>());
 
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
 
             size_t num_items = (size_t)(static_cast<double>(total_items) * fill_rate);
 
@@ -435,13 +435,13 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
                 table.Insert(pair(static_cast<int>(i)));
             }
 
-            ASSERT_EQ(num_items, table.NumItems());
+            ASSERT_EQ(num_items, table.num_items());
 
             ASSERT_EQ(0u, writer1.size());
 
             table.Flush(true);
 
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
             ASSERT_EQ(num_items, writer1.size());
         };
 
@@ -481,26 +481,26 @@ TEST_F(PostTable, DISABLED_AboveTableItemsLimit) {
 
             size_t num_items = (size_t)(static_cast<double>(total_items) * fill_rate);
 
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
 
             for (size_t i = 0; i < num_items; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
 
-            ASSERT_TRUE(table.NumItems() <= num_items);
+            ASSERT_TRUE(table.num_items() <= num_items);
 
             for (size_t i = num_items; i < num_items + on_top; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
 
-            ASSERT_TRUE(table.NumItems() <= num_items + on_top);
+            ASSERT_TRUE(table.num_items() <= num_items + on_top);
 
             ASSERT_EQ(0u, writer1.size());
 
             table.Flush(true);
 
             ASSERT_EQ(num_items + on_top, writer1.size());
-            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.num_items());
         };
 
     api::RunLocalSameThread(start_func);

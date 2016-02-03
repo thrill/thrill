@@ -278,24 +278,6 @@ public:
         emit_impl_.EmitElement(p, partition_id, emit_);
     }
 
-    /*!
-     * Returns the total num of items in the table.
-     *
-     * \return Number of items in the table.
-     */
-    size_t NumItems() const {
-
-        size_t total_num_items = 0;
-        for (size_t num_items : items_per_partition_) {
-            total_num_items += num_items;
-        }
-
-        return total_num_items;
-    }
-
-    //! Returns the sentinel element.
-    KeyValuePair Sentinel() const { return sentinel_; }
-
     //! Returns the neutral element.
     Value NeutralElement() const { return neutral_element_; }
 
