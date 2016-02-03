@@ -150,10 +150,6 @@ public:
 
         assert(partition_rate > 0.0 && partition_rate <= 1.0 &&
                "a partition rate of 1.0 causes exactly one partition.");
-
-        partition_sequence_.resize(num_partitions_, 0);
-        for (size_t i = 0; i < num_partitions_; i++)
-            partition_sequence_[i] = i;
     }
 
     ReducePostBucketTable(Context& ctx, KeyExtractor key_extractor,
@@ -306,14 +302,6 @@ public:
         return num_blocks_;
     }
 
-    /*!
-     * Returns the sequence of partition ids to
-     * be processed on flush.
-     */
-    std::vector<size_t> & PartitionSequence() {
-        return partition_sequence_;
-    }
-
 private:
     using Super::buckets_;
     using Super::key_extractor_;
@@ -344,9 +332,6 @@ private:
 
     //! Flush function.
     FlushFunction flush_function_;
-
-    //! Partition Sequence.
-    std::vector<size_t> partition_sequence_;
 };
 
 } // namespace core
