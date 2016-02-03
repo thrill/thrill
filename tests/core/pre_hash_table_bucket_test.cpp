@@ -213,14 +213,13 @@ TEST_F(PreTable, PopIntegers) {
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
-            const size_t TargetBlockSize = 8 * 8;
             const size_t bucket_block_size = sizeof(core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                                                                core::PostReduceFlush<int, int, decltype(red_fn)>, core::PreReduceByHashKey<int>,
-                                                                               std::equal_to<int>, TargetBlockSize>::BucketBlock);
+                                                                               std::equal_to<int> >::BucketBlock);
 
             core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                        core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                       core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+                                       core::PreReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, bucket_block_size * 2, 0.0, 1.0);
 
@@ -364,14 +363,13 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
-            const size_t TargetBlockSize = 8 * 8;
             const size_t bucket_block_size = sizeof(core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                                                                core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                                                               core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+                                                                               core::PreReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
 
             core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                        core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                       core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+                                       core::PreReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), -1, -1, bucket_block_size * 2, 0.5, 0.5, std::equal_to<int>());
 
@@ -522,14 +520,13 @@ TEST_F(PreTable, MultipleWorkers) {
             writers.emplace_back(output1.GetDynWriter());
             writers.emplace_back(output2.GetDynWriter());
 
-            const size_t TargetBlockSize = 8 * 8;
             const size_t bucket_block_size = sizeof(core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                                                                core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                                                               core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+                                                                               core::PreReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
 
             core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                        core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                       core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+                                       core::PreReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int,
                                         decltype(red_fn)>(red_fn), -1, bucket_block_size * 2, 1.0, 0.5);
@@ -624,14 +621,13 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
             const size_t nitems_per_key = 10;
             const size_t nitems = 1 * 4 * 1024;
 
-            const size_t TargetBlockSize = nitems * sizeof(MyStruct);
             const size_t bucket_block_size = sizeof(core::ReducePreBucketTable<MyStruct, int, MyStruct, decltype(key_ex), decltype(red_fn), true,
                                                                                core::PostReduceFlush<int, MyStruct, decltype(red_fn)>,
-                                                                               core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+                                                                               core::PreReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
 
             core::ReducePreBucketTable<MyStruct, int, MyStruct, decltype(key_ex), decltype(red_fn), true,
                                        core::PostReduceFlush<int, MyStruct, decltype(red_fn)>,
-                                       core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+                                       core::PreReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   core::PostReduceFlush<
                       int, MyStruct, decltype(red_fn)>(red_fn), -1, sp, bucket_block_size * bucket_block_size, 1.0, 1.0);
@@ -690,20 +686,19 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
-            const size_t TargetBlockSize = 16 * 1024;
             StringPair sp;
 
             const size_t nitems_per_key = 10;
             const size_t nitems = core::ReducePreBucketTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true,
                                                              core::PostReduceFlush<std::string, StringPair, decltype(red_fn)>,
-                                                             core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>::block_size_;
+                                                             core::PreReduceByHashKey<std::string>, std::equal_to<std::string> >::block_size_;
 
             core::ReducePreBucketTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true,
                                        core::PostReduceFlush<std::string, StringPair, decltype(red_fn)>,
-                                       core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>
+                                       core::PreReduceByHashKey<std::string>, std::equal_to<std::string> >
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<std::string>(),
                   core::PostReduceFlush<
-                      std::string, StringPair, decltype(red_fn)>(red_fn), "", sp, TargetBlockSize * 2, 0.0, 1.0);
+                      std::string, StringPair, decltype(red_fn)>(red_fn), "", sp, 0.0, 1.0);
 
             // insert lots of items
             size_t sum = 0;

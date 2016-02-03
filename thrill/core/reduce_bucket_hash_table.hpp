@@ -82,7 +82,7 @@ template <typename ValueType, typename Key, typename Value,
           const bool RobustKey,
           typename IndexFunction,
           typename EqualToFunction,
-          size_t TargetBlockSize>
+          size_t TargetBlockSize = 16*16>
 class ReduceBucketHashTable
     : public ReduceHashTable<ValueType, Key, Value,
                              KeyExtractor, ReduceFunction,

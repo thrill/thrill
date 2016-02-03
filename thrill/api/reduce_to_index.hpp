@@ -194,14 +194,14 @@ private:
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
         core::PostReduceFlushToIndex<Key, Value, ReduceFunction>,
         core::PreReduceByIndex<Key>,
-        std::equal_to<Key>, 16*16> reduce_pre_table_;
+        std::equal_to<Key> > reduce_pre_table_;
 
     core::ReducePostBucketTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
         core::PostReduceFlushToIndex<
             Key, Value, ReduceFunction, core::PostReduceByIndex<Key> >,
         core::PostReduceByIndex<Key>,
-        std::equal_to<Key>, 16*16> reduce_post_table_;
+        std::equal_to<Key> > reduce_post_table_;
 
     bool reduced = false;
 };
