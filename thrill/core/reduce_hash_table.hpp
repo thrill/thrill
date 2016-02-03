@@ -26,7 +26,7 @@ namespace core {
  * contains partitioning parameters, statistics, and the output files.
  */
 template <typename ValueType, typename Key, typename Value,
-          typename KeyExtractor, typename ReduceFunction,
+          typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
           typename IndexFunction,
           typename EqualToFunction>
@@ -41,6 +41,7 @@ public:
         Context& ctx,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
+        const Emitter& emitter,
         const IndexFunction& index_function,
         const EqualToFunction& equal_to_function,
         size_t num_partitions,
@@ -48,6 +49,7 @@ public:
         : ctx_(ctx),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
+          emitter_(emitter),
           index_function_(index_function),
           equal_to_function_(equal_to_function),
           num_partitions_(num_partitions),
@@ -104,6 +106,9 @@ protected:
 
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
+
+    //! Emitter object to receive items outputted to next stage.
+    Emitter emitter_;
 
     //! Index Calculation functions: Hash or ByIndex.
     IndexFunction index_function_;
