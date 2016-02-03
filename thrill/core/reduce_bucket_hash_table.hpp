@@ -205,13 +205,6 @@ public:
         assert(limit_blocks_ > 0);
 
         buckets_.resize(num_buckets_, nullptr);
-
-        // allocate Files for each partition to spill into. TODO(tb): switch to
-        // FilePtr ondemand
-
-        for (size_t i = 0; i < num_partitions_; i++) {
-            partition_files_.push_back(ctx.GetFile());
-        }
     }
 
     //! non-copyable: delete copy-constructor
