@@ -125,14 +125,23 @@ template <typename ValueType, typename Key, typename Value,
           typename FlushFunction,
           typename IndexFunction,
           typename EqualToFunction,
-          typename HashTable>
-class ReducePostTable : public HashTable
+          template <typename ValueType, typename Key, typename Value,
+                    typename KeyExtractor, typename ReduceFunction,
+                    const bool RobustKey,
+                    typename IndexFunction,
+                    typename EqualToFunction> class HashTable>
+class ReducePostTable
 {
     static const bool debug = false;
 
-    using Super = HashTable;
-
 public:
+    using Table = HashTable<
+              ValueType, Key, Value,
+              KeyExtractor, ReduceFunction,
+              !SendPair,
+              IndexFunction, EqualToFunction
+              >;
+
     using KeyValuePair = std::pair<Key, Value>;
 
     using EmitterFunction = std::function<void(const ValueType&)>;
@@ -174,16 +183,16 @@ public:
                     double limit_partition_fill_rate = 0.6,
                     double partition_rate = 0.1,
                     const EqualToFunction& equal_to_function = EqualToFunction())
-        : Super(ctx,
-                key_extractor,
-                reduce_function,
-                index_function,
-                equal_to_function,
-                std::max<size_t>((size_t)(1.0 / partition_rate), 1),
-                limit_memory_bytes,
-                limit_partition_fill_rate,
-                bucket_rate,
-                sentinel),
+        : table_(ctx,
+                 key_extractor,
+                 reduce_function,
+                 index_function,
+                 equal_to_function,
+                 std::max<size_t>((size_t)(1.0 / partition_rate), 1),
+                 limit_memory_bytes,
+                 limit_partition_fill_rate,
+                 bucket_rate,
+                 sentinel),
           emit_(emit),
           local_index_(local_index),
           neutral_element_(neutral_element),
@@ -202,6 +211,14 @@ public:
     ReducePostTable(const ReducePostTable&) = delete;
     //! non-copyable: delete assignment operator
     ReducePostTable& operator = (const ReducePostTable&) = delete;
+
+    void Insert(const Value& p) {
+        return table_.Insert(p);
+    }
+
+    void Insert(const KeyValuePair& kv) {
+        return table_.Insert(kv);
+    }
 
     /*!
      * Flushes all items in the whole table.
@@ -240,9 +257,20 @@ public:
         return neutral_element_;
     }
 
-private:
-    using Super::partition_files_;
+    //! \name Accessors
+    //! {
 
+    //! Returns the total num of items in the table.
+    size_t num_items() const { return table_.num_items(); }
+
+    //! }
+
+public:
+    // TODO(tb)
+    //! the first-level hash table implementation
+    Table table_;
+
+private:
     //! Emitter function.
     EmitterFunction emit_;
 
@@ -268,12 +296,7 @@ using ReducePostBucketTable = ReducePostTable<
           SendPair,
           FlushFunction,
           IndexFunction, EqualToFunction,
-          ReduceBucketHashTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction,
-              !SendPair,
-              IndexFunction, EqualToFunction>
-          >;
+          ReduceBucketHashTable>;
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
@@ -287,12 +310,7 @@ using ReducePostProbingTable = ReducePostTable<
           SendPair,
           FlushFunction,
           IndexFunction, EqualToFunction,
-          ReduceProbingHashTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction,
-              !SendPair,
-              IndexFunction, EqualToFunction>
-          >;
+          ReduceProbingHashTable>;
 
 } // namespace core
 } // namespace thrill

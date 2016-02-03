@@ -59,7 +59,7 @@ public:
     template <typename Table>
     void FlushTable(bool consume, Table& ht) const {
 
-        std::vector<data::File>& partition_files = ht.partition_files();
+        std::vector<data::File>& partition_files = ht.table_.partition_files();
 
         for (size_t id = 0; id < partition_files.size(); ++id) {
 
@@ -86,7 +86,7 @@ public:
                 /////
                 // emit data
                 /////
-                ht.FlushPartitionE(
+                ht.table_.FlushPartitionE(
                     id, consume,
                     [&](const size_t& partition_id, const KeyValuePair& bi) {
                         ht.EmitAll(partition_id, bi);

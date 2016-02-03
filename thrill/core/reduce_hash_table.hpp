@@ -72,16 +72,17 @@ public:
     //! \name Accessors
     //! \{
 
+    //! Returns the number of partitions
+    size_t num_partitions() {
+        return num_partitions_;
+    }
+
     //! Returns the vector of partition files.
     std::vector<data::File> & partition_files() {
         return partition_files_;
     }
 
-    /*!
-     * Returns the total num of items in the table.
-     *
-     * \return Number of items in the table.
-     */
+    //! Returns the total num of items in the table.
     size_t num_items() const {
 
         size_t total_num_items = 0;

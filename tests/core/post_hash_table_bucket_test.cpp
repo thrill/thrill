@@ -125,7 +125,7 @@ TEST_F(PostTable, AddIntegers) {
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false>
             table(ctx, key_ex, red_fn, emit);
 
-            ASSERT_EQ(0u, table.num_blocks());
+            ASSERT_EQ(0u, table.table_.num_blocks());
 
             table.Insert(pair(1));
             table.Insert(pair(2));
@@ -135,7 +135,7 @@ TEST_F(PostTable, AddIntegers) {
 
             table.Flush(true);
 
-            // ASSERT_EQ(0u, table.num_blocks());
+            // ASSERT_EQ(0u, table.table_.num_blocks());
             ASSERT_EQ(3u, writer1.size());
         };
     api::RunLocalSameThread(start_func);
@@ -162,7 +162,7 @@ TEST_F(PostTable, CreateEmptyTable) {
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn)>
             table(ctx, key_ex, red_fn, emit);
 
-            ASSERT_EQ(0u, table.num_blocks());
+            ASSERT_EQ(0u, table.table_.num_blocks());
             ASSERT_EQ(0u, table.num_items());
         };
     api::RunLocalSameThread(start_func);
@@ -328,11 +328,11 @@ TEST_F(PostTable, ComplexType) {
             table.Insert(std::make_pair("hello", std::make_pair("hello", 2)));
             table.Insert(std::make_pair("bonjour", std::make_pair("bonjour", 3)));
 
-            // ASSERT_EQ(3u, table.num_blocks());
+            // ASSERT_EQ(3u, table.table_.num_blocks());
 
             table.Insert(std::make_pair("hello", std::make_pair("hello", 5)));
 
-            // ASSERT_EQ(3u, table.num_blocks());
+            // ASSERT_EQ(3u, table.table_.num_blocks());
 
             table.Insert(std::make_pair("baguette", std::make_pair("baguette", 42)));
 
@@ -362,10 +362,11 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
                                     });
 
             const size_t TargetBlockSize = 8 * 8;
-            const size_t bucket_block_size = sizeof(core::ReducePostBucketTable<int, int, int,
-                                                                                decltype(key_ex), decltype(red_fn), false,
-                                                                                core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                                                                core::PostReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
+            const size_t bucket_block_size = sizeof(
+                core::ReducePostBucketTable<int, int, int,
+                                            decltype(key_ex), decltype(red_fn), false,
+                                            core::PostReduceFlush<int, int, decltype(red_fn)>,
+                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
             using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
@@ -378,13 +379,13 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
             size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
-            ASSERT_EQ(0u, table.num_blocks());
+            ASSERT_EQ(0u, table.table_.num_blocks());
             ASSERT_EQ(0u, writer1.size());
 
             for (size_t i = 0; i < block_size; ++i) {
                 table.Insert(static_cast<int>(i));
             }
-            ASSERT_EQ(1u, table.num_blocks());
+            ASSERT_EQ(1u, table.table_.num_blocks());
             ASSERT_EQ(block_size, table.num_items());
 
             ASSERT_EQ(0u, writer1.size());
@@ -416,10 +417,11 @@ TEST_F(PostTable, DISABLED_OneBucketOneBlockTestFillRate2) {
                                     });
 
             const size_t TargetBlockSize = 8 * 8;
-            const size_t bucket_block_size = sizeof(core::ReducePostBucketTable<int, int, int,
-                                                                                decltype(key_ex), decltype(red_fn), false,
-                                                                                core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                                                                core::PostReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
+            const size_t bucket_block_size = sizeof(
+                core::ReducePostBucketTable<int, int, int,
+                                            decltype(key_ex), decltype(red_fn), false,
+                                            core::PostReduceFlush<int, int, decltype(red_fn)>,
+                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
             using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
@@ -432,19 +434,19 @@ TEST_F(PostTable, DISABLED_OneBucketOneBlockTestFillRate2) {
             size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
-            ASSERT_EQ(0u, table.num_blocks());
+            ASSERT_EQ(0u, table.table_.num_blocks());
             ASSERT_EQ(0u, writer1.size());
 
             for (size_t i = 0; i < block_size; ++i) {
                 table.Insert(static_cast<int>(i));
             }
-            ASSERT_EQ(1u, table.num_blocks());
+            ASSERT_EQ(1u, table.table_.num_blocks());
             ASSERT_EQ(block_size, table.num_items());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
                 table.Insert(static_cast<int>(i));
             }
-            ASSERT_EQ(2u, table.num_blocks());
+            ASSERT_EQ(2u, table.table_.num_blocks());
             ASSERT_EQ(block_size * 2, table.num_items());
 
             ASSERT_EQ(0u, writer1.size());
@@ -475,10 +477,11 @@ TEST_F(PostTable, DISABLED_OneBucketTwoBlocksTestFillRate) {
                                     });
 
             const size_t TargetBlockSize = 8 * 8;
-            const size_t bucket_block_size = sizeof(core::ReducePostBucketTable<int, int, int,
-                                                                                decltype(key_ex), decltype(red_fn), false,
-                                                                                core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                                                                core::PostReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
+            const size_t bucket_block_size = sizeof(
+                core::ReducePostBucketTable<int, int, int,
+                                            decltype(key_ex), decltype(red_fn), false,
+                                            core::PostReduceFlush<int, int, decltype(red_fn)>,
+                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
 
             using KeyValuePair = std::pair<int, int>;
 
@@ -492,18 +495,18 @@ TEST_F(PostTable, DISABLED_OneBucketTwoBlocksTestFillRate) {
             size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
-            ASSERT_EQ(0u, table.num_blocks());
+            ASSERT_EQ(0u, table.table_.num_blocks());
 
             for (size_t i = 0; i < block_size; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
-            ASSERT_EQ(1u, table.num_blocks());
+            ASSERT_EQ(1u, table.table_.num_blocks());
             ASSERT_EQ(block_size, table.num_items());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
-            ASSERT_EQ(2u, table.num_blocks());
+            ASSERT_EQ(2u, table.table_.num_blocks());
             ASSERT_EQ(block_size * 2, table.num_items());
 
             ASSERT_EQ(0u, writer1.size());
@@ -534,10 +537,11 @@ TEST_F(PostTable, DISABLED_OneBucketTwoBlocksTestFillRate2) {
                                     });
 
             const size_t TargetBlockSize = 8 * 8;
-            const size_t bucket_block_size = sizeof(core::ReducePostBucketTable<int, int, int,
-                                                                                decltype(key_ex), decltype(red_fn), false,
-                                                                                core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                                                                core::PostReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
+            const size_t bucket_block_size = sizeof(
+                core::ReducePostBucketTable<int, int, int,
+                                            decltype(key_ex), decltype(red_fn), false,
+                                            core::PostReduceFlush<int, int, decltype(red_fn)>,
+                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
             using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
@@ -551,18 +555,18 @@ TEST_F(PostTable, DISABLED_OneBucketTwoBlocksTestFillRate2) {
             size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
-            ASSERT_EQ(0u, table.num_blocks());
+            ASSERT_EQ(0u, table.table_.num_blocks());
 
             for (size_t i = 0; i < block_size; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
-            ASSERT_EQ(1u, table.num_blocks());
+            ASSERT_EQ(1u, table.table_.num_blocks());
             ASSERT_EQ(block_size, table.num_items());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
-            ASSERT_EQ(2u, table.num_blocks());
+            ASSERT_EQ(2u, table.table_.num_blocks());
             ASSERT_EQ(block_size * 2, table.num_items());
 
             ASSERT_EQ(0u, writer1.size());
@@ -593,10 +597,11 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
                                     });
 
             const size_t TargetBlockSize = 8 * 8;
-            const size_t bucket_block_size = sizeof(core::ReducePostBucketTable<int, int, int,
-                                                                                decltype(key_ex), decltype(red_fn), false,
-                                                                                core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                                                                core::PostReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
+            const size_t bucket_block_size = sizeof(
+                core::ReducePostBucketTable<int, int, int,
+                                            decltype(key_ex), decltype(red_fn), false,
+                                            core::PostReduceFlush<int, int, decltype(red_fn)>,
+                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
             using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
@@ -610,17 +615,17 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
             size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
-            ASSERT_EQ(0u, table.num_blocks());
+            ASSERT_EQ(0u, table.table_.num_blocks());
 
             for (size_t i = 0; i < block_size; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
-            ASSERT_EQ(2u, table.num_blocks());
+            ASSERT_EQ(2u, table.table_.num_blocks());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
-            ASSERT_EQ(2u, table.num_blocks());
+            ASSERT_EQ(2u, table.table_.num_blocks());
 
             ASSERT_EQ(0u, writer1.size());
 
@@ -650,15 +655,17 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
                                     });
 
             const size_t TargetBlockSize = 8 * 8;
-            const size_t bucket_block_size = sizeof(core::ReducePostBucketTable<int, int, int,
-                                                                                decltype(key_ex), decltype(red_fn), false,
-                                                                                core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                                                                core::PostReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
+            const size_t bucket_block_size = sizeof(
+                core::ReducePostBucketTable<int, int, int,
+                                            decltype(key_ex), decltype(red_fn), false,
+                                            core::PostReduceFlush<int, int, decltype(red_fn)>,
+                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
             using KeyValuePair = std::pair<int, int>;
 
-            core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                                        core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                        core::PostReduceByHashKey<int>, std::equal_to<int> >
+            core::ReducePostBucketTable<
+                int, int, int, decltype(key_ex), decltype(red_fn), false,
+                core::PostReduceFlush<int, int, decltype(red_fn)>,
+                core::PostReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), int(), 0,
                   bucket_block_size * 5, 0.5, 0.5, 1.0,
@@ -667,17 +674,17 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
             size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
-            ASSERT_EQ(0u, table.num_blocks());
+            ASSERT_EQ(0u, table.table_.num_blocks());
 
             for (size_t i = 0; i < block_size; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
-            ASSERT_EQ(2u, table.num_blocks());
+            ASSERT_EQ(2u, table.table_.num_blocks());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
-            ASSERT_EQ(2u, table.num_blocks());
+            ASSERT_EQ(2u, table.table_.num_blocks());
 
             ASSERT_EQ(0u, writer1.size());
 
@@ -707,10 +714,11 @@ TEST_F(PostTable, DISABLED_MaxTableBlocks) {
                                     });
 
             const size_t TargetBlockSize = 8 * 1024;
-            const size_t bucket_block_size = sizeof(core::ReducePostBucketTable<int, int, int,
-                                                                                decltype(key_ex), decltype(red_fn), false,
-                                                                                core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                                                                core::PostReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
+            const size_t bucket_block_size = sizeof(
+                core::ReducePostBucketTable<int, int, int,
+                                            decltype(key_ex), decltype(red_fn), false,
+                                            core::PostReduceFlush<int, int, decltype(red_fn)>,
+                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
 
             using KeyValuePair = std::pair<int, int>;
             size_t max_blocks = 8;
@@ -728,11 +736,11 @@ TEST_F(PostTable, DISABLED_MaxTableBlocks) {
 
             size_t num_items = block_size * max_blocks;
 
-            ASSERT_EQ(0u, table.num_blocks());
+            ASSERT_EQ(0u, table.table_.num_blocks());
 
             for (size_t i = 0; i < num_items; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
-                ASSERT_TRUE(table.num_blocks() <= max_blocks * 2);
+                ASSERT_TRUE(table.table_.num_blocks() <= max_blocks * 2);
             }
 
             ASSERT_EQ(0u, writer1.size());

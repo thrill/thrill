@@ -61,7 +61,7 @@ public:
     template <typename Table>
     void FlushTable(bool consume, Table& ht) const {
 
-        std::vector<data::File>& partition_files = ht.partition_files();
+        std::vector<data::File>& partition_files = ht.table_.partition_files();
 
         size_t num_partitions = partition_files.size();
 
@@ -86,7 +86,7 @@ public:
                 //                            length, reader, elements_to_emit,
                 //                            fill_rate_num_items_per_partition,
                 //                            partition_id, num_items_mem_per_partition, block_pool,
-                //                            block_size, ht.LocalIndex().begin);
+                //                            block_size, ht.table_.LocalIndex().begin);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current partition
@@ -95,7 +95,7 @@ public:
                 /////
                 // emit data
                 /////
-                ht.FlushPartitionE(
+                ht.table_.FlushPartitionE(
                     partition_id, consume,
                     [&](const size_t& /* partition_id */, const KeyValuePair& bi) {
                         elements_to_emit[bi.first - ht.LocalIndex().begin] = bi.second;
