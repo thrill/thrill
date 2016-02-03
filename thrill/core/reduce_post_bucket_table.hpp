@@ -183,7 +183,7 @@ public:
     size_t NumItemsPerTable() const {
 
         size_t total_num_items = 0;
-        for (size_t num_items : num_items_per_partition_) {
+        for (size_t num_items : items_per_partition_) {
             total_num_items += num_items;
         }
 
@@ -231,7 +231,7 @@ private:
     using Super::max_blocks_per_partition_;
     using Super::num_blocks_;
     using Super::limit_blocks_;
-    using Super::num_items_per_partition_;
+    using Super::items_per_partition_;
     using Super::limit_items_per_partition_;
     using Super::partition_files_;
     using Super::ctx_;

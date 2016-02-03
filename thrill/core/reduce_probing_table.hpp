@@ -13,6 +13,8 @@
 #ifndef THRILL_CORE_REDUCE_PROBING_TABLE_HEADER
 #define THRILL_CORE_REDUCE_PROBING_TABLE_HEADER
 
+#include <thrill/core/reduce_hash_table.hpp>
+
 namespace thrill {
 namespace core {
 
@@ -67,8 +69,15 @@ template <typename ValueType, typename Key, typename Value,
           typename IndexFunction,
           typename EqualToFunction>
 class ReduceProbingTable
+    : public ReduceHashTable<ValueType, Key, Value,
+                             KeyExtractor, ReduceFunction,
+                             RobustKey, IndexFunction, EqualToFunction>
 {
     static const bool debug = false;
+
+    using Super = ReduceHashTable<ValueType, Key, Value,
+                                  KeyExtractor, ReduceFunction,
+                                  RobustKey, IndexFunction, EqualToFunction>;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -83,14 +92,10 @@ public:
         size_t limit_memory_bytes,
         double limit_partition_fill_rate,
         const Key& sentinel = Key())
-        : ctx_(ctx),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          index_function_(index_function),
-          equal_to_function_(equal_to_function),
-          num_partitions_(num_partitions),
-          limit_memory_bytes_(limit_memory_bytes),
-          items_per_partition_(num_partitions_, 0) {
+        : Super(ctx,
+                key_extractor, reduce_function,
+                index_function, equal_to_function,
+                num_partitions, limit_memory_bytes) {
 
         assert(num_partitions > 0);
 
@@ -279,31 +284,16 @@ public:
 
     //! \}
 
-    //! \name Accessors
-    //! \{
-
-    //! Returns the vector of partition files.
-    std::vector<data::File> & PartitionFiles() {
-        return partition_files_;
-    }
-
-    //! \}
-
 protected:
-    //! Context
-    Context& ctx_;
-
-    //! Key extractor function for extracting a key from a value.
-    KeyExtractor key_extractor_;
-
-    //! Reduce function for reducing two values.
-    ReduceFunction reduce_function_;
-
-    //! Index Calculation functions: Hash or ByIndex.
-    IndexFunction index_function_;
-
-    //! Comparator function for keys.
-    EqualToFunction equal_to_function_;
+    using Super::equal_to_function_;
+    using Super::index_function_;
+    using Super::key_extractor_;
+    using Super::limit_items_per_partition_;
+    using Super::limit_memory_bytes_;
+    using Super::items_per_partition_;
+    using Super::num_partitions_;
+    using Super::partition_files_;
+    using Super::reduce_function_;
 
     //! Storing the actual hash table.
     std::vector<KeyValuePair> items_;
@@ -311,34 +301,14 @@ protected:
     //! Sentinel element used to flag free slots.
     KeyValuePair sentinel_;
 
-    //! Store the files for partitions.
-    std::vector<data::File> partition_files_;
-
     //! \name Fixed Operational Parameters
     //! \{
-
-    //! Number of partitions.
-    size_t num_partitions_;
-
-    //! Limit on the number of bytes used by the table in memory.
-    size_t limit_memory_bytes_ = 0;
 
     //! Size of the table, which is the number of slots available for items.
     size_t size_;
 
-    //! Number of items per partition before spilling items to EM.
-    size_t limit_items_per_partition_;
-
     //! Partition size.
     size_t partition_size_;
-
-    //! \}
-
-    //! \name Current Statistical Parameters
-    //! \{
-
-    //! Current number of items per partition.
-    std::vector<size_t> items_per_partition_;
 
     //! \}
 };
