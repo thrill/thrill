@@ -163,7 +163,7 @@ TEST_F(PostTable, CreateEmptyTable) {
             table(ctx, key_ex, red_fn, emit);
 
             ASSERT_EQ(0u, table.NumBlocksPerTable());
-            ASSERT_EQ(0u, table.NumItemsPerTable());
+            ASSERT_EQ(0u, table.num_items());
         };
     api::RunLocalSameThread(start_func);
 }
@@ -386,7 +386,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
                 table.Insert(static_cast<int>(i));
             }
             ASSERT_EQ(1u, table.NumBlocksPerTable());
-            ASSERT_EQ(block_size, table.NumItemsPerTable());
+            ASSERT_EQ(block_size, table.num_items());
 
             ASSERT_EQ(0u, writer1.size());
 
@@ -440,17 +440,17 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate2) {
                 table.Insert(static_cast<int>(i));
             }
             ASSERT_EQ(1u, table.NumBlocksPerTable());
-            ASSERT_EQ(block_size, table.NumItemsPerTable());
+            ASSERT_EQ(block_size, table.num_items());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
                 table.Insert(static_cast<int>(i));
             }
             ASSERT_EQ(2u, table.NumBlocksPerTable());
-            ASSERT_EQ(block_size * 2, table.NumItemsPerTable());
+            ASSERT_EQ(block_size * 2, table.num_items());
 
             ASSERT_EQ(0u, writer1.size());
             table.Flush(true);
-            ASSERT_EQ(0u, table.NumItemsPerTable());
+            ASSERT_EQ(0u, table.num_items());
             ASSERT_EQ(2 * block_size, writer1.size());
         };
 
@@ -499,13 +499,13 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate) {
                 table.Insert(pair(static_cast<int>(i)));
             }
             ASSERT_EQ(1u, table.NumBlocksPerTable());
-            ASSERT_EQ(block_size, table.NumItemsPerTable());
+            ASSERT_EQ(block_size, table.num_items());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
             ASSERT_EQ(2u, table.NumBlocksPerTable());
-            ASSERT_EQ(block_size * 2, table.NumItemsPerTable());
+            ASSERT_EQ(block_size * 2, table.num_items());
 
             ASSERT_EQ(0u, writer1.size());
 
@@ -558,13 +558,13 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate2) {
                 table.Insert(pair(static_cast<int>(i)));
             }
             ASSERT_EQ(1u, table.NumBlocksPerTable());
-            ASSERT_EQ(block_size, table.NumItemsPerTable());
+            ASSERT_EQ(block_size, table.num_items());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
                 table.Insert(pair(static_cast<int>(i)));
             }
             ASSERT_EQ(2u, table.NumBlocksPerTable());
-            ASSERT_EQ(block_size * 2, table.NumItemsPerTable());
+            ASSERT_EQ(block_size * 2, table.num_items());
 
             ASSERT_EQ(0u, writer1.size());
 
