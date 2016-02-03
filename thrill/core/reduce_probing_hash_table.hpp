@@ -133,13 +133,6 @@ public:
 
         sentinel_ = KeyValuePair(sentinel, Value());
         items_.resize(size_, sentinel_);
-
-        // allocate Files for each partition to spill into. TODO(tb): switch to
-        // FilePtr ondemand
-
-        for (size_t i = 0; i < num_partitions_; i++) {
-            partition_files_.push_back(ctx.GetFile());
-        }
     }
 
     /*!
