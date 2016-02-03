@@ -208,6 +208,7 @@ public:
                 std::max<size_t>((size_t)(1.0 / partition_rate), 1),
                 limit_memory_bytes,
                 limit_partition_fill_rate,
+                1.0,
                 sentinel),
           flush_function_(flush_function),
           emit_(emit),

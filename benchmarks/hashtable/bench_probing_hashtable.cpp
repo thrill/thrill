@@ -12,7 +12,7 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/core/reduce_post_probing_table.hpp>
-#include <thrill/core/reduce_pre_probing_table.hpp>
+#include <thrill/core/reduce_pre_table.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
                                              std::equal_to<size_t> >
                  table(ctx, workers, key_ex, red_fn, writers, core::PreReduceByHashKey<size_t>(),
                        core::PostReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
-                       0, 0, byte_size, max_partition_fill_rate, std::equal_to<size_t>());
+                       0, 0, byte_size);
 
                  common::StatsTimer<true> timer(true);
 
