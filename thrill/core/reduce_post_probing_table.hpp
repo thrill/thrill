@@ -257,16 +257,6 @@ public:
     }
 
     /*!
-     * Returns the size of the table. The size corresponds to the number of slots.
-     * A slot may be free or used.
-     *
-     * \return Size of the table.
-     */
-    size_t Size() const {
-        return size_;
-    }
-
-    /*!
      * Returns the total num of items in the table.
      *
      * \return Number of items in the table.
@@ -279,42 +269,6 @@ public:
         }
 
         return total_num_items;
-    }
-
-    /*!
-     * Returns the number of partitions.
-     *
-     * \return Number of partitions.
-     */
-    size_t NumPartitions() const {
-        return num_partitions_;
-    }
-
-    /*!
-     * Returns the vector of partition files.
-     *
-     * \return Begin local index.
-     */
-    std::vector<data::File> & PartitionFiles() {
-        return partition_files_;
-    }
-
-    /*!
-     * Returns the vector of number of items per partition.
-     *
-     * \return Vector of number of items per partition.
-     */
-    std::vector<size_t> & NumItemsPerPartition() {
-        return items_per_partition_;
-    }
-
-    /*!
-     * Returns the vector of key/value pairs.
-     *
-     * \return Vector of key/value pairs.
-     */
-    std::vector<KeyValuePair> & Items() {
-        return items_;
     }
 
     /*!
@@ -342,24 +296,6 @@ public:
      */
     KeyValuePair Sentinel() const {
         return sentinel_;
-    }
-
-    /*!
-     * Returns the partition size.
-     *
-     * \return Partition size.
-     */
-    size_t PartitionSize() const {
-        return partition_size_;
-    }
-
-    /*!
-     * Returns the vector of key/value pairs.
-     *
-     * \return Vector of key/value pairs.
-     */
-    Context & Ctx() {
-        return ctx_;
     }
 
 private:

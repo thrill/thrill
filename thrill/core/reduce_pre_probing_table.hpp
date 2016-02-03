@@ -245,16 +245,6 @@ public:
     //! non-copyable: delete assignment operator
     ReducePreProbingTable& operator = (const ReducePreProbingTable&) = delete;
 
-    void SpillOnePartition(size_t partition_id) {
-
-        if (FullPreReduce) {
-            this->SpillPartition(partition_id);
-        }
-        else {
-            FlushPartition(partition_id);
-        }
-    }
-
     /*!
      * Flush.
      */
@@ -296,14 +286,6 @@ public:
     }
 
     /*!
-     * Returns the size of the table. The size corresponds to the number of
-     * slots.  A slot may be free or used.
-     *
-     * \return Size of the table.
-     */
-    size_t Size() const { return size_; }
-
-    /*!
      * Returns the total num of items in the table.
      *
      * \return Number of items in the table.
@@ -318,40 +300,8 @@ public:
         return total_num_items;
     }
 
-    //! Returns the number of partitions.
-    size_t NumPartitions() const { return num_partitions_; }
-
-    //! Returns the vector of partition files.
-    std::vector<data::File> & PartitionFiles() { return partition_files_; }
-
-    //! Returns the vector of number of items per partition.
-    std::vector<size_t> & NumItemsPerPartition() { return items_per_partition_; }
-
-    //! Returns the vector of number of items per partition.
-    size_t PartitionSize() { return partition_size_;    }
-
-    //! Returns the vector of key/value pairs.
-    std::vector<KeyValuePair> & Items() { return items_;    }
-
     //! Returns the sentinel element.
     KeyValuePair Sentinel() const { return sentinel_; }
-
-    //! Returns the partition size.
-    size_t PartitionSize() const { return partition_size_; }
-
-    /*!
-     * Returns the number of items of a partition.
-     *
-     * \param partition_id The id of the partition the number of
-     *                  items to be returned..
-     * \return The number of items in the partitions.
-     */
-    size_t PartitionNumItems(size_t partition_id) {
-        return items_per_partition_[partition_id];
-    }
-
-    //! Returns the context
-    Context & Ctx() { return ctx_; }
 
     //! Returns the neutral element.
     Value NeutralElement() const { return neutral_element_; }

@@ -163,8 +163,8 @@ public:
     ReducePostBucketTable& operator = (const ReducePostBucketTable&) = delete;
 
     /*!
-    * Flushes all items in the whole table.
-    */
+     * Flushes all items in the whole table.
+     */
     void Flush(bool consume = false) {
         LOG << "Flushing items";
 
@@ -179,22 +179,6 @@ public:
     void EmitAll(const size_t& partition_id, const KeyValuePair& p) {
         (void)partition_id;
         emit_impl_.EmitElement(p, emit_);
-    }
-
-    /*!
-     * Returns the num of buckets in a partition.
-     *
-     * \return Number of buckets in a partition.
-     */
-    size_t NumBucketsPerPartition() const {
-        return num_buckets_per_partition_;
-    }
-
-    /*!
-     * Sets the num of blocks in the table.
-     */
-    void SetNumBlocksPerTable(const size_t num_blocks) {
-        num_blocks_ = num_blocks;
     }
 
     /*!
@@ -213,15 +197,6 @@ public:
     }
 
     /*!
-     * Returns the vector of bucket blocks.
-     *
-     * \return Vector of bucket blocks.
-     */
-    std::vector<BucketBlock*> & Items() {
-        return buckets_;
-    }
-
-    /*!
     * Returns the local index range.
     *
     * \return Begin local index.
@@ -237,60 +212,6 @@ public:
      */
     Value NeutralElement() const {
         return neutral_element_;
-    }
-
-    /*!
-     * Returns the vector of partition files.
-     *
-     * \return Vector of partition files.
-     */
-    std::vector<data::File> & PartitionFiles() {
-        return partition_files_;
-    }
-
-    /*!
-     * Returns the vector of number of items per partition in internal memory.
-     *
-     * \return Vector of number of items per partition in internal memory.
-     */
-    std::vector<size_t> & NumItemsMemPerPartition() {
-        return num_items_per_partition_;
-    }
-
-    /*!
-     * Returns the number of partitions.
-     *
-     * \return Number of partitions.
-     */
-    size_t NumPartitions() const {
-        return num_partitions_;
-    }
-
-    /*!
-     * Returns the block size.
-     *
-     * \return Block size.
-     */
-    double BlockSize() const {
-        return block_size_;
-    }
-
-    /*!
-     * Returns the block size.
-     *
-     * \return Block size.
-     */
-    BucketBlockPool<BucketBlock> & BlockPool() {
-        return block_pool_;
-    }
-
-    /*!
-     * Returns the vector of key/value pairs.s
-     *
-     * \return Vector of key/value pairs.
-     */
-    Context & Ctx() {
-        return ctx_;
     }
 
     /*!
