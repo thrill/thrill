@@ -102,21 +102,52 @@ public:
     }
 };
 
-template <bool, typename EmitterFunction, typename KeyValuePair, typename SendType>
-struct PostEmitImpl;
+//! template specialization switch class to output key+value if SendPair and
+//! only value if not SendPair.
+template <typename KeyValuePair, typename ValueType, bool SendPair>
+class ReducePostTableEmitterSwitch;
 
-template <typename EmitterFunction, typename KeyValuePair, typename SendType>
-struct PostEmitImpl<true, EmitterFunction, KeyValuePair, SendType>{
-    void EmitElement(const KeyValuePair& p, EmitterFunction emit) {
+template <typename KeyValuePair, typename ValueType>
+class ReducePostTableEmitterSwitch<KeyValuePair, ValueType, false>
+{
+public:
+    static void Put(const KeyValuePair& p, std::function<void(const ValueType&)>& emit) {
+        emit(p.second);
+    }
+};
+
+template <typename KeyValuePair, typename ValueType>
+class ReducePostTableEmitterSwitch<KeyValuePair, ValueType, true>
+{
+public:
+    static void Put(const KeyValuePair& p, std::function<void(const ValueType&)>& emit) {
         emit(p);
     }
 };
 
-template <typename EmitterFunction, typename KeyValuePair, typename SendType>
-struct PostEmitImpl<false, EmitterFunction, KeyValuePair, SendType>{
-    void EmitElement(const KeyValuePair& p, EmitterFunction emit) {
-        emit(p.second);
+//! Emitter implementation to plug into a reduce hash table for
+//! collecting/flushing items while reducing. Items flushed in the post-stage
+//! are passed to the next DIA node for processing.
+template <typename KeyValuePair, typename ValueType, bool SendPair>
+class ReducePostTableEmitter
+{
+    static const bool debug = true;
+
+public:
+    using EmitterFunction = std::function<void(const ValueType&)>;
+
+    ReducePostTableEmitter(const EmitterFunction& emit)
+        : emit_(emit) { }
+
+    //! output an element into a partition, template specialized for SendPair
+    //! and non-SendPair types
+    void Emit(const size_t& /* partition_id */, const KeyValuePair& p) {
+        ReducePostTableEmitterSwitch<KeyValuePair, ValueType, SendPair>::Put(p, emit_);
     }
+
+public:
+    //! Set of emitters, one per partition.
+    EmitterFunction emit_;
 };
 
 template <typename ValueType, typename Key, typename Value,
@@ -126,7 +157,7 @@ template <typename ValueType, typename Key, typename Value,
           typename IndexFunction,
           typename EqualToFunction,
           template <typename ValueType, typename Key, typename Value,
-                    typename KeyExtractor, typename ReduceFunction,
+                    typename KeyExtractor, typename ReduceFunction, typename Emitter,
                     const bool RobustKey,
                     typename IndexFunction,
                     typename EqualToFunction> class HashTable>
@@ -135,18 +166,18 @@ class ReducePostTable
     static const bool debug = false;
 
 public:
-    using Table = HashTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction,
-              !SendPair,
-              IndexFunction, EqualToFunction
-              >;
-
     using KeyValuePair = std::pair<Key, Value>;
 
     using EmitterFunction = std::function<void(const ValueType&)>;
 
-    PostEmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
+    using TableEmitter = ReducePostTableEmitter<KeyValuePair, ValueType, SendPair>;
+
+    using Table = HashTable<
+              ValueType, Key, Value,
+              KeyExtractor, ReduceFunction, TableEmitter,
+              !SendPair,
+              IndexFunction, EqualToFunction
+              >;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
@@ -183,17 +214,15 @@ public:
                     double limit_partition_fill_rate = 0.6,
                     double partition_rate = 0.1,
                     const EqualToFunction& equal_to_function = EqualToFunction())
-        : table_(ctx,
-                 key_extractor,
-                 reduce_function,
-                 index_function,
-                 equal_to_function,
+        : emit_(emit),
+          table_(ctx,
+                 key_extractor, reduce_function, emit_,
+                 index_function, equal_to_function,
                  std::max<size_t>((size_t)(1.0 / partition_rate), 1),
                  limit_memory_bytes,
                  limit_partition_fill_rate,
                  bucket_rate,
                  sentinel),
-          emit_(emit),
           local_index_(local_index),
           neutral_element_(neutral_element),
           flush_function_(flush_function) {
@@ -235,8 +264,7 @@ public:
      * Emits element to all children
      */
     void EmitAll(const size_t& partition_id, const KeyValuePair& p) {
-        (void)partition_id;
-        emit_impl_.EmitElement(p, emit_);
+        emit_.Emit(partition_id, p);
     }
 
     /*!
@@ -266,14 +294,14 @@ public:
     //! }
 
 public:
+    //! Emitters used to parameterize hash table for output to next DIA node.
+    TableEmitter emit_;
+
     // TODO(tb)
     //! the first-level hash table implementation
     Table table_;
 
 private:
-    //! Emitter function.
-    EmitterFunction emit_;
-
     //! [Begin,end) local index (reduce to index).
     common::Range local_index_;
 

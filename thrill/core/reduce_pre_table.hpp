@@ -99,21 +99,71 @@ public:
     }
 };
 
-template <bool, typename Emitters, typename KeyValuePair>
-struct PreEmitImpl;
+//! template specialization switch class to output key+value if NonRobustKey and
+//! only value if RobustKey.
+template <typename KeyValuePair, bool RobustKey>
+class ReducePreTableEmitterSwitch;
 
-template <typename Emitters, typename KeyValuePair>
-struct PreEmitImpl<true, Emitters, KeyValuePair>{
-    void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
-        emit[partition_id].Put(p.second);
+template <typename KeyValuePair>
+class ReducePreTableEmitterSwitch<KeyValuePair, false>
+{
+public:
+    static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
+        writer.Put(p);
     }
 };
 
-template <typename Emitters, typename KeyValuePair>
-struct PreEmitImpl<false, Emitters, KeyValuePair>{
-    void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
-        emit[partition_id].Put(p);
+template <typename KeyValuePair>
+class ReducePreTableEmitterSwitch<KeyValuePair, true>
+{
+public:
+    static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
+        writer.Put(p.second);
     }
+};
+
+//! Emitter implementation to plug into a reduce hash table for
+//! collecting/flushing items while reducing. Items flushed in the pre-stage are
+//! transmitted via a network Channel.
+template <typename KeyValuePair, bool RobustKey>
+class ReducePreTableEmitter
+{
+    static const bool debug = true;
+
+public:
+    ReducePreTableEmitter(std::vector<data::DynBlockWriter>& writer)
+        : writer_(writer),
+          stats_(writer.size(), 0) { }
+
+    //! output an element into a partition, template specialized for robust and
+    //! non-robust keys
+    void Emit(const KeyValuePair& p, const size_t& partition_id) {
+        assert(partition_id < writer_.size());
+        stats_[partition_id]++;
+        ReducePreTableEmitterSwitch<KeyValuePair, RobustKey>::Put(
+            p, writer_[partition_id]);
+    }
+
+    void Flush(size_t partition_id) {
+        assert(partition_id < writer_.size());
+        writer_[partition_id].Flush();
+    }
+
+    void CloseAll() {
+        sLOG << "emit stats: ";
+        size_t i = 0;
+        for (auto& e : writer_) {
+            e.Close();
+            sLOG << "emitter " << i << " pushed " << stats_[i++];
+        }
+    }
+
+public:
+    //! Set of emitters, one per partition.
+    std::vector<data::DynBlockWriter>& writer_;
+
+    //! Emitter stats.
+    std::vector<size_t> stats_;
 };
 
 template <typename ValueType, typename Key, typename Value,
@@ -122,7 +172,7 @@ template <typename ValueType, typename Key, typename Value,
           typename IndexFunction,
           typename EqualToFunction,
           template <typename ValueType, typename Key, typename Value,
-                    typename KeyExtractor, typename ReduceFunction,
+                    typename KeyExtractor, typename ReduceFunction, typename Emitter,
                     const bool RobustKey,
                     typename IndexFunction,
                     typename EqualToFunction> class HashTable>
@@ -131,18 +181,16 @@ class ReducePreTable
     static const bool debug = false;
 
 public:
+    using KeyValuePair = std::pair<Key, Value>;
+
+    using TableEmitter = ReducePreTableEmitter<KeyValuePair, RobustKey>;
+
     using Table = HashTable<
               ValueType, Key, Value,
-              KeyExtractor, ReduceFunction,
+              KeyExtractor, ReduceFunction, TableEmitter,
               RobustKey,
               IndexFunction, EqualToFunction
               >;
-
-    using KeyValuePair = std::pair<Key, Value>;
-
-    using Emitters = std::vector<data::DynBlockWriter>;
-
-    PreEmitImpl<RobustKey, Emitters, KeyValuePair> emit_impl_;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using
@@ -161,20 +209,17 @@ public:
                    double bucket_rate = 1.0,
                    double limit_partition_fill_rate = 0.6,
                    const EqualToFunction& equal_to_function = EqualToFunction())
-        : table_(ctx,
-                 key_extractor, reduce_function,
+        : emit_(emit),
+          table_(ctx,
+                 key_extractor, reduce_function, emit_,
                  index_function, equal_to_function,
                  num_partitions,
                  limit_memory_bytes,
                  limit_partition_fill_rate, bucket_rate),
-          emit_(emit),
           neutral_element_(neutral_element) {
-        sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
+        sLOG << "creating ReducePreTable with" << emit.size() << "output emitters";
 
         assert(num_partitions == emit.size());
-
-        for (size_t i = 0; i < emit_.size(); i++)
-            emit_stats_.push_back(0);
     }
 
     ReducePreTable(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
@@ -219,13 +264,12 @@ public:
             });
 
         // flush elements pushed into emitter
-        emit_[partition_id].Flush();
+        emit_.Flush(partition_id);
     }
 
     //! Emits element to all children
     void EmitAll(const size_t& partition_id, const KeyValuePair& p) {
-        emit_stats_[partition_id]++;
-        emit_impl_.EmitElement(p, partition_id, emit_);
+        emit_.Emit(p, partition_id);
     }
 
     //! Returns the neutral element.
@@ -235,12 +279,7 @@ public:
 
     //! Closes all emitter
     void CloseEmitter() {
-        sLOG << "emit stats: ";
-        size_t i = 0;
-        for (auto& e : emit_) {
-            e.Close();
-            sLOG << "emitter " << i << " pushed " << emit_stats_[i++];
-        }
+        emit_.CloseAll();
     }
 
     //! \name Accessors
@@ -252,14 +291,11 @@ public:
     //! }
 
 private:
+    //! Emitters used to parameterize hash table for output to network.
+    TableEmitter emit_;
+
     //! the first-level hash table implementation
     Table table_;
-
-    //! Set of emitters, one per partition.
-    std::vector<data::DynBlockWriter>& emit_;
-
-    //! Emitter stats.
-    std::vector<size_t> emit_stats_;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;

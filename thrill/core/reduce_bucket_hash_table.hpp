@@ -78,13 +78,13 @@ namespace core {
  *
  */
 template <typename ValueType, typename Key, typename Value,
-          typename KeyExtractor, typename ReduceFunction,
+          typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
           typename IndexFunction,
           typename EqualToFunction>
 class ReduceBucketHashTable
     : public ReduceHashTable<ValueType, Key, Value,
-                             KeyExtractor, ReduceFunction,
+                             KeyExtractor, ReduceFunction, Emitter,
                              RobustKey, IndexFunction, EqualToFunction>
 {
     static const bool debug = false;
@@ -92,7 +92,7 @@ class ReduceBucketHashTable
     static const size_t TargetBlockSize = 16 * 16;
 
     using Super = ReduceHashTable<ValueType, Key, Value,
-                                  KeyExtractor, ReduceFunction,
+                                  KeyExtractor, ReduceFunction, Emitter,
                                   RobustKey, IndexFunction, EqualToFunction>;
 
 public:
@@ -127,6 +127,7 @@ public:
         Context& ctx,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
+        const Emitter& emitter,
         const IndexFunction& index_function,
         const EqualToFunction& equal_to_function,
         size_t num_partitions,
@@ -135,7 +136,7 @@ public:
         double bucket_rate,
         const Key& /* sentinel */ = Key())
         : Super(ctx,
-                key_extractor, reduce_function,
+                key_extractor, reduce_function, emitter,
                 index_function, equal_to_function,
                 num_partitions, limit_memory_bytes) {
 
