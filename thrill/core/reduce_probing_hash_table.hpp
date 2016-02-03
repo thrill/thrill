@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_probing_table.hpp
+ * thrill/core/reduce_probing_hash_table.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_PROBING_TABLE_HEADER
-#define THRILL_CORE_REDUCE_PROBING_TABLE_HEADER
+#ifndef THRILL_CORE_REDUCE_PROBING_HASH_TABLE_HEADER
+#define THRILL_CORE_REDUCE_PROBING_HASH_TABLE_HEADER
 
 #include <thrill/core/reduce_hash_table.hpp>
 
@@ -68,7 +68,7 @@ template <typename ValueType, typename Key, typename Value,
           const bool RobustKey,
           typename IndexFunction,
           typename EqualToFunction>
-class ReduceProbingTable
+class ReduceProbingHashTable
     : public ReduceHashTable<ValueType, Key, Value,
                              KeyExtractor, ReduceFunction,
                              RobustKey, IndexFunction, EqualToFunction>
@@ -82,7 +82,7 @@ class ReduceProbingTable
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
-    ReduceProbingTable(
+    ReduceProbingHashTable(
         Context& ctx,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
@@ -316,6 +316,6 @@ protected:
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_PROBING_TABLE_HEADER
+#endif // !THRILL_CORE_REDUCE_PROBING_HASH_TABLE_HEADER
 
 /******************************************************************************/

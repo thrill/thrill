@@ -22,7 +22,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/core/post_reduce_flush.hpp>
 #include <thrill/core/post_reduce_flush_to_index.hpp>
-#include <thrill/core/reduce_bucket_table.hpp>
+#include <thrill/core/reduce_bucket_hash_table.hpp>
 #include <thrill/core/reduce_post_probing_table.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/block_sink.hpp>
@@ -69,7 +69,7 @@ template <typename ValueType, typename Key, typename Value, // TODO(ms): dont ne
           size_t TargetBlockSize = 16*16
           >
 class ReducePostBucketTable
-    : public ReduceBucketTable<
+    : public ReduceBucketHashTable<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           !SendPair,
@@ -77,7 +77,7 @@ class ReducePostBucketTable
 {
     static const bool debug = false;
 
-    using Super = ReduceBucketTable<
+    using Super = ReduceBucketHashTable<
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
               !SendPair,
