@@ -131,7 +131,8 @@ public:
         size_t num_partitions,
         size_t limit_memory_bytes,
         double limit_partition_fill_rate,
-        double bucket_rate)
+        double bucket_rate,
+        const Key& /* sentinel */ = Key())
         : Super(ctx,
                 key_extractor, reduce_function,
                 index_function, equal_to_function,

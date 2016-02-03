@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <thrill/api/context.hpp>
-#include <thrill/core/reduce_post_probing_table.hpp>
+#include <thrill/core/reduce_post_table.hpp>
 #include <thrill/core/reduce_pre_table.hpp>
 #include <thrill/net/manager.hpp>
 
@@ -132,7 +132,7 @@ TEST_F(PostTable, AddIntegers) {
                                     });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-            table(ctx, key_ex, red_fn, emit, -1);
+            table(ctx, key_ex, red_fn, emit);
 
             table.Insert(pair(1));
             table.Insert(pair(2));
@@ -172,7 +172,7 @@ TEST_F(PostTable, CreateEmptyTable) {
                                     });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-            table(ctx, key_ex, red_fn, emit, -1);
+            table(ctx, key_ex, red_fn, emit);
 
             ASSERT_EQ(0u, table.num_items());
         };
@@ -199,7 +199,7 @@ TEST_F(PostTable, FlushIntegers) {
                                     });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false>
-            table(ctx, key_ex, red_fn, emit, -1);
+            table(ctx, key_ex, red_fn, emit);
 
             table.Insert(pair(1));
             table.Insert(pair(2));
@@ -239,7 +239,7 @@ TEST_F(PostTable, FlushIntegersInSequence) {
                                     });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false>
-            table(ctx, key_ex, red_fn, emit, -1);
+            table(ctx, key_ex, red_fn, emit);
 
             table.Insert(pair(1));
             table.Insert(pair(2));
@@ -284,7 +284,7 @@ TEST_F(PostTable, MultipleEmitters) {
                                     });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false>
-            table(ctx, key_ex, red_fn, emit, -1);
+            table(ctx, key_ex, red_fn, emit);
 
             table.Insert(pair(1));
             table.Insert(pair(2));
@@ -374,8 +374,7 @@ TEST_F(PostTable, WithinTableItemsLimit) {
                                          core::PostReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), -1, 0, byte_size, fill_rate,
-                  1,
-                  std::equal_to<int>());
+                  1);
 
             ASSERT_EQ(0u, table.num_items());
 
@@ -424,8 +423,7 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
                                          core::PostReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), -1, 0, byte_size, fill_rate,
-                  1,
-                  std::equal_to<int>());
+                  1);
 
             ASSERT_EQ(0u, table.num_items());
 
@@ -476,8 +474,7 @@ TEST_F(PostTable, DISABLED_AboveTableItemsLimit) {
             table(ctx, key_ex, red_fn, emit,
                   core::PostReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn),
-                  common::Range(0, 0), -1, 0, byte_size, fill_rate, 1,
-                  std::equal_to<int>());
+                  common::Range(0, 0), -1, 0, byte_size, fill_rate, 1);
 
             size_t num_items = (size_t)(static_cast<double>(total_items) * fill_rate);
 
