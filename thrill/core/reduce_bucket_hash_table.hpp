@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_bucket_table.hpp
+ * thrill/core/reduce_bucket_hash_table.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_BUCKET_TABLE_HEADER
-#define THRILL_CORE_REDUCE_BUCKET_TABLE_HEADER
+#ifndef THRILL_CORE_REDUCE_BUCKET_HASH_TABLE_HEADER
+#define THRILL_CORE_REDUCE_BUCKET_HASH_TABLE_HEADER
 
 #include <thrill/core/bucket_block_pool.hpp>
 #include <thrill/core/reduce_hash_table.hpp>
@@ -83,7 +83,7 @@ template <typename ValueType, typename Key, typename Value,
           typename IndexFunction,
           typename EqualToFunction,
           size_t TargetBlockSize>
-class ReduceBucketTable
+class ReduceBucketHashTable
     : public ReduceHashTable<ValueType, Key, Value,
                              KeyExtractor, ReduceFunction,
                              RobustKey, IndexFunction, EqualToFunction>
@@ -122,7 +122,7 @@ public:
         }
     };
 
-    ReduceBucketTable(
+    ReduceBucketHashTable(
         Context& ctx,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
@@ -215,11 +215,11 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    ReduceBucketTable(const ReduceBucketTable&) = delete;
+    ReduceBucketHashTable(const ReduceBucketHashTable&) = delete;
     //! non-copyable: delete assignment operator
-    ReduceBucketTable& operator = (const ReduceBucketTable&) = delete;
+    ReduceBucketHashTable& operator = (const ReduceBucketHashTable&) = delete;
 
-    ~ReduceBucketTable() {
+    ~ReduceBucketHashTable() {
         // destroy all block chains
         for (BucketBlock* b_block : buckets_)
         {
@@ -518,6 +518,6 @@ protected:
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_BUCKET_TABLE_HEADER
+#endif // !THRILL_CORE_REDUCE_BUCKET_HASH_TABLE_HEADER
 
 /******************************************************************************/

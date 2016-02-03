@@ -17,7 +17,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/core/post_reduce_flush.hpp>
 #include <thrill/core/post_reduce_flush_to_index.hpp>
-#include <thrill/core/reduce_probing_table.hpp>
+#include <thrill/core/reduce_probing_hash_table.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
@@ -123,7 +123,7 @@ template <typename ValueType, typename Key, typename Value,
           typename EqualToFunction = std::equal_to<Key>,
           const bool FullPreReduce = false>
 class ReducePreProbingTable
-    : public ReduceProbingTable<
+    : public ReduceProbingHashTable<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           RobustKey,
@@ -131,7 +131,7 @@ class ReducePreProbingTable
 {
     static const bool debug = true;
 
-    using Super = ReduceProbingTable<
+    using Super = ReduceProbingHashTable<
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
               RobustKey,

@@ -21,7 +21,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/core/post_reduce_flush.hpp>
 #include <thrill/core/post_reduce_flush_to_index.hpp>
-#include <thrill/core/reduce_bucket_table.hpp>
+#include <thrill/core/reduce_bucket_hash_table.hpp>
 #include <thrill/core/reduce_pre_probing_table.hpp>
 #include <thrill/data/block_writer.hpp>
 
@@ -64,7 +64,7 @@ template <typename ValueType, typename Key, typename Value,
           size_t TargetBlockSize = 16*16,
           const bool FullPreReduce = false>
 class ReducePreBucketTable
-    : public ReduceBucketTable<
+    : public ReduceBucketHashTable<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           RobustKey,
@@ -72,9 +72,7 @@ class ReducePreBucketTable
 {
     static const bool debug = false;
 
-    static const size_t flush_mode = 0; // 0... 1-factor, 1... fullest, 4... random
-
-    using Super = ReduceBucketTable<
+    using Super = ReduceBucketHashTable<
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
               RobustKey,
