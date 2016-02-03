@@ -120,8 +120,7 @@ template <typename ValueType, typename Key, typename Value,
           const bool RobustKey = false,
           typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
           typename IndexFunction = PreReduceByHashKey<Key>,
-          typename EqualToFunction = std::equal_to<Key>,
-          const bool FullPreReduce = false>
+          typename EqualToFunction = std::equal_to<Key> >
 class ReducePreProbingTable
     : public ReduceProbingHashTable<
           ValueType, Key, Value,
@@ -216,8 +215,6 @@ public:
 
         assert(num_partitions == emit.size());
 
-        total_items_per_partition_.resize(num_partitions, 0);
-
         for (size_t i = 0; i < emit.size(); i++) {
             emit_stats_.push_back(0);
         }
@@ -233,7 +230,7 @@ public:
               FlushFunction(reduce_function))
     { }
 
-    //! non-copyable: delete copy-constructor
+    //! non-copyable: delete copy-constructorx
     ReducePreProbingTable(const ReducePreProbingTable&) = delete;
     //! non-copyable: delete assignment operator
     ReducePreProbingTable& operator = (const ReducePreProbingTable&) = delete;
@@ -242,14 +239,8 @@ public:
      * Flush.
      */
     void Flush(bool consume = true) {
-
-        if (FullPreReduce) {
-            flush_function_.FlushTable(consume, *this);
-        }
-        else {
-            for (size_t id = 0; id < partition_files_.size(); ++id) {
-                FlushPartition(id);
-            }
+        for (size_t id = 0; id < partition_files_.size(); ++id) {
+            FlushPartition(id, consume);
         }
     }
 
@@ -258,10 +249,10 @@ public:
      *
      * \param partition_id The id of the partition to be flushed.
      */
-    void FlushPartition(size_t partition_id) {
+    void FlushPartition(size_t partition_id, bool consume) {
 
         Super::FlushPartitionE(
-            partition_id, true,
+            partition_id, consume,
             [&](const size_t& partition_id, const KeyValuePair& p) {
                 EmitAll(partition_id, p);
             });
@@ -281,15 +272,12 @@ public:
     //! Returns the neutral element.
     Value NeutralElement() const { return neutral_element_; }
 
-    //! Returns the local index range.
-    common::Range LocalIndex() const { return common::Range(0, size_ - 1); }
-
     /*!
     * Closes all emitter.
     */
     void CloseEmitter() {
         sLOG << "emit stats: ";
-        unsigned int i = 0;
+        size_t i = 0;
         for (auto& e : emit_) {
             e.Close();
             sLOG << "emitter " << i << " pushed " << emit_stats_[i++];
@@ -298,18 +286,7 @@ public:
 
 private:
     using Super::num_partitions_;
-    using Super::key_extractor_;
-    using Super::reduce_function_;
-    using Super::index_function_;
-    using Super::equal_to_function_;
-    using Super::size_;
-    using Super::items_;
-    using Super::limit_items_per_partition_;
-    using Super::items_per_partition_;
-    using Super::partition_size_;
-    using Super::sentinel_;
     using Super::partition_files_;
-    using Super::ctx_;
 
     //! Set of emitters, one per partition.
     std::vector<data::DynBlockWriter>& emit_;
@@ -319,9 +296,6 @@ private:
 
     //! Emitter stats.
     std::vector<int> emit_stats_;
-
-    //! Number of items per partition.
-    std::vector<size_t> total_items_per_partition_;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;

@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
                      size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
                      core::PostReduceFlush<size_t, size_t, decltype(red_fn)>,
                      core::PreReduceByHashKey<size_t>,
-                     std::equal_to<size_t>, target_block_size, full_reduce>
+                     std::equal_to<size_t> >
                  table(ctx,
                        workers, key_ex, red_fn, writers,
                        core::PreReduceByHashKey<size_t>(),

@@ -57,26 +57,16 @@ struct PreBucketEmitImpl<false, Emitters, KeyValuePair>{
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
-          const bool RobustKey = false,
-          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
-          typename IndexFunction = PreReduceByHashKey<Key>,
-          typename EqualToFunction = std::equal_to<Key>,
-          size_t TargetBlockSize = 16*16,
-          const bool FullPreReduce = false>
-class ReducePreBucketTable
-    : public ReduceBucketHashTable<
-          ValueType, Key, Value,
-          KeyExtractor, ReduceFunction,
-          RobustKey,
-          IndexFunction, EqualToFunction, TargetBlockSize>
+          const bool RobustKey,
+          typename FlushFunction,
+          typename IndexFunction,
+          typename EqualToFunction,
+          typename HashTable>
+class ReducePreTable : public HashTable
 {
     static const bool debug = false;
 
-    using Super = ReduceBucketHashTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction,
-              RobustKey,
-              IndexFunction, EqualToFunction, TargetBlockSize>;
+    using Super = HashTable;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -102,19 +92,19 @@ public:
      * \param index_function Function to be used for computing the bucket the item to be inserted.
      * \param equal_to_function Function for checking equality fo two keys.
      */
-    ReducePreBucketTable(Context& ctx,
-                         size_t num_partitions,
-                         KeyExtractor key_extractor,
-                         ReduceFunction reduce_function,
-                         std::vector<data::DynBlockWriter>& emit,
-                         const IndexFunction& index_function,
-                         const FlushFunction& flush_function,
-                         const Key& /* sentinel */ = Key(),
-                         const Value& neutral_element = Value(),
-                         size_t limit_memory_bytes = 1024* 16,
-                         double bucket_rate = 1.0,
-                         double limit_partition_fill_rate = 0.6,
-                         const EqualToFunction& equal_to_function = EqualToFunction())
+    ReducePreTable(Context& ctx,
+                   size_t num_partitions,
+                   KeyExtractor key_extractor,
+                   ReduceFunction reduce_function,
+                   std::vector<data::DynBlockWriter>& emit,
+                   const IndexFunction& index_function,
+                   const FlushFunction& flush_function,
+                   const Key& /* sentinel */ = Key(),
+                   const Value& neutral_element = Value(),
+                   size_t limit_memory_bytes = 1024* 16,
+                   double bucket_rate = 1.0,
+                   double limit_partition_fill_rate = 0.6,
+                   const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
                 key_extractor,
                 reduce_function,
@@ -127,40 +117,32 @@ public:
           emit_(emit),
           flush_function_(flush_function),
           neutral_element_(neutral_element) {
-        sLOG << "creating ReducePreBucketTable with" << emit_.size() << "output emitters";
+        sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
 
         assert(num_partitions == emit.size());
-
-        total_items_per_partition_.resize(num_partitions_, 0);
 
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
     }
 
-    ReducePreBucketTable(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
-                         ReduceFunction reduce_function,
-                         std::vector<data::DynBlockWriter>& emit)
-        : ReducePreBucketTable(
+    ReducePreTable(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
+                   ReduceFunction reduce_function,
+                   std::vector<data::DynBlockWriter>& emit)
+        : ReducePreTable(
               ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction(),
               FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
-    ReducePreBucketTable(const ReducePreBucketTable&) = delete;
+    ReducePreTable(const ReducePreTable&) = delete;
     //! non-copyable: delete assignment operator
-    ReducePreBucketTable& operator = (const ReducePreBucketTable&) = delete;
+    ReducePreTable& operator = (const ReducePreTable&) = delete;
 
     /*!
      * Flush.
      */
     void Flush(bool consume = true) {
-
-        if (FullPreReduce) {
-            flush_function_.FlushTable(consume, *this);
-        }
-        else {
-            for (size_t id = 0; id < partition_files_.size(); ++id) {
-                FlushPartition(id);
-            }
+        for (size_t id = 0; id < num_partitions_; ++id) {
+            FlushPartition(id, consume);
         }
     }
 
@@ -169,10 +151,10 @@ public:
      *
      * \param partition_id The id of the partition to be flushed.
      */
-    void FlushPartition(size_t partition_id) {
+    void FlushPartition(size_t partition_id, bool consume) {
 
         Super::FlushPartitionE(
-            partition_id, true,
+            partition_id, consume,
             [=](const size_t& partition_id, const KeyValuePair& p) {
                 this->EmitAll(partition_id, p);
             });
@@ -181,47 +163,21 @@ public:
         emit_[partition_id].Flush();
     }
 
-    /*!
-     * Emits element to all children
-     */
+    //! Emits element to all children
     void EmitAll(const size_t& partition_id, const KeyValuePair& p) {
         emit_stats_[partition_id]++;
         emit_impl_.EmitElement(p, partition_id, emit_);
     }
 
-    /*!
-     * Returns the number of block in the table.
-     *
-     * \return Number of blocks in the table.
-     */
-    size_t NumBlocksPerTable() const {
-        return num_blocks_;
-    }
-
-    /*!
-    * Returns the neutral element.
-    *
-    * \return Neutral element.
-    */
+    //! Returns the neutral element.
     Value NeutralElement() const {
         return neutral_element_;
     }
 
-    /*!
-    * Returns the local index range.
-    *
-    * \return Begin local index.
-    */
-    common::Range LocalIndex() const {
-        return common::Range(0, num_buckets_ - 1);
-    }
-
-    /*!
-     * Closes all emitter
-     */
+    //! Closes all emitter
     void CloseEmitter() {
         sLOG << "emit stats: ";
-        unsigned int i = 0;
+        size_t i = 0;
         for (auto& e : emit_) {
             e.Close();
             sLOG << "emitter " << i << " pushed " << emit_stats_[i++];
@@ -229,23 +185,8 @@ public:
     }
 
 private:
-    using Super::buckets_;
-    using Super::key_extractor_;
-    using Super::reduce_function_;
-    using Super::index_function_;
-    using Super::equal_to_function_;
-    using Super::block_pool_;
     using Super::num_partitions_;
-    using Super::num_buckets_;
-    using Super::num_buckets_per_partition_;
-    using Super::max_items_per_partition_;
-    using Super::max_blocks_per_partition_;
-    using Super::num_blocks_;
-    using Super::limit_blocks_;
-    using Super::items_per_partition_;
-    using Super::limit_items_per_partition_;
     using Super::partition_files_;
-    using Super::ctx_;
 
     //! Set of emitters, one per partition.
     std::vector<data::DynBlockWriter>& emit_;
@@ -253,15 +194,31 @@ private:
     //! Flush function.
     FlushFunction flush_function_;
 
-    //! Number of items per partition.
-    std::vector<size_t> total_items_per_partition_;
-
     //! Emitter stats.
     std::vector<size_t> emit_stats_;
 
     //! Neutral element (reduce to index).
     Value neutral_element_;
 };
+
+template <typename ValueType, typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
+          const bool RobustKey = false,
+          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
+          typename IndexFunction = PreReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key> >
+using ReducePreBucketTable = ReducePreTable<
+          ValueType, Key, Value,
+          KeyExtractor, ReduceFunction,
+          RobustKey,
+          FlushFunction, IndexFunction, EqualToFunction,
+          ReduceBucketHashTable<
+              ValueType, Key, Value,
+              KeyExtractor, ReduceFunction,
+              RobustKey,
+              IndexFunction, EqualToFunction
+              >
+          >;
 
 } // namespace core
 } // namespace thrill
