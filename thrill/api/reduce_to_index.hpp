@@ -101,7 +101,6 @@ public:
                             parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_,
                             core::PreReduceByIndex<Key>(result_size),
-                            core::PostReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
                             Key(), neutral_element_,
                             1024 * 1024 * 32, 1.0, 0.6),
           reduce_post_table_(
@@ -190,7 +189,6 @@ private:
 
     core::ReducePreBucketTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PostReduceFlushToIndex<Key, Value, ReduceFunction>,
         core::PreReduceByIndex<Key>,
         std::equal_to<Key> > reduce_pre_table_;
 

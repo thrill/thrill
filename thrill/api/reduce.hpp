@@ -105,7 +105,6 @@ public:
           //     key_extractor,
           //     reduce_function_, emitters_,
           //     core::PreReduceByHashKey<Key>(),
-          //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
           //     Key(), Value(), config.pre_table_memlimit),
           // reduce_post_table_(
           //     context_, key_extractor_, reduce_function_,
@@ -121,7 +120,6 @@ public:
               key_extractor,
               reduce_function_, emitters_,
               core::PreReduceByHashKey<Key>(),
-              core::PostReduceFlush<Key, Value, ReduceFunction>(reduce_function),
               Key(), Value(), config.pre_table_memlimit),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
@@ -213,7 +211,6 @@ private:
 
     core::ReducePreBucketTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PostReduceFlush<Key, Value, ReduceFunction>,
         core::PreReduceByHashKey<Key>,
         std::equal_to<Key> > reduce_pre_table_;
 
