@@ -61,12 +61,10 @@ public:
 
         std::vector<data::File>& partition_files = ht.PartitionFiles();
 
-        std::vector<size_t>& partition_sequence = ht.PartitionSequence();
-
-        for (size_t partition_id : partition_sequence) {
+        for (size_t id = 0; id < partition_files.size(); ++id) {
 
             // get the actual reader from the file
-            data::File& file = partition_files[partition_id];
+            data::File& file = partition_files[id];
 
             // only if items have been spilled, process a second reduce
             if (file.num_items() > 0) {
@@ -89,7 +87,7 @@ public:
                 // emit data
                 /////
                 ht.FlushPartitionE(
-                    partition_id, consume,
+                    id, consume,
                     [&](const size_t& partition_id, const KeyValuePair& bi) {
                         ht.EmitAll(partition_id, bi);
                     });

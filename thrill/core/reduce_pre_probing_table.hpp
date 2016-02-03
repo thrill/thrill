@@ -228,24 +228,6 @@ public:
         for (size_t i = 0; i < emit.size(); i++) {
             emit_stats_.push_back(0);
         }
-
-        partition_sequence_.resize(num_partitions_, 0);
-        if (flush_mode == 0)
-        {
-            ComputeOneFactor(num_partitions_, ctx_.my_rank());
-        }
-        else if (flush_mode == 4)
-        {
-            size_t idx = 0;
-            for (size_t i = 0; i < num_partitions_; i++)
-            {
-                if (i != ctx_.my_rank()) {
-                    partition_sequence_[idx++] = i;
-                }
-            }
-            std::random_shuffle(partition_sequence_.begin(), partition_sequence_.end() - 1);
-            partition_sequence_[num_partitions_ - 1] = ctx_.my_rank();
-        }
     }
 
     ReducePreProbingTable(
@@ -278,43 +260,12 @@ public:
      */
     void Flush(bool consume = true) {
 
-        if (flush_mode == 1) {
-            size_t idx = 0;
-            for (size_t i = 0; i != num_partitions_; i++) {
-                if (i != ctx_.my_rank())
-                    partition_sequence_[idx++] = i;
-            }
-
-            if (FullPreReduce) {
-                std::vector<size_t> sum_items_per_partition_;
-                sum_items_per_partition_.resize(num_partitions_, 0);
-                for (size_t i = 0; i != num_partitions_; ++i) {
-                    sum_items_per_partition_[i] += items_per_partition_[i];
-                    sum_items_per_partition_[i] += total_items_per_partition_[i];
-                    if (consume)
-                        total_items_per_partition_[i] = 0;
-                }
-                std::sort(partition_sequence_.begin(), partition_sequence_.end() - 1,
-                          [&](size_t i1, size_t i2) {
-                              return sum_items_per_partition_[i1] < sum_items_per_partition_[i2];
-                          });
-            }
-            else {
-                std::sort(partition_sequence_.begin(), partition_sequence_.end() - 1,
-                          [&](size_t i1, size_t i2) {
-                              return items_per_partition_[i1] < items_per_partition_[i2];
-                          });
-            }
-
-            partition_sequence_[num_partitions_ - 1] = ctx_.my_rank();
-        }
-
         if (FullPreReduce) {
             flush_function_.FlushTable(consume, *this);
         }
         else {
-            for (size_t i : partition_sequence_) {
-                FlushPartition(i);
+            for (size_t id = 0; id < partition_files_.size(); ++id) {
+                FlushPartition(id);
             }
         }
     }
@@ -408,9 +359,6 @@ public:
     //! Returns the local index range.
     common::Range LocalIndex() const { return common::Range(0, size_ - 1); }
 
-    //! Returns the sequence of partition ids to be processed on flush.
-    std::vector<size_t> & PartitionSequence() { return partition_sequence_; }
-
     /*!
     * Closes all emitter.
     */
@@ -421,52 +369,6 @@ public:
             e.Close();
             sLOG << "emitter " << i << " pushed " << emit_stats_[i++];
         }
-    }
-
-    /*!
-     * Computes the one 1-factor sequence
-     */
-    void ComputeOneFactor(const size_t& p_raw,
-                          const size_t& j) {
-        assert(p_raw > 0);
-        assert(j >= 0);
-        assert(j < p_raw);
-
-        const size_t p = (p_raw % 2 == 0) ? p_raw - 1 : p_raw;
-        std::vector<size_t> p_i(p);
-
-        for (size_t i = 0; i < p; i++) {
-            if (i == 0) {
-                p_i[i] = 0;
-                continue;
-            }
-            p_i[i] = p - i;
-        }
-
-        size_t a = 0;
-        for (size_t i = 0; i < p; i++) {
-            if (p != p_raw && j == p) {
-                partition_sequence_[i] = ((p_raw / 2) * i) % (p_raw - 1);
-                continue;
-            }
-
-            int idx = j - i;
-            if (idx < 0) {
-                idx = p + (j - i);
-            }
-            if (p_i[idx] == j) {
-                if (p == p_raw) {
-                    continue;
-                }
-                else {
-                    partition_sequence_[a++] = p;
-                    continue;
-                }
-            }
-            partition_sequence_[a++] = p_i[idx];
-        }
-
-        partition_sequence_[p_raw - 1] = j;
     }
 
 private:
@@ -498,9 +400,6 @@ private:
 
     //! Neutral element (reduce to index).
     Value neutral_element_;
-
-    //! Partition Sequence.
-    std::vector<size_t> partition_sequence_;
 };
 
 } // namespace core

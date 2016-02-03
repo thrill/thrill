@@ -221,10 +221,6 @@ public:
 
         assert(partition_rate > 0.0 && partition_rate <= 1.0 &&
                "a partition rate of 1.0 causes exactly one partition.");
-
-        partition_sequence_.resize(num_partitions_, 0);
-        for (size_t i = 0; i < num_partitions_; i++)
-            partition_sequence_[i] = i;
     }
 
     ReducePostProbingTable(
@@ -366,14 +362,6 @@ public:
         return ctx_;
     }
 
-    /*!
-     * Returns the sequence of partition ids to
-     * be processed on flush.
-     */
-    std::vector<size_t> & PartitionSequence() {
-        return partition_sequence_;
-    }
-
 private:
     using Super::num_partitions_;
     using Super::key_extractor_;
@@ -400,9 +388,6 @@ private:
 
     //! Neutral element (reduce to index).
     Value neutral_element_;
-
-    //! Partition Sequence.
-    std::vector<size_t> partition_sequence_;
 };
 
 } // namespace core
