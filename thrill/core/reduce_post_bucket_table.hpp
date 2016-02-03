@@ -60,28 +60,18 @@ struct PostBucketEmitImpl<false, EmitterFunction, KeyValuePair, SendType>{
     }
 };
 
-template <typename ValueType, typename Key, typename Value, // TODO(ms): dont need both ValueType and Value
+template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
-          const bool SendPair = false,
-          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
-          typename IndexFunction = PostReduceByHashKey<Key>,
-          typename EqualToFunction = std::equal_to<Key>,
-          size_t TargetBlockSize = 16*16
-          >
-class ReducePostBucketTable
-    : public ReduceBucketHashTable<
-          ValueType, Key, Value,
-          KeyExtractor, ReduceFunction,
-          !SendPair,
-          IndexFunction, EqualToFunction, TargetBlockSize>
+          const bool SendPair,
+          typename FlushFunction,
+          typename IndexFunction,
+          typename EqualToFunction,
+          typename HashTable>
+class ReducePostTable : public HashTable
 {
     static const bool debug = false;
 
-    using Super = ReduceBucketHashTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction,
-              !SendPair,
-              IndexFunction, EqualToFunction, TargetBlockSize>;
+    using Super = HashTable;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -89,9 +79,6 @@ public:
     using EmitterFunction = std::function<void(const ValueType&)>;
 
     PostBucketEmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
-
-    using typename Super::BucketBlock;
-    using Super::block_size_;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
@@ -114,20 +101,20 @@ public:
      * \param partition_rate Rate of number of buckets to number of partitions. There is one file writer per partition.
      * \param equal_to_function Function for checking equality of two keys.
      */
-    ReducePostBucketTable(Context& ctx,
-                          const KeyExtractor& key_extractor,
-                          const ReduceFunction& reduce_function,
-                          const EmitterFunction& emit,
-                          const IndexFunction& index_function,
-                          const FlushFunction& flush_function,
-                          const common::Range& local_index = common::Range(),
-                          const Key& /* sentinel */ = Key(),
-                          const Value& neutral_element = Value(),
-                          size_t limit_memory_bytes = 1024* 16,
-                          double bucket_rate = 1.0,
-                          double limit_partition_fill_rate = 0.6,
-                          double partition_rate = 0.1,
-                          const EqualToFunction& equal_to_function = EqualToFunction())
+    ReducePostTable(Context& ctx,
+                    const KeyExtractor& key_extractor,
+                    const ReduceFunction& reduce_function,
+                    const EmitterFunction& emit,
+                    const IndexFunction& index_function,
+                    const FlushFunction& flush_function,
+                    const common::Range& local_index = common::Range(),
+                    const Key& /* sentinel */ = Key(),
+                    const Value& neutral_element = Value(),
+                    size_t limit_memory_bytes = 1024* 16,
+                    double bucket_rate = 1.0,
+                    double limit_partition_fill_rate = 0.6,
+                    double partition_rate = 0.1,
+                    const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
                 key_extractor,
                 reduce_function,
@@ -146,15 +133,15 @@ public:
                "a partition rate of 1.0 causes exactly one partition.");
     }
 
-    ReducePostBucketTable(Context& ctx, KeyExtractor key_extractor,
-                          ReduceFunction reduce_function, EmitterFunction emit)
-        : ReducePostBucketTable(ctx, key_extractor, reduce_function, emit, IndexFunction(),
-                                FlushFunction(reduce_function)) { }
+    ReducePostTable(Context& ctx, KeyExtractor key_extractor,
+                    ReduceFunction reduce_function, EmitterFunction emit)
+        : ReducePostTable(ctx, key_extractor, reduce_function, emit, IndexFunction(),
+                          FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
-    ReducePostBucketTable(const ReducePostBucketTable&) = delete;
+    ReducePostTable(const ReducePostTable&) = delete;
     //! non-copyable: delete assignment operator
-    ReducePostBucketTable& operator = (const ReducePostBucketTable&) = delete;
+    ReducePostTable& operator = (const ReducePostTable&) = delete;
 
     /*!
      * Flushes all items in the whole table.
@@ -193,33 +180,8 @@ public:
         return neutral_element_;
     }
 
-    /*!
-     * Returns the number of block in the table.
-     *
-     * \return Number of blocks in the table.
-     */
-    size_t NumBlocksPerTable() const {
-        return num_blocks_;
-    }
-
 private:
-    using Super::buckets_;
-    using Super::key_extractor_;
-    using Super::reduce_function_;
-    using Super::index_function_;
-    using Super::equal_to_function_;
-    using Super::block_pool_;
-    using Super::num_partitions_;
-    using Super::num_buckets_;
-    using Super::num_buckets_per_partition_;
-    using Super::max_items_per_partition_;
-    using Super::max_blocks_per_partition_;
-    using Super::num_blocks_;
-    using Super::limit_blocks_;
-    using Super::items_per_partition_;
-    using Super::limit_items_per_partition_;
     using Super::partition_files_;
-    using Super::ctx_;
 
     //! Emitter function.
     EmitterFunction emit_;
@@ -233,6 +195,25 @@ private:
     //! Flush function.
     FlushFunction flush_function_;
 };
+
+template <typename ValueType, typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
+          const bool SendPair = false,
+          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
+          typename IndexFunction = PostReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key> >
+using ReducePostBucketTable = ReducePostTable<
+          ValueType, Key, Value,
+          KeyExtractor, ReduceFunction,
+          SendPair,
+          FlushFunction,
+          IndexFunction, EqualToFunction,
+          ReduceBucketHashTable<
+              ValueType, Key, Value,
+              KeyExtractor, ReduceFunction,
+              !SendPair,
+              IndexFunction, EqualToFunction>
+          >;
 
 } // namespace core
 } // namespace thrill

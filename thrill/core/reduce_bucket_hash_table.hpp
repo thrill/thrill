@@ -462,6 +462,20 @@ public:
 
     //! \}
 
+    //! \name Accessors
+    //! {
+
+    /*!
+     * Returns the number of block in the table.
+     *
+     * \return Number of blocks in the table.
+     */
+    size_t num_blocks() const {
+        return num_blocks_;
+    }
+
+    //! }
+
 protected:
     using Super::equal_to_function_;
     using Super::index_function_;

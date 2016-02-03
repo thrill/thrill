@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_pre_bucket_table.hpp
+ * thrill/core/reduce_pre_table.hpp
  *
  * Hash table with support for reduce and partitions.
  *
@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_PRE_BUCKET_TABLE_HEADER
-#define THRILL_CORE_REDUCE_PRE_BUCKET_TABLE_HEADER
+#ifndef THRILL_CORE_REDUCE_PRE_TABLE_HEADER
+#define THRILL_CORE_REDUCE_PRE_TABLE_HEADER
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
@@ -288,6 +288,6 @@ using ReducePreProbingTable = ReducePreTable<
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_PRE_BUCKET_TABLE_HEADER
+#endif // !THRILL_CORE_REDUCE_PRE_TABLE_HEADER
 
 /******************************************************************************/
