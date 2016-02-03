@@ -124,12 +124,7 @@ class ReducePostProbingTable
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           !SendPair,
-          IndexFunction, EqualToFunction,
-          ReducePostProbingTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction, SendPair, FlushFunction,
-              IndexFunction, EqualToFunction>
-          >
+          IndexFunction, EqualToFunction>
 {
     static const bool debug = true;
 
@@ -137,7 +132,7 @@ class ReducePostProbingTable
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
               !SendPair,
-              IndexFunction, EqualToFunction, ReducePostProbingTable>;
+              IndexFunction, EqualToFunction>;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;

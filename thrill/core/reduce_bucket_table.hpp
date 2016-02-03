@@ -81,8 +81,7 @@ template <typename ValueType, typename Key, typename Value,
           const bool RobustKey,
           typename IndexFunction,
           typename EqualToFunction,
-          size_t TargetBlockSize,
-          typename SubTable>
+          size_t TargetBlockSize>
 class ReduceBucketTable
 {
     static const bool debug = false;

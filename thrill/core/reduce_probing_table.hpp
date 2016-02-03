@@ -65,8 +65,7 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey,
           typename IndexFunction,
-          typename EqualToFunction,
-          typename SubTable>
+          typename EqualToFunction>
 class ReduceProbingTable
 {
     static const bool debug = false;
