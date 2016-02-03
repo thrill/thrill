@@ -14,6 +14,7 @@
 #define THRILL_CORE_REDUCE_BUCKET_TABLE_HEADER
 
 #include <thrill/core/bucket_block_pool.hpp>
+#include <thrill/core/reduce_hash_table.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -83,8 +84,15 @@ template <typename ValueType, typename Key, typename Value,
           typename EqualToFunction,
           size_t TargetBlockSize>
 class ReduceBucketTable
+    : public ReduceHashTable<ValueType, Key, Value,
+                             KeyExtractor, ReduceFunction,
+                             RobustKey, IndexFunction, EqualToFunction>
 {
     static const bool debug = false;
+
+    using Super = ReduceHashTable<ValueType, Key, Value,
+                                  KeyExtractor, ReduceFunction,
+                                  RobustKey, IndexFunction, EqualToFunction>;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -124,14 +132,10 @@ public:
         size_t limit_memory_bytes,
         double limit_partition_fill_rate,
         double bucket_rate)
-        : ctx_(ctx),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          index_function_(index_function),
-          equal_to_function_(equal_to_function),
-          num_partitions_(num_partitions),
-          limit_memory_bytes_(limit_memory_bytes),
-          num_items_per_partition_(num_partitions_, 0) {
+        : Super(ctx,
+                key_extractor, reduce_function,
+                index_function, equal_to_function,
+                num_partitions, limit_memory_bytes) {
 
         assert(num_partitions > 0);
 
@@ -317,14 +321,14 @@ public:
         // in-place construct/insert new item in current bucket block
         new (current->items + current->size++)KeyValuePair(kv);
 
-        sLOG << "num_items_per_partition_.size()" << num_items_per_partition_.size();
+        sLOG << "items_per_partition_.size()" << items_per_partition_.size();
         sLOG << "h.partition_id" << h.partition_id;
 
         // Increase partition item count
-        num_items_per_partition_[h.partition_id]++;
+        items_per_partition_[h.partition_id]++;
 
         // flush current partition if max partition fill rate reached
-        while (num_items_per_partition_[h.partition_id] > limit_items_per_partition_)
+        while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
     }
 
@@ -365,7 +369,7 @@ public:
         }
 
         // reset partition specific counter
-        num_items_per_partition_[partition_id] = 0;
+        items_per_partition_[partition_id] = 0;
     }
 
     //! Spill all items of the largest partition into an external memory File.
@@ -375,9 +379,9 @@ public:
 
         for (size_t i = 0; i < num_partitions_; i++)
         {
-            if (num_items_per_partition_[i] > size_max)
+            if (items_per_partition_[i] > size_max)
             {
-                size_max = num_items_per_partition_[i];
+                size_max = items_per_partition_[i];
                 index = i;
             }
         }
@@ -397,10 +401,10 @@ public:
 
         for (size_t i = 0; i < num_partitions_; i++)
         {
-            if (num_items_per_partition_[i] < size_min
-                && num_items_per_partition_[i] != 0)
+            if (items_per_partition_[i] < size_min
+                && items_per_partition_[i] != 0)
             {
-                size_min = num_items_per_partition_[i];
+                size_min = items_per_partition_[i];
                 index = i;
             }
         }
@@ -454,7 +458,7 @@ public:
 
         if (consume) {
             // reset partition specific counter
-            num_items_per_partition_[partition_id] = 0;
+            items_per_partition_[partition_id] = 0;
         }
 
         // flush elements pushed into emitter
@@ -465,49 +469,25 @@ public:
 
     //! \}
 
-    //! \name Accessors
-    //! \{
-
-    //! Returns the vector of partition files.
-    std::vector<data::File> & PartitionFiles() {
-        return partition_files_;
-    }
-
-    //! \}
-
 protected:
-    //! Context
-    Context& ctx_;
+    using Super::equal_to_function_;
+    using Super::index_function_;
+    using Super::key_extractor_;
+    using Super::limit_items_per_partition_;
+    using Super::limit_memory_bytes_;
+    using Super::items_per_partition_;
+    using Super::num_partitions_;
+    using Super::partition_files_;
+    using Super::reduce_function_;
 
     //! Storing the items.
     std::vector<BucketBlock*> buckets_;
 
-    //! Key extractor function for extracting a key from a value.
-    KeyExtractor key_extractor_;
-
-    //! Reduce function for reducing two values.
-    ReduceFunction reduce_function_;
-
-    //! Index Calculation functions: Hash or ByIndex.
-    IndexFunction index_function_;
-
-    //! Comparator function for keys.
-    EqualToFunction equal_to_function_;
-
     //! Bucket block pool.
     BucketBlockPool<BucketBlock> block_pool_;
 
-    //! Store the files for partitions.
-    std::vector<data::File> partition_files_;
-
     //! \name Fixed Operational Parameters
     //! \{
-
-    //! Number of partitions
-    size_t num_partitions_;
-
-    //! Size of the table in bytes
-    size_t limit_memory_bytes_;
 
     //! Number of buckets in the table.
     size_t num_buckets_;
@@ -524,9 +504,6 @@ protected:
     //! Maximal number of blocks per partition.
     size_t max_blocks_per_partition_;
 
-    //! Number of items in a partition before the partition is spilled.
-    size_t limit_items_per_partition_;
-
     //! \}
 
     //! \name Current Statistical Parameters
@@ -534,9 +511,6 @@ protected:
 
     //! Total number of blocks in the table.
     size_t num_blocks_ = 0;
-
-    //! Current number of items per partition.
-    std::vector<size_t> num_items_per_partition_;
 
     //! \}
 };
