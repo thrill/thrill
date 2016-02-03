@@ -92,9 +92,6 @@ public:
 
     PreBucketEmitImpl<RobustKey, Emitters, KeyValuePair> emit_impl_;
 
-    using typename Super::BucketBlock;
-    using Super::block_size_;
-
     /**
      * A data structure which takes an arbitrary value and extracts a key using
      * a key extractor function from that value. Afterwards, the value is hashed
@@ -159,24 +156,6 @@ public:
     //! non-copyable: delete assignment operator
     ReducePreBucketTable& operator = (const ReducePreBucketTable&) = delete;
 
-    void SpillAnyPartition(size_t current_id) {
-        if (FullPreReduce) {
-            SpillOnePartition(current_id);
-        }
-        else {
-            FlushPartition(current_id);
-        }
-    }
-
-    void SpillOnePartition(size_t partition_id) {
-        if (FullPreReduce) {
-            this->SpillPartition(partition_id);
-        }
-        else {
-            FlushPartition(partition_id);
-        }
-    }
-
     /*!
      * Flush.
      */
@@ -190,47 +169,6 @@ public:
                 FlushPartition(id);
             }
         }
-    }
-
-    /*!
-     * Retrieves all items belonging to the partition
-     * having the most items. Retrieved items are then pushed
-     * to the provided emitter.
-     */
-    void FlushLargestPartition() {
-        LOG << "Flushing items of largest partition";
-
-        // get partition with max size
-        size_t p_size_max = 0;
-        size_t p_idx = 0;
-        for (size_t i = 0; i < num_partitions_; i++)
-        {
-            if (num_items_per_partition_[i] > p_size_max)
-            {
-                p_size_max = num_items_per_partition_[i];
-                p_idx = i;
-            }
-        }
-
-        LOG << "currMax: "
-            << p_size_max
-            << " currentIdx: "
-            << p_idx
-            << " currentIdx*p_size: "
-            << p_idx * num_buckets_per_partition_
-            << " CurrentIdx*p_size+p_size-1 "
-            << p_idx * num_buckets_per_partition_ + num_buckets_per_partition_ - 1;
-
-        LOG << "Largest patition id: "
-            << p_idx;
-
-        if (p_size_max == 0) {
-            return;
-        }
-
-        FlushPartition(p_idx);
-
-        LOG << "Flushed items of largest partition";
     }
 
     /*!
@@ -259,22 +197,6 @@ public:
     }
 
     /*!
-     * returns the total num of buckets in the table.
-     *
-     * \return Number of buckets in the table.
-     */
-    size_t NumBucketsPerTable() const {
-        return num_buckets_;
-    }
-
-    /*!
-     * Sets the num of blocks in the table.
-     */
-    void SetNumBlocksPerTable(const size_t num_blocks) {
-        num_blocks_ = num_blocks;
-    }
-
-    /*!
      * Returns the total num of items in the table.
      *
      * \return Number of items in the table.
@@ -286,85 +208,6 @@ public:
         }
 
         return total_num_items;
-    }
-
-    /*!
-     * Returns the number of buckets per partition.
-     *
-     * \return Number of buckets per partition.
-     */
-    size_t NumBucketsPerPartition() const {
-        return num_buckets_per_partition_;
-    }
-
-    /*!
-     * Returns the number of partitions.
-     *
-     * \return The number of partitions.
-     */
-    size_t NumPartitions() const {
-        return num_partitions_;
-    }
-
-    /*!
-     * Returns the vector of bucket blocks.
-     *
-     * \return Vector of bucket blocks.
-     */
-    std::vector<BucketBlock*> & Items() {
-        return buckets_;
-    }
-
-    /*!
-     * Returns the vector of partition_files.
-     *
-     * \return Vector of partition_files.
-     */
-    std::vector<data::File> & PartitionFiles() {
-        return partition_files_;
-    }
-
-    /*!
-     * Returns the number of items of a partition.
-     *
-     * \param partition_id The id of the partition the number of
-     *                  blocks to be returned..
-     * \return The number of items in the partitions.
-     */
-    size_t NumItemsPerPartition(size_t partition_id) {
-        return num_items_per_partition_[partition_id];
-    }
-
-    /*!
-     * Returns the vector of number of items per partition_in internal memory.
-     *
-     * \return Vector of number of items per partition_in internal memory.
-     */
-    std::vector<size_t> & NumItemsMemPerPartition() {
-        return num_items_per_partition_;
-    }
-
-    /*!
-     * Returns the block size.
-     *
-     * \return Block size.
-     */
-    double BlockSize() const {
-        return block_size_;
-    }
-
-    //! Returns the block pool
-    BucketBlockPool<BucketBlock> & BlockPool() {
-        return block_pool_;
-    }
-
-    /*!
-     * Returns the vector of key/value pairs.s
-     *
-     * \return Vector of key/value pairs.
-     */
-    Context & Ctx() {
-        return ctx_;
     }
 
     /*!

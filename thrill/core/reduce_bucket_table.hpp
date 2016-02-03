@@ -466,6 +466,16 @@ public:
 
     //! \}
 
+    //! \name Accessors
+    //! \{
+
+    //! Returns the vector of partition files.
+    std::vector<data::File> & PartitionFiles() {
+        return partition_files_;
+    }
+
+    //! \}
+
 protected:
     //! Context
     Context& ctx_;

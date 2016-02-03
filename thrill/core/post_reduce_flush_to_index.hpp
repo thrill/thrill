@@ -63,7 +63,7 @@ public:
 
         std::vector<data::File>& partition_files = ht.PartitionFiles();
 
-        size_t num_partitions = ht.NumPartitions();
+        size_t num_partitions = partition_files.size();
 
         Value neutral_element = ht.NeutralElement();
 
