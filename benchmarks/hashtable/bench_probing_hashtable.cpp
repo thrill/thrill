@@ -97,10 +97,9 @@ int main(int argc, char* argv[]) {
                  }
 
                  core::ReducePreProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-                                             core::PostReduceFlush<size_t, size_t, decltype(red_fn)>, core::PreReduceByHashKey<size_t>,
+                                             core::PreReduceByHashKey<size_t>,
                                              std::equal_to<size_t> >
                  table(ctx, workers, key_ex, red_fn, writers, core::PreReduceByHashKey<size_t>(),
-                       core::PostReduceFlush<size_t, size_t, decltype(red_fn)>(red_fn),
                        0, 0, byte_size);
 
                  common::StatsTimer<true> timer(true);

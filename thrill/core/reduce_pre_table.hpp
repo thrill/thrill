@@ -22,7 +22,7 @@
 #include <thrill/core/post_reduce_flush.hpp>
 #include <thrill/core/post_reduce_flush_to_index.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
+#include <thrill/core/reduce_probing_hash_table.hpp>
 #include <thrill/data/block_writer.hpp>
 
 #include <algorithm>
@@ -119,7 +119,6 @@ struct PreEmitImpl<false, Emitters, KeyValuePair>{
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey,
-          typename FlushFunction,
           typename IndexFunction,
           typename EqualToFunction,
           typename HashTable>
@@ -147,7 +146,6 @@ public:
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
                    const IndexFunction& index_function,
-                   const FlushFunction& flush_function,
                    const Key& /* sentinel */ = Key(),
                    const Value& neutral_element = Value(),
                    size_t limit_memory_bytes = 1024* 16,
@@ -161,7 +159,6 @@ public:
                 limit_memory_bytes,
                 limit_partition_fill_rate, bucket_rate),
           emit_(emit),
-          flush_function_(flush_function),
           neutral_element_(neutral_element) {
         sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
 
@@ -175,8 +172,7 @@ public:
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit)
         : ReducePreTable(
-              ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction(),
-              FlushFunction(reduce_function)) { }
+              ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction()) { }
 
     //! non-copyable: delete copy-constructor
     ReducePreTable(const ReducePreTable&) = delete;
@@ -237,9 +233,6 @@ private:
     //! Set of emitters, one per partition.
     std::vector<data::DynBlockWriter>& emit_;
 
-    //! Flush function.
-    FlushFunction flush_function_;
-
     //! Emitter stats.
     std::vector<size_t> emit_stats_;
 
@@ -250,14 +243,13 @@ private:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
-          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
           typename IndexFunction = PreReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePreBucketTable = ReducePreTable<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           RobustKey,
-          FlushFunction, IndexFunction, EqualToFunction,
+          IndexFunction, EqualToFunction,
           ReduceBucketHashTable<
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
@@ -269,14 +261,13 @@ using ReducePreBucketTable = ReducePreTable<
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
-          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
           typename IndexFunction = PreReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePreProbingTable = ReducePreTable<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           RobustKey,
-          FlushFunction, IndexFunction, EqualToFunction,
+          IndexFunction, EqualToFunction,
           ReduceProbingHashTable<
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
