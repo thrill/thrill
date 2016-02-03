@@ -20,8 +20,7 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_post_bucket_table.hpp>
-#include <thrill/core/reduce_post_probing_table.hpp>
+#include <thrill/core/reduce_post_table.hpp>
 #include <thrill/core/reduce_pre_table.hpp>
 
 #include <functional>

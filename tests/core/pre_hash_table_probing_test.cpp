@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <thrill/api/context.hpp>
-#include <thrill/core/reduce_post_probing_table.hpp>
+#include <thrill/core/reduce_post_table.hpp>
 #include <thrill/core/reduce_pre_table.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/manager.hpp>
