@@ -22,7 +22,7 @@
 #include <thrill/core/post_reduce_flush.hpp>
 #include <thrill/core/post_reduce_flush_to_index.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
-#include <thrill/core/reduce_pre_probing_table.hpp>
+#include <thrill/core/reduce_pre_table.hpp>
 #include <thrill/data/block_writer.hpp>
 
 #include <algorithm>
@@ -38,18 +38,79 @@
 namespace thrill {
 namespace core {
 
+template <typename Key, typename HashFunction = std::hash<Key> >
+class PreReduceByHashKey
+{
+public:
+    struct IndexResult {
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the whole hashtable
+        size_t global_index;
+    };
+
+    explicit PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
+        : hash_function_(hash_function) { }
+
+    IndexResult operator () (const Key& k,
+                             const size_t& num_partitions,
+                             const size_t& num_buckets_per_partition,
+                             const size_t& num_buckets_per_table,
+                             const size_t& offset) const {
+
+        (void)num_partitions;
+        (void)offset;
+
+        size_t global_index = hash_function_(k) % num_buckets_per_table;
+
+        return IndexResult { global_index / num_buckets_per_partition, global_index };
+    }
+
+private:
+    HashFunction hash_function_;
+};
+
+template <typename Key>
+class PreReduceByIndex
+{
+public:
+    struct IndexResult {
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the whole hashtable
+        size_t global_index;
+    };
+
+    size_t size_;
+
+    explicit PreReduceByIndex(size_t size) : size_(size) { }
+
+    IndexResult
+    operator () (const Key& k,
+                 const size_t& num_partitions,
+                 const size_t& num_buckets_per_partition,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
+
+        (void)num_buckets_per_partition;
+        (void)offset;
+
+        return IndexResult { k* num_partitions / size_, k* num_buckets_per_table / size_ };
+    }
+};
+
 template <bool, typename Emitters, typename KeyValuePair>
-struct PreBucketEmitImpl;
+struct PreEmitImpl;
 
 template <typename Emitters, typename KeyValuePair>
-struct PreBucketEmitImpl<true, Emitters, KeyValuePair>{
+struct PreEmitImpl<true, Emitters, KeyValuePair>{
     void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
         emit[partition_id].Put(p.second);
     }
 };
 
 template <typename Emitters, typename KeyValuePair>
-struct PreBucketEmitImpl<false, Emitters, KeyValuePair>{
+struct PreEmitImpl<false, Emitters, KeyValuePair>{
     void EmitElement(const KeyValuePair& p, const size_t& partition_id, Emitters& emit) {
         emit[partition_id].Put(p);
     }
@@ -73,24 +134,12 @@ public:
 
     using Emitters = std::vector<data::DynBlockWriter>;
 
-    PreBucketEmitImpl<RobustKey, Emitters, KeyValuePair> emit_impl_;
+    PreEmitImpl<RobustKey, Emitters, KeyValuePair> emit_impl_;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using
      * a key extractor function from that value. Afterwards, the value is hashed
      * based on the key into some slot.
-     *
-     * \param num_partitions The number of partitions.
-     * \param key_extractor Key extractor function to extract a key from a value.
-     * \param reduce_function Reduce function to reduce to values.
-     * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
-     * \param limit_memory_bytes Maximal size of the table in byte. In case size of table exceeds that value, items
-     *                  are flushed.
-     * \param bucket_rate Ratio of number of blocks to number of buckets in the table.
-     * \param max_partition_fill_rate Maximal number of blocks per partition relative to number of slots allowed
-     *                                to be filled. It the rate is exceeded, items get flushed.
-     * \param index_function Function to be used for computing the bucket the item to be inserted.
-     * \param equal_to_function Function for checking equality fo two keys.
      */
     ReducePreTable(Context& ctx,
                    size_t num_partitions,
@@ -106,14 +155,11 @@ public:
                    double limit_partition_fill_rate = 0.6,
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
-                key_extractor,
-                reduce_function,
-                index_function,
-                equal_to_function,
+                key_extractor, reduce_function,
+                index_function, equal_to_function,
                 num_partitions,
                 limit_memory_bytes,
-                limit_partition_fill_rate,
-                bucket_rate),
+                limit_partition_fill_rate, bucket_rate),
           emit_(emit),
           flush_function_(flush_function),
           neutral_element_(neutral_element) {
@@ -213,6 +259,25 @@ using ReducePreBucketTable = ReducePreTable<
           RobustKey,
           FlushFunction, IndexFunction, EqualToFunction,
           ReduceBucketHashTable<
+              ValueType, Key, Value,
+              KeyExtractor, ReduceFunction,
+              RobustKey,
+              IndexFunction, EqualToFunction
+              >
+          >;
+
+template <typename ValueType, typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
+          const bool RobustKey = false,
+          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
+          typename IndexFunction = PreReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key> >
+using ReducePreProbingTable = ReducePreTable<
+          ValueType, Key, Value,
+          KeyExtractor, ReduceFunction,
+          RobustKey,
+          FlushFunction, IndexFunction, EqualToFunction,
+          ReduceProbingHashTable<
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
               RobustKey,
