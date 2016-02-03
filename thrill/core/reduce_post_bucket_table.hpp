@@ -73,12 +73,7 @@ class ReducePostBucketTable
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           !SendPair,
-          IndexFunction, EqualToFunction, TargetBlockSize,
-          ReducePostBucketTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction, SendPair, FlushFunction,
-              IndexFunction, EqualToFunction, TargetBlockSize>
-          >
+          IndexFunction, EqualToFunction, TargetBlockSize>
 {
     static const bool debug = false;
 
@@ -86,8 +81,7 @@ class ReducePostBucketTable
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
               !SendPair,
-              IndexFunction, EqualToFunction, TargetBlockSize,
-              ReducePostBucketTable>;
+              IndexFunction, EqualToFunction, TargetBlockSize>;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;

@@ -68,12 +68,7 @@ class ReducePreBucketTable
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           RobustKey,
-          IndexFunction, EqualToFunction, TargetBlockSize,
-          ReducePreBucketTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction, RobustKey, FlushFunction,
-              IndexFunction, EqualToFunction, TargetBlockSize, FullPreReduce>
-          >
+          IndexFunction, EqualToFunction, TargetBlockSize>
 {
     static const bool debug = false;
 
@@ -83,7 +78,7 @@ class ReducePreBucketTable
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
               RobustKey,
-              IndexFunction, EqualToFunction, TargetBlockSize, ReducePreBucketTable>;
+              IndexFunction, EqualToFunction, TargetBlockSize>;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;

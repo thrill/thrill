@@ -127,22 +127,15 @@ class ReducePreProbingTable
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           RobustKey,
-          IndexFunction, EqualToFunction,
-          ReducePreProbingTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction, RobustKey, FlushFunction,
-              IndexFunction, EqualToFunction, FullPreReduce>
-          >
+          IndexFunction, EqualToFunction>
 {
     static const bool debug = true;
-
-    static const size_t flush_mode = 0; // 0... 1-factor, 1... fullest, 4... random
 
     using Super = ReduceProbingTable<
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
               RobustKey,
-              IndexFunction, EqualToFunction, ReducePreProbingTable>;
+              IndexFunction, EqualToFunction>;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
