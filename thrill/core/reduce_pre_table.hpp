@@ -126,15 +126,11 @@ template <typename ValueType, typename Key, typename Value,
                     const bool RobustKey,
                     typename IndexFunction,
                     typename EqualToFunction> class HashTable>
-class ReducePreTable : public HashTable<
-                           ValueType, Key, Value,
-                           KeyExtractor, ReduceFunction,
-                           RobustKey,
-                           IndexFunction, EqualToFunction
-                           >
+class ReducePreTable
 {
     static const bool debug = false;
 
+public:
     using Table = HashTable<
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction,
@@ -142,7 +138,6 @@ class ReducePreTable : public HashTable<
               IndexFunction, EqualToFunction
               >;
 
-public:
     using KeyValuePair = std::pair<Key, Value>;
 
     using Emitters = std::vector<data::DynBlockWriter>;
@@ -166,12 +161,12 @@ public:
                    double bucket_rate = 1.0,
                    double limit_partition_fill_rate = 0.6,
                    const EqualToFunction& equal_to_function = EqualToFunction())
-        : Super(ctx,
-                key_extractor, reduce_function,
-                index_function, equal_to_function,
-                num_partitions,
-                limit_memory_bytes,
-                limit_partition_fill_rate, bucket_rate),
+        : table_(ctx,
+                 key_extractor, reduce_function,
+                 index_function, equal_to_function,
+                 num_partitions,
+                 limit_memory_bytes,
+                 limit_partition_fill_rate, bucket_rate),
           emit_(emit),
           neutral_element_(neutral_element) {
         sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
@@ -193,11 +188,19 @@ public:
     //! non-copyable: delete assignment operator
     ReducePreTable& operator = (const ReducePreTable&) = delete;
 
+    void Insert(const Value& p) {
+        return table_.Insert(p);
+    }
+
+    void Insert(const KeyValuePair& kv) {
+        return table_.Insert(kv);
+    }
+
     /*!
      * Flush.
      */
     void Flush(bool consume = true) {
-        for (size_t id = 0; id < num_partitions_; ++id) {
+        for (size_t id = 0; id < table_.num_partitions(); ++id) {
             FlushPartition(id, consume);
         }
     }
@@ -209,7 +212,7 @@ public:
      */
     void FlushPartition(size_t partition_id, bool consume) {
 
-        Super::FlushPartitionE(
+        table_.FlushPartitionE(
             partition_id, consume,
             [=](const size_t& partition_id, const KeyValuePair& p) {
                 this->EmitAll(partition_id, p);
@@ -240,9 +243,17 @@ public:
         }
     }
 
+    //! \name Accessors
+    //! {
+
+    //! Returns the total num of items in the table.
+    size_t num_items() const { return table_.num_items(); }
+
+    //! }
+
 private:
-    using Super::num_partitions_;
-    using Super::partition_files_;
+    //! the first-level hash table implementation
+    Table table_;
 
     //! Set of emitters, one per partition.
     std::vector<data::DynBlockWriter>& emit_;

@@ -214,7 +214,7 @@ TEST_F(PreTable, PopIntegers) {
             const size_t bucket_block_size = sizeof(
                 core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                            core::PreReduceByHashKey<int>,
-                                           std::equal_to<int> >::BucketBlock);
+                                           std::equal_to<int> >::Table::BucketBlock);
 
             core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                        core::PreReduceByHashKey<int>, std::equal_to<int> >
@@ -363,7 +363,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
 
             const size_t bucket_block_size = sizeof(
                 core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
-                                           core::PreReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
+                                           core::PreReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
 
             core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                        core::PreReduceByHashKey<int>, std::equal_to<int> >
@@ -518,7 +518,7 @@ TEST_F(PreTable, MultipleWorkers) {
 
             const size_t bucket_block_size = sizeof(
                 core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
-                                           core::PreReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
+                                           core::PreReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
 
             core::ReducePreBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                        core::PreReduceByHashKey<int>, std::equal_to<int> >
@@ -615,7 +615,7 @@ TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce2) {
             const size_t nitems = 1 * 4 * 1024;
 
             const size_t bucket_block_size = sizeof(core::ReducePreBucketTable<MyStruct, int, MyStruct, decltype(key_ex), decltype(red_fn), true,
-                                                                               core::PreReduceByHashKey<int>, std::equal_to<int> >::BucketBlock);
+                                                                               core::PreReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
 
             core::ReducePreBucketTable<MyStruct, int, MyStruct, decltype(key_ex), decltype(red_fn), true,
                                        core::PreReduceByHashKey<int>, std::equal_to<int> >
@@ -680,7 +680,7 @@ TEST_F(PreTable, DISABLED_InsertManyStringItemsAndTestReduce) {
 
             const size_t nitems_per_key = 10;
             const size_t nitems = core::ReducePreBucketTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true,
-                                                             core::PreReduceByHashKey<std::string>, std::equal_to<std::string> >::block_size_;
+                                                             core::PreReduceByHashKey<std::string>, std::equal_to<std::string> >::Table::block_size_;
 
             core::ReducePreBucketTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true,
                                        core::PreReduceByHashKey<std::string>, std::equal_to<std::string> >
