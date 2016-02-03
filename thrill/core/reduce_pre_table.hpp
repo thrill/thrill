@@ -121,12 +121,26 @@ template <typename ValueType, typename Key, typename Value,
           const bool RobustKey,
           typename IndexFunction,
           typename EqualToFunction,
-          typename HashTable>
-class ReducePreTable : public HashTable
+          template <typename ValueType, typename Key, typename Value,
+                    typename KeyExtractor, typename ReduceFunction,
+                    const bool RobustKey,
+                    typename IndexFunction,
+                    typename EqualToFunction> class HashTable>
+class ReducePreTable : public HashTable<
+                           ValueType, Key, Value,
+                           KeyExtractor, ReduceFunction,
+                           RobustKey,
+                           IndexFunction, EqualToFunction
+                           >
 {
     static const bool debug = false;
 
-    using Super = HashTable;
+    using Table = HashTable<
+              ValueType, Key, Value,
+              KeyExtractor, ReduceFunction,
+              RobustKey,
+              IndexFunction, EqualToFunction
+              >;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -250,13 +264,7 @@ using ReducePreBucketTable = ReducePreTable<
           KeyExtractor, ReduceFunction,
           RobustKey,
           IndexFunction, EqualToFunction,
-          ReduceBucketHashTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction,
-              RobustKey,
-              IndexFunction, EqualToFunction
-              >
-          >;
+          ReduceBucketHashTable>;
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
@@ -268,13 +276,7 @@ using ReducePreProbingTable = ReducePreTable<
           KeyExtractor, ReduceFunction,
           RobustKey,
           IndexFunction, EqualToFunction,
-          ReduceProbingHashTable<
-              ValueType, Key, Value,
-              KeyExtractor, ReduceFunction,
-              RobustKey,
-              IndexFunction, EqualToFunction
-              >
-          >;
+          ReduceProbingHashTable>;
 
 } // namespace core
 } // namespace thrill

@@ -81,14 +81,15 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey,
           typename IndexFunction,
-          typename EqualToFunction,
-          size_t TargetBlockSize = 16*16>
+          typename EqualToFunction>
 class ReduceBucketHashTable
     : public ReduceHashTable<ValueType, Key, Value,
                              KeyExtractor, ReduceFunction,
                              RobustKey, IndexFunction, EqualToFunction>
 {
     static const bool debug = false;
+
+    static const size_t TargetBlockSize = 16 * 16;
 
     using Super = ReduceHashTable<ValueType, Key, Value,
                                   KeyExtractor, ReduceFunction,
