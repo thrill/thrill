@@ -15,11 +15,13 @@
 
 #include <thrill/core/reduce_hash_table.hpp>
 
-namespace thrill {
-namespace core {
-
+#include <functional>
+#include <limits>
 #include <utility>
 #include <vector>
+
+namespace thrill {
+namespace core {
 
 //! traits class for ReduceProbingHashTable, mainly to determine a good sentinel
 //! (blank table entries) for standard types.
