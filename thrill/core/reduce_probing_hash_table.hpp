@@ -67,7 +67,7 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
           typename IndexFunction,
-          typename EqualToFunction>
+          typename EqualToFunction = std::equal_to<Key> >
 class ReduceProbingHashTable
     : public ReduceHashTable<ValueType, Key, Value,
                              KeyExtractor, ReduceFunction, Emitter,
@@ -86,18 +86,18 @@ public:
         Context& ctx,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
-        const Emitter& emitter,
-        const IndexFunction& index_function,
-        const EqualToFunction& equal_to_function,
+        Emitter& emitter,
         size_t num_partitions,
         size_t limit_memory_bytes,
         double limit_partition_fill_rate,
         double /* bucket_rate */,
-        const Key& sentinel = Key())
+        const Key& sentinel = Key(),
+        const IndexFunction& index_function = IndexFunction(),
+        const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
                 key_extractor, reduce_function, emitter,
-                index_function, equal_to_function,
-                num_partitions, limit_memory_bytes) {
+                num_partitions, limit_memory_bytes,
+                index_function, equal_to_function) {
 
         assert(num_partitions > 0);
 
@@ -275,6 +275,20 @@ public:
         }
 
         LOG << "Done flushed items of partition: " << partition_id;
+    }
+
+    void FlushPartition(size_t partition_id, bool consume) {
+        FlushPartitionE(
+            partition_id, consume,
+            [this](const size_t& partition_id, const KeyValuePair& p) {
+                this->emitter_.Emit(partition_id, p);
+            });
+    }
+
+    void FlushAll() {
+        for (size_t i = 0; i < num_partitions_; ++i) {
+            FlushPartition(i, true);
+        }
     }
 
     //! \}

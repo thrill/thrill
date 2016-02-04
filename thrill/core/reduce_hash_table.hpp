@@ -13,6 +13,8 @@
 #ifndef THRILL_CORE_REDUCE_HASH_TABLE_HEADER
 #define THRILL_CORE_REDUCE_HASH_TABLE_HEADER
 
+#include <thrill/api/context.hpp>
+
 #include <algorithm>
 #include <limits>
 #include <utility>
@@ -41,11 +43,11 @@ public:
         Context& ctx,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
-        const Emitter& emitter,
-        const IndexFunction& index_function,
-        const EqualToFunction& equal_to_function,
+        Emitter& emitter,
         size_t num_partitions,
-        size_t limit_memory_bytes)
+        size_t limit_memory_bytes,
+        const IndexFunction& index_function,
+        const EqualToFunction& equal_to_function)
         : ctx_(ctx),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
@@ -108,7 +110,7 @@ protected:
     ReduceFunction reduce_function_;
 
     //! Emitter object to receive items outputted to next stage.
-    Emitter emitter_;
+    Emitter& emitter_;
 
     //! Index Calculation functions: Hash or ByIndex.
     IndexFunction index_function_;
