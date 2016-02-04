@@ -23,32 +23,6 @@
 namespace thrill {
 namespace core {
 
-//! traits class for ReduceProbingHashTable, mainly to determine a good sentinel
-//! (blank table entries) for standard types.
-template <typename Type, class Enable = void>
-class ProbingTableTraits
-{
-public:
-    static Type Sentinel() {
-        static bool warned = false;
-        if (!warned) {
-            LOG1 << "No good default sentinel for probing hash table "
-                 << "could be determined. Please pass one manually.";
-            warned = true;
-        }
-        return Type();
-    }
-};
-
-//! traits class for all PODs -> use numeric limits.
-template <typename T>
-class ProbingTableTraits<
-        T, typename std::enable_if<std::is_pod<T>::value>::type>
-{
-public:
-    static T Sentinel() { return std::numeric_limits<T>::max(); }
-};
-
 /**
  * A data structure which takes an arbitrary value and extracts a key using a
  * key extractor function from that value. A key may also be provided initially
@@ -119,12 +93,13 @@ public:
         size_t limit_memory_bytes,
         double limit_partition_fill_rate,
         double /* bucket_rate */,
+        bool immediate_flush,
         const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
                 key_extractor, reduce_function, emitter,
-                num_partitions, limit_memory_bytes,
+                num_partitions, limit_memory_bytes, immediate_flush,
                 index_function, equal_to_function) {
 
         assert(num_partitions > 0);
@@ -241,7 +216,7 @@ public:
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
 
-        if (items_per_partition_[h.partition_id] > limit_items_per_partition_)
+        while(items_per_partition_[h.partition_id] > limit_items_per_partition_)
         {
             SpillPartition(h.partition_id);
         }
@@ -252,7 +227,11 @@ public:
 
     //! Spill all items of a partition into an external memory File.
     void SpillPartition(size_t partition_id) {
-        LOG << "Spilling items of partition with id: " << partition_id;
+
+        if (immediate_flush_) return FlushPartition(partition_id, true);
+
+        LOG << "Spilling " << items_per_partition_[partition_id]
+            << " items of partition with id: " << partition_id;
 
         data::File::Writer writer = partition_files_[partition_id].GetWriter();
 
@@ -280,7 +259,9 @@ public:
 
     template <typename Emit>
     void FlushPartitionE(size_t partition_id, bool consume, Emit emit) {
-        LOG << "Flushing items of partition: " << partition_id;
+
+        LOG << "Flushing " << items_per_partition_[partition_id]
+            << " items of partition: " << partition_id;
 
         size_t begin = partition_id * partition_size_;
         size_t end = (partition_id + 1) * partition_size_;
@@ -331,6 +312,7 @@ protected:
     using Super::num_partitions_;
     using Super::partition_files_;
     using Super::reduce_function_;
+    using Super::immediate_flush_;
 
     //! Storing the actual hash table.
     std::vector<KeyValuePair> items_;

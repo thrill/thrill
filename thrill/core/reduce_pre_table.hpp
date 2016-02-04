@@ -202,7 +202,7 @@ public:
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
                    const IndexFunction& index_function,
-                   const Key& sentinel = Key(),
+                   const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
                    const Value& neutral_element = Value(),
                    size_t limit_memory_bytes = 1024* 16,
                    double bucket_rate = 1.0,
@@ -213,7 +213,7 @@ public:
                  key_extractor, reduce_function, emit_,
                  num_partitions,
                  limit_memory_bytes,
-                 limit_partition_fill_rate, bucket_rate,
+                 limit_partition_fill_rate, bucket_rate, true,
                  sentinel,
                  index_function, equal_to_function),
           neutral_element_(neutral_element) {

@@ -81,7 +81,8 @@ public:
 
     void Close() final {
         assert(!closed_);
-        closed_ = true;
+        // 2016-02-04: Files are never closed, one can always append -tb.
+        // closed_ = true;
     }
 
     //! boolean flag whether to check if AllocateByteBlock can fail in any

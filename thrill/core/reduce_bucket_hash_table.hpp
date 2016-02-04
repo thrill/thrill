@@ -133,12 +133,13 @@ public:
         size_t limit_memory_bytes,
         double limit_partition_fill_rate,
         double bucket_rate,
+        bool immediate_flush,
         const Key& /* sentinel */ = Key(),
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
                 key_extractor, reduce_function, emitter,
-                num_partitions, limit_memory_bytes,
+                num_partitions, limit_memory_bytes, immediate_flush,
                 index_function, equal_to_function) {
 
         assert(num_partitions > 0);
@@ -341,6 +342,11 @@ public:
     //! Spill all items of a partition into an external memory File.
     void SpillPartition(size_t partition_id) {
 
+        if (immediate_flush_) return FlushPartition(partition_id, true);
+
+        LOG << "Spilling " << items_per_partition_[partition_id]
+            << " items of partition with id: " << partition_id;
+
         data::File::Writer writer = partition_files_[partition_id].GetWriter();
 
         for (size_t i = partition_id * num_buckets_per_partition_;
@@ -359,6 +365,7 @@ public:
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
                 block_pool_.Deallocate(current);
+                --num_blocks_;
                 current = next;
             }
 
@@ -367,6 +374,8 @@ public:
 
         // reset partition specific counter
         items_per_partition_[partition_id] = 0;
+
+        LOG << "Spilled items of partition with id: " << partition_id;
     }
 
     //! Spill all items of the largest partition into an external memory File.
@@ -420,7 +429,9 @@ public:
 
     template <typename Emit>
     void FlushPartitionE(size_t partition_id, bool consume, Emit emit) {
-        LOG << "Flushing items of partition: " << partition_id;
+
+        LOG << "Flushing " << items_per_partition_[partition_id]
+            << " items of partition: " << partition_id;
 
         size_t begin = partition_id * num_buckets_per_partition_;
         size_t end = (partition_id + 1) * num_buckets_per_partition_;
@@ -441,6 +452,7 @@ public:
                     // destroy block and advance to next
                     BucketBlock* next = current->next;
                     block_pool_.Deallocate(current);
+                    --num_blocks_;
                     current = next;
                 }
                 else {
@@ -458,7 +470,7 @@ public:
             items_per_partition_[partition_id] = 0;
         }
 
-        LOG << "Done flushing items of partition:" << partition_id;
+        LOG << "Done flushing items of partition: " << partition_id;
     }
 
     void FlushPartition(size_t partition_id, bool consume) {
@@ -502,6 +514,7 @@ protected:
     using Super::partition_files_;
     using Super::reduce_function_;
     using Super::emitter_;
+    using Super::immediate_flush_;
 
     //! Storing the items.
     std::vector<BucketBlock*> buckets_;

@@ -46,6 +46,7 @@ public:
         Emitter& emitter,
         size_t num_partitions,
         size_t limit_memory_bytes,
+        bool immediate_flush,
         const IndexFunction& index_function,
         const EqualToFunction& equal_to_function)
         : ctx_(ctx),
@@ -56,6 +57,7 @@ public:
           equal_to_function_(equal_to_function),
           num_partitions_(num_partitions),
           limit_memory_bytes_(limit_memory_bytes),
+          immediate_flush_(immediate_flush),
           items_per_partition_(num_partitions_, 0) {
 
         assert(num_partitions > 0);
@@ -133,6 +135,10 @@ protected:
     //! Number of items in a partition before the partition is spilled.
     size_t limit_items_per_partition_;
 
+    //! Whether to spill overfull partitions to disk or to immediately flush to
+    //! next stage.
+    bool immediate_flush_;
+
     //! \}
 
     //! \name Current Statistical Parameters
@@ -142,6 +148,32 @@ protected:
     std::vector<size_t> items_per_partition_;
 
     //! \}
+};
+
+//! traits class for ReduceProbingHashTable, mainly to determine a good sentinel
+//! (blank table entries) for standard types.
+template <typename Type, class Enable = void>
+class ProbingTableTraits
+{
+public:
+    static Type Sentinel() {
+        static bool warned = false;
+        if (!warned) {
+            LOG1 << "No good default sentinel for probing hash table "
+                 << "could be determined. Please pass one manually.";
+            warned = true;
+        }
+        return Type();
+    }
+};
+
+//! traits class for all PODs -> use numeric limits.
+template <typename T>
+class ProbingTableTraits<
+        T, typename std::enable_if<std::is_pod<T>::value>::type>
+{
+public:
+    static T Sentinel() { return std::numeric_limits<T>::max(); }
 };
 
 } // namespace core
