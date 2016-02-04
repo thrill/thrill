@@ -216,7 +216,7 @@ public:
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
 
-        while(items_per_partition_[h.partition_id] > limit_items_per_partition_)
+        while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
         {
             SpillPartition(h.partition_id);
         }
