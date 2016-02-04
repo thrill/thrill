@@ -65,9 +65,9 @@ public:
 
         size_t num_partitions = partition_files.size();
 
-        Value neutral_element = ht.NeutralElement();
+        Value neutral_element = ht.neutral_element();
 
-        std::vector<Value> elements_to_emit(ht.LocalIndex().size(), neutral_element);
+        std::vector<Value> elements_to_emit(ht.local_index().size(), neutral_element);
 
         for (size_t partition_id = 0; partition_id < num_partitions; partition_id++)
         {
@@ -86,7 +86,7 @@ public:
                 //                            length, reader, elements_to_emit,
                 //                            fill_rate_num_items_per_partition,
                 //                            partition_id, num_items_mem_per_partition, block_pool,
-                //                            block_size, ht.table_.LocalIndex().begin);
+                //                            block_size, ht.table_.local_index().begin);
 
                 // no spilled items, just flush already reduced
                 // data in primary table in current partition
@@ -98,17 +98,17 @@ public:
                 ht.table_.FlushPartitionE(
                     partition_id, consume,
                     [&](const size_t& /* partition_id */, const KeyValuePair& bi) {
-                        elements_to_emit[bi.first - ht.LocalIndex().begin] = bi.second;
+                        elements_to_emit[bi.first - ht.local_index().begin] = bi.second;
                     });
             }
         }
 
-        size_t index = ht.LocalIndex().begin;
+        size_t index = ht.local_index().begin;
         for (size_t i = 0; i < elements_to_emit.size(); i++) {
             ht.EmitAll(0, std::make_pair(index++, elements_to_emit[i]));
             elements_to_emit[i] = neutral_element;
         }
-        assert(index == ht.LocalIndex().end);
+        assert(index == ht.local_index().end);
     }
 
 public:

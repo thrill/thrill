@@ -248,9 +248,7 @@ public:
         return table_.Insert(kv);
     }
 
-    /*!
-     * Flushes all items in the whole table.
-     */
+    //! Flushes all items in the whole table.
     void Flush(bool consume = false) {
         LOG << "Flushing items";
 
@@ -259,29 +257,9 @@ public:
         LOG << "Flushed items";
     }
 
-    /*!
-     * Emits element to all children
-     */
+    //! Emits element to all children
     void EmitAll(const size_t& partition_id, const KeyValuePair& p) {
         emit_.Emit(partition_id, p);
-    }
-
-    /*!
-    * Returns the local index range.
-    *
-    * \return Begin local index.
-    */
-    common::Range LocalIndex() const {
-        return local_index_;
-    }
-
-    /*!
-     * Returns the neutral element.
-     *
-     * \return Neutral element.
-     */
-    Value NeutralElement() const {
-        return neutral_element_;
     }
 
     //! \name Accessors
@@ -289,6 +267,12 @@ public:
 
     //! Returns the total num of items in the table.
     size_t num_items() const { return table_.num_items(); }
+
+    //! Returns the local index range.
+    common::Range local_index() const {        return local_index_; }
+
+    //! Returns the neutral element.
+    Value neutral_element() const {        return neutral_element_; }
 
     //! }
 
