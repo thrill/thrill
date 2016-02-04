@@ -21,6 +21,32 @@ namespace core {
 #include <utility>
 #include <vector>
 
+//! traits class for ReduceProbingHashTable, mainly to determine a good sentinel
+//! (blank table entries) for standard types.
+template <typename Type, class Enable = void>
+class ProbingTableTraits
+{
+public:
+    static Type Sentinel() {
+        static bool warned = false;
+        if (!warned) {
+            LOG1 << "No good default sentinel for probing hash table "
+                 << "could be determined. Please pass one manually.";
+            warned = true;
+        }
+        return Type();
+    }
+};
+
+//! traits class for all PODs -> use numeric limits.
+template <typename T>
+class ProbingTableTraits<
+        T, typename std::enable_if<std::is_pod<T>::value>::type>
+{
+public:
+    static T Sentinel() { return std::numeric_limits<T>::max(); }
+};
+
 /**
  * A data structure which takes an arbitrary value and extracts a key using a
  * key extractor function from that value. A key may also be provided initially
@@ -91,7 +117,7 @@ public:
         size_t limit_memory_bytes,
         double limit_partition_fill_rate,
         double /* bucket_rate */,
-        const Key& sentinel = Key(),
+        const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,

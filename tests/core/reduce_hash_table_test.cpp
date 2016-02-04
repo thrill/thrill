@@ -70,7 +70,7 @@ void TestAddMyStructModulo(Context& ctx) {
                 /* num_partitions */ 13,
                 /* limit_memory_bytes */ 1024 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
-                /* bucket_rate */ 1.0, -1);
+                /* bucket_rate */ 1.0);
 
     for (size_t i = 0; i < test_size; ++i) {
         table.Insert(MyStruct { i, i / mod_size });
