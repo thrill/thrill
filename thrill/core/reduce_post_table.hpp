@@ -156,11 +156,11 @@ template <typename ValueType, typename Key, typename Value,
           typename FlushFunction,
           typename IndexFunction,
           typename EqualToFunction,
-          template <typename ValueType, typename Key, typename Value,
-                    typename KeyExtractor, typename ReduceFunction, typename Emitter,
-                    const bool RobustKey,
-                    typename IndexFunction,
-                    typename EqualToFunction> class HashTable>
+          template <typename _ValueType, typename _Key, typename _Value,
+                    typename _KeyExtractor, typename _ReduceFunction, typename _Emitter,
+                    const bool _RobustKey,
+                    typename _IndexFunction,
+                    typename _EqualToFunction> class HashTable>
 class ReducePostTable
 {
     static const bool debug = false;
