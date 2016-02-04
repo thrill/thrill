@@ -209,9 +209,9 @@ public:
                     const common::Range& local_index = common::Range(),
                     const Key& sentinel = Key(),
                     const Value& neutral_element = Value(),
-                    size_t limit_memory_bytes = 1024* 16,
-                    double bucket_rate = 1.0,
+                    size_t limit_memory_bytes = 1024* 1024,
                     double limit_partition_fill_rate = 0.6,
+                    double bucket_rate = 1.0,
                     double partition_rate = 0.1,
                     const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
@@ -232,8 +232,8 @@ public:
 
     ReducePostTable(Context& ctx, KeyExtractor key_extractor,
                     ReduceFunction reduce_function, EmitterFunction emit)
-        : ReducePostTable(ctx, key_extractor, reduce_function, emit, IndexFunction(),
-                          FlushFunction(reduce_function)) { }
+        : ReducePostTable(ctx, key_extractor, reduce_function, emit,
+                          IndexFunction(), FlushFunction(reduce_function)) { }
 
     //! non-copyable: delete copy-constructor
     ReducePostTable(const ReducePostTable&) = delete;
@@ -269,10 +269,10 @@ public:
     size_t num_items() const { return table_.num_items(); }
 
     //! Returns the local index range.
-    common::Range local_index() const {        return local_index_; }
+    common::Range local_index() const { return local_index_; }
 
     //! Returns the neutral element.
-    Value neutral_element() const {        return neutral_element_; }
+    Value neutral_element() const { return neutral_element_; }
 
     //! }
 
