@@ -131,13 +131,13 @@ class ReducePreTableEmitter
     static const bool debug = true;
 
 public:
-    ReducePreTableEmitter(std::vector<data::DynBlockWriter>& writer)
+    explicit ReducePreTableEmitter(std::vector<data::DynBlockWriter>& writer)
         : writer_(writer),
           stats_(writer.size(), 0) { }
 
     //! output an element into a partition, template specialized for robust and
     //! non-robust keys
-    void Emit(const KeyValuePair& p, const size_t& partition_id) {
+    void Emit(const size_t& partition_id, const KeyValuePair& p) {
         assert(partition_id < writer_.size());
         stats_[partition_id]++;
         ReducePreTableEmitterSwitch<KeyValuePair, RobustKey>::Put(
@@ -189,8 +189,7 @@ public:
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, TableEmitter,
               RobustKey,
-              IndexFunction, EqualToFunction
-              >;
+              IndexFunction, EqualToFunction>;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using
@@ -242,27 +241,17 @@ public:
         return table_.Insert(kv);
     }
 
-    /*!
-     * Flush.
-     */
+    //! Flush all partitions
     void Flush(bool consume = true) {
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
             FlushPartition(id, consume);
         }
     }
 
-    /*!
-     * Flushes all items of a partition.
-     *
-     * \param partition_id The id of the partition to be flushed.
-     */
+    //! Flushes all items of a partition.
     void FlushPartition(size_t partition_id, bool consume) {
 
-        table_.FlushPartitionE(
-            partition_id, consume,
-            [=](const size_t& partition_id, const KeyValuePair& p) {
-                this->EmitAll(partition_id, p);
-            });
+        table_.FlushPartition(partition_id, consume);
 
         // flush elements pushed into emitter
         emit_.Flush(partition_id);
