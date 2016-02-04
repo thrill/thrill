@@ -156,6 +156,7 @@ build_test(core/pre_hash_table_bucket_test)
 build_test(core/pre_hash_table_probing_test)
 build_test(core/post_hash_table_bucket_test)
 build_test(core/post_hash_table_probing_test)
+build_test(core/reduce_hash_table_test)
 build_test(core/multiway_merge_test)
 build_test(core/stage_builder_test)
 
