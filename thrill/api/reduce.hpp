@@ -149,7 +149,7 @@ public:
     void StopPreOp(size_t /* id */) final {
         LOG << this->label() << " running StopPreOp";
         // Flush hash table before the postOp
-        reduce_pre_table_.Flush(/* consume */true);
+        reduce_pre_table_.Flush(/* consume */ true);
         reduce_pre_table_.CloseEmitter();
         stream_->Close();
     }

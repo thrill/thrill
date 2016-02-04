@@ -16,6 +16,8 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <utility>
 #include <vector>
 
 using namespace thrill;
@@ -27,7 +29,7 @@ class TableCollector : public std::vector<std::vector<Type> >
 public:
     using Super = std::vector<std::vector<Type> >;
 
-    TableCollector(size_t num_partitions)
+    explicit TableCollector(size_t num_partitions)
         : Super(num_partitions) { }
 
     void Emit(const size_t& partition_id, const Type& p) {
@@ -61,7 +63,7 @@ void TestAddMyStructModulo(Context& ctx) {
 
     Collector collector(13);
 
-    using Table = core::ReduceProbingHashTable<
+    using Table = core::ReduceBucketHashTable<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), Collector,
               false, core::PreReduceByHashKey<int> >;
@@ -70,7 +72,8 @@ void TestAddMyStructModulo(Context& ctx) {
                 /* num_partitions */ 13,
                 /* limit_memory_bytes */ 1024 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
-                /* bucket_rate */ 1.0);
+                /* bucket_rate */ 1.0,
+                /* immediate_flush */ true);
 
     for (size_t i = 0; i < test_size; ++i) {
         table.Insert(MyStruct { i, i / mod_size });
