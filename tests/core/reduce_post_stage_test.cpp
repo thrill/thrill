@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/reduce_post_table_test.cpp
+ * tests/core/reduce_post_stage_test.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,7 +9,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/core/reduce_post_table.hpp>
+#include <thrill/core/reduce_post_stage.hpp>
 
 #include <gtest/gtest.h>
 
@@ -47,25 +47,22 @@ void TestAddMyStructModulo(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Table = core::ReducePostBucketTable<
+    using Stage = core::ReducePostBucketStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), false>;
 
-    Table table(ctx, key_ex, red_fn, emit_fn,
+    Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::PostReduceByHashKey<size_t>(),
-                core::PostReduceFlush<size_t, MyStruct, decltype(red_fn)>(red_fn),
-                common::Range(),
                 /* sentinel */ size_t(),
-                /* neutral_element */ MyStruct(),
                 /* limit_memory_bytes */ 1024 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
                 /* bucket_rate */ 1.0);
 
     for (size_t i = 0; i < test_size; ++i) {
-        table.Insert(MyStruct { i, i / mod_size });
+        stage.Insert(MyStruct { i, i / mod_size });
     }
 
-    table.Flush();
+    stage.Flush();
 
     // check result
     std::sort(result.begin(), result.end());
@@ -79,7 +76,7 @@ void TestAddMyStructModulo(Context& ctx) {
     }
 }
 
-TEST(ReduceHashTable, AddIntegers) {
+TEST(ReduceHashStage, AddIntegers) {
     api::RunLocalSameThread(
         [](Context& ctx) { TestAddMyStructModulo(ctx); });
 }
