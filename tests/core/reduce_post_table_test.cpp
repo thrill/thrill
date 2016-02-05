@@ -47,7 +47,6 @@ void TestAddMyStructModulo(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-
     using Table = core::ReducePostBucketTable<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), false>;

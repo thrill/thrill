@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_pre_table.hpp
+ * thrill/core/reduce_pre_stage.hpp
  *
  * Hash table with support for reduce and partitions.
  *
@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_PRE_TABLE_HEADER
-#define THRILL_CORE_REDUCE_PRE_TABLE_HEADER
+#ifndef THRILL_CORE_REDUCE_PRE_STAGE_HEADER
+#define THRILL_CORE_REDUCE_PRE_STAGE_HEADER
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
@@ -102,10 +102,10 @@ public:
 //! template specialization switch class to output key+value if NonRobustKey and
 //! only value if RobustKey.
 template <typename KeyValuePair, bool RobustKey>
-class ReducePreTableEmitterSwitch;
+class ReducePreStageEmitterSwitch;
 
 template <typename KeyValuePair>
-class ReducePreTableEmitterSwitch<KeyValuePair, false>
+class ReducePreStageEmitterSwitch<KeyValuePair, false>
 {
 public:
     static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
@@ -114,7 +114,7 @@ public:
 };
 
 template <typename KeyValuePair>
-class ReducePreTableEmitterSwitch<KeyValuePair, true>
+class ReducePreStageEmitterSwitch<KeyValuePair, true>
 {
 public:
     static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
@@ -126,12 +126,12 @@ public:
 //! collecting/flushing items while reducing. Items flushed in the pre-stage are
 //! transmitted via a network Channel.
 template <typename KeyValuePair, bool RobustKey>
-class ReducePreTableEmitter
+class ReducePreStageEmitter
 {
     static const bool debug = true;
 
 public:
-    explicit ReducePreTableEmitter(std::vector<data::DynBlockWriter>& writer)
+    explicit ReducePreStageEmitter(std::vector<data::DynBlockWriter>& writer)
         : writer_(writer),
           stats_(writer.size(), 0) { }
 
@@ -140,7 +140,7 @@ public:
     void Emit(const size_t& partition_id, const KeyValuePair& p) {
         assert(partition_id < writer_.size());
         stats_[partition_id]++;
-        ReducePreTableEmitterSwitch<KeyValuePair, RobustKey>::Put(
+        ReducePreStageEmitterSwitch<KeyValuePair, RobustKey>::Put(
             p, writer_[partition_id]);
     }
 
@@ -176,18 +176,18 @@ template <typename ValueType, typename Key, typename Value,
                     const bool _RobustKey,
                     typename _IndexFunction,
                     typename _EqualToFunction> class HashTable>
-class ReducePreTable
+class ReducePreStage
 {
     static const bool debug = false;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
-    using TableEmitter = ReducePreTableEmitter<KeyValuePair, RobustKey>;
+    using Emitter = ReducePreStageEmitter<KeyValuePair, RobustKey>;
 
     using Table = HashTable<
               ValueType, Key, Value,
-              KeyExtractor, ReduceFunction, TableEmitter,
+              KeyExtractor, ReduceFunction, Emitter,
               RobustKey,
               IndexFunction, EqualToFunction>;
 
@@ -196,7 +196,7 @@ public:
      * a key extractor function from that value. Afterwards, the value is hashed
      * based on the key into some slot.
      */
-    ReducePreTable(Context& ctx,
+    ReducePreStage(Context& ctx,
                    size_t num_partitions,
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
@@ -217,21 +217,21 @@ public:
                  sentinel,
                  index_function, equal_to_function),
           neutral_element_(neutral_element) {
-        sLOG << "creating ReducePreTable with" << emit.size() << "output emitters";
+        sLOG << "creating ReducePreStage with" << emit.size() << "output emitters";
 
         assert(num_partitions == emit.size());
     }
 
-    ReducePreTable(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
+    ReducePreStage(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit)
-        : ReducePreTable(
+        : ReducePreStage(
               ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction()) { }
 
     //! non-copyable: delete copy-constructor
-    ReducePreTable(const ReducePreTable&) = delete;
+    ReducePreStage(const ReducePreStage&) = delete;
     //! non-copyable: delete assignment operator
-    ReducePreTable& operator = (const ReducePreTable&) = delete;
+    ReducePreStage& operator = (const ReducePreStage&) = delete;
 
     void Insert(const Value& p) {
         return table_.Insert(p);
@@ -282,7 +282,7 @@ public:
 
 private:
     //! Emitters used to parameterize hash table for output to network.
-    TableEmitter emit_;
+    Emitter emit_;
 
     //! the first-level hash table implementation
     Table table_;
@@ -296,7 +296,7 @@ template <typename ValueType, typename Key, typename Value,
           const bool RobustKey = false,
           typename IndexFunction = PreReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
-using ReducePreBucketTable = ReducePreTable<
+using ReducePreBucketStage = ReducePreStage<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           RobustKey,
@@ -308,7 +308,7 @@ template <typename ValueType, typename Key, typename Value,
           const bool RobustKey = false,
           typename IndexFunction = PreReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
-using ReducePreProbingTable = ReducePreTable<
+using ReducePreProbingStage = ReducePreStage<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           RobustKey,
@@ -318,6 +318,6 @@ using ReducePreProbingTable = ReducePreTable<
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_PRE_TABLE_HEADER
+#endif // !THRILL_CORE_REDUCE_PRE_STAGE_HEADER
 
 /******************************************************************************/

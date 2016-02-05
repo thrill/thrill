@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <thrill/api/context.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
+#include <thrill/core/reduce_pre_stage.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/manager.hpp>
 
@@ -90,7 +90,7 @@ TEST_F(PreTable, DISABLED_CustomHashFunction) {
             writers.emplace_back(output.GetDynWriter());
 
             CustomKeyHashFunction<int> cust_hash;
-            core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true,
+            core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true,
                                         CustomKeyHashFunction<int> >
             table(ctx, 1, key_ex, red_fn, writers, cust_hash,
                   -1, -1, 1024 * 16, 0.5);
@@ -131,7 +131,7 @@ TEST_F(PreTable, DISABLED_AddIntegers) {
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
-            core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
@@ -166,7 +166,7 @@ TEST_F(PreTable, DISABLED_CreateEmptyTable) {
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
-            core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
@@ -202,7 +202,7 @@ TEST_F(PreTable, DISABLED_TestSetMaxSizeSetter) {
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
-            core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
@@ -241,7 +241,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersManuallyOnePartition) {
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
-            core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
@@ -290,7 +290,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersManuallyTwoPartitions) {
             writers.emplace_back(output1.GetDynWriter());
             writers.emplace_back(output2.GetDynWriter());
 
-            core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
@@ -345,7 +345,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
             std::vector<data::File::DynWriter> writers;
             writers.emplace_back(output.GetDynWriter());
 
-            core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   -1, -1, 2 * 4 * 2 * 4);
 
@@ -393,7 +393,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyTwoPartitions) {
             writers.emplace_back(output1.GetDynWriter());
             writers.emplace_back(output2.GetDynWriter());
 
-            core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
@@ -450,11 +450,11 @@ TEST_F(PreTable, ComplexType) {
             StringPair sp;
 
             size_t kv_size = sizeof(
-                core::ReducePreProbingTable<
+                core::ReducePreProbingStage<
                     StringPair, std::string, StringPair,
                     decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
 
-            core::ReducePreProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<std::string>(),
                   "", sp, 2 * 3 * kv_size);
 
@@ -495,7 +495,7 @@ TEST_F(PreTable, MultipleWorkers) {
             writers.emplace_back(output1.GetDynWriter());
             writers.emplace_back(output2.GetDynWriter());
 
-            core::ReducePreProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   -1, -1, 6 * 8);
 
@@ -538,7 +538,7 @@ TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce1) {
             IntPair p;
 
             // Hashtable with smaller block size for testing.
-            core::ReducePreProbingTable<IntPair, int, IntPair, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<IntPair, int, IntPair, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(), -1, p, nitems * 16, 1.0);
 
             // insert lots of items
@@ -587,7 +587,7 @@ TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce2) {
             IntPair p;
 
             // Hashtable with smaller block size for testing.
-            core::ReducePreProbingTable<IntPair, int, IntPair, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<IntPair, int, IntPair, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
                   -1, p, nitems * 16);
 
@@ -652,10 +652,10 @@ TEST_F(PreTable, DISABLED_InsertManyStringItemsAndTestReduce) {
             StringPair sp;
 
             size_t kv_size = sizeof(
-                core::ReducePreProbingTable<StringPair, std::string, StringPair,
+                core::ReducePreProbingStage<StringPair, std::string, StringPair,
                                             decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
 
-            core::ReducePreProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
+            core::ReducePreProbingStage<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
             table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<std::string>(),
                   "", sp, nitems * kv_size);
 

@@ -21,7 +21,7 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_post_table.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
+#include <thrill/core/reduce_pre_stage.hpp>
 
 #include <functional>
 #include <string>
@@ -187,7 +187,7 @@ private:
 
     Value neutral_element_;
 
-    core::ReducePreBucketTable<
+    core::ReducePreBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
         core::PreReduceByIndex<Key>,
         std::equal_to<Key> > reduce_pre_table_;

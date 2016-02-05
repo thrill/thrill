@@ -21,7 +21,7 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_post_table.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
+#include <thrill/core/reduce_pre_stage.hpp>
 
 #include <functional>
 #include <string>
@@ -197,7 +197,7 @@ private:
 
     std::vector<data::CatStream::Writer> emitters_;
 
-    // core::ReducePreProbingTable<
+    // core::ReducePreProbingStage<
     //     ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
     //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
     //     core::PreReduceByHashKey<Key>,
@@ -209,7 +209,7 @@ private:
     //     core::PostReduceByHashKey<Key>,
     //     std::equal_to<Key> > reduce_post_table_;
 
-    core::ReducePreBucketTable<
+    core::ReducePreBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
         core::PreReduceByHashKey<Key>,
         std::equal_to<Key> > reduce_pre_table_;

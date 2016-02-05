@@ -12,7 +12,7 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/core/reduce_post_table.hpp>
-#include <thrill/core/reduce_pre_table.hpp>
+#include <thrill/core/reduce_pre_stage.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
                      writers.emplace_back(sinks[w].GetDynWriter());
                  }
 
-                 core::ReducePreProbingTable<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
+                 core::ReducePreProbingStage<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
                                              core::PreReduceByHashKey<size_t>,
                                              std::equal_to<size_t> >
                  table(ctx, workers, key_ex, red_fn, writers, core::PreReduceByHashKey<size_t>(),
