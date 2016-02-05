@@ -134,13 +134,13 @@ public:
         double limit_partition_fill_rate,
         double bucket_rate,
         bool immediate_flush,
-        const Key& /* sentinel */ = Key(),
+        const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
                 key_extractor, reduce_function, emitter,
                 num_partitions, limit_memory_bytes, immediate_flush,
-                index_function, equal_to_function) {
+                sentinel, index_function, equal_to_function) {
 
         assert(num_partitions > 0);
 
@@ -347,6 +347,8 @@ public:
         LOG << "Spilling " << items_per_partition_[partition_id]
             << " items of partition with id: " << partition_id;
 
+        if (items_per_partition_[partition_id] == 0) return;
+
         data::File::Writer writer = partition_files_[partition_id].GetWriter();
 
         for (size_t i = partition_id * num_buckets_per_partition_;
@@ -515,6 +517,7 @@ protected:
     using Super::reduce_function_;
     using Super::emitter_;
     using Super::immediate_flush_;
+    using Super::sentinel_;
 
     //! Storing the items.
     std::vector<BucketBlock*> buckets_;

@@ -24,6 +24,10 @@ struct MyStruct
     size_t key, value;
 
     bool operator < (const MyStruct& b) const { return key < b.key; }
+
+    friend std::ostream& operator << (std::ostream& os, const MyStruct& c) {
+        return os << '(' << c.key << ',' << c.value << ')';
+    }
 };
 
 void TestAddMyStructModulo(Context& ctx) {
@@ -54,7 +58,7 @@ void TestAddMyStructModulo(Context& ctx) {
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::PostReduceByHashKey<size_t>(),
                 /* sentinel */ size_t(),
-                /* limit_memory_bytes */ 1024 * 1024,
+                /* limit_memory_bytes */ 128 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
                 /* bucket_rate */ 1.0);
 
