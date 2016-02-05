@@ -36,9 +36,6 @@
 namespace thrill {
 namespace core {
 
-template <typename Key, typename HashFunction>
-class PostReduceByHashKey;
-
 template <typename Key,
           typename Value,
           typename ReduceFunction,

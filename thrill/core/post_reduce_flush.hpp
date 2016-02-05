@@ -16,6 +16,7 @@
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/bucket_block_pool.hpp>
+#include <thrill/core/reduce_functional.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
@@ -35,9 +36,6 @@
 
 namespace thrill {
 namespace core {
-
-template <typename Key, typename HashFunction>
-class PostReduceByHashKey;
 
 template <typename Key,
           typename Value,

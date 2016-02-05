@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_post_table.hpp
+ * thrill/core/reduce_post_stage.hpp
  *
  * Hash table with support for reduce.
  *
@@ -13,15 +13,13 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_POST_TABLE_HEADER
-#define THRILL_CORE_REDUCE_POST_TABLE_HEADER
+#ifndef THRILL_CORE_REDUCE_POST_STAGE_HEADER
+#define THRILL_CORE_REDUCE_POST_STAGE_HEADER
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/post_reduce_flush.hpp>
-#include <thrill/core/post_reduce_flush_to_index.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_probing_hash_table.hpp>
@@ -47,10 +45,10 @@ namespace core {
 //! template specialization switch class to output key+value if SendPair and
 //! only value if not SendPair.
 template <typename KeyValuePair, typename ValueType, bool SendPair>
-class ReducePostTableEmitterSwitch;
+class ReducePostStageEmitterSwitch;
 
 template <typename KeyValuePair, typename ValueType>
-class ReducePostTableEmitterSwitch<KeyValuePair, ValueType, false>
+class ReducePostStageEmitterSwitch<KeyValuePair, ValueType, false>
 {
 public:
     static void Put(const KeyValuePair& p, std::function<void(const ValueType&)>& emit) {
@@ -59,7 +57,7 @@ public:
 };
 
 template <typename KeyValuePair, typename ValueType>
-class ReducePostTableEmitterSwitch<KeyValuePair, ValueType, true>
+class ReducePostStageEmitterSwitch<KeyValuePair, ValueType, true>
 {
 public:
     static void Put(const KeyValuePair& p, std::function<void(const ValueType&)>& emit) {
@@ -71,20 +69,20 @@ public:
 //! collecting/flushing items while reducing. Items flushed in the post-stage
 //! are passed to the next DIA node for processing.
 template <typename KeyValuePair, typename ValueType, bool SendPair>
-class ReducePostTableEmitter
+class ReducePostStageEmitter
 {
     static const bool debug = true;
 
 public:
     using EmitterFunction = std::function<void(const ValueType&)>;
 
-    explicit ReducePostTableEmitter(const EmitterFunction& emit)
+    explicit ReducePostStageEmitter(const EmitterFunction& emit)
         : emit_(emit) { }
 
     //! output an element into a partition, template specialized for SendPair
     //! and non-SendPair types
     void Emit(const size_t& /* partition_id */, const KeyValuePair& p) {
-        ReducePostTableEmitterSwitch<KeyValuePair, ValueType, SendPair>::Put(p, emit_);
+        ReducePostStageEmitterSwitch<KeyValuePair, ValueType, SendPair>::Put(p, emit_);
     }
 
 public:
@@ -95,7 +93,6 @@ public:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair,
-          typename FlushFunction,
           typename IndexFunction,
           typename EqualToFunction,
           template <typename _ValueType, typename _Key, typename _Value,
@@ -103,7 +100,7 @@ template <typename ValueType, typename Key, typename Value,
                     const bool _RobustKey,
                     typename _IndexFunction,
                     typename _EqualToFunction> class HashTable>
-class ReducePostTable
+class ReducePostStage
 {
     static const bool debug = false;
 
@@ -112,14 +109,13 @@ public:
 
     using EmitterFunction = std::function<void(const ValueType&)>;
 
-    using TableEmitter = ReducePostTableEmitter<KeyValuePair, ValueType, SendPair>;
+    using Emitter = ReducePostStageEmitter<KeyValuePair, ValueType, SendPair>;
 
     using Table = HashTable<
               ValueType, Key, Value,
-              KeyExtractor, ReduceFunction, TableEmitter,
+              KeyExtractor, ReduceFunction, Emitter,
               !SendPair,
-              IndexFunction, EqualToFunction
-              >;
+              IndexFunction, EqualToFunction>;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
@@ -130,7 +126,6 @@ public:
      * \param reduce_function Reduce function to reduce to values.
      * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
      * \param index_function Function to be used for computing the bucket the item to be inserted.
-     * \param flush_function Function to be used for flushing all items in the table.
      * \param begin_local_index Begin index for reduce to index.
      * \param end_local_index End index for reduce to index.
      * \param neutral element Neutral element for reduce to index.
@@ -142,15 +137,12 @@ public:
      * \param partition_rate Rate of number of buckets to number of partitions. There is one file writer per partition.
      * \param equal_to_function Function for checking equality of two keys.
      */
-    ReducePostTable(Context& ctx,
+    ReducePostStage(Context& ctx,
                     const KeyExtractor& key_extractor,
                     const ReduceFunction& reduce_function,
                     const EmitterFunction& emit,
                     const IndexFunction& index_function,
-                    const FlushFunction& flush_function,
-                    const common::Range& local_index = common::Range(),
                     const Key& sentinel = Key(),
-                    const Value& neutral_element = Value(),
                     size_t limit_memory_bytes = 1024* 1024,
                     double limit_partition_fill_rate = 0.6,
                     double bucket_rate = 1.0,
@@ -163,24 +155,21 @@ public:
                  limit_memory_bytes,
                  limit_partition_fill_rate, bucket_rate, false,
                  sentinel,
-                 index_function, equal_to_function),
-          local_index_(local_index),
-          neutral_element_(neutral_element),
-          flush_function_(flush_function) {
+                 index_function, equal_to_function) {
 
         assert(partition_rate > 0.0 && partition_rate <= 1.0 &&
                "a partition rate of 1.0 causes exactly one partition.");
     }
 
-    ReducePostTable(Context& ctx, KeyExtractor key_extractor,
+    ReducePostStage(Context& ctx, KeyExtractor key_extractor,
                     ReduceFunction reduce_function, EmitterFunction emit)
-        : ReducePostTable(ctx, key_extractor, reduce_function, emit,
-                          IndexFunction(), FlushFunction(reduce_function)) { }
+        : ReducePostStage(ctx, key_extractor, reduce_function, emit,
+                          IndexFunction()) { }
 
     //! non-copyable: delete copy-constructor
-    ReducePostTable(const ReducePostTable&) = delete;
+    ReducePostStage(const ReducePostStage&) = delete;
     //! non-copyable: delete assignment operator
-    ReducePostTable& operator = (const ReducePostTable&) = delete;
+    ReducePostStage& operator = (const ReducePostStage&) = delete;
 
     void Insert(const Value& p) {
         return table_.Insert(p);
@@ -194,7 +183,36 @@ public:
     void Flush(bool consume = false) {
         LOG << "Flushing items";
 
-        flush_function_.FlushTable(consume, *this);
+        std::vector<data::File>& partition_files = table_.partition_files();
+
+        for (size_t id = 0; id < partition_files.size(); ++id) {
+
+            // get the actual reader from the file
+            data::File& file = partition_files[id];
+
+            // only if items have been spilled, process a second reduce
+            if (file.num_items() > 0) {
+
+                data::File::Reader reader = file.GetReader(consume);
+
+                // this does not work -tb
+                abort();
+                // Reduce<Table, BucketBlock>(ctx, consume, ht, items, offset,
+                //                            length, reader, second_reduce,
+                //                            fill_rate_num_items_per_partition,
+                //                            partition_id, num_items_mem_per_partition, block_pool,
+                //                            max_num_blocks_second_reduce, block_size);
+
+                // no spilled items, just flush already reduced
+                // data in primary table in current partition
+            }
+            else {
+                /////
+                // emit data
+                /////
+                table_.FlushPartition(id, consume);
+            }
+        }
 
         LOG << "Flushed items";
     }
@@ -210,64 +228,43 @@ public:
     //! Returns the total num of items in the table.
     size_t num_items() const { return table_.num_items(); }
 
-    //! Returns the local index range.
-    common::Range local_index() const { return local_index_; }
-
-    //! Returns the neutral element.
-    Value neutral_element() const { return neutral_element_; }
-
     //! }
 
-public:
+private:
     //! Emitters used to parameterize hash table for output to next DIA node.
-    TableEmitter emit_;
+    Emitter emit_;
 
-    // TODO(tb)
     //! the first-level hash table implementation
     Table table_;
-
-private:
-    //! [Begin,end) local index (reduce to index).
-    common::Range local_index_;
-
-    //! Neutral element (reduce to index).
-    Value neutral_element_;
-
-    //! Flush function.
-    FlushFunction flush_function_;
 };
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
-using ReducePostBucketTable = ReducePostTable<
+using ReducePostBucketStage = ReducePostStage<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           SendPair,
-          FlushFunction,
           IndexFunction, EqualToFunction,
           ReduceBucketHashTable>;
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
-using ReducePostProbingTable = ReducePostTable<
+using ReducePostProbingStage = ReducePostStage<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           SendPair,
-          FlushFunction,
           IndexFunction, EqualToFunction,
           ReduceProbingHashTable>;
 
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_POST_TABLE_HEADER
+#endif // !THRILL_CORE_REDUCE_POST_STAGE_HEADER
 
 /******************************************************************************/
