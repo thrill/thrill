@@ -100,7 +100,7 @@ public:
         : Super(ctx,
                 key_extractor, reduce_function, emitter,
                 num_partitions, limit_memory_bytes, immediate_flush,
-                index_function, equal_to_function) {
+                sentinel, index_function, equal_to_function) {
 
         assert(num_partitions > 0);
 
@@ -136,7 +136,6 @@ public:
 
         // construct the hash table itself. fill it with sentinels
 
-        sentinel_ = KeyValuePair(sentinel, Value());
         items_.resize(size_, sentinel_);
     }
 
@@ -233,6 +232,8 @@ public:
         LOG << "Spilling " << items_per_partition_[partition_id]
             << " items of partition with id: " << partition_id;
 
+        if (items_per_partition_[partition_id] == 0) return;
+
         data::File::Writer writer = partition_files_[partition_id].GetWriter();
 
         for (size_t i = partition_id * partition_size_;
@@ -313,12 +314,10 @@ protected:
     using Super::partition_files_;
     using Super::reduce_function_;
     using Super::immediate_flush_;
+    using Super::sentinel_;
 
     //! Storing the actual hash table.
     std::vector<KeyValuePair> items_;
-
-    //! Sentinel element used to flag free slots.
-    KeyValuePair sentinel_;
 
     //! \name Fixed Operational Parameters
     //! \{

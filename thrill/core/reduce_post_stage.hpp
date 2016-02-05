@@ -146,20 +146,15 @@ public:
                     size_t limit_memory_bytes = 1024* 1024,
                     double limit_partition_fill_rate = 0.6,
                     double bucket_rate = 1.0,
-                    double partition_rate = 0.1,
                     const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
           table_(ctx,
                  key_extractor, reduce_function, emit_,
-                 std::max<size_t>((size_t)(1.0 / partition_rate), 1),
+                 /* num_partitions */ 32, /* TODO(tb): parameterize */
                  limit_memory_bytes,
                  limit_partition_fill_rate, bucket_rate, false,
                  sentinel,
-                 index_function, equal_to_function) {
-
-        assert(partition_rate > 0.0 && partition_rate <= 1.0 &&
-               "a partition rate of 1.0 causes exactly one partition.");
-    }
+                 index_function, equal_to_function) { }
 
     ReducePostStage(Context& ctx, KeyExtractor key_extractor,
                     ReduceFunction reduce_function, EmitterFunction emit)
@@ -183,35 +178,106 @@ public:
     void Flush(bool consume = false) {
         LOG << "Flushing items";
 
-        std::vector<data::File>& partition_files = table_.partition_files();
+        // list of remaining files, containing only partially reduced item pairs
+        // or items
+        std::vector<data::File> remaining_files;
 
-        for (size_t id = 0; id < partition_files.size(); ++id) {
+        // read primary hash table, since ReduceByHash delivers items in any
+        // order, we can just emit items from fully reduced partitions.
 
-            // get the actual reader from the file
-            data::File& file = partition_files[id];
+        {
+            std::vector<data::File>& files = table_.partition_files();
 
-            // only if items have been spilled, process a second reduce
-            if (file.num_items() > 0) {
+            for (size_t id = 0; id < files.size(); ++id)
+            {
+                // get the actual reader from the file
+                data::File& file = files[id];
 
-                data::File::Reader reader = file.GetReader(consume);
+                // if items have been spilled, store for a second reduce
+                if (file.num_items() > 0) {
+                    table_.SpillPartition(id);
 
-                // this does not work -tb
-                abort();
-                // Reduce<Table, BucketBlock>(ctx, consume, ht, items, offset,
-                //                            length, reader, second_reduce,
-                //                            fill_rate_num_items_per_partition,
-                //                            partition_id, num_items_mem_per_partition, block_pool,
-                //                            max_num_blocks_second_reduce, block_size);
+                    LOG << "partition " << id << " contains "
+                        << file.num_items() << " partially reduced items";
 
-                // no spilled items, just flush already reduced
-                // data in primary table in current partition
+                    remaining_files.emplace_back(std::move(file));
+                }
+                else {
+                    LOG << "partition " << id << " contains "
+                        << table_.items_per_partition(id)
+                        << " fully reduced items";
+
+                    table_.FlushPartition(id, consume);
+                }
             }
-            else {
-                /////
-                // emit data
-                /////
-                table_.FlushPartition(id, consume);
+        }
+
+        // if partially reduce files remain, create new hash tables to process
+        // them iteratively.
+
+        size_t iteration = 1;
+
+        while (remaining_files.size())
+        {
+            sLOG << "ReducePostStage: re-reducing items from"
+                 << remaining_files.size() << "remaining files"
+                 << "iteration=" << iteration;
+
+            std::vector<data::File> next_remaining_files;
+
+            Table subtable(
+                table_.ctx(),
+                table_.key_extractor(), table_.reduce_function(), emit_,
+                /* num_partitions */ 32,
+                table_.limit_memory_bytes(),
+                0.7 /* TODO(tb): parameterize */, 1.0 /* TODO(tb): parameterize */, false,
+                table_.sentinel().first /* TODO(tb): weird */,
+                table_.index_function(), table_.equal_to_function());
+
+            size_t num_subfile = 0;
+
+            for (data::File& file : remaining_files)
+            {
+                // insert all items from the partially reduced file
+                LOG << "re-reducing subfile " << num_subfile;
+
+                data::File::Reader reader = file.GetReader(/* consume */ true);
+
+                while (reader.HasNext()) {
+                    subtable.Insert(reader.Next<KeyValuePair>());
+                }
+
+                // after insertion, flush fully reduced partitions and save
+                // remaining files for next iteration.
+
+                std::vector<data::File>& subfiles = subtable.partition_files();
+
+                for (size_t id = 0; id < subfiles.size(); ++id)
+                {
+                    // get the actual reader from the file
+                    data::File& subfile = subfiles[id];
+
+                    // if items have been spilled, store for a second reduce
+                    if (subfile.num_items() > 0) {
+                        subtable.SpillPartition(id);
+
+                        sLOG << "partition" << id << "contains"
+                             << subfile.num_items() << "partially reduced items";
+
+                        next_remaining_files.emplace_back(std::move(subfile));
+                    }
+                    else {
+                        sLOG << "partition" << id << "contains"
+                             << subtable.items_per_partition(id)
+                             << "fully reduced items";
+
+                        subtable.FlushPartition(id, /* consume */ true);
+                    }
+                }
             }
+
+            remaining_files = std::move(next_remaining_files);
+            ++iteration;
         }
 
         LOG << "Flushed items";

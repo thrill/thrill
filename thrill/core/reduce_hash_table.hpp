@@ -47,6 +47,7 @@ public:
         size_t num_partitions,
         size_t limit_memory_bytes,
         bool immediate_flush,
+        const Key& sentinel,
         const IndexFunction& index_function,
         const EqualToFunction& equal_to_function)
         : ctx_(ctx),
@@ -58,6 +59,7 @@ public:
           num_partitions_(num_partitions),
           limit_memory_bytes_(limit_memory_bytes),
           immediate_flush_(immediate_flush),
+          sentinel_(KeyValuePair(sentinel, Value())),
           items_per_partition_(num_partitions_, 0) {
 
         assert(num_partitions > 0);
@@ -65,8 +67,10 @@ public:
         // allocate Files for each partition to spill into. TODO(tb): switch to
         // FilePtr ondemand
 
-        for (size_t i = 0; i < num_partitions_; i++) {
-            partition_files_.push_back(ctx.GetFile());
+        if (!immediate_flush_) {
+            for (size_t i = 0; i < num_partitions_; i++) {
+                partition_files_.push_back(ctx.GetFile());
+            }
         }
     }
 
@@ -78,14 +82,44 @@ public:
     //! \name Accessors
     //! \{
 
-    //! Returns the number of partitions
-    size_t num_partitions() {
-        return num_partitions_;
-    }
+    //! Returns the context
+    Context & ctx() const { return ctx_; }
+
+    //! Returns the key_extractor
+    const KeyExtractor & key_extractor() const { return key_extractor_; }
+
+    //! Returns the reduce_function
+    const ReduceFunction & reduce_function() const { return reduce_function_; }
+
+    //! Returns emitter_
+    const Emitter & emitter() const { return emitter_; }
+
+    //! Returns index_function_
+    const IndexFunction & index_function() const { return index_function_; }
+
+    //! Returns equal_to_function_
+    const EqualToFunction & equal_to_function() const { return equal_to_function_; }
 
     //! Returns the vector of partition files.
-    std::vector<data::File> & partition_files() {
-        return partition_files_;
+    std::vector<data::File> & partition_files() { return partition_files_; }
+
+    //! Returns the number of partitions
+    size_t num_partitions() { return num_partitions_; }
+
+    //! Returns limit_memory_bytes_
+    size_t limit_memory_bytes() const { return limit_memory_bytes_; }
+
+    //! Returns limit_items_per_partition_
+    size_t limit_items_per_partition() const
+    { return limit_items_per_partition_; }
+
+    //! Returns sentinel_
+    const KeyValuePair & sentinel() const { return sentinel_; }
+
+    //! Returns items_per_partition_
+    size_t items_per_partition(size_t id) const {
+        assert(id < items_per_partition_.size());
+        return items_per_partition_[id];
     }
 
     //! Returns the total num of items in the table.
@@ -138,6 +172,9 @@ protected:
     //! Whether to spill overfull partitions to disk or to immediately flush to
     //! next stage.
     bool immediate_flush_;
+
+    //! Sentinel element used to flag free slots.
+    KeyValuePair sentinel_;
 
     //! \}
 
