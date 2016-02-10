@@ -19,6 +19,19 @@
 namespace thrill {
 namespace core {
 
+// This is the Hash128to64 function from Google's cityhash (available under the
+// MIT License).
+static inline uint64_t Hash128to64(const uint64_t upper, const uint64_t lower) {
+    // Murmur-inspired hashing.
+    const uint64_t k = 0x9ddfea08eb382d69ULL;
+    uint64_t a = (lower ^ upper) * k;
+    a ^= (a >> 47);
+    uint64_t b = (upper ^ a) * k;
+    b ^= (b >> 47);
+    b *= k;
+    return b;
+}
+
 template <typename Key, typename HashFunction = std::hash<Key> >
 class ReduceByHashKey
 {
@@ -32,13 +45,13 @@ public:
     };
 
     explicit ReduceByHashKey(
-        const uint64_t& seed = 0,
+        const uint64_t& salt = 0,
         const HashFunction& hash_function = HashFunction())
-        : seed_(seed), hash_function_(hash_function) { }
+        : salt_(salt), hash_function_(hash_function) { }
 
     ReduceByHashKey(
-        const uint64_t& seed, const ReduceByHashKey& other)
-        : seed_(seed), hash_function_(other.hash_function_) { }
+        const uint64_t& salt, const ReduceByHashKey& other)
+        : salt_(salt), hash_function_(other.hash_function_) { }
 
     IndexResult operator () (const Key& k,
                              const size_t& num_partitions,
@@ -46,16 +59,19 @@ public:
                              const size_t& num_buckets_per_table,
                              const size_t& offset) const {
 
-        (void)num_partitions;
+        (void)num_buckets_per_partition;
         (void)offset;
 
-        size_t global_index = hash_function_(k) % num_buckets_per_table;
+        uint64_t hash = Hash128to64(salt_, hash_function_(k));
 
-        return IndexResult { global_index / num_buckets_per_partition, global_index };
+        size_t partition_id = hash % num_partitions;
+        size_t global_index = (hash / num_partitions) % num_buckets_per_table;
+
+        return IndexResult { partition_id, global_index };
     }
 
 private:
-    uint64_t seed_;
+    uint64_t salt_;
     HashFunction hash_function_;
 };
 
