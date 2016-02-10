@@ -230,7 +230,8 @@ public:
                 table_.limit_memory_bytes(),
                 0.7 /* TODO(tb): parameterize */, 1.0 /* TODO(tb): parameterize */, false,
                 table_.sentinel().first /* TODO(tb): weird */,
-                table_.index_function(), table_.equal_to_function());
+                IndexFunction(iteration, table_.index_function()),
+                table_.equal_to_function());
 
             size_t num_subfile = 0;
 
