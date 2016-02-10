@@ -59,13 +59,13 @@ public:
                              const size_t& num_buckets_per_table,
                              const size_t& offset) const {
 
-        (void)num_buckets_per_partition;
+        (void)num_partitions;
         (void)offset;
 
         uint64_t hash = Hash128to64(salt_, hash_function_(k));
 
-        size_t partition_id = hash % num_partitions;
-        size_t global_index = (hash / num_partitions) % num_buckets_per_table;
+        size_t global_index = hash % num_buckets_per_table;
+        size_t partition_id = global_index / num_buckets_per_partition;
 
         return IndexResult { partition_id, global_index };
     }
