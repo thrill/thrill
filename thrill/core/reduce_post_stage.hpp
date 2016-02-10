@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -17,24 +17,16 @@
 #define THRILL_CORE_REDUCE_POST_STAGE_HEADER
 
 #include <thrill/api/context.hpp>
-#include <thrill/common/function_traits.hpp>
-#include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_probing_hash_table.hpp>
-#include <thrill/data/block_pool.hpp>
-#include <thrill/data/block_sink.hpp>
-#include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <cassert>
-#include <climits>
 #include <cmath>
-#include <cstring>
 #include <functional>
-#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -51,7 +43,8 @@ template <typename KeyValuePair, typename ValueType>
 class ReducePostStageEmitterSwitch<KeyValuePair, ValueType, false>
 {
 public:
-    static void Put(const KeyValuePair& p, std::function<void(const ValueType&)>& emit) {
+    static void Put(const KeyValuePair& p,
+                    std::function<void(const ValueType&)>& emit) {
         emit(p.second);
     }
 };
@@ -60,7 +53,8 @@ template <typename KeyValuePair, typename ValueType>
 class ReducePostStageEmitterSwitch<KeyValuePair, ValueType, true>
 {
 public:
-    static void Put(const KeyValuePair& p, std::function<void(const ValueType&)>& emit) {
+    static void Put(const KeyValuePair& p,
+                    std::function<void(const ValueType&)>& emit) {
         emit(p);
     }
 };
@@ -80,7 +74,8 @@ public:
     //! output an element into a partition, template specialized for SendPair
     //! and non-SendPair types
     void Emit(const size_t& /* partition_id */, const KeyValuePair& p) {
-        ReducePostStageEmitterSwitch<KeyValuePair, ValueType, SendPair>::Put(p, emit_);
+        ReducePostStageEmitterSwitch<
+            KeyValuePair, ValueType, SendPair>::Put(p, emit_);
     }
 
 public:
@@ -100,7 +95,7 @@ template <typename ValueType, typename Key, typename Value,
                     typename _EqualToFunction> class HashTable>
 class ReducePostStage
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -116,23 +111,42 @@ public:
               IndexFunction, EqualToFunction>;
 
     /**
-     * A data structure which takes an arbitrary value and extracts a key using a key extractor
-     * function from that value. Afterwards, the value is hashed based on the key into some slot.
+     * A data structure which takes an arbitrary value and extracts a key using
+     * a key extractor function from that value. Afterwards, the value is hashed
+     * based on the key into some slot.
      *
      * \param context Context.
-     * \param key_extractor Key extractor function to extract a key from a value.
+     *
+     * \param key_extractor Key extractor function to extract a key from a
+     * value.
+     *
      * \param reduce_function Reduce function to reduce to values.
-     * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
-     * \param index_function Function to be used for computing the bucket the item to be inserted.
+     *
+     * \param emit A set of BlockWriter to flush items. One BlockWriter per
+     * partition.
+     *
+     * \param index_function Function to be used for computing the bucket the
+     * item to be inserted.
+     *
      * \param begin_local_index Begin index for reduce to index.
+     *
      * \param end_local_index End index for reduce to index.
+     *
      * \param neutral element Neutral element for reduce to index.
-     * \param limit_memory_bytes Maximal size of the table in byte. In case size of table exceeds that value, items
-     *                  are flushed.
-     * \param bucket_rate Ratio of number of blocks to number of buckets in the table.
-     * \param limit_partition_fill_rate Maximal number of items relative to maximal number of items in a partition.
-     *        It the number is exceeded, no more blocks are added to a bucket, instead, items get spilled to disk.
-     * \param partition_rate Rate of number of buckets to number of partitions. There is one file writer per partition.
+     *
+     * \param limit_memory_bytes Maximal size of the table in byte. In case size
+     * of table exceeds that value, items are flushed.
+     *
+     * \param bucket_rate Ratio of number of blocks to number of buckets in the
+     * table.
+     *
+     * \param limit_partition_fill_rate Maximal number of items relative to
+     * maximal number of items in a partition. It the number is exceeded, no
+     * more blocks are added to a bucket, instead, items get spilled to disk.
+     *
+     * \param partition_rate Rate of number of buckets to number of
+     * partitions. There is one file writer per partition.
+     *
      * \param equal_to_function Function for checking equality of two keys.
      */
     ReducePostStage(Context& ctx,
@@ -238,7 +252,7 @@ public:
             for (data::File& file : remaining_files)
             {
                 // insert all items from the partially reduced file
-                LOG << "re-reducing subfile " << num_subfile;
+                LOG << "re-reducing subfile " << num_subfile++;
 
                 data::File::Reader reader = file.GetReader(/* consume */ true);
 
@@ -280,11 +294,6 @@ public:
         }
 
         LOG << "Flushed items";
-    }
-
-    //! Emits element to all children
-    void EmitAll(const size_t& partition_id, const KeyValuePair& p) {
-        emit_.Emit(partition_id, p);
     }
 
     //! \name Accessors

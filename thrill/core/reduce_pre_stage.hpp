@@ -16,21 +16,16 @@
 #ifndef THRILL_CORE_REDUCE_PRE_STAGE_HEADER
 #define THRILL_CORE_REDUCE_PRE_STAGE_HEADER
 
-#include <thrill/common/function_traits.hpp>
-#include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/post_reduce_flush.hpp>
-#include <thrill/core/post_reduce_flush_to_index.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
+#include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_probing_hash_table.hpp>
 #include <thrill/data/block_writer.hpp>
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <cstring>
 #include <functional>
-#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -89,11 +84,11 @@ public:
     }
 
     void CloseAll() {
-        sLOG << "emit stats: ";
+        sLOG << "emit stats:";
         size_t i = 0;
         for (auto& e : writer_) {
             e.Close();
-            sLOG << "emitter " << i << " pushed " << stats_[i++];
+            sLOG << "emitter" << i << "pushed" << stats_[i++];
         }
     }
 
