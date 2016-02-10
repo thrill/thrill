@@ -31,8 +31,8 @@ struct MyStruct
 };
 
 void TestAddMyStructModulo(Context& ctx) {
-    static const size_t test_size = 50000;
-    static const size_t mod_size = 500;
+    static const size_t mod_size = 601;
+    static const size_t test_size = mod_size * 100;
 
     auto key_ex = [](const MyStruct& in) {
                       return in.key % mod_size;

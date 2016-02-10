@@ -86,7 +86,7 @@ public:
     void CloseAll() {
         sLOG << "emit stats:";
         size_t i = 0;
-        for (auto& e : writer_) {
+        for (data::DynBlockWriter& e : writer_) {
             e.Close();
             sLOG << "emitter" << i << "pushed" << stats_[i++];
         }
