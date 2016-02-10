@@ -39,7 +39,7 @@ namespace core {
 template <typename Key,
           typename Value,
           typename ReduceFunction,
-          typename IndexFunction = PostReduceByHashKey<Key, std::hash<Key> >,
+          typename IndexFunction = ReduceByHashKey<Key, std::hash<Key> >,
           typename EqualToFunction = std::equal_to<Key>,
           typename KeyValuePair = std::pair<Key, Value> >
 class PostReduceFlushToIndex

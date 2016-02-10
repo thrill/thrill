@@ -29,7 +29,7 @@ std::pair<int, int> pair(int ele) {
 }
 
 template <typename Key, typename HashFunction = std::hash<Key> >
-class CustomKeyHashFunction : public core::PostReduceByHashKey<int>
+class CustomKeyHashFunction : public core::ReduceByHashKey<int>
 {
 public:
     struct IndexResult {
@@ -318,8 +318,8 @@ TEST_F(PostTable, ComplexType) {
 
             core::ReducePostBucketTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), false,
                                         core::PostReduceFlush<std::string, int, decltype(red_fn)>,
-                                        core::PostReduceByHashKey<std::string>, std::equal_to<std::string> >
-            table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<std::string>(),
+                                        core::ReduceByHashKey<std::string>, std::equal_to<std::string> >
+            table(ctx, key_ex, red_fn, emit, core::ReduceByHashKey<std::string>(),
                   core::PostReduceFlush<std::string, int, decltype(red_fn)>(red_fn), common::Range(0, 0),
                   "", sp, 1024 * 24, 1.0, 0.5, 1.0,
                   std::equal_to<std::string>());
@@ -366,13 +366,13 @@ TEST_F(PostTable, DISABLED_OneBucketOneBlockTestFillRate) {
                 core::ReducePostBucketTable<int, int, int,
                                             decltype(key_ex), decltype(red_fn), false,
                                             core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
+                                            core::ReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
             using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                         core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                        core::PostReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
+                                        core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emit, core::ReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), int(), 0, bucket_block_size * 5, 0.2, 1.0, 1.0,
                   std::equal_to<int>());
 
@@ -421,13 +421,13 @@ TEST_F(PostTable, DISABLED_OneBucketOneBlockTestFillRate2) {
                 core::ReducePostBucketTable<int, int, int,
                                             decltype(key_ex), decltype(red_fn), false,
                                             core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
+                                            core::ReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
             using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                         core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                        core::PostReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
+                                        core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emit, core::ReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), int(), 0, bucket_block_size * 5, 0.2, 0.5, 1.0,
                   std::equal_to<int>());
 
@@ -481,14 +481,14 @@ TEST_F(PostTable, DISABLED_OneBucketTwoBlocksTestFillRate) {
                 core::ReducePostBucketTable<int, int, int,
                                             decltype(key_ex), decltype(red_fn), false,
                                             core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
+                                            core::ReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
 
             using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                         core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                        core::PostReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
+                                        core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emit, core::ReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), 0, int(), bucket_block_size * 5, 0.2, 1.0, 1.0,
                   std::equal_to<int>());
 
@@ -541,13 +541,13 @@ TEST_F(PostTable, DISABLED_OneBucketTwoBlocksTestFillRate2) {
                 core::ReducePostBucketTable<int, int, int,
                                             decltype(key_ex), decltype(red_fn), false,
                                             core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
+                                            core::ReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
             using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                         core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                        core::PostReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
+                                        core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emit, core::ReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), 0, int(),
                   bucket_block_size * 5, 0.2, 0.5, 1.0,
                   std::equal_to<int>());
@@ -601,13 +601,13 @@ TEST_F(PostTable, DISABLED_TwoBucketsTwoBlocksTestFillRate) {
                 core::ReducePostBucketTable<int, int, int,
                                             decltype(key_ex), decltype(red_fn), false,
                                             core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
+                                            core::ReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
             using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                         core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                        core::PostReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
+                                        core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emit, core::ReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), 0, int(),
                   bucket_block_size * 5, 0.5, 1.0, 1.0,
                   std::equal_to<int>());
@@ -659,14 +659,14 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
                 core::ReducePostBucketTable<int, int, int,
                                             decltype(key_ex), decltype(red_fn), false,
                                             core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
+                                            core::ReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
             using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostBucketTable<
                 int, int, int, decltype(key_ex), decltype(red_fn), false,
                 core::PostReduceFlush<int, int, decltype(red_fn)>,
-                core::PostReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
+                core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emit, core::ReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), int(), 0,
                   bucket_block_size * 5, 0.5, 0.5, 1.0,
                   std::equal_to<int>());
@@ -718,15 +718,15 @@ TEST_F(PostTable, DISABLED_MaxTableBlocks) {
                 core::ReducePostBucketTable<int, int, int,
                                             decltype(key_ex), decltype(red_fn), false,
                                             core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                            core::PostReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
+                                            core::ReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
 
             using KeyValuePair = std::pair<int, int>;
             size_t max_blocks = 8;
 
             core::ReducePostBucketTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                         core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                        core::PostReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
+                                        core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emit, core::ReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn),
                   common::Range(0, 0), 0, int(), bucket_block_size * max_blocks * 2, 0.5, 1.0, 0.1,
                   std::equal_to<int>());

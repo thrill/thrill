@@ -97,9 +97,9 @@ int main(int argc, char* argv[]) {
                  }
 
                  core::ReducePreProbingStage<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-                                             core::PreReduceByHashKey<size_t>,
+                                             core::ReduceByHashKey<size_t>,
                                              std::equal_to<size_t> >
-                 table(ctx, workers, key_ex, red_fn, writers, core::PreReduceByHashKey<size_t>(),
+                 table(ctx, workers, key_ex, red_fn, writers, core::ReduceByHashKey<size_t>(),
                        0, 0, byte_size);
 
                  common::StatsTimer<true> timer(true);

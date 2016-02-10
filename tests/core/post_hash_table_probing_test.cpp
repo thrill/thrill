@@ -29,7 +29,7 @@ std::pair<int, int> pair(int ele) {
 }
 
 template <typename Key, typename HashFunction = std::hash<Key> >
-class CustomKeyHashFunction : public core::PostReduceByHashKey<int>
+class CustomKeyHashFunction : public core::ReduceByHashKey<int>
 {
 public:
     struct IndexResult {
@@ -371,8 +371,8 @@ TEST_F(PostTable, DISABLED_WithinTableItemsLimit) {
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                          core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                         core::PostReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
+                                         core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emit, core::ReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), -1, 0, byte_size, fill_rate,
                   1);
 
@@ -420,8 +420,8 @@ TEST_F(PostTable, DISABLED_WithinTableItemsLimit2) {
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                          core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                         core::PostReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, key_ex, red_fn, emit, core::PostReduceByHashKey<int>(),
+                                         core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emit, core::ReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn), common::Range(0, 0), -1, 0, byte_size, fill_rate,
                   1);
 
@@ -470,9 +470,9 @@ TEST_F(PostTable, DISABLED_AboveTableItemsLimit) {
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                          core::PostReduceFlush<int, int, decltype(red_fn)>,
-                                         core::PostReduceByHashKey<int>, std::equal_to<int> >
+                                         core::ReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emit,
-                  core::PostReduceByHashKey<int>(),
+                  core::ReduceByHashKey<int>(),
                   core::PostReduceFlush<int, int, decltype(red_fn)>(red_fn),
                   common::Range(0, 0), -1, 0, byte_size, fill_rate, 1);
 

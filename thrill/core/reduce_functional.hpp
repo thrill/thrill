@@ -20,7 +20,7 @@ namespace thrill {
 namespace core {
 
 template <typename Key, typename HashFunction = std::hash<Key> >
-class PostReduceByHashKey
+class ReduceByHashKey
 {
 public:
     struct IndexResult {
@@ -31,8 +31,14 @@ public:
         size_t global_index;
     };
 
-    explicit PostReduceByHashKey(const HashFunction& hash_function = HashFunction())
-        : hash_function_(hash_function) { }
+    explicit ReduceByHashKey(
+        const uint64_t& seed = 0,
+        const HashFunction& hash_function = HashFunction())
+        : seed_(seed), hash_function_(hash_function) { }
+
+    ReduceByHashKey(
+        const uint64_t& seed, const ReduceByHashKey& other)
+        : seed_(seed), hash_function_(other.hash_function_) { }
 
     IndexResult operator () (const Key& k,
                              const size_t& num_partitions,
@@ -49,7 +55,37 @@ public:
     }
 
 private:
+    uint64_t seed_;
     HashFunction hash_function_;
+};
+
+template <typename Key>
+class PreReduceByIndex
+{
+public:
+    struct IndexResult {
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the whole hashtable
+        size_t global_index;
+    };
+
+    size_t size_;
+
+    explicit PreReduceByIndex(size_t size) : size_(size) { }
+
+    IndexResult
+    operator () (const Key& k,
+                 const size_t& num_partitions,
+                 const size_t& num_buckets_per_partition,
+                 const size_t& num_buckets_per_table,
+                 const size_t& offset) const {
+
+        (void)num_buckets_per_partition;
+        (void)offset;
+
+        return IndexResult { k* num_partitions / size_, k* num_buckets_per_table / size_ };
+    }
 };
 
 template <typename Key>

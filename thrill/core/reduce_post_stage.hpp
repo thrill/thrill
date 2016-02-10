@@ -71,8 +71,6 @@ public:
 template <typename KeyValuePair, typename ValueType, bool SendPair>
 class ReducePostStageEmitter
 {
-    static const bool debug = true;
-
 public:
     using EmitterFunction = std::function<void(const ValueType&)>;
 
@@ -307,7 +305,7 @@ private:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename IndexFunction = PostReduceByHashKey<Key>,
+          typename IndexFunction = ReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePostBucketStage = ReducePostStage<
           ValueType, Key, Value,
@@ -319,7 +317,7 @@ using ReducePostBucketStage = ReducePostStage<
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename IndexFunction = PostReduceByHashKey<Key>,
+          typename IndexFunction = ReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePostProbingStage = ReducePostStage<
           ValueType, Key, Value,
