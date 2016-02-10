@@ -139,8 +139,8 @@ public:
                    const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
                    const Value& neutral_element = Value(),
                    size_t limit_memory_bytes = 1024* 16,
-                   double bucket_rate = 1.0,
                    double limit_partition_fill_rate = 0.6,
+                   double bucket_rate = 1.0,
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
           table_(ctx,
@@ -202,7 +202,7 @@ public:
     }
 
     //! Closes all emitter
-    void CloseEmitter() {
+    void CloseAll() {
         emit_.CloseAll();
     }
 

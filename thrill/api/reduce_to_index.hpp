@@ -131,7 +131,7 @@ public:
         LOG << this->label() << " running main op";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush(/* consume */ true);
-        reduce_pre_table_.CloseEmitter();
+        reduce_pre_table_.CloseAll();
         stream_->Close();
         this->WriteStreamStats(stream_);
     }
