@@ -20,7 +20,7 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_post_table.hpp>
+#include <thrill/core/reduce_post_stage.hpp>
 #include <thrill/core/reduce_pre_stage.hpp>
 
 #include <functional>
@@ -125,9 +125,7 @@ public:
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
               core::ReduceByHashKey<Key>(),
-              core::PostReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-              common::Range(),
-              Key(), Value(), config.post_table_memlimit)
+              Key(), config.post_table_memlimit)
 
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
@@ -214,9 +212,8 @@ private:
         core::ReduceByHashKey<Key>,
         std::equal_to<Key> > reduce_pre_table_;
 
-    core::ReducePostBucketTable<
+    core::ReducePostBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-        core::PostReduceFlush<Key, Value, ReduceFunction>,
         core::ReduceByHashKey<Key>,
         std::equal_to<Key> > reduce_post_table_;
 

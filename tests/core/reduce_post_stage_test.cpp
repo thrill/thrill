@@ -78,12 +78,12 @@ static void TestAddMyStructByHash(Context& ctx) {
 
     for (size_t i = 0; i < result.size(); ++i) {
         LOG << "result[" << i << "] = " << result[i] << " =? "
-             << (test_size / mod_size) * ((test_size / mod_size) - 1) / 2;
+            << (test_size / mod_size) * ((test_size / mod_size) - 1) / 2;
     }
 
     for (size_t i = 0; i < result.size(); ++i) {
         LOG << "result[" << i << "] = " << result[i] << " =? "
-             << (test_size / mod_size) * ((test_size / mod_size) - 1) / 2;
+            << (test_size / mod_size) * ((test_size / mod_size) - 1) / 2;
         ASSERT_EQ(i, result[i].key);
         ASSERT_EQ((test_size / mod_size) * ((test_size / mod_size) - 1) / 2,
                   result[i].value);

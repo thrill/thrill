@@ -350,9 +350,9 @@ public:
             return FlushPartition(partition_id, true);
 
         sLOG << "Spilling" << items_per_partition_[partition_id]
-              << "items of partition" << partition_id
-              << "buckets: [" << partition_id * num_buckets_per_partition_
-              << "," << (partition_id + 1) * num_buckets_per_partition_ << ")";
+             << "items of partition" << partition_id
+             << "buckets: [" << partition_id * num_buckets_per_partition_
+             << "," << (partition_id + 1) * num_buckets_per_partition_ << ")";
 
         if (items_per_partition_[partition_id] == 0)
             return;
