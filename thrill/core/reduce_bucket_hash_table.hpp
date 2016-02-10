@@ -268,8 +268,8 @@ public:
                h.global_index < (h.partition_id + 1) * num_buckets_per_partition_ &&
                "global_index must be contained in matching partition_id");
 
-        sLOG << "kv" << kv.first << "-" << kv.second
-             << "to partition" << h.partition_id << "bucket" << h.global_index;
+        // sLOG << "kv" << kv.first << "-" << kv.second
+        //      << "to partition" << h.partition_id << "bucket" << h.global_index;
 
         BucketBlock* current = buckets_[h.global_index];
 
