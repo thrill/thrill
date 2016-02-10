@@ -30,7 +30,9 @@ struct MyStruct
     }
 };
 
-void TestAddMyStructByHash(Context& ctx) {
+/******************************************************************************/
+
+static void TestAddMyStructByHash(Context& ctx) {
     static const size_t mod_size = 601;
     static const size_t test_size = mod_size * 100;
 
@@ -104,7 +106,7 @@ TEST(ReducePreStage, AddMyStructByHash) {
 
 /******************************************************************************/
 
-void TestAddMyStructByIndex(Context& ctx) {
+static void TestAddMyStructByIndex(Context& ctx) {
     static const size_t mod_size = 601;
     static const size_t test_size = mod_size * 100;
 

@@ -227,12 +227,14 @@ public:
     //! Spill all items of a partition into an external memory File.
     void SpillPartition(size_t partition_id) {
 
-        if (immediate_flush_) return FlushPartition(partition_id, true);
+        if (immediate_flush_)
+            return FlushPartition(partition_id, true);
 
         LOG << "Spilling " << items_per_partition_[partition_id]
             << " items of partition with id: " << partition_id;
 
-        if (items_per_partition_[partition_id] == 0) return;
+        if (items_per_partition_[partition_id] == 0)
+            return;
 
         data::File::Writer writer = partition_files_[partition_id].GetWriter();
 

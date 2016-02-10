@@ -233,7 +233,7 @@ public:
         {
             sLOG << "ReducePostStage: re-reducing items from"
                  << remaining_files.size() << "remaining files"
-                 << "iteration=" << iteration;
+                 << "iteration" << iteration;
 
             std::vector<data::File> next_remaining_files;
 
@@ -254,7 +254,7 @@ public:
                 // insert all items from the partially reduced file
                 LOG << "re-reducing subfile " << num_subfile++;
 
-                data::File::Reader reader = file.GetReader(/* consume */ true);
+                data::File::ConsumeReader reader = file.GetConsumeReader();
 
                 while (reader.HasNext()) {
                     subtable.Insert(reader.Next<KeyValuePair>());

@@ -30,7 +30,10 @@ struct MyStruct
     }
 };
 
-void TestAddMyStructModulo(Context& ctx) {
+/******************************************************************************/
+
+static void TestAddMyStructByHash(Context& ctx) {
+    static const bool debug = false;
     static const size_t mod_size = 601;
     static const size_t test_size = mod_size * 100;
 
@@ -57,8 +60,8 @@ void TestAddMyStructModulo(Context& ctx) {
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByHashKey<size_t>(),
-                /* sentinel */ size_t(),
-                /* limit_memory_bytes */ 32 * 1024,
+                /* sentinel */ size_t(-1),
+                /* limit_memory_bytes */ 64 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
                 /* bucket_rate */ 1.0);
 
@@ -74,15 +77,22 @@ void TestAddMyStructModulo(Context& ctx) {
     ASSERT_EQ(mod_size, result.size());
 
     for (size_t i = 0; i < result.size(); ++i) {
+        LOG << "result[" << i << "] = " << result[i] << " =? "
+             << (test_size / mod_size) * ((test_size / mod_size) - 1) / 2;
+    }
+
+    for (size_t i = 0; i < result.size(); ++i) {
+        LOG << "result[" << i << "] = " << result[i] << " =? "
+             << (test_size / mod_size) * ((test_size / mod_size) - 1) / 2;
         ASSERT_EQ(i, result[i].key);
         ASSERT_EQ((test_size / mod_size) * ((test_size / mod_size) - 1) / 2,
                   result[i].value);
     }
 }
 
-TEST(ReduceHashStage, AddIntegers) {
+TEST(ReduceHashStage, AddMyStructByHash) {
     api::RunLocalSameThread(
-        [](Context& ctx) { TestAddMyStructModulo(ctx); });
+        [](Context& ctx) { TestAddMyStructByHash(ctx); });
 }
 
 /******************************************************************************/

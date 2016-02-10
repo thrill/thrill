@@ -264,8 +264,12 @@ public:
 
         assert(h.partition_id < num_partitions_);
         assert(h.global_index < num_buckets_);
+        assert(h.global_index >= h.partition_id * num_buckets_per_partition_ &&
+               h.global_index < (h.partition_id + 1) * num_buckets_per_partition_ &&
+               "global_index must be contained in matching partition_id");
 
-        LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
+        sLOG << "kv" << kv.first << "-" << kv.second
+             << "to partition" << h.partition_id << "bucket" << h.global_index;
 
         BucketBlock* current = buckets_[h.global_index];
 
@@ -282,8 +286,6 @@ public:
                         << " and " << bi->first << " ... reducing...";
 
                     bi->second = reduce_function_(bi->second, kv.second);
-
-                    LOG << "...finished reduce!";
                     return;
                 }
             }
@@ -319,11 +321,13 @@ public:
         // in-place construct/insert new item in current bucket block
         new (current->items + current->size++)KeyValuePair(kv);
 
-        sLOG << "items_per_partition_.size()" << items_per_partition_.size();
         sLOG << "h.partition_id" << h.partition_id;
 
         // Increase partition item count
         items_per_partition_[h.partition_id]++;
+
+        sLOG << "items_per_partition_[" << h.partition_id << "]"
+             << items_per_partition_[h.partition_id];
 
         // flush current partition if max partition fill rate reached
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
@@ -342,17 +346,21 @@ public:
     //! Spill all items of a partition into an external memory File.
     void SpillPartition(size_t partition_id) {
 
-        if (immediate_flush_) return FlushPartition(partition_id, true);
+        if (immediate_flush_)
+            return FlushPartition(partition_id, true);
 
-        LOG << "Spilling " << items_per_partition_[partition_id]
-            << " items of partition with id: " << partition_id;
+        sLOG << "Spilling" << items_per_partition_[partition_id]
+              << "items of partition" << partition_id
+              << "buckets: [" << partition_id * num_buckets_per_partition_
+              << "," << (partition_id + 1) * num_buckets_per_partition_ << ")";
 
-        if (items_per_partition_[partition_id] == 0) return;
+        if (items_per_partition_[partition_id] == 0)
+            return;
 
         data::File::Writer writer = partition_files_[partition_id].GetWriter();
 
         for (size_t i = partition_id * num_buckets_per_partition_;
-             i < (partition_id + 1) * num_buckets_per_partition_; i++)
+             i != (partition_id + 1) * num_buckets_per_partition_; ++i)
         {
             BucketBlock* current = buckets_[i];
 
@@ -377,7 +385,7 @@ public:
         // reset partition specific counter
         items_per_partition_[partition_id] = 0;
 
-        LOG << "Spilled items of partition with id: " << partition_id;
+        sLOG << "Spilled items of partition" << partition_id;
     }
 
     //! Spill all items of the largest partition into an external memory File.
@@ -434,6 +442,8 @@ public:
 
         LOG << "Flushing " << items_per_partition_[partition_id]
             << " items of partition: " << partition_id;
+
+        if (items_per_partition_[partition_id] == 0) return;
 
         size_t begin = partition_id * num_buckets_per_partition_;
         size_t end = (partition_id + 1) * num_buckets_per_partition_;
