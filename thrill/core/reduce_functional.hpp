@@ -100,7 +100,10 @@ public:
         (void)num_buckets_per_partition;
         (void)offset;
 
-        return IndexResult { k* num_partitions / size_, k* num_buckets_per_table / size_ };
+        size_t partition_id = k * num_partitions / size_;
+        size_t global_index = k * num_buckets_per_table / size_;
+
+        return IndexResult { partition_id, global_index };
     }
 };
 
