@@ -38,67 +38,6 @@
 namespace thrill {
 namespace core {
 
-template <typename Key, typename HashFunction = std::hash<Key> >
-class PreReduceByHashKey
-{
-public:
-    struct IndexResult {
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the whole hashtable
-        size_t global_index;
-    };
-
-    explicit PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
-        : hash_function_(hash_function) { }
-
-    IndexResult operator () (const Key& k,
-                             const size_t& num_partitions,
-                             const size_t& num_buckets_per_partition,
-                             const size_t& num_buckets_per_table,
-                             const size_t& offset) const {
-
-        (void)num_partitions;
-        (void)offset;
-
-        size_t global_index = hash_function_(k) % num_buckets_per_table;
-
-        return IndexResult { global_index / num_buckets_per_partition, global_index };
-    }
-
-private:
-    HashFunction hash_function_;
-};
-
-template <typename Key>
-class PreReduceByIndex
-{
-public:
-    struct IndexResult {
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the whole hashtable
-        size_t global_index;
-    };
-
-    size_t size_;
-
-    explicit PreReduceByIndex(size_t size) : size_(size) { }
-
-    IndexResult
-    operator () (const Key& k,
-                 const size_t& num_partitions,
-                 const size_t& num_buckets_per_partition,
-                 const size_t& num_buckets_per_table,
-                 const size_t& offset) const {
-
-        (void)num_buckets_per_partition;
-        (void)offset;
-
-        return IndexResult { k* num_partitions / size_, k* num_buckets_per_table / size_ };
-    }
-};
-
 //! template specialization switch class to output key+value if NonRobustKey and
 //! only value if RobustKey.
 template <typename KeyValuePair, bool RobustKey>
@@ -294,7 +233,7 @@ private:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
-          typename IndexFunction = PreReduceByHashKey<Key>,
+          typename IndexFunction = ReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePreBucketStage = ReducePreStage<
           ValueType, Key, Value,
@@ -306,7 +245,7 @@ using ReducePreBucketStage = ReducePreStage<
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
-          typename IndexFunction = PreReduceByHashKey<Key>,
+          typename IndexFunction = ReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePreProbingStage = ReducePreStage<
           ValueType, Key, Value,

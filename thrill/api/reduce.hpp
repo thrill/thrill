@@ -104,12 +104,12 @@ public:
           //     parent.ctx().num_workers(),
           //     key_extractor,
           //     reduce_function_, emitters_,
-          //     core::PreReduceByHashKey<Key>(),
+          //     core::ReduceByHashKey<Key>(),
           //     Key(), Value(), config.pre_table_memlimit),
           // reduce_post_table_(
           //     context_, key_extractor_, reduce_function_,
           //     [this](const ValueType& item) { return this->PushItem(item); },
-          //     core::PostReduceByHashKey<Key>(),
+          //     core::ReduceByHashKey<Key>(),
           //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
           //     common::Range(),
           //     Key(), Value(), config.post_table_memlimit)
@@ -119,12 +119,12 @@ public:
               parent.ctx().num_workers(),
               key_extractor,
               reduce_function_, emitters_,
-              core::PreReduceByHashKey<Key>(),
+              core::ReduceByHashKey<Key>(),
               Key(), Value(), config.pre_table_memlimit),
           reduce_post_table_(
               context_, key_extractor_, reduce_function_,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostReduceByHashKey<Key>(),
+              core::ReduceByHashKey<Key>(),
               core::PostReduceFlush<Key, Value, ReduceFunction>(reduce_function),
               common::Range(),
               Key(), Value(), config.post_table_memlimit)
@@ -200,24 +200,24 @@ private:
     // core::ReducePreProbingStage<
     //     ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
     //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
-    //     core::PreReduceByHashKey<Key>,
+    //     core::ReduceByHashKey<Key>,
     //     std::equal_to<Key>, false> reduce_pre_table_;
 
     // core::ReducePostProbingTable<
     //     ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
     //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
-    //     core::PostReduceByHashKey<Key>,
+    //     core::ReduceByHashKey<Key>,
     //     std::equal_to<Key> > reduce_post_table_;
 
     core::ReducePreBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PreReduceByHashKey<Key>,
+        core::ReduceByHashKey<Key>,
         std::equal_to<Key> > reduce_pre_table_;
 
     core::ReducePostBucketTable<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
         core::PostReduceFlush<Key, Value, ReduceFunction>,
-        core::PostReduceByHashKey<Key>,
+        core::ReduceByHashKey<Key>,
         std::equal_to<Key> > reduce_post_table_;
 
     bool reduced = false;

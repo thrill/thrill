@@ -29,7 +29,7 @@ struct PreTable : public::testing::Test { };
 
 template <typename Key, typename HashFunction = std::hash<Key> >
 class CustomKeyHashFunction
-    : public core::PreReduceByHashKey<int>
+    : public core::ReduceByHashKey<int>
 {
 public:
     struct IndexResult {
@@ -132,7 +132,7 @@ TEST_F(PreTable, DISABLED_AddIntegers) {
             writers.emplace_back(output.GetDynWriter());
 
             core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
             table.Insert(0);
@@ -167,7 +167,7 @@ TEST_F(PreTable, DISABLED_CreateEmptyTable) {
             writers.emplace_back(output.GetDynWriter());
 
             core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
             table.Insert(0);
@@ -203,7 +203,7 @@ TEST_F(PreTable, DISABLED_TestSetMaxSizeSetter) {
             writers.emplace_back(output.GetDynWriter());
 
             core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
             table.Insert(0);
@@ -242,7 +242,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersManuallyOnePartition) {
             writers.emplace_back(output.GetDynWriter());
 
             core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
             table.Insert(0);
@@ -291,7 +291,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersManuallyTwoPartitions) {
             writers.emplace_back(output2.GetDynWriter());
 
             core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 2, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
             table.Insert(0);
@@ -346,7 +346,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
             writers.emplace_back(output.GetDynWriter());
 
             core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, -1, 2 * 4 * 2 * 4);
 
             table.Insert(0);
@@ -394,7 +394,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyTwoPartitions) {
             writers.emplace_back(output2.GetDynWriter());
 
             core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 2, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, -1, 1024 * 16, 1.0);
 
             table.Insert(0);
@@ -455,7 +455,7 @@ TEST_F(PreTable, ComplexType) {
                     decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
 
             core::ReducePreProbingStage<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<std::string>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<std::string>(),
                   "", sp, 2 * 3 * kv_size);
 
             table.Insert(StringPair("hallo", 1));
@@ -496,7 +496,7 @@ TEST_F(PreTable, MultipleWorkers) {
             writers.emplace_back(output2.GetDynWriter());
 
             core::ReducePreProbingStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 2, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, -1, 6 * 8);
 
             ASSERT_EQ(0u, table.num_items());
@@ -539,7 +539,7 @@ TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce1) {
 
             // Hashtable with smaller block size for testing.
             core::ReducePreProbingStage<IntPair, int, IntPair, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(), -1, p, nitems * 16, 1.0);
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(), -1, p, nitems * 16, 1.0);
 
             // insert lots of items
             for (size_t i = 0; i != nitems; ++i) {
@@ -588,7 +588,7 @@ TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce2) {
 
             // Hashtable with smaller block size for testing.
             core::ReducePreProbingStage<IntPair, int, IntPair, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, p, nitems * 16);
 
             // insert lots of items
@@ -656,7 +656,7 @@ TEST_F(PreTable, DISABLED_InsertManyStringItemsAndTestReduce) {
                                             decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
 
             core::ReducePreProbingStage<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<std::string>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<std::string>(),
                   "", sp, nitems * kv_size);
 
             // insert lots of items

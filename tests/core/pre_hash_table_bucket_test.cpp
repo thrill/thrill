@@ -38,7 +38,7 @@ using MyPair = std::pair<int, MyStruct>;
 
 template <typename Key, typename HashFunction = std::hash<Key> >
 class CustomKeyHashFunction
-    : public core::PreReduceByHashKey<int>
+    : public core::ReduceByHashKey<int>
 {
 public:
     struct IndexResult {
@@ -213,12 +213,12 @@ TEST_F(PreTable, PopIntegers) {
 
             const size_t bucket_block_size = sizeof(
                 core::ReducePreBucketStage<int, int, int, decltype(key_ex), decltype(red_fn), true,
-                                           core::PreReduceByHashKey<int>,
+                                           core::ReduceByHashKey<int>,
                                            std::equal_to<int> >::Table::BucketBlock);
 
             core::ReducePreBucketStage<int, int, int, decltype(key_ex), decltype(red_fn), true,
-                                       core::PreReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+                                       core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, bucket_block_size * 2, 0.0, 1.0);
 
             table.Insert(0);
@@ -260,7 +260,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
             writers.emplace_back(output.GetDynWriter());
 
             core::ReducePreBucketStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, 8 * 1024, 0.001, 1.0);
 
             table.Insert(0);
@@ -308,7 +308,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
             writers.emplace_back(output2.GetDynWriter());
 
             core::ReducePreBucketStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 2, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, 8 * 1024, 0.001, 1.0);
 
             table.Insert(0);
@@ -363,11 +363,11 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
 
             const size_t bucket_block_size = sizeof(
                 core::ReducePreBucketStage<int, int, int, decltype(key_ex), decltype(red_fn), true,
-                                           core::PreReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
+                                           core::ReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
 
             core::ReducePreBucketStage<int, int, int, decltype(key_ex), decltype(red_fn), true,
-                                       core::PreReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+                                       core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, -1, bucket_block_size * 2, 0.5, 0.5, std::equal_to<int>());
 
             table.Insert(0);
@@ -418,7 +418,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
             writers.emplace_back(output2.GetDynWriter());
 
             core::ReducePreBucketStage<int, int, int, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+            table(ctx, 2, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, 8 * 1024, 0.001, 1.0);
 
             table.Insert(0);
@@ -474,7 +474,7 @@ TEST_F(PreTable, ComplexType) {
             StringPair sp;
 
             core::ReducePreBucketStage<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<std::string>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<std::string>(),
                   "", sp, 16 * 1024, 0.001, 0.5);
 
             table.Insert(std::make_pair("hallo", 1));
@@ -518,11 +518,11 @@ TEST_F(PreTable, MultipleWorkers) {
 
             const size_t bucket_block_size = sizeof(
                 core::ReducePreBucketStage<int, int, int, decltype(key_ex), decltype(red_fn), true,
-                                           core::PreReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
+                                           core::ReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
 
             core::ReducePreBucketStage<int, int, int, decltype(key_ex), decltype(red_fn), true,
-                                       core::PreReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, 2, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+                                       core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, 2, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, bucket_block_size * 2, 1.0, 0.5);
 
             ASSERT_EQ(0u, table.num_items());
@@ -565,7 +565,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
             // Hashtable with smaller block size for testing.
             core::ReducePreBucketStage<MyStruct, size_t, MyStruct, decltype(key_ex), decltype(red_fn), true>
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<size_t>(),
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<size_t>(),
                   -1, sp, nitems * 16, 0.001, 0.5);
 
             // insert lots of items
@@ -615,11 +615,11 @@ TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce2) {
             const size_t nitems = 1 * 4 * 1024;
 
             const size_t bucket_block_size = sizeof(core::ReducePreBucketStage<MyStruct, int, MyStruct, decltype(key_ex), decltype(red_fn), true,
-                                                                               core::PreReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
+                                                                               core::ReduceByHashKey<int>, std::equal_to<int> >::Table::BucketBlock);
 
             core::ReducePreBucketStage<MyStruct, int, MyStruct, decltype(key_ex), decltype(red_fn), true,
-                                       core::PreReduceByHashKey<int>, std::equal_to<int> >
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<int>(),
+                                       core::ReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<int>(),
                   -1, sp, bucket_block_size * bucket_block_size, 1.0, 1.0);
 
             // insert lots of items
@@ -680,11 +680,11 @@ TEST_F(PreTable, DISABLED_InsertManyStringItemsAndTestReduce) {
 
             const size_t nitems_per_key = 10;
             const size_t nitems = core::ReducePreBucketStage<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true,
-                                                             core::PreReduceByHashKey<std::string>, std::equal_to<std::string> >::Table::block_size_;
+                                                             core::ReduceByHashKey<std::string>, std::equal_to<std::string> >::Table::block_size_;
 
             core::ReducePreBucketStage<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), true,
-                                       core::PreReduceByHashKey<std::string>, std::equal_to<std::string> >
-            table(ctx, 1, key_ex, red_fn, writers, core::PreReduceByHashKey<std::string>(),
+                                       core::ReduceByHashKey<std::string>, std::equal_to<std::string> >
+            table(ctx, 1, key_ex, red_fn, writers, core::ReduceByHashKey<std::string>(),
                   "", sp, 0.0, 1.0);
 
             // insert lots of items

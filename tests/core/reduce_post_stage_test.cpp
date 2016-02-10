@@ -56,9 +56,9 @@ void TestAddMyStructModulo(Context& ctx) {
               decltype(key_ex), decltype(red_fn), false>;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
-                core::PostReduceByHashKey<size_t>(),
+                core::ReduceByHashKey<size_t>(),
                 /* sentinel */ size_t(),
-                /* limit_memory_bytes */ 128 * 1024,
+                /* limit_memory_bytes */ 32 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
                 /* bucket_rate */ 1.0);
 

@@ -241,7 +241,7 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
           typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
-          typename IndexFunction = PostReduceByHashKey<Key>,
+          typename IndexFunction = ReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePostBucketTable = ReducePostTable<
           ValueType, Key, Value,
@@ -255,7 +255,7 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
           typename FlushFunction = PostReduceFlush<Key, Value, ReduceFunction>,
-          typename IndexFunction = PostReduceByHashKey<Key>,
+          typename IndexFunction = ReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePostProbingTable = ReducePostTable<
           ValueType, Key, Value,
