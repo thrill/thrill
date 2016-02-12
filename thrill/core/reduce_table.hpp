@@ -144,6 +144,12 @@ public:
         return total_num_items;
     }
 
+    //! calculate key range for the given output partition
+    common::Range key_range(size_t partition_id) {
+        return index_function().inverse_range(
+            partition_id, num_buckets_per_partition_, num_buckets_);
+    }
+
     //! \}
 
 protected:

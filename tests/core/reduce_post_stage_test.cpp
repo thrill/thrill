@@ -100,7 +100,7 @@ TEST(ReduceHashStage, AddMyStructByHash) {
 TEST(ReduceHashStage, PostReduceByIndex) {
     static const bool debug = false;
 
-    using IndexMap = core::PostReduceByIndex<size_t>;
+    using IndexMap = core::ReduceByIndex<size_t>;
 
     IndexMap imap(0, 601);
     size_t num_partitions = 32;
@@ -155,8 +155,9 @@ static void TestAddMyStructByIndex(Context& ctx) {
               decltype(key_ex), decltype(red_fn), false>;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
-                core::PostReduceByIndex<size_t>(0, mod_size),
+                core::ReduceByIndex<size_t>(0, mod_size),
                 /* sentinel */ size_t(-1),
+                /* neutral_element */ MyStruct { 0, 0 },
                 /* limit_memory_bytes */ 64 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
                 /* bucket_rate */ 1.0);
@@ -218,8 +219,9 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
               decltype(key_ex), decltype(red_fn), false>;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
-                core::PostReduceByIndex<size_t>(0, mod_size),
+                core::ReduceByIndex<size_t>(0, mod_size),
                 /* sentinel */ size_t(-1),
+                /* neutral_element */ MyStruct { 0, 0 },
                 /* limit_memory_bytes */ 64 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
                 /* bucket_rate */ 1.0);

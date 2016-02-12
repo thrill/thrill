@@ -94,35 +94,18 @@ public:
                const ReduceConfig& config,
                StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters()),
 
-          // reduce_pre_table_(
-          //     context_,
-          //     parent.ctx().num_workers(),
-          //     key_extractor,
-          //     reduce_function_, emitters_,
-          //     core::ReduceByHashKey<Key>(),
-          //     Key(), Value(), config.pre_table_memlimit),
-          // reduce_post_table_(
-          //     context_, key_extractor_, reduce_function_,
-          //     [this](const ValueType& item) { return this->PushItem(item); },
-          //     core::ReduceByHashKey<Key>(),
-          //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>(reduce_function),
-          //     common::Range(),
-          //     Key(), Value(), config.post_table_memlimit)
-
-          reduce_pre_table_(
+          pre_stage_(
               context_,
               parent.ctx().num_workers(),
-              key_extractor,
-              reduce_function_, emitters_,
+              key_extractor, reduce_function, emitters_,
               core::ReduceByHashKey<Key>(),
-              Key(), Value(), config.pre_table_memlimit),
-          reduce_post_table_(
-              context_, key_extractor_, reduce_function_,
+              Key(), config.pre_table_memlimit),
+
+          post_stage_(
+              context_, key_extractor, reduce_function,
               [this](const ValueType& item) { return this->PushItem(item); },
               core::ReduceByHashKey<Key>(),
               Key(), config.post_table_memlimit)
@@ -133,7 +116,7 @@ public:
         // worker given by the shuffle algorithm.
 
         auto pre_op_fn = [=](const ValueType& input) {
-                             reduce_pre_table_.Insert(input);
+                             pre_stage_.Insert(input);
                          };
         // close the function stack with our pre op and register it at
         // parent node for output
@@ -147,8 +130,8 @@ public:
     void StopPreOp(size_t /* id */) final {
         LOG << this->label() << " running StopPreOp";
         // Flush hash table before the postOp
-        reduce_pre_table_.Flush(/* consume */ true);
-        reduce_pre_table_.CloseAll();
+        pre_stage_.Flush(/* consume */ true);
+        pre_stage_.CloseAll();
         stream_->Close();
     }
 
@@ -157,65 +140,47 @@ public:
     void PushData(bool consume) final {
 
         if (reduced) {
-            reduce_post_table_.Flush(consume);
+            post_stage_.Flush(consume);
             return;
         }
 
         if (RobustKey) {
             auto reader = stream_->OpenCatReader(consume);
             sLOG << "reading data from" << stream_->id()
-                 << "to push into post table which flushes to" << this->id();
+                 << "to push into post stage which flushes to" << this->id();
             while (reader.HasNext()) {
-                reduce_post_table_.Insert(reader.template Next<Value>());
+                post_stage_.Insert(reader.template Next<Value>());
             }
         }
         else {
             auto reader = stream_->OpenCatReader(consume);
             sLOG << "reading data from" << stream_->id()
-                 << "to push into post table which flushes to" << this->id();
+                 << "to push into post stage which flushes to" << this->id();
             while (reader.HasNext()) {
-                reduce_post_table_.Insert(reader.template Next<KeyValuePair>());
+                post_stage_.Insert(reader.template Next<KeyValuePair>());
             }
         }
 
         reduced = true;
-        reduce_post_table_.Flush(consume);
+        post_stage_.Flush(consume);
     }
 
     void Dispose() final { }
 
 private:
-    //! Key extractor function
-    KeyExtractor key_extractor_;
-
-    //! Reduce function
-    ReduceFunction reduce_function_;
-
     data::CatStreamPtr stream_;
 
     std::vector<data::CatStream::Writer> emitters_;
 
-    // core::ReducePreProbingStage<
-    //     ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-    //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
-    //     core::ReduceByHashKey<Key>,
-    //     std::equal_to<Key>, false> reduce_pre_table_;
-
-    // core::ReducePostProbingTable<
-    //     ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-    //     core::PostProbingReduceFlush<Key, Value, ReduceFunction>,
-    //     core::ReduceByHashKey<Key>,
-    //     std::equal_to<Key> > reduce_post_table_;
-
     core::ReducePreBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
         core::ReduceByHashKey<Key>,
-        std::equal_to<Key> > reduce_pre_table_;
+        std::equal_to<Key> > pre_stage_;
 
     core::ReducePostBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
         core::ReduceByHashKey<Key>,
-        std::equal_to<Key> > reduce_post_table_;
+        std::equal_to<Key> > post_stage_;
 
     bool reduced = false;
 };

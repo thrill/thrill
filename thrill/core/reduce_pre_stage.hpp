@@ -137,7 +137,6 @@ public:
                    std::vector<data::DynBlockWriter>& emit,
                    const IndexFunction& index_function,
                    const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
-                   const Value& neutral_element = Value(),
                    size_t limit_memory_bytes = 1024* 16,
                    double limit_partition_fill_rate = 0.6,
                    double bucket_rate = 1.0,
@@ -149,8 +148,7 @@ public:
                  limit_memory_bytes,
                  limit_partition_fill_rate, bucket_rate, true,
                  sentinel,
-                 index_function, equal_to_function),
-          neutral_element_(neutral_element) {
+                 index_function, equal_to_function) {
         sLOG << "creating ReducePreStage with" << emit.size() << "output emitters";
 
         assert(num_partitions == emit.size());
@@ -196,11 +194,6 @@ public:
         emit_.Emit(p, partition_id);
     }
 
-    //! Returns the neutral element.
-    Value NeutralElement() const {
-        return neutral_element_;
-    }
-
     //! Closes all emitter
     void CloseAll() {
         emit_.CloseAll();
@@ -212,6 +205,10 @@ public:
     //! Returns the total num of items in the table.
     size_t num_items() const { return table_.num_items(); }
 
+    //! calculate key range for the given output partition
+    common::Range key_range(size_t partition_id)
+    { return table_.key_range(partition_id); }
+
     //! }
 
 private:
@@ -220,9 +217,6 @@ private:
 
     //! the first-level hash table implementation
     Table table_;
-
-    //! Neutral element (reduce to index).
-    Value neutral_element_;
 };
 
 template <typename ValueType, typename Key, typename Value,

@@ -67,7 +67,6 @@ static void TestAddMyStructByHash(Context& ctx) {
                 key_ex, red_fn, emitters,
                 core::ReduceByHashKey<size_t>(),
                 /* sentinel */ size_t(-1),
-                /* neutral_element */ MyStruct(),
                 /* limit_memory_bytes */ 1024 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
                 /* bucket_rate */ 1.0);
@@ -135,14 +134,13 @@ static void TestAddMyStructByIndex(Context& ctx) {
     using Stage = core::ReducePreBucketStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), true,
-              core::PreReduceByIndex<size_t> >;
+              core::ReduceByIndex<size_t> >;
 
     Stage stage(ctx,
                 num_partitions,
                 key_ex, red_fn, emitters,
-                core::PreReduceByIndex<size_t>(mod_size),
+                core::ReduceByIndex<size_t>(0, mod_size),
                 /* sentinel */ size_t(-1),
-                /* neutral_element */ MyStruct(),
                 /* limit_memory_bytes */ 1024 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
                 /* bucket_rate */ 1.0);

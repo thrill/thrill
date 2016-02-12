@@ -106,7 +106,7 @@ private:
 };
 
 template <typename Key>
-class PostReduceByIndex
+class ReduceByIndex
 {
 public:
     struct IndexResult {
@@ -117,10 +117,10 @@ public:
         size_t global_index;
     };
 
-    explicit PostReduceByIndex(const common::Range& range)
+    explicit ReduceByIndex(const common::Range& range)
         : range_(range) { }
 
-    explicit PostReduceByIndex(size_t begin = 0, size_t end = 0)
+    explicit ReduceByIndex(size_t begin = 0, size_t end = 0)
         : range_(begin, end) { }
 
     const common::Range & range() const { return range_; }

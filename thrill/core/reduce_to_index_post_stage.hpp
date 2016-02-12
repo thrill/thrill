@@ -156,6 +156,7 @@ public:
         const EmitterFunction& emit,
         const IndexFunction& index_function,
         const Key& sentinel = Key(),
+        const Value& neutral_element = Value(),
         size_t limit_memory_bytes = 1024* 1024,
         double limit_partition_fill_rate = 0.6,
         double bucket_rate = 1.0,
@@ -167,7 +168,8 @@ public:
                  limit_memory_bytes,
                  limit_partition_fill_rate, bucket_rate, false,
                  sentinel,
-                 index_function, equal_to_function) { }
+                 index_function, equal_to_function),
+          neutral_element_(neutral_element) { }
 
     ReduceToIndexPostStage(Context& ctx, KeyExtractor key_extractor,
                            ReduceFunction reduce_function, EmitterFunction emit)
@@ -206,8 +208,7 @@ public:
             }
             else {
                 // calculate key range for the file
-                common::Range file_range = table.index_function().inverse_range(
-                    id, table.num_buckets_per_partition(), table.num_buckets());
+                common::Range file_range = table.key_range(id);
 
                 sLOG << "partition" << id << "range" << file_range
                      << "contains" << table.items_per_partition(id)
@@ -239,8 +240,7 @@ public:
             data::File& file = files[id];
 
             // calculate key range for the file
-            common::Range file_range = table.index_function().inverse_range(
-                id, table.num_buckets_per_partition(), table.num_buckets());
+            common::Range file_range = table.key_range(id);
 
             if (file.num_items() > 0) {
                 // if items have been spilled, store for a second reduce
@@ -304,7 +304,9 @@ public:
             table_.key_extractor(), table_.reduce_function(), emit_,
             /* num_partitions */ 32,
             table_.limit_memory_bytes(),
-            0.7 /* TODO(tb): parameterize */, 1.0 /* TODO(tb): parameterize */, false,
+            0.7 /* TODO(tb): parameterize */,
+            1.0 /* TODO(tb): parameterize */,
+            false,
             table_.sentinel().first /* TODO(tb): weird */,
             table_.index_function(),
             table_.equal_to_function());
@@ -407,13 +409,13 @@ private:
     Table table_;
 
     //! neutral element to fill holes in output
-    Value neutral_element_ = Value();
+    Value neutral_element_;
 };
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename IndexFunction = PostReduceByIndex<Key>,
+          typename IndexFunction = ReduceByIndex<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReduceToIndexPostBucketStage = ReduceToIndexPostStage<
           ValueType, Key, Value,
@@ -425,7 +427,7 @@ using ReduceToIndexPostBucketStage = ReduceToIndexPostStage<
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename IndexFunction = PostReduceByIndex<Key>,
+          typename IndexFunction = ReduceByIndex<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReduceToIndexPostProbingStage = ReduceToIndexPostStage<
           ValueType, Key, Value,

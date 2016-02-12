@@ -20,8 +20,8 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_post_table.hpp>
 #include <thrill/core/reduce_pre_stage.hpp>
+#include <thrill/core/reduce_to_index_post_stage.hpp>
 
 #include <functional>
 #include <string>
@@ -91,34 +91,31 @@ public:
                       const Value& neutral_element,
                       StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters()),
           result_size_(result_size),
-          neutral_element_(neutral_element),
-          reduce_pre_table_(context_,
-                            parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_,
-                            core::PreReduceByIndex<Key>(result_size),
-                            Key(), neutral_element_,
-                            1024 * 1024 * 32, 1.0, 0.6),
-          reduce_post_table_(
-              context_, key_extractor_, reduce_function_,
+
+          pre_stage_(context_,
+                     context_.num_workers(),
+                     key_extractor, reduce_function, emitters_,
+                     core::ReduceByIndex<Key>(0, result_size),
+                     Key(),
+                     1024 * 1024 * 32),
+
+          post_stage_(
+              context_, key_extractor, reduce_function,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostReduceByIndex<Key>(),
-              core::PostReduceFlushToIndex<
-                  Key, Value, ReduceFunction, core::PostReduceByIndex<Key> >(reduce_function),
-              common::CalculateLocalRange(
-                  result_size_, context_.num_workers(), context_.my_rank()),
-              Key(), neutral_element_,
-              1024 * 1024 * 32, 1.0, 0.6, 0.1)
+              core::ReduceByIndex<Key>(
+                  // parameterize with resulting key range on this worker
+                  pre_stage_.key_range(context_.my_rank())),
+              Key(), neutral_element,
+              1024 * 1024 * 32)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.
         auto pre_op_fn = [=](const ValueType& input) {
-                             reduce_pre_table_.Insert(input);
+                             pre_stage_.Insert(input);
                          };
 
         // close the function stack with our pre op and register it at parent
@@ -130,8 +127,8 @@ public:
     void StopPreOp(size_t /* id */) final {
         LOG << this->label() << " running main op";
         // Flush hash table before the postOp
-        reduce_pre_table_.Flush(/* consume */ true);
-        reduce_pre_table_.CloseAll();
+        pre_stage_.Flush(/* consume */ true);
+        pre_stage_.CloseAll();
         stream_->Close();
         this->WriteStreamStats(stream_);
     }
@@ -144,7 +141,7 @@ public:
     void PushData(bool consume) final {
 
         if (reduced) {
-            reduce_post_table_.Flush(consume);
+            post_stage_.Flush(consume);
             return;
         }
 
@@ -154,7 +151,7 @@ public:
             sLOG << "reading data from" << stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                reduce_post_table_.Insert(reader.template Next<Value>());
+                post_stage_.Insert(reader.template Next<Value>());
             }
         }
         else {
@@ -163,41 +160,32 @@ public:
             sLOG << "reading data from" << stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                reduce_post_table_.Insert(reader.template Next<KeyValuePair>());
+                post_stage_.Insert(reader.template Next<KeyValuePair>());
             }
         }
 
         reduced = true;
-        reduce_post_table_.Flush(consume);
+        post_stage_.Flush(consume);
     }
 
     void Dispose() final { }
 
 private:
-    //! Key extractor function
-    KeyExtractor key_extractor_;
-    //! Reduce function
-    ReduceFunction reduce_function_;
-
     data::CatStreamPtr stream_;
 
     std::vector<data::CatStream::Writer> emitters_;
 
     size_t result_size_;
 
-    Value neutral_element_;
-
     core::ReducePreBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::PreReduceByIndex<Key>,
-        std::equal_to<Key> > reduce_pre_table_;
+        core::ReduceByIndex<Key>,
+        std::equal_to<Key> > pre_stage_;
 
-    core::ReducePostBucketTable<
+    core::ReduceToIndexPostBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-        core::PostReduceFlushToIndex<
-            Key, Value, ReduceFunction, core::PostReduceByIndex<Key> >,
-        core::PostReduceByIndex<Key>,
-        std::equal_to<Key> > reduce_post_table_;
+        core::ReduceByIndex<Key>,
+        std::equal_to<Key> > post_stage_;
 
     bool reduced = false;
 };
