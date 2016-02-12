@@ -92,7 +92,7 @@ public:
                 /////
                 // emit data
                 /////
-                ht.table_.FlushPartitionE(
+                ht.table_.FlushPartitionEmit(
                     partition_id, consume,
                     [&](const size_t& /* partition_id */, const KeyValuePair& bi) {
                         elements_to_emit[bi.first - ht.local_index().begin] = bi.second;

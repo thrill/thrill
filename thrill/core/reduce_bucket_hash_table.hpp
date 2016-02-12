@@ -442,7 +442,7 @@ public:
     //! \{
 
     template <typename Emit>
-    void FlushPartitionE(size_t partition_id, bool consume, Emit emit) {
+    void FlushPartitionEmit(size_t partition_id, bool consume, Emit emit) {
 
         LOG << "Flushing " << items_per_partition_[partition_id]
             << " items of partition: " << partition_id;
@@ -490,7 +490,7 @@ public:
     }
 
     void FlushPartition(size_t partition_id, bool consume) {
-        FlushPartitionE(
+        FlushPartitionEmit(
             partition_id, consume,
             [this](const size_t& partition_id, const KeyValuePair& p) {
                 this->emitter_.Emit(partition_id, p);

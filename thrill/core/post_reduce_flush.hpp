@@ -84,7 +84,7 @@ public:
                 /////
                 // emit data
                 /////
-                ht.table_.FlushPartitionE(
+                ht.table_.FlushPartitionEmit(
                     id, consume,
                     [&](const size_t& partition_id, const KeyValuePair& bi) {
                         ht.EmitAll(partition_id, bi);
