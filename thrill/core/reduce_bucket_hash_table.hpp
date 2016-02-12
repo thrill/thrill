@@ -82,19 +82,24 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
           typename IndexFunction,
+          typename ReduceStageConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceBucketHashTable
     : public ReduceTable<ValueType, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
-                         RobustKey, IndexFunction, EqualToFunction>
+                         RobustKey, IndexFunction,
+                         ReduceStageConfig, EqualToFunction>
 {
     static const bool debug = false;
 
-    static const size_t TargetBlockSize = 16 * 16;
-
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
-                              RobustKey, IndexFunction, EqualToFunction>;
+                              RobustKey, IndexFunction,
+                              ReduceStageConfig, EqualToFunction>;
+
+    //! target number of bytes in a BucketBlock.
+    static constexpr size_t bucket_block_size
+        = ReduceStageConfig::bucket_block_size;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -102,7 +107,7 @@ public:
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
     static constexpr size_t block_size_ =
-        common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+        common::max<size_t>(1, bucket_block_size / sizeof(KeyValuePair));
 
     //! Block holding reduce key/value pairs.
     struct BucketBlock {
@@ -130,16 +135,14 @@ public:
         const ReduceFunction& reduce_function,
         Emitter& emitter,
         size_t num_partitions,
-        size_t limit_memory_bytes,
-        double limit_partition_fill_rate,
-        double bucket_rate,
-        bool immediate_flush,
+        const ReduceStageConfig& config = ReduceStageConfig(),
+        bool immediate_flush = false,
         const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
                 key_extractor, reduce_function, emitter,
-                num_partitions, limit_memory_bytes, immediate_flush,
+                num_partitions, config, immediate_flush,
                 sentinel, index_function, equal_to_function) {
 
         assert(num_partitions > 0);
@@ -147,7 +150,7 @@ public:
         // calculate maximum number of blocks allowed in a partition due to the
         // memory limit.
 
-        assert(limit_memory_bytes >= 0 &&
+        assert(limit_memory_bytes_ >= 0 &&
                "limit_memory_bytes must be greater than or equal to 0. "
                "a byte size of zero results in exactly one item per partition");
 
@@ -162,7 +165,9 @@ public:
         // calculate limit on the number of _items_ in a partition before these
         // are spilled to disk or flushed to network.
 
-        assert(limit_partition_fill_rate >= 0.0 && limit_partition_fill_rate <= 1.0
+        double limit_fill_rate = config.limit_partition_fill_rate;
+
+        assert(limit_fill_rate >= 0.0 && limit_fill_rate <= 1.0
                && "limit_partition_fill_rate must be between 0.0 and 1.0. "
                "with a fill rate of 0.0, items are immediately flushed.");
 
@@ -170,13 +175,15 @@ public:
 
         limit_items_per_partition_ = (size_t)(
             static_cast<double>(max_items_per_partition_)
-            * limit_partition_fill_rate);
+            * limit_fill_rate);
 
         assert(max_items_per_partition_ > 0);
         assert(limit_items_per_partition_ >= 0);
 
         // calculate number of slots in a partition of the bucket table, i.e.,
         // the number of bucket pointers per partition
+
+        double bucket_rate = config.bucket_rate;
 
         assert(bucket_rate >= 0.0 &&
                "bucket_rate must be greater than or equal 0. "

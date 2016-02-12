@@ -39,6 +39,7 @@ template <
         typename KeyExtractor, typename ReduceFunction,
         const bool RobustKey,
         typename IndexFunction = core::ReduceByHash<Key>,
+        typename ReduceStageConfig = core::DefaultReduceTableConfig,
         typename EqualToFunction = std::equal_to<Key> >
     class PreStage>
 static void TestAddMyStructByHash(Context& ctx) {
@@ -71,14 +72,15 @@ static void TestAddMyStructByHash(Context& ctx) {
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), true>;
 
+    core::DefaultReduceTableConfig config;
+    config.limit_memory_bytes = 1024 * 1024;
+
     Stage stage(ctx,
                 num_partitions,
                 key_ex, red_fn, emitters,
                 core::ReduceByHash<size_t>(),
                 /* sentinel */ size_t(-1),
-                /* limit_memory_bytes */ 1024 * 1024,
-                /* limit_partition_fill_rate */ 0.6,
-                /* bucket_rate */ 1.0);
+                config);
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });
@@ -128,6 +130,7 @@ template <
               typename KeyExtractor, typename ReduceFunction,
               const bool SendPair = false,
               typename IndexFunction = core::ReduceByIndex<Key>,
+              typename ReduceStageConfig = core::DefaultReduceTableConfig,
               typename EqualToFunction = std::equal_to<Key> >
     class PreStage>
 static void TestAddMyStructByIndex(Context& ctx) {
@@ -161,14 +164,15 @@ static void TestAddMyStructByIndex(Context& ctx) {
               decltype(key_ex), decltype(red_fn), true,
               core::ReduceByIndex<size_t> >;
 
+    core::DefaultReduceTableConfig config;
+    config.limit_memory_bytes = 1024 * 1024;
+
     Stage stage(ctx,
                 num_partitions,
                 key_ex, red_fn, emitters,
                 core::ReduceByIndex<size_t>(0, mod_size),
                 /* sentinel */ size_t(-1),
-                /* limit_memory_bytes */ 1024 * 1024,
-                /* limit_partition_fill_rate */ 0.6,
-                /* bucket_rate */ 1.0);
+                config);
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });

@@ -34,7 +34,7 @@ public:
         : Super(num_partitions) { }
 
     void Emit(const size_t& partition_id, const Type& p) {
-        assert(partition_id < Super::size());
+        die_unless(partition_id < Super::size());
         Super::operator [] (partition_id).push_back(p);
     }
 };
@@ -55,6 +55,7 @@ template <
         typename KeyExtractor, typename ReduceFunction, typename Emitter,
         const bool RobustKey,
         typename IndexFunction,
+        typename ReduceStageConfig = core::DefaultReduceTableConfig,
         typename EqualToFunction = std::equal_to<Key> >
     class HashTable>
 void TestAddMyStructModulo(Context& ctx) {
@@ -78,11 +79,12 @@ void TestAddMyStructModulo(Context& ctx) {
               decltype(key_ex), decltype(red_fn), Collector,
               false, core::ReduceByHash<int> >;
 
+    core::DefaultReduceTableConfig config;
+    config.limit_memory_bytes = 1024 * 1024;
+
     Table table(ctx, key_ex, red_fn, collector,
                 /* num_partitions */ 13,
-                /* limit_memory_bytes */ 1024 * 1024,
-                /* limit_partition_fill_rate */ 0.6,
-                /* bucket_rate */ 1.0,
+                config,
                 /* immediate_flush */ true);
 
     for (size_t i = 0; i < test_size; ++i) {

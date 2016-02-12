@@ -38,6 +38,8 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
+    core::BaseReduceTableConfig config;
+
     std::string title = "";
     clp.AddString('t', "title", "T", title,
                   "Load in byte to be inserted");
@@ -55,7 +57,8 @@ int main(int argc, char* argv[]) {
                   "bucket_rate, default = 0.5.");
 
     double max_partition_fill_rate = 0.5;
-    clp.AddDouble('f', "max_partition_fill_rate", "F", max_partition_fill_rate,
+    clp.AddDouble('f', "max_partition_fill_rate", "F",
+                  config.limit_partition_fill_rate,
                   "Open hashtable with max_partition_fill_rate, default = 0.5.");
 
     double table_rate = 1.0;
@@ -105,12 +108,11 @@ int main(int argc, char* argv[]) {
                  core::ReducePreBucketStage<
                      size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
                      core::ReduceByHash<size_t>,
-                     std::equal_to<size_t> >
+                     core::BaseReduceTableConfig>
                  table(ctx,
                        workers, key_ex, red_fn, writers,
                        core::ReduceByHash<size_t>(),
-                       0, byte_size,
-                       bucket_rate, max_partition_fill_rate, std::equal_to<size_t>());
+                       0, config);
 
                  common::StatsTimer<true> timer(true);
 

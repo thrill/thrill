@@ -89,11 +89,13 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool SendPair,
           typename IndexFunction,
+          typename ReduceStageConfig,
           typename EqualToFunction,
           template <typename _ValueType, typename _Key, typename _Value,
                     typename _KeyExtractor, typename _ReduceFunction, typename _Emitter,
                     const bool _RobustKey,
                     typename _IndexFunction,
+                    typename _ReduceStageConfig,
                     typename _EqualToFunction> class HashTable>
 class ReduceByIndexPostStage
 {
@@ -108,8 +110,7 @@ public:
     using Table = HashTable<
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, StageEmitter,
-              !SendPair,
-              IndexFunction, EqualToFunction>;
+              !SendPair, IndexFunction, ReduceStageConfig, EqualToFunction>;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using
@@ -156,17 +157,14 @@ public:
         const IndexFunction& index_function,
         const Key& sentinel = Key(),
         const Value& neutral_element = Value(),
-        size_t limit_memory_bytes = 1024* 1024,
-        double limit_partition_fill_rate = 0.6,
-        double bucket_rate = 1.0,
+        const ReduceStageConfig& config = ReduceStageConfig(),
         const EqualToFunction& equal_to_function = EqualToFunction())
-        : emit_(emitter),
+        : config_(config),
+          emit_(emitter),
           table_(ctx,
                  key_extractor, reduce_function, emit_,
                  /* num_partitions */ 32, /* TODO(tb): parameterize */
-                 limit_memory_bytes,
-                 limit_partition_fill_rate, bucket_rate, false,
-                 sentinel,
+                 config, false, sentinel,
                  index_function, equal_to_function),
           neutral_element_(neutral_element) { }
 
@@ -301,11 +299,7 @@ public:
         Table subtable(
             table_.ctx(),
             table_.key_extractor(), table_.reduce_function(), emit_,
-            /* num_partitions */ 32,
-            table_.limit_memory_bytes(),
-            0.7 /* TODO(tb): parameterize */,
-            1.0 /* TODO(tb): parameterize */,
-            false,
+            /* num_partitions */ 32, config_, false,
             table_.sentinel().first /* TODO(tb): weird */,
             table_.index_function(),
             table_.equal_to_function());
@@ -401,6 +395,9 @@ public:
     //! }
 
 private:
+    //! Stored reduce config to initialize the subtable.
+    ReduceStageConfig config_;
+
     //! Emitters used to parameterize hash table for output to next DIA node.
     StageEmitter emit_;
 
@@ -415,24 +412,26 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool SendPair = false,
           typename IndexFunction = ReduceByIndex<Key>,
+          typename ReduceStageConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 using ReduceByIndexPostBucketStage = ReduceByIndexPostStage<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction, Emitter,
           SendPair,
-          IndexFunction, EqualToFunction,
+          IndexFunction, ReduceStageConfig, EqualToFunction,
           ReduceBucketHashTable>;
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool SendPair = false,
           typename IndexFunction = ReduceByIndex<Key>,
+          typename ReduceStageConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 using ReduceByIndexPostProbingStage = ReduceByIndexPostStage<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction, Emitter,
           SendPair,
-          IndexFunction, EqualToFunction,
+          IndexFunction, ReduceStageConfig, EqualToFunction,
           ReduceProbingHashTable>;
 
 } // namespace core

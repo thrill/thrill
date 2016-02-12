@@ -38,6 +38,7 @@ template <
               typename KeyExtractor, typename ReduceFunction, typename Emitter,
               const bool SendPair = false,
               typename IndexFunction = core::ReduceByHash<Key>,
+              typename ReduceStageConfig = core::DefaultReduceTableConfig,
               typename EqualToFunction = std::equal_to<Key> >
     class PostStage>
 static void TestAddMyStructByHash(Context& ctx) {
@@ -67,12 +68,12 @@ static void TestAddMyStructByHash(Context& ctx) {
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
+    core::DefaultReduceTableConfig config;
+    config.limit_memory_bytes = 64 * 1024;
+
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByHash<size_t>(),
-                /* sentinel */ size_t(-1),
-                /* limit_memory_bytes */ 64 * 1024,
-                /* limit_partition_fill_rate */ 0.6,
-                /* bucket_rate */ 1.0);
+                /* sentinel */ size_t(-1));
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });
@@ -149,6 +150,7 @@ template <
               typename KeyExtractor, typename ReduceFunction, typename Emitter,
               const bool SendPair = false,
               typename IndexFunction = core::ReduceByIndex<Key>,
+              typename ReduceStageConfig = core::DefaultReduceTableConfig,
               typename EqualToFunction = std::equal_to<Key> >
     class PostStage>
 static void TestAddMyStructByIndex(Context& ctx) {
@@ -178,13 +180,13 @@ static void TestAddMyStructByIndex(Context& ctx) {
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
+    core::DefaultReduceTableConfig config;
+    config.limit_memory_bytes = 64 * 1024;
+
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByIndex<size_t>(0, mod_size),
                 /* sentinel */ size_t(-1),
-                /* neutral_element */ MyStruct { 0, 0 },
-                /* limit_memory_bytes */ 64 * 1024,
-                /* limit_partition_fill_rate */ 0.6,
-                /* bucket_rate */ 1.0);
+                /* neutral_element */ MyStruct { 0, 0 });
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });
@@ -229,6 +231,7 @@ template <
               typename KeyExtractor, typename ReduceFunction, typename Emitter,
               const bool SendPair = false,
               typename IndexFunction = core::ReduceByIndex<Key>,
+              typename ReduceStageConfig = core::DefaultReduceTableConfig,
               typename EqualToFunction = std::equal_to<Key> >
     class PostStage>
 static void TestAddMyStructByIndexWithHoles(Context& ctx) {
@@ -258,13 +261,14 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
+    core::DefaultReduceTableConfig config;
+    config.limit_memory_bytes = 64 * 1024;
+
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByIndex<size_t>(0, mod_size),
                 /* sentinel */ size_t(-1),
                 /* neutral_element */ MyStruct { 0, 0 },
-                /* limit_memory_bytes */ 64 * 1024,
-                /* limit_partition_fill_rate */ 0.6,
-                /* bucket_rate */ 1.0);
+                config);
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });
