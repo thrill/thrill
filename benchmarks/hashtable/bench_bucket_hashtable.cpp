@@ -10,7 +10,7 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/core/reduce_post_table.hpp>
+#include <thrill/core/reduce_post_stage.hpp>
 #include <thrill/core/reduce_pre_stage.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
