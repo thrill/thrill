@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    core::BaseReduceTableConfig config;
+    core::DefaultReduceTableConfig config;
 
     std::string title = "";
     clp.AddString('t', "title", "T", title,
@@ -106,9 +106,7 @@ int main(int argc, char* argv[]) {
                  }
 
                  core::ReducePreBucketStage<
-                     size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-                     core::ReduceByHash<size_t>,
-                     core::BaseReduceTableConfig>
+                     size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true>
                  table(ctx,
                        workers, key_ex, red_fn, writers,
                        core::ReduceByHash<size_t>(),
