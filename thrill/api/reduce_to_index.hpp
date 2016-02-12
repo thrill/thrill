@@ -20,8 +20,8 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_pre_stage.hpp>
 #include <thrill/core/reduce_by_index_post_stage.hpp>
+#include <thrill/core/reduce_pre_stage.hpp>
 
 #include <functional>
 #include <string>

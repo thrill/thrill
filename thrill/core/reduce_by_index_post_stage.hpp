@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_to_index_post_stage.hpp
+ * thrill/core/reduce_by_index_post_stage.hpp
  *
  * Hash table with support for reduce.
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_TO_INDEX_POST_STAGE_HEADER
-#define THRILL_CORE_REDUCE_TO_INDEX_POST_STAGE_HEADER
+#ifndef THRILL_CORE_REDUCE_BY_INDEX_POST_STAGE_HEADER
+#define THRILL_CORE_REDUCE_BY_INDEX_POST_STAGE_HEADER
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/logger.hpp>
@@ -439,6 +439,6 @@ using ReduceByIndexPostProbingStage = ReduceByIndexPostStage<
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_TO_INDEX_POST_STAGE_HEADER
+#endif // !THRILL_CORE_REDUCE_BY_INDEX_POST_STAGE_HEADER
 
 /******************************************************************************/
