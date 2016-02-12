@@ -66,7 +66,7 @@ void TestAddMyStructModulo(Context& ctx) {
     using Table = core::ReduceBucketHashTable<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), Collector,
-              false, core::ReduceByHashKey<int> >;
+              false, core::ReduceByHash<int> >;
 
     Table table(ctx, key_ex, red_fn, collector,
                 /* num_partitions */ 13,

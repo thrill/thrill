@@ -10,7 +10,7 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/core/reduce_post_stage.hpp>
+#include <thrill/core/reduce_by_hash_post_stage.hpp>
 #include <thrill/core/reduce_pre_stage.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
@@ -104,11 +104,11 @@ int main(int argc, char* argv[]) {
 
                  core::ReducePreBucketStage<
                      size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-                     core::ReduceByHashKey<size_t>,
+                     core::ReduceByHash<size_t>,
                      std::equal_to<size_t> >
                  table(ctx,
                        workers, key_ex, red_fn, writers,
-                       core::ReduceByHashKey<size_t>(),
+                       core::ReduceByHash<size_t>(),
                        0, byte_size,
                        bucket_rate, max_partition_fill_rate, std::equal_to<size_t>());
 

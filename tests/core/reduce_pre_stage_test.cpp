@@ -65,7 +65,7 @@ static void TestAddMyStructByHash(Context& ctx) {
     Stage stage(ctx,
                 num_partitions,
                 key_ex, red_fn, emitters,
-                core::ReduceByHashKey<size_t>(),
+                core::ReduceByHash<size_t>(),
                 /* sentinel */ size_t(-1),
                 /* limit_memory_bytes */ 1024 * 1024,
                 /* limit_partition_fill_rate */ 0.6,

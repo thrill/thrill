@@ -125,7 +125,7 @@ public:
               RobustKey,
               IndexFunction, EqualToFunction>;
 
-    /**
+    /*!
      * A data structure which takes an arbitrary value and extracts a key using
      * a key extractor function from that value. Afterwards, the value is hashed
      * based on the key into some slot.
@@ -222,7 +222,7 @@ private:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
-          typename IndexFunction = ReduceByHashKey<Key>,
+          typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePreBucketStage = ReducePreStage<
           ValueType, Key, Value,
@@ -234,7 +234,7 @@ using ReducePreBucketStage = ReducePreStage<
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
-          typename IndexFunction = ReduceByHashKey<Key>,
+          typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePreProbingStage = ReducePreStage<
           ValueType, Key, Value,
