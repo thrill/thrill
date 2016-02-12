@@ -126,7 +126,7 @@ public:
         // calculate limit on the number of items in a partition before these
         // are spilled to disk or flushed to network.
 
-        double limit_fill_rate = config.limit_partition_fill_rate;
+        double limit_fill_rate = config.limit_partition_fill_rate();
 
         assert(limit_fill_rate >= 0.0 && limit_fill_rate <= 1.0
                && "limit_partition_fill_rate must be between 0.0 and 1.0. "

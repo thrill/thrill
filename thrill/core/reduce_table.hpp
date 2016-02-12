@@ -33,19 +33,34 @@ class DefaultReduceTableConfig
 {
 public:
     //! limit on the amount of memory used by the reduce table
-    size_t limit_memory_bytes = 128 * 1024 * 1024llu;
+    size_t limit_memory_bytes_ = 128 * 1024 * 1024llu;
 
     //! limit on the fill rate of a reduce table partition prior to triggering a
     //! flush.
-    double limit_partition_fill_rate = 0.8;
+    double limit_partition_fill_rate_ = 0.8;
 
     //! only for BucketHashTable: ratio of number of buckets in a partition
     //! relative to the maximum possible number.
-    double bucket_rate = 0.5;
+    double bucket_rate_ = 0.5;
 
     //! only for BucketHashTable: size of a block in the bucket chain in bytes
     //! (must be a static constexpr)
     static constexpr size_t bucket_block_size = 256;
+
+    //! \name Accessors
+    //! {
+
+    //! Returns limit_memory_bytes_
+    size_t limit_memory_bytes() const { return limit_memory_bytes_; }
+
+    //! Returns limit_partition_fill_rate_
+    double limit_partition_fill_rate() const
+    { return limit_partition_fill_rate_; }
+
+    //! Returns bucket_rate_
+    double bucket_rate() const { return bucket_rate_; }
+
+    //! }
 };
 
 /*!
@@ -83,7 +98,7 @@ public:
           index_function_(index_function),
           equal_to_function_(equal_to_function),
           num_partitions_(num_partitions),
-          limit_memory_bytes_(config.limit_memory_bytes),
+          limit_memory_bytes_(config.limit_memory_bytes()),
           immediate_flush_(immediate_flush),
           sentinel_(KeyValuePair(sentinel, Value())),
           items_per_partition_(num_partitions_, 0) {

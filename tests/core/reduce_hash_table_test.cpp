@@ -80,7 +80,7 @@ void TestAddMyStructModulo(Context& ctx) {
               false, core::ReduceByHash<int> >;
 
     core::DefaultReduceTableConfig config;
-    config.limit_memory_bytes = 1024 * 1024;
+    config.limit_memory_bytes_ = 1024 * 1024;
 
     Table table(ctx, key_ex, red_fn, collector,
                 /* num_partitions */ 13,
