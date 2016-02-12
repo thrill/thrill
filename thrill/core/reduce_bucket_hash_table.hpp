@@ -14,7 +14,7 @@
 #define THRILL_CORE_REDUCE_BUCKET_HASH_TABLE_HEADER
 
 #include <thrill/core/bucket_block_pool.hpp>
-#include <thrill/core/reduce_hash_table.hpp>
+#include <thrill/core/reduce_table.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -84,17 +84,17 @@ template <typename ValueType, typename Key, typename Value,
           typename IndexFunction,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceBucketHashTable
-    : public ReduceHashTable<ValueType, Key, Value,
-                             KeyExtractor, ReduceFunction, Emitter,
-                             RobustKey, IndexFunction, EqualToFunction>
+    : public ReduceTable<ValueType, Key, Value,
+                         KeyExtractor, ReduceFunction, Emitter,
+                         RobustKey, IndexFunction, EqualToFunction>
 {
     static const bool debug = false;
 
     static const size_t TargetBlockSize = 16 * 16;
 
-    using Super = ReduceHashTable<ValueType, Key, Value,
-                                  KeyExtractor, ReduceFunction, Emitter,
-                                  RobustKey, IndexFunction, EqualToFunction>;
+    using Super = ReduceTable<ValueType, Key, Value,
+                              KeyExtractor, ReduceFunction, Emitter,
+                              RobustKey, IndexFunction, EqualToFunction>;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -520,18 +520,19 @@ public:
     //! }
 
 private:
-public:
+    using Super::emitter_;
     using Super::equal_to_function_;
+    using Super::immediate_flush_;
     using Super::index_function_;
+    using Super::items_per_partition_;
     using Super::key_extractor_;
     using Super::limit_items_per_partition_;
     using Super::limit_memory_bytes_;
-    using Super::items_per_partition_;
+    using Super::num_buckets_;
+    using Super::num_buckets_per_partition_;
     using Super::num_partitions_;
     using Super::partition_files_;
     using Super::reduce_function_;
-    using Super::emitter_;
-    using Super::immediate_flush_;
     using Super::sentinel_;
 
     //! Storing the items.
@@ -542,12 +543,6 @@ public:
 
     //! \name Fixed Operational Parameters
     //! \{
-
-    //! Number of buckets in the table.
-    size_t num_buckets_;
-
-    //! Number of buckets per partition.
-    size_t num_buckets_per_partition_;
 
     //! Number of blocks in the table before some items are spilled.
     size_t limit_blocks_;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_hash_table.hpp
+ * thrill/core/reduce_table.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_HASH_TABLE_HEADER
-#define THRILL_CORE_REDUCE_HASH_TABLE_HEADER
+#ifndef THRILL_CORE_REDUCE_TABLE_HEADER
+#define THRILL_CORE_REDUCE_TABLE_HEADER
 
 #include <thrill/api/context.hpp>
 
@@ -32,14 +32,14 @@ template <typename ValueType, typename Key, typename Value,
           const bool RobustKey,
           typename IndexFunction,
           typename EqualToFunction>
-class ReduceHashTable
+class ReduceTable
 {
     static const bool debug = false;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
-    ReduceHashTable(
+    ReduceTable(
         Context& ctx,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
@@ -75,9 +75,9 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    ReduceHashTable(const ReduceHashTable&) = delete;
+    ReduceTable(const ReduceTable&) = delete;
     //! non-copyable: delete assignment operator
-    ReduceHashTable& operator = (const ReduceHashTable&) = delete;
+    ReduceTable& operator = (const ReduceTable&) = delete;
 
     //! \name Accessors
     //! \{
@@ -108,6 +108,12 @@ public:
 
     //! Returns the number of partitions
     size_t num_partitions() { return num_partitions_; }
+
+    //! Returns num_buckets_
+    size_t num_buckets() const { return num_buckets_; }
+
+    //! Returns num_buckets_per_partition_
+    size_t num_buckets_per_partition() const { return num_buckets_per_partition_; }
 
     //! Returns limit_memory_bytes_
     size_t limit_memory_bytes() const { return limit_memory_bytes_; }
@@ -166,6 +172,13 @@ protected:
     //! Number of partitions
     const size_t num_partitions_;
 
+    //! Size of the table, which is the number of slots / buckets / entries
+    //! available for items or chains of items.
+    size_t num_buckets_;
+
+    //! Partition size, the number of buckets per partition.
+    size_t num_buckets_per_partition_;
+
     //! Size of the table in bytes
     const size_t limit_memory_bytes_;
 
@@ -219,6 +232,6 @@ public:
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_HASH_TABLE_HEADER
+#endif // !THRILL_CORE_REDUCE_TABLE_HEADER
 
 /******************************************************************************/
