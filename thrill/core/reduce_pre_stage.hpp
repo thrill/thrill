@@ -62,7 +62,7 @@ public:
 template <typename KeyValuePair, bool RobustKey>
 class ReducePreStageEmitter
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     explicit ReducePreStageEmitter(std::vector<data::DynBlockWriter>& writer)
