@@ -13,7 +13,7 @@
 #ifndef THRILL_CORE_REDUCE_PROBING_HASH_TABLE_HEADER
 #define THRILL_CORE_REDUCE_PROBING_HASH_TABLE_HEADER
 
-#include <thrill/core/reduce_hash_table.hpp>
+#include <thrill/core/reduce_table.hpp>
 
 #include <functional>
 #include <limits>
@@ -71,15 +71,15 @@ template <typename ValueType, typename Key, typename Value,
           typename IndexFunction,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceProbingHashTable
-    : public ReduceHashTable<ValueType, Key, Value,
-                             KeyExtractor, ReduceFunction, Emitter,
-                             RobustKey, IndexFunction, EqualToFunction>
+    : public ReduceTable<ValueType, Key, Value,
+                         KeyExtractor, ReduceFunction, Emitter,
+                         RobustKey, IndexFunction, EqualToFunction>
 {
     static const bool debug = false;
 
-    using Super = ReduceHashTable<ValueType, Key, Value,
-                                  KeyExtractor, ReduceFunction, Emitter,
-                                  RobustKey, IndexFunction, EqualToFunction>;
+    using Super = ReduceTable<ValueType, Key, Value,
+                              KeyExtractor, ReduceFunction, Emitter,
+                              RobustKey, IndexFunction, EqualToFunction>;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -104,23 +104,23 @@ public:
 
         assert(num_partitions > 0);
 
-        // calculate partition_size_ from the memory limit and the number of
-        // partitions required
+        // calculate num_buckets_per_partition_ from the memory limit and the
+        // number of partitions required
 
         assert(limit_memory_bytes >= 0 &&
                "limit_memory_bytes must be greater than or equal to 0. "
                "A byte size of zero results in exactly one item per partition");
 
-        partition_size_ = std::max<size_t>(
+        num_buckets_per_partition_ = std::max<size_t>(
             1,
             (size_t)(limit_memory_bytes_
                      / static_cast<double>(sizeof(KeyValuePair))
                      / static_cast<double>(num_partitions_)));
 
-        table_size_ = partition_size_ * num_partitions_;
+        num_buckets_ = num_buckets_per_partition_ * num_partitions_;
 
-        assert(partition_size_ > 0);
-        assert(table_size_ > 0);
+        assert(num_buckets_per_partition_ > 0);
+        assert(num_buckets_ > 0);
 
         // calculate limit on the number of items in a partition before these
         // are spilled to disk or flushed to network.
@@ -130,13 +130,13 @@ public:
                "with a fill rate of 0.0, items are immediately flushed.");
 
         limit_items_per_partition_ =
-            (size_t)(partition_size_ * limit_partition_fill_rate);
+            (size_t)(num_buckets_per_partition_ * limit_partition_fill_rate);
 
         assert(limit_items_per_partition_ >= 0);
 
         // construct the hash table itself. fill it with sentinels
 
-        items_.resize(table_size_, sentinel_);
+        items_.resize(num_buckets_, sentinel_);
     }
 
     /*!
@@ -165,15 +165,16 @@ public:
         static const bool debug = false;
 
         typename IndexFunction::IndexResult h = index_function_(
-            kv.first, num_partitions_, partition_size_, table_size_);
+            kv.first, num_partitions_,
+            num_buckets_per_partition_, num_buckets_);
 
         assert(h.partition_id < num_partitions_);
-        assert(h.global_index < table_size_);
+        assert(h.global_index < num_buckets_);
 
         KeyValuePair* initial = &items_[h.global_index];
         KeyValuePair* current = initial;
         KeyValuePair* last_item =
-            &items_[(h.partition_id + 1) * partition_size_ - 1];
+            &items_[(h.partition_id + 1) * num_buckets_per_partition_ - 1];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
@@ -189,7 +190,7 @@ public:
             }
 
             if (current == last_item) {
-                current -= (partition_size_ - 1);
+                current -= (num_buckets_per_partition_ - 1);
             }
             else {
                 ++current;
@@ -238,8 +239,8 @@ public:
 
         data::File::Writer writer = partition_files_[partition_id].GetWriter();
 
-        for (size_t i = partition_id * partition_size_;
-             i < (partition_id + 1) * partition_size_; i++)
+        for (size_t i = partition_id * num_buckets_per_partition_;
+             i < (partition_id + 1) * num_buckets_per_partition_; i++)
         {
             KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
@@ -266,8 +267,8 @@ public:
         LOG << "Flushing " << items_per_partition_[partition_id]
             << " items of partition: " << partition_id;
 
-        size_t begin = partition_id * partition_size_;
-        size_t end = (partition_id + 1) * partition_size_;
+        size_t begin = partition_id * num_buckets_per_partition_;
+        size_t end = (partition_id + 1) * num_buckets_per_partition_;
 
         for (size_t i = begin; i != end; ++i)
         {
@@ -305,32 +306,23 @@ public:
 
     //! \}
 
-protected:
+private:
     using Super::equal_to_function_;
+    using Super::immediate_flush_;
     using Super::index_function_;
+    using Super::items_per_partition_;
     using Super::key_extractor_;
     using Super::limit_items_per_partition_;
     using Super::limit_memory_bytes_;
-    using Super::items_per_partition_;
+    using Super::num_buckets_;
+    using Super::num_buckets_per_partition_;
     using Super::num_partitions_;
     using Super::partition_files_;
     using Super::reduce_function_;
-    using Super::immediate_flush_;
     using Super::sentinel_;
 
     //! Storing the actual hash table.
     std::vector<KeyValuePair> items_;
-
-    //! \name Fixed Operational Parameters
-    //! \{
-
-    //! Size of the table, which is the number of slots available for items.
-    size_t table_size_;
-
-    //! Partition size.
-    size_t partition_size_;
-
-    //! \}
 };
 
 } // namespace core

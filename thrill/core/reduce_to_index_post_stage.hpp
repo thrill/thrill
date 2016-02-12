@@ -201,7 +201,7 @@ public:
 
             // calculate key range for the file
             common::Range file_range = table.index_function().inverse_range(
-                id, table.num_buckets_per_partition_, table.num_buckets_);
+                id, table.num_buckets_per_partition(), table.num_buckets());
 
             if (file.num_items() > 0) {
                 // if items have been spilled, switch to second loop, which
@@ -224,7 +224,7 @@ public:
 
             // calculate key range for the file
             common::Range file_range = table.index_function().inverse_range(
-                id, table.num_buckets_per_partition_, table.num_buckets_);
+                id, table.num_buckets_per_partition(), table.num_buckets());
 
             if (file.num_items() > 0) {
                 // if items have been spilled, store for a second reduce
