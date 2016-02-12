@@ -21,8 +21,8 @@
 namespace thrill {
 namespace core {
 
-// This is the Hash128to64 function from Google's cityhash (available under the
-// MIT License).
+//! This is the Hash128to64 function from Google's cityhash (available under the
+//! MIT License).
 static inline uint64_t Hash128to64(const uint64_t upper, const uint64_t lower) {
     // Murmur-inspired hashing.
     const uint64_t k = 0x9DDFEA08EB382D69ull;
@@ -34,25 +34,28 @@ static inline uint64_t Hash128to64(const uint64_t upper, const uint64_t lower) {
     return b;
 }
 
+/*!
+ * A reduce index function which returns a hash index and partition. It is used
+ * by ReduceToHash.
+ */
 template <typename Key, typename HashFunction = std::hash<Key> >
-class ReduceByHashKey
+class ReduceByHash
 {
 public:
     struct IndexResult {
-    public:
         //! which partition number the item belongs to.
         size_t partition_id;
         //! index within the whole hashtable
         size_t global_index;
     };
 
-    explicit ReduceByHashKey(
+    explicit ReduceByHash(
         const uint64_t& salt = 0,
         const HashFunction& hash_function = HashFunction())
         : salt_(salt), hash_function_(hash_function) { }
 
-    ReduceByHashKey(
-        const uint64_t& salt, const ReduceByHashKey& other)
+    ReduceByHash(
+        const uint64_t& salt, const ReduceByHash& other)
         : salt_(salt), hash_function_(other.hash_function_) { }
 
     IndexResult operator () (const Key& k,
@@ -75,42 +78,15 @@ private:
     HashFunction hash_function_;
 };
 
-template <typename Key>
-class PreReduceByIndex
-{
-public:
-    struct IndexResult {
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the whole hashtable
-        size_t global_index;
-    };
-
-    explicit PreReduceByIndex(size_t begin = 0, size_t end = 0)
-        : begin_(begin), size_(end - begin) { }
-
-    IndexResult
-    operator () (const Key& k,
-                 const size_t& num_partitions,
-                 const size_t& /* num_buckets_per_partition */,
-                 const size_t& num_buckets_per_table) const {
-
-        size_t partition_id = k * num_partitions / size_;
-        size_t global_index = k * num_buckets_per_table / size_;
-
-        return IndexResult { partition_id, global_index };
-    }
-
-private:
-    size_t begin_, size_;
-};
-
+/*!
+ * A reduce index function, which determines a bucket depending on the current
+ * index range [begin,end). It is used by ReduceToIndex.
+ */
 template <typename Key>
 class ReduceByIndex
 {
 public:
     struct IndexResult {
-    public:
         //! which partition number the item belongs to.
         size_t partition_id;
         //! index within the whole hashtable

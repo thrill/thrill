@@ -20,7 +20,7 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_post_stage.hpp>
+#include <thrill/core/reduce_by_hash_post_stage.hpp>
 #include <thrill/core/reduce_pre_stage.hpp>
 
 #include <functional>
@@ -101,13 +101,13 @@ public:
               context_,
               parent.ctx().num_workers(),
               key_extractor, reduce_function, emitters_,
-              core::ReduceByHashKey<Key>(),
+              core::ReduceByHash<Key>(),
               Key(), config.pre_table_memlimit),
 
           post_stage_(
               context_, key_extractor, reduce_function,
               [this](const ValueType& item) { return this->PushItem(item); },
-              core::ReduceByHashKey<Key>(),
+              core::ReduceByHash<Key>(),
               Key(), config.post_table_memlimit)
 
     {
@@ -174,12 +174,12 @@ private:
 
     core::ReducePreBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::ReduceByHashKey<Key>,
+        core::ReduceByHash<Key>,
         std::equal_to<Key> > pre_stage_;
 
     core::ReducePostBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-        core::ReduceByHashKey<Key>,
+        core::ReduceByHash<Key>,
         std::equal_to<Key> > post_stage_;
 
     bool reduced = false;

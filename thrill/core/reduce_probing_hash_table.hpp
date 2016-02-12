@@ -23,7 +23,7 @@
 namespace thrill {
 namespace core {
 
-/**
+/*!
  * A data structure which takes an arbitrary value and extracts a key using a
  * key extractor function from that value. A key may also be provided initially
  * as part of a key/value pair, not requiring to extract a key.

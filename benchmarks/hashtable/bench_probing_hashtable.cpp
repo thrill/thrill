@@ -11,7 +11,7 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/core/reduce_post_stage.hpp>
+#include <thrill/core/reduce_by_hash_post_stage.hpp>
 #include <thrill/core/reduce_pre_stage.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/discard_sink.hpp>
@@ -97,9 +97,9 @@ int main(int argc, char* argv[]) {
                  }
 
                  core::ReducePreProbingStage<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-                                             core::ReduceByHashKey<size_t>,
+                                             core::ReduceByHash<size_t>,
                                              std::equal_to<size_t> >
-                 table(ctx, workers, key_ex, red_fn, writers, core::ReduceByHashKey<size_t>(),
+                 table(ctx, workers, key_ex, red_fn, writers, core::ReduceByHash<size_t>(),
                        0, 0, byte_size);
 
                  common::StatsTimer<true> timer(true);

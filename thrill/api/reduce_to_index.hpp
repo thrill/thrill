@@ -21,7 +21,7 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_pre_stage.hpp>
-#include <thrill/core/reduce_to_index_post_stage.hpp>
+#include <thrill/core/reduce_by_index_post_stage.hpp>
 
 #include <functional>
 #include <string>
@@ -182,7 +182,7 @@ private:
         core::ReduceByIndex<Key>,
         std::equal_to<Key> > pre_stage_;
 
-    core::ReduceToIndexPostBucketStage<
+    core::ReduceByIndexPostBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
         core::ReduceByIndex<Key>,
         std::equal_to<Key> > post_stage_;

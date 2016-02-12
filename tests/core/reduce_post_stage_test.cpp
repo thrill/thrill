@@ -8,8 +8,8 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/core/reduce_post_stage.hpp>
-#include <thrill/core/reduce_to_index_post_stage.hpp>
+#include <thrill/core/reduce_by_index_post_stage.hpp>
+#include <thrill/core/reduce_by_hash_post_stage.hpp>
 
 #include <gtest/gtest.h>
 
@@ -60,7 +60,7 @@ static void TestAddMyStructByHash(Context& ctx) {
               decltype(key_ex), decltype(red_fn), false>;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
-                core::ReduceByHashKey<size_t>(),
+                core::ReduceByHash<size_t>(),
                 /* sentinel */ size_t(-1),
                 /* limit_memory_bytes */ 64 * 1024,
                 /* limit_partition_fill_rate */ 0.6,
@@ -150,7 +150,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = core::ReduceToIndexPostBucketStage<
+    using Stage = core::ReduceByIndexPostBucketStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), false>;
 
@@ -214,7 +214,7 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = core::ReduceToIndexPostBucketStage<
+    using Stage = core::ReduceByIndexPostBucketStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), false>;
 
