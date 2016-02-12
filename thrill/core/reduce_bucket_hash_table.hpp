@@ -13,12 +13,12 @@
 #ifndef THRILL_CORE_REDUCE_BUCKET_HASH_TABLE_HEADER
 #define THRILL_CORE_REDUCE_BUCKET_HASH_TABLE_HEADER
 
-#include <thrill/core/bucket_block_pool.hpp>
 #include <thrill/core/reduce_table.hpp>
 
 #include <algorithm>
 #include <functional>
 #include <limits>
+#include <stack>
 #include <utility>
 #include <vector>
 
@@ -519,6 +519,61 @@ public:
 
     //! }
 
+protected:
+    //! BucketBlockPool to stack allocated BucketBlocks
+    class BucketBlockPool
+    {
+    public:
+        // constructor (we don't need to do anything here)
+        BucketBlockPool() { }
+
+        // delete the copy constructor; we can't copy it:
+        BucketBlockPool(const BucketBlockPool&) = delete;
+
+        // move constructor, so we can move it:
+        BucketBlockPool(BucketBlockPool&& other) {
+            this->free(std::move(other.free));
+        }
+
+        // allocate a chunk of memory as big as Type needs:
+        BucketBlock * GetBlock() {
+            BucketBlock* place;
+            if (!free.empty()) {
+                place = static_cast<BucketBlock*>(free.top());
+                free.pop();
+            }
+            else {
+                place = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
+                place->size = 0;
+                place->next = nullptr;
+            }
+
+            return place;
+        }
+
+        // mark some memory as available (no longer used):
+        void Deallocate(BucketBlock* o) {
+            o->size = 0;
+            o->next = nullptr;
+            free.push(static_cast<BucketBlock*>(o));
+        }
+
+        void Destroy() {
+            while (!free.empty()) {
+                free.top()->destroy_items();
+                operator delete (free.top());
+                free.pop();
+            }
+        }
+
+        // delete all of the available memory chunks:
+        ~BucketBlockPool() { }
+
+    private:
+        // stack to hold pointers to free chunks:
+        std::stack<BucketBlock*> free;
+    };
+
 private:
     using Super::emitter_;
     using Super::equal_to_function_;
@@ -539,7 +594,7 @@ private:
     std::vector<BucketBlock*> buckets_;
 
     //! Bucket block pool.
-    BucketBlockPool<BucketBlock> block_pool_;
+    BucketBlockPool block_pool_;
 
     //! \name Fixed Operational Parameters
     //! \{

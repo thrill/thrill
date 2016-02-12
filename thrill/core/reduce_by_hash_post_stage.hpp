@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_post_stage.hpp
+ * thrill/core/reduce_by_hash_post_stage.hpp
  *
  * Hash table with support for reduce.
  *
@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_POST_STAGE_HEADER
-#define THRILL_CORE_REDUCE_POST_STAGE_HEADER
+#ifndef THRILL_CORE_REDUCE_BY_HASH_POST_STAGE_HEADER
+#define THRILL_CORE_REDUCE_BY_HASH_POST_STAGE_HEADER
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/logger.hpp>
@@ -149,16 +149,17 @@ public:
      *
      * \param equal_to_function Function for checking equality of two keys.
      */
-    ReduceByHashPostStage(Context& ctx,
-                    const KeyExtractor& key_extractor,
-                    const ReduceFunction& reduce_function,
-                    const EmitterFunction& emit,
-                    const IndexFunction& index_function,
-                    const Key& sentinel = Key(),
-                    size_t limit_memory_bytes = 1024* 1024,
-                    double limit_partition_fill_rate = 0.6,
-                    double bucket_rate = 1.0,
-                    const EqualToFunction& equal_to_function = EqualToFunction())
+    ReduceByHashPostStage(
+        Context& ctx,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
+        const EmitterFunction& emit,
+        const IndexFunction& index_function,
+        const Key& sentinel = Key(),
+        size_t limit_memory_bytes = 1024* 1024,
+        double limit_partition_fill_rate = 0.6,
+        double bucket_rate = 1.0,
+        const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
           table_(ctx,
                  key_extractor, reduce_function, emit_,
@@ -169,9 +170,9 @@ public:
                  index_function, equal_to_function) { }
 
     ReduceByHashPostStage(Context& ctx, KeyExtractor key_extractor,
-                    ReduceFunction reduce_function, EmitterFunction emit)
+                          ReduceFunction reduce_function, EmitterFunction emit)
         : ReduceByHashPostStage(ctx, key_extractor, reduce_function, emit,
-                          IndexFunction()) { }
+                                IndexFunction()) { }
 
     //! non-copyable: delete copy-constructor
     ReduceByHashPostStage(const ReduceByHashPostStage&) = delete;
@@ -339,6 +340,6 @@ using ReducePostProbingStage = ReduceByHashPostStage<
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_POST_STAGE_HEADER
+#endif // !THRILL_CORE_REDUCE_BY_HASH_POST_STAGE_HEADER
 
 /******************************************************************************/

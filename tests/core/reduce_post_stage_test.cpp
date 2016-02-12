@@ -8,8 +8,8 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/core/reduce_by_index_post_stage.hpp>
 #include <thrill/core/reduce_by_hash_post_stage.hpp>
+#include <thrill/core/reduce_by_index_post_stage.hpp>
 
 #include <gtest/gtest.h>
 
