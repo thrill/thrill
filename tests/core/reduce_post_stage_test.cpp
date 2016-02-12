@@ -69,7 +69,7 @@ static void TestAddMyStructByHash(Context& ctx) {
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
     core::DefaultReduceTableConfig config;
-    config.limit_memory_bytes = 64 * 1024;
+    config.limit_memory_bytes_ = 64 * 1024;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByHash<size_t>(),
@@ -181,7 +181,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
     core::DefaultReduceTableConfig config;
-    config.limit_memory_bytes = 64 * 1024;
+    config.limit_memory_bytes_ = 64 * 1024;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByIndex<size_t>(0, mod_size),
@@ -262,7 +262,7 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
     core::DefaultReduceTableConfig config;
-    config.limit_memory_bytes = 64 * 1024;
+    config.limit_memory_bytes_ = 64 * 1024;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByIndex<size_t>(0, mod_size),

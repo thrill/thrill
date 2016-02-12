@@ -32,7 +32,9 @@ public:
     class EqualSplit : public ReduceConfig
     {
     public:
-        size_t limit_memory_bytes = ReduceConfig::limit_memory_bytes / 2;
+        //! Returns limit_memory_bytes_
+        size_t limit_memory_bytes() const
+        { return ReduceConfig::limit_memory_bytes() / 2; }
     };
 
     EqualSplit pre_table;

@@ -165,7 +165,7 @@ public:
         // calculate limit on the number of _items_ in a partition before these
         // are spilled to disk or flushed to network.
 
-        double limit_fill_rate = config.limit_partition_fill_rate;
+        double limit_fill_rate = config.limit_partition_fill_rate();
 
         assert(limit_fill_rate >= 0.0 && limit_fill_rate <= 1.0
                && "limit_partition_fill_rate must be between 0.0 and 1.0. "
@@ -183,7 +183,7 @@ public:
         // calculate number of slots in a partition of the bucket table, i.e.,
         // the number of bucket pointers per partition
 
-        double bucket_rate = config.bucket_rate;
+        double bucket_rate = config.bucket_rate();
 
         assert(bucket_rate >= 0.0 &&
                "bucket_rate must be greater than or equal 0. "

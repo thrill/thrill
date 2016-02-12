@@ -73,7 +73,7 @@ static void TestAddMyStructByHash(Context& ctx) {
               decltype(key_ex), decltype(red_fn), true>;
 
     core::DefaultReduceTableConfig config;
-    config.limit_memory_bytes = 1024 * 1024;
+    config.limit_memory_bytes_ = 1024 * 1024;
 
     Stage stage(ctx,
                 num_partitions,
@@ -165,7 +165,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
               core::ReduceByIndex<size_t> >;
 
     core::DefaultReduceTableConfig config;
-    config.limit_memory_bytes = 1024 * 1024;
+    config.limit_memory_bytes_ = 1024 * 1024;
 
     Stage stage(ctx,
                 num_partitions,

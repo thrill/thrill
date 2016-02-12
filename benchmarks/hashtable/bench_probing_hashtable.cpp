@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
 
     double max_partition_fill_rate = 0.5;
     clp.AddDouble('f', "limit_partition_fill_rate", "F",
-                  config.limit_partition_fill_rate,
+                  config.limit_partition_fill_rate_,
                   "Open hashtable with limit_partition_fill_rate, default = 0.5.");
 
     double table_rate = 1.0;
