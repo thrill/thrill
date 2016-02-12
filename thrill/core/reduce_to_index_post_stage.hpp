@@ -5,9 +5,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
- * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
- * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -73,9 +71,13 @@ public:
 
     //! output an element into a partition, template specialized for SendPair
     //! and non-SendPair types
-    void Emit(const size_t& /* partition_id */, const KeyValuePair& p) {
+    void Emit(const KeyValuePair& p) {
         ReduceToIndexPostStageEmitterSwitch<
             KeyValuePair, ValueType, SendPair>::Put(p, emit_);
+    }
+
+    void Emit(size_t /* partition_id */, const KeyValuePair& p) {
+        Emit(p);
     }
 
 public:
@@ -95,7 +97,7 @@ template <typename ValueType, typename Key, typename Value,
                     typename _EqualToFunction> class HashTable>
 class ReduceToIndexPostStage
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -131,8 +133,6 @@ public:
      * \param begin_local_index Begin index for reduce to index.
      *
      * \param end_local_index End index for reduce to index.
-     *
-     * \param neutral element Neutral element for reduce to index.
      *
      * \param limit_memory_bytes Maximal size of the table in byte. In case size
      * of table exceeds that value, items are flushed.
@@ -189,7 +189,7 @@ public:
 
     using RangeFilePair = std::pair<common::Range, data::File>;
 
-    static void FlushTableInto(
+    void FlushTableInto(
         Table& table, std::vector<RangeFilePair>& remaining_files) {
         std::vector<data::File>& files = table.partition_files();
 
@@ -199,21 +199,37 @@ public:
             // get the actual reader from the file
             data::File& file = files[id];
 
-            // calculate key range for the file
-            common::Range file_range = table.index_function().inverse_range(
-                id, table.num_buckets_per_partition(), table.num_buckets());
-
             if (file.num_items() > 0) {
                 // if items have been spilled, switch to second loop, which
                 // stores items for a second reduce
                 break;
             }
             else {
+                // calculate key range for the file
+                common::Range file_range = table.index_function().inverse_range(
+                    id, table.num_buckets_per_partition(), table.num_buckets());
+
                 sLOG << "partition" << id << "range" << file_range
                      << "contains" << table.items_per_partition(id)
                      << "fully reduced items";
 
-                table.FlushPartition(id, true);
+                size_t index = file_range.begin;
+
+                table.FlushPartitionEmit(
+                    id, /* consume */ true,
+                    [this, &table, &file_range, &index](
+                        const size_t& /* partition_id */, const KeyValuePair& p) {
+                        for ( ; index < p.first; ++index) {
+                            emit_.Emit(std::make_pair(index, neutral_element_));
+                            sLOG << "emit hole" << index << "-" << neutral_element_;
+                        }
+                        emit_.Emit(p);
+                        sLOG << "emit" << p.first << "-" << p.second;
+                        ++index;
+                    });
+
+                for ( ; index < file_range.end; ++index)
+                    emit_.Emit(std::make_pair(index, neutral_element_));
             }
         }
 
@@ -261,7 +277,7 @@ public:
     //! deque of remaining files. In each iteration, the first remaining file is
     //! further reduced and replaced by more files if necessary. Since the deque
     //! is only extended in the front, we use a vector in reverse order.
-    void Flush(bool consume = false) {
+    void Flush(bool /* consume */ = false) {
         LOG << "Flushing items";
 
         // list of remaining files, containing only partially reduced item pairs
@@ -316,17 +332,31 @@ public:
 
             if (!range.IsValid())
             {
+                range.Swap();
+
                 // directly emit all items from the fully reduced file
                 sLOG << "emitting subfile" << num_subfile++
                      << "range" << range;
 
                 data::File::ConsumeReader reader = file.GetConsumeReader();
 
+                size_t index = range.begin;
+
                 while (reader.HasNext()) {
-                    KeyValuePair kv = reader.Next<KeyValuePair>();
-                    sLOG << "emit" << kv.first << "-" << kv.second;
-                    emit_.Emit(0, kv);
+                    KeyValuePair p = reader.Next<KeyValuePair>();
+
+                    for ( ; index < p.first; ++index) {
+                        emit_.Emit(std::make_pair(index, neutral_element_));
+                        sLOG << "emit hole" << index << "-" << neutral_element_;
+                    }
+
+                    sLOG << "emit" << p.first << "-" << p.second;
+                    emit_.Emit(p);
+                    ++index;
                 }
+
+                for ( ; index < range.end; ++index)
+                    emit_.Emit(std::make_pair(index, neutral_element_));
             }
             else
             {
@@ -340,9 +370,7 @@ public:
                 data::File::ConsumeReader reader = file.GetConsumeReader();
 
                 while (reader.HasNext()) {
-                    KeyValuePair kv = reader.Next<KeyValuePair>();
-                    sLOG << "insert" << kv.first << "-" << kv.second;
-                    subtable.Insert(kv);
+                    subtable.Insert(reader.Next<KeyValuePair>());
                 }
 
                 // after insertion, flush fully reduced partitions and save
@@ -377,6 +405,9 @@ private:
 
     //! the first-level hash table implementation
     Table table_;
+
+    //! neutral element to fill holes in output
+    Value neutral_element_ = Value();
 };
 
 template <typename ValueType, typename Key, typename Value,

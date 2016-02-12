@@ -101,7 +101,8 @@ public:
     IndexFunction & index_function() { return index_function_; }
 
     //! Returns equal_to_function_
-    const EqualToFunction & equal_to_function() const { return equal_to_function_; }
+    const EqualToFunction & equal_to_function() const
+    { return equal_to_function_; }
 
     //! Returns the vector of partition files.
     std::vector<data::File> & partition_files() { return partition_files_; }
@@ -113,7 +114,8 @@ public:
     size_t num_buckets() const { return num_buckets_; }
 
     //! Returns num_buckets_per_partition_
-    size_t num_buckets_per_partition() const { return num_buckets_per_partition_; }
+    size_t num_buckets_per_partition() const
+    { return num_buckets_per_partition_; }
 
     //! Returns limit_memory_bytes_
     size_t limit_memory_bytes() const { return limit_memory_bytes_; }

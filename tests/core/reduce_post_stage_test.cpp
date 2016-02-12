@@ -3,7 +3,6 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
@@ -37,6 +36,7 @@ static void TestAddMyStructByHash(Context& ctx) {
     static const bool debug = false;
     static const size_t mod_size = 601;
     static const size_t test_size = mod_size * 100;
+    static const size_t val_size = test_size / mod_size;
 
     auto key_ex = [](const MyStruct& in) {
                       return in.key % mod_size;
@@ -79,15 +79,14 @@ static void TestAddMyStructByHash(Context& ctx) {
 
     for (size_t i = 0; i < result.size(); ++i) {
         LOG << "result[" << i << "] = " << result[i] << " =? "
-            << (test_size / mod_size) * ((test_size / mod_size) - 1) / 2;
+            << val_size * (val_size - 1) / 2;
     }
 
     for (size_t i = 0; i < result.size(); ++i) {
         LOG << "result[" << i << "] = " << result[i] << " =? "
-            << (test_size / mod_size) * ((test_size / mod_size) - 1) / 2;
+            << val_size * (val_size - 1) / 2;
         ASSERT_EQ(i, result[i].key);
-        ASSERT_EQ((test_size / mod_size) * ((test_size / mod_size) - 1) / 2,
-                  result[i].value);
+        ASSERT_EQ(val_size * (val_size - 1) / 2, result[i].value);
     }
 }
 
@@ -132,6 +131,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
     static const bool debug = false;
     static const size_t mod_size = 601;
     static const size_t test_size = mod_size * 100;
+    static const size_t val_size = test_size / mod_size;
 
     auto key_ex = [](const MyStruct& in) {
                       return in.key % mod_size;
@@ -168,27 +168,90 @@ static void TestAddMyStructByIndex(Context& ctx) {
     stage.Flush();
 
     // check result
-    std::sort(result.begin(), result.end());
-
     ASSERT_EQ(mod_size, result.size());
 
     for (size_t i = 0; i < result.size(); ++i) {
         LOG << "result[" << i << "] = " << result[i] << " =? "
-            << (test_size / mod_size) * ((test_size / mod_size) - 1) / 2;
+            << val_size * (val_size - 1) / 2;
     }
 
     for (size_t i = 0; i < result.size(); ++i) {
         LOG << "result[" << i << "] = " << result[i] << " =? "
-            << (test_size / mod_size) * ((test_size / mod_size) - 1) / 2;
+            << val_size * (val_size - 1) / 2;
         ASSERT_EQ(i, result[i].key);
-        ASSERT_EQ((test_size / mod_size) * ((test_size / mod_size) - 1) / 2,
-                  result[i].value);
+        ASSERT_EQ(val_size * (val_size - 1) / 2, result[i].value);
     }
 }
 
 TEST(ReduceHashStage, AddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) { TestAddMyStructByIndex(ctx); });
+}
+
+/******************************************************************************/
+
+static void TestAddMyStructByIndexWithHoles(Context& ctx) {
+    static const bool debug = false;
+    static const size_t mod_size = 600;
+    static const size_t test_size = mod_size * 100;
+    static const size_t val_size = test_size / mod_size;
+
+    auto key_ex = [](const MyStruct& in) {
+                      return (in.key * 2) % mod_size;
+                  };
+
+    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
+                      return MyStruct {
+                                 in1.key, in1.value + in2.value
+                      };
+                  };
+
+    // collect all items
+    std::vector<MyStruct> result;
+
+    auto emit_fn = [&result](const MyStruct& in) {
+                       result.emplace_back(in);
+                   };
+
+    using Stage = core::ReduceToIndexPostBucketStage<
+              MyStruct, size_t, MyStruct,
+              decltype(key_ex), decltype(red_fn), false>;
+
+    Stage stage(ctx, key_ex, red_fn, emit_fn,
+                core::PostReduceByIndex<size_t>(0, mod_size),
+                /* sentinel */ size_t(-1),
+                /* limit_memory_bytes */ 64 * 1024,
+                /* limit_partition_fill_rate */ 0.6,
+                /* bucket_rate */ 1.0);
+
+    for (size_t i = 0; i < test_size; ++i) {
+        stage.Insert(MyStruct { i, i / mod_size });
+    }
+
+    stage.Flush();
+
+    // check result
+    ASSERT_EQ(mod_size, result.size());
+
+    for (size_t i = 0; i < result.size(); ++i) {
+        size_t correct = i % 2 == 0 ? val_size * (val_size - 1) : 0;
+
+        LOG << "result[" << i << "] = " << result[i] << " =? " << correct;
+    }
+
+    for (size_t i = 0; i < result.size(); ++i) {
+        size_t correct = i % 2 == 0 ? val_size * (val_size - 1) : 0;
+
+        LOG << "result[" << i << "] = " << result[i] << " =? " << correct;
+
+        ASSERT_EQ(i % 2 == 0 ? i / 2 : 0, result[i].key);
+        ASSERT_EQ(correct, result[i].value);
+    }
+}
+
+TEST(ReduceHashStage, AddMyStructByIndexWithHoles) {
+    api::RunLocalSameThread(
+        [](Context& ctx) { TestAddMyStructByIndexWithHoles(ctx); });
 }
 
 /******************************************************************************/
