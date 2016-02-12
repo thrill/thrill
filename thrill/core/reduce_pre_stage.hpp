@@ -104,12 +104,14 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey,
           typename IndexFunction,
+          typename ReduceStageConfig,
           typename EqualToFunction,
           template <typename _ValueType, typename _Key, typename _Value,
                     typename _KeyExtractor, typename _ReduceFunction,
                     typename _Emitter,
                     const bool _RobustKey,
                     typename _IndexFunction,
+                    typename _ReduceStageConfig,
                     typename _EqualToFunction> class HashTable>
 class ReducePreStage
 {
@@ -123,8 +125,7 @@ public:
     using Table = HashTable<
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, Emitter,
-              RobustKey,
-              IndexFunction, EqualToFunction>;
+              RobustKey, IndexFunction, ReduceStageConfig, EqualToFunction>;
 
     /*!
      * A data structure which takes an arbitrary value and extracts a key using
@@ -138,17 +139,12 @@ public:
                    std::vector<data::DynBlockWriter>& emit,
                    const IndexFunction& index_function,
                    const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
-                   size_t limit_memory_bytes = 1024* 16,
-                   double limit_partition_fill_rate = 0.6,
-                   double bucket_rate = 1.0,
+                   const ReduceStageConfig& config = ReduceStageConfig(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
           table_(ctx,
                  key_extractor, reduce_function, emit_,
-                 num_partitions,
-                 limit_memory_bytes,
-                 limit_partition_fill_rate, bucket_rate, true,
-                 sentinel,
+                 num_partitions, config, /* immediate_flush */ true, sentinel,
                  index_function, equal_to_function) {
         sLOG << "creating ReducePreStage with" << emit.size() << "output emitters";
 
@@ -224,24 +220,26 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
           typename IndexFunction = ReduceByHash<Key>,
+          typename ReduceStageConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePreBucketStage = ReducePreStage<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           RobustKey,
-          IndexFunction, EqualToFunction,
+          IndexFunction, ReduceStageConfig, EqualToFunction,
           ReduceBucketHashTable>;
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
           typename IndexFunction = ReduceByHash<Key>,
+          typename ReduceStageConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePreProbingStage = ReducePreStage<
           ValueType, Key, Value,
           KeyExtractor, ReduceFunction,
           RobustKey,
-          IndexFunction, EqualToFunction,
+          IndexFunction, ReduceStageConfig, EqualToFunction,
           ReduceProbingHashTable>;
 
 } // namespace core

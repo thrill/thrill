@@ -18,6 +18,7 @@
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
+#include <thrill/api/reduce_config.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_by_index_post_stage.hpp>
@@ -52,6 +53,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
+          typename ReduceConfig,
           bool RobustKey, bool SendPair>
 class ReduceToIndexNode final : public DOpNode<ValueType>
 {
@@ -100,6 +102,7 @@ public:
                       const ReduceFunction& reduce_function,
                       size_t result_size,
                       const Value& neutral_element,
+                      const ReduceConfig& config,
                       StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           stream_(parent.ctx().GetNewCatStream()),
@@ -110,8 +113,7 @@ public:
                      context_.num_workers(),
                      key_extractor, reduce_function, emitters_,
                      core::ReduceByIndex<Key>(0, result_size),
-                     Key(),
-                     1024 * 1024 * 32),
+                     Key(), config.pre_table),
 
           post_stage_(
               context_, key_extractor, reduce_function,
@@ -119,14 +121,13 @@ public:
               core::ReduceByIndex<Key>(
                   // parameterize with resulting key range on this worker
                   pre_stage_.key_range(context_.my_rank())),
-              Key(), neutral_element,
-              1024 * 1024 * 32)
+              Key(), neutral_element, config.post_table)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.
         auto pre_op_fn = [=](const ValueType& input) {
-                             pre_stage_.Insert(input);
+                             return pre_stage_.Insert(input);
                          };
 
         // close the function stack with our pre op and register it at parent
@@ -191,23 +192,26 @@ private:
     core::ReducePreBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
         core::ReduceByIndex<Key>,
+        decltype(ReduceConfig::pre_table),
         std::equal_to<Key> > pre_stage_;
 
     core::ReduceByIndexPostBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
         core::ReduceByIndex<Key>,
+        decltype(ReduceConfig::post_table),
         std::equal_to<Key> > post_stage_;
 
     bool reduced = false;
 };
 
 template <typename ValueType, typename Stack>
-template <typename KeyExtractor, typename ReduceFunction>
+template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceToIndexByKey(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t size,
-    const ValueType &neutral_element) const {
+    const ValueType &neutral_element,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -248,25 +252,26 @@ auto DIA<ValueType, Stack>::ReduceToIndexByKey(
 
     using ReduceNode
               = ReduceToIndexNode<DOpResult, DIA,
-                                  KeyExtractor, ReduceFunction,
+                                  KeyExtractor, ReduceFunction, ReduceConfig,
                                   false, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndexByKey", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceNode>(
         *this, key_extractor, reduce_function,
-        size, neutral_element, stats_node);
+        size, neutral_element, reduce_config, stats_node);
 
     return DIA<DOpResult>(shared_node, { stats_node });
 }
 
 template <typename ValueType, typename Stack>
-template <typename ReduceFunction>
+template <typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReducePairToIndex(
     const ReduceFunction &reduce_function,
     size_t size,
     const typename common::FunctionTraits<ReduceFunction>::result_type &
-    neutral_element) const {
+    neutral_element,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -306,7 +311,7 @@ auto DIA<ValueType, Stack>::ReducePairToIndex(
     using ReduceNode
               = ReduceToIndexNode<ValueType, DIA,
                                   std::function<Key(Key)>,
-                                  ReduceFunction, false, true>;
+                                  ReduceFunction, ReduceConfig, false, true>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", DIANodeType::DOP);
     auto shared_node
@@ -323,18 +328,20 @@ auto DIA<ValueType, Stack>::ReducePairToIndex(
                                        reduce_function,
                                        size,
                                        neutral_element,
+                                       reduce_config,
                                        stats_node);
 
     return DIA<ValueType>(shared_node, { stats_node });
 }
 
 template <typename ValueType, typename Stack>
-template <typename KeyExtractor, typename ReduceFunction>
+template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceToIndex(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t size,
-    const ValueType &neutral_element) const {
+    const ValueType &neutral_element,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -375,12 +382,13 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
 
     using ReduceNode
               = ReduceToIndexNode<DOpResult, DIA,
-                                  KeyExtractor, ReduceFunction,
+                                  KeyExtractor, ReduceFunction, ReduceConfig,
                                   true, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", DIANodeType::DOP);
     auto shared_node = std::make_shared<ReduceNode>(
-        *this, key_extractor, reduce_function, size, neutral_element, stats_node);
+        *this, key_extractor, reduce_function,
+        size, neutral_element, reduce_config, stats_node);
 
     return DIA<DOpResult>(shared_node, { stats_node });
 }

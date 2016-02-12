@@ -69,17 +69,20 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
           typename IndexFunction,
+          typename ReduceStageConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceProbingHashTable
     : public ReduceTable<ValueType, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
-                         RobustKey, IndexFunction, EqualToFunction>
+                         RobustKey, IndexFunction,
+                         ReduceStageConfig, EqualToFunction>
 {
     static const bool debug = false;
 
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
-                              RobustKey, IndexFunction, EqualToFunction>;
+                              RobustKey, IndexFunction,
+                              ReduceStageConfig, EqualToFunction>;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -90,16 +93,14 @@ public:
         const ReduceFunction& reduce_function,
         Emitter& emitter,
         size_t num_partitions,
-        size_t limit_memory_bytes,
-        double limit_partition_fill_rate,
-        double /* bucket_rate */,
-        bool immediate_flush,
+        const ReduceStageConfig& config = ReduceStageConfig(),
+        bool immediate_flush = false,
         const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
                 key_extractor, reduce_function, emitter,
-                num_partitions, limit_memory_bytes, immediate_flush,
+                num_partitions, config, immediate_flush,
                 sentinel, index_function, equal_to_function) {
 
         assert(num_partitions > 0);
@@ -107,7 +108,7 @@ public:
         // calculate num_buckets_per_partition_ from the memory limit and the
         // number of partitions required
 
-        assert(limit_memory_bytes >= 0 &&
+        assert(limit_memory_bytes_ >= 0 &&
                "limit_memory_bytes must be greater than or equal to 0. "
                "A byte size of zero results in exactly one item per partition");
 
@@ -125,12 +126,14 @@ public:
         // calculate limit on the number of items in a partition before these
         // are spilled to disk or flushed to network.
 
-        assert(limit_partition_fill_rate >= 0.0 && limit_partition_fill_rate <= 1.0
+        double limit_fill_rate = config.limit_partition_fill_rate;
+
+        assert(limit_fill_rate >= 0.0 && limit_fill_rate <= 1.0
                && "limit_partition_fill_rate must be between 0.0 and 1.0. "
                "with a fill rate of 0.0, items are immediately flushed.");
 
         limit_items_per_partition_ =
-            (size_t)(num_buckets_per_partition_ * limit_partition_fill_rate);
+            (size_t)(num_buckets_per_partition_ * limit_fill_rate);
 
         assert(limit_items_per_partition_ >= 0);
 

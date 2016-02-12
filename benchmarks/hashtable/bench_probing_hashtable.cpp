@@ -40,6 +40,8 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
+    core::BaseReduceTableConfig config;
+
     std::string title = "";
     clp.AddString('t', "title", "T", title,
                   "Load in byte to be inserted");
@@ -53,8 +55,9 @@ int main(int argc, char* argv[]) {
                 "Open hashtable with W workers, default = 1.");
 
     double max_partition_fill_rate = 0.5;
-    clp.AddDouble('f', "max_partition_fill_rate", "F", max_partition_fill_rate,
-                  "Open hashtable with max_partition_fill_rate, default = 0.5.");
+    clp.AddDouble('f', "limit_partition_fill_rate", "F",
+                  config.limit_partition_fill_rate,
+                  "Open hashtable with limit_partition_fill_rate, default = 0.5.");
 
     double table_rate = 1.0;
     clp.AddDouble('r', "table_rate", "R", table_rate,
@@ -96,18 +99,19 @@ int main(int argc, char* argv[]) {
                      writers.emplace_back(sinks[w].GetDynWriter());
                  }
 
-                 core::ReducePreProbingStage<size_t, size_t, size_t, decltype(key_ex), decltype(red_fn), true,
-                                             core::ReduceByHash<size_t>,
-                                             std::equal_to<size_t> >
-                 table(ctx, workers, key_ex, red_fn, writers, core::ReduceByHash<size_t>(),
-                       0, 0, byte_size);
+                 core::ReducePreProbingStage<
+                     size_t, size_t, size_t,
+                     decltype(key_ex), decltype(red_fn), true,
+                     core::ReduceByHash<size_t>,
+                     core::BaseReduceTableConfig>
+                 table(ctx, workers, key_ex, red_fn,
+                       writers, core::ReduceByHash<size_t>(),
+                       0, config);
 
                  common::StatsTimer<true> timer(true);
 
                  for (size_t i = 0; i < num_items; i++)
-                 {
                      table.Insert(dist(rng));
-                 }
 
                  table.Flush();
 

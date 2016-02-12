@@ -18,6 +18,7 @@
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
+#include <thrill/api/reduce_config.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_by_hash_post_stage.hpp>
@@ -35,15 +36,6 @@ namespace api {
 
 //! \addtogroup api Interface
 //! \{
-
-class DefaultReduceConfig
-{
-public:
-    DefaultReduceConfig() = default;
-
-    size_t pre_table_memlimit = 128 * 1024 * 1024llu;
-    size_t post_table_memlimit = 128 * 1024 * 1024llu;
-};
 
 /*!
  * A DIANode which performs a Reduce operation. Reduce groups the elements in a
@@ -115,13 +107,13 @@ public:
               parent.ctx().num_workers(),
               key_extractor, reduce_function, emitters_,
               core::ReduceByHash<Key>(),
-              Key(), config.pre_table_memlimit),
+              Key(), config.pre_table),
 
           post_stage_(
               context_, key_extractor, reduce_function,
               Emitter(this),
               core::ReduceByHash<Key>(),
-              Key(), config.post_table_memlimit)
+              Key(), config.post_table)
 
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
@@ -129,7 +121,7 @@ public:
         // worker given by the shuffle algorithm.
 
         auto pre_op_fn = [=](const ValueType& input) {
-                             pre_stage_.Insert(input);
+                             return pre_stage_.Insert(input);
                          };
         // close the function stack with our pre op and register it at
         // parent node for output
@@ -188,11 +180,13 @@ private:
     core::ReducePreBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
         core::ReduceByHash<Key>,
+        decltype(ReduceConfig::pre_table),
         std::equal_to<Key> > pre_stage_;
 
     core::ReducePostBucketStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
         core::ReduceByHash<Key>,
+        decltype(ReduceConfig::post_table),
         std::equal_to<Key> > post_stage_;
 
     bool reduced = false;

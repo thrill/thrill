@@ -16,12 +16,61 @@
 #include <thrill/api/context.hpp>
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <utility>
 #include <vector>
 
 namespace thrill {
 namespace core {
+
+/*!
+ * Configuration class to define operational parameters of reduce hash tables
+ * and reduce stages. Most members can be defined static const or be mutable
+ * variables. Not all members need to be used by all implementations.
+ */
+class DefaultReduceTableConfig
+{
+public:
+    //! limit on the amount of memory used by the reduce table
+    size_t limit_memory_bytes = 128 * 1024 * 1024llu;
+
+    //! limit on the fill rate of a reduce table partition prior to triggering a
+    //! flush.
+    static constexpr double limit_partition_fill_rate = 0.8;
+
+    //! only for BucketHashTable: ratio of number of buckets in a partition
+    //! relative to the maximum possible number.
+    static constexpr double bucket_rate = 0.5;
+
+    //! only for BucketHashTable: size of a block in the bucket chain in bytes
+    //! (must be a static constexpr)
+    static constexpr size_t bucket_block_size = 256;
+};
+
+/*!
+ * Configuration class to define operational parameters of reduce hash tables
+ * and reduce stages. Most members can be defined static const or be mutable
+ * variables. Not all members need to be used by all implementations.
+ */
+class BaseReduceTableConfig
+{
+public:
+    //! limit on the amount of memory used by the reduce table
+    size_t limit_memory_bytes = 128 * 1024 * 1024llu;
+
+    //! limit on the fill rate of a reduce table partition prior to triggering a
+    //! flush.
+    double limit_partition_fill_rate = 0.8;
+
+    //! only for BucketHashTable: ratio of number of buckets in a partition
+    //! relative to the maximum possible number.
+    double bucket_rate = 0.5;
+
+    //! only for BucketHashTable: size of a block in the bucket chain in bytes
+    //! (must be a static constexpr)
+    static constexpr size_t bucket_block_size = 256;
+};
 
 /*!
  * Common super-class for bucket and linear-probing hash/reduce tables. It
@@ -31,7 +80,8 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
           typename IndexFunction,
-          typename EqualToFunction>
+          typename ReduceStageConfig = DefaultReduceTableConfig,
+          typename EqualToFunction = std::equal_to<Key> >
 class ReduceTable
 {
     static const bool debug = false;
@@ -45,7 +95,7 @@ public:
         const ReduceFunction& reduce_function,
         Emitter& emitter,
         size_t num_partitions,
-        size_t limit_memory_bytes,
+        const ReduceStageConfig& config,
         bool immediate_flush,
         const Key& sentinel,
         const IndexFunction& index_function,
@@ -57,7 +107,7 @@ public:
           index_function_(index_function),
           equal_to_function_(equal_to_function),
           num_partitions_(num_partitions),
-          limit_memory_bytes_(limit_memory_bytes),
+          limit_memory_bytes_(config.limit_memory_bytes),
           immediate_flush_(immediate_flush),
           sentinel_(KeyValuePair(sentinel, Value())),
           items_per_partition_(num_partitions_, 0) {

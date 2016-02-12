@@ -441,11 +441,13 @@ public:
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
      */
-    template <typename KeyExtractor, typename ReduceFunction>
+    template <typename KeyExtractor, typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig>
     auto ReduceToIndex(const KeyExtractor &key_extractor,
                        const ReduceFunction &reduce_function,
                        size_t size,
-                       const ValueType& neutral_element = ValueType()) const;
+                       const ValueType& neutral_element = ValueType(),
+                       const ReduceConfig& config = ReduceConfig()) const;
 
     /*!
      * ReduceToIndexByKey is a DOp, which groups elements of the DIA with the
@@ -483,11 +485,13 @@ public:
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
      */
-    template <typename KeyExtractor, typename ReduceFunction>
+    template <typename KeyExtractor, typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig>
     auto ReduceToIndexByKey(const KeyExtractor &key_extractor,
                             const ReduceFunction &reduce_function,
                             size_t size,
-                            const ValueType& neutral_element = ValueType()) const;
+                            const ValueType& neutral_element = ValueType(),
+                            const ReduceConfig& config = ReduceConfig()) const;
 
     /*!
      * ReducePairToIndex is a DOp, which groups key-value-pairs of the input
@@ -517,11 +521,13 @@ public:
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
      */
-    template <typename ReduceFunction>
+    template <typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig>
     auto ReducePairToIndex(
         const ReduceFunction &reduce_function, size_t size,
         const typename FunctionTraits<ReduceFunction>::result_type&
-        neutral_element = typename FunctionTraits<ReduceFunction>::result_type()) const;
+        neutral_element = typename FunctionTraits<ReduceFunction>::result_type(),
+        const ReduceConfig& config = ReduceConfig()) const;
 
     /*!
      * GroupBy is a DOp, which groups elements of the DIA by its key.
