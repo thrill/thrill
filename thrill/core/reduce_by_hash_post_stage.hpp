@@ -36,25 +36,26 @@ namespace core {
 
 //! template specialization switch class to output key+value if SendPair and
 //! only value if not SendPair.
-template <typename KeyValuePair, typename ValueType, bool SendPair>
+template <
+    typename KeyValuePair, typename ValueType, typename Emitter, bool SendPair>
 class ReduceByHashPostStageEmitterSwitch;
 
-template <typename KeyValuePair, typename ValueType>
-class ReduceByHashPostStageEmitterSwitch<KeyValuePair, ValueType, false>
+template <typename KeyValuePair, typename ValueType, typename Emitter>
+class ReduceByHashPostStageEmitterSwitch<
+        KeyValuePair, ValueType, Emitter, false>
 {
 public:
-    static void Put(const KeyValuePair& p,
-                    std::function<void(const ValueType&)>& emit) {
+    static void Put(const KeyValuePair& p, Emitter& emit) {
         emit(p.second);
     }
 };
 
-template <typename KeyValuePair, typename ValueType>
-class ReduceByHashPostStageEmitterSwitch<KeyValuePair, ValueType, true>
+template <typename KeyValuePair, typename ValueType, typename Emitter>
+class ReduceByHashPostStageEmitterSwitch<
+        KeyValuePair, ValueType, Emitter, true>
 {
 public:
-    static void Put(const KeyValuePair& p,
-                    std::function<void(const ValueType&)>& emit) {
+    static void Put(const KeyValuePair& p, Emitter& emit) {
         emit(p);
     }
 };
@@ -62,29 +63,28 @@ public:
 //! Emitter implementation to plug into a reduce hash table for
 //! collecting/flushing items while reducing. Items flushed in the post-stage
 //! are passed to the next DIA node for processing.
-template <typename KeyValuePair, typename ValueType, bool SendPair>
+template <
+    typename KeyValuePair, typename ValueType, typename Emitter, bool SendPair>
 class ReduceByHashPostStageEmitter
 {
 public:
-    using EmitterFunction = std::function<void(const ValueType&)>;
-
-    explicit ReduceByHashPostStageEmitter(const EmitterFunction& emit)
+    explicit ReduceByHashPostStageEmitter(const Emitter& emit)
         : emit_(emit) { }
 
     //! output an element into a partition, template specialized for SendPair
     //! and non-SendPair types
     void Emit(const size_t& /* partition_id */, const KeyValuePair& p) {
         ReduceByHashPostStageEmitterSwitch<
-            KeyValuePair, ValueType, SendPair>::Put(p, emit_);
+            KeyValuePair, ValueType, Emitter, SendPair>::Put(p, emit_);
     }
 
 public:
     //! Set of emitters, one per partition.
-    EmitterFunction emit_;
+    Emitter emit_;
 };
 
 template <typename ValueType, typename Key, typename Value,
-          typename KeyExtractor, typename ReduceFunction,
+          typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool SendPair,
           typename IndexFunction,
           typename EqualToFunction,
@@ -100,13 +100,12 @@ class ReduceByHashPostStage
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
-    using EmitterFunction = std::function<void(const ValueType&)>;
-
-    using Emitter = ReduceByHashPostStageEmitter<KeyValuePair, ValueType, SendPair>;
+    using StageEmitter = ReduceByHashPostStageEmitter<
+              KeyValuePair, ValueType, Emitter, SendPair>;
 
     using Table = HashTable<
               ValueType, Key, Value,
-              KeyExtractor, ReduceFunction, Emitter,
+              KeyExtractor, ReduceFunction, StageEmitter,
               !SendPair,
               IndexFunction, EqualToFunction>;
 
@@ -153,16 +152,16 @@ public:
         Context& ctx,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
-        const EmitterFunction& emit,
+        const Emitter& emit,
         const IndexFunction& index_function,
         const Key& sentinel = Key(),
         size_t limit_memory_bytes = 1024* 1024,
         double limit_partition_fill_rate = 0.6,
         double bucket_rate = 1.0,
         const EqualToFunction& equal_to_function = EqualToFunction())
-        : emit_(emit),
+        : emitter_(emit),
           table_(ctx,
-                 key_extractor, reduce_function, emit_,
+                 key_extractor, reduce_function, emitter_,
                  /* num_partitions */ 32, /* TODO(tb): parameterize */
                  limit_memory_bytes,
                  limit_partition_fill_rate, bucket_rate, false,
@@ -170,7 +169,7 @@ public:
                  index_function, equal_to_function) { }
 
     ReduceByHashPostStage(Context& ctx, KeyExtractor key_extractor,
-                          ReduceFunction reduce_function, EmitterFunction emit)
+                          ReduceFunction reduce_function, const Emitter& emit)
         : ReduceByHashPostStage(ctx, key_extractor, reduce_function, emit,
                                 IndexFunction()) { }
 
@@ -240,7 +239,7 @@ public:
 
             Table subtable(
                 table_.ctx(),
-                table_.key_extractor(), table_.reduce_function(), emit_,
+                table_.key_extractor(), table_.reduce_function(), emitter_,
                 /* num_partitions */ 32,
                 table_.limit_memory_bytes(),
                 0.7 /* TODO(tb): parameterize */, 1.0 /* TODO(tb): parameterize */, false,
@@ -307,32 +306,32 @@ public:
 
 private:
     //! Emitters used to parameterize hash table for output to next DIA node.
-    Emitter emit_;
+    StageEmitter emitter_;
 
     //! the first-level hash table implementation
     Table table_;
 };
 
 template <typename ValueType, typename Key, typename Value,
-          typename KeyExtractor, typename ReduceFunction,
+          typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool SendPair = false,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePostBucketStage = ReduceByHashPostStage<
           ValueType, Key, Value,
-          KeyExtractor, ReduceFunction,
+          KeyExtractor, ReduceFunction, Emitter,
           SendPair,
           IndexFunction, EqualToFunction,
           ReduceBucketHashTable>;
 
 template <typename ValueType, typename Key, typename Value,
-          typename KeyExtractor, typename ReduceFunction,
+          typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool SendPair = false,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 using ReducePostProbingStage = ReduceByHashPostStage<
           ValueType, Key, Value,
-          KeyExtractor, ReduceFunction,
+          KeyExtractor, ReduceFunction, Emitter,
           SendPair,
           IndexFunction, EqualToFunction,
           ReduceProbingHashTable>;

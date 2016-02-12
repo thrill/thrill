@@ -70,9 +70,20 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
 
     using Super::context_;
 
-public:
-    using Emitter = data::DynBlockWriter;
+protected:
+    //! Emitter for PostStage to push elements to next DIA object.
+    class Emitter
+    {
+    public:
+        Emitter(ReduceToIndexNode* node) : node_(node) { }
+        void operator () (const ValueType& item) const
+        { return node_->PushItem(item); }
 
+    private:
+        ReduceToIndexNode* node_;
+    };
+
+public:
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
      * key_extractor and reduce_function.
@@ -104,7 +115,7 @@ public:
 
           post_stage_(
               context_, key_extractor, reduce_function,
-              [this](const ValueType& item) { return this->PushItem(item); },
+              Emitter(this),
               core::ReduceByIndex<Key>(
                   // parameterize with resulting key range on this worker
                   pre_stage_.key_range(context_.my_rank())),
@@ -183,7 +194,7 @@ private:
         std::equal_to<Key> > pre_stage_;
 
     core::ReduceByIndexPostBucketStage<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
         core::ReduceByIndex<Key>,
         std::equal_to<Key> > post_stage_;
 

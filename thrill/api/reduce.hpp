@@ -78,6 +78,19 @@ class ReduceNode final : public DOpNode<ValueType>
 
     using Super::context_;
 
+protected:
+    //! Emitter for PostStage to push elements to next DIA object.
+    class Emitter
+    {
+    public:
+        Emitter(ReduceNode* node) : node_(node) { }
+        void operator () (const ValueType& item) const
+        { return node_->PushItem(item); }
+
+    private:
+        ReduceNode* node_;
+    };
+
 public:
     /*!
      * Constructor for a ReduceNode. Sets the parent, stack,
@@ -106,7 +119,7 @@ public:
 
           post_stage_(
               context_, key_extractor, reduce_function,
-              [this](const ValueType& item) { return this->PushItem(item); },
+              Emitter(this),
               core::ReduceByHash<Key>(),
               Key(), config.post_table_memlimit)
 
@@ -178,7 +191,7 @@ private:
         std::equal_to<Key> > pre_stage_;
 
     core::ReducePostBucketStage<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
         core::ReduceByHash<Key>,
         std::equal_to<Key> > post_stage_;
 

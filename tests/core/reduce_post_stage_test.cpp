@@ -57,7 +57,7 @@ static void TestAddMyStructByHash(Context& ctx) {
 
     using Stage = core::ReducePostBucketStage<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), false>;
+              decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByHash<size_t>(),
@@ -152,7 +152,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
 
     using Stage = core::ReduceByIndexPostBucketStage<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), false>;
+              decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByIndex<size_t>(0, mod_size),
@@ -216,7 +216,7 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
 
     using Stage = core::ReduceByIndexPostBucketStage<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), false>;
+              decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByIndex<size_t>(0, mod_size),
