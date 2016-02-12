@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -42,9 +43,20 @@ struct MyStruct
 {
     size_t key, value;
 
+    MyStruct() = default;
+    MyStruct(size_t k, size_t v) : key(k), value(v) { }
+
     bool operator < (const MyStruct& b) const { return key < b.key; }
 };
 
+template <
+    template <
+        typename ValueType, typename Key, typename Value,
+        typename KeyExtractor, typename ReduceFunction, typename Emitter,
+        const bool RobustKey,
+        typename IndexFunction,
+        typename EqualToFunction = std::equal_to<Key> >
+    class HashTable>
 void TestAddMyStructModulo(Context& ctx) {
     static const size_t test_size = 50000;
     static const size_t mod_size = 500;
@@ -54,16 +66,14 @@ void TestAddMyStructModulo(Context& ctx) {
                   };
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-                      return MyStruct {
-                                 in1.key, in1.value + in2.value
-                      };
+                      return MyStruct(in1.key, in1.value + in2.value);
                   };
 
     using Collector = TableCollector<std::pair<size_t, MyStruct> >;
 
     Collector collector(13);
 
-    using Table = core::ReduceBucketHashTable<
+    using Table = HashTable<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), Collector,
               false, core::ReduceByHash<int> >;
@@ -76,7 +86,7 @@ void TestAddMyStructModulo(Context& ctx) {
                 /* immediate_flush */ true);
 
     for (size_t i = 0; i < test_size; ++i) {
-        table.Insert(MyStruct { i, i / mod_size });
+        table.Insert(MyStruct(i, i / mod_size));
     }
 
     table.FlushAll();
@@ -105,9 +115,18 @@ void TestAddMyStructModulo(Context& ctx) {
     }
 }
 
-TEST(ReduceHashTable, AddIntegers) {
+TEST(ReduceHashTable, BucketAddIntegers) {
     api::RunLocalSameThread(
-        [](Context& ctx) { TestAddMyStructModulo(ctx); });
+        [](Context& ctx) {
+            TestAddMyStructModulo<core::ReduceBucketHashTable>(ctx);
+        });
+}
+
+TEST(ReduceHashTable, ProbingAddIntegers) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructModulo<core::ReduceProbingHashTable>(ctx);
+        });
 }
 
 /******************************************************************************/

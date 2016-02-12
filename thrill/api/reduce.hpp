@@ -83,7 +83,7 @@ protected:
     class Emitter
     {
     public:
-        Emitter(ReduceNode* node) : node_(node) { }
+        explicit Emitter(ReduceNode* node) : node_(node) { }
         void operator () (const ValueType& item) const
         { return node_->PushItem(item); }
 
