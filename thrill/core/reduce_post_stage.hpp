@@ -95,7 +95,7 @@ template <typename ValueType, typename Key, typename Value,
                     typename _EqualToFunction> class HashTable>
 class ReducePostStage
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
