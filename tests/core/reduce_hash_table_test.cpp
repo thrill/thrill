@@ -54,7 +54,7 @@ template <
         typename ValueType, typename Key, typename Value,
         typename KeyExtractor, typename ReduceFunction, typename Emitter,
         const bool RobustKey,
-        typename IndexFunction,
+        typename IndexFunction = core::ReduceByHash<Key>,
         typename ReduceStageConfig = core::DefaultReduceTableConfig,
         typename EqualToFunction = std::equal_to<Key> >
     class HashTable>
