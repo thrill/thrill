@@ -14,6 +14,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -32,6 +33,13 @@ struct MyStruct
 
 /******************************************************************************/
 
+template <
+    template <typename ValueType, typename Key, typename Value,
+              typename KeyExtractor, typename ReduceFunction, typename Emitter,
+              const bool SendPair = false,
+              typename IndexFunction = core::ReduceByHash<Key>,
+              typename EqualToFunction = std::equal_to<Key> >
+    class PostStage>
 static void TestAddMyStructByHash(Context& ctx) {
     static const bool debug = false;
     static const size_t mod_size = 601;
@@ -55,7 +63,7 @@ static void TestAddMyStructByHash(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = core::ReducePostBucketStage<
+    using Stage = PostStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
@@ -90,9 +98,18 @@ static void TestAddMyStructByHash(Context& ctx) {
     }
 }
 
-TEST(ReduceHashStage, AddMyStructByHash) {
+TEST(ReduceHashStage, BucketAddMyStructByHash) {
     api::RunLocalSameThread(
-        [](Context& ctx) { TestAddMyStructByHash(ctx); });
+        [](Context& ctx) {
+            TestAddMyStructByHash<core::ReducePostBucketStage>(ctx);
+        });
+}
+
+TEST(ReduceHashStage, ProbingAddMyStructByHash) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByHash<core::ReducePostProbingStage>(ctx);
+        });
 }
 
 /******************************************************************************/
@@ -127,6 +144,13 @@ TEST(ReduceHashStage, PostReduceByIndex) {
 
 /******************************************************************************/
 
+template <
+    template <typename ValueType, typename Key, typename Value,
+              typename KeyExtractor, typename ReduceFunction, typename Emitter,
+              const bool SendPair = false,
+              typename IndexFunction = core::ReduceByIndex<Key>,
+              typename EqualToFunction = std::equal_to<Key> >
+    class PostStage>
 static void TestAddMyStructByIndex(Context& ctx) {
     static const bool debug = false;
     static const size_t mod_size = 601;
@@ -150,7 +174,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = core::ReduceByIndexPostBucketStage<
+    using Stage = PostStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
@@ -184,13 +208,29 @@ static void TestAddMyStructByIndex(Context& ctx) {
     }
 }
 
-TEST(ReduceHashStage, AddMyStructByIndex) {
+TEST(ReduceHashStage, BucketAddMyStructByIndex) {
     api::RunLocalSameThread(
-        [](Context& ctx) { TestAddMyStructByIndex(ctx); });
+        [](Context& ctx) {
+            TestAddMyStructByIndex<core::ReduceByIndexPostBucketStage>(ctx);
+        });
+}
+
+TEST(ReduceHashStage, ProbingAddMyStructByIndex) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByIndex<core::ReduceByIndexPostProbingStage>(ctx);
+        });
 }
 
 /******************************************************************************/
 
+template <
+    template <typename ValueType, typename Key, typename Value,
+              typename KeyExtractor, typename ReduceFunction, typename Emitter,
+              const bool SendPair = false,
+              typename IndexFunction = core::ReduceByIndex<Key>,
+              typename EqualToFunction = std::equal_to<Key> >
+    class PostStage>
 static void TestAddMyStructByIndexWithHoles(Context& ctx) {
     static const bool debug = false;
     static const size_t mod_size = 600;
@@ -214,7 +254,7 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = core::ReduceByIndexPostBucketStage<
+    using Stage = PostStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
 
@@ -251,9 +291,18 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
     }
 }
 
-TEST(ReduceHashStage, AddMyStructByIndexWithHoles) {
+TEST(ReduceHashStage, BucketAddMyStructByIndexWithHoles) {
     api::RunLocalSameThread(
-        [](Context& ctx) { TestAddMyStructByIndexWithHoles(ctx); });
+        [](Context& ctx) {
+            TestAddMyStructByIndexWithHoles<core::ReduceByIndexPostBucketStage>(ctx);
+        });
+}
+
+TEST(ReduceHashStage, ProbingAddMyStructByIndexWithHoles) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByIndexWithHoles<core::ReduceByIndexPostProbingStage>(ctx);
+        });
 }
 
 /******************************************************************************/

@@ -14,6 +14,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -32,6 +33,14 @@ struct MyStruct
 
 /******************************************************************************/
 
+template <
+    template <
+        typename ValueType, typename Key, typename Value,
+        typename KeyExtractor, typename ReduceFunction,
+        const bool RobustKey,
+        typename IndexFunction = core::ReduceByHash<Key>,
+        typename EqualToFunction = std::equal_to<Key> >
+    class PreStage>
 static void TestAddMyStructByHash(Context& ctx) {
     static const size_t mod_size = 601;
     static const size_t test_size = mod_size * 100;
@@ -58,7 +67,7 @@ static void TestAddMyStructByHash(Context& ctx) {
         emitters.emplace_back(files[i].GetDynWriter());
 
     // process items with stage
-    using Stage = core::ReducePreBucketStage<
+    using Stage = PreStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), true>;
 
@@ -98,13 +107,29 @@ static void TestAddMyStructByHash(Context& ctx) {
     }
 }
 
-TEST(ReducePreStage, AddMyStructByHash) {
+TEST(ReducePreStage, BucketAddMyStructByHash) {
     api::RunLocalSameThread(
-        [](Context& ctx) { TestAddMyStructByHash(ctx); });
+        [](Context& ctx) {
+            TestAddMyStructByHash<core::ReducePreBucketStage>(ctx);
+        });
+}
+
+TEST(ReducePreStage, ProbingAddMyStructByHash) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByHash<core::ReducePreProbingStage>(ctx);
+        });
 }
 
 /******************************************************************************/
 
+template <
+    template <typename ValueType, typename Key, typename Value,
+              typename KeyExtractor, typename ReduceFunction,
+              const bool SendPair = false,
+              typename IndexFunction = core::ReduceByIndex<Key>,
+              typename EqualToFunction = std::equal_to<Key> >
+    class PreStage>
 static void TestAddMyStructByIndex(Context& ctx) {
     static const size_t mod_size = 601;
     static const size_t test_size = mod_size * 100;
@@ -131,7 +156,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
         emitters.emplace_back(files[i].GetDynWriter());
 
     // process items with stage
-    using Stage = core::ReducePreBucketStage<
+    using Stage = PreStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), true,
               core::ReduceByIndex<size_t> >;
@@ -170,9 +195,18 @@ static void TestAddMyStructByIndex(Context& ctx) {
     }
 }
 
-TEST(ReducePreStage, AddMyStructByIndex) {
+TEST(ReducePreStage, BucketAddMyStructByIndex) {
     api::RunLocalSameThread(
-        [](Context& ctx) { TestAddMyStructByIndex(ctx); });
+        [](Context& ctx) {
+            TestAddMyStructByIndex<core::ReducePreBucketStage>(ctx);
+        });
+}
+
+TEST(ReducePreStage, ProbingAddMyStructByIndex) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByIndex<core::ReducePreProbingStage>(ctx);
+        });
 }
 
 /******************************************************************************/
