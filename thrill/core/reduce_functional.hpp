@@ -16,6 +16,8 @@
 #ifndef THRILL_CORE_REDUCE_FUNCTIONAL_HEADER
 #define THRILL_CORE_REDUCE_FUNCTIONAL_HEADER
 
+#include <thrill/common/math.hpp>
+
 namespace thrill {
 namespace core {
 
@@ -23,7 +25,7 @@ namespace core {
 // MIT License).
 static inline uint64_t Hash128to64(const uint64_t upper, const uint64_t lower) {
     // Murmur-inspired hashing.
-    const uint64_t k = 0x9ddfea08eb382d69ULL;
+    const uint64_t k = 0x9DDFEA08EB382D69ull;
     uint64_t a = (lower ^ upper) * k;
     a ^= (a >> 47);
     uint64_t b = (upper ^ a) * k;
@@ -56,11 +58,9 @@ public:
     IndexResult operator () (const Key& k,
                              const size_t& num_partitions,
                              const size_t& num_buckets_per_partition,
-                             const size_t& num_buckets_per_table,
-                             const size_t& offset) const {
+                             const size_t& num_buckets_per_table) const {
 
         (void)num_partitions;
-        (void)offset;
 
         uint64_t hash = Hash128to64(salt_, hash_function_(k));
 
@@ -86,25 +86,23 @@ public:
         size_t global_index;
     };
 
-    size_t size_;
-
-    explicit PreReduceByIndex(size_t size) : size_(size) { }
+    explicit PreReduceByIndex(size_t begin = 0, size_t end = 0)
+        : begin_(begin), size_(end - begin) { }
 
     IndexResult
     operator () (const Key& k,
                  const size_t& num_partitions,
-                 const size_t& num_buckets_per_partition,
-                 const size_t& num_buckets_per_table,
-                 const size_t& offset) const {
-
-        (void)num_buckets_per_partition;
-        (void)offset;
+                 const size_t& /* num_buckets_per_partition */,
+                 const size_t& num_buckets_per_table) const {
 
         size_t partition_id = k * num_partitions / size_;
         size_t global_index = k * num_buckets_per_table / size_;
 
         return IndexResult { partition_id, global_index };
     }
+
+private:
+    size_t begin_, size_;
 };
 
 template <typename Key>
@@ -119,18 +117,48 @@ public:
         size_t global_index;
     };
 
+    explicit PostReduceByIndex(const common::Range& range)
+        : range_(range) { }
+
+    explicit PostReduceByIndex(size_t begin = 0, size_t end = 0)
+        : range_(begin, end) { }
+
+    const common::Range & range() const { return range_; }
+
+    void set_range(const common::Range& range) { range_ = range; }
+
     IndexResult operator () (const Key& k,
-                             const size_t& num_partitions,
+                             const size_t& /* num_partitions */,
                              const size_t& num_buckets_per_partition,
-                             const size_t& num_buckets_per_table,
-                             const size_t& offset) const {
+                             const size_t& num_buckets) const {
 
-        (void)num_buckets_per_partition;
+        assert(k >= range_.begin && k < range_.end && "Item out of range.");
 
-        size_t result = (k - offset) % num_buckets_per_table;
+        // round bucket number down
+        size_t global_index = (k - range_.begin) * num_buckets / range_.size();
 
-        return IndexResult { result / num_partitions, result };
+        return IndexResult { global_index / num_buckets_per_partition, global_index };
     }
+
+    //! inverse mapping: takes a bucket index and returns the smallest index
+    //! delivered to the bucket.
+    size_t inverse(size_t bucket, const size_t& num_buckets) {
+        // round inverse key up
+        return range_.begin +
+               (bucket * range_.size() + num_buckets - 1) / num_buckets;
+    }
+
+    //! deliver inverse range mapping of a partition
+    common::Range inverse_range(
+        size_t partition_id,
+        const size_t& num_buckets_per_partition, const size_t& num_buckets) {
+        return common::Range(
+            inverse(partition_id * num_buckets_per_partition, num_buckets),
+            inverse((partition_id + 1) * num_buckets_per_partition, num_buckets));
+    }
+
+private:
+    common::Range range_;
 };
 
 } // namespace core

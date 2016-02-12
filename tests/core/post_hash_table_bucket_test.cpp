@@ -47,14 +47,12 @@ public:
     operator () (const Key& k,
                  const size_t& num_frames,
                  const size_t& num_buckets_per_frame,
-                 const size_t& num_buckets_per_table,
-                 const size_t& offset) const {
+                 const size_t& num_buckets_per_table) const {
 
         (void)k;
         (void)num_frames;
         (void)num_buckets_per_frame;
         (void)num_buckets_per_table;
-        (void)offset;
 
         return IndexResult { 0, 0 };
     }

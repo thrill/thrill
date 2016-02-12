@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <limits>
 #include <ostream>
 
 namespace thrill {
@@ -72,15 +73,32 @@ public:
     Range() = default;
     Range(size_t _begin, size_t _end) : begin(_begin), end(_end) { }
 
+    static Range Invalid() {
+        return Range(std::numeric_limits<size_t>::max(),
+                     std::numeric_limits<size_t>::min());
+    }
+
     //! begin index
     size_t begin = 0;
     //! end index
     size_t end = 0;
 
-    //! valid range (begin <= end)
-    bool valid() const { return begin <= end; }
     //! size of range
     size_t size() const { return end - begin; }
+
+    //! range is empty (begin == end)
+    bool IsEmpty() const { return begin == end; }
+    //! valid non-empty range (begin < end)
+    bool IsValid() const { return begin < end; }
+
+    //! swap boundaries, making a valid range invalid.
+    void Swap() { std::swap(begin, end); }
+
+    //! calculate a partition range [begin,end) by taking the current Range
+    //! splitting it into p parts and taking the i-th one.
+    Range Partition(size_t index, size_t parts) const {
+        return Range(index * size() / parts, (index + 1) * size() / parts);
+    }
 
     //! ostream-able
     friend std::ostream& operator << (std::ostream& os, const Range& r) {

@@ -117,10 +117,10 @@ public:
                      / static_cast<double>(sizeof(KeyValuePair))
                      / static_cast<double>(num_partitions_)));
 
-        size_ = partition_size_ * num_partitions_;
+        table_size_ = partition_size_ * num_partitions_;
 
         assert(partition_size_ > 0);
-        assert(size_ > 0);
+        assert(table_size_ > 0);
 
         // calculate limit on the number of items in a partition before these
         // are spilled to disk or flushed to network.
@@ -136,7 +136,7 @@ public:
 
         // construct the hash table itself. fill it with sentinels
 
-        items_.resize(size_, sentinel_);
+        items_.resize(table_size_, sentinel_);
     }
 
     /*!
@@ -165,10 +165,10 @@ public:
         static const bool debug = false;
 
         typename IndexFunction::IndexResult h = index_function_(
-            kv.first, num_partitions_, partition_size_, size_, 0);
+            kv.first, num_partitions_, partition_size_, table_size_);
 
         assert(h.partition_id < num_partitions_);
-        assert(h.global_index < size_);
+        assert(h.global_index < table_size_);
 
         KeyValuePair* initial = &items_[h.global_index];
         KeyValuePair* current = initial;
@@ -325,7 +325,7 @@ protected:
     //! \{
 
     //! Size of the table, which is the number of slots available for items.
-    size_t size_;
+    size_t table_size_;
 
     //! Partition size.
     size_t partition_size_;

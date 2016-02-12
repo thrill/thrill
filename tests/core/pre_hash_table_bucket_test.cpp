@@ -62,8 +62,7 @@ public:
     operator () (const Key& k,
                  const size_t& num_frames,
                  const size_t& num_buckets_per_frame,
-                 const size_t& num_buckets_per_table,
-                 const size_t& offset) const {
+                 const size_t& num_buckets_per_table) const {
 
         size_t global_index = 0;
         size_t partition_id = 0;
@@ -72,7 +71,6 @@ public:
         (void)num_frames;
         (void)num_buckets_per_frame;
         (void)num_buckets_per_table;
-        (void)offset;
 
         return IndexResult(partition_id, global_index);
     }

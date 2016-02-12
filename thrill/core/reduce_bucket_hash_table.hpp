@@ -260,16 +260,20 @@ public:
 
         typename IndexFunction::IndexResult h = index_function_(
             kv.first, num_partitions_,
-            num_buckets_per_partition_, num_buckets_, 0);
+            num_buckets_per_partition_, num_buckets_);
+
+        // sLOG << "kv" << kv.first << "-" << kv.second
+        //      << "to partition" << h.partition_id << "bucket" << h.global_index;
+
+        sLOG << "num_partitions_" << num_partitions_
+             << "num_buckets_per_partition_" << num_buckets_per_partition_
+             << "num_buckets_" << num_buckets_;
 
         assert(h.partition_id < num_partitions_);
         assert(h.global_index < num_buckets_);
         assert(h.global_index >= h.partition_id * num_buckets_per_partition_ &&
                h.global_index < (h.partition_id + 1) * num_buckets_per_partition_ &&
                "global_index must be contained in matching partition_id");
-
-        // sLOG << "kv" << kv.first << "-" << kv.second
-        //      << "to partition" << h.partition_id << "bucket" << h.global_index;
 
         BucketBlock* current = buckets_[h.global_index];
 
@@ -515,7 +519,8 @@ public:
 
     //! }
 
-protected:
+private:
+public:
     using Super::equal_to_function_;
     using Super::index_function_;
     using Super::key_extractor_;

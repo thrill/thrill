@@ -97,6 +97,9 @@ public:
     //! Returns index_function_
     const IndexFunction & index_function() const { return index_function_; }
 
+    //! Returns index_function_ (mutable)
+    IndexFunction & index_function() { return index_function_; }
+
     //! Returns equal_to_function_
     const EqualToFunction & equal_to_function() const { return equal_to_function_; }
 
