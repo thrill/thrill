@@ -71,7 +71,7 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& config) {
         core::DefaultReduceTableConfig,
         std::equal_to<Key>,
         HashTable>
-    table(ctx, key_ex, red_fn, emit_fn,
+    stage(ctx, key_ex, red_fn, emit_fn,
           core::ReduceByHash<Key>(),
           /* sentinel */ 0,
           config);
@@ -79,9 +79,9 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& config) {
     common::StatsTimer<true> timer(true);
 
     for (uint64_t i = 0; i < num_items; i++)
-        table.Insert(dist(rng));
+        stage.Insert(dist(rng));
 
-    table.Flush();
+    stage.PushData(/* consume */ true);
 
     timer.Stop();
 

@@ -86,7 +86,7 @@ static void TestAddMyStructByHash(Context& ctx) {
         stage.Insert(MyStruct { i, i / mod_size });
     }
 
-    stage.Flush();
+    stage.FlushAll();
     stage.CloseAll();
 
     // collect items and check result
@@ -178,7 +178,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
         stage.Insert(MyStruct { i, i / mod_size });
     }
 
-    stage.Flush();
+    stage.FlushAll();
     stage.CloseAll();
 
     // collect items and check result - they must be in correct order!

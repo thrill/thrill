@@ -79,7 +79,7 @@ static void TestAddMyStructByHash(Context& ctx) {
         stage.Insert(MyStruct { i, i / mod_size });
     }
 
-    stage.Flush();
+    stage.PushData(/* consume */ true);
 
     // check result
     std::sort(result.begin(), result.end());
@@ -192,7 +192,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
         stage.Insert(MyStruct { i, i / mod_size });
     }
 
-    stage.Flush();
+    stage.PushData(/* consume */ true);
 
     // check result
     ASSERT_EQ(mod_size, result.size());
@@ -274,7 +274,7 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
         stage.Insert(MyStruct { i, i / mod_size });
     }
 
-    stage.Flush();
+    stage.PushData(/* consume */ true);
 
     // check result
     ASSERT_EQ(mod_size, result.size());

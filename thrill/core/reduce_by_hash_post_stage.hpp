@@ -47,9 +47,15 @@ public:
 
     //! output an element into a partition, template specialized for SendPair
     //! and non-SendPair types
-    void Emit(const size_t& /* partition_id */, const KeyValuePair& p) {
+    void Emit(const KeyValuePair& p) {
         ReducePostStageEmitterSwitch<
             KeyValuePair, ValueType, Emitter, SendPair>::Put(p, emit_);
+    }
+
+    //! output an element into a partition, template specialized for SendPair
+    //! and non-SendPair types
+    void Emit(const size_t& /* partition_id */, const KeyValuePair& p) {
+        Emit(p);
     }
 
 public:
@@ -93,7 +99,7 @@ public:
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         const Emitter& emit,
-        const IndexFunction& index_function,
+        const IndexFunction& index_function = IndexFunction(),
         const Key& sentinel = Key(),
         const ReduceStageConfig& config = ReduceStageConfig(),
         const EqualToFunction& equal_to_function = EqualToFunction())
@@ -104,11 +110,6 @@ public:
                  /* num_partitions */ 32, /* TODO(tb): parameterize */
                  config, false, sentinel,
                  index_function, equal_to_function) { }
-
-    ReduceByHashPostStage(Context& ctx, KeyExtractor key_extractor,
-                          ReduceFunction reduce_function, const Emitter& emit)
-        : ReduceByHashPostStage(ctx, key_extractor, reduce_function, emit,
-                                IndexFunction()) { }
 
     //! non-copyable: delete copy-constructor
     ReduceByHashPostStage(const ReduceByHashPostStage&) = delete;
@@ -124,7 +125,8 @@ public:
     }
 
     //! Flushes all items in the whole table.
-    void Flush(bool consume = false) {
+    template <bool DoCache>
+    void Flush(bool consume, data::File::Writer* writer = nullptr) {
         LOG << "Flushing items";
 
         // list of remaining files, containing only partially reduced item pairs
@@ -156,7 +158,13 @@ public:
                         << table_.items_per_partition(id)
                         << " fully reduced items";
 
-                    table_.FlushPartition(id, consume);
+                    table_.FlushPartitionEmit(
+                        id, consume,
+                        [this, writer](
+                            const size_t& partition_id, const KeyValuePair& p) {
+                            if (DoCache) writer->Put(p);
+                            emitter_.Emit(partition_id, p);
+                        });
                 }
             }
         }
@@ -167,6 +175,8 @@ public:
         }
 
         table_.Dispose();
+
+        assert(consume && "Items were spilled hence Flushing must consume");
 
         // if partially reduce files remain, create new hash tables to process
         // them iteratively.
@@ -226,7 +236,13 @@ public:
                              << subtable.items_per_partition(id)
                              << "fully reduced items";
 
-                        subtable.FlushPartition(id, /* consume */ true);
+                        subtable.FlushPartitionEmit(
+                            id, /* consume */ true,
+                            [this, writer](
+                                const size_t& partition_id, const KeyValuePair& p) {
+                                if (DoCache) writer->Put(p);
+                                emitter_.Emit(partition_id, p);
+                            });
                     }
                 }
             }
@@ -236,6 +252,32 @@ public:
         }
 
         LOG << "Flushed items";
+    }
+
+    //! Push data into emitter
+    void PushData(bool consume = false) {
+        if (!cache_)
+        {
+            if (!table_.has_spilled_data()) {
+                // no items were spilled to disk, hence we can emit all data
+                // from RAM.
+                Flush</* DoCache */ false>(consume);
+            }
+            else {
+                // items were spilled, hence the reduce table must be emptied
+                // and we have to cache the output stream.
+                cache_ = table_.ctx().GetFilePtr();
+                data::File::Writer writer = cache_->GetWriter();
+                Flush</* DoCache */ true>(true, &writer);
+            }
+        }
+        else
+        {
+            // previous PushData() has stored data in cache_
+            data::File::Reader reader = cache_->GetReader(consume);
+            while (reader.HasNext())
+                emitter_.Emit(reader.Next<KeyValuePair>());
+        }
     }
 
     //! \name Accessors
@@ -255,6 +297,9 @@ private:
 
     //! the first-level hash table implementation
     Table table_;
+
+    //! File for storing data in-case we need multiple re-reduce levels.
+    data::FilePtr cache_;
 };
 
 template <typename ValueType, typename Key, typename Value,

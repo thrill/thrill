@@ -115,7 +115,7 @@ public:
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.
 
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [this](const ValueType& input) {
                              return pre_stage_.Insert(input);
                          };
         // close the function stack with our pre op and register it at
@@ -130,7 +130,7 @@ public:
     void StopPreOp(size_t /* id */) final {
         LOG << this->label() << " running StopPreOp";
         // Flush hash table before the postOp
-        pre_stage_.Flush(/* consume */ true);
+        pre_stage_.FlushAll();
         pre_stage_.CloseAll();
         stream_->Close();
     }
@@ -140,7 +140,7 @@ public:
     void PushData(bool consume) final {
 
         if (reduced) {
-            post_stage_.Flush(consume);
+            post_stage_.PushData(consume);
             return;
         }
 
@@ -162,7 +162,7 @@ public:
         }
 
         reduced = true;
-        post_stage_.Flush(consume);
+        post_stage_.PushData(consume);
     }
 
     void Dispose() final { }

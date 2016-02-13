@@ -119,7 +119,7 @@ public:
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [this](const ValueType& input) {
                              return pre_stage_.Insert(input);
                          };
 
@@ -132,10 +132,9 @@ public:
     void StopPreOp(size_t /* id */) final {
         LOG << this->label() << " running main op";
         // Flush hash table before the postOp
-        pre_stage_.Flush(/* consume */ true);
+        pre_stage_.FlushAll();
         pre_stage_.CloseAll();
         stream_->Close();
-        this->WriteStreamStats(stream_);
     }
 
     /*!
@@ -146,7 +145,7 @@ public:
     void PushData(bool consume) final {
 
         if (reduced) {
-            post_stage_.Flush(consume);
+            post_stage_.PushData(consume);
             return;
         }
 
@@ -172,7 +171,7 @@ public:
         }
 
         reduced = true;
-        post_stage_.Flush(consume);
+        post_stage_.PushData(consume);
     }
 
     void Dispose() final { }

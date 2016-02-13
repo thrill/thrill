@@ -96,24 +96,19 @@ public:
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         const Emitter& emitter,
-        const IndexFunction& index_function,
+        const IndexFunction& index_function = IndexFunction(),
         const Key& sentinel = Key(),
         const Value& neutral_element = Value(),
         const ReduceStageConfig& config = ReduceStageConfig(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : config_(config),
-          emit_(emitter),
+          emitter_(emitter),
           table_(ctx,
-                 key_extractor, reduce_function, emit_,
+                 key_extractor, reduce_function, emitter_,
                  /* num_partitions */ 32, /* TODO(tb): parameterize */
                  config, false, sentinel,
                  index_function, equal_to_function),
           neutral_element_(neutral_element) { }
-
-    ReduceByIndexPostStage(Context& ctx, KeyExtractor key_extractor,
-                           ReduceFunction reduce_function, const Emitter& emit)
-        : ReduceByIndexPostStage(ctx, key_extractor, reduce_function, emit,
-                                 IndexFunction()) { }
 
     //! non-copyable: delete copy-constructor
     ReduceByIndexPostStage(const ReduceByIndexPostStage&) = delete;
@@ -130,8 +125,12 @@ public:
 
     using RangeFilePair = std::pair<common::Range, data::File>;
 
+    //! Flush contents of table into emitter and return remaining files
+    template <bool DoCache>
     void FlushTableInto(
-        Table& table, std::vector<RangeFilePair>& remaining_files) {
+        Table& table, std::vector<RangeFilePair>& remaining_files,
+        bool consume, data::File::Writer* writer = nullptr) {
+
         std::vector<data::File>& files = table.partition_files();
 
         size_t id = 0;
@@ -156,20 +155,28 @@ public:
                 size_t index = file_range.begin;
 
                 table.FlushPartitionEmit(
-                    id, /* consume */ true,
-                    [this, &table, &file_range, &index](
+                    id, consume,
+                    [this, &table, &file_range, &index, writer](
                         const size_t& /* partition_id */, const KeyValuePair& p) {
                         for ( ; index < p.first; ++index) {
-                            emit_.Emit(std::make_pair(index, neutral_element_));
+                            KeyValuePair kv = std::make_pair(index, neutral_element_);
+                            emitter_.Emit(kv);
+                            if (DoCache) writer->Put(kv);
+
                             sLOG << "emit hole" << index << "-" << neutral_element_;
                         }
-                        emit_.Emit(p);
+                        emitter_.Emit(p);
+                        if (DoCache) writer->Put(p);
+
                         sLOG << "emit" << p.first << "-" << p.second;
                         ++index;
                     });
 
-                for ( ; index < file_range.end; ++index)
-                    emit_.Emit(std::make_pair(index, neutral_element_));
+                for ( ; index < file_range.end; ++index) {
+                    KeyValuePair kv = std::make_pair(index, neutral_element_);
+                    emitter_.Emit(kv);
+                    if (DoCache) writer->Put(kv);
+                }
             }
         }
 
@@ -216,7 +223,8 @@ public:
     //! deque of remaining files. In each iteration, the first remaining file is
     //! further reduced and replaced by more files if necessary. Since the deque
     //! is only extended in the front, we use a vector in reverse order.
-    void Flush(bool /* consume */ = false) {
+    template <bool DoCache>
+    void Flush(bool consume, data::File::Writer* writer = nullptr) {
         LOG << "Flushing items";
 
         // list of remaining files, containing only partially reduced item pairs
@@ -225,7 +233,7 @@ public:
 
         // read primary hash table, since ReduceByHash delivers items in any
         // order, we can just emit items from fully reduced partitions.
-        FlushTableInto(table_, remaining_files);
+        FlushTableInto<DoCache>(table_, remaining_files, consume, writer);
 
         if (remaining_files.size() == 0) {
             LOG << "Flushed items directly.";
@@ -233,6 +241,8 @@ public:
         }
 
         table_.Dispose();
+
+        assert(consume && "Items were spilled hence Flushing must consume");
 
         // reverse order in remaining files
         std::reverse(remaining_files.begin(), remaining_files.end());
@@ -242,7 +252,7 @@ public:
 
         Table subtable(
             table_.ctx(),
-            table_.key_extractor(), table_.reduce_function(), emit_,
+            table_.key_extractor(), table_.reduce_function(), emitter_,
             /* num_partitions */ 32, config_, false,
             table_.sentinel().first /* TODO(tb): weird */,
             table_.index_function(),
@@ -285,17 +295,24 @@ public:
                     KeyValuePair p = reader.Next<KeyValuePair>();
 
                     for ( ; index < p.first; ++index) {
-                        emit_.Emit(std::make_pair(index, neutral_element_));
+                        KeyValuePair kv = std::make_pair(index, neutral_element_);
+                        emitter_.Emit(kv);
+                        if (DoCache) writer->Put(kv);
+
                         sLOG << "emit hole" << index << "-" << neutral_element_;
                     }
 
                     sLOG << "emit" << p.first << "-" << p.second;
-                    emit_.Emit(p);
+                    emitter_.Emit(p);
+                    if (DoCache) writer->Put(p);
                     ++index;
                 }
 
-                for ( ; index < range.end; ++index)
-                    emit_.Emit(std::make_pair(index, neutral_element_));
+                for ( ; index < range.end; ++index) {
+                    KeyValuePair kv = std::make_pair(index, neutral_element_);
+                    emitter_.Emit(kv);
+                    if (DoCache) writer->Put(kv);
+                }
             }
             else
             {
@@ -315,7 +332,8 @@ public:
                 // after insertion, flush fully reduced partitions and save
                 // remaining files for next iteration.
 
-                FlushTableInto(subtable, next_remaining_files);
+                FlushTableInto<DoCache>(
+                    subtable, next_remaining_files, /* consume */ true, writer);
 
                 for (auto it = next_remaining_files.rbegin();
                      it != next_remaining_files.rend(); ++it)
@@ -328,6 +346,31 @@ public:
         }
 
         LOG << "Flushed items";
+    }
+
+    void PushData(bool consume = false) {
+        if (!cache_)
+        {
+            if (!table_.has_spilled_data()) {
+                // no items were spilled to disk, hence we can emit all data
+                // from RAM.
+                Flush</* DoCache */ false>(consume);
+            }
+            else {
+                // items were spilled, hence the reduce table must be emptied
+                // and we have to cache the output stream.
+                cache_ = table_.ctx().GetFilePtr();
+                data::File::Writer writer = cache_->GetWriter();
+                Flush</* DoCache */ true>(true, &writer);
+            }
+        }
+        else
+        {
+            // previous PushData() has stored data in cache_
+            data::File::Reader reader = cache_->GetReader(consume);
+            while (reader.HasNext())
+                emitter_.Emit(reader.Next<KeyValuePair>());
+        }
     }
 
     //! \name Accessors
@@ -343,13 +386,16 @@ private:
     ReduceStageConfig config_;
 
     //! Emitters used to parameterize hash table for output to next DIA node.
-    StageEmitter emit_;
+    StageEmitter emitter_;
 
     //! the first-level hash table implementation
     Table table_;
 
     //! neutral element to fill holes in output
     Value neutral_element_;
+
+    //! File for storing data in-case we need multiple re-reduce levels.
+    data::FilePtr cache_;
 };
 
 template <typename ValueType, typename Key, typename Value,
