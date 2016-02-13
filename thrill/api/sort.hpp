@@ -54,10 +54,6 @@ class SortNode final : public DOpNode<ValueType>
 public:
     /*!
      * Constructor for a sort node.
-     *
-     * \param parent DIA.
-     * \param parent_stack Stack of lambda functions between parent and this node
-     * \param compare_function Function comparing two elements.
      */
     SortNode(const ParentDIA& parent,
              CompareFunction compare_function,

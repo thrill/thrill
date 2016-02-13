@@ -123,7 +123,7 @@ private:
      * pin_count_ = 1 due to initialize, this count should not be incremented
      * when moved into a PinnedBlock.
      *
-     * \param memory the memory address of the byte-blocks data. nullptr if swapped out
+     * \param data the memory address of the byte-blocks data. nullptr if swapped out
      * \param size the size of the block in bytes
      * \param block_pool the block pool that manages this ByteBlock
      */

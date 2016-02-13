@@ -37,8 +37,7 @@ thrill_build_prog(io/benchmark_disks)
 thrill_build_prog(io/benchmark_disks_random)
 
 if(FULL_BUILD)
-thrill_build_prog(hashtable/bench_bucket_hashtable)
-thrill_build_prog(hashtable/bench_probing_hashtable)
+thrill_build_prog(hashtable/bench_hashtable)
 thrill_build_prog(hashtable/generate_data)
 thrill_build_prog(hashtable/reduce)
 

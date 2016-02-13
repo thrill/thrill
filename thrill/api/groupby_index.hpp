@@ -69,11 +69,6 @@ public:
     /*!
      * Constructor for a GroupByIndexNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
-     *
-     * \param parent Parent DIA.
-     * and this node
-     * \param key_extractor Key extractor function
-     * \param reduce_function Reduce function
      */
     GroupByIndexNode(const ParentDIA& parent,
                      const KeyExtractor& key_extractor,

@@ -469,7 +469,7 @@ private:
      *
      * \param ranks The global ranks of the pivots. This is an output parameter.
      *
-     * \params local_ranks The local ranks. The first index corresponds to the
+     * \param local_ranks The local ranks. The first index corresponds to the
      * splitter, the second one to the file. This is an output parameter.
      */
     void GetGlobalRanks(

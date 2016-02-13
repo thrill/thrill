@@ -80,9 +80,10 @@ class MyClass
 };
 \endcode
 
-There are two variation of \ref LOG and \ref sLOG: append 0 or 1 for temporarily
-disabled or enabled debug lines. These macros are then \ref LOG0, \ref LOG1,
-\ref sLOG0, and \ref sLOG1. The suffix overrides the debug variable's setting.
+There are two variation of \ref LOG and \ref sLOG : append 0 or 1 for
+temporarily disabled or enabled debug lines. These macros are then \ref LOG0,
+\ref LOG1, \ref sLOG0, and \ref sLOG1. The suffix overrides the debug variable's
+setting.
 
 After a module works as intended, one can just set `debug = false`, and all
 debug output will disappear.

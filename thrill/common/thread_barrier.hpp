@@ -32,8 +32,6 @@ class ThreadBarrierLocking
 public:
     /*!
      * Creates a new barrier that waits for n threads.
-     *
-     * \param n The number of threads to wait for.
      */
     explicit ThreadBarrierLocking(size_t thread_count)
         : thread_count_(thread_count) { }
@@ -90,8 +88,6 @@ class ThreadBarrierSpinning
 public:
     /*!
      * Creates a new barrier that waits for n threads.
-     *
-     * \param n The number of threads to wait for.
      */
     explicit ThreadBarrierSpinning(size_t thread_count)
         : thread_count_(thread_count) { }
