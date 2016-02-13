@@ -129,6 +129,9 @@ public:
         }
     };
 
+    using BucketBlockIterator = typename std::vector<BucketBlock*>::iterator;
+
+public:
     ReduceBucketHashTable(
         Context& ctx,
         const KeyExtractor& key_extractor,
@@ -380,10 +383,14 @@ public:
 
         data::File::Writer writer = partition_files_[partition_id].GetWriter();
 
-        for (size_t i = partition_id * num_buckets_per_partition_;
-             i != (partition_id + 1) * num_buckets_per_partition_; ++i)
+        BucketBlockIterator iter =
+            buckets_.begin() + partition_id * num_buckets_per_partition_;
+        BucketBlockIterator end =
+            buckets_.begin() + (partition_id + 1) * num_buckets_per_partition_;
+
+        for ( ; iter != end; ++iter)
         {
-            BucketBlock* current = buckets_[i];
+            BucketBlock* current = *iter;
 
             while (current != nullptr)
             {
@@ -400,7 +407,7 @@ public:
                 current = next;
             }
 
-            buckets_[i] = nullptr;
+            *iter = nullptr;
         }
 
         // reset partition specific counter
@@ -466,12 +473,14 @@ public:
 
         if (items_per_partition_[partition_id] == 0) return;
 
-        size_t begin = partition_id * num_buckets_per_partition_;
-        size_t end = (partition_id + 1) * num_buckets_per_partition_;
+        BucketBlockIterator iter =
+            buckets_.begin() + partition_id * num_buckets_per_partition_;
+        BucketBlockIterator end =
+            buckets_.begin() + (partition_id + 1) * num_buckets_per_partition_;
 
-        for (size_t i = begin; i != end; i++)
+        for ( ; iter != end; ++iter)
         {
-            BucketBlock* current = buckets_[i];
+            BucketBlock* current = *iter;
 
             while (current != nullptr)
             {
@@ -495,7 +504,7 @@ public:
             }
 
             if (consume)
-                buckets_[i] = nullptr;
+                *iter = nullptr;
         }
 
         if (consume) {
