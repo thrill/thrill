@@ -232,6 +232,8 @@ public:
             return;
         }
 
+        table_.Dispose();
+
         // reverse order in remaining files
         std::reverse(remaining_files.begin(), remaining_files.end());
 

@@ -225,20 +225,7 @@ public:
     ReduceBucketHashTable& operator = (const ReduceBucketHashTable&) = delete;
 
     ~ReduceBucketHashTable() {
-        // destroy all block chains
-        for (BucketBlock* b_block : buckets_)
-        {
-            BucketBlock* current = b_block;
-            while (current != nullptr)
-            {
-                // destroy block and advance to next
-                BucketBlock* next = current->next;
-                current->destroy_items();
-                operator delete (current);
-                current = next;
-            }
-        }
-        block_pool_.Destroy();
+        Dispose();
     }
 
     /*!
@@ -343,6 +330,29 @@ public:
         // flush current partition if max partition fill rate reached
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
+    }
+
+    //! Deallocate memory
+    void Dispose() {
+        // destroy all block chains
+        for (BucketBlock* b_block : buckets_)
+        {
+            BucketBlock* current = b_block;
+            while (current != nullptr)
+            {
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
+            }
+        }
+
+        // destroy vector and block pool
+        std::vector<BucketBlock*>().swap(buckets_);
+        block_pool_.Destroy();
+
+        Super::Dispose();
     }
 
     //! \name Spilling Mechanisms to External Memory Files
@@ -531,15 +541,19 @@ protected:
     class BucketBlockPool
     {
     public:
-        // constructor (we don't need to do anything here)
-        BucketBlockPool() { }
+        BucketBlockPool() = default;
 
-        // delete the copy constructor; we can't copy it:
+        //! non-copyable: delete copy-constructor
         BucketBlockPool(const BucketBlockPool&) = delete;
+        //! non-copyable: delete assignment operator
+        BucketBlockPool& operator = (const BucketBlockPool&) = delete;
+        //! move-constructor: default
+        BucketBlockPool(BucketBlockPool&&) = default;
+        //! move-assignment operator: default
+        BucketBlockPool& operator = (BucketBlockPool&&) = default;
 
-        // move constructor, so we can move it:
-        BucketBlockPool(BucketBlockPool&& other) {
-            this->free(std::move(other.free));
+        ~BucketBlockPool() {
+            Destroy();
         }
 
         // allocate a chunk of memory as big as Type needs:
@@ -572,9 +586,6 @@ protected:
                 free.pop();
             }
         }
-
-        // delete all of the available memory chunks:
-        ~BucketBlockPool() { }
 
     private:
         // stack to hold pointers to free chunks:

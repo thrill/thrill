@@ -161,6 +161,13 @@ public:
             }
         }
 
+        if (remaining_files.size() == 0) {
+            LOG << "Flushed items directly.";
+            return;
+        }
+
+        table_.Dispose();
+
         // if partially reduce files remain, create new hash tables to process
         // them iteratively.
 

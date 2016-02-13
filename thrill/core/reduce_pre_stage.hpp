@@ -186,11 +186,6 @@ public:
         emit_.Flush(partition_id);
     }
 
-    //! Emits element to all children
-    void EmitAll(const size_t& partition_id, const KeyValuePair& p) {
-        emit_.Emit(p, partition_id);
-    }
-
     //! Closes all emitter
     void CloseAll() {
         emit_.CloseAll();
