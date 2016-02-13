@@ -87,6 +87,8 @@ class ReduceProbingHashTable
 public:
     using KeyValuePair = std::pair<Key, Value>;
 
+    using KeyValueIterator = typename std::vector<KeyValuePair>::iterator;
+
     ReduceProbingHashTable(
         Context& ctx,
         const KeyExtractor& key_extractor,
@@ -174,37 +176,36 @@ public:
         assert(h.partition_id < num_partitions_);
         assert(h.global_index < num_buckets_);
 
-        KeyValuePair* initial = &items_[h.global_index];
-        KeyValuePair* current = initial;
-        KeyValuePair* last_item =
-            &items_[(h.partition_id + 1) * num_buckets_per_partition_ - 1];
+        KeyValueIterator begin = items_.begin() + h.global_index;
+        KeyValueIterator iter = begin;
+        KeyValueIterator end =
+            items_.begin() + (h.partition_id + 1) * num_buckets_per_partition_;
 
-        while (!equal_to_function_(current->first, sentinel_.first))
+        while (!equal_to_function_(iter->first, sentinel_.first))
         {
-            if (equal_to_function_(current->first, kv.first))
+            if (equal_to_function_(iter->first, kv.first))
             {
                 LOG << "match of key: " << kv.first
-                    << " and " << current->first << " ... reducing...";
+                    << " and " << iter->first << " ... reducing...";
 
-                current->second = reduce_function_(current->second, kv.second);
+                iter->second = reduce_function_(iter->second, kv.second);
 
                 LOG << "...finished reduce!";
                 return;
             }
 
-            if (current == last_item) {
-                current -= (num_buckets_per_partition_ - 1);
-            }
-            else {
-                ++current;
-            }
+            ++iter;
+
+            // wrap around if beyond the current partition
+            if (iter == end)
+                iter -= num_buckets_per_partition_;
 
             // flush partition, if all slots are reserved
-            if (current == initial) {
+            if (iter == begin) {
 
                 SpillPartition(h.partition_id);
 
-                *current = kv;
+                *iter = kv;
 
                 // increase counter for partition
                 items_per_partition_[h.partition_id]++;
@@ -214,15 +215,13 @@ public:
         }
 
         // insert new pair
-        *current = kv;
+        *iter = kv;
 
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
 
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
-        {
             SpillPartition(h.partition_id);
-        }
     }
 
     //! Deallocate memory
@@ -248,14 +247,17 @@ public:
 
         data::File::Writer writer = partition_files_[partition_id].GetWriter();
 
-        for (size_t i = partition_id * num_buckets_per_partition_;
-             i < (partition_id + 1) * num_buckets_per_partition_; i++)
+        KeyValueIterator iter =
+            items_.begin() + partition_id * num_buckets_per_partition_;
+        KeyValueIterator end =
+            items_.begin() + (partition_id + 1) * num_buckets_per_partition_;
+
+        for ( ; iter != end; ++iter)
         {
-            KeyValuePair& current = items_[i];
-            if (current.first != sentinel_.first)
+            if (iter->first != sentinel_.first)
             {
-                writer.Put(current);
-                items_[i] = sentinel_;
+                writer.Put(*iter);
+                *iter = sentinel_;
             }
         }
 
@@ -276,18 +278,18 @@ public:
         LOG << "Flushing " << items_per_partition_[partition_id]
             << " items of partition: " << partition_id;
 
-        size_t begin = partition_id * num_buckets_per_partition_;
-        size_t end = (partition_id + 1) * num_buckets_per_partition_;
+        KeyValueIterator iter =
+            items_.begin() + partition_id * num_buckets_per_partition_;
+        KeyValueIterator end =
+            items_.begin() + (partition_id + 1) * num_buckets_per_partition_;
 
-        for (size_t i = begin; i != end; ++i)
+        for ( ; iter != end; ++iter)
         {
-            KeyValuePair& current = items_[i];
-
-            if (current.first != sentinel_.first) {
-                emit(partition_id, current);
+            if (iter->first != sentinel_.first) {
+                emit(partition_id, *iter);
 
                 if (consume)
-                    items_[i] = sentinel_;
+                    *iter = sentinel_;
             }
         }
 
