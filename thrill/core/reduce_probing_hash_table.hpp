@@ -13,6 +13,7 @@
 #ifndef THRILL_CORE_REDUCE_PROBING_HASH_TABLE_HEADER
 #define THRILL_CORE_REDUCE_PROBING_HASH_TABLE_HEADER
 
+#include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_table.hpp>
 
 #include <functional>
@@ -169,7 +170,7 @@ public:
     void Insert(const KeyValuePair& kv) {
         static const bool debug = false;
 
-        typename IndexFunction::IndexResult h = index_function_(
+        ReduceIndexResult h = index_function_(
             kv.first, num_partitions_,
             num_buckets_per_partition_, num_buckets_);
 
