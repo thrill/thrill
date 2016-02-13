@@ -31,7 +31,7 @@ The meta-data in Block consists of four integers: begin and end for first and la
 
 A BlockWriter is parameterized by a BlockSink; it allocates, fills a ByteBlock, and delivers full Blocks to a BlockSink. See the inheritance diagram of BlockSink for available sinks; there are at least: File, BlockQueue, ChannelSink, and DiscardSink.
 
-BlockWriter usually is open and then items are written via \ref BlockWriter::PutItem() "PutItem()". There are also a few variants of more low-level Put methods available. Note that BlockWriter has no type template parameter: the PutItem() method will take *any* serializable item.  BlockWriter has two additional signaling methods: \ref BlockWriter::Flush Flush() and \ref BlockWriter::Close Close() . Flush() is only needed when the buffering block should immediately be written to the BlockSink, this obviously incurs half-full blocks. Close() flushes the last block and no more items may be written.
+BlockWriter usually is open and then items are written via \ref BlockWriter::Put() "Put()". There are also a few variants of more low-level Put methods available. Note that BlockWriter has no type template parameter: the PutItem() method will take *any* serializable item.  BlockWriter has two additional signaling methods: \ref BlockWriter::Flush Flush() and \ref BlockWriter::Close Close() . Flush() is only needed when the buffering block should immediately be written to the BlockSink, this obviously incurs half-full blocks. Close() flushes the last block and no more items may be written.
 
 A BlockReader is parameterized by a BlockSource concept class, which delivers Blocks to the Reader. The reader then deserializes items and arbitrary data types from the Blocks, and reads new a Block if a large item extends into it.
 

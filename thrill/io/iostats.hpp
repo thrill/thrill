@@ -342,7 +342,7 @@ public:
 
     //! I/O wait time counter.
     //! \return number of seconds spent in I/O waiting functions \link
-    //! request::wait request::wait \endlink, \c wait_any and \c wait_all
+    //! Request::wait request::wait \endlink, \c wait_any and \c wait_all
     double get_io_wait_time() const {
         return t_waits;
     }

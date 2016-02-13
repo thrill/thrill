@@ -18,6 +18,7 @@
 #include <thrill/data/serialization.hpp>
 
 #include <sstream>
+#include <string>
 
 namespace thrill {
 namespace data {

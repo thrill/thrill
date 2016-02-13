@@ -34,6 +34,13 @@ static inline uint64_t Hash128to64(const uint64_t upper, const uint64_t lower) {
     return b;
 }
 
+struct ReduceIndexResult {
+    //! which partition number the item belongs to.
+    size_t partition_id;
+    //! index within the whole hashtable
+    size_t global_index;
+};
+
 /*!
  * A reduce index function which returns a hash index and partition. It is used
  * by ReduceToHash.
@@ -42,13 +49,6 @@ template <typename Key, typename HashFunction = std::hash<Key> >
 class ReduceByHash
 {
 public:
-    struct IndexResult {
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the whole hashtable
-        size_t global_index;
-    };
-
     explicit ReduceByHash(
         const uint64_t& salt = 0,
         const HashFunction& hash_function = HashFunction())
@@ -58,10 +58,11 @@ public:
         const uint64_t& salt, const ReduceByHash& other)
         : salt_(salt), hash_function_(other.hash_function_) { }
 
-    IndexResult operator () (const Key& k,
-                             const size_t& num_partitions,
-                             const size_t& num_buckets_per_partition,
-                             const size_t& num_buckets_per_table) const {
+    ReduceIndexResult operator () (
+        const Key& k,
+        const size_t& num_partitions,
+        const size_t& num_buckets_per_partition,
+        const size_t& num_buckets_per_table) const {
 
         (void)num_partitions;
 
@@ -70,7 +71,7 @@ public:
         size_t global_index = hash % num_buckets_per_table;
         size_t partition_id = global_index / num_buckets_per_partition;
 
-        return IndexResult { partition_id, global_index };
+        return ReduceIndexResult { partition_id, global_index };
     }
 
 private:
@@ -86,13 +87,6 @@ template <typename Key>
 class ReduceByIndex
 {
 public:
-    struct IndexResult {
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the whole hashtable
-        size_t global_index;
-    };
-
     explicit ReduceByIndex(const common::Range& range)
         : range_(range) { }
 
@@ -103,17 +97,20 @@ public:
 
     void set_range(const common::Range& range) { range_ = range; }
 
-    IndexResult operator () (const Key& k,
-                             const size_t& /* num_partitions */,
-                             const size_t& num_buckets_per_partition,
-                             const size_t& num_buckets) const {
+    ReduceIndexResult operator () (
+        const Key& k,
+        const size_t& /* num_partitions */,
+        const size_t& num_buckets_per_partition,
+        const size_t& num_buckets) const {
 
         assert(k >= range_.begin && k < range_.end && "Item out of range.");
 
         // round bucket number down
         size_t global_index = (k - range_.begin) * num_buckets / range_.size();
 
-        return IndexResult { global_index / num_buckets_per_partition, global_index };
+        return ReduceIndexResult {
+                   global_index / num_buckets_per_partition, global_index
+        };
     }
 
     //! inverse mapping: takes a bucket index and returns the smallest index

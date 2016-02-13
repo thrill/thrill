@@ -126,7 +126,7 @@ TEST(ReduceHashStage, PostReduceByIndex) {
     size_t num_buckets_per_partition = num_buckets / num_partitions;
 
     for (size_t key = 0; key < 601; ++key) {
-        IndexMap::IndexResult b
+        core::ReduceIndexResult b
             = imap(key,
                    num_partitions, num_buckets_per_partition, num_buckets);
 
