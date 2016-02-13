@@ -148,16 +148,20 @@ static const BenchVector bench_vector = BenchVector(
     });
 
 using p_is = std::pair<int, std::string>;
-static const p_is p_is0 = std::make_pair(9, "blablablabalbalbla");
+static const p_is p_is0 = p_is(9, "blablablabalbalbla");
+
 using p_pi = std::pair<p_is, int>;
-static const p_pi p_pi0 = std::make_pair(p_is0, 89);
+static const p_pi p_pi0 = p_pi(p_is0, 89);
+
 using t_pp = std::tuple<p_is, p_pi>;
-static const t_pp t_pp0 = std::make_tuple(p_is0, p_pi0);
+static const t_pp t_pp0 = t_pp(p_is0, p_pi0);
+
 using t_ttpi = std::tuple<t_pp, t_pp, p_pi, int>;
-static const t_ttpi t_ttpi0 = std::make_tuple(t_pp0, t_pp0, p_pi0, 8769);
-static const t_ttpi t_ttpi1 = std::make_tuple(t_pp0, t_pp0, p_pi0, 870999);
+static const t_ttpi t_ttpi0 = t_ttpi(t_pp0, t_pp0, p_pi0, 8769);
+static const t_ttpi t_ttpi1 = t_ttpi(t_pp0, t_pp0, p_pi0, 870999);
+
 using t_tt = std::tuple<t_ttpi, t_ttpi, t_ttpi, t_ttpi>;
-static const t_tt bench_tuple = std::make_tuple(t_ttpi0, t_ttpi0, t_ttpi1, t_ttpi1);
+static const t_tt bench_tuple = t_tt(t_ttpi0, t_ttpi0, t_ttpi1, t_ttpi1);
 
 #endif // !THRILL_BENCHMARKS_SERIALIZATION_DATA_HEADER
 

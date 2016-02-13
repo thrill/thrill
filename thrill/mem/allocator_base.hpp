@@ -68,16 +68,18 @@ public:
         ::new ((void*)p)Type(value); // NOLINT
     }
 
+#if defined(_MSC_VER)
+// disable false-positive warning C4100: 'p': unreferenced formal parameter
+#pragma warning(push)
+#pragma warning(disable:4100)
+#endif
     //! Destroys in-place the object pointed by p.
     void destroy(pointer p) const noexcept {
-#if defined(_MSC_VER)
-        // disable false-positive warning C4100: 'p': unreferenced formal parameter
-#pragma warning(suppress:4100)
         p->~Type();
-#else
-        p->~Type();
-#endif
     }
+#if defined(_MSC_VER)
+#pragma warning(push)
+#endif
 
     //! Constructs an element object on the location pointed by p.
     template <class SubType, typename ... Args>
