@@ -225,6 +225,12 @@ public:
         }
     }
 
+    //! Deallocate memory
+    void Dispose() {
+        std::vector<KeyValuePair>().swap(items_);
+        Super::Dispose();
+    }
+
     //! \name Spilling Mechanisms to External Memory Files
     //! \{
 

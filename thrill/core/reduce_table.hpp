@@ -120,6 +120,12 @@ public:
     //! non-copyable: delete assignment operator
     ReduceTable& operator = (const ReduceTable&) = delete;
 
+    //! Deallocate memory
+    void Dispose() {
+        std::vector<data::File>().swap(partition_files_);
+        std::vector<size_t>().swap(items_per_partition_);
+    }
+
     //! \name Accessors
     //! \{
 
