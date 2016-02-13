@@ -176,6 +176,12 @@ if(USE_IWYU)
   endif()
 endif()
 
+if(APPLE)
+  # disable warnings about "ranlib: file: libthrill.a(...cpp.o) has no symbols"
+  set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+  set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+endif()
+
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 ###############################################################################

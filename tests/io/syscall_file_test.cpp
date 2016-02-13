@@ -26,8 +26,6 @@
 
 using namespace thrill;
 
-static const bool debug = true;
-
 struct my_handler
 {
     void operator () (io::Request* ptr, bool /* success */) {
