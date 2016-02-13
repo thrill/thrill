@@ -17,9 +17,8 @@
 
 using namespace thrill;
 
-const int kNumOfTest1Records = 100;
-const int kNumOfTest2Records = 100;
-const int kTest2CacheCapacity = 50;
+static const int kNumOfTest2Records = 100;
+static const int kTest2CacheCapacity = 50;
 
 TEST(LruCacheTest, SimplePut) {
     common::LruCache<int, int> cache;
