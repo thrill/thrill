@@ -137,6 +137,34 @@ private:
     common::Range range_;
 };
 
+/******************************************************************************/
+
+//! template specialization switch class to output key+value if SendPair and
+//! only value if not SendPair.
+template <
+    typename KeyValuePair, typename ValueType, typename Emitter, bool SendPair>
+class ReducePostStageEmitterSwitch;
+
+template <typename KeyValuePair, typename ValueType, typename Emitter>
+class ReducePostStageEmitterSwitch<
+        KeyValuePair, ValueType, Emitter, false>
+{
+public:
+    static void Put(const KeyValuePair& p, Emitter& emit) {
+        emit(p.second);
+    }
+};
+
+template <typename KeyValuePair, typename ValueType, typename Emitter>
+class ReducePostStageEmitterSwitch<
+        KeyValuePair, ValueType, Emitter, true>
+{
+public:
+    static void Put(const KeyValuePair& p, Emitter& emit) {
+        emit(p);
+    }
+};
+
 } // namespace core
 } // namespace thrill
 
