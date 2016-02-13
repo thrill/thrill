@@ -46,13 +46,6 @@ public:
 
     /*!
      * StreamSink sending out to network.
-     *
-     * \param dispatcher used for sending data via a socket
-     * \param connection the socket (aka conneciton) used for the stream
-     * \param stream_id the ID that identifies the stream
-     * \param my_rank the ID that identifies this computing node globally
-     * \param my_local_worker_id the id that identifies the worker locally
-     * \param partners_local_worker_id the id that identifies the partner worker locally
      */
     StreamSink(BlockPool& block_pool,
                net::DispatcherThread* dispatcher,

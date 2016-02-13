@@ -355,7 +355,6 @@ prepare_unguarded_sentinel(RandomAccessIteratorIterator seqs_begin,
  * iterator class.
  *
  * \param seqs_begin Begin iterator of iterator pair input sequence.
- * \param seqs_end End iterator of iterator pair input sequence.
  * \param target Begin iterator out output sequence.
  * \param length Maximum length to merge.
  * \param comp Comparator.
@@ -529,7 +528,6 @@ multiway_merge_3_combined(RandomAccessIteratorIterator seqs_begin,
  * iterator class.
  *
  * \param seqs_begin Begin iterator of iterator pair input sequence.
- * \param seqs_end End iterator of iterator pair input sequence.
  * \param target Begin iterator out output sequence.
  * \param length Maximum length to merge.
  * \param comp Comparator.
@@ -652,7 +650,6 @@ finish:
  * iterator class.
  *
  * \param seqs_begin Begin iterator of iterator pair input sequence.
- * \param seqs_end End iterator of iterator pair input sequence.
  * \param target Begin iterator out output sequence.
  * \param length Maximum length to merge.
  * \param comp Comparator.
@@ -1449,7 +1446,6 @@ sequential_file_multiway_merge(RandomAccessIteratorIterator seqs_begin,
  *
  * \param seqs_begin Begin iterator of iterator pair input sequence.
  * \param seqs_end End iterator of iterator pair input sequence.
- * \param target Begin iterator out output sequence.
  * \param length Maximum length to merge.
  * \param comp Comparator.
  * \tparam Stable Stable merging incurs a performance penalty.
@@ -1460,9 +1456,11 @@ template <bool Stable, bool Sentinels,
           typename RandomAccessIteratorIterator,
           typename DiffType, typename Comparator>
 // return type of hell
-api::MultiwayMergeTreePuller<typename std::iterator_traits<typename std::iterator_traits<RandomAccessIteratorIterator>
-                                                           ::value_type::first_type>::value_type,
-                             Comparator>
+api::MultiwayMergeTreePuller<
+    typename std::iterator_traits<
+        typename std::iterator_traits<RandomAccessIteratorIterator>
+        ::value_type::first_type>::value_type,
+    Comparator>
 // RandomAccessIterator3
 get_sequential_file_multiway_merge_tree(RandomAccessIteratorIterator seqs_begin,
                                         RandomAccessIteratorIterator seqs_end,
