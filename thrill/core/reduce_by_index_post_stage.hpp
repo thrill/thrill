@@ -32,32 +32,6 @@
 namespace thrill {
 namespace core {
 
-//! template specialization switch class to output key+value if SendPair and
-//! only value if not SendPair.
-template <
-    typename KeyValuePair, typename ValueType, typename Emitter, bool SendPair>
-class ReduceByIndexPostStageEmitterSwitch;
-
-template <typename KeyValuePair, typename ValueType, typename Emitter>
-class ReduceByIndexPostStageEmitterSwitch<
-        KeyValuePair, ValueType, Emitter, false>
-{
-public:
-    static void Put(const KeyValuePair& p, Emitter& emit) {
-        emit(p.second);
-    }
-};
-
-template <typename KeyValuePair, typename ValueType, typename Emitter>
-class ReduceByIndexPostStageEmitterSwitch<
-        KeyValuePair, ValueType, Emitter, true>
-{
-public:
-    static void Put(const KeyValuePair& p, Emitter& emit) {
-        emit(p);
-    }
-};
-
 //! Emitter implementation to plug into a reduce hash table for
 //! collecting/flushing items while reducing. Items flushed in the post-stage
 //! are passed to the next DIA node for processing.
@@ -72,7 +46,7 @@ public:
     //! output an element into a partition, template specialized for SendPair
     //! and non-SendPair types
     void Emit(const KeyValuePair& p) {
-        ReduceByIndexPostStageEmitterSwitch<
+        ReducePostStageEmitterSwitch<
             KeyValuePair, ValueType, Emitter, SendPair>::Put(p, emit_);
     }
 
