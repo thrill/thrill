@@ -27,13 +27,16 @@
 #include <utility>
 #include <vector>
 
-using IntPair = std::pair<int, int>;
+using Key = uint64_t;
+using KeyPair = std::pair<uint64_t, uint64_t>;
 
 using namespace thrill; // NOLINT
 
 std::string title;
-uint64_t size = 50 * 1024 * 1024;
+uint64_t size = 64 * 1024 * 1024;
 unsigned int workers = 100;
+
+uint64_t item_range = std::numeric_limits<Key>::max();
 
 template <
     template <
@@ -46,36 +49,36 @@ template <
     class HashTable>
 void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& config) {
 
-    auto key_ex = [](size_t in) { return in; };
+    auto key_ex = [](const Key& in) { return in; };
 
-    auto red_fn = [](size_t in1, size_t in2) {
+    auto red_fn = [](const Key& in1, const Key& in2) {
                       (void)in2;
                       return in1;
                   };
 
-    auto emit_fn = [](const IntPair&) { };
+    auto emit_fn = [](const KeyPair&) { };
 
-    size_t num_items = size / sizeof(std::pair<size_t, size_t>);
+    uint64_t num_items = size / sizeof(KeyPair);
 
     std::default_random_engine rng(std::random_device { } ());
-    std::uniform_int_distribution<size_t> dist(1, std::numeric_limits<size_t>::max());
+    std::uniform_int_distribution<Key> dist(1, item_range);
 
     core::ReduceByHashPostStage<
-        size_t, size_t, size_t,
+        Key, Key, Key,
         decltype(key_ex), decltype(red_fn), decltype(emit_fn),
         /* SendPair */ true,
-        core::ReduceByHash<size_t>,
+        core::ReduceByHash<Key>,
         core::DefaultReduceTableConfig,
-        std::equal_to<size_t>,
+        std::equal_to<Key>,
         HashTable>
     table(ctx, key_ex, red_fn, emit_fn,
-          core::ReduceByHash<size_t>(),
+          core::ReduceByHash<Key>(),
           /* sentinel */ 0,
           config);
 
     common::StatsTimer<true> timer(true);
 
-    for (size_t i = 0; i < num_items; i++)
+    for (uint64_t i = 0; i < num_items; i++)
         table.Insert(dist(rng));
 
     table.Flush();
@@ -104,7 +107,7 @@ int main(int argc, char* argv[]) {
     std::string hashtable;
 
     clp.AddBytes('s', "size", "S", size,
-                 "Set amount of bytes to be inserted, default = 50 MiB");
+                 "Set amount of bytes to be inserted, default = 64 MiB");
 
     clp.AddString('t', "title", "T", title,
                   "Load in byte to be inserted");
@@ -122,6 +125,10 @@ int main(int argc, char* argv[]) {
     clp.AddDouble('b', "bucket_rate", "B",
                   config.bucket_rate_,
                   "set bucket_rate, default = 0.5.");
+
+    clp.AddBytes('r', "range", "N",
+                 item_range,
+                 "set upper bound on item values, default = UINT_MAX.");
 
     if (!clp.Process(argc, argv)) {
         return -1;
