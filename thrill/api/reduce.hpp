@@ -246,7 +246,7 @@ auto DIA<ValueType, Stack>::ReducePair(
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    static_assert(common::is_pair<ValueType>::value,
+    static_assert(common::is_std_pair<ValueType>::value,
                   "ValueType is not a pair");
 
     static_assert(

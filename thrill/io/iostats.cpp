@@ -211,16 +211,16 @@ void Stats::wait_finished(wait_op_type wait_op) {
         p_waits += (acc_waits--) ? diff : 0.0;
 
         if (wait_op == WAIT_OP_READ) {
-            double diff = now - p_begin_wait_read;
-            t_wait_read += static_cast<double>(acc_wait_read) * diff;
+            double diff_read = now - p_begin_wait_read;
+            t_wait_read += static_cast<double>(acc_wait_read) * diff_read;
             p_begin_wait_read = now;
-            p_wait_read += (acc_wait_read--) ? diff : 0.0;
+            p_wait_read += (acc_wait_read--) ? diff_read : 0.0;
         }
         else /* if (wait_op == WAIT_OP_WRITE) */ {
-            double diff = now - p_begin_wait_write;
-            t_wait_write += static_cast<double>(acc_wait_write) * diff;
+            double diff_write = now - p_begin_wait_write;
+            t_wait_write += static_cast<double>(acc_wait_write) * diff_write;
             p_begin_wait_write = now;
-            p_wait_write += (acc_wait_write--) ? diff : 0.0;
+            p_wait_write += (acc_wait_write--) ? diff_write : 0.0;
         }
 #ifdef THRILL_WAIT_LOG_ENABLED
         std::ofstream* waitlog = stxxl::logger::get_instance()->waitlog_stream();

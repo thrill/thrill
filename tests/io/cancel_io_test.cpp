@@ -53,8 +53,7 @@ int main(int argc, char** argv) {
     // without cancelation
     std::cout << "Posting " << num_blocks << " requests." << std::endl;
     io::StatsData stats1(*io::Stats::get_instance());
-    unsigned i = 0;
-    for ( ; i < num_blocks; i++)
+    for (unsigned i = 0; i < num_blocks; i++)
         req[i] = file->awrite(buffer, i * size, size, print_completion());
     wait_all(req.begin(), req.end());
     std::cout << io::StatsData(*io::Stats::get_instance()) - stats1;

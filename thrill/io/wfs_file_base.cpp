@@ -102,8 +102,8 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
 
         dwFlagsAndAttributes &= ~FILE_FLAG_NO_BUFFERING;
 
-        HANDLE file_des = ::CreateFile(filename.c_str(), dwDesiredAccess, dwShareMode, nullptr,
-                                       dwCreationDisposition, dwFlagsAndAttributes, nullptr);
+        file_des = ::CreateFile(filename.c_str(), dwDesiredAccess, dwShareMode, nullptr,
+                                dwCreationDisposition, dwFlagsAndAttributes, nullptr);
 
         if (file_des != INVALID_HANDLE_VALUE)
             return file_des;

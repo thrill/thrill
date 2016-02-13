@@ -198,7 +198,7 @@ private:
               stats_total_reads_(stats_total_reads) {
             if (fileinfo.begin != 0) {
                 // seek to beginning
-                size_t p = sysfile_.lseek(fileinfo.begin);
+                size_t p = sysfile_.lseek(static_cast<off_t>(fileinfo.begin));
                 die_unequal(fileinfo.begin, p);
             }
         }

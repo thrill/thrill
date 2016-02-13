@@ -26,8 +26,8 @@
 #include <thrill/common/singleton.hpp>
 
 #include <chrono>
-#include <iostream>
 #include <mutex>
+#include <ostream>
 #include <string>
 
 namespace thrill {
