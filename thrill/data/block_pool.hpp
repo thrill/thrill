@@ -62,9 +62,6 @@ public:
      * \param mem_manager Memory Manager that tracks amount of RAM
      * allocated. the BlockPool will create a child manager.
      *
-     * \param mem_manager_external Memory Manager that tracks amount of memory
-     * allocated on disk. The BlockPool will create a child manager.
-     *
      * \param workers_per_host number of workers on this host.
      */
     BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
@@ -84,7 +81,6 @@ public:
     PinnedByteBlockPtr AllocateByteBlock(size_t size, size_t local_worker_id);
 
     //! Pins a block by swapping it in if required.
-    //! \param block_ptr the block to pin
     std::future<PinnedBlock> PinBlock(const Block& block, size_t local_worker_id);
 
     //! Increment a ByteBlock's pin count, requires the pin count to be > 0.
@@ -237,7 +233,6 @@ private:
 
     //! Unpins a block. If all pins are removed, the block might be swapped.
     //! Returns immediately. Actual unpinning is async.
-    //! \param block_ptr the block to unpin
     void UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
 
     //! callback for async write of blocks during eviction

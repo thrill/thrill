@@ -85,13 +85,8 @@ protected:
 
 public:
     /*!
-     * Constructor for a ReduceNode. Sets the parent, stack,
-     * key_extractor and reduce_function.
-     *
-     * \param parent Parent DIA.
-     * and this node
-     * \param key_extractor Key extractor function
-     * \param reduce_function Reduce function
+     * Constructor for a ReduceNode. Sets the parent, stack, key_extractor and
+     * reduce_function.
      */
     ReduceNode(const ParentDIA& parent,
                const KeyExtractor& key_extractor,

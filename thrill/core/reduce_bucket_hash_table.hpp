@@ -261,7 +261,7 @@ public:
      * Alternatively, it may trigger a resize of table in case maximal number of
      * items per bucket is reached.
      *
-     * \param p Value to be inserted into the table.
+     * \param kv Value to be inserted into the table.
      */
     void Insert(const KeyValuePair& kv) {
 

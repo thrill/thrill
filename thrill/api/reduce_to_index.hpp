@@ -89,13 +89,6 @@ public:
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
      * key_extractor and reduce_function.
-     *
-     * \param parent Parent DIA.
-     * \param key_extractor Key extractor function
-     * \param reduce_function Reduce function
-     * \param result_size size of the resulting DIA, range of index returned by reduce_function.
-     * \param neutral_element Item value with which to start the reduction in
-     * each array cell.
      */
     ReduceToIndexNode(const ParentDIA& parent,
                       const KeyExtractor& key_extractor,
@@ -158,7 +151,8 @@ public:
         }
 
         if (RobustKey) {
-            // we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            // we actually want to wire up callbacks in the ctor and NOT use
+            // this blocking method
             auto reader = stream_->OpenCatReader(consume);
             sLOG << "reading data from" << stream_->id()
                  << "to push into post table which flushes to" << this->id();
@@ -167,7 +161,8 @@ public:
             }
         }
         else {
-            // we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            // we actually want to wire up callbacks in the ctor and NOT use
+            // this blocking method
             auto reader = stream_->OpenCatReader(consume);
             sLOG << "reading data from" << stream_->id()
                  << "to push into post table which flushes to" << this->id();
