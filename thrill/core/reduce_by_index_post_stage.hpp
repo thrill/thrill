@@ -90,38 +90,6 @@ public:
      * A data structure which takes an arbitrary value and extracts a key using
      * a key extractor function from that value. Afterwards, the value is hashed
      * based on the key into some slot.
-     *
-     * \param context Context.
-     *
-     * \param key_extractor Key extractor function to extract a key from a
-     * value.
-     *
-     * \param reduce_function Reduce function to reduce to values.
-     *
-     * \param emit A set of BlockWriter to flush items. One BlockWriter per
-     * partition.
-     *
-     * \param index_function Function to be used for computing the bucket the
-     * item to be inserted.
-     *
-     * \param begin_local_index Begin index for reduce to index.
-     *
-     * \param end_local_index End index for reduce to index.
-     *
-     * \param limit_memory_bytes Maximal size of the table in byte. In case size
-     * of table exceeds that value, items are flushed.
-     *
-     * \param bucket_rate Ratio of number of blocks to number of buckets in the
-     * table.
-     *
-     * \param limit_partition_fill_rate Maximal number of items relative to
-     * maximal number of items in a partition. It the number is exceeded, no
-     * more blocks are added to a bucket, instead, items get spilled to disk.
-     *
-     * \param partition_rate Rate of number of buckets to number of
-     * partitions. There is one file writer per partition.
-     *
-     * \param equal_to_function Function for checking equality of two keys.
      */
     ReduceByIndexPostStage(
         Context& ctx,

@@ -51,11 +51,6 @@ public:
     /*!
      * Constructor for a ReadLinesNode. Sets the Context
      * and file path.
-     *
-     * \param ctx Reference to Context, which holds references to data and
-     * network.
-     *
-     * \param path Path of the input file(s)
      */
     ReadLinesNode(Context& ctx,
                   const std::string& path,

@@ -116,8 +116,8 @@ public:
     //! Deallocates blocks.
     //!
     //! Deallocates blocks in the range [ \b bidbegin, \b bidend)
-    //! \param bidbegin iterator object of \b bid_iterator concept
-    //! \param bidend iterator object of \b bid_iterator concept
+    //! \param bid_begin iterator object of \b bid_iterator concept
+    //! \param bid_end iterator object of \b bid_iterator concept
     template <typename BIDIteratorClass>
     void delete_blocks(
         const BIDIteratorClass& bid_begin, const BIDIteratorClass& bid_end) {

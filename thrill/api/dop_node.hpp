@@ -42,6 +42,9 @@ public:
      *
      * \param parents Reference to parents of this node, which have to be
      * computed previously
+     *
+     * \param stats_node Ptr to holder of statistics, living longer than the
+     * node.
      */
     DOpNode(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,
