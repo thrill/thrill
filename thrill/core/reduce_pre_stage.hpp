@@ -137,7 +137,7 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
-                   const IndexFunction& index_function,
+                   const IndexFunction& index_function = IndexFunction(),
                    const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
                    const ReduceStageConfig& config = ReduceStageConfig(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
@@ -150,12 +150,6 @@ public:
 
         assert(num_partitions == emit.size());
     }
-
-    ReducePreStage(Context& ctx, size_t num_partitions, KeyExtractor key_extractor,
-                   ReduceFunction reduce_function,
-                   std::vector<data::DynBlockWriter>& emit)
-        : ReducePreStage(
-              ctx, num_partitions, key_extractor, reduce_function, emit, IndexFunction()) { }
 
     //! non-copyable: delete copy-constructor
     ReducePreStage(const ReducePreStage&) = delete;
@@ -171,9 +165,9 @@ public:
     }
 
     //! Flush all partitions
-    void Flush(bool consume = true) {
+    void FlushAll() {
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
-            FlushPartition(id, consume);
+            FlushPartition(id, /* consume */ true);
         }
     }
 

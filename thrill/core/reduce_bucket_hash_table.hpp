@@ -602,7 +602,6 @@ protected:
     };
 
 private:
-    using Super::emitter_;
     using Super::equal_to_function_;
     using Super::immediate_flush_;
     using Super::index_function_;

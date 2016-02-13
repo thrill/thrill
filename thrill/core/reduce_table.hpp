@@ -182,7 +182,6 @@ public:
 
     //! Returns the total num of items in the table.
     size_t num_items() const {
-
         size_t total_num_items = 0;
         for (size_t num_items : items_per_partition_) {
             total_num_items += num_items;
@@ -195,6 +194,14 @@ public:
     common::Range key_range(size_t partition_id) {
         return index_function().inverse_range(
             partition_id, num_buckets_per_partition_, num_buckets_);
+    }
+
+    //! returns whether and partition has spilled data into external memory.
+    bool has_spilled_data() const {
+        for (const data::File& file : partition_files_) {
+            if (file.num_items()) return true;
+        }
+        return false;
     }
 
     //! \}
