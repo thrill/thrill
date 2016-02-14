@@ -9,8 +9,12 @@
  ******************************************************************************/
 
 #include <examples/word_count.hpp>
+
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/distribute_from.hpp>
+#include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/write_lines_many.hpp>
 #include <thrill/common/string.hpp>
 
 #include <gtest/gtest.h>
