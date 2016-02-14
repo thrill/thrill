@@ -148,7 +148,7 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
             if (ctx.my_rank() == 0) {
                 tmpdir.wipe();
             }
-            ctx.Barrier();
+            ctx.net.Barrier();
 
             // generate a dia of integers and write them to disk
             size_t generate_size = 32000;
@@ -161,7 +161,7 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
                 dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary",
                                 16 * 1024);
             }
-            ctx.Barrier();
+            ctx.net.Barrier();
 
             // read the integers from disk (collectively) and compare
             {
@@ -196,7 +196,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
             if (ctx.my_rank() == 0) {
                 tmpdir.wipe();
             }
-            ctx.Barrier();
+            ctx.net.Barrier();
 
             // generate a dia of integers and write them to disk
             size_t generate_size = 32000;
@@ -209,7 +209,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
                 dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary-@@@@-####.gz",
                                 16 * 1024);
             }
-            ctx.Barrier();
+            ctx.net.Barrier();
 
             // read the integers from disk (collectively) and compare
             {
@@ -249,7 +249,7 @@ TEST(IO, GenerateStringWriteBinary) {
             if (ctx.my_rank() == 0) {
                 tmpdir.wipe();
             }
-            ctx.Barrier();
+            ctx.net.Barrier();
 
             // generate a dia of string Items and write them to disk
             size_t generate_size = 32000;
@@ -264,7 +264,7 @@ TEST(IO, GenerateStringWriteBinary) {
                 dia.WriteBinary(tmpdir.get() + "/IO.StringBinary",
                                 16 * 1024);
             }
-            ctx.Barrier();
+            ctx.net.Barrier();
 
             // read the Items from disk (collectively) and compare
             {
@@ -293,7 +293,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAs) {
             if (ctx.my_rank() == 0) {
                 tmpdir.wipe();
             }
-            ctx.Barrier();
+            ctx.net.Barrier();
 
             auto integers = ReadLines(ctx, "inputs/test1")
                             .Map([](const std::string& line) {
@@ -306,7 +306,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAs) {
 
             std::string path = "outputs/testsf.out";
 
-            ctx.Barrier();
+            ctx.net.Barrier();
 
             auto integers2 = api::ReadBinary<int>(
                 ctx, tmpdir.get() + "/*");
@@ -321,7 +321,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAs) {
 
             // Race condition as one worker might be finished while others are
             // still writing to output file.
-            ctx.Barrier();
+            ctx.net.Barrier();
 
             std::ifstream file(path);
             size_t begin = file.tellg();

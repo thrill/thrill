@@ -50,7 +50,7 @@ public:
 
         auto pre_op_function =
             [=](const ValueType& input) {
-                emitters_[target_id_](input);
+                emitters_[target_id_].Put(input);
             };
 
         // close the function stack with our pre op and register it at parent

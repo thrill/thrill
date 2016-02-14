@@ -128,7 +128,7 @@ private:
             window_.pop_front();
         window_.push_back(input);
 
-        writer_(input);
+        writer_.Put(input);
     }
 
     //! rank of our first element in file_
@@ -136,7 +136,7 @@ private:
 
     void MainOp() {
         // get rank of our first element
-        first_rank_ = context_.ExPrefixSum(file_.num_items());
+        first_rank_ = context_.net.ExPrefixSum(file_.num_items());
 
         // copy our last elements into a vector
         std::vector<Input> my_last;
@@ -150,7 +150,7 @@ private:
 
         // collective operation: get k - 1 predecessors
         std::vector<Input> pre =
-            context_.flow_control_channel().Predecessor(window_size_ - 1, my_last);
+            context_.net.Predecessor(window_size_ - 1, my_last);
 
         sLOG << "Window::MainOp()"
              << "first_rank_" << first_rank_

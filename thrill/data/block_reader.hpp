@@ -62,6 +62,18 @@ public:
     //! move-assignment operator: default
     BlockReader& operator = (BlockReader&&) = default;
 
+    //! return current block for debugging
+    PinnedBlock CopyBlock() const {
+        if (!block_.byte_block()) return PinnedBlock();
+        return PinnedBlock(
+            block_.CopyPinnedByteBlock(),
+            current_ - block_.data_begin(), end_ - block_.data_begin(),
+            block_.first_item_absolute(), num_items_);
+    }
+
+    //! return current ByteBlock
+    ByteBlockPtr byte_block() const { return block_.byte_block(); }
+
     //! \name Reading (Generic) Items
     //! \{
 
@@ -74,7 +86,7 @@ public:
 
         if (self_verify) {
             // for self-verification, T is prefixed with its hash code
-            size_t code = Get<size_t>();
+            size_t code = GetRaw<size_t>();
             if (code != typeid(T).hash_code()) {
                 throw std::runtime_error(
                           "BlockReader::Next() attempted to retrieve item "
@@ -112,7 +124,7 @@ public:
     }
 
     //! Read n items, however, do not deserialize them but deliver them as a
-    //! vector of Block objects. This is used to take out a range of
+    //! vector of (unpinned) Block objects. This is used to take out a range of
     //! items, the internal item cursor is advanced by n.
     template <typename ItemType>
     std::vector<Block> GetItemBatch(size_t n) {
@@ -122,10 +134,10 @@ public:
         if (n == 0) return out;
 
         die_unless(HasNext());
-        assert(bytes_);
+        assert(block_.IsValid());
 
         const Byte* begin_output = current_;
-        size_t first_output = current_ - bytes_->begin();
+        size_t first_output = current_ - byte_block()->begin();
 
         // inside the if-clause the current_ may not point to a valid item
         // boundary.
@@ -136,11 +148,12 @@ public:
             if (n >= num_items_) {
                 // construct first Block using current_ pointer
                 out.emplace_back(
-                    bytes_,
+                    byte_block(),
                     // valid range: excludes preceding items.
-                    current_ - bytes_->begin(), end_ - bytes_->begin(),
+                    current_ - byte_block()->begin(),
+                    end_ - byte_block()->begin(),
                     // first item is at begin_ (we may have dropped some)
-                    current_ - bytes_->begin(),
+                    current_ - byte_block()->begin(),
                     // remaining items in this block
                     num_items_);
 
@@ -161,10 +174,11 @@ public:
 
             while (n >= num_items_) {
                 out.emplace_back(
-                    bytes_,
+                    byte_block(),
                     // full range is valid.
-                    current_ - bytes_->begin(), end_ - bytes_->begin(),
-                    first_item_, num_items_);
+                    current_ - byte_block()->begin(),
+                    end_ - byte_block()->begin(),
+                    block_.first_item_absolute(), num_items_);
 
                 sLOG << "middle:" << out.back();
 
@@ -182,17 +196,17 @@ public:
             // last Block, we have to include the partial item in the
             // front.
             begin_output = current_;
-            first_output = first_item_;
+            first_output = block_.first_item_absolute();
 
-            current_ = bytes_->begin() + first_item_;
+            current_ = byte_block()->begin() + block_.first_item_absolute();
         }
 
         // put prospective last block into vector.
 
         out.emplace_back(
-            bytes_,
+            byte_block(),
             // full range is valid.
-            begin_output - bytes_->begin(), end_ - bytes_->begin(),
+            begin_output - byte_block()->begin(), end_ - byte_block()->begin(),
             first_output, n);
 
         // skip over remaining items in this block, there while collect all
@@ -212,12 +226,12 @@ public:
         }
         block_collect_ = nullptr;
 
-        out.back().set_end(current_ - bytes_->begin());
+        out.back().set_end(current_ - byte_block()->begin());
 
         sLOG << "partial last:" << out.back();
 
         sLOG << "exit3 after batch:"
-             << "current_=" << current_ - bytes_->begin();
+             << "current_=" << current_ - byte_block()->begin();
 
         return out;
     }
@@ -289,9 +303,9 @@ public:
     //! Fetch a single item of the template type Type from the buffer,
     //! advancing the cursor. Be careful with implicit type conversions!
     template <typename Type>
-    Type Get() {
+    Type GetRaw() {
         static_assert(std::is_pod<Type>::value,
-                      "You only want to Get() POD types as raw values.");
+                      "You only want to GetRaw() POD types as raw values.");
 
         Type ret;
 
@@ -315,17 +329,13 @@ private:
     BlockSource source_;
 
     //! The current block being read, this holds a shared pointer reference.
-    ByteBlockPtr bytes_;
+    PinnedBlock block_;
 
     //! current read pointer into current block of file.
     const Byte* current_ = nullptr;
 
     //! pointer to end of current block.
     const Byte* end_ = nullptr;
-
-    //! offset of first valid item in block (needed only during direct copying
-    //! of Blocks).
-    size_t first_item_;
 
     //! remaining number of items starting in this block
     size_t num_items_ = 0;
@@ -335,19 +345,20 @@ private:
 
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
-        Block b = source_.NextBlock();
-        sLOG0 << "BlockReader::NextBlock" << b;
+        // first release old pin.
+        block_.Reset();
+        // request next pinned block
+        block_ = source_.NextBlock();
+        sLOG0 << "BlockReader::NextBlock" << block_;
 
-        bytes_ = b.byte_block();
-        if (!b.IsValid()) return false;
+        if (!block_.IsValid()) return false;
 
         if (block_collect_)
-            block_collect_->emplace_back(b);
+            block_collect_->emplace_back(block_);
 
-        current_ = b.data_begin();
-        end_ = b.data_end();
-        first_item_ = b.first_item_absolute();
-        num_items_ = b.num_items();
+        current_ = block_.data_begin();
+        end_ = block_.data_end();
+        num_items_ = block_.num_items();
         return true;
     }
 };

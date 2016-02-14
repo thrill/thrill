@@ -52,7 +52,7 @@ public:
         : writer_(writer) { }
 
     void operator () (const ArrayItem& a) const {
-        (*writer_)(a);
+        writer_->Put(a);
     }
 };
 
@@ -75,10 +75,10 @@ struct IterStats {
  * It implements all needed functions of random access iterator for a file.
  *
  * based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
- *
  */
 template <typename ArrayItem>
-class FileIteratorWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
+class FileIteratorWrapper
+    : public std::iterator<std::random_access_iterator_tag, ArrayItem>
 {
     static const bool debug = false;
     using File = data::File;
@@ -131,10 +131,9 @@ public:
 
     FileIteratorWrapper() : file_(), pos_(0) { }
 
-    FileIteratorWrapper(File* file, std::shared_ptr<Reader> reader, size_t pos, bool valid = true)
-        : file_(file),
-          reader_(reader),
-          pos_(pos),
+    FileIteratorWrapper(File* file, const std::shared_ptr<Reader>& reader,
+                        size_t pos, bool valid = true)
+        : file_(file), reader_(reader), pos_(pos),
           stats_(std::make_shared<IterStats<ArrayItem> >(IterStats<ArrayItem>())) {
 
         stats_->is_valid_ = valid;
@@ -150,6 +149,8 @@ public:
     }
 
     FileIteratorWrapper(const FileIteratorWrapper&) = default;
+    FileIteratorWrapper(FileIteratorWrapper&&) = default;
+    FileIteratorWrapper& operator = (FileIteratorWrapper&&) = default;
 
     FileIteratorWrapper& operator = (const FileIteratorWrapper& r) {
         file_ = r.file_;

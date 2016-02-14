@@ -53,9 +53,11 @@ public:
     using ConsumeReader = BlockReader<ConsumeBlockQueueSource>;
 
     //! Constructor from BlockPool
-    explicit BlockQueue(BlockPool& block_pool)
-        : BlockSink(block_pool), file_(block_pool)
-    { }
+    explicit BlockQueue(BlockPool& block_pool, size_t local_worker_id)
+        : BlockSink(block_pool, local_worker_id),
+          file_(block_pool, local_worker_id) {
+        assert(local_worker_id < block_pool.workers_per_host());
+    }
 
     //! non-copyable: delete copy-constructor
     BlockQueue(const BlockQueue&) = delete;
@@ -66,8 +68,11 @@ public:
     //! move-assignment operator: default
     BlockQueue& operator = (BlockQueue&&) = default;
 
-    void AppendBlock(const Block& b) final {
+    void AppendBlock(const PinnedBlock& b) final {
         queue_.emplace(b);
+    }
+    void AppendBlock(PinnedBlock&& b) {
+        queue_.emplace(std::move(b));
     }
 
     //! Close called by BlockWriter.
@@ -81,9 +86,9 @@ public:
 
     enum { allocate_can_fail_ = false };
 
-    Block Pop() {
-        if (read_closed_) return Block();
-        Block b;
+    PinnedBlock Pop() {
+        if (read_closed_) return PinnedBlock();
+        PinnedBlock b;
         queue_.pop(b);
         read_closed_ = !b.IsValid();
         return b;
@@ -115,7 +120,7 @@ public:
     Reader GetReader(bool consume);
 
 private:
-    common::ConcurrentBoundedQueue<Block> queue_;
+    common::ConcurrentBoundedQueue<PinnedBlock> queue_;
 
     common::AtomicMovable<bool> write_closed_ = { false };
 
@@ -144,7 +149,7 @@ public:
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
-    Block NextBlock() {
+    PinnedBlock NextBlock() {
         return queue_.Pop();
     }
 
@@ -152,12 +157,6 @@ private:
     //! BlockQueue that blocks are retrieved from
     BlockQueue& queue_;
 };
-
-inline
-BlockQueue::ConsumeReader BlockQueue::GetConsumeReader() {
-    assert(!read_closed_);
-    return ConsumeReader(ConsumeBlockQueueSource(*this));
-}
 
 /*!
  * A BlockSource to read Blocks from a BlockQueue using a BlockReader, and at
@@ -181,8 +180,8 @@ public:
         : queue_(s.queue_) { s.queue_ = nullptr; }
 
     //! Return next block for BlockQueue, store into caching File and return it.
-    Block NextBlock() {
-        Block b = queue_->Pop();
+    PinnedBlock NextBlock() {
+        PinnedBlock b = queue_->Pop();
 
         // cache block in file_ (but not the termination block from the queue)
         if (b.IsValid())
@@ -202,41 +201,6 @@ private:
     //! Reference to BlockQueue
     BlockQueue* queue_;
 };
-
-inline
-DynBlockSource BlockQueue::GetBlockSource(bool consume) {
-    if (consume && !read_closed_) {
-        // set to consume, and BlockQueue has not been read.
-        sLOG << "BlockQueue::GetBlockSource() consume, from queue.";
-        return ConstructDynBlockSource<ConsumeBlockQueueSource>(*this);
-    }
-    else if (consume && read_closed_) {
-        // consume the File, BlockQueue was already read.
-        sLOG << "BlockQueue::GetBlockSource() consume, from cache:"
-             << file_.num_items();
-        return ConstructDynBlockSource<ConsumeFileBlockSource>(&file_);
-    }
-    else if (!consume && !read_closed_) {
-        // non-consumer but the BlockQueue has not been read.
-        sLOG << "BlockQueue::GetBlockSource() non-consume, from queue.";
-        return ConstructDynBlockSource<CacheBlockQueueSource>(this);
-    }
-    else if (!consume && read_closed_) {
-        // non-consumer: reread the file that was cached.
-        sLOG << "BlockQueue::GetBlockSource() non-consume, from cache:"
-             << file_.num_items();
-        return ConstructDynBlockSource<KeepFileBlockSource>(file_, 0);
-    }
-    else {
-        // impossible
-        abort();
-    }
-}
-
-inline
-BlockQueue::Reader BlockQueue::GetReader(bool consume) {
-    return DynBlockReader(GetBlockSource(consume));
-}
 
 //! \}
 

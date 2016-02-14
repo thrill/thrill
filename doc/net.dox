@@ -28,7 +28,7 @@ Group provides
 
 If any operation on a Connection fails, then an Exception is thrown.
 
-For testing purposes Group provides the function \ref Group::ExecuteLocalMock "ExecuteLocalMock" which creates a mock Group of k partners. The partners are connected via internal sockets (real kernel level sockets), and for each partner a std::thread is spawned. The thread executes a test function which gets a Group object that can communicate with the other partners. This is ideal for testing network protocols. See the test-net-group.cpp for more examples.
+For testing purposes Group provides the function \ref ExecuteGroupThreads which creates a mock Group of k partners. The partners are connected via internal sockets (real kernel level sockets), and for each partner a std::thread is spawned. The thread executes a test function which gets a Group object that can communicate with the other partners. This is ideal for testing network protocols. See the test-net-group.cpp for more examples.
 
 The network layer is designed to allow plugging in new network implementations by deriving from the main classes Group, Connection, and Dispatcher. The Group represents the set of connections, and provides synchronous communication, while the Dispatcher allows asynchronous callbacks.
 

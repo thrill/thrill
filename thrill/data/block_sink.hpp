@@ -31,8 +31,8 @@ class BlockSink
 {
 public:
     //! constructor with reference to BlockPool
-    explicit BlockSink(BlockPool& block_pool)
-        : block_pool_(block_pool)
+    explicit BlockSink(BlockPool& block_pool, size_t local_worker_id)
+        : block_pool_(&block_pool), local_worker_id_(local_worker_id)
     { }
 
     //! non-copyable: delete copy-constructor
@@ -49,8 +49,9 @@ public:
 
     //! Allocate a ByteBlock with n bytes backing memory. If returned
     //! ByteBlockPtr is a nullptr, then memory of this BlockSink is exhausted.
-    virtual ByteBlockPtr AllocateByteBlock(size_t block_size) {
-        return ByteBlock::Allocate(block_size, block_pool_);
+    virtual PinnedByteBlockPtr
+    AllocateByteBlock(size_t block_size) {
+        return block_pool_->AllocateByteBlock(block_size, local_worker_id_);
     }
 
     //! Release an unused ByteBlock with n bytes backing memory.
@@ -67,11 +68,18 @@ public:
     virtual void Close() = 0;
 
     //! Appends the Block, moving it out.
-    virtual void AppendBlock(const Block& b) = 0;
+    virtual void AppendBlock(const PinnedBlock& b) = 0;
 
-protected:
-    //! reference to BlockPool for allocation and deallocation.
-    BlockPool& block_pool_;
+    //! local worker id to associate pinned block with
+    size_t local_worker_id() const { return local_worker_id_; }
+
+private:
+    //! reference to BlockPool for allocation and deallocation. (ptr to make
+    //! BlockSink movable).
+    BlockPool* block_pool_;
+
+    //! local worker id to associate pinned block with
+    size_t local_worker_id_;
 };
 
 /*!
@@ -82,13 +90,13 @@ class BoundedBlockSink : public virtual BlockSink
 {
 public:
     //! constructor with reference to BlockPool
-    BoundedBlockSink(data::BlockPool& block_pool, size_t max_size)
-        : BlockSink(block_pool),
+    BoundedBlockSink(data::BlockPool& block_pool, size_t local_worker_id, size_t max_size)
+        : BlockSink(block_pool, local_worker_id),
           max_size_(max_size), available_(max_size)
     { }
 
-    ByteBlockPtr AllocateByteBlock(size_t block_size) final {
-        if (available_ < block_size) return ByteBlockPtr();
+    PinnedByteBlockPtr AllocateByteBlock(size_t block_size) final {
+        if (available_ < block_size) return PinnedByteBlockPtr();
         available_ -= block_size;
         return BlockSink::AllocateByteBlock(block_size);
     }

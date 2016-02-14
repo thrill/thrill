@@ -159,6 +159,13 @@ public:
         return Get<uint8_t>();
     }
 
+    //! Fetch a single item of the template type Type from the buffer,
+    //! advancing the cursor. Be careful with implicit type conversions!
+    template <typename Type>
+    Type GetRaw() {
+        return Get<Type>();
+    }
+
     //! Fetch a BufferRef to a binary string or blob which was Put via
     //! Put_string(). Does NOT copy the data.
     BufferRef GetBufferRef() {

@@ -27,7 +27,7 @@ using namespace thrill; // NOLINT
 static const bool debug = false;
 
 struct SerializationCereal : public::testing::Test {
-    data::BlockPool block_pool_ { nullptr };
+    data::BlockPool block_pool_;
 };
 
 // struct ProtobufObject {
@@ -78,7 +78,7 @@ struct CerealObject
 
 TEST_F(SerializationCereal, cereal_w_FileWriter)
 {
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
 
     auto w = f.GetWriter();
 
@@ -88,8 +88,8 @@ TEST_F(SerializationCereal, cereal_w_FileWriter)
 
     CerealObject2 co2(1, 2, 3);
 
-    w(co);
-    w(co2);
+    w.Put(co);
+    w.Put(co2);
     w.Close();
 
     data::File::KeepReader r = f.GetKeepReader();
@@ -110,13 +110,13 @@ TEST_F(SerializationCereal, cereal_w_FileWriter)
 
 TEST_F(SerializationCereal, cereal_w_BlockQueue)
 {
-    data::BlockQueue q(block_pool_);
+    data::BlockQueue q(block_pool_, 0);
     {
         auto qw = q.GetWriter(16);
         CerealObject myData;
         myData.a = "asdfasdf";
         myData.b = { "asdf", "asdf" };
-        qw(myData);
+        qw.Put(myData);
     }
     {
         auto qr = q.GetConsumeReader();

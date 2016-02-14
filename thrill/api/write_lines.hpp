@@ -61,7 +61,7 @@ public:
     }
 
     void PreOp(const Input& input) {
-        writer_(input);
+        writer_.Put(input);
         size_ += input.size() + 1;
         stats_total_elements_++;
     }
@@ -77,13 +77,13 @@ public:
                        << "TotalLines" << stats_total_elements_;
 
         // (Portable) allocation of output file, setting individual file pointers.
-        size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_);
+        size_t prefix_elem = context_.net.ExPrefixSum(size_);
         if (context_.my_rank() == context_.num_workers() - 1) {
             file_.seekp(prefix_elem + size_ - 1);
             file_.put('\0');
         }
         file_.seekp(prefix_elem);
-        context_.Barrier();
+        context_.net.Barrier();
 
         data::File::ConsumeReader reader = temp_file_.GetConsumeReader();
 

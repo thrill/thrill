@@ -22,15 +22,15 @@
 using namespace thrill; // NOLINT
 
 struct Serialization : public::testing::Test {
-    data::BlockPool block_pool_ { nullptr };
+    data::BlockPool block_pool_;
 };
 
 TEST_F(Serialization, string) {
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     std::string foo = "foo";
     {
         auto w = f.GetWriter();
-        w(foo); //gets serialized
+        w.Put(foo); //gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<decltype(foo)>();
@@ -40,10 +40,10 @@ TEST_F(Serialization, string) {
 
 TEST_F(Serialization, int) {
     int foo = -123;
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
-        w(foo); //gets serialized
+        w.Put(foo); //gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<decltype(foo)>();
@@ -53,10 +53,10 @@ TEST_F(Serialization, int) {
 
 TEST_F(Serialization, pair_string_int) {
     auto foo = std::make_pair(std::string("foo"), 123);
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
-        w(foo); //gets serialized
+        w.Put(foo); //gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<decltype(foo)>();
@@ -68,10 +68,10 @@ TEST_F(Serialization, pair_int_int) {
     int t1 = 3;
     int t2 = 4;
     std::pair<int, int> foo = std::make_pair(t1, t2);
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
-        w(foo); //gets serialized
+        w.Put(foo); //gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<decltype(foo)>();
@@ -87,10 +87,10 @@ struct MyPodStruct
 
 TEST_F(Serialization, pod_struct) {
     MyPodStruct foo = { 6 * 9, 42 };
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
-        w(foo); //gets serialized
+        w.Put(foo); //gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<MyPodStruct>();
@@ -107,10 +107,10 @@ TEST_F(Serialization, pod_struct) {
 
 TEST_F(Serialization, tuple) {
     auto foo = std::make_tuple(3, std::string("foo"), 5.5);
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
-        w(foo); //gets serialized
+        w.Put(foo); //gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<decltype(foo)>();
@@ -125,10 +125,10 @@ TEST_F(Serialization, tuple) {
 TEST_F(Serialization, tuple_w_pair) {
     auto p = std::make_pair(-4.673, std::string("string"));
     auto foo = std::make_tuple(3, std::string("foo"), 5.5, p);
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
-        w(foo); //gets serialized
+        w.Put(foo); //gets serialized
     }
     ASSERT_EQ(1u, f.num_items());
     auto r = f.GetKeepReader();
@@ -141,7 +141,7 @@ TEST_F(Serialization, tuple_w_pair) {
 }
 
 TEST_F(Serialization, tuple_check_fixed_size) {
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
     auto y = std::make_tuple(1, 2, 3, 42.0);
     auto no = data::Serialization<data::DynBlockWriter, decltype(n)>::is_fixed_size;
@@ -155,11 +155,11 @@ TEST_F(Serialization, StringVector) {
     std::vector<std::string> vec1 = {
         "what", "a", "wonderful", "world", "this", "could", "be"
     };
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
-        w(vec1);
-        w(static_cast<int>(42));
+        w.Put(vec1);
+        w.Put(static_cast<int>(42));
     }
     ASSERT_EQ(2u, f.num_items());
     auto r = f.GetKeepReader();
@@ -175,11 +175,11 @@ TEST_F(Serialization, StringArray) {
     std::array<std::string, 7> vec1 = {
         { "what", "a", "wonderful", "world", "this", "could", "be" }
     };
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
-        w(vec1);
-        w(static_cast<int>(42));
+        w.Put(vec1);
+        w.Put(static_cast<int>(42));
     }
     ASSERT_EQ(2u, f.num_items());
     auto r = f.GetKeepReader();
@@ -207,15 +207,15 @@ struct MyMethodStruct
 
     template <typename Archive>
     void ThrillSerialize(Archive& ar) const {
-        ar.template Put<int>(i1);
-        ar.template Put<double>(d2);
+        ar.template PutRaw<int>(i1);
+        ar.template PutRaw<double>(d2);
         ar.PutString(s3);
     }
 
     template <typename Archive>
     static MyMethodStruct ThrillDeserialize(Archive& ar) {
-        int i1 = ar.template Get<int>();
-        double d2 = ar.template Get<double>();
+        int i1 = ar.template GetRaw<int>();
+        double d2 = ar.template GetRaw<double>();
         std::string s3 = ar.GetString();
         return MyMethodStruct(i1, d2, s3);
     }
@@ -223,10 +223,10 @@ struct MyMethodStruct
 
 TEST_F(Serialization, MethodStruct) {
     MyMethodStruct foo(6 * 9, 42, "abc");
-    data::File f(block_pool_);
+    data::File f(block_pool_, 0);
     {
         auto w = f.GetWriter();
-        w.PutItem(foo);
+        w.Put(foo);
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<MyMethodStruct>();

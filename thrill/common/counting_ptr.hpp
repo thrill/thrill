@@ -86,8 +86,7 @@ public:
     friend class CountingPtr;
 
     //! default constructor: contains a nullptr pointer.
-    CountingPtr() noexcept : ptr_(nullptr)
-    { }
+    CountingPtr() noexcept : ptr_(nullptr) { }
 
     //! constructor with pointer: initializes new reference to ptr.
     explicit CountingPtr(Type* ptr) noexcept : ptr_(ptr)
@@ -101,12 +100,6 @@ public:
     CountingPtr(CountingPtr&& other_ptr) noexcept : ptr_(other_ptr.ptr_) {
         other_ptr.ptr_ = nullptr;
     }
-
-    //! move-constructor from other counting pointer (pointer types must be
-    //! convertible): also initializes new reference to ptr.
-    template <typename Other>
-    CountingPtr(CountingPtr<Other>&& other_ptr) noexcept : ptr_(other_ptr.ptr_)
-    { other_ptr.ptr_ = nullptr; }
 
     //! copy-assignment operator: dereference current object and acquire
     //! reference on new one.
@@ -162,6 +155,14 @@ public:
     //! test inequality of only the pointer values.
     bool operator != (const CountingPtr& other_ptr) const noexcept
     { return ptr_ != other_ptr.ptr_; }
+
+    //! test equality of only the address pointed to
+    bool operator == (Type* other) const noexcept
+    { return ptr_ == other; }
+
+    //! test inequality of only the address pointed to
+    bool operator != (Type* other) const noexcept
+    { return ptr_ != other; }
 
     //! cast to bool check for a nullptr pointer
     operator bool () const noexcept
@@ -248,7 +249,7 @@ public:
      * dropped to zero)
      */
     bool DecReference() const noexcept
-    { return (--reference_count_ == 0); }
+    { assert(reference_count_ > 0); return (--reference_count_ == 0); }
 
     //! Test if the ReferenceCount is referenced by only one CountingPtr.
     bool unique() const noexcept

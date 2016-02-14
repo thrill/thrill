@@ -80,7 +80,7 @@ TEST(WordCount, Generate1024DoesNotCrash) {
 
     std::function<void(Context&)> start_func =
         [&size](Context& ctx) {
-            ctx.set_consume(true);
+            ctx.enable_consume(true);
 
             auto lines = GenerateFromFile(
                 ctx, "inputs/headwords",
@@ -108,7 +108,7 @@ TEST(WordCount, ReadBaconDoesNotCrash) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            ctx.set_consume(true);
+            ctx.enable_consume(true);
 
             auto lines = ReadLines(ctx, "inputs/wordcount.in");
 

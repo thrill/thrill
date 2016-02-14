@@ -13,8 +13,6 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/groupby_index.hpp>
 #include <thrill/api/read_lines.hpp>
-#include <thrill/api/reduce.hpp>
-#include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
@@ -64,7 +62,7 @@ int main(int argc, char* argv[]) {
 
     auto start_func =
         [&input, &output, &iter](api::Context& ctx) {
-            ctx.set_consume(true);
+            // ctx.enable_consume(true);
 
             thrill::common::StatsTimer<true> timer(false);
 
@@ -72,7 +70,7 @@ int main(int argc, char* argv[]) {
 
             auto links = ReadLines(ctx, input);
 
-            auto page_ranks = examples::PageRank(links, ctx, iter);
+            auto page_ranks = examples::PageRank(links, iter);
 
             page_ranks.WriteLines(output);
 

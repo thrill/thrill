@@ -39,16 +39,16 @@ struct MultiwayMergeTreePuller {
     MultiwayMergeTreePuller(IteratorListIterator seqs_begin_,
                             IteratorListIterator seqs_end_,
                             size_t length,
-                            Comparator comp_) :
-        seqs_begin(seqs_begin_),
-        seqs_end(seqs_end_),
-        comp(comp_),
-        k(static_cast<source_type>(seqs_end - seqs_begin)),
-        lt(k, comp),
-        counter(0),
-        total_length(0),
-        arbitrary_element(nullptr),
-        is_multiway_merged(false) {
+                            Comparator comp_)
+        : seqs_begin(seqs_begin_),
+          seqs_end(seqs_end_),
+          comp(comp_),
+          k(static_cast<source_type>(seqs_end - seqs_begin)),
+          lt(k, comp),
+          counter(0),
+          total_length(0),
+          arbitrary_element(nullptr),
+          is_multiway_merged(false) {
         // find an arbitrary element to avoid default construction
         for (source_type t = 0; t < k; ++t)
         {

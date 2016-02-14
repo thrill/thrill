@@ -14,8 +14,11 @@
 #define THRILL_COMMON_FUNCTIONAL_HEADER
 
 #include <algorithm>
+#include <array>
 #include <functional>
+#include <tuple>
 #include <utility>
+#include <vector>
 
 namespace thrill {
 namespace common {
@@ -51,10 +54,24 @@ struct NoOperation<void>{
 
 // thanks to http://stackoverflow.com/a/7127988
 template <typename T>
-struct is_pair : public std::false_type { };
+struct is_std_pair : public std::false_type { };
 
 template <typename S, typename T>
-struct is_pair<std::pair<S, T> >: public std::true_type { };
+struct is_std_pair<std::pair<S, T> >: public std::true_type { };
+
+//! test if is a std::tuple<...>
+template <typename T>
+struct is_std_tuple : public std::false_type { };
+
+template <typename ... Ts>
+struct is_std_tuple<std::tuple<Ts ...> >: public std::true_type { };
+
+//! test if is std::vector<T>
+template <typename T>
+struct is_std_vector : public std::false_type { };
+
+template <typename T>
+struct is_std_vector<std::vector<T> >: public std::true_type { };
 
 //! test if is std::array<T>
 template <typename T>

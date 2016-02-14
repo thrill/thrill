@@ -278,7 +278,7 @@ static void TestDispatcherAsyncWriteAndReadIntoFuture(net::Group* net) {
             net->connection(i), 7,
             [i, &results](net::Connection&, net::Buffer&& b) -> void {
                 sLOG << "Got Hello in callback from" << i;
-                results[i].Callback(std::move(b));
+                results[i] << std::move(b);
             });
     }
 

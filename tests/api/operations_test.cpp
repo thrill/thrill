@@ -46,12 +46,12 @@ public:
 
     template <typename Archive>
     void ThrillSerialize(Archive& ar) const {
-        ar.template Put<size_t>(value_);
+        ar.template PutRaw<size_t>(value_);
     }
 
     template <typename Archive>
     static Integer ThrillDeserialize(Archive& ar) {
-        return Integer(ar.template Get<size_t>());
+        return Integer(ar.template GetRaw<size_t>());
     }
 
     friend std::ostream& operator << (std::ostream& os, const Integer& i) {

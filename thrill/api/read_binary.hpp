@@ -198,16 +198,17 @@ private:
               stats_total_reads_(stats_total_reads) {
             if (fileinfo.begin != 0) {
                 // seek to beginning
-                size_t p = sysfile_.lseek(fileinfo.begin);
+                size_t p = sysfile_.lseek(static_cast<off_t>(fileinfo.begin));
                 die_unequal(fileinfo.begin, p);
             }
         }
 
-        data::Block NextBlock() {
-            if (done_) return data::Block();
+        data::PinnedBlock NextBlock() {
+            if (done_) return data::PinnedBlock();
 
-            data::ByteBlockPtr bytes
-                = data::ByteBlock::Allocate(block_size, context_.block_pool());
+            data::PinnedByteBlockPtr bytes
+                = context_.block_pool().AllocateByteBlock(
+                block_size, context_.local_worker_id());
 
             size_t rb = std::min(block_size, remain_size_);
 
@@ -217,7 +218,7 @@ private:
 
             if (size > 0) {
                 remain_size_ -= rb;
-                return data::Block(bytes, 0, size, 0, 0);
+                return data::PinnedBlock(std::move(bytes), 0, size, 0, 0);
             }
             else if (size < 0) {
                 throw common::ErrnoException("File reading error");
@@ -226,7 +227,7 @@ private:
                 // size == 0 -> read finished
                 sysfile_.close();
                 done_ = true;
-                return data::Block();
+                return data::PinnedBlock();
             }
         }
 

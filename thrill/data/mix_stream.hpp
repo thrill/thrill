@@ -52,7 +52,8 @@ public:
     MixStream(Multiplexer& multiplexer, const StreamId& id,
               size_t my_local_worker_id)
         : Stream(multiplexer, id, my_local_worker_id),
-          queue_(multiplexer_.block_pool_, multiplexer_.num_workers()) {
+          queue_(multiplexer_.block_pool_, multiplexer_.num_workers(),
+                 my_local_worker_id) {
 
         sinks_.reserve(multiplexer_.num_workers());
         loopback_.reserve(multiplexer_.num_workers());
@@ -62,7 +63,7 @@ public:
             for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
                 if (host == multiplexer_.my_host_rank()) {
                     // dummy entries
-                    sinks_.emplace_back(multiplexer_.block_pool_);
+                    sinks_.emplace_back(multiplexer_.block_pool_, worker);
                 }
                 else {
                     // StreamSink which transmits MIX_STREAM_BLOCKs
@@ -83,7 +84,8 @@ public:
         for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
             loopback_.emplace_back(
                 queue_,
-                multiplexer_.my_host_rank() * multiplexer_.num_workers_per_host() + worker);
+                multiplexer_.my_host_rank() * multiplexer_.num_workers_per_host() + worker,
+                worker);
         }
     }
 
@@ -190,7 +192,7 @@ private:
     friend class Multiplexer;
 
     //! called from Multiplexer when there is a new Block for this Stream.
-    void OnStreamBlock(size_t from, Block&& b) {
+    void OnStreamBlock(size_t from, PinnedBlock&& b) {
         assert(from < multiplexer_.num_workers());
         rx_timespan_.StartEventually();
         incoming_bytes_ += b.size();
@@ -203,7 +205,7 @@ private:
                  << common::Hexdump(b.ToString());
         }
 
-        queue_.AppendBlock(from, b);
+        queue_.AppendBlock(from, std::move(b));
     }
 
     //! called from Multiplexer when a MixStream closed notification was

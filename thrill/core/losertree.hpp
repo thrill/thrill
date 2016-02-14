@@ -34,7 +34,7 @@
 namespace thrill {
 namespace core {
 
-/**
+/*!
  * Guarded loser tree/tournament tree, either copying the whole element into
  * the tree structure, or looking up the element via the index.
  *
@@ -113,7 +113,7 @@ public:
         return losers[0].source;
     }
 
-    /**
+    /*!
      * Initializes the player source with the element key.
      *
      * \param key the element to insert
@@ -138,7 +138,7 @@ public:
             losers[pos].key = key;
     }
 
-    /**
+    /*!
      * Computes the winner of the competition at player root.  Called
      * recursively (starting at 0) to build the initial tree.
      *
@@ -172,7 +172,7 @@ public:
     }
 };
 
-/**
+/*!
  * Guarded loser tree/tournament tree, either copying the whole element into
  * the tree structure, or looking up the element via the index.
  *
@@ -227,7 +227,7 @@ public:
     }
 };
 
-/**
+/*!
  * Guarded loser tree/tournament tree, either copying the whole element into
  * the tree structure, or looking up the element via the index.
  *
@@ -283,10 +283,13 @@ public:
     }
 };
 
-/** Guarded loser tree, either copying the whole element into the tree structure, or looking up the element via the index.
+/*!
+ * Guarded loser tree, either copying the whole element into the tree structure,
+ * or looking up the element via the index.
  *
- *  Guarding is done explicitly through one flag sup per element, inf is not needed due to a better initialization routine.
- *  This is a well-performing variant.
+ * Guarding is done explicitly through one flag sup per element, inf is not
+ * needed due to a better initialization routine.  This is a well-performing
+ * variant.
  */
 template <typename T, typename Comparator = std::less<T> >
 class LoserTreeReference
@@ -467,7 +470,7 @@ public:
 #undef KEY
 #undef KEY_SOURCE
 
-/**
+/*!
  * Guarded loser tree, using pointers to the elements instead of copying them
  * into the tree nodes.
  *
@@ -546,7 +549,7 @@ public:
         return losers[0].source;
     }
 
-    /**
+    /*!
      * Initializes the player source with the element key.
      *
      * \param key the element to insert
@@ -562,7 +565,7 @@ public:
         losers[pos].keyp = &key;
     }
 
-    /**
+    /*!
      * Computes the winner of the competition at player root.  Called
      * recursively (starting at 0) to build the initial tree.
      *
@@ -596,7 +599,7 @@ public:
     }
 };
 
-/**
+/*!
  * Guarded loser tree, using pointers to the elements instead of copying them
  * into the tree nodes.
  *
@@ -647,7 +650,7 @@ public:
     }
 };
 
-/**
+/*!
  * Guarded loser tree, using pointers to the elements instead of copying them
  * into the tree nodes.
  *
@@ -700,7 +703,7 @@ public:
     }
 };
 
-/**
+/*!
  * Unguarded loser tree, copying the whole element into the tree structure.
  *
  * This is a base class for the LoserTreeCopyUnguarded\<true> and \<false>
@@ -874,7 +877,7 @@ public:
     }
 };
 
-/**
+/*!
  * Unguarded loser tree, keeping only pointers to the elements in the tree
  * structure.
  *

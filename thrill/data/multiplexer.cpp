@@ -13,6 +13,7 @@
 #include <thrill/data/mix_stream.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/stream.hpp>
+#include <thrill/mem/aligned_alloc.hpp>
 
 #include <algorithm>
 
@@ -72,6 +73,11 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     size_t sender_worker_rank =
         header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
 
+    // round of allocation size to next power of two
+    size_t alloc_size = header.size;
+    if (alloc_size < THRILL_DEFAULT_ALIGN) alloc_size = THRILL_DEFAULT_ALIGN;
+    alloc_size = common::RoundUpToPowerOfTwo(alloc_size);
+
     if (header.magic == MagicByte::CatStreamBlock)
     {
         CatStreamPtr stream = GetOrCreateCatStream(id, local_worker);
@@ -86,14 +92,16 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
         }
         else {
             sLOG << "stream header from" << s << "on CatStream" << id
-                 << "from worker" << sender_worker_rank;
+                 << "from worker" << sender_worker_rank
+                 << "for local_worker" << local_worker;
 
-            ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
+            PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
+                alloc_size, local_worker);
 
             dispatcher_.AsyncRead(
-                s, bytes,
-                [this, header, stream, bytes](Connection& s) {
-                    OnCatStreamBlock(s, header, stream, bytes);
+                s, header.size, std::move(bytes),
+                [this, header, stream](Connection& s, PinnedByteBlockPtr&& bytes) {
+                    OnCatStreamBlock(s, header, stream, std::move(bytes));
                 });
         }
     }
@@ -111,14 +119,16 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
         }
         else {
             sLOG << "stream header from" << s << "on MixStream" << id
-                 << "from worker" << sender_worker_rank;
+                 << "from worker" << sender_worker_rank
+                 << "for local_worker" << local_worker;
 
-            ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
+            PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
+                alloc_size, local_worker);
 
             dispatcher_.AsyncRead(
-                s, bytes,
-                [this, header, stream, bytes](Connection& s) {
-                    OnMixStreamBlock(s, header, stream, bytes);
+                s, header.size, std::move(bytes),
+                [this, header, stream](Connection& s, PinnedByteBlockPtr&& bytes) mutable {
+                    OnMixStreamBlock(s, header, stream, std::move(bytes));
                 });
         }
     }
@@ -129,28 +139,30 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
 
 void Multiplexer::OnCatStreamBlock(
     Connection& s, const StreamBlockHeader& header,
-    const CatStreamPtr& stream, const ByteBlockPtr& bytes) {
+    const CatStreamPtr& stream, PinnedByteBlockPtr&& bytes) {
 
     size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
     sLOG << "got block on" << s << "in CatStream" << header.stream_id << "from worker" << sender_worker_rank;
 
     stream->OnStreamBlock(
         sender_worker_rank,
-        Block(bytes, 0, header.size, header.first_item, header.num_items));
+        PinnedBlock(std::move(bytes), 0, header.size,
+                    header.first_item, header.num_items));
 
     AsyncReadBlockHeader(s);
 }
 
 void Multiplexer::OnMixStreamBlock(
     Connection& s, const StreamBlockHeader& header,
-    const MixStreamPtr& stream, const ByteBlockPtr& bytes) {
+    const MixStreamPtr& stream, PinnedByteBlockPtr&& bytes) {
 
     size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
     sLOG << "got block on" << s << "in MixStream" << header.stream_id << "from worker" << sender_worker_rank;
 
     stream->OnStreamBlock(
         sender_worker_rank,
-        Block(bytes, 0, header.size, header.first_item, header.num_items));
+        PinnedBlock(std::move(bytes), 0, header.size,
+                    header.first_item, header.num_items));
 
     AsyncReadBlockHeader(s);
 }

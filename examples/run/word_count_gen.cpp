@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func = [elements](api::Context& ctx) {
-                          ctx.set_consume(true);
+                          ctx.enable_consume(true);
 
                           auto lines = GenerateFromFile(
                               ctx, "../../tests/inputs/headwords",

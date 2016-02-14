@@ -22,37 +22,37 @@ using MyBlockSource = data::ConsumeBlockQueueSource;
 using CatBlockSource = data::CatBlockSource<MyBlockSource>;
 
 struct BlockQueue : public::testing::Test {
-    data::BlockPool block_pool_ { nullptr };
+    data::BlockPool block_pool_;
 };
 
 TEST_F(BlockQueue, FreshQueueIsNotClosed) {
-    data::BlockQueue q(block_pool_);
+    data::BlockQueue q(block_pool_, 0);
     ASSERT_FALSE(q.write_closed());
 }
 
 TEST_F(BlockQueue, QueueCanBeClosed) {
-    data::BlockQueue q(block_pool_);
+    data::BlockQueue q(block_pool_, 0);
     q.Close();
     ASSERT_TRUE(q.write_closed());
 }
 
 TEST_F(BlockQueue, FreshQueueIsEmpty) {
-    data::BlockQueue q(block_pool_);
+    data::BlockQueue q(block_pool_, 0);
     ASSERT_TRUE(q.empty());
 }
 
 TEST_F(BlockQueue, QueueNonEmptyAfterAppend) {
-    data::BlockQueue q(block_pool_);
-    data::ByteBlockPtr bytes = data::ByteBlock::Allocate(16, block_pool_);
-    q.AppendBlock(data::Block(bytes, 0, 0, 0, 0));
+    data::BlockQueue q(block_pool_, 0);
+    data::PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(16, 0);
+    q.AppendBlock(data::PinnedBlock(std::move(bytes), 0, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
 
 TEST_F(BlockQueue, BlockWriterToQueue) {
-    data::BlockQueue q(block_pool_);
+    data::BlockQueue q(block_pool_, 0);
     data::BlockQueue::Writer bw = q.GetWriter(16);
-    bw(static_cast<int>(42));
-    bw(std::string("hello there BlockQueue"));
+    bw.Put<int>(42);
+    bw.Put<std::string>("hello there BlockQueue");
     bw.Close();
     ASSERT_FALSE(q.empty());
     // two real block and one termination sentinel. with verify one more.
@@ -62,7 +62,7 @@ TEST_F(BlockQueue, BlockWriterToQueue) {
 TEST_F(BlockQueue, WriteZeroItems) {
 
     // construct File with very small blocks for testing
-    data::BlockQueue q(block_pool_);
+    data::BlockQueue q(block_pool_, 0);
 
     {
         // construct File with very small blocks for testing
@@ -82,13 +82,13 @@ TEST_F(BlockQueue, WriteZeroItems) {
 
 TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
     common::ThreadPool pool(2);
-    data::BlockQueue q(block_pool_);
+    data::BlockQueue q(block_pool_, 0);
 
     pool.Enqueue(
         [&q]() {
             data::BlockQueue::Writer bw = q.GetWriter(16);
-            bw(static_cast<int>(42));
-            bw(std::string("hello there BlockQueue"));
+            bw.Put(static_cast<int>(42));
+            bw.Put(std::string("hello there BlockQueue"));
         });
 
     pool.Enqueue(
@@ -143,21 +143,21 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
 TEST_F(BlockQueue, OrderedMultiQueue_Multithreaded) {
     using namespace std::literals;
     common::ThreadPool pool(3);
-    data::BlockQueue q(block_pool_), q2(block_pool_);
+    data::BlockQueue q(block_pool_, 0), q2(block_pool_, 0);
 
     auto writer1 = q.GetWriter(16);
     auto writer2 = q2.GetWriter(16);
 
     pool.Enqueue([&writer1]() {
-                     writer1(std::string("1.1"));
+                     writer1.Put(std::string("1.1"));
                      std::this_thread::sleep_for(25ms);
-                     writer1(std::string("1.2"));
+                     writer1.Put(std::string("1.2"));
                      writer1.Close();
                  });
     pool.Enqueue([&writer2]() {
-                     writer2(std::string("2.1"));
+                     writer2.Put(std::string("2.1"));
                      writer2.Flush();
-                     writer2(std::string("2.2"));
+                     writer2.Put(std::string("2.2"));
                      writer2.Close();
                  });
     pool.Enqueue([&q, &q2]() {
@@ -174,13 +174,13 @@ TEST_F(BlockQueue, OrderedMultiQueue_Multithreaded) {
 
 TEST_F(BlockQueue, ThreadedParallelBlockWriterAndDynBlockReader) {
     common::ThreadPool pool(2);
-    data::BlockQueue q(block_pool_);
+    data::BlockQueue q(block_pool_, 0);
 
     pool.Enqueue(
         [&q]() {
             data::BlockQueue::Writer bw = q.GetWriter(16);
-            bw(static_cast<int>(42));
-            bw(std::string("hello there BlockQueue"));
+            bw.Put(static_cast<int>(42));
+            bw.Put(std::string("hello there BlockQueue"));
         });
 
     pool.Enqueue(

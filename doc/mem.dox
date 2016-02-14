@@ -57,7 +57,7 @@ mem::by_vector<T> vec;
 
 For real counting, there is \ref mem::Manager which contains statistics about the allocation of any component or subcomponent of the framework. The Manager objects form a hierarchy by following parent pointers to superior managers. The root Manager is contained in the \ref api::HostContext and counts all allocation of workers in one host. This hierarchy probably needs to be adapted.
 
-For counted allocations, the direct method is to use the \ref mem::mm_new() function, which is a replacement for `operator new`. These allocation have to be released using \ref mem::mm_free(). These counted allocations require a reference to a \ref mem::Manager.
+For counted allocations, the direct method is to use the \ref mem::mm_new() function, which is a replacement for `operator new`. These allocation have to be released using \ref mem::mm_delete(). These counted allocations require a reference to a \ref mem::Manager.
 
 To attach a container to a Manager, the framework provides the \ref mem::Allocator. Constructing these containers is more difficult because the Allocator is not default constructible: it need to contain a reference to the Manager. Hence, a vector is create as follows:
 
