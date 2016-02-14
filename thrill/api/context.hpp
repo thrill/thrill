@@ -61,6 +61,7 @@ public:
         : workers_per_host_(workers_per_host),
           net_manager_(std::move(groups)),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
+          block_pool_(0, 0, &mem_manager_, workers_per_host),
           data_multiplexer_(mem_manager_,
                             block_pool_, workers_per_host,
                             net_manager_.GetDataGroup())
@@ -93,7 +94,7 @@ private:
     //! number of workers per host (all have the same).
     size_t workers_per_host_;
 
-    //! host-global memory manager
+    //! host-global memory manager for internal memory only
     mem::Manager mem_manager_ { nullptr, "HostContext" };
 
     //! net manager constructs communication groups to other hosts.
@@ -103,7 +104,7 @@ private:
     net::FlowControlChannelManager flow_manager_;
 
     //! data block pool
-    data::BlockPool block_pool_ { &mem_manager_ };
+    data::BlockPool block_pool_;
 
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer data_multiplexer_;
@@ -190,67 +191,18 @@ public:
 #endif
     //! \}
 
-    //! \name Network Subsystem
-    //! \{
-
-    //! Gets the flow control channel for the current worker.
-    net::FlowControlChannel & flow_control_channel() {
-        return flow_manager_.GetFlowControlChannel(local_worker_id_);
-    }
-
-    //! Broadcasts a value of an integral type T from the master (the worker
-    //! with rank 0) to all other workers.
-    template <typename T>
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-    Broadcast(const T& value) {
-        return flow_control_channel().Broadcast(value);
-    }
-
-    //! Reduces a value of an integral type T over all workers given a certain
-    //! reduce function.
-    template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-    AllReduce(const T& value, const BinarySumOp& sum_op = BinarySumOp()) {
-        return flow_control_channel().AllReduce(value, sum_op);
-    }
-
-    //! Calculates the prefix sum over all workers, given a certain sum
-    //! operation.
-    template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-    PrefixSum(const T& value, const T& initial = T(),
-              const BinarySumOp& sum_op = BinarySumOp()) {
-        return flow_control_channel().PrefixSum(value, initial, sum_op);
-    }
-
-    //! Calculates the exclusive prefix sum over all workers, given a certain
-    //! sum operation.
-    template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-    ExPrefixSum(const T& value, const T& initial = T(),
-                const BinarySumOp& sum_op = BinarySumOp()) {
-        return flow_control_channel().ExPrefixSum(value, initial, sum_op);
-    }
-
-    //! A collective global barrier.
-    void Barrier() {
-        return flow_control_channel().Barrier();
-    }
-
-    //! \}
-
     //! \name Data Subsystem
     //! \{
 
     //! Returns a new File object containing a sequence of local Blocks.
     data::File GetFile() {
-        return data::File(block_pool_);
+        return data::File(block_pool_, local_worker_id_);
     }
 
     //! Returns a new File, wrapped in a shared_ptr, containing a
     //! sequence of local Blocks.
     data::FilePtr GetFilePtr() {
-        return std::make_shared<data::File>(block_pool_);
+        return std::make_shared<data::File>(block_pool_, local_worker_id_);
     }
 
     //! Returns a reference to a new CatStream. This method alters the state of
@@ -309,7 +261,7 @@ public:
      * less space. However, by default this mode is DISABLED, because it
      * requires deliberate insertion of .Keep() calls.
      */
-    void set_consume(bool consume) { consume_ = consume; }
+    void enable_consume(bool consume) { consume_ = consume; }
 
 private:
     //! host-global memory manager
@@ -339,6 +291,19 @@ private:
 
     //! flag to set which enables selective consumption of DIA contents!
     bool consume_ = false;
+
+public:
+    //! \name Network Subsystem
+    //! \{
+
+    //! public member which exposes all network primitives from
+    //! FlowControlChannel for DOp implementations. Use it as
+    //! `context_.net.Method()`.
+    net::FlowControlChannel& net {
+        flow_manager_.GetFlowControlChannel(local_worker_id_)
+    };
+
+    //! \}
 };
 
 //! \name Run Methods with Internal Networks for Testing

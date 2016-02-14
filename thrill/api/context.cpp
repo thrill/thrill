@@ -117,7 +117,7 @@ RunLoopbackThreads(size_t host_count, size_t workers_per_host,
                     }
                     STOP_TIMER(overall_timer)
                     LOG << "Worker " << worker << " done!";
-                    ctx.Barrier();
+                    ctx.net.Barrier();
                 });
         }
     }
@@ -283,6 +283,7 @@ HostContext::HostContext(size_t my_host_rank,
       net_manager_(net::tcp::Construct(my_host_rank,
                                        endpoints, net::Manager::kGroupCount)),
       flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
+      block_pool_(0, 0, &mem_manager_, workers_per_host),
       data_multiplexer_(mem_manager_,
                         block_pool_, workers_per_host,
                         net_manager_.GetDataGroup())
@@ -370,7 +371,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         }
     }
     else {
-        // TODO: someday, set workers_per_host = std::thread::hardware_concurrency().
+        // TODO(tb): someday, set workers_per_host = std::thread::hardware_concurrency().
     }
 
     // okay configuration is good.
@@ -404,7 +405,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
                     STAT(ctx) << "event" << "jobDone"
                               << "time" << overall_timer->Milliseconds();
 
-                ctx.Barrier();
+                ctx.net.Barrier();
             });
     }
 
@@ -440,7 +441,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
         }
     }
     else {
-        // TODO: someday, set workers_per_host = std::thread::hardware_concurrency().
+        // TODO(tb): someday, set workers_per_host = std::thread::hardware_concurrency().
     }
 
     size_t num_hosts = net::mpi::NumMpiProcesses();

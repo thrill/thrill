@@ -10,6 +10,9 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
+# for smaller development builds -tb (temp)
+set(FULL_BUILD ON)
+
 cmake_minimum_required(VERSION 2.8)
 
 # custom cmake scripts
@@ -143,6 +146,10 @@ elseif(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4459")
   # warning C4702: unreachable code
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4702")
+  # warning C4250: ABC inherits XYZ via dominance
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4250")
+  # warning C4503: decorated name length exceeded, name was truncated
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4503")
   # disable lots of warnings about "unsecure" C runtime function
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
   # disable "The POSIX name for this item is deprecated. Instead, use the ISO C
@@ -167,6 +174,12 @@ if(USE_IWYU)
       COMMENT "Running include-what-you-use tool"
       VERBATIM)
   endif()
+endif()
+
+if(APPLE)
+  # disable warnings about "ranlib: file: libthrill.a(...cpp.o) has no symbols"
+  set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+  set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
 endif()
 
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
@@ -241,6 +254,7 @@ endif(USE_GCOV)
 # enable gtest framework, valgrind, and collection of results
 
 enable_testing()
+include(CTest)
 
 ### google test + mock - enable "make test" and add_test()
 
@@ -293,7 +307,6 @@ set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
 set(ALL_LIBRARIES ${ALL_LIBRARIES} ${CMAKE_DL_LIBS})
 
 # try to find Intel TBB (optional)
-
 if(THRILL_USE_TBB)
   find_package(TBB)
 endif()
@@ -373,8 +386,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # descend into library source
 add_subdirectory(thrill)
 
-# descend into examples source
-add_subdirectory(examples)
+if(FULL_BUILD)
+  # descend into examples source
+  add_subdirectory(examples)
+endif()
 
 # descend into testsuite
 add_subdirectory(tests)

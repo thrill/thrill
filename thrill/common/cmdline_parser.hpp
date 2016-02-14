@@ -88,10 +88,8 @@ in a verbose mode outputting all arguments and values parsed. The debug summary
 shows to have values the corresponding variables were set.
 
 One feature worth naming is that the parser also supports lists of strings,
-i.e. \c std::vector<std::string> via \ref AddParamStringlist() and similar.
-
-\example tests/common/cmdline_parser_example.cpp
-This example is documented in \ref common_cmdline tutorial.
+i.e. \c std::vector<std::string> via \ref CmdlineParser::AddParamStringlist()
+and similar.
 
 */
 class CmdlineParser

@@ -78,7 +78,7 @@ public:
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
             for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
                 if (host == multiplexer_.my_host_rank()) {
-                    sinks_.emplace_back(multiplexer_.block_pool_);
+                    sinks_.emplace_back(multiplexer_.block_pool_, worker);
                 }
                 else {
                     sinks_.emplace_back(
@@ -92,7 +92,7 @@ public:
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
                 }
                 // construct inbound queues
-                queues_.emplace_back(multiplexer_.block_pool_);
+                queues_.emplace_back(multiplexer_.block_pool_, worker);
             }
         }
     }
@@ -169,7 +169,7 @@ public:
     //! Creates a BlockReader which concatenates items from all workers in
     //! worker rank order. The BlockReader is attached to one \ref
     //! CatBlockSource which includes all incoming queues of this stream.
-    CatBlockReader OpenCatReader(bool consume) {
+    CatReader OpenCatReader(bool consume) {
         return CatBlockReader(GetCatBlockSource(consume));
     }
 
@@ -242,7 +242,7 @@ private:
 
     //! called from Multiplexer when there is a new Block on a
     //! Stream.
-    void OnStreamBlock(size_t from, Block&& b) {
+    void OnStreamBlock(size_t from, PinnedBlock&& b) {
         assert(from < queues_.size());
         rx_timespan_.StartEventually();
         incoming_bytes_ += b.size();
@@ -255,7 +255,7 @@ private:
                  << common::Hexdump(b.ToString());
         }
 
-        queues_[from].AppendBlock(b);
+        queues_[from].AppendBlock(std::move(b));
     }
 
     //! called from Multiplexer when a CatStream closed notification was

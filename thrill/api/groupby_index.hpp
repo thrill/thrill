@@ -69,11 +69,6 @@ public:
     /*!
      * Constructor for a GroupByIndexNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
-     *
-     * \param parent Parent DIA.
-     * and this node
-     * \param key_extractor Key extractor function
-     * \param reduce_function Reduce function
      */
     GroupByIndexNode(const ParentDIA& parent,
                      const KeyExtractor& key_extractor,
@@ -222,7 +217,7 @@ private:
         assert(k < number_keys_);
         const auto recipient = k * emitter_.size() / number_keys_;
         assert(recipient < emitter_.size());
-        emitter_[recipient](v);
+        emitter_[recipient].Put(v);
     }
 
     /*
@@ -235,7 +230,7 @@ private:
         {
             Writer w = f.GetWriter();
             for (const ValueIn& e : v) {
-                w(e);
+                w.Put(e);
             }
             w.Close();
         }

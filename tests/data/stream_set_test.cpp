@@ -28,7 +28,7 @@ TEST(StreamSet, TestLoopbacks) {
     auto groups = net::mock::Group::ConstructLoopbackMesh(hosts);
     net::Group* group = groups[0].get();
     mem::Manager mem_manager(nullptr, "Benchmark");
-    data::BlockPool block_pool(&mem_manager);
+    data::BlockPool block_pool(workers_per_host);
     data::Multiplexer multiplexer(mem_manager, block_pool, workers_per_host, *group);
 
     auto producer = [workers_per_host](std::shared_ptr<data::CatStream> stream, size_t my_id) {
@@ -37,7 +37,7 @@ TEST(StreamSet, TestLoopbacks) {
                         auto writers = stream->OpenWriters(test_block_size);
                         for (size_t j = 0; j < workers_per_host; j++) {
                             sLOG << "sending from" << my_id << "to" << j;
-                            writers[j](std::to_string(my_id) + "->" + std::to_string(j));
+                            writers[j].Put(std::to_string(my_id) + "->" + std::to_string(j));
                             writers[j].Close();
                         }
                     };

@@ -45,6 +45,19 @@ static const unsigned g_cache_line_size = 64;
 #define THRILL_HAVE_NET_TCP 1
 #endif
 
+#if __linux__
+#define THRILL_HAVE_LINUXAIO_FILE 1
+#endif
+
+#if defined(_MSC_VER)
+#define THRILL_WINDOWS 1
+#define THRILL_MSVC 1
+#endif
+
+#ifndef THRILL_WINDOWS
+#define THRILL_HAVE_MMAP_FILE 1
+#endif
+
 } // namespace common
 } // namespace thrill
 

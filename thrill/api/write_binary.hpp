@@ -89,16 +89,17 @@ private:
     {
     public:
         SysFileSink(data::BlockPool& block_pool,
+                    size_t local_worker_id,
                     const std::string& path, size_t max_file_size,
                     size_t& stats_total_elements,
                     size_t& stats_total_writes)
-            : BlockSink(block_pool),
-              BoundedBlockSink(block_pool, max_file_size),
+            : BlockSink(block_pool, local_worker_id),
+              BoundedBlockSink(block_pool, local_worker_id, max_file_size),
               file_(core::SysFile::OpenForWrite(path)),
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }
 
-        void AppendBlock(const data::Block& b) final {
+        void AppendBlock(const data::PinnedBlock& b) final {
             sLOG << "SysFileSink::AppendBlock()" << b;
             stats_total_writes_++;
             file_.write(b.data_begin(), b.size());
@@ -149,7 +150,8 @@ private:
         sLOG << "OpenNextFile() out_path" << out_path;
 
         sink_ = std::make_unique<SysFileSink>(
-            context_.block_pool(), out_path, max_file_size_,
+            context_.block_pool(), context_.local_worker_id(),
+            out_path, max_file_size_,
             stats_total_elements_, stats_total_writes_);
 
         writer_ = std::make_unique<Writer>(sink_.get(), block_size_);
@@ -162,14 +164,14 @@ private:
         if (!sink_) OpenNextFile();
 
         try {
-            writer_->PutItemNoSelfVerify(input);
+            writer_->PutNoSelfVerify(input);
         }
         catch (data::FullException&) {
             // sink is full. flush it. and repeat, which opens new file.
             OpenNextFile();
 
             try {
-                writer_->PutItemNoSelfVerify(input);
+                writer_->PutNoSelfVerify(input);
             }
             catch (data::FullException&) {
                 throw std::runtime_error(

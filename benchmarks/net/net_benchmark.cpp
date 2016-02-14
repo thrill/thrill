@@ -91,7 +91,7 @@ public:
 
     void Sender(api::Context& ctx, size_t peer, size_t iteration) {
 
-        net::Group& group = ctx.flow_control_channel().group();
+        net::Group& group = ctx.net.group();
 
         // do an extra ping/pong round to synchronize.
         {
@@ -131,7 +131,7 @@ public:
 
     void Receiver(api::Context& ctx, size_t peer) {
 
-        net::Group& group = ctx.flow_control_channel().group();
+        net::Group& group = ctx.net.group();
 
         for (size_t inner = 0; inner < inner_repeats_ + 1; ++inner) {
 
@@ -170,7 +170,7 @@ void PingPongLatency::Test(api::Context& ctx) {
     // only work with first thread on this host.
     if (ctx.local_worker_id() != 0) return;
 
-    net::Group& group = ctx.flow_control_channel().group();
+    net::Group& group = ctx.net.group();
 
     latency_ = AggMatrix(group.num_hosts());
 
@@ -267,7 +267,7 @@ public:
 
     void Sender(api::Context& ctx, size_t peer_id, size_t inner_repeat) {
 
-        net::Group& group = ctx.flow_control_channel().group();
+        net::Group& group = ctx.net.group();
         net::Connection& peer = group.connection(peer_id);
 
         common::StatsTimer<true> inner_timer(true);
@@ -298,7 +298,7 @@ public:
     }
 
     void Receiver(api::Context& ctx, size_t peer_id) {
-        net::Group& group = ctx.flow_control_channel().group();
+        net::Group& group = ctx.net.group();
         net::Connection& peer = group.connection(peer_id);
 
         // receive blocks from peer
@@ -345,7 +345,7 @@ void Bandwidth::Test(api::Context& ctx) {
     // only work with first thread on this host.
     if (ctx.local_worker_id() != 0) return;
 
-    net::Group& group = ctx.flow_control_channel().group();
+    net::Group& group = ctx.net.group();
 
     bandwidth_ = AggMatrix(group.num_hosts());
 
@@ -445,14 +445,14 @@ public:
 
             t.Start();
             for (size_t inner = 0; inner < inner_repeats_; ++inner) {
-                dummy = ctx.Broadcast(dummy);
+                dummy = ctx.net.Broadcast(dummy);
             }
             t.Stop();
 
             size_t n = ctx.num_workers();
             size_t time = t.Microseconds();
             // calculate maximum time.
-            time = ctx.AllReduce(time, common::maximum<size_t>());
+            time = ctx.net.AllReduce(time, common::maximum<size_t>());
 
             if (ctx.my_rank() == 0) {
                 LOG1 << "RESULT"
@@ -510,7 +510,7 @@ public:
             for (size_t inner = 0; inner < inner_repeats_; ++inner) {
                 // prefixsum a different value in each iteration
                 size_t value = inner + ctx.my_rank();
-                value = ctx.PrefixSum(value);
+                value = ctx.net.PrefixSum(value);
                 die_unequal(value,
                             inner * (ctx.my_rank() + 1)
                             + ctx.my_rank() * (ctx.my_rank() + 1) / 2);
@@ -520,7 +520,7 @@ public:
             size_t n = ctx.num_workers();
             size_t time = t.Microseconds();
             // calculate maximum time.
-            time = ctx.AllReduce(time, common::maximum<size_t>());
+            time = ctx.net.AllReduce(time, common::maximum<size_t>());
 
             if (ctx.my_rank() == 0) {
                 LOG1 << "RESULT"
@@ -580,7 +580,7 @@ public:
             for (size_t inner = 0; inner < inner_repeats_; ++inner) {
                 // prefixsum a different value in each iteration
                 size_t value = inner + ctx.my_rank();
-                value = ctx.AllReduce(value);
+                value = ctx.net.AllReduce(value);
                 size_t expected = (n + inner) * ((n + inner) - 1) / 2 - inner * (inner - 1) / 2;
                 die_unequal(value, expected);
             }
@@ -588,7 +588,7 @@ public:
 
             size_t time = t.Microseconds();
             // calculate maximum time.
-            time = ctx.AllReduce(time, common::maximum<size_t>());
+            time = ctx.net.AllReduce(time, common::maximum<size_t>());
 
             if (ctx.my_rank() == 0) {
                 LOG1 << "RESULT"

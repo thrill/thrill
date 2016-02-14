@@ -13,10 +13,12 @@
 #define THRILL_DATA_BLOCK_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
-#include <thrill/data/block_pool.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/byte_block.hpp>
 #include <thrill/mem/manager.hpp>
 
 #include <cassert>
+#include <future>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -27,92 +29,7 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-//! type of underlying memory area
-using Byte = uint8_t;
-
-//! default size of blocks in File, Channel, BlockQueue, etc.
-static const size_t default_block_size = 2 * 1024 * 1024;
-
-/*!
- * A ByteBlock is the basic storage units of containers like File, BlockQueue,
- * etc. It consists of a fixed number of bytes without any type and meta
- * information. Conceptually a ByteBlock is written _once_ and can then be
- * shared read-only between containers using shared_ptr<const ByteBlock>
- * reference counting inside a Block, which adds meta information.
- */
-class ByteBlock : public common::ReferenceCount
-{
-public:
-    //! deleter for CountingPtr<ByteBlock>
-    static void deleter(ByteBlock* bb) {
-        bb->head.block_pool_->FreeBlock(bb->size());
-        operator delete (bb);
-    }
-    static void deleter(const ByteBlock* bb) {
-        return deleter(const_cast<ByteBlock*>(bb));
-    }
-
-    using ByteBlockPtr = common::CountingPtr<ByteBlock, deleter>;
-    using ByteBlockCPtr = common::CountingPtr<const ByteBlock, deleter>;
-
-private:
-    struct {
-        //! the allocated size of the buffer in bytes, excluding the size_ field
-        size_t   size_;
-
-        //! reference to BlockPool for deletion.
-        BlockPool* block_pool_;
-    } head;
-
-    //! the memory block itself follows here, this is just a placeholder
-    Byte data_[1];
-
-    //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
-    //! use Allocate() for construction.
-    explicit ByteBlock(size_t size, BlockPool* block_pool)
-        : head({ size, block_pool }) { }
-
-public:
-    //! Construct a block of given size.
-    static ByteBlockPtr Allocate(
-        size_t block_size, BlockPool& block_pool) {
-        // this counts only the bytes and excludes the header. why? -tb
-        block_pool.AllocateBlock(block_size);
-
-        // allocate a new block of uninitialized memory
-        ByteBlock* block =
-            static_cast<ByteBlock*>(
-                operator new (
-                    sizeof(common::ReferenceCount) + sizeof(head) + block_size));
-
-        // initialize block using constructor
-        new (block)ByteBlock(block_size, &block_pool);
-
-        // wrap allocated ByteBlock in a shared_ptr. TODO(tb) figure out how to do
-        // this whole procedure with std::make_shared.
-        return ByteBlockPtr(block);
-    }
-
-    //! mutable data accessor to memory block
-    Byte * data() { return data_; }
-    //! const data accessor to memory block
-    const Byte * data() const { return data_; }
-
-    //! mutable data accessor to beginning of memory block
-    Byte * begin() { return data_; }
-    //! const data accessor to beginning of memory block
-    const Byte * begin() const { return data_; }
-
-    //! mutable data accessor beyond end of memory block
-    Byte * end() { return data_ + head.size_; }
-    //! const data accessor beyond end of memory block
-    const Byte * end() const { return data_ + head.size_; }
-
-    //! the block size
-    size_t size() const { return head.size_; }
-};
-
-using ByteBlockPtr = ByteBlock::ByteBlockPtr;
+class PinnedBlock;
 
 /**
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
@@ -133,58 +50,47 @@ using ByteBlockPtr = ByteBlock::ByteBlockPtr;
 class Block
 {
 public:
+    //! default-ctor: create invalid Block.
     Block() = default;
 
-    Block(const ByteBlockPtr& byte_block,
+    Block(const Block& other) = default;
+    Block& operator = (Block& other) = default;
+    Block(Block&& other) = default;
+    Block& operator = (Block&& other) = default;
+
+    //! Creates a block that points to the given data::ByteBlock with the given
+    //! offsets The block can be initialized as pinned or not.
+    Block(ByteBlockPtr&& byte_block,
           size_t begin, size_t end, size_t first_item, size_t num_items)
-        : byte_block_(byte_block),
+        : byte_block_(std::move(byte_block)),
           begin_(begin), end_(end),
-          first_item_(first_item), num_items_(num_items)
-    { }
+          first_item_(first_item), num_items_(num_items) { }
 
     //! Return whether the enclosed ByteBlock is valid.
     bool IsValid() const {
         return byte_block_;
     }
 
-    //! Releases the reference to the ByteBlock and resets book-keeping info
-    void Release() {
-        byte_block_ = ByteBlockPtr();
-    }
-
-    // Return block as std::string (for debugging), includes eventually cut off
-    // elements form the beginning included
-    std::string ToString() const {
-        return std::string(
-            reinterpret_cast<const char*>(data_begin()), size());
-    }
-
     //! access to byte_block_
     const ByteBlockPtr & byte_block() const { return byte_block_; }
 
-    //! access to byte_block_ (mutable)
+    //! mutable access to byte_block_
     ByteBlockPtr & byte_block() { return byte_block_; }
 
     //! return number of items beginning in this block
     size_t num_items() const { return num_items_; }
+
+    //! return number of pins in underlying ByteBlock
+    size_t pin_count(size_t local_worker_id) const {
+        assert(byte_block_);
+        return byte_block_->pin_count(local_worker_id);
+    }
 
     //! accessor to begin_
     void set_begin(size_t i) { begin_ = i; }
 
     //! accessor to end_
     void set_end(size_t i) { end_ = i; }
-
-    //! return pointer to beginning of valid data
-    const Byte * data_begin() const {
-        assert(byte_block_);
-        return byte_block_->begin() + begin_;
-    }
-
-    //! return pointer to end of valid data
-    const Byte * data_end() const {
-        assert(byte_block_);
-        return byte_block_->begin() + end_;
-    }
 
     //! return length of valid data in bytes.
     size_t size() const { return end_ - begin_; }
@@ -195,20 +101,19 @@ public:
     //! return the first_item_offset relative to data_begin().
     size_t first_item_relative() const { return first_item_ - begin_; }
 
-    friend std::ostream&
-    operator << (std::ostream& os, const Block& b) {
-        os << "[Block " << std::hex << &b << std::dec
-           << " byte_block_=" << std::hex << b.byte_block_.get() << std::dec;
-        if (b.IsValid()) {
-            os << " begin_=" << b.begin_
-               << " end_=" << b.end_
-               << " first_item_=" << b.first_item_
-               << " num_items_=" << b.num_items_;
-        }
-        return os << "]";
-    }
+    friend std::ostream& operator << (std::ostream& os, const Block& b);
 
-private:
+    //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
+    //! is already pinned, the Future is directly filled with a copy if this
+    //! block.  Otherwise an async pin call will be issued.
+    std::future<PinnedBlock> Pin(size_t local_worker_id) const;
+
+    //! Convenience function to call Pin() and wait for the future.
+    PinnedBlock PinWait(size_t local_worker_id) const;
+
+protected:
+    static const bool debug = false;
+
     //! referenced ByteBlock
     ByteBlockPtr byte_block_;
 
@@ -226,6 +131,137 @@ private:
     //! number of valid items that _start_ in this block (includes cut-off
     //! element at the end)
     size_t num_items_ = 0;
+};
+
+/*!
+ * A pinned / pin-counted derivative of a Block. By holding a pin, it is a
+ * guaranteed that the contained ByteBlock's data is loaded in RAM. Since pins
+ * are counted per thread, the PinnedBlock is a counting pointer plus a thread
+ * id. An ordinary Block can be pinned by calling Pin(), which delivers a future
+ * PinnedBlock, which is available once the data is actually loaded.
+ *
+ * Be careful to move PinnedBlock as must as possible, since copying costs a
+ * pinning and an unpinning operation, whereas moving is free.
+ */
+class PinnedBlock : public Block
+{
+public:
+    //! Create invalid PinnedBlock.
+    PinnedBlock() = default;
+
+    //! Creates a block that points to the given data::PinnedByteBlock with the
+    //! given offsets. The returned block is also pinned, the pin is transfered!
+    PinnedBlock(PinnedByteBlockPtr&& byte_block,
+                size_t begin, size_t end, size_t first_item, size_t num_items)
+        : Block(std::move(byte_block), begin, end, first_item, num_items),
+          local_worker_id_(byte_block.local_worker_id()) {
+        LOG << "PinnedBlock::Acquire() from new PinnedByteBlock"
+            << " for local_worker_id=" << local_worker_id_;
+    }
+
+    //! copy-ctor: increment underlying's pin count
+    PinnedBlock(const PinnedBlock& pb) noexcept
+        : Block(pb), local_worker_id_(pb.local_worker_id_) {
+        if (byte_block_) byte_block_->IncPinCount(local_worker_id_);
+    }
+
+    //! move-ctor: move underlying's pin
+    PinnedBlock(PinnedBlock&& pb) noexcept
+        : Block(std::move(pb)), local_worker_id_(pb.local_worker_id_) {
+        assert(!pb.byte_block_);
+    }
+
+    //! copy-assignment: copy underlying and increase pin count
+    PinnedBlock& operator = (PinnedBlock& pb) noexcept {
+        if (this == &pb) return *this;
+        // first acquire other's pin count
+        if (pb.byte_block_) pb.byte_block_->IncPinCount(pb.local_worker_id_);
+        // then release the current one
+        if (byte_block_) byte_block_->DecPinCount(local_worker_id_);
+        // copy over Block information
+        Block::operator = (pb);
+        local_worker_id_ = pb.local_worker_id_;
+        return *this;
+    }
+
+    //! move-assignment: move underlying, release current's pin
+    PinnedBlock& operator = (PinnedBlock&& pb) noexcept {
+        if (this == &pb) return *this;
+        // release the current one
+        if (byte_block_) byte_block_->DecPinCount(local_worker_id_);
+        // move over Block information, keep other's pin count
+        Block::operator = (std::move(pb));
+        local_worker_id_ = pb.local_worker_id_;
+        // invalidate other block
+        assert(!pb.byte_block_);
+        return *this;
+    }
+
+    ~PinnedBlock() {
+        if (byte_block_)
+            byte_block_->DecPinCount(local_worker_id_);
+    }
+
+    //! return pointer to beginning of valid data
+    const Byte * data_begin() const {
+        assert(byte_block_);
+        return byte_block_->begin() + begin_;
+    }
+
+    //! return pointer to end of valid data
+    const Byte * data_end() const {
+        assert(byte_block_);
+        return byte_block_->begin() + end_;
+    }
+
+    //! release pin on block and reset Block pointer to nullptr
+    void Reset() {
+        if (byte_block_) {
+            byte_block_->DecPinCount(local_worker_id_);
+            byte_block_.reset();
+        }
+    }
+
+    //! extract ByteBlock including it's pin. afterwards, this PinnedBlock is
+    //! invalid.
+    PinnedByteBlockPtr StealPinnedByteBlock() {
+        return PinnedByteBlockPtr(std::move(byte_block_), local_worker_id_);
+    }
+
+    //! copy the underlying byte_block_ into a new PinnedByteBlockPtr, which
+    //! increases the pin count. use StealPinnedByteBlock to move the underlying
+    //! pin out (cheaper).
+    PinnedByteBlockPtr CopyPinnedByteBlock() const {
+        PinnedByteBlockPtr pbb(byte_block_, local_worker_id_);
+        if (pbb.valid()) pbb->IncPinCount(local_worker_id_);
+        return pbb;
+    }
+
+    //! Return block as std::string (for debugging), includes eventually cut off
+    //! elements form the beginning included
+    std::string ToString() const;
+
+    //! not available in PinnedBlock
+    std::future<PinnedBlock> Pin() const = delete;
+
+    //! not available in PinnedBlock
+    PinnedBlock PinWait() const = delete;
+
+    //! make ostreamable for debugging
+    friend std::ostream& operator << (std::ostream& os, const PinnedBlock& b);
+
+private:
+    //! protected construction from an unpinned block AFTER the pin was taken,
+    //! this method does NOT pin it.
+    PinnedBlock(const Block& b, size_t local_worker_id)
+        : Block(b), local_worker_id_(local_worker_id) { }
+
+    //! thread id of holder of pin
+    size_t local_worker_id_;
+
+    //! friend for creating PinnedBlock from unpinned Block in PinBlock() using
+    //! protected constructor.
+    friend class BlockPool;
 };
 
 //! \}

@@ -134,18 +134,20 @@ public:
 
         if (do_queue_) {
             sLOG << "Flush(): queue" << bytes_.get();
-            sink_queue_.emplace_back(bytes_, 0, current_ - bytes_->begin(),
-                                     first_offset_, nitems_);
+            sink_queue_.emplace_back(
+                std::move(bytes_), 0, current_ - bytes_->begin(),
+                first_offset_, nitems_);
         }
         else {
             sLOG << "Flush(): flush" << bytes_.get();
-            sink_->AppendBlock(Block(bytes_, 0, current_ - bytes_->begin(),
-                                     first_offset_, nitems_));
+            sink_->AppendBlock(
+                PinnedBlock(std::move(bytes_), 0, current_ - bytes_->begin(),
+                            first_offset_, nitems_));
         }
 
         // reset
         nitems_ = 0;
-        bytes_ = ByteBlockPtr();
+        bytes_ = PinnedByteBlockPtr();
         current_ = end_ = nullptr;
     }
 
@@ -155,7 +157,7 @@ public:
         Flush();
 
         for (const Block& b : blocks)
-            sink_->AppendBlock(b);
+            sink_->AppendBlock(b.PinWait(sink_->local_worker_id()));
 
         AllocateBlock();
     }
@@ -176,38 +178,32 @@ public:
         return *this;
     }
 
-    //! PutItem appends a complete item, or fails with a FullException.
+    //! Put appends a complete item, or fails with a FullException.
     template <typename T>
-    BlockWriter & PutItem(const T& x) {
+    BlockWriter & Put(const T& x) {
         assert(!closed_);
 
         if (!BlockSink::allocate_can_fail_)
-            return PutItemUnsafe<T>(x);
+            return PutUnsafe<T>(x);
         else
-            return PutItemSafe<T>(x);
+            return PutSafe<T>(x);
     }
 
-    //! operator() appends a complete item, or fails with a FullException.
-    template <typename T>
-    BlockWriter& operator () (const T& x) {
-        return PutItem(x);
-    }
-
-    //! PutItemNoSelfVerify appends a complete item without any self
+    //! PutNoSelfVerify appends a complete item without any self
     //! verification information, or fails with a FullException.
     template <typename T>
-    BlockWriter & PutItemNoSelfVerify(const T& x) {
+    BlockWriter & PutNoSelfVerify(const T& x) {
         assert(!closed_);
 
         if (!BlockSink::allocate_can_fail_)
-            return PutItemUnsafe<T, true>(x);
+            return PutUnsafe<T, true>(x);
         else
-            return PutItemSafe<T, true>(x);
+            return PutSafe<T, true>(x);
     }
 
     //! appends a complete item, or fails safely with a FullException.
     template <typename T, bool NoSelfVerify = false>
-    BlockWriter & PutItemSafe(const T& x) {
+    BlockWriter & PutSafe(const T& x) {
         assert(!closed_);
 
         if (current_ == end_) {
@@ -236,7 +232,7 @@ public:
             MarkItem();
             if (self_verify && !NoSelfVerify) {
                 // for self-verification, prefix T with its hash code
-                Put(typeid(T).hash_code());
+                PutRaw(typeid(T).hash_code());
             }
             Serialization<BlockWriter, T>::Serialize(x, *this);
 
@@ -257,10 +253,10 @@ public:
                 sLOG << "releasing" << bytes_.get();
                 sink_->ReleaseByteBlock(bytes_);
 
-                Block b = sink_queue_.back();
+                PinnedBlock b = sink_queue_.back();
                 sink_queue_.pop_back();
 
-                bytes_ = std::move(b.byte_block());
+                bytes_ = std::move(b.StealPinnedByteBlock());
             }
 
             sLOG << "reset" << bytes_.get();
@@ -277,7 +273,7 @@ public:
 
     //! appends a complete item, or aborts with a FullException.
     template <typename T, bool NoSelfVerify = false>
-    BlockWriter & PutItemUnsafe(const T& x) {
+    BlockWriter & PutUnsafe(const T& x) {
         assert(!closed_);
 
         try {
@@ -288,7 +284,7 @@ public:
             MarkItem();
             if (self_verify && !NoSelfVerify) {
                 // for self-verification, prefix T with its hash code
-                Put(typeid(T).hash_code());
+                PutRaw(typeid(T).hash_code());
             }
             Serialization<BlockWriter, T>::Serialize(x, *this);
         }
@@ -350,9 +346,9 @@ public:
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    BlockWriter & Put(const Type& item) {
+    BlockWriter & PutRaw(const Type& item) {
         static_assert(std::is_pod<Type>::value,
-                      "You only want to Put() POD types as raw values.");
+                      "You only want to PutRaw() POD types as raw values.");
 
         assert(!closed_);
 
@@ -387,7 +383,7 @@ private:
 
     //! current block, already allocated as shared ptr, since we want to use
     //! make_shared.
-    ByteBlockPtr bytes_;
+    PinnedByteBlockPtr bytes_;
 
     //! current write pointer into block.
     Byte* current_ = nullptr;
@@ -409,7 +405,7 @@ private:
     bool do_queue_ = false;
 
     //! queue of blocks to flush when the current item has fully been serialized
-    std::deque<Block> sink_queue_;
+    std::deque<PinnedBlock> sink_queue_;
 
     //! size of data blocks to construct
     size_t block_size_;

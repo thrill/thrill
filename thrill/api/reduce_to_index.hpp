@@ -18,12 +18,11 @@
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
+#include <thrill/api/reduce_config.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/reduce_post_bucket_table.hpp>
-#include <thrill/core/reduce_post_probing_table.hpp>
-#include <thrill/core/reduce_pre_bucket_table.hpp>
-#include <thrill/core/reduce_pre_probing_table.hpp>
+#include <thrill/core/reduce_by_index_post_stage.hpp>
+#include <thrill/core/reduce_pre_stage.hpp>
 
 #include <functional>
 #include <string>
@@ -38,22 +37,23 @@ namespace api {
 //! \{
 
 /*!
-* A DIANode which performs a ReduceToIndex operation. ReduceToIndex groups the elements in a
-* DIA by their key and reduces every key bucket to a single element each. The
-* ReduceToIndexNode stores the key_extractor and the reduce_function UDFs. The
-* chainable LOps ahead of the Reduce operation are stored in the Stack. The
-* ReduceToIndexNode has the type ValueType, which is the result type of the
-* reduce_function. The key type is an unsigned integer and the output DIA will have element
-* with key K at index K.
-*
-* \tparam ParentType Input type of the Reduce operation
-* \tparam ValueType Output type of the Reduce operation
-* \tparam ParentStack Function stack, which contains the chained lambdas between the last and this DIANode.
-* \tparam KeyExtractor Type of the key_extractor function.
-* \tparam ReduceFunction Type of the reduce_function
-*/
+ * A DIANode which performs a ReduceToIndex operation. ReduceToIndex groups the
+ * elements in a DIA by their key and reduces every key bucket to a single
+ * element each. The ReduceToIndexNode stores the key_extractor and the
+ * reduce_function UDFs. The chainable LOps ahead of the Reduce operation are
+ * stored in the Stack. The ReduceToIndexNode has the type ValueType, which is
+ * the result type of the reduce_function. The key type is an unsigned integer
+ * and the output DIA will have element with key K at index K.
+ *
+ * \tparam ParentType Input type of the Reduce operation
+ * \tparam ValueType Output type of the Reduce operation
+ * \tparam ParentStack Function stack, which contains the chained lambdas between the last and this DIANode.
+ * \tparam KeyExtractor Type of the key_extractor function.
+ * \tparam ReduceFunction Type of the reduce_function
+ */
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
+          typename ReduceConfig,
           bool RobustKey, bool SendPair>
 class ReduceToIndexNode final : public DOpNode<ValueType>
 {
@@ -72,55 +72,55 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
 
     using Super::context_;
 
-public:
-    using Emitter = data::DynBlockWriter;
+protected:
+    //! Emitter for PostStage to push elements to next DIA object.
+    class Emitter
+    {
+    public:
+        explicit Emitter(ReduceToIndexNode* node) : node_(node) { }
+        void operator () (const ValueType& item) const
+        { return node_->PushItem(item); }
 
+    private:
+        ReduceToIndexNode* node_;
+    };
+
+public:
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
      * key_extractor and reduce_function.
-     *
-     * \param parent Parent DIA.
-     * \param key_extractor Key extractor function
-     * \param reduce_function Reduce function
-     * \param result_size size of the resulting DIA, range of index returned by reduce_function.
-     * \param neutral_element Item value with which to start the reduction in
-     * each array cell.
      */
     ReduceToIndexNode(const ParentDIA& parent,
                       const KeyExtractor& key_extractor,
                       const ReduceFunction& reduce_function,
                       size_t result_size,
                       const Value& neutral_element,
+                      const ReduceConfig& config,
                       StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters()),
           result_size_(result_size),
-          neutral_element_(neutral_element),
-          reduce_pre_table_(context_,
-                            parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, core::PreProbingReduceByIndex<Key>(result_size),
-                            core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>(reduce_function),
-                            neutral_element_,
-                            1024 * 1024 * 32, 1.0, 0.6),
-          reduce_post_table_(
-              context_, key_extractor_, reduce_function_,
-              [this](const ValueType& item) { return this->PushItem(item); },
-              core::PostProbingReduceByIndex<Key>(),
-              core::PostBucketReduceFlushToIndex<Key,
-                                                 Value, ReduceFunction, core::PostProbingReduceByIndex<Key> >(reduce_function),
-              common::CalculateLocalRange(
-                  result_size_, context_.num_workers(), context_.my_rank()),
-              neutral_element_,
-              1024 * 1024 * 32, 1.0, 0.6, 0.1)
+
+          pre_stage_(context_,
+                     context_.num_workers(),
+                     key_extractor, reduce_function, emitters_,
+                     core::ReduceByIndex<Key>(0, result_size),
+                     Key(), config.pre_table),
+
+          post_stage_(
+              context_, key_extractor, reduce_function,
+              Emitter(this),
+              core::ReduceByIndex<Key>(
+                  // parameterize with resulting key range on this worker
+                  pre_stage_.key_range(context_.my_rank())),
+              Key(), neutral_element, config.post_table)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.
-        auto pre_op_fn = [=](const ValueType& input) {
-                             reduce_pre_table_.Insert(std::move(input));
+        auto pre_op_fn = [this](const ValueType& input) {
+                             return pre_stage_.Insert(input);
                          };
 
         // close the function stack with our pre op and register it at parent
@@ -132,10 +132,9 @@ public:
     void StopPreOp(size_t /* id */) final {
         LOG << this->label() << " running main op";
         // Flush hash table before the postOp
-        reduce_pre_table_.Flush();
-        reduce_pre_table_.CloseEmitter();
+        pre_stage_.FlushAll();
+        pre_stage_.CloseAll();
         stream_->Close();
-        this->WriteStreamStats(stream_);
     }
 
     /*!
@@ -146,68 +145,67 @@ public:
     void PushData(bool consume) final {
 
         if (reduced) {
-            reduce_post_table_.Flush(consume);
+            post_stage_.PushData(consume);
             return;
         }
 
         if (RobustKey) {
-            // we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            // we actually want to wire up callbacks in the ctor and NOT use
+            // this blocking method
             auto reader = stream_->OpenCatReader(consume);
             sLOG << "reading data from" << stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                reduce_post_table_.Insert(reader.template Next<Value>());
+                post_stage_.Insert(reader.template Next<Value>());
             }
         }
         else {
-            // we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            // we actually want to wire up callbacks in the ctor and NOT use
+            // this blocking method
             auto reader = stream_->OpenCatReader(consume);
             sLOG << "reading data from" << stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                reduce_post_table_.Insert(reader.template Next<KeyValuePair>());
+                post_stage_.Insert(reader.template Next<KeyValuePair>());
             }
         }
 
         reduced = true;
-        reduce_post_table_.Flush(consume);
+        post_stage_.PushData(consume);
     }
 
     void Dispose() final { }
 
 private:
-    //! Key extractor function
-    KeyExtractor key_extractor_;
-    //! Reduce function
-    ReduceFunction reduce_function_;
-
     data::CatStreamPtr stream_;
 
     std::vector<data::CatStream::Writer> emitters_;
 
     size_t result_size_;
 
-    Value neutral_element_;
+    core::ReducePreBucketStage<
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+        core::ReduceByIndex<Key>,
+        decltype(ReduceConfig::pre_table),
+        std::equal_to<Key> > pre_stage_;
 
-    core::ReducePreTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-                         core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction>, core::PreProbingReduceByIndex<Key>,
-                         std::equal_to<Key>, 16*16> reduce_pre_table_;
-
-    core::ReducePostTable<ValueType, Key, Value, KeyExtractor, ReduceFunction, SendPair,
-                          core::PostBucketReduceFlushToIndex<Key, Value, ReduceFunction, core::PostProbingReduceByIndex<Key> >,
-                          core::PostProbingReduceByIndex<Key>,
-                          std::equal_to<Key>, 16*16> reduce_post_table_;
+    core::ReduceByIndexPostBucketStage<
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
+        core::ReduceByIndex<Key>,
+        decltype(ReduceConfig::post_table),
+        std::equal_to<Key> > post_stage_;
 
     bool reduced = false;
 };
 
 template <typename ValueType, typename Stack>
-template <typename KeyExtractor, typename ReduceFunction>
+template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceToIndexByKey(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t size,
-    const ValueType &neutral_element) const {
+    const ValueType &neutral_element,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -248,31 +246,32 @@ auto DIA<ValueType, Stack>::ReduceToIndexByKey(
 
     using ReduceNode
               = ReduceToIndexNode<DOpResult, DIA,
-                                  KeyExtractor, ReduceFunction,
+                                  KeyExtractor, ReduceFunction, ReduceConfig,
                                   false, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndexByKey", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceNode>(
         *this, key_extractor, reduce_function,
-        size, neutral_element, stats_node);
+        size, neutral_element, reduce_config, stats_node);
 
     return DIA<DOpResult>(shared_node, { stats_node });
 }
 
 template <typename ValueType, typename Stack>
-template <typename ReduceFunction>
+template <typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReducePairToIndex(
     const ReduceFunction &reduce_function,
     size_t size,
     const typename common::FunctionTraits<ReduceFunction>::result_type &
-    neutral_element) const {
+    neutral_element,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    static_assert(common::is_pair<ValueType>::value,
+    static_assert(common::is_std_pair<ValueType>::value,
                   "ValueType is not a pair");
 
     static_assert(
@@ -306,7 +305,7 @@ auto DIA<ValueType, Stack>::ReducePairToIndex(
     using ReduceNode
               = ReduceToIndexNode<ValueType, DIA,
                                   std::function<Key(Key)>,
-                                  ReduceFunction, false, true>;
+                                  ReduceFunction, ReduceConfig, false, true>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", DIANodeType::DOP);
     auto shared_node
@@ -323,18 +322,20 @@ auto DIA<ValueType, Stack>::ReducePairToIndex(
                                        reduce_function,
                                        size,
                                        neutral_element,
+                                       reduce_config,
                                        stats_node);
 
     return DIA<ValueType>(shared_node, { stats_node });
 }
 
 template <typename ValueType, typename Stack>
-template <typename KeyExtractor, typename ReduceFunction>
+template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceToIndex(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t size,
-    const ValueType &neutral_element) const {
+    const ValueType &neutral_element,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -375,12 +376,13 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
 
     using ReduceNode
               = ReduceToIndexNode<DOpResult, DIA,
-                                  KeyExtractor, ReduceFunction,
+                                  KeyExtractor, ReduceFunction, ReduceConfig,
                                   true, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", DIANodeType::DOP);
     auto shared_node = std::make_shared<ReduceNode>(
-        *this, key_extractor, reduce_function, size, neutral_element, stats_node);
+        *this, key_extractor, reduce_function,
+        size, neutral_element, reduce_config, stats_node);
 
     return DIA<DOpResult>(shared_node, { stats_node });
 }

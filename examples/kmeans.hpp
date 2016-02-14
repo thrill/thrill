@@ -19,6 +19,7 @@
 
 #include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 using thrill::DIA;
@@ -62,7 +63,7 @@ auto kMeans(const DIA<std::string, InStack>&in1,
                 float minDistance = std::numeric_limits<float>::max();
                 Centrioid closestCentroid;
 
-                for (Centrioid c: cs) {
+                for (Centrioid c : cs) {
                     float distance = sqrt(pow(p.first - c.first, 2) + pow(p.second - c.second, 2));
                     if (distance < minDistance) {
                         minDistance = distance;
@@ -74,8 +75,9 @@ auto kMeans(const DIA<std::string, InStack>&in1,
             }).Cache();
 
         auto accs = closest.GroupBy<CentroidAcc>(
-            [](ClosestCentroid p) { return 0.5 * (p.first.first + p.first.second)
-                                    * (p.first.first + p.first.second + 1.0) + p.first.second;
+            [](ClosestCentroid p) {
+                return 0.5 * (p.first.first + p.first.second)
+                * (p.first.first + p.first.second + 1.0) + p.first.second;
             },
             [](auto& r, float) {
                 Centrioid accPoint(0.0, 0.0);
@@ -100,6 +102,7 @@ auto kMeans(const DIA<std::string, InStack>&in1,
 
     return centroids;
 }
+
 } // namespace examples
 
 #endif // !THRILL_EXAMPLES_KMEANS_HEADER

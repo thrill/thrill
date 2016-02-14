@@ -64,7 +64,7 @@ public:
     }
 
     void CallClosedCallbacksEventually() {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         if (closed()) {
             for (const auto& cb : closed_callbacks_)
                 cb();

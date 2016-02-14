@@ -51,12 +51,6 @@ public:
     /*!
      * Constructor for a GenerateFileNode. Sets the Context, parents, generator
      * function and file path.
-     *
-     * \param ctx Reference to Context, which holds references to data and network.
-     * \param generator_function Generator function, which defines how each line
-     * of the file is read and used for generation of a DIA.
-     * \param path_in Path of the input file
-     * \param size Number of elements in the generated DIA
      */
     GenerateFileNode(Context& ctx,
                      GeneratorFunction generator_function,

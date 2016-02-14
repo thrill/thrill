@@ -36,9 +36,11 @@ print "#include <$_>\n" foreach sort <thrill/api/*.hpp>;
 #include <thrill/api/groupby_iterator.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
+#include <thrill/api/print.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/reduce.hpp>
+#include <thrill/api/reduce_config.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>

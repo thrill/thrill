@@ -92,14 +92,14 @@ public:
 
             size_t p = ctx.num_workers();
 
-            size_t merge = ctx.AllReduce(merge_timer_.Milliseconds()) / p;
-            size_t balance = ctx.AllReduce(balancing_timer_.Milliseconds()) / p;
-            size_t pivot_selection = ctx.AllReduce(pivot_selection_timer_.Milliseconds()) / p;
-            size_t search_step = ctx.AllReduce(search_step_timer_.Milliseconds()) / p;
-            size_t file_op = ctx.AllReduce(file_op_timer_.Milliseconds()) / p;
-            size_t comm = ctx.AllReduce(comm_timer_.Milliseconds()) / p;
-            size_t scatter = ctx.AllReduce(scatter_timer_.Milliseconds()) / p;
-            result_size_ = ctx.AllReduce(result_size_);
+            size_t merge = ctx.net.AllReduce(merge_timer_.Milliseconds()) / p;
+            size_t balance = ctx.net.AllReduce(balancing_timer_.Milliseconds()) / p;
+            size_t pivot_selection = ctx.net.AllReduce(pivot_selection_timer_.Milliseconds()) / p;
+            size_t search_step = ctx.net.AllReduce(search_step_timer_.Milliseconds()) / p;
+            size_t file_op = ctx.net.AllReduce(file_op_timer_.Milliseconds()) / p;
+            size_t comm = ctx.net.AllReduce(comm_timer_.Milliseconds()) / p;
+            size_t scatter = ctx.net.AllReduce(scatter_timer_.Milliseconds()) / p;
+            result_size_ = ctx.net.AllReduce(result_size_);
 
             if (ctx.my_rank() == 0) {
                 PrintToSQLPlotTool("merge", p, merge);
@@ -361,7 +361,7 @@ private:
             // construct lambda with only the writer in the closure
             data::File::Writer* writer = &merge_node_->writers_[Index::index];
             auto pre_op_fn = [writer](const ValueType& input) -> void {
-                                 writer->PutItem(input);
+                                 writer->Put(input);
                              };
 
             // close the function stacks with our pre ops and register it at
@@ -447,7 +447,7 @@ private:
 
         // Reduce vectors of pivots globally to select the pivots from the
         // largest ranges.
-        out_pivots = context_.AllReduce(
+        out_pivots = context_.net.AllReduce(
             out_pivots,
             [reduce_pivots]
                 (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
@@ -469,7 +469,7 @@ private:
      *
      * \param ranks The global ranks of the pivots. This is an output parameter.
      *
-     * \params local_ranks The local ranks. The first index corresponds to the
+     * \param local_ranks The local ranks. The first index corresponds to the
      * splitter, the second one to the file. This is an output parameter.
      */
     void GetGlobalRanks(
@@ -495,7 +495,7 @@ private:
 
         stats_.comm_timer_.Start();
         // Sum up ranks globally.
-        ranks = context_.AllReduce(ranks, &AddSizeTVectors);
+        ranks = context_.net.AllReduce(ranks, &AddSizeTVectors);
         stats_.comm_timer_.Stop();
     }
 
@@ -589,7 +589,7 @@ private:
 
         // Count of all global elements.
         stats_.comm_timer_.Start();
-        size_t global_size = context_.AllReduce(local_size);
+        size_t global_size = context_.net.AllReduce(local_size);
         stats_.comm_timer_.Stop();
 
         LOG << "Global size: " << global_size;
@@ -614,7 +614,7 @@ private:
                 LOG << "Search Rank " << r << ": " << target_ranks[r];
 
                 stats_.comm_timer_.Start();
-                assert(context_.Broadcast(target_ranks[r]) == target_ranks[r]);
+                assert(context_.net.Broadcast(target_ranks[r]) == target_ranks[r]);
                 stats_.comm_timer_.Stop();
             }
         }
@@ -638,7 +638,7 @@ private:
         bool finished = false;
         stats_.balancing_timer_.Start();
 
-        // TODO: Iterate until all splitters are found.
+        // TODO(?): Iterate until all splitters are found.
         // Theoretically, the condition
         //
         // while(global_ranks != target_ranks)
@@ -667,11 +667,11 @@ private:
             SearchStep(global_ranks, local_ranks, target_ranks, left, width);
 
             // Check if all our ranges have at most size one.
-            // TODO: This can potentially be omitted. See comment
+            // TODO(?): This can potentially be omitted. See comment
             // above.
             finished = true;
 
-            // TODO: We check for accuracy of num_inputs_ + 1
+            // TODO(?): We check for accuracy of num_inputs_ + 1
             // There is a off-by one error in the last search step.
             // We need special treatment of search ranges with width 1, when the pivot
             // originates from our host.
@@ -738,7 +738,8 @@ private:
 *
 * \param comparator Comparator to specify the order of input and output.
 *
-* \param second_dia DIA, which is merged with this DIA.
+* \param first_dia first DIA
+* \param dias DIAs, which is merged with this DIA.
 */
 template <typename Comparator, typename FirstDIA, typename ... DIAs>
 auto Merge(const Comparator &comparator,

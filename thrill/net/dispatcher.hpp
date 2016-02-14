@@ -17,6 +17,7 @@
 
 #include <thrill/common/delegate.hpp>
 #include <thrill/data/block.hpp>
+#include <thrill/data/byte_block.hpp>
 #include <thrill/mem/allocator.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
@@ -42,10 +43,12 @@ using TimerCallback = common::delegate<bool()>;
 using AsyncCallback = common::delegate<bool()>;
 
 //! Signature of async read callbacks.
-using AsyncReadCallback = common::delegate<void(Connection& c, Buffer&& buffer)>;
+using AsyncReadCallback = common::delegate<
+          void(Connection& c, Buffer&& buffer)>;
 
 //! Signature of async read ByteBlock callbacks.
-using AsyncReadByteBlockCallback = common::delegate<void(Connection& c)>;
+using AsyncReadByteBlockCallback = common::delegate<
+          void(Connection& c, data::PinnedByteBlockPtr&& bytes)>;
 
 //! Signature of async write callbacks.
 using AsyncWriteCallback = common::delegate<void(Connection&)>;
@@ -133,18 +136,19 @@ public:
     }
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
-    virtual void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
+    virtual void AsyncRead(Connection& c, size_t n,
+                           data::PinnedByteBlockPtr&& block,
                            AsyncReadByteBlockCallback done_cb) {
         assert(c.IsValid());
 
         LOG << "async read on read dispatcher";
         if (block->size() == 0) {
-            if (done_cb) done_cb(c);
+            if (done_cb) done_cb(c, std::move(block));
             return;
         }
 
         // add new async reader object
-        async_read_block_.emplace_back(c, block, done_cb);
+        async_read_block_.emplace_back(c, n, std::move(block), done_cb);
 
         // register read callback
         AsyncReadByteBlock& arbb = async_read_block_.back();
@@ -174,7 +178,7 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    virtual void AsyncWrite(Connection& c, const data::Block& block,
+    virtual void AsyncWrite(Connection& c, const data::PinnedBlock& block,
                             AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
@@ -475,25 +479,26 @@ protected:
     {
     public:
         //! Construct block reader with callback
-        AsyncReadByteBlock(Connection& conn,
-                           const data::ByteBlockPtr& block,
+        AsyncReadByteBlock(Connection& conn, size_t size,
+                           data::PinnedByteBlockPtr&& block,
                            const AsyncReadByteBlockCallback& callback)
             : conn_(&conn),
-              block_(block),
+              block_(std::move(block)),
+              size_(size),
               callback_(callback)
         { }
 
         //! Should be called when the socket is readable
         bool operator () () {
             ssize_t r = conn_->RecvOne(
-                block_->data() + size_, block_->size() - size_);
+                block_->data() + pos_, size_ - pos_);
 
             if (r <= 0) {
                 // these errors are acceptable: just redo the recv later.
                 if (errno == EINTR || errno == EAGAIN) return true;
 
                 // signal artificial IsDone, for clean up.
-                size_ = block_->size();
+                pos_ = size_;
 
                 // these errors are end-of-file indications (both good and bad)
                 if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
@@ -503,9 +508,9 @@ protected:
                 throw Exception("AsyncReadBlock() error in recv", errno);
             }
 
-            size_ += r;
+            pos_ += r;
 
-            if (size_ == block_->size()) {
+            if (pos_ == size_) {
                 DoCallback();
                 return false;
             }
@@ -514,23 +519,29 @@ protected:
             }
         }
 
-        bool IsDone() const { return size_ == block_->size(); }
+        bool IsDone() const {
+            // done if block is already delivered to callback or size matches
+            return !block_ || pos_ == size_;
+        }
 
-        data::ByteBlockPtr & byte_block() { return block_; }
+        data::PinnedByteBlockPtr & byte_block() { return block_; }
 
         void DoCallback() {
-            if (callback_) callback_(*conn_);
+            if (callback_) callback_(*conn_, std::move(block_));
         }
 
     private:
         //! Connection reference
         Connection* conn_;
 
-        //! Receive block
-        data::ByteBlockPtr block_;
+        //! Receive block, holds a pin on the memory.
+        data::PinnedByteBlockPtr block_;
 
-        //! total size currently read
-        size_t size_ = 0;
+        //! size currently read
+        size_t pos_ = 0;
+
+        //! total size to read
+        size_t size_;
 
         //! functional object to call once data is complete
         AsyncReadByteBlockCallback callback_;
@@ -548,7 +559,7 @@ protected:
     public:
         //! Construct block writer with callback
         AsyncWriteBlock(Connection& conn,
-                        const data::Block& block,
+                        const data::PinnedBlock& block,
                         const AsyncWriteCallback& callback)
             : conn_(&conn),
               block_(block),
@@ -595,8 +606,8 @@ protected:
         //! Connection reference
         Connection* conn_;
 
-        //! Send block (holds a reference count to the underlying ByteBlock)
-        data::Block block_;
+        //! Send block (holds a pin on the underlying ByteBlock)
+        data::PinnedBlock block_;
 
         //! total size currently written
         size_t size_ = 0;

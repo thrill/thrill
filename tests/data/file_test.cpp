@@ -23,13 +23,13 @@
 using namespace thrill;
 
 struct File : public::testing::Test {
-    data::BlockPool block_pool_ { nullptr };
+    data::BlockPool block_pool_;
 };
 
 TEST_F(File, PutSomeItemsGetItems) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     {
         data::File::Writer fw = file.GetWriter(16);
@@ -43,7 +43,7 @@ TEST_F(File, PutSomeItemsGetItems) {
         // long item spanning multiple blocks
         fw.PutString(std::string(64, '1'));
         fw.MarkItem();
-        fw.Put<uint16_t>(42);
+        fw.PutRaw<uint16_t>(42);
     }
 
     ASSERT_EQ(file.num_blocks(), 6u);
@@ -84,7 +84,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 
     if (0) {
         for (size_t i = 0; i != file.num_blocks(); ++i) {
-            std::cout << common::Hexdump(file.block(i).ToString())
+            std::cout << common::Hexdump(file.block(i).PinWait(0).ToString())
                       << std::endl;
         }
     }
@@ -109,15 +109,15 @@ TEST_F(File, PutSomeItemsGetItems) {
         ASSERT_EQ(fr.GetVarint(), 123456u);
         ASSERT_EQ(fr.GetString(), "test1test2test3");
         ASSERT_EQ(fr.GetString(), std::string(64, '1'));
-        ASSERT_EQ(fr.Get<uint16_t>(), 42);
-        ASSERT_THROW(fr.Get<uint16_t>(), std::runtime_error);
+        ASSERT_EQ(fr.GetRaw<uint16_t>(), 42);
+        ASSERT_THROW(fr.GetRaw<uint16_t>(), std::runtime_error);
     }
 }
 
 TEST_F(File, WriteZeroItems) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     {
         // construct File with very small blocks for testing
@@ -138,7 +138,7 @@ TEST_F(File, WriteZeroItems) {
 TEST_F(File, SerializeSomeItems) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -146,10 +146,10 @@ TEST_F(File, SerializeSomeItems) {
     {
         // construct File with very small blocks for testing
         data::File::Writer fw = file.GetWriter(1024);
-        fw(static_cast<unsigned>(5));
-        fw(MyPair(5, "10abc"));
-        fw(static_cast<double>(42.0));
-        fw(std::string("test"));
+        fw.Put(static_cast<unsigned>(5));
+        fw.Put(MyPair(5, "10abc"));
+        fw.Put(static_cast<double>(42.0));
+        fw.Put(std::string("test"));
     }
 
     // std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
@@ -180,7 +180,7 @@ TEST_F(File, SerializeSomeItems) {
 TEST_F(File, SerializeSomeItemsDynReader) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -188,10 +188,10 @@ TEST_F(File, SerializeSomeItemsDynReader) {
     {
         // construct File with very small blocks for testing
         data::File::Writer fw = file.GetWriter(1024);
-        fw(static_cast<unsigned>(5));
-        fw(MyPair(5, "10abc"));
-        fw(static_cast<double>(42.0));
-        fw(std::string("test"));
+        fw.Put(static_cast<unsigned>(5));
+        fw.Put(MyPair(5, "10abc"));
+        fw.Put(static_cast<double>(42.0));
+        fw.Put(std::string("test"));
     }
     ASSERT_EQ(4u, file.num_items());
 
@@ -220,23 +220,24 @@ TEST_F(File, SerializeSomeItemsDynReader) {
 }
 
 TEST_F(File, SerializeSomeItemsConsumeReader) {
+    static const size_t size = 5000;
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     // put into File some items (all of different serialization bytes)
     {
         // construct File with very small blocks for testing
         data::File::Writer fw = file.GetWriter(53);
-        for (unsigned i = 0; i < 50; ++i) {
-            fw.PutItem<unsigned>(i);
+        for (unsigned i = 0; i < size; ++i) {
+            fw.Put<unsigned>(i);
         }
     }
 
     // get items back from file, consuming it.
     {
         data::File::Reader fr = file.GetReader(true);
-        for (size_t i = 0; i < 50; ++i) {
+        for (size_t i = 0; i < size; ++i) {
             ASSERT_TRUE(fr.HasNext());
             unsigned iread = fr.Next<unsigned>();
             ASSERT_EQ(i, iread);
@@ -248,17 +249,17 @@ TEST_F(File, SerializeSomeItemsConsumeReader) {
 }
 
 TEST_F(File, RandomGetIndexOf) {
-    const size_t size = 500;
+    static const size_t size = 500;
 
     std::minstd_rand0 rng(0);
 
     // Create test file.
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     data::File::Writer fw = file.GetWriter(53);
 
     for (size_t i = 0; i < size; i++) {
-        fw(size - i - 1);
+        fw.Put(size - i - 1);
     }
 
     fw.Close();
@@ -277,12 +278,12 @@ TEST_F(File, TieGetIndexOf) {
     const size_t size = 500;
 
     // Create test file.
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     data::File::Writer fw = file.GetWriter(53);
 
     for (size_t i = 0; i < size; i++) {
-        fw(i);
+        fw.Put(i);
     }
 
     fw.Close();
@@ -300,12 +301,12 @@ TEST_F(File, TieGetIndexOfWithDuplicates) {
     std::minstd_rand0 rng(0);
 
     // Create test file.
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     data::File::Writer fw = file.GetWriter(53);
 
     for (size_t i = 0; i < size; i++) {
-        fw(i / 4);
+        fw.Put(i / 4);
     }
 
     fw.Close();
@@ -331,13 +332,13 @@ TEST_F(File, TieGetIndexOfWithDuplicates) {
 }
 
 TEST_F(File, ReadFileWithBufferedReader) {
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
     data::File::Writer fw = file.GetWriter(53);
 
     size_t size = 100;
 
     for (size_t i = 0; i < size; i++) {
-        fw(i);
+        fw.Put(i);
     }
     fw.Close();
 
@@ -356,12 +357,12 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     static const bool debug = false;
 
     // construct a small-block File with lots of items.
-    data::File file(block_pool_);
+    data::File file(block_pool_, 0);
 
     // yes, this is a prime number as block size. -tb
-    data::File::Writer fw = file.GetWriter(53);
+    data::File::Writer fw = file.GetWriter(/* block_size */ 53);
     for (size_t i = 0; i < 1000; ++i) {
-        fw(i);
+        fw.Put(i);
     }
     fw.Close();
 
@@ -377,14 +378,14 @@ TEST_F(File, SeekReadSlicesOfFiles) {
 
     // read items 95-144
     auto check_range =
-        [&](size_t begin, size_t end, bool do_more = true) {
+        [&](size_t begin, size_t end, bool at_end = false) {
             LOG << "Test range [" << begin << "," << end << ")";
 
             // seek in File to begin.
             data::File::KeepReader fr = file.GetReaderAt<size_t>(begin);
 
             // read a few items
-            if (end - begin > 5 && do_more) {
+            if (end - begin > 5 && !at_end) {
                 for (size_t i = 0; i < 5; ++i) {
                     ASSERT_TRUE(fr.HasNext());
                     ASSERT_EQ(begin, fr.Next<size_t>());
@@ -392,27 +393,35 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                 }
             }
 
+            LOG << "GetReaderAt() done";
+
             // read the items [begin,end)
             {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(end - begin);
 
-                data::BlockQueue queue(block_pool_);
+                LOG << "GetItemBatch -> " << blocks.size() << " blocks";
 
                 for (data::Block& b : blocks)
-                    queue.AppendBlock(b);
+                    b.PinWait(0);
+
+                data::BlockQueue queue(block_pool_, 0);
+
+                for (data::Block& b : blocks)
+                    queue.AppendBlock(b.PinWait(0));
                 queue.Close();
 
                 data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
 
                 for (size_t i = begin; i < end; ++i) {
                     ASSERT_TRUE(qr.HasNext());
+                    sLOG << "index" << i;
                     ASSERT_EQ(i, qr.Next<size_t>());
                 }
                 ASSERT_FALSE(qr.HasNext());
             }
 
-            if (!do_more) return;
+            if (at_end) return;
 
             sLOG << "read more";
             static const size_t more = 100;
@@ -422,10 +431,10 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(more);
 
-                data::BlockQueue queue(block_pool_);
+                data::BlockQueue queue(block_pool_, 0);
 
                 for (data::Block& b : blocks)
-                    queue.AppendBlock(b);
+                    queue.AppendBlock(b.PinWait(0));
                 queue.Close();
 
                 data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
@@ -446,12 +455,13 @@ TEST_F(File, SeekReadSlicesOfFiles) {
         check_range(96, i);
     }
 
-    // some special cases.
+    // some special cases: beginning, zero ranges, end.
     check_range(0, 0);
     check_range(0, 1);
     check_range(1, 2);
-    check_range(990, 1000, false);
-    check_range(1000, 1000, false);
+    check_range(100, 100);
+    check_range(990, 1000, true);
+    check_range(1000, 1000, true);
 }
 
 //! A derivative of File which only contains a limited amount of Blocks
@@ -464,10 +474,10 @@ class BoundedFile : public virtual data::BoundedBlockSink,
 {
 public:
     //! constructor with reference to BlockPool
-    BoundedFile(data::BlockPool& block_pool, size_t max_size)
-        : BlockSink(block_pool),
-          BoundedBlockSink(block_pool, max_size),
-          File(block_pool)
+    BoundedFile(data::BlockPool& block_pool, size_t local_worker_id, size_t max_size)
+        : BlockSink(block_pool, local_worker_id),
+          BoundedBlockSink(block_pool, local_worker_id, max_size),
+          File(block_pool, local_worker_id)
     { }
 
     enum { allocate_can_fail_ = true };
@@ -479,12 +489,12 @@ public:
 TEST_F(File, BoundedFilePutIntegerUntilFull) {
 
     // construct Partition with very small blocks for testing
-    BoundedFile file(block_pool_, 32 * 64);
+    BoundedFile file(block_pool_, 0, 32 * 64);
 
     try {
         data::BlockWriter<BoundedFile> bw(&file, 64);
         for (size_t i = 0; i != 1024000; ++i) {
-            bw(123456u + i);
+            bw.Put(123456u + i);
         }
         FAIL();
     }

@@ -41,18 +41,11 @@ public:
 
     //! Construct invalid StreamSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    explicit StreamSink(BlockPool& block_pool)
-        : BlockSink(block_pool), closed_(true) { }
+    explicit StreamSink(BlockPool& block_pool, size_t local_worker_id)
+        : BlockSink(block_pool, local_worker_id), closed_(true) { }
 
     /*!
      * StreamSink sending out to network.
-     *
-     * \param dispatcher used for sending data via a socket
-     * \param connection the socket (aka conneciton) used for the stream
-     * \param stream_id the ID that identifies the stream
-     * \param my_rank the ID that identifies this computing node globally
-     * \param my_local_worker_id the id that identifies the worker locally
-     * \param partners_local_worker_id the id that identifies the partner worker locally
      */
     StreamSink(BlockPool& block_pool,
                net::DispatcherThread* dispatcher,
@@ -62,7 +55,7 @@ public:
                size_t my_local_worker_id,
                size_t peer_rank,
                size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
-        : BlockSink(block_pool),
+        : BlockSink(block_pool, my_local_worker_id),
           dispatcher_(dispatcher),
           connection_(connection),
           magic_(magic),
@@ -79,7 +72,7 @@ public:
     StreamSink(StreamSink&&) = default;
 
     //! Appends data to the StreamSink.  Data may be sent but may be delayed.
-    void AppendBlock(const Block& block) final {
+    void AppendBlock(const PinnedBlock& block) final {
         if (block.size() == 0) return;
 
         tx_timespan_->StartEventually();

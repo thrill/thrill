@@ -65,20 +65,21 @@ class MixBlockQueue
 public:
     //! pair of (source worker, Block) stored in the main mix queue.
     struct SrcBlockPair {
-        size_t src;
-        Block  block;
+        size_t      src;
+        PinnedBlock block;
     };
 
     using Reader = MixBlockQueueReader;
 
     //! Constructor from BlockPool
-    explicit MixBlockQueue(BlockPool& block_pool, size_t num_workers)
+    explicit MixBlockQueue(BlockPool& block_pool, size_t num_workers,
+                           size_t local_worker_id)
         : block_pool_(block_pool),
           num_workers_(num_workers),
           write_closed_(num_workers) {
         queues_.reserve(num_workers);
         for (size_t w = 0; w < num_workers; ++w) {
-            queues_.emplace_back(block_pool_);
+            queues_.emplace_back(block_pool_, local_worker_id);
         }
     }
 
@@ -95,7 +96,7 @@ public:
     BlockPool & block_pool() { return block_pool_; }
 
     //! append block delivered via the network from src.
-    void AppendBlock(size_t src, const Block& block) {
+    void AppendBlock(size_t src, const PinnedBlock& block) {
         LOG << "MixBlockQueue::AppendBlock"
             << " src=" << src << " block=" << block;
         mix_queue_.emplace(SrcBlockPair { src, block });
@@ -109,12 +110,12 @@ public:
         --write_open_count_;
 
         // enqueue a closing Block.
-        mix_queue_.emplace(SrcBlockPair { src, Block() });
+        mix_queue_.emplace(SrcBlockPair { src, PinnedBlock() });
     }
 
     //! Blocking retrieval of a (source,block) pair.
     SrcBlockPair Pop() {
-        if (read_open_ == 0) return SrcBlockPair { size_t(-1), Block() };
+        if (read_open_ == 0) return SrcBlockPair { size_t(-1), PinnedBlock() };
         SrcBlockPair b;
         mix_queue_.pop(b);
         if (!b.block.IsValid()) --read_open_;
@@ -162,22 +163,23 @@ class MixBlockQueueSink final : public BlockSink
     static const bool debug = false;
 
 public:
-    MixBlockQueueSink(MixBlockQueue& mix_queue, size_t from)
-        : BlockSink(mix_queue.block_pool()),
-          mix_queue_(mix_queue), from_(from)
+    MixBlockQueueSink(MixBlockQueue& mix_queue,
+                      size_t from_global, size_t from_local)
+        : BlockSink(mix_queue.block_pool(), from_local),
+          mix_queue_(mix_queue), from_global_(from_global)
     { }
 
-    void AppendBlock(const Block& b) final {
+    void AppendBlock(const PinnedBlock& b) final {
         LOG << "MixBlockQueueSink::AppendBlock()"
-            << " from_=" << from_ << " b=" << b;
-        mix_queue_.AppendBlock(from_, b);
+            << " from_global_=" << from_global_ << " b=" << b;
+        mix_queue_.AppendBlock(from_global_, b);
     }
 
     void Close() final {
         // enqueue a closing Block.
         LOG << "MixBlockQueueSink::Close()"
-            << " from_=" << from_;
-        mix_queue_.Close(from_);
+            << " from_global_=" << from_global_;
+        mix_queue_.Close(from_global_);
         write_closed_ = true;
     }
 
@@ -193,8 +195,8 @@ private:
     //! close flag
     common::AtomicMovable<bool> write_closed_ = { false };
 
-    //! fixed source worker id
-    size_t from_;
+    //! fixed global source worker id
+    size_t from_global_;
 };
 
 /*!

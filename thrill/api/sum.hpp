@@ -87,10 +87,9 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::FlowControlChannel& channel = context_.flow_control_channel();
 
         // process the reduce
-        global_sum_ = channel.AllReduce(local_sum_, sum_function_);
+        global_sum_ = context_.net.AllReduce(local_sum_, sum_function_);
     }
 };
 

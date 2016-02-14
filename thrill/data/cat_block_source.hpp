@@ -50,12 +50,12 @@ public:
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
-    Block NextBlock() {
+    PinnedBlock NextBlock() {
         for ( ; current_ < sources_.size(); ++current_) {
-            Block b = sources_[current_].NextBlock();
+            PinnedBlock b = sources_[current_].NextBlock();
             if (b.IsValid()) return b;
         }
-        return Block();
+        return PinnedBlock();
     }
 
 private:

@@ -44,10 +44,10 @@ struct Serialization<Archive, T,
                          >::type>
 {
     static void Serialize(const T& x, Archive& ar) {
-        ar.template Put<T>(x);
+        ar.template PutRaw<T>(x);
     }
     static T Deserialize(Archive& ar) {
-        return ar.template Get<T>();
+        return ar.template GetRaw<T>();
     }
     static const bool   is_fixed_size = true;
     static const size_t fixed_size = sizeof(T);
