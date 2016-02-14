@@ -8,56 +8,32 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <examples/word_count/random_text_writer.hpp>
 #include <examples/word_count/word_count.hpp>
 
 #include <thrill/api/allgather.hpp>
-#include <thrill/api/distribute_from.hpp>
-#include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/generate.hpp>
 #include <thrill/api/read_lines.hpp>
-#include <thrill/api/write_lines_many.hpp>
 #include <thrill/common/string.hpp>
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <functional>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
 using namespace thrill;
 
-TEST(WordCount, Generate1024DoesNotCrash) {
+using examples::WordCountPair;
+using examples::FastWordCountPair;
 
-    using examples::WordCountPair;
+/******************************************************************************/
+// Bacon Ipsum Text
 
-    size_t size = 1024;
-
-    std::function<void(Context&)> start_func =
-        [&size](Context& ctx) {
-            ctx.enable_consume();
-
-            auto lines = GenerateFromFile(
-                ctx, "inputs/headwords",
-                [](const std::string& line) {
-                    return line;
-                },
-                size);
-
-            auto reduced_words = examples::WordCount(lines);
-
-            reduced_words.Map(
-                [](const WordCountPair& wc) {
-                    return wc.first + ": " + std::to_string(wc.second);
-                })
-            .WriteLinesMany(
-                "outputs/wordcount-");
-        };
-
-    api::RunLocalTests(start_func);
-}
-
-static const std::vector<examples::WordCountPair> bacon_ipsum_correct = {
+static const std::vector<WordCountPair> bacon_ipsum_correct = {
     { "alcatra", 32 }, { "amet", 4 }, { "andouille", 16 }, { "bacon", 36 },
     { "ball", 16 }, { "beef", 40 }, { "belly", 24 }, { "biltong", 24 },
     { "boudin", 12 }, { "bresaola", 12 }, { "brisket", 24 }, { "capicola", 24 },
@@ -80,8 +56,6 @@ static const std::vector<examples::WordCountPair> bacon_ipsum_correct = {
 
 TEST(WordCount, BaconIpsum) {
 
-    using examples::WordCountPair;
-
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
             ctx.enable_consume();
@@ -102,8 +76,6 @@ TEST(WordCount, BaconIpsum) {
 
 TEST(WordCount, BaconIpsumFastString) {
 
-    using examples::FastWordCountPair;
-
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
             ctx.enable_consume();
@@ -121,6 +93,56 @@ TEST(WordCount, BaconIpsumFastString) {
                 ASSERT_EQ(result[i].first, bacon_ipsum_correct[i].first);
                 ASSERT_EQ(result[i].second, bacon_ipsum_correct[i].second);
             }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+/******************************************************************************/
+// WordCount generated text
+
+TEST(WordCount, RandomTextWriterTest) {
+
+    size_t size = 10 * 1024;
+
+    // calculate correct result
+    std::vector<WordCountPair> correct;
+    {
+        std::map<std::string, size_t> count_map;
+
+        for (size_t i = 0; i < size; ++i) {
+            std::minstd_rand rng(i);
+            std::string text = RandomTextWriterGenerate(10, rng);
+            common::SplitView(
+                text, ' ', [&](const common::StringView& sv) {
+                    if (sv.size() == 0) return;
+                    count_map[sv.ToString()] += 1;
+                });
+        }
+        correct.assign(count_map.begin(), count_map.end());
+    }
+
+    std::function<void(Context&)> start_func =
+        [&size, &correct](Context& ctx) {
+            ctx.enable_consume();
+
+            auto lines = Generate(
+                ctx,
+                [](const size_t& index) -> std::string {
+                    std::minstd_rand rng(index);
+                    return RandomTextWriterGenerate(10, rng);
+                },
+                size);
+
+            auto reduced_words = examples::WordCount(lines);
+
+            std::vector<WordCountPair> result =
+                examples::WordCount(lines).AllGather();
+
+            // sort result, because reducing delivers any order
+            std::sort(result.begin(), result.end());
+
+            ASSERT_EQ(correct, result);
         };
 
     api::RunLocalTests(start_func);
