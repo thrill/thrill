@@ -738,7 +738,8 @@ private:
 *
 * \param comparator Comparator to specify the order of input and output.
 *
-* \param second_dia DIA, which is merged with this DIA.
+* \param first_dia first DIA
+* \param dias DIAs, which is merged with this DIA.
 */
 template <typename Comparator, typename FirstDIA, typename ... DIAs>
 auto Merge(const Comparator &comparator,

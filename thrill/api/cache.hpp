@@ -41,8 +41,6 @@ public:
 
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
-     *
-     * \param parent Parent DIA.
      */
     CacheNode(const ParentDIA& parent,
               StatsNode* stats_node)
