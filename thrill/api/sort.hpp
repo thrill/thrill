@@ -27,9 +27,11 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <deque>
 #include <functional>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -91,35 +93,37 @@ public:
 
     void PushData(bool consume) final {
         assert(merge_degree_ > 1);
-        size_t numfiles = files_.size();
-        if (numfiles > 1) {
-            sLOG << "start multi-way-merge with" << numfiles << "files";
+        if (files_.size() > 1) {
+            sLOG << "start multi-way-merge with" << files_.size() << "files";
             using Iterator = core::FileIteratorWrapper<ValueType>;
-            std::vector<std::pair<Iterator, Iterator> > seq;
-            for (size_t t = 0; t < numfiles; ++t) {
-                std::shared_ptr<data::File::Reader> reader =
-                    std::make_shared<data::File::Reader>(
-                        files_[t].GetReader(consume));
-                Iterator s = Iterator(&files_[t], reader, 0, true);
-                Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
-                seq.push_back(std::make_pair(std::move(s), std::move(e)));
-            }
 
-            size_t first_file = 0;
+            // merge batches of files if necessary
+            while (files_.size() > merge_degree_)
+            {
+                // create merger for first merge_degree_ Files
+                std::vector<std::pair<Iterator, Iterator> > seq;
+                seq.reserve(merge_degree_);
 
-            while (numfiles > merge_degree_) {
+                for (size_t t = 0; t < merge_degree_; ++t) {
+                    // TODO(tb): consume = true does not work here due to the
+                    // Iterator implementation.
+                    std::shared_ptr<data::File::Reader> reader =
+                        std::make_shared<data::File::Reader>(
+                            files_[t].GetReader(/* consume */ false));
+                    Iterator s = Iterator(&files_[t], reader, 0, true);
+                    Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
+                    seq.push_back(std::make_pair(std::move(s), std::move(e)));
+                }
 
-                size_t sumsizes_ = 0;
+                size_t sum_sizes = 0;
                 for (size_t i = 0; i < merge_degree_; ++i) {
-                    sumsizes_ += files_[i].num_items();
+                    sum_sizes += files_[i].num_items();
                 }
 
                 auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-                    seq.begin() + first_file,
-                    seq.begin() + first_file + merge_degree_,
-                    sumsizes_,
-                    compare_function_);
+                    seq.begin(), seq.end(), sum_sizes, compare_function_);
 
+                // create new File for merged items
                 files_.emplace_back(context_.GetFile());
                 auto writer = files_.back().GetWriter();
 
@@ -128,36 +132,32 @@ public:
                 }
                 writer.Close();
 
-                first_file += merge_degree_;
-                numfiles -= merge_degree_;
-                numfiles++;
+                // remove merged files
+                files_.erase(files_.begin(), files_.begin() + merge_degree_);
+            }
 
-                for (size_t i = 0; i < merge_degree_; ++i) {
-                    files_.pop_front();
-                }
+            // construct output merger of remaining Files
+            std::vector<std::pair<Iterator, Iterator> > seq;
+            seq.reserve(files_.size());
 
+            for (size_t t = 0; t < files_.size(); ++t) {
                 std::shared_ptr<data::File::Reader> reader =
                     std::make_shared<data::File::Reader>(
-                        files_.back().GetReader(consume));
-
-                Iterator s = Iterator(&files_.back(), reader, 0, true);
-                Iterator e = Iterator(&files_.back(), reader, files_.back().num_items(), false);
-
+                        files_[t].GetReader(consume));
+                Iterator s = Iterator(&files_[t], reader, 0, true);
+                Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
             }
 
             auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-                seq.begin() + first_file,
-                seq.end(),
-                totalsize_,
-                compare_function_);
+                seq.begin(), seq.end(), local_out_size_, compare_function_);
 
             while (puller.HasNext()) {
                 this->PushItem(puller.Next());
             }
         }
         else {
-            if (totalsize_) {
+            if (local_out_size_) {
                 data::File::Reader reader = files_[0].GetReader(consume);
                 while (reader.HasNext()) {
                     this->PushItem(reader.Next<ValueType>());
@@ -203,10 +203,10 @@ private:
     //! Maximum number of elements per file while merging
     static const size_t elements_per_file_ = 10000;
 
-    //! Total number of local elements after communication
-    size_t totalsize_ = 0;
     //! Local data files
     std::deque<data::File> files_;
+    //! Total number of local elements after communication
+    size_t local_out_size_ = 0;
 
     // epsilon
     static constexpr double desired_imbalance_ = 0.25;
@@ -228,9 +228,10 @@ private:
                 samples_.push_back(input);
             }
             after_sample_ = 0;
-            double sample = (double)local_items_ /
-                            (std::log2(local_items_ * context_.num_workers())
-                             * (1 / (desired_imbalance_ * desired_imbalance_)));
+            double sample = static_cast<double>(
+                local_items_
+                / std::log2(local_items_ * context_.num_workers())
+                * (1 / (desired_imbalance_ * desired_imbalance_)));
             next_sample_ = std::floor(sample);
         }
     }
@@ -242,8 +243,8 @@ private:
 
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
-        // TODO(tb): OpenConsumeReader
-        auto reader = sample_stream_->OpenCatReader(true);
+
+        auto reader = sample_stream_->OpenCatReader(/* consume */ true);
 
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
@@ -522,7 +523,7 @@ private:
         LOG << "Writing files";
         while (reader.HasNext()) {
             if (items_in_file < elements_per_file_) {
-                totalsize_++;
+                local_out_size_++;
                 temp_data.push_back(reader.template Next<ValueType>());
                 items_in_file++;
             }
@@ -538,8 +539,8 @@ private:
         data_stream->Close();
 
         double balance = 0;
-        if (totalsize_ > 0) {
-            balance = static_cast<double>(totalsize_)
+        if (local_out_size_ > 0) {
+            balance = static_cast<double>(local_out_size_)
                       * static_cast<double>(num_total_workers)
                       / static_cast<double>(total_items);
         }
@@ -550,7 +551,7 @@ private:
 
         STATC << "NodeType" << "Sort"
               << "Workers" << num_total_workers
-              << "LocalSize" << totalsize_
+              << "local_out_size" << local_out_size_
               << "Balance Factor" << balance
               << "Sample Size" << samples_.size();
 
