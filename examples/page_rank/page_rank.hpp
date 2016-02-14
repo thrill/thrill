@@ -1,45 +1,31 @@
 /*******************************************************************************
- * examples/page_rank.hpp
+ * examples/page_rank/page_rank.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_EXAMPLES_PAGE_RANK_HEADER
-#define THRILL_EXAMPLES_PAGE_RANK_HEADER
+#ifndef THRILL_EXAMPLES_PAGE_RANK_PAGE_RANK_HEADER
+#define THRILL_EXAMPLES_PAGE_RANK_PAGE_RANK_HEADER
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/groupby_index.hpp>
 #include <thrill/api/print.hpp>
-#include <thrill/api/read_lines.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
-#include <thrill/api/sort.hpp>
-#include <thrill/api/sum.hpp>
-#include <thrill/api/write_lines.hpp>
 #include <thrill/api/zip.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/stats_timer.hpp>
 
 #include <algorithm>
-#include <iostream>
-#include <iterator>
-#include <random>
-#include <sstream>
 #include <string>
-#include <thread>
-#include <tuple>
 #include <utility>
 #include <vector>
-
-using thrill::DIA;
-using thrill::Context;
 
 using namespace thrill; // NOLINT
 
@@ -220,6 +206,6 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
 
 } // namespace examples
 
-#endif // !THRILL_EXAMPLES_PAGE_RANK_HEADER
+#endif // !THRILL_EXAMPLES_PAGE_RANK_PAGE_RANK_HEADER
 
 /******************************************************************************/
