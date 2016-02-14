@@ -61,10 +61,6 @@ public:
      *
      * Sets the parents for this node and adds this node as a child for
      * each parent.
-     *
-     * \param ctx Reference to Context, which holds references to data and network.
-     *
-     * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,

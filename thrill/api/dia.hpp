@@ -96,6 +96,8 @@ public:
      *
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIA.
+     *
+     * \param stats_parents The StatsNodes of all parents of this node.
      */
     DIA(const DIANodePtr& node, const Stack& stack,
         const std::vector<StatsNode*>& stats_parents)
@@ -112,6 +114,8 @@ public:
      *
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIA.
+     *
+     * \param stats_parents The StatsNodes of all parents of this node.
      */
     DIA(DIANodePtr&& node, const Stack& stack,
         const std::vector<StatsNode*>& stats_parents)
@@ -126,8 +130,7 @@ public:
      * \param node Pointer to the last DIANode, DOps and Actions create a new
      * DIANode, LOps link to the DIANode of the previous DIA.
      *
-     * \param stack Function stack consisting of functions between last DIANode
-     * and this DIA.
+     * \param stats_parents The StatsNodes of all parents of this node.
      */
     DIA(DIANodePtr&& node, const std::vector<StatsNode*>& stats_parents)
         : DIA(std::move(node), FunctionStack<ValueType>(), stats_parents) { }
@@ -342,6 +345,8 @@ public:
      * \param reduce_function Reduce function, which defines how the key buckets
      * are reduced to a single element. This function is applied associative but
      * not necessarily commutative.
+     *
+     * \param reduce_config Reduce configuration.
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
@@ -350,32 +355,34 @@ public:
                   const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
-    * ReduceByKey is a DOp, which groups elements of the DIA with the
-    * key_extractor and reduces each key-bucket to a single element using the
-    * associative reduce_function. The reduce_function defines how two elements
-    * can be reduced to a single element of equal type.In contrast to ReduceBy,
-    * the reduce_function is allowed to change the key (Example: Integers
-    * with modulo function as key_extractor). Creates overhead as both key and
-    * value have to be sent in shuffle step. Since ReduceByKey
-    * is a DOp, it creates a new DIANode. The DIA returned by Reduce links
-    * to this newly created DIANode. The stack_ of the returned DIA consists
-    * of the PostOp of Reduce, as a reduced element can
-    * directly be chained to the following LOps.
-    *
-    * \tparam KeyExtractor Type of the key_extractor function.
-    * The key_extractor function is equal to a map function.
-    *
-    * \param key_extractor Key extractor function, which maps each element to a
-    * key of possibly different type.
-    *
-    * \tparam ReduceFunction Type of the reduce_function. This is a function
-    * reducing two elements of L's result type to a single element of equal
-    * type.
-    *
-    * \param reduce_function Reduce function, which defines how the key buckets
-    * are reduced to a single element. This function is applied associative but
-    * not necessarily commutative.
-    */
+     * ReduceByKey is a DOp, which groups elements of the DIA with the
+     * key_extractor and reduces each key-bucket to a single element using the
+     * associative reduce_function. The reduce_function defines how two elements
+     * can be reduced to a single element of equal type.In contrast to ReduceBy,
+     * the reduce_function is allowed to change the key (Example: Integers
+     * with modulo function as key_extractor). Creates overhead as both key and
+     * value have to be sent in shuffle step. Since ReduceByKey
+     * is a DOp, it creates a new DIANode. The DIA returned by Reduce links
+     * to this newly created DIANode. The stack_ of the returned DIA consists
+     * of the PostOp of Reduce, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam ReduceFunction Type of the reduce_function. This is a function
+     * reducing two elements of L's result type to a single element of equal
+     * type.
+     *
+     * \param reduce_function Reduce function, which defines how the key buckets
+     * are reduced to a single element. This function is applied associative but
+     * not necessarily commutative.
+     *
+     * \param reduce_config Reduce configuration.
+     */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
     auto ReduceByKey(const KeyExtractor &key_extractor,
@@ -400,6 +407,8 @@ public:
      * \param reduce_function Reduce function, which defines how the key buckets
      * are reduced to a single element. This function is applied associative but
      * not necessarily commutative.
+     *
+     * \param reduce_config Reduce configuration.
      */
     template <typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
@@ -440,14 +449,17 @@ public:
      *
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
+     *
+     * \param reduce_config Reduce configuration.
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
-    auto ReduceToIndex(const KeyExtractor &key_extractor,
-                       const ReduceFunction &reduce_function,
-                       size_t size,
-                       const ValueType& neutral_element = ValueType(),
-                       const ReduceConfig& config = ReduceConfig()) const;
+    auto ReduceToIndex(
+        const KeyExtractor &key_extractor,
+        const ReduceFunction &reduce_function,
+        size_t size,
+        const ValueType& neutral_element = ValueType(),
+        const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
      * ReduceToIndexByKey is a DOp, which groups elements of the DIA with the
@@ -484,14 +496,17 @@ public:
      *
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
+     *
+     * \param reduce_config Reduce configuration.
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
-    auto ReduceToIndexByKey(const KeyExtractor &key_extractor,
-                            const ReduceFunction &reduce_function,
-                            size_t size,
-                            const ValueType& neutral_element = ValueType(),
-                            const ReduceConfig& config = ReduceConfig()) const;
+    auto ReduceToIndexByKey(
+        const KeyExtractor &key_extractor,
+        const ReduceFunction &reduce_function,
+        size_t size,
+        const ValueType& neutral_element = ValueType(),
+        const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
      * ReducePairToIndex is a DOp, which groups key-value-pairs of the input
@@ -520,6 +535,8 @@ public:
      *
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
+     *
+     * \param reduce_config Reduce configuration.
      */
     template <typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
@@ -527,7 +544,7 @@ public:
         const ReduceFunction &reduce_function, size_t size,
         const typename FunctionTraits<ReduceFunction>::result_type&
         neutral_element = typename FunctionTraits<ReduceFunction>::result_type(),
-        const ReduceConfig& config = ReduceConfig()) const;
+        const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
      * GroupBy is a DOp, which groups elements of the DIA by its key.
@@ -562,7 +579,7 @@ public:
               typename HashFunction =
                   std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
     auto GroupBy(const KeyExtractor &key_extractor,
-                 const GroupByFunction &reduce_function) const;
+                 const GroupByFunction &groupby_function) const;
 
     /*!
      * GroupBy is a DOp, which groups elements of the DIA by its key.
@@ -592,6 +609,12 @@ public:
      * \param groupby_function Reduce function, which defines how the key
      * buckets are grouped and processed.
      *      input param: api::GroupByReader with functions HasNext() and Next()
+     *
+     * \param size Resulting DIA size. Consequently, the key_extractor function
+     * but always return < size for any element in the input DIA.
+     *
+     * \param neutral_element Item value with which to start the reduction in
+     * each array cell.
      */
     template <typename ValueOut,
               typename KeyExtractor,
@@ -599,7 +622,7 @@ public:
               typename HashFunction =
                   std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
     auto GroupByIndex(const KeyExtractor &key_extractor,
-                      const GroupByFunction &reduce_function,
+                      const GroupByFunction &groupby_function,
                       const size_t size,
                       const ValueOut& neutral_element = ValueOut()) const;
 

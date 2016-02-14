@@ -42,6 +42,7 @@ namespace collective {
  * \param net The current worker onto which to apply the operation
  * \param value The value to be summed up
  * \param sum_op A custom summation operator
+ * \param inclusive Inclusive prefix sum if true (default)
  */
 template <typename T, typename BinarySumOp = std::plus<T> >
 static inline

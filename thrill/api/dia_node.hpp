@@ -61,12 +61,6 @@ public:
     /*!
      * Constructor for a DIANode, which sets references to the
      * parent nodes. Calls the constructor of DIABase with the same parameters.
-     *
-     * \param ctx Reference to Context, which holds references to data and
-     * network.
-     *
-     * \param parents Reference to parents of this node, which have to be
-     * computed previously
      */
     DIANode(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,

@@ -40,8 +40,6 @@ public:
 
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
-     *
-     * \param parent Parent DIA.
      */
     CollapseNode(const ParentDIA& parent,
                  StatsNode* stats_node)
