@@ -11,13 +11,17 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <benchmarks/chaining/helper.hpp>
 #include <thrill/api/dia.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/size.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/thrill.hpp>
+
+#include <benchmarks/chaining/helper.hpp>
+
+#include <string>
 
 using namespace thrill; // NOLINT
 
