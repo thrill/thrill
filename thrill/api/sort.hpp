@@ -4,8 +4,8 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Michael Axtmann <michael.axtmann@kit.edu>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -23,15 +23,14 @@
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/net/flow_control_channel.hpp>
-#include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/group.hpp>
 
 #include <algorithm>
+#include <cstdlib>
 #include <functional>
+#include <random>
 #include <string>
 #include <vector>
-#include <cstdlib>
 
 namespace thrill {
 namespace api {
@@ -40,17 +39,20 @@ namespace api {
 //! \{
 
 /*!
- * A DIANode which performs a Sort operation. Sort sorts a DIA according to a given
- * compare function
+ * A DIANode which performs a Sort operation. Sort sorts a DIA according to a
+ * given compare function
  *
  * \tparam ValueType Type of DIA elements
- * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
+ *
+ * \tparam Stack Function stack, which contains the chained lambdas between the
+ * last and this DIANode.
+ *
  * \tparam CompareFunction Type of the compare function
  */
 template <typename ValueType, typename ParentDIA, typename CompareFunction>
 class SortNode final : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -67,22 +69,19 @@ public:
              CompareFunction compare_function,
              StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
-          compare_function_(compare_function),
-          stream_id_samples_(parent.ctx().GetNewCatStream()),
-          emitters_samples_(stream_id_samples_->OpenWriters()),
-          stream_id_data_(parent.ctx().GetNewCatStream()),
-          emitters_data_(stream_id_data_->OpenWriters())
+          compare_function_(compare_function)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [this](const ValueType& input) {
                              PreOp(input);
                          };
 
-        unsorted_data_ = context_.GetFilePtr();
-        unsorted_writer_ = unsorted_data_->GetWriter();
-
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
+    }
+
+    void StopPreOp(size_t /* id */) final {
+        unsorted_writer_.Close();
     }
 
     //! Executes the sum operation.
@@ -90,139 +89,148 @@ public:
         MainOp();
     }
 
-    void PushData(bool consume) final {	
-		assert(merge_degree_ > 1);
-		size_t numfiles = files_.size();
-		if (numfiles > 1) {
-			LOG << "start multiwaymerge with " << numfiles << " files";
-			using Iterator = thrill::core::FileIteratorWrapper<ValueType>;
-			std::vector<std::pair<Iterator, Iterator> > seq;
-			for (size_t t = 0; t < numfiles; ++t) {
-				std::shared_ptr<data::File::Reader> reader = std::make_shared<data::File::Reader>(
-					files_[t].GetReader(consume));
-				Iterator s = Iterator(&files_[t], reader, 0, true);
-				Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
-				seq.push_back(std::make_pair(std::move(s), std::move(e)));
-			}
-			
-			size_t first_file = 0;
+    void PushData(bool consume) final {
+        assert(merge_degree_ > 1);
+        size_t numfiles = files_.size();
+        if (numfiles > 1) {
+            sLOG << "start multi-way-merge with" << numfiles << "files";
+            using Iterator = core::FileIteratorWrapper<ValueType>;
+            std::vector<std::pair<Iterator, Iterator> > seq;
+            for (size_t t = 0; t < numfiles; ++t) {
+                std::shared_ptr<data::File::Reader> reader =
+                    std::make_shared<data::File::Reader>(
+                        files_[t].GetReader(consume));
+                Iterator s = Iterator(&files_[t], reader, 0, true);
+                Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
+                seq.push_back(std::make_pair(std::move(s), std::move(e)));
+            }
 
-			while (numfiles > merge_degree_) {
+            size_t first_file = 0;
 
-				size_t sumsizes_ = 0;
-				for (size_t i = 0; i < merge_degree_; ++i) {
-					sumsizes_ += files_[i].num_items();
-				}
+            while (numfiles > merge_degree_) {
 
-				auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-					seq.begin() + first_file,
-					seq.begin() + first_file + merge_degree_,
-					sumsizes_,
-					compare_function_);
+                size_t sumsizes_ = 0;
+                for (size_t i = 0; i < merge_degree_; ++i) {
+                    sumsizes_ += files_[i].num_items();
+                }
 
-				files_.emplace_back(context_.GetFile());
-				auto writer = files_.back().GetWriter();
+                auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
+                    seq.begin() + first_file,
+                    seq.begin() + first_file + merge_degree_,
+                    sumsizes_,
+                    compare_function_);
 
-				while(puller.HasNext()) {
-					writer.Put(puller.Next());
-				}
-				writer.Close();
+                files_.emplace_back(context_.GetFile());
+                auto writer = files_.back().GetWriter();
 
+                while (puller.HasNext()) {
+                    writer.Put(puller.Next());
+                }
+                writer.Close();
 
+                first_file += merge_degree_;
+                numfiles -= merge_degree_;
+                numfiles++;
 
-				first_file += merge_degree_;
-				numfiles -= merge_degree_;
-				numfiles++;
+                for (size_t i = 0; i < merge_degree_; ++i) {
+                    files_.pop_front();
+                }
 
-				for (size_t i = 0; i < merge_degree_; ++i) {
-					files_.pop_front();
-				}
+                std::shared_ptr<data::File::Reader> reader =
+                    std::make_shared<data::File::Reader>(
+                        files_.back().GetReader(consume));
 
-				std::shared_ptr<data::File::Reader> reader = std::make_shared<data::File::Reader>(
-					files_.back().GetReader(consume));
-				Iterator s = Iterator(&files_.back(), reader, 0, true);
-				Iterator e = Iterator(&files_.back(), reader, files_.back().num_items(), false);
+                Iterator s = Iterator(&files_.back(), reader, 0, true);
+                Iterator e = Iterator(&files_.back(), reader, files_.back().num_items(), false);
 
-				seq.push_back(std::make_pair(std::move(s), std::move(e)));
+                seq.push_back(std::make_pair(std::move(s), std::move(e)));
+            }
 
-			}
+            auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
+                seq.begin() + first_file,
+                seq.end(),
+                totalsize_,
+                compare_function_);
 
-			auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-				seq.begin() + first_file,
-				seq.end(),
-				totalsize_,
-				compare_function_);
-
-            while(puller.HasNext()) {
-				this->PushItem(puller.Next());
-			}
-		} else {
-			if (totalsize_) {
-				data::File::Reader reader =  files_[0].GetReader(consume);
-				while(reader.HasNext()) {
-					this->PushItem(reader.Next<ValueType>());
-				}
-			}
-		}
+            while (puller.HasNext()) {
+                this->PushItem(puller.Next());
+            }
+        }
+        else {
+            if (totalsize_) {
+                data::File::Reader reader = files_[0].GetReader(consume);
+                while (reader.HasNext()) {
+                    this->PushItem(reader.Next<ValueType>());
+                }
+            }
+        }
     }
 
-    void Dispose() final {  }
+    void Dispose() final { }
 
 private:
-    //! The sum function which is applied to two elements.
+    //! The comparison function which is applied to two elements.
     CompareFunction compare_function_;
+
+    //! \name PreOp Phase
+    //! {
+
+    //! All local unsorted items before communication
+    data::File unsorted_file_ { context_.GetFile() };
+    //! Writer for unsorted_file_
+    data::File::Writer unsorted_writer_ { unsorted_file_.GetWriter() };
+    //! Number of items on this worker
+    size_t local_items_ = 0;
+
     //! Sample vector
     std::vector<ValueType> samples_;
-	//! All local unsorted elements before communicaton
-    data::FilePtr unsorted_data_;
-	//! Writer for unsorted_data_
-    data::File::Writer unsorted_writer_;
-	//! Number of items on this worker
-    size_t total_items_ = 0;
-	//! Number of items since last sample was drawn
+    //! Number of items since last sample was drawn
     size_t after_sample_ = 0;
-	//! Number of items between this and next sample
+    //! Number of items between this and next sample
     size_t next_sample_ = 0;
-
-	//! Maximum merging degree 
-	size_t merge_degree_ = 10;
-	//! Maximum number of elements per file while merging
-	size_t elements_per_file_ = 10000;
-	//! Total number of local elements after communication
-	size_t totalsize_ = 0;
-	//! Local data files
-	std::deque<data::File> files_;
+    //! Random generator
+    std::default_random_engine rng_ { std::random_device { } () };
 
     //! Emitter to send samples to process 0
-    data::CatStreamPtr stream_id_samples_;
-    std::vector<data::CatStream::Writer> emitters_samples_;
+    data::CatStreamPtr sample_stream_ { context_.GetNewCatStream() };
+    std::vector<data::CatStream::Writer> sample_writers_
+    { sample_stream_->OpenWriters() };
 
-    //! Emitters to send data to other workers specified by splitters.
-    data::CatStreamPtr stream_id_data_;
-    std::vector<data::CatStream::Writer> emitters_data_;
+    //! }
+
+    //! Maximum merging degree
+    static const size_t merge_degree_ = 10;
+    //! Maximum number of elements per file while merging
+    static const size_t elements_per_file_ = 10000;
+
+    //! Total number of local elements after communication
+    size_t totalsize_ = 0;
+    //! Local data files
+    std::deque<data::File> files_;
 
     // epsilon
     static constexpr double desired_imbalance_ = 0.25;
 
-    void PreOp(ValueType input) {
+    void PreOp(const ValueType& input) {
         unsorted_writer_.Put(input);
-        total_items_++;
+        local_items_++;
         after_sample_++;
-        //In this stage we do not know how many elements are there in total.
-        //Therefore we draw samples based on current number of elements and
-        //randomly replace older samples when we have too many.
+        // In this stage we do not know how many elements are there in total.
+        // Therefore we draw samples based on current number of elements and
+        // randomly replace older samples when we have too many.
         if (after_sample_ > next_sample_) {
             if (samples_.size() >
-                std::log2(total_items_ * context_.num_workers())
+                std::log2(local_items_ * context_.num_workers())
                 * (1 / (desired_imbalance_ * desired_imbalance_))) {
-                samples_[std::rand() % samples_.size()] = input;
-            } else {
+                samples_[rng_() % samples_.size()] = input;
+            }
+            else {
                 samples_.push_back(input);
             }
             after_sample_ = 0;
-            double sample = (double)total_items_ /
-                (std::log2(total_items_ * context_.num_workers())
-                 * (1 / (desired_imbalance_ * desired_imbalance_)));
+            double sample = (double)local_items_ /
+                            (std::log2(local_items_ * context_.num_workers())
+                             * (1 / (desired_imbalance_ * desired_imbalance_)));
             next_sample_ = std::floor(sample);
         }
     }
@@ -235,7 +243,7 @@ private:
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
         // TODO(tb): OpenConsumeReader
-        auto reader = stream_id_samples_->OpenCatReader(true);
+        auto reader = sample_stream_->OpenCatReader(true);
 
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
@@ -250,12 +258,12 @@ private:
         for (size_t i = 1; i < num_total_workers; i++) {
             splitters.push_back(samples[i * splitting_size]);
             for (size_t j = 1; j < num_total_workers; j++) {
-                emitters_samples_[j].Put(samples[i * splitting_size]);
+                sample_writers_[j].Put(samples[i * splitting_size]);
             }
         }
 
         for (size_t j = 1; j < num_total_workers; j++) {
-            emitters_samples_[j].Close();
+            sample_writers_[j].Close();
         }
     }
 
@@ -309,7 +317,7 @@ private:
         return (n & ~(k - 1));
     }
 
-    void EmitToBuckets(
+    void TransmitItems(
         // Tree of splitters, sizeof |splitter|
         const ValueType* const tree,
         // Number of buckets: k = 2^{log_k}
@@ -318,35 +326,40 @@ private:
         // Number of actual workers to send to
         size_t actual_k,
         const ValueType* const sorted_splitters,
-        size_t prefix_elem,
-        size_t total_elem) {
+        size_t prefix_items,
+        size_t total_items,
+        data::CatStreamPtr& data_stream) {
 
-        auto unsorted_reader_ = unsorted_data_->GetReader(/* consume */ true);
+        data::File::ConsumeReader unsorted_reader =
+            unsorted_file_.GetConsumeReader();
+
+        std::vector<data::CatStream::Writer> data_writers =
+            data_stream->OpenWriters();
 
         // enlarge emitters array to next power of two to have direct access,
         // because we fill the splitter set up with sentinels == last splitter,
         // hence all items land in the last bucket.
-        assert(emitters_data_.size() == actual_k);
+        assert(data_writers.size() == actual_k);
         assert(actual_k <= k);
 
-        while (emitters_data_.size() < k)
-            emitters_data_.emplace_back(nullptr);
+        while (data_writers.size() < k)
+            data_writers.emplace_back(nullptr);
 
-        std::swap(emitters_data_[actual_k - 1], emitters_data_[k - 1]);
+        std::swap(data_writers[actual_k - 1], data_writers[k - 1]);
 
         // classify all items (take two at once) and immediately transmit them.
 
         const size_t stepsize = 2;
 
         size_t i = 0;
-        for ( ; i < RoundDown(total_items_, stepsize); i += stepsize)
+        for ( ; i < RoundDown(local_items_, stepsize); i += stepsize)
         {
             // take two items
             size_t j0 = 1;
-            const ValueType& el0 = unsorted_reader_.Next<ValueType>();
+            const ValueType& el0 = unsorted_reader.Next<ValueType>();
 
             size_t j1 = 1;
-            const ValueType& el1 = unsorted_reader_.Next<ValueType>();
+            const ValueType& el1 = unsorted_reader.Next<ValueType>();
 
             // run items down the tree
             for (size_t l = 0; l < log_k; l++)
@@ -360,7 +373,7 @@ private:
 
             if (b0 && Equal(el0, sorted_splitters[b0 - 1])) {
                 while (b0 && Equal(el0, sorted_splitters[b0 - 1])
-                       && (prefix_elem + i) * actual_k < b0 * total_elem) {
+                       && (prefix_items + i) * actual_k < b0 * total_items) {
                     b0--;
                 }
 
@@ -369,12 +382,12 @@ private:
                 }
             }
 
-            assert(emitters_data_[b0].IsValid());
-            emitters_data_[b0].Put(el0);
+            assert(data_writers[b0].IsValid());
+            data_writers[b0].Put(el0);
 
             if (b1 && Equal(el1, sorted_splitters[b1 - 1])) {
                 while (b1 && Equal(el1, sorted_splitters[b1 - 1])
-                       && (prefix_elem + i + 1) * actual_k < b1 * total_elem) {
+                       && (prefix_items + i + 1) * actual_k < b1 * total_items) {
                     b1--;
                 }
 
@@ -383,69 +396,71 @@ private:
                 }
             }
 
-            assert(emitters_data_[b1].IsValid());
-            emitters_data_[b1].Put(el1);
+            assert(data_writers[b1].IsValid());
+            data_writers[b1].Put(el1);
         }
 
         // last iteration of loop if we have an odd number of items.
-        for ( ; i < total_items_; i++)
+        for ( ; i < local_items_; i++)
         {
-            
-            const ValueType& last_item = unsorted_reader_.Next<ValueType>();
-            size_t j = 1;
+            size_t j0 = 1;
+            const ValueType& last_item = unsorted_reader.Next<ValueType>();
+
+            // run item down the tree
             for (size_t l = 0; l < log_k; l++)
             {
-                j = j * 2 + !(compare_function_(last_item, tree[j]));
+                j0 = j0 * 2 + !(compare_function_(last_item, tree[j0]));
             }
 
-            size_t b = j - k;
+            size_t b0 = j0 - k;
 
-            while (b && Equal(last_item, sorted_splitters[b - 1])
-                   && (prefix_elem + i) * actual_k < b * total_elem) {
-                b--;
+            while (b0 && Equal(last_item, sorted_splitters[b0 - 1])
+                   && (prefix_items + i) * actual_k < b0 * total_items) {
+                b0--;
             }
 
-            if (b + 1 >= actual_k) {
-                b = k - 1;
+            if (b0 + 1 >= actual_k) {
+                b0 = k - 1;
             }
 
-            assert(emitters_data_[b].IsValid());
-            emitters_data_[b].Put(last_item);
+            assert(data_writers[b0].IsValid());
+            data_writers[b0].Put(last_item);
         }
+
+        // close writers and flush data
+        for (size_t i = 0; i < data_writers.size(); i++)
+            data_writers[i].Close();
     }
 
-	void SortAndWriteToFile(std::vector<ValueType>& vec, std::deque<data::File>& files) {
-		std::sort(vec.begin(), vec.end(), compare_function_);
-		files.emplace_back(context_.GetFile());
-		auto writer = files.back().GetWriter();
-		for (auto ele : vec) {
-			writer.Put(ele);
-		}
-		writer.Close();
-		vec.clear();
-	}
+    void SortAndWriteToFile(std::vector<ValueType>& vec,
+                            std::deque<data::File>& files) {
+        std::sort(vec.begin(), vec.end(), compare_function_);
+        files.emplace_back(context_.GetFile());
+        auto writer = files.back().GetWriter();
+        for (auto ele : vec) {
+            writer.Put(ele);
+        }
+        writer.Close();
+        vec.clear();
+    }
 
     void MainOp() {
-        unsorted_writer_.Close();
-        net::FlowControlChannel& channel = context_.flow_control_channel();
-
-        size_t prefix_elem = channel.PrefixSum(total_items_, (size_t)0, std::plus<size_t>(), false);
-        size_t total_elem = channel.AllReduce(total_items_);
+        size_t prefix_items = context_.ExPrefixSum(local_items_);
+        size_t total_items = context_.AllReduce(local_items_);
 
         size_t num_total_workers = context_.num_workers();
 
         LOG << "Local sample size on worker " << context_.my_rank() <<
             ": " << samples_.size();
-        LOG << "Number of elements: " << total_items_;
-        
-        
-        //Send all samples to worker 0.
-        for (auto sample : samples_) {
-            emitters_samples_[0].Put(sample);
+        LOG << "Number of local items: " << local_items_;
+
+        // Send all samples to worker 0.
+        for (const auto& sample : samples_) {
+            sample_writers_[0].Put(sample);
         }
-        emitters_samples_[0].Close();        
+        sample_writers_[0].Close();
         std::vector<ValueType>().swap(samples_);
-        
+
         // Get the ceiling of log(num_total_workers), as SSSS needs 2^n buckets.
         size_t ceil_log = common::IntegerLog2Ceil(num_total_workers);
         size_t workers_algo = 1 << ceil_log;
@@ -460,15 +475,15 @@ private:
         else {
             // Close unused emitters
             for (size_t j = 1; j < num_total_workers; j++) {
-                emitters_samples_[j].Close();
+                sample_writers_[j].Close();
             }
-            bool consume = false;
-            auto reader = stream_id_samples_->OpenCatReader(consume);
+            data::CatStream::CatReader reader =
+                sample_stream_->OpenCatReader(/* consume */ true);
             while (reader.HasNext()) {
                 splitters.push_back(reader.template Next<ValueType>());
             }
         }
-        stream_id_samples_->Close();
+        sample_stream_->Close();
 
         // code from SS2NPartition, slightly altered
 
@@ -483,51 +498,50 @@ private:
                     splitters.data(),
                     splitter_count_algo);
 
-        EmitToBuckets(
+        data::CatStreamPtr data_stream = context_.GetNewCatStream();
+
+        TransmitItems(
             splitter_tree, // Tree. sizeof |splitter|
             workers_algo,  // Number of buckets
             ceil_log,
             num_total_workers,
             splitters.data(),
-            prefix_elem,
-            total_elem);
+            prefix_items,
+            total_items,
+            data_stream);
 
         delete[] splitter_tree;
 
         // end of SS2N
 
-        for (size_t i = 0; i < emitters_data_.size(); i++)
-            emitters_data_[i].Close();
+        auto reader = data_stream->OpenCatReader(/* consume */ false);
 
-        bool consume = false;
-        auto reader = stream_id_data_->OpenCatReader(consume);
-
-		std::vector<ValueType> temp_data;
-		temp_data.reserve(elements_per_file_);
-		size_t items_in_file = 0;
-		LOG << "Writing files";
+        std::vector<ValueType> temp_data;
+        temp_data.reserve(elements_per_file_);
+        size_t items_in_file = 0;
+        LOG << "Writing files";
         while (reader.HasNext()) {
-			if (items_in_file < elements_per_file_) {
-				totalsize_++;
-				temp_data.push_back(reader.template Next<ValueType>());
-				items_in_file++;
-			} else {
-				SortAndWriteToFile(temp_data, files_);
-				items_in_file = 0;
-			}
+            if (items_in_file < elements_per_file_) {
+                totalsize_++;
+                temp_data.push_back(reader.template Next<ValueType>());
+                items_in_file++;
+            }
+            else {
+                SortAndWriteToFile(temp_data, files_);
+                items_in_file = 0;
+            }
         }
-		if (items_in_file) {
-			SortAndWriteToFile(temp_data, files_);
-		}
-		
-		
-        stream_id_data_->Close();
+        if (items_in_file) {
+            SortAndWriteToFile(temp_data, files_);
+        }
+
+        data_stream->Close();
 
         double balance = 0;
         if (totalsize_ > 0) {
             balance = static_cast<double>(totalsize_)
                       * static_cast<double>(num_total_workers)
-                      / static_cast<double>(total_elem);
+                      / static_cast<double>(total_items);
         }
 
         if (balance > 1) {
@@ -540,8 +554,8 @@ private:
               << "Balance Factor" << balance
               << "Sample Size" << samples_.size();
 
-        this->WriteStreamStats(stream_id_data_);
-        this->WriteStreamStats(stream_id_samples_);
+        this->WriteStreamStats(data_stream);
+        this->WriteStreamStats(sample_stream_);
     }
 
     void PostOp() { }
