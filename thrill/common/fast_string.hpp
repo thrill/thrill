@@ -205,49 +205,35 @@ public:
         return *this;
     }
 
-    /*!
-     * Equality operator to compare a FastString with an std::string
-     * \param other Comparison string
-     * \return true, if data is equal
-     */
-    bool operator == (const std::string& other) const noexcept {
-        return size_ == other.size() &&
-               std::equal(data_, data_ + size_, other.c_str());
-    }
-
-    /*!
-     * Inequality operator to compare a FastString with an std::string
-     * \param other Comparison string
-     * \return false, if data is equal
-     */
-    bool operator != (const std::string& other) const noexcept {
-        return !(operator == (other));
-    }
-
-    /*!
-     * Equality operator to compare a FastString with another FastString
-     * \param other Comparison FastString
-     * \return true, if data is equal
-     */
+    //! Equality operator to compare a FastString with another FastString
     bool operator == (const FastString& other) const noexcept {
         return size_ == other.size_ &&
                std::equal(data_, data_ + size_, other.data_);
     }
 
-    /*!
-     * Inequality operator to compare a FastString with another FastString
-     * \param other Comparison FastString
-     * \return false, if data is equal
-     */
+    //! Inequality operator to compare a FastString with another FastString
     bool operator != (const FastString& other) const noexcept {
         return !(operator == (other));
     }
 
-    /*!
-     * Make FastString ostreamable
-     * \param os ostream
-     * \param fs FastString to stream
-     */
+    //! Less operator to compare a FastString with another FastString
+    bool operator < (const FastString& other) const noexcept {
+        return std::lexicographical_compare(
+            data_, data_ + size_, other.data_, other.data_ + other.size_);
+    }
+
+    //! Equality operator to compare a FastString with an std::string
+    bool operator == (const std::string& other) const noexcept {
+        return size_ == other.size() &&
+               std::equal(data_, data_ + size_, other.c_str());
+    }
+
+    //! Inequality operator to compare a FastString with an std::string
+    bool operator != (const std::string& other) const noexcept {
+        return !(operator == (other));
+    }
+
+    //! Make FastString ostreamable
     friend std::ostream& operator << (std::ostream& os, const FastString& fs) {
         return os.write(fs.Data(), fs.Size());
     }
