@@ -75,10 +75,9 @@ private:
     void MainOp() {
         // get the number of elements that are stored on this worker
         LOG << "MainOp processing, sum: " << local_size_;
-        net::FlowControlChannel& channel = context_.flow_control_channel();
 
         // process the reduce, default argument is SumOp.
-        global_size_ = channel.AllReduce(local_size_);
+        global_size_ = context_.net.AllReduce(local_size_);
     }
 };
 

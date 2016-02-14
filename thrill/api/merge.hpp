@@ -92,14 +92,14 @@ public:
 
             size_t p = ctx.num_workers();
 
-            size_t merge = ctx.AllReduce(merge_timer_.Milliseconds()) / p;
-            size_t balance = ctx.AllReduce(balancing_timer_.Milliseconds()) / p;
-            size_t pivot_selection = ctx.AllReduce(pivot_selection_timer_.Milliseconds()) / p;
-            size_t search_step = ctx.AllReduce(search_step_timer_.Milliseconds()) / p;
-            size_t file_op = ctx.AllReduce(file_op_timer_.Milliseconds()) / p;
-            size_t comm = ctx.AllReduce(comm_timer_.Milliseconds()) / p;
-            size_t scatter = ctx.AllReduce(scatter_timer_.Milliseconds()) / p;
-            result_size_ = ctx.AllReduce(result_size_);
+            size_t merge = ctx.net.AllReduce(merge_timer_.Milliseconds()) / p;
+            size_t balance = ctx.net.AllReduce(balancing_timer_.Milliseconds()) / p;
+            size_t pivot_selection = ctx.net.AllReduce(pivot_selection_timer_.Milliseconds()) / p;
+            size_t search_step = ctx.net.AllReduce(search_step_timer_.Milliseconds()) / p;
+            size_t file_op = ctx.net.AllReduce(file_op_timer_.Milliseconds()) / p;
+            size_t comm = ctx.net.AllReduce(comm_timer_.Milliseconds()) / p;
+            size_t scatter = ctx.net.AllReduce(scatter_timer_.Milliseconds()) / p;
+            result_size_ = ctx.net.AllReduce(result_size_);
 
             if (ctx.my_rank() == 0) {
                 PrintToSQLPlotTool("merge", p, merge);
@@ -447,7 +447,7 @@ private:
 
         // Reduce vectors of pivots globally to select the pivots from the
         // largest ranges.
-        out_pivots = context_.AllReduce(
+        out_pivots = context_.net.AllReduce(
             out_pivots,
             [reduce_pivots]
                 (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
@@ -495,7 +495,7 @@ private:
 
         stats_.comm_timer_.Start();
         // Sum up ranks globally.
-        ranks = context_.AllReduce(ranks, &AddSizeTVectors);
+        ranks = context_.net.AllReduce(ranks, &AddSizeTVectors);
         stats_.comm_timer_.Stop();
     }
 
@@ -589,7 +589,7 @@ private:
 
         // Count of all global elements.
         stats_.comm_timer_.Start();
-        size_t global_size = context_.AllReduce(local_size);
+        size_t global_size = context_.net.AllReduce(local_size);
         stats_.comm_timer_.Stop();
 
         LOG << "Global size: " << global_size;
@@ -614,7 +614,7 @@ private:
                 LOG << "Search Rank " << r << ": " << target_ranks[r];
 
                 stats_.comm_timer_.Start();
-                assert(context_.Broadcast(target_ranks[r]) == target_ranks[r]);
+                assert(context_.net.Broadcast(target_ranks[r]) == target_ranks[r]);
                 stats_.comm_timer_.Stop();
             }
         }

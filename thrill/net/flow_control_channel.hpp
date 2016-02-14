@@ -180,6 +180,10 @@ public:
         return group_.num_hosts() * thread_count_;
     }
 
+#ifdef SWIG
+#define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+#endif
+
     /*!
      * Calculates the prefix sum over all workers, given a certain sum
      * operation.
@@ -339,8 +343,7 @@ public:
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
     T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-    AllReduce(const T& value,
-              const BinarySumOp& sum_op = BinarySumOp()) {
+    AllReduce(const T& value, const BinarySumOp& sum_op = BinarySumOp()) {
         T local = value;
 
         SetLocalShared(&local);

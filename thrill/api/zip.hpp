@@ -268,8 +268,6 @@ private:
     void MainOp() {
         // first: calculate total size of the DIAs to Zip
 
-        net::FlowControlChannel& fcc = context_.flow_control_channel();
-
         //! total number of items in DIAs over all workers
         std::array<size_t, num_inputs_> dia_total_size;
 
@@ -280,12 +278,12 @@ private:
 
             //! inclusive prefixsum of number of elements: we have items from
             //! [dia_size_prefixsum - local_size, dia_size_prefixsum).
-            dia_size_prefixsum_[in] = fcc.PrefixSum(dia_local_size);
+            dia_size_prefixsum_[in] = context_.net.PrefixSum(dia_local_size);
 
             //! total number of elements, over all worker. take last worker's
             //! prefixsum
-            dia_total_size[in] = fcc.Broadcast(
-                dia_size_prefixsum_[in], fcc.num_workers() - 1);
+            dia_total_size[in] = context_.net.Broadcast(
+                dia_size_prefixsum_[in], context_.net.num_workers() - 1);
         }
 
         // return only the minimum size of all DIAs.

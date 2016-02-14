@@ -468,24 +468,24 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
                      << "me" << ctx.my_rank() << "peer_id" << peer;
 
                 if (ctx.my_rank() < peer) {
-                    ctx.Barrier();
+                    ctx.net.Barrier();
                     Sender<Type>(ctx, peer, inner_repeat);
-                    ctx.Barrier();
+                    ctx.net.Barrier();
                     Receiver<Type>(ctx, peer, inner_repeat);
                 }
                 else if (ctx.my_rank() > peer) {
-                    ctx.Barrier();
+                    ctx.net.Barrier();
                     Receiver<Type>(ctx, peer, inner_repeat);
-                    ctx.Barrier();
+                    ctx.net.Barrier();
                     Sender<Type>(ctx, peer, inner_repeat);
                 }
                 else {
                     // not participating in this round, but still have to
                     // allocate and close Streams.
-                    ctx.Barrier();
+                    ctx.net.Barrier();
                     auto stream1 = ctx.GetNewStream<Stream>();
                     stream1->Close();
-                    ctx.Barrier();
+                    ctx.net.Barrier();
                     auto stream2 = ctx.GetNewStream<Stream>();
                     stream2->Close();
                 }
@@ -506,11 +506,11 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
              << " total_time=" << timer.Microseconds();
     }
 
-    ctx.Barrier();
+    ctx.net.Barrier();
 
     // reduce (add) matrix to root.
-    bandwidth_write_ = ctx.flow_control_channel().AllReduce(bandwidth_write_);
-    bandwidth_read_ = ctx.flow_control_channel().AllReduce(bandwidth_read_);
+    bandwidth_write_ = ctx.net.AllReduce(bandwidth_write_);
+    bandwidth_read_ = ctx.net.AllReduce(bandwidth_read_);
 
     // print matrix
     if (ctx.my_rank() == 0) {
