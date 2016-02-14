@@ -45,6 +45,7 @@ thrill_build_prog(serialization/bench_serialization)
 thrill_build_prog(serialization/cpp-serializers)
 
 add_subdirectory(api)
+add_subdirectory(chaining)
 add_subdirectory(data)
 add_subdirectory(dc3)
 add_subdirectory(net)
