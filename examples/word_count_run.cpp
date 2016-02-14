@@ -22,7 +22,7 @@
 #include <utility>
 
 using namespace thrill; // NOLINT
-using example::WordCountPair;
+using examples::WordCountPair;
 
 int main(int argc, char* argv[]) {
 
