@@ -39,6 +39,7 @@ auto WordCount(const DIA<std::string, InputStack>&input) {
             /* map lambda: emit each word */
             common::SplitView(
                 line, ' ', [&](const common::StringView& sv) {
+                    if (sv.size() == 0) return;
                     emit(WordCountPair(sv.ToString(), 1));
                 });
         });
@@ -69,6 +70,7 @@ auto FastWordCount(const DIA<std::string, InputStack>&input) {
             /* map lambda: emit each word */
             common::SplitView(
                 line, ' ', [&](const common::StringView& sv) {
+                    if (sv.size() == 0) return;
                     emit(FastWordCountPair(sv.ToFastString(), 1));
                 });
         });
