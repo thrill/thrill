@@ -23,12 +23,45 @@
 
 using namespace thrill; // NOLINT
 using examples::WordCountPair;
+using examples::FastWordCountPair;
+
+static void RunWordCount(
+    api::Context& ctx, const std::string& input, const std::string& output) {
+    ctx.enable_consume();
+
+    auto lines = ReadLines(ctx, input);
+
+    auto word_pairs = examples::WordCount(lines);
+
+    word_pairs.Map(
+        [](const WordCountPair& wc) {
+            return wc.first + ": " + std::to_string(wc.second);
+        }).WriteLinesMany(output);
+}
+
+static void RunFastWordCount(
+    api::Context& ctx, const std::string& input, const std::string& output) {
+    ctx.enable_consume();
+
+    auto lines = ReadLines(ctx, input);
+
+    auto word_pairs = examples::FastWordCount(lines);
+
+    word_pairs.Map(
+        [](const FastWordCountPair& wc) {
+            return wc.first.ToString() + ": " + std::to_string(wc.second);
+        }).WriteLinesMany(output);
+}
 
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
 
     clp.SetVerboseProcess(false);
+
+    bool use_fast_string = false;
+    clp.AddFlag('f', "fast_string", use_fast_string,
+                "use FastString implementation");
 
     std::string input;
     clp.AddParamString("input", input,
@@ -44,20 +77,13 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
-    auto start_func =
-        [&input, &output](api::Context& ctx) {
-            ctx.enable_consume(false);
-
-            auto lines = ReadLines(ctx, input);
-
-            auto word_pairs = examples::WordCount(lines);
-
-            word_pairs.Map([](const WordCountPair& wc) {
-                               return wc.first + ": " + std::to_string(wc.second);
-                           }).WriteLinesMany(output);
-        };
-
-    return api::Run(start_func);
+    return api::Run(
+        [&](api::Context& ctx) {
+            if (use_fast_string)
+                RunFastWordCount(ctx, input, output);
+            else
+                RunWordCount(ctx, input, output);
+        });
 }
 
 /******************************************************************************/
