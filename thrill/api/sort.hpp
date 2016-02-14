@@ -442,8 +442,8 @@ private:
     }
 
     void MainOp() {
-        size_t prefix_items = context_.ExPrefixSum(local_items_);
-        size_t total_items = context_.AllReduce(local_items_);
+        size_t prefix_items = context_.net.ExPrefixSum(local_items_);
+        size_t total_items = context_.net.AllReduce(local_items_);
 
         size_t num_total_workers = context_.num_workers();
 

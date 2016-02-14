@@ -117,7 +117,7 @@ RunLoopbackThreads(size_t host_count, size_t workers_per_host,
                     }
                     STOP_TIMER(overall_timer)
                     LOG << "Worker " << worker << " done!";
-                    ctx.Barrier();
+                    ctx.net.Barrier();
                 });
         }
     }
@@ -405,7 +405,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
                     STAT(ctx) << "event" << "jobDone"
                               << "time" << overall_timer->Milliseconds();
 
-                ctx.Barrier();
+                ctx.net.Barrier();
             });
     }
 

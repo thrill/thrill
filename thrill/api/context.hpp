@@ -191,59 +191,6 @@ public:
 #endif
     //! \}
 
-    //! \name Network Subsystem
-    //! \{
-
-    //! Gets the flow control channel for the current worker.
-    net::FlowControlChannel & flow_control_channel() {
-        return flow_manager_.GetFlowControlChannel(local_worker_id_);
-    }
-
-#ifdef SWIG
-#define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-#endif
-
-    //! Broadcasts a value of an integral type T from the master (the worker
-    //! with rank 0) to all other workers.
-    template <typename T>
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-    Broadcast(const T& value) {
-        return flow_control_channel().Broadcast(value);
-    }
-
-    //! Reduces a value of an integral type T over all workers given a certain
-    //! reduce function.
-    template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-    AllReduce(const T& value, const BinarySumOp& sum_op = BinarySumOp()) {
-        return flow_control_channel().AllReduce(value, sum_op);
-    }
-
-    //! Calculates the prefix sum over all workers, given a certain sum
-    //! operation.
-    template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-    PrefixSum(const T& value, const T& initial = T(),
-              const BinarySumOp& sum_op = BinarySumOp()) {
-        return flow_control_channel().PrefixSum(value, initial, sum_op);
-    }
-
-    //! Calculates the exclusive prefix sum over all workers, given a certain
-    //! sum operation.
-    template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-    ExPrefixSum(const T& value, const T& initial = T(),
-                const BinarySumOp& sum_op = BinarySumOp()) {
-        return flow_control_channel().ExPrefixSum(value, initial, sum_op);
-    }
-
-    //! A collective global barrier.
-    void Barrier() {
-        return flow_control_channel().Barrier();
-    }
-
-    //! \}
-
     //! \name Data Subsystem
     //! \{
 
@@ -344,6 +291,19 @@ private:
 
     //! flag to set which enables selective consumption of DIA contents!
     bool consume_ = false;
+
+public:
+    //! \name Network Subsystem
+    //! \{
+
+    //! public member which exposes all network primitives from
+    //! FlowControlChannel for DOp implementations. Use it as
+    //! `context_.net.Method()`.
+    net::FlowControlChannel& net {
+        flow_manager_.GetFlowControlChannel(local_worker_id_)
+    };
+
+    //! \}
 };
 
 //! \name Run Methods with Internal Networks for Testing
