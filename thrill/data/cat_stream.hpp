@@ -169,7 +169,7 @@ public:
     //! Creates a BlockReader which concatenates items from all workers in
     //! worker rank order. The BlockReader is attached to one \ref
     //! CatBlockSource which includes all incoming queues of this stream.
-    CatBlockReader OpenCatReader(bool consume) {
+    CatReader OpenCatReader(bool consume) {
         return CatBlockReader(GetCatBlockSource(consume));
     }
 
