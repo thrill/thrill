@@ -1,4 +1,12 @@
 #!/bin/sh
+################################################################################
+# benchmarks/chaining/run.sh
+#
+# Part of Project Thrill - http://project-thrill.org
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+################################################################################
 
 this="${BASH_SOURCE-$0}"
 build=$(cd -P -- "$(dirname -- "$this")" && pwd -P)/../../build/benchmarks/chaining
@@ -53,3 +61,5 @@ for i in `seq 1 10`;
     done
 
 python ${bench}/evaluate.py ${build}/bench.log ${build}/${setup}.out
+
+################################################################################

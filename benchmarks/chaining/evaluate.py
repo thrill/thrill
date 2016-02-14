@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+##########################################################################
+# benchmarks/chaining/evaluate.py
+#
+# Part of Project Thrill - http://project-thrill.org
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+##########################################################################
+
 from pylab import *
 import sys, os, re, operator, numpy, itertools, json
 
@@ -51,3 +61,5 @@ f.write(str((sum(spark))/len(spark) if len(spark) > 0 else float('nan')) + " mic
 f.write("FLINK:\t\t")
 f.write(str((sum(flink))/len(flink) if len(flink) > 0 else float('nan')) + " microseconds\n")
 f.close()
+
+##########################################################################

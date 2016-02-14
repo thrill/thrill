@@ -1,23 +1,23 @@
 /*******************************************************************************
- * benchmarks/word_count/word_count.cpp
+ * benchmarks/chaining/chain_count.cpp
  *
  * Runner program for WordCount example. See thrill/examples/word_count.hpp for
  * the source to the example.
  *
- * Part of Project Thrill.
+ * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
- * This file has no license. Only Chunk Norris can compile it.
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <benchmarks/chaining/helper.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/thrill.hpp>
-#include <benchmarks/chaining/helper.hpp>
-#include <thrill/common/stats_timer.hpp>
 #include <thrill/common/stat_logger.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/thrill.hpp>
 
 using namespace thrill; // NOLINT
 
@@ -43,14 +43,15 @@ int main(int argc, char* argv[]) {
 
     auto start_func =
         [&count, &timer](api::Context& ctx) {
-            auto key_value = Generate(ctx, [](const size_t& index) {
-                    return KeyValue{index, index + 10};
+            auto key_value = Generate(
+                ctx, [](const size_t& index) {
+                    return KeyValue { index, index + 10 };
                 }, count);
-            
+
             timer.Start();
             // auto result = key_value.map10;
             auto result = key_value.map.map.map.map.map.map.map.map.map.map;
-            result.Size();  
+            result.Size();
             timer.Stop();
         };
 

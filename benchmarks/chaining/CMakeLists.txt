@@ -1,7 +1,10 @@
 ################################################################################
-# benchmarks/word_count/CMakeLists.txt
+# benchmarks/chaining/CMakeLists.txt
 #
-# CMake file for Thrill benchmark programs.
+# Part of Project Thrill - http://project-thrill.org
+#
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
 thrill_build_prog(cache_count)
