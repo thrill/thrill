@@ -16,6 +16,8 @@
 #ifndef THRILL_COMMON_STRING_VIEW_HEADER
 #define THRILL_COMMON_STRING_VIEW_HEADER
 
+#include <thrill/common/fast_string.hpp>
+
 #include <algorithm>
 #include <ostream>
 #include <string>
@@ -125,6 +127,11 @@ public:
         return std::string(data_, size_);
     }
 
+    //! Returns the data of this StringView as an FastString
+    FastString ToFastString() const {
+        return FastString::Ref(data_, size_);
+    }
+
     // operator std::string () const { return ToString(); }
 
 private:
@@ -142,6 +149,49 @@ bool operator == (const std::string& a, const StringView& b) noexcept {
 static inline
 bool operator != (const std::string& a, const StringView& b) noexcept {
     return b != a;
+}
+
+/*!
+ * Split the given string at each separator character into distinct substrings,
+ * and call the given callback for each substring, represented by two iterators
+ * begin and end. Multiple consecutive separators are considered individually
+ * and will result in empty split substrings.
+ *
+ * \param str       string to split
+ * \param sep       separator character
+ * \param callback  callback taking begin and end iterator of substring
+ * \param limit     maximum number of parts returned
+ */
+template <typename F>
+static inline
+void SplitView(
+    const std::string& str, char sep, F&& callback,
+    std::string::size_type limit = std::string::npos) {
+
+    if (limit == 0)
+    {
+        callback(StringView(str.begin(), str.end()));
+        return;
+    }
+
+    std::string::size_type count = 0;
+    auto it = str.begin(), last = it;
+
+    for ( ; it != str.end(); ++it)
+    {
+        if (*it == sep)
+        {
+            if (count == limit)
+            {
+                callback(StringView(last, str.end()));
+                return;
+            }
+            callback(StringView(last, it));
+            ++count;
+            last = it + 1;
+        }
+    }
+    callback(StringView(last, it));
 }
 
 } // namespace common

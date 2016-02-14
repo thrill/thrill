@@ -242,49 +242,6 @@ Split(const std::string& str, const std::string& sep,
 }
 
 /*!
- * Split the given string at each separator character into distinct substrings,
- * and call the given callback for each substring, represented by two iterators
- * begin and end. Multiple consecutive separators are considered individually
- * and will result in empty split substrings.
- *
- * \param str       string to split
- * \param sep       separator character
- * \param callback  callback taking begin and end iterator of substring
- * \param limit     maximum number of parts returned
- */
-template <typename F>
-static inline
-void SplitCallback(
-    const std::string& str, char sep, F&& callback,
-    std::string::size_type limit = std::string::npos) {
-
-    if (limit == 0)
-    {
-        callback(str.begin(), str.end());
-        return;
-    }
-
-    std::string::size_type count = 0;
-    auto it = str.begin(), last = it;
-
-    for ( ; it != str.end(); ++it)
-    {
-        if (*it == sep)
-        {
-            if (count == limit)
-            {
-                callback(last, str.end());
-                return;
-            }
-            callback(last, it);
-            ++count;
-            last = it + 1;
-        }
-    }
-    callback(last, it);
-}
-
-/*!
  * Join a sequence of strings by some glue string between each pair from the
  * sequence. The sequence in given as a range between two iterators.
  *

@@ -17,7 +17,8 @@
 #define THRILL_EXAMPLES_WORD_COUNT_HEADER
 
 #include <thrill/api/reduce.hpp>
-#include <thrill/common/string.hpp>
+#include <thrill/common/fast_string.hpp>
+#include <thrill/common/string_view.hpp>
 
 #include <string>
 #include <utility>
@@ -28,17 +29,18 @@ using namespace thrill; // NOLINT
 
 using WordCountPair = std::pair<std::string, size_t>;
 
-//! The WordCount user program: reads a DIA containing std::string words, and
-//! returns a DIA containing WordCountPairs.
-template <typename InStack>
-auto WordCount(const DIA<std::string, InStack>&input) {
+//! The most basic WordCount user program: reads a DIA containing std::string
+//! words, and returns a DIA containing WordCountPairs.
+template <typename InputStack>
+auto WordCount(const DIA<std::string, InputStack>&input) {
 
     auto word_pairs = input.template FlatMap<WordCountPair>(
         [](const std::string& line, auto emit) -> void {
             /* map lambda: emit each word */
-            common::SplitCallback(
-                line, ' ', [&](const auto begin, const auto end)
-                { emit(WordCountPair(std::string(begin, end), 1)); });
+            common::SplitView(
+                line, ' ', [&](const common::StringView& sv) {
+                    emit(WordCountPair(sv.ToString(), 1));
+                });
         });
 
     return word_pairs.ReduceBy(
@@ -49,6 +51,32 @@ auto WordCount(const DIA<std::string, InStack>&input) {
         [](const WordCountPair& a, const WordCountPair& b) -> WordCountPair {
             /* associative reduction operator: add counters */
             return WordCountPair(a.first, a.second + b.second);
+        });
+}
+
+/******************************************************************************/
+
+using FastWordCountPair = std::pair<common::FastString, size_t>;
+
+//! An optimized WordCount user program: reads a DIA containing std::string
+//! words, and returns a DIA containing WordCountPairs. In the reduce step our
+//! FastString implementation is used to reduce the number of allocations.
+template <typename InputStack>
+auto FastWordCount(const DIA<std::string, InputStack>&input) {
+
+    auto word_pairs = input.template FlatMap<FastWordCountPair>(
+        [](const std::string& line, auto emit) -> void {
+            /* map lambda: emit each word */
+            common::SplitView(
+                line, ' ', [&](const common::StringView& sv) {
+                    emit(FastWordCountPair(sv.ToFastString(), 1));
+                });
+        });
+
+    return word_pairs.ReducePair(
+        [](const size_t& a, const size_t& b) {
+            /* associative reduction operator: add counters */
+            return a + b;
         });
 }
 
