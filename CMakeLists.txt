@@ -38,8 +38,6 @@ option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 
 option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
-option(USE_EXPLAIN "Use (optional) explain library for errno-explanations" OFF)
-
 option(THRILL_USE_TBB "Use (optional) Intel TBB library if available." ON)
 
 option(THRILL_USE_MPI "Use (optional) MPI net backend." OFF)
@@ -307,10 +305,6 @@ set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
 # use dl (dynamic linker library)
 
 set(ALL_LIBRARIES ${ALL_LIBRARIES} ${CMAKE_DL_LIBS})
-
-if(USE_EXPLAIN)
-  set(ALL_LIBRARIES explain ${ALL_LIBRARIES})
-endif()
 
 # try to find Intel TBB (optional)
 if(THRILL_USE_TBB)
