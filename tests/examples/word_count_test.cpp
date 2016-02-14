@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/examples/wordcount_test.cpp
+ * tests/examples/word_count_test.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
