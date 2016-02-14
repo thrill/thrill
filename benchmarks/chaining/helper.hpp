@@ -11,6 +11,8 @@
 #ifndef THRILL_BENCHMARKS_CHAINING_HELPER_HEADER
 #define THRILL_BENCHMARKS_CHAINING_HELPER_HEADER
 
+#include <cstdlib>
+
 struct KeyValue {
     size_t key;
     size_t value;
