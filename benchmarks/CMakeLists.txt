@@ -49,7 +49,6 @@ add_subdirectory(chaining)
 add_subdirectory(data)
 add_subdirectory(dc3)
 add_subdirectory(net)
-add_subdirectory(page_rank)
 add_subdirectory(word_count)
 endif()
 
