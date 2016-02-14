@@ -8,7 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/word_count.hpp>
+#include <examples/word_count/word_count.hpp>
 
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/distribute_from.hpp>
@@ -26,9 +26,6 @@
 #include <vector>
 
 using namespace thrill;
-
-using thrill::DIA;
-using thrill::Context;
 
 TEST(WordCount, WordCountSmallFileCorrectResults) {
 

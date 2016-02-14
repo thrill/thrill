@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/word_count.hpp
+ * examples/word_count/word_count.hpp
  *
  * This file contains the WordCount core example. See word_count_run.cpp for how
  * to run it on different inputs.
@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_EXAMPLES_WORD_COUNT_HEADER
-#define THRILL_EXAMPLES_WORD_COUNT_HEADER
+#ifndef THRILL_EXAMPLES_WORD_COUNT_WORD_COUNT_HEADER
+#define THRILL_EXAMPLES_WORD_COUNT_WORD_COUNT_HEADER
 
 #include <thrill/api/reduce.hpp>
 #include <thrill/common/fast_string.hpp>
@@ -82,6 +82,6 @@ auto FastWordCount(const DIA<std::string, InputStack>&input) {
 
 } // namespace examples
 
-#endif // !THRILL_EXAMPLES_WORD_COUNT_HEADER
+#endif // !THRILL_EXAMPLES_WORD_COUNT_WORD_COUNT_HEADER
 
 /******************************************************************************/

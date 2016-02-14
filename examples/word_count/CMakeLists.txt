@@ -1,5 +1,5 @@
 ################################################################################
-# examples/CMakeLists.txt
+# examples/word_count/CMakeLists.txt
 #
 # Part of Project Thrill - http://project-thrill.org
 #
@@ -8,7 +8,8 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-add_subdirectory(run)
-add_subdirectory(word_count)
+thrill_build_prog(line_count)
+thrill_build_prog(random_text_writer)
+thrill_build_prog(word_count_run)
 
 ################################################################################
