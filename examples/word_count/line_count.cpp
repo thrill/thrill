@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/word_count/line_count.cpp
+ * examples/word_count/line_count.cpp
  *
  * Runner program for LineCount example.
  *

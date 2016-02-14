@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/word_count/random_text_writer.cpp
+ * examples/word_count/random_text_writer.cpp
  *
  * A C++ clone of org.apache.hadoop.examples.RandomTextWriter. The clone outputs
  * only text lines containing words. It uses the same words, but a different

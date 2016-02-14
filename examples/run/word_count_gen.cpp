@@ -8,7 +8,8 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/word_count.hpp>
+#include <examples/word_count/word_count.hpp>
+
 #include <thrill/api/generate.hpp>
 #include <thrill/api/generate_from_file.hpp>
 #include <thrill/api/groupby_index.hpp>

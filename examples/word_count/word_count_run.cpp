@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/word_count_run.cpp
+ * examples/word_count/word_count_run.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,7 +9,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/word_count.hpp>
+#include <examples/word_count/word_count.hpp>
 
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
@@ -33,10 +33,11 @@ static void RunWordCount(
 
     auto word_pairs = examples::WordCount(lines);
 
-    word_pairs.Map(
-        [](const WordCountPair& wc) {
-            return wc.first + ": " + std::to_string(wc.second);
-        }).WriteLinesMany(output);
+    return word_pairs
+           .Map([](const WordCountPair& wc) {
+                    return wc.first + ": " + std::to_string(wc.second);
+                })
+           .WriteLinesMany(output);
 }
 
 static void RunFastWordCount(
@@ -47,10 +48,11 @@ static void RunFastWordCount(
 
     auto word_pairs = examples::FastWordCount(lines);
 
-    word_pairs.Map(
-        [](const FastWordCountPair& wc) {
-            return wc.first.ToString() + ": " + std::to_string(wc.second);
-        }).WriteLinesMany(output);
+    return word_pairs
+           .Map([](const FastWordCountPair& wc) {
+                    return wc.first.ToString() + ": " + std::to_string(wc.second);
+                })
+           .WriteLinesMany(output);
 }
 
 int main(int argc, char* argv[]) {
