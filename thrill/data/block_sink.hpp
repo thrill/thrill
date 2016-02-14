@@ -32,7 +32,7 @@ class BlockSink
 public:
     //! constructor with reference to BlockPool
     explicit BlockSink(BlockPool& block_pool, size_t local_worker_id)
-        : block_pool_(block_pool), local_worker_id_(local_worker_id)
+        : block_pool_(&block_pool), local_worker_id_(local_worker_id)
     { }
 
     //! non-copyable: delete copy-constructor
@@ -51,7 +51,7 @@ public:
     //! ByteBlockPtr is a nullptr, then memory of this BlockSink is exhausted.
     virtual PinnedByteBlockPtr
     AllocateByteBlock(size_t block_size) {
-        return block_pool_.AllocateByteBlock(block_size, local_worker_id_);
+        return block_pool_->AllocateByteBlock(block_size, local_worker_id_);
     }
 
     //! Release an unused ByteBlock with n bytes backing memory.
@@ -75,7 +75,7 @@ public:
 
 private:
     //! reference to BlockPool for allocation and deallocation.
-    BlockPool& block_pool_;
+    BlockPool* block_pool_;
 
     //! local worker id to associate pinned block with
     size_t local_worker_id_;
