@@ -8,6 +8,7 @@
  *
  * Copyright (C) 2015 Robert Hangu <robert.hangu@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Lorenz Hübschle-Schneider <lorenz@4z2.de>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -39,7 +40,7 @@ namespace collective {
  * index, including himself, according to a summation operator. The run-time is
  * in O(log n).
  *
- * \param net The current worker onto which to apply the operation
+ * \param net The current group onto which to apply the operation
  * \param value The value to be summed up
  * \param sum_op A custom summation operator
  * \param inclusive Inclusive prefix sum if true (default)
@@ -94,11 +95,12 @@ void PrefixSum(
  * \brief Calculate for every worker his prefix sum. Works only for worker
  * numbers which are powers of two.
  *
- * \details The prefix sum is the aggregatation of the values of all workers
- * with lesser index, including himself, according to a summation operator. This
- * function currently only supports worker numbers which are powers of two.
+ * \details The prefix sum is an aggregatation of the values of all workers with
+ * smaller index, including itself, according to an associative summation
+ * operator. This function currently only supports worker numbers which are
+ * powers of two.
  *
- * \param net The current worker onto which to apply the operation
+ * \param net The current group onto which to apply the operation
  *
  * \param value The value to be summed up
  *
@@ -180,7 +182,7 @@ void BroadcastTrivial(Group& net, T& value, size_t origin = 0) {
  * Broadcasts the value of the worker with index "origin" to all the
  * others. This is a binomial tree broadcast method.
  *
- * \param net The current worker onto which to apply the operation
+ * \param net The current group onto which to apply the operation
  *
  * \param value The value to be broadcast / receive into.
  *
@@ -199,6 +201,7 @@ void BroadcastBinomialTree(Group& net, T& value, size_t origin = 0) {
     if (my_rank > 0) {
         // our predecessor is p with the lowest one bit flipped to zero. this
         // also counts the number of rounds we have to send out messages later.
+        // TODO: man 3 ffs
         while ((my_rank & d) == 0) d <<= 1, ++r;
         size_t from = ((my_rank ^ d) + origin) % num_hosts;
         sLOG << "Broadcast: rank" << my_rank << "receiving from" << from
@@ -223,7 +226,7 @@ void BroadcastBinomialTree(Group& net, T& value, size_t origin = 0) {
  * Broadcasts the value of the worker with index 0 to all the others. This is a
  * binomial tree broadcast method.
  *
- * \param net The current worker onto which to apply the operation
+ * \param net The current group onto which to apply the operation
  *
  * \param value The value to be broadcast / receive into.
  *
@@ -239,33 +242,39 @@ void Broadcast(Group& net, T& value, size_t origin = 0) {
 // Reduce Algorithms
 
 /*!
- * \brief Perform a reduce to the worker with index 0.
+ * \brief Perform a reduction on all workers in a group.
  *
- * \details This function aggregates the values of all workers according to a
- * summation operator and sends the aggregate to the root, which is the worker
- * with index 0.
+ * \details This function aggregates the values of all workers in the group
+ * according with a specified reduction operator. The result will be returned in
+ * the input variable at the root node.
  *
- * \param net The current worker onto which to apply the operation
+ * \param net The current group onto which to apply the operation
  *
- * \param value The value to be added to the aggregation
+ * \param value The input value to be used in the reduction. Will be overwritten
+ * with the result (on the root) or arbitrary data (on other ranks).
  *
- * \param sum_op A custom summation operator
+ * \param root The rank of the root
+ *
+ * \param sum_op A custom reduction operator (optional)
  */
 template <typename T, typename BinarySumOp = std::plus<T> >
 static inline
-void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
-    bool active = true;
-    for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
-        if (active) {
-            if (net.my_host_rank() & d) {
-                net.SendTo(net.my_host_rank() - d, value);
-                active = false;
-            }
-            else if (net.my_host_rank() + d < net.num_hosts()) {
-                T recv_data;
-                net.ReceiveFrom(net.my_host_rank() + d, &recv_data);
-                value = sum_op(value, recv_data);
-            }
+void Reduce(Group& net, T& value, size_t root = 0,
+                  BinarySumOp sum_op = BinarySumOp())
+{
+    const size_t num_hosts = net.num_hosts();
+    const size_t shifted_rank =
+        (net.my_host_rank() - root + num_hosts) % num_hosts;
+
+    for (size_t d = 1; d < num_hosts; d <<= 1) {
+        if (shifted_rank & d) {
+            net.SendTo(shifted_rank - d, value);
+            break;
+        }
+        else if (shifted_rank + d < num_hosts) {
+            T recv_data;
+            net.ReceiveFrom(shifted_rank + d, &recv_data);
+            value = sum_op(value, recv_data);
         }
     }
 }
@@ -277,20 +286,20 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
 //! \details This is done by aggregating all values according to a summation
 //!          operator and sending them backto all workers.
 //!
-//! \param   net The current worker onto which to apply the operation
+//! \param   net The current group onto which to apply the operation
 //! \param   value The value to be added to the aggregation
 //! \param   sum_op A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
 static inline
 void AllReduce(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
-    ReduceToRoot(net, value, sum_op);
-    Broadcast(net, value);
+    Reduce(net, value, 0, sum_op);
+    Broadcast(net, value, 0);
 }
 
 //! \brief   Perform an All-Reduce for powers of two. This is done with the
 //!          Hypercube algorithm from the ParAlg script.
 //!
-//! \param   net The current worker onto which to apply the operation
+//! \param   net The current group onto which to apply the operation
 //! \param   value The value to be added to the aggregation
 //! \param   sum_op A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
@@ -359,8 +368,8 @@ void Group::Broadcast(T& value, size_t origin) {
 
 //! Reduce a value from all workers to the worker 0
 template <typename T, typename BinarySumOp>
-void Group::ReduceToRoot(T& value, BinarySumOp sum_op) {
-    return collective::ReduceToRoot(*this, value, sum_op);
+void Group::Reduce(T& value, size_t root, BinarySumOp sum_op) {
+    return collective::Reduce(*this, value, root, sum_op);
 }
 
 //! Reduce a value from all workers to all workers

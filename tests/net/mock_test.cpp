@@ -79,11 +79,11 @@ TEST(MockGroup, PrefixSum) {
 TEST(MockGroup, Broadcast) {
     MockTest(TestBroadcast);
 }
-TEST(MockGroup, ReduceToRoot) {
-    MockTest(TestReduceToRoot);
+TEST(MockGroup, Reduce) {
+    MockTest(TestReduce);
 }
-TEST(MockGroup, ReduceToRootString) {
-    MockTest(TestReduceToRootString);
+TEST(MockGroup, ReduceString) {
+    MockTest(TestReduceString);
 }
 TEST(MockGroup, AllReduceString) {
     MockTest(TestAllReduceString);

@@ -71,11 +71,11 @@ TEST(RealTcpGroup, PrefixSum) {
 TEST(RealTcpGroup, Broadcast) {
     RealGroupTest(TestBroadcast);
 }
-TEST(RealTcpGroup, ReduceToRoot) {
-    RealGroupTest(TestReduceToRoot);
+TEST(RealTcpGroup, Reduce) {
+    RealGroupTest(TestReduce);
 }
-TEST(RealTcpGroup, ReduceToRootString) {
-    RealGroupTest(TestReduceToRootString);
+TEST(RealTcpGroup, ReduceString) {
+    RealGroupTest(TestReduceString);
 }
 TEST(RealTcpGroup, AllReduceString) {
     RealGroupTest(TestAllReduceString);
@@ -119,11 +119,11 @@ TEST(LocalTcpGroup, PrefixSum) {
 TEST(LocalTcpGroup, Broadcast) {
     LocalGroupTest(TestBroadcast);
 }
-TEST(LocalTcpGroup, ReduceToRoot) {
-    LocalGroupTest(TestReduceToRoot);
+TEST(LocalTcpGroup, Reduce) {
+    LocalGroupTest(TestReduce);
 }
-TEST(LocalTcpGroup, ReduceToRootString) {
-    LocalGroupTest(TestReduceToRootString);
+TEST(LocalTcpGroup, ReduceString) {
+    LocalGroupTest(TestReduceString);
 }
 TEST(LocalTcpGroup, AllReduceString) {
     LocalGroupTest(TestAllReduceString);
