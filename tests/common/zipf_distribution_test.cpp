@@ -13,6 +13,7 @@
 #include <thrill/common/logger.hpp>
 
 #include <gtest/gtest.h>
+#include <map>
 
 using namespace thrill;
 

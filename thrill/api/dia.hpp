@@ -732,6 +732,32 @@ public:
              const ValueType& initial_value = ValueType()) const;
 
     /*!
+     * Min is an Action, which computes the minimum of all elements globally.
+     *
+     * \tparam MinFunction Type of the min_function.
+     *
+     * \param min_function Min function.
+     *
+     * \param initial_value Initial value of the min.
+     */
+    template <typename MinFunction = common::minimum<ValueType> >
+    auto Min(const MinFunction& min_function = MinFunction(),
+             const ValueType& initial_value = ValueType()) const;
+
+    /*!
+     * Max is an Action, which computes the maximum of all elements globally.
+     *
+     * \tparam MaxFunction Type of the max_function.
+     *
+     * \param max_function Max function.
+     *
+     * \param initial_value Initial value of the max.
+     */
+    template <typename MaxFunction = common::maximum<ValueType> >
+    auto Max(const MaxFunction& max_function = MaxFunction(),
+             const ValueType& initial_value = ValueType()) const;
+
+    /*!
      * Size is an Action, which computes the size of all elements in all workers.
      */
     size_t Size() const;
