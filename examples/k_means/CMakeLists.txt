@@ -1,5 +1,5 @@
 ################################################################################
-# examples/run/CMakeLists.txt
+# examples/k_means/CMakeLists.txt
 #
 # Part of Project Thrill - http://project-thrill.org
 #
@@ -8,6 +8,6 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-thrill_build_prog(kmeans_gen)
+thrill_build_prog(k_means_gen)
 
 ################################################################################

@@ -260,8 +260,7 @@ void Broadcast(Group& net, T& value, size_t origin = 0) {
 template <typename T, typename BinarySumOp = std::plus<T> >
 static inline
 void Reduce(Group& net, T& value, size_t root = 0,
-                  BinarySumOp sum_op = BinarySumOp())
-{
+            BinarySumOp sum_op = BinarySumOp()) {
     const size_t num_hosts = net.num_hosts();
     const size_t shifted_rank =
         (net.my_host_rank() - root + num_hosts) % num_hosts;

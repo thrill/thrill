@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/kmeans.hpp
+ * examples/k_means/k_means.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_EXAMPLES_KMEANS_HEADER
-#define THRILL_EXAMPLES_KMEANS_HEADER
+#ifndef THRILL_EXAMPLES_K_MEANS_K_MEANS_HEADER
+#define THRILL_EXAMPLES_K_MEANS_K_MEANS_HEADER
 
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
@@ -105,6 +105,6 @@ auto kMeans(const DIA<std::string, InStack>&in1,
 
 } // namespace examples
 
-#endif // !THRILL_EXAMPLES_KMEANS_HEADER
+#endif // !THRILL_EXAMPLES_K_MEANS_K_MEANS_HEADER
 
 /******************************************************************************/
