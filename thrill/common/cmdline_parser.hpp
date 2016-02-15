@@ -100,6 +100,7 @@ private:
     struct ArgumentFlag;
     struct ArgumentInt;
     struct ArgumentUInt;
+    struct ArgumentSizeT;
     struct ArgumentDouble;
     struct ArgumentBytes32;
     struct ArgumentBytes64;
@@ -186,6 +187,12 @@ public:
                  const std::string& keytype, unsigned int& dest,
                  const std::string& desc);
 
+    //! add size_t option -key, --longkey [keytype] with description and store
+    //! to dest
+    void AddSizeT(char key, const std::string& longkey,
+                  const std::string& keytype, size_t& dest,
+                  const std::string& desc);
+
     //! add double option -key, --longkey [keytype] with description and store
     //! to dest
     void AddDouble(char key, const std::string& longkey,
@@ -230,6 +237,11 @@ public:
     void AddUInt(char key, const std::string& longkey, unsigned int& dest,
                  const std::string& desc);
 
+    //! add size_t option -key, --longkey [keytype] with description and store
+    //! to dest
+    void AddSizeT(char key, const std::string& longkey, size_t& dest,
+                  const std::string& desc);
+
     //! add double option -key, --longkey [keytype] with description and store
     //! to dest
     void AddDouble(char key, const std::string& longkey, double& dest,
@@ -262,6 +274,10 @@ public:
     //! add unsigned integer parameter [name] with description and store to dest
     void AddParamUInt(const std::string& name, unsigned int& dest,
                       const std::string& desc);
+
+    //! add size_t parameter [name] with description and store to dest
+    void AddParamSizeT(const std::string& name, size_t& dest,
+                       const std::string& desc);
 
     //! add double parameter [name] with description and store to dest
     void AddParamDouble(const std::string& name, double& dest,
@@ -299,6 +315,10 @@ public:
     //! store to dest
     void AddOptParamUInt(const std::string& name, unsigned int& dest,
                          const std::string& desc);
+
+    //! add optional size_t parameter [name] with description and store to dest
+    void AddOptParamSizeT(const std::string& name, size_t& dest,
+                          const std::string& desc);
 
     //! add optional double parameter [name] with description and store to dest
     void AddOptParamDouble(const std::string& name, double& dest,

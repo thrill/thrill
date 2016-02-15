@@ -182,6 +182,39 @@ struct CmdlineParser::ArgumentUInt final : public Argument
     { os << dest_; }
 };
 
+//! specialization of argument for size_t options or parameters
+struct CmdlineParser::ArgumentSizeT final : public Argument
+{
+    size_t& dest_;
+
+    //! contructor filling most attributes
+    ArgumentSizeT(char key, const std::string& longkey,
+                  const std::string& keytype,
+                  const std::string& desc, bool required,
+                  size_t& dest)
+        : Argument(key, longkey, keytype, desc, required),
+          dest_(dest)
+    { }
+
+    const char * TypeName() const final
+    { return "size_t"; }
+
+    //! parse size_t using sscanf.
+    bool Process(int& argc, const char* const*& argv) final {
+        if (argc == 0) return false;
+        if (sscanf(argv[0], "%zu", &dest_) == 1) {
+            --argc, ++argv;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    void PrintValue(std::ostream& os) const final
+    { os << dest_; }
+};
+
 //! specialization of argument for double options or parameters
 struct CmdlineParser::ArgumentDouble final : public Argument
 {
@@ -465,6 +498,16 @@ void CmdlineParser::AddUInt(char key, const std::string& longkey,
     CalcOptMax(optlist_.back());
 }
 
+//! add size_t option -key, --longkey [keytype] with description and store to
+//! dest
+void CmdlineParser::AddSizeT(char key, const std::string& longkey,
+                             const std::string& keytype, size_t& dest,
+                             const std::string& desc) {
+    optlist_.push_back(
+        new ArgumentSizeT(key, longkey, keytype, desc, false, dest));
+    CalcOptMax(optlist_.back());
+}
+
 //! add double option -key, --longkey [keytype] with description and store
 //! to dest
 void CmdlineParser::AddDouble(char key, const std::string& longkey,
@@ -536,6 +579,14 @@ void CmdlineParser::AddUInt(
     return AddUInt(key, longkey, "", dest, desc);
 }
 
+//! add size_t option -key, --longkey [keytype] with description and store to
+//! dest
+void CmdlineParser::AddSizeT(
+    char key, const std::string& longkey, size_t& dest,
+    const std::string& desc) {
+    return AddSizeT(key, longkey, "", dest, desc);
+}
+
 //! add double option -key, --longkey [keytype] with description and store
 //! to dest
 void CmdlineParser::AddDouble(
@@ -589,6 +640,14 @@ void CmdlineParser::AddParamUInt(const std::string& name, unsigned int& dest,
                                  const std::string& desc) {
     paramlist_.push_back(
         new ArgumentUInt(0, name, "", desc, true, dest));
+    CalcParamMax(paramlist_.back());
+}
+
+//! add size_t parameter [name] with description and store to dest
+void CmdlineParser::AddParamSizeT(const std::string& name, size_t& dest,
+                                  const std::string& desc) {
+    paramlist_.push_back(
+        new ArgumentSizeT(0, name, "", desc, true, dest));
     CalcParamMax(paramlist_.back());
 }
 
@@ -654,6 +713,14 @@ void CmdlineParser::AddOptParamUInt(
     const std::string& name, unsigned int& dest, const std::string& desc) {
     paramlist_.push_back(
         new ArgumentUInt(0, name, "", desc, false, dest));
+    CalcParamMax(paramlist_.back());
+}
+
+//! add optional size_t parameter [name] with description and store to dest
+void CmdlineParser::AddOptParamSizeT(
+    const std::string& name, size_t& dest, const std::string& desc) {
+    paramlist_.push_back(
+        new ArgumentSizeT(0, name, "", desc, false, dest));
     CalcParamMax(paramlist_.back());
 }
 
