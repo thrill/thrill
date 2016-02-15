@@ -50,7 +50,7 @@ struct PagePageLink {
 //! A pair (page, rank)
 struct PageRankPair {
     PageId page;
-    double rank;
+    Rank   rank;
 
     friend std::ostream& operator << (std::ostream& os, const PageRankPair& a) {
         return os << '(' << a.page << '|' << a.rank << ')';
@@ -73,13 +73,8 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
                  return PagePageLink { std::stoul(split[0]), std::stoul(split[1]) };
              });
 
-    // aggregate all outgoing links of a page in this format:
-    //
-    //  URL   OUTGOING
+    // aggregate all outgoing links of a page in this format: by index
     // ([linked_url, linked_url, ...])
-    // ([linked_url, linked_url, ...])
-    // ([linked_url, linked_url, ...])
-    // ...
 
     PageId num_pages = 5000;
 
@@ -98,12 +93,7 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
         },
         num_pages).Cache();
 
-    // initialize all ranks to 1.0
-    //
-    // (url, rank)
-    // (url, rank)
-    // (url, rank)
-    // ...
+    // initialize all ranks to 1.0: (url, rank)
 
     auto ranks = Generate(
         ctx, [](const size_t&) { return (Rank)1.0; }, num_pages).Cache();
@@ -116,25 +106,17 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
         // links by doing:
         //
         // 1) group all outgoing links with rank of its parent page: (Zip)
-        //
-        // ([linked_url, linked_url, ...], rank_parent)
-        // ([linked_url, linked_url, ...], rank_parent)
         // ([linked_url, linked_url, ...], rank_parent)
         //
         // 2) compute rank contribution for each linked_url: (FlatMap)
-        //
         // (linked_url, rank / OUTGOING.size)
-        // (linked_url, rank / OUTGOING.size)
-        // (linked_url, rank / OUTGOING.size)
-        // ...
 
         LOG << links.Size();
         LOG << ranks.Size();
 
         assert(links.Size() == ranks.Size());
 
-        // TODO(SL): when Zip/FlatMap chained, code doesn't compile, please check
-        DIA<OutgoingLinksRank> outs_rank = links.Zip(
+        auto outs_rank = links.Zip(
             ranks,
             [](const OutgoingLinks& ol, const Rank& r) {
                 return OutgoingLinksRank(ol, r);
@@ -142,11 +124,12 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
 
         outs_rank
         .Map([](const OutgoingLinksRank& ol) {
-                 return common::Join(',', ol.first) + " <- " + std::to_string(ol.second);
+                 return common::Join(',', ol.first)
+                 + " <- " + std::to_string(ol.second);
              })
         .Print("outs_rank");
 
-        auto contribs = outs_rank.FlatMap<PageRankPair>(
+        auto contribs = outs_rank.template FlatMap<PageRankPair>(
             [](const OutgoingLinksRank& p, auto emit) {
                 if (p.first.size() > 0) {
                     Rank rank_contrib = p.second / p.first.size();
@@ -158,13 +141,8 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
                 }
             });
 
-        // reduce all rank contributions by adding all rank contributions
-        // and compute the new rank with 0.15 * 0.85 * sum_rank_contribs
-        //
-        // (url, rank)
-        // (url, rank)
-        // (url, rank)
-        // ...
+        // reduce all rank contributions by adding all rank contributions and
+        // compute the new rank: (url, rank)
 
         ranks =
             contribs
@@ -173,18 +151,19 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
                 [](const PageRankPair& p1, const PageRankPair& p2) {
                     return PageRankPair { p1.page, p1.rank + p2.rank };
                 }, num_pages)
-            .Map(
-                [num_pages](const PageRankPair p) {
-                    LOG << "ranks2 in " << p;
-                    if (std::fabs(p.rank) <= 1E-5) {
-                        LOG << "ranks2 " << 0.0;
-                        return (Rank)0.0;
-                    }
-                    else {
-                        LOG << "ranks2 " << dampening * p.rank + (1 - dampening) / num_pages;
-                        return dampening * p.rank + (1 - dampening) / num_pages;
-                    }
-                }).Keep().Collapse();
+            .Map([num_pages](const PageRankPair p) {
+                     LOG << "ranks2 in " << p;
+                     if (std::fabs(p.rank) <= 1E-5) {
+                         LOG << "ranks2 " << 0.0;
+                         return Rank(0.0);
+                     }
+                     else {
+                         LOG << "ranks2 "
+                             << dampening * p.rank + (1 - dampening) / num_pages;
+
+                         return dampening * p.rank + (1 - dampening) / num_pages;
+                     }
+                 }).Keep().Collapse();
     }
 
     // construct output as (pageid, rank)
