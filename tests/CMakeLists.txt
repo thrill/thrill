@@ -99,6 +99,7 @@ build_test_group(common/tests
   common/thread_barrier_test.cpp
   common/thread_pool_test.cpp
   common/timed_counter_test.cpp
+  common/zipf_distribution_test.cpp
   )
 
 build_test(mem/allocator_test)
