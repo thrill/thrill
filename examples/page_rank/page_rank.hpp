@@ -69,9 +69,13 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
     auto input =
         input_links
         .Map([](const std::string& input) {
-                 auto split = thrill::common::Split(input, '\t');
-                 die_unequal(split.size(), 2);
-                 return PagePageLink { std::stoul(split[0]), std::stoul(split[1]) };
+                 // parse "source\ttarget\n" lines
+                 char* endptr;
+                 unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
+                 die_unless(endptr && *endptr == '\t' && "Could not parse src tgt line");
+                 unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
+                 die_unless(endptr && *endptr == 0 && "Could not parse src tgt line");
+                 return PagePageLink { src, tgt };
              });
 
     size_t num_pages =
@@ -80,18 +84,19 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
         .Max() + 1;
 
     sLOG1 << "num_pages" << num_pages;
+    mem::malloc_tracker_print_status();
 
     // aggregate all outgoing links of a page in this format: by index
     // ([linked_url, linked_url, ...])
 
     // group outgoing links from input file
+
     auto links = input.template GroupByIndex<OutgoingLinks>(
         [](const PagePageLink& p) { return p.src; },
         [num_pages](auto& r, const PageId&) {
             std::vector<PageId> all;
             while (r.HasNext()) {
                 all.push_back(r.Next().tgt);
-                die_unless(all.back() < num_pages);
             }
             return all;
         },
@@ -100,11 +105,11 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
     // initialize all ranks to 1.0: (url, rank)
 
     auto ranks = Generate(
-        ctx, [](const size_t&) { return (Rank)1.0; }, num_pages).Cache();
+        ctx, [](const size_t&) { return (Rank)1.0; }, num_pages).Collapse();
 
     // do iterations
     for (size_t iter = 0; iter < iterations; ++iter) {
-        LOG << "iteration " << iter;
+        LOG1 << "iteration " << iter;
 
         // for all outgoing link, get their rank contribution from all
         // links by doing:
@@ -115,23 +120,20 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
         // 2) compute rank contribution for each linked_url: (FlatMap)
         // (linked_url, rank / OUTGOING.size)
 
-        LOG << links.Size();
-        LOG << ranks.Size();
-
-        assert(links.Size() == ranks.Size());
-
         auto outs_rank = links.Zip(
             ranks,
             [](const OutgoingLinks& ol, const Rank& r) {
                 return OutgoingLinksRank(ol, r);
             });
 
-        outs_rank
-        .Map([](const OutgoingLinksRank& ol) {
-                 return common::Join(',', ol.first)
-                 + " <- " + std::to_string(ol.second);
-             })
-        .Print("outs_rank");
+        if (debug) {
+            outs_rank
+            .Map([](const OutgoingLinksRank& ol) {
+                     return common::Join(',', ol.first)
+                     + " <- " + std::to_string(ol.second);
+                 })
+            .Print("outs_rank");
+        }
 
         auto contribs = outs_rank.template FlatMap<PageRankPair>(
             [](const OutgoingLinksRank& p, auto emit) {
@@ -155,19 +157,11 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
                 [](const PageRankPair& p1, const PageRankPair& p2) {
                     return PageRankPair { p1.page, p1.rank + p2.rank };
                 }, num_pages)
-            .Map([num_pages](const PageRankPair p) {
-                     LOG << "ranks2 in " << p;
-                     if (std::fabs(p.rank) <= 1E-5) {
-                         LOG << "ranks2 " << 0.0;
-                         return Rank(0.0);
-                     }
-                     else {
-                         LOG << "ranks2 "
-                             << dampening * p.rank + (1 - dampening) / num_pages;
-
-                         return dampening * p.rank + (1 - dampening) / num_pages;
-                     }
-                 }).Keep().Collapse();
+            .Map([num_pages](const PageRankPair& p) {
+                     Rank r = dampening * p.rank + (1 - dampening) / num_pages;
+                     LOG << "ranks2 in " << p << "out" << r;
+                     return r;
+                 }).Collapse();
     }
 
     // construct output as (pageid, rank)
@@ -182,7 +176,7 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
             return std::to_string(p) + ": " + std::to_string(r);
         });
 
-    assert(res.Size() == links.Size());
+    assert(res.Keep().Size() == num_pages);
 
     return res;
 }
