@@ -88,11 +88,10 @@ size_t DIA<ValueType, Stack>::Size() const {
     using SizeNode = api::SizeNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Size", DIANodeType::ACTION);
-    auto shared_node
-        = std::make_shared<SizeNode>(*this, stats_node);
+    auto node = std::make_shared<SizeNode>(*this, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
-    return shared_node.get()->result();
+    core::StageBuilder().RunScope(node.get());
+    return node->result();
 }
 
 //! \}

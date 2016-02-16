@@ -37,20 +37,17 @@ enum class DIAState {
     //! The DIABase has been calculated but not explicitly cached.  Data might
     //! be available or has to be recalculated when needed
     EXECUTED,
-    //! The DIABase is disposed by the user, needs to be recomputed when
-    //! accessed.
+    //! The DIABase is manually disposed by the user, needs to be recomputed
+    //! when accessed.
     DISPOSED
 };
 
 /*!
  * The DIABase is the untyped super class of DIANode. DIABases are used to build
  * the execution graph, which is used to execute the computation.
-
+ *
  * Each DIABase knows it's parents and children. Parents are node which have to
  * computed previously, children are nodes which have this node as a parent.
-
- * Additionally, a DIABase has a reference to the data::Manager, which can give
- * iterators to actual data.
  */
 class DIABase
 {
@@ -74,22 +71,25 @@ public:
                   "DIABase::lifetime", stats_node->label(), true)),
           stats_node_(stats_node) {
 
-        for (size_t i = 0; i < parents.size(); ++i) {
+        for (size_t i = 0; i < parents.size(); ++i)
             parents[i]->AddChild(this, i);
-        }
     }
 
     //! non-copyable: delete copy-constructor
-    DIABase(const DIABase&) = delete;
+    DIABase(const DIABase &) = delete;
     //! non-copyable: delete assignment operator
-    DIABase& operator = (const DIABase&) = delete;
+    DIABase & operator = (const DIABase &) = delete;
+    //! move-constructor: default
+    DIABase(DIABase &&) = default;
+    //! move-assignment operator: default
+    DIABase & operator = (DIABase &&) = default;
 
     //! Virtual destructor for a DIABase.
     virtual ~DIABase() {
-        // Remove child pointer from parent
-        // If a parent loses all its childs
-        // its reference count should be zero and he
-        // should be removed
+        // Remove child pointer from parent If a parent loses all its childs its
+        // reference count should be zero and he should be removed
+        LOG1 << "~DIABase(): " << label() << "." << id();
+
         // parent.remove_child(this);
         STOP_TIMER(lifetime_)
     }
@@ -109,7 +109,8 @@ public:
     //! Virtual method for preparing end of data.
     virtual void StopPreOp(size_t /* id */) { }
 
-    //! Performing push operation. Notifies children and calls actual push method.
+    //! Performing push operation. Notifies children and calls actual push
+    //! method.
     void DoPushData(bool consume) {
         for (const Child& child : children_) child.node->StartPreOp(child.id);
         PushData(consume && context().consume());
@@ -119,21 +120,28 @@ public:
     //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
     virtual void UnregisterChilds() = 0;
 
-    //! return label of DIANode subclass as stored by StatsNode
+    //! return unique id() of DIANode subclass as stored by StatsNode
+    const size_t & id() const {
+        assert(stats_node_);
+        return stats_node_->id();
+    }
+
+    //! return label() of DIANode subclass as stored by StatsNode
     const char * label() const {
         assert(stats_node_);
         return stats_node_->label();
+    }
+
+    //! return type() of DIANode subclass as stored by StatsNode
+    const DIANodeType & type() const {
+        assert(stats_node_);
+        return stats_node_->type();
     }
 
     //! Virtual SetConsume flag which is called by the user via .Keep() or
     //! .Consume() to set consumption.
     virtual void SetConsume(bool consume) {
         consume_on_push_data_ = consume;
-    }
-
-    const DIANodeType & type() const {
-        assert(stats_node_);
-        return stats_node_->type();
     }
 
     struct Child {
@@ -164,15 +172,22 @@ public:
         return context_.mem_manager();
     }
 
-    //! Adds a child to the vector of children. This method is called in the constructor.
+    //! Adds a child to the vector of children. This method is called in the
+    //! constructor.
     void AddChild(DIABase* node, size_t id) {
         children_.emplace_back(Child { node, id });
     }
 
-    //! Returns the unique ID of this DIABase.
-    size_t id() const {
-        assert(stats_node_);
-        return stats_node_->id();
+    //! Remove a child from the vector of children. This method is called by the
+    //! destructor of children.
+    void RemoveChild(DIABase* node) {
+        std::vector<Child>::iterator swap_end =
+            std::remove_if(
+                children_.begin(), children_.end(),
+                [node](const Child& c) { return c.node == node; });
+
+        // assert(swap_end != children_.end());
+        children_.erase(swap_end, children_.end());
     }
 
     DIAState state() const {
@@ -231,7 +246,7 @@ protected:
     DIAState state_ = DIAState::NEW;
 
     //! Returns the state of this DIANode as a string. Used by ToString.
-    std::string state_string_() {
+    std::string state_string() {
         switch (state_) {
         case DIAState::NEW:
             return "NEW";

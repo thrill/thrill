@@ -35,7 +35,7 @@ public:
     //! ActionNodes do not have children.
     void UnregisterChilds() final { }
 
-    //! Actionnodes do not push data, they only Execute.
+    //! ActionNodes do not push data, they only Execute.
     void PushData(bool /* consume */) final { }
 
     void SetConsume(bool /* consume */) final {

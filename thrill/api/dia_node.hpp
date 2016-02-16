@@ -53,10 +53,8 @@ template <typename ValueType>
 class DIANode : public DIABase
 {
 public:
-    /*!
-     * Default constructor for a DIANode.
-     */
-    DIANode() { }
+    //! Default constructor for a DIANode.
+    DIANode() = default;
 
     /*!
      * Constructor for a DIANode, which sets references to the
@@ -67,9 +65,6 @@ public:
             StatsNode* stats_node)
         : DIABase(ctx, parents, stats_node)
     { }
-
-    //! Virtual destructor for a DIANode.
-    virtual ~DIANode() { }
 
     /*!
      * Enables children to push their "folded" function chains to their parent.

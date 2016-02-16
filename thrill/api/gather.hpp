@@ -102,10 +102,10 @@ DIA<ValueType, Stack>::Gather(size_t target_id) const {
     std::vector<ValueType> output;
 
     StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
-    auto shared_node =
+    auto node =
         std::make_shared<GatherNode>(*this, target_id, &output, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
+    core::StageBuilder().RunScope(node.get());
 
     return std::move(output);
 }
@@ -118,10 +118,10 @@ void DIA<ValueType, Stack>::Gather(
     using GatherNode = api::GatherNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
-    auto shared_node =
+    auto node =
         std::make_shared<GatherNode>(*this, target_id, out_vector, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
+    core::StageBuilder().RunScope(node.get());
 }
 
 template <typename ValueType, typename Stack>
@@ -133,12 +133,12 @@ void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) con
     std::vector<ValueType> output;
 
     StatsNode* stats_node = AddChildStatsNode("Print", DIANodeType::ACTION);
-    auto shared_node =
+    auto node =
         std::make_shared<GatherNode>(*this, 0, &output, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
+    core::StageBuilder().RunScope(node.get());
 
-    if (shared_node->context().my_rank() == 0)
+    if (node->context().my_rank() == 0)
     {
         os << name
            << " --- Begin DIA.Print() --- size=" << output.size() << '\n';
