@@ -60,7 +60,7 @@ public:
              << "time:" << std::put_time(std::localtime(&tt), "%T");
 
         timer.Start();
-        node_->DoPushData(node_->consume_on_push_data());
+        node_->RunPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
         timer.Stop();
 
@@ -83,7 +83,7 @@ public:
              << "time:" << std::put_time(std::localtime(&tt), "%T");
 
         timer.Start();
-        node_->DoPushData(node_->consume_on_push_data());
+        node_->RunPushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
         timer.Stop();
 
@@ -156,11 +156,11 @@ public:
                 s.Execute();
             }
             else if (s.node()->state() == api::DIAState::EXECUTED) {
-                bool skip = true;
-                for (const DIABase::Child& child : s.node()->children())
-                    if (child.node->state() != api::DIAState::EXECUTED ||
-                        child.node->type() == api::DIANodeType::COLLAPSE)
-                        skip = false;
+                bool skip = false;
+                // for (const DIABase::Child& child : s.node()->children())
+                //     if (child.node->state() != api::DIAState::EXECUTED ||
+                //         child.node->type() == api::DIANodeType::COLLAPSE)
+                //         skip = false;
 
                 if (skip) continue;
                 else s.PushData();

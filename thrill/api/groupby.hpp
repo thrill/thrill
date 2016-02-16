@@ -87,7 +87,7 @@ public:
         // close the function stack with our pre op and register it at
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        parent.node()->RegisterChild(lop_chain, this->type());
+        parent.node()->AddChild(this, lop_chain);
         stream_->OnClose([this]() {
                              this->WriteStreamStats(this->stream_);
                          });

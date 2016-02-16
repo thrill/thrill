@@ -56,7 +56,7 @@ public:
         // close the function stack with our pre op and register it at parent
         // node for output
         auto lop_chain = parent.stack().push(pre_op_function).emit();
-        parent.node()->RegisterChild(lop_chain, this->type());
+        parent.node()->AddChild(this, lop_chain);
 
         // close all but the target
         for (size_t i = 0; i < emitters_.size(); i++) {

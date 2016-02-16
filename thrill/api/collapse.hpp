@@ -52,7 +52,7 @@ public:
                                 this->PushItem(input);
                             };
         auto lop_chain = parent.stack().push(propagate_fn).emit();
-        parent.node()->RegisterChild(lop_chain, this->type());
+        parent.node()->AddChild(this, lop_chain);
     }
 
     /*!

@@ -202,7 +202,7 @@ private:
             // parent nodes for output
             auto lop_chain = parent.stack().push(pre_op_fn).emit();
 
-            parent.node()->RegisterChild(lop_chain, zip_node_->type());
+            parent.node()->AddChild(zip_node_, lop_chain, Index::index);
         }
 
     protected:

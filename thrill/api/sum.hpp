@@ -55,7 +55,7 @@ public:
                          };
 
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        parent.node()->RegisterChild(lop_chain, this->type());
+        parent.node()->AddChild(this, lop_chain);
     }
 
     //! Executes the sum operation.
