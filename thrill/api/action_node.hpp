@@ -36,7 +36,11 @@ public:
     void RemoveChild(DIABase* /* node */) final { }
 
     //! ActionNodes do not have children.
-    void UnregisterChilds() final { }
+    void RemoveAllChildren() final { }
+
+    //! ActionNodes do not have children.
+    std::vector<DIABase*> children() const final
+    { return std::vector<DIABase*>(); }
 
     //! ActionNodes do not push data, they only Execute.
     void PushData(bool /* consume */) final { }

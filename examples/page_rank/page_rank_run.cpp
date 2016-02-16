@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
         [&input, &output, &iter](api::Context& ctx) {
             ctx.enable_consume(false);
 
-            thrill::common::StatsTimer<true> timer;
+            thrill::common::StatsTimer<true> timer(/* autostart */ true);
 
             // read input file and create links in this format:
             //

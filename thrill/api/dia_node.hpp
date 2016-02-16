@@ -40,14 +40,8 @@ public:
     using Callback = std::function<void(const ValueType&)>;
 
     struct Child {
-        Child(DIABase* node,
-              const Callback& callback,
-              size_t parent_index)
+        Child(DIABase* node, const Callback& callback, size_t parent_index)
             : node_(node), callback_(callback), parent_index_(parent_index) { }
-
-        void operator () (const ValueType& elem) const {
-            callback_(elem);
-        }
 
         //! reference to child node
         DIABase  * node_;
@@ -95,7 +89,8 @@ public:
         children_.erase(swap_end, children_.end());
     }
 
-    void UnregisterChilds() final {
+    void RemoveAllChildren() final {
+        // remove all children other than Collapse nodes
         children_.erase(
             std::remove_if(
                 children_.begin(), children_.end(),
@@ -103,6 +98,19 @@ public:
                     return child.node_->type() != DIANodeType::COLLAPSE;
                 }),
             children_.end());
+
+        // recurse into remaining nodes (CollapseNode)
+        for (Child& child : children_)
+            child.node_->RemoveAllChildren();
+    }
+
+    //! Returns the children of this DIABase.
+    std::vector<DIABase*> children() const final {
+        std::vector<DIABase*> out;
+        out.reserve(children_.size());
+        for (const Child& child : children_)
+            out.emplace_back(child.node_);
+        return out;
     }
 
     //! Performing push operation. Notifies children and calls actual push
@@ -120,11 +128,11 @@ public:
 
     void PushItem(const ValueType& elem) const {
         for (const Child& child : children_) {
-            child(elem);
+            child.callback_(elem);
         }
     }
 
-private:
+protected:
     //! Callback functions from the child nodes.
     std::vector<Child> children_;
 };

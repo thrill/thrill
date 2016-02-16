@@ -467,7 +467,7 @@ TEST(Operations, ForLoop) {
             for (size_t i = 0; i < 4; ++i) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
-                squares = multiplied.Cache();
+                squares = multiplied.Collapse();
             }
 
             std::vector<size_t> out_vec = squares.AllGather();
@@ -510,7 +510,7 @@ TEST(Operations, WhileLoop) {
             while (sum < 256) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
-                squares = multiplied.Cache();
+                squares = multiplied.Collapse();
                 sum = squares.Size();
             }
 

@@ -16,6 +16,7 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/groupby_index.hpp>
+#include <thrill/api/max.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
@@ -73,12 +74,15 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
                  return PagePageLink { std::stoul(split[0]), std::stoul(split[1]) };
              });
 
+    size_t num_pages =
+        input
+        .Map([](const PagePageLink& ppl) { return std::max(ppl.src, ppl.tgt); })
+        .Max() + 1;
+
+    sLOG1 << "num_pages" << num_pages;
+
     // aggregate all outgoing links of a page in this format: by index
     // ([linked_url, linked_url, ...])
-
-    PageId num_pages = 5000;
-
-    LOG << "number_nodes " << num_pages;
 
     // group outgoing links from input file
     auto links = input.template GroupByIndex<OutgoingLinks>(

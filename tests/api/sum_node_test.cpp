@@ -72,10 +72,8 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
                                     return in1 + in2;
                                 };
 
-            DIA<int> coll = ones.Collapse();
-
-            ASSERT_EQ(136, coll.Sum(add_function));
-            ASSERT_EQ(16u, coll.Size());
+            ASSERT_EQ(136, ones.Sum(add_function));
+            ASSERT_EQ(16u, ones.Size());
         };
 
     api::RunLocalTests(start_func);

@@ -91,6 +91,11 @@ public:
         STOP_TIMER(lifetime_)
     }
 
+    //! Virtual method to determine whether a node can be Executed() = run such
+    //! that it self-contains its data. This is currently true for all Nodes
+    //! except Collapse().
+    virtual bool CanExecute() { return true; }
+
     //! Virtual execution method. Triggers actual computation in sub-classes.
     virtual void Execute() = 0;
 
@@ -114,8 +119,9 @@ public:
     //! Virtual method for removing a child.
     virtual void RemoveChild(DIABase* node) = 0;
 
-    //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
-    virtual void UnregisterChilds() = 0;
+    //! Virtual method for removing all childs. Triggers actual removing in
+    //! sub-classes.
+    virtual void RemoveAllChildren() = 0;
 
     //! return unique id() of DIANode subclass as stored by StatsNode
     const size_t & id() const {
@@ -145,6 +151,9 @@ public:
     const std::vector<std::shared_ptr<DIABase> > & parents() {
         return parents_;
     }
+
+    //! Returns the children of this DIABase.
+    virtual std::vector<DIABase*> children() const = 0;
 
     //! Returns the api::Context of this DIABase.
     Context & context() {

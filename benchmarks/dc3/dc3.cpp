@@ -25,7 +25,6 @@
 #include <thrill/api/write_binary.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
-#include <thrill/core/multiway_merge.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -499,8 +498,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
             .Map([size_mod1](const IndexRank& a) {
                      return IndexRank { a.index % 3 == 1 ? 0 : size_mod1, a.rank };
                  })
-            // TODO(sl): THIS BREAKS WITH COLLAPSE
-            .Cache();
+            .Collapse();
 
         if (debug_print)
             ranks_rec.Print("ranks_rec");
@@ -549,9 +547,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
                 })
         .Map([](const IndexRank& a) {
                  return a.rank + 1;
-             })
-        // TODO(sl): Mr. StageBuilder, this should NOT be needed.
-        .Cache();
+             });
 
     if (debug_print) {
         triple_chars.Print("triple_chars");

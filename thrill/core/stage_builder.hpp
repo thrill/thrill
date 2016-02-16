@@ -60,17 +60,48 @@ std::string format_time(const char* format, const time_t& t) {
 
 class Stage
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     using system_clock = std::chrono::system_clock;
 
     explicit Stage(DIABase* node) : node_(node) { }
 
+    //! compute a string to show all target nodes into which this Stage pushes.
+    std::string Targets() const {
+        std::ostringstream oss;
+        std::vector<DIABase*> children = node_->children();
+        std::reverse(children.begin(), children.end());
+
+        oss << '[';
+        while (children.size())
+        {
+            DIABase* child = children.back();
+            children.pop_back();
+
+            if (child == nullptr) {
+                oss << ']';
+            }
+            else if (child->type() == api::DIANodeType::COLLAPSE) {
+                // push children of Collapse onto stack
+                std::vector<DIABase*> sub = child->children();
+                children.push_back(nullptr);
+                children.insert(children.end(), sub.begin(), sub.end());
+                oss << child->label() << '.' << child->id() << ' ' << '[';
+            }
+            else {
+                oss << child->label() << '.' << child->id() << ' ';
+            }
+        }
+        oss << ']';
+        return oss.str();
+    }
+
     void Execute() {
 
         time_t tt = system_clock::to_time_t(system_clock::now());
         sLOG << "START  (EXECUTE) stage" << node_->label() << node_->id()
+             << "targets" << Targets()
              << "time:" << format_time("%T", tt);
 
         timer.Start();
@@ -79,6 +110,7 @@ public:
 
         tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (EXECUTE) stage" << node_->label() << node_->id()
+             << "targets" << Targets()
              << "took" << timer.Milliseconds() << "ms"
              << "time:" << format_time("%T", tt);
 
@@ -89,6 +121,7 @@ public:
 
         tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (PUSHDATA) stage" << node_->label() << node_->id()
+             << "targets" << Targets()
              << "took" << timer.Milliseconds() << "ms"
              << "time:" << format_time("%T", tt);
     }
@@ -103,6 +136,7 @@ public:
 
         time_t tt = system_clock::to_time_t(system_clock::now());
         sLOG << "START  (PUSHDATA) stage" << node_->label() << node_->id()
+             << "targets" << Targets()
              << "time:" << format_time("%T", tt);
 
         timer.Start();
@@ -112,6 +146,7 @@ public:
 
         tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (PUSHDATA) stage" << node_->label() << node_->id()
+             << "targets" << Targets()
              << "took" << timer.Milliseconds() << "ms"
              << "time:" << format_time("%T", tt);
     }
@@ -125,7 +160,7 @@ private:
 
 class StageBuilder
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     template <typename T>
@@ -150,16 +185,21 @@ public:
             for (size_t i = 0; i < parents.size(); ++i) {
                 // Check if parent was already added
                 auto p = parents[i].get();
-                if (p) {
-                    // If not add parent to stages found and result stages
-                    stages_found.insert(p);
-                    stages_result.push_back(Stage(p));
-                    LOG << "FOUND: " << p->label() << '.' << p->id();
+
+                // if parents where not already seen, push onto stages
+                if (stages_found.count(p)) continue;
+                stages_found.insert(p);
+
+                stages_result.push_back(Stage(p));
+                LOG << "FOUND: " << p->label() << '.' << p->id();
+                if (p->CanExecute()) {
                     // If parent was not executed push it to the BFS queue
-                    if (p->state() != api::DIAState::EXECUTED ||
-                        p->type() == api::DIANodeType::COLLAPSE) {
+                    if (p->state() != api::DIAState::EXECUTED)
                         dia_stack.push_back(p);
-                    }
+                }
+                else {
+                    // If parent cannot be executed (hold data) continue upward.
+                    dia_stack.push_back(p);
                 }
             }
         }
@@ -171,24 +211,22 @@ public:
         mem::mm_vector<Stage> result(
             mem::Allocator<Stage>(action->mem_manager()));
 
+        LOG << "RunScope() action=" << action->label() << "." << action->id();
+
         FindStages(action, result);
 
         for (Stage& s : result)
         {
+            if (!s.node()->CanExecute())
+                continue;
+
             if (s.node()->state() == api::DIAState::NEW) {
                 s.Execute();
             }
             else if (s.node()->state() == api::DIAState::EXECUTED) {
-                bool skip = false;
-                // for (const DIABase::Child& child : s.node()->children())
-                //     if (child.node->state() != api::DIAState::EXECUTED ||
-                //         child.node->type() == api::DIANodeType::COLLAPSE)
-                //         skip = false;
-
-                if (skip) continue;
-                else s.PushData();
+                s.PushData();
             }
-            s.node()->UnregisterChilds();
+            s.node()->RemoveAllChildren();
         }
     }
 };
