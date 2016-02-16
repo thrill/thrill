@@ -15,10 +15,6 @@
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/core/stage_builder.hpp>
-#include <thrill/net/flow_control_channel.hpp>
-#include <thrill/net/flow_control_manager.hpp>
-#include <thrill/net/group.hpp>
 
 #include <string>
 #include <type_traits>
@@ -123,7 +119,8 @@ auto DIA<ValueType, Stack>::Sum(
     auto node = std::make_shared<SumNode>(
         *this, sum_function, initial_value, stats_node);
 
-    core::StageBuilder().RunScope(node.get());
+    node->RunScope();
+
     return node->result();
 }
 

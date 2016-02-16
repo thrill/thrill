@@ -17,8 +17,6 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/ring_buffer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/net/flow_control_channel.hpp>
-#include <thrill/net/flow_control_manager.hpp>
 
 #include <algorithm>
 #include <string>

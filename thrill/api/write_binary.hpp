@@ -19,7 +19,6 @@
 #include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/core/file_io.hpp>
-#include <thrill/core/stage_builder.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 
@@ -190,11 +189,10 @@ void DIA<ValueType, Stack>::WriteBinary(
 
     StatsNode* stats_node = AddChildStatsNode("WriteBinary", DIANodeType::ACTION);
 
-    auto shared_node =
-        std::make_shared<WriteBinaryNode>(
-            *this, filepath, max_file_size, stats_node);
+    auto node = std::make_shared<WriteBinaryNode>(
+        *this, filepath, max_file_size, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
+    node->RunScope();
 }
 
 //! \}

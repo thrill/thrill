@@ -17,8 +17,6 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/net/flow_control_channel.hpp>
-#include <thrill/net/flow_control_manager.hpp>
 
 #include <string>
 

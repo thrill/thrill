@@ -15,9 +15,6 @@
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/core/stage_builder.hpp>
-#include <thrill/net/flow_control_channel.hpp>
-#include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/group.hpp>
 
 #include <string>
@@ -90,7 +87,8 @@ size_t DIA<ValueType, Stack>::Size() const {
     StatsNode* stats_node = AddChildStatsNode("Size", DIANodeType::ACTION);
     auto node = std::make_shared<SizeNode>(*this, stats_node);
 
-    core::StageBuilder().RunScope(node.get());
+    node->RunScope();
+
     return node->result();
 }
 

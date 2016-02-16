@@ -16,7 +16,6 @@
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/core/stage_builder.hpp>
 #include <thrill/data/file.hpp>
 
 #include <fstream>
@@ -126,11 +125,10 @@ void DIA<ValueType, Stack>::WriteLines(
     using WriteLinesNode = api::WriteLinesNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("WriteLines", DIANodeType::ACTION);
-    auto shared_node =
-        std::make_shared<WriteLinesNode>(
-            *this, filepath, stats_node);
+    auto node = std::make_shared<WriteLinesNode>(
+        *this, filepath, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
+    node->RunScope();
 }
 
 //! \}

@@ -14,7 +14,6 @@
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/core/stage_builder.hpp>
 
 #include <iostream>
 #include <string>
@@ -105,7 +104,7 @@ DIA<ValueType, Stack>::Gather(size_t target_id) const {
     auto node =
         std::make_shared<GatherNode>(*this, target_id, &output, stats_node);
 
-    core::StageBuilder().RunScope(node.get());
+    node->RunScope();
 
     return std::move(output);
 }
@@ -121,7 +120,7 @@ void DIA<ValueType, Stack>::Gather(
     auto node =
         std::make_shared<GatherNode>(*this, target_id, out_vector, stats_node);
 
-    core::StageBuilder().RunScope(node.get());
+    node->RunScope();
 }
 
 template <typename ValueType, typename Stack>
@@ -136,7 +135,7 @@ void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) con
     auto node =
         std::make_shared<GatherNode>(*this, 0, &output, stats_node);
 
-    core::StageBuilder().RunScope(node.get());
+    node->RunScope();
 
     if (node->context().my_rank() == 0)
     {

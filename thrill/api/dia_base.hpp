@@ -82,7 +82,7 @@ public:
     virtual ~DIABase() {
         // Remove child pointer from parent If a parent loses all its childs its
         // reference count should be zero and he should be removed
-        LOG1 << "~DIABase(): " << *this;
+        LOG0 << "~DIABase(): " << *this;
 
         // de-register at parents (if still hooked there)
         for (const std::shared_ptr<DIABase>& p : parents_)
@@ -159,6 +159,9 @@ public:
 
     //! Returns the children of this DIABase.
     virtual std::vector<DIABase*> children() const = 0;
+
+    //! Execute Scope.
+    void RunScope();
 
     //! Returns the api::Context of this DIABase.
     Context & context() {
