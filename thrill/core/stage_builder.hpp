@@ -35,6 +35,29 @@ namespace core {
 
 using api::DIABase;
 
+struct tm localtime_from(const time_t& t) {
+#if __MINGW32__
+    return *localtime(&t); // NOLINT
+#else
+    struct tm tm;
+    memset(&tm, 0, sizeof(tm));
+    localtime_r(&t, &tm);
+    return tm;
+#endif
+}
+
+//! format string using time structure
+std::string format_time(const char* format, const struct tm& t) {
+    char buffer[256];
+    strftime(buffer, sizeof(buffer), format, &t);
+    return buffer;
+}
+
+//! format string using time in localtime representation
+std::string format_time(const char* format, const time_t& t) {
+    return format_time(format, localtime_from(t));
+}
+
 class Stage
 {
     static const bool debug = true;
@@ -48,7 +71,7 @@ public:
 
         time_t tt = system_clock::to_time_t(system_clock::now());
         sLOG << "START  (EXECUTE) stage" << node_->label() << node_->id()
-             << "time:" << std::put_time(std::localtime(&tt), "%T");
+             << "time:" << format_time("%T", tt);
 
         timer.Start();
         node_->Execute();
@@ -57,7 +80,7 @@ public:
         tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (EXECUTE) stage" << node_->label() << node_->id()
              << "took" << timer.Milliseconds() << "ms"
-             << "time:" << std::put_time(std::localtime(&tt), "%T");
+             << "time:" << format_time("%T", tt);
 
         timer.Start();
         node_->RunPushData(node_->consume_on_push_data());
@@ -67,7 +90,7 @@ public:
         tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (PUSHDATA) stage" << node_->label() << node_->id()
              << "took" << timer.Milliseconds() << "ms"
-             << "time:" << std::put_time(std::localtime(&tt), "%T");
+             << "time:" << format_time("%T", tt);
     }
 
     void PushData() {
@@ -80,7 +103,7 @@ public:
 
         time_t tt = system_clock::to_time_t(system_clock::now());
         sLOG << "START  (PUSHDATA) stage" << node_->label() << node_->id()
-             << "time:" << std::put_time(std::localtime(&tt), "%T");
+             << "time:" << format_time("%T", tt);
 
         timer.Start();
         node_->RunPushData(node_->consume_on_push_data());
@@ -90,7 +113,7 @@ public:
         tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (PUSHDATA) stage" << node_->label() << node_->id()
              << "took" << timer.Milliseconds() << "ms"
-             << "time:" << std::put_time(std::localtime(&tt), "%T");
+             << "time:" << format_time("%T", tt);
     }
 
     DIABase * node() { return node_; }
