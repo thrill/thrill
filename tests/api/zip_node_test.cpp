@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <thrill/api/allgather.hpp>
-#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/zip.hpp>
@@ -176,7 +176,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
                 },
                 test_size);
 
-            DIA<std::string> input = input_gen.Cache();
+            DIA<std::string> input = input_gen.Collapse();
 
             std::vector<std::string> vinput = input.AllGather();
             ASSERT_EQ(test_size, vinput.size());

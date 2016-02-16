@@ -14,7 +14,6 @@
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/core/stage_builder.hpp>
 
 #include <iostream>
 #include <string>
@@ -56,7 +55,7 @@ public:
         // close the function stack with our pre op and register it at parent
         // node for output
         auto lop_chain = parent.stack().push(pre_op_function).emit();
-        parent.node()->RegisterChild(lop_chain, this->type());
+        parent.node()->AddChild(this, lop_chain);
 
         // close all but the target
         for (size_t i = 0; i < emitters_.size(); i++) {
@@ -102,10 +101,10 @@ DIA<ValueType, Stack>::Gather(size_t target_id) const {
     std::vector<ValueType> output;
 
     StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
-    auto shared_node =
+    auto node =
         std::make_shared<GatherNode>(*this, target_id, &output, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
+    node->RunScope();
 
     return std::move(output);
 }
@@ -118,10 +117,10 @@ void DIA<ValueType, Stack>::Gather(
     using GatherNode = api::GatherNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
-    auto shared_node =
+    auto node =
         std::make_shared<GatherNode>(*this, target_id, out_vector, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
+    node->RunScope();
 }
 
 template <typename ValueType, typename Stack>
@@ -133,12 +132,12 @@ void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) con
     std::vector<ValueType> output;
 
     StatsNode* stats_node = AddChildStatsNode("Print", DIANodeType::ACTION);
-    auto shared_node =
+    auto node =
         std::make_shared<GatherNode>(*this, 0, &output, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
+    node->RunScope();
 
-    if (shared_node->context().my_rank() == 0)
+    if (node->context().my_rank() == 0)
     {
         os << name
            << " --- Begin DIA.Print() --- size=" << output.size() << '\n';

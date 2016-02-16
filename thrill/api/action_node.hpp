@@ -33,10 +33,20 @@ public:
     { }
 
     //! ActionNodes do not have children.
-    void UnregisterChilds() final { }
+    void RemoveChild(DIABase* /* node */) final { }
 
-    //! Actionnodes do not push data, they only Execute.
+    //! ActionNodes do not have children.
+    void RemoveAllChildren() final { }
+
+    //! ActionNodes do not have children.
+    std::vector<DIABase*> children() const final
+    { return std::vector<DIABase*>(); }
+
+    //! ActionNodes do not push data, they only Execute.
     void PushData(bool /* consume */) final { }
+
+    //! ActionNodes do not push data, they only Execute.
+    void RunPushData(bool /* consume */) final { }
 
     void SetConsume(bool /* consume */) final {
         die("Setting .Keep() or .Consume() on Actions does not make sense.");

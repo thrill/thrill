@@ -54,7 +54,7 @@ public:
                 writer_.Put(input);
             };
         auto lop_chain = parent.stack().push(save_fn).emit();
-        parent.node()->RegisterChild(lop_chain, this->type());
+        parent.node()->AddChild(this, lop_chain);
     }
 
     void StopPreOp(size_t /* id */) final {

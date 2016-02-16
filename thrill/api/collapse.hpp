@@ -48,18 +48,27 @@ public:
         // CollapseNodes are kept by default.
         Super::consume_on_push_data_ = false;
 
-        auto propagate_fn = [=](const ValueType& input) {
+        auto propagate_fn = [this](const ValueType& input) {
                                 this->PushItem(input);
                             };
         auto lop_chain = parent.stack().push(propagate_fn).emit();
-        parent.node()->RegisterChild(lop_chain, this->type());
+        parent.node()->AddChild(this, lop_chain);
     }
 
-    /*!
-     * Pushes elements to next node.
-     * Can be skipped for LOps.
-     */
-    void Execute() final { }
+    //! A CollapseNode cannot be executed, it never contains any data.
+    bool CanExecute() final { return false; }
+
+    void Execute() final { abort(); }
+
+    void StartPreOp(size_t /* id */) final {
+        for (typename Super::Child & child : Super::children_)
+            child.node_->StartPreOp(child.parent_index_);
+    }
+
+    void StopPreOp(size_t /* id */) final {
+        for (typename Super::Child & child : Super::children_)
+            child.node_->StopPreOp(child.parent_index_);
+    }
 
     void PushData(bool /* consume */) final { }
 

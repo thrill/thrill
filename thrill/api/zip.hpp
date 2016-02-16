@@ -114,8 +114,9 @@ public:
             RegisterParent(this), parent0, parents ...);
     }
 
-    void StopPreOp(size_t id) final {
-        writers_[id].Close();
+    void StopPreOp(size_t parent_index) final {
+        LOG << *this << " StopPreOp() parent_index=" << parent_index;
+        writers_[parent_index].Close();
     }
 
     void Execute() final {
@@ -202,7 +203,7 @@ private:
             // parent nodes for output
             auto lop_chain = parent.stack().push(pre_op_fn).emit();
 
-            parent.node()->RegisterChild(lop_chain, zip_node_->type());
+            parent.node()->AddChild(zip_node_, lop_chain, Index::index);
         }
 
     protected:

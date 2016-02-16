@@ -18,7 +18,6 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/core/file_io.hpp>
-#include <thrill/core/stage_builder.hpp>
 #include <thrill/net/buffer_builder.hpp>
 
 #include <algorithm>
@@ -68,7 +67,7 @@ public:
         // close the function stack with our pre op and register it at parent
         // node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        parent.node()->RegisterChild(lop_chain, this->type());
+        parent.node()->AddChild(this, lop_chain);
     }
 
     void PreOp(const std::string& input) {
@@ -180,11 +179,10 @@ void DIA<ValueType, Stack>::WriteLinesMany(
     StatsNode* stats_node =
         AddChildStatsNode("WriteLinesMany", DIANodeType::ACTION);
 
-    auto shared_node =
-        std::make_shared<WriteLinesManyNode>(
-            *this, filepath, target_file_size, stats_node);
+    auto node = std::make_shared<WriteLinesManyNode>(
+        *this, filepath, target_file_size, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
+    node->RunScope();
 }
 
 //! \}

@@ -15,9 +15,6 @@
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/core/stage_builder.hpp>
-#include <thrill/net/flow_control_channel.hpp>
-#include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/group.hpp>
 
 #include <string>
@@ -48,7 +45,7 @@ public:
         auto pre_op_fn = [=](const Input&) { ++local_size_; };
 
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        parent.node()->RegisterChild(lop_chain, this->type());
+        parent.node()->AddChild(this, lop_chain);
     }
 
     //! Executes the size operation.
@@ -88,11 +85,11 @@ size_t DIA<ValueType, Stack>::Size() const {
     using SizeNode = api::SizeNode<DIA>;
 
     StatsNode* stats_node = AddChildStatsNode("Size", DIANodeType::ACTION);
-    auto shared_node
-        = std::make_shared<SizeNode>(*this, stats_node);
+    auto node = std::make_shared<SizeNode>(*this, stats_node);
 
-    core::StageBuilder().RunScope(shared_node.get());
-    return shared_node.get()->result();
+    node->RunScope();
+
+    return node->result();
 }
 
 //! \}
