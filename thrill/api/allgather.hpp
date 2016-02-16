@@ -44,7 +44,7 @@ public:
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters())
     {
-        auto pre_op_function = [=](const ValueType& input) {
+        auto pre_op_function = [this](const ValueType& input) {
                                    PreOp(input);
                                };
 

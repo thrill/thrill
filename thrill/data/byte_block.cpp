@@ -26,12 +26,13 @@ ByteBlock::ByteBlock(Byte* data, size_t size, BlockPool* block_pool)
 void ByteBlock::deleter(ByteBlock* bb) {
     sLOG << "ByteBlock::deleter() pin_count_" << bb->pin_count_str();
     assert(bb->total_pins_ == 0);
+    assert(bb->reference_count() == 0);
 
-    if (bb->reference_count() == 0) {
-        assert(bb->block_pool_);
-        bb->block_pool_->DestroyBlock(bb);
-    }
-    operator delete (bb);
+    // call BlockPool's DestroyBlock() to de-register ByteBlock and free data
+    assert(bb->block_pool_);
+    bb->block_pool_->DestroyBlock(bb);
+
+    delete bb;
 }
 
 void ByteBlock::deleter(const ByteBlock* bb) {

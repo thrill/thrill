@@ -12,7 +12,7 @@
 #ifndef THRILL_API_ACTION_NODE_HEADER
 #define THRILL_API_ACTION_NODE_HEADER
 
-#include <thrill/api/dia_node.hpp>
+#include <thrill/api/dia_base.hpp>
 
 #include <string>
 #include <vector>
