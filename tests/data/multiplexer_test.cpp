@@ -31,10 +31,9 @@ struct Multiplexer : public::testing::Test {
 
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
-        mem::Manager ext_mem_manager(nullptr, "MultiplexerTestExt");
         mem::Manager mem_manager(nullptr, "MultiplexerTest");
         std::string swap_file_suffix = std::to_string(group->my_host_rank());
-        data::BlockPool block_pool(&mem_manager, &ext_mem_manager, swap_file_suffix);
+        data::BlockPool block_pool;
         data::Multiplexer multiplexer(mem_manager, block_pool, 1, *group);
         switch (group->my_host_rank()) {
         case 0:
@@ -87,7 +86,7 @@ void TalkAllToAllViaCatStream(net::Group* net) {
     mem::Manager mem_manager(nullptr, "Benchmark");
     mem::Manager ext_mem_manager(nullptr, "BenchmarkExt");
     std::string swap_file_suffix = std::to_string(net->my_host_rank()) + "-" + std::to_string(my_local_worker_id);
-    data::BlockPool block_pool(&mem_manager, &ext_mem_manager, swap_file_suffix);
+    data::BlockPool block_pool;
     data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
     {
         data::StreamId id = multiplexer.AllocateCatStreamId(my_local_worker_id);
@@ -98,8 +97,8 @@ void TalkAllToAllViaCatStream(net::Group* net) {
             id, my_local_worker_id)->OpenWriters(test_block_size);
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
-            writers[tgt]("hello I am " + std::to_string(net->my_host_rank())
-                         + " calling " + std::to_string(tgt));
+            writers[tgt].Put("hello I am " + std::to_string(net->my_host_rank())
+                             + " calling " + std::to_string(tgt));
 
             writers[tgt].Flush();
 
@@ -154,9 +153,9 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
-                  writers[2](msg1);
+                  writers[2].Put(msg1);
                   // writers[2].Flush();
-                  writers[2](msg2);
+                  writers[2].Put(msg2);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
@@ -167,7 +166,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
                   auto c = multiplexer.GetOrCreateCatStream(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
-                  writers[2](msg1);
+                  writers[2].Put(msg1);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
@@ -197,9 +196,9 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
-                  writers[2](msg1);
+                  writers[2].Put(msg1);
                   // writers[2].Flush();
-                  writers[2](msg2);
+                  writers[2].Put(msg2);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
@@ -210,7 +209,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
                   auto c = multiplexer.GetOrCreateCatStream(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
-                  writers[2](msg1);
+                  writers[2].Put(msg1);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
@@ -268,9 +267,9 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
-                  writers[2](msg1);
+                  writers[2].Put(msg1);
                   // writers[2].Flush();
-                  writers[2](msg2);
+                  writers[2].Put(msg2);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
@@ -281,7 +280,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                   auto c = multiplexer.GetOrCreateMixStream(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
-                  writers[2](msg1);
+                  writers[2].Put(msg1);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
@@ -369,7 +368,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
     size_t num_workers_per_host = 1;
 
     mem::Manager mem_manager(nullptr, "Benchmark");
-    data::BlockPool block_pool(&mem_manager, &mem_manager);
+    data::BlockPool block_pool;
     data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
     {
         data::StreamId id = multiplexer.AllocateMixStreamId(my_local_worker_id);
@@ -385,13 +384,13 @@ void TalkAllToAllViaMixStream(net::Group* net) {
                 + " calling " + std::to_string(tgt)
                 + send_string;
 
-            writers[tgt].PutItem(txt);
+            writers[tgt].Put(txt);
             // try a Flush.
             writers[tgt].Flush();
 
             // write a few MiBs of oddly sized data
             for (size_t r = 1; r < iterations; ++r) {
-                writers[tgt].PutItem(txt);
+                writers[tgt].Put(txt);
             }
 
             writers[tgt].Flush();
@@ -430,7 +429,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
     }
 }
 
-TEST_F(Multiplexer, DISABLED_TalkAllToAllViaMixStreamForManyNetSizes) {
+TEST_F(Multiplexer, TalkAllToAllViaMixStreamForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 9:
     net::RunLoopbackGroupTest(1, TalkAllToAllViaMixStream);
     net::RunLoopbackGroupTest(2, TalkAllToAllViaMixStream);
@@ -446,13 +445,14 @@ TEST_F(Multiplexer, Scatter_OneWorker) {
     auto w0 =
         [](data::Multiplexer& multiplexer) {
             // produce a File containing some items
-            data::File file(multiplexer.block_pool());
+            data::File file(multiplexer.block_pool(), 0);
             {
                 auto writer = file.GetWriter(test_block_size);
-                writer(std::string("foo"));
-                writer(std::string("bar"));
+                writer.Put<std::string>("foo");
+                writer.Put<std::string>("bar");
                 writer.Flush();
-                writer(std::string("breakfast is the most important meal of the day."));
+                writer.Put<std::string>(
+                    "breakfast is the most important meal of the day.");
             }
 
             // scatter File contents via stream: only items [0,3) are sent
@@ -475,11 +475,11 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
     auto w0 =
         [](data::Multiplexer& multiplexer) {
             // produce a File containing some items
-            data::File file(multiplexer.block_pool());
+            data::File file(multiplexer.block_pool(), 0);
             {
                 auto writer = file.GetWriter(test_block_size);
-                writer(std::string("foo"));
-                writer(std::string("bar"));
+                writer.Put<std::string>("foo");
+                writer.Put<std::string>("bar");
             }
 
             // scatter File contents via stream: only items [0,2) are to local worker
@@ -494,12 +494,12 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
     auto w1 =
         [](data::Multiplexer& multiplexer) {
             // produce a File containing some items
-            data::File file(multiplexer.block_pool());
+            data::File file(multiplexer.block_pool(), 0);
             {
                 auto writer = file.GetWriter(test_block_size);
-                writer(std::string("hello"));
-                writer(std::string("world"));
-                writer(std::string("."));
+                writer.Put<std::string>("hello");
+                writer.Put<std::string>("world");
+                writer.Put<std::string>(".");
             }
 
             // scatter File contents via stream: only items [0,3) are to local worker
@@ -517,11 +517,11 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
 TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
     auto w0 = [](data::Multiplexer& multiplexer) {
                   // produce a File containing some items
-                  data::File file(multiplexer.block_pool());
+                  data::File file(multiplexer.block_pool(), 0);
                   {
                       auto writer = file.GetWriter(test_block_size);
-                      writer(std::string("foo"));
-                      writer(std::string("bar"));
+                      writer.Put<std::string>("foo");
+                      writer.Put<std::string>("bar");
                   }
 
                   // scatter File contents via stream.
@@ -535,12 +535,12 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
                   // produce a File containing some items
-                  data::File file(multiplexer.block_pool());
+                  data::File file(multiplexer.block_pool(), 0);
                   {
                       auto writer = file.GetWriter(test_block_size);
-                      writer(std::string("hello"));
-                      writer(std::string("world"));
-                      writer(std::string("."));
+                      writer.Put<std::string>("hello");
+                      writer.Put<std::string>("world");
+                      writer.Put<std::string>(".");
                   }
 
                   // scatter File contents via stream.
@@ -558,11 +558,11 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
 TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
     auto w0 = [](data::Multiplexer& multiplexer) {
                   // produce a File containing some items
-                  data::File file(multiplexer.block_pool());
+                  data::File file(multiplexer.block_pool(), 0);
                   {
                       auto writer = file.GetWriter(test_block_size);
-                      writer(1);
-                      writer(2);
+                      writer.Put<int>(1);
+                      writer.Put<int>(2);
                   }
 
                   // scatter File contents via stream.
@@ -576,13 +576,13 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
                   // produce a File containing some items
-                  data::File file(multiplexer.block_pool());
+                  data::File file(multiplexer.block_pool(), 0);
                   {
                       auto writer = file.GetWriter(test_block_size);
-                      writer(3);
-                      writer(4);
-                      writer(5);
-                      writer(6);
+                      writer.Put<int>(3);
+                      writer.Put<int>(4);
+                      writer.Put<int>(5);
+                      writer.Put<int>(6);
                   }
 
                   // scatter File contents via stream.
@@ -596,7 +596,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
               };
     auto w2 = [](data::Multiplexer& multiplexer) {
                   // empty File :...(
-                  data::File file(multiplexer.block_pool());
+                  data::File file(multiplexer.block_pool(), 0);
 
                   // scatter File contents via stream.
                   data::StreamId id = multiplexer.AllocateCatStreamId(0);
