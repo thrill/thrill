@@ -139,9 +139,10 @@ public:
             (size_t)(num_buckets_per_partition_ * limit_fill_rate);
 
         assert(limit_items_per_partition_ >= 0);
+    }
 
-        // construct the hash table itself. fill it with sentinels
-
+    //! Construct the hash table itself. fill it with sentinels
+    void Initialize() {
         items_.resize(num_buckets_, sentinel_);
     }
 

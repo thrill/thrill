@@ -115,6 +115,10 @@ public:
     //! non-copyable: delete assignment operator
     ReduceByIndexPostStage& operator = (const ReduceByIndexPostStage&) = delete;
 
+    void Initialize() {
+        table_.Initialize();
+    }
+
     void Insert(const Value& p) {
         return table_.Insert(p);
     }
@@ -259,6 +263,9 @@ public:
             table_.equal_to_function());
 
         size_t iteration = 1;
+
+        sLOG1 << "ReduceToIndexPostStage: re-reducing items from"
+              << remaining_files.size() << "spilled files";
 
         while (remaining_files.size())
         {

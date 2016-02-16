@@ -82,6 +82,8 @@ static void TestAddMyStructByHash(Context& ctx) {
                 /* sentinel */ size_t(-1),
                 config);
 
+    stage.Initialize();
+
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });
     }
@@ -173,6 +175,8 @@ static void TestAddMyStructByIndex(Context& ctx) {
                 core::ReduceByIndex<size_t>(0, mod_size),
                 /* sentinel */ size_t(-1),
                 config);
+
+    stage.Initialize();
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });

@@ -156,6 +156,10 @@ public:
     //! non-copyable: delete assignment operator
     ReducePreStage& operator = (const ReducePreStage&) = delete;
 
+    void Initialize() {
+        table_.Initialize();
+    }
+
     void Insert(const Value& p) {
         return table_.Insert(p);
     }
@@ -183,6 +187,7 @@ public:
     //! Closes all emitter
     void CloseAll() {
         emit_.CloseAll();
+        table_.Dispose();
     }
 
     //! \name Accessors

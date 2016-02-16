@@ -74,6 +74,7 @@ static void TestAddMyStructByHash(Context& ctx) {
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByHash<size_t>(),
                 /* sentinel */ size_t(-1));
+    stage.Initialize();
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });
@@ -187,6 +188,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
                 core::ReduceByIndex<size_t>(0, mod_size),
                 /* sentinel */ size_t(-1),
                 /* neutral_element */ MyStruct { 0, 0 });
+    stage.Initialize();
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });
@@ -269,6 +271,7 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
                 /* sentinel */ size_t(-1),
                 /* neutral_element */ MyStruct { 0, 0 },
                 config);
+    stage.Initialize();
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });

@@ -124,6 +124,10 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    void StartPreOp(size_t /* id */) final {
+        pre_stage_.Initialize();
+    }
+
     void StopPreOp(size_t /* id */) final {
         LOG << *this << " running StopPreOp";
         // Flush hash table before the postOp
@@ -140,6 +144,8 @@ public:
             post_stage_.PushData(consume);
             return;
         }
+
+        post_stage_.Initialize();
 
         if (RobustKey) {
             auto reader = stream_->OpenCatReader(consume);

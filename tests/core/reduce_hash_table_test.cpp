@@ -86,6 +86,7 @@ void TestAddMyStructModulo(Context& ctx) {
                 /* num_partitions */ 13,
                 config,
                 /* immediate_flush */ true);
+    table.Initialize();
 
     for (size_t i = 0; i < test_size; ++i) {
         table.Insert(MyStruct(i, i / mod_size));

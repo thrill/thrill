@@ -190,11 +190,11 @@ private:
                     this->PushItem(neutral_element_);
                 }
                 else {
-                    // call user function
-                    const ValueOut res = groupby_function_(user_iterator,
-                                                           user_iterator.GetNextKey());
                     // push result to callback functions
-                    this->PushItem(res);
+                    this->PushItem(
+                        // call user function
+                        groupby_function_(user_iterator,
+                                          user_iterator.GetNextKey()));
                 }
                 ++curr_index;
             }

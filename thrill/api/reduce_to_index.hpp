@@ -129,6 +129,10 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    void StartPreOp(size_t /* id */) final {
+        pre_stage_.Initialize();
+    }
+
     void StopPreOp(size_t /* id */) final {
         LOG << *this << " running main op";
         // Flush hash table before the postOp
@@ -137,9 +141,6 @@ public:
         stream_->Close();
     }
 
-    /*!
-     * Actually executes the reduce to index operation.
-     */
     void Execute() final { }
 
     void PushData(bool consume) final {
@@ -148,6 +149,8 @@ public:
             post_stage_.PushData(consume);
             return;
         }
+
+        post_stage_.Initialize();
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use

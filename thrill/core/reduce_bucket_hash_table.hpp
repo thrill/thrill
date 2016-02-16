@@ -219,7 +219,10 @@ public:
 
         assert(num_buckets_ > 0);
         assert(limit_blocks_ > 0);
+    }
 
+    //! Construct the hash table itself. fill it with sentinels
+    void Initialize() {
         buckets_.resize(num_buckets_, nullptr);
     }
 

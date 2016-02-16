@@ -116,6 +116,10 @@ public:
     //! non-copyable: delete assignment operator
     ReduceByHashPostStage& operator = (const ReduceByHashPostStage&) = delete;
 
+    void Initialize() {
+        table_.Initialize();
+    }
+
     void Insert(const Value& p) {
         return table_.Insert(p);
     }
@@ -182,6 +186,9 @@ public:
         // them iteratively.
 
         size_t iteration = 1;
+
+        sLOG1 << "ReducePostStage: re-reducing items from"
+              << remaining_files.size() << "spilled files";
 
         while (remaining_files.size())
         {
