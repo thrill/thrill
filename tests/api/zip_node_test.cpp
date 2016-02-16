@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <thrill/api/allgather.hpp>
-#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/zip.hpp>

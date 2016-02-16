@@ -10,6 +10,7 @@
 
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/distribute.hpp>
 #include <thrill/api/distribute_from.hpp>
