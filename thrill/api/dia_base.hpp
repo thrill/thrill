@@ -50,15 +50,17 @@ enum class DIAState {
  * previously. Not all DIABases have children (ActionNodes do not), hence,
  * children are first introduced in DIANode.
  */
-class DIABase
+class DIABase : public std::enable_shared_from_this<DIABase>
 {
 public:
+    using DIABasePtr = std::shared_ptr<DIABase>;
+
     /*!
      * The constructor for a DIABase. Sets the parents for this node, but does
      * not register it has a child, since this must be done with a callback.
      */
     DIABase(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents,
+            const std::vector<DIABasePtr>& parents,
             StatsNode* stats_node)
         : context_(ctx), parents_(parents),
           execution_timer_(
@@ -82,10 +84,10 @@ public:
     virtual ~DIABase() {
         // Remove child pointer from parent If a parent loses all its childs its
         // reference count should be zero and he should be removed
-        LOG0 << "~DIABase(): " << *this;
+        LOG1 << "~DIABase(): " << *this;
 
         // de-register at parents (if still hooked there)
-        for (const std::shared_ptr<DIABase>& p : parents_)
+        for (const DIABasePtr& p : parents_)
             p->RemoveChild(this);
 
         STOP_TIMER(lifetime_)
@@ -151,8 +153,17 @@ public:
     }
 
     //! Returns the parents of this DIABase.
-    const std::vector<std::shared_ptr<DIABase> > & parents() {
+    const std::vector<DIABasePtr> & parents() {
         return parents_;
+    }
+
+    //! Remove a parent
+    void RemoveParent(DIABase* p) {
+        parents_.erase(
+            std::remove_if(
+                parents_.begin(), parents_.end(),
+                [p](const DIABasePtr& parent) { return parent.get() == p; }),
+            parents_.end());
     }
 
     //! Returns the children of this DIABase.
@@ -198,7 +209,7 @@ protected:
     Context& context_;
 
     //! Parents of this DIABase.
-    std::vector<std::shared_ptr<DIABase> > parents_;
+    std::vector<DIABasePtr> parents_;
 
     //! Timer that tracks execution of this node
     common::TimerPtr execution_timer_;
@@ -212,6 +223,8 @@ protected:
     //! General consumption flag: set to true by default.
     bool consume_on_push_data_ = true;
 };
+
+using DIABasePtr = std::shared_ptr<DIABase>;
 
 //! \}
 

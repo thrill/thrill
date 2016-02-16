@@ -104,7 +104,7 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
 
     // initialize all ranks to 1.0: (url, rank)
 
-    auto ranks = Generate(
+    DIA<Rank> ranks = Generate(
         ctx, [](const size_t&) { return (Rank)1.0; }, num_pages).Collapse();
 
     // do iterations

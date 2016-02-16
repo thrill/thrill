@@ -56,11 +56,11 @@ TEST(Stage, CountReferencesSimple) {
             std::vector<int> out_vec = reduced.AllGather();
 
             // 3x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 4u);
-            ASSERT_EQ(doubles.node_refcount(), 4u);
-            ASSERT_EQ(quadruples.node_refcount(), 4u);
+            ASSERT_EQ(3u, integers.node_refcount());
+            ASSERT_EQ(3u, doubles.node_refcount());
+            ASSERT_EQ(3u, quadruples.node_refcount());
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(reduced.node_refcount(), 1u);
+            ASSERT_EQ(1u, reduced.node_refcount());
         };
 
     api::RunLocalTests(start_func);
@@ -105,12 +105,12 @@ TEST(Stage, CountReferencesLOpNode) {
             std::vector<int> out_vec = reduced.AllGather();
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3u);
-            ASSERT_EQ(doubles.node_refcount(), 3u);
+            ASSERT_EQ(2u, integers.node_refcount());
+            ASSERT_EQ(2u, doubles.node_refcount());
             // 1x DIA reference + 1x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 2u);
+            ASSERT_EQ(1u, quadruples.node_refcount());
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(reduced.node_refcount(), 1u);
+            ASSERT_EQ(1u, reduced.node_refcount());
         };
 
     api::RunLocalTests(start_func);
@@ -155,10 +155,10 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             std::vector<int> out_vec = quadruples.AllGather();
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3u);
-            ASSERT_EQ(doubles.node_refcount(), 3u);
+            ASSERT_EQ(2u, integers.node_refcount());
+            ASSERT_EQ(2u, doubles.node_refcount());
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 1u);
+            ASSERT_EQ(1u, quadruples.node_refcount());
         };
 
     api::RunLocalTests(start_func);
@@ -205,14 +205,14 @@ TEST(Stage, AdditionalChildReferences) {
             std::vector<int> out_vec = octuples.AllGather();
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3u);
-            ASSERT_EQ(doubles.node_refcount(), 3u);
+            ASSERT_EQ(2u, integers.node_refcount());
+            ASSERT_EQ(2u, doubles.node_refcount());
             // 1x DIA reference + 2x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 3u);
+            ASSERT_EQ(1u, quadruples.node_refcount());
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(octuples.node_refcount(), 1u);
+            ASSERT_EQ(1u, octuples.node_refcount());
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(octuples_second.node_refcount(), 1u);
+            ASSERT_EQ(1u, octuples_second.node_refcount());
         };
 
     api::RunLocalTests(start_func);

@@ -58,7 +58,7 @@ public:
      * parent nodes. Calls the constructor of DIABase with the same parameters.
      */
     DIANode(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents,
+            const std::vector<DIABasePtr>& parents,
             StatsNode* stats_node)
         : DIABase(ctx, parents, stats_node)
     { }
@@ -90,8 +90,11 @@ public:
         children_.erase(
             std::remove_if(
                 children_.begin(), children_.end(),
-                [](const Child& child) {
-                    return child.node->type() != DIANodeType::COLLAPSE;
+                [this](Child& child) {
+                    if (child.node->type() == DIANodeType::COLLAPSE)
+                        return false;
+                    child.node->RemoveParent(this);
+                    return true;
                 }),
             children_.end());
 

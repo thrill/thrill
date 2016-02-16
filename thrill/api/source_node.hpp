@@ -29,7 +29,7 @@ public:
     using Super = DIANode<ValueType>;
 
     SourceNode(Context& ctx,
-               const std::vector<std::shared_ptr<DIABase> >& parents,
+               const std::vector<DIABasePtr>& parents,
                StatsNode* stats_node)
         : DIANode<ValueType>(ctx, parents, stats_node) {
         // SourceNode are kept by default: they usually read files or databases

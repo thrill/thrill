@@ -59,12 +59,12 @@ std::string format_time(const char* format, const time_t& t) {
 
 class Stage
 {
-    static const bool debug = false;
-
 public:
+    static const bool debug = true;
+
     using system_clock = std::chrono::system_clock;
 
-    explicit Stage(DIABase* node) : node_(node) { }
+    explicit Stage(const DIABasePtr& node) : node_(node) { }
 
     //! compute a string to show all target nodes into which this Stage pushes.
     std::string Targets() const {
@@ -125,7 +125,7 @@ public:
     void PushData() {
         if (node_->consume_on_push_data() && node_->context().consume()) {
             sLOG1 << "StageBuilder: attempt to PushData on"
-                  << "stage" << node_->label()
+                  << "stage" << *node_
                   << "failed, it was already consumed. Add .Keep()";
             abort();
         }
@@ -145,46 +145,44 @@ public:
              << "time:" << format_time("%T", tt);
     }
 
-    DIABase * node() { return node_; }
+    DIABasePtr node() { return node_; }
 
 private:
     common::StatsTimer<true> timer;
-    DIABase* node_;
+    DIABasePtr node_;
 };
 
 template <typename T>
 using mm_set = std::set<T, std::less<T>, mem::Allocator<T> >;
 
-static void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
-    static const bool debug = false;
+static void FindStages(const DIABasePtr& action, mem::mm_vector<Stage>& result) {
+    static const bool debug = Stage::debug;
 
     LOG << "FINDING stages:";
-    mm_set<const DIABase*> stages_found(
-        mem::Allocator<const DIABase*>(action->mem_manager()));
+    mm_set<DIABase*> stages_found(
+        mem::Allocator<DIABase*>(action->mem_manager()));
 
     // Do a BFS on parents and find all stages needed to PushData to calculate
     // this node.
-    mem::mm_deque<DIABase*> dia_stack(
-        mem::Allocator<DIABase*>(action->mem_manager()));
+    mem::mm_deque<DIABasePtr> dia_stack(
+        mem::Allocator<DIABasePtr>(action->mem_manager()));
 
     dia_stack.push_back(action);
-    stages_found.insert(action);
-    stages_result.push_back(Stage(action));
+    stages_found.insert(action.get());
+    result.emplace_back(Stage(action));
 
     while (!dia_stack.empty()) {
-        DIABase* curr = dia_stack.front();
+        DIABasePtr curr = dia_stack.front();
         dia_stack.pop_front();
-        const auto parents = curr->parents();
-        for (size_t i = 0; i < parents.size(); ++i) {
-            // Check if parent was already added
-            auto p = parents[i].get();
 
+        for (const DIABasePtr& p : curr->parents()) {
             // if parents where not already seen, push onto stages
-            if (stages_found.count(p)) continue;
-            stages_found.insert(p);
+            if (stages_found.count(p.get())) continue;
+            stages_found.insert(p.get());
 
-            stages_result.push_back(Stage(p));
-            LOG << "FOUND: " << p->label() << '.' << p->id();
+            LOG << "FOUND Stage: " << *p;
+            result.emplace_back(Stage(p));
+
             if (p->CanExecute()) {
                 // If parent was not executed push it to the BFS queue
                 if (p->state() != DIAState::EXECUTED)
@@ -196,22 +194,32 @@ static void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
             }
         }
     }
-    // Reverse the execution order
-    std::reverse(stages_result.begin(), stages_result.end());
+    // Reverse the execution order -- not any more -tb, we process last first.
+    // std::reverse(result.begin(), result.end());
 }
 
 void DIABase::RunScope() {
-    static const bool debug = false;
+    static const bool debug = Stage::debug;
 
     LOG << "DIABase::RunScope() this=" << *this;
 
-    std::vector<Stage> result;
-    FindStages(this, result);
+    mem::mm_vector<Stage> result {
+        mem::Allocator<Stage>(mem_manager())
+    };
 
-    for (Stage& s : result)
+    FindStages(shared_from_this(), result);
+
+    while (result.size())
     {
-        if (!s.node()->CanExecute())
+        Stage& s = result.back();
+
+        if (!s.node()->CanExecute()) {
+            result.pop_back();
             continue;
+        }
+
+        if (debug)
+            mem::malloc_tracker_print_status();
 
         if (s.node()->state() == DIAState::NEW) {
             s.Execute();
@@ -220,6 +228,10 @@ void DIABase::RunScope() {
             s.PushData();
         }
         s.node()->RemoveAllChildren();
+
+        // remove from result stack, this may destroy the last shared_ptr
+        // reference to a node.
+        result.pop_back();
     }
 }
 
