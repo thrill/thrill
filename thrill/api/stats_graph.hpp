@@ -113,40 +113,32 @@ public:
     }
 
     /*!
-     * Print the label of the node.
-     */
-    friend std::ostream& operator << (std::ostream& os, const StatsNode& c) {
-        return os << c.label_;
-    }
-
-    /*!
      * Set the node style according to the nodes type.
      */
-    std::string NodeStyle() const {
-        std::string style = std::string(label_) + std::to_string(id_) + " [";
+    void NodeStyle(std::ostream& os) const {
+        os << id_ << " ["
+           << "label=\"" << label_ << "." << id_ << "\",";
+
         switch (type_) {
         case DIANodeType::GENERATOR:
-            style += "colorscheme=accent5, style=filled, color=1, shape=invhouse";
+            os << "colorscheme=accent5, style=filled, color=1, shape=invhouse";
             break;
         case DIANodeType::DOP:
-            style += "colorscheme=accent5, style=filled, color=2, shape=box";
+            os << "colorscheme=accent5, style=filled, color=2, shape=box";
             break;
         case DIANodeType::ACTION:
-            style += "colorscheme=accent5, style=filled, color=3, shape=house";
+            os << "colorscheme=accent5, style=filled, color=3, shape=house";
             break;
         case DIANodeType::CACHE:
-            style += "colorscheme=accent5, style=filled, color=4, shape=oval";
+            os << "colorscheme=accent5, style=filled, color=4, shape=oval";
             break;
         case DIANodeType::COLLAPSE:
-            style += "colorscheme=accent5, style=filled, color=5, shape=oval";
+            os << "colorscheme=accent5, style=filled, color=5, shape=oval";
             break;
         default:
             break;
         }
-        style += StatsLabels();
-        style += "]";
-
-        return style;
+        os << StatsLabels() << "]";
     }
 
     std::string StatsLabels() const {
@@ -232,12 +224,14 @@ public:
         std::ofstream file(path);
         file << "digraph {\n";
         for (const auto& node : nodes_) {
-            file << "\t" << node->NodeStyle() << ";\n";
+            file << "\t";
+            node->NodeStyle(file);
+            file << ";\n";
         }
         file << "\n";
         for (const auto& node : nodes_) {
             for (const auto& neighbor : node->adjacent_nodes()) {
-                file << "\t" << *node << std::to_string(node->id()) << " -> " << *neighbor << std::to_string(neighbor->id()) << ";\n";
+                file << "\t" << node->id() << " -> " << neighbor->id() << ";\n";
             }
         }
         file << "}";
