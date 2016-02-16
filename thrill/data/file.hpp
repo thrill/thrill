@@ -350,7 +350,8 @@ public:
     ConsumeFileBlockSource& operator = (const ConsumeFileBlockSource&) = delete;
     //! move-constructor: default
     ConsumeFileBlockSource(ConsumeFileBlockSource&& s)
-        : file_(s.file_) { s.file_ = nullptr; }
+        : file_(s.file_), num_prefetch_(s.num_prefetch_),
+          fetching_blocks_(std::move(s.fetching_blocks_)) { s.file_ = nullptr; }
 
     //! Get the next block of file.
     PinnedBlock NextBlock() {
