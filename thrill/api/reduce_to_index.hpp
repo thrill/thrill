@@ -130,7 +130,7 @@ public:
     }
 
     void StopPreOp(size_t /* id */) final {
-        LOG << this->label() << " running main op";
+        LOG << *this << " running main op";
         // Flush hash table before the postOp
         pre_stage_.FlushAll();
         pre_stage_.CloseAll();

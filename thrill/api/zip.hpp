@@ -115,8 +115,7 @@ public:
     }
 
     void StopPreOp(size_t parent_index) final {
-        LOG << this->label() << '.' << this->id()
-            << " StopPreOp() parent_index=" << parent_index;
+        LOG << *this << " StopPreOp() parent_index=" << parent_index;
         writers_[parent_index].Close();
     }
 

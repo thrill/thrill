@@ -82,7 +82,7 @@ public:
     virtual ~DIABase() {
         // Remove child pointer from parent If a parent loses all its childs its
         // reference count should be zero and he should be removed
-        LOG1 << "~DIABase(): " << label() << "." << id();
+        LOG1 << "~DIABase(): " << *this;
 
         // de-register at parents (if still hooked there)
         for (const std::shared_ptr<DIABase>& p : parents_)
@@ -133,6 +133,11 @@ public:
     const char * label() const {
         assert(stats_node_);
         return stats_node_->label();
+    }
+
+    //! make ostream-able.
+    friend std::ostream& operator << (std::ostream& os, const DIABase& d) {
+        return os << d.label() << '.' << d.id();
     }
 
     //! return type() of DIANode subclass as stored by StatsNode

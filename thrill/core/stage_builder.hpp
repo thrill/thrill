@@ -87,10 +87,10 @@ public:
                 std::vector<DIABase*> sub = child->children();
                 children.push_back(nullptr);
                 children.insert(children.end(), sub.begin(), sub.end());
-                oss << child->label() << '.' << child->id() << ' ' << '[';
+                oss << *child << ' ' << '[';
             }
             else {
-                oss << child->label() << '.' << child->id() << ' ';
+                oss << *child << ' ';
             }
         }
         oss << ']';
@@ -100,8 +100,7 @@ public:
     void Execute() {
 
         time_t tt = system_clock::to_time_t(system_clock::now());
-        sLOG << "START  (EXECUTE) stage" << node_->label() << node_->id()
-             << "targets" << Targets()
+        sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << Targets()
              << "time:" << format_time("%T", tt);
 
         timer.Start();
@@ -109,8 +108,7 @@ public:
         timer.Stop();
 
         tt = system_clock::to_time_t(system_clock::now());
-        sLOG << "FINISH (EXECUTE) stage" << node_->label() << node_->id()
-             << "targets" << Targets()
+        sLOG << "FINISH (EXECUTE) stage" << *node_ << "targets" << Targets()
              << "took" << timer.Milliseconds() << "ms"
              << "time:" << format_time("%T", tt);
 
@@ -120,8 +118,7 @@ public:
         timer.Stop();
 
         tt = system_clock::to_time_t(system_clock::now());
-        sLOG << "FINISH (PUSHDATA) stage" << node_->label() << node_->id()
-             << "targets" << Targets()
+        sLOG << "FINISH (PUSHDATA) stage" << *node_ << "targets" << Targets()
              << "took" << timer.Milliseconds() << "ms"
              << "time:" << format_time("%T", tt);
     }
@@ -135,8 +132,7 @@ public:
         }
 
         time_t tt = system_clock::to_time_t(system_clock::now());
-        sLOG << "START  (PUSHDATA) stage" << node_->label() << node_->id()
-             << "targets" << Targets()
+        sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << Targets()
              << "time:" << format_time("%T", tt);
 
         timer.Start();
@@ -145,8 +141,7 @@ public:
         timer.Stop();
 
         tt = system_clock::to_time_t(system_clock::now());
-        sLOG << "FINISH (PUSHDATA) stage" << node_->label() << node_->id()
-             << "targets" << Targets()
+        sLOG << "FINISH (PUSHDATA) stage" << *node_ << "targets" << Targets()
              << "took" << timer.Milliseconds() << "ms"
              << "time:" << format_time("%T", tt);
     }
