@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/stage_builder_test.cpp
+ * tests/api/stage_builder_test.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
