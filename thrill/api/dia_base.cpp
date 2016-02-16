@@ -28,6 +28,9 @@
 namespace thrill {
 namespace api {
 
+/******************************************************************************/
+// DIABase StageBuilder
+
 static inline
 struct tm localtime_from(const time_t& t) {
 #if __MINGW32__
@@ -217,6 +220,28 @@ void DIABase::RunScope() {
             s.PushData();
         }
         s.node()->RemoveAllChildren();
+    }
+}
+
+/******************************************************************************/
+// DIABase
+
+//! make ostream-able.
+std::ostream& operator << (std::ostream& os, const DIABase& d) {
+    return os << d.label() << '.' << d.id();
+}
+
+//! Returns the state of this DIANode as a string. Used by ToString.
+const char* DIABase::state_string() {
+    switch (state_) {
+    case DIAState::NEW:
+        return "NEW";
+    case DIAState::EXECUTED:
+        return "EXECUTED";
+    case DIAState::DISPOSED:
+        return "DISPOSED";
+    default:
+        return "UNDEFINED";
     }
 }
 

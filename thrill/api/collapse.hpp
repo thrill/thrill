@@ -62,12 +62,12 @@ public:
 
     void StartPreOp(size_t /* id */) final {
         for (typename Super::Child & child : Super::children_)
-            child.node_->StartPreOp(child.parent_index_);
+            child.node->StartPreOp(child.parent_index);
     }
 
     void StopPreOp(size_t /* id */) final {
         for (typename Super::Child & child : Super::children_)
-            child.node_->StopPreOp(child.parent_index_);
+            child.node->StopPreOp(child.parent_index);
     }
 
     void PushData(bool /* consume */) final { }

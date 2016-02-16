@@ -74,8 +74,6 @@ public:
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
-
-        this->WriteStreamStats(stream_);
     }
 
     void Dispose() final { }

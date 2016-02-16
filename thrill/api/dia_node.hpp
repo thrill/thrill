@@ -40,17 +40,14 @@ public:
     using Callback = std::function<void(const ValueType&)>;
 
     struct Child {
-        Child(DIABase* node, const Callback& callback, size_t parent_index)
-            : node_(node), callback_(callback), parent_index_(parent_index) { }
-
         //! reference to child node
-        DIABase  * node_;
+        DIABase  * node;
         //! callback to invoke (currently for each item)
-        Callback callback_;
+        Callback callback;
         //! index this node has among the parents of the child (passed to
         //! callbacks), e.g. for ZipNode which has multiple parents and their order
         //! is important.
-        size_t   parent_index_;
+        size_t   parent_index;
     };
 
     //! Default constructor for a DIANode.
@@ -71,10 +68,9 @@ public:
      * This way the parent can push all its result elements to each of the
      * children. This procedure enables the minimization of IO-accesses.
      */
-    void AddChild(DIABase* node,
-                  const Callback& callback,
+    void AddChild(DIABase* node, const Callback& callback,
                   size_t parent_index = 0) {
-        children_.emplace_back(node, callback, parent_index);
+        children_.emplace_back(Child { node, callback, parent_index });
     }
 
     //! Remove a child from the vector of children. This method is called by the
@@ -83,7 +79,7 @@ public:
         typename std::vector<Child>::iterator swap_end =
             std::remove_if(
                 children_.begin(), children_.end(),
-                [node](const Child& c) { return c.node_ == node; });
+                [node](const Child& c) { return c.node == node; });
 
         // assert(swap_end != children_.end());
         children_.erase(swap_end, children_.end());
@@ -95,13 +91,13 @@ public:
             std::remove_if(
                 children_.begin(), children_.end(),
                 [](const Child& child) {
-                    return child.node_->type() != DIANodeType::COLLAPSE;
+                    return child.node->type() != DIANodeType::COLLAPSE;
                 }),
             children_.end());
 
         // recurse into remaining nodes (CollapseNode)
         for (Child& child : children_)
-            child.node_->RemoveAllChildren();
+            child.node->RemoveAllChildren();
     }
 
     //! Returns the children of this DIABase.
@@ -109,7 +105,7 @@ public:
         std::vector<DIABase*> out;
         out.reserve(children_.size());
         for (const Child& child : children_)
-            out.emplace_back(child.node_);
+            out.emplace_back(child.node);
         return out;
     }
 
@@ -118,17 +114,17 @@ public:
     //! children.
     void RunPushData(bool consume) final {
         for (const Child& child : children_)
-            child.node_->StartPreOp(child.parent_index_);
+            child.node->StartPreOp(child.parent_index);
 
         PushData(consume && context().consume());
 
         for (const Child& child : children_)
-            child.node_->StopPreOp(child.parent_index_);
+            child.node->StopPreOp(child.parent_index);
     }
 
     void PushItem(const ValueType& elem) const {
         for (const Child& child : children_) {
-            child.callback_(elem);
+            child.callback(elem);
         }
     }
 

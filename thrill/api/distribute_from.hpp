@@ -82,7 +82,6 @@ public:
         }
 
         stream_->Close();
-        this->WriteStreamStats(stream_);
     }
 
     void Dispose() final { }

@@ -122,9 +122,6 @@ public:
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->AddChild(this, lop_chain);
-        stream_->OnClose([this]() {
-                             this->WriteStreamStats(this->stream_);
-                         });
     }
 
     void StopPreOp(size_t /* id */) final {

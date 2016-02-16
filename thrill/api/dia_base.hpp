@@ -136,9 +136,7 @@ public:
     }
 
     //! make ostream-able.
-    friend std::ostream& operator << (std::ostream& os, const DIABase& d) {
-        return os << d.label() << '.' << d.id();
-    }
+    friend std::ostream& operator << (std::ostream& os, const DIABase& d);
 
     //! return type() of DIANode subclass as stored by StatsNode
     const DIANodeType & type() const {
@@ -189,58 +187,12 @@ public:
         stats_node_->AddStatsMsg(msg, LogType::INFO);
     }
 
-    // Why are these stupid functions here?
-    // Because we do not want to include the stats.hpp into every
-    // single node class
-    inline void StartExecutionTimer() {
-        START_TIMER(execution_timer_);
-    }
-
-    inline void StopExecutionTimer() {
-        STOP_TIMER(execution_timer_);
-        if (execution_timer_)
-            stats_node_->AddStatsMsg(
-                std::to_string(execution_timer_->Milliseconds()) + "ms",
-                LogType::EXECUTION);
-    }
-
-    inline void WriteStreamStats(const data::StreamPtr& c) {
-        if (common::g_enable_stats) {
-            assert(!c->rx_lifetime_.running());
-            assert(!c->tx_lifetime_.running());
-            assert(!c->rx_timespan_.running());
-            assert(!c->tx_timespan_.running());
-            stats_node_->AddStatsMsg(
-                "stream " + std::to_string(c->id()) + "; " +
-                "incoming_bytes " + std::to_string(c->incoming_bytes_.value()) + "; " +
-                "incoming_blocks " + std::to_string(c->incoming_blocks_.value()) + "; " +
-                "outgoing_bytes " + std::to_string(c->outgoing_bytes_.value()) + "; " +
-                "outgoing_blocks " + std::to_string(c->outgoing_blocks_.value()) + "; " +
-                "rx_lifetime (us) " + std::to_string(c->rx_lifetime_.Microseconds()) + "; " +
-                "tx_lifetime (us) " + std::to_string(c->tx_lifetime_.Microseconds()) + "; " +
-                "rx_timespan (us) " + std::to_string(c->rx_timespan_.Microseconds()) + "; " +
-                "tx_timespan (us) " + std::to_string(c->tx_timespan_.Microseconds()),
-                LogType::NETWORK);
-        }
-    }
-
 protected:
     //! State of the DIANode. State is NEW on creation.
     DIAState state_ = DIAState::NEW;
 
     //! Returns the state of this DIANode as a string. Used by ToString.
-    std::string state_string() {
-        switch (state_) {
-        case DIAState::NEW:
-            return "NEW";
-        case DIAState::EXECUTED:
-            return "EXECUTED";
-        case DIAState::DISPOSED:
-            return "DISPOSED";
-        default:
-            return "UNDEFINED";
-        }
-    }
+    const char * state_string();
 
     //! Context, which can give iterators to data.
     Context& context_;

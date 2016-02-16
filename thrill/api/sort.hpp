@@ -550,9 +550,6 @@ private:
               << "local_out_size" << local_out_size_
               << "Balance Factor" << balance
               << "Sample Size" << samples_.size();
-
-        this->WriteStreamStats(data_stream);
-        this->WriteStreamStats(sample_stream_);
     }
 
     void PostOp() { }
