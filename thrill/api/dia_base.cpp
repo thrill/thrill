@@ -33,7 +33,7 @@ namespace api {
 
 static inline
 struct tm localtime_from(const time_t& t) {
-#if __MINGW32__
+#if __MINGW32__ || defined(_MSC_VER)
     return *localtime(&t); // NOLINT
 #else
     struct tm tm;
