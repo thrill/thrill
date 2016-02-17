@@ -10,9 +10,6 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-# for smaller development builds -tb (temp)
-set(FULL_BUILD ON)
-
 cmake_minimum_required(VERSION 2.8)
 
 # custom cmake scripts
@@ -45,6 +42,8 @@ option(THRILL_USE_MPI "Use (optional) MPI net backend." OFF)
 option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." OFF)
 
 option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
+
+option(THRILL_FULL_BUILD "Disable large compilation units for faster development." OFF)
 
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
 

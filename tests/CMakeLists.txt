@@ -153,7 +153,6 @@ build_test(data/stream_set_test)
 build_test(data/serialization_cereal_test)
 build_test(data/serialization_test)
 
-if(FULL_BUILD)
 build_test(core/reduce_hash_table_test)
 build_test(core/reduce_post_stage_test)
 build_test(core/reduce_pre_stage_test)
@@ -173,7 +172,6 @@ build_test(api/zip_node_test)
 #build_test(api/merge_node_test)
 
 build_test(examples/word_count_test)
-endif()
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
 
