@@ -211,6 +211,16 @@ public:
     }
 
     /*!
+     * Set a custom label for this node in order to better identify it in
+     * statistical outputs. This does not create a new DIA, but returns the
+     * existing one.
+     */
+    DIA & Label(const std::string& msg) {
+        node_->AddStats(msg);
+        return *this;
+    }
+
+    /*!
      * Mark the referenced DIANode for keeping, which makes children not consume
      * the data when executing. This does not create a new DIA, but returns the
      * existing one.
@@ -221,7 +231,10 @@ public:
         return *this;
     }
 
-    //! Execute scope and parents such that this (Action)Node is Executed.
+    /*!
+     * Execute DIA's scope and parents such that this (Action)Node is
+     * Executed. This does not create a new DIA, but returns the existing one.
+     */
     DIA & Execute() {
         assert(IsValid());
         node_->RunScope();
@@ -317,6 +330,21 @@ public:
         return DIA<ResultType, decltype(new_stack)>(
             node_, new_stack, { AddChildStatsNode("FlatMap", DIANodeType::LAMBDA) });
     }
+
+    /*!
+     * Create a CollapseNode which is mainly used to collapse the LOp chain into
+     * a DIA<T> with an empty stack. This is most often necessary for iterative
+     * algorithms, where a DIA<T> reference variable is updated in each
+     * iteration.
+     */
+    auto Collapse() const;
+
+    /*!
+     * Create a CacheNode which contains all items of a DIA in calculated plain
+     * format. This is needed if a DIA is reused many times, in order to avoid
+     * recalculating a PostOp multiple times.
+     */
+    auto Cache() const;
 
     /*!
      * ReduceBy is a DOp, which groups elements of the DIA with the
@@ -755,7 +783,8 @@ public:
              const ValueType& initial_value = ValueType()) const;
 
     /*!
-     * Size is an Action, which computes the size of all elements in all workers.
+     * Size is an Action, which computes the total size of all elements across
+     * all workers.
      */
     size_t Size() const;
 
@@ -838,24 +867,6 @@ public:
      * and prints using ostream serialization. It is implemented using Gather().
      */
     void Print(const std::string& name, std::ostream& out) const;
-
-    auto Collapse() const;
-
-    auto Cache() const;
-
-    auto Label(const std::string & msg) const {
-        node_->AddStats(msg);
-        return *this;
-    }
-
-    /*!
-     * Returns the string which defines the DIANode node_.
-     *
-     * \return The string of node_
-     */
-    std::string NodeString() const {
-        return node_->ToString();
-    }
 
 private:
     //! The DIANode which DIA points to. The node represents the latest DOp
