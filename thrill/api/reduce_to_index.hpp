@@ -72,7 +72,7 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
 
     using Super::context_;
 
-protected:
+private:
     //! Emitter for PostStage to push elements to next DIA object.
     class Emitter
     {
@@ -125,7 +125,7 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        auto lop_chain = parent.stack().push(pre_op_fn).fold();
         parent.node()->AddChild(this, lop_chain);
     }
 

@@ -51,7 +51,7 @@ public:
         auto propagate_fn = [this](const ValueType& input) {
                                 this->PushItem(input);
                             };
-        auto lop_chain = parent.stack().push(propagate_fn).emit();
+        auto lop_chain = parent.stack().push(propagate_fn).fold();
         parent.node()->AddChild(this, lop_chain);
     }
 

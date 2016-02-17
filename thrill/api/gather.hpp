@@ -54,7 +54,7 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent.stack().push(pre_op_function).emit();
+        auto lop_chain = parent.stack().push(pre_op_function).fold();
         parent.node()->AddChild(this, lop_chain);
 
         // close all but the target

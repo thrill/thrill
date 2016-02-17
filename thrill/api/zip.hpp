@@ -201,12 +201,12 @@ private:
 
             // close the function stacks with our pre ops and register it at
             // parent nodes for output
-            auto lop_chain = parent.stack().push(pre_op_fn).emit();
+            auto lop_chain = parent.stack().push(pre_op_fn).fold();
 
             parent.node()->AddChild(zip_node_, lop_chain, Index::index);
         }
 
-    protected:
+    private:
         ZipNode* zip_node_;
     };
 
@@ -340,7 +340,7 @@ private:
             return readers_[Index::index].template Next<ZipArg>();
         }
 
-    protected:
+    private:
         ZipNode& zip_node_;
 
         //! reference to the reader array in PushData().

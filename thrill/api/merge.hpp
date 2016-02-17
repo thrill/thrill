@@ -366,12 +366,12 @@ private:
 
             // close the function stacks with our pre ops and register it at
             // parent nodes for output
-            auto lop_chain = parent.stack().push(pre_op_fn).emit();
+            auto lop_chain = parent.stack().push(pre_op_fn).fold();
 
             parent.node()->AddChild(merge_node_, lop_chain, Index::index);
         }
 
-    protected:
+    private:
         MergeNode* merge_node_;
     };
 

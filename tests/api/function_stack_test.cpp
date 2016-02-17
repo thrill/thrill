@@ -67,7 +67,7 @@ TEST(API, FunctionStackTest) {
     auto new_stack2 = new_stack.push(conv_map_fn);
     auto new_stack3 = new_stack2.push(conv_filter_fn);
     auto new_stack4 = new_stack3.push(save_fn);
-    auto composed_function = new_stack4.emit();
+    auto composed_function = new_stack4.fold();
 
     for (size_t i = 0; i != 1000; ++i) {
         composed_function(42);
@@ -106,7 +106,7 @@ TEST(API, SimpleDeductionTest) {
                        };
 
     auto new_stack3 = new_stack2.push(save_output);
-    new_stack3.emit()(42);
+    new_stack3.fold()(42);
 
     ASSERT_EQ(output.size(), 2u);
     ASSERT_EQ(output[0], "123");

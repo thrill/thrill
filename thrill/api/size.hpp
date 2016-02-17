@@ -44,7 +44,7 @@ public:
         // Hook PreOp(s)
         auto pre_op_fn = [=](const Input&) { ++local_size_; };
 
-        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        auto lop_chain = parent.stack().push(pre_op_fn).fold();
         parent.node()->AddChild(this, lop_chain);
     }
 

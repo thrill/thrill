@@ -116,7 +116,7 @@ public:
      *
      * \return Single "folded" lambda function representing the chain.
      */
-    auto emit() const {
+    auto fold() const {
         const size_t Size = sizeof ... (Lambdas);
         return EmitSequence(common::make_index_sequence<Size>{ });
     }
