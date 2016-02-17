@@ -98,13 +98,12 @@ public:
         size_t num_partitions,
         const ReduceStageConfig& config = ReduceStageConfig(),
         bool immediate_flush = false,
-        const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
                 key_extractor, reduce_function, emitter,
                 num_partitions, config, immediate_flush,
-                sentinel, index_function, equal_to_function) {
+                index_function, equal_to_function) {
 
         assert(num_partitions > 0);
 
@@ -141,9 +140,10 @@ public:
         assert(limit_items_per_partition_ >= 0);
     }
 
-    //! Construct the hash table itself. fill it with sentinels
+    //! Construct the hash table itself. fill it with sentinels. have one extra
+    //! cell beyond the end for reducing the sentinel itself.
     void Initialize() {
-        items_.resize(num_buckets_, sentinel_);
+        items_.resize(num_buckets_ + 1);
     }
 
     /*!
@@ -178,12 +178,32 @@ public:
         assert(h.partition_id < num_partitions_);
         assert(h.global_index < num_buckets_);
 
+        if (kv.first == Key()) {
+            // handle pairs with sentinel key specially by reducing into last
+            // element of items.
+            KeyValuePair& sentinel = items_[num_buckets_];
+            if (sentinel_partition_ == invalid_partition_) {
+                // first occurrence of sentinel key
+                sentinel = kv;
+                sentinel_partition_ = h.partition_id;
+            }
+            else {
+                sentinel.second = reduce_function_(sentinel.second, kv.second);
+            }
+            items_per_partition_[h.partition_id]++;
+
+            while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
+                SpillPartition(h.partition_id);
+
+            return;
+        }
+
         KeyValueIterator begin = items_.begin() + h.global_index;
         KeyValueIterator iter = begin;
         KeyValueIterator end =
             items_.begin() + (h.partition_id + 1) * num_buckets_per_partition_;
 
-        while (!equal_to_function_(iter->first, sentinel_.first))
+        while (!equal_to_function_(iter->first, Key()))
         {
             if (equal_to_function_(iter->first, kv.first))
             {
@@ -249,6 +269,12 @@ public:
 
         data::File::Writer writer = partition_files_[partition_id].GetWriter();
 
+        if (sentinel_partition_ == partition_id) {
+            writer.Put(items_[num_buckets_]);
+            items_[num_buckets_] = KeyValuePair();
+            sentinel_partition_ = invalid_partition_;
+        }
+
         KeyValueIterator iter =
             items_.begin() + partition_id * num_buckets_per_partition_;
         KeyValueIterator end =
@@ -256,10 +282,10 @@ public:
 
         for ( ; iter != end; ++iter)
         {
-            if (iter->first != sentinel_.first)
+            if (iter->first != Key())
             {
                 writer.Put(*iter);
-                *iter = sentinel_;
+                *iter = KeyValuePair();
             }
         }
 
@@ -280,6 +306,14 @@ public:
         LOG << "Flushing " << items_per_partition_[partition_id]
             << " items of partition: " << partition_id;
 
+        if (sentinel_partition_ == partition_id) {
+            emit(partition_id, items_[num_buckets_]);
+            if (consume) {
+                items_[num_buckets_] = KeyValuePair();
+                sentinel_partition_ = invalid_partition_;
+            }
+        }
+
         KeyValueIterator iter =
             items_.begin() + partition_id * num_buckets_per_partition_;
         KeyValueIterator end =
@@ -287,11 +321,11 @@ public:
 
         for ( ; iter != end; ++iter)
         {
-            if (iter->first != sentinel_.first) {
+            if (iter->first != Key()) {
                 emit(partition_id, *iter);
 
                 if (consume)
-                    *iter = sentinel_;
+                    *iter = KeyValuePair();
             }
         }
 
@@ -332,10 +366,17 @@ private:
     using Super::num_partitions_;
     using Super::partition_files_;
     using Super::reduce_function_;
-    using Super::sentinel_;
 
     //! Storing the actual hash table.
     std::vector<KeyValuePair> items_;
+
+    //! sentinel for invalid partition or no sentinel.
+    static const size_t invalid_partition_ = size_t(-1);
+
+    //! store the partition id of the sentinel key. implicitly this also stored
+    //! whether the sentinel key was found and reduced into
+    //! items_[num_buckets_].
+    size_t sentinel_partition_ = invalid_partition_;
 };
 
 } // namespace core

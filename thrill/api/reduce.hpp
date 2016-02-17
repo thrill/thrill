@@ -102,13 +102,13 @@ public:
               parent.ctx().num_workers(),
               key_extractor, reduce_function, emitters_,
               core::ReduceByHash<Key>(),
-              Key(), config.pre_table),
+              config.pre_table),
 
           post_stage_(
               context_, key_extractor, reduce_function,
               Emitter(this),
               core::ReduceByHash<Key>(),
-              Key(), config.post_table)
+              config.post_table)
 
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and

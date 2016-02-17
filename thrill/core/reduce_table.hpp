@@ -88,7 +88,6 @@ public:
         size_t num_partitions,
         const ReduceStageConfig& config,
         bool immediate_flush,
-        const Key& sentinel,
         const IndexFunction& index_function,
         const EqualToFunction& equal_to_function)
         : ctx_(ctx),
@@ -100,7 +99,6 @@ public:
           num_partitions_(num_partitions),
           limit_memory_bytes_(config.limit_memory_bytes()),
           immediate_flush_(immediate_flush),
-          sentinel_(KeyValuePair(sentinel, Value())),
           items_per_partition_(num_partitions_, 0) {
 
         assert(num_partitions > 0);
@@ -170,9 +168,6 @@ public:
     //! Returns limit_items_per_partition_
     size_t limit_items_per_partition() const
     { return limit_items_per_partition_; }
-
-    //! Returns sentinel_
-    const KeyValuePair & sentinel() const { return sentinel_; }
 
     //! Returns items_per_partition_
     size_t items_per_partition(size_t id) const {
@@ -251,9 +246,6 @@ protected:
     //! next stage.
     bool immediate_flush_;
 
-    //! Sentinel element used to flag free slots.
-    KeyValuePair sentinel_;
-
     //! \}
 
     //! \name Current Statistical Parameters
@@ -263,32 +255,6 @@ protected:
     std::vector<size_t> items_per_partition_;
 
     //! \}
-};
-
-//! traits class for ReduceProbingHashTable, mainly to determine a good sentinel
-//! (blank table entries) for standard types.
-template <typename Type, class Enable = void>
-class ProbingTableTraits
-{
-public:
-    static Type Sentinel() {
-        static bool warned = false;
-        if (!warned) {
-            LOG1 << "No good default sentinel for probing hash table "
-                 << "could be determined. Please pass one manually.";
-            warned = true;
-        }
-        return Type();
-    }
-};
-
-//! traits class for all PODs -> use numeric limits.
-template <typename T>
-class ProbingTableTraits<
-        T, typename std::enable_if<std::is_pod<T>::value>::type>
-{
-public:
-    static T Sentinel() { return std::numeric_limits<T>::max(); }
 };
 
 } // namespace core

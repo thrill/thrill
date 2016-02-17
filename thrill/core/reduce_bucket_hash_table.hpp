@@ -141,13 +141,12 @@ public:
         size_t num_partitions,
         const ReduceStageConfig& config = ReduceStageConfig(),
         bool immediate_flush = false,
-        const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : Super(ctx,
                 key_extractor, reduce_function, emitter,
                 num_partitions, config, immediate_flush,
-                sentinel, index_function, equal_to_function) {
+                index_function, equal_to_function) {
 
         assert(num_partitions > 0);
 
@@ -618,7 +617,6 @@ private:
     using Super::num_partitions_;
     using Super::partition_files_;
     using Super::reduce_function_;
-    using Super::sentinel_;
 
     //! Storing the items.
     std::vector<BucketBlock*> buckets_;

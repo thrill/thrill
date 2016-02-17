@@ -72,8 +72,7 @@ static void TestAddMyStructByHash(Context& ctx) {
     config.limit_memory_bytes_ = 64 * 1024;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
-                core::ReduceByHash<size_t>(),
-                /* sentinel */ size_t(-1));
+                core::ReduceByHash<size_t>());
     stage.Initialize();
 
     for (size_t i = 0; i < test_size; ++i) {
@@ -186,7 +185,6 @@ static void TestAddMyStructByIndex(Context& ctx) {
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByIndex<size_t>(0, mod_size),
-                /* sentinel */ size_t(-1),
                 /* neutral_element */ MyStruct { 0, 0 });
     stage.Initialize();
 
@@ -268,7 +266,6 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByIndex<size_t>(0, mod_size),
-                /* sentinel */ size_t(-1),
                 /* neutral_element */ MyStruct { 0, 0 },
                 config);
     stage.Initialize();

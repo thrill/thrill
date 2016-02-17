@@ -100,7 +100,6 @@ public:
         const ReduceFunction& reduce_function,
         const Emitter& emit,
         const IndexFunction& index_function = IndexFunction(),
-        const Key& sentinel = Key(),
         const ReduceStageConfig& config = ReduceStageConfig(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : config_(config),
@@ -108,7 +107,7 @@ public:
           table_(ctx,
                  key_extractor, reduce_function, emitter_,
                  /* num_partitions */ 32, /* TODO(tb): parameterize */
-                 config, false, sentinel,
+                 config, false,
                  index_function, equal_to_function) { }
 
     //! non-copyable: delete copy-constructor
@@ -202,9 +201,10 @@ public:
                 table_.ctx(),
                 table_.key_extractor(), table_.reduce_function(), emitter_,
                 /* num_partitions */ 32, config_, false,
-                table_.sentinel().first /* TODO(tb): weird */,
                 IndexFunction(iteration, table_.index_function()),
                 table_.equal_to_function());
+
+            subtable.Initialize();
 
             size_t num_subfile = 0;
 

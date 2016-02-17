@@ -73,7 +73,6 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& config) {
         HashTable>
     stage(ctx, key_ex, red_fn, emit_fn,
           core::ReduceByHash<Key>(),
-          /* sentinel */ 0,
           config);
 
     common::StatsTimer<true> timer(true);

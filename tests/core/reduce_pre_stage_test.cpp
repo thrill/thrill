@@ -79,7 +79,6 @@ static void TestAddMyStructByHash(Context& ctx) {
                 num_partitions,
                 key_ex, red_fn, emitters,
                 core::ReduceByHash<size_t>(),
-                /* sentinel */ size_t(-1),
                 config);
 
     stage.Initialize();
@@ -173,7 +172,6 @@ static void TestAddMyStructByIndex(Context& ctx) {
                 num_partitions,
                 key_ex, red_fn, emitters,
                 core::ReduceByIndex<size_t>(0, mod_size),
-                /* sentinel */ size_t(-1),
                 config);
 
     stage.Initialize();

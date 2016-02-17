@@ -187,7 +187,7 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
             std::vector<size_t> out_vec = reduced.AllGather();
             ASSERT_EQ(9u, out_vec.size());
 
-            int i = 0;
+            size_t i = 0;
             for (size_t element : out_vec) {
                 switch (i++) {
                 case 0:

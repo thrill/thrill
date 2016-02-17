@@ -138,13 +138,12 @@ public:
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
                    const IndexFunction& index_function = IndexFunction(),
-                   const Key& sentinel = ProbingTableTraits<Key>::Sentinel(),
                    const ReduceStageConfig& config = ReduceStageConfig(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
           table_(ctx,
                  key_extractor, reduce_function, emit_,
-                 num_partitions, config, /* immediate_flush */ true, sentinel,
+                 num_partitions, config, /* immediate_flush */ true,
                  index_function, equal_to_function) {
         sLOG << "creating ReducePreStage with" << emit.size() << "output emitters";
 
