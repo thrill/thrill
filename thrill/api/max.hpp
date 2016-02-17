@@ -25,7 +25,35 @@ template <typename ValueType, typename Stack>
 template <typename MaxFunction>
 auto DIA<ValueType, Stack>::Max(
     const MaxFunction &max_function, const ValueType &initial_value) const {
-    return Sum(max_function, initial_value);
+    assert(IsValid());
+
+    using MaxNode = api::SumNode<DIA, MaxFunction>;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<MaxFunction>::template arg<0> >::value,
+        "MaxFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<MaxFunction>::template arg<1> >::value,
+        "MaxFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename FunctionTraits<MaxFunction>::result_type,
+            ValueType>::value,
+        "MaxFunction has the wrong input type");
+
+    StatsNode* stats_node = AddChildStatsNode("Max", DIANodeType::ACTION);
+    auto node = std::make_shared<MaxNode>(
+        *this, max_function, initial_value, stats_node);
+
+    node->RunScope();
+
+    return node->result();
 }
 
 //! \}

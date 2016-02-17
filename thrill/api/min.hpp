@@ -25,7 +25,35 @@ template <typename ValueType, typename Stack>
 template <typename MinFunction>
 auto DIA<ValueType, Stack>::Min(
     const MinFunction &min_function, const ValueType &initial_value) const {
-    return Sum(min_function, initial_value);
+    assert(IsValid());
+
+    using MinNode = api::SumNode<DIA, MinFunction>;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<MinFunction>::template arg<0> >::value,
+        "MinFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<MinFunction>::template arg<1> >::value,
+        "MinFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename FunctionTraits<MinFunction>::result_type,
+            ValueType>::value,
+        "MinFunction has the wrong input type");
+
+    StatsNode* stats_node = AddChildStatsNode("Min", DIANodeType::ACTION);
+    auto node = std::make_shared<MinNode>(
+        *this, min_function, initial_value, stats_node);
+
+    node->RunScope();
+
+    return node->result();
 }
 
 //! \}
