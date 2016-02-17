@@ -50,7 +50,7 @@ add_subdirectory(word_count)
 
 if(THRILL_FULL_BUILD)
   add_subdirectory(chaining)
-  add_subdirectory(dc3)
+  #add_subdirectory(dc3)
 endif()
 
 ################################################################################

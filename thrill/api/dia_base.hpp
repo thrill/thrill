@@ -84,7 +84,7 @@ public:
     virtual ~DIABase() {
         // Remove child pointer from parent If a parent loses all its childs its
         // reference count should be zero and he should be removed
-        LOG1 << "~DIABase(): " << *this;
+        LOG0 << "~DIABase(): " << *this;
 
         // de-register at parents (if still hooked there)
         for (const DIABasePtr& p : parents_)
@@ -116,7 +116,7 @@ public:
     //! Performing push operation. Notifies children and calls actual push
     //! method. Then cleans up the DIA graph by freeing parent references of
     //! children.
-    virtual void RunPushData(bool consume) = 0;
+    virtual void RunPushData() = 0;
 
     //! Virtual method for removing a child.
     virtual void RemoveChild(DIABase* node) = 0;
@@ -148,9 +148,12 @@ public:
 
     //! Virtual SetConsume flag which is called by the user via .Keep() or
     //! .Consume() to set consumption.
-    virtual void SetConsume(bool consume) {
-        consume_on_push_data_ = consume;
+    virtual void IncConsumeCounter(size_t counter) {
+        consume_counter_ += counter;
     }
+
+    //! Returns consume_counter_
+    size_t consume_counter() const { return consume_counter_; }
 
     //! Returns the parents of this DIABase.
     const std::vector<DIABasePtr> & parents() {
@@ -169,7 +172,7 @@ public:
     //! Returns the children of this DIABase.
     virtual std::vector<DIABase*> children() const = 0;
 
-    //! Execute Scope.
+    //! Execute Scope and parents such that this (Action)Node is Executed.
     void RunScope();
 
     //! Returns the api::Context of this DIABase.
@@ -188,10 +191,6 @@ public:
 
     DIAState set_state(DIAState state) {
         return state_ = state;
-    }
-
-    bool consume_on_push_data() const {
-        return consume_on_push_data_;
     }
 
     void AddStats(const std::string& msg) const {
@@ -220,8 +219,12 @@ protected:
     //! Timer that tracks the lifetime of this object
     api::StatsNode* stats_node_;
 
-    //! General consumption flag: set to true by default.
-    bool consume_on_push_data_ = true;
+    //! Consumption counter: when it reaches zero, PushData() is called with
+    //! consume = true
+    size_t consume_counter_ = 1;
+
+    //! Never full consume
+    static const size_t never_consume_ = size_t(-1);
 };
 
 using DIABasePtr = std::shared_ptr<DIABase>;

@@ -161,7 +161,7 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
                      Rank r = dampening * p.rank + (1 - dampening) / num_pages;
                      LOG << "ranks2 in " << p << "out" << r;
                      return r;
-                 }).Collapse();
+                 }).Execute().Collapse();
     }
 
     // construct output as (pageid, rank)

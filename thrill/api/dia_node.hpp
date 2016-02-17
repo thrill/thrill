@@ -115,11 +115,14 @@ public:
     //! Performing push operation. Notifies children and calls actual push
     //! method. Then cleans up the DIA graph by freeing parent references of
     //! children.
-    void RunPushData(bool consume) final {
+    void RunPushData() final {
         for (const Child& child : children_)
             child.node->StartPreOp(child.parent_index);
 
-        PushData(consume && context().consume());
+        if (consume_counter_ > 0 && consume_counter_ != never_consume_)
+            --consume_counter_;
+
+        PushData(context().consume() && consume_counter_ == 0);
 
         for (const Child& child : children_)
             child.node->StopPreOp(child.parent_index);

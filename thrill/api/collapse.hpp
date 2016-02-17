@@ -46,7 +46,7 @@ public:
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
         // CollapseNodes are kept by default.
-        Super::consume_on_push_data_ = false;
+        Super::consume_counter_ = Super::never_consume_;
 
         auto propagate_fn = [this](const ValueType& input) {
                                 this->PushItem(input);
@@ -74,10 +74,10 @@ public:
 
     void Dispose() final { }
 
-    void SetConsume(bool consume) final {
+    void IncConsumeCounter(size_t consume) final {
         // propagate consumption up to parents.
         for (auto& p : Super::parents_) {
-            p->SetConsume(consume);
+            p->IncConsumeCounter(consume);
         }
     }
 };

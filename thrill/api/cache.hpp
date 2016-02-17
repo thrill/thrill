@@ -47,7 +47,7 @@ public:
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
         // CacheNodes are kept by default.
-        Super::consume_on_push_data_ = false;
+        Super::consume_counter_ = Super::never_consume_;
 
         auto save_fn =
             [=](const ValueType& input) {

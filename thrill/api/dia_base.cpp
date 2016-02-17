@@ -104,26 +104,17 @@ public:
 
         timer.Start();
         node_->Execute();
+        node_->set_state(DIAState::EXECUTED);
         timer.Stop();
 
         tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (EXECUTE) stage" << *node_ << "targets" << Targets()
              << "took" << timer.Milliseconds() << "ms"
              << "time:" << format_time("%T", tt);
-
-        timer.Start();
-        node_->RunPushData(node_->consume_on_push_data());
-        node_->set_state(DIAState::EXECUTED);
-        timer.Stop();
-
-        tt = system_clock::to_time_t(system_clock::now());
-        sLOG << "FINISH (PUSHDATA) stage" << *node_ << "targets" << Targets()
-             << "took" << timer.Milliseconds() << "ms"
-             << "time:" << format_time("%T", tt);
     }
 
     void PushData() {
-        if (node_->consume_on_push_data() && node_->context().consume()) {
+        if (node_->context().consume() && node_->consume_counter() == 0) {
             sLOG1 << "StageBuilder: attempt to PushData on"
                   << "stage" << *node_
                   << "failed, it was already consumed. Add .Keep()";
@@ -136,8 +127,8 @@ public:
              << "time:" << format_time("%T", tt);
 
         timer.Start();
-        node_->RunPushData(node_->consume_on_push_data());
-        node_->set_state(DIAState::EXECUTED);
+        node_->RunPushData();
+        node_->RemoveAllChildren();
         timer.Stop();
 
         tt = system_clock::to_time_t(system_clock::now());
@@ -186,8 +177,10 @@ static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
             stages.insert(Stage(p));
 
             if (p->CanExecute()) {
-                // If parent was not executed push it to the BFS queue
-                if (p->state() != DIAState::EXECUTED)
+                // If parent was not executed push it to the BFS queue and
+                // continue upwards. if state is EXECUTED, then we only need to
+                // PushData(), which is already indicated by stages.insert().
+                if (p->state() == DIAState::NEW)
                     bfs_stack.push_back(p);
             }
             else {
@@ -232,7 +225,10 @@ static void TopoSortStages(mm_set<Stage>& stages, mem::mm_vector<Stage>& result)
 void DIABase::RunScope() {
     static const bool debug = Stage::debug;
 
-    LOG << "DIABase::RunScope() this=" << *this;
+    LOG << "DIABase::Execute() this=" << *this;
+
+    if (!CanExecute())
+        die("DIA node " << *this << " cannot be executed.");
 
     mm_set<Stage> stages {
         mem::Allocator<Stage>(mem_manager())
@@ -249,6 +245,8 @@ void DIABase::RunScope() {
         LOG << "  " << *top->node_;
     }
 
+    assert(toporder.front().node_.get() == this);
+
     while (toporder.size())
     {
         Stage& s = toporder.back();
@@ -263,11 +261,13 @@ void DIABase::RunScope() {
 
         if (s.node_->state() == DIAState::NEW) {
             s.Execute();
+            if (s.node_.get() != this)
+                s.PushData();
         }
         else if (s.node_->state() == DIAState::EXECUTED) {
-            s.PushData();
+            if (s.node_.get() != this)
+                s.PushData();
         }
-        s.node_->RemoveAllChildren();
 
         // remove from result stack, this may destroy the last shared_ptr
         // reference to a node.

@@ -34,16 +34,15 @@ public:
         : DIANode<ValueType>(ctx, parents, stats_node) {
         // SourceNode are kept by default: they usually read files or databases
         // on PushData(), which should not be consumed.
-        Super::consume_on_push_data_ = false;
+        Super::consume_counter_ = Super::never_consume_;
     }
 
     //! SourceNodes generally do not Execute, they only PushData.
     void Execute() override { }
 
     //! Print error when trying to set consume to true.
-    void SetConsume(bool consume) final {
-        if (consume)
-            die("You cannot set a SourceNode to consume its data.");
+    void IncConsumeCounter(size_t /* counter */) final {
+        die("You cannot set a SourceNode to .Keep() or consume its data.");
     }
 };
 

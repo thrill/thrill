@@ -215,19 +215,16 @@ public:
      * the data when executing. This does not create a new DIA, but returns the
      * existing one.
      */
-    DIA & Keep() {
+    DIA & Keep(size_t increase = 1) {
         assert(IsValid());
-        node_->SetConsume(false);
+        node_->IncConsumeCounter(increase);
         return *this;
     }
 
-    /*!
-     * Mark the referenced DIANode as consuming, which makes it only executable
-     * once. This does not create a new DIA, but returns the existing one.
-     */
-    DIA & Consume() {
+    //! Execute scope and parents such that this (Action)Node is Executed.
+    DIA & Execute() {
         assert(IsValid());
-        node_->SetConsume(true);
+        node_->RunScope();
         return *this;
     }
 
