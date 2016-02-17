@@ -122,7 +122,9 @@ public:
         if (consume_counter_ > 0 && consume_counter_ != never_consume_)
             --consume_counter_;
 
-        PushData(context().consume() && consume_counter_ == 0);
+        bool consume = context().consume() && consume_counter_ == 0;
+        PushData(consume);
+        if (consume) Dispose();
 
         for (const Child& child : children_)
             child.node->StopPreOp(child.parent_index);
