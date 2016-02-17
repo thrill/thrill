@@ -145,7 +145,7 @@ public:
 
     void PushData(bool consume) final {
 
-        if (reduced) {
+        if (reduced_) {
             post_stage_.PushData(consume);
             return;
         }
@@ -173,7 +173,7 @@ public:
             }
         }
 
-        reduced = true;
+        reduced_ = true;
         post_stage_.PushData(consume);
     }
 
@@ -198,7 +198,7 @@ private:
         decltype(ReduceConfig::post_table),
         std::equal_to<Key> > post_stage_;
 
-    bool reduced = false;
+    bool reduced_ = false;
 };
 
 template <typename ValueType, typename Stack>
