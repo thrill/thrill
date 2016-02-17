@@ -93,8 +93,8 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
 
     auto links = input.template GroupByIndex<OutgoingLinks>(
         [](const PagePageLink& p) { return p.src; },
-        [num_pages](auto& r, const PageId&) {
-            std::vector<PageId> all;
+        [num_pages, all = std::vector < PageId > ()](auto& r, const PageId&) mutable {
+            all.clear();
             while (r.HasNext()) {
                 all.push_back(r.Next().tgt);
             }
