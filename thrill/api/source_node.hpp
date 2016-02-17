@@ -40,6 +40,9 @@ public:
     //! SourceNodes generally do not Execute, they only PushData.
     void Execute() override { }
 
+    //! SourceNodes generally do not do anything on Dispose, they only PushData.
+    void Dispose() override { }
+
     //! Print error when trying to set consume to true.
     void IncConsumeCounter(size_t /* counter */) final {
         die("You cannot set a SourceNode to .Keep() or consume its data.");

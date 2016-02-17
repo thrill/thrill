@@ -174,8 +174,6 @@ public:
         LOG << "DONE!";
     }
 
-    void Dispose() final { }
-
 private:
     std::vector<FileInfo> my_files_;
 

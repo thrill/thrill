@@ -70,7 +70,7 @@ public:
     }
 
     //! Closes the output file
-    void Execute() override {
+    void Execute() final {
         STAT(context_) << "NodeType" << "WriteLines"
                        << "TotalBytes" << size_
                        << "TotalLines" << stats_total_elements_;
@@ -92,8 +92,6 @@ public:
 
         file_.close();
     }
-
-    void Dispose() override { }
 
 private:
     //! Path of the output file.

@@ -67,8 +67,6 @@ public:
         // STAT(context_) << "NodeType" << "Generate";
     }
 
-    void Dispose() final { }
-
 private:
     //! The generator function which is applied to every index.
     GeneratorFunction generator_function_;

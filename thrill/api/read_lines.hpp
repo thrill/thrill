@@ -84,8 +84,6 @@ public:
         }
     }
 
-    void Dispose() final { }
-
 private:
     //! Path of the input file.
     std::string path_;

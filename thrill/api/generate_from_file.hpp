@@ -100,8 +100,6 @@ public:
         STAT(context_) << "NodeType" << "GenerateFromFile";
     }
 
-    void Dispose() final { }
-
 private:
     //! The read function which is applied on every line read.
     GeneratorFunction generator_function_;

@@ -132,8 +132,6 @@ public:
 
     void Execute() final { }
 
-    void Dispose() final { }
-
 private:
     //! Base path of the output file.
     std::string out_pathbase_;

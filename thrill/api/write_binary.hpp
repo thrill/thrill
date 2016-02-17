@@ -80,8 +80,6 @@ public:
 
     void Execute() final { }
 
-    void Dispose() final { }
-
 private:
     //! Implements BlockSink class writing to files with size limit.
     class SysFileSink final : public data::BoundedBlockSink

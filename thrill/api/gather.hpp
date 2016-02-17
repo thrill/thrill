@@ -76,8 +76,6 @@ public:
         }
     }
 
-    void Dispose() final { }
-
 private:
     //! target worker id, which collects vector, all other workers do not get
     //! the data.

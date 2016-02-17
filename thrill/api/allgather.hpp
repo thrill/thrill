@@ -77,8 +77,6 @@ public:
         }
     }
 
-    void Dispose() final { }
-
 private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;

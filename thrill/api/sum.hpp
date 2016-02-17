@@ -59,8 +59,6 @@ public:
         MainOp();
     }
 
-    void Dispose() final { }
-
     /*!
      * Returns result of global sum.
      * \return result
