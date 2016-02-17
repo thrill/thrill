@@ -60,7 +60,7 @@ std::string format_time(const char* format, const time_t& t) {
 class Stage
 {
 public:
-    static const bool debug = true;
+    static const bool debug = false;
 
     using system_clock = std::chrono::system_clock;
 
@@ -97,7 +97,7 @@ public:
     }
 
     void Execute() {
-
+        common::StatsTimer<true> timer;
         time_t tt = system_clock::to_time_t(system_clock::now());
         sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << Targets()
              << "time:" << format_time("%T", tt);
@@ -130,6 +130,7 @@ public:
             abort();
         }
 
+        common::StatsTimer<true> timer;
         time_t tt = system_clock::to_time_t(system_clock::now());
         sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << Targets()
              << "time:" << format_time("%T", tt);
@@ -145,57 +146,87 @@ public:
              << "time:" << format_time("%T", tt);
     }
 
-    DIABasePtr node() { return node_; }
+    bool operator < (const Stage& s) const { return node_ < s.node_; }
 
-private:
-    common::StatsTimer<true> timer;
+    //! shared pointer to node
     DIABasePtr node_;
+
+    //! temporary marker for toposort to detect cycles
+    mutable bool cycle_mark_ = false;
+
+    //! toposort seen marker
+    mutable bool topo_seen_ = false;
 };
 
 template <typename T>
 using mm_set = std::set<T, std::less<T>, mem::Allocator<T> >;
 
-static void FindStages(const DIABasePtr& action, mem::mm_vector<Stage>& result) {
+//! Do a BFS on parents to find all DIANodes (Stages) needed to Execute or
+//! PushData to calculate this action node.
+static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
     static const bool debug = Stage::debug;
 
-    LOG << "FINDING stages:";
-    mm_set<DIABase*> stages_found(
-        mem::Allocator<DIABase*>(action->mem_manager()));
+    LOG << "Finding Stages:";
 
-    // Do a BFS on parents and find all stages needed to PushData to calculate
-    // this node.
-    mem::mm_deque<DIABasePtr> dia_stack(
+    mem::mm_deque<DIABasePtr> bfs_stack(
         mem::Allocator<DIABasePtr>(action->mem_manager()));
 
-    dia_stack.push_back(action);
-    stages_found.insert(action.get());
-    result.emplace_back(Stage(action));
+    bfs_stack.push_back(action);
+    stages.insert(Stage(action));
 
-    while (!dia_stack.empty()) {
-        DIABasePtr curr = dia_stack.front();
-        dia_stack.pop_front();
+    while (!bfs_stack.empty()) {
+        DIABasePtr curr = bfs_stack.front();
+        bfs_stack.pop_front();
 
         for (const DIABasePtr& p : curr->parents()) {
             // if parents where not already seen, push onto stages
-            if (stages_found.count(p.get())) continue;
-            stages_found.insert(p.get());
+            if (stages.count(Stage(p))) continue;
 
-            LOG << "FOUND Stage: " << *p;
-            result.emplace_back(Stage(p));
+            LOG << "  Stage: " << *p;
+            stages.insert(Stage(p));
 
             if (p->CanExecute()) {
                 // If parent was not executed push it to the BFS queue
                 if (p->state() != DIAState::EXECUTED)
-                    dia_stack.push_back(p);
+                    bfs_stack.push_back(p);
             }
             else {
                 // If parent cannot be executed (hold data) continue upward.
-                dia_stack.push_back(p);
+                bfs_stack.push_back(p);
             }
         }
     }
-    // Reverse the execution order -- not any more -tb, we process last first.
-    // std::reverse(result.begin(), result.end());
+}
+
+static void TopoSortVisit(
+    const Stage& s, mm_set<Stage>& stages, mem::mm_vector<Stage>& result) {
+    // check markers
+    die_unless(!s.cycle_mark_ && "Cycle in toposort of Stages? Impossible.");
+    if (s.topo_seen_) return;
+
+    s.cycle_mark_ = true;
+    // iterate over all children of s which are in the to-be-calculate stages
+    for (DIABase* child : s.node_->children()) {
+        auto it = stages.find(Stage(child->shared_from_this()));
+
+        // child not in stage set
+        if (it == stages.end()) continue;
+
+        // depth-first search
+        TopoSortVisit(*it, stages, result);
+    }
+
+    s.topo_seen_ = true;
+    s.cycle_mark_ = false;
+    result.push_back(s);
+}
+
+static void TopoSortStages(mm_set<Stage>& stages, mem::mm_vector<Stage>& result) {
+    // iterate over all stages and visit nodes in DFS search
+    for (const Stage& s : stages) {
+        if (s.topo_seen_) continue;
+        TopoSortVisit(s, stages, result);
+    }
 }
 
 void DIABase::RunScope() {
@@ -203,35 +234,44 @@ void DIABase::RunScope() {
 
     LOG << "DIABase::RunScope() this=" << *this;
 
-    mem::mm_vector<Stage> result {
+    mm_set<Stage> stages {
         mem::Allocator<Stage>(mem_manager())
     };
+    FindStages(shared_from_this(), stages);
 
-    FindStages(shared_from_this(), result);
+    mem::mm_vector<Stage> toporder {
+        mem::Allocator<Stage>(mem_manager())
+    };
+    TopoSortStages(stages, toporder);
 
-    while (result.size())
+    LOG << "Topological order";
+    for (auto top = toporder.rbegin(); top != toporder.rend(); ++top) {
+        LOG << "  " << *top->node_;
+    }
+
+    while (toporder.size())
     {
-        Stage& s = result.back();
+        Stage& s = toporder.back();
 
-        if (!s.node()->CanExecute()) {
-            result.pop_back();
+        if (!s.node_->CanExecute()) {
+            toporder.pop_back();
             continue;
         }
 
         if (debug)
             mem::malloc_tracker_print_status();
 
-        if (s.node()->state() == DIAState::NEW) {
+        if (s.node_->state() == DIAState::NEW) {
             s.Execute();
         }
-        else if (s.node()->state() == DIAState::EXECUTED) {
+        else if (s.node_->state() == DIAState::EXECUTED) {
             s.PushData();
         }
-        s.node()->RemoveAllChildren();
+        s.node_->RemoveAllChildren();
 
         // remove from result stack, this may destroy the last shared_ptr
         // reference to a node.
-        result.pop_back();
+        toporder.pop_back();
     }
 }
 
