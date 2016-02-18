@@ -167,9 +167,10 @@ public:
             }
         }
 
-        STATC << "NodeType" << "ReadBinary"
-              << "TotalBytes" << stats_total_bytes
-              << "TotalReads" << stats_total_reads;
+        Super::logger_
+            << "event" << "done"
+            << "total_bytes" << stats_total_bytes
+            << "total_reads" << stats_total_reads;
 
         LOG << "DONE!";
     }

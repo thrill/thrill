@@ -58,7 +58,7 @@ public:
         : Super(ctx, { }, stats_node),
           path_(path)
     {
-        LOG << "Opening read notes for " << path_;
+        LOG << "Opening ReadLinesNode for " << path_;
 
         filelist_ = core::GlobFileSizePrefixSum(path_);
     }
@@ -66,7 +66,7 @@ public:
     void PushData(bool /* consume */) final {
         if (filelist_.contains_compressed) {
             InputLineIteratorCompressed it = InputLineIteratorCompressed(
-                filelist_, context_);
+                filelist_, *this);
 
             // Hook Read
             while (it.HasNext()) {
@@ -75,7 +75,7 @@ public:
         }
         else {
             InputLineIteratorUncompressed it = InputLineIteratorUncompressed(
-                filelist_, context_);
+                filelist_, *this);
 
             // Hook Read
             while (it.HasNext()) {
@@ -93,8 +93,8 @@ private:
     class InputLineIterator
     {
     public:
-        InputLineIterator(const core::SysFileList& files, Context& ctx)
-            : files_(files), context_(ctx) { }
+        InputLineIterator(const core::SysFileList& files, ReadLinesNode& node)
+            : files_(files), node_(node) { }
 
         static const bool debug = false;
 
@@ -122,8 +122,8 @@ private:
         unsigned char* current_;
         //! (exclusive) [begin,end) of local block
         common::Range my_range_;
-        //! Reference to context
-        Context& context_;
+        //! Reference to node
+        ReadLinesNode& node_;
 
         common::StatsTimer<true> read_timer;
 
@@ -147,11 +147,12 @@ private:
         }
 
         ~InputLineIterator() {
-            STAT(context_) << "NodeType" << "ReadLines"
-                           << "TotalBytes" << stats_total_bytes_
-                           << "TotalReads" << stats_total_reads_
-                           << "TotalLines" << stats_total_elements_
-                           << "ReadTime" << read_timer.Milliseconds();
+            node_.logger_
+                << "event" << "done"
+                << "total_bytes" << stats_total_bytes_
+                << "total_reads" << stats_total_reads_
+                << "total_lines" << stats_total_elements_
+                << "read_time" << read_timer.Milliseconds();
         }
     };
 
@@ -161,11 +162,11 @@ private:
     public:
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(const core::SysFileList& files,
-                                      Context& ctx)
-            : InputLineIterator(files, ctx) {
+                                      ReadLinesNode& node)
+            : InputLineIterator(files, node) {
 
             // Go to start of 'local part'.
-            my_range_ = context_.CalculateLocalRange(files.total_size);
+            my_range_ = node_.context_.CalculateLocalRange(files.total_size);
 
             while (files_.list[current_file_].size_inc_psum() <= my_range_.begin) {
                 current_file_++;
@@ -274,11 +275,11 @@ private:
     public:
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(const core::SysFileList& files,
-                                    Context& ctx)
-            : InputLineIterator(files, ctx) {
+                                    ReadLinesNode& node)
+            : InputLineIterator(files, node) {
 
             // Go to start of 'local part'.
-            my_range_ = context_.CalculateLocalRange(files.total_size);
+            my_range_ = node_.context_.CalculateLocalRange(files.total_size);
 
             while (files_.list[current_file_].size_inc_psum() <= my_range_.begin) {
                 current_file_++;

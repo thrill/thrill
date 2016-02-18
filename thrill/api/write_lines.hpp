@@ -50,7 +50,7 @@ public:
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [=](const Input& input) {
+        auto pre_op_fn = [this](const Input& input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -61,8 +61,8 @@ public:
 
     void PreOp(const Input& input) {
         writer_.Put(input);
-        size_ += input.size() + 1;
-        stats_total_elements_++;
+        local_size_ += input.size() + 1;
+        local_lines_++;
     }
 
     void StopPreOp(size_t /* id */) final {
@@ -71,14 +71,14 @@ public:
 
     //! Closes the output file
     void Execute() final {
-        STAT(context_) << "NodeType" << "WriteLines"
-                       << "TotalBytes" << size_
-                       << "TotalLines" << stats_total_elements_;
+        Super::logger_
+            << "total_bytes" << local_size_
+            << "total_lines" << local_lines_;
 
         // (Portable) allocation of output file, setting individual file pointers.
-        size_t prefix_elem = context_.net.ExPrefixSum(size_);
+        size_t prefix_elem = context_.net.ExPrefixSum(local_size_);
         if (context_.my_rank() == context_.num_workers() - 1) {
-            file_.seekp(prefix_elem + size_ - 1);
+            file_.seekp(prefix_elem + local_size_ - 1);
             file_.put('\0');
         }
         file_.seekp(prefix_elem);
@@ -101,7 +101,7 @@ private:
     std::ofstream file_;
 
     //! Local file size
-    size_t size_ = 0;
+    size_t local_size_ = 0;
 
     //! Temporary File for splitting correctly?
     data::File temp_file_;
@@ -109,7 +109,7 @@ private:
     //! File writer used.
     data::File::Writer writer_;
 
-    size_t stats_total_elements_ = 0;
+    size_t local_lines_ = 0;
 };
 
 template <typename ValueType, typename Stack>

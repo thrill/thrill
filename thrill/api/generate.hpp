@@ -63,8 +63,6 @@ public:
         for (size_t i = local.begin; i < local.end; i++) {
             this->PushItem(generator_function_(i));
         }
-
-        // STAT(context_) << "NodeType" << "Generate";
     }
 
 private:

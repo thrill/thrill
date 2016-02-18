@@ -97,7 +97,8 @@ public:
             this->PushItem(elements_[rand_element]);
         }
 
-        STAT(context_) << "NodeType" << "GenerateFromFile";
+        Super::logger_
+            << "event" << "done";
     }
 
 private:

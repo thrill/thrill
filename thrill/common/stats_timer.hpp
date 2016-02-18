@@ -17,6 +17,8 @@
 #ifndef THRILL_COMMON_STATS_TIMER_HEADER
 #define THRILL_COMMON_STATS_TIMER_HEADER
 
+#include <thrill/common/json_logger.hpp>
+
 #include <cassert>
 #include <chrono>
 #include <memory>
@@ -151,6 +153,10 @@ public:
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
     friend std::ostream& operator << (std::ostream& os, const StatsTimer& t) {
         return os << t.Microseconds();
+    }
+
+    friend JsonLine & Put(JsonLine& line, const StatsTimer& t) {
+        return line << t.Microseconds();
     }
 };
 

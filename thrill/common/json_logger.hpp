@@ -15,6 +15,7 @@
 #define THRILL_COMMON_JSON_LOGGER_HEADER
 
 #include <cassert>
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -39,13 +40,17 @@ public:
     JsonLogger() { }
 
     //! create new JsonLine instance which will be written to this logger.
+    JsonLine line();
+
     template <typename Type>
-    JsonLine operator << (Type const& t);
+    JsonLine operator << (const Type& t);
 
     //! method called by output objects
-    void Output();
+    void Output() {
+        std::cout << '{' << oss_.str() << '}' << std::endl;
+    }
 
-protected:
+public:
     //! collector stream
     std::ostringstream oss_;
 
@@ -97,10 +102,6 @@ public:
     template <typename Type>
     JsonLine & PutDecay(Type const& t);
 
-    //! output any type
-    template <typename Type>
-    JsonLine & Put(Type const& t);
-
     //! destructor: deliver to output
     ~JsonLine() {
         assert(logger_.elements_ % 2 == 0);
@@ -143,72 +144,71 @@ public:
 /******************************************************************************/
 // Template specializations for JsonLine
 
-template <>
-JsonLine& JsonLine::Put(bool const& value) {
-    logger_.oss_ << (value ? "true" : "false");
-    return *this;
+static inline
+JsonLine & Put(JsonLine& line, bool const& value) {
+    line.logger_.oss_ << (value ? "true" : "false");
+    return line;
 }
 
-template <>
-JsonLine& JsonLine::Put(int const& value) {
-    logger_.oss_ << value;
-    return *this;
+static inline
+JsonLine & Put(JsonLine& line, int const& value) {
+    line.logger_.oss_ << value;
+    return line;
 }
 
-template <>
-JsonLine& JsonLine::Put(double const& value) {
-    logger_.oss_ << value;
-    return *this;
+static inline
+JsonLine & Put(JsonLine& line, unsigned int const& value) {
+    line.logger_.oss_ << value;
+    return line;
 }
 
-template <>
-JsonLine& JsonLine::Put(const char* const& str) {
-    logger_.oss_ << '"';
-    for (const char* s = str; *s; ++s) PutEscapedChar(*s);
-    logger_.oss_ << '"';
-    return *this;
+static inline
+JsonLine & Put(JsonLine& line, long const& value) {
+    line.logger_.oss_ << value;
+    return line;
 }
 
-template <>
-JsonLine& JsonLine::Put(std::string const& str) {
-    logger_.oss_ << '"';
+static inline
+JsonLine & Put(JsonLine& line, unsigned long const& value) {
+    line.logger_.oss_ << value;
+    return line;
+}
+
+static inline
+JsonLine & Put(JsonLine& line, double const& value) {
+    line.logger_.oss_ << value;
+    return line;
+}
+
+static inline
+JsonLine & Put(JsonLine& line, const char* const& str) {
+    line.logger_.oss_ << '"';
+    for (const char* s = str; *s; ++s) line.PutEscapedChar(*s);
+    line.logger_.oss_ << '"';
+    return line;
+}
+
+static inline
+JsonLine & Put(JsonLine& line, std::string const& str) {
+    line.logger_.oss_ << '"';
     for (std::string::const_iterator i = str.begin(); i != str.end(); ++i)
-        PutEscapedChar(*i);
-    logger_.oss_ << '"';
-    return *this;
+        line.PutEscapedChar(*i);
+    line.logger_.oss_ << '"';
+    return line;
 }
 
-// template <>
-// JsonLine& JsonLine::Put(JsonLine const& obj) {
-//     logger_.oss_ << '{' << obj.oss_.str() << '}';
-//     return *this;
-// }
-
-//! template switch for partial template specializations of Put().
 template <typename Type>
-struct JsonLinePutSwitch;
-
-//! partial template specialization for std::vector<T>
-template <typename Type>
-struct JsonLinePutSwitch<std::vector<Type> >
-{
-    static void Put(JsonLine& out, std::vector<Type> const& vec) {
-        out.logger_.oss_ << '[';
-        for (typename std::vector<Type>::const_iterator it = vec.begin();
-             it != vec.end(); ++it) {
-            if (it != vec.begin())
-                out.logger_.oss_ << ',';
-            out.PutDecay(*it);
-        }
-        out.logger_.oss_ << ']';
+static inline
+JsonLine & Put(JsonLine& line, std::vector<Type> const& vec) {
+    line.logger_.oss_ << '[';
+    for (typename std::vector<Type>::const_iterator it = vec.begin();
+         it != vec.end(); ++it) {
+        if (it != vec.begin())
+            line.logger_.oss_ << ',';
+        line.PutDecay(*it);
     }
-};
-
-//! fallback template in case the direct specializations above do not match.
-template <typename Type>
-JsonLine& JsonLine::Put(Type const& obj) {
-    JsonLinePutSwitch<Type>::Put(*this, obj);
-    return *this;
+    line.logger_.oss_ << ']';
+    return line;
 }
 
 // due to problems with outputting const char[N], borrowed from
@@ -227,13 +227,13 @@ struct ArrayToPointerDecay<Type[N]>
 };
 
 template <typename Type>
-JsonLine& JsonLine::PutDecay(const Type& t) {
+inline JsonLine& JsonLine::PutDecay(const Type& t) {
     using Decayed = typename ArrayToPointerDecay<Type>::type;
-    return Put<Decayed>(t);
+    return Put(*this, static_cast<Decayed>(t));
 }
 
 template <typename Type>
-JsonLine& JsonLine::operator << (const Type& t) {
+inline JsonLine& JsonLine::operator << (const Type& t) {
     PutSeparator();
     return PutDecay(t);
 }
@@ -241,16 +241,20 @@ JsonLine& JsonLine::operator << (const Type& t) {
 /******************************************************************************/
 // JsonLogger
 
-void JsonLogger::Output() {
-    std::cout << '{' << oss_.str() << '}' << std::endl;
-}
-
-template <typename Type>
-JsonLine JsonLogger::operator << (const Type& t) {
+inline JsonLine JsonLogger::line() {
     oss_.str("");
     elements_ = 0;
 
     JsonLine out(*this);
+    out << "ts"
+        << std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    return out;
+}
+
+template <typename Type>
+inline JsonLine JsonLogger::operator << (const Type& t) {
+    JsonLine out = line();
     out << t;
     return out;
 }

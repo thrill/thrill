@@ -63,12 +63,14 @@ public:
             const std::vector<DIABasePtr>& parents,
             StatsNode* stats_node)
         : context_(ctx), parents_(parents),
+          /*
           execution_timer_(
               ctx.stats().CreateTimer(
                   "DIABase::execution", stats_node->label())),
           lifetime_(
               ctx.stats().CreateTimer(
                   "DIABase::lifetime", stats_node->label(), true)),
+          */
           stats_node_(stats_node) { }
 
     //! non-copyable: delete copy-constructor
@@ -225,6 +227,33 @@ protected:
 
     //! Never full consume
     static const size_t never_consume_ = size_t(-1);
+
+public:
+    /**************************************************************************/
+    // NodeLogger
+
+    class NodeLogger
+    {
+    public:
+        explicit NodeLogger(DIABase& dia_base)
+            : dia_base_(dia_base) { }
+
+        //! create new JsonLine instance which will be written to this logger.
+        template <typename Type>
+        common::JsonLine operator << (Type const& t) {
+            common::JsonLine line = dia_base_.context().logger_.line();
+            line << "type" << "node"
+                 << "node_id" << dia_base_.id()
+                 << "node_label" << dia_base_.label()
+                 << t;
+            return line;
+        }
+
+    private:
+        DIABase& dia_base_;
+    };
+
+    NodeLogger logger_ { *this };
 };
 
 using DIABasePtr = std::shared_ptr<DIABase>;

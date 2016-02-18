@@ -86,7 +86,6 @@ template <typename NetGroup>
 static inline void
 RunLoopbackThreads(size_t host_count, size_t workers_per_host,
                    const std::function<void(Context&)>& job_startpoint) {
-    static const bool debug = false;
 
     // construct a mock network of hosts
     std::vector<std::unique_ptr<HostContext> > host_contexts =
@@ -104,8 +103,11 @@ RunLoopbackThreads(size_t host_count, size_t workers_per_host,
                     common::NameThisThread(
                         log_prefix + " worker " + mem::to_string(worker));
 
-                    LOG << "Starting job on host " << ctx.host_rank();
-                    auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
+                    ctx.logger_ << "type" << "job"
+                                << "event" << "start";
+
+                    common::StatsTimer<true> overall_timer(true);
+
                     try {
                         job_startpoint(ctx);
                     }
@@ -113,10 +115,18 @@ RunLoopbackThreads(size_t host_count, size_t workers_per_host,
                         LOG1 << "Worker " << worker
                              << " threw " << typeid(e).name();
                         LOG1 << "  what(): " << e.what();
+
+                        ctx.logger_ << "type" << "job"
+                                    << "event" << "exception"
+                                    << "exception" << typeid(e).name()
+                                    << "what" << e.what();
                         throw;
                     }
-                    STOP_TIMER(overall_timer)
-                    LOG << "Worker " << worker << " done!";
+
+                    ctx.logger_ << "type" << "job"
+                                << "event" << "done"
+                                << "elapsed" << overall_timer;
+
                     ctx.net.Barrier();
                 });
         }
@@ -383,27 +393,40 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
-    STAT_NO_RANK << "event" << "RunBackendTCP"
-                 << "my_host_rank" << my_host_rank
-                 << "workers_per_host" << workers_per_host;
-
     HostContext host_context(my_host_rank, hostlist, workers_per_host);
 
     std::vector<std::thread> threads(workers_per_host);
 
-    for (size_t i = 0; i < workers_per_host; i++) {
-        threads[i] = std::thread(
-            [&host_context, &job_startpoint, i] {
-                Context ctx(host_context, i);
-                common::NameThisThread(" worker " + mem::to_string(i));
+    for (size_t worker = 0; worker < workers_per_host; worker++) {
+        threads[worker] = std::thread(
+            [&host_context, &job_startpoint, worker] {
+                Context ctx(host_context, worker);
+                common::NameThisThread("worker " + mem::to_string(worker));
 
-                STAT(ctx) << "event" << "jobStart";
-                auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
-                job_startpoint(ctx);
-                STOP_TIMER(overall_timer)
-                if (overall_timer)
-                    STAT(ctx) << "event" << "jobDone"
-                              << "time" << overall_timer->Milliseconds();
+                ctx.logger_ << "type" << "job"
+                            << "event" << "start";
+
+                common::StatsTimer<true> overall_timer(true);
+
+                try {
+                    job_startpoint(ctx);
+                }
+                catch (std::exception& e) {
+                    LOG1 << "Worker " << worker
+                         << " threw " << typeid(e).name();
+                    LOG1 << "  what(): " << e.what();
+
+                    ctx.logger_ << "type" << "job"
+                                << "event" << "exception"
+                                << "exception" << typeid(e).name()
+                                << "what" << e.what();
+
+                    throw;
+                }
+
+                ctx.logger_ << "type" << "job"
+                            << "event" << "done"
+                            << "elapsed" << overall_timer;
 
                 ctx.net.Barrier();
             });
@@ -468,22 +491,38 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
     // launch worker threads
     std::vector<std::thread> threads(workers_per_host);
 
-    for (size_t i = 0; i < workers_per_host; i++) {
-        threads[i] = std::thread(
-            [&host_context, &job_startpoint, i] {
-                Context ctx(host_context, i);
+    for (size_t worker = 0; worker < workers_per_host; worker++) {
+        threads[worker] = std::thread(
+            [&host_context, &job_startpoint, worker] {
+                Context ctx(host_context, worker);
                 common::NameThisThread("host " + mem::to_string(ctx.host_rank())
-                                       + " worker " + mem::to_string(i));
+                                       + " worker " + mem::to_string(worker));
 
-                STAT(ctx) << "event" << "jobStart";
-                auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
-                job_startpoint(ctx);
-                STOP_TIMER(overall_timer)
-                if (overall_timer)
-                    STAT(ctx) << "event" << "jobDone"
-                              << "time" << overall_timer->Milliseconds();
+                ctx.logger_ << "type" << "job"
+                            << "event" << "start";
 
-                ctx.Barrier();
+                common::StatsTimer<true> overall_timer(true);
+
+                try {
+                    job_startpoint(ctx);
+                }
+                catch (std::exception& e) {
+                    LOG1 << "Worker " << worker
+                         << " threw " << typeid(e).name();
+                    LOG1 << "  what(): " << e.what();
+
+                    ctx.logger_ << "type" << "job"
+                                << "event" << "exception"
+                                << "exception" << typeid(e).name()
+                                << "what" << e.what();
+                    throw;
+                }
+
+                ctx.logger_ << "type" << "job"
+                            << "event" << "done"
+                            << "elapsed" << overall_timer;
+
+                ctx.net.Barrier();
             });
     }
 

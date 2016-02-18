@@ -17,7 +17,7 @@
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
 #include <thrill/common/defines.hpp>
-#include <thrill/common/stats.hpp>
+#include <thrill/common/json_logger.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/cat_stream.hpp>
 #include <thrill/data/file.hpp>
@@ -229,11 +229,6 @@ public:
 
     //! \}
 
-    //! Returns the stats object for this worker
-    common::Stats<common::g_enable_stats> & stats() {
-        return stats_;
-    }
-
     //! Returns the stats graph object for this worker
     api::StatsGraph & stats_graph() {
         return stats_graph_;
@@ -279,9 +274,8 @@ private:
     //! data::Multiplexer instance that is shared among workers
     data::Multiplexer& multiplexer_;
 
-    //! StatsGrapg object that is uniquely held for this worker
+    //! StatsGraph object that is uniquely held for this worker
     api::StatsGraph stats_graph_;
-    common::Stats<common::g_enable_stats> stats_;
 
     //! number of this host context, 0..p-1, within this host
     size_t local_worker_id_;
@@ -304,6 +298,45 @@ public:
     };
 
     //! \}
+
+public:
+    //! \name Logging System
+    //! {
+
+    class ContextLogger
+    {
+    public:
+        explicit ContextLogger(Context& context)
+            : context_(context) { }
+
+        //! create new JsonLine instance which will be written to this logger.
+        common::JsonLine line() {
+            common::JsonLine line = context_.base_logger_.line();
+            line << "host_rank" << context_.host_rank()
+                 << "worker_rank" << context_.my_rank();
+            return line;
+        }
+
+        template <typename Type>
+        common::JsonLine operator << (Type const& t) {
+            common::JsonLine out = line();
+            out << t;
+            return out;
+        }
+
+    private:
+        Context& context_;
+    };
+
+    //! base logger exclusive for this worker
+    common::JsonLogger base_logger_;
+
+    //! public member which delivers key:value pairs as JSON log lines. this
+    //! logger is local to this Context which is exclusive for one worker
+    //! thread.
+    ContextLogger logger_ { *this };
+
+    //! }
 };
 
 //! \name Run Methods with Internal Networks for Testing

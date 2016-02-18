@@ -545,11 +545,12 @@ private:
             balance = 1 / balance;
         }
 
-        STATC << "NodeType" << "Sort"
-              << "Workers" << num_total_workers
-              << "local_out_size" << local_out_size_
-              << "Balance Factor" << balance
-              << "Sample Size" << samples_.size() << common::endlog;
+        Super::logger_
+            << "event" << "done"
+            << "workers" << num_total_workers
+            << "local_out_size" << local_out_size_
+            << "balance" << balance
+            << "sample_size" << samples_.size();
     }
 
     void PostOp() { }

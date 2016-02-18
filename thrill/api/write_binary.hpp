@@ -73,9 +73,10 @@ public:
         sLOG << "closing file" << out_pathbase_;
         writer_.reset();
         sink_.reset();
-        STAT(context_) << "NodeType" << "WriteBinary"
-                       << "TotalElements" << stats_total_elements_
-                       << "TotalWrites" << stats_total_writes_;
+
+        Super::logger_
+            << "total_elements" << stats_total_elements_
+            << "total_writes" << stats_total_writes_;
     }
 
     void Execute() final { }
