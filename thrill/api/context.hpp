@@ -306,10 +306,10 @@ public:
     //! \name Logging System
     //! {
 
-    class ContextLogger
+    class Logger
     {
     public:
-        explicit ContextLogger(Context& context)
+        explicit Logger(Context& context)
             : context_(context) { }
 
         //! create new JsonLine instance which will be written to this logger.
@@ -337,7 +337,7 @@ public:
     //! public member which delivers key:value pairs as JSON log lines. this
     //! logger is local to this Context which is exclusive for one worker
     //! thread.
-    ContextLogger logger_ { *this };
+    Logger logger_ { *this };
 
     //! }
 };

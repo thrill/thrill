@@ -232,10 +232,10 @@ public:
     /**************************************************************************/
     // NodeLogger
 
-    class NodeLogger
+    class Logger
     {
     public:
-        explicit NodeLogger(DIABase& dia_base)
+        explicit Logger(DIABase& dia_base)
             : dia_base_(dia_base) { }
 
         //! create new JsonLine instance which will be written to this logger.
@@ -253,7 +253,7 @@ public:
         DIABase& dia_base_;
     };
 
-    NodeLogger logger_ { *this };
+    Logger logger_ { *this };
 };
 
 using DIABasePtr = std::shared_ptr<DIABase>;

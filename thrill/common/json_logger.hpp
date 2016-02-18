@@ -248,7 +248,7 @@ inline JsonLine JsonLogger::line() {
     JsonLine out(*this);
     out << "ts"
         << std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
+        std::chrono::system_clock::now().time_since_epoch()).count();
     return out;
 }
 

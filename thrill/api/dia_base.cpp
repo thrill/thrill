@@ -96,21 +96,50 @@ public:
         return oss.str();
     }
 
-    void Execute() {
-        common::StatsTimer<true> timer;
-        time_t tt = system_clock::to_time_t(system_clock::now());
-        sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << Targets()
-             << "time:" << format_time("%T", tt);
+    std::vector<size_t> TargetIds() const {
+        std::vector<size_t> ids;
 
-        timer.Start();
+        std::vector<DIABase*> children = node_->children();
+        std::reverse(children.begin(), children.end());
+
+        while (children.size())
+        {
+            DIABase* child = children.back();
+            children.pop_back();
+
+            if (child->type() == DIANodeType::COLLAPSE) {
+                // push children of Collapse onto stack
+                std::vector<DIABase*> sub = child->children();
+                children.insert(children.end(), sub.begin(), sub.end());
+                ids.emplace_back(child->id());
+            }
+            else {
+                ids.emplace_back(child->id());
+            }
+        }
+        return ids;
+    }
+
+    void Execute() {
+        sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << Targets();
+
+        std::vector<size_t> targets = TargetIds();
+
+        logger_ << "type" << "stage" << "event" << "Execute start"
+                << "node_id" << node_->id() << "node_label" << node_->label()
+                << "targets" << targets;
+
+        common::StatsTimer<true> timer(true);
         node_->Execute();
         node_->set_state(DIAState::EXECUTED);
         timer.Stop();
 
-        tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (EXECUTE) stage" << *node_ << "targets" << Targets()
-             << "took" << timer.Milliseconds() << "ms"
-             << "time:" << format_time("%T", tt);
+             << "took" << timer << "ms";
+
+        logger_ << "type" << "stage" << "event" << "Execute done"
+                << "node_id" << node_->id() << "node_label" << node_->label()
+                << "targets" << targets << "elapsed" << timer;
     }
 
     void PushData() {
@@ -121,26 +150,34 @@ public:
             abort();
         }
 
-        common::StatsTimer<true> timer;
-        time_t tt = system_clock::to_time_t(system_clock::now());
-        sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << Targets()
-             << "time:" << format_time("%T", tt);
+        sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << Targets();
 
-        timer.Start();
+        std::vector<size_t> targets = TargetIds();
+
+        logger_ << "type" << "stage" << "event" << "PushData start"
+                << "node_id" << node_->id() << "node_label" << node_->label()
+                << "targets" << targets;
+
+        common::StatsTimer<true> timer(true);
         node_->RunPushData();
         node_->RemoveAllChildren();
         timer.Stop();
 
-        tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (PUSHDATA) stage" << *node_ << "targets" << Targets()
-             << "took" << timer.Milliseconds() << "ms"
-             << "time:" << format_time("%T", tt);
+             << "took" << timer << "ms";
+
+        logger_ << "type" << "stage" << "event" << "PushData done"
+                << "node_id" << node_->id() << "node_label" << node_->label()
+                << "targets" << targets << "elapsed" << timer;
     }
 
     bool operator < (const Stage& s) const { return node_ < s.node_; }
 
     //! shared pointer to node
     DIABasePtr node_;
+
+    //! reference to ContextLogger via node.
+    Context::Logger& logger_ { node_->context().logger_ };
 
     //! temporary marker for toposort to detect cycles
     mutable bool cycle_mark_ = false;
