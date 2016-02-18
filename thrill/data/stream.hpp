@@ -39,7 +39,6 @@ using StreamId = size_t;
 class Stream
 {
 public:
-    using StatsCounter = common::StatsCounter<size_t, common::g_enable_stats>;
     using StatsTimer = common::StatsTimer<common::g_enable_stats>;
 
     using ClosedCallback = std::function<void()>;
@@ -137,11 +136,11 @@ public:
 
     //! StatsCounter for incoming data transfer
     //! Do not include loopback data transfer
-    StatsCounter incoming_bytes_, incoming_blocks_;
+    size_t incoming_bytes_, incoming_blocks_;
 
     //! StatsCounters for outgoing data transfer - shared by all sinks
     //! Do not include loopback data transfer
-    StatsCounter outgoing_bytes_, outgoing_blocks_;
+    size_t outgoing_bytes_, outgoing_blocks_;
 
     //! Timers from creation of stream until rx / tx direction is closed.
     StatsTimer tx_lifetime_, rx_lifetime_;
