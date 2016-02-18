@@ -58,7 +58,8 @@ public:
     //! constructor from existing net Groups. Used by the construction methods.
     HostContext(std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host)
-        : workers_per_host_(workers_per_host),
+        : base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
+          workers_per_host_(workers_per_host),
           net_manager_(std::move(groups)),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
           block_pool_(0, 0, &mem_manager_, workers_per_host),
@@ -72,6 +73,9 @@ public:
     ConstructLoopback(size_t host_count, size_t workers_per_host);
 #endif
 
+    //! create host log
+    static std::string MakeHostLogPath(size_t worker_rank);
+
     //! number of workers per host (all have the same).
     size_t workers_per_host() const { return workers_per_host_; }
 
@@ -81,6 +85,10 @@ public:
     //! net manager constructs communication groups to other hosts.
     net::Manager & net_manager() { return net_manager_; }
 
+    //! Returns id of this host in the cluser. A host is a machine in the
+    //! cluster that hosts multiple workers
+    size_t host_rank() const { return net_manager_.my_host_rank(); }
+
     //! the flow control group is used for collective communication.
     net::FlowControlChannelManager & flow_manager() { return flow_manager_; }
 
@@ -89,6 +97,43 @@ public:
 
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer & data_multiplexer() { return data_multiplexer_; }
+
+public:
+    //! \name Logging System
+    //! {
+
+    class Logger
+    {
+    public:
+        explicit Logger(HostContext& hctx) : hctx_(hctx) { }
+
+        //! create new JsonLine instance which will be written to this logger.
+        common::JsonLine line() {
+            common::JsonLine line = hctx_.base_logger_.line();
+            line << "host_rank" << hctx_.host_rank();
+            return line;
+        }
+
+        template <typename Type>
+        common::JsonLine operator << (Type const& t) {
+            common::JsonLine out = line();
+            out << t;
+            return out;
+        }
+
+    private:
+        HostContext& hctx_;
+    };
+
+    //! base logger exclusive for this host context
+    common::JsonLogger base_logger_;
+
+    //! public member which delivers key:value pairs as JSON log lines. this
+    //! logger is local to this Context which is exclusive for one worker
+    //! thread.
+    Logger logger_ { *this };
+
+    //! }
 
 private:
     //! number of workers per host (all have the same).
@@ -314,8 +359,7 @@ public:
     class Logger
     {
     public:
-        explicit Logger(Context& context)
-            : context_(context) { }
+        explicit Logger(Context& context) : context_(context) { }
 
         //! create new JsonLine instance which will be written to this logger.
         common::JsonLine line() {

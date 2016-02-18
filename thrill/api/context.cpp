@@ -264,7 +264,8 @@ int RunBackendLoopback(const std::function<void(Context&)>& job_startpoint) {
 HostContext::HostContext(size_t my_host_rank,
                          const std::vector<std::string>& endpoints,
                          size_t workers_per_host)
-    : workers_per_host_(workers_per_host),
+    : base_logger_(MakeHostLogPath(my_host_rank)),
+      workers_per_host_(workers_per_host),
       net_manager_(net::tcp::Construct(my_host_rank,
                                        endpoints, net::Manager::kGroupCount)),
       flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
@@ -604,21 +605,6 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
 /******************************************************************************/
 // Context methods
 
-std::string Context::MakeWorkerLogPath(size_t worker_rank) {
-    const char* env_log = getenv("THRILL_LOG");
-    if (!env_log) {
-        if (worker_rank == 0) {
-            std::cerr << "Thrill: no THRILL_LOG was found, "
-                      << "so no json log is written."
-                      << std::endl;
-        }
-        return std::string();
-    }
-
-    return std::string(env_log)
-           + "-worker-" + std::to_string(worker_rank) + ".json";
-}
-
 template <>
 std::shared_ptr<data::CatStream> Context::GetNewStream<data::CatStream>() {
     return GetNewCatStream();
@@ -654,6 +640,35 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
             << "elapsed" << overall_timer;
 
     net.Barrier();
+}
+
+/******************************************************************************/
+// Log path creator
+
+std::string HostContext::MakeHostLogPath(size_t host_rank) {
+    const char* env_log = getenv("THRILL_LOG");
+    if (!env_log) {
+        if (host_rank == 0) {
+            std::cerr << "Thrill: no THRILL_LOG was found, "
+                      << "so no json log is written."
+                      << std::endl;
+        }
+        return std::string();
+    }
+
+    return std::string(env_log)
+           + "-host-" + std::to_string(host_rank) + ".json";
+}
+
+std::string Context::MakeWorkerLogPath(size_t worker_rank) {
+    const char* env_log = getenv("THRILL_LOG");
+    if (!env_log) {
+        // warning was already outputted for HostContext
+        return std::string();
+    }
+
+    return std::string(env_log)
+           + "-worker-" + std::to_string(worker_rank) + ".json";
 }
 
 } // namespace api
