@@ -617,8 +617,8 @@ std::shared_ptr<data::MixStream> Context::GetNewStream<data::MixStream>() {
 }
 
 void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
-    logger_ << "type" << "job"
-            << "event" << "start";
+    logger_ << "class" << "Context"
+            << "event" << "job-start";
 
     common::StatsTimer<true> overall_timer(true);
 
@@ -629,15 +629,15 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
         LOG1 << "worker " << my_rank() << " threw " << typeid(e).name();
         LOG1 << "  what(): " << e.what();
 
-        logger_ << "type" << "job"
-                << "event" << "exception"
+        logger_ << "class" << "Context"
+                << "event" << "job-exception"
                 << "exception" << typeid(e).name()
                 << "what" << e.what();
         throw;
     }
 
-    logger_ << "type" << "job"
-            << "event" << "done"
+    logger_ << "class" << "Context"
+            << "event" << "job-done"
             << "elapsed" << overall_timer;
 
     net.Barrier();

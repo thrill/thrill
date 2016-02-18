@@ -97,8 +97,7 @@ public:
 
         std::vector<size_t> targets = TargetIds();
 
-        logger_ << "type" << "stage" << "event" << "Execute start"
-                << "node_id" << node_->id() << "node_label" << node_->label()
+        logger_ << "class" << "StageBuilder" << "event" << "execute-start"
                 << "targets" << targets;
 
         common::StatsTimer<true> timer(true);
@@ -109,8 +108,7 @@ public:
         sLOG << "FINISH (EXECUTE) stage" << *node_ << "targets" << Targets()
              << "took" << timer << "ms";
 
-        logger_ << "type" << "stage" << "event" << "Execute done"
-                << "node_id" << node_->id() << "node_label" << node_->label()
+        logger_ << "class" << "StageBuilder" << "event" << "execute-done"
                 << "targets" << targets << "elapsed" << timer;
     }
 
@@ -126,8 +124,7 @@ public:
 
         std::vector<size_t> targets = TargetIds();
 
-        logger_ << "type" << "stage" << "event" << "PushData start"
-                << "node_id" << node_->id() << "node_label" << node_->label()
+        logger_ << "class" << "StageBuilder" << "event" << "pushdata-start"
                 << "targets" << targets;
 
         common::StatsTimer<true> timer(true);
@@ -138,8 +135,7 @@ public:
         sLOG << "FINISH (PUSHDATA) stage" << *node_ << "targets" << Targets()
              << "took" << timer << "ms";
 
-        logger_ << "type" << "stage" << "event" << "PushData done"
-                << "node_id" << node_->id() << "node_label" << node_->label()
+        logger_ << "class" << "StageBuilder" << "event" << "pushdata-done"
                 << "targets" << targets << "elapsed" << timer;
     }
 
@@ -149,7 +145,7 @@ public:
     DIABasePtr node_;
 
     //! reference to ContextLogger via node.
-    common::JsonLogger& logger_ { node_->context().logger_ };
+    common::JsonLogger& logger_ { node_->logger_ };
 
     //! temporary marker for toposort to detect cycles
     mutable bool cycle_mark_ = false;

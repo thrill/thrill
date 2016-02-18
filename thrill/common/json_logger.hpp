@@ -55,18 +55,7 @@ public:
     //! open JsonLogger with a super logger and some additional common key:value
     //! pairs
     template <typename ... Args>
-    explicit JsonLogger(JsonLogger* super, const Args& ... args)
-        : JsonLogger(super) {
-
-        std::ostringstream oss;
-        {
-            // use JsonLine writer without a Logger to generate a valid string.
-            JsonLine json(nullptr, oss);
-            using ForeachExpander = int[];
-            (void)ForeachExpander { (json << (args), 0) ... };
-        }
-        common_ = JsonVerbatim(oss.str());
-    }
+    explicit JsonLogger(JsonLogger* super, const Args& ... args);
 
     //! create new JsonLine instance which will be written to this logger.
     JsonLine line();
@@ -300,6 +289,22 @@ inline JsonLine& JsonLine::operator << (const Type& t) {
 
 /******************************************************************************/
 // JsonLogger
+
+template <typename ... Args>
+JsonLogger::JsonLogger(JsonLogger* super, const Args& ... args)
+    : JsonLogger(super) {
+
+    std::ostringstream oss;
+    {
+        // use JsonLine writer without a Logger to generate a valid string.
+        JsonLine json(nullptr, oss);
+        using ForeachExpander = int[];
+        (void)ForeachExpander {
+            (json << (args), 0) ...
+        };
+    }
+    common_ = JsonVerbatim(oss.str());
+}
 
 template <typename Type>
 inline JsonLine JsonLogger::operator << (const Type& t) {

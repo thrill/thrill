@@ -226,30 +226,11 @@ protected:
 
 public:
     /**************************************************************************/
-    // NodeLogger
+    // JsonLogger for this DIANode
 
-    class Logger
-    {
-    public:
-        explicit Logger(DIABase& dia_base)
-            : dia_base_(dia_base) { }
-
-        //! create new JsonLine instance which will be written to this logger.
-        template <typename Type>
-        common::JsonLine operator << (Type const& t) {
-            common::JsonLine line = dia_base_.context().logger_.line();
-            line << "type" << "node"
-                 << "node_id" << dia_base_.id()
-                 << "node_label" << dia_base_.label()
-                 << t;
-            return line;
-        }
-
-    private:
-        DIABase& dia_base_;
+    common::JsonLogger logger_ {
+        &context_.logger_, "node_id", id(), "node_label", label()
     };
-
-    Logger logger_ { *this };
 };
 
 using DIABasePtr = std::shared_ptr<DIABase>;
