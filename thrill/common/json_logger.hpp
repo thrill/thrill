@@ -42,6 +42,12 @@ public:
     //! create new JsonLine instance which will be written to this logger.
     template <typename Type>
     JsonLine operator << (Type const& t);
+
+    //! collector stream
+    std::ostringstream oss_;
+
+    //! elements counter
+    size_t elements_ = 0;
 };
 
 /*!
@@ -51,25 +57,19 @@ public:
 class JsonLine
 {
 public:
-    //! collector stream
-    std::ostringstream oss_;
-
-    //! elements counter
-    size_t elements_ = 0;
-
     //! when destructed this object is delivered to the output.
-    JsonLogger* output_;
+    JsonLogger* out_;
 
     //! ctor: bind output
     explicit JsonLine(JsonLogger* output = nullptr)
-        : output_(output) { }
+        : out_(output) { }
 
-    //! ctor: initialize with a list of key:value pairs of variadic type.
-    template <typename ... Args>
-    explicit JsonLine(const Args& ... args) {
-        using ForeachExpander = int[];
-        (void)ForeachExpander { (operator << (args), 0) ... };
-    }
+    // //! ctor: initialize with a list of key:value pairs of variadic type.
+    // template <typename ... Args>
+    // explicit JsonLine(const Args& ... args) {
+    //     using ForeachExpander = int[];
+    //     (void)ForeachExpander { (operator << (args), 0) ... };
+    // }
 
     //! non-copyable: delete copy-constructor
     JsonLine(const JsonLine&) = delete;
@@ -94,38 +94,38 @@ public:
 
     //! destructor: deliver to output
     ~JsonLine() {
-        assert(elements_ % 2 == 0);
-        if (output_) output_->Output(*this);
+        assert(out_->elements_ % 2 == 0);
+        if (out_) out_->Output(*this);
     }
 
     //! put an elements separator (either ',' or ':') and increment counter.
     void PutSeparator() {
-        if (elements_ > 0) {
-            oss_ << (elements_ % 2 == 0 ? ',' : ':');
+        if (out_->elements_ > 0) {
+            out_->oss_ << (out_->elements_ % 2 == 0 ? ',' : ':');
         }
-        elements_++;
+        out_->elements_++;
     }
 
     void PutEscapedChar(char ch) {
         // from: http://stackoverflow.com/a/7725289
         switch (ch) {
-        case '\\': oss_ << '\\' << '\\';
+        case '\\': out_->oss_ << '\\' << '\\';
             break;
-        case '"': oss_ << '\\' << '"';
+        case '"': out_->oss_ << '\\' << '"';
             break;
-        case '/': oss_ << '\\' << '/';
+        case '/': out_->oss_ << '\\' << '/';
             break;
-        case '\b': oss_ << '\\' << 'b';
+        case '\b': out_->oss_ << '\\' << 'b';
             break;
-        case '\f': oss_ << '\\' << 'f';
+        case '\f': out_->oss_ << '\\' << 'f';
             break;
-        case '\n': oss_ << '\\' << 'n';
+        case '\n': out_->oss_ << '\\' << 'n';
             break;
-        case '\r': oss_ << '\\' << 'r';
+        case '\r': out_->oss_ << '\\' << 'r';
             break;
-        case '\t': oss_ << '\\' << 't';
+        case '\t': out_->oss_ << '\\' << 't';
             break;
-        default: oss_ << ch;
+        default: out_->oss_ << ch;
             break;
         }
     }
@@ -136,44 +136,44 @@ public:
 
 template <>
 JsonLine& JsonLine::Put(bool const& value) {
-    oss_ << (value ? "true" : "false");
+    out_->oss_ << (value ? "true" : "false");
     return *this;
 }
 
 template <>
 JsonLine& JsonLine::Put(int const& value) {
-    oss_ << value;
+    out_->oss_ << value;
     return *this;
 }
 
 template <>
 JsonLine& JsonLine::Put(double const& value) {
-    oss_ << value;
+    out_->oss_ << value;
     return *this;
 }
 
 template <>
 JsonLine& JsonLine::Put(const char* const& str) {
-    oss_ << '"';
+    out_->oss_ << '"';
     for (const char* s = str; *s; ++s) PutEscapedChar(*s);
-    oss_ << '"';
+    out_->oss_ << '"';
     return *this;
 }
 
 template <>
 JsonLine& JsonLine::Put(std::string const& str) {
-    oss_ << '"';
+    out_->oss_ << '"';
     for (std::string::const_iterator i = str.begin(); i != str.end(); ++i)
         PutEscapedChar(*i);
-    oss_ << '"';
+    out_->oss_ << '"';
     return *this;
 }
 
-template <>
-JsonLine& JsonLine::Put(JsonLine const& obj) {
-    oss_ << '{' << obj.oss_.str() << '}';
-    return *this;
-}
+// template <>
+// JsonLine& JsonLine::Put(JsonLine const& obj) {
+//     out_->oss_ << '{' << obj.oss_.str() << '}';
+//     return *this;
+// }
 
 //! template switch for partial template specializations of Put().
 template <typename Type>
@@ -184,14 +184,14 @@ template <typename Type>
 struct JsonLinePutSwitch<std::vector<Type> >
 {
     static void Put(JsonLine& out, std::vector<Type> const& vec) {
-        out.oss_ << '[';
+        out.out_->oss_ << '[';
         for (typename std::vector<Type>::const_iterator it = vec.begin();
              it != vec.end(); ++it) {
             if (it != vec.begin())
-                out.oss_ << ',';
+                out.out_->oss_ << ',';
             out.PutDecay(*it);
         }
-        out.oss_ << ']';
+        out.out_->oss_ << ']';
     }
 };
 
@@ -233,11 +233,14 @@ JsonLine& JsonLine::operator << (const Type& t) {
 // JsonLogger
 
 void JsonLogger::Output(JsonLine& output) {
-    std::cout << '{' << output.oss_.str() << '}' << std::endl;
+    std::cout << '{' << oss_.str() << '}' << std::endl;
 }
 
 template <typename Type>
 JsonLine JsonLogger::operator << (const Type& t) {
+    oss_.str("");
+    elements_ = 0;
+
     JsonLine out(this);
     out << t;
     return out;

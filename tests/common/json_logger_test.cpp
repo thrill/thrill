@@ -17,11 +17,11 @@
 
 using namespace thrill;
 
-common::JsonLine SubFunction() {
-    common::JsonLine out;
-    out << "answer" << 42;
-    return out;
-}
+// common::JsonLine SubFunction() {
+//     common::JsonLine out;
+//     out << "answer" << 42;
+//     return out;
+// }
 
 TEST(JsonLogger, Test1) {
 
@@ -33,9 +33,9 @@ TEST(JsonLogger, Test1) {
            << "double" << 1.5
            << "string" << std::string("abc")
            << "vector" << std::vector<int>({ 6, 9, 42 })
-           << "string vector" << std::vector<const char*>({ "abc", "def" })
-           << "sub" << SubFunction()
-           << "sub2" << common::JsonLine("answer", 42);
+           << "string vector" << std::vector<const char*>({ "abc", "def" });
+//           << "sub" << SubFunction()
+//           << "sub2" << common::JsonLine("answer", 42);
 }
 
 /******************************************************************************/
