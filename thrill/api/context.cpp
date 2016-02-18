@@ -14,7 +14,6 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/common/system_exception.hpp>
 

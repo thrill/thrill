@@ -14,7 +14,6 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/matrix.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block_queue.hpp>

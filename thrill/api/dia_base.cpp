@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #include <thrill/api/dia_base.hpp>
+#include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/mem/allocator.hpp>
 

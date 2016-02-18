@@ -16,7 +16,6 @@
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/core/file_io.hpp>
 #include <thrill/data/block_sink.hpp>

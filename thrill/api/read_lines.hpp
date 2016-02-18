@@ -18,7 +18,6 @@
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
