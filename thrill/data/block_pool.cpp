@@ -31,14 +31,16 @@ static const bool debug_pin = false;
 static const bool debug_em = false;
 
 BlockPool::BlockPool(size_t workers_per_host)
-    : BlockPool(0, 0, nullptr, workers_per_host) {
+    : BlockPool(0, 0, nullptr, nullptr, workers_per_host) {
     soft_ram_limit_ = hard_ram_limit_ = 0;
 }
 
 BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
+                     common::JsonLogger* logger,
                      mem::Manager* mem_manager,
                      size_t workers_per_host)
-    : mem_manager_(mem_manager, "BlockPool"),
+    : logger_(logger),
+      mem_manager_(mem_manager, "BlockPool"),
       bm_(io::BlockManager::get_instance()),
       workers_per_host_(workers_per_host),
       pin_count_(workers_per_host) {
@@ -51,9 +53,10 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
 BlockPool::~BlockPool() {
     pin_count_.AssertZero();
 
-    LOG1 << "~BlockPool():"
-         << " max_pins=" << pin_count_.max_pins
-         << " max_pinned_bytes=" << pin_count_.max_pinned_bytes;
+    logger_ << "class" << "BlockPool"
+            << "event" << "destroy"
+            << "max_pins" << pin_count_.max_pins
+            << "max_pinned_bytes" << pin_count_.max_pinned_bytes;
 }
 
 PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {

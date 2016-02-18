@@ -16,6 +16,7 @@
 
 #include <cassert>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -26,6 +27,15 @@ namespace common {
 class JsonLine;
 template <typename Type>
 struct JsonLinePutSwitch;
+
+//! A special class to output verbatim text
+class JsonVerbatim
+{
+public:
+    explicit JsonVerbatim(const std::string& str = std::string())
+        : str_(str) { }
+    std::string str_;
+};
 
 /*!
  * JsonLogger is a receiver of JSON output objects for logging.
@@ -39,6 +49,25 @@ public:
     //! open JsonLogger with ofstream
     explicit JsonLogger(const std::string& path);
 
+    //! open JsonLogger with a super logger
+    explicit JsonLogger(JsonLogger* super) : super_(super) { }
+
+    //! open JsonLogger with a super logger and some additional common key:value
+    //! pairs
+    template <typename ... Args>
+    explicit JsonLogger(JsonLogger* super, const Args& ... args)
+        : JsonLogger(super) {
+
+        std::ostringstream oss;
+        {
+            // use JsonLine writer without a Logger to generate a valid string.
+            JsonLine json(nullptr, oss);
+            using ForeachExpander = int[];
+            (void)ForeachExpander { (json << (args), 0) ... };
+        }
+        common_ = JsonVerbatim(oss.str());
+    }
+
     //! create new JsonLine instance which will be written to this logger.
     JsonLine line();
 
@@ -51,11 +80,14 @@ public:
     }
 
 public:
-    //! collector stream
+    //! output to superior JsonLogger;
+    JsonLogger* super_ = nullptr;
+
+    //! direct output stream for top loggers
     std::ofstream os_;
 
-    //! elements counter
-    size_t elements_ = 0;
+    //! common items outputted to each line
+    JsonVerbatim common_;
 
     //! friends for sending to os_
     friend class JsonLine;
@@ -72,11 +104,17 @@ class JsonLine
 {
 public:
     //! when destructed this object is delivered to the output.
-    JsonLogger& logger_;
+    JsonLogger* logger_;
+
+    //! reference to output stream
+    std::ostream& os_;
+
+    //! items counter for output stream
+    size_t items_ = 0;
 
     //! ctor: bind output
-    explicit JsonLine(JsonLogger& logger)
-        : logger_(logger) { }
+    explicit JsonLine(JsonLogger* logger, std::ostream& os)
+        : logger_(logger), os_(os) { }
 
     // //! ctor: initialize with a list of key:value pairs of variadic type.
     // template <typename ... Args>
@@ -89,10 +127,10 @@ public:
     JsonLine(const JsonLine&) = delete;
     //! non-copyable: delete assignment operator
     JsonLine& operator = (const JsonLine&) = delete;
-    //! move-constructor: default
-    JsonLine(JsonLine&&) = default;
-    //! move-assignment operator: default
-    JsonLine& operator = (JsonLine&&) = default;
+    //! move-constructor: unlink pointer
+    JsonLine(JsonLine&& o)
+        : logger_(o.logger_), os_(o.os_), items_(o.items_)
+    { o.logger_ = nullptr; }
 
     //! output any type
     template <typename Type>
@@ -104,38 +142,40 @@ public:
 
     //! destructor: deliver to output
     ~JsonLine() {
-        assert(logger_.elements_ % 2 == 0);
-        logger_.Output();
+        if (logger_) {
+            assert(items_ % 2 == 0);
+            logger_->Output();
+        }
     }
 
-    //! put an elements separator (either ',' or ':') and increment counter.
+    //! put an items separator (either ',' or ':') and increment counter.
     void PutSeparator() {
-        if (logger_.elements_ > 0) {
-            logger_.os_ << (logger_.elements_ % 2 == 0 ? ',' : ':');
+        if (items_ > 0) {
+            os_ << (items_ % 2 == 0 ? ',' : ':');
         }
-        logger_.elements_++;
+        items_++;
     }
 
     void PutEscapedChar(char ch) {
         // from: http://stackoverflow.com/a/7725289
         switch (ch) {
-        case '\\': logger_.os_ << '\\' << '\\';
+        case '\\': os_ << '\\' << '\\';
             break;
-        case '"': logger_.os_ << '\\' << '"';
+        case '"': os_ << '\\' << '"';
             break;
-        case '/': logger_.os_ << '\\' << '/';
+        case '/': os_ << '\\' << '/';
             break;
-        case '\b': logger_.os_ << '\\' << 'b';
+        case '\b': os_ << '\\' << 'b';
             break;
-        case '\f': logger_.os_ << '\\' << 'f';
+        case '\f': os_ << '\\' << 'f';
             break;
-        case '\n': logger_.os_ << '\\' << 'n';
+        case '\n': os_ << '\\' << 'n';
             break;
-        case '\r': logger_.os_ << '\\' << 'r';
+        case '\r': os_ << '\\' << 'r';
             break;
-        case '\t': logger_.os_ << '\\' << 't';
+        case '\t': os_ << '\\' << 't';
             break;
-        default: logger_.os_ << ch;
+        default: os_ << ch;
             break;
         }
     }
@@ -146,80 +186,88 @@ public:
 
 static inline
 JsonLine & Put(JsonLine& line, bool const& value) {
-    line.logger_.os_ << (value ? "true" : "false");
+    line.os_ << (value ? "true" : "false");
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, int const& value) {
-    line.logger_.os_ << value;
+    line.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, unsigned int const& value) {
-    line.logger_.os_ << value;
+    line.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, long const& value) {
-    line.logger_.os_ << value;
+    line.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, unsigned long const& value) {
-    line.logger_.os_ << value;
+    line.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, long long const& value) {
-    line.logger_.os_ << value;
+    line.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, unsigned long long const& value) {
-    line.logger_.os_ << value;
+    line.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, double const& value) {
-    line.logger_.os_ << value;
+    line.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, const char* const& str) {
-    line.logger_.os_ << '"';
+    line.os_ << '"';
     for (const char* s = str; *s; ++s) line.PutEscapedChar(*s);
-    line.logger_.os_ << '"';
+    line.os_ << '"';
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, std::string const& str) {
-    line.logger_.os_ << '"';
+    line.os_ << '"';
     for (std::string::const_iterator i = str.begin(); i != str.end(); ++i)
         line.PutEscapedChar(*i);
-    line.logger_.os_ << '"';
+    line.os_ << '"';
     return line;
 }
 
 template <typename Type>
 static inline
 JsonLine & Put(JsonLine& line, std::vector<Type> const& vec) {
-    line.logger_.os_ << '[';
+    line.os_ << '[';
     for (typename std::vector<Type>::const_iterator it = vec.begin();
          it != vec.end(); ++it) {
         if (it != vec.begin())
-            line.logger_.os_ << ',';
+            line.os_ << ',';
         line.PutDecay(*it);
     }
-    line.logger_.os_ << ']';
+    line.os_ << ']';
+    return line;
+}
+
+static inline
+JsonLine & Put(JsonLine& line, JsonVerbatim const& verbatim) {
+    // undo increment of item counter
+    --line.items_;
+    line.os_ << verbatim.str_;
     return line;
 }
 

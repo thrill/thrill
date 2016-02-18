@@ -21,7 +21,9 @@
 namespace thrill {
 namespace common {
 
-//! open JsonLogger with ofstream
+/******************************************************************************/
+// JsonLogger
+
 JsonLogger::JsonLogger(const std::string& path) {
     if (!path.size()) return;
 
@@ -33,13 +35,29 @@ JsonLogger::JsonLogger(const std::string& path) {
 }
 
 JsonLine JsonLogger::line() {
-    os_ << '{';
-    elements_ = 0;
+    if (super_) {
+        JsonLine out = super_->line();
 
-    JsonLine out(*this);
+        // append common key:value pairs
+        if (common_.str_.size())
+            out << common_;
+
+        return out;
+    }
+
+    os_ << '{';
+
+    JsonLine out(this, os_);
+
+    // output timestamp in microseconds
     out << "ts"
         << std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
+
+    // append common key:value pairs
+    if (common_.str_.size())
+        out << common_;
+
     return out;
 }
 

@@ -59,10 +59,11 @@ public:
     HostContext(std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host)
         : base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
+          logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
           workers_per_host_(workers_per_host),
           net_manager_(std::move(groups)),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-          block_pool_(0, 0, &mem_manager_, workers_per_host),
+          block_pool_(0, 0, &logger_, &mem_manager_, workers_per_host),
           data_multiplexer_(mem_manager_,
                             block_pool_, workers_per_host,
                             net_manager_.GetDataGroup())
@@ -102,36 +103,13 @@ public:
     //! \name Logging System
     //! {
 
-    class Logger
-    {
-    public:
-        explicit Logger(HostContext& hctx) : hctx_(hctx) { }
-
-        //! create new JsonLine instance which will be written to this logger.
-        common::JsonLine line() {
-            common::JsonLine line = hctx_.base_logger_.line();
-            line << "host_rank" << hctx_.host_rank();
-            return line;
-        }
-
-        template <typename Type>
-        common::JsonLine operator << (Type const& t) {
-            common::JsonLine out = line();
-            out << t;
-            return out;
-        }
-
-    private:
-        HostContext& hctx_;
-    };
-
     //! base logger exclusive for this host context
     common::JsonLogger base_logger_;
 
     //! public member which delivers key:value pairs as JSON log lines. this
     //! logger is local to this Context which is exclusive for one worker
     //! thread.
-    Logger logger_ { *this };
+    common::JsonLogger logger_;
 
     //! }
 
@@ -356,37 +334,15 @@ public:
     //! \name Logging System
     //! {
 
-    class Logger
-    {
-    public:
-        explicit Logger(Context& context) : context_(context) { }
-
-        //! create new JsonLine instance which will be written to this logger.
-        common::JsonLine line() {
-            common::JsonLine line = context_.base_logger_.line();
-            line << "host_rank" << context_.host_rank()
-                 << "worker_rank" << context_.my_rank();
-            return line;
-        }
-
-        template <typename Type>
-        common::JsonLine operator << (Type const& t) {
-            common::JsonLine out = line();
-            out << t;
-            return out;
-        }
-
-    private:
-        Context& context_;
-    };
-
     //! base logger exclusive for this worker
     common::JsonLogger base_logger_;
 
     //! public member which delivers key:value pairs as JSON log lines. this
     //! logger is local to this Context which is exclusive for one worker
     //! thread.
-    Logger logger_ { *this };
+    common::JsonLogger logger_ {
+        &base_logger_, "host_rank", host_rank(), "worker_rank", my_rank()
+    };
 
     //! }
 };

@@ -25,7 +25,7 @@ using namespace thrill;
 
 TEST(JsonLogger, Test1) {
 
-    common::JsonLogger logger;
+    common::JsonLogger logger("/dev/stdout");
 
     logger << "Node" << "Sort\nNode"
            << "bool" << true
@@ -36,6 +36,17 @@ TEST(JsonLogger, Test1) {
            << "string vector" << std::vector<const char*>({ "abc", "def" });
 //           << "sub" << SubFunction()
 //           << "sub2" << common::JsonLine("answer", 42);
+}
+
+TEST(JsonLogger, Sublogger) {
+
+    common::JsonLogger base_logger("/dev/stdout");
+
+    common::JsonLogger sub_logger(&base_logger, "base", 42);
+    sub_logger << "test" << "output";
+
+    common::JsonLogger sub_sub_logger(&sub_logger, "base2", 6);
+    sub_sub_logger << "test" << "output";
 }
 
 /******************************************************************************/

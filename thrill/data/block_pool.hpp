@@ -12,6 +12,7 @@
 #ifndef THRILL_DATA_BLOCK_POOL_HEADER
 #define THRILL_DATA_BLOCK_POOL_HEADER
 
+#include <thrill/common/json_logger.hpp>
 #include <thrill/common/lru_cache.hpp>
 #include <thrill/common/signal.hpp>
 #include <thrill/common/thread_pool.hpp>
@@ -59,12 +60,15 @@ public:
      * \param hard_ram_limit limit (bytes) that causes the BlockPool to block
      * new allocations until some blocks are free'd. Enter 0 for no hard limit.
      *
+     * \param logger Pointer to logger for output.
+     *
      * \param mem_manager Memory Manager that tracks amount of RAM
      * allocated. the BlockPool will create a child manager.
      *
      * \param workers_per_host number of workers on this host.
      */
     BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
+              common::JsonLogger* logger,
               mem::Manager* mem_manager,
               size_t workers_per_host);
 
@@ -128,6 +132,9 @@ private:
 
     //! For waiting on hard memory limit
     std::condition_variable cv_memory_change_;
+
+    //! reference to HostContext's logger or a null sink
+    common::JsonLogger logger_;
 
     //! local Manager counting only ByteBlock allocations in internal memory.
     mem::Manager mem_manager_;

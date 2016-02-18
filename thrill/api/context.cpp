@@ -265,11 +265,12 @@ HostContext::HostContext(size_t my_host_rank,
                          const std::vector<std::string>& endpoints,
                          size_t workers_per_host)
     : base_logger_(MakeHostLogPath(my_host_rank)),
+      logger_(&base_logger_, "host_rank", my_host_rank),
       workers_per_host_(workers_per_host),
       net_manager_(net::tcp::Construct(my_host_rank,
                                        endpoints, net::Manager::kGroupCount)),
       flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-      block_pool_(0, 0, &mem_manager_, workers_per_host),
+      block_pool_(0, 0, &logger_, &mem_manager_, workers_per_host),
       data_multiplexer_(mem_manager_,
                         block_pool_, workers_per_host,
                         net_manager_.GetDataGroup())

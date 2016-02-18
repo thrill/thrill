@@ -149,7 +149,7 @@ public:
     DIABasePtr node_;
 
     //! reference to ContextLogger via node.
-    Context::Logger& logger_ { node_->context().logger_ };
+    common::JsonLogger& logger_ { node_->context().logger_ };
 
     //! temporary marker for toposort to detect cycles
     mutable bool cycle_mark_ = false;
