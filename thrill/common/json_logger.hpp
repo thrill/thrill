@@ -15,12 +15,8 @@
 #define THRILL_COMMON_JSON_LOGGER_HEADER
 
 #include <cassert>
-#include <chrono>
 #include <fstream>
-#include <iostream>
-#include <sstream>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 namespace thrill {
@@ -37,7 +33,11 @@ struct JsonLinePutSwitch;
 class JsonLogger
 {
 public:
-    JsonLogger() { }
+    //! open JsonLogger with ofstream uninitialized to discard log output.
+    JsonLogger() = default;
+
+    //! open JsonLogger with ofstream
+    JsonLogger(const std::string& path);
 
     //! create new JsonLine instance which will be written to this logger.
     JsonLine line();
@@ -47,17 +47,17 @@ public:
 
     //! method called by output objects
     void Output() {
-        std::cout << '{' << oss_.str() << '}' << std::endl;
+        os_ << '}' << std::endl;
     }
 
 public:
     //! collector stream
-    std::ostringstream oss_;
+    std::ofstream os_;
 
     //! elements counter
     size_t elements_ = 0;
 
-    //! friends for sending to oss_
+    //! friends for sending to os_
     friend class JsonLine;
 
     template <typename Type>
@@ -111,7 +111,7 @@ public:
     //! put an elements separator (either ',' or ':') and increment counter.
     void PutSeparator() {
         if (logger_.elements_ > 0) {
-            logger_.oss_ << (logger_.elements_ % 2 == 0 ? ',' : ':');
+            logger_.os_ << (logger_.elements_ % 2 == 0 ? ',' : ':');
         }
         logger_.elements_++;
     }
@@ -119,23 +119,23 @@ public:
     void PutEscapedChar(char ch) {
         // from: http://stackoverflow.com/a/7725289
         switch (ch) {
-        case '\\': logger_.oss_ << '\\' << '\\';
+        case '\\': logger_.os_ << '\\' << '\\';
             break;
-        case '"': logger_.oss_ << '\\' << '"';
+        case '"': logger_.os_ << '\\' << '"';
             break;
-        case '/': logger_.oss_ << '\\' << '/';
+        case '/': logger_.os_ << '\\' << '/';
             break;
-        case '\b': logger_.oss_ << '\\' << 'b';
+        case '\b': logger_.os_ << '\\' << 'b';
             break;
-        case '\f': logger_.oss_ << '\\' << 'f';
+        case '\f': logger_.os_ << '\\' << 'f';
             break;
-        case '\n': logger_.oss_ << '\\' << 'n';
+        case '\n': logger_.os_ << '\\' << 'n';
             break;
-        case '\r': logger_.oss_ << '\\' << 'r';
+        case '\r': logger_.os_ << '\\' << 'r';
             break;
-        case '\t': logger_.oss_ << '\\' << 't';
+        case '\t': logger_.os_ << '\\' << 't';
             break;
-        default: logger_.oss_ << ch;
+        default: logger_.os_ << ch;
             break;
         }
     }
@@ -146,68 +146,68 @@ public:
 
 static inline
 JsonLine & Put(JsonLine& line, bool const& value) {
-    line.logger_.oss_ << (value ? "true" : "false");
+    line.logger_.os_ << (value ? "true" : "false");
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, int const& value) {
-    line.logger_.oss_ << value;
+    line.logger_.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, unsigned int const& value) {
-    line.logger_.oss_ << value;
+    line.logger_.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, long const& value) {
-    line.logger_.oss_ << value;
+    line.logger_.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, unsigned long const& value) {
-    line.logger_.oss_ << value;
+    line.logger_.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, double const& value) {
-    line.logger_.oss_ << value;
+    line.logger_.os_ << value;
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, const char* const& str) {
-    line.logger_.oss_ << '"';
+    line.logger_.os_ << '"';
     for (const char* s = str; *s; ++s) line.PutEscapedChar(*s);
-    line.logger_.oss_ << '"';
+    line.logger_.os_ << '"';
     return line;
 }
 
 static inline
 JsonLine & Put(JsonLine& line, std::string const& str) {
-    line.logger_.oss_ << '"';
+    line.logger_.os_ << '"';
     for (std::string::const_iterator i = str.begin(); i != str.end(); ++i)
         line.PutEscapedChar(*i);
-    line.logger_.oss_ << '"';
+    line.logger_.os_ << '"';
     return line;
 }
 
 template <typename Type>
 static inline
 JsonLine & Put(JsonLine& line, std::vector<Type> const& vec) {
-    line.logger_.oss_ << '[';
+    line.logger_.os_ << '[';
     for (typename std::vector<Type>::const_iterator it = vec.begin();
          it != vec.end(); ++it) {
         if (it != vec.begin())
-            line.logger_.oss_ << ',';
+            line.logger_.os_ << ',';
         line.PutDecay(*it);
     }
-    line.logger_.oss_ << ']';
+    line.logger_.os_ << ']';
     return line;
 }
 
@@ -240,17 +240,6 @@ inline JsonLine& JsonLine::operator << (const Type& t) {
 
 /******************************************************************************/
 // JsonLogger
-
-inline JsonLine JsonLogger::line() {
-    oss_.str("");
-    elements_ = 0;
-
-    JsonLine out(*this);
-    out << "ts"
-        << std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
-    return out;
-}
 
 template <typename Type>
 inline JsonLine JsonLogger::operator << (const Type& t) {

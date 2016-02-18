@@ -604,6 +604,21 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
 /******************************************************************************/
 // Context methods
 
+std::string Context::MakeWorkerLogPath(size_t worker_rank) {
+    const char* env_log = getenv("THRILL_LOG");
+    if (!env_log) {
+        if (worker_rank == 0) {
+            std::cerr << "Thrill: no THRILL_LOG was found, "
+                      << "so no json log is written."
+                      << std::endl;
+        }
+        return std::string();
+    }
+
+    return std::string(env_log)
+        + "-worker-" + std::to_string(worker_rank) + ".json";
+}
+
 template <>
 std::shared_ptr<data::CatStream> Context::GetNewStream<data::CatStream>() {
     return GetNewCatStream();

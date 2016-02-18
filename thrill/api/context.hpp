@@ -133,7 +133,8 @@ public:
           block_pool_(block_pool),
           multiplexer_(multiplexer),
           local_worker_id_(local_worker_id),
-          workers_per_host_(workers_per_host) {
+          workers_per_host_(workers_per_host),
+          base_logger_(MakeWorkerLogPath(my_rank())) {
         assert(local_worker_id < workers_per_host);
     }
 
@@ -144,9 +145,13 @@ public:
           block_pool_(host_context.block_pool()),
           multiplexer_(host_context.data_multiplexer()),
           local_worker_id_(local_worker_id),
-          workers_per_host_(host_context.workers_per_host()) {
+          workers_per_host_(host_context.workers_per_host()),
+          base_logger_(MakeWorkerLogPath(my_rank())) {
         assert(local_worker_id < workers_per_host());
     }
+
+    //! create worker log
+    static std::string MakeWorkerLogPath(size_t worker_rank);
 
     //! method used to launch a job's main procedure. it wraps it in log output.
     void Launch(const std::function<void(Context&)>& job_startpoint);
