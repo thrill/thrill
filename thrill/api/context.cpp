@@ -616,7 +616,7 @@ std::string Context::MakeWorkerLogPath(size_t worker_rank) {
     }
 
     return std::string(env_log)
-        + "-worker-" + std::to_string(worker_rank) + ".json";
+           + "-worker-" + std::to_string(worker_rank) + ".json";
 }
 
 template <>

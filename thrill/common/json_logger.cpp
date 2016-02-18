@@ -16,6 +16,7 @@
 #include <cerrno>
 #include <chrono>
 #include <cstring>
+#include <string>
 
 namespace thrill {
 namespace common {

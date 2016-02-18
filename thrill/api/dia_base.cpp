@@ -31,38 +31,10 @@ namespace api {
 /******************************************************************************/
 // DIABase StageBuilder
 
-static inline
-struct tm localtime_from(const time_t& t) {
-#if __MINGW32__ || defined(_MSC_VER)
-    return *localtime(&t); // NOLINT
-#else
-    struct tm tm;
-    memset(&tm, 0, sizeof(tm));
-    localtime_r(&t, &tm);
-    return tm;
-#endif
-}
-
-//! format string using time structure
-static inline
-std::string format_time(const char* format, const struct tm& t) {
-    char buffer[256];
-    strftime(buffer, sizeof(buffer), format, &t);
-    return buffer;
-}
-
-//! format string using time in localtime representation
-static inline
-std::string format_time(const char* format, const time_t& t) {
-    return format_time(format, localtime_from(t));
-}
-
 class Stage
 {
 public:
     static const bool debug = false;
-
-    using system_clock = std::chrono::system_clock;
 
     explicit Stage(const DIABasePtr& node) : node_(node) { }
 

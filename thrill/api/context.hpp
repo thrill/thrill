@@ -127,25 +127,25 @@ public:
             data::BlockPool& block_pool,
             data::Multiplexer& multiplexer,
             size_t workers_per_host, size_t local_worker_id)
-        : mem_manager_(mem_manager),
+        : local_worker_id_(local_worker_id),
+          workers_per_host_(workers_per_host),
+          mem_manager_(mem_manager),
           net_manager_(net_manager),
           flow_manager_(flow_manager),
           block_pool_(block_pool),
           multiplexer_(multiplexer),
-          local_worker_id_(local_worker_id),
-          workers_per_host_(workers_per_host),
           base_logger_(MakeWorkerLogPath(my_rank())) {
         assert(local_worker_id < workers_per_host);
     }
 
     Context(HostContext& host_context, size_t local_worker_id)
-        : mem_manager_(host_context.mem_manager()),
+        : local_worker_id_(local_worker_id),
+          workers_per_host_(host_context.workers_per_host()),
+          mem_manager_(host_context.mem_manager()),
           net_manager_(host_context.net_manager()),
           flow_manager_(host_context.flow_manager()),
           block_pool_(host_context.block_pool()),
           multiplexer_(host_context.data_multiplexer()),
-          local_worker_id_(local_worker_id),
-          workers_per_host_(host_context.workers_per_host()),
           base_logger_(MakeWorkerLogPath(my_rank())) {
         assert(local_worker_id < workers_per_host());
     }
@@ -267,6 +267,12 @@ public:
     void enable_consume(bool consume = true) { consume_ = consume; }
 
 private:
+    //! number of this host context, 0..p-1, within this host
+    size_t local_worker_id_;
+
+    //! number of workers hosted per host
+    size_t workers_per_host_;
+
     //! host-global memory manager
     mem::Manager& mem_manager_;
 
@@ -284,12 +290,6 @@ private:
 
     //! StatsGraph object that is uniquely held for this worker
     api::StatsGraph stats_graph_;
-
-    //! number of this host context, 0..p-1, within this host
-    size_t local_worker_id_;
-
-    //! number of workers hosted per host
-    size_t workers_per_host_;
 
     //! flag to set which enables selective consumption of DIA contents!
     bool consume_ = false;

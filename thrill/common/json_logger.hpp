@@ -37,7 +37,7 @@ public:
     JsonLogger() = default;
 
     //! open JsonLogger with ofstream
-    JsonLogger(const std::string& path);
+    explicit JsonLogger(const std::string& path);
 
     //! create new JsonLine instance which will be written to this logger.
     JsonLine line();
@@ -170,6 +170,18 @@ JsonLine & Put(JsonLine& line, long const& value) {
 
 static inline
 JsonLine & Put(JsonLine& line, unsigned long const& value) {
+    line.logger_.os_ << value;
+    return line;
+}
+
+static inline
+JsonLine & Put(JsonLine& line, long long const& value) {
+    line.logger_.os_ << value;
+    return line;
+}
+
+static inline
+JsonLine & Put(JsonLine& line, unsigned long long const& value) {
     line.logger_.os_ << value;
     return line;
 }
