@@ -156,7 +156,7 @@ public:
     }
 
     friend JsonLine & Put(JsonLine& line, const StatsTimer& t) {
-        return line << t.Microseconds();
+        return Put(line, t.Microseconds());
     }
 };
 

@@ -148,6 +148,9 @@ public:
         assert(local_worker_id < workers_per_host());
     }
 
+    //! method used to launch a job's main procedure. it wraps it in log output.
+    void Launch(const std::function<void(Context&)>& job_startpoint);
+
     //! \name System Information
     //! \{
 

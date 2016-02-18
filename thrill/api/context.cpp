@@ -103,31 +103,7 @@ RunLoopbackThreads(size_t host_count, size_t workers_per_host,
                     common::NameThisThread(
                         log_prefix + " worker " + mem::to_string(worker));
 
-                    ctx.logger_ << "type" << "job"
-                                << "event" << "start";
-
-                    common::StatsTimer<true> overall_timer(true);
-
-                    try {
-                        job_startpoint(ctx);
-                    }
-                    catch (std::exception& e) {
-                        LOG1 << "Worker " << worker
-                             << " threw " << typeid(e).name();
-                        LOG1 << "  what(): " << e.what();
-
-                        ctx.logger_ << "type" << "job"
-                                    << "event" << "exception"
-                                    << "exception" << typeid(e).name()
-                                    << "what" << e.what();
-                        throw;
-                    }
-
-                    ctx.logger_ << "type" << "job"
-                                << "event" << "done"
-                                << "elapsed" << overall_timer;
-
-                    ctx.net.Barrier();
+                    ctx.Launch(job_startpoint);
                 });
         }
     }
@@ -403,32 +379,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
                 Context ctx(host_context, worker);
                 common::NameThisThread("worker " + mem::to_string(worker));
 
-                ctx.logger_ << "type" << "job"
-                            << "event" << "start";
-
-                common::StatsTimer<true> overall_timer(true);
-
-                try {
-                    job_startpoint(ctx);
-                }
-                catch (std::exception& e) {
-                    LOG1 << "Worker " << worker
-                         << " threw " << typeid(e).name();
-                    LOG1 << "  what(): " << e.what();
-
-                    ctx.logger_ << "type" << "job"
-                                << "event" << "exception"
-                                << "exception" << typeid(e).name()
-                                << "what" << e.what();
-
-                    throw;
-                }
-
-                ctx.logger_ << "type" << "job"
-                            << "event" << "done"
-                            << "elapsed" << overall_timer;
-
-                ctx.net.Barrier();
+                ctx.Launch(job_startpoint);
             });
     }
 
@@ -498,31 +449,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
                 common::NameThisThread("host " + mem::to_string(ctx.host_rank())
                                        + " worker " + mem::to_string(worker));
 
-                ctx.logger_ << "type" << "job"
-                            << "event" << "start";
-
-                common::StatsTimer<true> overall_timer(true);
-
-                try {
-                    job_startpoint(ctx);
-                }
-                catch (std::exception& e) {
-                    LOG1 << "Worker " << worker
-                         << " threw " << typeid(e).name();
-                    LOG1 << "  what(): " << e.what();
-
-                    ctx.logger_ << "type" << "job"
-                                << "event" << "exception"
-                                << "exception" << typeid(e).name()
-                                << "what" << e.what();
-                    throw;
-                }
-
-                ctx.logger_ << "type" << "job"
-                            << "event" << "done"
-                            << "elapsed" << overall_timer;
-
-                ctx.net.Barrier();
+                ctx.Launch(job_startpoint);
             });
     }
 
@@ -686,6 +613,33 @@ std::shared_ptr<data::CatStream> Context::GetNewStream<data::CatStream>() {
 template <>
 std::shared_ptr<data::MixStream> Context::GetNewStream<data::MixStream>() {
     return GetNewMixStream();
+}
+
+void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
+    logger_ << "type" << "job"
+            << "event" << "start";
+
+    common::StatsTimer<true> overall_timer(true);
+
+    try {
+        job_startpoint(*this);
+    }
+    catch (std::exception& e) {
+        LOG1 << "worker " << my_rank() << " threw " << typeid(e).name();
+        LOG1 << "  what(): " << e.what();
+
+        logger_ << "type" << "job"
+                << "event" << "exception"
+                << "exception" << typeid(e).name()
+                << "what" << e.what();
+        throw;
+    }
+
+    logger_ << "type" << "job"
+            << "event" << "done"
+            << "elapsed" << overall_timer;
+
+    net.Barrier();
 }
 
 } // namespace api
