@@ -78,6 +78,9 @@ public:
     //! return number of workers per host
     size_t workers_per_host() const { return workers_per_host_; }
 
+    //! Returns logger_
+    common::JsonLogger & logger() { return logger_; }
+
     //! Allocates a byte block with the request size. May block this thread if
     //! the hard memory limit is reached, until memory is freed by another
     //! thread.  The returned Block is allocated in RAM, but with a zero pin

@@ -74,8 +74,7 @@ public:
                         MagicByte::MixStreamBlock,
                         id,
                         multiplexer_.my_host_rank(), my_local_worker_id,
-                        host, worker,
-                        &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
+                        host, worker);
                 }
             }
         }

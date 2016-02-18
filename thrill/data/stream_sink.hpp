@@ -51,23 +51,27 @@ public:
                net::DispatcherThread* dispatcher,
                net::Connection* connection,
                MagicByte magic,
-               StreamId stream_id, size_t my_rank,
+               StreamId stream_id, size_t host_rank,
                size_t my_local_worker_id,
                size_t peer_rank,
-               size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
+               size_t peer_local_worker_id)
         : BlockSink(block_pool, my_local_worker_id),
           dispatcher_(dispatcher),
           connection_(connection),
           magic_(magic),
           id_(stream_id),
-          my_rank_(my_rank),
+          host_rank_(host_rank),
           my_local_worker_id_(my_local_worker_id),
           peer_rank_(peer_rank),
-          partners_local_worker_id_(partners_local_worker_id),
-          byte_counter_(byte_counter),
-          block_counter_(block_counter),
-          tx_timespan_(tx_timespan)
-    { }
+          peer_local_worker_id_(peer_local_worker_id) {
+        logger()
+            << "class" << "StreamSink"
+            << "event" << "open"
+            << "stream" << id_
+            << "src_worker" << (host_rank_ * workers_per_host()) + my_local_worker_id_
+            << "peer_host" << peer_rank_
+            << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_id_;
+    }
 
     StreamSink(StreamSink&&) = default;
 
@@ -75,14 +79,13 @@ public:
     void AppendBlock(const PinnedBlock& block) final {
         if (block.size() == 0) return;
 
-        tx_timespan_->StartEventually();
         sLOG << "StreamSink::AppendBlock" << block;
 
         StreamBlockHeader header(magic_, block);
         header.stream_id = id_;
-        header.sender_rank = my_rank_;
+        header.sender_rank = host_rank_;
         header.sender_local_worker_id = my_local_worker_id_;
-        header.receiver_local_worker_id = partners_local_worker_id_;
+        header.receiver_local_worker_id = peer_local_worker_id_;
 
         if (debug) {
             sLOG << "sending block" << common::Hexdump(block.ToString());
@@ -94,9 +97,8 @@ public:
         net::Buffer buffer = bb.ToBuffer();
         assert(buffer.size() == BlockHeader::total_size);
 
-        (*byte_counter_) += buffer.size();
-        (*byte_counter_) += block.size();
-        (*block_counter_)++;
+        byte_counter_ += buffer.size() + block.size();
+        ++block_counter_;
 
         dispatcher_->AsyncWrite(
             *connection_,
@@ -109,20 +111,18 @@ public:
         assert(!closed_);
         closed_ = true;
 
-        tx_timespan_->StartEventually();
-
-        sLOG << "sending 'close stream' from my_rank" << my_rank_
+        sLOG << "sending 'close stream' from host_rank" << host_rank_
              << "worker" << my_local_worker_id_
              << "to" << peer_rank_
-             << "worker" << partners_local_worker_id_
+             << "worker" << peer_local_worker_id_
              << "stream" << id_;
 
         StreamBlockHeader header;
         header.magic = magic_;
         header.stream_id = id_;
-        header.sender_rank = my_rank_;
+        header.sender_rank = host_rank_;
         header.sender_local_worker_id = my_local_worker_id_;
-        header.receiver_local_worker_id = partners_local_worker_id_;
+        header.receiver_local_worker_id = peer_local_worker_id_;
 
         net::BufferBuilder bb;
         header.Serialize(bb);
@@ -130,9 +130,21 @@ public:
         net::Buffer buffer = bb.ToBuffer();
         assert(buffer.size() == BlockHeader::total_size);
 
-        (*byte_counter_) += buffer.size();
+        byte_counter_ += buffer.size();
+        ++block_counter_;
 
         dispatcher_->AsyncWrite(*connection_, std::move(buffer));
+
+        logger()
+            << "class" << "StreamSink"
+            << "event" << "close"
+            << "stream" << id_
+            << "src_worker" << (host_rank_ * workers_per_host()) + my_local_worker_id_
+            << "peer_host" << peer_rank_
+            << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_id_
+            << "bytes" << byte_counter_
+            << "blocks" << block_counter_
+            << "timespan" << tx_timespan_;
     }
 
     //! return close flag
@@ -151,15 +163,15 @@ private:
 
     MagicByte magic_ = MagicByte::Invalid;
     size_t id_ = size_t(-1);
-    size_t my_rank_ = size_t(-1);
+    size_t host_rank_ = size_t(-1);
     size_t my_local_worker_id_ = size_t(-1);
     size_t peer_rank_ = size_t(-1);
-    size_t partners_local_worker_id_ = size_t(-1);
+    size_t peer_local_worker_id_ = size_t(-1);
     bool closed_ = false;
 
-    StatsCounterPtr byte_counter_ = nullptr;
-    StatsCounterPtr block_counter_ = nullptr;
-    StatsTimerPtr tx_timespan_ = nullptr;
+    size_t byte_counter_ = 0;
+    size_t block_counter_ = 0;
+    common::StatsTimer<true> tx_timespan_ { true };
 };
 
 //! \}

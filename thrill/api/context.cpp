@@ -657,6 +657,10 @@ std::string HostContext::MakeHostLogPath(size_t host_rank) {
         return std::string();
     }
 
+    std::string log = env_log;
+    if (log == "/dev/stdout")
+        return log;
+
     return std::string(env_log)
            + "-host-" + std::to_string(host_rank) + ".json";
 }
@@ -667,6 +671,10 @@ std::string Context::MakeWorkerLogPath(size_t worker_rank) {
         // warning was already outputted for HostContext
         return std::string();
     }
+
+    std::string log = env_log;
+    if (log == "/dev/stdout")
+        return log;
 
     return std::string(env_log)
            + "-worker-" + std::to_string(worker_rank) + ".json";
