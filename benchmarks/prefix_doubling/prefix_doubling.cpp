@@ -247,7 +247,57 @@ struct CharCharIndex {
 } THRILL_ATTRIBUTE_PACKED;
 
 template <typename InputDIA>
-DIA<size_t> PrefixDoublinDementiev(Context& /*ctx*/, const InputDIA& input_dia, size_t input_size) {
+DIA<size_t> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t input_size) {
+    using Char = typename InputDIA::ValueType;
+    using CharCharIndex = ::CharCharIndex<Char>;
+
+    auto chars_sorted =
+        input_dia
+        .template FlatWindow<CharCharIndex>(
+            2,
+            [&](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                emit(CharCharIndex {rb[0], rb[1], index});
+                if (index == input_size - 2)
+                    emit(CharCharIndex {rb[1], std::numeric_limits<Char>::lowest(), index + 1});
+
+        })
+        .Sort([](const CharCharIndex& a, const CharCharIndex& b) {
+            return a < b;
+        });
+
+    DIA<size_t> renamed_ranks =
+        chars_sorted
+        .template FlatWindow<size_t>(
+            2,
+            [&](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
+                if (index == 0) emit(1);
+                if (rb[0] == rb[1]) emit(0);
+                else emit(index + 2);
+                if (index == input_size - 2) {
+                    if (rb[0] == rb[1]) emit(0);
+                    else emit(index + 3);
+                }
+
+        })
+        .PrefixSum([](const size_t a, const size_t b) {
+            return a > b ? a : b;
+        });
+
+    DIA<IndexRank> names =
+        chars_sorted
+        .Zip(
+            renamed_ranks,
+            [](const CharCharIndex& cci, const size_t r) {
+                return IndexRank {cci.index, r};
+        });
+
+    while (true) {
+        
+    }
+}
+
+template <typename InputDIA>
+DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size) {
     using Char = typename InputDIA::ValueType;
     using CharCharIndex = ::CharCharIndex<Char>;
 
@@ -592,7 +642,7 @@ public:
     template <typename InputDIA>
     void StartPrefixDoublingInput(const InputDIA& input_dia, uint64_t input_size, size_t /*computation_rounds*/) {
 
-        auto suffix_array = PrefixDoublinDementiev(ctx_, input_dia, input_size);
+        auto suffix_array = PrefixDoublingDementiev(input_dia, input_size);
         if (output_path_.size()) {
             suffix_array.WriteBinary(output_path_);
         }
