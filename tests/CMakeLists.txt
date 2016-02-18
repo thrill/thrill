@@ -89,6 +89,7 @@ build_test_group(common/tests
   common/function_traits_test.cpp
   common/future_queue_test.cpp
   common/future_test.cpp
+  common/json_logger_test.cpp
   common/lru_cache_test.cpp
   common/math_test.cpp
   common/matrix_test.cpp
