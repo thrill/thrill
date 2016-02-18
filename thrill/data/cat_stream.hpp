@@ -78,12 +78,12 @@ public:
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
             for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
                 if (host == multiplexer_.my_host_rank()) {
-                    sinks_.emplace_back(multiplexer_.block_pool_, worker);
+                    sinks_.emplace_back(*this, multiplexer_.block_pool_, worker);
                 }
                 else {
                     sinks_.emplace_back(
+                        *this,
                         multiplexer_.block_pool_,
-                        &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
                         MagicByte::CatStreamBlock,
                         id,

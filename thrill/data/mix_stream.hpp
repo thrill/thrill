@@ -63,13 +63,13 @@ public:
             for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
                 if (host == multiplexer_.my_host_rank()) {
                     // dummy entries
-                    sinks_.emplace_back(multiplexer_.block_pool_, worker);
+                    sinks_.emplace_back(*this, multiplexer_.block_pool_, worker);
                 }
                 else {
                     // StreamSink which transmits MIX_STREAM_BLOCKs
                     sinks_.emplace_back(
+                        *this,
                         multiplexer_.block_pool_,
-                        &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
                         MagicByte::MixStreamBlock,
                         id,

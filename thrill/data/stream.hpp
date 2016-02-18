@@ -166,8 +166,11 @@ protected:
     //! Callbacks that are called once when the stream is closed (r+w)
     std::vector<ClosedCallback> closed_callbacks_;
 
-    // protects against race conditions in closed_callbacks_ loop
+    //! protects against race conditions in closed_callbacks_ loop
     std::mutex mutex_;
+
+    //! friends for access to multiplexer_
+    friend class StreamSink;
 };
 
 using StreamPtr = std::shared_ptr<Stream>;

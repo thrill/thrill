@@ -186,6 +186,7 @@ private:
     //! friends for access to network components
     friend class CatStream;
     friend class MixStream;
+    friend class StreamSink;
 
     //! Pointer to queue that is used for communication between two workers on
     //! the same host.

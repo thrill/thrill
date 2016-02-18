@@ -10,11 +10,13 @@
 
 #include <thrill/data/stream_sink.hpp>
 
+#include <thrill/data/stream.hpp>
+
 namespace thrill {
 namespace data {
 
-StreamSink::StreamSink(BlockPool& block_pool,
-                       net::DispatcherThread* dispatcher,
+StreamSink::StreamSink(Stream& stream,
+                       BlockPool& block_pool,
                        net::Connection* connection,
                        MagicByte magic,
                        StreamId stream_id, size_t host_rank,
@@ -22,7 +24,7 @@ StreamSink::StreamSink(BlockPool& block_pool,
                        size_t peer_rank,
                        size_t peer_local_worker_id)
     : BlockSink(block_pool, my_local_worker_id),
-      dispatcher_(dispatcher),
+      stream_(stream),
       connection_(connection),
       magic_(magic),
       id_(stream_id),
@@ -63,7 +65,7 @@ void StreamSink::AppendBlock(const PinnedBlock& block) {
     byte_counter_ += buffer.size() + block.size();
     ++block_counter_;
 
-    dispatcher_->AsyncWrite(
+    stream_.multiplexer_.dispatcher_.AsyncWrite(
         *connection_,
         // send out Buffer and Block, guaranteed to be successive
         std::move(buffer), block);
@@ -95,7 +97,8 @@ void StreamSink::Close() {
     byte_counter_ += buffer.size();
     ++block_counter_;
 
-    dispatcher_->AsyncWrite(*connection_, std::move(buffer));
+    stream_.multiplexer_.dispatcher_.AsyncWrite(
+        *connection_, std::move(buffer));
 
     logger()
         << "class" << "StreamSink"
@@ -107,6 +110,9 @@ void StreamSink::Close() {
         << "bytes" << byte_counter_
         << "blocks" << block_counter_
         << "timespan" << tx_timespan_;
+
+    stream_.outgoing_bytes_ += byte_counter_;
+    stream_.outgoing_blocks_ += block_counter_;
 }
 
 } // namespace data
