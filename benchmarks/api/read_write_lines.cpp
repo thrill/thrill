@@ -18,7 +18,6 @@
 #include <string>
 
 using namespace thrill;         // NOLINT
-using common::StatsTimer;
 
 //! Reads and Writes line data from disk and measures time for whole process
 int main(int argc, const char** argv) {
@@ -36,7 +35,7 @@ int main(int argc, const char** argv) {
     for (int i = 0; i < iterations; i++) {
         api::Run(
             [&input_file, &output_file](api::Context& ctx) {
-                StatsTimer<true> timer(true);
+                common::StatsTimerStart timer;
                 auto lines = ReadLines(ctx, input_file);
                 lines.WriteLinesMany(output_file);
                 timer.Stop();

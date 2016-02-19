@@ -46,7 +46,7 @@ using namespace thrill; // NOLINT
 #define KiB (1024)
 #define MiB (1024 * 1024)
 
-using Timer = common::StatsTimer<true>;
+using Timer = common::StatsTimerStart;
 
 template <size_t RawBlockSize, typename AllocStrategy>
 int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint64_t batch_size,
@@ -120,7 +120,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
             std::cout << "Offset    " << std::setw(7) << offset / MiB << " MiB: " << std::fixed;
 
             double elapsed;
-            Timer t_run(true);
+            Timer t_run;
 
             if (do_write)
             {

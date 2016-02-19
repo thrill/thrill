@@ -17,8 +17,8 @@
 using namespace thrill::common;
 
 TEST(StatsTimer, Test1) {
-    StatsTimer<true> timer1;
-    StatsTimer<false> timer2;
+    StatsTimerBase<true> timer1(/* autostart */ false);
+    StatsTimerBase<false> timer2(/* autostart */ false);
 
     timer1.Start();
     timer2.Start();
@@ -46,8 +46,8 @@ namespace thrill {
 namespace common {
 
 // forced instantiations
-template class StatsTimer<true>;
-template class StatsTimer<false>;
+template class StatsTimerBase<true>;
+template class StatsTimerBase<false>;
 template class Stats<true>;
 template class Stats<false>;
 

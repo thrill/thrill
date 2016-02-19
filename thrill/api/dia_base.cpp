@@ -100,7 +100,7 @@ public:
         logger_ << "class" << "StageBuilder" << "event" << "execute-start"
                 << "targets" << targets;
 
-        common::StatsTimer<true> timer(true);
+        common::StatsTimerStart timer;
         node_->Execute();
         node_->set_state(DIAState::EXECUTED);
         timer.Stop();
@@ -127,7 +127,7 @@ public:
         logger_ << "class" << "StageBuilder" << "event" << "pushdata-start"
                 << "targets" << targets;
 
-        common::StatsTimer<true> timer(true);
+        common::StatsTimerStart timer;
         node_->RunPushData();
         node_->RemoveAllChildren();
         timer.Stop();

@@ -43,7 +43,7 @@ struct print_number
     }
 };
 
-using Timer = common::StatsTimer<true>;
+using Timer = common::StatsTimerStart;
 
 template <unsigned BlockSize, typename AllocStrategy>
 void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool do_write) {
@@ -90,7 +90,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
 
         if (do_init)
         {
-            Timer t_run(true);
+            Timer t_run;
             std::cout << "First fill up space by writing sequentially..." << std::endl;
             for (unsigned j = 0; j < num_blocks_in_span; j++)
                 reqs[j] = buffer->write(blocks[j]);
@@ -109,7 +109,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
 
         if (do_read)
         {
-            Timer t_run(true);
+            Timer t_run;
 
             for (unsigned j = 0; j < num_blocks; j++)
                 reqs[j] = buffer->read(blocks[j], print_number(j));
@@ -126,7 +126,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
 
         if (do_write)
         {
-            Timer t_run(true);
+            Timer t_run;
 
             for (unsigned j = 0; j < num_blocks; j++)
                 reqs[j] = buffer->write(blocks[j], print_number(j));

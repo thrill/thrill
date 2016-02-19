@@ -87,7 +87,7 @@ TEST_P(ThreadPool2, LoopUntilTerminate) {
             });
     }
 
-    StatsTimer<true> timer1(true);
+    StatsTimerStart timer1;
 
     // start thread which will stop the thread pool (if we would enqueue this as
     // job, it would be no different from the first test).

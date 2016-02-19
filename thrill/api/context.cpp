@@ -620,7 +620,7 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     logger_ << "class" << "Context"
             << "event" << "job-start";
 
-    common::StatsTimer<true> overall_timer(true);
+    common::StatsTimerStart overall_timer;
 
     try {
         job_startpoint(*this);

@@ -103,10 +103,9 @@ public:
 
     void PushData(bool consume) final {
         using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
-        thrill::common::StatsTimer<true> timer(false);
 
         LOG << "sort data";
-        timer.Start();
+        common::StatsTimerStart timer;
         const size_t num_runs = files_.size();
         // if there's only one run, call user funcs
         if (num_runs == 1) {
@@ -214,8 +213,6 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        thrill::common::StatsTimer<true> timer(false);
-
         LOG << "running group by main op";
 
         const size_t FIXED_VECTOR_SIZE = 1024 * 1024 * 1024 / sizeof(ValueIn) / 2;
@@ -229,7 +226,8 @@ private:
         }
         LOG << "closed all emitters";
         LOG << "receive elems";
-        timer.Start();
+
+        common::StatsTimerStart timer;
         // get incoming elements
         auto reader = stream_->OpenCatReader(true /* consume */);
         while (reader.HasNext()) {
@@ -251,7 +249,7 @@ private:
         LOG1    //<< "\n"
             << "RESULT"
             << " name=mainop"
-            << " time=" << timer.Milliseconds()
+            << " time=" << timer
             << " number_files=" << files_.size()
             << " vector_size=" << FIXED_VECTOR_SIZE;
     }

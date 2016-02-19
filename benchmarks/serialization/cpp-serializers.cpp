@@ -138,12 +138,11 @@ int main() {
     }
     std::pair<std::string, std::vector<std::size_t> > pair_serial = std::make_pair(str_serial, kIntegers);
 
-    common::StatsTimer<true> timer(false);
     data::BlockPool block_pool;
     data::File f(block_pool, 0);
     auto w = f.GetWriter();
 
-    timer.Start();
+    common::StatsTimerStart timer;
     for (std::size_t i = 0; i < 1000000; ++i) {
         {
             auto w2 = f.GetWriter();
@@ -152,7 +151,6 @@ int main() {
         auto r = f.GetConsumeReader();
         r.Next<std::pair<std::string, std::vector<std::size_t> > >();
     }
-    timer.Stop();
     LOG1 << timer.Milliseconds();
 }
 

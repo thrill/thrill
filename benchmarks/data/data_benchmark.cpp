@@ -29,6 +29,8 @@
 
 using namespace thrill; // NOLINT
 using common::StatsTimer;
+using common::StatsTimerStart;
+using common::StatsTimerStopped;
 
 using pair_type = std::tuple<std::string, size_t>;
 using triple_type = std::tuple<std::string, size_t, std::string>;
@@ -40,7 +42,7 @@ double CalcMiBs(size_t bytes, const std::chrono::microseconds::rep& microsec) {
 }
 
 //! calculate MiB/s given byte size and timer.
-double CalcMiBs(size_t bytes, const StatsTimer<true>& timer) {
+double CalcMiBs(size_t bytes, const StatsTimer& timer) {
     return CalcMiBs(bytes, timer.Microseconds());
 }
 
@@ -156,14 +158,14 @@ public:
             auto writer = file.GetWriter(block_size_);
             auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
-            StatsTimer<true> write_timer(true);
+            StatsTimerStart write_timer;
             while (data.HasNext()) {
                 writer.Put(data.Next());
             }
             writer.Close();
             write_timer.Stop();
 
-            StatsTimer<true> read_timer(true);
+            StatsTimerStart read_timer;
             auto reader = file.GetReader(consume);
             while (reader.HasNext())
                 reader.Next<Type>();
@@ -249,7 +251,7 @@ public:
             auto queue = data::BlockQueue(ctx.block_pool(), 0);
             auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
-            StatsTimer<true> write_timer;
+            StatsTimerStopped write_timer;
             threads.Enqueue(
                 [&]() {
                     auto writer = queue.GetWriter(block_size_);
@@ -266,7 +268,7 @@ public:
             for (size_t thread = 0; thread < num_threads_; thread++) {
                 threads.Enqueue(
                     [&]() {
-                        StatsTimer<true> read_timer(true);
+                        StatsTimerStart read_timer;
                         auto reader = queue.GetReader(consume);
                         while (reader.HasNext())
                             reader.Next<Type>();
@@ -363,7 +365,7 @@ public:
         auto stream = ctx.GetNewStream<Stream>();
         auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
-        StatsTimer<true> write_timer(true);
+        StatsTimerStart write_timer;
         {
             auto writers = stream->OpenWriters(block_size_);
             while (data.HasNext())
@@ -399,7 +401,7 @@ public:
             auto writers = stream->OpenWriters(block_size_);
         }
 
-        StatsTimer<true> read_timer(true);
+        StatsTimerStart read_timer;
         {
             auto reader = stream->OpenAnyReader(consume_);
             while (reader.HasNext())
@@ -451,9 +453,8 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
     for (size_t outer_repeat = 0;
          outer_repeat < outer_repeats_; ++outer_repeat) {
 
-        common::StatsTimer<true> timer;
+        StatsTimerStart timer;
 
-        timer.Start();
         for (size_t inner_repeat = 0;
              inner_repeat < inner_repeats_; inner_repeat++) {
             // perform 1-factor ping pongs (without barriers)
@@ -571,8 +572,8 @@ public:
 
         for (unsigned i = 0; i < iterations_; i++) {
 
-            StatsTimer<true> total_timer(true);
-            StatsTimer<true> read_timer;
+            StatsTimerStart total_timer;
+            StatsTimerStopped read_timer;
             auto stream = ctx.GetNewStream<Stream>();
 
             // start reader thread
@@ -595,7 +596,7 @@ public:
                         auto data = Generator<Type>(
                             bytes_ / ctx.num_workers(), min_size_, max_size_);
 
-                        StatsTimer<true> write_timer(true);
+                        StatsTimerStart write_timer;
                         while (data.HasNext()) {
                             writers[target].Put(data.Next());
                         }
@@ -685,8 +686,7 @@ public:
 
         for (unsigned i = 0; i < iterations_; i++) {
 
-            StatsTimer<true> total_timer(true);
-            StatsTimer<true> read_timer;
+            StatsTimerStart total_timer;
             auto stream = ctx.GetNewStream<data::CatStream>();
             data::File file(ctx.block_pool(), 0);
             auto writer = file.GetWriter();
@@ -702,6 +702,8 @@ public:
             }
 
             // start reader thread
+            StatsTimerStopped read_timer;
+
             common::ThreadPool threads(2);
             threads.Enqueue(
                 [&]() {
@@ -727,7 +729,7 @@ public:
                             offsets.push_back(0);
                     }
 
-                    StatsTimer<true> write_timer(true);
+                    StatsTimerStart write_timer;
                     stream->Scatter<Type>(file, offsets);
                     stream->Close();
                     write_timer.Stop();

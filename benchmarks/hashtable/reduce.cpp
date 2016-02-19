@@ -44,12 +44,11 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     api::Run([&input, &iterations](api::Context& ctx) {
-                 common::StatsTimer<true> timer(false);
 
                  auto in = api::ReadBinary<size_t>(ctx, input).Keep();
                  in.Size();
 
-                 timer.Start();
+                 common::StatsTimerStart timer;
                  in.ReduceByKey([](const size_t& in) {
                                     return in;
                                 }, [](const size_t& in1, const size_t& in2) {

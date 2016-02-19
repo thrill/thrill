@@ -54,7 +54,7 @@ void merge_test(thrill::api::Context& ctx) {
     size_t sum2 = merge_input2.Sum();
     std::swap(sum, sum2);
 
-    thrill::common::StatsTimer<true> timer(true);
+    thrill::common::StatsTimerStart timer;
 
     auto merge_result = merge_input1.Merge(merge_input2);
 

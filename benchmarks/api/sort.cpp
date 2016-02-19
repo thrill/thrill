@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
                 std::default_random_engine generator(std::random_device { } ());
                 std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
 
-                common::StatsTimer<true> timer(true);
+                common::StatsTimerStart timer;
                 api::Generate(
                     ctx,
                     [&distribution, &generator](size_t) -> size_t {

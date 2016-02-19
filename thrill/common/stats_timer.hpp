@@ -35,13 +35,11 @@ namespace common {
  * after some processing, the function stop() functions can be called, or
  * seconds() and other accessors can be called directly.
  */
-template <bool Active = true>
-class StatsTimer
-{ };
+template <bool Active>
+class StatsTimerBase;
 
-using TimerPtr = std::shared_ptr<StatsTimer<true> >;
 template <>
-class StatsTimer<true>
+class StatsTimerBase<true>
 {
 public:
     using steady_clock = std::chrono::steady_clock;
@@ -49,7 +47,7 @@ public:
 
     using duration = std::chrono::microseconds;
 
-private:
+protected:
     //! boolean whether the timer is currently running
     bool running_;
 
@@ -61,9 +59,8 @@ private:
 
 public:
     //! Initialize and optionally immediately start the timer
-    explicit StatsTimer(bool start_immediately = false)
-        : running_(false),
-          accumulated_() {
+    explicit StatsTimerBase(bool start_immediately)
+        : running_(false), accumulated_() {
         if (start_immediately) Start();
     }
 
@@ -76,7 +73,7 @@ public:
     }
 
     //! start timer
-    StatsTimer & Start() {
+    StatsTimerBase & Start() {
         assert(!running_);
         running_ = true;
         last_start_ = steady_clock::now();
@@ -84,7 +81,7 @@ public:
     }
 
     //! start timer only if it not running
-    StatsTimer & StartEventually() {
+    StatsTimerBase & StartEventually() {
         if (!running_) {
             running_ = true;
             last_start_ = steady_clock::now();
@@ -93,7 +90,7 @@ public:
     }
 
     //! stop timer
-    StatsTimer & Stop() {
+    StatsTimerBase & Stop() {
         assert(running_);
         running_ = false;
         accumulated_ += std::chrono::duration_cast<duration>(
@@ -102,14 +99,14 @@ public:
     }
 
     //! stop timer if it is running
-    StatsTimer & StopEventually() {
+    StatsTimerBase & StopEventually() {
         if (running_)
             Stop();
         return *this;
     }
 
     //! return accumulated time
-    StatsTimer & Reset() {
+    StatsTimerBase & Reset() {
         accumulated_ = duration(0);
         last_start_ = steady_clock::now();
         return *this;
@@ -145,23 +142,23 @@ public:
     }
 
     //! accumulate elapsed time from another timer
-    StatsTimer& operator += (const StatsTimer& tm) {
+    StatsTimerBase& operator += (const StatsTimerBase& tm) {
         accumulated_ += tm.accumulated_;
         return *this;
     }
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
-    friend std::ostream& operator << (std::ostream& os, const StatsTimer& t) {
+    friend std::ostream& operator << (std::ostream& os, const StatsTimerBase& t) {
         return os << t.Microseconds();
     }
 
-    friend JsonLine & Put(JsonLine& line, const StatsTimer& t) {
+    friend JsonLine & Put(JsonLine& line, const StatsTimerBase& t) {
         return Put(line, t.Microseconds());
     }
 };
 
 template <>
-class StatsTimer<false>
+class StatsTimerBase<false>
 {
 public:
     using steady_clock = std::chrono::steady_clock;
@@ -169,10 +166,8 @@ public:
 
     using duration = std::chrono::microseconds;
 
-public:
     //! Initialize and optionally immediately start the timer
-    explicit StatsTimer(bool = false)
-    { }
+    explicit StatsTimerBase(bool /* autostart */) { }
 
     //! Whether the timer is real
     bool Real() const { return false; }
@@ -183,27 +178,27 @@ public:
     }
 
     //! start timer
-    StatsTimer & Start() {
+    StatsTimerBase & Start() {
         return *this;
     }
 
     //! start timer only if it not running
-    StatsTimer & StartEventually() {
+    StatsTimerBase & StartEventually() {
         return *this;
     }
 
     //! stop timer
-    StatsTimer & Stop() {
+    StatsTimerBase & Stop() {
         return *this;
     }
 
     //! stop timer if it is running
-    StatsTimer & StopEventually() {
+    StatsTimerBase & StopEventually() {
         return *this;
     }
 
     //! return accumulated time
-    StatsTimer & Reset() {
+    StatsTimerBase & Reset() {
         return *this;
     }
 
@@ -228,15 +223,37 @@ public:
     }
 
     //! accumulate elapsed time from another timer
-    StatsTimer& operator += (const StatsTimer&) {
+    StatsTimerBase& operator += (const StatsTimerBase&) {
         return *this;
     }
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
-    friend std::ostream& operator << (std::ostream& os, const StatsTimer&) {
+    friend std::ostream& operator << (std::ostream& os, const StatsTimerBase&) {
         return os << "<invalid>";
     }
 };
+
+template <bool Active>
+class StatsTimerBaseStarted : public StatsTimerBase<Active>
+{
+public:
+    //! Initialize and automatically start the timer
+    StatsTimerBaseStarted()
+        : StatsTimerBase<Active>(/* start_immediately */ true) { }
+};
+
+template <bool Active>
+class StatsTimerBaseStopped : public StatsTimerBase<Active>
+{
+public:
+    //! Initialize but do NOT automatically start the timer
+    StatsTimerBaseStopped()
+        : StatsTimerBase<Active>(/* start_immediately */ false) { }
+};
+
+using StatsTimer = StatsTimerBase<true>;
+using StatsTimerStart = StatsTimerBaseStarted<true>;
+using StatsTimerStopped = StatsTimerBaseStopped<true>;
 
 } // namespace common
 } // namespace thrill

@@ -124,7 +124,7 @@ private:
         //! Reference to node
         ReadLinesNode& node_;
 
-        common::StatsTimer<true> read_timer;
+        common::StatsTimerStopped read_timer;
 
         size_t stats_total_bytes_ = 0;
         size_t stats_total_reads_ = 0;

@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 
     size_t count = std::stoi(input);
 
-    common::StatsTimer<true> timer;
+    common::StatsTimer timer;
 
     auto start_func =
         [&count, &timer](api::Context& ctx) {

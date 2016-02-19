@@ -39,15 +39,11 @@ using StreamId = size_t;
 class Stream
 {
 public:
-    using StatsTimer = common::StatsTimer<common::g_enable_stats>;
-
     using Writer = DynBlockWriter;
 
     Stream(Multiplexer& multiplexer, const StreamId& id,
            size_t my_local_worker_id)
-        : tx_lifetime_(true), rx_lifetime_(true),
-          tx_timespan_(), rx_timespan_(),
-          id_(id),
+        : id_(id),
           my_local_worker_id_(my_local_worker_id),
           multiplexer_(multiplexer),
           expected_closing_blocks_(
@@ -150,10 +146,10 @@ public:
     size_t outgoing_bytes_ = 0, outgoing_blocks_ = 0;
 
     //! Timers from creation of stream until rx / tx direction is closed.
-    StatsTimer tx_lifetime_, rx_lifetime_;
+    common::StatsTimerStart tx_lifetime_, rx_lifetime_;
 
     //! Timers from first rx / tx package until rx / tx direction is closed.
-    StatsTimer tx_timespan_, rx_timespan_;
+    common::StatsTimerStopped tx_timespan_, rx_timespan_;
 
     ///////////////////////////////////////////////////////////////////////////
 

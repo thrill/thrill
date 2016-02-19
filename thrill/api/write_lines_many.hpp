@@ -158,7 +158,7 @@ private:
     //! Targetl file size in bytes
     size_t target_file_size_;
 
-    common::StatsTimer<true> timer;
+    common::StatsTimerStopped timer;
 
     size_t stats_total_bytes_ = 0;
     size_t stats_total_elements_ = 0;
