@@ -85,7 +85,7 @@ private:
 
     size_t byte_counter_ = 0;
     size_t block_counter_ = 0;
-    common::StatsTimer<true> tx_timespan_ { true };
+    common::StatsTimer<true> timespan_ { true };
 };
 
 //! \}

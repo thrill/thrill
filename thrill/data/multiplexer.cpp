@@ -35,7 +35,7 @@ CatStreamPtr
 Multiplexer::_GetOrCreateCatStream(size_t id, size_t local_worker_id) {
     CatStreamSetPtr set =
         stream_sets_.GetOrCreate<CatStreamSet>(
-            id, *this, id, num_workers_per_host_);
+            id, *this, id, workers_per_host_);
     return set->peer(local_worker_id);
 }
 
@@ -43,7 +43,7 @@ MixStreamPtr
 Multiplexer::_GetOrCreateMixStream(size_t id, size_t local_worker_id) {
     MixStreamSetPtr set =
         stream_sets_.GetOrCreate<MixStreamSet>(
-            id, *this, id, num_workers_per_host_);
+            id, *this, id, workers_per_host_);
     return set->peer(local_worker_id);
 }
 
@@ -71,7 +71,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     StreamId id = header.stream_id;
     size_t local_worker = header.receiver_local_worker_id;
     size_t sender_worker_rank =
-        header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
+        header.sender_rank * workers_per_host_ + header.sender_local_worker_id;
 
     // round of allocation size to next power of two
     size_t alloc_size = header.size;
@@ -81,6 +81,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     if (header.magic == MagicByte::CatStreamBlock)
     {
         CatStreamPtr stream = GetOrCreateCatStream(id, local_worker);
+        stream->incoming_bytes_ += buffer.size();
 
         if (header.IsEnd()) {
             sLOG << "end of stream on" << s << "in CatStream" << id
@@ -108,6 +109,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     else if (header.magic == MagicByte::MixStreamBlock)
     {
         MixStreamPtr stream = GetOrCreateMixStream(id, local_worker);
+        stream->incoming_bytes_ += buffer.size();
 
         if (header.IsEnd()) {
             sLOG << "end of stream on" << s << "in MixStream" << id
@@ -141,7 +143,7 @@ void Multiplexer::OnCatStreamBlock(
     Connection& s, const StreamBlockHeader& header,
     const CatStreamPtr& stream, PinnedByteBlockPtr&& bytes) {
 
-    size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
+    size_t sender_worker_rank = header.sender_rank * workers_per_host_ + header.sender_local_worker_id;
     sLOG << "got block on" << s << "in CatStream" << header.stream_id << "from worker" << sender_worker_rank;
 
     stream->OnStreamBlock(
@@ -156,7 +158,7 @@ void Multiplexer::OnMixStreamBlock(
     Connection& s, const StreamBlockHeader& header,
     const MixStreamPtr& stream, PinnedByteBlockPtr&& bytes) {
 
-    size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
+    size_t sender_worker_rank = header.sender_rank * workers_per_host_ + header.sender_local_worker_id;
     sLOG << "got block on" << s << "in MixStream" << header.stream_id << "from worker" << sender_worker_rank;
 
     stream->OnStreamBlock(

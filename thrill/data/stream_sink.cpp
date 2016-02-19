@@ -36,8 +36,8 @@ StreamSink::StreamSink(Stream& stream,
         << "class" << "StreamSink"
         << "event" << "open"
         << "stream" << id_
-        << "src_worker" << (host_rank_ * workers_per_host()) + my_local_worker_id_
         << "peer_host" << peer_rank_
+        << "src_worker" << (host_rank_ * workers_per_host()) + my_local_worker_id_
         << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_id_;
 }
 
@@ -52,9 +52,7 @@ void StreamSink::AppendBlock(const PinnedBlock& block) {
     header.sender_local_worker_id = my_local_worker_id_;
     header.receiver_local_worker_id = peer_local_worker_id_;
 
-    if (debug) {
-        sLOG << "sending block" << common::Hexdump(block.ToString());
-    }
+    sLOG << "sending block" << common::Hexdump(block.ToString());
 
     net::BufferBuilder bb;
     header.Serialize(bb);
@@ -104,12 +102,12 @@ void StreamSink::Close() {
         << "class" << "StreamSink"
         << "event" << "close"
         << "stream" << id_
-        << "src_worker" << (host_rank_ * workers_per_host()) + my_local_worker_id_
         << "peer_host" << peer_rank_
+        << "src_worker" << (host_rank_ * workers_per_host()) + my_local_worker_id_
         << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_id_
         << "bytes" << byte_counter_
         << "blocks" << block_counter_
-        << "timespan" << tx_timespan_;
+        << "timespan" << timespan_;
 
     stream_.outgoing_bytes_ += byte_counter_;
     stream_.outgoing_blocks_ += block_counter_;

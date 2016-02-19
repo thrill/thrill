@@ -60,8 +60,8 @@ public:
 
         // construct StreamSink array
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
-            for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
-                if (host == multiplexer_.my_host_rank()) {
+            for (size_t worker = 0; worker < workers_per_host(); worker++) {
+                if (host == my_host_rank()) {
                     // dummy entries
                     sinks_.emplace_back(*this, multiplexer_.block_pool_, worker);
                 }
@@ -73,17 +73,17 @@ public:
                         &multiplexer_.group_.connection(host),
                         MagicByte::MixStreamBlock,
                         id,
-                        multiplexer_.my_host_rank(), my_local_worker_id,
+                        my_host_rank(), my_local_worker_id,
                         host, worker);
                 }
             }
         }
 
         // construct MixBlockQueueSink for loopback writers
-        for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
+        for (size_t worker = 0; worker < workers_per_host(); worker++) {
             loopback_.emplace_back(
                 queue_,
-                multiplexer_.my_host_rank() * multiplexer_.num_workers_per_host() + worker,
+                my_host_rank() * multiplexer_.workers_per_host() + worker,
                 worker);
         }
     }
@@ -104,15 +104,15 @@ public:
         std::vector<Writer> result;
 
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
-            for (size_t local_worker_id = 0; local_worker_id < multiplexer_.num_workers_per_host_; ++local_worker_id) {
-                if (host == multiplexer_.my_host_rank()) {
+            for (size_t local_worker_id = 0; local_worker_id < workers_per_host(); ++local_worker_id) {
+                if (host == my_host_rank()) {
                     auto target_queue_ptr =
                         multiplexer_.MixLoopback(id_, my_local_worker_id_, local_worker_id);
                     result.emplace_back(target_queue_ptr, block_size);
                 }
                 else {
                     size_t worker_id =
-                        host * multiplexer_.num_workers_per_host_ + local_worker_id;
+                        host * workers_per_host() + local_worker_id;
                     result.emplace_back(&sinks_[worker_id], block_size);
                 }
             }
@@ -143,7 +143,7 @@ public:
 
         // close loop-back queue from this worker to all others on this host.
         for (size_t local_worker_id = 0;
-             local_worker_id < multiplexer_.num_workers_per_host(); ++local_worker_id)
+             local_worker_id < multiplexer_.workers_per_host(); ++local_worker_id)
         {
             auto queue_ptr = multiplexer_.MixLoopback(
                 id_, my_local_worker_id_, local_worker_id);
@@ -156,14 +156,14 @@ public:
         // do it better -tb)
         while (!queue_.write_closed()) {
             sLOG << "MixStream" << id()
-                 << "host" << multiplexer_.my_host_rank()
+                 << "host" << my_host_rank()
                  << "local_worker" << my_local_worker_id_
                  << "wait for close";
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         tx_lifetime_.StopEventually();
         tx_timespan_.StopEventually();
-        CallClosedCallbacksEventually();
+        OnAllClosed();
     }
 
     //! Indicates if the stream is closed - meaning all remaining streams have
@@ -194,15 +194,14 @@ private:
     void OnStreamBlock(size_t from, PinnedBlock&& b) {
         assert(from < multiplexer_.num_workers());
         rx_timespan_.StartEventually();
+
         incoming_bytes_ += b.size();
         incoming_blocks_++;
 
         sLOG << "OnMixStreamBlock" << b;
 
-        if (debug) {
-            sLOG << "stream" << id_ << "receive from" << from << ":"
-                 << common::Hexdump(b.ToString());
-        }
+        sLOG << "stream" << id_ << "receive from" << from << ":"
+             << common::Hexdump(b.ToString());
 
         queue_.AppendBlock(from, std::move(b));
     }
@@ -213,18 +212,20 @@ private:
         assert(from < multiplexer_.num_workers());
         queue_.Close(from);
 
+        incoming_blocks_++;
+
         sLOG << "OnMixCloseStream from=" << from;
 
         if (expected_closing_blocks_ == ++received_closing_blocks_) {
             rx_lifetime_.StopEventually();
             rx_timespan_.StopEventually();
-            CallClosedCallbacksEventually();
+            OnAllClosed();
         }
     }
 
     //! Returns the loopback queue for the worker of this stream.
     MixBlockQueueSink * loopback_queue(size_t from_worker_id) {
-        assert(from_worker_id < multiplexer_.num_workers_per_host_);
+        assert(from_worker_id < workers_per_host());
         assert(from_worker_id < loopback_.size());
         sLOG0 << "expose loopback queue for" << from_worker_id;
         return &(loopback_[from_worker_id]);

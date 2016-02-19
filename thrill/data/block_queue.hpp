@@ -15,6 +15,7 @@
 
 #include <thrill/common/atomic_movable.hpp>
 #include <thrill/common/concurrent_bounded_queue.hpp>
+#include <thrill/common/stats_timer.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
 #include <thrill/data/block_writer.hpp>
@@ -52,10 +53,14 @@ public:
     using Reader = DynBlockReader;
     using ConsumeReader = BlockReader<ConsumeBlockQueueSource>;
 
+    using CloseCallback = common::delegate<void(BlockQueue&)>;
+
     //! Constructor from BlockPool
-    explicit BlockQueue(BlockPool& block_pool, size_t local_worker_id)
+    explicit BlockQueue(BlockPool& block_pool, size_t local_worker_id,
+                        const CloseCallback& close_callback = CloseCallback())
         : BlockSink(block_pool, local_worker_id),
-          file_(block_pool, local_worker_id) {
+          file_(block_pool, local_worker_id),
+          close_callback_(close_callback) {
         assert(local_worker_id < block_pool.workers_per_host());
     }
 
@@ -69,19 +74,27 @@ public:
     BlockQueue& operator = (BlockQueue&&) = default;
 
     void AppendBlock(const PinnedBlock& b) final {
+        byte_counter_ += b.size();
+        block_counter_++;
         queue_.emplace(b);
     }
     void AppendBlock(PinnedBlock&& b) {
+        byte_counter_ += b.size();
+        block_counter_++;
         queue_.emplace(std::move(b));
     }
 
     //! Close called by BlockWriter.
     void Close() final {
-        assert(!write_closed_); // racing condition tolerated
+        assert(!write_closed_);
         write_closed_ = true;
+
+        block_counter_++;
 
         // enqueue a closing Block.
         queue_.emplace();
+
+        if (close_callback_) close_callback_(*this);
     }
 
     enum { allocate_can_fail_ = false };
@@ -104,6 +117,13 @@ public:
 
     //! return number of block in the queue. Use this ONLY for DEBUGGING!
     size_t size() { return queue_.size() - (write_closed() ? 1 : 0); }
+
+    //! Returns byte_counter_
+    size_t byte_counter() const { return byte_counter_; }
+    //! Returns block_counter_
+    size_t block_counter() const { return block_counter_; }
+    //! Returns timespan_
+    const common::StatsTimer<true> & timespan() const { return timespan_; }
 
     //! Return a BlockWriter delivering to this BlockQueue.
     Writer GetWriter(size_t block_size = default_block_size) {
@@ -128,8 +148,18 @@ private:
     //! close message from the writer
     bool read_closed_ = false;
 
+    //! number of bytes transfered by the Queue
+    size_t byte_counter_ = 0;
+    //! number of blocks transfered by the Queue
+    size_t block_counter_ = 0;
+    //! timespan of existance
+    common::StatsTimer<true> timespan_ { true };
+
     //! File to cache blocks for implementing ConstBlockQueueSource.
     File file_;
+
+    //! callback to issue when the writer closes the Queue -- for delivering stats
+    CloseCallback close_callback_;
 
     //! for access to file_
     friend class CacheBlockQueueSource;
