@@ -135,6 +135,7 @@ for hostport in $THRILL_SSHLIST; do
   fi
   THRILL_EXPORTS="THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\""
   THRILL_EXPORTS="$THRILL_EXPORTS THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\""
+  THRILL_EXPORTS="$THRILL_EXPORTS THRILL_LOG=\"$THRILL_LOG\""
   THRILL_EXPORTS="$THRILL_EXPORTS THRILL_DIE_WITH_PARENT=1"
   REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
   echo $*
@@ -146,7 +147,11 @@ for hostport in $THRILL_SSHLIST; do
             "$cmd" "$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
             $host \
-            "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && exec \"$REMOTENAME\" $*"
+            "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && exec \"$REMOTENAME\" $*" &&
+        if [ -n "$THRILL_LOG" ]; then
+            scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
+                "$host:/tmp/$THRILL_LOG-*" "."
+        fi
       ) &
   else
       ssh \
@@ -161,6 +166,7 @@ echo "Waiting for execution to finish."
 for hostport in $THRILL_HOSTLIST; do
     wait
 done
+
 echo "Done."
 
 ################################################################################
