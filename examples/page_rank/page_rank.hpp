@@ -12,11 +12,8 @@
 #ifndef THRILL_EXAMPLES_PAGE_RANK_PAGE_RANK_HEADER
 #define THRILL_EXAMPLES_PAGE_RANK_PAGE_RANK_HEADER
 
-#include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/groupby_index.hpp>
-#include <thrill/api/max.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
@@ -31,6 +28,7 @@
 using namespace thrill; // NOLINT
 
 namespace examples {
+namespace page_rank {
 
 static const bool debug = false;
 
@@ -62,45 +60,10 @@ using OutgoingLinks = std::vector<PageId>;
 using OutgoingLinksRank = std::pair<std::vector<PageId>, Rank>;
 
 template <typename InStack>
-auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
+auto PageRank(const DIA<OutgoingLinks, InStack>&links,
+              size_t num_pages, size_t iterations) {
 
-    api::Context& ctx = input_links.context();
-
-    auto input =
-        input_links
-        .Map([](const std::string& input) {
-                 // parse "source\ttarget\n" lines
-                 char* endptr;
-                 unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
-                 die_unless(endptr && *endptr == '\t' && "Could not parse src tgt line");
-                 unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
-                 die_unless(endptr && *endptr == 0 && "Could not parse src tgt line");
-                 return PagePageLink { src, tgt };
-             });
-
-    size_t num_pages =
-        input
-        .Map([](const PagePageLink& ppl) { return std::max(ppl.src, ppl.tgt); })
-        .Max() + 1;
-
-    sLOG1 << "num_pages" << num_pages;
-    mem::malloc_tracker_print_status();
-
-    // aggregate all outgoing links of a page in this format: by index
-    // ([linked_url, linked_url, ...])
-
-    // group outgoing links from input file
-
-    auto links = input.template GroupByIndex<OutgoingLinks>(
-        [](const PagePageLink& p) { return p.src; },
-        [num_pages, all = std::vector < PageId > ()](auto& r, const PageId&) mutable {
-            all.clear();
-            while (r.HasNext()) {
-                all.push_back(r.Next().tgt);
-            }
-            return all;
-        },
-        num_pages).Cache();
+    api::Context& ctx = links.context();
 
     // initialize all ranks to 1.0: (url, rank)
 
@@ -109,7 +72,7 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
 
     // do iterations
     for (size_t iter = 0; iter < iterations; ++iter) {
-        LOG1 << "iteration " << iter;
+        LOG0 << "iteration " << iter;
 
         // for all outgoing link, get their rank contribution from all
         // links by doing:
@@ -139,7 +102,7 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
             [](const OutgoingLinksRank& p, auto emit) {
                 if (p.first.size() > 0) {
                     Rank rank_contrib = p.second / p.first.size();
-                    // assert (rank_contrib <= 1);
+                        // assert (rank_contrib <= 1);
                     for (const PageId& tgt : p.first) {
                         LOG << "contribs2 " << tgt << " " << rank_contrib;
                         emit(PageRankPair { tgt, rank_contrib });
@@ -164,23 +127,10 @@ auto PageRank(const DIA<std::string, InStack>&input_links, size_t iterations) {
                  }).Execute().Collapse();
     }
 
-    // construct output as (pageid, rank)
-
-    auto node_ids = Generate(
-        ctx, [](const size_t& index) { return index; }, num_pages);
-
-    // write result to line. add 1 to node_ids to revert back to normal
-    auto res = ranks.Zip(
-        node_ids,
-        [](const Rank& r, const PageId& p) {
-            return std::to_string(p) + ": " + std::to_string(r);
-        });
-
-    assert(res.Keep().Size() == num_pages);
-
-    return res;
+    return ranks;
 }
 
+} // namespace page_rank
 } // namespace examples
 
 #endif // !THRILL_EXAMPLES_PAGE_RANK_PAGE_RANK_HEADER

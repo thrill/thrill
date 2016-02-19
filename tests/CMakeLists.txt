@@ -172,6 +172,7 @@ thrill_build_test(api/zip_node_test)
 # currently disabled because it fails randomly when result is disbalanced
 thrill_build_only(api/merge_node_test)
 
+thrill_build_test(examples/page_rank_test)
 thrill_build_test(examples/word_count_test)
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
