@@ -10,6 +10,7 @@
 
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/distribute.hpp>
 #include <thrill/api/distribute_from.hpp>
@@ -283,7 +284,7 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
         one_mers_sorted
         .Map([](const IndexKMer& iom) {
             return iom.index;
-        }).Cache();
+        });
 
     if (debug_print)
         sa.Print("sa");
@@ -339,7 +340,7 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
             triple_sorted
             .Map([](const IndexRankRank& rri) {
                 return rri.index;
-        }).Cache();
+        });
 
         if (debug_print)
             sa.Print("sa");
@@ -456,7 +457,7 @@ int main(int argc, char* argv[]) {
                "suffix array on.");
     cp.AddFlag('d', "debug", debug_print,
                "Print debug info.");
-    debug = debug_print;
+    // debug = debug_print;
     // process command line
     if (!cp.Process(argc, argv))
         return -1;
