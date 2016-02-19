@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/k_means/k_means.hpp
+ * examples/k-means/k-means.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
