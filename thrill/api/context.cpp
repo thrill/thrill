@@ -14,7 +14,6 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/common/system_exception.hpp>
 
@@ -86,7 +85,6 @@ template <typename NetGroup>
 static inline void
 RunLoopbackThreads(size_t host_count, size_t workers_per_host,
                    const std::function<void(Context&)>& job_startpoint) {
-    static const bool debug = false;
 
     // construct a mock network of hosts
     std::vector<std::unique_ptr<HostContext> > host_contexts =
@@ -104,20 +102,7 @@ RunLoopbackThreads(size_t host_count, size_t workers_per_host,
                     common::NameThisThread(
                         log_prefix + " worker " + mem::to_string(worker));
 
-                    LOG << "Starting job on host " << ctx.host_rank();
-                    auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
-                    try {
-                        job_startpoint(ctx);
-                    }
-                    catch (std::exception& e) {
-                        LOG1 << "Worker " << worker
-                             << " threw " << typeid(e).name();
-                        LOG1 << "  what(): " << e.what();
-                        throw;
-                    }
-                    STOP_TIMER(overall_timer)
-                    LOG << "Worker " << worker << " done!";
-                    ctx.net.Barrier();
+                    ctx.Launch(job_startpoint);
                 });
         }
     }
@@ -279,11 +264,13 @@ int RunBackendLoopback(const std::function<void(Context&)>& job_startpoint) {
 HostContext::HostContext(size_t my_host_rank,
                          const std::vector<std::string>& endpoints,
                          size_t workers_per_host)
-    : workers_per_host_(workers_per_host),
+    : base_logger_(MakeHostLogPath(my_host_rank)),
+      logger_(&base_logger_, "host_rank", my_host_rank),
+      workers_per_host_(workers_per_host),
       net_manager_(net::tcp::Construct(my_host_rank,
                                        endpoints, net::Manager::kGroupCount)),
       flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-      block_pool_(0, 0, &mem_manager_, workers_per_host),
+      block_pool_(0, 0, &logger_, &mem_manager_, workers_per_host),
       data_multiplexer_(mem_manager_,
                         block_pool_, workers_per_host,
                         net_manager_.GetDataGroup())
@@ -383,29 +370,17 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
-    STAT_NO_RANK << "event" << "RunBackendTCP"
-                 << "my_host_rank" << my_host_rank
-                 << "workers_per_host" << workers_per_host;
-
     HostContext host_context(my_host_rank, hostlist, workers_per_host);
 
     std::vector<std::thread> threads(workers_per_host);
 
-    for (size_t i = 0; i < workers_per_host; i++) {
-        threads[i] = std::thread(
-            [&host_context, &job_startpoint, i] {
-                Context ctx(host_context, i);
-                common::NameThisThread(" worker " + mem::to_string(i));
+    for (size_t worker = 0; worker < workers_per_host; worker++) {
+        threads[worker] = std::thread(
+            [&host_context, &job_startpoint, worker] {
+                Context ctx(host_context, worker);
+                common::NameThisThread("worker " + mem::to_string(worker));
 
-                STAT(ctx) << "event" << "jobStart";
-                auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
-                job_startpoint(ctx);
-                STOP_TIMER(overall_timer)
-                if (overall_timer)
-                    STAT(ctx) << "event" << "jobDone"
-                              << "time" << overall_timer->Milliseconds();
-
-                ctx.net.Barrier();
+                ctx.Launch(job_startpoint);
             });
     }
 
@@ -468,22 +443,14 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
     // launch worker threads
     std::vector<std::thread> threads(workers_per_host);
 
-    for (size_t i = 0; i < workers_per_host; i++) {
-        threads[i] = std::thread(
-            [&host_context, &job_startpoint, i] {
-                Context ctx(host_context, i);
+    for (size_t worker = 0; worker < workers_per_host; worker++) {
+        threads[worker] = std::thread(
+            [&host_context, &job_startpoint, worker] {
+                Context ctx(host_context, worker);
                 common::NameThisThread("host " + mem::to_string(ctx.host_rank())
-                                       + " worker " + mem::to_string(i));
+                                       + " worker " + mem::to_string(worker));
 
-                STAT(ctx) << "event" << "jobStart";
-                auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
-                job_startpoint(ctx);
-                STOP_TIMER(overall_timer)
-                if (overall_timer)
-                    STAT(ctx) << "event" << "jobDone"
-                              << "time" << overall_timer->Milliseconds();
-
-                ctx.Barrier();
+                ctx.Launch(job_startpoint);
             });
     }
 
@@ -647,6 +614,70 @@ std::shared_ptr<data::CatStream> Context::GetNewStream<data::CatStream>() {
 template <>
 std::shared_ptr<data::MixStream> Context::GetNewStream<data::MixStream>() {
     return GetNewMixStream();
+}
+
+void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
+    logger_ << "class" << "Context"
+            << "event" << "job-start";
+
+    common::StatsTimerStart overall_timer;
+
+    try {
+        job_startpoint(*this);
+    }
+    catch (std::exception& e) {
+        LOG1 << "worker " << my_rank() << " threw " << typeid(e).name();
+        LOG1 << "  what(): " << e.what();
+
+        logger_ << "class" << "Context"
+                << "event" << "job-exception"
+                << "exception" << typeid(e).name()
+                << "what" << e.what();
+        throw;
+    }
+
+    logger_ << "class" << "Context"
+            << "event" << "job-done"
+            << "elapsed" << overall_timer;
+
+    net.Barrier();
+}
+
+/******************************************************************************/
+// Log path creator
+
+std::string HostContext::MakeHostLogPath(size_t host_rank) {
+    const char* env_log = getenv("THRILL_LOG");
+    if (!env_log) {
+        if (host_rank == 0) {
+            std::cerr << "Thrill: no THRILL_LOG was found, "
+                      << "so no json log is written."
+                      << std::endl;
+        }
+        return std::string();
+    }
+
+    std::string log = env_log;
+    if (log == "/dev/stdout")
+        return log;
+
+    return std::string(env_log)
+           + "-host-" + std::to_string(host_rank) + ".json";
+}
+
+std::string Context::MakeWorkerLogPath(size_t worker_rank) {
+    const char* env_log = getenv("THRILL_LOG");
+    if (!env_log) {
+        // warning was already outputted for HostContext
+        return std::string();
+    }
+
+    std::string log = env_log;
+    if (log == "/dev/stdout")
+        return log;
+
+    return std::string(env_log)
+           + "-worker-" + std::to_string(worker_rank) + ".json";
 }
 
 } // namespace api

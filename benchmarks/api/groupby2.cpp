@@ -53,7 +53,6 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func = [n, m, &input, host, worker](api::Context& ctx) {
-                          thrill::common::StatsTimer<true> timer(false);
 
                           auto modulo_keyfn = [m](size_t in) { return (in % m); };
 
@@ -68,7 +67,7 @@ int main(int argc, char* argv[]) {
 
                           std::size_t elem = 0;
                           // group by to compute median
-                          timer.Start();
+                          common::StatsTimerStart timer;
                           for (int i = 0; i < n; i++) {
                               LOG1 << "trying my best";
                               LOG1 << input;

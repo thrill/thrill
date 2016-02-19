@@ -59,7 +59,7 @@ template <typename ValueType, typename ParentDIA,
           const bool RobustKey, const bool SendPair>
 class ReduceNode final : public DOpNode<ValueType>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using Super = DOpNode<ValueType>;
 

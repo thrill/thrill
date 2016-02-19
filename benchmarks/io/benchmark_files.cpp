@@ -38,7 +38,7 @@ const char* default_file_type = "wincall";
 const char* default_file_type = "syscall";
 #endif
 
-using Timer = common::StatsTimer<true>;
+using Timer = common::StatsTimerStart;
 
 #ifdef WATCH_TIMES
 void watch_times(RequestPtr reqs[], unsigned n, double* out) {
@@ -234,7 +234,7 @@ int main(int argc, char* argv[]) {
               << " O_SYNC=" << (sync_io ? "yes" : "no")
               << std::endl;
 
-    Timer t_total(true);
+    Timer t_total;
     try {
         while (offset + uint64_t(step_size) <= endpos || length == 0)
         {
@@ -246,7 +246,7 @@ int main(int argc, char* argv[]) {
             std::cout << "File offset    " << std::setw(8) << offset / MB << " MiB: " << std::fixed;
 
             double elapsed;
-            Timer t_run(true);
+            Timer t_run;
 
             if (do_write)
             {

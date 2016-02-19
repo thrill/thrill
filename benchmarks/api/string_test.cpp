@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
         api::Run([&input](api::Context& ctx) {
                      auto input_dia = ReadLines(ctx, input);
 
-                     common::StatsTimer<true> timer(true);
+                     common::StatsTimerStart timer;
                      std::string str;
 
                      LOG1 << input_dia.template FlatMap<std::string>(

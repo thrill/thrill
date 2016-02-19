@@ -17,7 +17,6 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/stat_logger.hpp>
 
 #include <random>
 #include <string>
@@ -63,8 +62,6 @@ public:
         for (size_t i = local.begin; i < local.end; i++) {
             this->PushItem(generator_function_(i));
         }
-
-        // STAT(context_) << "NodeType" << "Generate";
     }
 
 private:

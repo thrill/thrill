@@ -27,7 +27,8 @@ namespace common {
 /******************************************************************************/
 // SFINAE check whether a class method exists.
 
-// based on http://stackoverflow.com/questions/257288/is-it-possible-to-write-a-c-template-to-check-for-a-functions-existence
+// based on http://stackoverflow.com/questions/257288/is-it-possible
+// -to-write-a-c-template-to-check-for-a-functions-existence
 
 //! macro template for class method / attribute SFINAE test
 #define THRILL_MAKE_METHOD_TEST(Method)                         \

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/k_means/k_means_gen.cpp
+ * examples/k-means/k-means_run.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -8,7 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/k_means/k_means.hpp>
+#include <examples/k-means/k-means.hpp>
 
 #include <thrill/api/generate.hpp>
 #include <thrill/common/cmdline_parser.hpp>

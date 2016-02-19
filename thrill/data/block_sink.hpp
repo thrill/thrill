@@ -59,6 +59,12 @@ public:
         block = nullptr;
     }
 
+    //! Returns BlockPool.logger_
+    common::JsonLogger & logger() { return block_pool_->logger(); }
+
+    //! return number of workers per host
+    size_t workers_per_host() const { return block_pool_->workers_per_host(); }
+
     //! boolean flag whether to check if AllocateByteBlock can fail in any
     //! subclass (if false: accelerate BlockWriter to not be able to cope with
     //! nullptr).

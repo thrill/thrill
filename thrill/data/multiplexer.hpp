@@ -66,15 +66,15 @@ class Multiplexer
 public:
     explicit Multiplexer(mem::Manager& mem_manager,
                          data::BlockPool& block_pool,
-                         size_t num_workers_per_host, net::Group& group)
+                         size_t workers_per_host, net::Group& group)
         : mem_manager_(mem_manager),
           block_pool_(block_pool),
           dispatcher_(
               mem_manager, group,
               "host " + mem::to_string(group.my_host_rank()) + " multiplexer"),
           group_(group),
-          num_workers_per_host_(num_workers_per_host),
-          stream_sets_(num_workers_per_host) {
+          workers_per_host_(workers_per_host),
+          stream_sets_(workers_per_host) {
         for (size_t id = 0; id < group_.num_hosts(); id++) {
             if (id == group_.my_host_rank()) continue;
             AsyncReadBlockHeader(group_.connection(id));
@@ -102,16 +102,19 @@ public:
 
     //! total number of workers.
     size_t num_workers() const {
-        return num_hosts() * num_workers_per_host_;
+        return num_hosts() * workers_per_host_;
     }
 
     //! number of workers per host
-    size_t num_workers_per_host() const {
-        return num_workers_per_host_;
+    size_t workers_per_host() const {
+        return workers_per_host_;
     }
 
     //! Get the used BlockPool
     BlockPool & block_pool() { return block_pool_; }
+
+    //! Get the JsonLogger from the BlockPool
+    common::JsonLogger & logger() { return block_pool_.logger(); }
 
     //! \name CatStream
     //! \{
@@ -178,7 +181,7 @@ private:
     net::Group& group_;
 
     //! Number of workers per host
-    size_t num_workers_per_host_;
+    size_t workers_per_host_;
 
     //! protects critical sections
     std::mutex mutex_;
@@ -186,6 +189,7 @@ private:
     //! friends for access to network components
     friend class CatStream;
     friend class MixStream;
+    friend class StreamSink;
 
     //! Pointer to queue that is used for communication between two workers on
     //! the same host.

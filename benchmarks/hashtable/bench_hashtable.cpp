@@ -75,7 +75,7 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& config) {
           core::ReduceByHash<Key>(),
           config);
 
-    common::StatsTimer<true> timer(true);
+    common::StatsTimerStart timer;
 
     for (uint64_t i = 0; i < num_items; i++)
         stage.Insert(dist(rng));

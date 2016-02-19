@@ -19,7 +19,6 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
@@ -54,7 +53,7 @@ namespace api {
 template <typename ValueType, typename ParentDIA, typename CompareFunction>
 class SortNode final : public DOpNode<ValueType>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -545,11 +544,12 @@ private:
             balance = 1 / balance;
         }
 
-        STATC << "NodeType" << "Sort"
-              << "Workers" << num_total_workers
-              << "local_out_size" << local_out_size_
-              << "Balance Factor" << balance
-              << "Sample Size" << samples_.size();
+        Super::logger_
+            << "event" << "done"
+            << "workers" << num_total_workers
+            << "local_out_size" << local_out_size_
+            << "balance" << balance
+            << "sample_size" << samples_.size();
     }
 
     void PostOp() { }

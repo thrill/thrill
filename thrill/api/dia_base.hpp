@@ -63,13 +63,10 @@ public:
             const std::vector<DIABasePtr>& parents,
             StatsNode* stats_node)
         : context_(ctx), parents_(parents),
-          execution_timer_(
-              ctx.stats().CreateTimer(
-                  "DIABase::execution", stats_node->label())),
-          lifetime_(
-              ctx.stats().CreateTimer(
-                  "DIABase::lifetime", stats_node->label(), true)),
-          stats_node_(stats_node) { }
+          stats_node_(stats_node) {
+        logger_ << "event" << "create"
+                << "parents" << parent_ids();
+    }
 
     //! non-copyable: delete copy-constructor
     DIABase(const DIABase&) = delete;
@@ -84,13 +81,13 @@ public:
     virtual ~DIABase() {
         // Remove child pointer from parent If a parent loses all its childs its
         // reference count should be zero and he should be removed
-        LOG0 << "~DIABase(): " << *this;
+
+        logger_ << "event" << "destroy"
+                << "parents" << parent_ids();
 
         // de-register at parents (if still hooked there)
         for (const DIABasePtr& p : parents_)
             p->RemoveChild(this);
-
-        STOP_TIMER(lifetime_)
     }
 
     //! Virtual method to determine whether a node can be Executed() = run such
@@ -146,18 +143,25 @@ public:
         return stats_node_->type();
     }
 
+    //! Returns consume_counter_
+    size_t consume_counter() const { return consume_counter_; }
+
     //! Virtual SetConsume flag which is called by the user via .Keep() or
     //! .Consume() to set consumption.
     virtual void IncConsumeCounter(size_t counter) {
         consume_counter_ += counter;
     }
 
-    //! Returns consume_counter_
-    size_t consume_counter() const { return consume_counter_; }
+    //! Returns the parents of this DIABase.
+    const std::vector<DIABasePtr> & parents() const {
+        return parents_;
+    }
 
     //! Returns the parents of this DIABase.
-    const std::vector<DIABasePtr> & parents() {
-        return parents_;
+    std::vector<size_t> parent_ids() const {
+        std::vector<size_t> ids;
+        for (const DIABasePtr& p : parents_) ids.push_back(p->id());
+        return ids;
     }
 
     //! Remove a parent
@@ -210,12 +214,6 @@ protected:
     //! Parents of this DIABase.
     std::vector<DIABasePtr> parents_;
 
-    //! Timer that tracks execution of this node
-    common::TimerPtr execution_timer_;
-
-    //! Timer that tracks the lifetime of this object
-    common::TimerPtr lifetime_;
-
     //! Timer that tracks the lifetime of this object
     api::StatsNode* stats_node_;
 
@@ -225,6 +223,14 @@ protected:
 
     //! Never full consume
     static const size_t never_consume_ = size_t(-1);
+
+public:
+    /**************************************************************************/
+    // JsonLogger for this DIANode
+
+    common::JsonLogger logger_ {
+        &context_.logger_, "node_id", id(), "node_label", label()
+    };
 };
 
 using DIABasePtr = std::shared_ptr<DIABase>;

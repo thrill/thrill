@@ -18,7 +18,6 @@
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/core/file_io.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
@@ -167,9 +166,10 @@ public:
             }
         }
 
-        STATC << "NodeType" << "ReadBinary"
-              << "TotalBytes" << stats_total_bytes
-              << "TotalReads" << stats_total_reads;
+        Super::logger_
+            << "event" << "done"
+            << "total_bytes" << stats_total_bytes
+            << "total_reads" << stats_total_reads;
 
         LOG << "DONE!";
     }

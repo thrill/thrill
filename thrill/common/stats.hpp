@@ -64,11 +64,6 @@ public:
         return result->second.second;
     }
 
-    TimerPtr CreateTimer(const std::string& group, const std::string& label, bool auto_start = false) {
-        auto result = timers_.insert(std::make_pair(group, std::make_pair(label, std::make_shared<StatsTimer<true> >(auto_start))));
-        return result->second.second;
-    }
-
     void AddReport(const std::string& group, const std::string& label, const std::string& content) {
         reports_.insert(std::make_pair(group, std::make_pair(label, content)));
     }
@@ -76,8 +71,6 @@ public:
     ~Stats() {
         std::set<std::string> group_names;
         for (const auto& it : timed_counters_)
-            group_names.insert(it.first);
-        for (const auto& it : timers_)
             group_names.insert(it.first);
         for (const auto& it : reports_)
             group_names.insert(it.first);
@@ -90,13 +83,6 @@ public:
         auto group_timed_counters = timed_counters_.equal_range(group_name);
         for (auto group_it = group_timed_counters.first; group_it != group_timed_counters.second; group_it++)
             ss << group_name << "; " << PrintTimedCounter(group_it->second.second, group_it->second.first) << std::endl;
-
-        auto group_timers = timers_.equal_range(group_name);
-        for (auto group_it = group_timers.first; group_it != group_timers.second; group_it++)
-            ss << group_name << "; " << PrintStatsTimer(group_it->second.second, group_it->second.first) << std::endl;
-        auto stats = PrintStatsTimerAverage(group_name);
-        if (!stats.empty())
-            ss << group_name << ";" << stats << std::endl;
 
         auto group_reports = reports_.equal_range(group_name);
         for (auto group_it = group_reports.first; group_it != group_reports.second; group_it++)
@@ -121,39 +107,8 @@ public:
         return ss.str();
     }
 
-    std::string PrintStatsTimer(const TimerPtr& timer, std::string name = "unnamed") {
-        std::stringstream ss;
-        ss << "timer; " << name << "; " << *timer;
-        return ss.str();
-    }
-
-    std::string PrintStatsTimerAverage(const std::string group_name) {
-        std::stringstream ss;
-        std::chrono::microseconds::rep sum = 0;
-        std::chrono::microseconds::rep mean = 0;
-        std::chrono::microseconds::rep sum_deviation = 0;
-        size_t count = 0;
-        auto group_timers = timers_.equal_range(group_name);
-        for (auto group_it = group_timers.first; group_it != group_timers.second; group_it++) {
-            sum += group_it->second.second->Microseconds();
-            count++;
-        }
-        if (count < 1) {
-            return "";
-        }
-        mean = sum / count;
-        for (auto group_it = group_timers.first; group_it != group_timers.second; group_it++) {
-            auto val = group_it->second.second->Microseconds();
-            sum_deviation += (val - mean) * (val - mean);
-        }
-        auto deviation = std::sqrt(sum_deviation / count);
-        ss << " total; " << sum << "; count; " << count << "; avg; " << mean << "; std-dev; " << deviation;
-        return ss.str();
-    }
-
 private:
     std::multimap<std::string, std::pair<std::string, TimedCounterPtr> > timed_counters_;
-    std::multimap<std::string, std::pair<std::string, TimerPtr> > timers_;
     std::multimap<std::string, std::pair<std::string, std::string> > reports_;
     const TimeStamp program_start_;
 
@@ -175,14 +130,6 @@ public:
 
     TimedCounterPtr CreateTimedCounter(const std::string& /* group */, const std::string& /*label*/) {
         return TimedCounterPtr();
-    }
-
-    TimerPtr CreateTimer(const std::string& /*group*/, const std::string& /*label*/) {
-        return TimerPtr();
-    }
-
-    TimerPtr CreateTimer(const std::string& /*group*/, const std::string& /*label*/, bool /*auto_start */) {
-        return TimerPtr();
     }
 
     void AddReport(const std::string& /*group*/, const std::string& /*label*/, const std::string& /*content*/) {

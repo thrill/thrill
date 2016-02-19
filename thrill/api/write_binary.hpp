@@ -16,7 +16,6 @@
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/core/file_io.hpp>
 #include <thrill/data/block_sink.hpp>
@@ -73,9 +72,10 @@ public:
         sLOG << "closing file" << out_pathbase_;
         writer_.reset();
         sink_.reset();
-        STAT(context_) << "NodeType" << "WriteBinary"
-                       << "TotalElements" << stats_total_elements_
-                       << "TotalWrites" << stats_total_writes_;
+
+        Super::logger_
+            << "total_elements" << stats_total_elements_
+            << "total_writes" << stats_total_writes_;
     }
 
     void Execute() final { }

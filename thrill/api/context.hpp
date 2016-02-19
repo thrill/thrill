@@ -17,7 +17,7 @@
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
 #include <thrill/common/defines.hpp>
-#include <thrill/common/stats.hpp>
+#include <thrill/common/json_logger.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/cat_stream.hpp>
 #include <thrill/data/file.hpp>
@@ -58,10 +58,12 @@ public:
     //! constructor from existing net Groups. Used by the construction methods.
     HostContext(std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host)
-        : workers_per_host_(workers_per_host),
+        : base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
+          logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
+          workers_per_host_(workers_per_host),
           net_manager_(std::move(groups)),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-          block_pool_(0, 0, &mem_manager_, workers_per_host),
+          block_pool_(0, 0, &logger_, &mem_manager_, workers_per_host),
           data_multiplexer_(mem_manager_,
                             block_pool_, workers_per_host,
                             net_manager_.GetDataGroup())
@@ -72,6 +74,9 @@ public:
     ConstructLoopback(size_t host_count, size_t workers_per_host);
 #endif
 
+    //! create host log
+    static std::string MakeHostLogPath(size_t worker_rank);
+
     //! number of workers per host (all have the same).
     size_t workers_per_host() const { return workers_per_host_; }
 
@@ -81,6 +86,10 @@ public:
     //! net manager constructs communication groups to other hosts.
     net::Manager & net_manager() { return net_manager_; }
 
+    //! Returns id of this host in the cluser. A host is a machine in the
+    //! cluster that hosts multiple workers
+    size_t host_rank() const { return net_manager_.my_host_rank(); }
+
     //! the flow control group is used for collective communication.
     net::FlowControlChannelManager & flow_manager() { return flow_manager_; }
 
@@ -89,6 +98,20 @@ public:
 
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer & data_multiplexer() { return data_multiplexer_; }
+
+public:
+    //! \name Logging System
+    //! {
+
+    //! base logger exclusive for this host context
+    common::JsonLogger base_logger_;
+
+    //! public member which delivers key:value pairs as JSON log lines. this
+    //! logger is local to this Context which is exclusive for one worker
+    //! thread.
+    common::JsonLogger logger_;
+
+    //! }
 
 private:
     //! number of workers per host (all have the same).
@@ -127,26 +150,34 @@ public:
             data::BlockPool& block_pool,
             data::Multiplexer& multiplexer,
             size_t workers_per_host, size_t local_worker_id)
-        : mem_manager_(mem_manager),
+        : local_worker_id_(local_worker_id),
+          workers_per_host_(workers_per_host),
+          mem_manager_(mem_manager),
           net_manager_(net_manager),
           flow_manager_(flow_manager),
           block_pool_(block_pool),
           multiplexer_(multiplexer),
-          local_worker_id_(local_worker_id),
-          workers_per_host_(workers_per_host) {
+          base_logger_(MakeWorkerLogPath(my_rank())) {
         assert(local_worker_id < workers_per_host);
     }
 
     Context(HostContext& host_context, size_t local_worker_id)
-        : mem_manager_(host_context.mem_manager()),
+        : local_worker_id_(local_worker_id),
+          workers_per_host_(host_context.workers_per_host()),
+          mem_manager_(host_context.mem_manager()),
           net_manager_(host_context.net_manager()),
           flow_manager_(host_context.flow_manager()),
           block_pool_(host_context.block_pool()),
           multiplexer_(host_context.data_multiplexer()),
-          local_worker_id_(local_worker_id),
-          workers_per_host_(host_context.workers_per_host()) {
+          base_logger_(MakeWorkerLogPath(my_rank())) {
         assert(local_worker_id < workers_per_host());
     }
+
+    //! create worker log
+    static std::string MakeWorkerLogPath(size_t worker_rank);
+
+    //! method used to launch a job's main procedure. it wraps it in log output.
+    void Launch(const std::function<void(Context&)>& job_startpoint);
 
     //! \name System Information
     //! \{
@@ -229,11 +260,6 @@ public:
 
     //! \}
 
-    //! Returns the stats object for this worker
-    common::Stats<common::g_enable_stats> & stats() {
-        return stats_;
-    }
-
     //! Returns the stats graph object for this worker
     api::StatsGraph & stats_graph() {
         return stats_graph_;
@@ -264,6 +290,12 @@ public:
     void enable_consume(bool consume = true) { consume_ = consume; }
 
 private:
+    //! number of this host context, 0..p-1, within this host
+    size_t local_worker_id_;
+
+    //! number of workers hosted per host
+    size_t workers_per_host_;
+
     //! host-global memory manager
     mem::Manager& mem_manager_;
 
@@ -279,15 +311,8 @@ private:
     //! data::Multiplexer instance that is shared among workers
     data::Multiplexer& multiplexer_;
 
-    //! StatsGrapg object that is uniquely held for this worker
+    //! StatsGraph object that is uniquely held for this worker
     api::StatsGraph stats_graph_;
-    common::Stats<common::g_enable_stats> stats_;
-
-    //! number of this host context, 0..p-1, within this host
-    size_t local_worker_id_;
-
-    //! number of workers hosted per host
-    size_t workers_per_host_;
 
     //! flag to set which enables selective consumption of DIA contents!
     bool consume_ = false;
@@ -304,6 +329,22 @@ public:
     };
 
     //! \}
+
+public:
+    //! \name Logging System
+    //! {
+
+    //! base logger exclusive for this worker
+    common::JsonLogger base_logger_;
+
+    //! public member which delivers key:value pairs as JSON log lines. this
+    //! logger is local to this Context which is exclusive for one worker
+    //! thread.
+    common::JsonLogger logger_ {
+        &base_logger_, "host_rank", host_rank(), "worker_rank", my_rank()
+    };
+
+    //! }
 };
 
 //! \name Run Methods with Internal Networks for Testing

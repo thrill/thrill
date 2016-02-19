@@ -27,6 +27,9 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
+// forward declarations
+class Stream;
+
 /*!
  * StreamSink is an BlockSink that sends data via a network socket to the
  * Stream object on a different worker.
@@ -35,105 +38,28 @@ class StreamSink final : public BlockSink
 {
 public:
     using StreamId = size_t;
-    // use ptr because the default ctor cannot leave references unitialized
-    using StatsCounterPtr = common::StatsCounter<size_t, common::g_enable_stats>*;
-    using StatsTimerPtr = common::StatsTimer<common::g_enable_stats>*;
 
     //! Construct invalid StreamSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    explicit StreamSink(BlockPool& block_pool, size_t local_worker_id)
-        : BlockSink(block_pool, local_worker_id), closed_(true) { }
+    StreamSink(Stream& stream, BlockPool& block_pool, size_t local_worker_id)
+        : BlockSink(block_pool, local_worker_id),
+          stream_(stream), closed_(true) { }
 
-    /*!
-     * StreamSink sending out to network.
-     */
-    StreamSink(BlockPool& block_pool,
-               net::DispatcherThread* dispatcher,
+    //! StreamSink sending out to network.
+    StreamSink(Stream& stream, BlockPool& block_pool,
                net::Connection* connection,
-               MagicByte magic,
-               StreamId stream_id, size_t my_rank,
-               size_t my_local_worker_id,
-               size_t peer_rank,
-               size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
-        : BlockSink(block_pool, my_local_worker_id),
-          dispatcher_(dispatcher),
-          connection_(connection),
-          magic_(magic),
-          id_(stream_id),
-          my_rank_(my_rank),
-          my_local_worker_id_(my_local_worker_id),
-          peer_rank_(peer_rank),
-          partners_local_worker_id_(partners_local_worker_id),
-          byte_counter_(byte_counter),
-          block_counter_(block_counter),
-          tx_timespan_(tx_timespan)
-    { }
+               MagicByte magic, StreamId stream_id,
+               size_t host_rank, size_t my_local_worker_id,
+               size_t peer_rank, size_t peer_local_worker_id);
 
     StreamSink(StreamSink&&) = default;
+    StreamSink& operator = (StreamSink&&) = default;
 
     //! Appends data to the StreamSink.  Data may be sent but may be delayed.
-    void AppendBlock(const PinnedBlock& block) final {
-        if (block.size() == 0) return;
-
-        tx_timespan_->StartEventually();
-        sLOG << "StreamSink::AppendBlock" << block;
-
-        StreamBlockHeader header(magic_, block);
-        header.stream_id = id_;
-        header.sender_rank = my_rank_;
-        header.sender_local_worker_id = my_local_worker_id_;
-        header.receiver_local_worker_id = partners_local_worker_id_;
-
-        if (debug) {
-            sLOG << "sending block" << common::Hexdump(block.ToString());
-        }
-
-        net::BufferBuilder bb;
-        header.Serialize(bb);
-
-        net::Buffer buffer = bb.ToBuffer();
-        assert(buffer.size() == BlockHeader::total_size);
-
-        (*byte_counter_) += buffer.size();
-        (*byte_counter_) += block.size();
-        (*block_counter_)++;
-
-        dispatcher_->AsyncWrite(
-            *connection_,
-            // send out Buffer and Block, guaranteed to be successive
-            std::move(buffer), block);
-    }
+    void AppendBlock(const PinnedBlock& block) final;
 
     //! Closes the connection
-    void Close() final {
-        assert(!closed_);
-        closed_ = true;
-
-        tx_timespan_->StartEventually();
-
-        sLOG << "sending 'close stream' from my_rank" << my_rank_
-             << "worker" << my_local_worker_id_
-             << "to" << peer_rank_
-             << "worker" << partners_local_worker_id_
-             << "stream" << id_;
-
-        StreamBlockHeader header;
-        header.magic = magic_;
-        header.stream_id = id_;
-        header.sender_rank = my_rank_;
-        header.sender_local_worker_id = my_local_worker_id_;
-        header.receiver_local_worker_id = partners_local_worker_id_;
-
-        net::BufferBuilder bb;
-        header.Serialize(bb);
-
-        net::Buffer buffer = bb.ToBuffer();
-        assert(buffer.size() == BlockHeader::total_size);
-
-        (*byte_counter_) += buffer.size();
-
-        dispatcher_->AsyncWrite(*connection_, std::move(buffer));
-    }
+    void Close() final;
 
     //! return close flag
     bool closed() const { return closed_; }
@@ -146,20 +72,20 @@ public:
 private:
     static const bool debug = false;
 
-    net::DispatcherThread* dispatcher_ = nullptr;
+    Stream& stream_;
     net::Connection* connection_ = nullptr;
 
     MagicByte magic_ = MagicByte::Invalid;
-    size_t id_ = size_t(-1);
-    size_t my_rank_ = size_t(-1);
+    StreamId id_ = size_t(-1);
+    size_t host_rank_ = size_t(-1);
     size_t my_local_worker_id_ = size_t(-1);
     size_t peer_rank_ = size_t(-1);
-    size_t partners_local_worker_id_ = size_t(-1);
+    size_t peer_local_worker_id_ = size_t(-1);
     bool closed_ = false;
 
-    StatsCounterPtr byte_counter_ = nullptr;
-    StatsCounterPtr block_counter_ = nullptr;
-    StatsTimerPtr tx_timespan_ = nullptr;
+    size_t byte_counter_ = 0;
+    size_t block_counter_ = 0;
+    common::StatsTimerStart timespan_;
 };
 
 //! \}

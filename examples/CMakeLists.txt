@@ -9,7 +9,7 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-add_subdirectory(k_means)
+add_subdirectory(k-means)
 add_subdirectory(page_rank)
 add_subdirectory(word_count)
 

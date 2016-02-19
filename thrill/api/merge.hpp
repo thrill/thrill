@@ -38,18 +38,18 @@ namespace api {
 //! \{
 
 /*!
-* merge_local holds functions internally used by merge.
-*/
+ * merge_local holds functions internally used by merge.
+ */
 namespace merge_local {
 
 //! Set this variable to true to enable generation and output of merge stats.
 static const bool stats_enabled = false;
 
-using StatsTimer = common::StatsTimer<stats_enabled>;
+using StatsTimer = common::StatsTimerBaseStopped<stats_enabled>;
 
 /*!
-* MergeStatsBase holds timers for measuring merge performance.
-*/
+ * MergeStatsBase holds timers for measuring merge performance.
+ */
 class MergeStatsBase
 {
 public:
@@ -74,9 +74,9 @@ public:
 };
 
 /*!
-* MergeStats is an implementation of MergeStatsBase, that supports accumulating
-* the output and printing it to the standard out stream.
-*/
+ * MergeStats is an implementation of MergeStatsBase, that supports accumulating
+ * the output and printing it to the standard out stream.
+ */
 class MergeStats : public MergeStatsBase
 {
 public:

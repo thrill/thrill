@@ -38,7 +38,7 @@ double CalcMiBs(size_t bytes, const std::chrono::microseconds::rep& microsec) {
 }
 
 //! calculate MiB/s given byte size and timer.
-double CalcMiBs(size_t bytes, const common::StatsTimer<true>& timer) {
+double CalcMiBs(size_t bytes, const common::StatsTimer& timer) {
     return CalcMiBs(bytes, timer.Microseconds());
 }
 
@@ -104,7 +104,7 @@ public:
             die_unequal(value, counter_);
         }
 
-        common::StatsTimer<true> inner_timer(true);
+        common::StatsTimerStart inner_timer;
 
         for (size_t inner = 0; inner < inner_repeats_; ++inner) {
 
@@ -177,7 +177,7 @@ void PingPongLatency::Test(api::Context& ctx) {
     for (size_t outer_repeat = 0;
          outer_repeat < outer_repeats_; ++outer_repeat) {
 
-        common::StatsTimer<true> timer;
+        common::StatsTimerStopped timer;
 
         timer.Start();
         for (size_t iteration = 0; iteration < iterations_; iteration++) {
@@ -270,7 +270,7 @@ public:
         net::Group& group = ctx.net.group();
         net::Connection& peer = group.connection(peer_id);
 
-        common::StatsTimer<true> inner_timer(true);
+        common::StatsTimerStart inner_timer;
         // send blocks to peer
         for (size_t i = 0; i != block_count_; ++i) {
             data_block_.front() = counter_;
@@ -356,7 +356,7 @@ void Bandwidth::Test(api::Context& ctx) {
     for (size_t outer_repeat = 0;
          outer_repeat < outer_repeats_; ++outer_repeat) {
 
-        common::StatsTimer<true> timer;
+        common::StatsTimerStopped timer;
 
         timer.Start();
         for (size_t inner_repeat = 0;
@@ -439,7 +439,7 @@ public:
 
         for (size_t outer = 0; outer < outer_repeats_; ++outer) {
 
-            common::StatsTimer<true> t;
+            common::StatsTimerStopped t;
 
             size_t dummy = +4915221495089;
 
@@ -504,7 +504,7 @@ public:
 
         for (size_t outer = 0; outer < outer_repeats_; ++outer) {
 
-            common::StatsTimer<true> t;
+            common::StatsTimerStopped t;
 
             t.Start();
             for (size_t inner = 0; inner < inner_repeats_; ++inner) {
@@ -572,7 +572,7 @@ public:
 
         for (size_t outer = 0; outer < outer_repeats_; ++outer) {
 
-            common::StatsTimer<true> t;
+            common::StatsTimerStopped t;
 
             size_t n = ctx.num_workers();
 

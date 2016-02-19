@@ -122,12 +122,13 @@ public:
         timer.Stop();
         file_.close();
 
-        STAT(context_) << "NodeType" << "WriteLinesMany"
-                       << "TotalBytes" << stats_total_bytes_
-                       << "TotalLines" << stats_total_elements_
-                       << "TotalWrites" << stats_total_writes_
-                       << "TotalFiles" << out_serial_
-                       << "WriteTime" << timer.Milliseconds();
+        Super::logger_
+            << "event" << "done"
+            << "total_bytes" << stats_total_bytes_
+            << "total_lines" << stats_total_elements_
+            << "total_writes" << stats_total_writes_
+            << "total_files" << out_serial_
+            << "write_time" << timer.Milliseconds();
     }
 
     void Execute() final { }
@@ -157,7 +158,7 @@ private:
     //! Targetl file size in bytes
     size_t target_file_size_;
 
-    common::StatsTimer<true> timer;
+    common::StatsTimerStopped timer;
 
     size_t stats_total_bytes_ = 0;
     size_t stats_total_elements_ = 0;

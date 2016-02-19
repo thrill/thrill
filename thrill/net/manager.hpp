@@ -45,12 +45,12 @@ public:
      */
     static const size_t kGroupCount = 3;
 
-    size_t my_host_rank() {
-        return GetSystemGroup().my_host_rank();
+    size_t my_host_rank() const {
+        return groups_[0]->my_host_rank();
     }
 
-    size_t num_hosts() {
-        return GetSystemGroup().num_hosts();
+    size_t num_hosts() const {
+        return groups_[1]->num_hosts();
     }
 
     //! non-copyable: delete copy-constructor

@@ -55,7 +55,6 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func = [n, &input](api::Context& ctx) {
-                          thrill::common::StatsTimer<true> timer(false);
 
                           auto modulo_keyfn = [](size_t in) {
                                                   if (in < std::numeric_limits<size_t>::max() / 5) {
@@ -77,7 +76,7 @@ int main(int argc, char* argv[]) {
                           in.Size();
 
                           // group by to compute median
-                          timer.Start();
+                          thrill::common::StatsTimerStart timer;
                           for (int i = 0; i < n; i++) {
                               in.GroupBy<size_t>(modulo_keyfn, median_fn).Size();
                           }

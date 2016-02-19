@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #include <thrill/api/dia_base.hpp>
+#include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/mem/allocator.hpp>
 
@@ -31,38 +31,10 @@ namespace api {
 /******************************************************************************/
 // DIABase StageBuilder
 
-static inline
-struct tm localtime_from(const time_t& t) {
-#if __MINGW32__ || defined(_MSC_VER)
-    return *localtime(&t); // NOLINT
-#else
-    struct tm tm;
-    memset(&tm, 0, sizeof(tm));
-    localtime_r(&t, &tm);
-    return tm;
-#endif
-}
-
-//! format string using time structure
-static inline
-std::string format_time(const char* format, const struct tm& t) {
-    char buffer[256];
-    strftime(buffer, sizeof(buffer), format, &t);
-    return buffer;
-}
-
-//! format string using time in localtime representation
-static inline
-std::string format_time(const char* format, const time_t& t) {
-    return format_time(format, localtime_from(t));
-}
-
 class Stage
 {
 public:
     static const bool debug = false;
-
-    using system_clock = std::chrono::system_clock;
 
     explicit Stage(const DIABasePtr& node) : node_(node) { }
 
@@ -96,21 +68,48 @@ public:
         return oss.str();
     }
 
-    void Execute() {
-        common::StatsTimer<true> timer;
-        time_t tt = system_clock::to_time_t(system_clock::now());
-        sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << Targets()
-             << "time:" << format_time("%T", tt);
+    std::vector<size_t> TargetIds() const {
+        std::vector<size_t> ids;
 
-        timer.Start();
+        std::vector<DIABase*> children = node_->children();
+        std::reverse(children.begin(), children.end());
+
+        while (children.size())
+        {
+            DIABase* child = children.back();
+            children.pop_back();
+
+            if (child->type() == DIANodeType::COLLAPSE) {
+                // push children of Collapse onto stack
+                std::vector<DIABase*> sub = child->children();
+                children.insert(children.end(), sub.begin(), sub.end());
+                ids.emplace_back(child->id());
+            }
+            else {
+                ids.emplace_back(child->id());
+            }
+        }
+        return ids;
+    }
+
+    void Execute() {
+        sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << Targets();
+
+        std::vector<size_t> targets = TargetIds();
+
+        logger_ << "class" << "StageBuilder" << "event" << "execute-start"
+                << "targets" << targets;
+
+        common::StatsTimerStart timer;
         node_->Execute();
         node_->set_state(DIAState::EXECUTED);
         timer.Stop();
 
-        tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (EXECUTE) stage" << *node_ << "targets" << Targets()
-             << "took" << timer.Milliseconds() << "ms"
-             << "time:" << format_time("%T", tt);
+             << "took" << timer << "ms";
+
+        logger_ << "class" << "StageBuilder" << "event" << "execute-done"
+                << "targets" << targets << "elapsed" << timer;
     }
 
     void PushData() {
@@ -121,26 +120,32 @@ public:
             abort();
         }
 
-        common::StatsTimer<true> timer;
-        time_t tt = system_clock::to_time_t(system_clock::now());
-        sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << Targets()
-             << "time:" << format_time("%T", tt);
+        sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << Targets();
 
-        timer.Start();
+        std::vector<size_t> targets = TargetIds();
+
+        logger_ << "class" << "StageBuilder" << "event" << "pushdata-start"
+                << "targets" << targets;
+
+        common::StatsTimerStart timer;
         node_->RunPushData();
         node_->RemoveAllChildren();
         timer.Stop();
 
-        tt = system_clock::to_time_t(system_clock::now());
         sLOG << "FINISH (PUSHDATA) stage" << *node_ << "targets" << Targets()
-             << "took" << timer.Milliseconds() << "ms"
-             << "time:" << format_time("%T", tt);
+             << "took" << timer << "ms";
+
+        logger_ << "class" << "StageBuilder" << "event" << "pushdata-done"
+                << "targets" << targets << "elapsed" << timer;
     }
 
     bool operator < (const Stage& s) const { return node_ < s.node_; }
 
     //! shared pointer to node
     DIABasePtr node_;
+
+    //! reference to ContextLogger via node.
+    common::JsonLogger& logger_ { node_->logger_ };
 
     //! temporary marker for toposort to detect cycles
     mutable bool cycle_mark_ = false;

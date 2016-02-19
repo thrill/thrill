@@ -16,8 +16,6 @@
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
-#include <thrill/common/logger.hpp>
-#include <thrill/common/stat_logger.hpp>
 
 #include <fstream>
 #include <random>
@@ -97,7 +95,8 @@ public:
             this->PushItem(elements_[rand_element]);
         }
 
-        STAT(context_) << "NodeType" << "GenerateFromFile";
+        Super::logger_
+            << "event" << "done";
     }
 
 private:
