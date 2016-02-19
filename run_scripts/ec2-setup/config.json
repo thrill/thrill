@@ -1,0 +1,22 @@
+{
+  "ACCESS_KEY" : "AKI...",
+  "SECRET_KEY" : "nXr...",
+  "EC2_KEY_HANDLE" : "mstumpp_2",
+  "SECGROUP_HANDLE" : "default",
+  "REGION" : "us-east-1",
+  "ZONE" : "us-east-1a",
+
+  "AMI_ID" : "ami-9183fdf4",
+  "INSTANCE_TYPE" : "t2.micro",
+  "VOLUME_TYPE" : "gp2",
+  "COUNT" : 1,
+
+  "VOL_SNAPSHOT_ID" : "snap-effdec9d",
+  "DEVICE" : "/dev/sdy",
+  "EC2_ATTACH_VOLUME" : "/dev/xvdy",
+
+  "SPOT_PRICE" : "0.016",
+  "TYPE" : "one-time",
+
+  "JOB_ID" : 1445088789
+}

@@ -36,8 +36,6 @@ while getopts "u:h:H:cvCw:" opt; do
         # this overrides the user environment variable
         THRILL_HOSTLIST=$OPTARG
         ;;
-    \?)  echo "TODO: Help"
-        ;;
     v)  verbose=1
         set -x
         ;;
@@ -85,25 +83,13 @@ if [ ! -e "$cmd" ]; then
 fi
 
 # get absolute path
-<<<<<<< HEAD
 if [[ "$(uname)" == "Darwin" ]]; then
+  # note for OSX users: readlink will fail on mac.
+  # install coreutils (brew install coreutils) and use greadlink instead
   cmd=`greadlink -f "$cmd"` # requires package coreutils
 else
   cmd=`readlink -f "$cmd"`
 fi
-=======
-<<<<<<< HEAD
-if [[ "$(uname)" == "Darwin" ]]; then
-    cmd=`greadlink -f "$cmd"` # requires package coreutils
-else
-    cmd=`readlink -f "$cmd"`
-    fi
-=======
-# note for OSX users: readlink will fail on mac. 
-# install coreutils (brew install coreutils) and use greadlink instead
-cmd=`readlink -f "$cmd"`
->>>>>>> origin/master
->>>>>>> master
 
 if [ -z "$THRILL_HOSTLIST" ]; then
     if [ -z "$THRILL_SSHLIST" ]; then
@@ -126,25 +112,6 @@ if [ $verbose -ne 0 ]; then
 fi
 
 rank=0
-<<<<<<< HEAD
-if [[ "$(uname)" == "Darwin" ]]; then
-  uuid=uuidgen
-else
-  uuid=$(cat /proc/sys/kernel/random/uuid)
-fi
-=======
-<<<<<<< HEAD
-if [[ "$(uname)" == "Darwin" ]]; then
-    uuid=uuidgen
-else
-    uuid=$(cat /proc/sys/kernel/random/uuid)
-fi
-=======
-# On mac, use the following line: 
-# uuid=$(uuidgen)
-uuid=$(cat /proc/sys/kernel/random/uuid)
->>>>>>> origin/master
->>>>>>> master
 
 # check THRILL_HOSTLIST for hosts without port numbers: add 10000+rank
 hostlist=()
@@ -161,17 +128,6 @@ cmdbase=`basename "$cmd"`
 rank=0
 THRILL_HOSTLIST="${hostlist[@]}"
 
-EC2_ATTACH_VOLUME="$EC2_ATTACH_VOLUME"
-attach_vol=""
-if [ $EC2_ATTACH_VOLUME ]; then
-<<<<<<< HEAD
-  attach_vol="mountpoint -q ./data && echo \"$EC2_ATTACH_VOLUME already mounted\" || \"mkdir ./data && sudo mount $EC2_ATTACH_VOLUME ./data && echo \"$EC2_ATTACH_VOLUME mounted\"\""
-=======
-    attach_vol="mountpoint -q ./data && echo \"$EC2_ATTACH_VOLUME already mounted\" || \"mkdir ./data"
-    attach_vol="$attach_vol && sudo mount $EC2_ATTACH_VOLUME ./data && echo \"$EC2_ATTACH_VOLUME mounted\"\""
->>>>>>> master
-fi
-
 for hostport in $THRILL_SSHLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   if [ $verbose -ne 0 ]; then
@@ -187,38 +143,16 @@ for hostport in $THRILL_SSHLIST; do
       THRILL_EXPORTS="$THRILL_EXPORTS THRILL_UNLINK_BINARY=\"$REMOTENAME\""
       # copy the program to the remote, and execute it at the remote end.
       ( scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
-<<<<<<< HEAD
-            "$cmd" "ubuntu@$host:$REMOTENAME" &&
+            "$cmd" "$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
-            ubuntu@$host \
-=======
-<<<<<<< HEAD
-            "$cmd" "ubuntu@$host:$REMOTENAME" &&
-        ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
-            ubuntu@$host \
-            "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && exec sudo \"$REMOTENAME\" $*"
-=======
-            "$cmd" "$user@$host:$REMOTENAME" &&
-        ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
-            $user@$host \
->>>>>>> master
+            $host \
             "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && exec \"$REMOTENAME\" $*"
->>>>>>> origin/master
       ) &
   else
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
-<<<<<<< HEAD
-          ubuntu$host \
-=======
-<<<<<<< HEAD
-          ubuntu@$host \
-          "$attach_vol && export $THRILL_EXPORTS && cd $dir && exec $cmd $*" &
-=======
-          $user@$host \
->>>>>>> master
+          $host \
           "export $THRILL_EXPORTS && cd $dir && exec $cmd $*" &
->>>>>>> origin/master
   fi
   rank=$((rank+1))
 done
