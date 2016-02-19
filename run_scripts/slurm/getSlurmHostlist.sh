@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# scripts/slurm/getSlurmHostlist.sh
+# run_scripts/slurm/getSlurmHostlist.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

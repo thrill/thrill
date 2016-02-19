@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# scripts/ssh/invoke.sh
+# run_scripts/ssh/invoke.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

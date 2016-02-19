@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# scripts/slurm/getSlurmWorkerCount.sh
+# run_scripts/slurm/getSlurmWorkerCount.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

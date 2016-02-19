@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# scripts/ec2/invoke.sh
+# run_scripts/ec2/invoke.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

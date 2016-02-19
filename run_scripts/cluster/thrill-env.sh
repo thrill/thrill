@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ################################################################################
-# scripts/cluster/thrill-env.sh
+# run_scripts/cluster/thrill-env.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

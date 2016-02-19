@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# scripts/ec2/setup.py
+# run_scripts/ec2-setup/setup.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# scripts/ec2/instant.py
+# run_scripts/ec2-setup/instant.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# scripts/ec2/terminate.py
+# run_scripts/ec2-setup/terminate.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #
