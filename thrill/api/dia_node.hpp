@@ -13,7 +13,6 @@
 #define THRILL_API_DIA_NODE_HEADER
 
 #include <thrill/api/dia_base.hpp>
-#include <thrill/common/stats.hpp>
 
 #include <algorithm>
 #include <string>

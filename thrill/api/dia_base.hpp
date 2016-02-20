@@ -17,7 +17,6 @@
 #define THRILL_API_DIA_BASE_HEADER
 
 #include <thrill/api/context.hpp>
-#include <thrill/common/stats.hpp>
 
 #include <string>
 #include <vector>

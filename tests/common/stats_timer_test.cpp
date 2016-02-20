@@ -9,7 +9,6 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
-#include <thrill/common/stats.hpp> //for forced instantiation below
 #include <thrill/common/stats_timer.hpp>
 
 #include <thread>
@@ -48,8 +47,6 @@ namespace common {
 // forced instantiations
 template class StatsTimerBase<true>;
 template class StatsTimerBase<false>;
-template class Stats<true>;
-template class Stats<false>;
 
 } // namespace common
 } // namespace thrill

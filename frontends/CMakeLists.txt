@@ -10,7 +10,7 @@
 
 ### Check for SWIG
 
-option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
+option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." OFF)
 option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
 if(THRILL_USE_SWIG)
