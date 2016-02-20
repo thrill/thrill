@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -26,11 +27,10 @@ namespace api {
 class ActionNode : public DIABase
 {
 public:
-    ActionNode(Context& ctx,
-               const std::vector<DIABasePtr>& parents,
-               StatsNode* stats_node)
-        : DIABase(ctx, parents, stats_node)
-    { }
+    ActionNode(Context& ctx, const char* label,
+               const std::initializer_list<size_t>& parent_ids,
+               const std::initializer_list<DIABasePtr>& parents)
+        : DIABase(ctx, label, parent_ids, parents) { }
 
     //! ActionNodes do not have children.
     void RemoveChild(DIABase* /* node */) final { }

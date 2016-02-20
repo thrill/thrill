@@ -91,13 +91,13 @@ public:
      * key_extractor and reduce_function.
      */
     ReduceToIndexNode(const ParentDIA& parent,
+                      const char* label,
                       const KeyExtractor& key_extractor,
                       const ReduceFunction& reduce_function,
                       size_t result_size,
                       const Value& neutral_element,
-                      const ReduceConfig& config,
-                      StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
+                      const ReduceConfig& config)
+        : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters()),
           result_size_(result_size),
@@ -252,13 +252,12 @@ auto DIA<ValueType, Stack>::ReduceToIndexByKey(
                                   KeyExtractor, ReduceFunction, ReduceConfig,
                                   false, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndexByKey", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceNode>(
-        *this, key_extractor, reduce_function,
-        size, neutral_element, reduce_config, stats_node);
+        *this, "ReduceToIndexByKey", key_extractor, reduce_function,
+        size, neutral_element, reduce_config);
 
-    return DIA<DOpResult>(shared_node, { stats_node });
+    return DIA<DOpResult>(shared_node);
 }
 
 template <typename ValueType, typename Stack>
@@ -310,25 +309,17 @@ auto DIA<ValueType, Stack>::ReducePairToIndex(
                                   std::function<Key(Key)>,
                                   ReduceFunction, ReduceConfig, false, true>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", DIANodeType::DOP);
-    auto shared_node
-        = std::make_shared<ReduceNode>(*this,
-                                       [](Key key) {
-                                           // This function should not be
-                                           // called, it is only here to
-                                           // give the key type to the
-                                           // hashtables.
-                                           assert(1 == 0);
-                                           key = key;
-                                           return Key();
-                                       },
-                                       reduce_function,
-                                       size,
-                                       neutral_element,
-                                       reduce_config,
-                                       stats_node);
+    auto shared_node = std::make_shared<ReduceNode>(
+        *this, "ReduceToPairIndex",
+        [](const Key& /* key */) {
+            // This function should not be called, it is only here to give the
+            // key type to the hashtables.
+            assert(1 == 0);
+            return Key();
+        },
+        reduce_function, size, neutral_element, reduce_config);
 
-    return DIA<ValueType>(shared_node, { stats_node });
+    return DIA<ValueType>(shared_node);
 }
 
 template <typename ValueType, typename Stack>
@@ -382,12 +373,11 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
                                   KeyExtractor, ReduceFunction, ReduceConfig,
                                   true, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", DIANodeType::DOP);
     auto shared_node = std::make_shared<ReduceNode>(
-        *this, key_extractor, reduce_function,
-        size, neutral_element, reduce_config, stats_node);
+        *this, "ReduceToIndex", key_extractor, reduce_function,
+        size, neutral_element, reduce_config);
 
-    return DIA<DOpResult>(shared_node, { stats_node });
+    return DIA<DOpResult>(shared_node);
 }
 
 //! \}

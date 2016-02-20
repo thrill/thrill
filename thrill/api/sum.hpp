@@ -38,15 +38,15 @@ class SumNode final : public ActionNode
 
 public:
     SumNode(const ParentDIA& parent,
+            const char* label,
             const SumFunction& sum_function,
-            const ValueType& initial_value,
-            StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
+            const ValueType& initial_value)
+        : ActionNode(parent.ctx(), label, { parent.id() }, { parent.node() }),
           sum_function_(sum_function),
           local_sum_(initial_value)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [this](const ValueType& input) {
                              PreOp(input);
                          };
 
@@ -113,9 +113,8 @@ auto DIA<ValueType, Stack>::Sum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Sum", DIANodeType::ACTION);
     auto node = std::make_shared<SumNode>(
-        *this, sum_function, initial_value, stats_node);
+        *this, "Sum", sum_function, initial_value);
 
     node->RunScope();
 

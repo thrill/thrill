@@ -44,9 +44,8 @@ class WindowNode final : public DOpNode<ValueType>
 public:
     WindowNode(const ParentDIA& parent,
                size_t window_size,
-               const WindowFunction& window_function,
-               StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
+               const WindowFunction& window_function)
+        : Super(parent.ctx(), "Window", { parent.id() }, { parent.node() }),
           window_size_(window_size),
           window_function_(window_function)
     {
@@ -100,10 +99,6 @@ public:
     }
 
     void Dispose() final { }
-
-    FunctionStack<ValueType> ProduceStack() {
-        return FunctionStack<ValueType>();
-    }
 
 private:
     //! Size of the window
@@ -190,14 +185,10 @@ auto DIA<ValueType, Stack>::FlatWindow(
     //         ValueType>::value,
     //     "WindowFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Window", DIANodeType::DOP);
-    auto shared_node = std::make_shared<WindowNode>(
-        *this, window_size, window_function, stats_node);
+    auto shared_node =
+        std::make_shared<WindowNode>(*this, window_size, window_function);
 
-    auto window_stack = shared_node->ProduceStack();
-
-    return DIA<ValueOut, decltype(window_stack)>(
-        shared_node, window_stack, { stats_node });
+    return DIA<ValueOut>(shared_node);
 }
 
 template <typename ValueType, typename Stack>

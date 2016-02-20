@@ -50,18 +50,14 @@ public:
         size_t   parent_index;
     };
 
-    //! Default constructor for a DIANode.
-    DIANode() = default;
-
     /*!
      * Constructor for a DIANode, which sets references to the
      * parent nodes. Calls the constructor of DIABase with the same parameters.
      */
-    DIANode(Context& ctx,
-            const std::vector<DIABasePtr>& parents,
-            StatsNode* stats_node)
-        : DIABase(ctx, parents, stats_node)
-    { }
+    DIANode(Context& ctx, const char* label,
+            const std::initializer_list<size_t>& parent_ids,
+            const std::initializer_list<DIABasePtr>& parents)
+        : DIABase(ctx, label, parent_ids, parents) { }
 
     /*!
      * Enables children to push their "folded" function chains to their parent.
@@ -91,7 +87,7 @@ public:
             std::remove_if(
                 children_.begin(), children_.end(),
                 [this](Child& child) {
-                    if (child.node->type() == DIANodeType::COLLAPSE)
+                    if (!child.node->CanExecute())
                         return false;
                     child.node->RemoveParent(this);
                     return true;
@@ -130,6 +126,7 @@ public:
             child.node->StopPreOp(child.parent_index);
     }
 
+    //! Method for derived classes to Push a single item to all children.
     void PushItem(const ValueType& elem) const {
         for (const Child& child : children_) {
             child.callback(elem);

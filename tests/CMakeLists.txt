@@ -160,7 +160,6 @@ thrill_build_test(core/reduce_pre_stage_test)
 thrill_build_test(core/multiway_merge_test)
 
 thrill_build_test(api/function_stack_test)
-thrill_build_test(api/graph_test)
 thrill_build_test(api/groupby_node_test)
 thrill_build_test(api/operations_test)
 thrill_build_test(api/read_write_test)

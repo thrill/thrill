@@ -43,9 +43,9 @@ public:
 
     WriteLinesManyNode(const ParentDIA& parent,
                        const std::string& path_out,
-                       size_t target_file_size,
-                       StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
+                       size_t target_file_size)
+        : ActionNode(parent.ctx(), "WriteLinesMany",
+                     { parent.id() }, { parent.node() }),
           out_pathbase_(path_out),
           file_(core::SysFile::OpenForWrite(
                     core::FillFilePattern(
@@ -176,11 +176,8 @@ void DIA<ValueType, Stack>::WriteLinesMany(
 
     using WriteLinesManyNode = api::WriteLinesManyNode<DIA>;
 
-    StatsNode* stats_node =
-        AddChildStatsNode("WriteLinesMany", DIANodeType::ACTION);
-
     auto node = std::make_shared<WriteLinesManyNode>(
-        *this, filepath, target_file_size, stats_node);
+        *this, filepath, target_file_size);
 
     node->RunScope();
 }

@@ -37,9 +37,8 @@ class PrefixSumNode final : public DOpNode<ValueType>
 public:
     PrefixSumNode(const ParentDIA& parent,
                   const SumFunction& sum_function,
-                  const ValueType& initial_element,
-                  StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
+                  const ValueType& initial_element)
+        : Super(parent.ctx(), "PrefixSum", { parent.id() }, { parent.node() }),
           sum_function_(sum_function),
           local_sum_(initial_element),
           initial_element_(initial_element)
@@ -137,12 +136,10 @@ auto DIA<ValueType, Stack>::PrefixSum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("PrefixSum", DIANodeType::DOP);
     auto shared_node
-        = std::make_shared<SumResultNode>(
-        *this, sum_function, initial_element, stats_node);
+        = std::make_shared<SumResultNode>(*this, sum_function, initial_element);
 
-    return DIA<ValueType>(shared_node, { stats_node });
+    return DIA<ValueType>(shared_node);
 }
 
 //! \}

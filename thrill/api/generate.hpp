@@ -49,9 +49,8 @@ public:
      */
     GenerateNode(Context& ctx,
                  GeneratorFunction generator_function,
-                 size_t size,
-                 StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, stats_node),
+                 size_t size)
+        : SourceNode<ValueType>(ctx, "Generate"),
           generator_function_(generator_function),
           size_(size)
     { }
@@ -101,12 +100,10 @@ auto Generate(Context & ctx,
             >::value,
         "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", DIANodeType::GENERATOR);
-    auto shared_node =
-        std::make_shared<GenerateNode>(
-            ctx, generator_function, size, stats_node);
+    auto shared_node = std::make_shared<GenerateNode>(
+        ctx, generator_function, size);
 
-    return DIA<GeneratorResult>(shared_node, { stats_node });
+    return DIA<GeneratorResult>(shared_node);
 }
 
 /*!

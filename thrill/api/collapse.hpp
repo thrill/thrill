@@ -41,9 +41,8 @@ public:
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      */
-    CollapseNode(const ParentDIA& parent,
-                 StatsNode* stats_node)
-        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
+    explicit CollapseNode(const ParentDIA& parent)
+        : Super(parent.ctx(), "Collapse", { parent.id() }, { parent.node() })
     {
         // CollapseNodes are kept by default.
         Super::consume_counter_ = Super::never_consume_;
@@ -84,21 +83,13 @@ public:
 
 template <typename ValueType, typename Stack>
 template <typename AnyStack>
-DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs) {
-
-    // Create new CollapseNode. Transfer stack from rhs to CollapseNode. Build
-    // new DIA with empty stack and CollapseNode
-    using CollapseNode =
-              api::CollapseNode<ValueType, DIA<ValueType, AnyStack> >;
-
+DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs)
+// Create new CollapseNode. Transfer stack from rhs to CollapseNode. Build new
+// DIA with empty stack and CollapseNode
+    : DIA(std::make_shared<
+              api::CollapseNode<ValueType, DIA<ValueType, AnyStack> > >(rhs)) {
     LOG0 << "WARNING: cast to DIA creates CollapseNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIA.";
-
-    StatsNode* stats_node = rhs.AddChildStatsNode("Collapse", DIANodeType::COLLAPSE);
-
-    node_ = std::make_shared<CollapseNode>(rhs, stats_node);
-    // stack_ is default constructed.
-    stats_parents_.emplace_back(stats_node);
 }
 
 template <typename ValueType, typename Stack>
@@ -109,11 +100,9 @@ auto DIA<ValueType, Stack>::Collapse() const {
     // new DIA with empty stack and CollapseNode
     using CollapseNode = api::CollapseNode<ValueType, DIA>;
 
-    StatsNode* stats_node = AddChildStatsNode("Collapse", DIANodeType::COLLAPSE);
-    auto shared_node
-        = std::make_shared<CollapseNode>(*this, stats_node);
+    auto shared_node = std::make_shared<CollapseNode>(*this);
 
-    return DIA<ValueType>(shared_node, { stats_node });
+    return DIA<ValueType>(shared_node);
 }
 
 //! \}

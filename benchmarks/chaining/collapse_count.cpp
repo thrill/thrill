@@ -17,7 +17,6 @@
 #include <thrill/api/size.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 
 #include <benchmarks/chaining/helper.hpp>
@@ -44,7 +43,7 @@ int main(int argc, char* argv[]) {
 
     size_t count = std::stoi(input);
 
-    common::StatsTimer timer;
+    common::StatsTimerStopped timer;
 
     auto start_func =
         [&count, &timer](api::Context& ctx) {
@@ -64,7 +63,7 @@ int main(int argc, char* argv[]) {
         };
 
     api::Run(start_func);
-    STAT_NO_RANK << "took" << timer.Microseconds();
+    LOG1 << "took" << timer.Microseconds();
     return 0;
 }
 

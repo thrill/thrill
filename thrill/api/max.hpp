@@ -47,9 +47,8 @@ auto DIA<ValueType, Stack>::Max(
             ValueType>::value,
         "MaxFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Max", DIANodeType::ACTION);
     auto node = std::make_shared<MaxNode>(
-        *this, max_function, initial_value, stats_node);
+        *this, "Max", max_function, initial_value);
 
     node->RunScope();
 

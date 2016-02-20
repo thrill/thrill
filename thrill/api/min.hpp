@@ -47,9 +47,8 @@ auto DIA<ValueType, Stack>::Min(
             ValueType>::value,
         "MinFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Min", DIANodeType::ACTION);
     auto node = std::make_shared<MinNode>(
-        *this, min_function, initial_value, stats_node);
+        *this, "Min", min_function, initial_value);
 
     node->RunScope();
 

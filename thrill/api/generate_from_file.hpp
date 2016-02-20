@@ -53,9 +53,8 @@ public:
     GenerateFileNode(Context& ctx,
                      GeneratorFunction generator_function,
                      std::string path_in,
-                     size_t size,
-                     StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, stats_node),
+                     size_t size)
+        : SourceNode<ValueType>(ctx, "GenerateFile"),
           generator_function_(generator_function),
           path_in_(path_in),
           size_(size)
@@ -144,14 +143,11 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
             const std::string&>::value,
         "GeneratorFunction needs a const std::string& as input");
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "GenerateFromFile", DIANodeType::GENERATOR);
-
     auto shared_node =
         std::make_shared<GenerateNode>(
-            ctx, generator_function, filepath, size, stats_node);
+            ctx, generator_function, filepath, size);
 
-    return DIA<GeneratorResult>(shared_node, { });
+    return DIA<GeneratorResult>(shared_node);
 }
 
 //! \}

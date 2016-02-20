@@ -75,9 +75,9 @@ public:
                      const GroupFunction& groupby_function,
                      size_t number_keys,
                      const ValueOut& neutral_element,
-                     StatsNode* stats_node,
                      const HashFunction& hash_function = HashFunction())
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
+        : Super(parent.ctx(), "GroupByIndex",
+                { parent.id() }, { parent.node() }),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           number_keys_(number_keys),
@@ -287,16 +287,14 @@ auto DIA<ValueType, Stack>::GroupByIndex(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("GroupByIndex", DIANodeType::DOP);
     using GroupByNode
               = GroupByIndexNode<DOpResult, DIA, KeyExtractor,
                                  GroupFunction, HashFunction>;
     auto shared_node
         = std::make_shared<GroupByNode>(
-        *this, key_extractor, groupby_function,
-        number_keys, neutral_element, stats_node);
+        *this, key_extractor, groupby_function, number_keys, neutral_element);
 
-    return DIA<DOpResult>(shared_node, { stats_node });
+    return DIA<DOpResult>(shared_node);
 }
 
 } // namespace api

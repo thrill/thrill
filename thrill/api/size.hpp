@@ -37,9 +37,8 @@ class SizeNode final : public ActionNode
     using Input = typename ParentDIA::ValueType;
 
 public:
-    SizeNode(const ParentDIA& parent,
-             StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, stats_node)
+    explicit SizeNode(const ParentDIA& parent)
+        : ActionNode(parent.ctx(), "Size", { parent.id() }, { parent.node() })
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const Input&) { ++local_size_; };
@@ -82,8 +81,7 @@ size_t DIA<ValueType, Stack>::Size() const {
 
     using SizeNode = api::SizeNode<DIA>;
 
-    StatsNode* stats_node = AddChildStatsNode("Size", DIANodeType::ACTION);
-    auto node = std::make_shared<SizeNode>(*this, stats_node);
+    auto node = std::make_shared<SizeNode>(*this);
 
     node->RunScope();
 

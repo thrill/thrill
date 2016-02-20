@@ -42,9 +42,8 @@ public:
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      */
-    CacheNode(const ParentDIA& parent,
-              StatsNode* stats_node)
-        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
+    explicit CacheNode(const ParentDIA& parent)
+        : Super(parent.ctx(), "Cache", { parent.id() }, { parent.node() })
     {
         // CacheNodes are kept by default.
         Super::consume_counter_ = Super::never_consume_;
@@ -86,12 +85,9 @@ auto DIA<ValueType, Stack>::Cache() const {
 
     using LOpChainNode = CacheNode<ValueType, DIA>;
 
-    StatsNode* stats_node = AddChildStatsNode("Cache", DIANodeType::CACHE);
+    auto shared_node = std::make_shared<LOpChainNode>(*this);
 
-    auto shared_node
-        = std::make_shared<LOpChainNode>(*this, stats_node);
-
-    return DIA<ValueType>(shared_node, { stats_node });
+    return DIA<ValueType>(shared_node);
 }
 
 //! \}

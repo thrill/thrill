@@ -36,9 +36,9 @@ public:
     using ValueType = typename ParentDIA::ValueType;
 
     AllGatherNode(const ParentDIA& parent,
-                  std::vector<ValueType>* out_vector,
-                  StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
+                  std::vector<ValueType>* out_vector)
+        : ActionNode(parent.ctx(), "AllGather",
+                     { parent.id() }, { parent.node() }),
           out_vector_(out_vector),
           stream_(parent.ctx().GetNewCatStream()),
           emitters_(stream_->OpenWriters())
@@ -88,15 +88,14 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-std::vector<ValueType> DIA<ValueType, Stack>::AllGather()  const {
+std::vector<ValueType> DIA<ValueType, Stack>::AllGather() const {
     assert(IsValid());
 
     using AllGatherNode = api::AllGatherNode<DIA>;
 
     std::vector<ValueType> output;
 
-    StatsNode* stats_node = AddChildStatsNode("AllGather", DIANodeType::ACTION);
-    auto node = std::make_shared<AllGatherNode>(*this, &output, stats_node);
+    auto node = std::make_shared<AllGatherNode>(*this, &output);
 
     node->RunScope();
 
@@ -104,14 +103,12 @@ std::vector<ValueType> DIA<ValueType, Stack>::AllGather()  const {
 }
 
 template <typename ValueType, typename Stack>
-void DIA<ValueType, Stack>::AllGather(
-    std::vector<ValueType>* out_vector)  const {
+void DIA<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) const {
     assert(IsValid());
 
     using AllGatherNode = api::AllGatherNode<DIA>;
 
-    StatsNode* stats_node = AddChildStatsNode("AllGather", DIANodeType::ACTION);
-    auto node = std::make_shared<AllGatherNode>(*this, out_vector, stats_node);
+    auto node = std::make_shared<AllGatherNode>(*this, out_vector);
 
     node->RunScope();
 }

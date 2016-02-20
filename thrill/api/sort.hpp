@@ -63,9 +63,8 @@ public:
      * Constructor for a sort node.
      */
     SortNode(const ParentDIA& parent,
-             CompareFunction compare_function,
-             StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
+             CompareFunction compare_function)
+        : Super(parent.ctx(), "Sort", { parent.id() }, { parent.node() }),
           compare_function_(compare_function)
     {
         // Hook PreOp(s)
@@ -584,11 +583,9 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const 
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    StatsNode* stats_node = AddChildStatsNode("Sort", DIANodeType::DOP);
-    auto shared_node
-        = std::make_shared<SortNode>(*this, compare_function, stats_node);
+    auto shared_node = std::make_shared<SortNode>(*this, compare_function);
 
-    return DIA<ValueType>(shared_node, { stats_node });
+    return DIA<ValueType>(shared_node);
 }
 
 //! \}

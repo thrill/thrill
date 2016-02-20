@@ -67,11 +67,8 @@ public:
 
     using SysFileInfo = core::SysFileInfo;
 
-    ReadBinaryNode(Context& ctx,
-                   const std::string& filepath,
-                   StatsNode* stats_node)
-        : Super(ctx, { }, stats_node)
-    {
+    ReadBinaryNode(Context& ctx, const std::string& filepath)
+        : Super(ctx, "ReadBinary") {
         core::SysFileList files = core::GlobFileSizePrefixSum(filepath);
 
         if (is_fixed_size_ && !files.contains_compressed)
@@ -250,14 +247,10 @@ private:
 template <typename ValueType>
 DIA<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
 
-    StatsNode* stats_node =
-        ctx.stats_graph().AddNode("ReadBinary", DIANodeType::GENERATOR);
-
     auto shared_node =
-        std::make_shared<ReadBinaryNode<ValueType> >(
-            ctx, filepath, stats_node);
+        std::make_shared<ReadBinaryNode<ValueType> >(ctx, filepath);
 
-    return DIA<ValueType>(shared_node, { stats_node });
+    return DIA<ValueType>(shared_node);
 }
 
 //! \}

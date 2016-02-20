@@ -91,13 +91,12 @@ public:
      * Constructor for a ZipNode.
      */
     ZipNode(const ZipFunction& zip_function,
-            StatsNode* stats_node,
             const ZipArgs& padding,
             const ParentDIA0& parent0,
             const ParentDIAs& ... parents)
-        : DOpNode<ValueType>(
-              parent0.ctx(), { parent0.node(), parents.node() ... },
-              stats_node),
+        : Super(parent0.ctx(), "Zip",
+                { parent0.id(), parents.id() ... },
+                { parent0.node(), parents.node() ... }),
           zip_function_(zip_function),
           padding_(padding)
     {
@@ -393,16 +392,10 @@ auto Zip(const ZipFunction &zip_function,
     using ZipNode
               = api::ZipNode<ZipResult, ZipFunction, false, FirstDIA, DIAs ...>;
 
-    StatsNode* stats_node = first_dia.AddChildStatsNode("Zip", DIANodeType::DOP);
-    (void)VarForeachExpander {
-        (dias.AppendChildStatsNode(stats_node), 0) ...
-    };
+    auto zip_node = std::make_shared<ZipNode>(
+        zip_function, ZipArgs(), first_dia, dias ...);
 
-    auto zip_node
-        = std::make_shared<ZipNode>(
-        zip_function, stats_node, ZipArgs(), first_dia, dias ...);
-
-    return DIA<ZipResult>(zip_node, { stats_node });
+    return DIA<ZipResult>(zip_node);
 }
 
 template <typename ValueType, typename Stack>
@@ -457,16 +450,10 @@ auto ZipPad(const ZipFunction &zip_function,
     using ZipNode
               = api::ZipNode<ZipResult, ZipFunction, true, FirstDIA, DIAs ...>;
 
-    StatsNode* stats_node = first_dia.AddChildStatsNode("Zip", DIANodeType::DOP);
-    (void)VarForeachExpander {
-        (dias.AppendChildStatsNode(stats_node), 0) ...
-    };
+    auto zip_node = std::make_shared<ZipNode>(
+        zip_function, ZipArgs(), first_dia, dias ...);
 
-    auto zip_node
-        = std::make_shared<ZipNode>(
-        zip_function, stats_node, ZipArgs(), first_dia, dias ...);
-
-    return DIA<ZipResult>(zip_node, { stats_node });
+    return DIA<ZipResult>(zip_node);
 }
 
 /*!
@@ -516,16 +503,10 @@ auto ZipPadding(
     using ZipNode
               = api::ZipNode<ZipResult, ZipFunction, true, FirstDIA, DIAs ...>;
 
-    StatsNode* stats_node = first_dia.AddChildStatsNode("Zip", DIANodeType::DOP);
-    (void)VarForeachExpander {
-        (dias.AppendChildStatsNode(stats_node), 0) ...
-    };
+    auto zip_node = std::make_shared<ZipNode>(
+        zip_function, padding, first_dia, dias ...);
 
-    auto zip_node
-        = std::make_shared<ZipNode>(
-        zip_function, stats_node, padding, first_dia, dias ...);
-
-    return DIA<ZipResult>(zip_node, { stats_node });
+    return DIA<ZipResult>(zip_node);
 }
 
 //! \}

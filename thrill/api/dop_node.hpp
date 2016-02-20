@@ -40,16 +40,17 @@ public:
      * \param ctx Reference to Context, which holds references to data and
      * network.
      *
+     * \param label static label of DOp implementation
+     *
+     * \param parent_ids parent DIA ids
+     *
      * \param parents Reference to parents of this node, which have to be
      * computed previously
-     *
-     * \param stats_node Ptr to holder of statistics, living longer than the
-     * node.
      */
-    DOpNode(Context& ctx,
-            const std::vector<DIABasePtr>& parents,
-            StatsNode* stats_node)
-        : DIANode<ValueType>(ctx, parents, stats_node) { }
+    DOpNode(Context& ctx, const char* label,
+            const std::initializer_list<size_t>& parent_ids,
+            const std::initializer_list<DIABasePtr>& parents)
+        : DIANode<ValueType>(ctx, label, parent_ids, parents) { }
 };
 
 //! \}

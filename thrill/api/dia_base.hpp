@@ -59,13 +59,16 @@ public:
      * The constructor for a DIABase. Sets the parents for this node, but does
      * not register it has a child, since this must be done with a callback.
      */
-    DIABase(Context& ctx,
-            const std::vector<DIABasePtr>& parents,
-            StatsNode* stats_node)
-        : context_(ctx), parents_(parents),
-          stats_node_(stats_node) {
-        logger_ << "event" << "create"
-                << "parents" << parent_ids();
+    DIABase(Context& ctx, const char* label,
+            const std::initializer_list<size_t>& parent_ids,
+            const std::initializer_list<DIABasePtr>& parents)
+        : context_(ctx), id_(ctx.next_dia_id()),
+          label_(label), parents_(parents) {
+        logger_ << "class" << "DIABase"
+                << "event" << "create"
+                << "type" << "DOp"
+                << "label" << label
+                << "parents" << parent_ids;
     }
 
     //! non-copyable: delete copy-constructor
@@ -125,24 +128,16 @@ public:
 
     //! return unique id() of DIANode subclass as stored by StatsNode
     const size_t & id() const {
-        assert(stats_node_);
-        return stats_node_->id();
+        return id_;
     }
 
     //! return label() of DIANode subclass as stored by StatsNode
     const char * label() const {
-        assert(stats_node_);
-        return stats_node_->label();
+        return label_;
     }
 
     //! make ostream-able.
     friend std::ostream& operator << (std::ostream& os, const DIABase& d);
-
-    //! return type() of DIANode subclass as stored by StatsNode
-    const DIANodeType & type() const {
-        assert(stats_node_);
-        return stats_node_->type();
-    }
 
     //! Returns consume_counter_
     size_t consume_counter() const { return consume_counter_; }
@@ -198,10 +193,6 @@ public:
         return state_ = state;
     }
 
-    void AddStats(const std::string& msg) const {
-        stats_node_->AddStatsMsg(msg, LogType::INFO);
-    }
-
 protected:
     //! State of the DIANode. State is NEW on creation.
     DIAState state_ = DIAState::NEW;
@@ -212,11 +203,14 @@ protected:
     //! Context, which can give iterators to data.
     Context& context_;
 
+    //! DIA serial id
+    size_t id_;
+
+    //! DOp node static label.
+    const char* label_;
+
     //! Parents of this DIABase.
     std::vector<DIABasePtr> parents_;
-
-    //! Timer that tracks the lifetime of this object
-    api::StatsNode* stats_node_;
 
     //! Consumption counter: when it reaches zero, PushData() is called with
     //! consume = true

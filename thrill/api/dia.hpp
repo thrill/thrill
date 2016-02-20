@@ -20,7 +20,6 @@
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia_node.hpp>
 #include <thrill/api/function_stack.hpp>
-#include <thrill/api/stats_graph.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 
@@ -97,14 +96,12 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIA.
      *
-     * \param stats_parents The StatsNodes of all parents of this node.
+     * \param id Serial id of DIA, which includes LOps
+     *
+     * \param label static string label of DIA.
      */
-    DIA(const DIANodePtr& node, const Stack& stack,
-        const std::vector<StatsNode*>& stats_parents)
-        : node_(node),
-          stack_(stack),
-          stats_parents_(stats_parents)
-    { }
+    DIA(const DIANodePtr& node, const Stack& stack, size_t id, const char* label)
+        : node_(node), stack_(stack), id_(id), label_(label) { }
 
     /*!
      * Constructor of a new DIA supporting move semantics of nodes.
@@ -115,25 +112,22 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIA.
      *
-     * \param stats_parents The StatsNodes of all parents of this node.
+     * \param id Serial id of DIA, which includes LOps
+     *
+     * \param label static string label of DIA.
      */
-    DIA(DIANodePtr&& node, const Stack& stack,
-        const std::vector<StatsNode*>& stats_parents)
-        : node_(std::move(node)),
-          stack_(stack),
-          stats_parents_(stats_parents)
-    { }
+    DIA(DIANodePtr&& node, const Stack& stack, size_t id, const char* label)
+        : node_(std::move(node)), stack_(stack), id_(id), label_(label) { }
 
     /*!
-     * Constructor of a new DIA supporting move semantics of nodes.
+     * Constructor of a new DIA with a real backing DIABae.
      *
      * \param node Pointer to the last DIANode, DOps and Actions create a new
      * DIANode, LOps link to the DIANode of the previous DIA.
-     *
-     * \param stats_parents The StatsNodes of all parents of this node.
-     */
-    DIA(DIANodePtr&& node, const std::vector<StatsNode*>& stats_parents)
-        : DIA(std::move(node), FunctionStack<ValueType>(), stats_parents) { }
+      */
+    explicit DIA(DIANodePtr&& node)
+        : DIA(std::move(node), FunctionStack<ValueType>(),
+              node->id(), node->label()) { }
 
     /*!
      * Copy-Constructor of a DIA with empty function chain from a DIA with
@@ -161,12 +155,6 @@ public:
         return node_;
     }
 
-    //! Returns a the corresponding stats nodes
-    const std::vector<StatsNode*> & stats_parents() const {
-        assert(IsValid());
-        return stats_parents_;
-    }
-
     //! Returns the number of references to the according DIANode.
     size_t node_refcount() const {
         assert(IsValid());
@@ -179,36 +167,23 @@ public:
         return stack_;
     }
 
-    StatsNode * AddChildStatsNode(const char* label, const DIANodeType& type) const {
-        StatsNode* node = node_->context().stats_graph().AddNode(label, type);
-        for (const auto& parent : stats_parents_)
-            node_->context().stats_graph().AddEdge(parent, node);
-        return node;
-    }
-
-    void AppendChildStatsNode(StatsNode* stats_node) const {
-        for (const auto& parent : stats_parents_)
-            node_->context().stats_graph().AddEdge(parent, stats_node);
-    }
-
-    template <typename AnyType, typename AnyStack>
-    auto LinkStatsNodeFrom(const DIA<AnyType, AnyStack>&rhs) {
-        for (const auto& parent : stats_parents_) {
-            for (const auto& rhs_parent : rhs.stats_parents())
-                node_->context().stats_graph().AddEdge(rhs_parent, parent);
-        }
-        return *this;
-    }
-
+    //! Return context_ of DIANode, e.g. for creating new LOps and DOps
     Context & context() const {
         assert(IsValid());
         return node_->context();
     }
 
+    //! Return context_ of DIANode, e.g. for creating new LOps and DOps
     Context & ctx() const {
         assert(IsValid());
         return node_->context();
     }
+
+    //! Returns id_
+    size_t id() const { return id_; }
+
+    //! Returns label_
+    const char * label() const { return label_; }
 
     /*!
      * Set a custom label for this node in order to better identify it in
@@ -261,7 +236,7 @@ public:
         using MapResult
                   = typename FunctionTraits<MapFunction>::result_type;
         auto conv_map_function =
-            [=](const MapArgument& input, auto emit_func) {
+            [map_function](const MapArgument& input, auto emit_func) {
                 emit_func(map_function(input));
             };
 
@@ -269,9 +244,19 @@ public:
             std::is_convertible<ValueType, MapArgument>::value,
             "MapFunction has the wrong input type");
 
+        size_t new_id = context().next_dia_id();
+
+        node_->context().logger_
+            << "node_id" << new_id
+            << "node_label" << "Map"
+            << "class" << "DIA"
+            << "event" << "create"
+            << "type" << "LOp"
+            << "parents" << (common::Array<size_t>{ id_ });
+
         auto new_stack = stack_.push(conv_map_function);
         return DIA<MapResult, decltype(new_stack)>(
-            node_, new_stack, { AddChildStatsNode("Map", DIANodeType::LAMBDA) });
+            node_, new_stack, new_id, "Map");
     }
 
     /*!
@@ -293,7 +278,7 @@ public:
         using FilterArgument
                   = typename FunctionTraits<FilterFunction>::template arg_plain<0>;
         auto conv_filter_function =
-            [=](const FilterArgument& input, auto emit_func) {
+            [filter_function](const FilterArgument& input, auto emit_func) {
                 if (filter_function(input)) emit_func(input);
             };
 
@@ -301,9 +286,19 @@ public:
             std::is_convertible<ValueType, FilterArgument>::value,
             "FilterFunction has the wrong input type");
 
+        size_t new_id = context().next_dia_id();
+
+        node_->context().logger_
+            << "node_id" << new_id
+            << "node_label" << "Filter"
+            << "class" << "DIA"
+            << "event" << "create"
+            << "type" << "LOp"
+            << "parents" << (common::Array<size_t>{ id_ });
+
         auto new_stack = stack_.push(conv_filter_function);
         return DIA<ValueType, decltype(new_stack)>(
-            node_, new_stack, { AddChildStatsNode("Filter", DIANodeType::LAMBDA) });
+            node_, new_stack, new_id, "Filter");
     }
 
     /*!
@@ -326,9 +321,19 @@ public:
     auto FlatMap(const FlatmapFunction &flatmap_function) const {
         assert(IsValid());
 
+        size_t new_id = context().next_dia_id();
+
+        node_->context().logger_
+            << "node_id" << new_id
+            << "node_label" << "FlatMap"
+            << "class" << "DIA"
+            << "event" << "create"
+            << "type" << "LOp"
+            << "parents" << (common::Array<size_t>{ id_ });
+
         auto new_stack = stack_.push(flatmap_function);
         return DIA<ResultType, decltype(new_stack)>(
-            node_, new_stack, { AddChildStatsNode("FlatMap", DIANodeType::LAMBDA) });
+            node_, new_stack, new_id, "FlatMap");
     }
 
     /*!
@@ -877,7 +882,14 @@ private:
     //! the last DIANode to this DIA.
     Stack stack_;
 
-    std::vector<StatsNode*> stats_parents_;
+    //! DIA serial id for logging, matches DIANode::id_ for DOps.
+    size_t id_ = 0;
+
+    //! static DIA (LOp or DOp) node label string, may match DIANode::label_.
+    const char* label_ = nullptr;
+
+    //! deliver next DIA serial id
+    size_t next_dia_id() { return context().next_dia_id(); }
 };
 
 //! \}

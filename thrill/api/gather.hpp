@@ -35,11 +35,11 @@ public:
     //! input and output type is the parent's output value type.
     using ValueType = typename ParentDIA::ValueType;
 
-    GatherNode(const ParentDIA& parent,
+    GatherNode(const ParentDIA& parent, const char* label,
                size_t target_id,
-               std::vector<ValueType>* out_vector,
-               StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
+               std::vector<ValueType>* out_vector)
+        : ActionNode(parent.ctx(), label,
+                     { parent.id() }, { parent.node() }),
           target_id_(target_id),
           out_vector_(out_vector),
           stream_(parent.ctx().GetNewCatStream()),
@@ -96,9 +96,8 @@ DIA<ValueType, Stack>::Gather(size_t target_id) const {
 
     std::vector<ValueType> output;
 
-    StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
-    auto node =
-        std::make_shared<GatherNode>(*this, target_id, &output, stats_node);
+    auto node = std::make_shared<GatherNode>(
+        *this, "Gather", target_id, &output);
 
     node->RunScope();
 
@@ -112,9 +111,8 @@ void DIA<ValueType, Stack>::Gather(
 
     using GatherNode = api::GatherNode<DIA>;
 
-    StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
-    auto node =
-        std::make_shared<GatherNode>(*this, target_id, out_vector, stats_node);
+    auto node = std::make_shared<GatherNode>(
+        *this, "Gather", target_id, out_vector);
 
     node->RunScope();
 }
@@ -127,9 +125,7 @@ void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) con
 
     std::vector<ValueType> output;
 
-    StatsNode* stats_node = AddChildStatsNode("Print", DIANodeType::ACTION);
-    auto node =
-        std::make_shared<GatherNode>(*this, 0, &output, stats_node);
+    auto node = std::make_shared<GatherNode>(*this, "Print", 0, &output);
 
     node->RunScope();
 

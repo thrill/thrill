@@ -148,11 +148,11 @@ class MergeNode : public DOpNode<ValueType>
 
 public:
     MergeNode(const Comparator& comparator,
-              StatsNode* stats_node,
               const ParentDIA0& parent0,
               const ParentDIAs& ... parents)
-        : DOpNode<ValueType>(parent0.ctx(),
-                             { parent0.node(), parents.node() ... }, stats_node),
+        : Super(parent0.ctx(), "Merge",
+                { parent0.id(), parents.id() ... },
+                { parent0.node(), parents.node() ... }),
           comparator_(comparator)
     {
         // allocate files.
@@ -783,16 +783,10 @@ auto Merge(const Comparator &comparator,
             >::value,
         "Comparator must return bool");
 
-    // Create merge node.
-    StatsNode* stats_node = first_dia.AddChildStatsNode("Merge", DIANodeType::DOP);
-    (void)VarForeachExpander {
-        (dias.AppendChildStatsNode(stats_node), 0) ...
-    };
-
     auto merge_node =
-        std::make_shared<MergeNode>(comparator, stats_node, first_dia, dias ...);
+        std::make_shared<MergeNode>(comparator, first_dia, dias ...);
 
-    return DIA<ValueType>(merge_node, { stats_node });
+    return DIA<ValueType>(merge_node);
 }
 
 template <typename ValueType, typename Stack>

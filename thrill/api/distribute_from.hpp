@@ -34,18 +34,16 @@ public:
 
     DistributeFromNode(Context& ctx,
                        const std::vector<ValueType>& in_vector,
-                       size_t source_id,
-                       StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, stats_node),
+                       size_t source_id)
+        : SourceNode<ValueType>(ctx, "DistributeFrom"),
           in_vector_(in_vector),
           source_id_(source_id)
     { }
 
     DistributeFromNode(Context& ctx,
                        std::vector<ValueType>&& in_vector,
-                       size_t source_id,
-                       StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, stats_node),
+                       size_t source_id)
+        : SourceNode<ValueType>(ctx, "DistributeFrom"),
           in_vector_(std::move(in_vector)),
           source_id_(source_id)
     { }
@@ -107,14 +105,10 @@ auto DistributeFrom(
 
     using DistributeFromNode = api::DistributeFromNode<ValueType>;
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "DistributeFrom", DIANodeType::GENERATOR);
-
     auto shared_node =
-        std::make_shared<DistributeFromNode>(
-            ctx, in_vector, source_id, stats_node);
+        std::make_shared<DistributeFromNode>(ctx, in_vector, source_id);
 
-    return DIA<ValueType>(shared_node, { stats_node });
+    return DIA<ValueType>(shared_node);
 }
 
 /*!
@@ -129,14 +123,10 @@ auto DistributeFrom(
 
     using DistributeFromNode = api::DistributeFromNode<ValueType>;
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "DistributeFrom", DIANodeType::DOP);
-
     auto shared_node =
-        std::make_shared<DistributeFromNode>(
-            ctx, std::move(in_vector), source_id, stats_node);
+        std::make_shared<DistributeFromNode>(ctx, std::move(in_vector), source_id);
 
-    return DIA<ValueType>(shared_node, { stats_node });
+    return DIA<ValueType>(shared_node);
 }
 
 //! \}

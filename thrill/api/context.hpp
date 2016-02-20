@@ -14,7 +14,6 @@
 #ifndef THRILL_API_CONTEXT_HEADER
 #define THRILL_API_CONTEXT_HEADER
 
-#include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/json_logger.hpp>
@@ -260,11 +259,6 @@ public:
 
     //! \}
 
-    //! Returns the stats graph object for this worker
-    api::StatsGraph & stats_graph() {
-        return stats_graph_;
-    }
-
     //! returns the host-global memory manager
     mem::Manager & mem_manager() { return mem_manager_; }
 
@@ -289,6 +283,9 @@ public:
      */
     void enable_consume(bool consume = true) { consume_ = consume; }
 
+    //! Returns next_dia_id_ to generate DIA::id_ serial.
+    size_t next_dia_id() { return ++last_dia_id_; }
+
 private:
     //! number of this host context, 0..p-1, within this host
     size_t local_worker_id_;
@@ -311,11 +308,11 @@ private:
     //! data::Multiplexer instance that is shared among workers
     data::Multiplexer& multiplexer_;
 
-    //! StatsGraph object that is uniquely held for this worker
-    api::StatsGraph stats_graph_;
-
     //! flag to set which enables selective consumption of DIA contents!
     bool consume_ = false;
+
+    //! the number of valid DIA ids. 0 is reserved for invalid.
+    size_t last_dia_id_ = 0;
 
 public:
     //! \name Network Subsystem

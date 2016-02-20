@@ -40,9 +40,9 @@ public:
     using Input = typename ParentDIA::ValueType;
 
     WriteLinesNode(const ParentDIA& parent,
-                   const std::string& path_out,
-                   StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
+                   const std::string& path_out)
+        : ActionNode(parent.ctx(), "WriteLines",
+                     { parent.id() }, { parent.node() }),
           path_out_(path_out),
           file_(path_out_, std::ios::binary),
           temp_file_(context_.GetFile()),
@@ -123,9 +123,7 @@ void DIA<ValueType, Stack>::WriteLines(
 
     using WriteLinesNode = api::WriteLinesNode<DIA>;
 
-    StatsNode* stats_node = AddChildStatsNode("WriteLines", DIANodeType::ACTION);
-    auto node = std::make_shared<WriteLinesNode>(
-        *this, filepath, stats_node);
+    auto node = std::make_shared<WriteLinesNode>(*this, filepath);
 
     node->RunScope();
 }

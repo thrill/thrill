@@ -46,9 +46,9 @@ public:
 
     WriteBinaryNode(const ParentDIA& parent,
                     const std::string& path_out,
-                    size_t max_file_size,
-                    StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
+                    size_t max_file_size)
+        : ActionNode(parent.ctx(), "WriteBinary",
+                     { parent.id() }, { parent.node() }),
           out_pathbase_(path_out),
           max_file_size_(max_file_size)
     {
@@ -186,10 +186,8 @@ void DIA<ValueType, Stack>::WriteBinary(
 
     using WriteBinaryNode = api::WriteBinaryNode<DIA>;
 
-    StatsNode* stats_node = AddChildStatsNode("WriteBinary", DIANodeType::ACTION);
-
     auto node = std::make_shared<WriteBinaryNode>(
-        *this, filepath, max_file_size, stats_node);
+        *this, filepath, max_file_size);
 
     node->RunScope();
 }

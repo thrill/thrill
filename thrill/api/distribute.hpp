@@ -33,16 +33,14 @@ public:
     using Super::context_;
 
     DistributeNode(Context& ctx,
-                   const std::vector<ValueType>& in_vector,
-                   StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, stats_node),
+                   const std::vector<ValueType>& in_vector)
+        : SourceNode<ValueType>(ctx, "Distribute"),
           in_vector_(in_vector)
     { }
 
     DistributeNode(Context& ctx,
-                   std::vector<ValueType>&& in_vector,
-                   StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, stats_node),
+                   std::vector<ValueType>&& in_vector)
+        : SourceNode<ValueType>(ctx, "Distibute"),
           in_vector_(std::move(in_vector))
     { }
 
@@ -76,13 +74,9 @@ auto Distribute(Context & ctx,
 
     using DistributeNode = api::DistributeNode<ValueType>;
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "Distribute", DIANodeType::GENERATOR);
+    auto shared_node = std::make_shared<DistributeNode>(ctx, in_vector);
 
-    auto shared_node =
-        std::make_shared<DistributeNode>(ctx, in_vector, stats_node);
-
-    return DIA<ValueType>(shared_node, { stats_node });
+    return DIA<ValueType>(shared_node);
 }
 
 /*!
@@ -102,13 +96,9 @@ auto Distribute(Context & ctx,
 
     using DistributeNode = api::DistributeNode<ValueType>;
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "Distribute", DIANodeType::GENERATOR);
+    auto shared_node = std::make_shared<DistributeNode>(ctx, std::move(in_vector));
 
-    auto shared_node =
-        std::make_shared<DistributeNode>(ctx, std::move(in_vector), stats_node);
-
-    return DIA<ValueType>(shared_node, { stats_node });
+    return DIA<ValueType>(shared_node);
 }
 
 //! \}

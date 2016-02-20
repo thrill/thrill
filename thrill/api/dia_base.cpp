@@ -53,7 +53,7 @@ public:
             if (child == nullptr) {
                 oss << ']';
             }
-            else if (child->type() == DIANodeType::COLLAPSE) {
+            else if (!child->CanExecute()) {
                 // push children of Collapse onto stack
                 std::vector<DIABase*> sub = child->children();
                 children.push_back(nullptr);
@@ -79,7 +79,7 @@ public:
             DIABase* child = children.back();
             children.pop_back();
 
-            if (child->type() == DIANodeType::COLLAPSE) {
+            if (!child->CanExecute()) {
                 // push children of Collapse onto stack
                 std::vector<DIABase*> sub = child->children();
                 children.insert(children.end(), sub.begin(), sub.end());

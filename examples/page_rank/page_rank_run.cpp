@@ -104,8 +104,6 @@ static void RunPageRankEdgePerLine(
          << std::setw(10) << "#iterations: " << iterations
          << "\n"
          << std::setw(10) << "time: " << timer.Milliseconds() << "ms";
-
-    ctx.stats_graph().BuildLayout("pagerank.out");
 }
 
 int main(int argc, char* argv[]) {

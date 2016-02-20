@@ -51,12 +51,9 @@ public:
      * Constructor for a ReadLinesNode. Sets the Context
      * and file path.
      */
-    ReadLinesNode(Context& ctx,
-                  const std::string& path,
-                  StatsNode* stats_node)
-        : Super(ctx, { }, stats_node),
-          path_(path)
-    {
+    ReadLinesNode(Context& ctx, const std::string& path)
+        : Super(ctx, "ReadLines"),
+          path_(path) {
         LOG << "Opening ReadLinesNode for " << path_;
 
         filelist_ = core::GlobFileSizePrefixSum(path_);
@@ -406,14 +403,7 @@ private:
  */
 DIA<std::string> ReadLines(Context& ctx, std::string filepath) {
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "ReadLines", DIANodeType::GENERATOR);
-
-    auto shared_node =
-        std::make_shared<ReadLinesNode>(
-            ctx, filepath, stats_node);
-
-    return DIA<std::string>(shared_node, { stats_node });
+    return DIA<std::string>(std::make_shared<ReadLinesNode>(ctx, filepath));
 }
 
 //! \}

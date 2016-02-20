@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -28,10 +29,8 @@ class SourceNode : public DIANode<ValueType>
 public:
     using Super = DIANode<ValueType>;
 
-    SourceNode(Context& ctx,
-               const std::vector<DIABasePtr>& parents,
-               StatsNode* stats_node)
-        : DIANode<ValueType>(ctx, parents, stats_node) {
+    SourceNode(Context& ctx, const char* label)
+        : Super(ctx, label, { /* parent_ids */ }, { /* parents */ }) {
         // SourceNode are kept by default: they usually read files or databases
         // on PushData(), which should not be consumed.
         Super::consume_counter_ = Super::never_consume_;
