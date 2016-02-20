@@ -511,7 +511,7 @@ sub process_py {
 
     # check source header
     my $i = 0;
-    expect($path, $i, @data, "#!/usr/bin/env python\n"); ++$i;
+    expect_re($path, $i, @data, "^#!/usr/bin/env python"); ++$i;
     expect($path, $i, @data, ('#'x74)."\n"); ++$i;
     expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
