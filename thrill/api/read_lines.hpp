@@ -147,6 +147,7 @@ private:
 
         ~InputLineIterator() {
             node_.logger_
+                << "class" << "ReadLinesNode"
                 << "event" << "done"
                 << "total_bytes" << stats_total_bytes_
                 << "total_reads" << stats_total_reads_

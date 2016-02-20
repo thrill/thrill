@@ -74,6 +74,7 @@ public:
         sink_.reset();
 
         Super::logger_
+            << "class" << "WriteBinaryNode"
             << "total_elements" << stats_total_elements_
             << "total_writes" << stats_total_writes_;
     }

@@ -82,7 +82,8 @@ public:
         // Remove child pointer from parent If a parent loses all its childs its
         // reference count should be zero and he should be removed
 
-        logger_ << "event" << "destroy"
+        logger_ << "class" << "DIABase"
+                << "event" << "destroy"
                 << "parents" << parent_ids();
 
         // de-register at parents (if still hooked there)

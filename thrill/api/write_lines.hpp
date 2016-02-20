@@ -72,6 +72,7 @@ public:
     //! Closes the output file
     void Execute() final {
         Super::logger_
+            << "class" << "WriteLinesNode"
             << "total_bytes" << local_size_
             << "total_lines" << local_lines_;
 

@@ -123,6 +123,7 @@ public:
         file_.close();
 
         Super::logger_
+            << "class" << "WriteLinesManyNode"
             << "event" << "done"
             << "total_bytes" << stats_total_bytes_
             << "total_lines" << stats_total_elements_

@@ -545,6 +545,7 @@ private:
         }
 
         Super::logger_
+            << "class" << "SortNode"
             << "event" << "done"
             << "workers" << num_total_workers
             << "local_out_size" << local_out_size_

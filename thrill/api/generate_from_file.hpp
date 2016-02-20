@@ -96,6 +96,7 @@ public:
         }
 
         Super::logger_
+            << "class" << "GenerateFileNode"
             << "event" << "done";
     }
 

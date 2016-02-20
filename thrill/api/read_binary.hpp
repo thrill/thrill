@@ -167,6 +167,7 @@ public:
         }
 
         Super::logger_
+            << "class" << "ReadBinaryNode"
             << "event" << "done"
             << "total_bytes" << stats_total_bytes
             << "total_reads" << stats_total_reads;
