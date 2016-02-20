@@ -177,7 +177,7 @@ protected:
     //! \{
 
     //! static counter for automatic physical device enumeration
-    unsigned int m_max_device_id;
+    unsigned int max_device_id_;
 
 public:
     //! Returns automatic physical device id counter

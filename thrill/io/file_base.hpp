@@ -92,7 +92,7 @@ public:
 
     //! Construct a new file, usually called by a subclass.
     explicit FileBase(unsigned int device_id = DEFAULT_DEVICE_ID)
-        : m_device_id(device_id)
+        : device_id_(device_id)
     { }
 
     //! Schedules an asynchronous read request to the file.
@@ -170,32 +170,32 @@ public:
 protected:
     //! The file's physical device id (e.g. used for prefetching sequence
     //! calculation)
-    unsigned int m_device_id;
+    unsigned int device_id_;
 
 public:
     //! Returns the file's physical device id
     unsigned int get_device_id() const {
-        return m_device_id;
+        return device_id_;
     }
 
 protected:
     //! count the number of requests referencing this file
-    common::ReferenceCount m_request_ref;
+    common::ReferenceCount request_ref_;
 
 public:
     //! increment referenced requests
     void add_request_ref() {
-        m_request_ref.IncReference();
+        request_ref_.IncReference();
     }
 
     //! decrement referenced requests
     void delete_request_ref() {
-        m_request_ref.DecReference();
+        request_ref_.DecReference();
     }
 
     //! return number of referenced requests
     size_t get_request_nref() {
-        return m_request_ref.reference_count();
+        return request_ref_.reference_count();
     }
 
 public:

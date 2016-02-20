@@ -61,7 +61,7 @@ void Config::initialize() {
         find_config();
     }
 
-    m_max_device_id = 0;
+    max_device_id_ = 0;
 
     is_initialized = true;
 }
@@ -174,18 +174,18 @@ void Config::load_config_file(const std::string& config_path) {
 
 //! Returns automatic physical device id counter
 unsigned int Config::get_max_device_id() {
-    return m_max_device_id;
+    return max_device_id_;
 }
 
 //! Returns next automatic physical device id counter
 unsigned int Config::get_next_device_id() {
-    return m_max_device_id++;
+    return max_device_id_++;
 }
 
 //! Update the automatic physical device id counter
 void Config::update_max_device_id(unsigned int devid) {
-    if (m_max_device_id < devid + 1)
-        m_max_device_id = devid + 1;
+    if (max_device_id_ < devid + 1)
+        max_device_id_ = devid + 1;
 }
 
 uint64_t Config::total_size() const {

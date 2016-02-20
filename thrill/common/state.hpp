@@ -23,23 +23,23 @@
 namespace thrill {
 namespace common {
 
-template <typename ValueType = int>
+template <typename ValueType = size_t>
 class state
 {
     using value_type = ValueType;
 
     //! mutex for condition variable
-    std::mutex m_mutex;
+    std::mutex mutex_;
 
     //! condition variable
-    std::condition_variable m_cond;
+    std::condition_variable cv_;
 
     //! current state
-    value_type m_state;
+    value_type state_;
 
 public:
     explicit state(const value_type& s)
-        : m_state(s)
+        : state_(s)
     { }
 
     //! non-copyable: delete copy-constructor
@@ -48,21 +48,21 @@ public:
     state& operator = (const state&) = delete;
 
     void set_to(const value_type& new_state) {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        m_state = new_state;
+        std::unique_lock<std::mutex> lock(mutex_);
+        state_ = new_state;
         lock.unlock();
-        m_cond.notify_all();
+        cv_.notify_all();
     }
 
     void wait_for(const value_type& needed_state) {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        while (needed_state != m_state)
-            m_cond.wait(lock);
+        std::unique_lock<std::mutex> lock(mutex_);
+        while (needed_state != state_)
+            cv_.wait(lock);
     }
 
     value_type operator () () {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        return m_state;
+        std::unique_lock<std::mutex> lock(mutex_);
+        return state_;
     }
 };
 

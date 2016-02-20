@@ -52,7 +52,7 @@ void LinuxaioRequest::fill_control_block() {
     memset(&cb, 0, sizeof(cb));
     // indirection, so the I/O system retains a counting_ptr reference
     cb.aio_data = reinterpret_cast<__u64>(new RequestPtr(this));
-    cb.aio_fildes = af->file_des;
+    cb.aio_fildes = af->file_des_;
     cb.aio_lio_opcode = (type_ == READ) ? IOCB_CMD_PREAD : IOCB_CMD_PWRITE;
     cb.aio_reqprio = 0;
     cb.aio_buf = static_cast<__u64>((unsigned long)(buffer_));

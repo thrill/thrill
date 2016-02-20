@@ -33,7 +33,7 @@ const char* UfsFileBase::io_type() const {
 UfsFileBase::UfsFileBase(
     const std::string& filename,
     int mode)
-    : file_des(-1), m_mode(mode), filename(filename) {
+    : file_des_(-1), mode_(mode), path_(filename) {
     int flags = 0;
 
     if (mode & RDONLY)
@@ -69,12 +69,12 @@ UfsFileBase::UfsFileBase(
         flags |= O_DIRECT;
 #else
         if (mode & REQUIRE_DIRECT) {
-            LOG1 << "Error: open()ing " << filename << " with DIRECT mode required, but the system does not support it.";
-            file_des = -1;
+            LOG1 << "Error: open()ing " << path_ << " with DIRECT mode required, but the system does not support it.";
+            file_des_ = -1;
             return;
         }
         else {
-            LOG1 << "Warning: open()ing " << filename << " without DIRECT mode, as the system does not support it.";
+            LOG1 << "Warning: open()ing " << path_ << " without DIRECT mode, as the system does not support it.";
         }
 #endif
     }
@@ -96,7 +96,7 @@ UfsFileBase::UfsFileBase(
     const int perms = S_IREAD | S_IWRITE | S_IRGRP | S_IWGRP;
 #endif
 
-    if ((file_des = ::open(filename.c_str(), flags, perms)) >= 0)
+    if ((file_des_ = ::open(filename.c_str(), flags, perms)) >= 0)
     {
         _after_open();
         return;
@@ -109,9 +109,9 @@ UfsFileBase::UfsFileBase(
              << " flags=" << flags << ", retrying without O_DIRECT.";
 
         flags &= ~O_DIRECT;
-        m_mode &= ~DIRECT;
+        mode_ &= ~DIRECT;
 
-        if ((file_des = ::open(filename.c_str(), flags, perms)) >= 0)
+        if ((file_des_ = ::open(filename.c_str(), flags, perms)) >= 0)
         {
             _after_open();
             return;
@@ -119,7 +119,7 @@ UfsFileBase::UfsFileBase(
     }
 #endif
 
-    THRILL_THROW_ERRNO(IoError, "open() rc=" << file_des << " path=" << filename << " flags=" << flags);
+    THRILL_THROW_ERRNO(IoError, "open() rc=" << file_des_ << " path=" << filename << " flags=" << flags);
 }
 
 UfsFileBase::~UfsFileBase() {
@@ -130,49 +130,49 @@ void UfsFileBase::_after_open() {
     // stat file type
 #if THRILL_WINDOWS || defined(__MINGW32__)
     struct _stat64 st;
-    THRILL_THROW_ERRNO_NE_0(::_fstat64(file_des, &st), IoError,
-                            "_fstat64() path=" << filename << " fd=" << file_des);
+    THRILL_THROW_ERRNO_NE_0(::_fstat64(file_des_, &st), IoError,
+                            "_fstat64() path=" << path_ << " fd=" << file_des_);
 #else
     struct stat st;
-    THRILL_THROW_ERRNO_NE_0(::fstat(file_des, &st), IoError,
-                            "fstat() path=" << filename << " fd=" << file_des);
+    THRILL_THROW_ERRNO_NE_0(::fstat(file_des_, &st), IoError,
+                            "fstat() path=" << path_ << " fd=" << file_des_);
 #endif
-    m_is_device = S_ISBLK(st.st_mode) ? true : false;
+    is_device_ = S_ISBLK(st.st_mode) ? true : false;
 
 #ifdef __APPLE__
-    if (m_mode & REQUIRE_DIRECT) {
-        THRILL_THROW_ERRNO_NE_0(fcntl(file_des, F_NOCACHE, 1), IoError,
-                                "fcntl() path=" << filename << " fd=" << file_des);
-        THRILL_THROW_ERRNO_NE_0(fcntl(file_des, F_RDAHEAD, 0), IoError,
-                                "fcntl() path=" << filename << " fd=" << file_des);
+    if (mode_ & REQUIRE_DIRECT) {
+        THRILL_THROW_ERRNO_NE_0(fcntl(file_des_, F_NOCACHE, 1), IoError,
+                                "fcntl() path=" << path_ << " fd=" << file_des_);
+        THRILL_THROW_ERRNO_NE_0(fcntl(file_des_, F_RDAHEAD, 0), IoError,
+                                "fcntl() path=" << path_ << " fd=" << file_des_);
     }
-    else if (m_mode & DIRECT) {
-        if (fcntl(file_des, F_NOCACHE, 1) != 0) {
-            LOG1 << "fcntl(fd,F_NOCACHE,1) failed on path=" << filename
-                 << " fd=" << file_des << " : " << strerror(errno);
+    else if (mode_ & DIRECT) {
+        if (fcntl(file_des_, F_NOCACHE, 1) != 0) {
+            LOG1 << "fcntl(fd,F_NOCACHE,1) failed on path=" << path_
+                 << " fd=" << file_des_ << " : " << strerror(errno);
         }
-        if (fcntl(file_des, F_RDAHEAD, 0) != 0) {
-            LOG1 << "fcntl(fd,F_RDAHEAD,0) failed on path=" << filename
-                 << " fd=" << file_des << " : " << strerror(errno);
+        if (fcntl(file_des_, F_RDAHEAD, 0) != 0) {
+            LOG1 << "fcntl(fd,F_RDAHEAD,0) failed on path=" << path_
+                 << " fd=" << file_des_ << " : " << strerror(errno);
         }
     }
 #endif
 
     // successfully opened file descriptor
-    if (!(m_mode & NO_LOCK))
+    if (!(mode_ & NO_LOCK))
         lock();
 }
 
 void UfsFileBase::close() {
     std::unique_lock<std::mutex> fd_lock(fd_mutex_);
 
-    if (file_des == -1)
+    if (file_des_ == -1)
         return;
 
-    if (::close(file_des) < 0)
-        THRILL_THROW_ERRNO(IoError, "close() fd=" << file_des);
+    if (::close(file_des_) < 0)
+        THRILL_THROW_ERRNO(IoError, "close() fd=" << file_des_);
 
-    file_des = -1;
+    file_des_ = -1;
 }
 
 void UfsFileBase::lock() {
@@ -181,12 +181,12 @@ void UfsFileBase::lock() {
 #else
     std::unique_lock<std::mutex> fd_lock(fd_mutex_);
     struct flock lock_struct;
-    lock_struct.l_type = (short)(m_mode & RDONLY ? F_RDLCK : F_RDLCK | F_WRLCK);
+    lock_struct.l_type = (short)(mode_ & RDONLY ? F_RDLCK : F_RDLCK | F_WRLCK);
     lock_struct.l_whence = SEEK_SET;
     lock_struct.l_start = 0;
     lock_struct.l_len = 0; // lock all bytes
-    if ((::fcntl(file_des, F_SETLK, &lock_struct)) < 0)
-        THRILL_THROW_ERRNO(IoError, "fcntl(,F_SETLK,) path=" << filename << " fd=" << file_des);
+    if ((::fcntl(file_des_, F_SETLK, &lock_struct)) < 0)
+        THRILL_THROW_ERRNO(IoError, "fcntl(,F_SETLK,) path=" << path_ << " fd=" << file_des_);
 #endif
 }
 
@@ -195,9 +195,9 @@ FileBase::offset_type UfsFileBase::_size() {
     // (where stat() returns zero), and we need not reset the position because
     // serve() always lseek()s before read/write.
 
-    off_t rc = ::lseek(file_des, 0, SEEK_END);
+    off_t rc = ::lseek(file_des_, 0, SEEK_END);
     if (rc < 0)
-        THRILL_THROW_ERRNO(IoError, "lseek(fd,0,SEEK_END) path=" << filename << " fd=" << file_des);
+        THRILL_THROW_ERRNO(IoError, "lseek(fd,0,SEEK_END) path=" << path_ << " fd=" << file_des_);
 
     // return value is already the total size
     return rc;
@@ -216,12 +216,12 @@ void UfsFileBase::set_size(offset_type newsize) {
 void UfsFileBase::_set_size(offset_type newsize) {
     offset_type cur_size = _size();
 
-    if (!(m_mode & RDONLY) && !m_is_device)
+    if (!(mode_ & RDONLY) && !is_device_)
     {
 #if THRILL_WINDOWS || defined(__MINGW32__)
-        HANDLE hfile = (HANDLE)::_get_osfhandle(file_des);
+        HANDLE hfile = (HANDLE)::_get_osfhandle(file_des_);
         THRILL_THROW_ERRNO_NE_0((hfile == INVALID_HANDLE_VALUE), IoError,
-                                "_get_osfhandle() path=" << filename << " fd=" << file_des);
+                                "_get_osfhandle() path=" << path_ << " fd=" << file_des_);
 
         LARGE_INTEGER desired_pos;
         desired_pos.QuadPart = newsize;
@@ -236,42 +236,42 @@ void UfsFileBase::_set_size(offset_type newsize) {
                                        "SetEndOfFile oldsize=" << cur_size <<
                                        " newsize=" << newsize << " ");
 #else
-        THRILL_THROW_ERRNO_NE_0(::ftruncate(file_des, newsize), IoError,
-                                "ftruncate() path=" << filename << " fd=" << file_des);
+        THRILL_THROW_ERRNO_NE_0(::ftruncate(file_des_, newsize), IoError,
+                                "ftruncate() path=" << path_ << " fd=" << file_des_);
 #endif
     }
 
 #if !THRILL_WINDOWS
     if (newsize > cur_size)
-        THRILL_THROW_ERRNO_LT_0(::lseek(file_des, newsize - 1, SEEK_SET), IoError,
-                                "lseek() path=" << filename << " fd=" << file_des << " pos=" << newsize - 1);
+        THRILL_THROW_ERRNO_LT_0(::lseek(file_des_, newsize - 1, SEEK_SET), IoError,
+                                "lseek() path=" << path_ << " fd=" << file_des_ << " pos=" << newsize - 1);
 #endif
 }
 
 void UfsFileBase::close_remove() {
     close();
 
-    if (m_is_device) {
-        LOG1 << "remove() path=" << filename << " skipped as file is device node";
+    if (is_device_) {
+        LOG1 << "remove() path=" << path_ << " skipped as file is device node";
         return;
     }
 
-    if (::remove(filename.c_str()) != 0)
-        LOG1 << "remove() error on path=" << filename << " error=" << strerror(errno);
+    if (::remove(path_.c_str()) != 0)
+        LOG1 << "remove() error on path=" << path_ << " error=" << strerror(errno);
 }
 
 void UfsFileBase::unlink() {
-    if (m_is_device) {
-        LOG1 << "unlink() path=" << filename << " skipped as file is device node";
+    if (is_device_) {
+        LOG1 << "unlink() path=" << path_ << " skipped as file is device node";
         return;
     }
 
-    if (::unlink(filename.c_str()) != 0)
-        THRILL_THROW_ERRNO(IoError, "unlink() path=" << filename << " fd=" << file_des);
+    if (::unlink(path_.c_str()) != 0)
+        THRILL_THROW_ERRNO(IoError, "unlink() path=" << path_ << " fd=" << file_des_);
 }
 
 bool UfsFileBase::is_device() const {
-    return m_is_device;
+    return is_device_;
 }
 
 } // namespace io

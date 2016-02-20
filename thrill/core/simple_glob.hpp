@@ -415,32 +415,32 @@ class SimpleGlobBase
 {
 public:
     SimpleGlobBase() {
-        memset(&m_glob, 0, sizeof(m_glob));
-        m_uiCurr = (size_t)-1;
+        memset(&glob_, 0, sizeof(glob_));
+        ui_curr_ = (size_t)-1;
     }
 
     ~SimpleGlobBase() {
-        globfree(&m_glob);
+        globfree(&glob_);
     }
 
     void FilePrep() {
-        m_bIsDir = false;
-        size_t len = strlen(m_glob.gl_pathv[m_uiCurr]);
-        if (m_glob.gl_pathv[m_uiCurr][len - 1] == '/') {
-            m_bIsDir = true;
-            m_glob.gl_pathv[m_uiCurr][len - 1] = 0;
+        b_isdir_ = false;
+        size_t len = strlen(glob_.gl_pathv[ui_curr_]);
+        if (glob_.gl_pathv[ui_curr_][len - 1] == '/') {
+            b_isdir_ = true;
+            glob_.gl_pathv[ui_curr_][len - 1] = 0;
         }
     }
 
     int FindFirstFileS(const char* a_pszFileSpec, unsigned int a_uiFlags) {
-        int nFlags = GLOB_MARK | GLOB_NOSORT;
-        if (a_uiFlags & SG_GLOB_ERR) nFlags |= GLOB_ERR;
-        if (a_uiFlags & SG_GLOB_TILDE) nFlags |= GLOB_TILDE;
-        int rc = glob(a_pszFileSpec, nFlags, nullptr, &m_glob);
+        int nflags = GLOB_MARK | GLOB_NOSORT;
+        if (a_uiFlags & SG_GLOB_ERR) nflags |= GLOB_ERR;
+        if (a_uiFlags & SG_GLOB_TILDE) nflags |= GLOB_TILDE;
+        int rc = glob(a_pszFileSpec, nflags, nullptr, &glob_);
         if (rc == GLOB_NOSPACE) return SG_ERR_MEMORY;
         if (rc == GLOB_ABORTED) return SG_ERR_FAILURE;
         if (rc == GLOB_NOMATCH) return SG_ERR_NOMATCH;
-        m_uiCurr = 0;
+        ui_curr_ = 0;
         FilePrep();
         return SG_SUCCESS;
     }
@@ -456,8 +456,8 @@ public:
 #endif
 
     bool FindNextFileS(char) { // NOLINT
-        SG_ASSERT(m_uiCurr != (size_t)-1);
-        if (++m_uiCurr >= m_glob.gl_pathc) {
+        SG_ASSERT(ui_curr_ != (size_t)-1);
+        if (++ui_curr_ >= glob_.gl_pathc) {
             return false;
         }
         FilePrep();
@@ -471,14 +471,14 @@ public:
 #endif
 
     void FindDone() {
-        globfree(&m_glob);
-        memset(&m_glob, 0, sizeof(m_glob));
-        m_uiCurr = (size_t)-1;
+        globfree(&glob_);
+        memset(&glob_, 0, sizeof(glob_));
+        ui_curr_ = (size_t)-1;
     }
 
     const char * GetFileNameS(char) const { // NOLINT
-        SG_ASSERT(m_uiCurr != (size_t)-1);
-        return m_glob.gl_pathv[m_uiCurr];
+        SG_ASSERT(ui_curr_ != (size_t)-1);
+        return glob_.gl_pathv[ui_curr_];
     }
 
 #if SG_HAVE_ICU
@@ -494,8 +494,8 @@ public:
 #endif
 
     bool IsDirS(char) const { // NOLINT
-        SG_ASSERT(m_uiCurr != (size_t)-1);
-        return m_bIsDir;
+        SG_ASSERT(ui_curr_ != (size_t)-1);
+        return b_isdir_;
     }
 
 #if SG_HAVE_ICU
@@ -529,9 +529,9 @@ public:
 #endif
 
 private:
-    glob_t m_glob;
-    size_t m_uiCurr;
-    bool m_bIsDir;
+    glob_t glob_;
+    size_t ui_curr_;
+    bool b_isdir_;
 #if SG_HAVE_ICU
     mutable UChar m_szBuf[PATH_MAX];
 #endif

@@ -164,11 +164,11 @@ void* RequestQueueImplQwQr::worker(void* arg) {
 
                 pthis->sem_++;
 
-                if (pthis->m_priority_op == WRITE)
+                if (pthis->priority_op_ == WRITE)
                     write_phase = false;
             }
 
-            if (pthis->m_priority_op == NONE || pthis->m_priority_op == READ)
+            if (pthis->priority_op_ == NONE || pthis->priority_op_ == READ)
                 write_phase = false;
         }
         else
@@ -193,11 +193,11 @@ void* RequestQueueImplQwQr::worker(void* arg) {
 
                 pthis->sem_++;
 
-                if (pthis->m_priority_op == READ)
+                if (pthis->priority_op_ == READ)
                     write_phase = true;
             }
 
-            if (pthis->m_priority_op == NONE || pthis->m_priority_op == WRITE)
+            if (pthis->priority_op_ == NONE || pthis->priority_op_ == WRITE)
                 write_phase = true;
         }
 

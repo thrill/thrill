@@ -35,14 +35,14 @@ void SyscallFile::serve(void* buffer, offset_type offset, size_type bytes,
 
     while (bytes > 0)
     {
-        off_t rc = ::lseek(file_des, offset, SEEK_SET);
+        off_t rc = ::lseek(file_des_, offset, SEEK_SET);
         if (rc < 0)
         {
             THRILL_THROW_ERRNO(IoError,
                                " this=" << this <<
                                " call=::lseek(fd,offset,SEEK_SET)" <<
-                               " path=" << filename <<
-                               " fd=" << file_des <<
+                               " path=" << path_ <<
+                               " fd=" << file_des_ <<
                                " offset=" << offset <<
                                " buffer=" << cbuffer <<
                                " bytes=" << bytes <<
@@ -54,17 +54,17 @@ void SyscallFile::serve(void* buffer, offset_type offset, size_type bytes,
         {
 #if THRILL_MSVC
             assert(bytes <= std::numeric_limits<unsigned int>::max());
-            if ((rc = ::read(file_des, cbuffer, (unsigned int)bytes)) <= 0)
+            if ((rc = ::read(file_des_, cbuffer, (unsigned int)bytes)) <= 0)
 #else
-            if ((rc = ::read(file_des, cbuffer, bytes)) <= 0)
+            if ((rc = ::read(file_des_, cbuffer, bytes)) <= 0)
 #endif
             {
                 THRILL_THROW_ERRNO
                     (IoError,
                     " this=" << this <<
                     " call=::read(fd,buffer,bytes)" <<
-                    " path=" << filename <<
-                    " fd=" << file_des <<
+                    " path=" << path_ <<
+                    " fd=" << file_des_ <<
                     " offset=" << offset <<
                     " buffer=" << buffer <<
                     " bytes=" << bytes <<
@@ -87,17 +87,17 @@ void SyscallFile::serve(void* buffer, offset_type offset, size_type bytes,
         {
 #if THRILL_MSVC
             assert(bytes <= std::numeric_limits<unsigned int>::max());
-            if ((rc = ::write(file_des, cbuffer, (unsigned int)bytes)) <= 0)
+            if ((rc = ::write(file_des_, cbuffer, (unsigned int)bytes)) <= 0)
 #else
-            if ((rc = ::write(file_des, cbuffer, bytes)) <= 0)
+            if ((rc = ::write(file_des_, cbuffer, bytes)) <= 0)
 #endif
             {
                 THRILL_THROW_ERRNO
                     (IoError,
                     " this=" << this <<
                     " call=::write(fd,buffer,bytes)" <<
-                    " path=" << filename <<
-                    " fd=" << file_des <<
+                    " path=" << path_ <<
+                    " fd=" << file_des_ <<
                     " offset=" << offset <<
                     " buffer=" << buffer <<
                     " bytes=" << bytes <<

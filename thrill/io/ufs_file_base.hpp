@@ -35,11 +35,11 @@ namespace io {
 class UfsFileBase : public virtual FileBase
 {
 protected:
-    std::mutex fd_mutex_;  // sequentialize function calls involving file_des
-    int file_des;          // file descriptor
-    int m_mode;            // open mode
-    const std::string filename;
-    bool m_is_device;      //!< is special device node
+    std::mutex fd_mutex_; // sequentialize function calls involving file_des
+    int file_des_;        // file descriptor
+    int mode_;            // open mode
+    const std::string path_;
+    bool is_device_;      //!< is special device node
     UfsFileBase(const std::string& filename, int mode);
     void _after_open();
     offset_type _size();

@@ -34,14 +34,14 @@ void MmapFile::serve(void* buffer, offset_type offset, size_type bytes,
     Stats::scoped_read_write_timer read_write_timer(bytes, type == Request::WRITE);
 
     int prot = (type == Request::READ) ? PROT_READ : PROT_WRITE;
-    void* mem = mmap(nullptr, bytes, prot, MAP_SHARED, file_des, offset);
+    void* mem = mmap(nullptr, bytes, prot, MAP_SHARED, file_des_, offset);
     // void *mem = mmap (buffer, bytes, prot , MAP_SHARED|MAP_FIXED , file_des, offset);
     LOG0 << "Mmaped to " << mem << " , buffer suggested at " << buffer;
     if (mem == MAP_FAILED)
     {
         THRILL_THROW_ERRNO(IoError,
                            " mmap() failed." <<
-                           " path=" << filename <<
+                           " path=" << path_ <<
                            " bytes=" << bytes <<
                            " Page size: " << sysconf(_SC_PAGESIZE) <<
                            " offset modulo page size " << (offset % sysconf(_SC_PAGESIZE)));

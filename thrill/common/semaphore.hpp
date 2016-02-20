@@ -25,18 +25,18 @@ namespace common {
 class semaphore
 {
     //! value of the semaphore
-    int v;
+    int value_;
 
     //! mutex for condition variable
-    std::mutex m_mutex;
+    std::mutex mutex_;
 
     //! condition variable
-    std::condition_variable m_cond;
+    std::condition_variable cv_;
 
 public:
     //! construct semaphore
     explicit semaphore(int init_value = 1)
-        : v(init_value)
+        : value_(init_value)
     { }
 
     //! non-copyable: delete copy-constructor
@@ -47,19 +47,19 @@ public:
     //! function increments the semaphore and signals any threads that are
     //! blocked waiting a change in the semaphore
     int operator ++ (int) { // NOLINT
-        std::unique_lock<std::mutex> lock(m_mutex);
-        int res = ++v;
-        m_cond.notify_one();
+        std::unique_lock<std::mutex> lock(mutex_);
+        int res = ++value_;
+        cv_.notify_one();
         return res;
     }
     //! function decrements the semaphore and blocks if the semaphore is <= 0
     //! until another thread signals a change
     int operator -- (int) { // NOLINT
-        std::unique_lock<std::mutex> lock(m_mutex);
-        while (v <= 0)
-            m_cond.wait(lock);
+        std::unique_lock<std::mutex> lock(mutex_);
+        while (value_ <= 0)
+            cv_.wait(lock);
 
-        return --v;
+        return --value_;
     }
     //! function does NOT block but simply decrements the semaphore should not
     //! be used instead of down -- only for programs where multiple threads
@@ -67,16 +67,16 @@ public:
     //! programmer to set the semaphore to a negative value prior to using it
     //! for synchronization.
     int decrement() {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        return --v;
+        std::unique_lock<std::mutex> lock(mutex_);
+        return --value_;
     }
 #if 0
     //! function returns the value of the semaphore at the time the
     //! critical section is accessed.  obviously the value is not guaranteed
     //! after the function unlocks the critical section.
     int get_value() {
-        scoped_mutex_lock lock(m_mutex);
-        return v;
+        scoped_mutex_lock lock(mutex_);
+        return value_;
     }
 #endif
 };

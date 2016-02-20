@@ -308,8 +308,8 @@ template <typename ArrayItem>
 class VectorIteratorWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
 {
 private:
-    std::vector<ArrayItem>* m_array;
-    size_t m_pos;
+    std::vector<ArrayItem>* array_;
+    size_t pos_;
 
 public:
     using base_type = std::iterator<std::random_access_iterator_tag, ArrayItem>;
@@ -321,71 +321,71 @@ public:
     using reference = typename base_type::reference;
     using pointer = typename base_type::pointer;
 
-    VectorIteratorWrapper() : m_array(nullptr), m_pos(0) { }
+    VectorIteratorWrapper() : array_(nullptr), pos_(0) { }
 
-    VectorIteratorWrapper(std::vector<ArrayItem>* A, size_t p) : m_array(A), m_pos(p) { }
+    VectorIteratorWrapper(std::vector<ArrayItem>* A, size_t p) : array_(A), pos_(p) { }
 
-    VectorIteratorWrapper(const VectorIteratorWrapper& r) : m_array(r.m_array), m_pos(r.m_pos) { }
+    VectorIteratorWrapper(const VectorIteratorWrapper& r) : array_(r.array_), pos_(r.pos_) { }
 
     VectorIteratorWrapper& operator = (const VectorIteratorWrapper& r)
-    { m_array = r.m_array, m_pos = r.m_pos; return *this; }
+    { array_ = r.array_, pos_ = r.pos_; return *this; }
 
     VectorIteratorWrapper& operator ++ ()
-    { ++m_pos; return *this; }
+    { ++pos_; return *this; }
 
     VectorIteratorWrapper& operator -- ()
-    { --m_pos; return *this; }
+    { --pos_; return *this; }
 
     VectorIteratorWrapper operator ++ (int) // NOLINT
-    { return VectorIteratorWrapper(m_array, m_pos++); }
+    { return VectorIteratorWrapper(array_, pos_++); }
 
     VectorIteratorWrapper operator -- (int) // NOLINT
-    { return VectorIteratorWrapper(m_array, m_pos--); }
+    { return VectorIteratorWrapper(array_, pos_--); }
 
     VectorIteratorWrapper operator + (const difference_type& n) const
-    { return VectorIteratorWrapper(m_array, m_pos + n); }
+    { return VectorIteratorWrapper(array_, pos_ + n); }
 
     VectorIteratorWrapper& operator += (const difference_type& n)
-    { m_pos += n; return *this; }
+    { pos_ += n; return *this; }
 
     VectorIteratorWrapper operator - (const difference_type& n) const
-    { return VectorIteratorWrapper(m_array, m_pos - n); }
+    { return VectorIteratorWrapper(array_, pos_ - n); }
 
     VectorIteratorWrapper& operator -= (const difference_type& n)
-    { m_pos -= n; return *this; }
+    { pos_ -= n; return *this; }
 
     reference operator * () const
-    { return m_array->at(m_pos); }
+    { return array_->at(pos_); }
 
     pointer operator -> () const
-    { return &(m_array->at(m_pos)); }
+    { return &(array_->at(pos_)); }
 
     reference operator [] (const difference_type& n) const
-    { return m_array->at(n); }
+    { return array_->at(n); }
 
     bool operator == (const VectorIteratorWrapper& r)
-    { return (m_array == r.m_array) && (m_pos == r.m_pos); }
+    { return (array_ == r.array_) && (pos_ == r.pos_); }
 
     bool operator != (const VectorIteratorWrapper& r)
-    { return (m_array != r.m_array) || (m_pos != r.m_pos); }
+    { return (array_ != r.array_) || (pos_ != r.pos_); }
 
     bool operator < (const VectorIteratorWrapper& r)
-    { return (m_array == r.m_array ? (m_pos < r.m_pos) : (m_array < r.m_array)); }
+    { return (array_ == r.array_ ? (pos_ < r.pos_) : (array_ < r.array_)); }
 
     bool operator > (const VectorIteratorWrapper& r)
-    { return (m_array == r.m_array ? (m_pos > r.m_pos) : (m_array > r.m_array)); }
+    { return (array_ == r.array_ ? (pos_ > r.pos_) : (array_ > r.array_)); }
 
     bool operator <= (const VectorIteratorWrapper& r)
-    { return (m_array == r.m_array ? (m_pos <= r.m_pos) : (m_array <= r.m_array)); }
+    { return (array_ == r.array_ ? (pos_ <= r.pos_) : (array_ <= r.array_)); }
 
     bool operator >= (const VectorIteratorWrapper& r)
-    { return (m_array == r.m_array ? (m_pos >= r.m_pos) : (m_array >= r.m_array)); }
+    { return (array_ == r.array_ ? (pos_ >= r.pos_) : (array_ >= r.array_)); }
 
     difference_type operator + (const VectorIteratorWrapper& r2) const
-    { return (m_pos + r2.m_pos); }
+    { return (pos_ + r2.pos_); }
 
     difference_type operator - (const VectorIteratorWrapper& r2) const
-    { return (m_pos - r2.m_pos); }
+    { return (pos_ - r2.pos_); }
 };
 
 } // namespace core

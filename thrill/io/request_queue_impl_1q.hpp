@@ -43,7 +43,7 @@ private:
     Thread thread_;
     common::semaphore sem_;
 
-    static const priority_op m_priority_op = WRITE;
+    static const priority_op priority_op_ = WRITE;
 
     static void * worker(void* arg);
 
