@@ -1,5 +1,5 @@
 ################################################################################
-# run_scripts/slurm/map_ib0.awk
+# run/slurm/map_ib0.awk
 #
 # Part of Project Thrill - http://project-thrill.org
 #

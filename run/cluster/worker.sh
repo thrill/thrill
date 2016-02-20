@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# run_scripts/cluster/worker.sh
+# run/cluster/worker.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

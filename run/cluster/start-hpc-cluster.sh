@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ################################################################################
-# run_scripts/cluster/start-hpc-cluster.sh
+# run/cluster/start-hpc-cluster.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

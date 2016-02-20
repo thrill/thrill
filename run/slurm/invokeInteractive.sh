@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# run_scripts/slurm/invokeInteractive.sh
+# run/slurm/invokeInteractive.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

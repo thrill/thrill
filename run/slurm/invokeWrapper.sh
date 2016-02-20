@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# run_scripts/slurm/invokeWrapper.sh
+# run/slurm/invokeWrapper.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

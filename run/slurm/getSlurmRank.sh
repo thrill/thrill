@@ -1,6 +1,6 @@
 #! /bin/bash
 ################################################################################
-# run_scripts/slurm/getSlurmRank.sh
+# run/slurm/getSlurmRank.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

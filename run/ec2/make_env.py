@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# run_scripts/ec2/make_env.py
+# run/ec2/make_env.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #

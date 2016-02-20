@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# run_scripts/ec2-setup/submit.py
+# run/ec2-setup/submit.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #

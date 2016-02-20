@@ -1,6 +1,6 @@
 #!/bin/bash -x
 ################################################################################
-# run_scripts/slurm/invoke.sh
+# run/slurm/invoke.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

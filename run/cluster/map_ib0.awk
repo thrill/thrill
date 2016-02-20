@@ -1,5 +1,5 @@
 ################################################################################
-# run_scripts/cluster/map_ib0.awk
+# run/cluster/map_ib0.awk
 #
 # Part of Project Thrill - http://project-thrill.org
 #

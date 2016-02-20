@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# run_scripts/ec2/terminate_all.py
+# run/ec2/terminate_all.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #
