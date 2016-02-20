@@ -23,11 +23,6 @@ using namespace thrill;
 //     return out;
 // }
 
-template <typename T, class ... Args>
-std::array<T, 1 + sizeof ... (Args)> MakeArray(T head, Args ... args) {
-    return std::array<T, 1 + sizeof ... (Args)>({ head, args ... });
-}
-
 TEST(JsonLogger, Test1) {
 
     common::JsonLogger logger("/dev/stdout");
@@ -38,7 +33,6 @@ TEST(JsonLogger, Test1) {
            << "double" << 1.5
            << "string" << std::string("abc")
            << "vector" << std::vector<int>({ 6, 9, 42 })
-           << "std_array" << MakeArray(6, 9, 42)
            << "plain_array" << (common::Array<size_t>{ 1, 2, 3 })
            << "string vector" << std::vector<const char*>({ "abc", "def" });
 //           << "sub" << SubFunction()
