@@ -14,8 +14,10 @@
 #ifndef THRILL_COMMON_JSON_LOGGER_HEADER
 #define THRILL_COMMON_JSON_LOGGER_HEADER
 
+#include <array>
 #include <cassert>
 #include <fstream>
+#include <initializer_list>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -36,6 +38,10 @@ public:
         : str_(str) { }
     std::string str_;
 };
+
+//! A template to make writing temporary arrays easy: Array<int>{ 1, 2, 3 }.
+template <typename Type>
+using Array = Type[];
 
 /*!
  * JsonLogger is a receiver of JSON output objects for logging.
@@ -124,10 +130,6 @@ public:
     //! output any type
     template <typename Type>
     JsonLine& operator << (Type const& t);
-
-    //! output any type, decay array types to pointers
-    template <typename Type>
-    JsonLine & PutDecay(Type const& t);
 
     //! destructor: deliver to output
     ~JsonLine() {
@@ -238,6 +240,32 @@ JsonLine & Put(JsonLine& line, std::string const& str) {
     return line;
 }
 
+template <typename Type, std::size_t N>
+static inline
+JsonLine & Put(JsonLine& line, const Type(&arr)[N]) {
+    line.os_ << '[';
+    for (size_t i = 0; i < N; ++i) {
+        if (i != 0) line.os_ << ',';
+        Put(line, arr[i]);
+    }
+    line.os_ << ']';
+    return line;
+}
+
+template <typename Type>
+static inline
+JsonLine & Put(JsonLine& line, std::initializer_list<Type> const& list) {
+    line.os_ << '[';
+    for (typename std::initializer_list<Type>::const_iterator it = list.begin();
+         it != list.end(); ++it) {
+        if (it != list.begin())
+            line.os_ << ',';
+        Put(line, *it);
+    }
+    line.os_ << ']';
+    return line;
+}
+
 template <typename Type>
 static inline
 JsonLine & Put(JsonLine& line, std::vector<Type> const& vec) {
@@ -246,7 +274,21 @@ JsonLine & Put(JsonLine& line, std::vector<Type> const& vec) {
          it != vec.end(); ++it) {
         if (it != vec.begin())
             line.os_ << ',';
-        line.PutDecay(*it);
+        Put(line, *it);
+    }
+    line.os_ << ']';
+    return line;
+}
+
+template <typename Type, std::size_t N>
+static inline
+JsonLine & Put(JsonLine& line, std::array<Type, N> const& arr) {
+    line.os_ << '[';
+    for (typename std::array<Type, N>::const_iterator it = arr.begin();
+         it != arr.end(); ++it) {
+        if (it != arr.begin())
+            line.os_ << ',';
+        Put(line, *it);
     }
     line.os_ << ']';
     return line;
@@ -260,31 +302,11 @@ JsonLine & Put(JsonLine& line, JsonVerbatim const& verbatim) {
     return line;
 }
 
-// due to problems with outputting const char[N], borrowed from
-// http://stackoverflow.com/questions/6559622/template-specialization-for...
-
+//! template << forwards to ::Put for ADL type switching
 template <typename Type>
-struct ArrayToPointerDecay
-{
-    using type = Type;
-};
-
-template <typename Type, std::size_t N>
-struct ArrayToPointerDecay<Type[N]>
-{
-    using type = const Type *;
-};
-
-template <typename Type>
-inline JsonLine& JsonLine::PutDecay(const Type& t) {
-    using Decayed = typename ArrayToPointerDecay<Type>::type;
-    return Put(*this, static_cast<Decayed>(t));
-}
-
-template <typename Type>
-inline JsonLine& JsonLine::operator << (const Type& t) {
+inline JsonLine& JsonLine::operator << (Type const& t) {
     PutSeparator();
-    return PutDecay(t);
+    return Put(*this, t);
 }
 
 /******************************************************************************/
