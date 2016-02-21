@@ -193,31 +193,31 @@ private:
 
 //! unique_ptr with Manager tracking
 template <typename T>
-using mm_unique_ptr = std::unique_ptr<T, Deleter<T> >;
+using unique_ptr = std::unique_ptr<T, Deleter<T> >;
 
 //! make_unique with Manager tracking
 template <typename T, class ... Args>
-mm_unique_ptr<T> mm_make_unique(Manager& manager, Args&& ... args) {
-    return mm_unique_ptr<T>(
+unique_ptr<T> make_unique(Manager& manager, Args&& ... args) {
+    return unique_ptr<T>(
         mm_new<T>(manager, std::forward<Args>(args) ...),
         Deleter<T>(manager));
 }
 
 //! string with Manager tracking
-using mm_string = std::basic_string<
+using string = std::basic_string<
           char, std::char_traits<char>, Allocator<char> >;
 
 //! stringbuf with Manager tracking
-using mm_stringbuf = std::basic_stringbuf<
+using stringbuf = std::basic_stringbuf<
           char, std::char_traits<char>, Allocator<char> >;
 
 //! vector with Manager tracking
 template <typename T>
-using mm_vector = std::vector<T, Allocator<T> >;
+using vector = std::vector<T, Allocator<T> >;
 
 //! deque with Manager tracking
 template <typename T>
-using mm_deque = std::deque<T, Allocator<T> >;
+using deque = std::deque<T, Allocator<T> >;
 
 } // namespace mem
 } // namespace thrill

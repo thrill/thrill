@@ -190,11 +190,11 @@ private:
     struct Watch
     {
         //! boolean check whether any callbacks are registered
-        bool                    active = false;
+        bool                 active = false;
         //! queue of callbacks for fd.
-        mem::mm_deque<Callback> read_cb, write_cb;
+        mem::deque<Callback> read_cb, write_cb;
         //! only one exception callback for the fd.
-        Callback                except_cb;
+        Callback             except_cb;
 
         explicit Watch(mem::Manager& mem_manager)
             : read_cb(mem::Allocator<Callback>(mem_manager)),
@@ -204,7 +204,7 @@ private:
     //! handlers for all registered file descriptors. the fd integer range
     //! should be small enough, otherwise a more complicated data structure is
     //! needed.
-    mem::mm_vector<Watch> watch_ { mem::Allocator<Watch>(mem_manager_) };
+    mem::vector<Watch> watch_ { mem::Allocator<Watch>(mem_manager_) };
 
     //! Default exception handler
     static bool DefaultExceptionCallback() {

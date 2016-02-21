@@ -21,7 +21,7 @@ namespace net {
 
 DispatcherThread::DispatcherThread(
     mem::Manager& mem_manager,
-    mem::mm_unique_ptr<class Dispatcher>&& dispatcher,
+    mem::unique_ptr<class Dispatcher>&& dispatcher,
     const mem::by_string& thread_name)
     : mem_manager_(&mem_manager, "DispatcherThread"),
       dispatcher_(std::move(dispatcher)),

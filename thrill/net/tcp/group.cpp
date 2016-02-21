@@ -27,10 +27,10 @@ namespace thrill {
 namespace net {
 namespace tcp {
 
-mem::mm_unique_ptr<Dispatcher>
+mem::unique_ptr<Dispatcher>
 Group::ConstructDispatcher(mem::Manager& mem_manager) const {
     // construct tcp::SelectDispatcher
-    return mem::mm_unique_ptr<Dispatcher>(
+    return mem::unique_ptr<Dispatcher>(
         mem::mm_new<SelectDispatcher>(mem_manager, mem_manager),
         mem::Deleter<Dispatcher>(mem_manager));
 }

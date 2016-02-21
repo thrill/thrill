@@ -164,7 +164,7 @@ static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
 
     LOG << "Finding Stages:";
 
-    mem::mm_deque<DIABasePtr> bfs_stack(
+    mem::deque<DIABasePtr> bfs_stack(
         mem::Allocator<DIABasePtr>(action->mem_manager()));
 
     bfs_stack.push_back(action);
@@ -197,7 +197,7 @@ static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
 }
 
 static void TopoSortVisit(
-    const Stage& s, mm_set<Stage>& stages, mem::mm_vector<Stage>& result) {
+    const Stage& s, mm_set<Stage>& stages, mem::vector<Stage>& result) {
     // check markers
     die_unless(!s.cycle_mark_ && "Cycle in toposort of Stages? Impossible.");
     if (s.topo_seen_) return;
@@ -219,7 +219,7 @@ static void TopoSortVisit(
     result.push_back(s);
 }
 
-static void TopoSortStages(mm_set<Stage>& stages, mem::mm_vector<Stage>& result) {
+static void TopoSortStages(mm_set<Stage>& stages, mem::vector<Stage>& result) {
     // iterate over all stages and visit nodes in DFS search
     for (const Stage& s : stages) {
         if (s.topo_seen_) continue;
@@ -240,7 +240,7 @@ void DIABase::RunScope() {
     };
     FindStages(shared_from_this(), stages);
 
-    mem::mm_vector<Stage> toporder {
+    mem::vector<Stage> toporder {
         mem::Allocator<Stage>(mem_manager())
     };
     TopoSortStages(stages, toporder);

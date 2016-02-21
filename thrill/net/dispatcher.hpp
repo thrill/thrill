@@ -29,6 +29,7 @@
 #include <functional>
 #include <queue>
 #include <string>
+#include <vector>
 
 namespace thrill {
 namespace net {
@@ -322,13 +323,13 @@ protected:
     };
 
     //! priority queue of timer callbacks
-    using TimerPQ = std::priority_queue<Timer, mem::mm_vector<Timer> >;
+    using TimerPQ = std::priority_queue<Timer, mem::vector<Timer> >;
 
     //! priority queue of timer callbacks, obviously kept in timeout
     //! order. Currently not addressable.
     TimerPQ timer_pq_ {
         std::less<Timer>(),
-        mem::mm_vector<Timer>(mem::Allocator<Timer>(mem_manager_))
+        mem::vector<Timer>(mem::Allocator<Timer>(mem_manager_))
     };
 
     /**************************************************************************/
@@ -400,7 +401,7 @@ protected:
     };
 
     //! deque of asynchronous readers
-    mem::mm_deque<AsyncReadBuffer> async_read_ {
+    mem::deque<AsyncReadBuffer> async_read_ {
         mem::Allocator<AsyncReadBuffer>(mem_manager_)
     };
 
@@ -469,7 +470,7 @@ protected:
     };
 
     //! deque of asynchronous writers
-    mem::mm_deque<AsyncWriteBuffer> async_write_ {
+    mem::deque<AsyncWriteBuffer> async_write_ {
         mem::Allocator<AsyncWriteBuffer>(mem_manager_)
     };
 
@@ -548,7 +549,7 @@ protected:
     };
 
     //! deque of asynchronous readers
-    mem::mm_deque<AsyncReadByteBlock> async_read_block_ {
+    mem::deque<AsyncReadByteBlock> async_read_block_ {
         mem::Allocator<AsyncReadByteBlock>(mem_manager_)
     };
 
@@ -617,7 +618,7 @@ protected:
     };
 
     //! deque of asynchronous writers
-    mem::mm_deque<AsyncWriteBlock> async_write_block_ {
+    mem::deque<AsyncWriteBlock> async_write_block_ {
         mem::Allocator<AsyncWriteBlock>(mem_manager_)
     };
 

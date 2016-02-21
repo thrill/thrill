@@ -133,10 +133,10 @@ net::Connection& Group::connection(size_t peer) {
 
 void Group::Close() { }
 
-mem::mm_unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
+mem::unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
     mem::Manager& mem_manager) const {
     // construct mock::Dispatcher
-    return mem::mm_unique_ptr<net::Dispatcher>(
+    return mem::unique_ptr<net::Dispatcher>(
         mem::mm_new<Dispatcher>(mem_manager, mem_manager),
         mem::Deleter<net::Dispatcher>(mem_manager));
 }
@@ -198,11 +198,11 @@ struct Dispatcher::Data
 struct Dispatcher::Watch
 {
     //! boolean check whether Watch is registered at Connection
-    bool                    active = false;
+    bool                 active = false;
     //! queue of callbacks for fd.
-    mem::mm_deque<Callback> read_cb, write_cb;
+    mem::deque<Callback> read_cb, write_cb;
     //! only one exception callback for the fd.
-    Callback                except_cb;
+    Callback             except_cb;
 
     explicit Watch(mem::Manager& mem_manager)
         : read_cb(mem::Allocator<Callback>(mem_manager)),
