@@ -62,9 +62,10 @@ PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker
     assert(local_worker_id < workers_per_host_);
     std::unique_lock<std::mutex> lock(mutex_);
 
-    if (hard_ram_limit_ != 0 &&
-        !(size % THRILL_DEFAULT_ALIGN == 0
-          && size == common::RoundUpToPowerOfTwo(size))) {
+    if (!(size % THRILL_DEFAULT_ALIGN == 0 && common::IsPowerOfTwo(size))
+        // make exception to block_size constraint for test programs, which use
+        // irregular block sizes to check all corner cases
+        && hard_ram_limit_ != 0) {
         die("BlockPool: requested unaligned block_size=" << size << "." <<
             "ByteBlocks must be >= " << THRILL_DEFAULT_ALIGN << " and a power of two.");
     }
