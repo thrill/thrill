@@ -338,10 +338,11 @@ public:
         return result;
     }
 
-    static void* operator new (size_t /*bytes*/, void* ptr) {     // construct object in existing memory
+    // construct object in existing memory
+    static void* operator new (size_t /*bytes*/, void* ptr) {
         return ptr;
     }
-
+#if DISABLED
     static void operator delete (void* ptr) {
         mem::aligned_dealloc(ptr);
     }
@@ -349,9 +350,9 @@ public:
     static void operator delete[] (void* ptr) {
         mem::aligned_dealloc(ptr);
     }
-
     static void operator delete (void*, void*)
     { }
+#endif
 
 #if 1
     // STRANGE: implementing destructor makes g++ allocate

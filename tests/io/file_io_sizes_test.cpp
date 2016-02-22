@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
         throw;
     }
 
-    mem::aligned_dealloc(buffer);
+    mem::aligned_dealloc(buffer, max_size);
 
     return 0;
 }

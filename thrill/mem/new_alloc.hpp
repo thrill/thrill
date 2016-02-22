@@ -112,7 +112,7 @@ public:
 
     // deallocate storage p of deleted elements
     void deallocate(pointer p, size_type /*num*/) {
-        Type::operator delete (p);
+        ::delete (p);
     }
 };
 

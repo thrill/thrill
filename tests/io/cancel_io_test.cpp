@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
     wait_all(req.begin(), req.end());
     std::cout << io::StatsData(*io::Stats::get_instance()) - stats2;
 
-    mem::aligned_dealloc(buffer);
+    mem::aligned_dealloc(buffer, size);
 
     return 0;
 }

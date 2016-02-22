@@ -237,7 +237,7 @@ void BlockPool::OnReadComplete(
         swapped_bytes_ += block_ptr->size();
 
         // release memory
-        mem::aligned_dealloc(read->data);
+        mem::aligned_dealloc(read->data, block_ptr->size());
 
         // the requested memory was already counted as a pin.
         pin_count_.Decrement(local_worker_id, block_ptr->size());
@@ -453,7 +453,7 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
         unpinned_bytes_ -= block_ptr->size();
 
         // release memory
-        mem::aligned_dealloc(block_ptr->data_);
+        mem::aligned_dealloc(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
         ReleaseInternalMemory(block_ptr->size());
@@ -586,7 +586,7 @@ void BlockPool::OnWriteComplete(
         swapped_bytes_ += block_ptr->size();
 
         // release memory
-        mem::aligned_dealloc(block_ptr->data_);
+        mem::aligned_dealloc(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
         ReleaseInternalMemory(block_ptr->size());

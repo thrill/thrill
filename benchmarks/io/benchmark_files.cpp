@@ -437,7 +437,7 @@ int main(int argc, char* argv[]) {
     for (unsigned i = 0; i < nfiles; i++)
         delete files[i];
     delete[] files;
-    mem::aligned_dealloc(buffer);
+    mem::aligned_dealloc(buffer, step_size * nfiles);
 
     return (verify_failed ? 1 : 0);
 }

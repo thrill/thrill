@@ -20,6 +20,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <memory>
 
 #ifndef THRILL_VERBOSE_ALIGNED_ALLOC
 #define THRILL_VERBOSE_ALIGNED_ALLOC THRILL_VERBOSE2
@@ -38,6 +39,22 @@ struct aligned_alloc_settings {
 template <typename MustBeInt>
 bool aligned_alloc_settings<MustBeInt>::may_use_realloc = true;
 
+template <typename BaseAllocator = std::allocator<char>,
+          size_t Alignment = THRILL_DEFAULT_ALIGN>
+class AlignedAllocator
+{
+public:
+    explicit AlignedAllocator(const BaseAllocator& base = BaseAllocator())
+        : base_(base) { }
+
+    void * allocate(size_t size, size_t meta_info_size = 0);
+    void deallocate(void* ptr, size_t size, size_t meta_info_size = 0);
+
+private:
+    //! base allocator
+    BaseAllocator base_;
+};
+
 // meta_info_size > 0 is needed for array allocations that have overhead
 //
 //                      meta_info
@@ -49,14 +66,15 @@ bool aligned_alloc_settings<MustBeInt>::may_use_realloc = true;
 //                     pointer to buffer
 // (---) unallocated, (===) allocated memory
 
-template <size_t Alignment>
-inline void * aligned_alloc_base(size_t size, size_t meta_info_size = 0) {
+template <typename BaseAllocator, size_t Alignment>
+inline void* AlignedAllocator<BaseAllocator, Alignment>::allocate(
+    size_t size, size_t meta_info_size) {
+
     static const bool debug = false;
 
     LOG << "aligned_alloc<" << Alignment << ">(), size = " << size
         << ", meta info size = " << meta_info_size;
 
-#if !defined(THRILL_WASTE_MORE_MEMORY_FOR_IMPROVED_ACCESS_AFTER_ALLOCATED_MEMORY_CHECKS)
     // malloc()/realloc() variant that frees the unused amount of memory
     // after the data area of size 'size'. realloc() from valgrind does not
     // preserve the old memory area when shrinking, so out-of-bounds
@@ -64,30 +82,17 @@ inline void * aligned_alloc_base(size_t size, size_t meta_info_size = 0) {
     // Overhead: about Alignment bytes.
     size_t alloc_size = Alignment + sizeof(char*) + meta_info_size + size;
     char* buffer = static_cast<char*>(std::malloc(alloc_size));
-#else
-    // More space consuming and memory fragmenting variant using
-    // posix_memalign() instead of malloc()/realloc(). Ensures that the end
-    // of the data area (of size 'size') will match the end of the allocated
-    // block, so no corrections are neccessary and
-    // access-behind-allocated-memory problems can be easily detected by
-    // valgrind. Usually produces an extra memory fragment of about
-    // Alignment bytes.
-    // Overhead: about 2 * Alignment bytes.
-    size_t alloc_size = Alignment * div_ceil(sizeof(char*) + meta_info_size, Alignment) + size;
-    char* buffer;
-    if (posix_memalign(static_cast<void**>(&buffer), Alignment, alloc_size) != 0)
-        throw std::bad_alloc();
-#endif
+
     if (buffer == nullptr)
         throw std::bad_alloc();
-#ifdef THRILL_ALIGNED_CALLOC
-    memset(buffer, 0, alloc_size);
-#endif
+
     char* reserve_buffer = buffer + sizeof(char*) + meta_info_size;
     char* result = reserve_buffer + Alignment -
                    (((size_t)reserve_buffer) % (Alignment)) - meta_info_size;
+
     LOG << "aligned_alloc<" << Alignment << ">() address " << static_cast<void*>(result)
         << " lost " << (result - buffer) << " bytes";
+
     //-tb: check that there is space for one char* before the "result" pointer
     // delivered to the user. this char* is set below to the beginning of the
     // allocated area.
@@ -104,7 +109,7 @@ inline void * aligned_alloc_base(size_t size, size_t meta_info_size = 0) {
             LOG1 << "stxxl::aligned_alloc: disabling realloc()";
             std::free(realloced);
             aligned_alloc_settings<int>::may_use_realloc = false;
-            return aligned_alloc_base<Alignment>(size, meta_info_size);
+            return allocate(size, meta_info_size);
         }
         assert(result + size <= buffer + realloc_size);
     }
@@ -114,30 +119,35 @@ inline void * aligned_alloc_base(size_t size, size_t meta_info_size = 0) {
         << static_cast<void*>(buffer) << " returning " << static_cast<void*>(result);
     LOG << "aligned_alloc<" << Alignment << ">(size = " << size
         << ", meta info size = " << meta_info_size
-        << ") => buffer = " << static_cast<void*>(buffer) << ", ptr = " << static_cast<void*>(result);
+        << ") => buffer = " << static_cast<void*>(buffer)
+        << ", ptr = " << static_cast<void*>(result);
 
     return result;
 }
 
-template <size_t Alignment>
-inline void
-aligned_dealloc_base(void* ptr) {
+template <typename BaseAllocator, size_t Alignment>
+inline void AlignedAllocator<BaseAllocator, Alignment>::deallocate(
+    void* ptr, size_t size, size_t meta_info_size) {
     if (!ptr)
         return;
     char* buffer = *((reinterpret_cast<char**>(ptr)) - 1);
+    size_t alloc_size = Alignment + sizeof(char*) + meta_info_size + size;
     LOG0 << "aligned_dealloc<" << Alignment << ">(), ptr = " << ptr
          << ", buffer = " << static_cast<void*>(buffer);
-    std::free(buffer);
+    base_.deallocate(buffer, alloc_size);
 }
+
+/******************************************************************************/
+// default aligned allocation methods
 
 static inline
 void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
-    return aligned_alloc_base<THRILL_DEFAULT_ALIGN>(size, meta_info_size);
+    return AlignedAllocator<>().allocate(size, meta_info_size);
 }
 
-static inline void
-aligned_dealloc(void* ptr) {
-    return aligned_dealloc_base<THRILL_DEFAULT_ALIGN>(ptr);
+static inline
+void aligned_dealloc(void* ptr, size_t size, size_t meta_info_size = 0) {
+    return AlignedAllocator<>().deallocate(ptr, size, meta_info_size);
 }
 
 } // namespace mem
