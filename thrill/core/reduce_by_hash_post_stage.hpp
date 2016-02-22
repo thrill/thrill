@@ -186,14 +186,12 @@ public:
 
         size_t iteration = 1;
 
-        sLOG1 << "ReducePostStage: re-reducing items from"
-              << remaining_files.size() << "spilled files";
-
         while (remaining_files.size())
         {
-            sLOG << "ReducePostStage: re-reducing items from"
-                 << remaining_files.size() << "remaining files"
-                 << "iteration" << iteration;
+            sLOG1 << "ReducePostStage: re-reducing items from"
+                  << remaining_files.size() << "spilled files"
+                  << "iteration" << iteration;
+            sLOG1 << "-- Try to increase the amount of RAM to avoid this.";
 
             std::vector<data::File> next_remaining_files;
 
@@ -211,7 +209,8 @@ public:
             for (data::File& file : remaining_files)
             {
                 // insert all items from the partially reduced file
-                LOG << "re-reducing subfile " << num_subfile++;
+                sLOG << "re-reducing subfile" << num_subfile++
+                     << "containing" << file.num_items() << "items";
 
                 data::File::ConsumeReader reader = file.GetConsumeReader();
 

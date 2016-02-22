@@ -92,6 +92,7 @@ class ReduceBucketHashTable
                          ReduceStageConfig, EqualToFunction>
 {
     static const bool debug = false;
+    static const bool debug_items = false;
 
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
@@ -218,6 +219,10 @@ public:
 
         assert(num_buckets_ > 0);
         assert(limit_blocks_ > 0);
+
+        sLOG << "num_partitions_" << num_partitions_
+             << "num_buckets_per_partition_" << num_buckets_per_partition_
+             << "num_buckets_" << num_buckets_;
     }
 
     //! Construct the hash table itself. fill it with sentinels
@@ -265,10 +270,6 @@ public:
         // sLOG << "kv" << kv.first << "-" << kv.second
         //      << "to partition" << h.partition_id << "bucket" << h.global_index;
 
-        sLOG << "num_partitions_" << num_partitions_
-             << "num_buckets_per_partition_" << num_buckets_per_partition_
-             << "num_buckets_" << num_buckets_;
-
         assert(h.partition_id < num_partitions_);
         assert(h.global_index < num_buckets_);
         assert(h.global_index >= h.partition_id * num_buckets_per_partition_ &&
@@ -286,7 +287,8 @@ public:
                 // if item and key equals, then reduce.
                 if (equal_to_function_(kv.first, bi->first))
                 {
-                    LOG << "match of key: " << kv.first
+                    LOGC(debug_items)
+                        << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";
 
                     bi->second = reduce_function_(bi->second, kv.second);
@@ -310,7 +312,7 @@ public:
             //////
 
             // flush largest partition if max number of blocks reached
-            while (num_blocks_ > limit_blocks_)
+            while (num_blocks_ > limit_blocks_ || mem::memory_exceeded)
                 SpillAnyPartition();
 
             // allocate a new block of uninitialized items, prepend to bucket
@@ -325,17 +327,23 @@ public:
         // in-place construct/insert new item in current bucket block
         new (current->items + current->size++)KeyValuePair(kv);
 
-        sLOG << "h.partition_id" << h.partition_id;
+        LOGC(debug_items)
+            << "h.partition_id" << h.partition_id;
 
         // Increase partition item count
         items_per_partition_[h.partition_id]++;
 
-        sLOG << "items_per_partition_[" << h.partition_id << "]"
-             << items_per_partition_[h.partition_id];
+        LOGC(debug_items)
+            << "items_per_partition_[" << h.partition_id << "]"
+            << items_per_partition_[h.partition_id];
 
         // flush current partition if max partition fill rate reached
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
+
+        // flush if memory exceeded
+        while (mem::memory_exceeded)
+            SpillAnyPartition();
     }
 
     //! Deallocate memory

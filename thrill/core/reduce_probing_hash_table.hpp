@@ -79,6 +79,7 @@ class ReduceProbingHashTable
                          ReduceStageConfig, EqualToFunction>
 {
     static const bool debug = false;
+    static const bool debug_items = false;
 
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
@@ -207,12 +208,12 @@ public:
         {
             if (equal_to_function_(iter->first, kv.first))
             {
-                LOG << "match of key: " << kv.first
+                LOGC(debug_items)
+                    << "match of key: " << kv.first
                     << " and " << iter->first << " ... reducing...";
 
                 iter->second = reduce_function_(iter->second, kv.second);
 
-                LOG << "...finished reduce!";
                 return;
             }
 
