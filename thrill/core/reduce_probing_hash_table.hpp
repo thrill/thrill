@@ -170,7 +170,6 @@ public:
      * \param kv Value to be inserted into the table.
      */
     void Insert(const KeyValuePair& kv) {
-        static const bool debug = false;
 
         ReduceIndexResult h = index_function_(
             kv.first, num_partitions_,

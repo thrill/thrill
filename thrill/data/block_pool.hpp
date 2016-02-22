@@ -145,8 +145,8 @@ private:
 
     //! Allocator for ByteBlocks such that they are aligned for faster
     //! I/O. Allocations are counted via mem_manager_.
-    mem::AlignedAllocator<mem::Allocator<Byte> > aligned_alloc_ {
-        mem::Allocator<Byte>(mem_manager_)
+    mem::AlignedAllocator<Byte, mem::Allocator<char> > aligned_alloc_ {
+        mem::Allocator<char>(mem_manager_)
     };
 
     //! reference to io block manager

@@ -8,6 +8,7 @@
  *
  * Copyright (C) 2002 Roman Dementiev <dementiev@mpi-sb.mpg.de>
  * Copyright (C) 2009 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -17,6 +18,7 @@
 #define THRILL_MEM_ALIGNED_ALLOC_HEADER
 
 #include <thrill/common/logger.hpp>
+#include <thrill/mem/allocator_base.hpp>
 
 #include <cassert>
 #include <cstdlib>
@@ -39,18 +41,79 @@ struct aligned_alloc_settings {
 template <typename MustBeInt>
 bool aligned_alloc_settings<MustBeInt>::may_use_realloc = false;
 
-template <typename BaseAllocator = std::allocator<char>,
+template <typename Type = char,
+          typename BaseAllocator = std::allocator<char>,
           size_t Alignment = THRILL_DEFAULT_ALIGN>
-class AlignedAllocator
+class AlignedAllocator : public AllocatorBase<Type>
 {
-public:
-    using pointer = typename BaseAllocator::pointer;
+    static const bool debug = false;
 
+    static_assert(sizeof(typename BaseAllocator::value_type) == 1,
+                  "BaseAllocator must be a char/byte allocator");
+
+public:
+    using value_type = Type;
+    using pointer = Type *;
+    using const_pointer = const Type *;
+    using reference = Type &;
+    using const_reference = const Type &;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+
+    //! C++11 type flag
+    using is_always_equal = std::false_type;
+
+    //! Return allocator for different type.
+    template <class U>
+    struct rebind { using other = AlignedAllocator<U>; };
+
+    //! Construct with base allocator
     explicit AlignedAllocator(const BaseAllocator& base = BaseAllocator())
         : base_(base) { }
 
-    pointer allocate(size_t size, size_t meta_info_size = 0);
-    void deallocate(pointer ptr, size_t size, size_t meta_info_size = 0);
+    //! copy-constructor
+    AlignedAllocator(const AlignedAllocator&) noexcept = default;
+
+    //! copy-constructor from a rebound allocator
+    template <typename OtherType>
+    AlignedAllocator(const AlignedAllocator<OtherType>& other) noexcept
+        : base_(other.base_) { }
+
+    //! copy-assignment operator
+    AlignedAllocator& operator = (const AlignedAllocator&) noexcept = default;
+
+    //! Attempts to allocate a block of storage with a size large enough to
+    //! contain n elements of member type value_type, and returns a pointer to
+    //! the first element.
+    pointer allocate(size_type n, const void* /* hint */ = nullptr) {
+        if (n > this->max_size())
+            throw std::bad_alloc();
+
+        return static_cast<pointer>(allocate_bytes(n * sizeof(Type)));
+    }
+
+    //! Releases a block of storage previously allocated with member allocate
+    //! and not yet released.
+    void deallocate(pointer p, size_type n) noexcept {
+        deallocate_bytes(p, n * sizeof(Type));
+    }
+
+    //! Compare to another allocator of same type
+    template <class Other>
+    bool operator == (const AlignedAllocator<Other>& other) const noexcept {
+        return (base_ == other.base_);
+    }
+
+    //! Compare to another allocator of same type
+    template <class Other>
+    bool operator != (const AlignedAllocator<Other>& other) const noexcept {
+        return (base_ != other.base_);
+    }
+
+    /**************************************************************************/
+
+    void * allocate_bytes(size_t size, size_t meta_info_size = 0) noexcept;
+    void deallocate_bytes(void* ptr, size_t size, size_t meta_info_size = 0) noexcept;
 
 private:
     //! base allocator
@@ -68,12 +131,9 @@ private:
 //                     pointer to buffer
 // (---) unallocated, (===) allocated memory
 
-template <typename BaseAllocator, size_t Alignment>
-inline typename BaseAllocator::pointer
-AlignedAllocator<BaseAllocator, Alignment>::allocate(
-    size_t size, size_t meta_info_size) {
-
-    static const bool debug = false;
+template <typename Type, typename BaseAllocator, size_t Alignment>
+inline void* AlignedAllocator<Type, BaseAllocator, Alignment>::allocate_bytes(
+    size_t size, size_t meta_info_size) noexcept {
 
     LOG << "aligned_alloc<" << Alignment << ">(), size = " << size
         << ", meta info size = " << meta_info_size;
@@ -127,32 +187,32 @@ AlignedAllocator<BaseAllocator, Alignment>::allocate(
         << ") => buffer = " << static_cast<void*>(buffer)
         << ", ptr = " << static_cast<void*>(result);
 
-    return reinterpret_cast<pointer>(result);
+    return result;
 }
 
-template <typename BaseAllocator, size_t Alignment>
-inline void AlignedAllocator<BaseAllocator, Alignment>::deallocate(
-    pointer ptr, size_t size, size_t meta_info_size) {
+template <typename Type, typename BaseAllocator, size_t Alignment>
+inline void AlignedAllocator<Type, BaseAllocator, Alignment>::deallocate_bytes(
+    void* ptr, size_t size, size_t meta_info_size)  noexcept {
     if (!ptr)
         return;
     char* buffer = *((reinterpret_cast<char**>(ptr)) - 1);
     size_t alloc_size = Alignment + sizeof(char*) + meta_info_size + size;
     LOG0 << "aligned_dealloc<" << Alignment << ">(), ptr = " << ptr
          << ", buffer = " << static_cast<void*>(buffer);
-    base_.deallocate(reinterpret_cast<pointer>(buffer), alloc_size);
+    base_.deallocate(buffer, alloc_size);
 }
 
 /******************************************************************************/
 // default aligned allocation methods
 
 static inline
-char * aligned_alloc(size_t size, size_t meta_info_size = 0) {
-    return AlignedAllocator<>().allocate(size, meta_info_size);
+void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
+    return AlignedAllocator<>().allocate_bytes(size, meta_info_size);
 }
 
 static inline
-void aligned_dealloc(char* ptr, size_t size, size_t meta_info_size = 0) {
-    return AlignedAllocator<>().deallocate(ptr, size, meta_info_size);
+void aligned_dealloc(void* ptr, size_t size, size_t meta_info_size = 0) {
+    return AlignedAllocator<>().deallocate_bytes(ptr, size, meta_info_size);
 }
 
 } // namespace mem
