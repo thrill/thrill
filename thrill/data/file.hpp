@@ -74,7 +74,7 @@ public:
     void AppendBlock(const PinnedBlock& b) final {
         assert(!closed_);
         if (b.size() == 0) return;
-        blocks_.push_back(b);
+        blocks_.push_back(b.ToBlock());
         num_items_sum_.push_back(num_items() + b.num_items());
         size_ += b.size();
     }

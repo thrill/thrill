@@ -213,7 +213,9 @@ public:
         // blocks needed for those items via block_collect_. There can be more
         // than one block necessary for Next if an item is large!
 
-        block_collect_ = &out;
+        std::vector<PinnedBlock> out_pinned;
+
+        block_collect_ = &out_pinned;
         if (Serialization<BlockReader, ItemType>::is_fixed_size) {
             Skip(n, n * ((self_verify ? sizeof(size_t) : 0) +
                          Serialization<BlockReader, ItemType>::fixed_size));
@@ -225,6 +227,10 @@ public:
             }
         }
         block_collect_ = nullptr;
+
+        for (PinnedBlock& pb : out_pinned)
+            out.emplace_back(pb.MoveToBlock());
+        out_pinned.clear();
 
         out.back().set_end(current_ - byte_block()->begin());
 
@@ -341,7 +347,7 @@ private:
     size_t num_items_ = 0;
 
     //! pointer to vector to collect blocks in GetItemRange.
-    std::vector<Block>* block_collect_ = nullptr;
+    std::vector<PinnedBlock>* block_collect_ = nullptr;
 
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {

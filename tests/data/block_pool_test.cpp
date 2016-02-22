@@ -67,7 +67,7 @@ TEST_F(BlockPoolTest, PinnedBlock) {
         bbp = byte_block;
         data::PinnedBlock pinned_block(std::move(byte_block), 0, 0, 0, 0);
         ASSERT_EQ(1u, bbp->pin_count(0));
-        unpinned_block = pinned_block;
+        unpinned_block = pinned_block.ToBlock();
         ASSERT_EQ(1u, bbp->pin_count(0));
     }
     ASSERT_EQ(0u, bbp->pin_count(0));
@@ -86,7 +86,7 @@ TEST_F(BlockPoolTest, EvictBlock) {
     {
         data::PinnedByteBlockPtr block = block_pool_.AllocateByteBlock(4096, 0);
         data::PinnedBlock pinned_block(std::move(block), 0, 4096, 0, 0);
-        unpinned_block = pinned_block;
+        unpinned_block = pinned_block.ToBlock();
     }
     // pin was removed by going out of scope
     ASSERT_EQ(1u, block_pool_.total_blocks());

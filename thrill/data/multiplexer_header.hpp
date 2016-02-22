@@ -41,7 +41,7 @@ public:
 
     BlockHeader() = default;
 
-    explicit BlockHeader(MagicByte m, const Block& b)
+    explicit BlockHeader(MagicByte m, const PinnedBlock& b)
         : magic(m),
           size(b.size()),
           first_item(b.first_item_relative()),
@@ -81,7 +81,7 @@ struct StreamBlockHeader : public BlockHeader {
 
     StreamBlockHeader() = default;
 
-    explicit StreamBlockHeader(MagicByte m, const Block& b)
+    explicit StreamBlockHeader(MagicByte m, const PinnedBlock& b)
         : BlockHeader(m, b)
     { }
 
@@ -118,7 +118,7 @@ struct PartitionBlockHeader : public BlockHeader {
 
     PartitionBlockHeader() = default;
 
-    explicit PartitionBlockHeader(const Block& b)
+    explicit PartitionBlockHeader(const PinnedBlock& b)
         : BlockHeader(MagicByte::PartitionBlock, b)
     { }
 
