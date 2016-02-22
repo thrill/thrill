@@ -112,6 +112,10 @@ static CounterType total = 0;
 static CounterType total_allocs = 0;
 static CounterType current_allocs = 0;
 
+//! memory limit exceeded indicator
+bool memory_exceeded = false;
+size_t memory_limit_indication = std::numeric_limits<size_t>::max();
+
 // prototype for profiling
 static void update_memprofile(size_t memory_current, bool flush = false);
 
@@ -128,6 +132,7 @@ static void inc_count(size_t inc) {
     ++total_allocs;
     ++current_allocs;
 
+    memory_exceeded = (mycurr >= memory_limit_indication);
     update_memprofile(mycurr);
 }
 
@@ -141,6 +146,7 @@ static void dec_count(size_t dec) {
 #endif
     --current_allocs;
 
+    memory_exceeded = (mycurr >= memory_limit_indication);
     update_memprofile(mycurr);
 }
 
@@ -168,6 +174,10 @@ size_t malloc_tracker_total_allocs() {
 void malloc_tracker_print_status() {
     fprintf(stderr, PPREFIX "current %zu, peak %zu\n",
             get(curr), get(peak));
+}
+
+void set_memory_limit_indication(size_t size) {
+    memory_limit_indication = size;
 }
 
 /******************************************************************************/

@@ -17,6 +17,13 @@
 namespace thrill {
 namespace mem {
 
+//! boolean indication that the memory limit is exceeded
+extern bool memory_exceeded;
+
+//! set the malloc tracking system to set memory_exceeded when this limit is
+//! exceed. it does not actually limit allocation!
+void set_memory_limit_indication(size_t size);
+
 //! bypass malloc tracker and access malloc() directly
 void * bypass_malloc(size_t size) noexcept;
 
