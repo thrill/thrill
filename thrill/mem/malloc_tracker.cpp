@@ -3,7 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2013-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -20,7 +20,9 @@
 
 #endif
 
+#include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -47,14 +49,19 @@
 namespace thrill {
 namespace mem {
 
-//! user-defined options for output malloc()/free() operations to stderr
+/******************************************************************************/
+// user-defined options for output malloc()/free() operations to stderr
 
 static const int log_operations = 0; //! <-- set this to 1 for log output
-static const size_t log_operations_threshold = 1;
+static const size_t log_operations_threshold = 100000;
 
 #define LOG_MALLOC_PROFILER 0
 
-//! to each allocation additional data is added for bookkeeping.
+/******************************************************************************/
+// variables of malloc tracker
+
+//! In the generic hook implementation, we add to each allocation additional
+//! data for bookkeeping.
 static const size_t padding = 16;    /* bytes (>= 2*sizeof(size_t)) */
 
 //! function pointer to the real procedures, loaded using dlsym()
@@ -96,15 +103,17 @@ static const size_t init_alignment = sizeof(size_t);
 //! output
 #define PPREFIX "malloc_tracker ### "
 
-/*****************************************/
-/* run-time memory allocation statistics */
-/*****************************************/
+/******************************************************************************/
+// Run-time memory allocation statistics
 
 static CounterType peak = 0;
 static CounterType curr = 0;
 static CounterType total = 0;
 static CounterType total_allocs = 0;
 static CounterType current_allocs = 0;
+
+// prototype for profiling
+static void update_memprofile(size_t memory_current, bool flush = false);
 
 //! add allocation to statistics
 ATTRIBUTE_NO_SANITIZE
@@ -118,31 +127,21 @@ static void inc_count(size_t inc) {
     total += inc;
     ++total_allocs;
     ++current_allocs;
+
+    update_memprofile(mycurr);
 }
 
 //! decrement allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void dec_count(size_t dec) {
-    curr -= dec;
+#if defined(_MSC_VER)
+    size_t mycurr = (curr -= dec);
+#else
+    size_t mycurr = __sync_sub_and_fetch(&curr, dec);
+#endif
     --current_allocs;
-}
 
-//! bypass malloc tracker and access malloc() directly
-void * bypass_malloc(size_t size) noexcept {
-#if defined(_MSC_VER)
-    return malloc(size);
-#else
-    return real_malloc(size);
-#endif
-}
-
-//! bypass malloc tracker and access free() directly
-void bypass_free(void* ptr) noexcept {
-#if defined(_MSC_VER)
-    return free(ptr);
-#else
-    return real_free(ptr);
-#endif
+    update_memprofile(mycurr);
 }
 
 //! user function to return the currently allocated amount of memory
@@ -171,6 +170,72 @@ void malloc_tracker_print_status() {
             get(curr), get(peak));
 }
 
+/******************************************************************************/
+// Run-time memory profile writer
+
+static bool enable_memprofile = false;
+
+static FILE* memprofile_file = nullptr;
+
+// default to 0.1 sec resolution
+static uint64_t memprofile_resolution = 100000;
+static uint64_t memprofile_last_update = 0;
+
+static size_t mp_bar_open, mp_bar_high, mp_bar_low, mp_bar_close;
+
+static void init_memprofile() {
+
+    // parse environment: THRILL_MEMPROFILE
+    const char* env_pro = getenv("THRILL_MEMPROFILE");
+    if (!env_pro) return;
+
+    memprofile_file = fopen(env_pro, "wt");
+    if (!memprofile_file) {
+        fprintf(stderr, PPREFIX "could not open profile output: %s\n",
+                env_pro);
+        abort();
+    }
+
+    enable_memprofile = true;
+}
+
+static void update_memprofile(size_t memory_current, bool flush) {
+
+    if (!enable_memprofile) return;
+
+    using system_clock = std::chrono::system_clock;
+    using duration = std::chrono::microseconds;
+
+    uint64_t now = std::chrono::duration_cast<duration>(
+        system_clock::now().time_since_epoch()).count();
+
+    now -= now % memprofile_resolution;
+
+    if (now == memprofile_last_update && !flush)
+    {
+        // aggregate into OHLC bar
+        mp_bar_high = std::max(mp_bar_high, memory_current);
+        mp_bar_low = std::min(mp_bar_low, memory_current);
+        mp_bar_close = memory_current;
+    }
+    else
+    {
+        // output last bar
+        if (memprofile_last_update != 0 || flush) {
+            fprintf(memprofile_file, "ts %lu ohlc %zu %zu %zu %zu\n",
+                    memprofile_last_update,
+                    mp_bar_open, mp_bar_high, mp_bar_low, mp_bar_close);
+        }
+
+        // start new OHLC bar
+        memprofile_last_update = now;
+        mp_bar_open = mp_bar_high = mp_bar_low = mp_bar_close = memory_current;
+    }
+}
+
+/******************************************************************************/
+// Initialize function pointers to the real underlying malloc implementation.
+
 #if __linux__ || __APPLE__ || __FreeBSD__
 
 ATTRIBUTE_NO_SANITIZE
@@ -193,6 +258,8 @@ static __attribute__ ((constructor)) void init() { // NOLINT
         }
 
         fprintf(stderr, PPREFIX "using AddressSanitizer's malloc\n");
+
+        init_memprofile();
         return;
     }
 
@@ -213,10 +280,13 @@ static __attribute__ ((constructor)) void init() { // NOLINT
         fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
         exit(EXIT_FAILURE);
     }
+
+    init_memprofile();
 }
 
 ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((destructor)) void finish() { // NOLINT
+    update_memprofile(curr, /* flush */ true);
     fprintf(stderr, PPREFIX
             "exiting, total: %zu, peak: %zu, current: %zu, "
             "allocs: %zu, unfreed: %zu\n",
@@ -226,12 +296,32 @@ static __attribute__ ((destructor)) void finish() { // NOLINT
 
 #endif
 
+/******************************************************************************/
+// Functions to bypass the malloc tracker
+
+//! bypass malloc tracker and access malloc() directly
+void * bypass_malloc(size_t size) noexcept {
+#if defined(_MSC_VER)
+    return malloc(size);
+#else
+    return real_malloc(size);
+#endif
+}
+
+//! bypass malloc tracker and access free() directly
+void bypass_free(void* ptr) noexcept {
+#if defined(_MSC_VER)
+    return free(ptr);
+#else
+    return real_free(ptr);
+#endif
+}
+
 } // namespace mem
 } // namespace thrill
 
-/****************************************************/
-/* exported symbols that overlay the libc functions */
-/****************************************************/
+/******************************************************************************/
+// exported symbols that overlay the libc functions
 
 using namespace thrill::mem; // NOLINT
 
@@ -342,6 +432,8 @@ static void preinit_free(void* ptr) {
 #include <unistd.h>
 
 #endif
+
+/******************************************************************************/
 
 #if defined(MALLOC_USABLE_SIZE)
 
@@ -520,6 +612,8 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     return newptr;
 }
 
+/******************************************************************************/
+
 #elif !defined(_MSC_VER) // GENERIC IMPLEMENTATION for Unix
 
 /*
@@ -606,7 +700,8 @@ ATTRIBUTE_NO_SANITIZE
 void * realloc(void* ptr, size_t size) NOEXCEPT {
 
     if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
-        static_cast<char*>(ptr) <= static_cast<char*>(init_heap) + get(init_heap_use))
+        static_cast<char*>(ptr) <=
+        static_cast<char*>(init_heap) + get(init_heap_use))
     {
         return preinit_realloc(ptr, size);
     }
@@ -651,6 +746,8 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
 
     return static_cast<char*>(newptr) + padding;
 }
+
+/******************************************************************************/
 
 #else // if defined(_MSC_VER)
 
