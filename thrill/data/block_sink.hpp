@@ -84,6 +84,7 @@ private:
     //! BlockSink movable).
     BlockPool* block_pool_;
 
+protected:
     //! local worker id to associate pinned block with
     size_t local_worker_id_;
 };

@@ -68,14 +68,14 @@ public:
 
     //! Creates a new stream instance
     CatStream(Multiplexer& multiplexer, const StreamId& id,
-              size_t my_local_worker_id)
-        : Stream(multiplexer, id, my_local_worker_id) {
+              size_t local_worker_id)
+        : Stream(multiplexer, id, local_worker_id) {
 
-        sinks_.reserve(multiplexer_.num_workers());
-        queues_.reserve(multiplexer_.num_workers());
+        sinks_.reserve(num_workers());
+        queues_.reserve(num_workers());
 
         // construct StreamSink array
-        for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
+        for (size_t host = 0; host < num_hosts(); ++host) {
             for (size_t worker = 0; worker < workers_per_host(); worker++) {
                 if (host == my_host_rank()) {
                     // construct loopback queue
@@ -123,7 +123,7 @@ public:
                         &multiplexer_.group_.connection(host),
                         MagicByte::CatStreamBlock,
                         id,
-                        my_host_rank(), my_local_worker_id,
+                        my_host_rank(), local_worker_id,
                         host, worker);
 
                     // construct inbound BlockQueue
@@ -153,20 +153,21 @@ public:
 
         std::vector<Writer> result;
 
-        for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
-            for (size_t local_worker_id = 0; local_worker_id < workers_per_host(); ++local_worker_id) {
+        for (size_t host = 0; host < num_hosts(); ++host) {
+            for (size_t worker = 0; worker < workers_per_host(); ++worker) {
                 if (host == my_host_rank()) {
-                    auto target_queue_ptr = multiplexer_.CatLoopback(id_, my_local_worker_id_, local_worker_id);
+                    auto target_queue_ptr = multiplexer_.CatLoopback(
+                        id_, local_worker_id_, worker);
                     result.emplace_back(target_queue_ptr, block_size);
                 }
                 else {
-                    size_t worker_id = host * workers_per_host() + local_worker_id;
+                    size_t worker_id = host * workers_per_host() + worker;
                     result.emplace_back(&sinks_[worker_id], block_size);
                 }
             }
         }
 
-        assert(result.size() == multiplexer_.num_workers());
+        assert(result.size() == num_workers());
         return result;
     }
 
@@ -178,14 +179,14 @@ public:
 
         std::vector<BlockQueueReader> result;
 
-        for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
-            for (size_t local_worker_id = 0; local_worker_id < workers_per_host(); ++local_worker_id) {
-                size_t worker_id = host * workers_per_host() + local_worker_id;
+        for (size_t host = 0; host < num_hosts(); ++host) {
+            for (size_t worker = 0; worker < workers_per_host(); ++worker) {
+                size_t worker_id = host * workers_per_host() + worker;
                 result.emplace_back(BlockQueueSource(queues_[worker_id]));
             }
         }
 
-        assert(result.size() == multiplexer_.num_workers());
+        assert(result.size() == num_workers());
         return result;
     }
 
@@ -195,7 +196,7 @@ public:
 
         // construct vector of BlockSources to read from queues_.
         std::vector<DynBlockSource> result;
-        for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
+        for (size_t worker = 0; worker < num_workers(); ++worker) {
             result.emplace_back(queues_[worker].GetBlockSource(consume));
         }
 
@@ -222,7 +223,7 @@ public:
 
         sLOG << "CatStream" << id() << "close"
              << "host" << my_host_rank()
-             << "local_worker" << my_local_worker_id_;
+             << "local_worker_id_" << local_worker_id_;
 
         // close all sinks, this should emit sentinel to all other worker.
         for (size_t i = 0; i < sinks_.size(); ++i) {
@@ -243,7 +244,7 @@ public:
             while (!queues_[i].write_closed()) {
                 sLOG << "CatStream" << id()
                      << "host" << my_host_rank()
-                     << "local_worker" << my_local_worker_id_
+                     << "local_worker_id_" << local_worker_id_
                      << "wait for close from worker" << i;
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
@@ -315,7 +316,7 @@ private:
     BlockQueue * loopback_queue(size_t from_worker_id) {
         assert(from_worker_id < workers_per_host());
         size_t global_worker_rank = workers_per_host() * my_host_rank() + from_worker_id;
-        sLOG << "expose loopback queue for" << from_worker_id << "->" << my_local_worker_id_;
+        sLOG << "expose loopback queue for" << from_worker_id << "->" << local_worker_id_;
         return &(queues_[global_worker_rank]);
     }
 };

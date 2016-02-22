@@ -42,12 +42,11 @@ public:
     using Writer = DynBlockWriter;
 
     Stream(Multiplexer& multiplexer, const StreamId& id,
-           size_t my_local_worker_id)
+           size_t local_worker_id)
         : id_(id),
-          my_local_worker_id_(my_local_worker_id),
+          local_worker_id_(local_worker_id),
           multiplexer_(multiplexer),
-          expected_closing_blocks_(
-              (multiplexer_.num_hosts() - 1) * multiplexer_.workers_per_host()),
+          expected_closing_blocks_((num_hosts() - 1) * workers_per_host()),
           received_closing_blocks_(0) { }
 
     virtual ~Stream() { }
@@ -58,11 +57,16 @@ public:
 
     //! Returns my_host_rank
     size_t my_host_rank() const { return multiplexer_.my_host_rank(); }
+    //! Number of hosts in system
+    size_t num_hosts() const { return multiplexer_.num_hosts(); }
+    //! Number of workers in system
+    size_t num_workers() const { return multiplexer_.num_workers(); }
+
     //! Returns workers_per_host
     size_t workers_per_host() const { return multiplexer_.workers_per_host(); }
     //! Returns my_worker_rank_
     size_t my_worker_rank() const {
-        return my_host_rank() * workers_per_host() + my_local_worker_id_;
+        return my_host_rank() * workers_per_host() + local_worker_id_;
     }
 
     void OnAllClosed() {
@@ -72,7 +76,7 @@ public:
             << "stream" << id_
             << "worker_rank"
             << (my_host_rank() * multiplexer_.workers_per_host())
-            + my_local_worker_id_
+            + local_worker_id_
             << "incoming_bytes" << incoming_bytes_
             << "incoming_blocks" << incoming_blocks_
             << "outgoing_bytes" << outgoing_bytes_
@@ -112,7 +116,7 @@ public:
 
         std::vector<Writer> writers = OpenWriters();
 
-        for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
+        for (size_t worker = 0; worker < num_workers(); ++worker) {
             // write [current,limit) to this worker
             size_t limit = offsets[worker];
             assert(current <= limit);
@@ -157,7 +161,7 @@ protected:
     //! our own stream id.
     StreamId id_;
 
-    size_t my_local_worker_id_;
+    size_t local_worker_id_;
 
     //! reference to multiplexer
     Multiplexer& multiplexer_;

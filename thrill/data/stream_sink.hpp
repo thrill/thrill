@@ -49,7 +49,7 @@ public:
     StreamSink(Stream& stream, BlockPool& block_pool,
                net::Connection* connection,
                MagicByte magic, StreamId stream_id,
-               size_t host_rank, size_t my_local_worker_id,
+               size_t host_rank, size_t local_worker_id,
                size_t peer_rank, size_t peer_local_worker_id);
 
     StreamSink(StreamSink&&) = default;
@@ -78,7 +78,7 @@ private:
     MagicByte magic_ = MagicByte::Invalid;
     StreamId id_ = size_t(-1);
     size_t host_rank_ = size_t(-1);
-    size_t my_local_worker_id_ = size_t(-1);
+    using BlockSink::local_worker_id_;
     size_t peer_rank_ = size_t(-1);
     size_t peer_local_worker_id_ = size_t(-1);
     bool closed_ = false;

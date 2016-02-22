@@ -50,16 +50,16 @@ public:
 
     //! Creates a new stream instance
     MixStream(Multiplexer& multiplexer, const StreamId& id,
-              size_t my_local_worker_id)
-        : Stream(multiplexer, id, my_local_worker_id),
-          queue_(multiplexer_.block_pool_, multiplexer_.num_workers(),
-                 my_local_worker_id) {
+              size_t local_worker_id)
+        : Stream(multiplexer, id, local_worker_id),
+          queue_(multiplexer_.block_pool_, num_workers(),
+                 local_worker_id) {
 
-        sinks_.reserve(multiplexer_.num_workers());
-        loopback_.reserve(multiplexer_.num_workers());
+        sinks_.reserve(num_workers());
+        loopback_.reserve(num_workers());
 
         // construct StreamSink array
-        for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
+        for (size_t host = 0; host < num_hosts(); ++host) {
             for (size_t worker = 0; worker < workers_per_host(); worker++) {
                 if (host == my_host_rank()) {
                     // dummy entries
@@ -73,7 +73,7 @@ public:
                         &multiplexer_.group_.connection(host),
                         MagicByte::MixStreamBlock,
                         id,
-                        my_host_rank(), my_local_worker_id,
+                        my_host_rank(), local_worker_id,
                         host, worker);
                 }
             }
@@ -103,22 +103,21 @@ public:
 
         std::vector<Writer> result;
 
-        for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
-            for (size_t local_worker_id = 0; local_worker_id < workers_per_host(); ++local_worker_id) {
+        for (size_t host = 0; host < num_hosts(); ++host) {
+            for (size_t worker = 0; worker < workers_per_host(); ++worker) {
                 if (host == my_host_rank()) {
                     auto target_queue_ptr =
-                        multiplexer_.MixLoopback(id_, my_local_worker_id_, local_worker_id);
+                        multiplexer_.MixLoopback(id_, local_worker_id_, worker);
                     result.emplace_back(target_queue_ptr, block_size);
                 }
                 else {
-                    size_t worker_id =
-                        host * workers_per_host() + local_worker_id;
+                    size_t worker_id = host * workers_per_host() + worker;
                     result.emplace_back(&sinks_[worker_id], block_size);
                 }
             }
         }
 
-        assert(result.size() == multiplexer_.num_workers());
+        assert(result.size() == num_workers());
         return result;
     }
 
@@ -142,11 +141,11 @@ public:
         }
 
         // close loop-back queue from this worker to all others on this host.
-        for (size_t local_worker_id = 0;
-             local_worker_id < multiplexer_.workers_per_host(); ++local_worker_id)
+        for (size_t worker = 0;
+             worker < multiplexer_.workers_per_host(); ++worker)
         {
             auto queue_ptr = multiplexer_.MixLoopback(
-                id_, my_local_worker_id_, local_worker_id);
+                id_, local_worker_id_, worker);
 
             if (!queue_ptr->write_closed())
                 queue_ptr->Close();
@@ -157,7 +156,7 @@ public:
         while (!queue_.write_closed()) {
             sLOG << "MixStream" << id()
                  << "host" << my_host_rank()
-                 << "local_worker" << my_local_worker_id_
+                 << "local_worker_id_" << local_worker_id_
                  << "wait for close";
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
@@ -192,7 +191,7 @@ private:
 
     //! called from Multiplexer when there is a new Block for this Stream.
     void OnStreamBlock(size_t from, PinnedBlock&& b) {
-        assert(from < multiplexer_.num_workers());
+        assert(from < num_workers());
         rx_timespan_.StartEventually();
 
         incoming_bytes_ += b.size();
@@ -209,7 +208,7 @@ private:
     //! called from Multiplexer when a MixStream closed notification was
     //! received.
     void OnCloseStream(size_t from) {
-        assert(from < multiplexer_.num_workers());
+        assert(from < num_workers());
         queue_.Close(from);
 
         incoming_blocks_++;
