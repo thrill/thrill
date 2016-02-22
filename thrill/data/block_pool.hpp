@@ -20,6 +20,7 @@
 #include <thrill/data/byte_block.hpp>
 #include <thrill/io/block_manager.hpp>
 #include <thrill/io/request.hpp>
+#include <thrill/mem/aligned_alloc.hpp>
 #include <thrill/mem/manager.hpp>
 
 #include <deque>
@@ -141,6 +142,13 @@ private:
 
     //! local Manager counting only ByteBlock allocations in internal memory.
     mem::Manager mem_manager_;
+
+    //! Allocator for ByteBlocks such that they are aligned for faster
+    //! I/O. Allocations are counted via mem_manager_.
+    mem::AlignedAllocator<mem::Allocator<Byte> > aligned_alloc_ {
+        mem::Allocator<Byte>(mem_manager_)
+    };
+
     //! reference to io block manager
     io::BlockManager* bm_;
 

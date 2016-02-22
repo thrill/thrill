@@ -37,18 +37,20 @@ struct aligned_alloc_settings {
 };
 
 template <typename MustBeInt>
-bool aligned_alloc_settings<MustBeInt>::may_use_realloc = true;
+bool aligned_alloc_settings<MustBeInt>::may_use_realloc = false;
 
 template <typename BaseAllocator = std::allocator<char>,
           size_t Alignment = THRILL_DEFAULT_ALIGN>
 class AlignedAllocator
 {
 public:
+    using pointer = typename BaseAllocator::pointer;
+
     explicit AlignedAllocator(const BaseAllocator& base = BaseAllocator())
         : base_(base) { }
 
-    void * allocate(size_t size, size_t meta_info_size = 0);
-    void deallocate(void* ptr, size_t size, size_t meta_info_size = 0);
+    pointer allocate(size_t size, size_t meta_info_size = 0);
+    void deallocate(pointer ptr, size_t size, size_t meta_info_size = 0);
 
 private:
     //! base allocator
@@ -67,7 +69,8 @@ private:
 // (---) unallocated, (===) allocated memory
 
 template <typename BaseAllocator, size_t Alignment>
-inline void* AlignedAllocator<BaseAllocator, Alignment>::allocate(
+inline typename BaseAllocator::pointer
+AlignedAllocator<BaseAllocator, Alignment>::allocate(
     size_t size, size_t meta_info_size) {
 
     static const bool debug = false;
@@ -81,7 +84,7 @@ inline void* AlignedAllocator<BaseAllocator, Alignment>::allocate(
     // accesses can't be detected easily.
     // Overhead: about Alignment bytes.
     size_t alloc_size = Alignment + sizeof(char*) + meta_info_size + size;
-    char* buffer = static_cast<char*>(std::malloc(alloc_size));
+    char* buffer = reinterpret_cast<char*>(base_.allocate(alloc_size));
 
     if (buffer == nullptr)
         throw std::bad_alloc();
@@ -98,6 +101,7 @@ inline void* AlignedAllocator<BaseAllocator, Alignment>::allocate(
     // allocated area.
     assert(long(result - buffer) >= long(sizeof(char*)));
 
+#if 0
     // free unused memory behind the data area
     // so access behind the requested size can be recognized
     size_t realloc_size = (result - buffer) + meta_info_size + size;
@@ -113,6 +117,7 @@ inline void* AlignedAllocator<BaseAllocator, Alignment>::allocate(
         }
         assert(result + size <= buffer + realloc_size);
     }
+#endif
 
     *((reinterpret_cast<char**>(result)) - 1) = buffer;
     LOG << "aligned_alloc<" << Alignment << ">(), allocated at "
@@ -122,31 +127,31 @@ inline void* AlignedAllocator<BaseAllocator, Alignment>::allocate(
         << ") => buffer = " << static_cast<void*>(buffer)
         << ", ptr = " << static_cast<void*>(result);
 
-    return result;
+    return reinterpret_cast<pointer>(result);
 }
 
 template <typename BaseAllocator, size_t Alignment>
 inline void AlignedAllocator<BaseAllocator, Alignment>::deallocate(
-    void* ptr, size_t size, size_t meta_info_size) {
+    pointer ptr, size_t size, size_t meta_info_size) {
     if (!ptr)
         return;
     char* buffer = *((reinterpret_cast<char**>(ptr)) - 1);
     size_t alloc_size = Alignment + sizeof(char*) + meta_info_size + size;
     LOG0 << "aligned_dealloc<" << Alignment << ">(), ptr = " << ptr
          << ", buffer = " << static_cast<void*>(buffer);
-    base_.deallocate(buffer, alloc_size);
+    base_.deallocate(reinterpret_cast<pointer>(buffer), alloc_size);
 }
 
 /******************************************************************************/
 // default aligned allocation methods
 
 static inline
-void * aligned_alloc(size_t size, size_t meta_info_size = 0) {
+char * aligned_alloc(size_t size, size_t meta_info_size = 0) {
     return AlignedAllocator<>().allocate(size, meta_info_size);
 }
 
 static inline
-void aligned_dealloc(void* ptr, size_t size, size_t meta_info_size = 0) {
+void aligned_dealloc(char* ptr, size_t size, size_t meta_info_size = 0) {
     return AlignedAllocator<>().deallocate(ptr, size, meta_info_size);
 }
 

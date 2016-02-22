@@ -13,7 +13,6 @@
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/io/file_base.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -73,7 +72,7 @@ PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker
     RequestInternalMemory(lock, size);
 
     // allocate block memory.
-    Byte* data = static_cast<Byte*>(mem::aligned_alloc(size));
+    Byte* data = aligned_alloc_.allocate(size);
 
     // create counting ptr, no need for special make_shared()-equivalent
     PinnedByteBlockPtr result(new ByteBlock(data, size, this), local_worker_id);
@@ -192,7 +191,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     ReadRequest* read = &reading_[block_ptr];
 
     // allocate block memory.
-    read->data = static_cast<Byte*>(mem::aligned_alloc(block_ptr->size()));
+    read->data = aligned_alloc_.allocate(block_ptr->size());
 
     swapped_.erase(block_ptr);
     swapped_bytes_ -= block_ptr->size();
@@ -237,7 +236,7 @@ void BlockPool::OnReadComplete(
         swapped_bytes_ += block_ptr->size();
 
         // release memory
-        mem::aligned_dealloc(read->data, block_ptr->size());
+        aligned_alloc_.deallocate(read->data, block_ptr->size());
 
         // the requested memory was already counted as a pin.
         pin_count_.Decrement(local_worker_id, block_ptr->size());
@@ -453,7 +452,7 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
         unpinned_bytes_ -= block_ptr->size();
 
         // release memory
-        mem::aligned_dealloc(block_ptr->data_, block_ptr->size());
+        aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
         ReleaseInternalMemory(block_ptr->size());
@@ -586,7 +585,7 @@ void BlockPool::OnWriteComplete(
         swapped_bytes_ += block_ptr->size();
 
         // release memory
-        mem::aligned_dealloc(block_ptr->data_, block_ptr->size());
+        aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
         ReleaseInternalMemory(block_ptr->size());
