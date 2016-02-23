@@ -154,10 +154,26 @@ HostContext::ConstructLoopback(size_t num_hosts, size_t workers_per_host) {
         mem_config, num_hosts, workers_per_host);
 }
 
+// Windows porting madness because setenv() is apparently dangerous
+#if defined(_MSC_VER)
+int wrap_setenv(const char* name, const char* value, int overwrite) {
+    if (!overwrite) {
+        size_t envsize = 0;
+        int errcode = getenv_s(&envsize, nullptr, 0, name);
+        if (errcode || envsize) return errcode;
+    }
+    return _putenv_s(name, value);
+}
+#else
+int wrap_setenv(const char* name, const char* value, int overwrite) {
+    setenv(name, value, overwrite);
+}
+#endif
+
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
 
     // discard json log
-    setenv("THRILL_LOG", "", /* overwrite */ 1);
+    wrap_setenv("THRILL_LOG", "", /* overwrite */ 1);
 
     static const size_t num_hosts_list[] = { 1, 2, 5, 8 };
     static const size_t num_workers_list[] = { 1, 3 };
