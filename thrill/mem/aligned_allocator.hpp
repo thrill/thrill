@@ -73,7 +73,7 @@ public:
     //! copy-constructor from a rebound allocator
     template <typename OtherType>
     AlignedAllocator(const AlignedAllocator<OtherType>& other) noexcept
-        : base_(other.base_) { }
+        : base_(other.base()) { }
 
     //! copy-assignment operator
     AlignedAllocator& operator = (const AlignedAllocator&) noexcept = default;
@@ -110,6 +110,8 @@ public:
 
     void * allocate_bytes(size_t size, size_t meta_info_size = 0);
     void deallocate_bytes(void* ptr, size_t size, size_t meta_info_size = 0) noexcept;
+
+    const BaseAllocator & base() const { return base_; }
 
 private:
     //! base allocator

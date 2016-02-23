@@ -22,7 +22,7 @@
 // list of words borrowed from
 // hadoop-2.6.3-src/hadoop-mapreduce-project/hadoop-mapreduce-examples/
 // src/main/java/org/apache/hadoop/examples/RandomTextWriter.java
-static const std::vector<const char*> s_random_text_writer_words = {
+static const const char* s_random_text_writer_words[] = {
     "diurnalness", "Homoiousian", "spiranthic", "tetragynian", "silverhead",
     "ungreat", "lithograph", "exploiter", "physiologian", "by", "hellbender",
     "Filipendula", "undeterring", "antiscolic", "pentagamist", "hypoid",
@@ -219,13 +219,16 @@ static const std::vector<const char*> s_random_text_writer_words = {
     "unrealize", "unpatched", "hypochondriacism", "critically", "cheesecutter"
 };
 
+static const size_t s_num_random_text_writer_words =
+    sizeof(s_random_text_writer_words) / sizeof(s_random_text_writer_words[0]);
+
 template <typename RandomGenerator>
 std::string RandomTextWriterGenerate(size_t num_words, RandomGenerator& rng) {
     // use words from Java
-    const std::vector<const char*>& words = s_random_text_writer_words;
+    const char** words = s_random_text_writer_words;
     std::string sentence;
     for (size_t i = 0; i < num_words; ++i) {
-        sentence += words[rng() % words.size()];
+        sentence += words[rng() % s_num_random_text_writer_words];
         // add space even at end, Java does this too.
         sentence += " ";
     }

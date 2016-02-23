@@ -67,7 +67,7 @@ public:
         double dsize = content_length_dist_(rng);
         if (dsize < 0) dsize = 0;
 
-        size_t size = std::round(dsize);
+        size_t size = static_cast<size_t>(std::round(dsize));
 
         std::vector<size_t> result;
         result.reserve(size);

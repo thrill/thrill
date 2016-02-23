@@ -423,8 +423,8 @@ private:
         }
 
         // close writers and flush data
-        for (size_t i = 0; i < data_writers.size(); i++)
-            data_writers[i].Close();
+        for (size_t j = 0; j < data_writers.size(); j++)
+            data_writers[j].Close();
     }
 
     void SortAndWriteToFile(std::vector<ValueType>& vec,
