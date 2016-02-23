@@ -229,7 +229,7 @@ public:
         block_collect_ = nullptr;
 
         for (PinnedBlock& pb : out_pinned)
-            out.emplace_back(pb.MoveToBlock());
+            out.emplace_back(std::move(pb).MoveToBlock());
         out_pinned.clear();
 
         out.back().set_end(current_ - byte_block()->begin());

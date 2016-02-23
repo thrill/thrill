@@ -198,6 +198,7 @@ public:
     }
 
     ~PinnedBlock() {
+        LOG << "~PinnedBlock() byte_block_=" << byte_block_.get();
         if (byte_block_)
             byte_block_->DecPinCount(local_worker_id_);
     }
@@ -264,14 +265,14 @@ public:
     }
 
     //! extract Block has an unpinned move
-    Block MoveToBlock() const {
+    Block MoveToBlock() && {
         byte_block_->DecPinCount(local_worker_id_);
         return Block(std::move(*this));
     }
 
     //! extract ByteBlock including it's pin. afterwards, this PinnedBlock is
     //! invalid.
-    PinnedByteBlockPtr StealPinnedByteBlock() {
+    PinnedByteBlockPtr StealPinnedByteBlock() && {
         return PinnedByteBlockPtr(std::move(byte_block_), local_worker_id_);
     }
 

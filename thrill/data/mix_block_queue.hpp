@@ -222,7 +222,7 @@ public:
     using CatBlockSource = data::CatBlockSource<DynBlockSource>;
     using CatBlockReader = BlockReader<CatBlockSource>;
 
-    MixBlockQueueReader(MixBlockQueue& mix_queue, bool consume)
+    MixBlockQueueReader(MixBlockQueue& mix_queue, bool consume, size_t local_worker_id)
         : mix_queue_(mix_queue),
           consume_(consume), reread_(mix_queue.read_closed()) {
 
@@ -232,14 +232,15 @@ public:
 
             for (size_t w = 0; w < mix_queue_.num_workers_; ++w) {
                 readers_.emplace_back(
-                    mix_queue_.queues_[w].GetReader(consume));
+                    mix_queue_.queues_[w].GetReader(consume, local_worker_id));
             }
         }
         else {
             // construct vector of BlockSources to read from queues_.
             std::vector<DynBlockSource> result;
             for (size_t w = 0; w < mix_queue_.num_workers_; ++w) {
-                result.emplace_back(mix_queue_.queues_[w].GetBlockSource(consume));
+                result.emplace_back(mix_queue_.queues_[w].GetBlockSource(
+                                        consume, local_worker_id));
             }
             // move BlockQueueSources into concatenation BlockSource, and to Reader.
             cat_reader_ = CatBlockReader(CatBlockSource(std::move(result)));

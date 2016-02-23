@@ -124,7 +124,7 @@ public:
     //! Creates a BlockReader which mixes items from all workers.
     MixReader OpenMixReader(bool consume) {
         rx_timespan_.StartEventually();
-        return MixReader(queue_, consume);
+        return MixReader(queue_, consume, local_worker_id_);
     }
 
     //! Open a MixReader (function name matches a method in CatStream).

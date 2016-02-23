@@ -38,7 +38,6 @@ namespace data {
 
 class KeepFileBlockSource;
 class ConsumeFileBlockSource;
-class CachingBlockQueueSource;
 
 /*!
  * A File or generally File<> is an ordered sequence of
@@ -72,9 +71,15 @@ public:
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
     void AppendBlock(const PinnedBlock& b) final {
+        return AppendBlock(b.ToBlock());
+    }
+
+    //! Append a block to this file, the block must contain given number of
+    //! items after the offset first.
+    void AppendBlock(const Block& b) {
         assert(!closed_);
         if (b.size() == 0) return;
-        blocks_.push_back(b.ToBlock());
+        blocks_.push_back(b);
         num_items_sum_.push_back(num_items() + b.num_items());
         size_ += b.size();
     }
@@ -236,9 +241,9 @@ private:
 using FilePtr = std::shared_ptr<File>;
 
 /*!
- * A BlockSource to read Blocks from a File. The KeepFileBlockSource mainly contains
- * an index to the current block, which is incremented when the NextBlock() must
- * be delivered.
+ * A BlockSource to read Blocks from a File. The KeepFileBlockSource mainly
+ * contains an index to the current block, which is incremented when the
+ * NextBlock() must be delivered.
  */
 class KeepFileBlockSource
 {
@@ -247,9 +252,11 @@ public:
 
     //! Start reading a File
     KeepFileBlockSource(
-        const File& file, size_t num_prefetch = default_prefetch,
+        const File& file, size_t local_worker_id,
+        size_t num_prefetch = default_prefetch,
         size_t first_block = 0, size_t first_item = keep_first_item)
-        : file_(file), num_prefetch_(num_prefetch),
+        : file_(file), local_worker_id_(local_worker_id),
+          num_prefetch_(num_prefetch),
           first_block_(first_block), current_block_(first_block),
           first_item_(first_item) { }
 
@@ -263,7 +270,7 @@ public:
         if (num_prefetch_ == 0)
         {
             // operate without prefetching
-            return NextUnpinnedBlock().PinWait(file_.local_worker_id());
+            return NextUnpinnedBlock().PinWait(local_worker_id_);
         }
         else
         {
@@ -272,7 +279,7 @@ public:
                    current_block_ < file_.num_blocks())
             {
                 fetching_blocks_.emplace_back(
-                    NextUnpinnedBlock().Pin(file_.local_worker_id()));
+                    NextUnpinnedBlock().Pin(local_worker_id_));
             }
 
             // this might block if the prefetching is not finished
@@ -306,6 +313,9 @@ private:
     //! file to read blocks from
     const File& file_;
 
+    //! local worker id reading the File
+    size_t local_worker_id_;
+
     //! number of block prefetch operations
     size_t num_prefetch_;
 
@@ -324,7 +334,7 @@ private:
 
 inline
 File::KeepReader File::GetKeepReader() const {
-    return KeepReader(KeepFileBlockSource(*this));
+    return KeepReader(KeepFileBlockSource(*this, local_worker_id_));
 }
 
 /*!
@@ -338,11 +348,14 @@ File::KeepReader File::GetKeepReader() const {
 class ConsumeFileBlockSource
 {
 public:
-    //! Start reading a File
-    //! Creates a source for the given file and set the number of blocks
-    //! that should be prefetched. 0 means that no blocks are prefetched.
-    explicit ConsumeFileBlockSource(File* file, size_t num_prefetch = 2)
-        : file_(file), num_prefetch_(num_prefetch) { }
+    //! Start reading a File. Creates a source for the given file and set the
+    //! number of blocks that should be prefetched. 0 means that no blocks are
+    //! prefetched.
+    explicit ConsumeFileBlockSource(
+        File* file, size_t local_worker_id,
+        size_t num_prefetch = 2)
+        : file_(file), local_worker_id_(local_worker_id),
+          num_prefetch_(num_prefetch) { }
 
     //! non-copyable: delete copy-constructor
     ConsumeFileBlockSource(const ConsumeFileBlockSource&) = delete;
@@ -350,7 +363,8 @@ public:
     ConsumeFileBlockSource& operator = (const ConsumeFileBlockSource&) = delete;
     //! move-constructor: default
     ConsumeFileBlockSource(ConsumeFileBlockSource&& s)
-        : file_(s.file_), num_prefetch_(s.num_prefetch_),
+        : file_(s.file_), local_worker_id_(s.local_worker_id_),
+          num_prefetch_(s.num_prefetch_),
           fetching_blocks_(std::move(s.fetching_blocks_)) { s.file_ = nullptr; }
 
     //! Get the next block of file.
@@ -362,7 +376,7 @@ public:
         // operate without prefetching
         if (num_prefetch_ == 0) {
             std::future<PinnedBlock> f =
-                file_->blocks_.front().Pin(file_->local_worker_id());
+                file_->blocks_.front().Pin(local_worker_id_);
             file_->blocks_.pop_front();
             f.wait();
             return f.get();
@@ -371,7 +385,7 @@ public:
         // prefetch #desired blocks
         while (fetching_blocks_.size() < num_prefetch_ && !file_->blocks_.empty()) {
             fetching_blocks_.emplace_back(
-                file_->blocks_.front().Pin(file_->local_worker_id()));
+                file_->blocks_.front().Pin(local_worker_id_));
             file_->blocks_.pop_front();
         }
 
@@ -395,6 +409,9 @@ private:
     //! file to consume blocks from (ptr to make moving easier)
     File* file_;
 
+    //! local worker id reading the File
+    size_t local_worker_id_;
+
     //! number of block prefetch operations
     size_t num_prefetch_;
 
@@ -404,7 +421,7 @@ private:
 
 inline
 File::ConsumeReader File::GetConsumeReader() {
-    return ConsumeReader(ConsumeFileBlockSource(this));
+    return ConsumeReader(ConsumeFileBlockSource(this, local_worker_id_));
 }
 
 template <typename ValueType>
@@ -412,15 +429,17 @@ inline
 BufferedBlockReader<ValueType, KeepFileBlockSource>
 File::GetBufferedReader() const {
     return BufferedBlockReader<ValueType, KeepFileBlockSource>(
-        KeepFileBlockSource(*this));
+        KeepFileBlockSource(*this, local_worker_id_));
 }
 
 inline
 File::Reader File::GetReader(bool consume) {
     if (consume)
-        return ConstructDynBlockReader<ConsumeFileBlockSource>(this);
+        return ConstructDynBlockReader<ConsumeFileBlockSource>(
+            this, local_worker_id_);
     else
-        return ConstructDynBlockReader<KeepFileBlockSource>(*this);
+        return ConstructDynBlockReader<KeepFileBlockSource>(
+            *this, local_worker_id_);
 }
 
 //! Get BlockReader seeked to the corresponding item index
@@ -445,7 +464,8 @@ File::GetReaderAt(size_t index) const {
 
     // start Reader at given first valid item in located block
     KeepReader fr(
-        KeepFileBlockSource(*this, KeepFileBlockSource::default_prefetch,
+        KeepFileBlockSource(*this, local_worker_id_,
+                            KeepFileBlockSource::default_prefetch,
                             begin_block,
                             blocks_[begin_block].first_item_absolute()));
 

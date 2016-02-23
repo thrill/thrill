@@ -39,6 +39,7 @@ PinnedBlock Block::PinWait(size_t local_worker_id) const {
 }
 
 std::future<PinnedBlock> Block::Pin(size_t local_worker_id) const {
+    assert(IsValid());
     return byte_block()->block_pool_->PinBlock(*this, local_worker_id);
 }
 
@@ -52,7 +53,7 @@ std::string PinnedBlock::ToString() const {
 }
 
 std::ostream& operator << (std::ostream& os, const PinnedBlock& b) {
-    os << "[PinnedBlock "
+    os << "[PinnedBlock"
        << " block_=" << static_cast<const Block&>(b);
     if (b.byte_block_)
         os << " pin_count_=" << b.byte_block_->pin_count_str();

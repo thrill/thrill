@@ -178,11 +178,13 @@ public:
         rx_timespan_.StartEventually();
 
         std::vector<BlockQueueReader> result;
+        result.reserve(num_workers());
 
         for (size_t host = 0; host < num_hosts(); ++host) {
             for (size_t worker = 0; worker < workers_per_host(); ++worker) {
                 size_t worker_id = host * workers_per_host() + worker;
-                result.emplace_back(BlockQueueSource(queues_[worker_id]));
+                result.emplace_back(
+                    BlockQueueSource(queues_[worker_id], local_worker_id_));
             }
         }
 
@@ -196,8 +198,11 @@ public:
 
         // construct vector of BlockSources to read from queues_.
         std::vector<DynBlockSource> result;
+        result.reserve(num_workers());
+
         for (size_t worker = 0; worker < num_workers(); ++worker) {
-            result.emplace_back(queues_[worker].GetBlockSource(consume));
+            result.emplace_back(
+                queues_[worker].GetBlockSource(consume, local_worker_id_));
         }
 
         // move BlockQueueSources into concatenation BlockSource, and to Reader.

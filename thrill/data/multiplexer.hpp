@@ -63,6 +63,8 @@ struct StreamBlockHeader;
  */
 class Multiplexer
 {
+    static const bool debug = false;
+
 public:
     explicit Multiplexer(mem::Manager& mem_manager,
                          data::BlockPool& block_pool,
@@ -165,8 +167,6 @@ public:
     //! \}
 
 private:
-    static const bool debug = false;
-
     //! reference to host-global memory manager
     mem::Manager& mem_manager_;
 

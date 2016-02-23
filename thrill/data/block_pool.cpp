@@ -44,8 +44,8 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
       workers_per_host_(workers_per_host),
       pin_count_(workers_per_host) {
     // we need a config mechanism
-    soft_ram_limit_ = 800000000lu;
-    hard_ram_limit_ = 1000000000lu;
+    soft_ram_limit_ = 1000 * 1024 * 1024lu;
+    hard_ram_limit_ = 1280 * 1024 * 1024lu;
     die_unless(hard_ram_limit >= soft_ram_limit);
 }
 
@@ -76,19 +76,21 @@ PinnedByteBlockPtr BlockPool::AllocateByteBlock(size_t size, size_t local_worker
     Byte* data = aligned_alloc_.allocate(size);
 
     // create counting ptr, no need for special make_shared()-equivalent
-    PinnedByteBlockPtr result(new ByteBlock(data, size, this), local_worker_id);
-    IncBlockPinCountNoLock(result.get(), local_worker_id);
+    PinnedByteBlockPtr block_ptr(new ByteBlock(data, size, this), local_worker_id);
+    IncBlockPinCountNoLock(block_ptr.get(), local_worker_id);
 
     pin_count_.Increment(local_worker_id, size);
 
     LOGC(debug_blc)
-        << "BlockPool::AllocateBlock() size=" << size
+        << "BlockPool::AllocateBlock()"
+        << " ptr=" << block_ptr.get()
+        << " size=" << size
         << " local_worker_id=" << local_worker_id
         << " total_blocks()=" << total_blocks_nolock()
         << " total_bytes()=" << total_bytes_nolock()
         << pin_count_;
 
-    return result;
+    return block_ptr;
 }
 
 //! Pins a block by swapping it in if required.
@@ -105,11 +107,11 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
 
         assert(!unpinned_blocks_.exists(block_ptr));
 
-        IncBlockPinCountNoLock(block_ptr, local_worker_id);
-
         LOGC(debug_pin)
             << "BlockPool::PinBlock block=" << &block
             << " already pinned by thread";
+
+        IncBlockPinCountNoLock(block_ptr, local_worker_id);
 
         std::promise<PinnedBlock> result;
         result.set_value(PinnedBlock(block, local_worker_id));
@@ -122,13 +124,13 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
 
         assert(!unpinned_blocks_.exists(block_ptr));
 
-        IncBlockPinCountNoLock(block_ptr, local_worker_id);
-        pin_count_.Increment(local_worker_id, block_ptr->size());
-
         LOGC(debug_pin)
             << "BlockPool::PinBlock block=" << &block
             << " already pinned by another thread"
             << pin_count_;
+
+        IncBlockPinCountNoLock(block_ptr, local_worker_id);
+        pin_count_.Increment(local_worker_id, block_ptr->size());
 
         std::promise<PinnedBlock> result;
         result.set_value(PinnedBlock(block, local_worker_id));
@@ -281,6 +283,7 @@ void BlockPool::IncBlockPinCountNoLock(ByteBlock* block_ptr, size_t local_worker
 
     LOGC(debug_pin)
         << "BlockPool::IncBlockPinCount()"
+        << " block=" << block_ptr
         << " ++block.pin_count[" << local_worker_id << "]="
         << block_ptr->pin_count_[local_worker_id]
         << " ++block.total_pins_=" << block_ptr->total_pins_
@@ -299,6 +302,7 @@ void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
 
     LOGC(debug_pin)
         << "BlockPool::DecBlockPinCount()"
+        << " block=" << block_ptr
         << " --block.pin_count[" << local_worker_id << "]=" << p
         << " --block.total_pins_=" << tp
         << " local_worker_id=" << local_worker_id;
@@ -329,6 +333,7 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
 
     LOGC(debug_pin)
         << "BlockPool::UnpinBlock()"
+        << " block=" << block_ptr
         << " --total_pins_=" << block_ptr->total_pins_
         << " allow swap out.";
 }
@@ -484,9 +489,11 @@ void BlockPool::RequestInternalMemory(
         << " requested_bytes_=" << requested_bytes_
         << " soft_ram_limit_=" << soft_ram_limit_
         << " hard_ram_limit_=" << hard_ram_limit_
-        << pin_count_;
+        << pin_count_
+        << " unpinned_blocks_.size()=" << unpinned_blocks_.size();
 
     while (soft_ram_limit_ != 0 &&
+           unpinned_blocks_.size() &&
            total_ram_use_ - writing_bytes_ + requested_bytes_ > soft_ram_limit_)
     {
         // evict blocks: schedule async writing which increases writing_bytes_.
@@ -494,11 +501,18 @@ void BlockPool::RequestInternalMemory(
     }
 
     // wait for memory change due to blocks begin written and deallocated.
-    cv_memory_change_.wait(
-        lock, [&]() {
-            return hard_ram_limit_ == 0 ||
-            total_ram_use_ + size <= hard_ram_limit_;
-        });
+    while (hard_ram_limit_ != 0 && total_ram_use_ + size > hard_ram_limit_)
+    {
+        while (hard_ram_limit_ != 0 &&
+               unpinned_blocks_.size() &&
+               total_ram_use_ - writing_bytes_ + requested_bytes_ > hard_ram_limit_)
+        {
+            // evict blocks: schedule async writing which increases writing_bytes_.
+            EvictBlockLRU();
+        }
+
+        cv_memory_change_.wait(lock);
+    }
 
     requested_bytes_ -= size;
     total_ram_use_ += size;

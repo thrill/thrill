@@ -411,7 +411,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                     queue.AppendBlock(b.PinWait(0));
                 queue.Close();
 
-                data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
+                data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader(0);
 
                 for (size_t i = begin; i < end; ++i) {
                     ASSERT_TRUE(qr.HasNext());
@@ -437,7 +437,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                     queue.AppendBlock(b.PinWait(0));
                 queue.Close();
 
-                data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
+                data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader(0);
 
                 for (size_t i = end; i < end + more; ++i) {
                     ASSERT_TRUE(qr.HasNext());
