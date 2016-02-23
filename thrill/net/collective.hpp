@@ -201,7 +201,7 @@ void BroadcastBinomialTree(Group& net, T& value, size_t origin = 0) {
     if (my_rank > 0) {
         // our predecessor is p with the lowest one bit flipped to zero. this
         // also counts the number of rounds we have to send out messages later.
-        // TODO: man 3 ffs
+        // TODO(lh): man 3 ffs
         while ((my_rank & d) == 0) d <<= 1, ++r;
         size_t from = ((my_rank ^ d) + origin) % num_hosts;
         sLOG << "Broadcast: rank" << my_rank << "receiving from" << from

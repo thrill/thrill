@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
 
     std::unordered_map<std::string, size_t> count_map;
 
-    for (size_t argi = 1; argi < argc; ++argi) {
+    for (int argi = 1; argi < argc; ++argi) {
 
         std::ifstream in(argv[argi]);
         if (!in.good()) {

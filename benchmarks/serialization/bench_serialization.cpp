@@ -79,8 +79,9 @@ int SerialTuple(int iterations) {
  */
 void GetRandomIntVector(std::vector<int64_t>& res, int n) {
     res.reserve(n);
+    std::default_random_engine prng(std::random_device { } ());
     for (int i = 0; i < n; ++i) {
-        res.push_back(rand());
+        res.push_back(prng());
     }
 }
 
@@ -134,8 +135,9 @@ int main() {
     // serialize some random ints
     for (int s : size) {
         int acc = 0;
+        std::default_random_engine prng(std::random_device { } ());
         for (int i = 0; i < s; ++i) {
-            int x = rand();
+            int x = prng();
             acc += BenchmarkSerialization(x, 1);
         }
         PrintSQLPlotTool("int", s, iterations, acc);

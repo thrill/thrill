@@ -154,11 +154,13 @@ TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
     seq.reserve(nruns);
     output.resize(total);
 
+    std::default_random_engine prng(std::random_device { } ());
+
     for (size_t i = 0; i < nruns; ++i) {
         std::vector<size_t> tmp;
         tmp.reserve(nitems[i]);
         for (size_t j = 0; j < nitems[i]; ++j) {
-            auto elem = rand() % 100;
+            auto elem = prng() % 100;
             sLOG << "FILE" << i << "with elem" << elem;
             tmp.push_back(elem);
             ref.push_back(elem);
