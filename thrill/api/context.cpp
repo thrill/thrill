@@ -34,6 +34,14 @@
 
 #endif
 
+#if __APPLE__
+
+// for sysctlbyname
+#include <sys/sysctl.h>
+#include <sys/types.h>
+
+#endif
+
 #if defined(_MSC_VER)
 
 // for detecting amount of physical memory
@@ -695,6 +703,17 @@ int MemoryConfig::setup_detect() {
         GlobalMemoryStatusEx(&memstx);
 
         ram_ = memstx.ullTotalPhys;
+#elif __APPLE__
+        int mib[2];
+        int64_t physical_memory;
+        size_t length;
+
+        // Get the physical memory size
+        mib[0] = CTL_HW;
+        mib[1] = HW_MEMSIZE;
+        length = sizeof(physical_memory);
+        sysctl(mib, 2, &physical_memory, &length, nullptr, 0);
+        ram_ = static_cast<size_t>(physical_memory);
 #else
         ram_ = sysconf(_SC_PHYS_PAGES) * (size_t)sysconf(_SC_PAGESIZE);
 #endif

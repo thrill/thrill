@@ -22,7 +22,7 @@
 // list of words borrowed from
 // hadoop-2.6.3-src/hadoop-mapreduce-project/hadoop-mapreduce-examples/
 // src/main/java/org/apache/hadoop/examples/RandomTextWriter.java
-static const const char* s_random_text_writer_words[] = {
+static const char* s_random_text_writer_words[] = {
     "diurnalness", "Homoiousian", "spiranthic", "tetragynian", "silverhead",
     "ungreat", "lithograph", "exploiter", "physiologian", "by", "hellbender",
     "Filipendula", "undeterring", "antiscolic", "pentagamist", "hypoid",
