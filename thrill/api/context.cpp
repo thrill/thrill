@@ -34,6 +34,13 @@
 
 #endif
 
+#if defined(_MSC_VER)
+
+// for detecting amount of physical memory
+#include <windows.h>
+
+#endif
+
 #include <csignal>
 #include <memory>
 #include <string>
@@ -51,7 +58,9 @@ namespace api {
 template <typename NetGroup>
 static inline
 std::vector<std::unique_ptr<HostContext> >
-ConstructLoopbackHostContexts(size_t num_hosts, size_t workers_per_host) {
+ConstructLoopbackHostContexts(
+    const MemoryConfig& mem_config, size_t num_hosts, size_t workers_per_host) {
+
     static const size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three full mesh loopback cliques, deliver net::Groups.
@@ -71,7 +80,7 @@ ConstructLoopbackHostContexts(size_t num_hosts, size_t workers_per_host) {
 
         host_context.emplace_back(
             std::make_unique<HostContext>(
-                std::move(host_group), workers_per_host));
+                mem_config, std::move(host_group), workers_per_host));
     }
 
     return host_context;
@@ -80,19 +89,25 @@ ConstructLoopbackHostContexts(size_t num_hosts, size_t workers_per_host) {
 //! Generic runner for backends supporting loopback tests.
 template <typename NetGroup>
 static inline void
-RunLoopbackThreads(size_t num_hosts, size_t workers_per_host,
-                   const std::function<void(Context&)>& job_startpoint) {
+RunLoopbackThreads(
+    const MemoryConfig& mem_config,
+    size_t num_hosts, size_t workers_per_host,
+    const std::function<void(Context&)>& job_startpoint) {
+
+    MemoryConfig host_mem_config = mem_config.divide(num_hosts);
+    mem_config.print(workers_per_host);
 
     // construct a mock network of hosts
     std::vector<std::unique_ptr<HostContext> > host_contexts =
-        ConstructLoopbackHostContexts<NetGroup>(num_hosts, workers_per_host);
+        ConstructLoopbackHostContexts<NetGroup>(
+            host_mem_config, num_hosts, workers_per_host);
 
     // launch thread for each of the workers on this host.
     std::vector<std::thread> threads(num_hosts * workers_per_host);
 
-    for (size_t host = 0; host < num_hosts; host++) {
+    for (size_t host = 0; host < num_hosts; ++host) {
         mem::by_string log_prefix = "host " + mem::to_string(host);
-        for (size_t worker = 0; worker < workers_per_host; worker++) {
+        for (size_t worker = 0; worker < workers_per_host; ++worker) {
             threads[host * workers_per_host + worker] = std::thread(
                 [&host_contexts, &job_startpoint, host, worker, log_prefix] {
                     Context ctx(*host_contexts[host], worker);
@@ -122,15 +137,21 @@ using TestGroup = net::tcp::Group;
 void RunLocalMock(size_t num_hosts, size_t workers_per_host,
                   const std::function<void(Context&)>& job_startpoint) {
 
+    MemoryConfig mem_config;
+    mem_config.setup_test();
+
     return RunLoopbackThreads<TestGroup>(
-        num_hosts, workers_per_host, job_startpoint);
+        mem_config, num_hosts, workers_per_host, job_startpoint);
 }
 
 std::vector<std::unique_ptr<HostContext> >
 HostContext::ConstructLoopback(size_t num_hosts, size_t workers_per_host) {
 
+    MemoryConfig mem_config;
+    mem_config.setup_test();
+
     return ConstructLoopbackHostContexts<TestGroup>(
-        num_hosts, workers_per_host);
+        mem_config, num_hosts, workers_per_host);
 }
 
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
@@ -138,11 +159,11 @@ void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     // discard json log
     setenv("THRILL_LOG", "", /* overwrite */ 1);
 
-    size_t num_hosts_list[] = { 1, 2, 5, 8 };
-    size_t num_workers_list[] = { 1, 3 };
+    static const size_t num_hosts_list[] = { 1, 2, 5, 8 };
+    static const size_t num_workers_list[] = { 1, 3 };
 
-    for (size_t& num_hosts : num_hosts_list) {
-        for (size_t& workers_per_host : num_workers_list) {
+    for (const size_t& num_hosts : num_hosts_list) {
+        for (const size_t& workers_per_host : num_workers_list) {
             RunLocalMock(num_hosts, workers_per_host, job_startpoint);
         }
     }
@@ -155,6 +176,10 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
     size_t num_hosts = 1;
     static const size_t kGroupCount = net::Manager::kGroupCount;
 
+    MemoryConfig mem_config;
+    mem_config.setup_test();
+    mem_config.print(workers_per_host);
+
     // construct three full mesh connection cliques, deliver net::tcp::Groups.
     std::array<std::vector<std::unique_ptr<TestGroup> >, kGroupCount> group;
 
@@ -166,7 +191,8 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
         { std::move(group[0][0]), std::move(group[1][0]) }
     };
 
-    HostContext host_context(std::move(host_group), workers_per_host);
+    HostContext host_context(
+        mem_config, std::move(host_group), workers_per_host);
 
     Context ctx(host_context, 0);
     common::NameThisThread("worker " + mem::to_string(my_host_rank));
@@ -177,10 +203,11 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
 /******************************************************************************/
 // Run() Variants for Different Net Backends
 
-//! Run() implementation which uses a loopback net backend.
+//! Run() implementation which uses a loopback net backend ("mock" or "tcp").
 template <typename NetGroup>
 static inline
-int RunBackendLoopback(const std::function<void(Context&)>& job_startpoint) {
+int RunBackendLoopback(
+    const char* backend, const std::function<void(Context&)>& job_startpoint) {
 
     char* endptr;
 
@@ -225,12 +252,20 @@ int RunBackendLoopback(const std::function<void(Context&)>& job_startpoint) {
         }
     }
 
-    std::cerr << "Thrill: executing locally with " << num_hosts
+    // detect memory config
+
+    MemoryConfig mem_config;
+    if (mem_config.setup_detect() < 0) return -1;
+    mem_config.print(workers_per_host);
+
+    // okay, configuration is good.
+
+    std::cerr << "Thrill: running locally with " << num_hosts
               << " test hosts and " << workers_per_host << " workers per host"
-              << " in a local mock network." << std::endl;
+              << " in a local " << backend << " network." << std::endl;
 
     RunLoopbackThreads<NetGroup>(
-        num_hosts, workers_per_host, job_startpoint);
+        mem_config, num_hosts, workers_per_host, job_startpoint);
 
     return 0;
 }
@@ -319,9 +354,15 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         workers_per_host = std::thread::hardware_concurrency();
     }
 
+    // detect memory config
+
+    MemoryConfig mem_config;
+    if (mem_config.setup_detect() < 0) return -1;
+    mem_config.print(workers_per_host);
+
     // okay, configuration is good.
 
-    std::cerr << "Thrill: executing in tcp network with " << hostlist.size()
+    std::cerr << "Thrill: running in tcp network with " << hostlist.size()
               << " hosts and " << workers_per_host << " workers per host"
               << " as rank " << my_host_rank << " with endpoints";
     for (const std::string& ep : hostlist)
@@ -340,7 +381,8 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     };
 
     // construct HostContext
-    HostContext host_context(std::move(host_groups), workers_per_host);
+    HostContext host_context(
+        mem_config, std::move(host_groups), workers_per_host);
 
     std::vector<std::thread> threads(workers_per_host);
 
@@ -371,6 +413,14 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
     char* endptr;
 
+    // detect memory config
+
+    MemoryConfig mem_config;
+    if (mem_config.setup_detect() < 0) return -1;
+    mem_config.print();
+
+    // determine number of local worker threads per MPI process
+
     size_t workers_per_host = 1;
 
     const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
@@ -389,10 +439,18 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
         workers_per_host = std::thread::hardware_concurrency();
     }
 
+    // detect memory config
+
+    MemoryConfig mem_config;
+    if (mem_config.setup_detect() < 0) return -1;
+    mem_config.print(workers_per_host);
+
+    // okay, configuration is good.
+
     size_t num_hosts = net::mpi::NumMpiProcesses();
     size_t mpi_rank = net::mpi::MpiRank();
 
-    std::cerr << "Thrill: executing in MPI network with " << num_hosts
+    std::cerr << "Thrill: running in MPI network with " << num_hosts
               << " hosts and " << workers_per_host << " workers per host"
               << " as rank " << mpi_rank << "."
               << std::endl;
@@ -408,7 +466,8 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
     };
 
     // construct HostContext
-    HostContext host_context(std::move(host_groups), workers_per_host);
+    HostContext host_context(
+        mem_config, std::move(host_groups), workers_per_host);
 
     // launch worker threads
     std::vector<std::thread> threads(workers_per_host);
@@ -541,13 +600,13 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
     // run with selected backend
     if (strcmp(env_net, "mock") == 0) {
         // mock network backend
-        return RunBackendLoopback<net::mock::Group>(job_startpoint);
+        return RunBackendLoopback<net::mock::Group>("mock", job_startpoint);
     }
 
     if (strcmp(env_net, "local") == 0) {
 #if THRILL_HAVE_NET_TCP
         // tcp loopback network backend
-        return RunBackendLoopback<net::tcp::Group>(job_startpoint);
+        return RunBackendLoopback<net::tcp::Group>("tcp", job_startpoint);
 #else
         return RunNotSupported(env_net);
 #endif
@@ -574,6 +633,91 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
     std::cerr << "Thrill: network backend " << env_net << " is unknown."
               << std::endl;
     return -1;
+}
+
+/******************************************************************************/
+// MemoryConfig
+
+void MemoryConfig::setup_test() {
+
+    // set fixed amount of RAM for testing
+    ram_ = 4 * 1024 * 1024 * 1024llu;
+
+    // divide up ram_
+
+    ram_block_pool_hard_ = ram_ / 3;
+    ram_block_pool_soft_ = ram_block_pool_hard_ * 9 / 10;
+    ram_dia_node_ = ram_ / 3;
+    ram_floating_ = ram_ - ram_block_pool_hard_ - ram_dia_node_;
+
+    // set memory limit, only BlockPool is excluded from malloc tracking
+    mem::set_memory_limit_indication(ram_floating_ + ram_dia_node_);
+}
+
+int MemoryConfig::setup_detect() {
+
+    // determine amount of physical RAM or take user's limit
+
+    const char* env_ram = getenv("THRILL_RAM");
+
+    if (env_ram && *env_ram) {
+        uint64_t ram64;
+        if (!common::ParseSiIecUnits(env_ram, ram64)) {
+            std::cerr << "Thrill: environment variable"
+                      << " THRILL_RAM=" << env_ram
+                      << " is not a valid amount of RAM memory."
+                      << std::endl;
+            return -1;
+        }
+        ram_ = static_cast<size_t>(ram64);
+    }
+    else {
+        // detect amount of physical memory on system
+#if defined(_MSC_VER)
+        MEMORYSTATUSEX memstx;
+        memstx.dwLength = sizeof(memstx);
+        GlobalMemoryStatusEx(&memstx);
+
+        ram_ = memstx.ullTotalPhys;
+#else
+        ram_ = sysconf(_SC_PHYS_PAGES) * (size_t)sysconf(_SC_PAGESIZE);
+#endif
+    }
+
+    // divide up ram_
+
+    ram_block_pool_hard_ = ram_ / 3;
+    ram_block_pool_soft_ = ram_block_pool_hard_ * 9 / 10;
+    ram_dia_node_ = ram_ / 3;
+    ram_floating_ = ram_ - ram_block_pool_hard_ - ram_dia_node_;
+
+    // set memory limit, only BlockPool is excluded from malloc tracking
+    mem::set_memory_limit_indication(ram_floating_ + ram_dia_node_);
+
+    return 0;
+}
+
+MemoryConfig MemoryConfig::divide(size_t hosts) const {
+
+    MemoryConfig mc = *this;
+    mc.ram_ /= hosts;
+    mc.ram_block_pool_hard_ /= hosts;
+    mc.ram_block_pool_soft_ /= hosts;
+    mc.ram_dia_node_ /= hosts;
+    // free floating memory is not divided by host, as it is measured overall
+
+    return mc;
+}
+
+void MemoryConfig::print(size_t workers_per_host) const {
+    std::cerr
+        << "Thrill: using "
+        << common::FormatIecUnits(ram_) << "B RAM total,"
+        << " BlockPool=" << common::FormatIecUnits(ram_block_pool_hard_) << "B,"
+        << " DIANode="
+        << common::FormatIecUnits(ram_dia_node_ / workers_per_host) << "B,"
+        << " floating=" << common::FormatIecUnits(ram_floating_) << "B."
+        << std::endl;
 }
 
 /******************************************************************************/

@@ -178,6 +178,7 @@ void malloc_tracker_print_status() {
 }
 
 void set_memory_limit_indication(size_t size) {
+    fprintf(stderr, PPREFIX "set_memory_limit_indication %zu\n", size);
     memory_limit_indication = size;
 }
 
@@ -251,8 +252,6 @@ static void update_memprofile(size_t memory_current, bool flush) {
 
 ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((constructor)) void init() { // NOLINT
-
-    set_memory_limit_indication(512 * 1024 * 1024);
 
     // try to use AddressSanitizer's malloc first.
     real_malloc = (malloc_type)dlsym(RTLD_DEFAULT, "__interceptor_malloc");

@@ -295,7 +295,7 @@ void DiskConfig::parse_line(const std::string& line) {
     }
 
     // size: (default unit MiB)
-    if (!common::ParseSiIecUnits(cmfield[1], size, 'M')) {
+    if (!common::ParseSiIecUnits(cmfield[1].c_str(), size, 'M')) {
         THRILL_THROW(std::runtime_error,
                      "Invalid disk size '" << cmfield[1] << "' in disk configuration file.");
     }

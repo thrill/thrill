@@ -1067,10 +1067,9 @@ void CmdlineParser::PrintResult(std::ostream& os) {
 
 //! Parse a string like "343KB" or " 44 GiB " into the corresponding size in
 //! bytes.
-bool ParseSiIecUnits(const std::string& str, uint64_t& size,
-                     char default_unit) {
+bool ParseSiIecUnits(const char* str, uint64_t& size, char default_unit) {
     char* endptr;
-    size = strtoul(str.c_str(), &endptr, 10);
+    size = strtoul(str, &endptr, 10);
     if (!endptr) return false;                    // parse failed, no number
 
     while (endptr[0] == ' ') ++endptr;            // skip over spaces
@@ -1141,7 +1140,7 @@ bool ParseSiIecUnits(const std::string& str, uint64_t& size,
 std::string FormatSiUnits(uint64_t number) {
     // may not overflow, std::numeric_limits<uint64_t>::max() == 16 EiB
     double multiplier = 1000.0;
-    static const char* SIendings[] = {
+    static const char* SI_endings[] = {
         "", "k", "M", "G", "T", "P", "E"
     };
     unsigned int scale = 0;
@@ -1152,7 +1151,7 @@ std::string FormatSiUnits(uint64_t number) {
     }
     std::ostringstream out;
     out << std::fixed << std::setprecision(3) << number_d
-        << ' ' << SIendings[scale];
+        << ' ' << SI_endings[scale];
     return out.str();
 }
 
@@ -1160,7 +1159,7 @@ std::string FormatSiUnits(uint64_t number) {
 std::string FormatIecUnits(uint64_t number) {
     // may not overflow, std::numeric_limits<uint64_t>::max() == 16 EiB
     double multiplier = 1024.0;
-    static const char* IECendings[] = {
+    static const char* IEC_endings[] = {
         "", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei"
     };
     unsigned int scale = 0;
@@ -1171,7 +1170,7 @@ std::string FormatIecUnits(uint64_t number) {
     }
     std::ostringstream out;
     out << std::fixed << std::setprecision(3) << number_d
-        << ' ' << IECendings[scale];
+        << ' ' << IEC_endings[scale];
     return out.str();
 }
 

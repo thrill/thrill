@@ -38,6 +38,33 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
+class MemoryConfig
+{
+public:
+    int setup_detect();
+    void setup_test();
+
+    MemoryConfig divide(size_t hosts) const;
+
+    void print(size_t workers_per_host) const;
+
+    //! total amount of physical ram detected or THRILL_RAM
+    size_t ram_;
+
+    //! amount of RAM dedicated to data::BlockPool -- hard limit
+    size_t ram_block_pool_hard_;
+
+    //! amount of RAM dedicated to data::BlockPool -- soft limit
+    size_t ram_block_pool_soft_;
+
+    //! total amount of RAM for DIANode data structures such as the reduce
+    //! tables. divide by the number of worker threads before use.
+    size_t ram_dia_node_;
+
+    //! remaining free-floating RAM used for user and Thrill data structures.
+    size_t ram_floating_;
+};
+
 /*!
  * The HostContext contains all data structures shared among workers on the same
  * host. It is used to construct and destroy them. For testing multiple
@@ -48,17 +75,14 @@ class HostContext
 public:
 #ifndef SWIG
     //! constructor from existing net Groups. Used by the construction methods.
-    HostContext(std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
+    HostContext(const MemoryConfig& mem_config,
+                std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host)
         : base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
           logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
+          mem_config_(mem_config),
           workers_per_host_(workers_per_host),
-          net_manager_(std::move(groups)),
-          flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-          block_pool_(0, 0, &logger_, &mem_manager_, workers_per_host),
-          data_multiplexer_(mem_manager_,
-                            block_pool_, workers_per_host,
-                            net_manager_.GetDataGroup())
+          net_manager_(std::move(groups))
     { }
 
     //! Construct a number of mock hosts running in this process.
@@ -106,6 +130,9 @@ public:
     //! }
 
 private:
+    //! memory configuration
+    MemoryConfig mem_config_;
+
     //! number of workers per host (all have the same).
     size_t workers_per_host_;
 
@@ -116,13 +143,21 @@ private:
     net::Manager net_manager_;
 
     //! the flow control group is used for collective communication.
-    net::FlowControlChannelManager flow_manager_;
+    net::FlowControlChannelManager flow_manager_ {
+        net_manager_.GetFlowGroup(), workers_per_host_
+    };
 
     //! data block pool
-    data::BlockPool block_pool_;
+    data::BlockPool block_pool_ {
+        mem_config_.ram_block_pool_soft_, mem_config_.ram_block_pool_hard_,
+        &logger_, &mem_manager_, workers_per_host_
+    };
 
     //! data multiplexer transmits large amounts of data asynchronously.
-    data::Multiplexer data_multiplexer_;
+    data::Multiplexer data_multiplexer_ {
+        mem_manager_, block_pool_, workers_per_host_,
+        net_manager_.GetDataGroup()
+    };
 };
 
 /*!

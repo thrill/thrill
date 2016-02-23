@@ -73,7 +73,6 @@ TEST(GroupByNode, CompileAndSum) {
         };
 
     api::RunLocalTests(start_func);
-    // RunLocalMock(1, 1, start_func);
 }
 
 TEST(GroupByNode, Median) {
@@ -174,7 +173,6 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
         };
 
     api::RunLocalTests(start_func);
-    // RunLocalMock(2, 1, start_func);
 }
 
 /******************************************************************************/

@@ -30,22 +30,18 @@ static const bool debug_pin = false;
 static const bool debug_em = false;
 
 BlockPool::BlockPool(size_t workers_per_host)
-    : BlockPool(0, 0, nullptr, nullptr, workers_per_host) {
-    soft_ram_limit_ = hard_ram_limit_ = 0;
-}
+    : BlockPool(0, 0, nullptr, nullptr, workers_per_host) { }
 
 BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
-                     common::JsonLogger* logger,
-                     mem::Manager* mem_manager,
+                     common::JsonLogger* logger, mem::Manager* mem_manager,
                      size_t workers_per_host)
     : logger_(logger),
       mem_manager_(mem_manager, "BlockPool"),
       bm_(io::BlockManager::get_instance()),
       workers_per_host_(workers_per_host),
-      pin_count_(workers_per_host) {
-    // we need a config mechanism
-    soft_ram_limit_ = 500 * 1024 * 1024lu;
-    hard_ram_limit_ = 512 * 1024 * 1024lu;
+      pin_count_(workers_per_host),
+      soft_ram_limit_(soft_ram_limit),
+      hard_ram_limit_(hard_ram_limit) {
     die_unless(hard_ram_limit >= soft_ram_limit);
 }
 
@@ -545,8 +541,10 @@ void BlockPool::RequestInternalMemory(
             << " unpinned_blocks_.size()=" << unpinned_blocks_.size()
             << " swapped_.size()=" << swapped_.size();
 
-        if (writing_bytes_ == 0 && total_ram_use_ + requested_bytes_ > hard_ram_limit_)
+        if (writing_bytes_ == 0 && total_ram_use_ + requested_bytes_ > hard_ram_limit_) {
             LOG1 << "abort() due to out-of-pinned-memory ???";
+            abort();
+        }
     }
 
     requested_bytes_ -= size;

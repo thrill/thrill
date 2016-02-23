@@ -23,8 +23,7 @@ namespace common {
 //! bytes. Returns the number of bytes and sets ok = true if the string could
 //! be parsed correctly. If no units indicator is given, use def_unit in
 //! k/m/g/t/p (powers of ten) or in K/M/G/T/P (power of two).
-bool ParseSiIecUnits(const std::string& str, uint64_t& size,
-                     char default_unit = 0);
+bool ParseSiIecUnits(const char* str, uint64_t& size, char default_unit = 0);
 
 //! Format a byte size using SI (K, M, G, T) suffixes (powers of ten). Returns
 //! "123 M" or similar.
