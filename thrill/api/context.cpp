@@ -159,6 +159,10 @@ HostContext::ConstructLoopback(size_t host_count, size_t workers_per_host) {
 }
 
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
+
+    // discard json log
+    setenv("THRILL_LOG", "", /* overwrite */ 1);
+
     size_t num_hosts[] = { 1, 2, 5, 8 };
     size_t num_workers[] = { 1, 3 };
 
@@ -656,12 +660,14 @@ std::string HostContext::MakeHostLogPath(size_t host_rank) {
         return std::string();
     }
 
-    std::string log = env_log;
-    if (log == "/dev/stdout")
-        return log;
+    std::string output = env_log;
+    if (output == "/dev/stdout")
+        return output;
 
-    return std::string(env_log)
-           + "-host-" + std::to_string(host_rank) + ".json";
+    if (output == "")
+        return std::string();
+
+    return output + "-host-" + std::to_string(host_rank) + ".json";
 }
 
 std::string Context::MakeWorkerLogPath(size_t worker_rank) {
@@ -671,12 +677,14 @@ std::string Context::MakeWorkerLogPath(size_t worker_rank) {
         return std::string();
     }
 
-    std::string log = env_log;
-    if (log == "/dev/stdout")
-        return log;
+    std::string output = env_log;
+    if (output == "/dev/stdout")
+        return output;
 
-    return std::string(env_log)
-           + "-worker-" + std::to_string(worker_rank) + ".json";
+    if (output == "")
+        return std::string();
+
+    return output + "-worker-" + std::to_string(worker_rank) + ".json";
 }
 
 } // namespace api
