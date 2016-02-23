@@ -16,7 +16,7 @@
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <ostream>
 

@@ -9,11 +9,12 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/data/multiplexer.hpp>
+
 #include <thrill/data/cat_stream.hpp>
 #include <thrill/data/mix_stream.hpp>
-#include <thrill/data/multiplexer.hpp>
 #include <thrill/data/stream.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <algorithm>
 
@@ -46,6 +47,8 @@ Multiplexer::_GetOrCreateMixStream(size_t id, size_t local_worker_id) {
             id, *this, id, workers_per_host_);
     return set->peer(local_worker_id);
 }
+
+common::JsonLogger & Multiplexer::logger() { return block_pool_.logger(); }
 
 /******************************************************************************/
 

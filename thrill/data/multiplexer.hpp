@@ -13,6 +13,7 @@
 #ifndef THRILL_DATA_MULTIPLEXER_HEADER
 #define THRILL_DATA_MULTIPLEXER_HEADER
 
+#include <thrill/common/json_logger.hpp>
 #include <thrill/data/repository.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/group.hpp>
@@ -116,7 +117,7 @@ public:
     BlockPool & block_pool() { return block_pool_; }
 
     //! Get the JsonLogger from the BlockPool
-    common::JsonLogger & logger() { return block_pool_.logger(); }
+    common::JsonLogger & logger();
 
     //! \name CatStream
     //! \{

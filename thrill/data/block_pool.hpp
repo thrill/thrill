@@ -20,7 +20,7 @@
 #include <thrill/data/byte_block.hpp>
 #include <thrill/io/block_manager.hpp>
 #include <thrill/io/request.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 #include <thrill/mem/manager.hpp>
 
 #include <deque>

@@ -19,7 +19,7 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/io/create_file.hpp>
 #include <thrill/io/request_operations.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <algorithm>
 #include <cstring>

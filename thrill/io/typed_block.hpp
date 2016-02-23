@@ -23,13 +23,9 @@
 #include <thrill/common/config.hpp>
 #include <thrill/io/bid.hpp>
 #include <thrill/io/request.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <array>
-
-#ifndef THRILL_VERBOSE_TYPED_BLOCK
-#define THRILL_VERBOSE_TYPED_BLOCK THRILL_VERBOSE2
-#endif
 
 namespace thrill {
 namespace io {

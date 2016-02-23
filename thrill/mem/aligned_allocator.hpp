@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/mem/aligned_alloc.hpp
+ * thrill/mem/aligned_allocator.hpp
  *
  * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
  * distributed under the Boost Software License, Version 1.0.
@@ -14,8 +14,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_MEM_ALIGNED_ALLOC_HEADER
-#define THRILL_MEM_ALIGNED_ALLOC_HEADER
+#ifndef THRILL_MEM_ALIGNED_ALLOCATOR_HEADER
+#define THRILL_MEM_ALIGNED_ALLOCATOR_HEADER
 
 #include <thrill/common/logger.hpp>
 #include <thrill/mem/allocator_base.hpp>
@@ -23,10 +23,6 @@
 #include <cassert>
 #include <cstdlib>
 #include <memory>
-
-#ifndef THRILL_VERBOSE_ALIGNED_ALLOC
-#define THRILL_VERBOSE_ALIGNED_ALLOC THRILL_VERBOSE2
-#endif
 
 #define THRILL_DEFAULT_ALIGN 4096
 
@@ -112,7 +108,7 @@ public:
 
     /**************************************************************************/
 
-    void * allocate_bytes(size_t size, size_t meta_info_size = 0) noexcept;
+    void * allocate_bytes(size_t size, size_t meta_info_size = 0);
     void deallocate_bytes(void* ptr, size_t size, size_t meta_info_size = 0) noexcept;
 
 private:
@@ -133,7 +129,7 @@ private:
 
 template <typename Type, typename BaseAllocator, size_t Alignment>
 inline void* AlignedAllocator<Type, BaseAllocator, Alignment>::allocate_bytes(
-    size_t size, size_t meta_info_size) noexcept {
+    size_t size, size_t meta_info_size) {
 
     LOG << "aligned_alloc<" << Alignment << ">(), size = " << size
         << ", meta info size = " << meta_info_size;
@@ -218,6 +214,6 @@ void aligned_dealloc(void* ptr, size_t size, size_t meta_info_size = 0) {
 } // namespace mem
 } // namespace thrill
 
-#endif // !THRILL_MEM_ALIGNED_ALLOC_HEADER
+#endif // !THRILL_MEM_ALIGNED_ALLOCATOR_HEADER
 
 /******************************************************************************/

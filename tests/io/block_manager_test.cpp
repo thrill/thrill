@@ -15,7 +15,7 @@
 #include <thrill/io/request.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/typed_block.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <gtest/gtest.h>
 
