@@ -25,7 +25,7 @@
 #include <thrill/io/bid.hpp>
 #include <thrill/io/request.hpp>
 
-#if defined (__linux__)
+#if __linux__
  #define THRILL_CHECK_BLOCK_ALIGNING
 #endif
 

@@ -54,7 +54,7 @@
   #define O_DSYNC 0
 #endif
 
-#if defined (__linux__)
+#if __linux__
   #if !defined(O_DIRECT)
     #error O_DIRECT is not defined while __linux__ is - PLEASE REPORT THIS BUG
   #endif

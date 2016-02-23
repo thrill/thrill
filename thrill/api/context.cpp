@@ -27,7 +27,7 @@
 #include <thrill/net/mpi/group.hpp>
 #endif
 
-#if defined(__linux__)
+#if __linux__
 
 // linux-specific process control
 #include <sys/prctl.h>
@@ -66,9 +66,7 @@ ConstructLoopbackHostContexts(size_t num_hosts, size_t workers_per_host) {
 
     for (size_t h = 0; h < num_hosts; h++) {
         std::array<net::GroupPtr, kGroupCount> host_group = {
-            { std::move(group[0][h]),
-              std::move(group[1][h]),
-              std::move(group[2][h]) }
+            { std::move(group[0][h]), std::move(group[1][h]) }
         };
 
         host_context.emplace_back(
@@ -165,9 +163,7 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
     }
 
     std::array<net::GroupPtr, kGroupCount> host_group = {
-        { std::move(group[0][0]),
-          std::move(group[1][0]),
-          std::move(group[2][0]) }
+        { std::move(group[0][0]), std::move(group[1][0]) }
     };
 
     HostContext host_context(std::move(host_group), workers_per_host);
@@ -340,7 +336,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         my_host_rank, hostlist, groups.data(), net::Manager::kGroupCount);
 
     std::array<net::GroupPtr, kGroupCount> host_groups = {
-        { std::move(groups[0]), std::move(groups[1]), std::move(groups[2]) }
+        { std::move(groups[0]), std::move(groups[1]) }
     };
 
     // construct HostContext
@@ -408,7 +404,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
     net::mpi::Construct(num_hosts, groups.data(), kGroupCount);
 
     std::array<net::GroupPtr, kGroupCount> host_groups = {
-        { std::move(groups[0]), std::move(groups[1]), std::move(groups[2]) }
+        { std::move(groups[0]), std::move(groups[1]) }
     };
 
     // construct HostContext
@@ -489,7 +485,7 @@ int RunDieWithParent() {
 
     if (!die_with_parent) return 0;
 
-#if defined(__linux__)
+#if __linux__
     if (prctl(PR_SET_PDEATHSIG, SIGTERM) != 0)
         throw common::ErrnoException("Error calling prctl(PR_SET_PDEATHSIG)");
     return 1;
