@@ -377,13 +377,13 @@ public:
     }
 
     static std::vector<std::shared_ptr<PyContext> >
-    ConstructLoopback(size_t host_count, size_t workers_per_host) {
+    ConstructLoopback(size_t num_hosts, size_t workers_per_host) {
         std::vector<std::unique_ptr<HostContext> > host_contexts
-            = HostContext::ConstructLoopback(host_count, workers_per_host);
+            = HostContext::ConstructLoopback(num_hosts, workers_per_host);
 
         std::vector<std::shared_ptr<PyContext> > contexts;
 
-        for (size_t h = 0; h < host_count; ++h) {
+        for (size_t h = 0; h < num_hosts; ++h) {
             for (size_t w = 0; w < workers_per_host; ++w) {
                 contexts.emplace_back(
                     std::make_shared<PyContext>(std::move(host_contexts[h]), w));

@@ -51,20 +51,20 @@ namespace api {
 template <typename NetGroup>
 static inline
 std::vector<std::unique_ptr<HostContext> >
-ConstructLoopbackHostContexts(size_t host_count, size_t workers_per_host) {
+ConstructLoopbackHostContexts(size_t num_hosts, size_t workers_per_host) {
     static const size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three full mesh loopback cliques, deliver net::Groups.
     std::array<std::vector<std::unique_ptr<NetGroup> >, kGroupCount> group;
 
     for (size_t g = 0; g < kGroupCount; ++g) {
-        group[g] = NetGroup::ConstructLoopbackMesh(host_count);
+        group[g] = NetGroup::ConstructLoopbackMesh(num_hosts);
     }
 
     // construct host context
     std::vector<std::unique_ptr<HostContext> > host_context;
 
-    for (size_t h = 0; h < host_count; h++) {
+    for (size_t h = 0; h < num_hosts; h++) {
         std::array<net::GroupPtr, kGroupCount> host_group = {
             { std::move(group[0][h]),
               std::move(group[1][h]),
@@ -82,17 +82,17 @@ ConstructLoopbackHostContexts(size_t host_count, size_t workers_per_host) {
 //! Generic runner for backends supporting loopback tests.
 template <typename NetGroup>
 static inline void
-RunLoopbackThreads(size_t host_count, size_t workers_per_host,
+RunLoopbackThreads(size_t num_hosts, size_t workers_per_host,
                    const std::function<void(Context&)>& job_startpoint) {
 
     // construct a mock network of hosts
     std::vector<std::unique_ptr<HostContext> > host_contexts =
-        ConstructLoopbackHostContexts<NetGroup>(host_count, workers_per_host);
+        ConstructLoopbackHostContexts<NetGroup>(num_hosts, workers_per_host);
 
     // launch thread for each of the workers on this host.
-    std::vector<std::thread> threads(host_count * workers_per_host);
+    std::vector<std::thread> threads(num_hosts * workers_per_host);
 
-    for (size_t host = 0; host < host_count; host++) {
+    for (size_t host = 0; host < num_hosts; host++) {
         mem::by_string log_prefix = "host " + mem::to_string(host);
         for (size_t worker = 0; worker < workers_per_host; worker++) {
             threads[host * workers_per_host + worker] = std::thread(
@@ -107,7 +107,7 @@ RunLoopbackThreads(size_t host_count, size_t workers_per_host,
     }
 
     // join worker threads
-    for (size_t i = 0; i < host_count * workers_per_host; i++) {
+    for (size_t i = 0; i < num_hosts * workers_per_host; i++) {
         threads[i].join();
     }
 }
@@ -115,22 +115,22 @@ RunLoopbackThreads(size_t host_count, size_t workers_per_host,
 /******************************************************************************/
 // Runners using Mock Net Backend
 
-void RunLoopbackMock(size_t host_count, size_t workers_per_host,
+void RunLoopbackMock(size_t num_hosts, size_t workers_per_host,
                      const std::function<void(Context&)>& job_startpoint) {
 
     return RunLoopbackThreads<net::mock::Group>(
-        host_count, workers_per_host, job_startpoint);
+        num_hosts, workers_per_host, job_startpoint);
 }
 
 /******************************************************************************/
 // Runners using TCP Net Backend
 
 #if THRILL_HAVE_NET_TCP
-void RunLoopbackTCP(size_t host_count, size_t workers_per_host,
+void RunLoopbackTCP(size_t num_hosts, size_t workers_per_host,
                     const std::function<void(Context&)>& job_startpoint) {
 
     return RunLoopbackThreads<net::tcp::Group>(
-        host_count, workers_per_host, job_startpoint);
+        num_hosts, workers_per_host, job_startpoint);
 }
 #endif
 
@@ -144,18 +144,18 @@ using TestGroup = net::tcp::Group;
 #endif
 
 void
-RunLocalMock(size_t host_count, size_t workers_per_host,
+RunLocalMock(size_t num_hosts, size_t workers_per_host,
              const std::function<void(Context&)>& job_startpoint) {
 
     return RunLoopbackThreads<TestGroup>(
-        host_count, workers_per_host, job_startpoint);
+        num_hosts, workers_per_host, job_startpoint);
 }
 
 std::vector<std::unique_ptr<HostContext> >
-HostContext::ConstructLoopback(size_t host_count, size_t workers_per_host) {
+HostContext::ConstructLoopback(size_t num_hosts, size_t workers_per_host) {
 
     return ConstructLoopbackHostContexts<TestGroup>(
-        host_count, workers_per_host);
+        num_hosts, workers_per_host);
 }
 
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
@@ -163,13 +163,12 @@ void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     // discard json log
     setenv("THRILL_LOG", "", /* overwrite */ 1);
 
-    size_t num_hosts[] = { 1, 2, 5, 8 };
-    size_t num_workers[] = { 1, 3 };
+    size_t num_hosts_list[] = { 1, 2, 5, 8 };
+    size_t num_workers_list[] = { 1, 3 };
 
-    for (size_t& host_count : num_hosts) {
-        for (size_t& workers_per_host : num_workers) {
-            RunLoopbackThreads<TestGroup>(
-                host_count, workers_per_host, job_startpoint);
+    for (size_t& num_hosts : num_hosts_list) {
+        for (size_t& workers_per_host : num_workers_list) {
+            RunLocalMock(num_hosts, workers_per_host, job_startpoint);
         }
     }
 }
@@ -178,14 +177,14 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
 
     size_t my_host_rank = 0;
     size_t workers_per_host = 1;
-    size_t host_count = 1;
+    size_t num_hosts = 1;
     static const size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three full mesh connection cliques, deliver net::tcp::Groups.
     std::array<std::vector<std::unique_ptr<TestGroup> >, kGroupCount> group;
 
     for (size_t g = 0; g < kGroupCount; ++g) {
-        group[g] = TestGroup::ConstructLoopbackMesh(host_count);
+        group[g] = TestGroup::ConstructLoopbackMesh(num_hosts);
     }
 
     std::array<net::GroupPtr, kGroupCount> host_group = {
@@ -214,14 +213,14 @@ int RunBackendLoopback(const std::function<void(Context&)>& job_startpoint) {
 
     // determine number of loopback hosts
 
-    size_t host_count = std::thread::hardware_concurrency();
+    size_t num_hosts = std::thread::hardware_concurrency();
 
     const char* env_local = getenv("THRILL_LOCAL");
     if (env_local) {
         // parse envvar only if it exists.
-        host_count = std::strtoul(env_local, &endptr, 10);
+        num_hosts = std::strtoul(env_local, &endptr, 10);
 
-        if (!endptr || *endptr != 0 || host_count == 0) {
+        if (!endptr || *endptr != 0 || num_hosts == 0) {
             std::cerr << "Thrill: environment variable"
                       << " THRILL_LOCAL=" << env_local
                       << " is not a valid number of local loopback hosts."
@@ -249,36 +248,19 @@ int RunBackendLoopback(const std::function<void(Context&)>& job_startpoint) {
         if (!env_local && !env_workers_per_host) {
             // distribute two threads per worker.
             workers_per_host = 2;
-            host_count /= 2;
+            num_hosts /= 2;
         }
     }
 
-    std::cerr << "Thrill: executing locally with " << host_count
+    std::cerr << "Thrill: executing locally with " << num_hosts
               << " test hosts and " << workers_per_host << " workers per host"
               << " in a local mock network." << std::endl;
 
     RunLoopbackThreads<NetGroup>(
-        host_count, workers_per_host, job_startpoint);
+        num_hosts, workers_per_host, job_startpoint);
 
     return 0;
 }
-
-#if THRILL_HAVE_NET_TCP
-HostContext::HostContext(size_t my_host_rank,
-                         const std::vector<std::string>& endpoints,
-                         size_t workers_per_host)
-    : base_logger_(MakeHostLogPath(my_host_rank)),
-      logger_(&base_logger_, "host_rank", my_host_rank),
-      workers_per_host_(workers_per_host),
-      net_manager_(net::tcp::Construct(my_host_rank,
-                                       endpoints, net::Manager::kGroupCount)),
-      flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-      block_pool_(0, 0, &logger_, &mem_manager_, workers_per_host),
-      data_multiplexer_(mem_manager_,
-                        block_pool_, workers_per_host,
-                        net_manager_.GetDataGroup())
-{ }
-#endif
 
 #if THRILL_HAVE_NET_TCP
 static inline
@@ -364,7 +346,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         workers_per_host = std::thread::hardware_concurrency();
     }
 
-    // okay configuration is good.
+    // okay, configuration is good.
 
     std::cerr << "Thrill: executing in tcp network with " << hostlist.size()
               << " hosts and " << workers_per_host << " workers per host"
@@ -373,7 +355,19 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
-    HostContext host_context(my_host_rank, hostlist, workers_per_host);
+    static const size_t kGroupCount = net::Manager::kGroupCount;
+
+    // construct three TCP network groups
+    std::array<std::unique_ptr<net::tcp::Group>, kGroupCount> groups;
+    net::tcp::Construct(
+        my_host_rank, hostlist, groups.data(), net::Manager::kGroupCount);
+
+    std::array<net::GroupPtr, kGroupCount> host_groups = {
+        { std::move(groups[0]), std::move(groups[1]), std::move(groups[2]) }
+    };
+
+    // construct HostContext
+    HostContext host_context(std::move(host_groups), workers_per_host);
 
     std::vector<std::thread> threads(workers_per_host);
 

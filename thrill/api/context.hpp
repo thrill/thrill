@@ -46,13 +46,6 @@ namespace api {
 class HostContext
 {
 public:
-#if THRILL_HAVE_NET_TCP
-    //! Construct one real host connected via TCP to others.
-    HostContext(size_t my_host_rank,
-                const std::vector<std::string>& endpoints,
-                size_t workers_per_host);
-#endif
-
 #ifndef SWIG
     //! constructor from existing net Groups. Used by the construction methods.
     HostContext(std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
@@ -70,7 +63,7 @@ public:
 
     //! Construct a number of mock hosts running in this process.
     static std::vector<std::unique_ptr<HostContext> >
-    ConstructLoopback(size_t host_count, size_t workers_per_host);
+    ConstructLoopback(size_t num_hosts, size_t workers_per_host);
 #endif
 
     //! create host log
@@ -348,10 +341,10 @@ public:
 //! \{
 
 /*!
- * Function to run a number of mock hosts as locally independent
- * threads, which communicate via internal stream sockets.
+ * Function to run a number of mock hosts as locally independent threads, which
+ * communicate via internal stream sockets.
  */
-void RunLocalMock(size_t host_count, size_t local_host_count,
+void RunLocalMock(size_t num_hosts, size_t workers_per_host,
                   const std::function<void(Context&)>& job_startpoint);
 
 /*!
