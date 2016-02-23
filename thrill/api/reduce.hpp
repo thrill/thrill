@@ -175,13 +175,13 @@ private:
 
     std::vector<data::CatStream::Writer> emitters_;
 
-    core::ReducePreBucketStage<
+    core::ReducePreProbingStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
         core::ReduceByHash<Key>,
         decltype(ReduceConfig::pre_table),
         std::equal_to<Key> > pre_stage_;
 
-    core::ReducePostBucketStage<
+    core::ReducePostProbingStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
         core::ReduceByHash<Key>,
         decltype(ReduceConfig::post_table),

@@ -78,13 +78,12 @@ class ReduceProbingHashTable
                          RobustKey, IndexFunction,
                          ReduceStageConfig, EqualToFunction>
 {
-    static const bool debug = false;
-    static const bool debug_items = false;
-
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
                               RobustKey, IndexFunction,
                               ReduceStageConfig, EqualToFunction>;
+    using Super::debug;
+    static const bool debug_items = false;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -171,6 +170,9 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
+        while (mem::memory_exceeded && num_items_ != 0)
+            SpillAnyPartition();
+
         ReduceIndexResult h = index_function_(
             kv.first, num_partitions_,
             num_buckets_per_partition_, num_buckets_);
@@ -190,7 +192,8 @@ public:
             else {
                 sentinel.second = reduce_function_(sentinel.second, kv.second);
             }
-            items_per_partition_[h.partition_id]++;
+            ++items_per_partition_[h.partition_id];
+            ++num_items_;
 
             while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
                 SpillPartition(h.partition_id);
@@ -230,7 +233,8 @@ public:
                 *iter = kv;
 
                 // increase counter for partition
-                items_per_partition_[h.partition_id]++;
+                ++items_per_partition_[h.partition_id];
+                ++num_items_;
 
                 return;
             }
@@ -240,7 +244,8 @@ public:
         *iter = kv;
 
         // increase counter for partition
-        items_per_partition_[h.partition_id]++;
+        ++items_per_partition_[h.partition_id];
+        ++num_items_;
 
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
@@ -290,9 +295,38 @@ public:
         }
 
         // reset partition specific counter
+        num_items_ -= items_per_partition_[partition_id];
         items_per_partition_[partition_id] = 0;
+        assert(num_items_ == this->num_items_calc());
 
         LOG << "Spilled items of partition with id: " << partition_id;
+    }
+
+    //! Spill all items of an arbitrary partition into an external memory File.
+    void SpillAnyPartition() {
+        // maybe make a policy later -tb
+        return SpillLargestPartition();
+    }
+
+    //! Spill all items of the largest partition into an external memory File.
+    void SpillLargestPartition() {
+        // get partition with max size
+        size_t size_max = 0, index = 0;
+
+        for (size_t i = 0; i < num_partitions_; ++i)
+        {
+            if (items_per_partition_[i] > size_max)
+            {
+                size_max = items_per_partition_[i];
+                index = i;
+            }
+        }
+
+        if (size_max == 0) {
+            return;
+        }
+
+        return SpillPartition(index);
     }
 
     //! \}
@@ -331,7 +365,9 @@ public:
 
         if (consume) {
             // reset partition specific counter
+            num_items_ -= items_per_partition_[partition_id];
             items_per_partition_[partition_id] = 0;
+            assert(num_items_ == this->num_items_calc());
         }
 
         LOG << "Done flushed items of partition: " << partition_id;
@@ -363,6 +399,7 @@ private:
     using Super::limit_memory_bytes_;
     using Super::num_buckets_;
     using Super::num_buckets_per_partition_;
+    using Super::num_items_;
     using Super::num_partitions_;
     using Super::partition_files_;
     using Super::reduce_function_;

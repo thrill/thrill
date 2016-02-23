@@ -91,13 +91,13 @@ class ReduceBucketHashTable
                          RobustKey, IndexFunction,
                          ReduceStageConfig, EqualToFunction>
 {
-    static const bool debug = false;
-    static const bool debug_items = false;
-
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
                               RobustKey, IndexFunction,
                               ReduceStageConfig, EqualToFunction>;
+
+    using Super::debug;
+    static const bool debug_items = false;
 
     //! target number of bytes in a BucketBlock.
     static constexpr size_t bucket_block_size
@@ -263,6 +263,9 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
+        while (mem::memory_exceeded && num_items_ != 0)
+            SpillAnyPartition();
+
         ReduceIndexResult h = index_function_(
             kv.first, num_partitions_,
             num_buckets_per_partition_, num_buckets_);
@@ -312,7 +315,7 @@ public:
             //////
 
             // flush largest partition if max number of blocks reached
-            while (num_blocks_ > limit_blocks_ || mem::memory_exceeded)
+            while (num_blocks_ > limit_blocks_)
                 SpillAnyPartition();
 
             // allocate a new block of uninitialized items, prepend to bucket
@@ -321,7 +324,7 @@ public:
             buckets_[h.global_index] = current;
 
             // Total number of blocks
-            num_blocks_++;
+            ++num_blocks_;
         }
 
         // in-place construct/insert new item in current bucket block
@@ -331,7 +334,8 @@ public:
             << "h.partition_id" << h.partition_id;
 
         // Increase partition item count
-        items_per_partition_[h.partition_id]++;
+        ++items_per_partition_[h.partition_id];
+        ++num_items_;
 
         LOGC(debug_items)
             << "items_per_partition_[" << h.partition_id << "]"
@@ -340,10 +344,6 @@ public:
         // flush current partition if max partition fill rate reached
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
-
-        // flush if memory exceeded
-        while (mem::memory_exceeded)
-            SpillAnyPartition();
     }
 
     //! Deallocate memory
@@ -422,7 +422,9 @@ public:
         }
 
         // reset partition specific counter
+        num_items_ -= items_per_partition_[partition_id];
         items_per_partition_[partition_id] = 0;
+        assert(num_items_ == this->num_items_calc());
 
         sLOG << "Spilled items of partition" << partition_id;
     }
@@ -432,7 +434,7 @@ public:
         // get partition with max size
         size_t size_max = 0, index = 0;
 
-        for (size_t i = 0; i < num_partitions_; i++)
+        for (size_t i = 0; i < num_partitions_; ++i)
         {
             if (items_per_partition_[i] > size_max)
             {
@@ -454,7 +456,7 @@ public:
         // get partition with min size
         size_t size_min = std::numeric_limits<size_t>::max(), index = 0;
 
-        for (size_t i = 0; i < num_partitions_; i++)
+        for (size_t i = 0; i < num_partitions_; ++i)
         {
             if (items_per_partition_[i] < size_min
                 && items_per_partition_[i] != 0)
@@ -520,7 +522,9 @@ public:
 
         if (consume) {
             // reset partition specific counter
+            num_items_ -= items_per_partition_[partition_id];
             items_per_partition_[partition_id] = 0;
+            assert(num_items_ == this->num_items_calc());
         }
 
         LOG << "Done flushing items of partition: " << partition_id;
@@ -622,6 +626,7 @@ private:
     using Super::limit_memory_bytes_;
     using Super::num_buckets_;
     using Super::num_buckets_per_partition_;
+    using Super::num_items_;
     using Super::num_partitions_;
     using Super::partition_files_;
     using Super::reduce_function_;

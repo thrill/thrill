@@ -510,7 +510,8 @@ void BlockPool::RequestInternalMemory(
         << " soft_ram_limit_=" << soft_ram_limit_
         << " hard_ram_limit_=" << hard_ram_limit_
         << pin_count_
-        << " unpinned_blocks_.size()=" << unpinned_blocks_.size();
+        << " unpinned_blocks_.size()=" << unpinned_blocks_.size()
+        << " swapped_.size()=" << swapped_.size();
 
     while (soft_ram_limit_ != 0 &&
            unpinned_blocks_.size() &&
@@ -541,10 +542,11 @@ void BlockPool::RequestInternalMemory(
             << " soft_ram_limit_=" << soft_ram_limit_
             << " hard_ram_limit_=" << hard_ram_limit_
             << pin_count_
-            << " unpinned_blocks_.size()=" << unpinned_blocks_.size();
+            << " unpinned_blocks_.size()=" << unpinned_blocks_.size()
+            << " swapped_.size()=" << swapped_.size();
 
         if (writing_bytes_ == 0 && total_ram_use_ + requested_bytes_ > hard_ram_limit_)
-            LOG1 << "abort() due to out-of-memory ???";
+            LOG1 << "abort() due to out-of-pinned-memory ???";
     }
 
     requested_bytes_ -= size;

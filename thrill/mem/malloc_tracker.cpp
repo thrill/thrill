@@ -252,6 +252,8 @@ static void update_memprofile(size_t memory_current, bool flush) {
 ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((constructor)) void init() { // NOLINT
 
+    set_memory_limit_indication(128 * 1024 * 1024);
+
     // try to use AddressSanitizer's malloc first.
     real_malloc = (malloc_type)dlsym(RTLD_DEFAULT, "__interceptor_malloc");
     if (real_malloc)
