@@ -500,7 +500,7 @@ DetectNetBackend() {
 static inline int RunDieWithParent() {
 
     const char* env_die_with_parent = getenv("THRILL_DIE_WITH_PARENT");
-    if (!env_die_with_parent) return 0;
+    if (!env_die_with_parent || !*env_die_with_parent) return 0;
 
     char* endptr;
 
@@ -534,7 +534,7 @@ static inline int RunDieWithParent() {
 static inline int RunUnlinkBinary() {
 
     const char* env_unlink_binary = getenv("THRILL_UNLINK_BINARY");
-    if (!env_unlink_binary) return 0;
+    if (!env_unlink_binary || !*env_unlink_binary) return 0;
 
     if (unlink(env_unlink_binary) != 0) {
         throw common::ErrnoException(

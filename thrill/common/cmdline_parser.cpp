@@ -1067,7 +1067,8 @@ void CmdlineParser::PrintResult(std::ostream& os) {
 
 //! Parse a string like "343KB" or " 44 GiB " into the corresponding size in
 //! bytes.
-bool ParseSiIecUnits(const std::string& str, uint64_t& size, char def_unit) {
+bool ParseSiIecUnits(const std::string& str, uint64_t& size,
+                     char default_unit) {
     char* endptr;
     size = strtoul(str.c_str(), &endptr, 10);
     if (!endptr) return false;                    // parse failed, no number
@@ -1100,7 +1101,7 @@ bool ParseSiIecUnits(const std::string& str, uint64_t& size, char def_unit) {
     else if (power == 0)
     {
         // no explicit power indicator, and no 'b' or 'B' -> apply default unit
-        switch (def_unit)
+        switch (default_unit)
         {
         default: break;
         case 'k': power = 1, base = 1000;

@@ -26,9 +26,12 @@ macro(thrill_test_single TESTNAME ENVIRON PROG)
   endif()
 
   # environment of test run: set default and let ENVIRON override
-  set_tests_properties(${TESTNAME}
-    PROPERTIES ENVIRONMENT
-    "THRILL_NET=mock;THRILL_LOCAL=4;THRILL_WORKERS_PER_HOST=1;${ENVIRON}")
+  set(TEST_ENVIRON
+    "THRILL_NET=mock;THRILL_LOCAL=4;THRILL_WORKERS_PER_HOST=1;"
+    "THRILL_LOG=;THRILL_DIE_WITH_PARENT=;THRILL_UNLINK_BINARY=;"
+    "${ENVIRON}")
+
+  set_tests_properties(${TESTNAME} PROPERTIES ENVIRONMENT "${TEST_ENVIRON}")
 
 endmacro(thrill_test_single)
 
