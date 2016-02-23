@@ -33,7 +33,7 @@ class DefaultReduceTableConfig
 {
 public:
     //! limit on the amount of memory used by the reduce table
-    size_t limit_memory_bytes_ = 64 * 1024 * 1024llu;
+    size_t limit_memory_bytes_ = 32 * 1024 * 1024llu;
 
     //! limit on the fill rate of a reduce table partition prior to triggering a
     //! flush.

@@ -113,28 +113,6 @@ RunLoopbackThreads(size_t num_hosts, size_t workers_per_host,
 }
 
 /******************************************************************************/
-// Runners using Mock Net Backend
-
-void RunLoopbackMock(size_t num_hosts, size_t workers_per_host,
-                     const std::function<void(Context&)>& job_startpoint) {
-
-    return RunLoopbackThreads<net::mock::Group>(
-        num_hosts, workers_per_host, job_startpoint);
-}
-
-/******************************************************************************/
-// Runners using TCP Net Backend
-
-#if THRILL_HAVE_NET_TCP
-void RunLoopbackTCP(size_t num_hosts, size_t workers_per_host,
-                    const std::function<void(Context&)>& job_startpoint) {
-
-    return RunLoopbackThreads<net::tcp::Group>(
-        num_hosts, workers_per_host, job_startpoint);
-}
-#endif
-
-/******************************************************************************/
 // Constructions using TestGroup (either mock or tcp-loopback) for local testing
 
 #if defined(_MSC_VER)
@@ -143,9 +121,8 @@ using TestGroup = net::mock::Group;
 using TestGroup = net::tcp::Group;
 #endif
 
-void
-RunLocalMock(size_t num_hosts, size_t workers_per_host,
-             const std::function<void(Context&)>& job_startpoint) {
+void RunLocalMock(size_t num_hosts, size_t workers_per_host,
+                  const std::function<void(Context&)>& job_startpoint) {
 
     return RunLoopbackThreads<TestGroup>(
         num_hosts, workers_per_host, job_startpoint);
@@ -462,14 +439,15 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 }
 #endif
 
+static inline
 int RunNotSupported(const char* env_net) {
     std::cerr << "Thrill: network backend " << env_net
               << " is not supported by this binary." << std::endl;
     return -1;
 }
 
-static inline const char*
-DetectNetBackend() {
+static inline
+const char * DetectNetBackend() {
 #if THRILL_HAVE_NET_MPI
     // detect openmpi run, add others as well.
     if (getenv("OMPI_COMM_WORLD_SIZE") != nullptr)
@@ -491,7 +469,8 @@ DetectNetBackend() {
 //! Check environment variable THRILL_DIE_WITH_PARENT and enable process flag:
 //! this is useful for ssh/invoke.sh: it kills spawned processes when the ssh
 //! connection breaks. Hence: no more zombies.
-static inline int RunDieWithParent() {
+static inline
+int RunDieWithParent() {
 
     const char* env_die_with_parent = getenv("THRILL_DIE_WITH_PARENT");
     if (!env_die_with_parent || !*env_die_with_parent) return 0;
@@ -525,7 +504,8 @@ static inline int RunDieWithParent() {
 //! Check environment variable THRILL_UNLINK_BINARY and unlink given program
 //! path: this is useful for ssh/invoke.sh: it removes the copied program files
 //! _while_ it is running, hence it is gone even if the program crashes.
-static inline int RunUnlinkBinary() {
+static inline
+int RunUnlinkBinary() {
 
     const char* env_unlink_binary = getenv("THRILL_UNLINK_BINARY");
     if (!env_unlink_binary || !*env_unlink_binary) return 0;
