@@ -361,7 +361,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         }
     }
     else {
-        // TODO(tb): someday, set workers_per_host = std::thread::hardware_concurrency().
+        workers_per_host = std::thread::hardware_concurrency();
     }
 
     // okay configuration is good.
@@ -419,7 +419,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
         }
     }
     else {
-        // TODO(tb): someday, set workers_per_host = std::thread::hardware_concurrency().
+        workers_per_host = std::thread::hardware_concurrency();
     }
 
     size_t num_hosts = net::mpi::NumMpiProcesses();
