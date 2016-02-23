@@ -57,6 +57,9 @@ namespace data {
 class CatStream final : public Stream
 {
 public:
+    static const bool debug = false;
+    static const bool debug_data = false;
+
     using BlockQueueSource = ConsumeBlockQueueSource;
     using BlockQueueReader = BlockReader<BlockQueueSource>;
 
@@ -94,7 +97,7 @@ public:
                         << "loopback" << true;
 
                     queues_.emplace_back(
-                        multiplexer_.block_pool_, worker,
+                        multiplexer_.block_pool_, local_worker_id,
                         // OnClose callback to BlockQueue to deliver stats
                         [this, host, worker](BlockQueue& queue) {
 
@@ -128,7 +131,7 @@ public:
 
                     // construct inbound BlockQueue
                     queues_.emplace_back(
-                        multiplexer_.block_pool_, worker);
+                        multiplexer_.block_pool_, local_worker_id);
                 }
             }
         }
@@ -152,6 +155,7 @@ public:
         tx_timespan_.StartEventually();
 
         std::vector<Writer> result;
+        result.reserve(num_workers());
 
         for (size_t host = 0; host < num_hosts(); ++host) {
             for (size_t worker = 0; worker < workers_per_host(); ++worker) {
@@ -270,8 +274,6 @@ public:
     }
 
 private:
-    static const bool debug = false;
-
     bool is_closed_ = false;
 
     //! StreamSink objects are receivers of Blocks outbound for other worker.
@@ -294,8 +296,10 @@ private:
 
         sLOG << "OnCatStreamBlock" << b;
 
-        sLOG << "stream" << id_ << "receive from" << from << ":"
-             << common::Hexdump(b.ToString());
+        if (debug_data) {
+            sLOG << "stream" << id_ << "receive from" << from << ":"
+                 << common::Hexdump(b.ToString());
+        }
 
         queues_[from].AppendBlock(std::move(b));
     }

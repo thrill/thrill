@@ -48,7 +48,9 @@ Multiplexer::_GetOrCreateMixStream(size_t id, size_t local_worker_id) {
     return set->peer(local_worker_id);
 }
 
-common::JsonLogger & Multiplexer::logger() { return block_pool_.logger(); }
+common::JsonLogger& Multiplexer::logger() {
+    return block_pool_.logger();
+}
 
 /******************************************************************************/
 

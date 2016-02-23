@@ -44,8 +44,8 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
       workers_per_host_(workers_per_host),
       pin_count_(workers_per_host) {
     // we need a config mechanism
-    soft_ram_limit_ = 1000 * 1024 * 1024lu;
-    hard_ram_limit_ = 1280 * 1024 * 1024lu;
+    soft_ram_limit_ = 200 * 1024 * 1024lu;
+    hard_ram_limit_ = 256 * 1024 * 1024lu;
     die_unless(hard_ram_limit >= soft_ram_limit);
 }
 
@@ -138,20 +138,36 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     }
 
     // check that not writing the block.
-    auto it = writing_.find(block_ptr);
-    if (it != writing_.end()) {
+    WritingMap::iterator it;
+    while ((it = writing_.find(block_ptr)) != writing_.end()) {
+
+        LOGC(debug_em)
+            << "BlockPool::PinBlock block=" << block_ptr
+            << " is currently begin written to external memory, canceling.";
+
         // get reference count to request, since complete handler removes it
         // from the map.
         io::RequestPtr req = it->second;
         lock.unlock();
         // cancel I/O request
         if (!req->cancel()) {
+
+            LOGC(debug_em)
+                << "BlockPool::PinBlock block=" << block_ptr
+                << " is currently begin written to external memory, cancel failed, waiting.";
+
             // must still wait for cancellation to complete and the I/O
             // handler.
             req->wait();
         }
         lock.lock();
-        assert(writing_.find(block_ptr) == writing_.end());
+
+        LOGC(debug_em)
+            << "BlockPool::PinBlock block=" << block_ptr
+            << " is currently begin written to external memory, cancel/wait done.";
+
+        // recheck whether block is being written, it may have been evicting the
+        // unlocked time.
     }
 
     if (block_ptr->in_memory())
@@ -414,8 +430,8 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
     if (block_ptr->in_memory())
     {
         // block was evicted, may still be writing to EM.
-        auto it = writing_.find(block_ptr);
-        if (it != writing_.end()) {
+        WritingMap::iterator it;
+        while ((it = writing_.find(block_ptr)) != writing_.end()) {
             // get reference count to request, since complete handler removes it
             // from the map.
             io::RequestPtr req = it->second;
@@ -427,14 +443,16 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
                 req->wait();
             }
             lock.lock();
-            assert(writing_.find(block_ptr) == writing_.end());
+
+            // recheck whether block is being written, it may have been evicting
+            // the unlocked time.
         }
     }
     else
     {
         // block was being pinned. cancel read operation
-        auto it = reading_.find(block_ptr);
-        if (it != reading_.end()) {
+        ReadingMap::iterator it;
+        while ((it = reading_.find(block_ptr)) != reading_.end()) {
             // get reference count to request, since complete handler removes it
             // from the map.
             io::RequestPtr req = it->second.req;
@@ -446,7 +464,9 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
                 req->wait();
             }
             lock.lock();
-            assert(reading_.find(block_ptr) == reading_.end());
+
+            // recheck whether block is being read, it may have been evicting
+            // the unlocked time.
         }
     }
 
@@ -511,7 +531,20 @@ void BlockPool::RequestInternalMemory(
             EvictBlockLRU();
         }
 
-        cv_memory_change_.wait(lock);
+        cv_memory_change_.wait_for(lock, std::chrono::seconds(1));
+
+        LOGC(debug_em)
+            << "BlockPool::RequestInternalMemory() waiting for memory"
+            << " total_ram_use_=" << total_ram_use_
+            << " writing_bytes_=" << writing_bytes_
+            << " requested_bytes_=" << requested_bytes_
+            << " soft_ram_limit_=" << soft_ram_limit_
+            << " hard_ram_limit_=" << hard_ram_limit_
+            << pin_count_
+            << " unpinned_blocks_.size()=" << unpinned_blocks_.size();
+
+        if (writing_bytes_ == 0 && total_ram_use_ + requested_bytes_ > hard_ram_limit_)
+            LOG1 << "abort() due to out-of-memory ???";
     }
 
     requested_bytes_ -= size;

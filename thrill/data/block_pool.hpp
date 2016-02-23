@@ -199,8 +199,11 @@ private:
     //! pin counter class
     PinCount pin_count_;
 
+    //! type of set of ByteBlocks currently begin written to EM.
+    using WritingMap = std::unordered_map<ByteBlock*, io::RequestPtr>;
+
     //! set of ByteBlocks currently begin written to EM.
-    std::unordered_map<ByteBlock*, io::RequestPtr> writing_;
+    WritingMap writing_;
 
     //! number of bytes currently begin requested from RAM.
     size_t requested_bytes_ = 0;
@@ -221,8 +224,11 @@ private:
         io::RequestPtr            req;
     };
 
+    //! type of set of ByteBlocks currently begin read from EM.
+    using ReadingMap = std::unordered_map<ByteBlock*, ReadRequest>;
+
     //! set of ByteBlocks currently begin read from EM.
-    std::unordered_map<ByteBlock*, ReadRequest> reading_;
+    ReadingMap reading_;
 
     //! number of bytes currently being read from to EM.
     size_t reading_bytes_ = 0;

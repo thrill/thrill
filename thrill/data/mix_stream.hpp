@@ -102,6 +102,7 @@ public:
         tx_timespan_.StartEventually();
 
         std::vector<Writer> result;
+        result.reserve(num_workers());
 
         for (size_t host = 0; host < num_hosts(); ++host) {
             for (size_t worker = 0; worker < workers_per_host(); ++worker) {
