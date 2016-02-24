@@ -667,15 +667,7 @@ void MemoryConfig::setup_test() {
     // set fixed amount of RAM for testing
     ram_ = 4 * 1024 * 1024 * 1024llu;
 
-    // divide up ram_
-
-    ram_block_pool_hard_ = ram_ / 3;
-    ram_block_pool_soft_ = ram_block_pool_hard_ * 9 / 10;
-    ram_workers_ = ram_ / 3;
-    ram_floating_ = ram_ - ram_block_pool_hard_ - ram_workers_;
-
-    // set memory limit, only BlockPool is excluded from malloc tracking
-    mem::set_memory_limit_indication(ram_floating_ + ram_workers_);
+    apply();
 }
 
 int MemoryConfig::setup_detect() {
@@ -719,17 +711,21 @@ int MemoryConfig::setup_detect() {
 #endif
     }
 
+    apply();
+
+    return 0;
+}
+
+void MemoryConfig::apply() {
     // divide up ram_
 
-    ram_block_pool_hard_ = ram_ / 3;
-    ram_block_pool_soft_ = ram_block_pool_hard_ * 9 / 10;
     ram_workers_ = ram_ / 3;
-    ram_floating_ = ram_ - ram_block_pool_hard_ - ram_workers_;
+    ram_block_pool_hard_ = ram_ / 3 + ram_workers_;
+    ram_block_pool_soft_ = ram_block_pool_hard_ * 9 / 10;
+    ram_floating_ = ram_ - ram_block_pool_hard_;
 
     // set memory limit, only BlockPool is excluded from malloc tracking
     mem::set_memory_limit_indication(ram_floating_ + ram_workers_);
-
-    return 0;
 }
 
 MemoryConfig MemoryConfig::divide(size_t hosts) const {

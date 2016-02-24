@@ -188,9 +188,16 @@ public:
             for (DIABase* target : max_mem_nodes) {
                 target->set_mem_limit(remaining_mem);
             }
+
+            // update const_mem: later allocate the mem limit of this worker
+            const_mem = mem_limit;
         }
 
-        // execute push data
+        // execute push data: hold memory for DIANodes, and remove filled
+        // children afterwards
+
+        data::BlockPoolMemoryHolder mem_holder(
+            node_->context().block_pool(), const_mem);
 
         common::StatsTimerStart timer;
         node_->RunPushData();

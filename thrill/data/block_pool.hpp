@@ -3,7 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -81,6 +81,14 @@ public:
 
     //! Returns logger_
     common::JsonLogger & logger() { return logger_; }
+
+    //! Updates the memory manager for internal memory. If the hard limit is
+    //! reached, the call is blocked intil memory is free'd
+    void RequestInternalMemory(size_t size);
+
+    //! Updates the memory manager for the internal memory, wakes up waiting
+    //! BlockPool::RequestInternalMemory calls
+    void ReleaseInternalMemory(size_t size);
 
     //! Allocates a byte block with the request size. May block this thread if
     //! the hard memory limit is reached, until memory is freed by another
@@ -246,14 +254,14 @@ private:
 
     //! Updates the memory manager for internal memory. If the hard limit is
     //! reached, the call is blocked intil memory is free'd
-    void RequestInternalMemory(std::unique_lock<std::mutex>& lock, size_t size);
+    void _RequestInternalMemory(std::unique_lock<std::mutex>& lock, size_t size);
 
     //! Updates the memory manager for the internal memory, wakes up waiting
     //! BlockPool::RequestInternalMemory calls
-    void ReleaseInternalMemory(size_t size);
+    void _ReleaseInternalMemory(size_t size);
 
     //! Increment a ByteBlock's pin count - without locking the mutex
-    void IncBlockPinCountNoLock(ByteBlock* block_ptr, size_t local_worker_id);
+    void _IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
 
     //! Unpins a block. If all pins are removed, the block might be swapped.
     //! Returns immediately. Actual unpinning is async.
@@ -287,6 +295,31 @@ private:
     size_t total_bytes_nolock()  noexcept;
 
     //! \}
+};
+
+/*!
+ * RAII class for allocating memory from a BlockPool
+ */
+class BlockPoolMemoryHolder
+{
+public:
+    BlockPoolMemoryHolder(BlockPool& block_pool, size_t size)
+        : block_pool_(block_pool), size_(size) {
+        block_pool_.RequestInternalMemory(size);
+    }
+
+    //! non-copyable: delete copy-constructor
+    BlockPoolMemoryHolder(const BlockPoolMemoryHolder&) = delete;
+    //! non-copyable: delete assignment operator
+    BlockPoolMemoryHolder& operator = (const BlockPoolMemoryHolder&) = delete;
+
+    ~BlockPoolMemoryHolder() {
+        block_pool_.ReleaseInternalMemory(size_);
+    }
+
+private:
+    BlockPool& block_pool_;
+    size_t size_;
 };
 
 } // namespace data

@@ -45,6 +45,7 @@ public:
     void setup_test();
 
     MemoryConfig divide(size_t hosts) const;
+    void apply();
 
     void print(size_t workers_per_host) const;
 
