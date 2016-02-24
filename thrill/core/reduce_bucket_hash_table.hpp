@@ -83,25 +83,25 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
           typename IndexFunction,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
+          typename ReduceTableConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceBucketHashTable
     : public ReduceTable<ValueType, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
                          RobustKey, IndexFunction,
-                         ReduceStageConfig, EqualToFunction>
+                         ReduceTableConfig, EqualToFunction>
 {
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
                               RobustKey, IndexFunction,
-                              ReduceStageConfig, EqualToFunction>;
+                              ReduceTableConfig, EqualToFunction>;
 
     using Super::debug;
     static const bool debug_items = false;
 
     //! target number of bytes in a BucketBlock.
     static constexpr size_t bucket_block_size
-        = ReduceStageConfig::bucket_block_size;
+        = ReduceTableConfig::bucket_block_size;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -140,7 +140,7 @@ public:
         const ReduceFunction& reduce_function,
         Emitter& emitter,
         size_t num_partitions,
-        const ReduceStageConfig& config = ReduceStageConfig(),
+        const ReduceTableConfig& config = ReduceTableConfig(),
         bool immediate_flush = false,
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
@@ -150,6 +150,12 @@ public:
                 index_function, equal_to_function) {
 
         assert(num_partitions > 0);
+    }
+
+    //! Construct the hash table itself. fill it with sentinels
+    void Initialize(size_t limit_memory_bytes) {
+
+        limit_memory_bytes_ = limit_memory_bytes;
 
         // calculate maximum number of blocks allowed in a partition due to the
         // memory limit.
@@ -169,7 +175,7 @@ public:
         // calculate limit on the number of _items_ in a partition before these
         // are spilled to disk or flushed to network.
 
-        double limit_fill_rate = config.limit_partition_fill_rate();
+        double limit_fill_rate = config_.limit_partition_fill_rate();
 
         assert(limit_fill_rate >= 0.0 && limit_fill_rate <= 1.0
                && "limit_partition_fill_rate must be between 0.0 and 1.0. "
@@ -187,7 +193,7 @@ public:
         // calculate number of slots in a partition of the bucket table, i.e.,
         // the number of bucket pointers per partition
 
-        double bucket_rate = config.bucket_rate();
+        double bucket_rate = config_.bucket_rate();
 
         assert(bucket_rate >= 0.0 &&
                "bucket_rate must be greater than or equal 0. "
@@ -223,10 +229,7 @@ public:
         sLOG << "num_partitions_" << num_partitions_
              << "num_buckets_per_partition_" << num_buckets_per_partition_
              << "num_buckets_" << num_buckets_;
-    }
 
-    //! Construct the hash table itself. fill it with sentinels
-    void Initialize() {
         buckets_.resize(num_buckets_, nullptr);
     }
 
@@ -617,6 +620,7 @@ protected:
     };
 
 private:
+    using Super::config_;
     using Super::equal_to_function_;
     using Super::immediate_flush_;
     using Super::index_function_;

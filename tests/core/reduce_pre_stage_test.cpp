@@ -72,16 +72,9 @@ static void TestAddMyStructByHash(Context& ctx) {
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), true>;
 
-    core::DefaultReduceTableConfig config;
-    config.limit_memory_bytes_ = 1024 * 1024;
+    Stage stage(ctx, num_partitions, key_ex, red_fn, emitters);
 
-    Stage stage(ctx,
-                num_partitions,
-                key_ex, red_fn, emitters,
-                core::ReduceByHash<size_t>(),
-                config);
-
-    stage.Initialize();
+    stage.Initialize(/* limit_memory_bytes */ 1024 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });
@@ -165,16 +158,12 @@ static void TestAddMyStructByIndex(Context& ctx) {
               decltype(key_ex), decltype(red_fn), true,
               core::ReduceByIndex<size_t> >;
 
-    core::DefaultReduceTableConfig config;
-    config.limit_memory_bytes_ = 1024 * 1024;
-
     Stage stage(ctx,
                 num_partitions,
                 key_ex, red_fn, emitters,
-                core::ReduceByIndex<size_t>(0, mod_size),
-                config);
+                core::ReduceByIndex<size_t>(0, mod_size));
 
-    stage.Initialize();
+    stage.Initialize(/* limit_memory_bytes */ 1024 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
         stage.Insert(MyStruct { i, i / mod_size });

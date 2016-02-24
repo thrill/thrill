@@ -70,18 +70,18 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
           typename IndexFunction,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
+          typename ReduceTableConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceProbingHashTable
     : public ReduceTable<ValueType, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
                          RobustKey, IndexFunction,
-                         ReduceStageConfig, EqualToFunction>
+                         ReduceTableConfig, EqualToFunction>
 {
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
                               RobustKey, IndexFunction,
-                              ReduceStageConfig, EqualToFunction>;
+                              ReduceTableConfig, EqualToFunction>;
     using Super::debug;
     static const bool debug_items = false;
 
@@ -96,7 +96,7 @@ public:
         const ReduceFunction& reduce_function,
         Emitter& emitter,
         size_t num_partitions,
-        const ReduceStageConfig& config = ReduceStageConfig(),
+        const ReduceTableConfig& config = ReduceTableConfig(),
         bool immediate_flush = false,
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
@@ -106,6 +106,13 @@ public:
                 index_function, equal_to_function) {
 
         assert(num_partitions > 0);
+    }
+
+    //! Construct the hash table itself. fill it with sentinels. have one extra
+    //! cell beyond the end for reducing the sentinel itself.
+    void Initialize(size_t limit_memory_bytes) {
+
+        limit_memory_bytes_ = limit_memory_bytes;
 
         // calculate num_buckets_per_partition_ from the memory limit and the
         // number of partitions required
@@ -128,7 +135,7 @@ public:
         // calculate limit on the number of items in a partition before these
         // are spilled to disk or flushed to network.
 
-        double limit_fill_rate = config.limit_partition_fill_rate();
+        double limit_fill_rate = config_.limit_partition_fill_rate();
 
         assert(limit_fill_rate >= 0.0 && limit_fill_rate <= 1.0
                && "limit_partition_fill_rate must be between 0.0 and 1.0. "
@@ -138,11 +145,9 @@ public:
             (size_t)(num_buckets_per_partition_ * limit_fill_rate);
 
         assert(limit_items_per_partition_ >= 0);
-    }
 
-    //! Construct the hash table itself. fill it with sentinels. have one extra
-    //! cell beyond the end for reducing the sentinel itself.
-    void Initialize() {
+        // actually allocate the table
+
         items_.resize(num_buckets_ + 1);
     }
 
@@ -390,6 +395,7 @@ public:
     //! \}
 
 private:
+    using Super::config_;
     using Super::equal_to_function_;
     using Super::immediate_flush_;
     using Super::index_function_;

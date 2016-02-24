@@ -65,6 +65,9 @@ public:
     //! test if sentinel for maximum RAM request
     bool is_max() const { return limit_ == max_limit_; }
 
+    //! implicit conversion to size_, but only if not is_max()
+    operator size_t () const { assert(!is_max()); return limit_; }
+
 private:
     //! amount of RAM requested or reserved.
     size_t limit_;
@@ -232,7 +235,7 @@ public:
 
     void set_state(const DIAState& state) { state_ = state; }
 
-    void set_mem_use(const DIAMemUse& mem_use) { mem_use_ = mem_use; }
+    void set_mem_limit(const DIAMemUse& mem_limit) { mem_limit_ = mem_limit; }
 
 protected:
     //! \name Fixed DIA Information
@@ -260,7 +263,7 @@ protected:
 
     //! Amount of memory the current execution stage of the DIA implementation
     //! is allowed to use.
-    DIAMemUse mem_use_ = 0;
+    DIAMemUse mem_limit_ = 0;
 
     //! Consumption counter: when it reaches zero, PushData() is called with
     //! consume = true

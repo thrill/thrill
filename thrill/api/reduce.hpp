@@ -130,7 +130,7 @@ public:
     }
 
     void StartPreOp(size_t /* id */) final {
-        pre_stage_.Initialize();
+        pre_stage_.Initialize(DIABase::mem_limit_ / 2);
     }
 
     void StopPreOp(size_t /* id */) final {
@@ -154,7 +154,7 @@ public:
             return;
         }
 
-        post_stage_.Initialize();
+        post_stage_.Initialize(DIABase::mem_limit_ / 2);
 
         if (RobustKey) {
             auto reader = stream_->OpenCatReader(consume);

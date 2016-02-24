@@ -155,8 +155,8 @@ public:
     //! non-copyable: delete assignment operator
     ReducePreStage& operator = (const ReducePreStage&) = delete;
 
-    void Initialize() {
-        table_.Initialize();
+    void Initialize(size_t limit_memory_bytes) {
+        table_.Initialize(limit_memory_bytes);
     }
 
     void Insert(const Value& p) {

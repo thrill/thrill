@@ -114,8 +114,8 @@ public:
     //! non-copyable: delete assignment operator
     ReduceByIndexPostStage& operator = (const ReduceByIndexPostStage&) = delete;
 
-    void Initialize() {
-        table_.Initialize();
+    void Initialize(size_t limit_memory_bytes) {
+        table_.Initialize(limit_memory_bytes);
     }
 
     void Insert(const Value& p) {
@@ -260,7 +260,7 @@ public:
             table_.index_function(),
             table_.equal_to_function());
 
-        subtable.Initialize();
+        subtable.Initialize(table_.limit_memory_bytes());
 
         size_t iteration = 1;
 
@@ -382,6 +382,9 @@ public:
 
     //! \name Accessors
     //! {
+
+    //! Returns mutable reference to first table_
+    Table & table() { return table_; }
 
     //! Returns the total num of items in the table.
     size_t num_items() const { return table_.num_items(); }

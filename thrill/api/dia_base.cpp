@@ -111,7 +111,7 @@ public:
                 << "targets" << target_ids;
 
         common::StatsTimerStart timer;
-        node_->set_mem_use(node_->context().mem_limit());
+        node_->set_mem_limit(node_->context().mem_limit());
         node_->Execute();
         node_->set_state(DIAState::EXECUTED);
         timer.Stop();
@@ -154,7 +154,7 @@ public:
             }
             else {
                 const_mem += m.limit();
-                node_->set_mem_use(m.limit());
+                node_->set_mem_limit(m.limit());
             }
         }
 
@@ -165,7 +165,7 @@ public:
             }
             else {
                 const_mem += m.limit();
-                target->set_mem_use(m.limit());
+                target->set_mem_limit(m.limit());
             }
         }
 
@@ -186,7 +186,7 @@ public:
                  << max_mem_nodes.size() << " DIANodes";
 
             for (DIABase* target : max_mem_nodes) {
-                target->set_mem_use(remaining_mem);
+                target->set_mem_limit(remaining_mem);
             }
         }
 
