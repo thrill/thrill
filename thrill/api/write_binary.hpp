@@ -67,6 +67,34 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    DIAMemUse PreOpMemUse() final {
+        return data::default_block_size;
+    }
+
+    //! writer preop: put item into file, create files as needed.
+    void PreOp(const Input& input) {
+        stats_total_elements_++;
+
+        if (!sink_) OpenNextFile();
+
+        try {
+            writer_->PutNoSelfVerify(input);
+        }
+        catch (data::FullException&) {
+            // sink is full. flush it. and repeat, which opens new file.
+            OpenNextFile();
+
+            try {
+                writer_->PutNoSelfVerify(input);
+            }
+            catch (data::FullException&) {
+                throw std::runtime_error(
+                          "Error in WriteBinary: "
+                          "an item is larger than the file size limit");
+            }
+        }
+    }
+
     //! Closes the output file
     void StopPreOp(size_t /* id */) final {
         sLOG << "closing file" << out_pathbase_;
@@ -153,30 +181,6 @@ private:
             stats_total_elements_, stats_total_writes_);
 
         writer_ = std::make_unique<Writer>(sink_.get(), block_size_);
-    }
-
-    //! writer preop: put item into file, create files as needed.
-    void PreOp(const Input& input) {
-        stats_total_elements_++;
-
-        if (!sink_) OpenNextFile();
-
-        try {
-            writer_->PutNoSelfVerify(input);
-        }
-        catch (data::FullException&) {
-            // sink is full. flush it. and repeat, which opens new file.
-            OpenNextFile();
-
-            try {
-                writer_->PutNoSelfVerify(input);
-            }
-            catch (data::FullException&) {
-                throw std::runtime_error(
-                          "Error in WriteBinary: "
-                          "an item is larger than the file size limit");
-            }
-        }
     }
 };
 

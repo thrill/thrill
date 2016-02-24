@@ -145,6 +145,9 @@ public:
     //! Virtual method for preparing end of PushData.
     virtual void StopPreOp(size_t /* id */) { }
 
+    //! Amount of RAM used by Execute()
+    virtual DIAMemUse ExecuteMemUse() { return 0; }
+
     //! Virtual execution method. Triggers actual computation in sub-classes.
     virtual void Execute() = 0;
 

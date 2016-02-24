@@ -36,7 +36,8 @@ class Stage
 public:
     static const bool debug = false;
 
-    explicit Stage(const DIABasePtr& node) : node_(node) { }
+    explicit Stage(const DIABasePtr& node)
+        : node_(node), context_(node->context()) { }
 
     //! iterate over all target nodes into which this Stage pushes
     template <typename Lambda>
@@ -110,8 +111,14 @@ public:
         logger_ << "class" << "StageBuilder" << "event" << "execute-start"
                 << "targets" << target_ids;
 
+        DIAMemUse mem_use = node_->ExecuteMemUse();
+        if (mem_use.is_max())
+            mem_use = context_.mem_limit();
+        node_->set_mem_limit(mem_use);
+
+        data::BlockPoolMemoryHolder mem_holder(context_.block_pool(), mem_use);
+
         common::StatsTimerStart timer;
-        node_->set_mem_limit(node_->context().mem_limit());
         node_->Execute();
         node_->set_state(DIAState::EXECUTED);
         timer.Stop();
@@ -124,7 +131,7 @@ public:
     }
 
     void PushData() {
-        if (node_->context().consume() && node_->consume_counter() == 0) {
+        if (context_.consume() && node_->consume_counter() == 0) {
             sLOG1 << "StageBuilder: attempt to PushData on"
                   << "stage" << *node_
                   << "failed, it was already consumed. Add .Keep()";
@@ -142,7 +149,7 @@ public:
 
         std::vector<DIABase*> targets = TargetPtrs();
 
-        const size_t mem_limit = node_->context().mem_limit();
+        const size_t mem_limit = context_.mem_limit();
         std::vector<DIABase*> max_mem_nodes;
         size_t const_mem = 0;
 
@@ -181,9 +188,11 @@ public:
             size_t remaining_mem = mem_limit - const_mem;
             remaining_mem /= max_mem_nodes.size();
 
-            LOG1 << "StageBuilder: distribute remaining worker memory "
-                 << remaining_mem << " to "
-                 << max_mem_nodes.size() << " DIANodes";
+            if (context_.my_rank() == 0) {
+                LOG1 << "StageBuilder: distribute remaining worker memory "
+                     << remaining_mem << " to "
+                     << max_mem_nodes.size() << " DIANodes";
+            }
 
             for (DIABase* target : max_mem_nodes) {
                 target->set_mem_limit(remaining_mem);
@@ -196,8 +205,7 @@ public:
         // execute push data: hold memory for DIANodes, and remove filled
         // children afterwards
 
-        data::BlockPoolMemoryHolder mem_holder(
-            node_->context().block_pool(), const_mem);
+        data::BlockPoolMemoryHolder mem_holder(context_.block_pool(), const_mem);
 
         common::StatsTimerStart timer;
         node_->RunPushData();
@@ -216,7 +224,10 @@ public:
     //! shared pointer to node
     DIABasePtr node_;
 
-    //! reference to ContextLogger via node.
+    //! reference to Context of node
+    Context& context_;
+
+    //! reference to node's Logger.
     common::JsonLogger& logger_ { node_->logger_ };
 
     //! temporary marker for toposort to detect cycles

@@ -54,7 +54,7 @@ public:
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [=](const std::string& input) {
+        auto pre_op_fn = [this](const std::string& input) {
                              PreOp(input);
                          };
 
@@ -62,12 +62,18 @@ public:
             std::min(data::default_block_size,
                      common::RoundUpToPowerOfTwo(target_file_size_));
 
-        write_buffer_.Reserve(max_buffer_size_);
-
         // close the function stack with our pre op and register it at parent
         // node for output
         auto lop_chain = parent.stack().push(pre_op_fn).fold();
         parent.node()->AddChild(this, lop_chain);
+    }
+
+    DIAMemUse PreOpMemUse() final {
+        return max_buffer_size_;
+    }
+
+    void StartPreOp(size_t /* id */) final {
+        write_buffer_.Reserve(max_buffer_size_);
     }
 
     void PreOp(const std::string& input) {

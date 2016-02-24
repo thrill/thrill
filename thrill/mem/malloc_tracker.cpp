@@ -211,7 +211,7 @@ void malloc_tracker_print_status() {
 }
 
 void set_memory_limit_indication(size_t size) {
-    fprintf(stderr, PPREFIX "set_memory_limit_indication %zu\n", size);
+    // fprintf(stderr, PPREFIX "set_memory_limit_indication %zu\n", size);
     memory_limit_indication = size;
 }
 
@@ -223,8 +223,8 @@ static bool enable_memprofile = false;
 static FILE* memprofile_file = nullptr;
 
 // default to 0.1 sec resolution
-static uint64_t memprofile_resolution = 100000;
-static uint64_t memprofile_last_update = 0;
+static long long memprofile_resolution = 100000;
+static long long memprofile_last_update = 0;
 
 struct OhlcBar {
     size_t open, high, low, close;
@@ -275,7 +275,7 @@ static void update_memprofile(
     using system_clock = std::chrono::system_clock;
     using duration = std::chrono::microseconds;
 
-    uint64_t now = std::chrono::duration_cast<duration>(
+    long long now = std::chrono::duration_cast<duration>(
         system_clock::now().time_since_epoch()).count();
 
     now -= now % memprofile_resolution;
@@ -291,7 +291,7 @@ static void update_memprofile(
         // output last bar
         if (memprofile_last_update != 0 || flush) {
             fprintf(memprofile_file,
-                    "%lu float %zu %zu %zu %zu base %zu %zu %zu %zu "
+                    "%lld float %zu %zu %zu %zu base %zu %zu %zu %zu "
                     "sum %zu %zu %zu %zu\n",
                     memprofile_last_update,
                     mp_float.open, mp_float.high, mp_float.low, mp_float.close,
