@@ -77,25 +77,48 @@ static realloc_type real_realloc = nullptr;
 //! a sentinel value prefixed to each allocation
 static const size_t sentinel = 0xDEADC0DE;
 
+#define USE_ATOMICS 0
+
 //! CounterType is used for atomic counters, and get to retrieve their contents
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || USE_ATOMICS
 using CounterType = std::atomic<size_t>;
-size_t get(const CounterType& a) {
-    return a.load();
-}
 #else
 // we cannot use std::atomic on gcc/clang because only real atomic instructions
 // work with the Sanitizers
 using CounterType = size_t;
-size_t get(const CounterType& a) {
-    return a;
-}
 #endif
+
+ATTRIBUTE_NO_SANITIZE
+static inline size_t get(const CounterType& a) {
+#if defined(_MSC_VER) || USE_ATOMICS
+    return a.load();
+#else
+    return a;
+#endif
+}
+
+ATTRIBUTE_NO_SANITIZE
+static inline size_t sync_add_and_fetch(CounterType& curr, size_t inc) {
+#if defined(_MSC_VER) || USE_ATOMICS
+    return (curr += inc);
+#else
+    return __sync_add_and_fetch(&curr, inc);
+#endif
+}
+
+ATTRIBUTE_NO_SANITIZE
+static inline size_t sync_sub_and_fetch(CounterType& curr, size_t dec) {
+#if defined(_MSC_VER) || USE_ATOMICS
+    return (curr -= dec);
+#else
+    return __sync_sub_and_fetch(&curr, dec);
+#endif
+}
 
 //! a simple memory heap for allocations prior to dlsym loading
 #define INIT_HEAP_SIZE 1024 * 1024
 static char init_heap[INIT_HEAP_SIZE];
-static CounterType init_heap_use = 0;
+static CounterType init_heap_use { 0 };
 static const int log_operations_init_heap = 0;
 
 //! align allocations to init_heap to this number by rounding up allocations
@@ -107,11 +130,12 @@ static const size_t init_alignment = sizeof(size_t);
 /******************************************************************************/
 // Run-time memory allocation statistics
 
-static CounterType peak = 0;
-static CounterType curr = 0;
-static CounterType total = 0;
-static CounterType total_allocs = 0;
-static CounterType current_allocs = 0;
+static CounterType total_allocs { 0 };
+static CounterType current_allocs { 0 };
+
+static CounterType peak { 0 };
+static CounterType curr { 0 };
+static CounterType total { 0 };
 
 //! memory limit exceeded indicator
 bool memory_exceeded = false;
@@ -123,15 +147,11 @@ static void update_memprofile(size_t memory_current, bool flush = false);
 //! add allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void inc_count(size_t inc) {
-#if defined(_MSC_VER)
-    size_t mycurr = (curr += inc);
-#else
-    size_t mycurr = __sync_add_and_fetch(&curr, inc);
-#endif
+    size_t mycurr = sync_add_and_fetch(curr, inc);
     if (mycurr > peak) peak = mycurr;
     total += inc;
-    ++total_allocs;
-    ++current_allocs;
+    sync_add_and_fetch(total_allocs, 1);
+    sync_add_and_fetch(current_allocs, 1);
 
     memory_exceeded = (mycurr >= memory_limit_indication);
     update_memprofile(mycurr);
@@ -140,12 +160,8 @@ static void inc_count(size_t inc) {
 //! decrement allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void dec_count(size_t dec) {
-#if defined(_MSC_VER)
-    size_t mycurr = (curr -= dec);
-#else
-    size_t mycurr = __sync_sub_and_fetch(&curr, dec);
-#endif
-    --current_allocs;
+    size_t mycurr = sync_sub_and_fetch(curr, dec);
+    sync_sub_and_fetch(current_allocs, 1);
 
     memory_exceeded = (mycurr >= memory_limit_indication);
     update_memprofile(mycurr);
@@ -312,7 +328,11 @@ static __attribute__ ((destructor)) void finish() { // NOLINT
 // Functions to bypass the malloc tracker
 
 //! bypass malloc tracker and access malloc() directly
+ATTRIBUTE_NO_SANITIZE
 void * bypass_malloc(size_t size) noexcept {
+    sync_add_and_fetch(total_allocs, 1);
+    sync_add_and_fetch(current_allocs, 1);
+
 #if defined(_MSC_VER)
     return malloc(size);
 #else
@@ -321,7 +341,10 @@ void * bypass_malloc(size_t size) noexcept {
 }
 
 //! bypass malloc tracker and access free() directly
-void bypass_free(void* ptr) noexcept {
+ATTRIBUTE_NO_SANITIZE
+void bypass_free(void* ptr, size_t /* size */) noexcept {
+    sync_sub_and_fetch(current_allocs, 1);
+
 #if defined(_MSC_VER)
     return free(ptr);
 #else
@@ -342,7 +365,7 @@ static void * preinit_malloc(size_t size) noexcept {
 
     size_t aligned_size = size + (init_alignment - size % init_alignment);
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || USE_ATOMICS
     size_t offset = (init_heap_use += (padding + aligned_size));
 #else
     size_t offset = __sync_fetch_and_add(&init_heap_use, padding + aligned_size);
@@ -470,7 +493,7 @@ void * malloc(size_t size) NOEXCEPT {
 
     if (log_operations && size_used >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "malloc(%zu size / %zu used) = %p   (current %zu)\n",
-                size, size_used, ret, curr);
+                size, size_used, ret, get(curr));
     }
     {
 #if __linux__ && LOG_MALLOC_PROFILER
@@ -566,7 +589,7 @@ void free(void* ptr) NOEXCEPT {
 
     if (log_operations && size_used >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu)\n",
-                ptr, size_used, curr);
+                ptr, size_used, get(curr));
     }
 
     (*real_free)(ptr);
@@ -614,11 +637,11 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
         if (newptr == ptr)
             fprintf(stderr, PPREFIX
                     "realloc(%zu -> %zu / %zu) = %p   (current %zu)\n",
-                    oldsize_used, size, newsize_used, newptr, curr);
+                    oldsize_used, size, newsize_used, newptr, get(curr));
         else
             fprintf(stderr, PPREFIX
                     "realloc(%zu -> %zu / %zu) = %p -> %p   (current %zu)\n",
-                    oldsize_used, size, newsize_used, ptr, newptr, curr);
+                    oldsize_used, size, newsize_used, ptr, newptr, get(curr));
     }
 
     return newptr;

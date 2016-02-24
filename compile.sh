@@ -9,7 +9,7 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-set -e
+set -ex
 
 git submodule init
 git submodule update

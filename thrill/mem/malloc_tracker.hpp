@@ -28,7 +28,7 @@ void set_memory_limit_indication(size_t size);
 void * bypass_malloc(size_t size) noexcept;
 
 //! bypass malloc tracker and access free() directly
-void bypass_free(void* ptr) noexcept;
+void bypass_free(void* ptr, size_t size) noexcept;
 
 //! returns the currently allocated amount of memory
 size_t malloc_tracker_current();
