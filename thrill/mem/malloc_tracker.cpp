@@ -88,6 +88,9 @@ using CounterType = std::atomic<size_t>;
 using CounterType = size_t;
 #endif
 
+// actually only such that formatting is not messed up
+#define COUNTER_ZERO { 0 }
+
 ATTRIBUTE_NO_SANITIZE
 static inline size_t get(const CounterType& a) {
 #if defined(_MSC_VER) || USE_ATOMICS
@@ -118,7 +121,7 @@ static inline size_t sync_sub_and_fetch(CounterType& curr, size_t dec) {
 //! a simple memory heap for allocations prior to dlsym loading
 #define INIT_HEAP_SIZE 1024 * 1024
 static char init_heap[INIT_HEAP_SIZE];
-static CounterType init_heap_use { 0 };
+static CounterType init_heap_use COUNTER_ZERO;
 static const int log_operations_init_heap = 0;
 
 //! align allocations to init_heap to this number by rounding up allocations
@@ -130,56 +133,70 @@ static const size_t init_alignment = sizeof(size_t);
 /******************************************************************************/
 // Run-time memory allocation statistics
 
-static CounterType total_allocs { 0 };
-static CounterType current_allocs { 0 };
+static CounterType total_allocs COUNTER_ZERO;
+static CounterType current_allocs COUNTER_ZERO;
 
-static CounterType peak { 0 };
-static CounterType curr { 0 };
-static CounterType total { 0 };
+static CounterType total_bytes COUNTER_ZERO;
+static CounterType peak_bytes COUNTER_ZERO;
+
+// free-floating memory allocated by malloc/free
+static CounterType float_curr COUNTER_ZERO;
+
+// Thrill base memory allocated by bypass_malloc/bypass_free
+static CounterType base_curr COUNTER_ZERO;
 
 //! memory limit exceeded indicator
 bool memory_exceeded = false;
 size_t memory_limit_indication = std::numeric_limits<size_t>::max();
 
 // prototype for profiling
-static void update_memprofile(size_t memory_current, bool flush = false);
+static void update_memprofile(
+    size_t float_current, size_t base_current, bool flush = false);
+
+void update_peak(size_t float_curr, size_t base_curr) {
+    if (float_curr + base_curr > peak_bytes)
+        peak_bytes = float_curr + base_curr;
+}
 
 //! add allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void inc_count(size_t inc) {
-    size_t mycurr = sync_add_and_fetch(curr, inc);
-    if (mycurr > peak) peak = mycurr;
-    total += inc;
+    size_t mycurr = sync_add_and_fetch(float_curr, inc);
+
+    total_bytes += inc;
+    update_peak(mycurr, base_curr);
+
     sync_add_and_fetch(total_allocs, 1);
     sync_add_and_fetch(current_allocs, 1);
 
     memory_exceeded = (mycurr >= memory_limit_indication);
-    update_memprofile(mycurr);
+    update_memprofile(mycurr, get(base_curr));
 }
 
 //! decrement allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void dec_count(size_t dec) {
-    size_t mycurr = sync_sub_and_fetch(curr, dec);
+    size_t mycurr = sync_sub_and_fetch(float_curr, dec);
+
     sync_sub_and_fetch(current_allocs, 1);
 
     memory_exceeded = (mycurr >= memory_limit_indication);
-    update_memprofile(mycurr);
+    update_memprofile(mycurr, get(base_curr));
 }
 
 //! user function to return the currently allocated amount of memory
 size_t malloc_tracker_current() {
-    return curr;
+    return float_curr;
 }
 
 //! user function to return the peak allocation
 size_t malloc_tracker_peak() {
-    return peak;
+    return peak_bytes;
 }
 
 //! user function to reset the peak allocation to current
 void malloc_tracker_reset_peak() {
-    peak = get(curr);
+    peak_bytes = get(float_curr);
 }
 
 //! user function to return total number of allocations
@@ -190,7 +207,7 @@ size_t malloc_tracker_total_allocs() {
 //! user function which prints current and peak allocation to stderr
 void malloc_tracker_print_status() {
     fprintf(stderr, PPREFIX "current %zu, peak %zu\n",
-            get(curr), get(peak));
+            get(float_curr), get(peak_bytes));
 }
 
 void set_memory_limit_indication(size_t size) {
@@ -209,7 +226,21 @@ static FILE* memprofile_file = nullptr;
 static uint64_t memprofile_resolution = 100000;
 static uint64_t memprofile_last_update = 0;
 
-static size_t mp_bar_open, mp_bar_high, mp_bar_low, mp_bar_close;
+struct OhlcBar {
+    size_t open, high, low, close;
+
+    void   init(size_t current) {
+        open = high = low = close = current;
+    }
+    void   aggregate(size_t current) {
+        high = std::max(high, current);
+        low = std::min(low, current);
+        close = current;
+    }
+};
+
+// Two Ohlc bars: for free floating memory and for Thrill base memory.
+static OhlcBar mp_float, mp_base;
 
 static void init_memprofile() {
 
@@ -224,10 +255,20 @@ static void init_memprofile() {
         abort();
     }
 
+    fprintf(memprofile_file, "ts epochmicro\n");
+    fprintf(memprofile_file, "a skip\n");
+    fprintf(memprofile_file, "float ohlc\n");
+    fprintf(memprofile_file, "b skip\n");
+    fprintf(memprofile_file, "base ohlc\n");
+    fprintf(memprofile_file, "c skip\n");
+    fprintf(memprofile_file, "sum ohlc\n");
+    fprintf(memprofile_file, "\n");
+
     enable_memprofile = true;
 }
 
-static void update_memprofile(size_t memory_current, bool flush) {
+static void update_memprofile(
+    size_t float_current, size_t base_current, bool flush) {
 
     if (!enable_memprofile) return;
 
@@ -241,23 +282,30 @@ static void update_memprofile(size_t memory_current, bool flush) {
 
     if (now == memprofile_last_update && !flush)
     {
-        // aggregate into OHLC bar
-        mp_bar_high = std::max(mp_bar_high, memory_current);
-        mp_bar_low = std::min(mp_bar_low, memory_current);
-        mp_bar_close = memory_current;
+        // aggregate into OHLC bars
+        mp_float.aggregate(float_current);
+        mp_base.aggregate(base_current);
     }
     else
     {
         // output last bar
         if (memprofile_last_update != 0 || flush) {
-            fprintf(memprofile_file, "ts %lu ohlc %zu %zu %zu %zu\n",
+            fprintf(memprofile_file,
+                    "%lu float %zu %zu %zu %zu base %zu %zu %zu %zu "
+                    "sum %zu %zu %zu %zu\n",
                     memprofile_last_update,
-                    mp_bar_open, mp_bar_high, mp_bar_low, mp_bar_close);
+                    mp_float.open, mp_float.high, mp_float.low, mp_float.close,
+                    mp_base.open, mp_base.high, mp_base.low, mp_base.close,
+                    mp_float.open + mp_base.open,
+                    mp_float.high + mp_base.high,
+                    mp_float.low + mp_base.low,
+                    mp_float.close + mp_base.close);
         }
 
-        // start new OHLC bar
+        // start new OHLC bars
         memprofile_last_update = now;
-        mp_bar_open = mp_bar_high = mp_bar_low = mp_bar_close = memory_current;
+        mp_float.init(float_current);
+        mp_base.init(base_current);
     }
 }
 
@@ -314,11 +362,12 @@ static __attribute__ ((constructor)) void init() { // NOLINT
 
 ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((destructor)) void finish() { // NOLINT
-    update_memprofile(curr, /* flush */ true);
+    update_memprofile(get(float_curr), get(base_curr), /* flush */ true);
     fprintf(stderr, PPREFIX
-            "exiting, total: %zu, peak: %zu, current: %zu, "
+            "exiting, total: %zu, peak: %zu, current: %zu / %zu, "
             "allocs: %zu, unfreed: %zu\n",
-            get(total), get(peak), get(curr),
+            get(total_bytes), get(peak_bytes),
+            get(float_curr), get(base_curr),
             get(total_allocs), get(current_allocs));
 }
 
@@ -330,8 +379,15 @@ static __attribute__ ((destructor)) void finish() { // NOLINT
 //! bypass malloc tracker and access malloc() directly
 ATTRIBUTE_NO_SANITIZE
 void * bypass_malloc(size_t size) noexcept {
+    size_t mycurr = sync_add_and_fetch(base_curr, size);
+
+    total_bytes += size;
+    update_peak(float_curr, mycurr);
+
     sync_add_and_fetch(total_allocs, 1);
     sync_add_and_fetch(current_allocs, 1);
+
+    update_memprofile(get(float_curr), mycurr);
 
 #if defined(_MSC_VER)
     return malloc(size);
@@ -342,8 +398,12 @@ void * bypass_malloc(size_t size) noexcept {
 
 //! bypass malloc tracker and access free() directly
 ATTRIBUTE_NO_SANITIZE
-void bypass_free(void* ptr, size_t /* size */) noexcept {
+void bypass_free(void* ptr, size_t size) noexcept {
+    size_t mycurr = sync_sub_and_fetch(base_curr, size);
+
     sync_sub_and_fetch(current_allocs, 1);
+
+    update_memprofile(get(float_curr), mycurr);
 
 #if defined(_MSC_VER)
     return free(ptr);
@@ -492,8 +552,8 @@ void * malloc(size_t size) NOEXCEPT {
     inc_count(size_used);
 
     if (log_operations && size_used >= log_operations_threshold) {
-        fprintf(stderr, PPREFIX "malloc(%zu size / %zu used) = %p   (current %zu)\n",
-                size, size_used, ret, get(curr));
+        fprintf(stderr, PPREFIX "malloc(%zu size / %zu used) = %p   (current %zu / %zu)\n",
+                size, size_used, ret, get(float_curr), get(base_curr));
     }
     {
 #if __linux__ && LOG_MALLOC_PROFILER
@@ -588,8 +648,8 @@ void free(void* ptr) NOEXCEPT {
     dec_count(size_used);
 
     if (log_operations && size_used >= log_operations_threshold) {
-        fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu)\n",
-                ptr, size_used, get(curr));
+        fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu / %zu)\n",
+                ptr, size_used, get(float_curr), get(base_curr));
     }
 
     (*real_free)(ptr);
@@ -636,12 +696,14 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     {
         if (newptr == ptr)
             fprintf(stderr, PPREFIX
-                    "realloc(%zu -> %zu / %zu) = %p   (current %zu)\n",
-                    oldsize_used, size, newsize_used, newptr, get(curr));
+                    "realloc(%zu -> %zu / %zu) = %p   (current %zu / %zu)\n",
+                    oldsize_used, size, newsize_used, newptr,
+                    get(float_curr), get(base_curr));
         else
             fprintf(stderr, PPREFIX
-                    "realloc(%zu -> %zu / %zu) = %p -> %p   (current %zu)\n",
-                    oldsize_used, size, newsize_used, ptr, newptr, get(curr));
+                    "realloc(%zu -> %zu / %zu) = %p -> %p   (current %zu / %zu)\n",
+                    oldsize_used, size, newsize_used, ptr, newptr,
+                    get(float_curr), get(base_curr));
     }
 
     return newptr;
@@ -670,8 +732,9 @@ void * malloc(size_t size) NOEXCEPT {
 
     inc_count(size);
     if (log_operations && size >= log_operations_threshold) {
-        fprintf(stderr, PPREFIX "malloc(%zu) = %p   (current %zu)\n",
-                size, static_cast<char*>(ret) + padding, get(curr));
+        fprintf(stderr, PPREFIX "malloc(%zu) = %p   (current %zu / %zu)\n",
+                size, static_cast<char*>(ret) + padding,
+                get(float_curr), get(base_curr));
     }
 
     //! prepend allocation size and check sentinel
@@ -712,8 +775,8 @@ void free(void* ptr) NOEXCEPT {
     dec_count(size);
 
     if (log_operations && size >= log_operations_threshold) {
-        fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu)\n",
-                ptr, size, get(curr));
+        fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu / %zu)\n",
+                ptr, size, get(float_curr), get(base_curr));
     }
 
     (*real_free)(ptr);
@@ -769,12 +832,12 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     {
         if (newptr == ptr)
             fprintf(stderr, PPREFIX
-                    "realloc(%zu -> %zu) = %p   (current %zu)\n",
-                    oldsize, size, newptr, get(curr));
+                    "realloc(%zu -> %zu) = %p   (current %zu / %zu)\n",
+                    oldsize, size, newptr, get(float_curr), get(base_curr));
         else
             fprintf(stderr, PPREFIX
-                    "realloc(%zu -> %zu) = %p -> %p   (current %zu)\n",
-                    oldsize, size, ptr, newptr, get(curr));
+                    "realloc(%zu -> %zu) = %p -> %p   (current %zu / %zu)\n",
+                    oldsize, size, ptr, newptr, get(float_curr), get(base_curr));
     }
 
     *reinterpret_cast<size_t*>(newptr) = size;
