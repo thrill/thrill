@@ -708,8 +708,7 @@ foreach my $arg (@ARGV) {
 # check uncrustify's version:
 my ($uncrustver) = filter_program("", "uncrustify", "--version");
 ($uncrustver eq "uncrustify 0.61\n")
-    or die("Requires uncrustify 0.61 to run correctly. ".
-           "See https://github.com/PdF14-MR/thrill/wiki/Uncrustify-as-local-pre-commit-hook");
+    or die("Requires uncrustify 0.61 to run correctly. Got: $uncrustver");
 
 $have_autopep8 = 0;
 my ($check_autopep8) = filter_program("", "autopep8", "--version");
