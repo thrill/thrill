@@ -437,6 +437,8 @@ private:
         LOG1 << "SortAndWriteToFile() " << vec.size()
              << " into file #" << files.size();
 
+        local_out_size_ += vec.size();
+
         std::sort(vec.begin(), vec.end(), compare_function_);
 
         files.emplace_back(context_.GetFile());
@@ -458,7 +460,7 @@ private:
             ": " << samples_.size();
         LOG << "Number of local items: " << local_items_;
 
-        // stream to send samples to process 0
+        // stream to send samples to process 0 and receive them back
         data::CatStreamPtr sample_stream = context_.GetNewCatStream();
 
         // Send all samples to worker 0.
@@ -494,6 +496,7 @@ private:
                 splitters.push_back(reader.template Next<ValueType>());
             }
         }
+        sample_writers.clear();
         sample_stream->Close();
 
         // code from SS2NPartition, slightly altered
@@ -528,20 +531,16 @@ private:
         auto reader = data_stream->OpenCatReader(/* consume */ false);
 
         std::vector<ValueType> temp_data;
-        size_t items_in_file = 0;
         LOG << "Writing files";
         while (reader.HasNext()) {
             if (!mem::memory_exceeded) {
-                local_out_size_++;
                 temp_data.push_back(reader.template Next<ValueType>());
-                items_in_file++;
             }
             else {
                 SortAndWriteToFile(temp_data, files_);
-                items_in_file = 0;
             }
         }
-        if (items_in_file) {
+        if (temp_data.size()) {
             SortAndWriteToFile(temp_data, files_);
         }
 
