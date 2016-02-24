@@ -59,7 +59,7 @@ public:
 
     //! total amount of RAM for DIANode data structures such as the reduce
     //! tables. divide by the number of worker threads before use.
-    size_t ram_dia_node_;
+    size_t ram_workers_;
 
     //! remaining free-floating RAM used for user and Thrill data structures.
     size_t ram_floating_;
@@ -95,6 +95,11 @@ public:
 
     //! number of workers per host (all have the same).
     size_t workers_per_host() const { return workers_per_host_; }
+
+    //! memory limit of each worker Context for local data structures
+    size_t worker_mem_limit() const {
+        return mem_config_.ram_workers_ / workers_per_host_;
+    }
 
     //! host-global memory manager
     mem::Manager & mem_manager() { return mem_manager_; }
@@ -176,9 +181,11 @@ public:
             net::FlowControlChannelManager& flow_manager,
             data::BlockPool& block_pool,
             data::Multiplexer& multiplexer,
-            size_t workers_per_host, size_t local_worker_id)
+            size_t workers_per_host, size_t local_worker_id,
+            size_t mem_limit)
         : local_worker_id_(local_worker_id),
           workers_per_host_(workers_per_host),
+          mem_limit_(mem_limit),
           mem_manager_(mem_manager),
           net_manager_(net_manager),
           flow_manager_(flow_manager),
@@ -191,6 +198,7 @@ public:
     Context(HostContext& host_context, size_t local_worker_id)
         : local_worker_id_(local_worker_id),
           workers_per_host_(host_context.workers_per_host()),
+          mem_limit_(host_context.worker_mem_limit()),
           mem_manager_(host_context.mem_manager()),
           net_manager_(host_context.net_manager()),
           flow_manager_(host_context.flow_manager()),
@@ -320,6 +328,9 @@ private:
 
     //! number of workers hosted per host
     size_t workers_per_host_;
+
+    //! memory limit of this worker Context for local data structures
+    size_t mem_limit_;
 
     //! host-global memory manager
     mem::Manager& mem_manager_;

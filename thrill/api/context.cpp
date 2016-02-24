@@ -36,7 +36,7 @@
 
 #if __APPLE__
 
-// for sysctlbyname
+// for sysctl()
 #include <sys/sysctl.h>
 #include <sys/types.h>
 
@@ -174,7 +174,7 @@ int wrap_setenv(const char* name, const char* value, int overwrite) {
 }
 #else
 int wrap_setenv(const char* name, const char* value, int overwrite) {
-    setenv(name, value, overwrite);
+    return setenv(name, value, overwrite);
 }
 #endif
 
@@ -671,11 +671,11 @@ void MemoryConfig::setup_test() {
 
     ram_block_pool_hard_ = ram_ / 3;
     ram_block_pool_soft_ = ram_block_pool_hard_ * 9 / 10;
-    ram_dia_node_ = ram_ / 3;
-    ram_floating_ = ram_ - ram_block_pool_hard_ - ram_dia_node_;
+    ram_workers_ = ram_ / 3;
+    ram_floating_ = ram_ - ram_block_pool_hard_ - ram_workers_;
 
     // set memory limit, only BlockPool is excluded from malloc tracking
-    mem::set_memory_limit_indication(ram_floating_ + ram_dia_node_);
+    mem::set_memory_limit_indication(ram_floating_ + ram_workers_);
 }
 
 int MemoryConfig::setup_detect() {
@@ -723,11 +723,11 @@ int MemoryConfig::setup_detect() {
 
     ram_block_pool_hard_ = ram_ / 3;
     ram_block_pool_soft_ = ram_block_pool_hard_ * 9 / 10;
-    ram_dia_node_ = ram_ / 3;
-    ram_floating_ = ram_ - ram_block_pool_hard_ - ram_dia_node_;
+    ram_workers_ = ram_ / 3;
+    ram_floating_ = ram_ - ram_block_pool_hard_ - ram_workers_;
 
     // set memory limit, only BlockPool is excluded from malloc tracking
-    mem::set_memory_limit_indication(ram_floating_ + ram_dia_node_);
+    mem::set_memory_limit_indication(ram_floating_ + ram_workers_);
 
     return 0;
 }
@@ -738,7 +738,7 @@ MemoryConfig MemoryConfig::divide(size_t hosts) const {
     mc.ram_ /= hosts;
     mc.ram_block_pool_hard_ /= hosts;
     mc.ram_block_pool_soft_ /= hosts;
-    mc.ram_dia_node_ /= hosts;
+    mc.ram_workers_ /= hosts;
     // free floating memory is not divided by host, as it is measured overall
 
     return mc;
@@ -749,8 +749,8 @@ void MemoryConfig::print(size_t workers_per_host) const {
         << "Thrill: using "
         << common::FormatIecUnits(ram_) << "B RAM total,"
         << " BlockPool=" << common::FormatIecUnits(ram_block_pool_hard_) << "B,"
-        << " DIANode="
-        << common::FormatIecUnits(ram_dia_node_ / workers_per_host) << "B,"
+        << " workers="
+        << common::FormatIecUnits(ram_workers_ / workers_per_host) << "B,"
         << " floating=" << common::FormatIecUnits(ram_floating_) << "B."
         << std::endl;
 }
