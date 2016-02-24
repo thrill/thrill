@@ -57,7 +57,7 @@ TEST_F(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.block(5).size(), 14u);
 
     // Total size is equal to sum of block sizes
-    ASSERT_EQ(file.total_size(), 94u);
+    ASSERT_EQ(file.size_bytes(), 94u);
 
     const unsigned char block_data_bytes[] = {
         // fw.Append("testtest");
