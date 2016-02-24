@@ -47,7 +47,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
                                     return in1 + in2;
                                 };
 
-            ASSERT_EQ((int)generate_size, ones.Sum(add_function));
+            ASSERT_EQ((int)generate_size + 42, ones.Sum(add_function, 42));
         };
 
     api::RunLocalTests(start_func);
