@@ -26,11 +26,7 @@ namespace api {
 //! \{
 
 /*!
- * A LOpNode which performs a chain of local operations.  LOp nodes are used for
- * caching local operation results and assignment operations.
- *
- * \tparam ParentStack Function chain, which contains the chained lambdas between
- * the last and this DIANode.
+ * A DOpNode which caches all items in an external file.
  */
 template <typename ValueType, typename ParentDIA>
 class CacheNode final : public DIANode<ValueType>
@@ -48,12 +44,15 @@ public:
         // CacheNodes are kept by default.
         Super::consume_counter_ = Super::never_consume_;
 
-        auto save_fn =
-            [=](const ValueType& input) {
-                writer_.Put(input);
-            };
+        auto save_fn = [this](const ValueType& input) {
+                           writer_.Put(input);
+                       };
         auto lop_chain = parent.stack().push(save_fn).fold();
         parent.node()->AddChild(this, lop_chain);
+    }
+
+    void StartPreOp(size_t /* id */) final {
+        writer_ = file_.GetWriter();
     }
 
     void StopPreOp(size_t /* id */) final {
@@ -70,22 +69,20 @@ public:
         }
     }
 
-    void Dispose() final { }
-
 private:
     //! Local data file
     data::File file_ { context_.GetFile() };
     //! Data writer to local file (only active in PreOp).
-    data::File::Writer writer_ = file_.GetWriter();
+    data::File::Writer writer_;
 };
 
 template <typename ValueType, typename Stack>
 auto DIA<ValueType, Stack>::Cache() const {
     assert(IsValid());
 
-    using LOpChainNode = CacheNode<ValueType, DIA>;
+    using CacheNode = api::CacheNode<ValueType, DIA>;
 
-    auto shared_node = std::make_shared<LOpChainNode>(*this);
+    auto shared_node = std::make_shared<CacheNode>(*this);
 
     return DIA<ValueType>(shared_node);
 }

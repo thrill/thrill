@@ -62,13 +62,12 @@ class ReduceNode final : public DOpNode<ValueType>
     static const bool debug = false;
 
     using Super = DOpNode<ValueType>;
+    using Super::context_;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     using KeyValuePair = std::pair<Key, Value>;
-
-    using Super::context_;
 
 private:
     //! Emitter for PostStage to push elements to next DIA object.
@@ -124,6 +123,12 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    DIAMemUse PreOpMemUse() final {
+        // request maximum RAM limit, the value is calculated by StageBuilder,
+        // and set as DIABase::mem_limit_.
+        return DIAMemUse::Max();
+    }
+
     void StartPreOp(size_t /* id */) final {
         pre_stage_.Initialize();
     }
@@ -137,6 +142,10 @@ public:
     }
 
     void Execute() final { }
+
+    DIAMemUse PushDataMemUse() final {
+        return DIAMemUse::Max();
+    }
 
     void PushData(bool consume) final {
 

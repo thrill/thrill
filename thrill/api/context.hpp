@@ -232,6 +232,9 @@ public:
         return workers_per_host() * host_rank() + local_worker_id();
     }
 
+    //! memory limit of this worker Context for local data structures
+    size_t mem_limit() const { return mem_limit_; }
+
     //! Global number of workers in the system.
     size_t num_workers() const {
         return num_hosts() * workers_per_host();

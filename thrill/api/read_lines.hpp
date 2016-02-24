@@ -34,29 +34,31 @@ namespace api {
 //! \{
 
 /*!
- * A DIANode which performs a line-based Read operation. Read reads a file from
- * the file system and emits it as a DIA.
+ * A DIANode which performs a line-based Read operation. Reads a file from the
+ * file system and delivers it as a DIA.
  */
 class ReadLinesNode final : public SourceNode<std::string>
 {
+    static const bool debug = false;
+
 public:
     using Super = SourceNode<std::string>;
     using Super::context_;
 
     using FileSizePair = std::pair<std::string, size_t>;
 
-    static const bool debug = false;
-
-    /*!
-     * Constructor for a ReadLinesNode. Sets the Context
-     * and file path.
-     */
+    //! Constructor for a ReadLinesNode. Sets the Context and file path.
     ReadLinesNode(Context& ctx, const std::string& path)
         : Super(ctx, "ReadLines"),
           path_(path) {
         LOG << "Opening ReadLinesNode for " << path_;
 
         filelist_ = core::GlobFileSizePrefixSum(path_);
+    }
+
+    DIAMemUse PushDataMemUse() final {
+        // InputLineIterators read files block-wise
+        return data::default_block_size;
     }
 
     void PushData(bool /* consume */) final {
@@ -123,9 +125,9 @@ private:
 
         common::StatsTimerStopped read_timer;
 
-        size_t stats_total_bytes_ = 0;
-        size_t stats_total_reads_ = 0;
-        size_t stats_total_elements_ = 0;
+        size_t total_bytes_ = 0;
+        size_t total_reads_ = 0;
+        size_t total_elements_ = 0;
 
         bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
             read_timer.Start();
@@ -136,8 +138,8 @@ private:
             }
             buffer.set_size(bytes);
             current_ = buffer.begin();
-            stats_total_bytes_ += bytes;
-            stats_total_reads_++;
+            total_bytes_ += bytes;
+            total_reads_++;
             LOG << "Opening block with " << bytes << " bytes.";
             return bytes > 0;
         }
@@ -146,9 +148,9 @@ private:
             node_.logger_
                 << "class" << "ReadLinesNode"
                 << "event" << "done"
-                << "total_bytes" << stats_total_bytes_
-                << "total_reads" << stats_total_reads_
-                << "total_lines" << stats_total_elements_
+                << "total_bytes" << total_bytes_
+                << "total_reads" << total_reads_
+                << "total_lines" << total_elements_
                 << "read_time" << read_timer.Milliseconds();
         }
     };
@@ -187,7 +189,8 @@ private:
             if (offset_ != 0) {
                 bool found_n = false;
 
-                // find next newline, discard all previous data as previous worker already covers it
+                // find next newline, discard all previous data as previous
+                // worker already covers it
                 while (!found_n) {
                     while (current_ < buffer_.end()) {
                         if (THRILL_UNLIKELY(*current_++ == '\n')) {
@@ -212,7 +215,7 @@ private:
         //!
         //! does no checks whether a next element exists!
         const std::string & Next() {
-            stats_total_elements_++;
+            total_elements_++;
             data_.clear();
             while (true) {
                 while (current_ < buffer_.end()) {
@@ -314,7 +317,7 @@ private:
         //!
         //! does no checks whether a next element exists!
         const std::string & Next() {
-            stats_total_elements_++;
+            total_elements_++;
             data_.clear();
             while (true) {
                 while (current_ < buffer_.end()) {

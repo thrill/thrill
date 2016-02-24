@@ -42,6 +42,38 @@ enum class DIAState {
 };
 
 /*!
+ * Description of the amount of RAM the internal data structures of a DIANode
+ * require. Each DIANode implementation can specify this for its PreOp, Execute,
+ * and PostOp parts individually. The StageBuilder collects all requests,
+ * notifys the BlockPool to reduce its memory limits, and delivers the available
+ * amount to the DIANode in StartPreOp(), Execute(), and PushData() calls.
+ */
+class DIAMemUse
+{
+public:
+    //! Implicit conversion of a size_t for a constant RAM usage request
+    DIAMemUse(size_t limit = 0) // NOLINT: implicit conversions desired
+        : limit_(limit) { }
+
+    //! Maximum available RAM requested (limit will be determined in
+    //! StageBuilder by detecting the DIANodes in a Stage)
+    static DIAMemUse Max() { return DIAMemUse(max_limit_); }
+
+    //! return amount of RAM reserved
+    size_t limit() const { return limit_; }
+
+    //! test if sentinel for maximum RAM request
+    bool is_max() const { return limit_ == max_limit_; }
+
+private:
+    //! amount of RAM requested or reserved.
+    size_t limit_;
+
+    //! sentinel for maximum available RAM.
+    static const size_t max_limit_ = static_cast<size_t>(-1);
+};
+
+/*!
  * The DIABase is the untyped super class of DIANode. DIABases are used to build
  * the execution graph, which is used to execute the computation.
  *
@@ -98,25 +130,39 @@ public:
     //! except Collapse().
     virtual bool CanExecute() { return true; }
 
+    //! \name Pure Virtual Methods called by StageBuilder
+    //! {
+
+    //! Amount of RAM used by PreOp after StartPreOp()
+    virtual DIAMemUse PreOpMemUse() { return 0; }
+
+    //! Virtual method for preparing start of PushData.
+    virtual void StartPreOp(size_t /* id */) { }
+
+    //! Virtual method for preparing end of PushData.
+    virtual void StopPreOp(size_t /* id */) { }
+
     //! Virtual execution method. Triggers actual computation in sub-classes.
     virtual void Execute() = 0;
+
+    //! Amount of RAM used by PushData()
+    virtual DIAMemUse PushDataMemUse() { return 0; }
 
     //! Virtual method for pushing data. Triggers actual pushing in sub-classes.
     virtual void PushData(bool consume) = 0;
 
     //! Virtual clear method. Triggers actual disposing in sub-classes.
-    virtual void Dispose() = 0;
+    virtual void Dispose() { }
 
-    //! Virtual method for preparing start of data.
-    virtual void StartPreOp(size_t /* id */) { }
-
-    //! Virtual method for preparing end of data.
-    virtual void StopPreOp(size_t /* id */) { }
+    //! }
 
     //! Performing push operation. Notifies children and calls actual push
     //! method. Then cleans up the DIA graph by freeing parent references of
     //! children.
     virtual void RunPushData() = 0;
+
+    //! Returns the children of this DIABase.
+    virtual std::vector<DIABase*> children() const = 0;
 
     //! Virtual method for removing a child.
     virtual void RemoveChild(DIABase* node) = 0;
@@ -124,6 +170,11 @@ public:
     //! Virtual method for removing all childs. Triggers actual removing in
     //! sub-classes.
     virtual void RemoveAllChildren() = 0;
+
+    //! Returns the api::Context of this DIABase.
+    Context & context() {
+        return context_;
+    }
 
     //! return unique id() of DIANode subclass as stored by StatsNode
     const size_t & id() const {
@@ -168,55 +219,57 @@ public:
             parents_.end());
     }
 
-    //! Returns the children of this DIABase.
-    virtual std::vector<DIABase*> children() const = 0;
-
-    //! Execute Scope and parents such that this (Action)Node is Executed.
+    //! Run Scope and parents such that this node (usually an ActionNode) is
+    //! EXECUTED.
     void RunScope();
-
-    //! Returns the api::Context of this DIABase.
-    Context & context() {
-        return context_;
-    }
 
     //! Return the Context's memory manager
     mem::Manager & mem_manager() {
         return context_.mem_manager();
     }
 
-    DIAState state() const {
-        return state_;
-    }
+    DIAState state() const { return state_; }
 
-    DIAState set_state(DIAState state) {
-        return state_ = state;
-    }
+    void set_state(const DIAState& state) { state_ = state; }
+
+    void set_mem_use(const DIAMemUse& mem_use) { mem_use_ = mem_use; }
 
 protected:
-    //! State of the DIANode. State is NEW on creation.
-    DIAState state_ = DIAState::NEW;
+    //! \name Fixed DIA Information
+    //! {
 
-    //! Returns the state of this DIANode as a string. Used by ToString.
-    const char * state_string();
-
-    //! Context, which can give iterators to data.
+    //! associated Context
     Context& context_;
 
     //! DIA serial id
-    size_t id_;
+    const size_t id_;
 
     //! DOp node static label.
-    const char* label_;
+    const char* const label_;
+
+    //! }
+
+    //! \name Runtime Operational Variables
+    //! {
+
+    //! State of the DIANode. State is NEW on creation.
+    DIAState state_ = DIAState::NEW;
 
     //! Parents of this DIABase.
     std::vector<DIABasePtr> parents_;
+
+    //! Amount of memory the current execution stage of the DIA implementation
+    //! is allowed to use.
+    DIAMemUse mem_use_ = 0;
 
     //! Consumption counter: when it reaches zero, PushData() is called with
     //! consume = true
     size_t consume_counter_ = 1;
 
     //! Never full consume
-    static const size_t never_consume_ = size_t(-1);
+    static const size_t never_consume_ = static_cast<size_t>(-1);
+
+    //! }
 
 public:
     /**************************************************************************/

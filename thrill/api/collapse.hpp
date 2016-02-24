@@ -24,13 +24,6 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-/*!
- * A LOpNode which performs a chain of local operations.  LOp nodes are used for
- * caching local operation results and assignment operations.
- *
- * \tparam ParentStack Function chain, which contains the chained lambdas between
- * the last and this DIANode.
- */
 template <typename ValueType, typename ParentDIA>
 class CollapseNode final : public DIANode<ValueType>
 {
@@ -70,8 +63,6 @@ public:
     }
 
     void PushData(bool /* consume */) final { }
-
-    void Dispose() final { }
 
     void IncConsumeCounter(size_t consume) final {
         // propagate consumption up to parents.
