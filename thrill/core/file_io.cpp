@@ -111,12 +111,24 @@ std::vector<std::string> GlobFilePattern(const std::string& path) {
     return files;
 }
 
-SysFileList GlobFileSizePrefixSum(const std::string& path) {
+std::vector<std::string> GlobFilePatterns(
+    const std::vector<std::string>& globlist) {
+
+    std::vector<std::string> filelist;
+    for (const std::string& path : globlist) {
+        std::vector<std::string> list = core::GlobFilePattern(path);
+        if (list.size() == 0)
+            throw std::runtime_error("No files found matching file/glob: " + path);
+        filelist.insert(filelist.end(), list.begin(), list.end());
+    }
+    return filelist;
+}
+
+SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files) {
 
     std::vector<SysFileInfo> file_info;
     struct stat filestat;
     uint64_t total_size = 0;
-    std::vector<std::string> files = GlobFilePattern(path);
     bool contains_compressed = false;
 
     for (const std::string& file : files) {

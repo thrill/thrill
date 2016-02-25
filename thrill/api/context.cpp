@@ -721,8 +721,8 @@ int MemoryConfig::setup_detect() {
         // use getrlimit() to check user limit on address space
         struct rlimit rl;
         if (getrlimit(RLIMIT_AS, &rl) == 0) {
-            if (rl.rlim_cur != 0 && rl.rlim_cur < ram_) {
-                ram_ = rl.rlim_cur;
+            if (rl.rlim_cur != 0 && rl.rlim_cur * 3 / 4 < ram_) {
+                ram_ = rl.rlim_cur * 3 / 4;
             }
         }
         else {

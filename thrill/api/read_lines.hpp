@@ -48,15 +48,24 @@ public:
     using FileSizePair = std::pair<std::string, size_t>;
 
     //! Constructor for a ReadLinesNode. Sets the Context and file path.
-    ReadLinesNode(Context& ctx, const std::string& path)
-        : Super(ctx, "ReadLines"),
-          path_(path) {
-        LOG << "Opening ReadLinesNode for " << path_;
+    ReadLinesNode(Context& ctx, const std::vector<std::string>& globlist)
+        : Super(ctx, "ReadLines") {
 
-        filelist_ = core::GlobFileSizePrefixSum(path_);
-        if (filelist_.count() == 0)
-            throw std::runtime_error("No files found matching glob: " + path_);
+        LOG << "Opening ReadLinesNode for " << globlist.size() << " globs";
+
+        filelist_ = core::GlobFileSizePrefixSum(
+            core::GlobFilePatterns(globlist));
+
+        if (filelist_.count() == 0) {
+            throw std::runtime_error(
+                      "No files found in globs: "
+                      + common::Join(" ", globlist));
+        }
     }
+
+    //! Constructor for a ReadLinesNode. Sets the Context and file path.
+    ReadLinesNode(Context& ctx, const std::string& glob)
+        : ReadLinesNode(ctx, std::vector<std::string>{ glob }) { }
 
     DIAMemUse PushDataMemUse() final {
         // InputLineIterators read files block-wise
@@ -85,9 +94,6 @@ public:
     }
 
 private:
-    //! Path of the input file.
-    std::string path_;
-
     core::SysFileList filelist_;
 
     class InputLineIterator
@@ -406,9 +412,20 @@ private:
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
  */
-DIA<std::string> ReadLines(Context& ctx, std::string filepath) {
-
+DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
     return DIA<std::string>(std::make_shared<ReadLinesNode>(ctx, filepath));
+}
+
+/*!
+ * ReadLines is a DOp, which reads a file from the file system and
+ * creates an ordered DIA according to a given read function.
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ */
+DIA<std::string> ReadLines(
+    Context& ctx, const std::vector<std::string>& filepaths) {
+    return DIA<std::string>(std::make_shared<ReadLinesNode>(ctx, filepaths));
 }
 
 //! \}

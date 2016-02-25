@@ -67,9 +67,17 @@ public:
 
     using SysFileInfo = core::SysFileInfo;
 
-    ReadBinaryNode(Context& ctx, const std::string& filepath)
+    ReadBinaryNode(Context& ctx, const std::vector<std::string>& globlist)
         : Super(ctx, "ReadBinary") {
-        core::SysFileList files = core::GlobFileSizePrefixSum(filepath);
+
+        core::SysFileList files = core::GlobFileSizePrefixSum(
+            core::GlobFilePatterns(globlist));
+
+        if (files.count() == 0) {
+            throw std::runtime_error(
+                      "No files found in globs: "
+                      + common::Join(" ", globlist));
+        }
 
         if (is_fixed_size_ && !files.contains_compressed)
         {
@@ -145,6 +153,9 @@ public:
             LOG << my_files_.size() << " files, my range " << my_range;
         }
     }
+
+    ReadBinaryNode(Context& ctx, const std::string& glob)
+        : ReadBinaryNode(ctx, std::vector<std::string>{ glob }) { }
 
     void PushData(bool /* consume */) final {
         static const bool debug = false;
@@ -236,6 +247,23 @@ private:
         bool done_ = false;
     };
 };
+
+/*!
+ * ReadBinary is a DOp, which reads a file written by WriteBinary from the file
+ * system and creates a DIA.
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ */
+template <typename ValueType>
+DIA<ValueType> ReadBinary(
+    Context& ctx, const std::vector<std::string>& filepath) {
+
+    auto shared_node =
+        std::make_shared<ReadBinaryNode<ValueType> >(ctx, filepath);
+
+    return DIA<ValueType>(shared_node);
+}
 
 /*!
  * ReadBinary is a DOp, which reads a file written by WriteBinary from the file

@@ -83,17 +83,15 @@ struct SysFileList {
 /*!
  * Reads a path as a file list contains, sizes and prefixsums (in bytes) for all
  * files in the input path.
- *
- * \param path Input path
  */
-SysFileList GlobFileSizePrefixSum(const std::string& path);
+SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files);
 
-/*!
- * Returns a vector of all files found by glob in the input path.
- *
- * \param path Input path
- */
+//! Returns a vector of all files found by glob in the input path.
 std::vector<std::string> GlobFilePattern(const std::string& path);
+
+//! Returns a vector of all files found by glob in the input path.
+std::vector<std::string> GlobFilePatterns(
+    const std::vector<std::string>& globlist);
 
 /*!
  * Represents a POSIX system file via its file descriptor.
