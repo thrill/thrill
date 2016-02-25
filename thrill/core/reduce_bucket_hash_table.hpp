@@ -82,26 +82,25 @@ namespace core {
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
-          typename IndexFunction,
-          typename ReduceTableConfig = DefaultReduceTableConfig,
+          typename ReduceConfig, typename IndexFunction,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceBucketHashTable
     : public ReduceTable<ValueType, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
-                         RobustKey, IndexFunction,
-                         ReduceTableConfig, EqualToFunction>
+                         RobustKey, ReduceConfig, IndexFunction,
+                         EqualToFunction>
 {
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
-                              RobustKey, IndexFunction,
-                              ReduceTableConfig, EqualToFunction>;
+                              RobustKey, ReduceConfig, IndexFunction,
+                              EqualToFunction>;
 
     using Super::debug;
     static const bool debug_items = false;
 
     //! target number of bytes in a BucketBlock.
     static constexpr size_t bucket_block_size
-        = ReduceTableConfig::bucket_block_size;
+        = ReduceConfig::bucket_block_size;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -140,7 +139,7 @@ public:
         const ReduceFunction& reduce_function,
         Emitter& emitter,
         size_t num_partitions,
-        const ReduceTableConfig& config = ReduceTableConfig(),
+        const ReduceConfig& config = ReduceConfig(),
         bool immediate_flush = false,
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
@@ -667,18 +666,17 @@ private:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           typename Emitter, const bool RobustKey,
-          typename IndexFunction, typename ReduceStageConfig,
+          typename ReduceConfig, typename IndexFunction,
           typename EqualToFunction>
 class ReduceTableSelect<
         ReduceTableImpl::BUCKET,
         ValueType, Key, Value, KeyExtractor, ReduceFunction,
-        Emitter, RobustKey, IndexFunction, ReduceStageConfig, EqualToFunction>
+        Emitter, RobustKey, ReduceConfig, IndexFunction, EqualToFunction>
 {
 public:
     using type = ReduceBucketHashTable<
               ValueType, Key, Value, KeyExtractor, ReduceFunction,
-              Emitter, RobustKey, IndexFunction,
-              ReduceStageConfig, EqualToFunction>;
+              Emitter, RobustKey, ReduceConfig, IndexFunction, EqualToFunction>;
 };
 
 } // namespace core

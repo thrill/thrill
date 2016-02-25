@@ -39,7 +39,7 @@ unsigned int workers = 100;
 uint64_t item_range = std::numeric_limits<Key>::max();
 
 template <core::ReduceTableImpl table_impl>
-void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& base_config) {
+void RunBenchmark(api::Context& ctx, core::DefaultReduceConfig& base_config) {
 
     auto key_ex = [](const Key& in) { return in; };
 
@@ -55,7 +55,7 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& base_config
     std::default_random_engine rng(std::random_device { } ());
     std::uniform_int_distribution<Key> dist(1, item_range);
 
-    core::DefaultReduceTableConfigSelect<table_impl> config;
+    core::DefaultReduceConfigSelect<table_impl> config;
     config.limit_partition_fill_rate_ = base_config.limit_partition_fill_rate_;
     config.bucket_rate_ = base_config.bucket_rate_;
 
@@ -63,11 +63,8 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& base_config
         Key, Key, Key,
         decltype(key_ex), decltype(red_fn), decltype(emit_fn),
         /* SendPair */ true,
-        core::ReduceByHash<Key>,
-        core::DefaultReduceTableConfigSelect<table_impl>,
-        std::equal_to<Key> >
+        core::DefaultReduceConfigSelect<table_impl> >
     stage(ctx, key_ex, red_fn, emit_fn,
-          core::ReduceByHash<Key>(),
           config);
 
     common::StatsTimerStart timer;
@@ -96,7 +93,7 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    core::DefaultReduceTableConfig config;
+    core::DefaultReduceConfig config;
 
     std::string hashtable;
 

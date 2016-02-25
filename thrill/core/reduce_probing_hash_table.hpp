@@ -69,24 +69,25 @@ namespace core {
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
+          typename ReduceConfig_,
           typename IndexFunction,
-          typename ReduceTableConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceProbingHashTable
     : public ReduceTable<ValueType, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
-                         RobustKey, IndexFunction,
-                         ReduceTableConfig, EqualToFunction>
+                         RobustKey, ReduceConfig_,
+                         IndexFunction, EqualToFunction>
 {
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
-                              RobustKey, IndexFunction,
-                              ReduceTableConfig, EqualToFunction>;
+                              RobustKey, ReduceConfig_, IndexFunction,
+                              EqualToFunction>;
     using Super::debug;
     static const bool debug_items = false;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
+    using ReduceConfig = ReduceConfig_;
 
     using KeyValueIterator = typename std::vector<KeyValuePair>::iterator;
 
@@ -96,7 +97,7 @@ public:
         const ReduceFunction& reduce_function,
         Emitter& emitter,
         size_t num_partitions,
-        const ReduceTableConfig& config = ReduceTableConfig(),
+        const ReduceConfig& config = ReduceConfig(),
         bool immediate_flush = false,
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
@@ -425,19 +426,17 @@ private:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           typename Emitter, const bool RobustKey,
-          typename IndexFunction, typename ReduceStageConfig,
+          typename ReduceConfig, typename IndexFunction,
           typename EqualToFunction>
 class ReduceTableSelect<
         ReduceTableImpl::PROBING,
         ValueType, Key, Value, KeyExtractor, ReduceFunction,
-        Emitter, RobustKey, IndexFunction,
-        ReduceStageConfig, EqualToFunction>
+        Emitter, RobustKey, ReduceConfig, IndexFunction, EqualToFunction>
 {
 public:
     using type = ReduceProbingHashTable<
               ValueType, Key, Value, KeyExtractor, ReduceFunction,
-              Emitter, RobustKey, IndexFunction,
-              ReduceStageConfig, EqualToFunction>;
+              Emitter, RobustKey, ReduceConfig, IndexFunction, EqualToFunction>;
 };
 
 } // namespace core

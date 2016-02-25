@@ -103,8 +103,8 @@ public:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
+          typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReducePreStage
 {
@@ -112,15 +112,15 @@ class ReducePreStage
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
+    using ReduceConfig = ReduceConfig_;
 
     using Emitter = ReducePreStageEmitter<KeyValuePair, RobustKey>;
 
     using Table = typename ReduceTableSelect<
-              ReduceStageConfig::table_impl_,
+              ReduceConfig::table_impl_,
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, Emitter,
-              RobustKey, IndexFunction,
-              ReduceStageConfig, EqualToFunction>::type;
+              RobustKey, ReduceConfig, IndexFunction, EqualToFunction>::type;
 
     /*!
      * A data structure which takes an arbitrary value and extracts a key using
@@ -132,8 +132,8 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
+                   const ReduceConfig& config = ReduceConfig(),
                    const IndexFunction& index_function = IndexFunction(),
-                   const ReduceStageConfig& config = ReduceStageConfig(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
           table_(ctx,

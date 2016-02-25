@@ -54,8 +54,8 @@ template <
         typename ValueType, typename Key, typename Value,
         typename KeyExtractor, typename ReduceFunction, typename Emitter,
         const bool RobustKey,
+        typename ReduceConfig = core::DefaultReduceConfig,
         typename IndexFunction = core::ReduceByHash<Key>,
-        typename ReduceStageConfig = core::DefaultReduceTableConfig,
         typename EqualToFunction = std::equal_to<Key> >
     class HashTable>
 void TestAddMyStructModulo(Context& ctx) {
@@ -76,12 +76,11 @@ void TestAddMyStructModulo(Context& ctx) {
 
     using Table = HashTable<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), Collector,
-              false, core::ReduceByHash<int> >;
+              decltype(key_ex), decltype(red_fn), Collector, false>;
 
     Table table(ctx, key_ex, red_fn, collector,
                 /* num_partitions */ 13,
-                core::DefaultReduceTableConfig(),
+                typename Table::ReduceConfig(),
                 /* immediate_flush */ true);
     table.Initialize(/* limit_memory_bytes */ 1024 * 1024);
 

@@ -35,7 +35,7 @@ enum class ReduceTableImpl {
  * and reduce stages. Most members can be defined static const or be mutable
  * variables. Not all members need to be used by all implementations.
  */
-class DefaultReduceTableConfig
+class DefaultReduceConfig
 {
 public:
     //! limit on the fill rate of a reduce table partition prior to triggering a
@@ -67,10 +67,10 @@ public:
 };
 
 /*!
- * DefaultReduceTableConfig with implementation type selection
+ * DefaultReduceConfig with implementation type selection
  */
 template <ReduceTableImpl table_impl>
-class DefaultReduceTableConfigSelect : public DefaultReduceTableConfig
+class DefaultReduceConfigSelect : public DefaultReduceConfig
 {
 public:
     //! select the hash table in the reduce stage by enum
@@ -84,8 +84,7 @@ public:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
-          typename IndexFunction,
-          typename ReduceTableConfig = DefaultReduceTableConfig,
+          typename ReduceConfig_, typename IndexFunction,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceTable
 {
@@ -93,6 +92,7 @@ public:
     static const bool debug = false;
 
     using KeyValuePair = std::pair<Key, Value>;
+    using ReduceConfig = ReduceConfig_;
 
     ReduceTable(
         Context& ctx,
@@ -100,7 +100,7 @@ public:
         const ReduceFunction& reduce_function,
         Emitter& emitter,
         size_t num_partitions,
-        const ReduceTableConfig& config,
+        const ReduceConfig& config,
         bool immediate_flush,
         const IndexFunction& index_function,
         const EqualToFunction& equal_to_function)
@@ -249,7 +249,7 @@ protected:
     const size_t num_partitions_;
 
     //! config of reduce table
-    ReduceTableConfig config_;
+    ReduceConfig config_;
 
     //! Size of the table, which is the number of slots / buckets / entries
     //! available for items or chains of items.
@@ -288,8 +288,8 @@ template <ReduceTableImpl ImplSelect,
           typename KeyExtractor, typename ReduceFunction,
           typename Emitter,
           const bool RobustKey = false,
+          typename ReduceConfig = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceTableSelect;
 

@@ -62,8 +62,8 @@ public:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool SendPair = false,
+          typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByIndex<Key>,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceByIndexPostStage
 {
@@ -71,16 +71,16 @@ class ReduceByIndexPostStage
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
+    using ReduceConfig = ReduceConfig_;
 
     using StageEmitter = ReduceByIndexPostStageEmitter<
               KeyValuePair, ValueType, Emitter, SendPair>;
 
     using Table = typename ReduceTableSelect<
-              ReduceStageConfig::table_impl_,
+              ReduceConfig::table_impl_,
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, StageEmitter,
-              !SendPair, IndexFunction,
-              ReduceStageConfig, EqualToFunction>::type;
+              !SendPair, ReduceConfig, IndexFunction, EqualToFunction>::type;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using
@@ -92,9 +92,9 @@ public:
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         const Emitter& emitter,
+        const ReduceConfig& config = ReduceConfig(),
         const IndexFunction& index_function = IndexFunction(),
         const Value& neutral_element = Value(),
-        const ReduceStageConfig& config = ReduceStageConfig(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : config_(config),
           emitter_(emitter),
@@ -389,7 +389,7 @@ public:
 
 private:
     //! Stored reduce config to initialize the subtable.
-    ReduceStageConfig config_;
+    ReduceConfig config_;
 
     //! Emitters used to parameterize hash table for output to next DIA node.
     StageEmitter emitter_;

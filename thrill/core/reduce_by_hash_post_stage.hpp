@@ -66,8 +66,8 @@ public:
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool SendPair = false,
+          typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceByHashPostStage
 {
@@ -75,18 +75,18 @@ class ReduceByHashPostStage
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
+    using ReduceConfig = ReduceConfig_;
 
     using StageEmitter = ReduceByHashPostStageEmitter<
               KeyValuePair, ValueType, Emitter, SendPair>;
 
     using Table = typename ReduceTableSelect<
-              ReduceStageConfig::table_impl_,
+              ReduceConfig::table_impl_,
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, StageEmitter,
-              !SendPair, IndexFunction,
-              ReduceStageConfig, EqualToFunction>::type;
+              !SendPair, ReduceConfig, IndexFunction, EqualToFunction>::type;
 
-    /**
+    /*!
      * A data structure which takes an arbitrary value and extracts a key using
      * a key extractor function from that value. Afterwards, the value is hashed
      * based on the key into some slot.
@@ -96,15 +96,15 @@ public:
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         const Emitter& emit,
+        const ReduceConfig& config = ReduceConfig(),
         const IndexFunction& index_function = IndexFunction(),
-        const ReduceStageConfig& config = ReduceStageConfig(),
         const EqualToFunction& equal_to_function = EqualToFunction())
         : config_(config),
           emitter_(emit),
           table_(ctx,
                  key_extractor, reduce_function, emitter_,
                  /* num_partitions */ 32, /* TODO(tb): parameterize */
-                 config, false,
+                 config, /* immediate_flush */ false,
                  index_function, equal_to_function) { }
 
     //! non-copyable: delete copy-constructor
@@ -195,7 +195,7 @@ public:
             Table subtable(
                 table_.ctx(),
                 table_.key_extractor(), table_.reduce_function(), emitter_,
-                /* num_partitions */ 32, config_, false,
+                /* num_partitions */ 32, config_, /* immediate_flush */ false,
                 IndexFunction(iteration, table_.index_function()),
                 table_.equal_to_function());
 
@@ -296,7 +296,7 @@ public:
 
 private:
     //! Stored reduce config to initialize the subtable.
-    ReduceStageConfig config_;
+    ReduceConfig config_;
 
     //! Emitters used to parameterize hash table for output to next DIA node.
     StageEmitter emitter_;

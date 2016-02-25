@@ -63,8 +63,7 @@ static void TestAddMyStructByHash(Context& ctx) {
     using Stage = core::ReducePreStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), true,
-              core::ReduceByHash<size_t>,
-              core::DefaultReduceTableConfigSelect<table_impl> >;
+              core::DefaultReduceConfigSelect<table_impl> >;
 
     Stage stage(ctx, num_partitions, key_ex, red_fn, emitters);
 
@@ -143,12 +142,13 @@ static void TestAddMyStructByIndex(Context& ctx) {
     using Stage = core::ReducePreStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), true,
-              core::ReduceByIndex<size_t>,
-              core::DefaultReduceTableConfigSelect<table_impl> >;
+              core::DefaultReduceConfigSelect<table_impl>,
+              core::ReduceByIndex<size_t> >;
 
     Stage stage(ctx,
                 num_partitions,
                 key_ex, red_fn, emitters,
+                typename Stage::ReduceConfig(),
                 core::ReduceByIndex<size_t>(0, mod_size));
 
     stage.Initialize(/* limit_memory_bytes */ 1024 * 1024);

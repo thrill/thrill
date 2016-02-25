@@ -483,7 +483,7 @@ public:
      * \param reduce_config Reduce configuration.
      */
     template <typename KeyExtractor, typename ReduceFunction,
-              typename ReduceConfig = class DefaultReduceConfig>
+              typename ReduceConfig = class DefaultReduceToIndexConfig>
     auto ReduceToIndex(
         const KeyExtractor &key_extractor,
         const ReduceFunction &reduce_function,
@@ -530,7 +530,7 @@ public:
      * \param reduce_config Reduce configuration.
      */
     template <typename KeyExtractor, typename ReduceFunction,
-              typename ReduceConfig = class DefaultReduceConfig>
+              typename ReduceConfig = class DefaultReduceToIndexConfig>
     auto ReduceToIndexByKey(
         const KeyExtractor &key_extractor,
         const ReduceFunction &reduce_function,
@@ -569,7 +569,7 @@ public:
      * \param reduce_config Reduce configuration.
      */
     template <typename ReduceFunction,
-              typename ReduceConfig = class DefaultReduceConfig>
+              typename ReduceConfig = class DefaultReduceToIndexConfig>
     auto ReducePairToIndex(
         const ReduceFunction &reduce_function, size_t size,
         const typename FunctionTraits<ReduceFunction>::result_type&

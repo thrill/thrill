@@ -60,8 +60,7 @@ static void TestAddMyStructByHash(Context& ctx) {
     using Stage = core::ReduceByHashPostStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false,
-              core::ReduceByHash<size_t>,
-              core::DefaultReduceTableConfigSelect<table_impl> >;
+              core::DefaultReduceConfigSelect<table_impl> >;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn);
     stage.Initialize(/* limit_memory_bytes */ 64 * 1024);
@@ -163,10 +162,10 @@ static void TestAddMyStructByIndex(Context& ctx) {
     using Stage = core::ReduceByIndexPostStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false,
-              core::ReduceByIndex<size_t>,
-              core::DefaultReduceTableConfigSelect<table_impl> >;
+              core::DefaultReduceConfigSelect<table_impl> >;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
+                typename Stage::ReduceConfig(),
                 core::ReduceByIndex<size_t>(0, mod_size),
                 /* neutral_element */ MyStruct { 0, 0 });
     stage.Initialize(/* limit_memory_bytes */ 64 * 1024);
@@ -236,10 +235,10 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
     using Stage = core::ReduceByIndexPostStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false,
-              core::ReduceByIndex<size_t>,
-              core::DefaultReduceTableConfigSelect<table_impl> >;
+              core::DefaultReduceConfigSelect<table_impl> >;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
+                typename Stage::ReduceConfig(),
                 core::ReduceByIndex<size_t>(0, mod_size),
                 /* neutral_element */ MyStruct { 0, 0 });
     stage.Initialize(/* limit_memory_bytes */ 64 * 1024);

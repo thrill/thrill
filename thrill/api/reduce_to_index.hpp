@@ -18,7 +18,6 @@
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
-#include <thrill/api/reduce_config.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_by_index_post_stage.hpp>
@@ -35,6 +34,9 @@ namespace api {
 
 //! \addtogroup api Interface
 //! \{
+
+class DefaultReduceToIndexConfig : public core::DefaultReduceConfig
+{ };
 
 /*!
  * A DIANode which performs a ReduceToIndex operation. ReduceToIndex groups the
@@ -102,17 +104,14 @@ public:
           emitters_(stream_->OpenWriters()),
           result_size_(result_size),
 
-          pre_stage_(context_,
-                     context_.num_workers(),
-                     key_extractor, reduce_function, emitters_,
-                     core::ReduceByIndex<Key>(0, result_size),
-                     config.pre_table),
+          pre_stage_(
+              context_, context_.num_workers(),
+              key_extractor, reduce_function, emitters_,
+              config, core::ReduceByIndex<Key>(0, result_size)),
 
           post_stage_(
-              context_, key_extractor, reduce_function,
-              Emitter(this),
-              core::ReduceByIndex<Key>(),
-              neutral_element, config.post_table)
+              context_, key_extractor, reduce_function, Emitter(this),
+              config, core::ReduceByIndex<Key>(), neutral_element)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -201,15 +200,11 @@ private:
 
     core::ReducePreStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::ReduceByIndex<Key>,
-        decltype(ReduceConfig::pre_table),
-        std::equal_to<Key> > pre_stage_;
+        ReduceConfig, core::ReduceByIndex<Key> > pre_stage_;
 
     core::ReduceByIndexPostStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
-        core::ReduceByIndex<Key>,
-        decltype(ReduceConfig::post_table),
-        std::equal_to<Key> > post_stage_;
+        ReduceConfig> post_stage_;
 
     bool reduced_ = false;
 };

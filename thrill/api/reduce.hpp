@@ -18,7 +18,6 @@
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
-#include <thrill/api/reduce_config.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_by_hash_post_stage.hpp>
@@ -36,6 +35,9 @@ namespace api {
 
 //! \addtogroup api Interface
 //! \{
+
+class DefaultReduceConfig : public core::DefaultReduceConfig
+{ };
 
 /*!
  * A DIANode which performs a Reduce operation. Reduce groups the elements in a
@@ -97,17 +99,12 @@ public:
           emitters_(stream_->OpenWriters()),
 
           pre_stage_(
-              context_,
-              parent.ctx().num_workers(),
-              key_extractor, reduce_function, emitters_,
-              core::ReduceByHash<Key>(),
-              config.pre_table),
+              context_, parent.ctx().num_workers(),
+              key_extractor, reduce_function, emitters_, config),
 
           post_stage_(
               context_, key_extractor, reduce_function,
-              Emitter(this),
-              core::ReduceByHash<Key>(),
-              config.post_table)
+              Emitter(this), config)
 
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
@@ -186,15 +183,11 @@ private:
 
     core::ReducePreStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-        core::ReduceByHash<Key>,
-        decltype(ReduceConfig::pre_table),
-        std::equal_to<Key> > pre_stage_;
+        ReduceConfig> pre_stage_;
 
     core::ReduceByHashPostStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
-        core::ReduceByHash<Key>,
-        decltype(ReduceConfig::post_table),
-        std::equal_to<Key> > post_stage_;
+        ReduceConfig> post_stage_;
 
     bool reduced_ = false;
 };
