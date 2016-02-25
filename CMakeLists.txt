@@ -5,7 +5,7 @@
 #
 # Part of Project Thrill - http://project-thrill.org
 #
-# Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+# Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
 #
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
@@ -26,7 +26,7 @@ endif()
 # default to Debug building for single-config generators
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message("Defaulting CMAKE_BUILD_TYPE to Debug")
-  set(CMAKE_BUILD_TYPE "Debug")
+  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type")
 endif()
 
 option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)

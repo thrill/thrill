@@ -115,8 +115,8 @@ public:
     //! non-copyable: delete assignment operator
     ReduceByHashPostStage& operator = (const ReduceByHashPostStage&) = delete;
 
-    void Initialize() {
-        table_.Initialize();
+    void Initialize(size_t limit_memory_bytes) {
+        table_.Initialize(limit_memory_bytes);
     }
 
     void Insert(const Value& p) {
@@ -186,14 +186,12 @@ public:
 
         size_t iteration = 1;
 
-        sLOG1 << "ReducePostStage: re-reducing items from"
-              << remaining_files.size() << "spilled files";
-
         while (remaining_files.size())
         {
-            sLOG << "ReducePostStage: re-reducing items from"
-                 << remaining_files.size() << "remaining files"
-                 << "iteration" << iteration;
+            sLOG1 << "ReducePostStage: re-reducing items from"
+                  << remaining_files.size() << "spilled files"
+                  << "iteration" << iteration;
+            sLOG1 << "-- Try to increase the amount of RAM to avoid this.";
 
             std::vector<data::File> next_remaining_files;
 
@@ -204,14 +202,15 @@ public:
                 IndexFunction(iteration, table_.index_function()),
                 table_.equal_to_function());
 
-            subtable.Initialize();
+            subtable.Initialize(table_.limit_memory_bytes());
 
             size_t num_subfile = 0;
 
             for (data::File& file : remaining_files)
             {
                 // insert all items from the partially reduced file
-                LOG << "re-reducing subfile " << num_subfile++;
+                sLOG << "re-reducing subfile" << num_subfile++
+                     << "containing" << file.num_items() << "items";
 
                 data::File::ConsumeReader reader = file.GetConsumeReader();
 
@@ -289,6 +288,9 @@ public:
 
     //! \name Accessors
     //! {
+
+    //! Returns mutable reference to first table_
+    Table & table() { return table_; }
 
     //! Returns the total num of items in the table.
     size_t num_items() const { return table_.num_items(); }

@@ -20,16 +20,15 @@ StreamSink::StreamSink(Stream& stream,
                        net::Connection* connection,
                        MagicByte magic,
                        StreamId stream_id, size_t host_rank,
-                       size_t my_local_worker_id,
+                       size_t local_worker_id,
                        size_t peer_rank,
                        size_t peer_local_worker_id)
-    : BlockSink(block_pool, my_local_worker_id),
+    : BlockSink(block_pool, local_worker_id),
       stream_(stream),
       connection_(connection),
       magic_(magic),
       id_(stream_id),
       host_rank_(host_rank),
-      my_local_worker_id_(my_local_worker_id),
       peer_rank_(peer_rank),
       peer_local_worker_id_(peer_local_worker_id) {
     logger()
@@ -37,7 +36,7 @@ StreamSink::StreamSink(Stream& stream,
         << "event" << "open"
         << "stream" << id_
         << "peer_host" << peer_rank_
-        << "src_worker" << (host_rank_ * workers_per_host()) + my_local_worker_id_
+        << "src_worker" << (host_rank_ * workers_per_host()) + local_worker_id_
         << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_id_;
 }
 
@@ -49,7 +48,7 @@ void StreamSink::AppendBlock(const PinnedBlock& block) {
     StreamBlockHeader header(magic_, block);
     header.stream_id = id_;
     header.sender_rank = host_rank_;
-    header.sender_local_worker_id = my_local_worker_id_;
+    header.sender_local_worker_id = local_worker_id_;
     header.receiver_local_worker_id = peer_local_worker_id_;
 
     sLOG << "sending block" << common::Hexdump(block.ToString());
@@ -74,7 +73,7 @@ void StreamSink::Close() {
     closed_ = true;
 
     sLOG << "sending 'close stream' from host_rank" << host_rank_
-         << "worker" << my_local_worker_id_
+         << "worker" << local_worker_id_
          << "to" << peer_rank_
          << "worker" << peer_local_worker_id_
          << "stream" << id_;
@@ -83,7 +82,7 @@ void StreamSink::Close() {
     header.magic = magic_;
     header.stream_id = id_;
     header.sender_rank = host_rank_;
-    header.sender_local_worker_id = my_local_worker_id_;
+    header.sender_local_worker_id = local_worker_id_;
     header.receiver_local_worker_id = peer_local_worker_id_;
 
     net::BufferBuilder bb;
@@ -103,7 +102,7 @@ void StreamSink::Close() {
         << "event" << "close"
         << "stream" << id_
         << "peer_host" << peer_rank_
-        << "src_worker" << (host_rank_ * workers_per_host()) + my_local_worker_id_
+        << "src_worker" << (host_rank_ * workers_per_host()) + local_worker_id_
         << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_id_
         << "bytes" << byte_counter_
         << "blocks" << block_counter_

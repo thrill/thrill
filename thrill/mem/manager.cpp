@@ -17,8 +17,8 @@ namespace thrill {
 namespace mem {
 
 Manager::~Manager() {
-    // You can not use the logger here, because there is maybe no LoggerAllocator
-    // any more
+    // You can not use the logger here, because there is maybe no
+    // LoggerAllocator any more
     if (debug) {
         printf("mem::Manager() name=%s alloc_count_=%zu peak_=%zu total_=%zu\n",
                name_, alloc_count_.load(), peak_.load(), total_.load());

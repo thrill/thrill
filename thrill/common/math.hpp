@@ -56,6 +56,12 @@ static inline Integral RoundDownToPowerOfTwo(Integral n) {
     return RoundUpToPowerOfTwo(n + 1) >> 1;
 }
 
+//! does what it says.
+static inline bool IsPowerOfTwo(size_t i) {
+    if (i <= 0) return false;
+    return ! (i & (i - 1));
+}
+
 /******************************************************************************/
 
 //! calculate n div k with rounding up

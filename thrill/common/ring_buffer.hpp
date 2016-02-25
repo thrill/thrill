@@ -52,6 +52,10 @@ public:
     // using reverse_iterator = std::reverse_iterator<iterator>;
     // using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
+    explicit RingBuffer(const Allocator& alloc = allocator_type())
+        : max_size_(0), alloc_(alloc),
+          capacity_(0), mask_(0), data_(nullptr) { }
+
     explicit RingBuffer(size_t max_size,
                         const Allocator& alloc = allocator_type())
         : max_size_(max_size),
@@ -81,8 +85,25 @@ public:
     RingBuffer& operator = (RingBuffer&&) = default;
 
     ~RingBuffer() {
-        clear();
-        alloc_.deallocate(data_, capacity_);
+        deallocate();
+    }
+
+    //! allocate buffer
+    void allocate(size_t max_size) {
+        assert(!data_);
+        max_size_ = max_size;
+        capacity_ = RoundUpToPowerOfTwo(max_size + 1);
+        mask_ = capacity_ - 1;
+        data_ = alloc_.allocate(capacity_);
+    }
+
+    //! deallocate buffer
+    void deallocate() {
+        if (data_) {
+            clear();
+            alloc_.deallocate(data_, capacity_);
+            data_ = nullptr;
+        }
     }
 
     //! \name Modifiers

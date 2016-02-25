@@ -16,7 +16,7 @@
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request_operations.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 using namespace thrill;
 
@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     }
 
     size_t max_size = atoi(argv[3]);
-    uint64_t* buffer = static_cast<uint64_t*>(mem::aligned_alloc(max_size));
+    uint64_t* buffer = reinterpret_cast<uint64_t*>(mem::aligned_alloc(max_size));
 
     try
     {
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
         throw;
     }
 
-    mem::aligned_dealloc(buffer);
+    mem::aligned_dealloc(buffer, max_size);
 
     return 0;
 }

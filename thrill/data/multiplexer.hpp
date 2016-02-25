@@ -13,6 +13,7 @@
 #ifndef THRILL_DATA_MULTIPLEXER_HEADER
 #define THRILL_DATA_MULTIPLEXER_HEADER
 
+#include <thrill/common/json_logger.hpp>
 #include <thrill/data/repository.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/group.hpp>
@@ -63,6 +64,8 @@ struct StreamBlockHeader;
  */
 class Multiplexer
 {
+    static const bool debug = false;
+
 public:
     explicit Multiplexer(mem::Manager& mem_manager,
                          data::BlockPool& block_pool,
@@ -114,7 +117,7 @@ public:
     BlockPool & block_pool() { return block_pool_; }
 
     //! Get the JsonLogger from the BlockPool
-    common::JsonLogger & logger() { return block_pool_.logger(); }
+    common::JsonLogger & logger();
 
     //! \name CatStream
     //! \{
@@ -165,8 +168,6 @@ public:
     //! \}
 
 private:
-    static const bool debug = false;
-
     //! reference to host-global memory manager
     mem::Manager& mem_manager_;
 

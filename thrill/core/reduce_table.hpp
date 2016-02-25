@@ -32,9 +32,6 @@ namespace core {
 class DefaultReduceTableConfig
 {
 public:
-    //! limit on the amount of memory used by the reduce table
-    size_t limit_memory_bytes_ = 128 * 1024 * 1024llu;
-
     //! limit on the fill rate of a reduce table partition prior to triggering a
     //! flush.
     double limit_partition_fill_rate_ = 0.8;
@@ -49,9 +46,6 @@ public:
 
     //! \name Accessors
     //! {
-
-    //! Returns limit_memory_bytes_
-    size_t limit_memory_bytes() const { return limit_memory_bytes_; }
 
     //! Returns limit_partition_fill_rate_
     double limit_partition_fill_rate() const
@@ -71,13 +65,13 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
           typename IndexFunction,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
+          typename ReduceTableConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceTable
 {
+public:
     static const bool debug = false;
 
-public:
     using KeyValuePair = std::pair<Key, Value>;
 
     ReduceTable(
@@ -86,7 +80,7 @@ public:
         const ReduceFunction& reduce_function,
         Emitter& emitter,
         size_t num_partitions,
-        const ReduceStageConfig& config,
+        const ReduceTableConfig& config,
         bool immediate_flush,
         const IndexFunction& index_function,
         const EqualToFunction& equal_to_function)
@@ -97,7 +91,7 @@ public:
           index_function_(index_function),
           equal_to_function_(equal_to_function),
           num_partitions_(num_partitions),
-          limit_memory_bytes_(config.limit_memory_bytes()),
+          config_(config),
           immediate_flush_(immediate_flush),
           items_per_partition_(num_partitions_, 0) {
 
@@ -177,6 +171,11 @@ public:
 
     //! Returns the total num of items in the table.
     size_t num_items() const {
+        return num_items_;
+    }
+
+    //! Returns the total num of items in the table.
+    size_t num_items_calc() const {
         size_t total_num_items = 0;
         for (size_t num_items : items_per_partition_) {
             total_num_items += num_items;
@@ -229,6 +228,9 @@ protected:
     //! Number of partitions
     const size_t num_partitions_;
 
+    //! config of reduce table
+    ReduceTableConfig config_;
+
     //! Size of the table, which is the number of slots / buckets / entries
     //! available for items or chains of items.
     size_t num_buckets_;
@@ -237,7 +239,7 @@ protected:
     size_t num_buckets_per_partition_;
 
     //! Size of the table in bytes
-    const size_t limit_memory_bytes_;
+    size_t limit_memory_bytes_ = 0;
 
     //! Number of items in a partition before the partition is spilled.
     size_t limit_items_per_partition_;
@@ -250,6 +252,9 @@ protected:
 
     //! \name Current Statistical Parameters
     //! \{
+
+    //! Current number of items.
+    size_t num_items_ = 0;
 
     //! Current number of items per partition.
     std::vector<size_t> items_per_partition_;

@@ -119,7 +119,7 @@ TEST_F(SerializationCereal, cereal_w_BlockQueue)
         qw.Put(myData);
     }
     {
-        auto qr = q.GetConsumeReader();
+        auto qr = q.GetConsumeReader(0);
 
         ASSERT_TRUE(qr.HasNext());
         CerealObject myData2 = qr.Next<CerealObject>();

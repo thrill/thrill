@@ -79,14 +79,11 @@ void TestAddMyStructModulo(Context& ctx) {
               decltype(key_ex), decltype(red_fn), Collector,
               false, core::ReduceByHash<int> >;
 
-    core::DefaultReduceTableConfig config;
-    config.limit_memory_bytes_ = 1024 * 1024;
-
     Table table(ctx, key_ex, red_fn, collector,
                 /* num_partitions */ 13,
-                config,
+                core::DefaultReduceTableConfig(),
                 /* immediate_flush */ true);
-    table.Initialize();
+    table.Initialize(/* limit_memory_bytes */ 1024 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
         table.Insert(MyStruct(i, i / mod_size));

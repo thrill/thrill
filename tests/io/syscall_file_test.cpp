@@ -17,7 +17,7 @@
 #include <thrill/io/mmap_file.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/syscall_file.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <cstring>
 #include <limits>
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
 
     wait_all(req.begin(), req.end());
 
-    mem::aligned_dealloc(buffer);
+    mem::aligned_dealloc(buffer, size);
 
     std::cout << *(io::Stats::get_instance());
 

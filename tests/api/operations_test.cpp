@@ -9,7 +9,6 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
@@ -21,9 +20,12 @@
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
+#include <thrill/api/sum.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
+
+#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <functional>
@@ -322,6 +324,64 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
             }
 
             ASSERT_EQ(10u, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndSumHaveEqualAmount1) {
+
+    std::default_random_engine generator(std::random_device { } ());
+    std::uniform_int_distribution<int> distribution(1000, 10000);
+
+    size_t generate_size = distribution(generator);
+
+    std::function<void(Context&)> start_func =
+        [generate_size](Context& ctx) {
+
+            auto input = GenerateFromFile(
+                ctx,
+                "inputs/test1",
+                [](const std::string& line) {
+                    return std::stoi(line);
+                },
+                generate_size);
+
+            auto ones = input.Map([](int) {
+                                      return 1;
+                                  });
+
+            auto add_function = [](int in1, int in2) {
+                                    return in1 + in2;
+                                };
+
+            ASSERT_EQ((int)generate_size + 42, ones.Sum(add_function, 42));
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndSumHaveEqualAmount2) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            // TODO(ms): Replace this with some test-specific rendered file
+            auto input = ReadLines(ctx, "inputs/test1")
+                         .Map([](const std::string& line) {
+                                  return std::stoi(line);
+                              });
+
+            auto ones = input.Map([](int in) {
+                                      return in;
+                                  });
+
+            auto add_function = [](int in1, int in2) {
+                                    return in1 + in2;
+                                };
+
+            ASSERT_EQ(136, ones.Sum(add_function));
+            ASSERT_EQ(16u, ones.Size());
         };
 
     api::RunLocalTests(start_func);

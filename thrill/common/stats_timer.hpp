@@ -149,7 +149,7 @@ public:
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
     friend std::ostream& operator << (std::ostream& os, const StatsTimerBase& t) {
-        return os << t.Microseconds();
+        return os << t.Microseconds() / 1e6;
     }
 
     friend JsonLine & Put(JsonLine& line, const StatsTimerBase& t) {

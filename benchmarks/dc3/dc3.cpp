@@ -793,7 +793,7 @@ public:
         if (input_verbatim_) {
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
-            auto input_dia = Distribute<uint8_t>(ctx_, input_vec);
+            DIA<uint8_t> input_dia = Distribute<uint8_t>(ctx_, input_vec);
             StartDC3Input(input_dia, input_vec.size());
         }
         else if (input_path_ == "unary") {
@@ -802,8 +802,8 @@ public:
                 return;
             }
 
-            auto input_dia = Generate(
-                ctx_, [](size_t /* i */) { return 'a'; }, sizelimit_);
+            DIA<uint8_t> input_dia = Generate(
+                ctx_, [](size_t /* i */) { return uint8_t('a'); }, sizelimit_);
             StartDC3Input(input_dia, sizelimit_);
         }
         else if (input_path_ == "random") {
@@ -815,7 +815,7 @@ public:
             // share prng in Generate (just random numbers anyway)
             std::default_random_engine prng(std::random_device { } ());
 
-            auto input_dia =
+            DIA<uint8_t> input_dia =
                 Generate(
                     ctx_,
                     [&prng](size_t /* i */) {
@@ -828,7 +828,7 @@ public:
             StartDC3Input(input_dia, sizelimit_);
         }
         else {
-            auto input_dia = ReadBinary<uint8_t>(ctx_, input_path_);
+            DIA<uint8_t> input_dia = ReadBinary<uint8_t>(ctx_, input_path_);
             // read total size of input. TODO(tb): get this directly?
             size_t input_size = input_dia.Size();
             StartDC3Input(input_dia, input_size);

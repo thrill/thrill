@@ -105,12 +105,13 @@ public:
         for (size_t i = 0; i < num_inputs_; ++i)
             files_.emplace_back(context_.GetFile());
 
-        for (size_t i = 0; i < num_inputs_; ++i)
-            writers_[i] = files_[i].GetWriter();
-
         // Hook PreOp(s)
         common::VarCallForeachIndex(
             RegisterParent(this), parent0, parents ...);
+    }
+
+    void StartPreOp(size_t parent_index) final {
+        writers_[parent_index] = files_[parent_index].GetWriter();
     }
 
     void StopPreOp(size_t parent_index) final {
@@ -143,7 +144,11 @@ public:
         sLOG << "Zip: result_count" << result_count;
     }
 
-    void Dispose() final { }
+    void Dispose() final {
+        for (size_t i = 0; i < num_inputs_; ++i) {
+            files_[i].Clear();
+        }
+    }
 
 private:
     //! Zip function

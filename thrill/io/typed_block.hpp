@@ -23,13 +23,9 @@
 #include <thrill/common/config.hpp>
 #include <thrill/io/bid.hpp>
 #include <thrill/io/request.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <array>
-
-#ifndef THRILL_VERBOSE_TYPED_BLOCK
-#define THRILL_VERBOSE_TYPED_BLOCK THRILL_VERBOSE2
-#endif
 
 namespace thrill {
 namespace io {
@@ -254,6 +250,8 @@ class TypedBlock
 {
     using Base = mng_local::ExpandStruct<mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>;
 
+    static const bool debug = false;
+
 public:
     using value_type = Type;
     using reference = value_type &;
@@ -274,7 +272,7 @@ public:
 
     TypedBlock() {
         static_assert(sizeof(TypedBlock) == raw_size, "Incorrect block size!");
-        LOG0 << "[" << static_cast<void*>(this) << "] typed_block is constructed";
+        LOG << "[" << static_cast<void*>(this) << "] typed_block is constructed";
 #if 0
         assert(((long)this) % THRILL_DEFAULT_ALIGN == 0);
 #endif
@@ -283,7 +281,9 @@ public:
 #if 0
     TypedBlock(const TypedBlock& tb) {
         THRILL_STATIC_ASSERT(sizeof(TypedBlock) == raw_size);
-        LOG0 << "[" << static_cast<void*>(this) << "] typed_block is copy constructed from [" << static_cast<void*>(&tb) << "]";
+        LOG << "[" << static_cast<void*>(this)
+            << "] typed_block is copy constructed from "
+            << "[" << static_cast<void*>(&tb) << "]";
         THRILL_UNUSED(tb);
     }
 #endif
@@ -295,7 +295,7 @@ public:
      */
     RequestPtr write(const bid_type& bid,
                      CompletionHandler on_cmpl = CompletionHandler()) {
-        LOG0 << "BLC:write  " << bid;
+        LOG << "BLC:write  " << bid;
         return bid.storage->awrite(this, bid.offset, raw_size, on_cmpl);
     }
 
@@ -306,52 +306,9 @@ public:
      */
     RequestPtr read(const bid_type& bid,
                     CompletionHandler on_cmpl = CompletionHandler()) {
-        LOG0 << "BLC:read   " << bid;
+        LOG << "BLC:read   " << bid;
         return bid.storage->aread(this, bid.offset, raw_size, on_cmpl);
     }
-
-    static void* operator new (size_t bytes) {
-        size_t meta_info_size = bytes % raw_size;
-        LOG0 << "typed::block operator new[]: bytes=" << bytes
-             << ", meta_info_size=" << meta_info_size;
-
-        void* result = mem::aligned_alloc(
-            bytes - meta_info_size, meta_info_size);
-
-#if THRILL_WITH_VALGRIND || THRILL_TYPED_BLOCK_INITIALIZE_ZERO
-        memset(result, 0, bytes);
-#endif
-        return result;
-    }
-
-    static void* operator new[] (size_t bytes) {
-        size_t meta_info_size = bytes % raw_size;
-        LOG0 << "typed::block operator new[]: bytes=" << bytes
-             << ", meta_info_size=" << meta_info_size;
-
-        void* result = mem::aligned_alloc(
-            bytes - meta_info_size, meta_info_size);
-
-#if THRILL_WITH_VALGRIND || THRILL_TYPED_BLOCK_INITIALIZE_ZERO
-        memset(result, 0, bytes);
-#endif
-        return result;
-    }
-
-    static void* operator new (size_t /*bytes*/, void* ptr) {     // construct object in existing memory
-        return ptr;
-    }
-
-    static void operator delete (void* ptr) {
-        mem::aligned_dealloc(ptr);
-    }
-
-    static void operator delete[] (void* ptr) {
-        mem::aligned_dealloc(ptr);
-    }
-
-    static void operator delete (void*, void*)
-    { }
 
 #if 1
     // STRANGE: implementing destructor makes g++ allocate
@@ -364,7 +321,7 @@ public:
     //  difference of delta for metadata a compiler needs. It happens to
     //  be 8 bytes long in g++."
     ~TypedBlock() {
-        LOG0 << "[" << static_cast<void*>(this) << "] typed_block is destructed";
+        LOG << "[" << static_cast<void*>(this) << "] typed_block is destructed";
     }
 #endif
 };

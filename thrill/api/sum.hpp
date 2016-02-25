@@ -43,7 +43,8 @@ public:
             const ValueType& initial_value)
         : ActionNode(parent.ctx(), label, { parent.id() }, { parent.node() }),
           sum_function_(sum_function),
-          local_sum_(initial_value)
+          sum_(initial_value),
+          first_(parent.ctx().my_rank() != 0)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const ValueType& input) {
@@ -54,37 +55,35 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
-    //! Executes the sum operation.
-    void Execute() final {
-        MainOp();
+    void PreOp(const ValueType& input) {
+        if (THRILL_UNLIKELY(first_)) {
+            first_ = false;
+            sum_ = input;
+        }
+        else {
+            sum_ = sum_function_(sum_, input);
+        }
     }
 
-    /*!
-     * Returns result of global sum.
-     * \return result
-     */
+    //! Executes the sum operation.
+    void Execute() final {
+        // process the reduce
+        sum_ = context_.net.AllReduce(sum_, sum_function_);
+    }
+
+    //! Returns result of global sum.
     ValueType result() const {
-        return global_sum_;
+        return sum_;
     }
 
 private:
     //! The sum function which is applied to two values.
     SumFunction sum_function_;
-    // Local sum to be used in all reduce operation.
-    ValueType local_sum_;
-    // Global sum resulting from all reduce.
-    ValueType global_sum_;
-
-    void PreOp(ValueType input) {
-        local_sum_ = sum_function_(local_sum_, input);
-    }
-
-    void MainOp() {
-        LOG << "MainOp processing";
-
-        // process the reduce
-        global_sum_ = context_.net.AllReduce(local_sum_, sum_function_);
-    }
+    //! Local/global sum to be used in all reduce operation.
+    ValueType sum_;
+    //! indicate that sum_ is the default constructed first value. Worker 0's
+    //! value is already set to initial_value.
+    bool first_;
 };
 
 template <typename ValueType, typename Stack>

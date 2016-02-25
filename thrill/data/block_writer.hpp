@@ -256,7 +256,7 @@ public:
                 PinnedBlock b = sink_queue_.back();
                 sink_queue_.pop_back();
 
-                bytes_ = std::move(b.StealPinnedByteBlock());
+                bytes_ = std::move(b).StealPinnedByteBlock();
             }
 
             sLOG << "reset" << bytes_.get();

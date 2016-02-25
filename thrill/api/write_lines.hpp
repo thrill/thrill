@@ -45,8 +45,7 @@ public:
                      { parent.id() }, { parent.node() }),
           path_out_(path_out),
           file_(path_out_, std::ios::binary),
-          temp_file_(context_.GetFile()),
-          writer_(&temp_file_)
+          temp_file_(context_.GetFile())
     {
         sLOG << "Creating write node.";
 
@@ -57,6 +56,14 @@ public:
         // node for output
         auto lop_chain = parent.stack().push(pre_op_fn).fold();
         parent.node()->AddChild(this, lop_chain);
+    }
+
+    DIAMemUse PushDataMemUse() final {
+        return data::default_block_size;
+    }
+
+    void StartPreOp(size_t /* id */) final {
+        writer_ = temp_file_.GetWriter();
     }
 
     void PreOp(const Input& input) {
@@ -90,8 +97,6 @@ public:
         for (size_t i = 0; i < temp_file_.num_items(); ++i) {
             file_ << reader.Next<Input>() << "\n";
         }
-
-        file_.close();
     }
 
 private:

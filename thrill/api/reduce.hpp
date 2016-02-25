@@ -62,13 +62,12 @@ class ReduceNode final : public DOpNode<ValueType>
     static const bool debug = false;
 
     using Super = DOpNode<ValueType>;
+    using Super::context_;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     using KeyValuePair = std::pair<Key, Value>;
-
-    using Super::context_;
 
 private:
     //! Emitter for PostStage to push elements to next DIA object.
@@ -124,8 +123,14 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    DIAMemUse PreOpMemUse() final {
+        // request maximum RAM limit, the value is calculated by StageBuilder,
+        // and set as DIABase::mem_limit_.
+        return DIAMemUse::Max();
+    }
+
     void StartPreOp(size_t /* id */) final {
-        pre_stage_.Initialize();
+        pre_stage_.Initialize(DIABase::mem_limit_ / 2);
     }
 
     void StopPreOp(size_t /* id */) final {
@@ -138,6 +143,10 @@ public:
 
     void Execute() final { }
 
+    DIAMemUse PushDataMemUse() final {
+        return DIAMemUse::Max();
+    }
+
     void PushData(bool consume) final {
 
         if (reduced_) {
@@ -145,7 +154,7 @@ public:
             return;
         }
 
-        post_stage_.Initialize();
+        post_stage_.Initialize(DIABase::mem_limit_ / 2);
 
         if (RobustKey) {
             auto reader = stream_->OpenCatReader(consume);
@@ -175,13 +184,13 @@ private:
 
     std::vector<data::CatStream::Writer> emitters_;
 
-    core::ReducePreBucketStage<
+    core::ReducePreProbingStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
         core::ReduceByHash<Key>,
         decltype(ReduceConfig::pre_table),
         std::equal_to<Key> > pre_stage_;
 
-    core::ReducePostBucketStage<
+    core::ReducePostProbingStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
         core::ReduceByHash<Key>,
         decltype(ReduceConfig::post_table),

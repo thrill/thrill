@@ -165,7 +165,7 @@ public:
                    n, sizeof(Type), manager_.total());
         }
 
-        bypass_free(p);
+        bypass_free(p, n * sizeof(Type));
     }
 
     //! Compare to another allocator of same type

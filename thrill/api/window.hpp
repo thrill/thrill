@@ -3,7 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -50,7 +50,7 @@ public:
           window_function_(window_function)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](const Input& input) {
+        auto pre_op_fn = [this](const Input& input) {
                              PreOp(input);
                          };
 
@@ -58,61 +58,14 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
-    void StopPreOp(size_t /* id */) final {
-        writer_.Close();
+    DIAMemUse PreOpMemUse() final {
+        return window_size_ * sizeof(Input);
     }
 
-    //! Executes the window operation.
-    void Execute() final {
-        MainOp();
+    void StartPreOp(size_t /* id */) final {
+        window_.allocate(window_size_);
+        writer_ = file_.GetWriter();
     }
-
-    void PushData(bool consume) final {
-        data::File::Reader reader = file_.GetReader(consume);
-
-        RingBuffer window = window_;
-        // this may wrap around, but that is okay. -tb
-        size_t rank = first_rank_ - (window_size_ - 1);
-
-        sLOG << "WindowNode::PushData()"
-             << "window.size()" << window.size()
-             << "rank" << rank
-             << "file_.num_items" << file_.num_items();
-
-        for (size_t i = 0; i < file_.num_items(); ++i, ++rank) {
-            // append an item.
-            window.emplace_back(reader.Next<Input>());
-
-            // only issue full window frames
-            if (window.size() != window_size_) continue;
-
-            // call window user-defined function
-            window_function_(rank, window,
-                             [this](const ValueType& output) {
-                                 this->PushItem(output);
-                             });
-
-            // return to window size - 1
-            if (window.size() >= window_size_ - 1)
-                window.pop_front();
-        }
-    }
-
-    void Dispose() final { }
-
-private:
-    //! Size of the window
-    size_t window_size_;
-    //! The window function which is applied to two elements.
-    WindowFunction window_function_;
-
-    //! cache the last k - 1 items for transmission
-    RingBuffer window_ { window_size_ };
-
-    //! Local data file
-    data::File file_ { context_.GetFile() };
-    //! Data writer to local file (only active in PreOp).
-    data::File::Writer writer_ = file_.GetWriter();
 
     //! PreOp: keep last k - 1 items (local window) and store items.
     void PreOp(const Input& input) {
@@ -124,10 +77,13 @@ private:
         writer_.Put(input);
     }
 
-    //! rank of our first element in file_
-    size_t first_rank_;
+    void StopPreOp(size_t /* id */) final {
+        writer_.Close();
+    }
 
-    void MainOp() {
+    //! Executes the window operation by receiving k - 1 items from our
+    //! preceding worker.
+    void Execute() final {
         // get rank of our first element
         first_rank_ = context_.net.ExPrefixSum(file_.num_items());
 
@@ -156,6 +112,65 @@ private:
         for (size_t i = 0; i < pre.size(); ++i)
             window_.push_back(pre[i]);
     }
+
+    DIAMemUse PushDataMemUse() final {
+        // window_ is copied in PushData()
+        return 2 * window_size_ * sizeof(Input);
+    }
+
+    void PushData(bool consume) final {
+        data::File::Reader reader = file_.GetReader(consume);
+
+        // copy window ring buffer containing first items
+        RingBuffer window = window_;
+        // this may wrap around, but that is okay. -tb
+        size_t rank = first_rank_ - (window_size_ - 1);
+
+        sLOG << "WindowNode::PushData()"
+             << "window.size()" << window.size()
+             << "rank" << rank
+             << "file_.num_items" << file_.num_items();
+
+        for (size_t i = 0; i < file_.num_items(); ++i, ++rank) {
+            // append an item.
+            window.emplace_back(reader.Next<Input>());
+
+            // only issue full window frames
+            if (window.size() != window_size_) continue;
+
+            // call window user-defined function
+            window_function_(rank, window,
+                             [this](const ValueType& output) {
+                                 this->PushItem(output);
+                             });
+
+            // return to window size - 1
+            if (window.size() >= window_size_ - 1)
+                window.pop_front();
+        }
+    }
+
+    void Dispose() final {
+        window_.deallocate();
+        file_.Clear();
+    }
+
+private:
+    //! Size of the window
+    size_t window_size_;
+    //! The window function which is applied to two elements.
+    WindowFunction window_function_;
+
+    //! cache the last k - 1 items for transmission
+    RingBuffer window_;
+
+    //! Local data file
+    data::File file_ { context_.GetFile() };
+    //! Data writer to local file (only active in PreOp).
+    data::File::Writer writer_;
+
+    //! rank of our first element in file_
+    size_t first_rank_;
 };
 
 template <typename ValueType, typename Stack>

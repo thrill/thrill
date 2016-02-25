@@ -51,24 +51,26 @@ public:
     //! Executes the scatter operation: source sends out its data.
     void Execute() final {
 
+        std::vector<data::CatStream::Writer> emitters = stream_->OpenWriters();
+
         if (context_.my_rank() == source_id_)
         {
             size_t in_size = in_vector_.size();
 
-            for (size_t w = 0; w < emitters_.size(); ++w) {
+            for (size_t w = 0; w < emitters.size(); ++w) {
 
                 common::Range local =
-                    common::CalculateLocalRange(in_size, emitters_.size(), w);
+                    common::CalculateLocalRange(in_size, emitters.size(), w);
 
                 for (size_t i = local.begin; i < local.end; ++i) {
-                    emitters_[w].Put(in_vector_[i]);
+                    emitters[w].Put(in_vector_[i]);
                 }
             }
         }
 
         // close stream inputs.
-        for (size_t w = 0; w < emitters_.size(); ++w) {
-            emitters_[w].Close();
+        for (size_t w = 0; w < emitters.size(); ++w) {
+            emitters[w].Close();
         }
     }
 
@@ -89,8 +91,6 @@ private:
     size_t source_id_;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream() };
-
-    std::vector<data::CatStream::Writer> emitters_ { stream_->OpenWriters() };
 };
 
 /*!

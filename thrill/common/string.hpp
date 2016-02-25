@@ -124,6 +124,29 @@ String str_sprintf(const char* fmt, ...) {
     return String(s, s + len);
 }
 
+//! Use ostream to output any type as string. You generally DO NOT want to use
+//! this, instead create a larger ostringstream.
+template <typename Type>
+static inline
+std::string to_str(const Type& t) {
+    std::ostringstream oss;
+    oss << t;
+    return oss.str();
+}
+
+/*!
+ * Template transformation function which uses std::istringstream to parse any
+ * istreamable type from a std::string. Returns true only if the whole string
+ * was parsed.
+ */
+template <typename Type>
+static inline
+bool from_str(const std::string& str, Type& outval) {
+    std::istringstream is(str);
+    is >> outval;
+    return is.eof();
+}
+
 /*!
  * Split the given string at each separator character into distinct
  * substrings. Multiple consecutive separators are considered individually and

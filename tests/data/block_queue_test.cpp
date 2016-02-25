@@ -74,7 +74,7 @@ TEST_F(BlockQueue, WriteZeroItems) {
 
     // get zero items back from file.
     {
-        data::BlockQueue::ConsumeReader br = q.GetConsumeReader();
+        data::BlockQueue::ConsumeReader br = q.GetConsumeReader(0);
 
         ASSERT_FALSE(br.HasNext());
     }
@@ -94,7 +94,7 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
     pool.Enqueue(
         [&q]() {
             {
-                data::BlockQueue::Reader br = q.GetReader(false);
+                data::BlockQueue::Reader br = q.GetReader(false, 0);
 
                 ASSERT_TRUE(br.HasNext());
                 int i1 = br.Next<int>();
@@ -108,7 +108,7 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
                 ASSERT_FALSE(br.HasNext());
             }
             {
-                data::BlockQueue::Reader br = q.GetReader(false);
+                data::BlockQueue::Reader br = q.GetReader(false, 0);
 
                 ASSERT_TRUE(br.HasNext());
                 int i1 = br.Next<int>();
@@ -122,7 +122,7 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
                 ASSERT_FALSE(br.HasNext());
             }
             {
-                data::BlockQueue::Reader br = q.GetReader(true);
+                data::BlockQueue::Reader br = q.GetReader(true, 0);
 
                 ASSERT_TRUE(br.HasNext());
                 int i1 = br.Next<int>();
@@ -163,7 +163,7 @@ TEST_F(BlockQueue, OrderedMultiQueue_Multithreaded) {
     pool.Enqueue([&q, &q2]() {
                      auto reader = data::BlockReader<CatBlockSource>(
                          CatBlockSource(
-                             { MyBlockSource(q), MyBlockSource(q2) }));
+                             { MyBlockSource(q, 0), MyBlockSource(q2, 0) }));
                      ASSERT_EQ("1.1", reader.Next<std::string>());
                      ASSERT_EQ("1.2", reader.Next<std::string>());
                      ASSERT_EQ("2.1", reader.Next<std::string>());
@@ -185,7 +185,7 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndDynBlockReader) {
 
     pool.Enqueue(
         [&q]() {
-            data::BlockQueue::Reader br = q.GetReader(false);
+            data::BlockQueue::Reader br = q.GetReader(false, 0);
 
             ASSERT_TRUE(br.HasNext());
             int i1 = br.Next<int>();

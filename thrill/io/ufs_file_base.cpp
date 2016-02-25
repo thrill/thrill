@@ -63,7 +63,7 @@ UfsFileBase::UfsFileBase(
 
     if ((mode & DIRECT) || (mode & REQUIRE_DIRECT))
     {
-#ifdef __APPLE__
+#if __APPLE__
         // no additional open flags are required for Mac OS X
 #elif !THRILL_DIRECT_IO_OFF
         flags |= O_DIRECT;
@@ -139,7 +139,7 @@ void UfsFileBase::_after_open() {
 #endif
     is_device_ = S_ISBLK(st.st_mode) ? true : false;
 
-#ifdef __APPLE__
+#if __APPLE__
     if (mode_ & REQUIRE_DIRECT) {
         THRILL_THROW_ERRNO_NE_0(fcntl(file_des_, F_NOCACHE, 1), IoError,
                                 "fcntl() path=" << path_ << " fd=" << file_des_);

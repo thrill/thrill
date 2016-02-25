@@ -33,26 +33,33 @@ using examples::FastWordCountPair;
 /******************************************************************************/
 // Bacon Ipsum Text
 
-static const std::vector<WordCountPair> bacon_ipsum_correct = {
-    { "alcatra", 32 }, { "amet", 4 }, { "andouille", 16 }, { "bacon", 36 },
-    { "ball", 16 }, { "beef", 40 }, { "belly", 24 }, { "biltong", 24 },
-    { "boudin", 12 }, { "bresaola", 12 }, { "brisket", 24 }, { "capicola", 24 },
-    { "chicken", 4 }, { "chop", 20 }, { "chuck", 24 }, { "corned", 16 },
-    { "cow", 8 }, { "cupim", 20 }, { "dolor", 4 }, { "doner", 32 },
-    { "drumstick", 20 }, { "fatback", 28 }, { "filet", 12 }, { "flank", 28 },
-    { "frankfurter", 12 }, { "ground", 8 }, { "ham", 40 }, { "hamburger", 16 },
-    { "hock", 8 }, { "ipsum", 4 }, { "jerky", 28 }, { "jowl", 28 },
-    { "kevin", 36 }, { "kielbasa", 20 }, { "landjaeger", 32 },
-    { "leberkas", 24 }, { "loin", 12 }, { "meatball", 12 }, { "meatloaf", 28 },
-    { "mignon", 12 }, { "pancetta", 24 }, { "pastrami", 16 }, { "picanha", 24 },
-    { "pig", 20 }, { "porchetta", 28 }, { "pork", 64 }, { "prosciutto", 24 },
-    { "ribeye", 20 }, { "ribs", 32 }, { "round", 8 }, { "rump", 40 },
-    { "salami", 20 }, { "sausage", 16 }, { "shank", 12 }, { "shankle", 4 },
-    { "short", 16 }, { "shoulder", 12 }, { "sirloin", 8 }, { "spare", 8 },
-    { "steak", 8 }, { "strip", 8 }, { "swine", 16 }, { "t-bone", 16 },
-    { "tail", 28 }, { "tenderloin", 20 }, { "tip", 16 }, { "tongue", 12 },
-    { "tri-tip", 28 }, { "turducken", 16 }, { "turkey", 20 }, { "venison", 20 }
-};
+static const
+std::vector<WordCountPair> bacon_ipsum_correct() {
+
+    static const std::vector<WordCountPair> correct = {
+        { "alcatra", 32 }, { "amet", 4 }, { "andouille", 16 }, { "bacon", 36 },
+        { "ball", 16 }, { "beef", 40 }, { "belly", 24 }, { "biltong", 24 },
+        { "boudin", 12 }, { "bresaola", 12 }, { "brisket", 24 },
+        { "capicola", 24 }, { "chicken", 4 }, { "chop", 20 }, { "chuck", 24 },
+        { "corned", 16 }, { "cow", 8 }, { "cupim", 20 }, { "dolor", 4 },
+        { "doner", 32 }, { "drumstick", 20 }, { "fatback", 28 },
+        { "filet", 12 }, { "flank", 28 }, { "frankfurter", 12 },
+        { "ground", 8 }, { "ham", 40 }, { "hamburger", 16 }, { "hock", 8 },
+        { "ipsum", 4 }, { "jerky", 28 }, { "jowl", 28 }, { "kevin", 36 },
+        { "kielbasa", 20 }, { "landjaeger", 32 }, { "leberkas", 24 },
+        { "loin", 12 }, { "meatball", 12 }, { "meatloaf", 28 },
+        { "mignon", 12 }, { "pancetta", 24 }, { "pastrami", 16 },
+        { "picanha", 24 }, { "pig", 20 }, { "porchetta", 28 }, { "pork", 64 },
+        { "prosciutto", 24 }, { "ribeye", 20 }, { "ribs", 32 }, { "round", 8 },
+        { "rump", 40 }, { "salami", 20 }, { "sausage", 16 }, { "shank", 12 },
+        { "shankle", 4 }, { "short", 16 }, { "shoulder", 12 }, { "sirloin", 8 },
+        { "spare", 8 }, { "steak", 8 }, { "strip", 8 }, { "swine", 16 },
+        { "t-bone", 16 }, { "tail", 28 }, { "tenderloin", 20 }, { "tip", 16 },
+        { "tongue", 12 }, { "tri-tip", 28 }, { "turducken", 16 },
+        { "turkey", 20 }, { "venison", 20 }
+    };
+    return correct;
+}
 
 TEST(WordCount, BaconIpsum) {
 
@@ -68,7 +75,7 @@ TEST(WordCount, BaconIpsum) {
             // sort result, because reducing delivers any order
             std::sort(result.begin(), result.end());
 
-            ASSERT_EQ(bacon_ipsum_correct, result);
+            ASSERT_EQ(bacon_ipsum_correct(), result);
         };
 
     api::RunLocalTests(start_func);
@@ -88,10 +95,12 @@ TEST(WordCount, BaconIpsumFastString) {
             // sort result, because reducing delivers any order
             std::sort(result.begin(), result.end());
 
-            ASSERT_EQ(result.size(), bacon_ipsum_correct.size());
+            auto correct = bacon_ipsum_correct();
+
+            ASSERT_EQ(result.size(), correct.size());
             for (size_t i = 0; i < result.size(); ++i) {
-                ASSERT_EQ(result[i].first, bacon_ipsum_correct[i].first);
-                ASSERT_EQ(result[i].second, bacon_ipsum_correct[i].second);
+                ASSERT_EQ(result[i].first, correct[i].first);
+                ASSERT_EQ(result[i].second, correct[i].second);
             }
         };
 

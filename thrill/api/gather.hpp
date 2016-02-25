@@ -42,20 +42,22 @@ public:
                      { parent.id() }, { parent.node() }),
           target_id_(target_id),
           out_vector_(out_vector),
-          stream_(parent.ctx().GetNewCatStream()),
-          emitters_(stream_->OpenWriters())
+          stream_(parent.ctx().GetNewCatStream())
     {
         assert(target_id_ < context_.num_workers());
 
-        auto pre_op_function =
-            [=](const ValueType& input) {
-                emitters_[target_id_].Put(input);
-            };
+        auto pre_op_fn = [this](const ValueType& input) {
+                             emitters_[target_id_].Put(input);
+                         };
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent.stack().push(pre_op_function).fold();
+        auto lop_chain = parent.stack().push(pre_op_fn).fold();
         parent.node()->AddChild(this, lop_chain);
+    }
+
+    void StartPreOp(size_t /* id */) final {
+        emitters_ = stream_->OpenWriters();
 
         // close all but the target
         for (size_t i = 0; i < emitters_.size(); i++) {

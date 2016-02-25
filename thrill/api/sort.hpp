@@ -76,8 +76,41 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    void StartPreOp(size_t /* id */) final {
+        unsorted_writer_ = unsorted_file_.GetWriter();
+    }
+
+    void PreOp(const ValueType& input) {
+        unsorted_writer_.Put(input);
+        local_items_++;
+        after_sample_++;
+        // In this stage we do not know how many elements are there in total.
+        // Therefore we draw samples based on current number of elements and
+        // randomly replace older samples when we have too many.
+        if (after_sample_ > next_sample_) {
+            if (samples_.size() >
+                std::log2(local_items_ * context_.num_workers())
+                * (1 / (desired_imbalance_ * desired_imbalance_))) {
+                samples_[rng_() % samples_.size()] = input;
+            }
+            else {
+                samples_.push_back(input);
+            }
+            after_sample_ = 0;
+            double sample = static_cast<double>(
+                local_items_
+                / std::log2(local_items_ * context_.num_workers())
+                * (1 / (desired_imbalance_ * desired_imbalance_)));
+            next_sample_ = std::floor(sample);
+        }
+    }
+
     void StopPreOp(size_t /* id */) final {
         unsorted_writer_.Close();
+    }
+
+    DIAMemUse ExecuteMemUse() final {
+        return DIAMemUse::Max();
     }
 
     //! Executes the sum operation.
@@ -172,7 +205,7 @@ private:
     //! All local unsorted items before communication
     data::File unsorted_file_ { context_.GetFile() };
     //! Writer for unsorted_file_
-    data::File::Writer unsorted_writer_ { unsorted_file_.GetWriter() };
+    data::File::Writer unsorted_writer_;
     //! Number of items on this worker
     size_t local_items_ = 0;
 
@@ -185,17 +218,10 @@ private:
     //! Random generator
     std::default_random_engine rng_ { std::random_device { } () };
 
-    //! Emitter to send samples to process 0
-    data::CatStreamPtr sample_stream_ { context_.GetNewCatStream() };
-    std::vector<data::CatStream::Writer> sample_writers_
-    { sample_stream_->OpenWriters() };
-
     //! }
 
     //! Maximum merging degree
     static const size_t merge_degree_ = 10;
-    //! Maximum number of elements per file while merging
-    static const size_t elements_per_file_ = 10000;
 
     //! Local data files
     std::deque<data::File> files_;
@@ -205,40 +231,18 @@ private:
     // epsilon
     static constexpr double desired_imbalance_ = 0.25;
 
-    void PreOp(const ValueType& input) {
-        unsorted_writer_.Put(input);
-        local_items_++;
-        after_sample_++;
-        // In this stage we do not know how many elements are there in total.
-        // Therefore we draw samples based on current number of elements and
-        // randomly replace older samples when we have too many.
-        if (after_sample_ > next_sample_) {
-            if (samples_.size() >
-                std::log2(local_items_ * context_.num_workers())
-                * (1 / (desired_imbalance_ * desired_imbalance_))) {
-                samples_[rng_() % samples_.size()] = input;
-            }
-            else {
-                samples_.push_back(input);
-            }
-            after_sample_ = 0;
-            double sample = static_cast<double>(
-                local_items_
-                / std::log2(local_items_ * context_.num_workers())
-                * (1 / (desired_imbalance_ * desired_imbalance_)));
-            next_sample_ = std::floor(sample);
-        }
-    }
-
     void FindAndSendSplitters(
-        std::vector<ValueType>& splitters, size_t sample_size) {
+        std::vector<ValueType>& splitters, size_t sample_size,
+        data::CatStreamPtr& sample_stream,
+        std::vector<data::CatStream::Writer>& sample_writers) {
+
         // Get samples from other workers
         size_t num_total_workers = context_.num_workers();
 
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
 
-        auto reader = sample_stream_->OpenCatReader(/* consume */ true);
+        auto reader = sample_stream->OpenCatReader(/* consume */ true);
 
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
@@ -253,12 +257,12 @@ private:
         for (size_t i = 1; i < num_total_workers; i++) {
             splitters.push_back(samples[i * splitting_size]);
             for (size_t j = 1; j < num_total_workers; j++) {
-                sample_writers_[j].Put(samples[i * splitting_size]);
+                sample_writers[j].Put(samples[i * splitting_size]);
             }
         }
 
         for (size_t j = 1; j < num_total_workers; j++) {
-            sample_writers_[j].Close();
+            sample_writers[j].Close();
         }
     }
 
@@ -423,16 +427,23 @@ private:
         }
 
         // close writers and flush data
-        for (size_t i = 0; i < data_writers.size(); i++)
-            data_writers[i].Close();
+        for (size_t j = 0; j < data_writers.size(); j++)
+            data_writers[j].Close();
     }
 
-    void SortAndWriteToFile(std::vector<ValueType>& vec,
-                            std::deque<data::File>& files) {
+    void SortAndWriteToFile(
+        std::vector<ValueType>& vec, std::deque<data::File>& files) {
+
+        LOG1 << "SortAndWriteToFile() " << vec.size()
+             << " into file #" << files.size();
+
+        local_out_size_ += vec.size();
+
         std::sort(vec.begin(), vec.end(), compare_function_);
+
         files.emplace_back(context_.GetFile());
         auto writer = files.back().GetWriter();
-        for (auto ele : vec) {
+        for (const ValueType& ele : vec) {
             writer.Put(ele);
         }
         writer.Close();
@@ -449,11 +460,17 @@ private:
             ": " << samples_.size();
         LOG << "Number of local items: " << local_items_;
 
+        // stream to send samples to process 0 and receive them back
+        data::CatStreamPtr sample_stream = context_.GetNewCatStream();
+
         // Send all samples to worker 0.
-        for (const auto& sample : samples_) {
-            sample_writers_[0].Put(sample);
+        std::vector<data::CatStream::Writer> sample_writers =
+            sample_stream->OpenWriters();
+
+        for (const ValueType& sample : samples_) {
+            sample_writers[0].Put(sample);
         }
-        sample_writers_[0].Close();
+        sample_writers[0].Close();
         std::vector<ValueType>().swap(samples_);
 
         // Get the ceiling of log(num_total_workers), as SSSS needs 2^n buckets.
@@ -465,20 +482,22 @@ private:
         splitters.reserve(workers_algo);
 
         if (context_.my_rank() == 0) {
-            FindAndSendSplitters(splitters, samples_.size());
+            FindAndSendSplitters(splitters, samples_.size(),
+                                 sample_stream, sample_writers);
         }
         else {
             // Close unused emitters
             for (size_t j = 1; j < num_total_workers; j++) {
-                sample_writers_[j].Close();
+                sample_writers[j].Close();
             }
             data::CatStream::CatReader reader =
-                sample_stream_->OpenCatReader(/* consume */ true);
+                sample_stream->OpenCatReader(/* consume */ true);
             while (reader.HasNext()) {
                 splitters.push_back(reader.template Next<ValueType>());
             }
         }
-        sample_stream_->Close();
+        sample_writers.clear();
+        sample_stream->Close();
 
         // code from SS2NPartition, slightly altered
 
@@ -512,21 +531,16 @@ private:
         auto reader = data_stream->OpenCatReader(/* consume */ false);
 
         std::vector<ValueType> temp_data;
-        temp_data.reserve(elements_per_file_);
-        size_t items_in_file = 0;
         LOG << "Writing files";
         while (reader.HasNext()) {
-            if (items_in_file < elements_per_file_) {
-                local_out_size_++;
+            if (!mem::memory_exceeded) {
                 temp_data.push_back(reader.template Next<ValueType>());
-                items_in_file++;
             }
             else {
                 SortAndWriteToFile(temp_data, files_);
-                items_in_file = 0;
             }
         }
-        if (items_in_file) {
+        if (temp_data.size()) {
             SortAndWriteToFile(temp_data, files_);
         }
 

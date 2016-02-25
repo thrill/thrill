@@ -111,9 +111,7 @@ public:
           post_stage_(
               context_, key_extractor, reduce_function,
               Emitter(this),
-              core::ReduceByIndex<Key>(
-                  // parameterize with resulting key range on this worker
-                  pre_stage_.key_range(context_.my_rank())),
+              core::ReduceByIndex<Key>(),
               neutral_element, config.post_table)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
@@ -129,8 +127,19 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    DIAMemUse PreOpMemUse() final {
+        // request maximum RAM limit, the value is calculated by StageBuilder,
+        // and set as DIABase::mem_limit_.
+        return DIAMemUse::Max();
+    }
+
     void StartPreOp(size_t /* id */) final {
-        pre_stage_.Initialize();
+        pre_stage_.Initialize(DIABase::mem_limit_ / 2);
+
+        // re-parameterize with resulting key range on this worker - this is
+        // only know after Initialize() of the pre_stage_.
+        post_stage_.table().index_function() =
+            core::ReduceByIndex<Key>(pre_stage_.key_range(context_.my_rank()));
     }
 
     void StopPreOp(size_t /* id */) final {
@@ -143,6 +152,10 @@ public:
 
     void Execute() final { }
 
+    DIAMemUse PushDataMemUse() final {
+        return DIAMemUse::Max();
+    }
+
     void PushData(bool consume) final {
 
         if (reduced_) {
@@ -150,7 +163,7 @@ public:
             return;
         }
 
-        post_stage_.Initialize();
+        post_stage_.Initialize(DIABase::mem_limit_ / 2);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use

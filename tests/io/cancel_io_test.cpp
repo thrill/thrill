@@ -17,7 +17,7 @@
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/syscall_file.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <cstring>
 #include <vector>
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
     wait_all(req.begin(), req.end());
     std::cout << io::StatsData(*io::Stats::get_instance()) - stats2;
 
-    mem::aligned_dealloc(buffer);
+    mem::aligned_dealloc(buffer, size);
 
     return 0;
 }

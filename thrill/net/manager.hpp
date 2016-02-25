@@ -40,17 +40,15 @@ class Manager
 public:
     /*!
      * The count of net::Groups to initialize.
-     * If this value is changed, the corresponding
-     * getters for the net::Groups should be changed as well.
      */
-    static const size_t kGroupCount = 3;
+    static const size_t kGroupCount = 2;
 
     size_t my_host_rank() const {
         return groups_[0]->my_host_rank();
     }
 
     size_t num_hosts() const {
-        return groups_[1]->num_hosts();
+        return groups_[0]->num_hosts();
     }
 
     //! non-copyable: delete copy-constructor
@@ -58,39 +56,24 @@ public:
     //! non-copyable: delete assignment operator
     Manager& operator = (const Manager&) = delete;
 
-    /*!
-     * Construct Manager from already initialized net::Groups.
-     */
+    //! Construct Manager from already initialized net::Groups.
     explicit Manager(std::array<GroupPtr, kGroupCount>&& groups) noexcept
         : groups_(std::move(groups)) { }
 
-    /*!
-      * Construct Manager from already initialized net::Groups.
-      */
+    //! Construct Manager from already initialized net::Groups.
     explicit Manager(std::vector<GroupPtr>&& groups) {
         assert(groups.size() == kGroupCount);
         std::move(groups.begin(), groups.end(), groups_.begin());
     }
 
-    /**
-     * \brief Returns the net group for the system control channel.
-     */
-    Group & GetSystemGroup() {
+    //! Returns the net::Group for the flow control channel.
+    Group & GetFlowGroup() {
         return *groups_[0];
     }
 
-    /**
-     * \brief Returns the net group for the flow control channel.
-     */
-    Group & GetFlowGroup() {
-        return *groups_[1];
-    }
-
-    /**
-     * \brief Returns the net group for the data manager.
-     */
+    //! Returns the net::Group for the data manager.
     Group & GetDataGroup() {
-        return *groups_[2];
+        return *groups_[1];
     }
 
     void Close() {
@@ -100,9 +83,7 @@ public:
     }
 
 private:
-    /**
-     * The Groups initialized and managed by this Manager.
-     */
+    //! The Groups initialized and managed by this Manager.
     std::array<GroupPtr, kGroupCount> groups_;
 };
 

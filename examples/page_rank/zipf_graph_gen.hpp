@@ -44,7 +44,15 @@ public:
     double link_zipf_exponent = 0.5;
 
     explicit ZipfGraphGen(uint64_t _pages)
-        : pages(_pages) { Initialize(); }
+        : pages(_pages)
+    { Initialize(); }
+
+    ZipfGraphGen(const ZipfGraphGen& base, uint64_t _pages)
+        : pages(_pages),
+          size_mean(base.size_mean), size_var(base.size_var),
+          link_zipf_scale(base.link_zipf_scale),
+          link_zipf_exponent(base.link_zipf_exponent)
+    { Initialize(); }
 
     //! reinitialize the random generator if parameters were changed.
     void Initialize(uint64_t _pages) {
@@ -67,7 +75,7 @@ public:
         double dsize = content_length_dist_(rng);
         if (dsize < 0) dsize = 0;
 
-        size_t size = std::round(dsize);
+        size_t size = static_cast<size_t>(std::round(dsize));
 
         std::vector<size_t> result;
         result.reserve(size);

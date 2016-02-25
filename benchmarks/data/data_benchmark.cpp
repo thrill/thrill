@@ -269,7 +269,7 @@ public:
                 threads.Enqueue(
                     [&]() {
                         StatsTimerStart read_timer;
-                        auto reader = queue.GetReader(consume);
+                        auto reader = queue.GetReader(consume, 0);
                         while (reader.HasNext())
                             reader.Next<Type>();
                         read_timer.Stop();

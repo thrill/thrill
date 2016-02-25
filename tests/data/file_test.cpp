@@ -57,7 +57,7 @@ TEST_F(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.block(5).size(), 14u);
 
     // Total size is equal to sum of block sizes
-    ASSERT_EQ(file.total_size(), 94u);
+    ASSERT_EQ(file.size_bytes(), 94u);
 
     const unsigned char block_data_bytes[] = {
         // fw.Append("testtest");
@@ -411,7 +411,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                     queue.AppendBlock(b.PinWait(0));
                 queue.Close();
 
-                data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
+                data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader(0);
 
                 for (size_t i = begin; i < end; ++i) {
                     ASSERT_TRUE(qr.HasNext());
@@ -437,7 +437,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                     queue.AppendBlock(b.PinWait(0));
                 queue.Close();
 
-                data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
+                data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader(0);
 
                 for (size_t i = end; i < end + more; ++i) {
                     ASSERT_TRUE(qr.HasNext());

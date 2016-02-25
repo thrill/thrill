@@ -40,8 +40,7 @@ public:
         : ActionNode(parent.ctx(), "AllGather",
                      { parent.id() }, { parent.node() }),
           out_vector_(out_vector),
-          stream_(parent.ctx().GetNewCatStream()),
-          emitters_(stream_->OpenWriters())
+          stream_(parent.ctx().GetNewCatStream())
     {
         auto pre_op_function = [this](const ValueType& input) {
                                    PreOp(input);
@@ -51,6 +50,10 @@ public:
         // node for output
         auto lop_chain = parent.stack().push(pre_op_function).fold();
         parent.node()->AddChild(this, lop_chain);
+    }
+
+    void StartPreOp(size_t /* id */) final {
+        emitters_ = stream_->OpenWriters();
     }
 
     void PreOp(const ValueType& element) {

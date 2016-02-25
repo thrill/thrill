@@ -166,7 +166,6 @@ thrill_build_test(api/read_write_test)
 thrill_build_test(api/reduce_node_test)
 thrill_build_test(api/sort_node_test)
 thrill_build_test(api/stage_builder_test)
-thrill_build_test(api/sum_node_test)
 thrill_build_test(api/zip_node_test)
 # currently disabled because it fails randomly when result is disbalanced
 thrill_build_only(api/merge_node_test)

@@ -36,10 +36,33 @@ class Stage
 public:
     static const bool debug = false;
 
-    explicit Stage(const DIABasePtr& node) : node_(node) { }
+    explicit Stage(const DIABasePtr& node)
+        : node_(node), context_(node->context()) { }
+
+    //! iterate over all target nodes into which this Stage pushes
+    template <typename Lambda>
+    void Targets(const Lambda& lambda) const {
+        std::vector<DIABase*> children = node_->children();
+        std::reverse(children.begin(), children.end());
+
+        while (children.size()) {
+            DIABase* child = children.back();
+            children.pop_back();
+
+            if (!child->CanExecute()) {
+                // push children of Collapse onto stack
+                std::vector<DIABase*> sub = child->children();
+                children.insert(children.end(), sub.begin(), sub.end());
+                lambda(child);
+            }
+            else {
+                lambda(child);
+            }
+        }
+    }
 
     //! compute a string to show all target nodes into which this Stage pushes.
-    std::string Targets() const {
+    std::string TargetsString() const {
         std::ostringstream oss;
         std::vector<DIABase*> children = node_->children();
         std::reverse(children.begin(), children.end());
@@ -70,73 +93,130 @@ public:
 
     std::vector<size_t> TargetIds() const {
         std::vector<size_t> ids;
-
-        std::vector<DIABase*> children = node_->children();
-        std::reverse(children.begin(), children.end());
-
-        while (children.size())
-        {
-            DIABase* child = children.back();
-            children.pop_back();
-
-            if (!child->CanExecute()) {
-                // push children of Collapse onto stack
-                std::vector<DIABase*> sub = child->children();
-                children.insert(children.end(), sub.begin(), sub.end());
-                ids.emplace_back(child->id());
-            }
-            else {
-                ids.emplace_back(child->id());
-            }
-        }
+        Targets([&ids](DIABase* child) { ids.emplace_back(child->id()); });
         return ids;
     }
 
-    void Execute() {
-        sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << Targets();
+    std::vector<DIABase*> TargetPtrs() const {
+        std::vector<DIABase*> children;
+        Targets([&children](DIABase* child) { children.emplace_back(child); });
+        return children;
+    }
 
-        std::vector<size_t> targets = TargetIds();
+    void Execute() {
+        sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << TargetsString();
+
+        std::vector<size_t> target_ids = TargetIds();
 
         logger_ << "class" << "StageBuilder" << "event" << "execute-start"
-                << "targets" << targets;
+                << "targets" << target_ids;
+
+        DIAMemUse mem_use = node_->ExecuteMemUse();
+        if (mem_use.is_max())
+            mem_use = context_.mem_limit();
+        node_->set_mem_limit(mem_use);
+
+        data::BlockPoolMemoryHolder mem_holder(context_.block_pool(), mem_use);
 
         common::StatsTimerStart timer;
         node_->Execute();
         node_->set_state(DIAState::EXECUTED);
         timer.Stop();
 
-        sLOG << "FINISH (EXECUTE) stage" << *node_ << "targets" << Targets()
+        sLOG << "FINISH (EXECUTE) stage" << *node_ << "targets" << TargetsString()
              << "took" << timer << "ms";
 
         logger_ << "class" << "StageBuilder" << "event" << "execute-done"
-                << "targets" << targets << "elapsed" << timer;
+                << "targets" << target_ids << "elapsed" << timer;
     }
 
     void PushData() {
-        if (node_->context().consume() && node_->consume_counter() == 0) {
+        if (context_.consume() && node_->consume_counter() == 0) {
             sLOG1 << "StageBuilder: attempt to PushData on"
                   << "stage" << *node_
                   << "failed, it was already consumed. Add .Keep()";
             abort();
         }
 
-        sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << Targets();
+        sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << TargetsString();
 
-        std::vector<size_t> targets = TargetIds();
+        std::vector<size_t> target_ids = TargetIds();
 
         logger_ << "class" << "StageBuilder" << "event" << "pushdata-start"
-                << "targets" << targets;
+                << "targets" << target_ids;
+
+        // collect memory requests of all targets children
+
+        std::vector<DIABase*> targets = TargetPtrs();
+
+        const size_t mem_limit = context_.mem_limit();
+        std::vector<DIABase*> max_mem_nodes;
+        size_t const_mem = 0;
+
+        {
+            // process node to PushData()
+            DIAMemUse m = node_->PreOpMemUse();
+            if (m.is_max()) {
+                max_mem_nodes.emplace_back(node_.get());
+            }
+            else {
+                const_mem += m.limit();
+                node_->set_mem_limit(m.limit());
+            }
+        }
+
+        for (DIABase* target : TargetPtrs()) {
+            DIAMemUse m = target->PreOpMemUse();
+            if (m.is_max()) {
+                max_mem_nodes.emplace_back(target);
+            }
+            else {
+                const_mem += m.limit();
+                target->set_mem_limit(m.limit());
+            }
+        }
+
+        if (const_mem > mem_limit) {
+            sLOG1 << "StageBuilder: constant memory usage of DIANodes in Stage: "
+                  << const_mem << ", already exceeds Context's limit: " << mem_limit;
+            abort();
+        }
+
+        // distribute remaining memory to nodes requesting maximum RAM amount
+
+        if (max_mem_nodes.size()) {
+            size_t remaining_mem = mem_limit - const_mem;
+            remaining_mem /= max_mem_nodes.size();
+
+            if (context_.my_rank() == 0) {
+                LOG1 << "StageBuilder: distribute remaining worker memory "
+                     << remaining_mem << " to "
+                     << max_mem_nodes.size() << " DIANodes";
+            }
+
+            for (DIABase* target : max_mem_nodes) {
+                target->set_mem_limit(remaining_mem);
+            }
+
+            // update const_mem: later allocate the mem limit of this worker
+            const_mem = mem_limit;
+        }
+
+        // execute push data: hold memory for DIANodes, and remove filled
+        // children afterwards
+
+        data::BlockPoolMemoryHolder mem_holder(context_.block_pool(), const_mem);
 
         common::StatsTimerStart timer;
         node_->RunPushData();
         node_->RemoveAllChildren();
         timer.Stop();
 
-        sLOG << "FINISH (PUSHDATA) stage" << *node_ << "targets" << Targets()
+        sLOG << "FINISH (PUSHDATA) stage" << *node_ << "targets" << TargetsString()
              << "took" << timer << "ms";
 
         logger_ << "class" << "StageBuilder" << "event" << "pushdata-done"
-                << "targets" << targets << "elapsed" << timer;
+                << "targets" << target_ids << "elapsed" << timer;
     }
 
     bool operator < (const Stage& s) const { return node_ < s.node_; }
@@ -144,7 +224,10 @@ public:
     //! shared pointer to node
     DIABasePtr node_;
 
-    //! reference to ContextLogger via node.
+    //! reference to Context of node
+    Context& context_;
+
+    //! reference to node's Logger.
     common::JsonLogger& logger_ { node_->logger_ };
 
     //! temporary marker for toposort to detect cycles
@@ -286,20 +369,6 @@ void DIABase::RunScope() {
 //! make ostream-able.
 std::ostream& operator << (std::ostream& os, const DIABase& d) {
     return os << d.label() << '.' << d.id();
-}
-
-//! Returns the state of this DIANode as a string. Used by ToString.
-const char* DIABase::state_string() {
-    switch (state_) {
-    case DIAState::NEW:
-        return "NEW";
-    case DIAState::EXECUTED:
-        return "EXECUTED";
-    case DIAState::DISPOSED:
-        return "DISPOSED";
-    default:
-        return "UNDEFINED";
-    }
 }
 
 } // namespace api

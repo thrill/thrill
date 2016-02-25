@@ -83,24 +83,25 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool RobustKey,
           typename IndexFunction,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
+          typename ReduceTableConfig = DefaultReduceTableConfig,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceBucketHashTable
     : public ReduceTable<ValueType, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
                          RobustKey, IndexFunction,
-                         ReduceStageConfig, EqualToFunction>
+                         ReduceTableConfig, EqualToFunction>
 {
-    static const bool debug = false;
-
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
                               RobustKey, IndexFunction,
-                              ReduceStageConfig, EqualToFunction>;
+                              ReduceTableConfig, EqualToFunction>;
+
+    using Super::debug;
+    static const bool debug_items = false;
 
     //! target number of bytes in a BucketBlock.
     static constexpr size_t bucket_block_size
-        = ReduceStageConfig::bucket_block_size;
+        = ReduceTableConfig::bucket_block_size;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -139,7 +140,7 @@ public:
         const ReduceFunction& reduce_function,
         Emitter& emitter,
         size_t num_partitions,
-        const ReduceStageConfig& config = ReduceStageConfig(),
+        const ReduceTableConfig& config = ReduceTableConfig(),
         bool immediate_flush = false,
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
@@ -149,6 +150,12 @@ public:
                 index_function, equal_to_function) {
 
         assert(num_partitions > 0);
+    }
+
+    //! Construct the hash table itself. fill it with sentinels
+    void Initialize(size_t limit_memory_bytes) {
+
+        limit_memory_bytes_ = limit_memory_bytes;
 
         // calculate maximum number of blocks allowed in a partition due to the
         // memory limit.
@@ -168,7 +175,7 @@ public:
         // calculate limit on the number of _items_ in a partition before these
         // are spilled to disk or flushed to network.
 
-        double limit_fill_rate = config.limit_partition_fill_rate();
+        double limit_fill_rate = config_.limit_partition_fill_rate();
 
         assert(limit_fill_rate >= 0.0 && limit_fill_rate <= 1.0
                && "limit_partition_fill_rate must be between 0.0 and 1.0. "
@@ -186,7 +193,7 @@ public:
         // calculate number of slots in a partition of the bucket table, i.e.,
         // the number of bucket pointers per partition
 
-        double bucket_rate = config.bucket_rate();
+        double bucket_rate = config_.bucket_rate();
 
         assert(bucket_rate >= 0.0 &&
                "bucket_rate must be greater than or equal 0. "
@@ -218,10 +225,11 @@ public:
 
         assert(num_buckets_ > 0);
         assert(limit_blocks_ > 0);
-    }
 
-    //! Construct the hash table itself. fill it with sentinels
-    void Initialize() {
+        sLOG << "num_partitions_" << num_partitions_
+             << "num_buckets_per_partition_" << num_buckets_per_partition_
+             << "num_buckets_" << num_buckets_;
+
         buckets_.resize(num_buckets_, nullptr);
     }
 
@@ -258,16 +266,15 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
+        while (mem::memory_exceeded && num_items_ != 0)
+            SpillAnyPartition();
+
         ReduceIndexResult h = index_function_(
             kv.first, num_partitions_,
             num_buckets_per_partition_, num_buckets_);
 
         // sLOG << "kv" << kv.first << "-" << kv.second
         //      << "to partition" << h.partition_id << "bucket" << h.global_index;
-
-        sLOG << "num_partitions_" << num_partitions_
-             << "num_buckets_per_partition_" << num_buckets_per_partition_
-             << "num_buckets_" << num_buckets_;
 
         assert(h.partition_id < num_partitions_);
         assert(h.global_index < num_buckets_);
@@ -286,7 +293,8 @@ public:
                 // if item and key equals, then reduce.
                 if (equal_to_function_(kv.first, bi->first))
                 {
-                    LOG << "match of key: " << kv.first
+                    LOGC(debug_items)
+                        << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";
 
                     bi->second = reduce_function_(bi->second, kv.second);
@@ -319,19 +327,22 @@ public:
             buckets_[h.global_index] = current;
 
             // Total number of blocks
-            num_blocks_++;
+            ++num_blocks_;
         }
 
         // in-place construct/insert new item in current bucket block
         new (current->items + current->size++)KeyValuePair(kv);
 
-        sLOG << "h.partition_id" << h.partition_id;
+        LOGC(debug_items)
+            << "h.partition_id" << h.partition_id;
 
         // Increase partition item count
-        items_per_partition_[h.partition_id]++;
+        ++items_per_partition_[h.partition_id];
+        ++num_items_;
 
-        sLOG << "items_per_partition_[" << h.partition_id << "]"
-             << items_per_partition_[h.partition_id];
+        LOGC(debug_items)
+            << "items_per_partition_[" << h.partition_id << "]"
+            << items_per_partition_[h.partition_id];
 
         // flush current partition if max partition fill rate reached
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
@@ -414,7 +425,9 @@ public:
         }
 
         // reset partition specific counter
+        num_items_ -= items_per_partition_[partition_id];
         items_per_partition_[partition_id] = 0;
+        assert(num_items_ == this->num_items_calc());
 
         sLOG << "Spilled items of partition" << partition_id;
     }
@@ -424,7 +437,7 @@ public:
         // get partition with max size
         size_t size_max = 0, index = 0;
 
-        for (size_t i = 0; i < num_partitions_; i++)
+        for (size_t i = 0; i < num_partitions_; ++i)
         {
             if (items_per_partition_[i] > size_max)
             {
@@ -446,7 +459,7 @@ public:
         // get partition with min size
         size_t size_min = std::numeric_limits<size_t>::max(), index = 0;
 
-        for (size_t i = 0; i < num_partitions_; i++)
+        for (size_t i = 0; i < num_partitions_; ++i)
         {
             if (items_per_partition_[i] < size_min
                 && items_per_partition_[i] != 0)
@@ -512,7 +525,9 @@ public:
 
         if (consume) {
             // reset partition specific counter
+            num_items_ -= items_per_partition_[partition_id];
             items_per_partition_[partition_id] = 0;
+            assert(num_items_ == this->num_items_calc());
         }
 
         LOG << "Done flushing items of partition: " << partition_id;
@@ -605,6 +620,7 @@ protected:
     };
 
 private:
+    using Super::config_;
     using Super::equal_to_function_;
     using Super::immediate_flush_;
     using Super::index_function_;
@@ -614,6 +630,7 @@ private:
     using Super::limit_memory_bytes_;
     using Super::num_buckets_;
     using Super::num_buckets_per_partition_;
+    using Super::num_items_;
     using Super::num_partitions_;
     using Super::partition_files_;
     using Super::reduce_function_;

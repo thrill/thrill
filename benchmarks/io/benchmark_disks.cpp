@@ -22,7 +22,7 @@
 #include <thrill/io/block_manager.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/typed_block.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <algorithm>
 #include <iomanip>

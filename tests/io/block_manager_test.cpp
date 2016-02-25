@@ -11,12 +11,13 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
 #include <thrill/io/block_manager.hpp>
 #include <thrill/io/request.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/typed_block.hpp>
-#include <thrill/mem/new_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
+
+#include <gtest/gtest.h>
 
 #include <iostream>
 #include <vector>
@@ -56,37 +57,37 @@ TEST(BlockManager, Test1) {
     io::BlockManager* bm = io::BlockManager::get_instance();
     bm->new_blocks(io::Striping(), bids.begin(), bids.end());
 
-    block_type* block = new block_type[2];
+    std::vector<block_type, mem::AlignedAllocator<block_type> > block(2);
     LOG << std::hex;
-    LOG << "Allocated block address    : " << (block);
-    LOG << "Allocated block address + 1: " << (block + 1);
+    LOG << "Allocated block address    : " << &block[0];
+    LOG << "Allocated block address + 1: " << &block[1];
     LOG << std::dec;
 
     for (size_t i = 0; i < block_type::size; ++i)
     {
-        block->elem_[i].integer = i;
+        block[0].elem_[i].integer = i;
+        block[1].elem_[i].integer = i;
         // memcpy (block->elem[i].chars, "STXXL", 4);
     }
     for (size_t i = 0; i < nblocks; ++i)
-        reqs[i] = block->write(bids[i], my_handler());
+        reqs[i] = block[i].write(bids[i], my_handler());
 
     std::cout << "Waiting " << std::endl;
     wait_all(reqs, nblocks);
 
     for (size_t i = 0; i < nblocks; ++i)
     {
-        reqs[i] = block->read(bids[i], my_handler());
+        reqs[i] = block[i].read(bids[i], my_handler());
         reqs[i]->wait();
         for (size_t j = 0; j < block_type::size; ++j)
         {
-            die_unequal(j, static_cast<size_t>(block->elem_[j].integer));
+            die_unequal(j, static_cast<size_t>(block[i].elem_[j].integer));
         }
     }
 
     bm->delete_blocks(bids.begin(), bids.end());
 
     delete[] reqs;
-    delete[] block;
 
 #if 0
     // variable-size blocks, not supported currently
@@ -111,7 +112,7 @@ TEST(BlockManager, Test2) {
     std::vector<io::RequestPtr> requests;
     io::BlockManager* bm = io::BlockManager::get_instance();
     bm->new_blocks(io::Striping(), bids.begin(), bids.end());
-    std::vector<block_type, mem::new_alloc<block_type> > blocks(32);
+    std::vector<block_type, mem::AlignedAllocator<block_type> > blocks(32);
     for (size_t vIndex = 0; vIndex < 32; ++vIndex) {
         for (int vIndex2 = 0; vIndex2 < block_type::size; ++vIndex2) {
             blocks[vIndex][vIndex2] = vIndex2;

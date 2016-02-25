@@ -44,7 +44,7 @@ public:
           initial_element_(initial_element)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [this](const ValueType& input) {
                              PreOp(input);
                          };
 
@@ -52,13 +52,33 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    void StartPreOp(size_t /* id */) final {
+        writer_ = file_.GetWriter();
+    }
+
+    //! PreOp: compute local prefixsum and store items.
+    void PreOp(const ValueType& input) {
+        LOG << "Input: " << input;
+        local_sum_ = sum_function_(local_sum_, input);
+        writer_.Put(input);
+    }
+
     void StopPreOp(size_t /* id */) final {
         writer_.Close();
     }
 
-    //! Executes the sum operation.
+    //! Executes the prefixsum operation.
     void Execute() final {
-        MainOp();
+        LOG << "MainOp processing";
+
+        ValueType sum = context_.net.PrefixSum(
+            local_sum_, initial_element_, sum_function_, false);
+
+        if (context_.my_rank() == 0) {
+            sum = initial_element_;
+        }
+
+        local_sum_ = sum;
     }
 
     void PushData(bool consume) final {
@@ -72,7 +92,9 @@ public:
         }
     }
 
-    void Dispose() final { }
+    void Dispose() final {
+        file_.Clear();
+    }
 
 private:
     //! The sum function which is applied to two elements.
@@ -85,27 +107,7 @@ private:
     //! Local data file
     data::File file_ { context_.GetFile() };
     //! Data writer to local file (only active in PreOp).
-    data::File::Writer writer_ = file_.GetWriter();
-
-    //! PreOp: compute local prefixsum and store items.
-    void PreOp(const ValueType& input) {
-        LOG << "Input: " << input;
-        local_sum_ = sum_function_(local_sum_, input);
-        writer_.Put(input);
-    }
-
-    void MainOp() {
-        LOG << "MainOp processing";
-
-        ValueType sum = context_.net.PrefixSum(local_sum_, initial_element_,
-                                               sum_function_, false);
-
-        if (context_.my_rank() == 0) {
-            sum = initial_element_;
-        }
-
-        local_sum_ = sum;
-    }
+    data::File::Writer writer_;
 };
 
 template <typename ValueType, typename Stack>

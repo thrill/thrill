@@ -89,6 +89,10 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    void StartPreOp(size_t /* id */) final {
+        emitter_ = stream_->OpenWriters();
+    }
+
     void StopPreOp(size_t /* id */) final {
         // data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitter_.size(); i++) {
@@ -158,7 +162,7 @@ private:
     HashFunction hash_function_;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream() };
-    std::vector<data::Stream::Writer> emitter_ { stream_->OpenWriters() };
+    std::vector<data::Stream::Writer> emitter_;
     std::vector<data::File> files_;
     data::File sorted_elems_ { context_.GetFile() };
     size_t totalsize_ = 0;

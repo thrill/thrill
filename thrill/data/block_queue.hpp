@@ -46,9 +46,9 @@ class ConsumeBlockQueueSource;
  */
 class BlockQueue final : public BlockSink
 {
+public:
     static const bool debug = false;
 
-public:
     using Writer = BlockWriter<BlockQueue>;
     using Reader = DynBlockReader;
     using ConsumeReader = BlockReader<ConsumeBlockQueueSource>;
@@ -74,14 +74,16 @@ public:
     BlockQueue& operator = (BlockQueue&&) = default;
 
     void AppendBlock(const PinnedBlock& b) final {
+        LOG << "BlockQueue::AppendBlock() " << b;
         byte_counter_ += b.size();
         block_counter_++;
-        queue_.emplace(b);
+        queue_.emplace(b.ToBlock());
     }
     void AppendBlock(PinnedBlock&& b) {
+        LOG << "BlockQueue::AppendBlock() move " << b;
         byte_counter_ += b.size();
         block_counter_++;
-        queue_.emplace(std::move(b));
+        queue_.emplace(std::move(b).MoveToBlock());
     }
 
     //! Close called by BlockWriter.
@@ -99,9 +101,9 @@ public:
 
     enum { allocate_can_fail_ = false };
 
-    PinnedBlock Pop() {
-        if (read_closed_) return PinnedBlock();
-        PinnedBlock b;
+    Block Pop() {
+        if (read_closed_) return Block();
+        Block b;
         queue_.pop(b);
         read_closed_ = !b.IsValid();
         return b;
@@ -131,16 +133,16 @@ public:
     }
 
     //! return BlockReader specifically for a BlockQueue
-    ConsumeReader GetConsumeReader();
+    ConsumeReader GetConsumeReader(size_t local_worker_id);
 
     //! return polymorphic BlockSource variant
-    DynBlockSource GetBlockSource(bool consume);
+    DynBlockSource GetBlockSource(bool consume, size_t local_worker_id);
 
     //! return polymorphic BlockReader variant
-    Reader GetReader(bool consume);
+    Reader GetReader(bool consume, size_t local_worker_id);
 
 private:
-    common::ConcurrentBoundedQueue<PinnedBlock> queue_;
+    common::ConcurrentBoundedQueue<Block> queue_;
 
     common::AtomicMovable<bool> write_closed_ = { false };
 
@@ -171,21 +173,29 @@ private:
  */
 class ConsumeBlockQueueSource
 {
+    static const bool debug = BlockQueue::debug;
+
 public:
     //! Start reading from a BlockQueue
-    explicit ConsumeBlockQueueSource(BlockQueue& queue)
-        : queue_(queue)
-    { }
+    explicit ConsumeBlockQueueSource(BlockQueue& queue, size_t local_worker_id)
+        : queue_(queue), local_worker_id_(local_worker_id) { }
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
     PinnedBlock NextBlock() {
-        return queue_.Pop();
+        Block b = queue_.Pop();
+        LOG << "ConsumeBlockQueueSource::NextBlock() " << b;
+
+        if (!b.IsValid()) return PinnedBlock();
+        return b.PinWait(local_worker_id_);
     }
 
 private:
     //! BlockQueue that blocks are retrieved from
     BlockQueue& queue_;
+
+    //! local worker id of the thread _reading_ the BlockQueue
+    size_t local_worker_id_;
 };
 
 /*!
@@ -196,10 +206,12 @@ private:
  */
 class CacheBlockQueueSource
 {
+    static const bool debug = BlockQueue::debug;
+
 public:
     //! Start reading from a BlockQueue
-    explicit CacheBlockQueueSource(BlockQueue* queue)
-        : queue_(queue) { }
+    explicit CacheBlockQueueSource(BlockQueue* queue, size_t local_worker_id)
+        : queue_(queue), local_worker_id_(local_worker_id) { }
 
     //! non-copyable: delete copy-constructor
     CacheBlockQueueSource(const CacheBlockQueueSource&) = delete;
@@ -207,17 +219,23 @@ public:
     CacheBlockQueueSource& operator = (const CacheBlockQueueSource&) = delete;
     //! move-constructor: default
     CacheBlockQueueSource(CacheBlockQueueSource&& s)
-        : queue_(s.queue_) { s.queue_ = nullptr; }
+        : queue_(s.queue_), local_worker_id_(s.local_worker_id_)
+    { s.queue_ = nullptr; }
 
     //! Return next block for BlockQueue, store into caching File and return it.
     PinnedBlock NextBlock() {
-        PinnedBlock b = queue_->Pop();
+        LOG << "CacheBlockQueueSource[" << this << "]::NextBlock() closed " << queue_->read_closed();
+        Block b = queue_->Pop();
+        LOG << "CacheBlockQueueSource[" << this << "]::NextBlock() " << b;
 
         // cache block in file_ (but not the termination block from the queue)
         if (b.IsValid())
             queue_->file_.AppendBlock(b);
 
-        return b;
+        if (!b.IsValid())
+            return PinnedBlock();
+
+        return b.PinWait(local_worker_id_);
     }
 
     //! Consume remaining blocks and cache them in the File.
@@ -230,6 +248,9 @@ public:
 private:
     //! Reference to BlockQueue
     BlockQueue* queue_;
+
+    //! local worker id of the thread _reading_ the BlockQueue
+    size_t local_worker_id_;
 };
 
 //! \}

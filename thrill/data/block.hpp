@@ -143,7 +143,7 @@ protected:
  * Be careful to move PinnedBlock as must as possible, since copying costs a
  * pinning and an unpinning operation, whereas moving is free.
  */
-class PinnedBlock : public Block
+class PinnedBlock : private Block
 {
 public:
     //! Create invalid PinnedBlock.
@@ -198,9 +198,46 @@ public:
     }
 
     ~PinnedBlock() {
+        LOG << "~PinnedBlock() byte_block_=" << byte_block_.get();
         if (byte_block_)
             byte_block_->DecPinCount(local_worker_id_);
     }
+
+    //! \name Accessors to Super-Class
+    //! {
+
+    //! Return whether the enclosed ByteBlock is valid.
+    bool IsValid() const { return Block::IsValid(); }
+
+    //! access to byte_block_
+    const ByteBlockPtr & byte_block() const { return Block::byte_block(); }
+
+    //! mutable access to byte_block_
+    ByteBlockPtr & byte_block() { return Block::byte_block(); }
+
+    //! return number of items beginning in this block
+    size_t num_items() const { return Block::num_items(); }
+
+    //! return number of pins in underlying ByteBlock
+    size_t pin_count(size_t local_worker_id) const
+    { return Block::pin_count(local_worker_id); }
+
+    //! accessor to begin_
+    void set_begin(size_t i) { return Block::set_begin(i); }
+
+    //! accessor to end_
+    void set_end(size_t i) { return Block::set_end(i); }
+
+    //! return length of valid data in bytes.
+    size_t size() const { return Block::size(); }
+
+    //! accessor to first_item_ (absolute in ByteBlock)
+    size_t first_item_absolute() const { return Block::first_item_absolute(); }
+
+    //! return the first_item_offset relative to data_begin().
+    size_t first_item_relative() const { return Block::first_item_relative(); }
+
+    //! }
 
     //! return pointer to beginning of valid data
     const Byte * data_begin() const {
@@ -222,9 +259,20 @@ public:
         }
     }
 
+    //! extract Block has an unpinned copy
+    Block ToBlock() const {
+        return Block(*this);
+    }
+
+    //! extract Block has an unpinned move
+    Block MoveToBlock() && {
+        byte_block_->DecPinCount(local_worker_id_);
+        return Block(std::move(*this));
+    }
+
     //! extract ByteBlock including it's pin. afterwards, this PinnedBlock is
     //! invalid.
-    PinnedByteBlockPtr StealPinnedByteBlock() {
+    PinnedByteBlockPtr StealPinnedByteBlock() && {
         return PinnedByteBlockPtr(std::move(byte_block_), local_worker_id_);
     }
 

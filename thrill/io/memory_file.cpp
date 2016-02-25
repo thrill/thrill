@@ -14,7 +14,7 @@
 
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/memory_file.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <cassert>
 #include <cstring>

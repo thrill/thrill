@@ -19,7 +19,7 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/io/create_file.hpp>
 #include <thrill/io/request_operations.hpp>
-#include <thrill/mem/aligned_alloc.hpp>
+#include <thrill/mem/aligned_allocator.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -193,7 +193,7 @@ int main(int argc, char* argv[]) {
     const size_t block_size_int = block_size / sizeof(int);
     const uint64_t step_size_int = step_size / sizeof(int);
 
-    unsigned* buffer = static_cast<unsigned*>(mem::aligned_alloc(step_size * nfiles));
+    unsigned* buffer = reinterpret_cast<unsigned*>(mem::aligned_alloc(step_size * nfiles));
     io::FileBase** files = new io::FileBase*[nfiles];
     io::RequestPtr* reqs = new io::RequestPtr[nfiles * batch_size];
 
@@ -437,7 +437,7 @@ int main(int argc, char* argv[]) {
     for (unsigned i = 0; i < nfiles; i++)
         delete files[i];
     delete[] files;
-    mem::aligned_dealloc(buffer);
+    mem::aligned_dealloc(buffer, step_size * nfiles);
 
     return (verify_failed ? 1 : 0);
 }
