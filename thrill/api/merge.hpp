@@ -162,7 +162,7 @@ public:
         for (size_t i = 0; i < num_inputs_; ++i)
             writers_[i] = files_[i]->GetWriter();
 
-        common::VarCallForeachIndex(
+        common::VariadicCallForeachIndex(
             RegisterParent(this), parent0, parents ...);
     }
 

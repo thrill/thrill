@@ -20,7 +20,7 @@ using namespace thrill;
 std::ostringstream g_oss;
 
 /******************************************************************************/
-// VarCallForeach
+// VariadicCallForeach
 
 std::tuple<int, char, double> my_tuple {
     1, '2', 3
@@ -36,24 +36,24 @@ struct DoSomething {
 
 template <typename ... Args>
 void func(const Args& ... args) {
-    common::VarCallForeachIndex(
+    common::VariadicCallForeachIndex(
         [](auto index, auto a) {
             g_oss << index << " " << a << " "
                   << std::get<decltype(index)::index>(my_tuple) << "\n";
         },
         args ...);
 
-    common::VarCallForeachIndex(DoSomething(), args ...);
+    common::VariadicCallForeachIndex(DoSomething(), args ...);
 
     // due to automatic conversion, we can just take a size_t, too.
-    common::VarCallForeachIndex(
+    common::VariadicCallForeachIndex(
         [](size_t index, auto a) {
             g_oss << index << " " << a << "\n";
         },
         args ...);
 }
 
-TEST(Meta, VarCallForeach) {
+TEST(Meta, VariadicCallForeach) {
     g_oss.str("");
 
     func(static_cast<int>(42),
@@ -66,22 +66,22 @@ TEST(Meta, VarCallForeach) {
 }
 
 /******************************************************************************/
-// VarCallEnumerate
+// VariadicCallEnumerate
 
-TEST(Meta, VarCallEnumerate) {
+TEST(Meta, VariadicCallEnumerate) {
     g_oss.str("");
 
-    common::VarCallEnumerate<16>(
+    common::VariadicCallEnumerate<16>(
         [](size_t index) { g_oss << index << " "; });
 
-    common::VarCallEnumerate<4, 8>(
+    common::VariadicCallEnumerate<4, 8>(
         [](auto index) { g_oss << index << " "; });
 
     ASSERT_EQ("0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 4 5 6 7 ", g_oss.str());
 }
 
 /******************************************************************************/
-// VarMapIndex
+// VariadicMapIndex
 
 class Functor
 {
@@ -94,10 +94,10 @@ public:
     }
 };
 
-TEST(Meta, VarMapIndex) {
+TEST(Meta, VariadicMapIndex) {
     g_oss.str("");
 
-    auto res = common::VarMapIndex(
+    auto res = common::VariadicMapIndex(
         [](auto index, auto a) {
             Functor().Run(a);
             return a + index;
@@ -111,12 +111,12 @@ TEST(Meta, VarMapIndex) {
 }
 
 /******************************************************************************/
-// VarMapIndex
+// VariadicMapIndex
 
-TEST(Meta, VarMapEnumerate) {
+TEST(Meta, VariadicMapEnumerate) {
     g_oss.str("");
 
-    auto res = common::VarMapEnumerate<3>(
+    auto res = common::VariadicMapEnumerate<3>(
         [](auto index) {
             (void)index;
             return std::get<decltype(index)::index>(my_tuple);

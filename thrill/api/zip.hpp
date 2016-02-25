@@ -106,7 +106,7 @@ public:
             files_.emplace_back(context_.GetFile());
 
         // Hook PreOp(s)
-        common::VarCallForeachIndex(
+        common::VariadicCallForeachIndex(
             RegisterParent(this), parent0, parents ...);
     }
 
@@ -135,7 +135,7 @@ public:
             ReaderNext reader_next(*this, readers);
 
             while (reader_next.HasNext()) {
-                auto v = common::VarMapEnumerate<num_inputs_>(reader_next);
+                auto v = common::VariadicMapEnumerate<num_inputs_>(reader_next);
                 this->PushItem(common::ApplyTuple(zip_function_, v));
                 ++result_count;
             }
@@ -189,12 +189,10 @@ private:
             // get the ZipFunction's argument for this index
             using ZipArg = ZipArgN<Index::index>;
 
-            // check that the parent's type is convertible to the
-            // ZipFunction argument.
+            // check that the parent's type is convertible to the ZipFunction
+            // argument.
             static_assert(
-                std::is_convertible<
-                    typename Parent::ValueType, ZipArg
-                    >::value,
+                std::is_convertible<typename Parent::ValueType, ZipArg>::value,
                 "ZipFunction argument does not match input DIA");
 
             // construct lambda with only the writer in the closure
@@ -299,7 +297,7 @@ private:
 
         // perform scatters to exchange data, with different types.
         if (result_size_ != 0) {
-            common::VarCallEnumerate<num_inputs_>(
+            common::VariadicCallEnumerate<num_inputs_>(
                 [=](auto index) {
                     (void)index;
                     this->DoScatter<decltype(index)::index>();
