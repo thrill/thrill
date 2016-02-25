@@ -1,17 +1,8 @@
-# bechmarks
-benchmarks/hashtable/bench_bucket_hashtable/**
-benchmarks/hashtable/bench_probing_hashtable/**
-
 # build
 build/**
-docs/**
 doxygen-html/**
 doxygen_sqlite3.db
 __pycache__
-
-#libs that are downloaded through setup.sh
-lib/*
-extlib/*
 
 # Compiled Object files
 *.slo
@@ -27,9 +18,6 @@ extlib/*
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
 
 # Compiled Static libraries
 *.lai
