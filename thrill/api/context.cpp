@@ -32,6 +32,10 @@
 // linux-specific process control
 #include <sys/prctl.h>
 
+// for calling getrlimit() to determine memory limit
+#include <sys/resource.h>
+#include <sys/time.h>
+
 #endif
 
 #if __APPLE__
@@ -306,6 +310,9 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
 
     size_t my_host_rank = 0;
+
+    if (!env_rank)
+        env_rank = getenv("SLURM_PROCID");
 
     if (env_rank) {
         my_host_rank = std::strtoul(env_rank, &endptr, 10);
@@ -708,6 +715,19 @@ int MemoryConfig::setup_detect() {
         ram_ = static_cast<size_t>(physical_memory);
 #else
         ram_ = sysconf(_SC_PHYS_PAGES) * (size_t)sysconf(_SC_PAGESIZE);
+#endif
+
+#if __linux__
+        // use getrlimit() to check user limit on address space
+        struct rlimit rl;
+        if (getrlimit(RLIMIT_AS, &rl) == 0) {
+            if (rl.rlim_cur != 0 && rl.rlim_cur < ram_) {
+                ram_ = rl.rlim_cur;
+            }
+        }
+        else {
+            sLOG1 << "getrlimit(): " << strerror(errno);
+        }
 #endif
     }
 
