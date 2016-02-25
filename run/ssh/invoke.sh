@@ -9,10 +9,6 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-ssh_dir="`dirname "$0"`"
-ssh_dir="`cd "$ssh_dir"; pwd`"
-cluster=${ssh_dir}/../cluster
-
 set -e
 
 # Reset in case getopts has been used previously in the shell.
@@ -23,8 +19,6 @@ copy=0
 verbose=1
 dir=
 user=$(whoami)
-
-. ${cluster}/thrill-env.sh
 
 while getopts "u:h:H:cvCw:" opt; do
     case "$opt" in

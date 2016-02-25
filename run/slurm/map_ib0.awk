@@ -10,9 +10,8 @@
 
 BEGIN { FS=" "; PORTBASE=51000 }
 /^uc1/ {
-    j = 1
-    for(i = 1; i <= workers_per_node * NF; i++) {
-        id = gensub(/^uc1n([0-9]+)$/, "\\1", "", $j);
+    for(i = 1; i <= NF; i++) {
+        id = gensub(/^uc1n([0-9]+)$/, "\\1", "", $i);
         if (id < 256) {
             printf("172.26.4.%d:%d ", id, PORTBASE + i)
         } else if (id < 512) {
@@ -22,9 +21,6 @@ BEGIN { FS=" "; PORTBASE=51000 }
         } else {
             exit -1
         }
-	if (i % workers_per_node == 0) {
-	    j++
-	}
     }
 }
 /^ic2/ {

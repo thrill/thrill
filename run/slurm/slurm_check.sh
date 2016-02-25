@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# run/slurm/slurmCheck.sh
+# run/slurm/slurm_check.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

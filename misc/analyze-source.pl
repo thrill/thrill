@@ -760,6 +760,8 @@ foreach my $file (@filelist)
     }
     elsif ($file =~ m!^misc/!) {
     }
+    elsif ($file =~ m!^run/.*\.(md|json)$!) {
+    }
     elsif ($file =~ m!^tests/inputs/!) {
     }
     elsif ($file =~ m!CPPLINT\.cfg$!) {
