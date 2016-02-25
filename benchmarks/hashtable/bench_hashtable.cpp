@@ -38,16 +38,8 @@ unsigned int workers = 100;
 
 uint64_t item_range = std::numeric_limits<Key>::max();
 
-template <
-    template <
-        typename ValueType, typename Key, typename Value,
-        typename KeyExtractor, typename ReduceFunction, typename Emitter,
-        const bool RobustKey,
-        typename IndexFunction = core::ReduceByHash<Key>,
-        typename ReduceStageConfig = core::DefaultReduceTableConfig,
-        typename EqualToFunction = std::equal_to<Key> >
-    class HashTable>
-void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& config) {
+template <core::ReduceTableImpl table_impl>
+void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& base_config) {
 
     auto key_ex = [](const Key& in) { return in; };
 
@@ -63,14 +55,17 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceTableConfig& config) {
     std::default_random_engine rng(std::random_device { } ());
     std::uniform_int_distribution<Key> dist(1, item_range);
 
+    core::DefaultReduceTableConfigSelect<table_impl> config;
+    config.limit_partition_fill_rate_ = base_config.limit_partition_fill_rate_;
+    config.bucket_rate_ = base_config.bucket_rate_;
+
     core::ReduceByHashPostStage<
         Key, Key, Key,
         decltype(key_ex), decltype(red_fn), decltype(emit_fn),
         /* SendPair */ true,
         core::ReduceByHash<Key>,
-        core::DefaultReduceTableConfig,
-        std::equal_to<Key>,
-        HashTable>
+        core::DefaultReduceTableConfigSelect<table_impl>,
+        std::equal_to<Key> >
     stage(ctx, key_ex, red_fn, emit_fn,
           core::ReduceByHash<Key>(),
           config);
@@ -136,9 +131,9 @@ int main(int argc, char* argv[]) {
     api::RunLocalSameThread(
         [&](api::Context& ctx) {
             if (hashtable == "bucket")
-                return RunBenchmark<core::ReduceBucketHashTable>(ctx, config);
+                return RunBenchmark<core::ReduceTableImpl::BUCKET>(ctx, config);
             else
-                return RunBenchmark<core::ReduceProbingHashTable>(ctx, config);
+                return RunBenchmark<core::ReduceTableImpl::PROBING>(ctx, config);
         });
 
     return 0;

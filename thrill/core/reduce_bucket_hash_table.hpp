@@ -664,6 +664,23 @@ private:
     //! \}
 };
 
+template <typename ValueType, typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
+          typename Emitter, const bool RobustKey,
+          typename IndexFunction, typename ReduceStageConfig,
+          typename EqualToFunction>
+class ReduceTableSelect<
+        ReduceTableImpl::BUCKET,
+        ValueType, Key, Value, KeyExtractor, ReduceFunction,
+        Emitter, RobustKey, IndexFunction, ReduceStageConfig, EqualToFunction>
+{
+public:
+    using type = ReduceBucketHashTable<
+              ValueType, Key, Value, KeyExtractor, ReduceFunction,
+              Emitter, RobustKey, IndexFunction,
+              ReduceStageConfig, EqualToFunction>;
+};
+
 } // namespace core
 } // namespace thrill
 

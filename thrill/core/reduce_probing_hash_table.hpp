@@ -422,6 +422,24 @@ private:
     size_t sentinel_partition_ = invalid_partition_;
 };
 
+template <typename ValueType, typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
+          typename Emitter, const bool RobustKey,
+          typename IndexFunction, typename ReduceStageConfig,
+          typename EqualToFunction>
+class ReduceTableSelect<
+        ReduceTableImpl::PROBING,
+        ValueType, Key, Value, KeyExtractor, ReduceFunction,
+        Emitter, RobustKey, IndexFunction,
+        ReduceStageConfig, EqualToFunction>
+{
+public:
+    using type = ReduceProbingHashTable<
+              ValueType, Key, Value, KeyExtractor, ReduceFunction,
+              Emitter, RobustKey, IndexFunction,
+              ReduceStageConfig, EqualToFunction>;
+};
+
 } // namespace core
 } // namespace thrill
 

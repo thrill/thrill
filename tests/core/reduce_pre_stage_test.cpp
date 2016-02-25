@@ -33,15 +33,7 @@ struct MyStruct
 
 /******************************************************************************/
 
-template <
-    template <
-        typename ValueType, typename Key, typename Value,
-        typename KeyExtractor, typename ReduceFunction,
-        const bool RobustKey,
-        typename IndexFunction = core::ReduceByHash<Key>,
-        typename ReduceStageConfig = core::DefaultReduceTableConfig,
-        typename EqualToFunction = std::equal_to<Key> >
-    class PreStage>
+template <core::ReduceTableImpl table_impl>
 static void TestAddMyStructByHash(Context& ctx) {
     static const size_t mod_size = 601;
     static const size_t test_size = mod_size * 100;
@@ -68,9 +60,11 @@ static void TestAddMyStructByHash(Context& ctx) {
         emitters.emplace_back(files[i].GetDynWriter());
 
     // process items with stage
-    using Stage = PreStage<
+    using Stage = core::ReducePreStage<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), true>;
+              decltype(key_ex), decltype(red_fn), true,
+              core::ReduceByHash<size_t>,
+              core::DefaultReduceTableConfigSelect<table_impl> >;
 
     Stage stage(ctx, num_partitions, key_ex, red_fn, emitters);
 
@@ -106,27 +100,20 @@ static void TestAddMyStructByHash(Context& ctx) {
 TEST(ReducePreStage, BucketAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
-            TestAddMyStructByHash<core::ReducePreBucketStage>(ctx);
+            TestAddMyStructByHash<core::ReduceTableImpl::BUCKET>(ctx);
         });
 }
 
 TEST(ReducePreStage, ProbingAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
-            TestAddMyStructByHash<core::ReducePreProbingStage>(ctx);
+            TestAddMyStructByHash<core::ReduceTableImpl::PROBING>(ctx);
         });
 }
 
 /******************************************************************************/
 
-template <
-    template <typename ValueType, typename Key, typename Value,
-              typename KeyExtractor, typename ReduceFunction,
-              const bool SendPair = false,
-              typename IndexFunction = core::ReduceByIndex<Key>,
-              typename ReduceStageConfig = core::DefaultReduceTableConfig,
-              typename EqualToFunction = std::equal_to<Key> >
-    class PreStage>
+template <core::ReduceTableImpl table_impl>
 static void TestAddMyStructByIndex(Context& ctx) {
     static const size_t mod_size = 601;
     static const size_t test_size = mod_size * 100;
@@ -153,10 +140,11 @@ static void TestAddMyStructByIndex(Context& ctx) {
         emitters.emplace_back(files[i].GetDynWriter());
 
     // process items with stage
-    using Stage = PreStage<
+    using Stage = core::ReducePreStage<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), true,
-              core::ReduceByIndex<size_t> >;
+              core::ReduceByIndex<size_t>,
+              core::DefaultReduceTableConfigSelect<table_impl> >;
 
     Stage stage(ctx,
                 num_partitions,
@@ -193,14 +181,14 @@ static void TestAddMyStructByIndex(Context& ctx) {
 TEST(ReducePreStage, BucketAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
-            TestAddMyStructByIndex<core::ReducePreBucketStage>(ctx);
+            TestAddMyStructByIndex<core::ReduceTableImpl::BUCKET>(ctx);
         });
 }
 
 TEST(ReducePreStage, ProbingAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
-            TestAddMyStructByIndex<core::ReducePreProbingStage>(ctx);
+            TestAddMyStructByIndex<core::ReduceTableImpl::PROBING>(ctx);
         });
 }
 

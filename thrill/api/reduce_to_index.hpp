@@ -199,13 +199,13 @@ private:
 
     size_t result_size_;
 
-    core::ReducePreProbingStage<
+    core::ReducePreStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
         core::ReduceByIndex<Key>,
         decltype(ReduceConfig::pre_table),
         std::equal_to<Key> > pre_stage_;
 
-    core::ReduceByIndexPostProbingStage<
+    core::ReduceByIndexPostStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
         core::ReduceByIndex<Key>,
         decltype(ReduceConfig::post_table),

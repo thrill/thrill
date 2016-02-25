@@ -102,17 +102,10 @@ public:
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
-          const bool RobustKey,
-          typename IndexFunction,
-          typename ReduceStageConfig,
-          typename EqualToFunction,
-          template <typename _ValueType, typename _Key, typename _Value,
-                    typename _KeyExtractor, typename _ReduceFunction,
-                    typename _Emitter,
-                    const bool _RobustKey,
-                    typename _IndexFunction,
-                    typename _ReduceStageConfig,
-                    typename _EqualToFunction> class HashTable>
+          const bool RobustKey = false,
+          typename IndexFunction = ReduceByHash<Key>,
+          typename ReduceStageConfig = DefaultReduceTableConfig,
+          typename EqualToFunction = std::equal_to<Key> >
 class ReducePreStage
 {
     static const bool debug = false;
@@ -122,10 +115,12 @@ public:
 
     using Emitter = ReducePreStageEmitter<KeyValuePair, RobustKey>;
 
-    using Table = HashTable<
+    using Table = typename ReduceTableSelect<
+              ReduceStageConfig::table_impl_,
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, Emitter,
-              RobustKey, IndexFunction, ReduceStageConfig, EqualToFunction>;
+              RobustKey, IndexFunction,
+              ReduceStageConfig, EqualToFunction>::type;
 
     /*!
      * A data structure which takes an arbitrary value and extracts a key using
@@ -208,32 +203,6 @@ private:
     //! the first-level hash table implementation
     Table table_;
 };
-
-template <typename ValueType, typename Key, typename Value,
-          typename KeyExtractor, typename ReduceFunction,
-          const bool RobustKey = false,
-          typename IndexFunction = ReduceByHash<Key>,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
-          typename EqualToFunction = std::equal_to<Key> >
-using ReducePreBucketStage = ReducePreStage<
-          ValueType, Key, Value,
-          KeyExtractor, ReduceFunction,
-          RobustKey,
-          IndexFunction, ReduceStageConfig, EqualToFunction,
-          ReduceBucketHashTable>;
-
-template <typename ValueType, typename Key, typename Value,
-          typename KeyExtractor, typename ReduceFunction,
-          const bool RobustKey = false,
-          typename IndexFunction = ReduceByHash<Key>,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
-          typename EqualToFunction = std::equal_to<Key> >
-using ReducePreProbingStage = ReducePreStage<
-          ValueType, Key, Value,
-          KeyExtractor, ReduceFunction,
-          RobustKey,
-          IndexFunction, ReduceStageConfig, EqualToFunction,
-          ReduceProbingHashTable>;
 
 } // namespace core
 } // namespace thrill

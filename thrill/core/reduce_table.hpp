@@ -14,6 +14,7 @@
 #define THRILL_CORE_REDUCE_TABLE_HEADER
 
 #include <thrill/api/context.hpp>
+#include <thrill/core/reduce_functional.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -23,6 +24,11 @@
 
 namespace thrill {
 namespace core {
+
+//! Enum class to select a hash table implementation.
+enum class ReduceTableImpl {
+    PROBING, BUCKET
+};
 
 /*!
  * Configuration class to define operational parameters of reduce hash tables
@@ -40,6 +46,9 @@ public:
     //! relative to the maximum possible number.
     double bucket_rate_ = 0.5;
 
+    //! select the hash table in the reduce stage by enum
+    static constexpr ReduceTableImpl table_impl_ = ReduceTableImpl::PROBING;
+
     //! only for BucketHashTable: size of a block in the bucket chain in bytes
     //! (must be a static constexpr)
     static constexpr size_t bucket_block_size = 256;
@@ -55,6 +64,17 @@ public:
     double bucket_rate() const { return bucket_rate_; }
 
     //! }
+};
+
+/*!
+ * DefaultReduceTableConfig with implementation type selection
+ */
+template <ReduceTableImpl table_impl>
+class DefaultReduceTableConfigSelect : public DefaultReduceTableConfig
+{
+public:
+    //! select the hash table in the reduce stage by enum
+    static constexpr ReduceTableImpl table_impl_ = table_impl;
 };
 
 /*!
@@ -261,6 +281,17 @@ protected:
 
     //! \}
 };
+
+//! Type selection via ReduceTableImpl enum
+template <ReduceTableImpl ImplSelect,
+          typename ValueType, typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
+          typename Emitter,
+          const bool RobustKey = false,
+          typename IndexFunction = ReduceByHash<Key>,
+          typename ReduceStageConfig = DefaultReduceTableConfig,
+          typename EqualToFunction = std::equal_to<Key> >
+class ReduceTableSelect;
 
 } // namespace core
 } // namespace thrill

@@ -61,16 +61,10 @@ public:
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
-          const bool SendPair,
-          typename IndexFunction,
-          typename ReduceStageConfig,
-          typename EqualToFunction,
-          template <typename _ValueType, typename _Key, typename _Value,
-                    typename _KeyExtractor, typename _ReduceFunction, typename _Emitter,
-                    const bool _RobustKey,
-                    typename _IndexFunction,
-                    typename _ReduceStageConfig,
-                    typename _EqualToFunction> class HashTable>
+          const bool SendPair = false,
+          typename IndexFunction = ReduceByIndex<Key>,
+          typename ReduceStageConfig = DefaultReduceTableConfig,
+          typename EqualToFunction = std::equal_to<Key> >
 class ReduceByIndexPostStage
 {
     static const bool debug = false;
@@ -81,10 +75,12 @@ public:
     using StageEmitter = ReduceByIndexPostStageEmitter<
               KeyValuePair, ValueType, Emitter, SendPair>;
 
-    using Table = HashTable<
+    using Table = typename ReduceTableSelect<
+              ReduceStageConfig::table_impl_,
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, StageEmitter,
-              !SendPair, IndexFunction, ReduceStageConfig, EqualToFunction>;
+              !SendPair, IndexFunction,
+              ReduceStageConfig, EqualToFunction>::type;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using
@@ -407,32 +403,6 @@ private:
     //! File for storing data in-case we need multiple re-reduce levels.
     data::FilePtr cache_;
 };
-
-template <typename ValueType, typename Key, typename Value,
-          typename KeyExtractor, typename ReduceFunction, typename Emitter,
-          const bool SendPair = false,
-          typename IndexFunction = ReduceByIndex<Key>,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
-          typename EqualToFunction = std::equal_to<Key> >
-using ReduceByIndexPostBucketStage = ReduceByIndexPostStage<
-          ValueType, Key, Value,
-          KeyExtractor, ReduceFunction, Emitter,
-          SendPair,
-          IndexFunction, ReduceStageConfig, EqualToFunction,
-          ReduceBucketHashTable>;
-
-template <typename ValueType, typename Key, typename Value,
-          typename KeyExtractor, typename ReduceFunction, typename Emitter,
-          const bool SendPair = false,
-          typename IndexFunction = ReduceByIndex<Key>,
-          typename ReduceStageConfig = DefaultReduceTableConfig,
-          typename EqualToFunction = std::equal_to<Key> >
-using ReduceByIndexPostProbingStage = ReduceByIndexPostStage<
-          ValueType, Key, Value,
-          KeyExtractor, ReduceFunction, Emitter,
-          SendPair,
-          IndexFunction, ReduceStageConfig, EqualToFunction,
-          ReduceProbingHashTable>;
 
 } // namespace core
 } // namespace thrill

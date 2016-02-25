@@ -33,14 +33,7 @@ struct MyStruct
 
 /******************************************************************************/
 
-template <
-    template <typename ValueType, typename Key, typename Value,
-              typename KeyExtractor, typename ReduceFunction, typename Emitter,
-              const bool SendPair = false,
-              typename IndexFunction = core::ReduceByHash<Key>,
-              typename ReduceStageConfig = core::DefaultReduceTableConfig,
-              typename EqualToFunction = std::equal_to<Key> >
-    class PostStage>
+template <core::ReduceTableImpl table_impl>
 static void TestAddMyStructByHash(Context& ctx) {
     static const bool debug = false;
     static const size_t mod_size = 601;
@@ -64,12 +57,13 @@ static void TestAddMyStructByHash(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = PostStage<
+    using Stage = core::ReduceByHashPostStage<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
+              decltype(key_ex), decltype(red_fn), decltype(emit_fn), false,
+              core::ReduceByHash<size_t>,
+              core::DefaultReduceTableConfigSelect<table_impl> >;
 
-    Stage stage(ctx, key_ex, red_fn, emit_fn,
-                core::ReduceByHash<size_t>());
+    Stage stage(ctx, key_ex, red_fn, emit_fn);
     stage.Initialize(/* limit_memory_bytes */ 64 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
@@ -99,14 +93,14 @@ static void TestAddMyStructByHash(Context& ctx) {
 TEST(ReduceHashStage, BucketAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
-            TestAddMyStructByHash<core::ReducePostBucketStage>(ctx);
+            TestAddMyStructByHash<core::ReduceTableImpl::BUCKET>(ctx);
         });
 }
 
 TEST(ReduceHashStage, ProbingAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
-            TestAddMyStructByHash<core::ReducePostProbingStage>(ctx);
+            TestAddMyStructByHash<core::ReduceTableImpl::PROBING>(ctx);
         });
 }
 
@@ -142,14 +136,7 @@ TEST(ReduceHashStage, PostReduceByIndex) {
 
 /******************************************************************************/
 
-template <
-    template <typename ValueType, typename Key, typename Value,
-              typename KeyExtractor, typename ReduceFunction, typename Emitter,
-              const bool SendPair = false,
-              typename IndexFunction = core::ReduceByIndex<Key>,
-              typename ReduceStageConfig = core::DefaultReduceTableConfig,
-              typename EqualToFunction = std::equal_to<Key> >
-    class PostStage>
+template <core::ReduceTableImpl table_impl>
 static void TestAddMyStructByIndex(Context& ctx) {
     static const bool debug = false;
     static const size_t mod_size = 601;
@@ -173,9 +160,11 @@ static void TestAddMyStructByIndex(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = PostStage<
+    using Stage = core::ReduceByIndexPostStage<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
+              decltype(key_ex), decltype(red_fn), decltype(emit_fn), false,
+              core::ReduceByIndex<size_t>,
+              core::DefaultReduceTableConfigSelect<table_impl> >;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByIndex<size_t>(0, mod_size),
@@ -207,27 +196,20 @@ static void TestAddMyStructByIndex(Context& ctx) {
 TEST(ReduceHashStage, BucketAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
-            TestAddMyStructByIndex<core::ReduceByIndexPostBucketStage>(ctx);
+            TestAddMyStructByIndex<core::ReduceTableImpl::BUCKET>(ctx);
         });
 }
 
 TEST(ReduceHashStage, ProbingAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
-            TestAddMyStructByIndex<core::ReduceByIndexPostProbingStage>(ctx);
+            TestAddMyStructByIndex<core::ReduceTableImpl::PROBING>(ctx);
         });
 }
 
 /******************************************************************************/
 
-template <
-    template <typename ValueType, typename Key, typename Value,
-              typename KeyExtractor, typename ReduceFunction, typename Emitter,
-              const bool SendPair = false,
-              typename IndexFunction = core::ReduceByIndex<Key>,
-              typename ReduceStageConfig = core::DefaultReduceTableConfig,
-              typename EqualToFunction = std::equal_to<Key> >
-    class PostStage>
+template <core::ReduceTableImpl table_impl>
 static void TestAddMyStructByIndexWithHoles(Context& ctx) {
     static const bool debug = false;
     static const size_t mod_size = 600;
@@ -251,9 +233,11 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = PostStage<
+    using Stage = core::ReduceByIndexPostStage<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), decltype(emit_fn), false>;
+              decltype(key_ex), decltype(red_fn), decltype(emit_fn), false,
+              core::ReduceByIndex<size_t>,
+              core::DefaultReduceTableConfigSelect<table_impl> >;
 
     Stage stage(ctx, key_ex, red_fn, emit_fn,
                 core::ReduceByIndex<size_t>(0, mod_size),
@@ -288,14 +272,14 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
 TEST(ReduceHashStage, BucketAddMyStructByIndexWithHoles) {
     api::RunLocalSameThread(
         [](Context& ctx) {
-            TestAddMyStructByIndexWithHoles<core::ReduceByIndexPostBucketStage>(ctx);
+            TestAddMyStructByIndexWithHoles<core::ReduceTableImpl::BUCKET>(ctx);
         });
 }
 
 TEST(ReduceHashStage, ProbingAddMyStructByIndexWithHoles) {
     api::RunLocalSameThread(
         [](Context& ctx) {
-            TestAddMyStructByIndexWithHoles<core::ReduceByIndexPostProbingStage>(ctx);
+            TestAddMyStructByIndexWithHoles<core::ReduceTableImpl::PROBING>(ctx);
         });
 }
 
