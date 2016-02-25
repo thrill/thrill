@@ -26,6 +26,7 @@
 
 #include <functional>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -75,6 +76,7 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
     using Output = typename common::If<RobustKey, Value, KeyValuePair>::type;
 
     static const bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
+    static const bool use_post_thread_ = ReduceConfig::use_post_thread_;
 
 private:
     //! Emitter for PostStage to push elements to next DIA object.
@@ -84,6 +86,7 @@ private:
         explicit Emitter(ReduceToIndexNode* node) : node_(node) { }
         void operator () (const ValueType& item) const
         { return node_->PushItem(item); }
+
     private:
         ReduceToIndexNode* node_;
     };
@@ -136,19 +139,31 @@ public:
     }
 
     void StartPreOp(size_t /* id */) final {
-        pre_stage_.Initialize(DIABase::mem_limit_ / 2);
+        if (!use_post_thread_) {
+            // use pre_stage without extra thread
+            pre_stage_.Initialize(DIABase::mem_limit_);
+        }
+        else {
+            pre_stage_.Initialize(DIABase::mem_limit_ / 2);
 
-        // re-parameterize with resulting key range on this worker - this is
-        // only know after Initialize() of the pre_stage_.
-        post_stage_.table().index_function() =
-            core::ReduceByIndex<Key>(pre_stage_.key_range(context_.my_rank()));
+            // re-parameterize with resulting key range on this worker - this is
+            // only know after Initialize() of the pre_stage_.
+            post_stage_.table().index_function() =
+                core::ReduceByIndex<Key>(pre_stage_.key_range(context_.my_rank()));
+            post_stage_.Initialize(DIABase::mem_limit_ / 2);
+
+            // start additional thread to receive from the channel
+            thread_ = std::thread([this] { ProcessChannel(); });
+        }
     }
 
     void StopPreOp(size_t /* id */) final {
-        LOG << *this << " running main op";
+        LOG << *this << " running StopPreOp";
         // Flush hash table before the postOp
         pre_stage_.FlushAll();
         pre_stage_.CloseAll();
+        // waiting for the additional thread to finish the reduce
+        if (use_post_thread_) thread_.join();
         use_mix_stream_ ? mix_stream_->Close() : cat_stream_->Close();
     }
 
@@ -160,16 +175,21 @@ public:
 
     void PushData(bool consume) final {
 
-        if (reduced_) {
-            post_stage_.PushData(consume);
-            return;
+        if (!use_post_thread_ && !reduced_) {
+            // not final reduced, and no additional thread, perform post reduce
+            post_stage_.Initialize(DIABase::mem_limit_);
+            ProcessChannel();
+
+            reduced_ = true;
         }
+        post_stage_.PushData(consume);
+    }
 
-        post_stage_.Initialize(DIABase::mem_limit_ / 2);
-
+    //! process the inbound data in the post reduce stage
+    void ProcessChannel() {
         if (use_mix_stream_)
         {
-            auto reader = mix_stream_->OpenMixReader(consume);
+            auto reader = mix_stream_->OpenMixReader(/* consume */ true);
             sLOG << "reading data from" << mix_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
@@ -178,19 +198,18 @@ public:
         }
         else
         {
-            auto reader = cat_stream_->OpenCatReader(consume);
+            auto reader = cat_stream_->OpenCatReader(/* consume */ true);
             sLOG << "reading data from" << cat_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 post_stage_.Insert(reader.template Next<Output>());
             }
         }
-
-        reduced_ = true;
-        post_stage_.PushData(consume);
     }
 
-    void Dispose() final { }
+    void Dispose() final {
+        post_stage_.Dispose();
+    }
 
 private:
     // pointers for both Mix and CatStream. only one is used, the other costs
@@ -201,6 +220,9 @@ private:
     std::vector<data::Stream::Writer> emitters_;
 
     size_t result_size_;
+
+    //! handle to additional thread for post stage
+    std::thread thread_;
 
     core::ReducePreStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,

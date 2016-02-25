@@ -376,6 +376,11 @@ public:
         }
     }
 
+    void Dispose() {
+        table_.Dispose();
+        if (cache_) cache_.reset();
+    }
+
     //! \name Accessors
     //! {
 

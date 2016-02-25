@@ -57,6 +57,10 @@ public:
     //! of items delivered in the ReduceFunction arbitrary.
     static const bool use_mix_stream_ = true;
 
+    //! use an additional thread in ReduceNode and ReduceToIndexNode to process
+    //! the pre and post stages simultaneously.
+    static const bool use_post_thread_ = true;
+
     //! \name Accessors
     //! {
 
