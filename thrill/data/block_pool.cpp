@@ -26,8 +26,11 @@ static const bool debug_blc = false;
 //! debug block pinning:
 static const bool debug_pin = false;
 
+//! debug memory requests
+static const bool debug_mem = false;
+
 //! debug block eviction: evict, write complete, read complete
-static const bool debug_em = false;
+static const bool debug_em = true;
 
 BlockPool::BlockPool(size_t workers_per_host)
     : BlockPool(0, 0, nullptr, nullptr, workers_per_host) { }
@@ -502,7 +505,7 @@ void BlockPool::_RequestInternalMemory(
 
     requested_bytes_ += size;
 
-    LOGC(debug_em)
+    LOGC(debug_mem)
         << "BlockPool::RequestInternalMemory()"
         << " size=" << size
         << " total_ram_use_=" << total_ram_use_
@@ -535,7 +538,7 @@ void BlockPool::_RequestInternalMemory(
 
         cv_memory_change_.wait_for(lock, std::chrono::seconds(1));
 
-        LOGC(debug_em)
+        LOGC(debug_mem)
             << "BlockPool::RequestInternalMemory() waiting for memory"
             << " total_ram_use_=" << total_ram_use_
             << " writing_bytes_=" << writing_bytes_
