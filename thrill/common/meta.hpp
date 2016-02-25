@@ -76,6 +76,23 @@ auto ApplyTuple(Functor && f, Tuple && t) {
 }
 
 /******************************************************************************/
+// Meta-template programming if statement.
+
+//! If Flag is true then If<>::type is of type TypeTrue otherwise of If<>::type
+//! is of type TypeFalse.
+template <bool Flag, typename TypeTrue, typename TypeFalse>
+struct If
+{
+    using type = TypeTrue;
+};
+
+template <typename TypeTrue, typename TypeFalse>
+struct If<false, TypeTrue, TypeFalse>
+{
+    using type = TypeFalse;
+};
+
+/******************************************************************************/
 // Variadic Template Expander: run a generic templated functor (like a generic
 // lambda) for each of the variadic template parameters. Called with
 // func(IndexSaver<> index, Argument arg).

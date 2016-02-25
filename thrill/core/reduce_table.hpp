@@ -53,6 +53,10 @@ public:
     //! (must be a static constexpr)
     static constexpr size_t bucket_block_size = 256;
 
+    //! use MixStream instead of CatStream in ReduceNodes: this makes the order
+    //! of items delivered in the ReduceFunction arbitrary.
+    static const bool use_mix_stream_ = true;
+
     //! \name Accessors
     //! {
 

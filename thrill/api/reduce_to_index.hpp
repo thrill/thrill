@@ -20,6 +20,7 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/meta.hpp>
 #include <thrill/core/reduce_by_index_post_stage.hpp>
 #include <thrill/core/reduce_pre_stage.hpp>
 
@@ -62,17 +63,18 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
     static const bool debug = false;
 
     using Super = DOpNode<ValueType>;
+    using Super::context_;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
+    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
+    using KeyValuePair = std::pair<Key, Value>;
 
     static_assert(std::is_same<Key, size_t>::value,
                   "Key must be an unsigned integer");
 
-    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
+    using Output = typename common::If<RobustKey, Value, KeyValuePair>::type;
 
-    using KeyValuePair = std::pair<Key, Value>;
-
-    using Super::context_;
+    static const bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
 
 private:
     //! Emitter for PostStage to push elements to next DIA object.
@@ -82,7 +84,6 @@ private:
         explicit Emitter(ReduceToIndexNode* node) : node_(node) { }
         void operator () (const ValueType& item) const
         { return node_->PushItem(item); }
-
     private:
         ReduceToIndexNode* node_;
     };
@@ -100,15 +101,17 @@ public:
                       const Value& neutral_element,
                       const ReduceConfig& config)
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
-          stream_(parent.ctx().GetNewCatStream()),
-          emitters_(stream_->OpenWriters()),
+          mix_stream_(use_mix_stream_ ?
+                      parent.ctx().GetNewMixStream() : nullptr),
+          cat_stream_(use_mix_stream_ ?
+                      nullptr : parent.ctx().GetNewCatStream()),
+          emitters_(use_mix_stream_ ?
+                    mix_stream_->OpenWriters() : cat_stream_->OpenWriters()),
           result_size_(result_size),
-
           pre_stage_(
               context_, context_.num_workers(),
               key_extractor, reduce_function, emitters_,
               config, core::ReduceByIndex<Key>(0, result_size)),
-
           post_stage_(
               context_, key_extractor, reduce_function, Emitter(this),
               config, core::ReduceByIndex<Key>(), neutral_element)
@@ -146,7 +149,7 @@ public:
         // Flush hash table before the postOp
         pre_stage_.FlushAll();
         pre_stage_.CloseAll();
-        stream_->Close();
+        use_mix_stream_ ? mix_stream_->Close() : cat_stream_->Close();
     }
 
     void Execute() final { }
@@ -164,24 +167,22 @@ public:
 
         post_stage_.Initialize(DIABase::mem_limit_ / 2);
 
-        if (RobustKey) {
-            // we actually want to wire up callbacks in the ctor and NOT use
-            // this blocking method
-            auto reader = stream_->OpenCatReader(consume);
-            sLOG << "reading data from" << stream_->id()
+        if (use_mix_stream_)
+        {
+            auto reader = mix_stream_->OpenMixReader(consume);
+            sLOG << "reading data from" << mix_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_stage_.Insert(reader.template Next<Value>());
+                post_stage_.Insert(reader.template Next<Output>());
             }
         }
-        else {
-            // we actually want to wire up callbacks in the ctor and NOT use
-            // this blocking method
-            auto reader = stream_->OpenCatReader(consume);
-            sLOG << "reading data from" << stream_->id()
+        else
+        {
+            auto reader = cat_stream_->OpenCatReader(consume);
+            sLOG << "reading data from" << cat_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_stage_.Insert(reader.template Next<KeyValuePair>());
+                post_stage_.Insert(reader.template Next<Output>());
             }
         }
 
@@ -192,9 +193,12 @@ public:
     void Dispose() final { }
 
 private:
-    data::CatStreamPtr stream_;
+    // pointers for both Mix and CatStream. only one is used, the other costs
+    // only a null pointer.
+    data::MixStreamPtr mix_stream_;
+    data::CatStreamPtr cat_stream_;
 
-    std::vector<data::CatStream::Writer> emitters_;
+    std::vector<data::Stream::Writer> emitters_;
 
     size_t result_size_;
 
