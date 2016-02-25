@@ -54,6 +54,8 @@ public:
         LOG << "Opening ReadLinesNode for " << path_;
 
         filelist_ = core::GlobFileSizePrefixSum(path_);
+        if (filelist_.count() == 0)
+            throw std::runtime_error("No files found matching glob: " + path_);
     }
 
     DIAMemUse PushDataMemUse() final {
