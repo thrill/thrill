@@ -195,16 +195,16 @@ int main(int argc, char* argv[]) {
                   "generated: Zipf exponent parameter for outgoing links, "
                   "default: " + std::to_string(gg.link_zipf_exponent));
 
-    std::vector<std::string> input_path;
-    clp.AddParamStringlist("input", input_path,
-                           "input file pattern(s)");
-
     std::string output_path;
     clp.AddString('o', "output", output_path,
                   "output file pattern");
 
-    size_t iter;
-    clp.AddParamSizeT("n", iter, "Iterations");
+    size_t iter = 10;
+    clp.AddSizeT('n', "iterations", iter, "PageRank iterations, default: 10");
+
+    std::vector<std::string> input_path;
+    clp.AddParamStringlist("input", input_path,
+                           "input file pattern(s)");
 
     if (!clp.Process(argc, argv)) {
         return -1;
