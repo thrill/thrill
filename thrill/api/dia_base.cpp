@@ -119,7 +119,14 @@ public:
         data::BlockPoolMemoryHolder mem_holder(context_.block_pool(), mem_use);
 
         common::StatsTimerStart timer;
-        node_->Execute();
+        try {
+            node_->Execute();
+        }
+        catch (std::exception& e) {
+            LOG1 << "StageBuilder: caught exception from Execute()"
+                 << " of stage " << *node_ << " - what(): " << e.what();
+            throw;
+        }
         node_->set_state(DIAState::EXECUTED);
         timer.Stop();
 
@@ -208,7 +215,14 @@ public:
         data::BlockPoolMemoryHolder mem_holder(context_.block_pool(), const_mem);
 
         common::StatsTimerStart timer;
-        node_->RunPushData();
+        try {
+            node_->RunPushData();
+        }
+        catch (std::exception& e) {
+            LOG1 << "StageBuilder: caught exception from PushData()"
+                 << " of stage " << *node_ << " - what(): " << e.what();
+            throw;
+        }
         node_->RemoveAllChildren();
         timer.Stop();
 
