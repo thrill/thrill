@@ -648,9 +648,7 @@ public:
      */
     template <typename ValueOut,
               typename KeyExtractor,
-              typename GroupByFunction,
-              typename HashFunction =
-                  std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+              typename GroupByFunction>
     auto GroupByIndex(const KeyExtractor &key_extractor,
                       const GroupByFunction &groupby_function,
                       const size_t size,

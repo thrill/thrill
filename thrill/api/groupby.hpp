@@ -38,32 +38,27 @@ template <typename ValueType, typename ParentDIA,
 class GroupByNode final : public DOpNode<ValueType>
 {
     static const bool debug = false;
+
     using Super = DOpNode<ValueType>;
+    using Super::context_;
+
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
-    using ValueIn = typename std::decay<typename common::FunctionTraits<KeyExtractor>
-                                        ::template arg<0> >::type;
-
-    using File = data::File;
-    using Reader = typename File::Reader;
-    using Writer = typename File::Writer;
+    using ValueIn =
+              typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
 
     struct ValueComparator
     {
-        explicit ValueComparator(const GroupByNode& info) : info_(info) { }
-        const GroupByNode& info_;
+    public:
+        explicit ValueComparator(const GroupByNode& node) : node_(node) { }
 
-        bool operator () (const ValueIn& i,
-                          const ValueIn& j) {
-            // REVIEW(ch): why is this a comparison by hash key? hash can have
-            // collisions.
-            auto i_cmp = info_.hash_function_(info_.key_extractor_(i));
-            auto j_cmp = info_.hash_function_(info_.key_extractor_(j));
-            return (i_cmp < j_cmp);
+        bool operator () (const ValueIn& a, const ValueIn& b) const {
+            return node_.key_extractor_(a) < node_.key_extractor_(b);
         }
-    };
 
-    using Super::context_;
+    private:
+        const GroupByNode& node_;
+    };
 
 public:
     /*!
@@ -93,11 +88,17 @@ public:
         emitter_ = stream_->OpenWriters();
     }
 
+    //! Send all elements to their designated PEs
+    void PreOp(const ValueIn& v) {
+        const Key k = key_extractor_(v);
+        const size_t recipient = hash_function_(k) % emitter_.size();
+        emitter_[recipient].Put(v);
+    }
+
     void StopPreOp(size_t /* id */) final {
         // data has been pushed during pre-op -> close emitters
-        for (size_t i = 0; i < emitter_.size(); i++) {
+        for (size_t i = 0; i < emitter_.size(); i++)
             emitter_[i].Close();
-        }
     }
 
     void Execute() override {
@@ -105,13 +106,16 @@ public:
     }
 
     void PushData(bool consume) final {
-        using Iterator = thrill::core::FileIteratorWrapper<ValueIn>;
+        using Iterator = core::FileIteratorWrapper<ValueIn>;
 
         LOG << "sort data";
         common::StatsTimerStart timer;
         const size_t num_runs = files_.size();
         // if there's only one run, call user funcs
-        if (num_runs == 1) {
+        if (num_runs == 0) {
+            // nothing to push
+        }
+        else if (num_runs == 1) {
             RunUserFunc(files_[0], consume);
         }       // otherwise sort all runs using multiway merge
         else {
@@ -119,18 +123,17 @@ public:
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);
             for (size_t t = 0; t < num_runs; ++t) {
-                std::shared_ptr<Reader> reader = std::make_shared<Reader>(
-                    files_[t].GetReader(consume));
+                std::shared_ptr<data::File::Reader> reader =
+                    std::make_shared<data::File::Reader>(
+                        files_[t].GetReader(consume));
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
             }
             LOG << "start multiwaymerge for real";
             auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-                seq.begin(),
-                seq.end(),
-                totalsize_,
-                ValueComparator(*this));
+                seq.begin(), seq.end(),
+                totalsize_, ValueComparator(*this));
 
             LOG << "run user func";
             if (puller.HasNext()) {
@@ -147,11 +150,10 @@ public:
             }
         }
         timer.Stop();
-        LOG1    //<< "\n"
-            << "RESULT"
-            << " name=multiwaymerge"
-            << " time=" << timer.Milliseconds()
-            << " multiwaymerge=" << (num_runs > 1);
+        LOG1 << "RESULT"
+             << " name=multiwaymerge"
+             << " time=" << timer.Milliseconds()
+             << " multiwaymerge=" << (num_runs > 1);
     }
 
     void Dispose() override { }
@@ -167,12 +169,13 @@ private:
     data::File sorted_elems_ { context_.GetFile() };
     size_t totalsize_ = 0;
 
-    void RunUserFunc(File& f, bool consume) {
+    void RunUserFunc(data::File& f, bool consume) {
         auto r = f.GetReader(consume);
         if (r.HasNext()) {
             // create iterator to pass to user_function
             LOG << "get iterator";
-            auto user_iterator = GroupByIterator<ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
+            auto user_iterator = GroupByIterator<
+                ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
             LOG << "start running user func";
             while (user_iterator.HasNextForReal()) {
                 // call user function
@@ -185,57 +188,34 @@ private:
         }
     }
 
-    /*
-     * Send all elements to their designated PEs
-     */
-    void PreOp(const ValueIn& v) {
-        const Key k = key_extractor_(v);
-        const auto recipient = hash_function_(k) % emitter_.size();
-        emitter_[recipient].Put(v);
-    }
-
-    /*
-     * Sort and store elements in a file
-     */
+    //! Sort and store elements in a file
     void FlushVectorToFile(std::vector<ValueIn>& v) {
-        totalsize_ += v.size();
-
         // sort run and sort to file
         std::sort(v.begin(), v.end(), ValueComparator(*this));
-        File f = context_.GetFile();
-        {
-            Writer w = f.GetWriter();
-            for (const ValueIn& e : v) {
-                w.Put(e);
-            }
-            w.Close();
+        totalsize_ += v.size();
+
+        data::File f = context_.GetFile();
+        data::File::Writer w = f.GetWriter();
+        for (const ValueIn& e : v) {
+            w.Put(e);
         }
+        w.Close();
 
         files_.emplace_back(std::move(f));
     }
 
     //! Receive elements from other workers.
-    auto MainOp() {
+    void MainOp() {
         LOG << "running group by main op";
 
-        const size_t FIXED_VECTOR_SIZE = 1024 * 1024 * 1024 / sizeof(ValueIn) / 2;
-        // const size_t FIXED_VECTOR_SIZE = 4;
         std::vector<ValueIn> incoming;
-        incoming.reserve(FIXED_VECTOR_SIZE);
-
-        // close all emitters
-        for (auto& e : emitter_) {
-            e.Close();
-        }
-        LOG << "closed all emitters";
-        LOG << "receive elems";
 
         common::StatsTimerStart timer;
         // get incoming elements
-        auto reader = stream_->OpenCatReader(true /* consume */);
+        auto reader = stream_->OpenCatReader(/* consume */ true);
         while (reader.HasNext()) {
             // if vector is full save to disk
-            if (incoming.size() == FIXED_VECTOR_SIZE) {
+            if (mem::memory_exceeded) {
                 FlushVectorToFile(incoming);
                 incoming.clear();
             }
@@ -249,12 +229,10 @@ private:
 
         timer.Stop();
 
-        LOG1    //<< "\n"
-            << "RESULT"
-            << " name=mainop"
-            << " time=" << timer
-            << " number_files=" << files_.size()
-            << " vector_size=" << FIXED_VECTOR_SIZE;
+        LOG1 << "RESULT"
+             << " name=mainop"
+             << " time=" << timer
+             << " number_files=" << files_.size();
     }
 };
 

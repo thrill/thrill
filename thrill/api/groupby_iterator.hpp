@@ -114,7 +114,7 @@ template <typename ValueType, typename ParentDIA,
 class GroupByNode;
 
 template <typename ValueType, typename ParentDIA,
-          typename KeyExtractor, typename GroupFunction, typename HashFunction>
+          typename KeyExtractor, typename GroupFunction>
 class GroupByIndexNode;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -132,8 +132,7 @@ class GroupByIterator
     template <typename T1,
               typename T2,
               typename T3,
-              typename T4,
-              typename T5>
+              typename T4>
     friend class GroupByIndexNode;
 
 public:
@@ -217,8 +216,7 @@ class GroupByMultiwayMergeIterator
     template <typename T1,
               typename T2,
               typename T3,
-              typename T4,
-              typename T5>
+              typename T4>
     friend class GroupByIndexNode;
 
 public:
