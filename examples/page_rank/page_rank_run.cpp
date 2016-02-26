@@ -30,7 +30,7 @@ using namespace examples::page_rank; // NOLINT
 
 static void RunPageRankEdgePerLine(
     api::Context& ctx,
-    const std::string& input_path, const std::string& output_path,
+    const std::vector<std::string>& input_path, const std::string& output_path,
     size_t iterations) {
     ctx.enable_consume();
 
@@ -84,14 +84,19 @@ static void RunPageRankEdgePerLine(
 
     // construct output as "pageid: rank"
 
-    ranks
-    .Zip(
-        // generate index numbers: 0...num_pages-1
-        Generate(ctx, num_pages),
-        [](const Rank& r, const PageId& p) {
-            return std::to_string(p) + ": " + std::to_string(r);
-        })
-    .WriteLines(output_path);
+    if (output_path.size()) {
+        ranks
+        .Zip(
+            // generate index numbers: 0...num_pages-1
+            Generate(ctx, num_pages),
+            [](const Rank& r, const PageId& p) {
+                return std::to_string(p) + ": " + std::to_string(r);
+            })
+        .WriteLines(output_path);
+    }
+    else {
+        ranks.Execute();
+    }
 
     timer.Stop();
 
@@ -133,14 +138,19 @@ static void RunPageRankGenerated(
 
     // construct output as "pageid: rank"
 
-    ranks
-    .Zip(
-        // generate index numbers: 0...num_pages-1
-        Generate(ctx, num_pages),
-        [](const Rank& r, const PageId& p) {
-            return std::to_string(p) + ": " + std::to_string(r);
-        })
-    .WriteLines(output_path);
+    if (output_path.size()) {
+        ranks
+        .Zip(
+            // generate index numbers: 0...num_pages-1
+            Generate(ctx, num_pages),
+            [](const Rank& r, const PageId& p) {
+                return std::to_string(p) + ": " + std::to_string(r);
+            })
+        .WriteLines(output_path);
+    }
+    else {
+        ranks.Execute();
+    }
 
     timer.Stop();
 
@@ -185,13 +195,13 @@ int main(int argc, char* argv[]) {
                   "generated: Zipf exponent parameter for outgoing links, "
                   "default: " + std::to_string(gg.link_zipf_exponent));
 
-    std::string input_path;
-    clp.AddParamString("input", input_path,
-                       "input file pattern");
+    std::vector<std::string> input_path;
+    clp.AddParamStringlist("input", input_path,
+                           "input file pattern(s)");
 
     std::string output_path;
-    clp.AddParamString("output", output_path,
-                       "output file pattern");
+    clp.AddString('o', "output", output_path,
+                  "output file pattern");
 
     size_t iter;
     clp.AddParamSizeT("n", iter, "Iterations");
@@ -202,11 +212,13 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
+    die_unless(!generate || input_path.size() == 1);
+
     return api::Run(
         [&](api::Context& ctx) {
             if (generate)
                 return RunPageRankGenerated(
-                    ctx, input_path, gg, output_path, iter);
+                    ctx, input_path[0], gg, output_path, iter);
             else
                 return RunPageRankEdgePerLine(
                     ctx, input_path, output_path, iter);
