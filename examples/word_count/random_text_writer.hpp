@@ -230,7 +230,7 @@ std::string RandomTextWriterGenerate(size_t num_words, RandomGenerator& rng) {
     for (size_t i = 0; i < num_words; ++i) {
         sentence += words[rng() % s_num_random_text_writer_words];
         // add space even at end, Java does this too.
-        sentence += " ";
+        sentence += ' ';
     }
     return sentence;
 }

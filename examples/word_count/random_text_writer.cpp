@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
     unsigned seed = 123456;
 
     uint64_t totalbytes;
+    bool tab_separator = false;
 
     cp.AddUInt('k', "min_words_key", "<N>", min_words_key,
                "minimum words in a key");
@@ -44,6 +45,9 @@ int main(int argc, char* argv[]) {
 
     cp.AddUInt('s', "seed", "<N>", seed,
                "random seed (default: 123456)");
+
+    cp.AddFlag(0, "tab-separator", tab_separator,
+               "add TAB as separator of key/value (for compatbility)");
 
     cp.AddParamBytes("totalbytes", totalbytes,
                      "total number of bytes to generate (approximately)");
@@ -73,7 +77,10 @@ int main(int argc, char* argv[]) {
         size_t out_size = key_words.size() + 1 + value_words.size() + 1;
         if (written_bytes + out_size > totalbytes) break;
 
-        std::cout << key_words << '\t' << value_words << '\n';
+        if (tab_separator)
+            std::cout << key_words << '\t' << value_words << '\n';
+        else
+            std::cout << key_words << value_words << '\n';
 
         written_bytes += out_size;
     }
