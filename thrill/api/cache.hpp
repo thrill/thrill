@@ -51,6 +51,13 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
+        if (!ParentDIA::stack_empty) return false;
+        assert(file_.num_items() == 0);
+        file_ = file;
+        return true;
+    }
+
     void StopPreOp(size_t /* id */) final {
         // Push local elements to children
         writer_.Close();
@@ -59,10 +66,7 @@ public:
     void Execute() final { }
 
     void PushData(bool consume) final {
-        data::File::Reader reader = file_.GetReader(consume);
-        for (size_t i = 0; i < file_.num_items(); ++i) {
-            this->PushItem(reader.Next<ValueType>());
-        }
+        this->PushFile(file_, consume);
     }
 
 private:
@@ -75,12 +79,8 @@ private:
 template <typename ValueType, typename Stack>
 auto DIA<ValueType, Stack>::Cache() const {
     assert(IsValid());
-
-    using CacheNode = api::CacheNode<ValueType, DIA>;
-
-    auto shared_node = std::make_shared<CacheNode>(*this);
-
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(
+        std::make_shared<api::CacheNode<ValueType, DIA> >(*this));
 }
 
 //! \}

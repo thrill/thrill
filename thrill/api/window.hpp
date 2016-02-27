@@ -66,9 +66,22 @@ public:
         window_.allocate(window_size_);
     }
 
+    bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
+        if (!ParentDIA::stack_empty) return false;
+        // accept file
+        assert(file_.num_items() == 0);
+        file_ = file;
+        // read last k - 1 items from File
+        size_t pos = file_.num_items() > window_size_ - 1 ?
+                     file_.num_items() - window_size_ + 1 : 0;
+        auto reader = file_.GetReaderAt<Input>(pos);
+        while (reader.HasNext())
+            window_.push_back(reader.template Next<Input>());
+        return true;
+    }
+
     //! PreOp: keep last k - 1 items (local window) and store items.
     void PreOp(const Input& input) {
-
         if (window_.size() >= window_size_ - 1)
             window_.pop_front();
         window_.push_back(input);

@@ -71,6 +71,9 @@ public:
     //! current LOp stack.
     using ValueType = _ValueType;
 
+    //! boolean indication whether this FunctionStack is empty
+    static constexpr bool stack_empty = Stack::empty;
+
     //! type of pointer to the real node object implementation. This object has
     //! base item type StackInput which is transformed by the function stack
     //! lambdas further. But even pushing more lambdas does not change the stack
@@ -120,7 +123,7 @@ public:
         : node_(std::move(node)), stack_(stack), id_(id), label_(label) { }
 
     /*!
-     * Constructor of a new DIA with a real backing DIABae.
+     * Constructor of a new DIA with a real backing DIABase.
      *
      * \param node Pointer to the last DIANode, DOps and Actions create a new
      * DIANode, LOps link to the DIANode of the previous DIA.

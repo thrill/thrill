@@ -111,14 +111,15 @@ public:
         LOG << "sort data";
         common::StatsTimerStart timer;
         const size_t num_runs = files_.size();
-        // if there's only one run, call user funcs
         if (num_runs == 0) {
             // nothing to push
         }
         else if (num_runs == 1) {
+            // if there's only one run, call user funcs
             RunUserFunc(files_[0], consume);
-        }       // otherwise sort all runs using multiway merge
+        }
         else {
+            // otherwise sort all runs using multiway merge
             LOG << "start multiwaymerge";
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(num_runs);

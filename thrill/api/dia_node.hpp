@@ -13,6 +13,7 @@
 #define THRILL_API_DIA_NODE_HEADER
 
 #include <thrill/api/dia_base.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <string>
@@ -126,9 +127,33 @@ public:
     }
 
     //! Method for derived classes to Push a single item to all children.
-    void PushItem(const ValueType& elem) const {
+    void PushItem(const ValueType& item) const {
         for (const Child& child : children_) {
-            child.callback(elem);
+            child.callback(item);
+        }
+    }
+
+    //! Method for derived classes to Push a whole File of ValueType items to
+    //! all children.
+    void PushFile(data::File& file, bool consume) const {
+        // iterate over children, push directly into those with data:File*
+        std::vector<Child> nonfile_children;
+        for (const Child& child : children_) {
+            if (child.node->OnPreOpFile(file, child.parent_index))
+                LOG1 << "PushFile: direct push accepted by " << *child.node;
+            else
+                nonfile_children.push_back(child);
+        }
+
+        if (nonfile_children.size() == 0) return;
+
+        // push into remaining which have a function stack or no direct File*
+        data::File::Reader reader = file.GetReader(consume);
+        while (reader.HasNext()) {
+            ValueType item = reader.Next<ValueType>();
+            for (const Child& child : nonfile_children) {
+                child.callback(item);
+            }
         }
     }
 

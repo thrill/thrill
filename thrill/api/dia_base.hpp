@@ -140,10 +140,17 @@ public:
     virtual DIAMemUse PreOpMemUse() { return 0; }
 
     //! Virtual method for preparing start of PushData.
-    virtual void StartPreOp(size_t /* id */) { }
+    virtual void StartPreOp(size_t /* parent_index */) { }
+
+    //! Virtual method for receiving a whole data::File of ValueType from
+    //! parent. Returns true if the file was accepted (requires that the child's
+    //! function stack is empty and that it can accept whole data::Files).
+    virtual bool OnPreOpFile(
+        const data::File& /* file */, size_t /* parent_index */)
+    { return false; }
 
     //! Virtual method for preparing end of PushData.
-    virtual void StopPreOp(size_t /* id */) { }
+    virtual void StopPreOp(size_t /* parent_index */) { }
 
     //! Amount of RAM used by Execute()
     virtual DIAMemUse ExecuteMemUse() { return 0; }

@@ -120,7 +120,13 @@ public:
 
     void PushData(bool consume) final {
         assert(merge_degree_ > 1);
-        if (files_.size() > 1) {
+        if (files_.size() == 0) {
+            // nothing to push
+        }
+        else if (files_.size() == 1) {
+            this->PushFile(files_[0], consume);
+        }
+        else {
             sLOG << "start multi-way-merge with" << files_.size() << "files";
             using Iterator = core::FileIteratorWrapper<ValueType>;
 
@@ -181,14 +187,6 @@ public:
 
             while (puller.HasNext()) {
                 this->PushItem(puller.Next());
-            }
-        }
-        else {
-            if (local_out_size_) {
-                data::File::Reader reader = files_[0].GetReader(consume);
-                while (reader.HasNext()) {
-                    this->PushItem(reader.Next<ValueType>());
-                }
             }
         }
     }

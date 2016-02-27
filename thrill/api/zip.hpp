@@ -84,16 +84,14 @@ class ZipNode final : public DOpNode<ValueType>
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
     //! Number of storage DIAs backing
-    static const size_t num_inputs_ = 1 + sizeof ... (ParentDIAs);
+    static const size_t kNumInputs = 1 + sizeof ... (ParentDIAs);
 
 public:
     /*!
      * Constructor for a ZipNode.
      */
-    ZipNode(const ZipFunction& zip_function,
-            const ZipArgs& padding,
-            const ParentDIA0& parent0,
-            const ParentDIAs& ... parents)
+    ZipNode(const ZipFunction& zip_function, const ZipArgs& padding,
+            const ParentDIA0& parent0, const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Zip",
                 { parent0.id(), parents.id() ... },
                 { parent0.node(), parents.node() ... }),
@@ -101,8 +99,8 @@ public:
           padding_(padding)
     {
         // allocate files.
-        files_.reserve(num_inputs_);
-        for (size_t i = 0; i < num_inputs_; ++i)
+        files_.reserve(kNumInputs);
+        for (size_t i = 0; i < kNumInputs; ++i)
             files_.emplace_back(context_.GetFile());
 
         // Hook PreOp(s)
@@ -112,6 +110,22 @@ public:
 
     void StartPreOp(size_t parent_index) final {
         writers_[parent_index] = files_[parent_index].GetWriter();
+    }
+
+    //! Receive a whole data::File of ValueType, but only if our stack is empty.
+    bool OnPreOpFile(const data::File& file, size_t parent_index) final {
+        assert(parent_index < kNumInputs);
+
+        //! indication whether the parent stack is empty
+        static constexpr bool parent_stack_empty[kNumInputs] = {
+            ParentDIA0::stack_empty, ParentDIAs::stack_empty ...
+        };
+        if (!parent_stack_empty[parent_index]) return false;
+
+        // accept file
+        assert(files_[parent_index].num_items() == 0);
+        files_[parent_index] = file;
+        return true;
     }
 
     void StopPreOp(size_t parent_index) final {
@@ -128,14 +142,14 @@ public:
 
         if (result_size_ != 0) {
             // get inbound readers from all Streams
-            std::array<data::CatStream::CatReader, num_inputs_> readers;
-            for (size_t i = 0; i < num_inputs_; ++i)
+            std::array<data::CatStream::CatReader, kNumInputs> readers;
+            for (size_t i = 0; i < kNumInputs; ++i)
                 readers[i] = streams_[i]->OpenCatReader(consume);
 
             ReaderNext reader_next(*this, readers);
 
             while (reader_next.HasNext()) {
-                auto v = common::VariadicMapEnumerate<num_inputs_>(reader_next);
+                auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
                 this->PushItem(common::ApplyTuple(zip_function_, v));
                 ++result_count;
             }
@@ -145,7 +159,7 @@ public:
     }
 
     void Dispose() final {
-        for (size_t i = 0; i < num_inputs_; ++i) {
+        for (size_t i = 0; i < kNumInputs; ++i) {
             files_[i].Clear();
         }
     }
@@ -161,16 +175,16 @@ private:
     std::vector<data::File> files_;
 
     //! Writers to intermediate files
-    std::array<data::File::Writer, num_inputs_> writers_;
+    data::File::Writer writers_[kNumInputs];
 
     //! Array of inbound CatStreams
-    std::array<data::CatStreamPtr, num_inputs_> streams_;
+    data::CatStreamPtr streams_[kNumInputs];
 
     //! \name Variables for Calculating Exchange
     //! \{
 
     //! prefix sum over the number of items in workers
-    std::array<size_t, num_inputs_> dia_size_prefixsum_;
+    size_t dia_size_prefixsum_[kNumInputs];
 
     //! shortest size of Zipped inputs
     size_t result_size_;
@@ -181,7 +195,7 @@ private:
     class RegisterParent
     {
     public:
-        explicit RegisterParent(ZipNode* zip_node) : zip_node_(zip_node) { }
+        explicit RegisterParent(ZipNode* node) : node_(node) { }
 
         template <typename Index, typename Parent>
         void operator () (const Index&, Parent& parent) {
@@ -196,7 +210,7 @@ private:
                 "ZipFunction argument does not match input DIA");
 
             // construct lambda with only the writer in the closure
-            data::File::Writer* writer = &zip_node_->writers_[Index::index];
+            data::File::Writer* writer = &node_->writers_[Index::index];
             auto pre_op_fn = [writer](const ZipArg& input) -> void {
                                  writer->Put(input);
                              };
@@ -205,11 +219,11 @@ private:
             // parent nodes for output
             auto lop_chain = parent.stack().push(pre_op_fn).fold();
 
-            parent.node()->AddChild(zip_node_, lop_chain, Index::index);
+            parent.node()->AddChild(node_, lop_chain, Index::index);
         }
 
     private:
-        ZipNode* zip_node_;
+        ZipNode* node_;
     };
 
     //! Scatter items from DIA "Index" to other workers if necessary.
@@ -272,9 +286,9 @@ private:
         // first: calculate total size of the DIAs to Zip
 
         //! total number of items in DIAs over all workers
-        std::array<size_t, num_inputs_> dia_total_size;
+        std::array<size_t, kNumInputs> dia_total_size;
 
-        for (size_t in = 0; in < num_inputs_; ++in) {
+        for (size_t in = 0; in < kNumInputs; ++in) {
             //! number of elements of this worker
             size_t dia_local_size = files_[in].num_items();
             sLOG << "input" << in << "dia_local_size" << dia_local_size;
@@ -297,7 +311,7 @@ private:
 
         // perform scatters to exchange data, with different types.
         if (result_size_ != 0) {
-            common::VariadicCallEnumerate<num_inputs_>(
+            common::VariadicCallEnumerate<kNumInputs>(
                 [=](auto index) {
                     (void)index;
                     this->DoScatter<decltype(index)::index>();
@@ -310,19 +324,19 @@ private:
     {
     public:
         ReaderNext(ZipNode& zip_node,
-                   std::array<data::CatStream::CatReader, num_inputs_>& readers)
+                   std::array<data::CatStream::CatReader, kNumInputs>& readers)
             : zip_node_(zip_node), readers_(readers) { }
 
         //! helper for PushData() which checks all inputs
         bool HasNext() {
             if (Pad) {
-                for (size_t i = 0; i < num_inputs_; ++i) {
+                for (size_t i = 0; i < kNumInputs; ++i) {
                     if (readers_[i].HasNext()) return true;
                 }
                 return false;
             }
             else {
-                for (size_t i = 0; i < num_inputs_; ++i) {
+                for (size_t i = 0; i < kNumInputs; ++i) {
                     if (!readers_[i].HasNext()) return false;
                 }
                 return true;
@@ -346,7 +360,7 @@ private:
         ZipNode& zip_node_;
 
         //! reference to the reader array in PushData().
-        std::array<data::CatStream::CatReader, num_inputs_>& readers_;
+        std::array<data::CatStream::CatReader, kNumInputs>& readers_;
     };
 };
 
