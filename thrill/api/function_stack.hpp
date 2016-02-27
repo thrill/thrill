@@ -121,6 +121,9 @@ public:
         return EmitSequence(common::make_index_sequence<Size>{ });
     }
 
+    //! Is true if the FunctionStack is empty.
+    static constexpr bool empty = (sizeof ... (Lambdas) == 0);
+
 private:
     //! Tuple of varying type that stores all lambda functions.
     std::tuple<Lambdas ...> stack_;

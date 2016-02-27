@@ -63,7 +63,12 @@ TEST(API, FunctionStackTest) {
     LOG << "==============";
     LOG << "FunctionStack";
     LOG << "==============";
+    auto empty_stack = FunctionStack<double>();
+    ASSERT_TRUE(empty_stack.empty == true);
+
     auto new_stack = MakeFunctionStack<double>(fmap_fn);
+    ASSERT_TRUE(new_stack.empty == false);
+
     auto new_stack2 = new_stack.push(conv_map_fn);
     auto new_stack3 = new_stack2.push(conv_filter_fn);
     auto new_stack4 = new_stack3.push(save_fn);
