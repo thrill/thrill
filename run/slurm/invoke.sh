@@ -31,7 +31,9 @@ THRILL_NUM_HOSTS=$(echo $THRILL_HOSTLIST | wc -w)
 # fixup SLURM_NNODES on uc1 cluster
 [[ $(hostname) == uc1* ]] && export SLURM_NNODES=$THRILL_NUM_HOSTS
 
-if [ -n "$SLURM_NTASKS_PER_NODE" ]; then
+if [ -n "$THRILL_WORKERS_PER_HOST" ]; then
+    : # let user override via the environment
+elif [ -n "$SLURM_NTASKS_PER_NODE" ]; then
     THRILL_WORKERS_PER_HOST=$SLURM_NTASKS_PER_NODE
 elif [[ $SLURM_TASKS_PER_NODE =~ ^([0-9]+)\(x([0-9]+)\)$ ]]; then
     THRILL_WORKERS_PER_HOST=${BASH_REMATCH[1]}
@@ -46,9 +48,13 @@ echo "THRILL_NUM_HOSTS:        $THRILL_NUM_HOSTS"
 echo "THRILL_HOSTLIST:         $THRILL_HOSTLIST"
 echo "THRILL_WORKERS_PER_HOST: $THRILL_WORKERS_PER_HOST"
 
-exec srun -v \
+srun -v \
+     --exclusive \
      --ntasks="$THRILL_NUM_HOSTS" \
      --ntasks-per-node="1" \
+     --kill-on-bad-exit \
      "$@"
+
+exit 0
 
 ################################################################################
