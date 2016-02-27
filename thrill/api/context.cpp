@@ -244,7 +244,7 @@ int RunBackendLoopback(
     size_t num_hosts = std::thread::hardware_concurrency();
 
     const char* env_local = getenv("THRILL_LOCAL");
-    if (env_local) {
+    if (env_local && *env_local) {
         // parse envvar only if it exists.
         num_hosts = std::strtoul(env_local, &endptr, 10);
 
@@ -262,7 +262,7 @@ int RunBackendLoopback(
     // determine number of threads per loopback host
 
     size_t workers_per_host = 1;
-    if (env_workers_per_host) {
+    if (env_workers_per_host && *env_workers_per_host) {
         workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
         if (!endptr || *endptr != 0 || workers_per_host == 0) {
             std::cerr << "Thrill: environment variable"
@@ -314,7 +314,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     if (!env_rank)
         env_rank = getenv("SLURM_PROCID");
 
-    if (env_rank) {
+    if (env_rank && *env_rank) {
         my_host_rank = std::strtoul(env_rank, &endptr, 10);
 
         if (!endptr || *endptr != 0) {
@@ -333,7 +333,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     std::vector<std::string> hostlist;
 
-    if (env_hostlist) {
+    if (env_hostlist && *env_hostlist) {
         // first try to split by spaces, then by commas
         std::vector<std::string> list = common::Split(env_hostlist, ' ');
 
@@ -371,7 +371,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     size_t workers_per_host = 1;
 
-    if (env_workers_per_host) {
+    if (env_workers_per_host && *env_workers_per_host) {
         workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
         if (!endptr || *endptr != 0 || workers_per_host == 0) {
             std::cerr << "Thrill: environment variable"
@@ -456,7 +456,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
     const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
 
-    if (env_workers_per_host) {
+    if (env_workers_per_host && *env_workers_per_host) {
         workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
         if (!endptr || *endptr != 0 || workers_per_host == 0) {
             std::cerr << "Thrill: environment variable"
@@ -626,7 +626,7 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
     const char* env_net = getenv("THRILL_NET");
 
     // if no backend configured: automatically select one.
-    if (!env_net) env_net = DetectNetBackend();
+    if (!env_net || !*env_net) env_net = DetectNetBackend();
 
     // run with selected backend
     if (strcmp(env_net, "mock") == 0) {
