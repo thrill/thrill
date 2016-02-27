@@ -142,6 +142,12 @@ public:
         if (!use_post_thread_) {
             // use pre_stage without extra thread
             pre_stage_.Initialize(DIABase::mem_limit_);
+
+            // re-parameterize with resulting key range on this worker - this is
+            // only know after Initialize() of the pre_stage_.
+            post_stage_.table().index_function() =
+                core::ReduceByIndex<Key>(
+                    pre_stage_.key_range(context_.my_rank()));
         }
         else {
             pre_stage_.Initialize(DIABase::mem_limit_ / 2);
@@ -149,7 +155,8 @@ public:
             // re-parameterize with resulting key range on this worker - this is
             // only know after Initialize() of the pre_stage_.
             post_stage_.table().index_function() =
-                core::ReduceByIndex<Key>(pre_stage_.key_range(context_.my_rank()));
+                core::ReduceByIndex<Key>(
+                    pre_stage_.key_range(context_.my_rank()));
             post_stage_.Initialize(DIABase::mem_limit_ / 2);
 
             // start additional thread to receive from the channel

@@ -40,18 +40,18 @@ class DefaultReduceConfig
 public:
     //! limit on the fill rate of a reduce table partition prior to triggering a
     //! flush.
-    double limit_partition_fill_rate_ = 0.8;
+    double limit_partition_fill_rate_ = 0.5;
 
     //! only for BucketHashTable: ratio of number of buckets in a partition
     //! relative to the maximum possible number.
-    double bucket_rate_ = 0.5;
+    double bucket_rate_ = 0.6;
 
     //! select the hash table in the reduce stage by enum
     static constexpr ReduceTableImpl table_impl_ = ReduceTableImpl::PROBING;
 
     //! only for BucketHashTable: size of a block in the bucket chain in bytes
     //! (must be a static constexpr)
-    static constexpr size_t bucket_block_size = 256;
+    static constexpr size_t bucket_block_size = 512;
 
     //! use MixStream instead of CatStream in ReduceNodes: this makes the order
     //! of items delivered in the ReduceFunction arbitrary.
