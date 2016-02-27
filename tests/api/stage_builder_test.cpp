@@ -22,7 +22,7 @@ using namespace thrill; // NOLINT
 
 TEST(Stage, CountReferencesSimple) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -68,7 +68,7 @@ TEST(Stage, CountReferencesSimple) {
 
 TEST(Stage, CountReferencesLOpNode) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -118,7 +118,7 @@ TEST(Stage, CountReferencesLOpNode) {
 
 TEST(Stage, OverwriteReferenceLOpNode) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -166,7 +166,7 @@ TEST(Stage, OverwriteReferenceLOpNode) {
 
 TEST(Stage, AdditionalChildReferences) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(

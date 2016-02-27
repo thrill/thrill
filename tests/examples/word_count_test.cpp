@@ -63,7 +63,7 @@ std::vector<WordCountPair> bacon_ipsum_correct() {
 
 TEST(WordCount, BaconIpsum) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
             ctx.enable_consume();
 
@@ -83,7 +83,7 @@ TEST(WordCount, BaconIpsum) {
 
 TEST(WordCount, BaconIpsumFastString) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
             ctx.enable_consume();
 
@@ -131,7 +131,7 @@ TEST(WordCount, RandomTextWriterTest) {
         correct.assign(count_map.begin(), count_map.end());
     }
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [&size, &correct](Context& ctx) {
             ctx.enable_consume();
 

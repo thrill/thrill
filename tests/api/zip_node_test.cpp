@@ -32,7 +32,7 @@ static const size_t test_size = 1000;
 
 TEST(ZipNode, TwoBalancedIntegerArrays) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             // numbers 0..999 (evenly distributed to workers)
@@ -68,7 +68,7 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
 
     // first DIA is heavily balanced to the first workers, second DIA is
     // balanced to the last workers.
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             // numbers 0..999 (evenly distributed to workers)
@@ -119,7 +119,7 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
 
 TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             // numbers 0..999 (evenly distributed to workers)
@@ -156,7 +156,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
 
     // first DIA is heavily balanced to the first workers, second DIA is
     // balanced to the last workers.
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             // generate random strings with 10..20 characters
@@ -229,7 +229,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
 
 TEST(ZipNode, ThreeIntegerArrays) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             // numbers 0..999 (evenly distributed to workers)
@@ -279,7 +279,7 @@ TEST(ZipNode, ThreeIntegerArrays) {
 
 TEST(ZipNode, ThreeIntegerArraysPadded) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             // numbers 0..999 (evenly distributed to workers)

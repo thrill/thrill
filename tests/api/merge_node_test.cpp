@@ -59,7 +59,7 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
 
     static const size_t test_size = 5000;
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             // even numbers in 0..9998 (evenly distributed to workers)
@@ -88,7 +88,7 @@ TEST(MergeNode, FourBalancedIntegerArrays) {
     static const size_t test_size = 5000;
     static const bool debug = false;
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto merge_input1 = Generate(
@@ -138,7 +138,7 @@ TEST(MergeNode, TwoImbalancedIntegerArrays) {
 
     static const size_t test_size = 5000;
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             // numbers in 0..4999 (evenly distributed to workers)
@@ -173,7 +173,7 @@ TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
     static const size_t test_size = 5000;
     static const size_t offset = 2500;
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             // numbers in 0..4999 (evenly distributed to workers)

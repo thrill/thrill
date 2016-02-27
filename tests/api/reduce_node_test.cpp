@@ -24,7 +24,7 @@ using namespace thrill; // NOLINT
 
 TEST(ReduceNode, ReduceModulo2CorrectResults) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -63,7 +63,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
 //! Test sums of integers 0..n-1 for n=100 in 1000 buckets in the reduce table
 TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             using IntPair = std::pair<size_t, size_t>;
@@ -100,7 +100,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
 
 TEST(ReduceNode, ReducePairToIndexCorrectResults) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -162,7 +162,7 @@ TEST(ReduceNode, ReducePairToIndexCorrectResults) {
 
 TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(

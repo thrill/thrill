@@ -30,7 +30,7 @@ static const bool debug = false;
 
 TEST(GroupByNode, CompileAndSum) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
             size_t n = 8;
             static const size_t m = 4;
@@ -77,7 +77,7 @@ TEST(GroupByNode, CompileAndSum) {
 
 TEST(GroupByNode, Median) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
             size_t n = 9999;
             static const size_t m = 4;
@@ -132,7 +132,7 @@ TEST(GroupByNode, Median) {
 
 TEST(GroupByNode, GroupByIndexCorrectResults) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
             size_t n = 9999;
             static const size_t m = 31;

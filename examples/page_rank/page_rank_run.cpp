@@ -129,7 +129,7 @@ static void RunPageRankGenerated(
             size_t /* index */) mutable {
             return graph_gen.GenerateOutgoing(rng);
         },
-        num_pages);
+        num_pages).Cache();
 
     // perform actual page rank calculation iterations
 

@@ -12,6 +12,7 @@
 #include <examples/page_rank/zipf_graph_gen.hpp>
 
 #include <thrill/api/allgather.hpp>
+#include <thrill/api/cache.hpp>
 #include <thrill/api/distribute.hpp>
 
 #include <gtest/gtest.h>
@@ -76,11 +77,11 @@ TEST(PageRank, RandomZipfGraph) {
         correct_page_rank = ranks;
     }
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [&outlinks, &correct_page_rank](Context& ctx) {
             ctx.enable_consume();
 
-            auto links = Distribute(ctx, outlinks);
+            auto links = Distribute(ctx, outlinks).Cache();
 
             auto page_rank = PageRank(links, num_pages, iterations);
 

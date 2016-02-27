@@ -39,7 +39,7 @@ using thrill::api::Context;
 using thrill::api::DIA;
 
 TEST(IO, ReadSingleFile) {
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
             auto integers = ReadLines(ctx, "inputs/test1")
                             .Map([](const std::string& line) {
@@ -60,7 +60,7 @@ TEST(IO, ReadSingleFile) {
 }
 
 TEST(IO, ReadFolder) {
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
             ASSERT_EQ(ReadLines(ctx, "inputs/read_folder/*").Size(), 20);
         };
@@ -72,7 +72,7 @@ TEST(IO, ReadPartOfFolderCompressed) {
 #if defined(_MSC_VER)
     return;
 #endif
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
             // folder read_ints contains compressed and non-compressed files
             // with integers from 25 to 1 and a file 'donotread', which contains
@@ -288,7 +288,7 @@ TEST(IO, GenerateStringWriteBinary) {
 TEST(IO, WriteAndReadBinaryEqualDIAs) {
     core::TemporaryDirectory tmpdir;
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [&tmpdir](Context& ctx) {
             if (ctx.my_rank() == 0) {
                 tmpdir.wipe();

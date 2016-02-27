@@ -66,7 +66,7 @@ protected:
 
 TEST(Operations, DistributeAndAllGatherElements) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             static const size_t test_size = 1024;
@@ -99,7 +99,7 @@ TEST(Operations, DistributeAndAllGatherElements) {
 
 TEST(Operations, DistributeFromAndAllGatherElements) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             static const size_t test_size = 1024;
@@ -132,7 +132,7 @@ TEST(Operations, DistributeFromAndAllGatherElements) {
 
 TEST(Operations, DistributeAndGatherElements) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             static const size_t test_size = 1024;
@@ -172,7 +172,7 @@ TEST(Operations, GenerateIntegers) {
 
     static const size_t test_size = 1000;
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -194,7 +194,7 @@ TEST(Operations, GenerateIntegers) {
 
 TEST(Operations, MapResultsCorrectChangingType) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -204,7 +204,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
                 },
                 16);
 
-            std::function<double(size_t)> double_elements =
+            auto double_elements =
                 [](size_t in) {
                     return 2.0 * static_cast<double>(in);
                 };
@@ -228,7 +228,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
 TEST(Operations, FlatMapResultsCorrectChangingType) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -272,7 +272,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
 TEST(Operations, PrefixSumCorrectResults) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -300,7 +300,7 @@ TEST(Operations, PrefixSumCorrectResults) {
 
 TEST(Operations, PrefixSumFacultyCorrectResults) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -336,7 +336,7 @@ TEST(Operations, GenerateAndSumHaveEqualAmount1) {
 
     size_t generate_size = distribution(generator);
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [generate_size](Context& ctx) {
 
             auto input = GenerateFromFile(
@@ -363,7 +363,7 @@ TEST(Operations, GenerateAndSumHaveEqualAmount1) {
 
 TEST(Operations, GenerateAndSumHaveEqualAmount2) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             // TODO(ms): Replace this with some test-specific rendered file
@@ -393,7 +393,7 @@ TEST(Operations, WindowCorrectResults) {
     static const size_t test_size = 144;
     static const size_t window_size = 10;
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             sLOG << ctx.num_hosts();
@@ -438,7 +438,7 @@ TEST(Operations, WindowCorrectResults) {
 
 TEST(Operations, FilterResultsCorrectly) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -448,9 +448,9 @@ TEST(Operations, FilterResultsCorrectly) {
                 },
                 16);
 
-            std::function<bool(size_t)> even = [](size_t in) {
-                                                   return (in % 2 == 0);
-                                               };
+            auto even = [](size_t in) {
+                            return (in % 2 == 0);
+                        };
 
             auto doubled = integers.Filter(even);
 
@@ -470,7 +470,7 @@ TEST(Operations, FilterResultsCorrectly) {
 
 TEST(Operations, DIACasting) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto even = [](size_t in) {
@@ -502,7 +502,7 @@ TEST(Operations, DIACasting) {
 
 TEST(Operations, ForLoop) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -544,7 +544,7 @@ TEST(Operations, ForLoop) {
 
 TEST(Operations, WhileLoop) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(

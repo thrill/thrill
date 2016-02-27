@@ -24,7 +24,7 @@ using namespace thrill; // NOLINT
 
 TEST(Sort, SortKnownIntegers) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             std::default_random_engine generator(std::random_device { } ());
@@ -55,7 +55,7 @@ TEST(Sort, SortKnownIntegers) {
 
 TEST(Sort, SortRandomIntegers) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             std::default_random_engine generator(std::random_device { } ());
@@ -86,7 +86,7 @@ TEST(Sort, SortRandomIntegers) {
 
 TEST(Sort, SortRandomIntegersCustomCompareFunction) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             std::default_random_engine generator(std::random_device { } ());
@@ -121,7 +121,7 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
 
 TEST(Sort, SortRandomIntIntStructs) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             using Pair = std::pair<int, int>;
@@ -163,7 +163,7 @@ TEST(Sort, SortRandomIntIntStructs) {
 
 TEST(Sort, SortZeros) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             std::default_random_engine generator(std::random_device { } ());
@@ -194,7 +194,7 @@ TEST(Sort, SortZeros) {
 
 TEST(Sort, SortWithEmptyWorkers) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             std::string in = "inputs/compressed-0-0.gzip";
@@ -220,7 +220,7 @@ TEST(Sort, SortWithEmptyWorkers) {
 
 TEST(Sort, SortOneInteger) {
 
-    std::function<void(Context&)> start_func =
+    auto start_func =
         [](Context& ctx) {
 
             LOG1 << "Sorting with " << ctx.num_workers() << " workers";
