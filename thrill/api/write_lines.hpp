@@ -44,8 +44,7 @@ public:
         : ActionNode(parent.ctx(), "WriteLines",
                      { parent.id() }, { parent.node() }),
           path_out_(path_out),
-          file_(path_out_, std::ios::binary),
-          temp_file_(context_.GetFile())
+          file_(path_out_, std::ios::binary)
     {
         sLOG << "Creating write node.";
 
@@ -56,14 +55,6 @@ public:
         // node for output
         auto lop_chain = parent.stack().push(pre_op_fn).fold();
         parent.node()->AddChild(this, lop_chain);
-    }
-
-    DIAMemUse PushDataMemUse() final {
-        return data::default_block_size;
-    }
-
-    void StartPreOp(size_t /* id */) final {
-        writer_ = temp_file_.GetWriter();
     }
 
     void PreOp(const Input& input) {
@@ -110,10 +101,10 @@ private:
     size_t local_size_ = 0;
 
     //! Temporary File for splitting correctly?
-    data::File temp_file_;
+    data::File temp_file_ { context_.GetFile() };
 
     //! File writer used.
-    data::File::Writer writer_;
+    data::File::Writer writer_ { temp_file_.GetWriter() };
 
     size_t local_lines_ = 0;
 };

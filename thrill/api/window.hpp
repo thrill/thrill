@@ -64,7 +64,6 @@ public:
 
     void StartPreOp(size_t /* id */) final {
         window_.allocate(window_size_);
-        writer_ = file_.GetWriter();
     }
 
     //! PreOp: keep last k - 1 items (local window) and store items.
@@ -167,7 +166,7 @@ private:
     //! Local data file
     data::File file_ { context_.GetFile() };
     //! Data writer to local file (only active in PreOp).
-    data::File::Writer writer_;
+    data::File::Writer writer_ { file_.GetWriter() };
 
     //! rank of our first element in file_
     size_t first_rank_;

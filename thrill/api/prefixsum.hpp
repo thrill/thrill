@@ -52,10 +52,6 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
-    void StartPreOp(size_t /* id */) final {
-        writer_ = file_.GetWriter();
-    }
-
     //! PreOp: compute local prefixsum and store items.
     void PreOp(const ValueType& input) {
         LOG << "Input: " << input;
@@ -107,7 +103,7 @@ private:
     //! Local data file
     data::File file_ { context_.GetFile() };
     //! Data writer to local file (only active in PreOp).
-    data::File::Writer writer_;
+    data::File::Writer writer_ { file_.GetWriter() };
 };
 
 template <typename ValueType, typename Stack>
