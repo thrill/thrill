@@ -65,14 +65,17 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
 
     api::Context& ctx = links.context();
 
-    // initialize all ranks to 1.0: (url, rank)
+    // initialize all ranks to 1.0 / n: (url, rank)
 
-    DIA<Rank> ranks = Generate(
-        ctx, [](const size_t&) { return (Rank)1.0; }, num_pages).Collapse();
+    DIA<Rank> ranks =
+        Generate(
+            ctx,
+            [num_pages](const size_t&) { return Rank(1.0) / num_pages; },
+            num_pages)
+        .Collapse();
 
     // do iterations
     for (size_t iter = 0; iter < iterations; ++iter) {
-        LOG0 << "iteration " << iter;
 
         // for all outgoing link, get their rank contribution from all
         // links by doing:
@@ -81,7 +84,7 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
         // ([linked_url, linked_url, ...], rank_parent)
         //
         // 2) compute rank contribution for each linked_url: (FlatMap)
-        // (linked_url, rank / OUTGOING.size)
+        // (linked_url, rank / outgoing.size)
 
         auto outs_rank = links.Zip(
             ranks,
@@ -102,11 +105,8 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
             [](const OutgoingLinksRank& p, auto emit) {
                 if (p.first.size() > 0) {
                     Rank rank_contrib = p.second / p.first.size();
-                        // assert (rank_contrib <= 1);
-                    for (const PageId& tgt : p.first) {
-                        LOG << "contribs2 " << tgt << " " << rank_contrib;
+                    for (const PageId& tgt : p.first)
                         emit(PageRankPair { tgt, rank_contrib });
-                    }
                 }
             });
 
@@ -121,10 +121,9 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
                     return PageRankPair { p1.page, p1.rank + p2.rank };
                 }, num_pages)
             .Map([num_pages](const PageRankPair& p) {
-                     Rank r = dampening * p.rank + (1 - dampening) / num_pages;
-                     LOG << "ranks2 in " << p << "out" << r;
-                     return r;
-                 }).Execute().Collapse();
+                     return dampening * p.rank + (1 - dampening) / num_pages;
+                 })
+            .Collapse();
     }
 
     return ranks;

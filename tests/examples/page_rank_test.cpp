@@ -48,8 +48,8 @@ TEST(PageRank, RandomZipfGraph) {
             outlinks[i] = graph_gen.GenerateOutgoing(rng);
         }
 
-        // initial ranks
-        std::vector<double> ranks(num_pages, 1.0);
+        // initial ranks: 1 / n
+        std::vector<double> ranks(num_pages, 1.0 / num_pages);
 
         // contribution of rank weight in each iteration
         std::vector<double> contrib(num_pages, 0.0);
