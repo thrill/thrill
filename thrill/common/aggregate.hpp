@@ -124,8 +124,8 @@ public:
         return agg;
     }
 
-    static const bool thrill_is_fixed_size = true;
-    static const size_t thrill_fixed_size = sizeof(size_t) + 4 * sizeof(Type);
+    static constexpr bool thrill_is_fixed_size = true;
+    static constexpr size_t thrill_fixed_size = sizeof(size_t) + 4 * sizeof(Type);
 
 private:
     //! number of values aggregated

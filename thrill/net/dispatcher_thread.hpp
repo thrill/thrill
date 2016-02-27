@@ -54,7 +54,7 @@ using AsyncWriteCallback = common::delegate<void(Connection&)>;
  */
 class DispatcherThread
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! Signature of async jobs to be run by the dispatcher thread.

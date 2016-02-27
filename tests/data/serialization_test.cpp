@@ -193,17 +193,17 @@ TEST_F(Serialization, StringArray) {
 
 struct MyMethodStruct
 {
-    int                 i1;
-    double              d2;
-    std::string         s3;
+    int                     i1;
+    double                  d2;
+    std::string             s3;
 
     MyMethodStruct() = default;
 
     MyMethodStruct(int _i1, double _d2, const std::string& _s3)
         : i1(_i1), d2(_d2), s3(_s3) { }
 
-    static const bool   thrill_is_fixed_size = false;
-    static const size_t thrill_fixed_size = 0;
+    static constexpr bool   thrill_is_fixed_size = false;
+    static constexpr size_t thrill_fixed_size = 0;
 
     template <typename Archive>
     void ThrillSerialize(Archive& ar) const {

@@ -57,8 +57,8 @@ namespace data {
 class CatStream final : public Stream
 {
 public:
-    static const bool debug = false;
-    static const bool debug_data = false;
+    static constexpr bool debug = false;
+    static constexpr bool debug_data = false;
 
     using BlockQueueSource = ConsumeBlockQueueSource;
     using BlockQueueReader = BlockReader<BlockQueueSource>;

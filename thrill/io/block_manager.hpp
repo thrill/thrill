@@ -49,7 +49,7 @@ namespace io {
 //! \remarks is a singleton
 class BlockManager : public common::Singleton<BlockManager>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! return total number of bytes available in all disks

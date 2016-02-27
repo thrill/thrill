@@ -36,7 +36,7 @@ namespace mpi {
 
 class Dispatcher final : public net::Dispatcher
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! type for file descriptor readiness callbacks

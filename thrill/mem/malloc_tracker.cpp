@@ -53,8 +53,8 @@ namespace mem {
 /******************************************************************************/
 // user-defined options for output malloc()/free() operations to stderr
 
-static const int log_operations = 0; //! <-- set this to 1 for log output
-static const size_t log_operations_threshold = 100000;
+static constexpr int log_operations = 0; //! <-- set this to 1 for log output
+static constexpr size_t log_operations_threshold = 100000;
 
 #define LOG_MALLOC_PROFILER 0
 
@@ -63,7 +63,7 @@ static const size_t log_operations_threshold = 100000;
 
 //! In the generic hook implementation, we add to each allocation additional
 //! data for bookkeeping.
-static const size_t padding = 16;    /* bytes (>= 2*sizeof(size_t)) */
+static constexpr size_t padding = 16;    /* bytes (>= 2*sizeof(size_t)) */
 
 //! function pointer to the real procedures, loaded using dlsym()
 using malloc_type = void* (*)(size_t);
@@ -75,7 +75,7 @@ static free_type real_free = nullptr;
 static realloc_type real_realloc = nullptr;
 
 //! a sentinel value prefixed to each allocation
-static const size_t sentinel = 0xDEADC0DE;
+static constexpr size_t sentinel = 0xDEADC0DE;
 
 #define USE_ATOMICS 0
 
@@ -122,10 +122,10 @@ static inline size_t sync_sub_and_fetch(CounterType& curr, size_t dec) {
 #define INIT_HEAP_SIZE 1024 * 1024
 static char init_heap[INIT_HEAP_SIZE];
 static CounterType init_heap_use COUNTER_ZERO;
-static const int log_operations_init_heap = 0;
+static constexpr int log_operations_init_heap = 0;
 
 //! align allocations to init_heap to this number by rounding up allocations
-static const size_t init_alignment = sizeof(size_t);
+static constexpr size_t init_alignment = sizeof(size_t);
 
 //! output
 #define PPREFIX "malloc_tracker ### "

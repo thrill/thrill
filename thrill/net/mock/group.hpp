@@ -105,8 +105,8 @@ private:
  */
 class Group final : public net::Group
 {
-    static const bool debug = false;
-    static const bool debug_data = true;
+    static constexpr bool debug = false;
+    static constexpr bool debug_data = true;
 
 public:
     //! \name Base Functions
@@ -159,7 +159,7 @@ private:
  */
 class Dispatcher final : public net::Dispatcher
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! type for file descriptor readiness callbacks

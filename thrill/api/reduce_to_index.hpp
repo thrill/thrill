@@ -61,7 +61,7 @@ template <typename ValueType, typename ParentDIA,
           bool RobustKey, bool SendPair>
 class ReduceToIndexNode final : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -75,8 +75,8 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
 
     using Output = typename common::If<RobustKey, Value, KeyValuePair>::type;
 
-    static const bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
-    static const bool use_post_thread_ = ReduceConfig::use_post_thread_;
+    static constexpr bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
+    static constexpr bool use_post_thread_ = ReduceConfig::use_post_thread_;
 
 private:
     //! Emitter for PostStage to push elements to next DIA object.

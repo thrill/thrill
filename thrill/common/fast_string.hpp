@@ -282,8 +282,8 @@ struct Serialization<Archive, common::FastString>
         return common::FastString::Take(outdata, size);
     }
 
-    static const bool   is_fixed_size = false;
-    static const size_t fixed_size = 0;
+    static constexpr bool   is_fixed_size = false;
+    static constexpr size_t fixed_size = 0;
 };
 
 } // namespace data

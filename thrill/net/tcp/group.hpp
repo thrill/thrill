@@ -40,7 +40,7 @@ namespace tcp {
  */
 class Group final : public net::Group
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! \name Construction and Initialization

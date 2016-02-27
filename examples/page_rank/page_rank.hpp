@@ -30,9 +30,9 @@ using namespace thrill; // NOLINT
 namespace examples {
 namespace page_rank {
 
-static const bool debug = false;
+static constexpr bool debug = false;
 
-static const double dampening = 0.85;
+static constexpr double dampening = 0.85;
 
 using PageId = std::size_t;
 using Rank = double;

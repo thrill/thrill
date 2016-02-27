@@ -312,7 +312,7 @@ private:
 template <typename Stream>
 class StreamOneFactorExperiment : public DataGeneratorExperiment
 {
-    static const bool debug = true;
+    static constexpr bool debug = true;
 
 public:
     int Run(int argc, char* argv[]) {

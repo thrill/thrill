@@ -18,7 +18,7 @@
 using namespace thrill;
 
 TEST(Math, OneFactor) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     for (size_t n = 1; n < 20; ++n) {
         // print header

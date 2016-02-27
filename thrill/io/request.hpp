@@ -54,7 +54,7 @@ public:
     enum ReadOrWriteType { READ, WRITE };
 
 protected:
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     CompletionHandler on_complete_;
     std::unique_ptr<IoError> error_;

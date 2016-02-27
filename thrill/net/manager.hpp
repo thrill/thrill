@@ -35,13 +35,13 @@ namespace net {
  */
 class Manager
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     /*!
      * The count of net::Groups to initialize.
      */
-    static const size_t kGroupCount = 2;
+    static constexpr size_t kGroupCount = 2;
 
     size_t my_host_rank() const {
         return groups_[0]->my_host_rank();

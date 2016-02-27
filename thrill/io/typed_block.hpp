@@ -250,7 +250,7 @@ class TypedBlock
 {
     using Base = mng_local::ExpandStruct<mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>;
 
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     using value_type = Type;

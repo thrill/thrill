@@ -19,7 +19,7 @@
 using namespace thrill;
 
 TEST(StackAllocator, Test1) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using CharAlloc = mem::StackAllocator<char, 128>;
     using IntAlloc = mem::StackAllocator<int, 128>;

@@ -50,7 +50,7 @@ namespace net {
 class FlowControlChannel
 {
 private:
-    static const bool self_verify = false;
+    static constexpr bool self_verify = false;
 
     //! The group associated with this channel.
     Group& group_;
@@ -205,7 +205,7 @@ public:
               const BinarySumOp& sum_op = BinarySumOp(),
               bool inclusive = true) {
 
-        static const bool debug = false;
+        static constexpr bool debug = false;
 
         T local_value = value;
 

@@ -32,7 +32,7 @@ struct MultiwayMerge : public::testing::Test {
 };
 
 TEST_F(MultiwayMerge, Basic) {
-    // static const bool debug = false;
+    // static constexpr bool debug = false;
     std::mt19937 gen(0);
     size_t a = 2;
     size_t b = 5;
@@ -77,7 +77,7 @@ TEST_F(MultiwayMerge, Basic) {
 }
 
 TEST_F(MultiwayMerge, VectorWrapper) {
-    // static const bool debug = false;
+    // static constexpr bool debug = false;
     std::mt19937 gen(0);
     size_t a = 200;
     size_t b = 50;
@@ -123,7 +123,7 @@ TEST_F(MultiwayMerge, VectorWrapper) {
 }
 
 TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
     std::minstd_rand gen(0);
     // get _nruns_ different runs with _nitems_ number of elements
     size_t nruns = 15;
@@ -203,7 +203,7 @@ TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
 }
 
 TEST_F(MultiwayMerge, File_Wrapper_with_1_Runs) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
     std::mt19937 gen(0);
     size_t a = 1;
     size_t b = 100;
@@ -273,7 +273,7 @@ TEST_F(MultiwayMerge, File_Wrapper_with_1_Runs) {
 }
 
 TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
     std::mt19937 gen(0);
     size_t a = 4;
     size_t b = 3;

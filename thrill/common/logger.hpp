@@ -61,7 +61,7 @@ classes**, or even the global scope.
 \code
 class MyClass
 {
-    static const bool debug = true;
+    static constexpr bool debug = true;
 
     void func1()
     {
@@ -72,7 +72,7 @@ class MyClass
 
     void func2()
     {
-        static const bool debug = false;
+        static constexpr bool debug = false;
         LOG << "This is not printed any more.";
 
         LOG1 << "But this is forced.";

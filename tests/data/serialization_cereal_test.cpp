@@ -24,7 +24,7 @@
 
 using namespace thrill; // NOLINT
 
-static const bool debug = false;
+static constexpr bool debug = false;
 
 struct SerializationCereal : public::testing::Test {
     data::BlockPool block_pool_;

@@ -60,7 +60,7 @@ class MixBlockQueueReader;
  */
 class MixBlockQueue
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! pair of (source worker, Block) stored in the main mix queue.
@@ -160,7 +160,7 @@ private:
  */
 class MixBlockQueueSink final : public BlockSink
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     MixBlockQueueSink(MixBlockQueue& mix_queue,
@@ -216,7 +216,7 @@ private:
  */
 class MixBlockQueueReader
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     using CatBlockSource = data::CatBlockSource<DynBlockSource>;

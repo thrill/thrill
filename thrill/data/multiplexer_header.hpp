@@ -34,10 +34,10 @@ enum class MagicByte : uint8_t {
 
 struct BlockHeader {
 public:
-    MagicByte           magic = MagicByte::Invalid;
-    size_t              size = 0;
-    size_t              first_item = 0;
-    size_t              num_items = 0;
+    MagicByte               magic = MagicByte::Invalid;
+    size_t                  size = 0;
+    size_t                  first_item = 0;
+    size_t                  num_items = 0;
 
     BlockHeader() = default;
 
@@ -48,18 +48,18 @@ public:
           num_items(b.num_items())
     { }
 
-    static const size_t header_size = sizeof(MagicByte) + 3 * sizeof(size_t);
+    static constexpr size_t header_size = sizeof(MagicByte) + 3 * sizeof(size_t);
 
-    static const size_t total_size = header_size + 4 * sizeof(size_t);
+    static constexpr size_t total_size = header_size + 4 * sizeof(size_t);
 
-    void                SerializeBlockHeader(net::BufferBuilder& bb) const {
+    void                    SerializeBlockHeader(net::BufferBuilder& bb) const {
         bb.Put<MagicByte>(magic);
         bb.Put<size_t>(size);
         bb.Put<size_t>(first_item);
         bb.Put<size_t>(num_items);
     }
 
-    void                ParseBlockHeader(net::BufferReader& br) {
+    void                    ParseBlockHeader(net::BufferReader& br) {
         magic = br.Get<MagicByte>();
         size = br.Get<size_t>();
         first_item = br.Get<size_t>();

@@ -23,7 +23,7 @@ namespace thrill {
 namespace data {
 
 //! default size of blocks in File, Channel, BlockQueue, etc.
-static const size_t default_block_size = 2 * 1024 * 1024;
+static constexpr size_t default_block_size = 2 * 1024 * 1024;
 
 //! type of underlying memory area
 using Byte = uint8_t;
@@ -42,7 +42,7 @@ class BlockPool;
  */
 class ByteBlock : public common::ReferenceCount
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! deleter for CountingPtr<ByteBlock>

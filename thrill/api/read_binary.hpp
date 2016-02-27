@@ -42,18 +42,18 @@ namespace api {
 template <typename ValueType>
 class ReadBinaryNode final : public SourceNode<ValueType>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     using Super = SourceNode<ValueType>;
     using Super::context_;
 
     //! flag whether ValueType is fixed size
-    static const bool is_fixed_size_ =
+    static constexpr bool is_fixed_size_ =
         data::Serialization<data::DynBlockWriter, ValueType>::is_fixed_size;
 
     //! fixed size of ValueType or zero.
-    static const size_t fixed_size_ =
+    static constexpr size_t fixed_size_ =
         data::Serialization<data::DynBlockWriter, ValueType>::fixed_size;
 
     //! structure to store info on what to read from files
@@ -158,7 +158,7 @@ public:
         : ReadBinaryNode(ctx, std::vector<std::string>{ glob }) { }
 
     void PushData(bool /* consume */) final {
-        static const bool debug = false;
+        static constexpr bool debug = false;
         LOG << "READING data " << std::to_string(this->id());
 
         // Hook Read

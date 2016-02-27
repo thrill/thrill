@@ -46,7 +46,7 @@ static void TestSendRecvCyclic(net::Group* net) {
 
 //! sends and receives a POD message from all workers.
 static void TestBroadcastIntegral(net::Group* net) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     // Broadcast our ID to everyone
     for (size_t i = 0; i != net->num_hosts(); ++i)
@@ -70,7 +70,7 @@ static void TestBroadcastIntegral(net::Group* net) {
 
 //! sends and receives a String message from all workers.
 static void TestSendReceiveAll2All(net::Group* net) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     // send a message to all other clients except ourselves.
     for (size_t i = 0; i != net->num_hosts(); ++i)
@@ -114,7 +114,7 @@ static void TestPrefixSumHypercube(net::Group* net) {
 static void TestPrefixSumHypercubeString(net::Group* net) {
     // only for powers of two
 
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     if (net->num_hosts() != common::RoundUpToPowerOfTwo(net->num_hosts()))
         return;
@@ -130,7 +130,7 @@ static void TestPrefixSumHypercubeString(net::Group* net) {
 
 //! let group of p hosts perform a PrefixSum collective on std::string
 static void TestPrefixSum(net::Group* net) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
 
@@ -253,7 +253,7 @@ static void TestDispatcherLaunchAndTerminate(net::Group* net) {
 
 //! use DispatcherThread to send and receive messages asynchronously.
 static void TestDispatcherAsyncWriteAndReadIntoFuture(net::Group* net) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     mem::Manager mem_manager_(nullptr, "DispatcherTest");
 
@@ -295,7 +295,7 @@ static void TestDispatcherAsyncWriteAndReadIntoFuture(net::Group* net) {
 
 //! use DispatcherThread to send and receive messages asynchronously.
 static void TestDispatcherAsyncWriteAndReadIntoFutureX(net::Group* net) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     mem::Manager mem_manager_(nullptr, "DispatcherTest");
 
@@ -341,7 +341,7 @@ static void TestDispatcherAsyncWriteAndReadIntoFutureX(net::Group* net) {
 //! this test produces a data race condition, which is probably a problem of
 //! std::future
 void DisabledTestDispatcherAsyncWriteAndReadIntoStdFuture(net::Group* net) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     mem::Manager mem_manager_(nullptr, "DispatcherTest");
 

@@ -49,8 +49,8 @@ namespace tcp {
  */
 class Socket
 {
-    static const bool debug = false;
-    static const bool debug_data = false;
+    static constexpr bool debug = false;
+    static constexpr bool debug_data = false;
 
 public:
     //! \name Creation

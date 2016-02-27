@@ -219,7 +219,7 @@ static const char* s_random_text_writer_words[] = {
     "unrealize", "unpatched", "hypochondriacism", "critically", "cheesecutter"
 };
 
-static const size_t s_num_random_text_writer_words =
+static constexpr size_t s_num_random_text_writer_words =
     sizeof(s_random_text_writer_words) / sizeof(s_random_text_writer_words[0]);
 
 template <typename RandomGenerator>

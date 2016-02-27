@@ -34,7 +34,7 @@ namespace api {
 class Stage
 {
 public:
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     explicit Stage(const DIABasePtr& node)
         : node_(node), context_(node->context()) { }
@@ -257,7 +257,7 @@ using mm_set = std::set<T, std::less<T>, mem::Allocator<T> >;
 //! Do a BFS on parents to find all DIANodes (Stages) needed to Execute or
 //! PushData to calculate this action node.
 static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
-    static const bool debug = Stage::debug;
+    static constexpr bool debug = Stage::debug;
 
     LOG << "Finding Stages:";
 
@@ -325,7 +325,7 @@ static void TopoSortStages(mm_set<Stage>& stages, mem::vector<Stage>& result) {
 }
 
 void DIABase::RunScope() {
-    static const bool debug = Stage::debug;
+    static constexpr bool debug = Stage::debug;
 
     LOG << "DIABase::Execute() this=" << *this;
 

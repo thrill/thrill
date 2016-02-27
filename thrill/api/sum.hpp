@@ -28,7 +28,7 @@ namespace api {
 template <typename ParentDIA, typename SumFunction>
 class SumNode final : public ActionNode
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using Super = ActionNode;
     using Super::context_;

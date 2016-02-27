@@ -70,7 +70,7 @@ public:
     enum { allocate_can_fail_ = false };
 
 private:
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     Stream& stream_;
     net::Connection* connection_ = nullptr;

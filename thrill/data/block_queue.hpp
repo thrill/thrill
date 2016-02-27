@@ -47,7 +47,7 @@ class ConsumeBlockQueueSource;
 class BlockQueue final : public BlockSink
 {
 public:
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using Writer = BlockWriter<BlockQueue>;
     using Reader = DynBlockReader;
@@ -173,7 +173,7 @@ private:
  */
 class ConsumeBlockQueueSource
 {
-    static const bool debug = BlockQueue::debug;
+    static constexpr bool debug = BlockQueue::debug;
 
 public:
     //! Start reading from a BlockQueue
@@ -206,7 +206,7 @@ private:
  */
 class CacheBlockQueueSource
 {
-    static const bool debug = BlockQueue::debug;
+    static constexpr bool debug = BlockQueue::debug;
 
 public:
     //! Start reading from a BlockQueue

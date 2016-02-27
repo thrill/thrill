@@ -28,7 +28,7 @@ struct MyStruct {
     int a, b;
 };
 
-static const size_t test_size = 1000;
+static constexpr size_t test_size = 1000;
 
 TEST(ZipNode, TwoBalancedIntegerArrays) {
 

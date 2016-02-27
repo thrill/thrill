@@ -43,8 +43,8 @@ public:
 
     size_t value() const { return value_; }
 
-    static const bool thrill_is_fixed_size = true;
-    static const size_t thrill_fixed_size = sizeof(size_t);
+    static constexpr bool thrill_is_fixed_size = true;
+    static constexpr size_t thrill_fixed_size = sizeof(size_t);
 
     template <typename Archive>
     void ThrillSerialize(Archive& ar) const {
@@ -69,7 +69,7 @@ TEST(Operations, DistributeAndAllGatherElements) {
     auto start_func =
         [](Context& ctx) {
 
-            static const size_t test_size = 1024;
+            static constexpr size_t test_size = 1024;
 
             std::vector<size_t> in_vector;
 
@@ -102,7 +102,7 @@ TEST(Operations, DistributeFromAndAllGatherElements) {
     auto start_func =
         [](Context& ctx) {
 
-            static const size_t test_size = 1024;
+            static constexpr size_t test_size = 1024;
 
             std::vector<size_t> in_vector;
 
@@ -135,7 +135,7 @@ TEST(Operations, DistributeAndGatherElements) {
     auto start_func =
         [](Context& ctx) {
 
-            static const size_t test_size = 1024;
+            static constexpr size_t test_size = 1024;
 
             std::vector<size_t> in_vector;
 
@@ -170,7 +170,7 @@ TEST(Operations, DistributeAndGatherElements) {
 
 TEST(Operations, GenerateIntegers) {
 
-    static const size_t test_size = 1000;
+    static constexpr size_t test_size = 1000;
 
     auto start_func =
         [](Context& ctx) {
@@ -389,9 +389,9 @@ TEST(Operations, GenerateAndSumHaveEqualAmount2) {
 
 TEST(Operations, WindowCorrectResults) {
 
-    static const bool debug = false;
-    static const size_t test_size = 144;
-    static const size_t window_size = 10;
+    static constexpr bool debug = false;
+    static constexpr size_t test_size = 144;
+    static constexpr size_t window_size = 10;
 
     auto start_func =
         [](Context& ctx) {

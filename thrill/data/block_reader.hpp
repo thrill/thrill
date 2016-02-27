@@ -40,7 +40,7 @@ class BlockReader
     : public common::ItemReaderToolsBase<BlockReader<BlockSource> >
 {
 public:
-    static const bool self_verify = common::g_self_verify;
+    static constexpr bool self_verify = common::g_self_verify;
 
     //! Start reading a BlockSource
     explicit BlockReader(BlockSource&& source)
@@ -128,7 +128,7 @@ public:
     //! items, the internal item cursor is advanced by n.
     template <typename ItemType>
     std::vector<Block> GetItemBatch(size_t n) {
-        static const bool debug = false;
+        static constexpr bool debug = false;
 
         std::vector<Block> out;
         if (n == 0) return out;

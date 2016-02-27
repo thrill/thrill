@@ -42,7 +42,7 @@ template <typename Type = char,
           size_t Alignment = THRILL_DEFAULT_ALIGN>
 class AlignedAllocator : public AllocatorBase<Type>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     static_assert(sizeof(typename BaseAllocator::value_type) == 1,
                   "BaseAllocator must be a char/byte allocator");

@@ -29,7 +29,7 @@ namespace tcp {
 
 class Construction
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     Construction(std::unique_ptr<Group>* groups, size_t group_count)
@@ -181,7 +181,7 @@ private:
     /**
      * The Thrill signature flag - introduced by Master Timo.
      */
-    static const uint64_t thrill_sign = 0x0C7A0C7A0C7A0C7A;
+    static constexpr uint64_t thrill_sign = 0x0C7A0C7A0C7A0C7A;
 
     /**
      * \brief Converts a Thrill endpoint list into a list of socket address.

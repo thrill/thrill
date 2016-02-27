@@ -51,7 +51,7 @@ namespace io {
 class FileBase
 {
 public:
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     //! the offset of a request, also the size of the file
     using offset_type = Request::offset_type;
@@ -85,10 +85,10 @@ public:
         REQUIRE_DIRECT = 256 //!< implies DIRECT, fail if opening with DIRECT flag does not work.
     };
 
-    static const int DEFAULT_QUEUE = -1;
-    static const int DEFAULT_LINUXAIO_QUEUE = -2;
-    static const int NO_ALLOCATOR = -1;
-    static const unsigned int DEFAULT_DEVICE_ID = (unsigned int)(-1);
+    static constexpr int DEFAULT_QUEUE = -1;
+    static constexpr int DEFAULT_LINUXAIO_QUEUE = -2;
+    static constexpr int NO_ALLOCATOR = -1;
+    static constexpr unsigned int DEFAULT_DEVICE_ID = (unsigned int)(-1);
 
     //! Construct a new file, usually called by a subclass.
     explicit FileBase(unsigned int device_id = DEFAULT_DEVICE_ID)

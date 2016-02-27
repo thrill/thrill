@@ -26,14 +26,14 @@
 
 using namespace thrill; // NOLINT
 
-static const bool debug = false;
+static constexpr bool debug = false;
 
 TEST(GroupByNode, CompileAndSum) {
 
     auto start_func =
         [](Context& ctx) {
             size_t n = 8;
-            static const size_t m = 4;
+            static constexpr size_t m = 4;
 
             auto sizets = Generate(
                 ctx,
@@ -80,7 +80,7 @@ TEST(GroupByNode, Median) {
     auto start_func =
         [](Context& ctx) {
             size_t n = 9999;
-            static const size_t m = 4;
+            static constexpr size_t m = 4;
 
             auto sizets = Generate(
                 ctx,
@@ -135,7 +135,7 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
     auto start_func =
         [](Context& ctx) {
             size_t n = 9999;
-            static const size_t m = 31;
+            static constexpr size_t m = 31;
 
             auto integers = Generate(
                 ctx,

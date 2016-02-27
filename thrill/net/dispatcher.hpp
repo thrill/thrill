@@ -62,7 +62,7 @@ using AsyncWriteCallback = common::delegate<void(Connection&)>;
  */
 class Dispatcher
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 private:
     //! import into class namespace

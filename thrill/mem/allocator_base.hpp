@@ -32,7 +32,7 @@ namespace mem {
 template <typename Type>
 class AllocatorBase
 {
-    static const bool debug = true;
+    static constexpr bool debug = true;
 
 public:
     using value_type = Type;
@@ -100,7 +100,7 @@ public:
 template <typename Type, Manager& manager_>
 class FixedAllocator : public AllocatorBase<Type>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     using value_type = Type;

@@ -35,10 +35,10 @@ struct MyStruct
 
 template <core::ReduceTableImpl table_impl>
 static void TestAddMyStructByHash(Context& ctx) {
-    static const bool debug = false;
-    static const size_t mod_size = 601;
-    static const size_t test_size = mod_size * 100;
-    static const size_t val_size = test_size / mod_size;
+    static constexpr bool debug = false;
+    static constexpr size_t mod_size = 601;
+    static constexpr size_t test_size = mod_size * 100;
+    static constexpr size_t val_size = test_size / mod_size;
 
     auto key_ex = [](const MyStruct& in) {
                       return in.key % mod_size;
@@ -106,7 +106,7 @@ TEST(ReduceHashStage, ProbingAddMyStructByHash) {
 /******************************************************************************/
 
 TEST(ReduceHashStage, PostReduceByIndex) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using IndexMap = core::ReduceByIndex<size_t>;
 
@@ -137,10 +137,10 @@ TEST(ReduceHashStage, PostReduceByIndex) {
 
 template <core::ReduceTableImpl table_impl>
 static void TestAddMyStructByIndex(Context& ctx) {
-    static const bool debug = false;
-    static const size_t mod_size = 601;
-    static const size_t test_size = mod_size * 100;
-    static const size_t val_size = test_size / mod_size;
+    static constexpr bool debug = false;
+    static constexpr size_t mod_size = 601;
+    static constexpr size_t test_size = mod_size * 100;
+    static constexpr size_t val_size = test_size / mod_size;
 
     auto key_ex = [](const MyStruct& in) {
                       return in.key % mod_size;
@@ -210,10 +210,10 @@ TEST(ReduceHashStage, ProbingAddMyStructByIndex) {
 
 template <core::ReduceTableImpl table_impl>
 static void TestAddMyStructByIndexWithHoles(Context& ctx) {
-    static const bool debug = false;
-    static const size_t mod_size = 600;
-    static const size_t test_size = mod_size * 100;
-    static const size_t val_size = test_size / mod_size;
+    static constexpr bool debug = false;
+    static constexpr size_t mod_size = 600;
+    static constexpr size_t test_size = mod_size * 100;
+    static constexpr size_t val_size = test_size / mod_size;
 
     auto key_ex = [](const MyStruct& in) {
                       return (in.key * 2) % mod_size;

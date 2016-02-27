@@ -87,7 +87,7 @@ private:
     data::CatStreamPtr stream_;
     std::vector<data::CatStream::Writer> emitters_;
 
-    static const bool debug = false;
+    static constexpr bool debug = false;
 };
 
 template <typename ValueType, typename Stack>

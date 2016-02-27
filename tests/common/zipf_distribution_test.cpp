@@ -18,7 +18,7 @@
 using namespace thrill;
 
 TEST(ZipfDistribution, Simple) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     common::ZipfDistribution zipf(1000, 0.3, 0.5);
 

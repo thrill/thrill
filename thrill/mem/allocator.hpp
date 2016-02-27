@@ -30,7 +30,7 @@ namespace mem {
 template <typename Type>
 class Allocator : public AllocatorBase<Type>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     using value_type = Type;

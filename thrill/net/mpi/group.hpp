@@ -63,7 +63,7 @@ public:
  */
 class Connection final : public net::Connection
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! construct from group tag and MPI peer
@@ -132,7 +132,7 @@ private:
  */
 class Group final : public net::Group
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! \name Base Functions

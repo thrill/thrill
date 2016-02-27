@@ -98,7 +98,7 @@ std::vector<std::string> GlobFilePatterns(
  */
 class SysFile
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! default constructor

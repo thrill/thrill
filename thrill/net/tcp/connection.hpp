@@ -53,7 +53,7 @@ enum ConnectionState : unsigned {
  */
 class Connection final : public net::Connection
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     //! default construction, contains invalid socket

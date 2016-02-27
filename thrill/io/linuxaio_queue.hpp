@@ -69,7 +69,7 @@ private:
     //    and the OS to produce I/O completion events at the same time
     //    (IOCB_CMD_NOOP does not seem to help here either)
 
-    static const priority_op _priority_op = WRITE;
+    static constexpr priority_op _priority_op = WRITE;
 
     static void * post_async(void* arg);   // thread start callback
     static void * wait_async(void* arg);   // thread start callback

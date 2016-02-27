@@ -30,11 +30,11 @@ using namespace examples::page_rank;
 // Zipf generated graph
 
 TEST(PageRank, RandomZipfGraph) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
-    static const size_t iterations = 5;
-    static const size_t num_pages = 1000;
-    static const double dampening = 0.85;
+    static constexpr size_t iterations = 5;
+    static constexpr size_t num_pages = 1000;
+    static constexpr double dampening = 0.85;
 
     // calculate correct result
     std::vector<double> correct_page_rank;

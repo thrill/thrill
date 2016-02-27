@@ -175,7 +175,7 @@ public:
     }
 
 private:
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     //! StreamSink objects are receivers of Blocks outbound for other worker.
     std::vector<StreamSink> sinks_;

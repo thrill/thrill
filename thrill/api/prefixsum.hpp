@@ -29,7 +29,7 @@ namespace api {
 template <typename ValueType, typename ParentDIA, typename SumFunction>
 class PrefixSumNode final : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;

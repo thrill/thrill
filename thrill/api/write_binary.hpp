@@ -35,7 +35,7 @@ namespace api {
 template <typename ParentDIA>
 class WriteBinaryNode final : public ActionNode
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     //! input type is the parent's output value type.
     using Input = typename ParentDIA::ValueType;

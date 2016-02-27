@@ -136,7 +136,7 @@ private:
     unsigned int linewrap_ = 80;
 
     //! maximum length of a TypeName() result
-    static const int maxtypename_ = 16;
+    static constexpr int maxtypename_ = 16;
 
 private:
     //! update maximum formatting width for new option

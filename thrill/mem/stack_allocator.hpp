@@ -34,7 +34,7 @@ namespace mem {
 template <size_t Size>
 class Arena
 {
-    static const size_t alignment = 16;
+    static constexpr size_t alignment = 16;
 
     //! stack memory area used for allocations.
     alignas(alignment) char buf_[Size];

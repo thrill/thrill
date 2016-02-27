@@ -53,7 +53,7 @@ namespace api {
 template <typename ValueType, typename ParentDIA, typename CompareFunction>
 class SortNode final : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -219,7 +219,7 @@ private:
     //! }
 
     //! Maximum merging degree
-    static const size_t merge_degree_ = 10;
+    static constexpr size_t merge_degree_ = 10;
 
     //! Local data files
     std::deque<data::File> files_;

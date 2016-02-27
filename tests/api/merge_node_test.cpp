@@ -57,7 +57,7 @@ void DoMergeAndCheckResult(
 
 TEST(MergeNode, TwoBalancedIntegerArrays) {
 
-    static const size_t test_size = 5000;
+    static constexpr size_t test_size = 5000;
 
     auto start_func =
         [](Context& ctx) {
@@ -85,8 +85,8 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
 
 TEST(MergeNode, FourBalancedIntegerArrays) {
 
-    static const size_t test_size = 5000;
-    static const bool debug = false;
+    static constexpr size_t test_size = 5000;
+    static constexpr bool debug = false;
 
     auto start_func =
         [](Context& ctx) {
@@ -136,7 +136,7 @@ TEST(MergeNode, FourBalancedIntegerArrays) {
 
 TEST(MergeNode, TwoImbalancedIntegerArrays) {
 
-    static const size_t test_size = 5000;
+    static constexpr size_t test_size = 5000;
 
     auto start_func =
         [](Context& ctx) {
@@ -170,8 +170,8 @@ TEST(MergeNode, TwoImbalancedIntegerArrays) {
 
 TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
 
-    static const size_t test_size = 5000;
-    static const size_t offset = 2500;
+    static constexpr size_t test_size = 5000;
+    static constexpr size_t offset = 2500;
 
     auto start_func =
         [](Context& ctx) {

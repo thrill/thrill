@@ -21,16 +21,16 @@ namespace thrill {
 namespace data {
 
 //! debug block life cycle output: create, destroy
-static const bool debug_blc = false;
+static constexpr bool debug_blc = false;
 
 //! debug block pinning:
-static const bool debug_pin = false;
+static constexpr bool debug_pin = false;
 
 //! debug memory requests
-static const bool debug_mem = false;
+static constexpr bool debug_mem = false;
 
 //! debug block eviction: evict, write complete, read complete
-static const bool debug_em = true;
+static constexpr bool debug_em = true;
 
 BlockPool::BlockPool(size_t workers_per_host)
     : BlockPool(0, 0, nullptr, nullptr, workers_per_host) { }

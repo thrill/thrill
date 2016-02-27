@@ -113,7 +113,7 @@ public:
 //! \remarks is a singleton
 class Config : public common::Singleton<Config>
 {
-    static const bool debug = true;
+    static constexpr bool debug = true;
     friend class common::Singleton<Config>;
 
     //! typedef of list of configured disks

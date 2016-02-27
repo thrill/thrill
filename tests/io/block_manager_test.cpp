@@ -43,7 +43,7 @@ template class io::TypedBlock<BLOCK_SIZE, int>;    // forced instantiation
 template class io::TypedBlock<BLOCK_SIZE, MyType>; // forced instantiation
 
 TEST(BlockManager, Test1) {
-    static const bool debug = true;
+    static constexpr bool debug = true;
 
     using block_type = io::TypedBlock<BLOCK_SIZE, MyType>;
 
@@ -126,7 +126,7 @@ TEST(BlockManager, Test2) {
 }
 
 TEST(BlockManager, Test3) {
-    static const bool debug = true;
+    static constexpr bool debug = true;
 
     using block_type = io::TypedBlock<BLOCK_SIZE, int>;
 

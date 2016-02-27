@@ -73,7 +73,7 @@ private:
     size_t limit_;
 
     //! sentinel for maximum available RAM.
-    static const size_t max_limit_ = static_cast<size_t>(-1);
+    static constexpr size_t max_limit_ = static_cast<size_t>(-1);
 };
 
 /*!
@@ -280,7 +280,7 @@ protected:
     size_t consume_counter_ = 1;
 
     //! Never full consume
-    static const size_t never_consume_ = static_cast<size_t>(-1);
+    static constexpr size_t never_consume_ = static_cast<size_t>(-1);
 
     //! }
 

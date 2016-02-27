@@ -60,7 +60,7 @@ class ThreadPool2 : public::testing::TestWithParam<int>
 { };
 
 TEST_P(ThreadPool2, LoopUntilTerminate) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
     size_t job_num = 256;
 
     std::vector<int> result1(job_num, 0);

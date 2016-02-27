@@ -49,9 +49,9 @@ namespace tcp {
  */
 class SelectDispatcher final : public net::Dispatcher
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
-    static const bool self_verify_ = common::g_self_verify;
+    static constexpr bool self_verify_ = common::g_self_verify;
 
 public:
     //! type for file descriptor readiness callbacks

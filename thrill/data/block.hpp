@@ -112,7 +112,7 @@ public:
     PinnedBlock PinWait(size_t local_worker_id) const;
 
 protected:
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     //! referenced ByteBlock
     ByteBlockPtr byte_block_;

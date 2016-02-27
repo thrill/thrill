@@ -83,7 +83,7 @@ class ReduceProbingHashTable
                               RobustKey, ReduceConfig_, IndexFunction,
                               EqualToFunction>;
     using Super::debug;
-    static const bool debug_items = false;
+    static constexpr bool debug_items = false;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -415,7 +415,7 @@ private:
     std::vector<KeyValuePair> items_;
 
     //! sentinel for invalid partition or no sentinel.
-    static const size_t invalid_partition_ = size_t(-1);
+    static constexpr size_t invalid_partition_ = size_t(-1);
 
     //! store the partition id of the sentinel key. implicitly this also stored
     //! whether the sentinel key was found and reduced into

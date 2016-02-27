@@ -20,7 +20,7 @@ TEST(API, FunctionStackTest) {
     using api::FunctionStack;
     using api::MakeFunctionStack;
 
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     std::vector<double> elements;
 

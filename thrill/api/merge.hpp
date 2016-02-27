@@ -43,7 +43,7 @@ namespace api {
 namespace merge_local {
 
 //! Set this variable to true to enable generation and output of merge stats.
-static const bool stats_enabled = false;
+static constexpr bool stats_enabled = false;
 
 using StatsTimer = common::StatsTimerBaseStopped<stats_enabled>;
 
@@ -81,7 +81,7 @@ class MergeStats : public MergeStatsBase
 {
 public:
     void PrintToSQLPlotTool(const std::string& label, size_t p, size_t value) {
-        static const bool debug = true;
+        static constexpr bool debug = true;
 
         LOG << "RESULT " << "operation=" << label << " time=" << value
             << " workers=" << p << " result_size_=" << result_size_;
@@ -132,8 +132,8 @@ template <typename ValueType, typename Comparator,
           typename ... ParentDIAs>
 class MergeNode : public DOpNode<ValueType>
 {
-    static const bool debug = false;
-    static const bool self_verify = true;
+    static constexpr bool debug = false;
+    static constexpr bool self_verify = true;
 
     //! Instance of merge statistics
     merge_local::MergeStats stats_;
@@ -142,7 +142,7 @@ class MergeNode : public DOpNode<ValueType>
     using Super::context_;
 
     //! Number of storage DIAs backing
-    static const size_t num_inputs_ = 1 + sizeof ... (ParentDIAs);
+    static constexpr size_t num_inputs_ = 1 + sizeof ... (ParentDIAs);
 
     static_assert(num_inputs_ >= 2, "Merge requires at least two inputs.");
 
@@ -176,7 +176,7 @@ public:
 
     void PushData(bool consume) final {
         size_t result_count = 0;
-        static const bool debug = false;
+        static constexpr bool debug = false;
 
         LOG << "Entering Main OP";
 

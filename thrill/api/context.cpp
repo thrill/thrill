@@ -73,7 +73,7 @@ std::vector<std::unique_ptr<HostContext> >
 ConstructLoopbackHostContexts(
     const MemoryConfig& mem_config, size_t num_hosts, size_t workers_per_host) {
 
-    static const size_t kGroupCount = net::Manager::kGroupCount;
+    static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three full mesh loopback cliques, deliver net::Groups.
     std::array<std::vector<std::unique_ptr<NetGroup> >, kGroupCount> group;
@@ -187,8 +187,8 @@ void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     // discard json log
     wrap_setenv("THRILL_LOG", "", /* overwrite */ 1);
 
-    static const size_t num_hosts_list[] = { 1, 2, 5, 8 };
-    static const size_t num_workers_list[] = { 1, 3 };
+    static constexpr size_t num_hosts_list[] = { 1, 2, 5, 8 };
+    static constexpr size_t num_workers_list[] = { 1, 3 };
 
     for (const size_t& num_hosts : num_hosts_list) {
         for (const size_t& workers_per_host : num_workers_list) {
@@ -202,7 +202,7 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
     size_t my_host_rank = 0;
     size_t workers_per_host = 1;
     size_t num_hosts = 1;
-    static const size_t kGroupCount = net::Manager::kGroupCount;
+    static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
     MemoryConfig mem_config;
     mem_config.setup_test();
@@ -400,7 +400,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
-    static const size_t kGroupCount = net::Manager::kGroupCount;
+    static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three TCP network groups
     std::array<std::unique_ptr<net::tcp::Group>, kGroupCount> groups;
@@ -486,7 +486,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
               << " as rank " << mpi_rank << "."
               << std::endl;
 
-    static const size_t kGroupCount = net::Manager::kGroupCount;
+    static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three MPI network groups
     std::array<std::unique_ptr<net::mpi::Group>, kGroupCount> groups;

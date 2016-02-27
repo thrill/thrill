@@ -50,7 +50,7 @@ static inline
 void PrefixSum(
     Group& net, T& value,
     BinarySumOp sum_op = BinarySumOp(), bool inclusive = true) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     bool first = true;
     // Use a copy, in case of exclusive, we have to forward
@@ -112,7 +112,7 @@ void PrefixSumHypercube(
     Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     T total_sum = value;
 
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     for (size_t d = 1; d < net.num_hosts(); d <<= 1)
     {
@@ -191,7 +191,7 @@ void BroadcastTrivial(Group& net, T& value, size_t origin = 0) {
 template <typename T>
 static inline
 void BroadcastBinomialTree(Group& net, T& value, size_t origin = 0) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     size_t num_hosts = net.num_hosts();
     // calculate rank in cyclically shifted binomial tree
@@ -307,7 +307,7 @@ void AllReduceHypercube(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
         // communication peer for this round (hypercube dimension)

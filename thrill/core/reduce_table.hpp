@@ -32,7 +32,7 @@ enum class ReduceTableImpl {
 
 /*!
  * Configuration class to define operational parameters of reduce hash tables
- * and reduce stages. Most members can be defined static const or be mutable
+ * and reduce stages. Most members can be defined static constexpr or be mutable
  * variables. Not all members need to be used by all implementations.
  */
 class DefaultReduceConfig
@@ -55,11 +55,11 @@ public:
 
     //! use MixStream instead of CatStream in ReduceNodes: this makes the order
     //! of items delivered in the ReduceFunction arbitrary.
-    static const bool use_mix_stream_ = true;
+    static constexpr bool use_mix_stream_ = true;
 
     //! use an additional thread in ReduceNode and ReduceToIndexNode to process
     //! the pre and post stages simultaneously.
-    static const bool use_post_thread_ = true;
+    static constexpr bool use_post_thread_ = true;
 
     //! \name Accessors
     //! {
@@ -97,7 +97,7 @@ template <typename ValueType, typename Key, typename Value,
 class ReduceTable
 {
 public:
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using KeyValuePair = std::pair<Key, Value>;
     using ReduceConfig = ReduceConfig_;

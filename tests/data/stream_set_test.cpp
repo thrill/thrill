@@ -19,8 +19,8 @@
 
 using namespace thrill;
 
-static const bool debug = true;
-static const size_t test_block_size = 1024;
+static constexpr bool debug = true;
+static constexpr size_t test_block_size = 1024;
 
 TEST(StreamSet, TestLoopbacks) {
     size_t workers_per_host = 3;

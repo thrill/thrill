@@ -35,8 +35,8 @@ struct MyStruct
 
 template <core::ReduceTableImpl table_impl>
 static void TestAddMyStructByHash(Context& ctx) {
-    static const size_t mod_size = 601;
-    static const size_t test_size = mod_size * 100;
+    static constexpr size_t mod_size = 601;
+    static constexpr size_t test_size = mod_size * 100;
 
     auto key_ex = [](const MyStruct& in) {
                       return in.key % mod_size;
@@ -114,8 +114,8 @@ TEST(ReducePreStage, ProbingAddMyStructByHash) {
 
 template <core::ReduceTableImpl table_impl>
 static void TestAddMyStructByIndex(Context& ctx) {
-    static const size_t mod_size = 601;
-    static const size_t test_size = mod_size * 100;
+    static constexpr size_t mod_size = 601;
+    static constexpr size_t test_size = mod_size * 100;
 
     auto key_ex = [](const MyStruct& in) {
                       return in.key % mod_size;

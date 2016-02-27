@@ -118,8 +118,8 @@ public:
 
     /**************************************************************************/
 
-    static const bool thrill_is_fixed_size = false;
-    static const size_t thrill_fixed_size = 0;
+    static constexpr bool thrill_is_fixed_size = false;
+    static constexpr size_t thrill_fixed_size = 0;
 
     //! serialization with Thrill's serializer
     template <typename Archive>

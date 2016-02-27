@@ -220,7 +220,7 @@ TEST_F(File, SerializeSomeItemsDynReader) {
 }
 
 TEST_F(File, SerializeSomeItemsConsumeReader) {
-    static const size_t size = 5000;
+    static constexpr size_t size = 5000;
 
     // construct File with very small blocks for testing
     data::File file(block_pool_, 0);
@@ -249,7 +249,7 @@ TEST_F(File, SerializeSomeItemsConsumeReader) {
 }
 
 TEST_F(File, RandomGetIndexOf) {
-    static const size_t size = 500;
+    static constexpr size_t size = 500;
 
     std::minstd_rand0 rng(0);
 
@@ -354,7 +354,7 @@ TEST_F(File, ReadFileWithBufferedReader) {
 }
 
 TEST_F(File, SeekReadSlicesOfFiles) {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     // construct a small-block File with lots of items.
     data::File file(block_pool_, 0);
@@ -424,7 +424,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
             if (at_end) return;
 
             sLOG << "read more";
-            static const size_t more = 100;
+            static constexpr size_t more = 100;
 
             // read the items [end, end + more)
             {

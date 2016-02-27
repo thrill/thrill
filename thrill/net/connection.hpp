@@ -51,7 +51,7 @@ class Connection
 public:
     //! flag which enables transmission of verification bytes for debugging,
     //! this increases network volume.
-    static const bool self_verify_ = common::g_self_verify;
+    static constexpr bool self_verify_ = common::g_self_verify;
 
     //! typeid().hash_code() is only guaranteed to be equal for the same program
     //! run, hence, we can only use it on loopback networks.
@@ -113,7 +113,7 @@ public:
         }
         else if (data::Serialization<BufferBuilder, T>::is_fixed_size) {
             // fixed_size items can be sent without size header
-            static const size_t fixed_size
+            static constexpr size_t fixed_size
                 = data::Serialization<BufferBuilder, T>::fixed_size;
             if (fixed_size < 2 * 1024 * 1024) {
                 // allocate buffer on stack (no allocation)
@@ -174,7 +174,7 @@ public:
         }
         else if (data::Serialization<BufferBuilder, T>::is_fixed_size) {
             // fixed_size items can be received without size header
-            static const size_t fixed_size
+            static constexpr size_t fixed_size
                 = data::Serialization<BufferBuilder, T>::fixed_size;
             if (fixed_size < 2 * 1024 * 1024) {
                 // allocate buffer on stack (no allocation)

@@ -34,7 +34,7 @@ namespace io {
 //! implementation.
 class RequestQueueImplQwQr : public RequestQueueImplWorker
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 private:
     using self = RequestQueueImplQwQr;
@@ -49,7 +49,7 @@ private:
     Thread thread_;
     common::semaphore sem_;
 
-    static const priority_op priority_op_ = WRITE;
+    static constexpr priority_op priority_op_ = WRITE;
 
     static void * worker(void* arg);
 

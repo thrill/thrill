@@ -39,7 +39,7 @@ namespace io {
 
 class DiskAllocator
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using Place = std::pair<int64_t, int64_t>;
 
@@ -146,7 +146,7 @@ public:
 template <typename BidIterator>
 void DiskAllocator::new_blocks(BidIterator begin, BidIterator end) {
     uint64_t requested_size = 0;
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     size_t block_size = 0;
 

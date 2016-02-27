@@ -40,7 +40,7 @@ namespace core {
 template <typename ArrayItem>
 class FileOutputIteratorWrapper
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
     using File = data::File;
     using Writer = File::Writer;
 
@@ -80,7 +80,7 @@ template <typename ArrayItem>
 class FileIteratorWrapper
     : public std::iterator<std::random_access_iterator_tag, ArrayItem>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
     using File = data::File;
     using Reader = File::Reader;
 

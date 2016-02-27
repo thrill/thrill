@@ -109,7 +109,7 @@ private:
     //! Size of the output DIA.
     size_t size_;
 
-    static const bool debug = false;
+    static constexpr bool debug = false;
 };
 
 /*!

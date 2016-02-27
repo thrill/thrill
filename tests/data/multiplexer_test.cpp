@@ -22,8 +22,8 @@
 
 using namespace thrill;
 
-static const bool debug = false;
-static const size_t test_block_size = 1024;
+static constexpr bool debug = false;
+static constexpr size_t test_block_size = 1024;
 
 struct Multiplexer : public::testing::Test {
 
@@ -79,7 +79,7 @@ void TalkAllToAllViaCatStream(net::Group* net) {
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
         send_buffer[i] = static_cast<unsigned char>(i);
 
-    static const size_t iterations = 1000;
+    static constexpr size_t iterations = 1000;
     size_t my_local_worker_id = 0;
     size_t num_workers_per_host = 1;
 
@@ -363,7 +363,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
 
     std::string send_string(send_buffer, sizeof(send_buffer));
 
-    static const size_t iterations = 1000;
+    static constexpr size_t iterations = 1000;
     size_t my_local_worker_id = 0;
     size_t num_workers_per_host = 1;
 

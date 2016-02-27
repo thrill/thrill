@@ -59,8 +59,8 @@ template <
         typename EqualToFunction = std::equal_to<Key> >
     class HashTable>
 void TestAddMyStructModulo(Context& ctx) {
-    static const size_t test_size = 50000;
-    static const size_t mod_size = 500;
+    static constexpr size_t test_size = 50000;
+    static constexpr size_t mod_size = 500;
 
     auto key_ex = [](const MyStruct& in) {
                       return in.key % mod_size;

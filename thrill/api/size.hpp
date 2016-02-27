@@ -28,7 +28,7 @@ namespace api {
 template <typename ParentDIA>
 class SizeNode final : public ActionNode
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using Super = ActionNode;
     using Super::context_;

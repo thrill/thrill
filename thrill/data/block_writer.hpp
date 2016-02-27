@@ -53,9 +53,9 @@ class BlockWriter
     : public common::ItemWriterToolsBase<BlockWriter<BlockSink> >
 {
 public:
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
-    static const bool self_verify = common::g_self_verify;
+    static constexpr bool self_verify = common::g_self_verify;
 
     //! Start build (appending blocks) to a File
     explicit BlockWriter(BlockSink* sink,

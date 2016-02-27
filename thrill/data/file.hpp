@@ -252,7 +252,7 @@ using FilePtr = std::shared_ptr<File>;
 class KeepFileBlockSource
 {
 public:
-    static const size_t default_prefetch = 2;
+    static constexpr size_t default_prefetch = 2;
 
     //! Start reading a File
     KeepFileBlockSource(
@@ -312,7 +312,7 @@ protected:
 
 private:
     //! sentinel value for not changing the first_item item
-    static const size_t keep_first_item = size_t(-1);
+    static constexpr size_t keep_first_item = size_t(-1);
 
     //! file to read blocks from
     const File& file_;
@@ -450,7 +450,7 @@ File::Reader File::GetReader(bool consume) {
 template <typename ItemType>
 typename File::KeepReader
 File::GetReaderAt(size_t index) const {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     // perform binary search for item block with largest exclusive size
     // prefixsum less or equal to index.
@@ -515,7 +515,7 @@ template <typename ItemType, typename CompareFunction>
 size_t File::GetIndexOf(
     const ItemType& item, size_t tie, const CompareFunction& less) const {
 
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     static_assert(
         std::is_convertible<

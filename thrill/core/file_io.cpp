@@ -48,7 +48,7 @@ namespace core {
 std::string FillFilePattern(const std::string& pathbase,
                             size_t worker, size_t file_part) {
 
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using size_type = std::string::size_type;
 

@@ -30,7 +30,7 @@ namespace api {
 template <typename ParentDIA>
 class WriteLinesNode final : public ActionNode
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     using Super = ActionNode;

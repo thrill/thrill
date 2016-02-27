@@ -64,7 +64,7 @@ struct StreamBlockHeader;
  */
 class Multiplexer
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     explicit Multiplexer(mem::Manager& mem_manager,

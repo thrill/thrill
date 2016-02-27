@@ -43,7 +43,7 @@ class PinnedBlock;
  */
 class BlockPool
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     /*!

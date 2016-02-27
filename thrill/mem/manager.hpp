@@ -27,7 +27,7 @@ namespace mem {
  */
 class Manager
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     explicit Manager(Manager* super, const char* name)

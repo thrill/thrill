@@ -72,7 +72,7 @@ template <typename ValueType, typename ZipFunction, bool Pad,
           typename ParentDIA0, typename ... ParentDIAs>
 class ZipNode final : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -84,7 +84,7 @@ class ZipNode final : public DOpNode<ValueType>
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
     //! Number of storage DIAs backing
-    static const size_t kNumInputs = 1 + sizeof ... (ParentDIAs);
+    static constexpr size_t kNumInputs = 1 + sizeof ... (ParentDIAs);
 
 public:
     /*!

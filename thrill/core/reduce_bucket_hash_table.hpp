@@ -96,7 +96,7 @@ class ReduceBucketHashTable
                               EqualToFunction>;
 
     using Super::debug;
-    static const bool debug_items = false;
+    static constexpr bool debug_items = false;
 
     //! target number of bytes in a BucketBlock.
     static constexpr size_t bucket_block_size

@@ -39,7 +39,7 @@ namespace api {
  */
 class ReadLinesNode final : public SourceNode<std::string>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     using Super = SourceNode<std::string>;
@@ -102,7 +102,7 @@ private:
         InputLineIterator(const core::SysFileList& files, ReadLinesNode& node)
             : files_(files), node_(node) { }
 
-        static const bool debug = false;
+        static constexpr bool debug = false;
 
         //! non-copyable: delete copy-constructor
         InputLineIterator(const InputLineIterator&) = delete;

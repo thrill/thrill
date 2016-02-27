@@ -102,7 +102,7 @@ struct If<false, TypeTrue, TypeFalse>
 template <size_t Index>
 struct IndexSaver {
     //! compile-time index
-    static const size_t index = Index;
+    static constexpr size_t index = Index;
 
     //! implicit conversion to a run-time index.
     operator size_t () const { return index; }

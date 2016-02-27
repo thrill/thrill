@@ -62,7 +62,7 @@ public:
 template <typename KeyValuePair, bool RobustKey>
 class ReducePreStageEmitter
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     explicit ReducePreStageEmitter(std::vector<data::DynBlockWriter>& writer)
@@ -108,7 +108,7 @@ template <typename ValueType, typename Key, typename Value,
           typename EqualToFunction = std::equal_to<Key> >
 class ReducePreStage
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;

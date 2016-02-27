@@ -136,7 +136,7 @@ class GroupByIterator
     friend class GroupByIndexNode;
 
 public:
-    static const bool debug = false;
+    static constexpr bool debug = false;
     using ValueIn = ValueType;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using Reader = typename data::File::Reader;
@@ -220,7 +220,7 @@ class GroupByMultiwayMergeIterator
     friend class GroupByIndexNode;
 
 public:
-    static const bool debug = false;
+    static constexpr bool debug = false;
     using ValueIn = ValueType;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using Puller = MultiwayMergeTreePuller<ValueIn, Comparator>;
