@@ -54,7 +54,7 @@ public:
     Block() = default;
 
     Block(const Block& other) = default;
-    Block& operator = (Block& other) = default;
+    Block& operator = (const Block& other) = default;
     Block(Block&& other) = default;
     Block& operator = (Block&& other) = default;
 

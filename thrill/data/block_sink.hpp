@@ -35,6 +35,15 @@ public:
         : block_pool_(&block_pool), local_worker_id_(local_worker_id)
     { }
 
+    //! default copy-constructor
+    BlockSink(const BlockSink&) = default;
+    //! default assignment operator
+    BlockSink& operator = (const BlockSink&) = default;
+    //! move-constructor: default
+    BlockSink(BlockSink&&) = default;
+    //! move-assignment operator: default
+    BlockSink& operator = (BlockSink&&) = default;
+
     //! required virtual destructor
     virtual ~BlockSink() { }
 
@@ -59,7 +68,7 @@ public:
     //! boolean flag whether to check if AllocateByteBlock can fail in any
     //! subclass (if false: accelerate BlockWriter to not be able to cope with
     //! nullptr).
-    enum { allocate_can_fail_ = true };
+    static constexpr bool allocate_can_fail_ = true;
 
     //! Closes the sink. Must not be called multiple times
     virtual void Close() = 0;
@@ -107,7 +116,7 @@ public:
 
     size_t max_size() const { return max_size_; }
 
-    enum { allocate_can_fail_ = true };
+    static constexpr bool allocate_can_fail_ = true;
 
 private:
     //! maximum allocation of ByteBlock for this BlockSink

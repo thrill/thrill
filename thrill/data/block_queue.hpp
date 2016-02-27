@@ -99,7 +99,7 @@ public:
         if (close_callback_) close_callback_(*this);
     }
 
-    enum { allocate_can_fail_ = false };
+    static constexpr bool allocate_can_fail_ = false;
 
     Block Pop() {
         if (read_closed_) return Block();

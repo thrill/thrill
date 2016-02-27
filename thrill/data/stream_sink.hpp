@@ -67,7 +67,7 @@ public:
     //! boolean flag whether to check if AllocateByteBlock can fail in any
     //! subclass (if false: accelerate BlockWriter to not be able to cope with
     //! nullptr).
-    enum { allocate_can_fail_ = false };
+    static constexpr bool allocate_can_fail_ = false;
 
 private:
     static constexpr bool debug = false;

@@ -118,7 +118,8 @@ public:
 
         //! indication whether the parent stack is empty
         static constexpr bool parent_stack_empty[kNumInputs] = {
-            ParentDIA0::stack_empty, ParentDIAs::stack_empty ...
+            // parenthesis are due to a MSVC2015 parser bug
+            ParentDIA0::stack_empty, (ParentDIAs::stack_empty)...
         };
         if (!parent_stack_empty[parent_index]) return false;
 

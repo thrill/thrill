@@ -33,7 +33,7 @@ template <typename ClassType, typename ReturnType, typename ... Args>
 struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
 
     //! arity is the number of arguments.
-    enum { arity = sizeof ... (Args) };
+    static constexpr size_t arity = sizeof ... (Args);
 
     using result_type = ReturnType;
     using is_const = std::true_type;
@@ -73,7 +73,7 @@ template <typename ReturnType, typename ... Args>
 struct FunctionTraits<ReturnType (*)(Args ...)>{
 
     //! arity is the number of arguments.
-    enum { arity = sizeof ... (Args) };
+    static constexpr size_t arity = sizeof ... (Args);
 
     using result_type = ReturnType;
     using is_const = std::true_type;

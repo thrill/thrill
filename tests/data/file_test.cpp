@@ -480,7 +480,7 @@ public:
           File(block_pool, local_worker_id)
     { }
 
-    enum { allocate_can_fail_ = true };
+    static constexpr bool allocate_can_fail_ = true;
 };
 #if defined(_MSC_VER)
 #pragma warning(pop)

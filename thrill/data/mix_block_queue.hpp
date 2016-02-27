@@ -183,7 +183,7 @@ public:
         write_closed_ = true;
     }
 
-    enum { allocate_can_fail_ = false };
+    static constexpr bool allocate_can_fail_ = false;
 
     //! check if writer side Close() was called.
     bool write_closed() const { return write_closed_; }
