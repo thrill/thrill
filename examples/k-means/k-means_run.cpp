@@ -23,7 +23,8 @@
 using thrill::DIA;
 using thrill::Context;
 
-using namespace thrill; // NOLINT
+using namespace thrill;            // NOLINT
+using namespace examples::k_means; // NOLINT
 
 using Centrioid = std::pair<float, float>;
 
@@ -68,7 +69,7 @@ int main(int argc, char* argv[]) {
                 },
                 k);
 
-            auto clusters = examples::kMeans(points, centroids);
+            auto clusters = kMeans(points, centroids);
 
             std::vector<Centrioid> cs = clusters.AllGather();
 

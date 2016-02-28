@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -26,9 +27,7 @@
 #include <vector>
 
 using namespace thrill;
-
-using examples::WordCountPair;
-using examples::FastWordCountPair;
+using namespace examples::word_count;
 
 /******************************************************************************/
 // Bacon Ipsum Text
@@ -69,8 +68,7 @@ TEST(WordCount, BaconIpsum) {
 
             auto lines = ReadLines(ctx, "inputs/wordcount.in");
 
-            std::vector<WordCountPair> result =
-                examples::WordCount(lines).AllGather();
+            std::vector<WordCountPair> result = WordCount(lines).AllGather();
 
             // sort result, because reducing delivers any order
             std::sort(result.begin(), result.end());
@@ -90,7 +88,7 @@ TEST(WordCount, BaconIpsumFastString) {
             auto lines = ReadLines(ctx, "inputs/wordcount.in");
 
             std::vector<FastWordCountPair> result =
-                examples::FastWordCount(lines).AllGather();
+                FastWordCount(lines).AllGather();
 
             // sort result, because reducing delivers any order
             std::sort(result.begin(), result.end());
@@ -143,10 +141,9 @@ TEST(WordCount, RandomTextWriterTest) {
                 },
                 size);
 
-            auto reduced_words = examples::WordCount(lines);
+            auto reduced_words = WordCount(lines);
 
-            std::vector<WordCountPair> result =
-                examples::WordCount(lines).AllGather();
+            std::vector<WordCountPair> result = WordCount(lines).AllGather();
 
             // sort result, because reducing delivers any order
             std::sort(result.begin(), result.end());

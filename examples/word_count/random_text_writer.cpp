@@ -19,7 +19,8 @@
 #include <string>
 #include <vector>
 
-using namespace thrill; // NOLINT
+using namespace thrill;               // NOLINT
+using namespace examples::word_count; // NOLINT
 
 int main(int argc, char* argv[]) {
 
