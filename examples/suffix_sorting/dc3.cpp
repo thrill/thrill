@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/dc3/dc3.cpp
+ * examples/suffix_sorting/dc3.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *

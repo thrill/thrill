@@ -11,6 +11,7 @@
 
 add_subdirectory(k-means)
 add_subdirectory(page_rank)
+add_subdirectory(suffix_sorting)
 add_subdirectory(word_count)
 
 ################################################################################

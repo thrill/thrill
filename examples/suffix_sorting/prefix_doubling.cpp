@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/prefix_doubling/prefix_doubling.cpp
+ * examples/suffix_sorting/prefix_doubling.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
