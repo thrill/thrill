@@ -296,9 +296,14 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
         .template FlatWindow<CharCharIndex>(
             2,
             [&](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                emit(CharCharIndex { rb[0], rb[1], index });
+                emit(CharCharIndex {
+                         { rb[0], rb[1] }, index
+                     });
                 if (index == input_size - 2)
-                    emit(CharCharIndex { rb[1], std::numeric_limits<Char>::lowest(), index + 1 });
+                    emit(CharCharIndex {
+                             { rb[1], std::numeric_limits<Char>::lowest() },
+                             index + 1
+                         });
             })
         .Sort([](const CharCharIndex& a, const CharCharIndex& b) {
                   return a < b;
