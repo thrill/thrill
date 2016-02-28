@@ -49,7 +49,6 @@ thrill_build_prog(serialization/cpp-serializers)
 add_subdirectory(api)
 add_subdirectory(data)
 add_subdirectory(net)
-add_subdirectory(word_count)
 add_subdirectory(prefix_doubling)
 
 if(THRILL_FULL_BUILD)
