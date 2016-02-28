@@ -11,6 +11,11 @@
 
 thrill_build_prog(prefix_doubling)
 
+if(MSVC)
+  # requires /bigobj flag to build
+  set_target_properties(prefix_doubling PROPERTIES COMPILE_FLAGS /bigobj)
+endif()
+
 if(THRILL_FULL_BUILD)
   thrill_build_prog(dc3)
 

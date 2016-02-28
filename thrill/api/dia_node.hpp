@@ -140,7 +140,7 @@ public:
         std::vector<Child> nonfile_children;
         for (const Child& child : children_) {
             if (child.node->OnPreOpFile(file, child.parent_index))
-                LOG1 << "PushFile: direct push accepted by " << *child.node;
+                LOG0 << "PushFile: direct push accepted by " << *child.node;
             else
                 nonfile_children.push_back(child);
         }

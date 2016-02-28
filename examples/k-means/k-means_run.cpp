@@ -26,8 +26,6 @@ using thrill::Context;
 using namespace thrill;            // NOLINT
 using namespace examples::k_means; // NOLINT
 
-using Centrioid = std::pair<float, float>;
-
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
