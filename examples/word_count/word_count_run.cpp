@@ -22,9 +22,8 @@
 #include <utility>
 #include <vector>
 
-using namespace thrill; // NOLINT
-using examples::WordCountPair;
-using examples::FastWordCountPair;
+using namespace thrill;               // NOLINT
+using namespace examples::word_count; // NOLINT
 
 static void RunWordCount(
     api::Context& ctx,
@@ -33,7 +32,7 @@ static void RunWordCount(
 
     auto lines = ReadLines(ctx, input_filelist);
 
-    auto word_pairs = examples::WordCount(lines);
+    auto word_pairs = WordCount(lines);
 
     if (output.size()) {
         word_pairs
@@ -54,7 +53,7 @@ static void RunFastWordCount(
 
     auto lines = ReadLines(ctx, input_filelist);
 
-    auto word_pairs = examples::FastWordCount(lines);
+    auto word_pairs = FastWordCount(lines);
 
     if (output.size()) {
         word_pairs

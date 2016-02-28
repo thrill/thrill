@@ -361,6 +361,33 @@ macro(thrill_build_prog PROGNAME)
 
 endmacro(thrill_build_prog)
 
+# macro for registering test programs: maybe prepend valgrind, add environment
+# Usage: thrill_test_single(testname "ENV=1;ENV2=1" program args)
+macro(thrill_test_single TESTNAME ENVIRON PROG)
+
+  if(USE_VALGRIND)
+    # prepend valgrind call
+    add_test(
+      NAME ${TESTNAME}
+      COMMAND /usr/bin/valgrind ${THRILL_VALGRIND_OPTS}
+      --xml=yes --xml-file=${TESTNAME}.xml
+      ./${PROG} ${ARGN})
+  else()
+    add_test(
+      NAME ${TESTNAME}
+      COMMAND ${PROG} ${ARGN})
+  endif()
+
+  # environment of test run: set default and let ENVIRON override
+  set(TEST_ENVIRON
+    "THRILL_NET=mock;THRILL_LOCAL=4;THRILL_WORKERS_PER_HOST=1;"
+    "THRILL_LOG=;THRILL_DIE_WITH_PARENT=;THRILL_UNLINK_BINARY=;"
+    "${ENVIRON}")
+
+  set_tests_properties(${TESTNAME} PROPERTIES ENVIRONMENT "${TEST_ENVIRON}")
+
+endmacro(thrill_test_single)
+
 ################################################################################
 ### Descend into Subdirectories
 

@@ -26,6 +26,9 @@
 #include <string>
 #include <vector>
 
+namespace examples {
+namespace page_rank {
+
 class ZipfGraphGen
 {
 public:
@@ -94,6 +97,9 @@ private:
     //! Zipf random variable for outgoing links.
     ZipfDistribution link_zipf_;
 };
+
+} // namespace page_rank
+} // namespace examples
 
 #endif // !THRILL_EXAMPLES_PAGE_RANK_ZIPF_GRAPH_GEN_HEADER
 

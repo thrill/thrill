@@ -19,6 +19,9 @@
 #include <string>
 #include <vector>
 
+namespace examples {
+namespace word_count {
+
 // list of words borrowed from
 // hadoop-2.6.3-src/hadoop-mapreduce-project/hadoop-mapreduce-examples/
 // src/main/java/org/apache/hadoop/examples/RandomTextWriter.java
@@ -234,6 +237,9 @@ std::string RandomTextWriterGenerate(size_t num_words, RandomGenerator& rng) {
     }
     return sentence;
 }
+
+} // namespace word_count
+} // namespace examples
 
 #endif // !THRILL_EXAMPLES_WORD_COUNT_RANDOM_TEXT_WRITER_HEADER
 

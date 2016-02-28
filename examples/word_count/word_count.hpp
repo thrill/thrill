@@ -24,6 +24,7 @@
 #include <utility>
 
 namespace examples {
+namespace word_count {
 
 using namespace thrill; // NOLINT
 
@@ -36,7 +37,7 @@ auto WordCount(const DIA<std::string, InputStack>&input) {
 
     auto word_pairs = input.template FlatMap<WordCountPair>(
         [](const std::string& line, auto emit) -> void {
-            /* map lambda: emit each word */
+                /* map lambda: emit each word */
             common::SplitView(
                 line, ' ', [&](const common::StringView& sv) {
                     if (sv.size() == 0) return;
@@ -67,7 +68,7 @@ auto FastWordCount(const DIA<std::string, InputStack>&input) {
 
     auto word_pairs = input.template FlatMap<FastWordCountPair>(
         [](const std::string& line, auto emit) -> void {
-            /* map lambda: emit each word */
+                /* map lambda: emit each word */
             common::SplitView(
                 line, ' ', [&](const common::StringView& sv) {
                     if (sv.size() == 0) return;
@@ -77,11 +78,12 @@ auto FastWordCount(const DIA<std::string, InputStack>&input) {
 
     return word_pairs.ReducePair(
         [](const size_t& a, const size_t& b) {
-            /* associative reduction operator: add counters */
+                /* associative reduction operator: add counters */
             return a + b;
         });
 }
 
+} // namespace word_count
 } // namespace examples
 
 #endif // !THRILL_EXAMPLES_WORD_COUNT_WORD_COUNT_HEADER

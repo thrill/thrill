@@ -28,6 +28,7 @@ using thrill::Context;
 using namespace thrill; // NOLINT
 
 namespace examples {
+namespace k_means {
 
 using Point2D = std::pair<float, float>;
 using Centrioid = Point2D;
@@ -103,6 +104,7 @@ auto kMeans(const DIA<std::string, InStack>&in1,
     return centroids;
 }
 
+} // namespace k_means
 } // namespace examples
 
 #endif // !THRILL_EXAMPLES_K_MEANS_K_MEANS_HEADER
