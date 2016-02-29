@@ -25,10 +25,10 @@
 #include <utility>
 #include <vector>
 
-using namespace thrill; // NOLINT
-
 namespace examples {
 namespace page_rank {
+
+using namespace thrill; // NOLINT
 
 static constexpr bool debug = false;
 

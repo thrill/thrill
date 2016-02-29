@@ -4,12 +4,14 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <examples/k-means/k-means.hpp>
 
+#include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
@@ -20,9 +22,6 @@
 #include <utility>
 #include <vector>
 
-using thrill::DIA;
-using thrill::Context;
-
 using namespace thrill;            // NOLINT
 using namespace examples::k_means; // NOLINT
 
@@ -32,11 +31,18 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    int n;
-    clp.AddParamInt("n", n, "number of points");
+    bool generate = false;
+    clp.AddFlag('g', "generate", generate,
+                "generate random data, set input = #points");
 
-    int k;
-    clp.AddParamInt("k", k, "Number of clusters");
+    size_t iter = 10;
+    clp.AddSizeT('n', "iterations", iter, "PageRank iterations, default: 10");
+
+    int num_points;
+    clp.AddParamInt("points", num_points, "number of points");
+
+    int num_clusters;
+    clp.AddParamInt("clusters", num_clusters, "Number of clusters");
 
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -44,36 +50,31 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
-    std::function<void(Context&)> start_func =
-        [&n, &k](api::Context& ctx) {
-            ctx.enable_consume(false);
+    auto start_func =
+        [&](api::Context& ctx) {
+            ctx.enable_consume();
 
             std::default_random_engine rng(std::random_device { } ());
             std::uniform_real_distribution<float> dist(0.0, 100000.0);
 
             auto points = Generate(
-                ctx,
-                [&](const size_t& index) {
-                    (void)index;
-                    return std::to_string(dist(rng)) + " " + std::to_string(dist(rng));
-                },
-                n);
+                ctx, [&](const size_t& /* index */) {
+                    return Point2D { dist(rng), dist(rng) };
+                }, num_points);
 
-            auto centroids = Generate(
-                ctx,
-                [&](const size_t& index) {
-                    (void)index;
-                    return std::to_string(dist(rng)) + " " + std::to_string(dist(rng));
-                },
-                k);
+            DIA<Point2D> centroids_dia = Generate(
+                ctx, [&](const size_t& /* index */) {
+                    return Point2D { dist(rng), dist(rng) };
+                }, num_clusters);
 
-            auto clusters = kMeans(points, centroids);
+            auto result = KMeans(points, centroids_dia, iter);
 
-            std::vector<Centrioid> cs = clusters.AllGather();
+            std::vector<Point2DClusterId> plist = result.Gather();
+            std::vector<Point2D> centroids = centroids_dia.Gather();
 
-            if (!ctx.my_rank()) {
-                for (Centrioid c : cs) {
-                    LOG1 << "centroid x: " << c.first << " y: " << c.second;
+            if (ctx.my_rank() == 0) {
+                for (const Point2DClusterId& p : plist) {
+                    LOG1 << p.first << " -> " << p.second;
                 }
             }
         };

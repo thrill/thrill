@@ -162,12 +162,12 @@ public:
                             emitter_.Emit(kv);
                             if (DoCache) writer->Put(kv);
 
-                            sLOG << "emit hole" << index << "-" << neutral_element_;
+                                // sLOG << "emit hole" << index << "-" << neutral_element_;
                         }
                         emitter_.Emit(p);
                         if (DoCache) writer->Put(p);
 
-                        sLOG << "emit" << p.first << "-" << p.second;
+                        // sLOG << "emit" << p.first << "-" << p.second;
                         ++index;
                     });
 
@@ -302,10 +302,10 @@ public:
                         emitter_.Emit(kv);
                         if (DoCache) writer->Put(kv);
 
-                        sLOG << "emit hole" << index << "-" << neutral_element_;
+                        // sLOG << "emit hole" << index << "-" << neutral_element_;
                     }
 
-                    sLOG << "emit" << p.first << "-" << p.second;
+                    // sLOG << "emit" << p.first << "-" << p.second;
                     emitter_.Emit(p);
                     if (DoCache) writer->Put(p);
                     ++index;
