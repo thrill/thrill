@@ -25,6 +25,8 @@
 using namespace thrill;            // NOLINT
 using namespace examples::k_means; // NOLINT
 
+using Point2D = Point<2>;
+
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
@@ -59,21 +61,21 @@ int main(int argc, char* argv[]) {
 
             auto points = Generate(
                 ctx, [&](const size_t& /* index */) {
-                    return Point2D { dist(rng), dist(rng) };
+                    return Point2D { { dist(rng), dist(rng) } };
                 }, num_points);
 
             DIA<Point2D> centroids_dia = Generate(
                 ctx, [&](const size_t& /* index */) {
-                    return Point2D { dist(rng), dist(rng) };
+                    return Point2D { { dist(rng), dist(rng) } };
                 }, num_clusters);
 
             auto result = KMeans(points, centroids_dia, iter);
 
-            std::vector<Point2DClusterId> plist = result.Gather();
+            std::vector<PointClusterId<2> > plist = result.Gather();
             std::vector<Point2D> centroids = centroids_dia.Gather();
 
             if (ctx.my_rank() == 0) {
-                for (const Point2DClusterId& p : plist) {
+                for (const PointClusterId<2> & p : plist) {
                     LOG1 << p.first << " -> " << p.second;
                 }
             }

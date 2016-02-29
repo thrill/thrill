@@ -28,54 +28,74 @@ namespace k_means {
 
 using namespace thrill; // NOLINT
 
-//! A 2-d point with double precision
-struct Point2D {
-    double x, y;
+//! A D-dimensional point with double precision
+template <size_t D>
+struct Point {
+    double x[D];
 
-    double distance(const Point2D& b) const {
-        return std::sqrt((x - b.x) * (x - b.x) + (y - b.y) * (y - b.y));
+    static Point Origin() {
+        Point p;
+        std::fill(p.x, p.x + D, 0.0);
+        return p;
     }
-    Point2D operator + (const Point2D& b) const {
-        return Point2D { x + b.x, y + b.y };
+    double distance(const Point& b) const {
+        double sum = 0.0;
+        for (size_t i = 0; i < D; ++i) sum += (x[i] - b.x[i]) * (x[i] - b.x[i]);
+        return std::sqrt(sum);
     }
-    Point2D& operator += (const Point2D& b) {
-        x += b.x, y += b.y;
+    Point operator + (const Point& b) const {
+        Point p;
+        for (size_t i = 0; i < D; ++i) p.x[i] = x[i] + b.x[i];
+        return p;
+    }
+    Point& operator += (const Point& b) {
+        for (size_t i = 0; i < D; ++i) x[i] += b.x[i];
         return *this;
     }
-    Point2D operator / (double s) const {
-        return Point2D { x / s, y / s };
+    Point operator / (double s) const {
+        Point p;
+        for (size_t i = 0; i < D; ++i) p.x[i] = x[i] / s;
+        return p;
     }
-    Point2D& operator /= (double s) {
-        x /= s, y /= s;
+    Point& operator /= (double s) {
+        for (size_t i = 0; i < D; ++i) x[i] /= s;
         return *this;
     }
-    friend std::ostream& operator << (std::ostream& os, const Point2D& a) {
-        return os << '(' << a.x << ',' << a.y << ')';
+    friend std::ostream& operator << (std::ostream& os, const Point& a) {
+        os << '(' << a.x[0];
+        for (size_t i = 1; i != D; ++i) os << ',' << a.x[i];
+        return os << ')';
     }
 };
 
-using Point2DClusterId = std::pair<Point2D, size_t>;
+template <size_t D>
+using PointClusterId = std::pair<Point<D>, size_t>;
 
 //! A point which contains "count" accumulated vectors.
+template <size_t D>
 struct CentroidAccumulated {
-    Point2D p;
+    Point<D> p;
     size_t  count;
 };
 
 //! Assignment of a point to a cluster, which is the input to
+template <size_t D>
 struct ClosestCentroid {
     size_t              cluster_id;
-    CentroidAccumulated center;
+    CentroidAccumulated<D> center;
 };
 
 //! Calculate k-Means using Lloyd's Algorithm. The DIA centroids is both an
 //! input and an output parameter. The method returns a std::pair<Point2D,
 //! size_t> = Point2DClusterId into the centroids for each input point.
-template <typename InStack>
-auto KMeans(const DIA<Point2D, InStack>&input_points, DIA<Point2D>&centroids,
+template <size_t D, typename InStack>
+auto KMeans(const DIA<Point<D>, InStack>&input_points, DIA<Point<D> >&centroids,
             size_t iterations) {
 
     auto points = input_points.Cache();
+
+    using ClosestCentroid = ClosestCentroid<D>;
+    using CentroidAccumulated = CentroidAccumulated<D>;
 
     DIA<ClosestCentroid> closest;
 
@@ -84,12 +104,12 @@ auto KMeans(const DIA<Point2D, InStack>&input_points, DIA<Point2D>&centroids,
         // handling this local variable is difficult: it is calculated as an
         // Action here, but must exist later when the Map() is
         // processed. Hhence, we move it into the closure.
-        std::vector<Point2D> local_centroids = centroids.AllGather();
+        std::vector<Point<D> > local_centroids = centroids.AllGather();
         size_t num_centroids = local_centroids.size();
 
         // calculate the closest centroid for each point
         closest = points.Map(
-            [local_centroids = std::move(local_centroids)](const Point2D& p) {
+            [local_centroids = std::move(local_centroids)](const Point<D>& p) {
                 assert(local_centroids.size());
                 double min_dist = p.distance(local_centroids[0]);
                 size_t closest_id = 0;
@@ -129,7 +149,7 @@ auto KMeans(const DIA<Point2D, InStack>&input_points, DIA<Point2D>&centroids,
 
     // map to only the index.
     return closest.Map([](const ClosestCentroid& cc) {
-                           return Point2DClusterId(cc.center.p, cc.cluster_id);
+            return PointClusterId<D>(cc.center.p, cc.cluster_id);
                        });
 }
 

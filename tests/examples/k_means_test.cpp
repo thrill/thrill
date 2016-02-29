@@ -25,6 +25,8 @@
 using namespace thrill;
 using namespace examples::k_means;
 
+using Point2D = Point<2>;
+
 TEST(KMeans, RandomPoints) {
 
     static constexpr size_t iterations = 4;
@@ -39,12 +41,12 @@ TEST(KMeans, RandomPoints) {
 
     points.reserve(num_points);
     for (size_t i = 0; i < num_points; ++i) {
-        points.emplace_back(Point2D { dist(rng), dist(rng) });
+        points.emplace_back(Point2D { { dist(rng), dist(rng) } });
     }
 
     centroids.reserve(num_clusters);
     for (size_t i = 0; i < num_clusters; ++i) {
-        centroids.emplace_back(Point2D { dist(rng), dist(rng) });
+        centroids.emplace_back(Point2D { { dist(rng), dist(rng) } });
     }
 
     const std::vector<Point2D> orig_centroids = centroids;
@@ -76,7 +78,7 @@ TEST(KMeans, RandomPoints) {
 
             // calculate new centroids from associated points
             std::fill(point_count.begin(), point_count.end(), 0);
-            std::fill(centroids.begin(), centroids.end(), Point2D { 0, 0 });
+            std::fill(centroids.begin(), centroids.end(), Point2D::Origin());
 
             for (size_t i = 0; i < num_points; ++i) {
                 centroids[closest[i]] += points[i];
@@ -111,7 +113,7 @@ TEST(KMeans, RandomPoints) {
             auto means = KMeans(input_points, centroids_dia, iterations);
 
             // compare results
-            std::vector<Point2DClusterId> result = means.AllGather();
+            std::vector<PointClusterId<2> > result = means.AllGather();
             std::vector<Point2D> centroids = centroids_dia.AllGather();
 
             ASSERT_EQ(correct_closest.size(), result.size());
