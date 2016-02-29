@@ -70,7 +70,7 @@ void Config::find_config() {
     // check several locations for disk configuration files
 
     // check STXXLCFG environment path
-    const char* stxxlcfg = getenv("STXXLCFG");
+    const char* stxxlcfg = getenv("THRILLCFG");
     if (stxxlcfg && exist_file(stxxlcfg))
         return load_config_file(stxxlcfg);
 
@@ -88,7 +88,7 @@ void Config::find_config() {
 
     // check current directory
     {
-        std::string basepath = "./.stxxl";
+        std::string basepath = "./.thrill";
 
         if (hostname && exist_file(basepath + "." + hostname + suffix))
             return load_config_file(basepath + "." + hostname + suffix);
@@ -100,7 +100,7 @@ void Config::find_config() {
     // check home directory
     if (home)
     {
-        std::string basepath = std::string(home) + "/.stxxl";
+        std::string basepath = std::string(home) + "/.thrill";
 
         if (hostname && exist_file(basepath + "." + hostname + suffix))
             return load_config_file(basepath + "." + hostname + suffix);
@@ -117,8 +117,8 @@ void Config::load_default_config() {
     LOG1 << "Warning: no config file found.";
     LOG1 << "Using default disk configuration.";
 #if !THRILL_WINDOWS
-    DiskConfig entry1("/var/tmp/stxxl", 1000 * 1024 * 1024, "syscall");
-    entry1.delete_on_exit = true;
+    DiskConfig entry1("/tmp/thrill.tmp", 1000 * 1024 * 1024, "syscall");
+    entry1.unlink_on_open = true;
     entry1.autogrow = true;
 #else
     DiskConfig entry1("", 1000 * 1024 * 1024, "wincall");
@@ -129,7 +129,7 @@ void Config::load_default_config() {
     if (GetTempPath(255, tmpstr) == 0)
         THRILL_THROW_WIN_LASTERROR(IoError, "GetTempPath()");
     entry1.path = tmpstr;
-    entry1.path += "stxxl.tmp";
+    entry1.path += "thrill.tmp";
     delete[] tmpstr;
 #endif
     disks_list.push_back(entry1);
