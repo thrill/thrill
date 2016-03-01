@@ -71,8 +71,6 @@ int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
 
-    clp.SetVerboseProcess(false);
-
     bool use_fast_string = false;
     clp.AddFlag('f', "fast_string", use_fast_string,
                 "use FastString implementation");

@@ -91,8 +91,6 @@ int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
 
-    clp.SetVerboseProcess(false);
-
     core::DefaultReduceConfig config;
 
     std::string hashtable;

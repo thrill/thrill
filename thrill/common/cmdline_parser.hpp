@@ -125,7 +125,7 @@ private:
     const char* progname_ = nullptr;
 
     //! verbose processing of arguments
-    bool verbose_process_ = true;
+    bool verbose_process_ = false;
 
     //! user set description of program, will be wrapped
     std::string description_;

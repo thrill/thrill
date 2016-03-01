@@ -168,8 +168,6 @@ int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
 
-    clp.SetVerboseProcess(false);
-
     bool generate = false;
     clp.AddFlag('g', "generate", generate,
                 "generate graph data, set input = #pages");

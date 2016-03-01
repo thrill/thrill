@@ -39,8 +39,6 @@ using namespace thrill; // NOLINT
 int main(int argc, char* argv[]) {
     common::CmdlineParser clp;
 
-    clp.SetVerboseProcess(false);
-
     std::string input;
     clp.AddParamString("input", input,
                        "input file pattern");

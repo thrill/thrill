@@ -71,8 +71,6 @@ int main(int argc, char** argv) {
 
     thrill::common::CmdlineParser clp;
 
-    clp.SetVerboseProcess(false);
-
     clp.AddUInt('n', "size", size,
                 "Count of elements to merge");
 

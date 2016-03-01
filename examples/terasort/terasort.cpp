@@ -52,8 +52,6 @@ int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
 
-    clp.SetVerboseProcess(false);
-
     bool use_signed_char = false;
     clp.AddFlag('s', "signed_char", use_signed_char,
                 "compare with signed chars to compare with broken Java "

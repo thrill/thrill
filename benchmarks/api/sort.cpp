@@ -29,8 +29,6 @@ int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
 
-    clp.SetVerboseProcess(false);
-
     int iterations;
     clp.AddParamInt("i", iterations, "Iterations");
 

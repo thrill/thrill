@@ -30,8 +30,6 @@ int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
 
-    clp.SetVerboseProcess(false);
-
     unsigned int elements;
     clp.AddParamUInt("n", elements, "Elements");
 

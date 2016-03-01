@@ -39,8 +39,6 @@ using namespace thrill; // NOLINT
 int main(int argc, char* argv[]) {
     common::CmdlineParser clp;
 
-    clp.SetVerboseProcess(false);
-
     int n;
     clp.AddParamInt("n", n, "Iterations");
 

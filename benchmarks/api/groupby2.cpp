@@ -38,8 +38,6 @@ using namespace thrill; // NOLINT
 int main(int argc, char* argv[]) {
     common::CmdlineParser clp;
 
-    clp.SetVerboseProcess(false);
-
     int n = 1;
 
     std::string input = "/Users/chau/projects/thrill/build/benchmarks/groupby/in/2GB/*";

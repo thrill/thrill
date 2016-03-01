@@ -53,7 +53,6 @@ int main(int argc, char* argv[]) {
     cp.AddParamBytes("totalbytes", totalbytes,
                      "total number of bytes to generate (approximately)");
 
-    cp.SetVerboseProcess(false);
     if (!cp.Process(argc, argv)) {
         return -1;
     }
