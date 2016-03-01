@@ -231,8 +231,8 @@ private:
 
     void FindAndSendSplitters(
         std::vector<ValueType>& splitters, size_t sample_size,
-        data::CatStreamPtr& sample_stream,
-        std::vector<data::CatStream::Writer>& sample_writers) {
+        data::MixStreamPtr& sample_stream,
+        std::vector<data::MixStream::Writer>& sample_writers) {
 
         // Get samples from other workers
         size_t num_total_workers = context_.num_workers();
@@ -240,7 +240,7 @@ private:
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
 
-        auto reader = sample_stream->OpenCatReader(/* consume */ true);
+        auto reader = sample_stream->OpenMixReader(/* consume */ true);
 
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
@@ -325,12 +325,12 @@ private:
         const ValueType* const sorted_splitters,
         size_t prefix_items,
         size_t total_items,
-        data::CatStreamPtr& data_stream) {
+        data::MixStreamPtr& data_stream) {
 
         data::File::ConsumeReader unsorted_reader =
             unsorted_file_.GetConsumeReader();
 
-        std::vector<data::CatStream::Writer> data_writers =
+        std::vector<data::MixStream::Writer> data_writers =
             data_stream->OpenWriters();
 
         // enlarge emitters array to next power of two to have direct access,
@@ -459,10 +459,10 @@ private:
         LOG << "Number of local items: " << local_items_;
 
         // stream to send samples to process 0 and receive them back
-        data::CatStreamPtr sample_stream = context_.GetNewCatStream();
+        data::MixStreamPtr sample_stream = context_.GetNewMixStream();
 
         // Send all samples to worker 0.
-        std::vector<data::CatStream::Writer> sample_writers =
+        std::vector<data::MixStream::Writer> sample_writers =
             sample_stream->OpenWriters();
 
         for (const ValueType& sample : samples_) {
@@ -488,8 +488,8 @@ private:
             for (size_t j = 1; j < num_total_workers; j++) {
                 sample_writers[j].Close();
             }
-            data::CatStream::CatReader reader =
-                sample_stream->OpenCatReader(/* consume */ true);
+            data::MixStream::MixReader reader =
+                sample_stream->OpenMixReader(/* consume */ true);
             while (reader.HasNext()) {
                 splitters.push_back(reader.template Next<ValueType>());
             }
@@ -510,7 +510,7 @@ private:
                     splitters.data(),
                     splitter_count_algo);
 
-        data::CatStreamPtr data_stream = context_.GetNewCatStream();
+        data::MixStreamPtr data_stream = context_.GetNewMixStream();
 
         TransmitItems(
             splitter_tree, // Tree. sizeof |splitter|
@@ -526,7 +526,7 @@ private:
 
         // end of SS2N
 
-        auto reader = data_stream->OpenCatReader(/* consume */ false);
+        auto reader = data_stream->OpenMixReader(/* consume */ false);
 
         std::vector<ValueType> temp_data;
         LOG << "Writing files";
