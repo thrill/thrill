@@ -61,6 +61,7 @@ public:
     explicit BlockWriter(BlockSink* sink,
                          size_t max_block_size = default_block_size)
         : sink_(sink),
+          block_size_(std::min(size_t(4096), max_block_size)),
           max_block_size_(max_block_size) {
         assert(max_block_size_ > 0);
     }
@@ -412,7 +413,7 @@ private:
     std::deque<PinnedBlock> sink_queue_;
 
     //! size of data blocks to construct
-    size_t block_size_ = 4096;
+    size_t block_size_;
 
     //! size of data blocks to construct
     size_t max_block_size_;
