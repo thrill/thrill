@@ -108,14 +108,6 @@ before_script:
 
 script:
   - ctest
-      -DCTEST_SITE:STRING="travis"
+      -DCTEST_SITE:STRING="travis-$TRAVIS_REPO_SLUG"
       -DCTEST_BUILD_NAME:STRING="$TRAVIS_OS_NAME-$CMAKE_CC-$BUILD_TYPE"
       -S ../misc/script.ctest -VV
-
-notifications:
-  slack:
-    rooms:
-      - secure: HY24eRI+c3ppwei5n/+7DKFhKVppR6C12hyQ81nOx+XI0ilXrv55Q2rpO8tuOEtN3qn1DyN2rA2LkBn/rpNqkbeNHyvh5ACL38KreHmncnJBCkOgsBeH0kTR7ZPcXC9+PUdgJfgWYiNoLCB/Duw8kTtri6PD7/o2m3nmZ4slqJ6BXPuqbBJo7YH+MKIkz12JKzI0BqYt+SoM4ZFUqz1DXdsLWp/nkKdXI1TdkyKjtwe9dLaeynZS72cZpkysDaCWIRek354NlPSf3JwuPRxkTmnP6zMqTskk41GyysycgdtP5zRGQOepSnUILXjYoClMomhAUWoO5uzXhODNmuddyI5Y4CLP+P8KubikrA243txfvcNqkYUJRQYUijEnejA76YXyqpOxLkNd8uXy7/OfV+DEhWZie1+9CWvIRCrylqFy2JNB1lE7cAmMkUQ8MbzCcdMe9sDMgi+bY6bMxcO8jj0sfENvIvLaAbKr82dfWQ+a0wy+Jy0tD273iNvG3aAtQkLvxYHPmoVADLPDoX1qOSkPacLusaHd4DpVzP96KNDJFsR6y6M8L1LyiodBuv/65vEUhImHeVy6Y/qctvZniu8iczItGzJsqpuwLlVT5Z+u+pSMmXKxK4J80v8oxh+OHRETfE/FWacgre4x8PTbfYraRaj6jWS6qLf6gRKdAe8=
-    on_success: change
-    on_failure: always
-    on_start: never

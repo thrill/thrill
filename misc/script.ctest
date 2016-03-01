@@ -24,6 +24,11 @@ set(CTEST_BUILD_COMMAND "make -j4")
 ctest_start(Continuous)
 ctest_build()
 ctest_test()
-ctest_submit()
+
+message(STATUS "CTEST_SITE: ${CTEST_SITE}")
+
+if(CTEST_SITE MATCHES "^travis-(thrill|bingmann)/")
+  ctest_submit()
+endif()
 
 ################################################################################
