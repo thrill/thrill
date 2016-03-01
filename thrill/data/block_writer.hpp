@@ -59,10 +59,10 @@ public:
 
     //! Start build (appending blocks) to a File
     explicit BlockWriter(BlockSink* sink,
-                         size_t block_size = default_block_size)
+                         size_t max_block_size = default_block_size)
         : sink_(sink),
-          block_size_(block_size) {
-        assert(block_size_ > 0);
+          max_block_size_(max_block_size) {
+        assert(max_block_size_ > 0);
     }
 
     //! default constructor
@@ -84,6 +84,7 @@ public:
           do_queue_(std::move(bw.do_queue_)),
           sink_queue_(std::move(bw.sink_queue_)),
           block_size_(std::move(bw.block_size_)),
+          max_block_size_(std::move(bw.max_block_size_)),
           closed_(std::move(bw.closed_)) {
         // set closed flag -> disables destructor
         bw.closed_ = true;
@@ -102,6 +103,7 @@ public:
         do_queue_ = std::move(bw.do_queue_);
         sink_queue_ = std::move(bw.sink_queue_);
         block_size_ = std::move(bw.block_size_);
+        max_block_size_ = std::move(bw.max_block_size_);
         closed_ = std::move(bw.closed_);
         // set closed flag -> disables destructor
         bw.closed_ = true;
@@ -374,6 +376,8 @@ private:
             throw FullException();
         }
         sLOG << "AllocateBlock(): good, got" << bytes_.get();
+        // increase block size, up to max.
+        if (block_size_ < max_block_size_) block_size_ *= 2;
 
         current_ = bytes_->begin();
         end_ = bytes_->end();
@@ -408,7 +412,10 @@ private:
     std::deque<PinnedBlock> sink_queue_;
 
     //! size of data blocks to construct
-    size_t block_size_;
+    size_t block_size_ = 4096;
+
+    //! size of data blocks to construct
+    size_t max_block_size_;
 
     //! Flag if Close was called explicitly
     bool closed_ = false;
