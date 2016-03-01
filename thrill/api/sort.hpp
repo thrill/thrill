@@ -353,16 +353,16 @@ private:
         {
             // take two items
             size_t j0 = 1;
-            const ValueType& el0 = unsorted_reader.Next<ValueType>();
+            ValueType el0 = unsorted_reader.Next<ValueType>();
 
             size_t j1 = 1;
-            const ValueType& el1 = unsorted_reader.Next<ValueType>();
+            ValueType el1 = unsorted_reader.Next<ValueType>();
 
             // run items down the tree
             for (size_t l = 0; l < log_k; l++)
             {
-                j0 = j0 * 2 + !(compare_function_(el0, tree[j0]));
-                j1 = j1 * 2 + !(compare_function_(el1, tree[j1]));
+                j0 = 2 * j0 + (compare_function_(el0, tree[j0]) ? 0 : 1);
+                j1 = 2 * j1 + (compare_function_(el1, tree[j1]) ? 0 : 1);
             }
 
             size_t b0 = j0 - k;
@@ -379,9 +379,6 @@ private:
                 }
             }
 
-            assert(data_writers[b0].IsValid());
-            data_writers[b0].Put(el0);
-
             if (b1 && Equal(el1, sorted_splitters[b1 - 1])) {
                 while (b1 && Equal(el1, sorted_splitters[b1 - 1])
                        && (prefix_items + i + 1) * actual_k < b1 * total_items) {
@@ -393,7 +390,10 @@ private:
                 }
             }
 
+            assert(data_writers[b0].IsValid());
             assert(data_writers[b1].IsValid());
+
+            data_writers[b0].Put(el0);
             data_writers[b1].Put(el1);
         }
 
@@ -401,17 +401,17 @@ private:
         for ( ; i < local_items_; i++)
         {
             size_t j0 = 1;
-            const ValueType& last_item = unsorted_reader.Next<ValueType>();
+            ValueType el0 = unsorted_reader.Next<ValueType>();
 
             // run item down the tree
             for (size_t l = 0; l < log_k; l++)
             {
-                j0 = j0 * 2 + !(compare_function_(last_item, tree[j0]));
+                j0 = 2 * j0 + (compare_function_(el0, tree[j0]) ? 0 : 1);
             }
 
             size_t b0 = j0 - k;
 
-            while (b0 && Equal(last_item, sorted_splitters[b0 - 1])
+            while (b0 && Equal(el0, sorted_splitters[b0 - 1])
                    && (prefix_items + i) * actual_k < b0 * total_items) {
                 b0--;
             }
@@ -421,7 +421,7 @@ private:
             }
 
             assert(data_writers[b0].IsValid());
-            data_writers[b0].Put(last_item);
+            data_writers[b0].Put(el0);
         }
 
         // close writers and flush data

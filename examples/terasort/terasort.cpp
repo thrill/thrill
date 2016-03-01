@@ -13,6 +13,7 @@
 #include <thrill/api/write_binary.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/string.hpp>
 
 #include <algorithm>
 #include <string>
@@ -28,6 +29,9 @@ struct Record {
     bool operator < (const Record& b) const {
         return std::lexicographical_compare(key, key + 10, b.key, b.key + 10);
     }
+    friend std::ostream& operator << (std::ostream& os, const Record& c) {
+        return os << common::Hexdump(c.key, 10);
+    }
 } THRILL_ATTRIBUTE_PACKED;
 
 struct RecordSigned {
@@ -38,6 +42,9 @@ struct RecordSigned {
     // Java/Scala TeraSorts do.
     bool operator < (const RecordSigned& b) const {
         return std::lexicographical_compare(key, key + 10, b.key, b.key + 10);
+    }
+    friend std::ostream& operator << (std::ostream& os, const RecordSigned& c) {
+        return os << common::Hexdump(c.key, 10);
     }
 } THRILL_ATTRIBUTE_PACKED;
 
