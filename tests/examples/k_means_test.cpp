@@ -41,12 +41,16 @@ TEST(KMeans, RandomPoints) {
 
     points.reserve(num_points);
     for (size_t i = 0; i < num_points; ++i) {
-        points.emplace_back(Point2D { { dist(rng), dist(rng) } });
+        points.emplace_back(Point2D {
+                                { dist(rng), dist(rng) }
+                            });
     }
 
     centroids.reserve(num_clusters);
     for (size_t i = 0; i < num_clusters; ++i) {
-        centroids.emplace_back(Point2D { { dist(rng), dist(rng) } });
+        centroids.emplace_back(Point2D {
+                                   { dist(rng), dist(rng) }
+                               });
     }
 
     const std::vector<Point2D> orig_centroids = centroids;
@@ -91,16 +95,6 @@ TEST(KMeans, RandomPoints) {
 
         correct_closest = std::move(closest);
         correct_centroids = std::move(centroids);
-    }
-
-    std::cout << "graph {" << std::endl;
-
-    for (size_t i = 0; i < num_points; ++i) {
-        LOG1 << "point[" << i << "] = " << points[i] << " cluster " << correct_closest[i];
-    }
-
-    for (size_t c = 0; c < num_clusters; ++c) {
-        LOG1 << "centroid[" << c << "] = " << correct_centroids[c];
     }
 
     auto start_func =

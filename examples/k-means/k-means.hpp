@@ -31,14 +31,14 @@ using namespace thrill; // NOLINT
 //! A D-dimensional point with double precision
 template <size_t D>
 struct Point {
-    double x[D];
+    double       x[D];
 
     static Point Origin() {
         Point p;
         std::fill(p.x, p.x + D, 0.0);
         return p;
     }
-    double distance(const Point& b) const {
+    double       distance(const Point& b) const {
         double sum = 0.0;
         for (size_t i = 0; i < D; ++i) sum += (x[i] - b.x[i]) * (x[i] - b.x[i]);
         return std::sqrt(sum);
@@ -75,13 +75,13 @@ using PointClusterId = std::pair<Point<D>, size_t>;
 template <size_t D>
 struct CentroidAccumulated {
     Point<D> p;
-    size_t  count;
+    size_t   count;
 };
 
 //! Assignment of a point to a cluster, which is the input to
 template <size_t D>
 struct ClosestCentroid {
-    size_t              cluster_id;
+    size_t                 cluster_id;
     CentroidAccumulated<D> center;
 };
 
@@ -124,7 +124,7 @@ auto KMeans(const DIA<Point<D>, InStack>&input_points, DIA<Point<D> >&centroids,
                 return ClosestCentroid {
                     closest_id, CentroidAccumulated { p, 1 }
                 };
-            });
+            }).Collapse();
 
         // Calculate new centroids as the mean of all points associated with
         // it. We use ReduceToIndex only because then the indices in the
@@ -149,7 +149,7 @@ auto KMeans(const DIA<Point<D>, InStack>&input_points, DIA<Point<D> >&centroids,
 
     // map to only the index.
     return closest.Map([](const ClosestCentroid& cc) {
-            return PointClusterId<D>(cc.center.p, cc.cluster_id);
+                           return PointClusterId<D>(cc.center.p, cc.cluster_id);
                        });
 }
 
