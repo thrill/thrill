@@ -120,7 +120,7 @@ done
 
 cmdbase=`basename "$cmd"`
 rank=0
-THRILL_HOSTLIST="${hostlist[@]}"
+export THRILL_HOSTLIST="${hostlist[@]}"
 SSH_PIDS=()
 
 for hostport in $THRILL_SSHLIST; do
@@ -128,10 +128,8 @@ for hostport in $THRILL_SSHLIST; do
   if [ $verbose -ne 0 ]; then
     echo "Connecting to $user@$host to invoke $cmd"
   fi
-  THRILL_EXPORTS="THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\""
-  THRILL_EXPORTS="$THRILL_EXPORTS THRILL_WORKERS_PER_HOST=\"$THRILL_WORKERS_PER_HOST\""
-  THRILL_EXPORTS="$THRILL_EXPORTS THRILL_LOG=\"$THRILL_LOG\""
-  THRILL_EXPORTS="$THRILL_EXPORTS THRILL_DIE_WITH_PARENT=1"
+  THRILL_EXPORTS=$(env | awk -F= '/^THRILL_/ { printf("%s", $1 "=\"" $2 "\" ") }')
+  THRILL_EXPORTS="${THRILL_EXPORTS}THRILL_RANK=\"$rank\" THRILL_DIE_WITH_PARENT=1"
   REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
   echo $*
   if [ "$copy" == "1" ]; then
