@@ -63,6 +63,8 @@ public:
         size_t      begin, end;
         //! size of exert from file
         size_t      size() const { return end - begin; }
+        //! whether file is compressed
+        bool        is_compressed;
     };
 
     using SysFileInfo = core::SysFileInfo;
@@ -118,6 +120,7 @@ public:
                 fi.path = files.list[i].path;
                 fi.begin = my_range.begin <= file_begin ? 0 : my_range.begin - file_begin;
                 fi.end = my_range.end >= file_end ? file_size : my_range.end - file_begin;
+                fi.is_compressed = false;
 
                 sLOG << "FileInfo"
                      << "path" << fi.path
@@ -146,7 +149,8 @@ public:
                    files.list[i].size_inc_psum() <= my_range.end) {
                 my_files_.push_back(
                     FileInfo { files.list[i].path, 0,
-                               std::numeric_limits<size_t>::max() });
+                               std::numeric_limits<size_t>::max(),
+                               files.list[i].IsCompressed() });
                 i++;
             }
 
@@ -201,9 +205,10 @@ private:
             : context_(ctx),
               sysfile_(core::SysFile::OpenForRead(fileinfo.path)),
               remain_size_(fileinfo.size()),
+              is_compressed_(fileinfo.is_compressed),
               stats_total_bytes_(stats_total_bytes),
               stats_total_reads_(stats_total_reads) {
-            if (fileinfo.begin != 0) {
+            if (fileinfo.begin != 0 && !is_compressed_) {
                 // seek to beginning
                 size_t p = sysfile_.lseek(static_cast<off_t>(fileinfo.begin));
                 die_unequal(fileinfo.begin, p);
@@ -217,14 +222,18 @@ private:
                 = context_.block_pool().AllocateByteBlock(
                 block_size, context_.local_worker_id());
 
-            size_t rb = std::min(block_size, remain_size_);
+            size_t rb = is_compressed_
+                        ? block_size : std::min(block_size, remain_size_);
 
             ssize_t size = sysfile_.read(bytes->data(), rb);
             stats_total_bytes_ += size;
             stats_total_reads_++;
 
             if (size > 0) {
-                remain_size_ -= rb;
+                if (!is_compressed_) {
+                    assert(remain_size_ >= rb);
+                    remain_size_ -= rb;
+                }
                 return data::PinnedBlock(std::move(bytes), 0, size, 0, 0);
             }
             else if (size < 0) {
@@ -242,6 +251,7 @@ private:
         Context& context_;
         core::SysFile sysfile_;
         size_t remain_size_;
+        bool is_compressed_;
         size_t& stats_total_bytes_;
         size_t& stats_total_reads_;
         bool done_ = false;

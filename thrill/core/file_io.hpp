@@ -63,6 +63,8 @@ struct SysFileInfo {
 
     //! inclusive prefix sum of file sizes.
     uint64_t    size_inc_psum() const { return size_ex_psum + size; }
+    //! if the file is compressed
+    bool        IsCompressed() const { return core::IsCompressed(path); }
 };
 
 //! List of file info and overall info.
