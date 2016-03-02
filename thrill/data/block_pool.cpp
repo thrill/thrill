@@ -51,6 +51,11 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
 BlockPool::~BlockPool() {
     pin_count_.AssertZero();
 
+    LOGC(debug_pin)
+        << "~BlockPool()"
+        << " max_pin=" << pin_count_.max_pins
+        << " max_pinned_bytes=" << pin_count_.max_pinned_bytes;
+
     logger_ << "class" << "BlockPool"
             << "event" << "destroy"
             << "max_pins" << pin_count_.max_pins
@@ -525,6 +530,9 @@ void BlockPool::_RequestInternalMemory(
         EvictBlockLRU();
     }
 
+    // wait up to 60 seconds for other threads to free up memory or pins
+    size_t retry = 60;
+
     // wait for memory change due to blocks begin written and deallocated.
     while (hard_ram_limit_ != 0 && total_ram_use_ + size > hard_ram_limit_)
     {
@@ -551,7 +559,8 @@ void BlockPool::_RequestInternalMemory(
 
         if (writing_bytes_ == 0 && total_ram_use_ + requested_bytes_ > hard_ram_limit_) {
             LOG1 << "abort() due to out-of-pinned-memory ???";
-            abort();
+            if (--retry == 0)
+                abort();
         }
     }
 
@@ -695,7 +704,9 @@ std::ostream& operator << (std::ostream& os, const BlockPool::PinCount& p) {
     os << " total_pins_=" << p.total_pins_
        << " total_pinned_bytes_=" << p.total_pinned_bytes_
        << " pin_count_=[" << common::Join(',', p.pin_count_) << "]"
-       << " pinned_bytes_=[" << common::Join(',', p.pinned_bytes_) << "]";
+       << " pinned_bytes_=[" << common::Join(',', p.pinned_bytes_) << "]"
+       << " max_pin=" << p.max_pins
+       << " max_pinned_bytes=" << p.max_pinned_bytes;
     return os;
 }
 
