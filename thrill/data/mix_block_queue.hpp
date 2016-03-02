@@ -65,8 +65,8 @@ class MixBlockQueue
 public:
     //! pair of (source worker, Block) stored in the main mix queue.
     struct SrcBlockPair {
-        size_t      src;
-        PinnedBlock block;
+        size_t src;
+        Block  block;
     };
 
     using Reader = MixBlockQueueReader;
@@ -99,7 +99,7 @@ public:
     void AppendBlock(size_t src, const PinnedBlock& block) {
         LOG << "MixBlockQueue::AppendBlock"
             << " src=" << src << " block=" << block;
-        mix_queue_.emplace(SrcBlockPair { src, block });
+        mix_queue_.emplace(SrcBlockPair { src, block.ToBlock() });
     }
 
     //! append closing sentinel block from src (also delivered via the network).
@@ -110,12 +110,12 @@ public:
         --write_open_count_;
 
         // enqueue a closing Block.
-        mix_queue_.emplace(SrcBlockPair { src, PinnedBlock() });
+        mix_queue_.emplace(SrcBlockPair { src, Block() });
     }
 
     //! Blocking retrieval of a (source,block) pair.
     SrcBlockPair Pop() {
-        if (read_open_ == 0) return SrcBlockPair { size_t(-1), PinnedBlock() };
+        if (read_open_ == 0) return SrcBlockPair { size_t(-1), Block() };
         SrcBlockPair b;
         mix_queue_.pop(b);
         if (!b.block.IsValid()) --read_open_;
@@ -345,11 +345,14 @@ private:
                 // block for this reader.
                 selected_ = src_blk.src;
 
+                size_t num_items = src_blk.block.num_items();
+
                 // save block with data for reader
-                mix_queue_.queues_[src_blk.src].AppendBlock(src_blk.block);
+                mix_queue_.queues_[src_blk.src].AppendBlock(
+                    std::move(src_blk.block));
 
                 // add available items: one less than in the blocks.
-                available_at_[src_blk.src] += src_blk.block.num_items();
+                available_at_[src_blk.src] += num_items;
                 available_ = available_at_[src_blk.src] - 1;
                 available_at_[src_blk.src] -= available_;
             }
@@ -359,7 +362,8 @@ private:
                 --open_;
 
                 // save block with data for reader
-                mix_queue_.queues_[src_blk.src].AppendBlock(src_blk.block);
+                mix_queue_.queues_[src_blk.src].AppendBlock(
+                    std::move(src_blk.block));
 
                 // check if we can still read the last item
                 if (available_at_[src_blk.src]) {
