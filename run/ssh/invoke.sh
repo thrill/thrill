@@ -121,6 +121,7 @@ done
 cmdbase=`basename "$cmd"`
 rank=0
 THRILL_HOSTLIST="${hostlist[@]}"
+SSH_PIDS=()
 
 for hostport in $THRILL_SSHLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
@@ -153,14 +154,28 @@ for hostport in $THRILL_SSHLIST; do
           $host \
           "export $THRILL_EXPORTS && cd $dir && exec $cmd $*" &
   fi
+  # save PID of ssh child for later
+  SSHPIDS[$rank]=$!
   rank=$((rank+1))
 done
 
 echo "Waiting for execution to finish."
+result=0
+rank=0
 for hostport in $THRILL_HOSTLIST; do
-    wait
+    set +e
+    wait ${SSHPIDS[$rank]}
+    retcode=$?
+    set -e
+    if [ $retcode != 0 ]; then
+        echo "Thrill program on host $hostport returned code $retcode"
+        result=$retcode
+    fi
+    rank=$((rank+1))
 done
 
-echo "Done."
+echo "Done. Result $result"
+
+exit $result
 
 ################################################################################
