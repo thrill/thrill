@@ -30,7 +30,7 @@ static constexpr bool debug_pin = false;
 static constexpr bool debug_mem = false;
 
 //! debug block eviction: evict, write complete, read complete
-static constexpr bool debug_em = true;
+static constexpr bool debug_em = false;
 
 BlockPool::BlockPool(size_t workers_per_host)
     : BlockPool(0, 0, nullptr, nullptr, workers_per_host) { }

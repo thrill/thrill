@@ -576,7 +576,6 @@ private:
 
         // M/2 such that the other half is used to prepare the next bulk
         size_t capacity = DIABase::mem_limit_ / sizeof(ValueType);
-        capacity = 10000;
         std::vector<ValueType> temp_data;
         temp_data.reserve(capacity);
 
