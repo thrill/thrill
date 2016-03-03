@@ -176,12 +176,14 @@ void Multiplexer::OnMixStreamBlock(
 
 BlockQueue* Multiplexer::CatLoopback(
     size_t stream_id, size_t from_worker_id, size_t to_worker_id) {
+    std::unique_lock<std::mutex> lock(mutex_);
     return stream_sets_.GetOrDie<CatStreamSet>(stream_id)
            ->peer(to_worker_id)->loopback_queue(from_worker_id);
 }
 
 MixBlockQueueSink* Multiplexer::MixLoopback(
     size_t stream_id, size_t from_worker_id, size_t to_worker_id) {
+    std::unique_lock<std::mutex> lock(mutex_);
     return stream_sets_.GetOrDie<MixStreamSet>(stream_id)
            ->peer(to_worker_id)->loopback_queue(from_worker_id);
 }
