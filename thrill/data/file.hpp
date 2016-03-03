@@ -62,6 +62,8 @@ public:
     using ConsumeReader = BlockReader<ConsumeFileBlockSource>;
     using DynWriter = DynBlockWriter;
 
+    static constexpr size_t default_prefetch = 2;
+
     //! Constructor from BlockPool
     explicit File(BlockPool& block_pool, size_t local_worker_id)
         : BlockSink(block_pool, local_worker_id)
@@ -147,7 +149,8 @@ public:
 
     //! Get BlockReader seeked to the corresponding item index
     template <typename ItemType>
-    KeepReader GetReaderAt(size_t index) const;
+    KeepReader GetReaderAt(
+        size_t index, size_t prefetch = default_prefetch) const;
 
     //! Read complete File into a std::string, obviously, this should only be
     //! used for debugging!
@@ -252,12 +255,11 @@ using FilePtr = std::shared_ptr<File>;
 class KeepFileBlockSource
 {
 public:
-    static constexpr size_t default_prefetch = 2;
 
     //! Start reading a File
     KeepFileBlockSource(
         const File& file, size_t local_worker_id,
-        size_t num_prefetch = default_prefetch,
+        size_t num_prefetch = File::default_prefetch,
         size_t first_block = 0, size_t first_item = keep_first_item)
         : file_(file), local_worker_id_(local_worker_id),
           num_prefetch_(num_prefetch),
@@ -357,7 +359,7 @@ public:
     //! prefetched.
     explicit ConsumeFileBlockSource(
         File* file, size_t local_worker_id,
-        size_t num_prefetch = 2)
+        size_t num_prefetch = File::default_prefetch)
         : file_(file), local_worker_id_(local_worker_id),
           num_prefetch_(num_prefetch) { }
 
@@ -449,7 +451,7 @@ File::Reader File::GetReader(bool consume) {
 //! Get BlockReader seeked to the corresponding item index
 template <typename ItemType>
 typename File::KeepReader
-File::GetReaderAt(size_t index) const {
+File::GetReaderAt(size_t index, size_t prefetch) const {
     static constexpr bool debug = false;
 
     // perform binary search for item block with largest exclusive size
@@ -462,21 +464,22 @@ File::GetReaderAt(size_t index) const {
 
     size_t begin_block = it - num_items_sum_.begin();
 
-    sLOG << "item" << index << "in block" << begin_block
+    sLOG << "File::GetReaderAt()"
+         << "item" << index << "in block" << begin_block
          << "psum" << num_items_sum_[begin_block]
          << "first_item" << blocks_[begin_block].first_item_absolute();
 
     // start Reader at given first valid item in located block
     KeepReader fr(
-        KeepFileBlockSource(*this, local_worker_id_,
-                            KeepFileBlockSource::default_prefetch,
+        KeepFileBlockSource(*this, local_worker_id_, prefetch,
                             begin_block,
                             blocks_[begin_block].first_item_absolute()));
 
     // skip over extra items in beginning of block
     size_t items_before = it == num_items_sum_.begin() ? 0 : *(it - 1);
 
-    sLOG << "items_before" << items_before << "index" << index
+    sLOG << "File::GetReaderAt()"
+         << "items_before" << items_before << "index" << index
          << "delta" << (index - items_before);
     assert(items_before <= index);
 
@@ -497,18 +500,16 @@ File::GetReaderAt(size_t index) const {
         }
     }
 
-    sLOG << "after seek at" << fr.CopyBlock();
+    sLOG << "File::GetReaderAt()"
+         << "after seek at" << fr.CopyBlock();
 
     return fr;
 }
 
 template <typename ItemType>
 ItemType File::GetItemAt(size_t index) const {
-
-    KeepReader reader = this->GetReaderAt<ItemType>(index);
-    ItemType val = reader.Next<ItemType>();
-
-    return val;
+    KeepReader reader = this->GetReaderAt<ItemType>(index, /* prefetch */ 0);
+    return reader.Next<ItemType>();
 }
 
 template <typename ItemType, typename CompareFunction>
