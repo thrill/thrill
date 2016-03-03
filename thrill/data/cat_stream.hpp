@@ -197,7 +197,7 @@ public:
     }
 
     //! Gets a CatBlockSource which includes all incoming queues of this stream.
-    inline CatBlockSource GetCatBlockSource(bool consume) {
+    CatBlockSource GetCatBlockSource(bool consume) {
         rx_timespan_.StartEventually();
 
         // construct vector of BlockSources to read from queues_.

@@ -3,7 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -13,7 +13,6 @@
 #define THRILL_DATA_FILE_HEADER
 
 #include <thrill/common/function_traits.hpp>
-#include <thrill/common/future.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
@@ -65,9 +64,8 @@ public:
     static constexpr size_t default_prefetch = 2;
 
     //! Constructor from BlockPool
-    explicit File(BlockPool& block_pool, size_t local_worker_id)
-        : BlockSink(block_pool, local_worker_id)
-    { }
+    File(BlockPool& block_pool, size_t local_worker_id)
+        : BlockSink(block_pool, local_worker_id) { }
 
     //! \name Methods of a BlockSink
     //! {
@@ -106,11 +104,8 @@ public:
         // 2016-02-04: Files are never closed, one can always append -tb.
     }
 
-    void Clear() {
-        std::deque<Block>().swap(blocks_);
-        std::deque<size_t>().swap(num_items_sum_);
-        size_bytes_ = 0;
-    }
+    //! Free all Blocks in the File and deallocate vectors
+    void Clear();
 
     //! boolean flag whether to check if AllocateByteBlock can fail in any
     //! subclass (if false: accelerate BlockWriter to not be able to cope with
@@ -123,19 +118,13 @@ public:
     //! {
 
     //! Get BlockWriter.
-    Writer GetWriter(size_t block_size = default_block_size) {
-        return Writer(this, block_size);
-    }
+    Writer GetWriter(size_t block_size = default_block_size);
 
     //! Get BlockWriterPtr.
-    std::shared_ptr<Writer> GetWriterPtr(size_t block_size = default_block_size) {
-        return std::make_shared<Writer>(this, block_size);
-    }
+    std::shared_ptr<Writer> GetWriterPtr(size_t block_size = default_block_size);
 
     //! Get BlockWriter.
-    DynWriter GetDynWriter(size_t block_size = default_block_size) {
-        return DynWriter(this, block_size);
-    }
+    DynWriter GetDynWriter(size_t block_size = default_block_size);
 
     /*!
      * Get BlockReader or a consuming BlockReader for beginning of File
@@ -169,19 +158,9 @@ public:
 
     //! Read complete File into a std::string, obviously, this should only be
     //! used for debugging!
-    std::string ReadComplete() const {
-        std::string output;
-        for (const Block& b : blocks_)
-            output += b.PinWait(0).ToString();
-        return output;
-    }
+    std::string ReadComplete() const;
 
     //! }
-
-    // returns a string that identifies this string instance
-    std::string ToString() {
-        return "File@" + std::to_string(reinterpret_cast<uintptr_t>(this));
-    }
 
     //! Return the number of blocks
     size_t num_blocks() const { return blocks_.size(); }
@@ -234,13 +213,11 @@ public:
     std::vector<Block> GetItemRange(size_t begin, size_t end) const;
 
     //! Output the Block objects contained in this File.
-    friend std::ostream& operator << (std::ostream& os, const File& f) {
-        os << "[File " << std::hex << &f << std::dec
-           << " Blocks=[";
-        size_t i = 0;
-        for (const Block& b : f.blocks_)
-            os << "\n    " << i++ << " " << b;
-        return os << "]]";
+    friend std::ostream& operator << (std::ostream& os, const File& f);
+
+    // returns a string that identifies this string instance
+    std::string ToString() {
+        return "File@" + std::to_string(reinterpret_cast<uintptr_t>(this));
     }
 
     //! flag to disable reading self_verify size_ts from File's with external
@@ -278,59 +255,17 @@ public:
     KeepFileBlockSource(
         const File& file, size_t local_worker_id,
         size_t num_prefetch = File::default_prefetch,
-        size_t first_block = 0, size_t first_item = keep_first_item)
-        : file_(file), local_worker_id_(local_worker_id),
-          num_prefetch_(num_prefetch),
-          first_block_(first_block), current_block_(first_block),
-          first_item_(first_item) { }
+        size_t first_block = 0, size_t first_item = keep_first_item);
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader
-    PinnedBlock NextBlock() {
-
-        if (current_block_ >= file_.num_blocks() && fetching_blocks_.empty())
-            return PinnedBlock();
-
-        if (num_prefetch_ == 0)
-        {
-            // operate without prefetching
-            return NextUnpinnedBlock().PinWait(local_worker_id_);
-        }
-        else
-        {
-            // prefetch #desired blocks
-            while (fetching_blocks_.size() < num_prefetch_ &&
-                   current_block_ < file_.num_blocks())
-            {
-                fetching_blocks_.emplace_back(
-                    NextUnpinnedBlock().Pin(local_worker_id_));
-            }
-
-            // this might block if the prefetching is not finished
-            fetching_blocks_.front().wait();
-
-            PinnedBlock b = fetching_blocks_.front().get();
-            fetching_blocks_.pop_front();
-            return b;
-        }
-    }
+    PinnedBlock NextBlock();
 
     bool disable_self_verify() const { return file_.disable_self_verify; }
 
 protected:
     //! Determine current unpinned Block to deliver via NextBlock()
-    Block NextUnpinnedBlock() {
-        if (current_block_ == first_block_) {
-            // construct first block differently, in case we want to shorten it.
-            Block b = file_.block(current_block_++);
-            if (first_item_ != keep_first_item)
-                b.set_begin(first_item_);
-            return b;
-        }
-        else {
-            return file_.block(current_block_++);
-        }
-    }
+    Block NextUnpinnedBlock();
 
 private:
     //! sentinel value for not changing the first_item item
@@ -358,11 +293,6 @@ private:
     size_t first_item_;
 };
 
-inline
-File::KeepReader File::GetKeepReader() const {
-    return KeepReader(KeepFileBlockSource(*this, local_worker_id_));
-}
-
 /*!
  * A BlockSource to read and simultaneously consume Blocks from a File. The
  * ConsumeFileBlockSource always returns the first block of the File and removes
@@ -377,11 +307,9 @@ public:
     //! Start reading a File. Creates a source for the given file and set the
     //! number of blocks that should be prefetched. 0 means that no blocks are
     //! prefetched.
-    explicit ConsumeFileBlockSource(
+    ConsumeFileBlockSource(
         File* file, size_t local_worker_id,
-        size_t num_prefetch = File::default_prefetch)
-        : file_(file), local_worker_id_(local_worker_id),
-          num_prefetch_(num_prefetch) { }
+        size_t num_prefetch = File::default_prefetch);
 
     //! non-copyable: delete copy-constructor
     ConsumeFileBlockSource(const ConsumeFileBlockSource&) = delete;
@@ -394,42 +322,10 @@ public:
           fetching_blocks_(std::move(s.fetching_blocks_)) { s.file_ = nullptr; }
 
     //! Get the next block of file.
-    PinnedBlock NextBlock() {
-        assert(file_);
-        if (file_->blocks_.empty() && fetching_blocks_.empty())
-            return PinnedBlock();
-
-        // operate without prefetching
-        if (num_prefetch_ == 0) {
-            std::future<PinnedBlock> f =
-                file_->blocks_.front().Pin(local_worker_id_);
-            file_->blocks_.pop_front();
-            f.wait();
-            return f.get();
-        }
-
-        // prefetch #desired blocks
-        while (fetching_blocks_.size() < num_prefetch_ && !file_->blocks_.empty()) {
-            fetching_blocks_.emplace_back(
-                file_->blocks_.front().Pin(local_worker_id_));
-            file_->blocks_.pop_front();
-        }
-
-        // this might block if the prefetching is not finished
-        fetching_blocks_.front().wait();
-
-        PinnedBlock b = fetching_blocks_.front().get();
-        fetching_blocks_.pop_front();
-        return b;
-    }
+    PinnedBlock NextBlock();
 
     //! Consume unread blocks and reset File to zero items.
-    ~ConsumeFileBlockSource() {
-        if (file_) {
-            file_->blocks_.clear();
-            file_->num_items_sum_.clear();
-        }
-    }
+    ~ConsumeFileBlockSource();
 
     bool disable_self_verify() const { return file_->disable_self_verify; }
 
@@ -447,27 +343,12 @@ private:
     std::deque<std::future<PinnedBlock> > fetching_blocks_;
 };
 
-inline
-File::ConsumeReader File::GetConsumeReader() {
-    return ConsumeReader(ConsumeFileBlockSource(this, local_worker_id_));
-}
-
 template <typename ValueType>
 inline
 BufferedBlockReader<ValueType, KeepFileBlockSource>
 File::GetBufferedReader() const {
     return BufferedBlockReader<ValueType, KeepFileBlockSource>(
         KeepFileBlockSource(*this, local_worker_id_));
-}
-
-inline
-File::Reader File::GetReader(bool consume) {
-    if (consume)
-        return ConstructDynBlockReader<ConsumeFileBlockSource>(
-            this, local_worker_id_);
-    else
-        return ConstructDynBlockReader<KeepFileBlockSource>(
-            *this, local_worker_id_);
 }
 
 //! Get BlockReader seeked to the corresponding item index
@@ -580,8 +461,7 @@ size_t File::GetIndexOf(
 //! Seek in File: return a Block range containing items begin, end of
 //! given type.
 template <typename ItemType>
-std::vector<Block>
-File::GetItemRange(size_t begin, size_t end) const {
+std::vector<Block> File::GetItemRange(size_t begin, size_t end) const {
     assert(begin <= end);
     // deliver array of remaining blocks
     return GetReaderAt<ItemType>(begin)
