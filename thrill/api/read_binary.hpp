@@ -21,6 +21,7 @@
 #include <thrill/core/file_io.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
+#include <thrill/io/syscall_file.hpp>
 #include <thrill/net/buffer_builder.hpp>
 
 #include <algorithm>
@@ -90,8 +91,7 @@ public:
                 if (files.list[i].size % fixed_size_ == 0) continue;
 
                 die("ReadBinary() path " + files.list[i].path +
-                    " size is not a multiple of " +
-                    std::to_string(fixed_size_));
+                    " size is not a multiple of " << fixed_size_);
             }
 
             common::Range my_range =
@@ -109,8 +109,8 @@ public:
                 i++;
             }
 
-            while (i < files.count() &&
-                   files.list[i].size_ex_psum <= my_range.end) {
+            for ( ; i < files.count() &&
+                  files.list[i].size_ex_psum <= my_range.end; ++i) {
 
                 size_t file_begin = files.list[i].size_ex_psum;
                 size_t file_end = files.list[i].size_inc_psum();
@@ -126,10 +126,41 @@ public:
                      << "path" << fi.path
                      << "begin" << fi.begin << "end" << fi.end;
 
-                if (fi.begin != fi.end)
-                    my_files_.push_back(fi);
+                if (fi.begin == fi.end) continue;
+#if 0
+                my_files_.push_back(fi);
+#else
+                std::shared_ptr<io::FileBase> file =
+                    std::make_shared<io::SyscallFile>(
+                        fi.path, io::FileBase::RDONLY | io::FileBase::NO_LOCK);
 
-                i++;
+                size_t item_off = 0;
+
+                for (size_t off = fi.begin; off < fi.end;
+                     off += data::default_block_size) {
+
+                    size_t bsize =
+                        std::min(off + data::default_block_size, fi.end) - off;
+
+                    data::ByteBlockPtr bbp =
+                        context_.block_pool().MapExternalBlock(
+                            file, off, bsize);
+
+                    size_t item_num =
+                        (bsize - item_off + fixed_size_ - 1) / fixed_size_;
+
+                    data::Block block(
+                        std::move(bbp), 0, bsize, item_off, item_num);
+
+                    item_off += item_num * fixed_size_ - bsize;
+
+                    LOG << "Adding Block " << block;
+                    ext_file_.AppendBlock(std::move(block));
+                }
+
+                ext_file_.disable_self_verify = true;
+                use_ext_file_ = true;
+#endif
             }
         }
         else
@@ -161,13 +192,17 @@ public:
     ReadBinaryNode(Context& ctx, const std::string& glob)
         : ReadBinaryNode(ctx, std::vector<std::string>{ glob }) { }
 
-    void PushData(bool /* consume */) final {
-        static constexpr bool debug = false;
-        LOG << "READING data " << std::to_string(this->id());
+    void PushData(bool consume) final {
+        if (use_ext_file_) {
+            this->PushFile(ext_file_, consume);
+            return;
+        }
+
+        LOG << "ReadBinaryNode::PushData() start id " << this->id();
 
         // Hook Read
         for (const FileInfo& file : my_files_) {
-            LOG << "OPENING FILE " << file.path;
+            LOG << "ReadBinaryNode::PushData() opening " << file.path;
 
             data::BlockReader<SysFileBlockSource> br(
                 SysFileBlockSource(file, context_,
@@ -183,12 +218,13 @@ public:
             << "event" << "done"
             << "total_bytes" << stats_total_bytes
             << "total_reads" << stats_total_reads;
-
-        LOG << "DONE!";
     }
 
 private:
     std::vector<FileInfo> my_files_;
+
+    bool use_ext_file_ = false;
+    data::File ext_file_ { context_.GetFile() };
 
     size_t stats_total_bytes = 0;
     size_t stats_total_reads = 0;
@@ -246,6 +282,8 @@ private:
                 return data::PinnedBlock();
             }
         }
+
+        bool disable_self_verify() const { return true; }
 
     private:
         Context& context_;
