@@ -80,11 +80,26 @@ public:
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
+    void AppendBlock(PinnedBlock&& b) {
+        return AppendBlock(std::move(b).MoveToBlock());
+    }
+
+    //! Append a block to this file, the block must contain given number of
+    //! items after the offset first.
     void AppendBlock(const Block& b) {
         if (b.size() == 0) return;
-        blocks_.push_back(b);
         num_items_sum_.push_back(num_items() + b.num_items());
         size_bytes_ += b.size();
+        blocks_.push_back(b);
+    }
+
+    //! Append a block to this file, the block must contain given number of
+    //! items after the offset first.
+    void AppendBlock(Block&& b) {
+        if (b.size() == 0) return;
+        num_items_sum_.push_back(num_items() + b.num_items());
+        size_bytes_ += b.size();
+        blocks_.emplace_back(std::move(b));
     }
 
     void Close() final {

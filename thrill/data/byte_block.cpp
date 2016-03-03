@@ -17,10 +17,20 @@
 namespace thrill {
 namespace data {
 
-ByteBlock::ByteBlock(Byte* data, size_t size, BlockPool* block_pool)
+ByteBlock::ByteBlock(BlockPool* block_pool, Byte* data, size_t size)
     : data_(data), size_(size),
       block_pool_(block_pool),
       pin_count_(block_pool_->workers_per_host())
+{ }
+
+ByteBlock::ByteBlock(
+    BlockPool* block_pool, const std::shared_ptr<io::FileBase>& ext_file,
+    int64_t offset, size_t size)
+    : data_(nullptr), size_(size),
+      block_pool_(block_pool),
+      pin_count_(block_pool_->workers_per_host()),
+      em_bid_(ext_file.get(), offset, size),
+      ext_file_(ext_file)
 { }
 
 void ByteBlock::deleter(ByteBlock* bb) {
@@ -55,7 +65,8 @@ std::ostream& operator << (std::ostream& os, const ByteBlock& b) {
     os << "[ByteBlock"
        << " size_=" << b.size_
        << " block_pool_=" << b.block_pool_
-       << " total_pins_=" << b.total_pins_;
+       << " total_pins_=" << b.total_pins_
+       << " ext_file_=" << b.ext_file_;
     return os << "]";
 }
 

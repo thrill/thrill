@@ -71,6 +71,9 @@ public:
     //! the block size
     size_t size() const { return size_; }
 
+    //! Returns whether the ByteBlock is in an external file.
+    bool has_ext_file() const { return ext_file_.get(); }
+
     //! return current pin count
     size_t pin_count(size_t local_worker_id) const {
         return pin_count_[local_worker_id];
@@ -95,7 +98,7 @@ private:
     //! region that can be swapped out
     Byte* data_;
 
-    //! the allocated size of the buffer in bytes, excluding the size_ field
+    //! the allocated size of the buffer in bytes
     size_t size_;
 
     //! reference to BlockPool for deletion.
@@ -108,8 +111,13 @@ private:
     //! reaches zero.
     size_t total_pins_ = 0;
 
-    //! external memory block id
+    //! external memory block, which contains a pointer to io::FileBase, an
+    //! offset into the file, and (unfortunately) also the size.
     io::BID<0> em_bid_;
+
+    //! shared pointer to external file, if this is != nullptr then the Block
+    //! was created for directly reading binary files.
+    std::shared_ptr<io::FileBase> ext_file_;
 
     // BlockPool is a friend to call ctor and to manipulate data_.
     friend class BlockPool;
@@ -118,16 +126,20 @@ private:
     friend class PinnedBlock;
 
     /*!
-     * Constructor to initialize ByteBlock in a buffer of memory. Protected, use
-     * BlockPool::AllocateByteBlock() for construction. The returned object has
-     * pin_count_ = 1 due to initialize, this count should not be incremented
-     * when moved into a PinnedBlock.
+     * Constructor to initialize ByteBlock in a buffer of memory. Protected,
+     * used BlockPool::AllocateByteBlock() for construction.
      *
      * \param data the memory address of the byte-blocks data. nullptr if swapped out
      * \param size the size of the block in bytes
      * \param block_pool the block pool that manages this ByteBlock
      */
-    ByteBlock(Byte* data, size_t size, BlockPool* block_pool);
+    ByteBlock(BlockPool* block_pool, Byte* data, size_t size);
+
+    //! Constructor to initialize ByteBlock as a mapping to an external
+    //! io::FileBase area.
+    ByteBlock(BlockPool* block_pool,
+              const std::shared_ptr<io::FileBase>& ext_file,
+              int64_t offset, size_t size);
 
     friend std::ostream& operator << (std::ostream& os, const ByteBlock& b);
 

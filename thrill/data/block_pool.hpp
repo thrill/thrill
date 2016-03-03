@@ -96,6 +96,11 @@ public:
     //! count.
     PinnedByteBlockPtr AllocateByteBlock(size_t size, size_t local_worker_id);
 
+    //! Allocate a byte block from an external file, used to directly map system
+    //! files to data::File.
+    ByteBlockPtr MapExternalBlock(
+        const std::shared_ptr<io::FileBase>& file, int64_t offset, size_t size);
+
     //! Pins a block by swapping it in if required.
     std::future<PinnedBlock> PinBlock(const Block& block, size_t local_worker_id);
 
@@ -225,15 +230,22 @@ private:
     //! total number of bytes in swapped blocks
     size_t swapped_bytes_ = 0;
 
-    struct ReadRequest
+    class ReadRequest
     {
+    public:
+        BlockPool* block_pool;
+        Block block;
+        size_t local_worker_id;
         std::promise<PinnedBlock> result;
-        Byte                      * data;
-        io::RequestPtr            req;
+        Byte* data;
+        io::RequestPtr req;
+
+        void OnComplete(io::Request* req, bool success);
     };
 
     //! type of set of ByteBlocks currently begin read from EM.
-    using ReadingMap = std::unordered_map<ByteBlock*, ReadRequest>;
+    using ReadingMap = std::unordered_map<
+              ByteBlock*, std::unique_ptr<ReadRequest> >;
 
     //! set of ByteBlocks currently begin read from EM.
     ReadingMap reading_;
@@ -271,9 +283,7 @@ private:
     void OnWriteComplete(ByteBlock* block_ptr, io::Request* req, bool success);
 
     //! callback for async read of blocks for pin requests
-    void OnReadComplete(
-        const Block& block, size_t local_worker_id, ReadRequest* read,
-        io::Request* req, bool success);
+    void OnReadComplete(ReadRequest* read, io::Request* req, bool success);
 
     //! Evict a block from the lru list into external memory
     void EvictBlockLRU();
