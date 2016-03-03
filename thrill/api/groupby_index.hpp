@@ -133,7 +133,7 @@ public:
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
             }
 
-            auto puller = api::get_sequential_file_multiway_merge_tree<true, false>(
+            auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
                 std::begin(seq), std::end(seq),
                 totalsize_, ValueComparator(*this));
 

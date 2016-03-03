@@ -171,7 +171,7 @@ public:
                     sum_sizes += files_[i].num_items();
                 }
 
-                auto puller = api::get_sequential_file_multiway_merge_tree<true, false>(
+                auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
                     seq.begin(), seq.end(), sum_sizes, compare_function_);
 
                 // create new File for merged items
@@ -200,7 +200,7 @@ public:
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
             }
 
-            auto puller = api::get_sequential_file_multiway_merge_tree<true, false>(
+            auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
                 seq.begin(), seq.end(), local_out_size_, compare_function_);
 
             while (puller.HasNext()) {

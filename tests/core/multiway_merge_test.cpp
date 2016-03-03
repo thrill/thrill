@@ -321,7 +321,7 @@ TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
         seq.push_back(std::make_pair(s, e));
     }
 
-    auto puller = api::get_sequential_file_multiway_merge_tree<true, false>(
+    auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
         seq.begin(),
         seq.end(),
         total,
