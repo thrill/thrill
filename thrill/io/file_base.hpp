@@ -67,22 +67,31 @@ public:
     //! move-assignment operator: default
     FileBase& operator = (FileBase&&) = default;
 
-    //! Definition of acceptable file open modes.
-    //!
-    //! Various open modes in a file system must be
-    //! converted to this set of acceptable modes
+    //! Definition of acceptable file open modes.  Various open modes in a file
+    //! system must be converted to this set of acceptable modes.
     enum open_mode
     {
-        RDONLY = 1,          //!< only reading of the file is allowed
-        WRONLY = 2,          //!< only writing of the file is allowed
-        RDWR = 4,            //!< read and write of the file are allowed
-        CREAT = 8,           //!< in case file does not exist no error occurs and file is newly created
-        DIRECT = 16,         //!< I/Os proceed bypassing file system buffers, i.e. unbuffered I/O.
-                             //! < Tries to open with appropriate flags, if fails print warning and open normally.
-        TRUNC = 32,          //!< once file is opened its length becomes zero
-        SYNC = 64,           //!< open the file with O_SYNC | O_DSYNC | O_RSYNC flags set
-        NO_LOCK = 128,       //!< do not acquire an exclusive lock by default
-        REQUIRE_DIRECT = 256 //!< implies DIRECT, fail if opening with DIRECT flag does not work.
+        //! only reading of the file is allowed
+        RDONLY = 1,
+        //! only writing of the file is allowed
+        WRONLY = 2,
+        //! read and write of the file are allowed
+        RDWR = 4,
+        //! in case file does not exist no error occurs and file is newly
+        //! created
+        CREAT = 8,
+        //! I/Os proceed bypassing file system buffers, i.e. unbuffered I/O.
+        //! Tries to open with appropriate flags, if fails print warning and
+        //! open normally.
+        DIRECT = 16,
+        //! once file is opened its length becomes zero
+        TRUNC = 32,
+        //! open the file with O_SYNC | O_DSYNC | O_RSYNC flags set
+        SYNC = 64,
+        //! do not acquire an exclusive lock by default
+        NO_LOCK = 128,
+        //! implies DIRECT, fail if opening with DIRECT flag does not work.
+        REQUIRE_DIRECT = 256
     };
 
     static constexpr int DEFAULT_QUEUE = -1;
@@ -92,8 +101,7 @@ public:
 
     //! Construct a new file, usually called by a subclass.
     explicit FileBase(unsigned int device_id = DEFAULT_DEVICE_ID)
-        : device_id_(device_id)
-    { }
+        : device_id_(device_id) { }
 
     //! Schedules an asynchronous read request to the file.
     //! \param buffer pointer to memory buffer to read into
@@ -103,8 +111,9 @@ public:
     //! \return \c request_ptr request object, which can be used to track the
     //! status of the operation
 
-    virtual RequestPtr aread(void* buffer, offset_type pos, size_type bytes,
-                             const CompletionHandler& on_cmpl = CompletionHandler()) = 0;
+    virtual RequestPtr aread(
+        void* buffer, offset_type pos, size_type bytes,
+        const CompletionHandler& on_cmpl = CompletionHandler()) = 0;
 
     //! Schedules an asynchronous write request to the file.
     //! \param buffer pointer to memory buffer to write from
@@ -113,8 +122,9 @@ public:
     //! \param on_cmpl I/O completion handler
     //! \return \c request_ptr request object, which can be used to track the
     //! status of the operation
-    virtual RequestPtr awrite(void* buffer, offset_type pos, size_type bytes,
-                              const CompletionHandler& on_cmpl = CompletionHandler()) = 0;
+    virtual RequestPtr awrite(
+        void* buffer, offset_type pos, size_type bytes,
+        const CompletionHandler& on_cmpl = CompletionHandler()) = 0;
 
     virtual void serve(void* buffer, offset_type offset, size_type bytes,
                        Request::ReadOrWriteType type) = 0;
@@ -168,11 +178,17 @@ public:
     virtual const char * io_type() const = 0;
 
 protected:
+    //! Flag whether read/write operations require alignment
+    bool need_alignment_ = false;
+
     //! The file's physical device id (e.g. used for prefetching sequence
     //! calculation)
     unsigned int device_id_;
 
 public:
+    //! Returns need_alignment_
+    bool need_alignment() const { return need_alignment_; }
+
     //! Returns the file's physical device id
     unsigned int get_device_id() const {
         return device_id_;

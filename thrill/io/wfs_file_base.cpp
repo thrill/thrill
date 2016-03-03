@@ -93,7 +93,10 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
                                    dwCreationDisposition, dwFlagsAndAttributes, nullptr);
 
     if (file_des != INVALID_HANDLE_VALUE)
+    {
+        need_alignment_ = (mode & FileBase::DIRECT);
         return file_des;
+    }
 
 #if !THRILL_DIRECT_IO_OFF
     if ((mode& FileBase::DIRECT) && !(mode & FileBase::REQUIRE_DIRECT))

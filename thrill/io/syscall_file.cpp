@@ -38,16 +38,17 @@ void SyscallFile::serve(void* buffer, offset_type offset, size_type bytes,
         off_t rc = ::lseek(file_des_, offset, SEEK_SET);
         if (rc < 0)
         {
-            THRILL_THROW_ERRNO(IoError,
-                               " this=" << this <<
-                               " call=::lseek(fd,offset,SEEK_SET)" <<
-                               " path=" << path_ <<
-                               " fd=" << file_des_ <<
-                               " offset=" << offset <<
-                               " buffer=" << cbuffer <<
-                               " bytes=" << bytes <<
-                               " type=" << ((type == Request::READ) ? "READ" : "WRITE") <<
-                               " rc=" << rc);
+            THRILL_THROW_ERRNO(
+                IoError,
+                "this=" << this <<
+                " call=::lseek(fd,offset,SEEK_SET)" <<
+                " path=" << path_ <<
+                " fd=" << file_des_ <<
+                " offset=" << offset <<
+                " buffer=" << cbuffer <<
+                " bytes=" << bytes <<
+                " type=" << ((type == Request::READ) ? "READ" : "WRITE") <<
+                " rc=" << rc);
         }
 
         if (type == Request::READ)
@@ -59,9 +60,9 @@ void SyscallFile::serve(void* buffer, offset_type offset, size_type bytes,
             if ((rc = ::read(file_des_, cbuffer, bytes)) <= 0)
 #endif
             {
-                THRILL_THROW_ERRNO
-                    (IoError,
-                    " this=" << this <<
+                THRILL_THROW_ERRNO(
+                    IoError,
+                    "this=" << this <<
                     " call=::read(fd,buffer,bytes)" <<
                     " path=" << path_ <<
                     " fd=" << file_des_ <<
@@ -92,9 +93,9 @@ void SyscallFile::serve(void* buffer, offset_type offset, size_type bytes,
             if ((rc = ::write(file_des_, cbuffer, bytes)) <= 0)
 #endif
             {
-                THRILL_THROW_ERRNO
-                    (IoError,
-                    " this=" << this <<
+                THRILL_THROW_ERRNO(
+                    IoError,
+                    "this=" << this <<
                     " call=::write(fd,buffer,bytes)" <<
                     " path=" << path_ <<
                     " fd=" << file_des_ <<

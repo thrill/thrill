@@ -98,6 +98,7 @@ UfsFileBase::UfsFileBase(
 
     if ((file_des_ = ::open(filename.c_str(), flags, perms)) >= 0)
     {
+        need_alignment_ = (mode & DIRECT);
         _after_open();
         return;
     }

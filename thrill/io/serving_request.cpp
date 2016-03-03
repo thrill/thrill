@@ -34,7 +34,8 @@ ServingRequest::ServingRequest(
     // Direct I/O requires file system block size alignment for file offsets,
     // memory buffer addresses, and transfer(buffer) size must be multiple
     // of the file system block size
-    check_alignment();
+    if (f->need_alignment())
+        check_alignment();
 #endif
 }
 
