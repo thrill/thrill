@@ -31,13 +31,6 @@ static constexpr bool g_debug_mode = !g_ndebug;
 //! set false if NDEBUG is set in production mode.
 static constexpr bool g_self_verify = g_debug_mode;
 
-//! global flag to enable stats.
-#if ENABLE_STATS
-static constexpr bool g_enable_stats = true;
-#else
-static constexpr bool g_enable_stats = false;
-#endif
-
 //! Finding cache line size is hard - we assume 64 byte.
 static constexpr unsigned g_cache_line_size = 64;
 

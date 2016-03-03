@@ -47,14 +47,6 @@ option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compi
 # make it prominent in the GUI.
 option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." OFF)
 
-option(ENABLE_STATS "enable stats" OFF)
-if(ENABLE_STATS)
-    message(STATUS "Add Stats support")
-    add_definitions(-DENABLE_STATS=1)
-else()
-    add_definitions(-DENABLE_STATS=0)
-endif()
-
 if(NOT MSVC)
   # enable warnings
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
