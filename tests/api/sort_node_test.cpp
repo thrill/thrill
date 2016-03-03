@@ -223,14 +223,9 @@ TEST(Sort, SortOneInteger) {
     auto start_func =
         [](Context& ctx) {
 
-            LOG1 << "Sorting with " << ctx.num_workers() << " workers";
+            LOG0 << "Sorting with " << ctx.num_workers() << " workers";
 
-            auto integers = Generate(
-                ctx,
-                [](const size_t& i) -> size_t {
-                    return i;
-                },
-                1);
+            auto integers = Generate(ctx, 1);
 
             auto sorted = integers.Sort();
 

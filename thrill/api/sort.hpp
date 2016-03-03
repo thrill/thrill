@@ -83,30 +83,48 @@ public:
     void PreOp(const ValueType& input) {
         unsorted_writer_.Put(input);
         local_items_++;
-        after_sample_++;
         // In this stage we do not know how many elements are there in total.
         // Therefore we draw samples based on current number of elements and
         // randomly replace older samples when we have too many.
-        if (after_sample_ > next_sample_) {
-            if (samples_.size() >
-                std::log2(local_items_ * context_.num_workers())
-                * (1 / (desired_imbalance_ * desired_imbalance_))) {
-                samples_[rng_() % samples_.size()] = input;
-            }
-            else {
+        if (--sample_interval_ == 0) {
+            if (samples_.size() == 0 || samples_.size() < wanted_sample_size()) {
                 samples_.push_back(input);
             }
-            after_sample_ = 0;
-            double sample = static_cast<double>(
-                local_items_
-                / std::log2(local_items_ * context_.num_workers())
-                * (1 / (desired_imbalance_ * desired_imbalance_)));
-            next_sample_ = std::floor(sample);
+            else {
+                samples_[rng_() % samples_.size()] = input;
+            }
+            sample_interval_ = std::max(
+                size_t(1), local_items_ / wanted_sample_size());
+            LOG << "SortNode::PreOp() sample_interval_=" << sample_interval_;
         }
+    }
+
+    //! Receive a whole data::File of ValueType, but only if our stack is empty.
+    bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
+        if (!ParentDIA::stack_empty) return false;
+
+        // accept file
+        unsorted_file_ = file;
+        local_items_ = unsorted_file_.num_items();
+
+        sLOG << "Pick" << wanted_sample_size() << "samples by random access.";
+        for (size_t i = 0; i < wanted_sample_size(); ++i) {
+            size_t index = rng_() % local_items_;
+            sLOG << "got index[" << i << "] = " << index;
+            samples_.emplace_back(
+                unsorted_file_.GetItemAt<ValueType>(index));
+        }
+
+        return true;
     }
 
     void StopPreOp(size_t /* id */) final {
         unsorted_writer_.Close();
+
+        LOG << "wanted_sample_size()=" << wanted_sample_size()
+            << " samples.size()= " << samples_.size();
+        assert(samples_.size()
+               == std::min(local_items_, wanted_sample_size()));
     }
 
     DIAMemUse ExecuteMemUse() final {
@@ -209,12 +227,20 @@ private:
 
     //! Sample vector
     std::vector<ValueType> samples_;
-    //! Number of items since last sample was drawn
-    size_t after_sample_ = 0;
-    //! Number of items between this and next sample
-    size_t next_sample_ = 0;
+    //! Number of items to process before the next sample was drawn
+    size_t sample_interval_ = 1;
     //! Random generator
     std::default_random_engine rng_ { std::random_device { } () };
+
+    //! epsilon
+    static constexpr double desired_imbalance_ = 0.25;
+
+    //! calculate currently desired number of samples
+    size_t wanted_sample_size() const {
+        size_t s = std::log2(local_items_ * context_.num_workers())
+                   * (1 / (desired_imbalance_ * desired_imbalance_));
+        return std::max(s, size_t(1));
+    }
 
     //! }
 
@@ -225,9 +251,6 @@ private:
     std::deque<data::File> files_;
     //! Total number of local elements after communication
     size_t local_out_size_ = 0;
-
-    // epsilon
-    static constexpr double desired_imbalance_ = 0.25;
 
     void FindAndSendSplitters(
         std::vector<ValueType>& splitters, size_t sample_size,
@@ -433,8 +456,8 @@ private:
     void SortAndWriteToFile(
         std::vector<ValueType>& vec, std::deque<data::File>& files) {
 
-        LOG1 << "SortAndWriteToFile() " << vec.size()
-             << " into file #" << files.size();
+        LOG << "SortAndWriteToFile() " << vec.size()
+            << " into file #" << files.size();
 
         local_out_size_ += vec.size();
 
