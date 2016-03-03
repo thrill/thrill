@@ -39,72 +39,69 @@ public:
         return p.second - p.first;
     }
 
-    MultiwayMergeTreePuller(IteratorListIterator seqs_begin_,
-                            IteratorListIterator seqs_end_,
-                            size_t length,
-                            Comparator comp_)
-        : seqs_begin(seqs_begin_),
-          seqs_end(seqs_end_),
-          comp(comp_),
-          k(static_cast<source_type>(seqs_end - seqs_begin)),
-          lt(k, comp),
-          counter(0),
-          total_length(0),
-          arbitrary_element(nullptr),
-          is_multiway_merged(false) {
+    MultiwayMergeTreePuller(IteratorListIterator seqs_begin,
+                            IteratorListIterator seqs_end,
+                            size_t length, const Comparator& comp)
+        : seqs_begin_(seqs_begin),
+          seqs_end_(seqs_end),
+          comp_(comp),
+          k_(static_cast<source_type>(seqs_end_ - seqs_begin_)),
+          lt_(k_, comp_),
+          counter_(0),
+          total_length_(0),
+          arbitrary_element_(nullptr) {
         // find an arbitrary element to avoid default construction
-        for (source_type t = 0; t < k; ++t)
+        for (source_type t = 0; t < k_; ++t)
         {
-            if (!arbitrary_element && iterpair_size(seqs_begin[t]) > 0)
-                arbitrary_element = &(*seqs_begin[t].first);
+            if (!arbitrary_element_ && iterpair_size(seqs_begin_[t]) > 0)
+                arbitrary_element_ = &(*seqs_begin_[t].first);
 
-            total_length += iterpair_size(seqs_begin[t]);
+            total_length_ += iterpair_size(seqs_begin_[t]);
         }
 
-        for (source_type t = 0; t < k; ++t)
+        for (source_type t = 0; t < k_; ++t)
         {
-            if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
-                lt.insert_start(*arbitrary_element, t, true);
+            if (THRILL_UNLIKELY(seqs_begin_[t].first == seqs_begin_[t].second))
+                lt_.insert_start(*arbitrary_element_, t, true);
             else
-                lt.insert_start(*seqs_begin[t].first, t, false);
+                lt_.insert_start(*seqs_begin_[t].first, t, false);
         }
 
-        lt.init();
-        total_length = std::min(total_length, length);
+        lt_.init();
+        total_length_ = std::min(total_length_, length);
     }
 
     bool HasNext() {
-        return (counter < total_length);
+        return (counter_ < total_length_);
     }
 
     ValueIn Next() {
-        assert(counter < total_length);
+        assert(counter_ < total_length_);
 
         // take out
-        source_type source = lt.get_min_source();
-        ValueIn res = *seqs_begin[source].first;
-        ++seqs_begin[source].first;
+        source_type source = lt_.get_min_source();
+        ValueIn res = *seqs_begin_[source].first;
+        ++seqs_begin_[source].first;
 
         // feed
-        if (seqs_begin[source].first == seqs_begin[source].second)
-            lt.delete_min_insert(*arbitrary_element, true);
+        if (seqs_begin_[source].first == seqs_begin_[source].second)
+            lt_.delete_min_insert(*arbitrary_element_, true);
         else
             // replace from same source
-            lt.delete_min_insert(*seqs_begin[source].first, false);
+            lt_.delete_min_insert(*seqs_begin_[source].first, false);
 
-        ++counter;
+        ++counter_;
         return res;
     }
 
-    IteratorListIterator seqs_begin;
-    IteratorListIterator seqs_end;
-    Comparator comp;
-    source_type k;
-    LoserTreeType lt;
-    size_t counter;
-    size_t total_length;
-    const ValueIn* arbitrary_element;
-    const bool is_multiway_merged;
+    IteratorListIterator seqs_begin_;
+    IteratorListIterator seqs_end_;
+    Comparator comp_;
+    source_type k_;
+    LoserTreeType lt_;
+    size_t counter_;
+    size_t total_length_;
+    const ValueIn* arbitrary_element_;
 };
 
 /*!
