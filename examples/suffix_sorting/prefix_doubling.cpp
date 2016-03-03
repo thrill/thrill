@@ -342,7 +342,6 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                      return cci.index;
                  });
 
-        die_unless(CheckSA(input_dia, sa));
         return sa.Collapse();
     }
 
@@ -435,7 +434,6 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
             if (debug_print)
                 sa.Print("sa");
 
-            die_unless(CheckSA(input_dia, sa));
             return sa.Collapse();
         }
 
@@ -643,13 +641,20 @@ public:
             suffix_array = PrefixDoubling(input_dia, input_size);
         }
 
+        if (check_flag_) {
+            LOG1 << "checking suffix array...";
+            die_unless(CheckSA(input_dia, suffix_array));
+        }
+
+        if (text_output_flag_) {
+            suffix_array.Print("suffix_array");
+        }
+
         if (output_path_.size()) {
+            LOG1 << "writing suffix array to " << output_path_;
             suffix_array.WriteBinary(output_path_);
         }
 
-        if (check_flag_) {
-            LOG1 << "checking suffix array...";
-        }
     }
 
 protected:
