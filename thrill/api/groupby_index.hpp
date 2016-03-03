@@ -21,7 +21,6 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/iterator_wrapper.hpp>
-#include <thrill/core/multiway_merge.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -134,7 +133,7 @@ public:
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
             }
 
-            auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
+            auto puller = api::get_sequential_file_multiway_merge_tree<true, false>(
                 std::begin(seq), std::end(seq),
                 totalsize_, ValueComparator(*this));
 

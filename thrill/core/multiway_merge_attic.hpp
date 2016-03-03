@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/multiway_merge.hpp
+ * thrill/core/multiway_merge_attic.hpp
  *
  * Implementation of sequential multiway merge.
  *
@@ -22,8 +22,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_MULTIWAY_MERGE_HEADER
-#define THRILL_CORE_MULTIWAY_MERGE_HEADER
+#ifndef THRILL_CORE_MULTIWAY_MERGE_ATTIC_HEADER
+#define THRILL_CORE_MULTIWAY_MERGE_ATTIC_HEADER
 
 #include <thrill/api/groupby_iterator.hpp>
 #include <thrill/common/logger.hpp>
@@ -1440,44 +1440,6 @@ sequential_file_multiway_merge(RandomAccessIteratorIterator seqs_begin,
 }
 
 /*!
- * Sequential multi-way merging switch for a file writer as output
- *
- * The decision if based on the branching factor and runtime settings.
- *
- * \param seqs_begin Begin iterator of iterator pair input sequence.
- * \param seqs_end End iterator of iterator pair input sequence.
- * \param length Maximum length to merge.
- * \param comp Comparator.
- * \tparam Stable Stable merging incurs a performance penalty.
- * \tparam Sentinels The sequences have a sentinel element.
- * \return End iterator of output sequence.
- */
-template <bool Stable, bool Sentinels,
-          typename RandomAccessIteratorIterator,
-          typename DiffType, typename Comparator>
-// return type of hell
-api::MultiwayMergeTreePuller<
-    typename std::iterator_traits<
-        typename std::iterator_traits<RandomAccessIteratorIterator>
-        ::value_type::first_type>::value_type,
-    Comparator>
-// RandomAccessIterator3
-get_sequential_file_multiway_merge_tree(RandomAccessIteratorIterator seqs_begin,
-                                        RandomAccessIteratorIterator seqs_end,
-                                        DiffType length,
-                                        Comparator comp) {
-    typedef typename std::iterator_traits<RandomAccessIteratorIterator>
-        ::value_type::first_type RandomAccessIterator;
-    typedef typename std::iterator_traits<RandomAccessIterator>
-        ::value_type value_type;
-
-    assert(static_cast<int>(seqs_end - seqs_begin) > 1);
-    api::MultiwayMergeTreePuller<value_type, Comparator> tree(seqs_begin, seqs_end, length, comp);
-
-    return tree;
-}
-
-/*!
  * Sequential multi-way merging switch.
  *
  * The decision if based on the branching factor and runtime settings.
@@ -2056,6 +2018,6 @@ multiway_merge_stable_sentinels(RandomAccessIteratorPairIterator seqs_begin,
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_MULTIWAY_MERGE_HEADER
+#endif // !THRILL_CORE_MULTIWAY_MERGE_ATTIC_HEADER
 
 /******************************************************************************/

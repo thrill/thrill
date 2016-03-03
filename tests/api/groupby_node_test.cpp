@@ -8,15 +8,14 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/groupby.hpp>
 #include <thrill/api/groupby_index.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/multiway_merge.hpp>
-#include <thrill/data/file.hpp>
+
+#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <cstdlib>

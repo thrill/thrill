@@ -36,6 +36,15 @@ struct MultiwayMergeTreePuller {
     using LoserTreeType = core::LoserTreePointer<true, ValueIn, Comparator>;
     using source_type = typename LoserTreeType::source_type;
 
+    //! Length of a sequence described by a pair of iterators.
+    template <typename RandomAccessIteratorPair>
+    typename std::iterator_traits<
+        typename RandomAccessIteratorPair::first_type
+        >::difference_type
+    iterpair_size(const RandomAccessIteratorPair& p) {
+        return p.second - p.first;
+    }
+
     MultiwayMergeTreePuller(IteratorListIterator seqs_begin_,
                             IteratorListIterator seqs_end_,
                             size_t length,
@@ -103,6 +112,44 @@ struct MultiwayMergeTreePuller {
     const ValueIn        * arbitrary_element;
     const bool           is_multiway_merged;
 };
+
+/*!
+ * Sequential multi-way merging switch for a file writer as output
+ *
+ * The decision if based on the branching factor and runtime settings.
+ *
+ * \param seqs_begin Begin iterator of iterator pair input sequence.
+ * \param seqs_end End iterator of iterator pair input sequence.
+ * \param length Maximum length to merge.
+ * \param comp Comparator.
+ * \tparam Stable Stable merging incurs a performance penalty.
+ * \tparam Sentinels The sequences have a sentinel element.
+ * \return End iterator of output sequence.
+ */
+template <bool Stable, bool Sentinels,
+          typename RandomAccessIteratorIterator,
+          typename DiffType, typename Comparator>
+// return type of hell
+api::MultiwayMergeTreePuller<
+    typename std::iterator_traits<
+        typename std::iterator_traits<RandomAccessIteratorIterator>
+        ::value_type::first_type>::value_type,
+    Comparator>
+// RandomAccessIterator3
+get_sequential_file_multiway_merge_tree(RandomAccessIteratorIterator seqs_begin,
+                                        RandomAccessIteratorIterator seqs_end,
+                                        DiffType length,
+                                        Comparator comp) {
+    typedef typename std::iterator_traits<RandomAccessIteratorIterator>
+        ::value_type::first_type RandomAccessIterator;
+    typedef typename std::iterator_traits<RandomAccessIterator>
+        ::value_type value_type;
+
+    assert(static_cast<int>(seqs_end - seqs_begin) > 1);
+    api::MultiwayMergeTreePuller<value_type, Comparator> tree(seqs_begin, seqs_end, length, comp);
+
+    return tree;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

@@ -12,7 +12,7 @@
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/core/iterator_wrapper.hpp>
-#include <thrill/core/multiway_merge.hpp>
+#include <thrill/core/multiway_merge_attic.hpp>
 #include <thrill/data/file.hpp>
 
 #include <thrill/common/logger.hpp>
@@ -321,7 +321,7 @@ TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
         seq.push_back(std::make_pair(s, e));
     }
 
-    auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
+    auto puller = api::get_sequential_file_multiway_merge_tree<true, false>(
         seq.begin(),
         seq.end(),
         total,
