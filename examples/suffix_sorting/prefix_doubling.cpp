@@ -450,7 +450,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
 }
 
 template <typename InputDIA>
-DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t input_size, size_t /*computation_rounds*/) {
+DIA<size_t> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
 
     using Char = typename InputDIA::ValueType;
     using IndexKMer = ::IndexKMer<size_t>;
@@ -608,33 +608,41 @@ public:
         const std::string& input_path, const std::string& output_path,
         bool text_output_flag,
         bool check_flag,
-        bool input_verbatim)
+        bool input_verbatim,
+        const std::string& pd_algorithm)
         : ctx_(ctx),
           input_path_(input_path), output_path_(output_path),
           text_output_flag_(text_output_flag),
           check_flag_(check_flag),
-          input_verbatim_(input_verbatim) { }
+          input_verbatim_(input_verbatim),
+          pd_algorithm_(pd_algorithm) { }
 
     void Run() {
         if (input_verbatim_) {
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
-            auto input_dia = EqualToDIA<uint8_t>(ctx_, input_vec);
-            StartPrefixDoublingInput(input_dia, input_vec.size(), input_vec.size());
+            auto input_dia = Distribute<uint8_t>(ctx_, input_vec);
+            StartPrefixDoublingInput(input_dia, input_vec.size());
         }
         else {
             auto input_dia = ReadBinary<uint8_t>(ctx_, input_path_);
             size_t input_size = input_dia.Size();
-            StartPrefixDoublingInput(input_dia, input_size, input_size);
+            StartPrefixDoublingInput(input_dia, input_size);
         }
     }
 
     template <typename InputDIA>
     void StartPrefixDoublingInput(
-        const InputDIA& input_dia,
-        uint64_t input_size, size_t /* computation_rounds */) {
+        const InputDIA& input_dia, uint64_t input_size) {
 
-        auto suffix_array = PrefixDoublingDementiev(input_dia, input_size);
+        DIA<size_t> suffix_array;
+        if (pd_algorithm_ == "de") {
+            suffix_array = PrefixDoublingDementiev(input_dia, input_size);
+        }
+        else {
+            suffix_array = PrefixDoubling(input_dia, input_size);
+        }
+
         if (output_path_.size()) {
             suffix_array.WriteBinary(output_path_);
         }
@@ -649,6 +657,7 @@ protected:
 
     std::string input_path_;
     std::string output_path_;
+    std::string pd_algorithm_;
 
     bool text_output_flag_;
     bool check_flag_;
@@ -662,6 +671,7 @@ int main(int argc, char* argv[]) {
     cp.SetAuthor("Florian Kurpicz <florian.kurpicz@tu-dortmund.de>");
 
     std::string input_path, output_path;
+    std::string pd_algorithm;
     bool text_output_flag = false;
     bool check_flag = false;
     bool input_verbatim = false;
@@ -681,6 +691,10 @@ int main(int argc, char* argv[]) {
                "suffix array on.");
     cp.AddFlag('d', "debug", debug_print,
                "Print debug info.");
+    cp.AddString('a', "algorithm", pd_algorithm,
+                "The prefix doubling algorithm which is used to construct the "
+                "suffix array. [fl]ick (default) and [de]mentiev are "
+                "available.");
     // debug = debug_print;
     // process command line
     if (!cp.Process(argc, argv))
@@ -692,7 +706,8 @@ int main(int argc, char* argv[]) {
                                        input_path, output_path,
                                        text_output_flag,
                                        check_flag,
-                                       input_verbatim).Run();
+                                       input_verbatim,
+                                       pd_algorithm).Run();
         });
 }
 
