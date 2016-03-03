@@ -145,7 +145,7 @@ public:
             this->PushFile(files_[0], consume);
         }
         else {
-            sLOG << "start multi-way-merge with" << files_.size() << "files";
+            sLOG1 << "Start multi-way-merge with" << files_.size() << "files";
             using Iterator = core::FileIteratorWrapper<ValueType>;
 
             // merge batches of files if necessary
@@ -233,7 +233,7 @@ private:
     std::default_random_engine rng_ { std::random_device { } () };
 
     //! epsilon
-    static constexpr double desired_imbalance_ = 0.25;
+    static constexpr double desired_imbalance_ = 0.3;
 
     //! calculate currently desired number of samples
     size_t wanted_sample_size() const {
@@ -245,7 +245,7 @@ private:
     //! }
 
     //! Maximum merging degree
-    static constexpr size_t merge_degree_ = 10;
+    static constexpr size_t merge_degree_ = 64;
 
     //! Local data files
     std::deque<data::File> files_;
@@ -456,8 +456,8 @@ private:
     void SortAndWriteToFile(
         std::vector<ValueType>& vec, std::deque<data::File>& files) {
 
-        LOG << "SortAndWriteToFile() " << vec.size()
-            << " into file #" << files.size();
+        LOG1 << "SortAndWriteToFile() " << vec.size()
+             << " into file #" << files.size();
 
         local_out_size_ += vec.size();
 
@@ -591,6 +591,7 @@ private:
 
         LOG << "Writing files";
 
+        // M/2 such that the other half is used to prepare the next bulk
         size_t capacity = DIABase::mem_limit_ / sizeof(ValueType);
         std::vector<ValueType> temp_data;
         temp_data.reserve(capacity);
