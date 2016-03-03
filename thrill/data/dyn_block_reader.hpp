@@ -31,6 +31,7 @@ class DynBlockSourceInterface
 {
 public:
     virtual PinnedBlock NextBlock() = 0;
+    virtual bool disable_self_verify() const = 0;
 };
 
 /*!
@@ -53,6 +54,10 @@ public:
         return block_source_ptr_->NextBlock();
     }
 
+    bool disable_self_verify() const {
+        return block_source_ptr_->disable_self_verify();
+    }
+
 private:
     std::shared_ptr<DynBlockSourceInterface> block_source_ptr_;
 };
@@ -65,7 +70,7 @@ using DynBlockReader = BlockReader<DynBlockSource>;
  * DynBlockSourceInterface.
  */
 template <typename BlockSource>
-class DynBlockSourceAdapter : public DynBlockSourceInterface
+class DynBlockSourceAdapter final : public DynBlockSourceInterface
 {
 public:
     explicit DynBlockSourceAdapter(BlockSource&& block_source)
@@ -83,6 +88,10 @@ public:
 
     PinnedBlock NextBlock() final {
         return block_source_.NextBlock();
+    }
+
+    bool disable_self_verify() const final {
+        return block_source_.disable_self_verify();
     }
 
 private:

@@ -243,6 +243,10 @@ public:
         return os << "]]";
     }
 
+    //! flag to disable reading self_verify size_ts from File's with external
+    //! blocks.
+    bool disable_self_verify = false;
+
 private:
     //! container holding Blocks and thus shared pointers to all byte blocks.
     std::deque<Block> blocks_;
@@ -270,7 +274,6 @@ using FilePtr = std::shared_ptr<File>;
 class KeepFileBlockSource
 {
 public:
-
     //! Start reading a File
     KeepFileBlockSource(
         const File& file, size_t local_worker_id,
@@ -311,6 +314,8 @@ public:
             return b;
         }
     }
+
+    bool disable_self_verify() const { return file_.disable_self_verify; }
 
 protected:
     //! Determine current unpinned Block to deliver via NextBlock()
@@ -426,6 +431,8 @@ public:
         }
     }
 
+    bool disable_self_verify() const { return file_->disable_self_verify; }
+
 private:
     //! file to consume blocks from (ptr to make moving easier)
     File* file_;
@@ -502,9 +509,11 @@ File::GetReaderAt(size_t index, size_t prefetch) const {
     if (Serialization<KeepReader, ItemType>::is_fixed_size)
     {
         const size_t skip_items = index - items_before;
-        fr.Skip(skip_items,
-                skip_items * ((KeepReader::self_verify ? sizeof(size_t) : 0) +
-                              Serialization<KeepReader, ItemType>::fixed_size));
+        const size_t bytes_per_item =
+            (KeepReader::self_verify && !disable_self_verify ? sizeof(size_t) : 0)
+            + Serialization<KeepReader, ItemType>::fixed_size;
+
+        fr.Skip(skip_items, skip_items * bytes_per_item);
     }
     else
     {

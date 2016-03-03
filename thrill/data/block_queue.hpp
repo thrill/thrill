@@ -197,6 +197,8 @@ public:
         return b.PinWait(local_worker_id_);
     }
 
+    bool disable_self_verify() const { return false; }
+
 private:
     //! BlockQueue that blocks are retrieved from
     BlockQueue& queue_;
@@ -251,6 +253,8 @@ public:
             while (NextBlock().IsValid()) { }
         }
     }
+
+    bool disable_self_verify() const { return false; }
 
 private:
     //! Reference to BlockQueue

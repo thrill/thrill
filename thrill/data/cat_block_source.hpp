@@ -58,6 +58,8 @@ public:
         return PinnedBlock();
     }
 
+    bool disable_self_verify() const { return false; }
+
 private:
     //! vector containing block sources
     std::vector<BlockSource> sources_;

@@ -44,7 +44,8 @@ public:
 
     //! Start reading a BlockSource
     explicit BlockReader(BlockSource&& source)
-        : source_(std::move(source)) { }
+        : source_(std::move(source)),
+          disable_self_verify_(source_.disable_self_verify()) { }
 
     //! default constructor
     BlockReader() = default;
@@ -84,7 +85,7 @@ public:
         assert(num_items_ > 0);
         --num_items_;
 
-        if (self_verify) {
+        if (self_verify && !disable_self_verify_) {
             // for self-verification, T is prefixed with its hash code
             size_t code = GetRaw<size_t>();
             if (code != typeid(T).hash_code()) {
@@ -217,7 +218,7 @@ public:
 
         block_collect_ = &out_pinned;
         if (Serialization<BlockReader, ItemType>::is_fixed_size) {
-            Skip(n, n * ((self_verify ? sizeof(size_t) : 0) +
+            Skip(n, n * ((self_verify && !disable_self_verify_ ? sizeof(size_t) : 0) +
                          Serialization<BlockReader, ItemType>::fixed_size));
         }
         else {
@@ -349,6 +350,10 @@ private:
     //! pointer to vector to collect blocks in GetItemRange.
     std::vector<PinnedBlock>* block_collect_ = nullptr;
 
+    //! disable self_verify, used to skip verify size_t when reading blocks from
+    //! external files.
+    bool disable_self_verify_;
+
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
         // first release old pin.
@@ -365,6 +370,7 @@ private:
         current_ = block_.data_begin();
         end_ = block_.data_end();
         num_items_ = block_.num_items();
+        disable_self_verify_ = block_.byte_block()->has_ext_file();
         return true;
     }
 };
