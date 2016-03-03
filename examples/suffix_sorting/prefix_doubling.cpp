@@ -604,16 +604,16 @@ public:
     StartPrefixDoubling(
         Context& ctx,
         const std::string& input_path, const std::string& output_path,
+        const std::string& pd_algorithm,
         bool text_output_flag,
         bool check_flag,
-        bool input_verbatim,
-        const std::string& pd_algorithm)
+        bool input_verbatim)
         : ctx_(ctx),
           input_path_(input_path), output_path_(output_path),
+          pd_algorithm_(pd_algorithm),
           text_output_flag_(text_output_flag),
           check_flag_(check_flag),
-          input_verbatim_(input_verbatim),
-          pd_algorithm_(pd_algorithm) { }
+          input_verbatim_(input_verbatim) { }
 
     void Run() {
         if (input_verbatim_) {
@@ -708,11 +708,11 @@ int main(int argc, char* argv[]) {
     return Run(
         [&](Context& ctx) {
             return StartPrefixDoubling(ctx,
-                                       input_path, output_path,
+                                       input_path, output_path, 
+                                       pd_algorithm,
                                        text_output_flag,
                                        check_flag,
-                                       input_verbatim,
-                                       pd_algorithm).Run();
+                                       input_verbatim).Run();
         });
 }
 
