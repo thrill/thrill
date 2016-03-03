@@ -112,7 +112,6 @@ public:
     void PushData(bool consume) final {
         sLOG1 << "GroupByIndexNode::PushData()";
 
-        using Iterator = core::FileIteratorWrapper<ValueIn>;
         const size_t num_runs = files_.size();
         if (num_runs == 0) {
             // nothing to push
@@ -123,19 +122,14 @@ public:
         }
         else {
             // otherwise sort all runs using multiway merge
-            std::vector<std::pair<Iterator, Iterator> > seq;
+            std::vector<data::File::ConsumeReader> seq;
             seq.reserve(num_runs);
-            for (size_t t = 0; t < num_runs; ++t) {
-                std::shared_ptr<data::File::Reader> reader
-                    = std::make_shared<data::File::Reader>(files_[t].GetReader(consume));
-                Iterator s = Iterator(&files_[t], reader, 0, true);
-                Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
-                seq.push_back(std::make_pair(std::move(s), std::move(e)));
-            }
 
-            auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-                std::begin(seq), std::end(seq),
-                totalsize_, ValueComparator(*this));
+            for (size_t t = 0; t < num_runs; ++t)
+                seq.emplace_back(files_[t].GetConsumeReader());
+
+            auto puller = core::make_multiway_merge_tree<ValueIn>(
+                seq.begin(), seq.end(), ValueComparator(*this));
 
             size_t curr_index = key_range_.begin;
             if (puller.HasNext()) {

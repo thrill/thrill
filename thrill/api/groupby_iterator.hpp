@@ -108,7 +108,7 @@ private:
         is_first_elem_ = false;
         if (reader_.HasNext()) {
             elem_ = reader_.template Next<ValueIn>();
-            old_key_ = new_key_;
+            old_key_ = std::move(new_key_);
             new_key_ = key_extractor_(elem_);
         }
         else {
@@ -147,7 +147,8 @@ public:
     static constexpr bool debug = false;
     using ValueIn = ValueType;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-    using Puller = core::MultiwayMergeTreePuller<ValueIn, Comparator>;
+    using Puller = core::MultiwayMergeTree<
+              ValueIn, std::vector<data::File::ConsumeReader>::iterator, Comparator>;
 
     GroupByMultiwayMergeIterator(Puller& reader, const KeyExtractor& key_extractor)
         : reader_(reader),
@@ -192,7 +193,7 @@ private:
         is_first_elem_ = false;
         if (reader_.HasNext()) {
             elem_ = reader_.Next();
-            old_key_ = new_key_;
+            old_key_ = std::move(new_key_);
             new_key_ = key_extractor_(elem_);
         }
         else {

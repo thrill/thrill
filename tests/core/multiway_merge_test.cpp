@@ -12,6 +12,7 @@
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/core/iterator_wrapper.hpp>
+#include <thrill/core/multiway_merge.hpp>
 #include <thrill/core/multiway_merge_attic.hpp>
 #include <thrill/data/file.hpp>
 
@@ -202,76 +203,6 @@ TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
     }
 }
 
-TEST_F(MultiwayMerge, File_Wrapper_with_1_Runs) {
-    static constexpr bool debug = false;
-    std::mt19937 gen(0);
-    size_t a = 1;
-    size_t b = 100;
-    size_t total = a * b;
-
-    using Iterator = thrill::core::FileIteratorWrapper<size_t>;
-    using OIterator = thrill::core::FileOutputIteratorWrapper<size_t>;
-    using File = data::File;
-    using Reader = File::Reader;
-    using Writer = File::Writer;
-    std::vector<File> in;
-    std::vector<size_t> ref;
-    std::vector<size_t> output;
-    std::vector<std::pair<Iterator, Iterator> > seq;
-
-    in.reserve(a);
-    ref.reserve(total);
-    seq.reserve(a);
-    output.resize(total);
-
-    for (size_t i = 0; i < a; ++i) {
-        std::vector<size_t> tmp;
-        tmp.reserve(b);
-        for (size_t j = 0; j < b; ++j) {
-            auto elem = gen() % 100;
-            sLOG << "FILE" << i << "with elem" << elem;
-            tmp.push_back(elem);
-            ref.push_back(elem);
-        }
-        std::sort(tmp.begin(), tmp.end());
-
-        data::File f(block_pool_, 0);
-        {
-            auto w = f.GetWriter();
-            for (auto& t : tmp) {
-                w.Put(t);
-            }
-        }
-        in.emplace_back(std::move(f));
-    }
-
-    for (size_t t = 0; t < in.size(); ++t) {
-        auto reader = std::make_shared<Reader>(in[t].GetReader(true));
-        Iterator s(&in[t], reader, 0, true);
-        Iterator e(&in[t], reader, in[t].num_items(), false);
-        seq.push_back(std::make_pair(s, e));
-    }
-
-    data::File output_file(block_pool_, 0);
-    {
-        OIterator oiter(std::make_shared<Writer>(output_file.GetWriter()));
-
-        std::sort(ref.begin(), ref.end());
-        core::sequential_file_multiway_merge<true, false>(seq.begin(),
-                                                          seq.end(),
-                                                          oiter,
-                                                          total,
-                                                          std::less<size_t>());
-    }
-
-    auto r = output_file.GetReader(true);
-    for (size_t i = 0; i < total; ++i) {
-        auto e = r.Next<size_t>();
-        sLOG << std::setw(3) << ref[i] << std::setw(3) << e;
-        ASSERT_EQ(ref[i], e);
-    }
-}
-
 TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
     static constexpr bool debug = false;
     std::mt19937 gen(0);
@@ -279,18 +210,13 @@ TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
     size_t b = 3;
     size_t total = a * b;
 
-    using Iterator = thrill::core::FileIteratorWrapper<size_t>;
     using File = data::File;
-    using Reader = File::Reader;
-    // using Writer = File::Writer;
     std::vector<File> in;
     std::vector<size_t> ref;
     std::vector<size_t> output;
-    std::vector<std::pair<Iterator, Iterator> > seq;
 
     in.reserve(a);
     ref.reserve(total);
-    seq.reserve(a);
     output.resize(total);
 
     for (size_t i = 0; i < a; ++i) {
@@ -314,26 +240,24 @@ TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
         in.emplace_back(std::move(f));
     }
 
-    for (size_t t = 0; t < in.size(); ++t) {
-        auto reader = std::make_shared<Reader>(in[t].GetReader(true));
-        Iterator s(&in[t], reader, 0, true);
-        Iterator e(&in[t], reader, in[t].num_items(), false);
-        seq.push_back(std::make_pair(s, e));
-    }
+    std::vector<data::File::ConsumeReader> seq;
+    seq.reserve(a);
 
-    auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-        seq.begin(),
-        seq.end(),
-        total,
-        std::less<size_t>());
+    for (size_t t = 0; t < in.size(); ++t)
+        seq.emplace_back(in[t].GetConsumeReader());
+
+    auto puller = core::make_multiway_merge_tree<size_t>(
+        seq.begin(), seq.end(), std::less<size_t>());
 
     std::sort(ref.begin(), ref.end());
 
     for (size_t i = 0; i < total; ++i) {
+        ASSERT_TRUE(puller.HasNext());
         auto e = puller.Next();
         sLOG << std::setw(3) << ref[i] << std::setw(3) << e;
         ASSERT_EQ(ref[i], e);
     }
+    ASSERT_FALSE(puller.HasNext());
 }
 
 /******************************************************************************/

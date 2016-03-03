@@ -105,8 +105,6 @@ public:
     }
 
     void PushData(bool consume) final {
-        using Iterator = core::FileIteratorWrapper<ValueIn>;
-
         LOG << "sort data";
         common::StatsTimerStart timer;
         const size_t num_runs = files_.size();
@@ -120,26 +118,23 @@ public:
         else {
             // otherwise sort all runs using multiway merge
             LOG << "start multiwaymerge";
-            std::vector<std::pair<Iterator, Iterator> > seq;
+            std::vector<data::File::ConsumeReader> seq;
             seq.reserve(num_runs);
-            for (size_t t = 0; t < num_runs; ++t) {
-                std::shared_ptr<data::File::Reader> reader =
-                    std::make_shared<data::File::Reader>(
-                        files_[t].GetReader(consume));
-                Iterator s = Iterator(&files_[t], reader, 0, true);
-                Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
-                seq.push_back(std::make_pair(std::move(s), std::move(e)));
-            }
+
+            for (size_t t = 0; t < num_runs; ++t)
+                seq.emplace_back(files_[t].GetConsumeReader());
+
             LOG << "start multiwaymerge for real";
-            auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-                seq.begin(), seq.end(),
-                totalsize_, ValueComparator(*this));
+            auto puller = core::make_multiway_merge_tree<ValueIn>(
+                seq.begin(), seq.end(), ValueComparator(*this));
 
             LOG << "run user func";
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator<
-                    ValueIn, KeyExtractor, ValueComparator>(puller, key_extractor_);
+                    ValueIn, KeyExtractor, ValueComparator>(
+                    puller, key_extractor_);
+
                 while (user_iterator.HasNextForReal()) {
                     // call user function
                     const ValueOut res = groupby_function_(
