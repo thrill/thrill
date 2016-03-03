@@ -129,10 +129,16 @@ Block KeepFileBlockSource::NextUnpinnedBlock() {
 // ConsumeFileBlockSource
 
 ConsumeFileBlockSource::ConsumeFileBlockSource(
-    File* file, size_t local_worker_id,
-    size_t num_prefetch)
+    File* file, size_t local_worker_id, size_t num_prefetch)
     : file_(file), local_worker_id_(local_worker_id),
       num_prefetch_(num_prefetch) { }
+
+ConsumeFileBlockSource::ConsumeFileBlockSource(ConsumeFileBlockSource&& s)
+    : file_(s.file_), local_worker_id_(s.local_worker_id_),
+      num_prefetch_(s.num_prefetch_),
+      fetching_blocks_(std::move(s.fetching_blocks_)) {
+    s.file_ = nullptr;
+}
 
 PinnedBlock ConsumeFileBlockSource::NextBlock() {
     assert(file_);
@@ -165,8 +171,7 @@ PinnedBlock ConsumeFileBlockSource::NextBlock() {
 
 ConsumeFileBlockSource::~ConsumeFileBlockSource() {
     if (file_) {
-        file_->blocks_.clear();
-        file_->num_items_sum_.clear();
+        file_->Clear();
     }
 }
 

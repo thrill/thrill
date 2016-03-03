@@ -146,33 +146,19 @@ public:
         }
         else {
             sLOG1 << "Start multi-way-merge with" << files_.size() << "files";
-            using Iterator = core::FileIteratorWrapper<ValueType>;
 
             // merge batches of files if necessary
             while (files_.size() > merge_degree_)
             {
                 // create merger for first merge_degree_ Files
-                std::vector<std::pair<Iterator, Iterator> > seq;
+                std::vector<data::File::ConsumeReader> seq;
                 seq.reserve(merge_degree_);
 
-                for (size_t t = 0; t < merge_degree_; ++t) {
-                    // TODO(tb): consume = true does not work here due to the
-                    // Iterator implementation.
-                    std::shared_ptr<data::File::Reader> reader =
-                        std::make_shared<data::File::Reader>(
-                            files_[t].GetReader(/* consume */ false));
-                    Iterator s = Iterator(&files_[t], reader, 0, true);
-                    Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
-                    seq.push_back(std::make_pair(std::move(s), std::move(e)));
-                }
+                for (size_t t = 0; t < merge_degree_; ++t)
+                    seq.emplace_back(files_[t].GetConsumeReader());
 
-                size_t sum_sizes = 0;
-                for (size_t i = 0; i < merge_degree_; ++i) {
-                    sum_sizes += files_[i].num_items();
-                }
-
-                auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-                    seq.begin(), seq.end(), sum_sizes, compare_function_);
+                auto puller = core::make_multiway_merge_tree<ValueType>(
+                    seq.begin(), seq.end(), compare_function_);
 
                 // create new File for merged items
                 files_.emplace_back(context_.GetFile());
@@ -183,33 +169,28 @@ public:
                 }
                 writer.Close();
 
+                // this clear is important to release references to the files.
+                seq.clear();
+
                 // remove merged files
                 files_.erase(files_.begin(), files_.begin() + merge_degree_);
             }
 
             // construct output merger of remaining Files
-            std::vector<std::pair<Iterator, Iterator> > seq;
+            std::vector<data::File::ConsumeReader> seq;
             seq.reserve(files_.size());
 
-            for (size_t t = 0; t < files_.size(); ++t) {
-                std::shared_ptr<data::File::Reader> reader =
-                    std::make_shared<data::File::Reader>(
-                        files_[t].GetReader(consume));
-                Iterator s = Iterator(&files_[t], reader, 0, true);
-                Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
-                seq.push_back(std::make_pair(std::move(s), std::move(e)));
-            }
+            for (size_t t = 0; t < files_.size(); ++t)
+                seq.emplace_back(files_[t].GetConsumeReader());
 
-            auto puller = core::get_sequential_file_multiway_merge_tree<true, false>(
-                seq.begin(), seq.end(), local_out_size_, compare_function_);
+            auto puller = core::make_multiway_merge_tree<ValueType>(
+                seq.begin(), seq.end(), compare_function_);
 
             while (puller.HasNext()) {
                 this->PushItem(puller.Next());
             }
         }
     }
-
-    void Dispose() final { }
 
 private:
     //! The comparison function which is applied to two elements.
@@ -593,6 +574,7 @@ private:
 
         // M/2 such that the other half is used to prepare the next bulk
         size_t capacity = DIABase::mem_limit_ / sizeof(ValueType);
+        capacity = 10000;
         std::vector<ValueType> temp_data;
         temp_data.reserve(capacity);
 

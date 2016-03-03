@@ -23,13 +23,13 @@ namespace data {
 /*!
  * Simple block reader that allows reading the first value without advancing.
  */
-template <typename ItemType, typename BlockSource>
+template <typename ValueType, typename BlockSource>
 class BufferedBlockReader
 {
 private:
     BlockReader<BlockSource> reader_;
-    ItemType current_;
-    bool hasCurrent_;
+    ValueType current_;
+    bool has_current_;
 
 public:
     //! Creates a new instance of this class, based on the given file reader.
@@ -40,11 +40,11 @@ public:
 
     //! Returns true if this reader holds a value at the current position.
     bool HasValue() const {
-        return hasCurrent_;
+        return has_current_;
     }
 
     //! Gets the value at the current position of this reader.
-    const ItemType & Value() const {
+    const ValueType & Value() const {
         assert(HasValue());
 
         return current_;
@@ -52,9 +52,9 @@ public:
 
     //! Advances this reader to the next value.
     void Next() {
-        hasCurrent_ = reader_.HasNext();
-        if (hasCurrent_)
-            current_ = reader_.template Next<ItemType>();
+        has_current_ = reader_.HasNext();
+        if (has_current_)
+            current_ = reader_.template Next<ValueType>();
     }
 };
 

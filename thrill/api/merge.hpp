@@ -212,11 +212,11 @@ public:
             // Insert abritray element for each empty reader.
             for (size_t i = 0; i < num_inputs_; i++) {
                 if (!readers[i].HasValue()) {
-                    lt.insert_start(*zero, i, true);
+                    lt.insert_start(&*zero, i, true);
                     completed++;
                 }
                 else {
-                    lt.insert_start(readers[i].Value(), i, false);
+                    lt.insert_start(nullptr, i, false);
                 }
             }
             lt.init();

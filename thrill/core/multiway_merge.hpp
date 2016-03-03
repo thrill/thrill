@@ -44,9 +44,8 @@ public:
                             size_t length, const Comparator& comp)
         : seqs_begin_(seqs_begin),
           seqs_end_(seqs_end),
-          comp_(comp),
           k_(static_cast<source_type>(seqs_end_ - seqs_begin_)),
-          lt_(k_, comp_),
+          lt_(k_, comp),
           counter_(0),
           total_length_(0),
           arbitrary_element_(nullptr) {
@@ -62,9 +61,9 @@ public:
         for (source_type t = 0; t < k_; ++t)
         {
             if (THRILL_UNLIKELY(seqs_begin_[t].first == seqs_begin_[t].second))
-                lt_.insert_start(*arbitrary_element_, t, true);
+                lt_.insert_start(arbitrary_element_, t, true);
             else
-                lt_.insert_start(*seqs_begin_[t].first, t, false);
+                lt_.insert_start(&*seqs_begin_[t].first, t, false);
         }
 
         lt_.init();
@@ -96,7 +95,6 @@ public:
 
     IteratorListIterator seqs_begin_;
     IteratorListIterator seqs_end_;
-    Comparator comp_;
     source_type k_;
     LoserTreeType lt_;
     size_t counter_;
@@ -140,6 +138,102 @@ get_sequential_file_multiway_merge_tree(RandomAccessIteratorIterator seqs_begin,
     MultiwayMergeTreePuller<value_type, Comparator> tree(seqs_begin, seqs_end, length, comp);
 
     return tree;
+}
+
+/******************************************************************************/
+
+template <typename ValueType,
+          typename ReaderIterator, typename Reader, typename Comparator>
+class MultiwayMergeTree
+{
+public:
+    using LoserTreeType = core::LoserTreePointer<
+              /* stable */ false, ValueType, Comparator>;
+
+    MultiwayMergeTree(ReaderIterator readers_begin, ReaderIterator readers_end,
+                      const Comparator& comp)
+        : readers_(readers_begin),
+          num_inputs_(readers_end - readers_begin),
+          remaining_inputs_(num_inputs_),
+          lt_(num_inputs_, comp),
+          current_(num_inputs_) {
+
+        for (size_t t = 0; t < num_inputs_; ++t)
+        {
+            if (THRILL_LIKELY(readers_[t].HasNext())) {
+                current_[t].first = true;
+                current_[t].second = readers_[t].template Next<ValueType>();
+                lt_.insert_start(&current_[t].second, t, false);
+            }
+            else {
+                current_[t].first = false;
+                lt_.insert_start(nullptr, t, true);
+                assert(remaining_inputs_ > 0);
+                --remaining_inputs_;
+            }
+        }
+
+        lt_.init();
+    }
+
+    bool HasNext() const {
+        return (remaining_inputs_ != 0);
+    }
+
+    ValueType Next() {
+
+        // take next smallest element out
+        size_t top = lt_.get_min_source();
+        ValueType res = std::move(current_[top].second);
+
+        if (THRILL_LIKELY(readers_[top].HasNext())) {
+            current_[top].first = true;
+            current_[top].second = readers_[top].template Next<ValueType>();
+            lt_.delete_min_insert(&current_[top].second, false);
+        }
+        else {
+            current_[top].first = false;
+            lt_.delete_min_insert(nullptr, true);
+            assert(remaining_inputs_ > 0);
+            --remaining_inputs_;
+        }
+
+        return res;
+    }
+
+private:
+    ReaderIterator readers_;
+    size_t num_inputs_;
+    size_t remaining_inputs_;
+
+    LoserTreeType lt_;
+    //! current values in each input (exist flag, value)
+    std::vector<std::pair<bool, ValueType> > current_;
+};
+
+/*!
+ * Sequential multi-way merging switch for a file writer as output
+ *
+ * The decision if based on the branching factor and runtime settings.
+ *
+ * \param seqs_begin Begin iterator of iterator pair input sequence.
+ * \param seqs_end End iterator of iterator pair input sequence.
+ * \param length Maximum length to merge.
+ * \param comp Comparator.
+ * \tparam Stable Stable merging incurs a performance penalty.
+ * \tparam Sentinels The sequences have a sentinel element.
+ * \return End iterator of output sequence.
+ */
+template <typename ValueType, typename ReaderIterator, typename Comparator>
+auto make_multiway_merge_tree(
+    ReaderIterator seqs_begin, ReaderIterator seqs_end,
+    const Comparator &comp) {
+
+    assert(seqs_end - seqs_begin >= 1);
+    return MultiwayMergeTree<
+        ValueType, ReaderIterator,
+        typename std::iterator_traits<ReaderIterator>::value_type,
+        Comparator>(seqs_begin, seqs_end, comp);
 }
 
 } // namespace core

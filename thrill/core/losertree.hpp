@@ -557,12 +557,12 @@ public:
      * \param sup flag that determines whether the value to insert is an
      *   explicit supremum sentinel.
      */
-    void insert_start(const ValueType& key, source_type source, bool sup) {
+    void insert_start(const ValueType* key, source_type source, bool sup) {
         size_type pos = k + source;
 
         losers[pos].sup = sup;
         losers[pos].source = source;
-        losers[pos].keyp = &key;
+        losers[pos].keyp = key;
     }
 
     /*!
@@ -627,10 +627,10 @@ public:
         : base_type(_k, _comp)
     { }
 
-    void delete_min_insert(const ValueType& key, bool sup) {
+    void delete_min_insert(const ValueType* key, bool sup) {
         using std::swap;
 
-        const ValueType* keyp = &key;
+        const ValueType* keyp = key;
         source_type source = losers[0].source;
         for (size_type pos = (k + source) / 2; pos > 0; pos /= 2)
         {

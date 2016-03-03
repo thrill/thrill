@@ -316,10 +316,7 @@ public:
     //! non-copyable: delete assignment operator
     ConsumeFileBlockSource& operator = (const ConsumeFileBlockSource&) = delete;
     //! move-constructor: default
-    ConsumeFileBlockSource(ConsumeFileBlockSource&& s)
-        : file_(s.file_), local_worker_id_(s.local_worker_id_),
-          num_prefetch_(s.num_prefetch_),
-          fetching_blocks_(std::move(s.fetching_blocks_)) { s.file_ = nullptr; }
+    ConsumeFileBlockSource(ConsumeFileBlockSource&& s);
 
     //! Get the next block of file.
     PinnedBlock NextBlock();
