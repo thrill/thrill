@@ -667,7 +667,7 @@ protected:
 int main(int argc, char* argv[]) {
     common::CmdlineParser cp;
 
-    cp.SetDescription("A prefix doubling suffix array construction algorithm.");
+    cp.SetDescription("A collection of prefix doubling suffix array construction algorithms.");
     cp.SetAuthor("Florian Kurpicz <florian.kurpicz@tu-dortmund.de>");
 
     std::string input_path, output_path;
