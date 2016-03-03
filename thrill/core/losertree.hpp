@@ -25,6 +25,7 @@
 #ifndef THRILL_CORE_LOSERTREE_HEADER
 #define THRILL_CORE_LOSERTREE_HEADER
 
+#include <thrill/common/defines.hpp>
 #include <thrill/common/math.hpp>
 
 #include <algorithm>

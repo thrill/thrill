@@ -20,7 +20,6 @@
 #include <thrill/api/groupby_iterator.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
-#include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/group.hpp>
 

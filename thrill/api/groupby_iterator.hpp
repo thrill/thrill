@@ -17,7 +17,6 @@
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
 
@@ -28,8 +27,6 @@
 namespace thrill {
 namespace api {
 
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 // forward declarations for friend classes
