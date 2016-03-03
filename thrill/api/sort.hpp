@@ -149,6 +149,9 @@ public:
             // merge batches of files if necessary
             while (files_.size() > merge_degree_)
             {
+                sLOG1 << "Partial multi-way-merge with"
+                      << size_t(merge_degree_) << "files";
+
                 // create merger for first merge_degree_ Files
                 std::vector<data::File::ConsumeReader> seq;
                 seq.reserve(merge_degree_);

@@ -70,18 +70,8 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
 
     if (mode & FileBase::DIRECT)
     {
-#if !THRILL_DIRECT_IO_OFF
         dwFlagsAndAttributes |= FILE_FLAG_NO_BUFFERING;
         // TODO(?): try also FILE_FLAG_WRITE_THROUGH option ?
-#else
-        if (mode & FileBase::REQUIRE_DIRECT) {
-            LOG1 << "Error: open()ing " << filename << " with DIRECT mode required, but the system does not support it.";
-            return INVALID_HANDLE_VALUE;
-        }
-        else {
-            LOG1 << "Warning: open()ing " << filename << " without DIRECT mode, as the system does not support it.";
-        }
-#endif
     }
 
     if (mode & FileBase::SYNC)
@@ -94,11 +84,9 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
 
     if (file_des != INVALID_HANDLE_VALUE)
     {
-        need_alignment_ = (mode & FileBase::DIRECT);
         return file_des;
     }
 
-#if !THRILL_DIRECT_IO_OFF
     if ((mode& FileBase::DIRECT) && !(mode & FileBase::REQUIRE_DIRECT))
     {
         LOG1 << "CreateFile() error on path=" << filename << " mode=" << mode << ", retrying without DIRECT mode.";
@@ -111,15 +99,15 @@ static HANDLE open_file_impl(const std::string& filename, int mode) {
         if (file_des != INVALID_HANDLE_VALUE)
             return file_des;
     }
-#endif
 
     THRILL_THROW_WIN_LASTERROR(IoError, "CreateFile() path=" << filename << " mode=" << mode);
 }
 
-WfsFileBase::WfsFileBase(
-    const std::string& filename,
-    int mode) : file_des_(INVALID_HANDLE_VALUE), mode_(mode), filename(filename), locked(false) {
+WfsFileBase::WfsFileBase(const std::string& filename, int mode)
+    : file_des_(INVALID_HANDLE_VALUE), mode_(mode),
+      filename(filename), locked(false) {
     file_des_ = open_file_impl(filename, mode);
+    need_alignment_ = (mode & FileBase::DIRECT);
 
     if (!(mode & NO_LOCK))
     {

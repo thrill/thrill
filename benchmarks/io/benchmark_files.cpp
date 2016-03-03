@@ -176,9 +176,6 @@ int main(int argc, char* argv[]) {
     if (!myself || !*(++myself))
         myself = argv[0];
     std::cout << "# " << myself;
-#if THRILL_DIRECT_IO_OFF
-    std::cout << " THRILL_DIRECT_IO_OFF";
-#endif
     std::cout << std::endl;
 
     for (size_t ii = 0; ii < files_arr.size(); ii++)

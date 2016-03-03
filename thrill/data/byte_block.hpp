@@ -72,7 +72,7 @@ public:
     size_t size() const { return size_; }
 
     //! Returns whether the ByteBlock is in an external file.
-    bool has_ext_file() const { return ext_file_.get(); }
+    bool has_ext_file() const { return ext_file_.get() != nullptr; }
 
     //! return current pin count
     size_t pin_count(size_t local_worker_id) const {

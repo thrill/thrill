@@ -65,17 +65,8 @@ UfsFileBase::UfsFileBase(
     {
 #if __APPLE__
         // no additional open flags are required for Mac OS X
-#elif !THRILL_DIRECT_IO_OFF
-        flags |= O_DIRECT;
 #else
-        if (mode & REQUIRE_DIRECT) {
-            LOG1 << "Error: open()ing " << path_ << " with DIRECT mode required, but the system does not support it.";
-            file_des_ = -1;
-            return;
-        }
-        else {
-            LOG1 << "Warning: open()ing " << path_ << " without DIRECT mode, as the system does not support it.";
-        }
+        flags |= O_DIRECT;
 #endif
     }
 
@@ -103,7 +94,6 @@ UfsFileBase::UfsFileBase(
         return;
     }
 
-#if !THRILL_DIRECT_IO_OFF
     if ((mode & DIRECT) && !(mode & REQUIRE_DIRECT) && errno == EINVAL)
     {
         LOG1 << "open() error on path=" << filename
@@ -118,7 +108,6 @@ UfsFileBase::UfsFileBase(
             return;
         }
     }
-#endif
 
     THRILL_THROW_ERRNO(IoError, "open() rc=" << file_des_ << " path=" << filename << " flags=" << flags);
 }
