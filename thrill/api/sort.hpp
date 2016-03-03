@@ -245,6 +245,7 @@ private:
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
         }
+        if (samples.size() == 0) return;
 
         // Find splitters
         std::sort(samples.begin(), samples.end(), compare_function_);
@@ -369,8 +370,8 @@ private:
             size_t b1 = j1 - k;
 
             if (b0 && Equal(el0, sorted_splitters[b0 - 1])) {
-                while (b0 && Equal(el0, sorted_splitters[b0 - 1])
-                       && (prefix_items + i) * actual_k < b0 * total_items) {
+                while (b0 && Equal(el0, sorted_splitters[b0 - 1]) &&
+                       (prefix_items + i) * actual_k < b0 * total_items) {
                     b0--;
                 }
 
@@ -380,8 +381,8 @@ private:
             }
 
             if (b1 && Equal(el1, sorted_splitters[b1 - 1])) {
-                while (b1 && Equal(el1, sorted_splitters[b1 - 1])
-                       && (prefix_items + i + 1) * actual_k < b1 * total_items) {
+                while (b1 && Equal(el1, sorted_splitters[b1 - 1]) &&
+                       (prefix_items + i + 1) * actual_k < b1 * total_items) {
                     b1--;
                 }
 
@@ -437,7 +438,11 @@ private:
 
         local_out_size_ += vec.size();
 
+        common::StatsTimerStart timer;
+
         std::sort(vec.begin(), vec.end(), compare_function_);
+
+        LOG << "SortAndWriteToFile() sort took " << timer;
 
         files.emplace_back(context_.GetFile());
         auto writer = files.back().GetWriter();
@@ -445,7 +450,12 @@ private:
             writer.Put(ele);
         }
         writer.Close();
+
+        LOG << "SortAndWriteToFile() finished writing files";
+
         vec.clear();
+
+        LOG << "SortAndWriteToFile() vector cleared";
     }
 
     void MainOp() {
@@ -512,6 +522,10 @@ private:
 
         data::MixStreamPtr data_stream = context_.GetNewMixStream();
 
+        // launch receiver thread.
+        std::thread thread = std::thread(
+            [this, &data_stream]() { return ReceiveItems(data_stream); });
+
         TransmitItems(
             splitter_tree, // Tree. sizeof |splitter|
             workers_algo,  // Number of buckets
@@ -524,23 +538,7 @@ private:
 
         delete[] splitter_tree;
 
-        // end of SS2N
-
-        auto reader = data_stream->OpenMixReader(/* consume */ false);
-
-        std::vector<ValueType> temp_data;
-        LOG << "Writing files";
-        while (reader.HasNext()) {
-            if (!mem::memory_exceeded) {
-                temp_data.push_back(reader.template Next<ValueType>());
-            }
-            else {
-                SortAndWriteToFile(temp_data, files_);
-            }
-        }
-        if (temp_data.size()) {
-            SortAndWriteToFile(temp_data, files_);
-        }
+        thread.join();
 
         data_stream->Close();
 
@@ -564,7 +562,28 @@ private:
             << "sample_size" << samples_.size();
     }
 
-    void PostOp() { }
+    void ReceiveItems(data::MixStreamPtr& data_stream) {
+
+        auto reader = data_stream->OpenMixReader(/* consume */ true);
+
+        LOG << "Writing files";
+
+        size_t capacity = DIABase::mem_limit_ / sizeof(ValueType);
+        std::vector<ValueType> temp_data;
+        temp_data.reserve(capacity);
+
+        while (reader.HasNext()) {
+            if (!mem::memory_exceeded && temp_data.size() < capacity) {
+                temp_data.push_back(reader.template Next<ValueType>());
+            }
+            else {
+                SortAndWriteToFile(temp_data, files_);
+            }
+        }
+
+        if (temp_data.size())
+            SortAndWriteToFile(temp_data, files_);
+    }
 };
 
 template <typename ValueType, typename Stack>
