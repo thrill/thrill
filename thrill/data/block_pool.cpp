@@ -641,6 +641,29 @@ void BlockPool::_RequestInternalMemory(
     total_ram_use_ += size;
 }
 
+void BlockPool::AdviseFree(size_t size) {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    LOGC(debug_mem)
+        << "BlockPool::AdviseFree() advice to free memory"
+        << " size=" << size
+        << " total_ram_use_=" << total_ram_use_
+        << " writing_bytes_=" << writing_bytes_
+        << " requested_bytes_=" << requested_bytes_
+        << " soft_ram_limit_=" << soft_ram_limit_
+        << " hard_ram_limit_=" << hard_ram_limit_
+        << pin_count_
+        << " unpinned_blocks_.size()=" << unpinned_blocks_.size()
+        << " swapped_.size()=" << swapped_.size();
+
+    while (soft_ram_limit_ != 0 && unpinned_blocks_.size() &&
+           total_ram_use_ - writing_bytes_ + requested_bytes_ + size > hard_ram_limit_)
+    {
+        // evict blocks: schedule async writing which increases writing_bytes_.
+        EvictBlockLRU();
+    }
+}
+
 void BlockPool::ReleaseInternalMemory(size_t size) {
     std::unique_lock<std::mutex> lock(mutex_);
     return _ReleaseInternalMemory(size);

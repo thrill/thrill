@@ -90,6 +90,10 @@ public:
     //! BlockPool::RequestInternalMemory calls
     void ReleaseInternalMemory(size_t size);
 
+    //! Advice the block pool to free up memory in anticipation of a large
+    //! future request.
+    void AdviseFree(size_t size);
+
     //! Allocates a byte block with the request size. May block this thread if
     //! the hard memory limit is reached, until memory is freed by another
     //! thread.  The returned Block is allocated in RAM, but with a zero pin

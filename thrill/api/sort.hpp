@@ -106,8 +106,10 @@ public:
         unsorted_file_ = file;
         local_items_ = unsorted_file_.num_items();
 
-        sLOG << "Pick" << wanted_sample_size() << "samples by random access.";
-        for (size_t i = 0; i < wanted_sample_size(); ++i) {
+        size_t pick_items = std::min(local_items_, wanted_sample_size());
+
+        sLOG << "Pick" << pick_items << "samples by random access.";
+        for (size_t i = 0; i < pick_items; ++i) {
             size_t index = rng_() % local_items_;
             sLOG << "got index[" << i << "] = " << index;
             samples_.emplace_back(
@@ -444,6 +446,9 @@ private:
 
         local_out_size_ += vec.size();
 
+        // advice block pool to write out data if necessary
+        context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
+
         common::StatsTimerStart timer;
 
         std::sort(vec.begin(), vec.end(), compare_function_);
@@ -575,7 +580,7 @@ private:
         LOG << "Writing files";
 
         // M/2 such that the other half is used to prepare the next bulk
-        size_t capacity = DIABase::mem_limit_ / sizeof(ValueType);
+        size_t capacity = DIABase::mem_limit_ / sizeof(ValueType) / 2;
         std::vector<ValueType> temp_data;
         temp_data.reserve(capacity);
 
