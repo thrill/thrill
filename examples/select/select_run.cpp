@@ -20,12 +20,21 @@
 using namespace thrill;           // NOLINT
 using namespace examples::select; // NOLINT
 
-static auto RunSelect(api::Context& ctx, size_t num_elems, size_t rank) {
+static auto RunSelect(api::Context& ctx, size_t num_elems, size_t rank, bool max) {
     auto data = Generate(ctx, num_elems).Cache();
-    auto result = Select(data, rank);
+    if (max) {
+        auto result = Select(data, rank,
+                             [](const auto &a, const auto &b) -> bool
+                             { return a > b; });
 
-    LOG << "Result: " << result;
-    return result;
+        LOG << "Result: " << result;
+        return result;
+    } else {
+        auto result = Select(data, rank);
+
+        LOG << "Result: " << result;
+        return result;
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -33,8 +42,10 @@ int main(int argc, char* argv[]) {
     clp.SetVerboseProcess(false);
 
     size_t num_elems = 1024*1024, rank = 10;
+    bool max;
     clp.AddSizeT('n', "num_elemes", num_elems, "Number of elements, default: 2^10");
     clp.AddSizeT('k', "rank", rank, "Rank to select, default: 10");
+    clp.AddFlag('m', "max", max, "Select maximum, default off");
 
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -43,7 +54,7 @@ int main(int argc, char* argv[]) {
 
     return api::Run(
         [&](api::Context& ctx) {
-            RunSelect(ctx, num_elems, rank);
+            RunSelect(ctx, num_elems, rank, max);
         });
 }
 
