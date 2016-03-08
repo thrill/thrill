@@ -37,8 +37,10 @@ static constexpr size_t base_case_size = 1024;
 
 #define LOGM LOGC(debug && ctx.my_rank() == 0)
 
-template <typename ValueType, typename Instack>
-auto PickPivots(const DIA<ValueType, Instack> &data, size_t size, size_t rank) {
+template <typename ValueType, typename Instack,
+          typename Compare = std::less<ValueType>>
+auto PickPivots(const DIA<ValueType, Instack> &data, size_t size, size_t rank,
+                Compare compare = Compare{}) {
     api::Context& ctx = data.context();
 
     const size_t num_workers(ctx.num_workers());
@@ -51,6 +53,9 @@ auto PickPivots(const DIA<ValueType, Instack> &data, size_t size, size_t rank) {
     std::pair<ValueType, ValueType> pivots;
     if (ctx.my_rank() == 0) {
         LOG << "got " << sample.size() << " samples (p = " << p << ")";
+        // Sort the samples
+        std::sort(sample.begin(), sample.end(), compare);
+
         const double base_pos = static_cast<double>(rank * sample.size()) /
             size_d;
         const double offset = pow(size_d, 0.25 + delta);
@@ -78,8 +83,10 @@ auto PickPivots(const DIA<ValueType, Instack> &data, size_t size, size_t rank) {
     return pivots;
 }
 
-template <typename ValueType, typename InStack>
-auto Select(const DIA<ValueType, InStack> &data, size_t rank) {
+template <typename ValueType, typename InStack,
+          typename Compare = std::less<ValueType>>
+auto Select(const DIA<ValueType, InStack> &data, size_t rank,
+            Compare compare = Compare{}) {
     api::Context& ctx = data.context();
     const size_t size = data.Size();
 
@@ -93,7 +100,7 @@ auto Select(const DIA<ValueType, InStack> &data, size_t rank) {
         if (ctx.my_rank() == 0) {
             assert(rank < elements.size());
             std::nth_element(elements.begin(), elements.begin() + rank,
-                             elements.end());
+                             elements.end(), compare);
 
             result = elements[rank];
 
@@ -106,7 +113,7 @@ auto Select(const DIA<ValueType, InStack> &data, size_t rank) {
     }
 
     ValueType left_pivot, right_pivot;
-    std::tie(left_pivot, right_pivot) = PickPivots(data, size, rank);
+    std::tie(left_pivot, right_pivot) = PickPivots(data, size, rank, compare);
 
     size_t left_size, middle_size, right_size;
 
@@ -114,9 +121,9 @@ auto Select(const DIA<ValueType, InStack> &data, size_t rank) {
     std::tie(left_size, middle_size) =
         data.Map(
             [&](const ValueType& elem) -> PartSizes {
-                if (elem < left_pivot)
+                if (compare(elem, left_pivot))
                     return PartSizes{1, 0};
-                else if (elem <= right_pivot)
+                else if (!compare(right_pivot, elem))
                     return PartSizes{0, 1};
                 else
                     return PartSizes{0, 0};
@@ -148,11 +155,11 @@ auto Select(const DIA<ValueType, InStack> &data, size_t rank) {
 
         auto left = data.Filter(
             [&](const ValueType &elem) -> bool {
-                return elem < left_pivot;
+                return compare(elem, left_pivot);
             }).Collapse();
         assert(left.Size() == left_size);
 
-        return Select(left, rank);
+        return Select(left, rank, compare);
     } else if (left_size + middle_size <= rank) {
         // recurse on the right partition
         LOGM << "Recursing right, " << right_size
@@ -161,11 +168,11 @@ auto Select(const DIA<ValueType, InStack> &data, size_t rank) {
 
         auto right = data.Filter(
             [&](const ValueType &elem) -> bool {
-                return elem > right_pivot;
+                return compare(right_pivot, elem);
             }).Collapse();
         assert(right.Size() == right_size);
 
-        return Select(right, rank - left_size - middle_size);
+        return Select(right, rank - left_size - middle_size, compare);
     } else {
         // recurse on the middle partition
         LOGM << "Recursing middle, " << middle_size
@@ -173,11 +180,12 @@ auto Select(const DIA<ValueType, InStack> &data, size_t rank) {
 
         auto middle = data.Filter(
             [&](const ValueType &elem) -> bool {
-                return (elem >= left_pivot) && (elem <= right_pivot);
+                return !compare(elem, left_pivot) &&
+                    !compare(right_pivot, elem);
             }).Collapse();
         assert(middle.Size() == middle_size);
 
-        return Select(middle, rank - left_size);
+        return Select(middle, rank - left_size, compare);
     }
 }
 
