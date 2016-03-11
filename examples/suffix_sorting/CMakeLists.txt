@@ -10,6 +10,7 @@
 ################################################################################
 
 thrill_build_prog(prefix_doubling)
+thrill_build_prog(wavelet_tree)
 
 if(MSVC)
   # requires /bigobj flag to build
