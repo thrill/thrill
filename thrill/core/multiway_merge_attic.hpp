@@ -1247,7 +1247,7 @@ public:
 };
 
 #define THRILL_NO_POINTER(T)                             \
-    template <bool Stable, typename Comparator>             \
+    template <bool Stable, typename Comparator>          \
     struct loser_tree_traits<Stable, T, Comparator>      \
     {                                                    \
         typedef LoserTreeCopy<Stable, T, Comparator> LT; \
@@ -1274,7 +1274,7 @@ public:
 };
 
 #define THRILL_NO_POINTER_UNGUARDED(T)                            \
-    template <bool Stable, typename Comparator>                      \
+    template <bool Stable, typename Comparator>                   \
     struct loser_tree_traits_unguarded<Stable, T, Comparator>     \
     {                                                             \
         typedef LoserTreeCopyUnguarded<Stable, T, Comparator> LT; \

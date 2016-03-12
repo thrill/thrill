@@ -104,6 +104,7 @@ thrill_build_test_group(common/tests
   )
 
 thrill_build_test(mem/allocator_test)
+thrill_build_test(mem/pool_test)
 thrill_build_test(mem/stack_allocator_test)
 if(NOT MSVC)
   thrill_build_test(mem/malloc_tracker_test)
