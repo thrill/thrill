@@ -49,12 +49,30 @@ protected:
     }
 
 public:
+    void make_queue(const FileBase* file) {
+        int queue_id = file->get_queue_id();
+
+        RequestQueueMap::iterator qi = queues.find(queue_id);
+        if (qi != queues.end())
+            return;
+
+        // create new request queue
+#if THRILL_HAVE_LINUXAIO_FILE
+        if (dynamic_cast<const LinuxaioFile*>(file)) {
+            queues[queue_id] = new LinuxaioQueue(
+                dynamic_cast<const LinuxaioFile*>(file)->get_desired_queue_length());
+            return;
+        }
+#endif
+        queues[queue_id] = new RequestQueueImplQwQr();
+    }
+
     void add_request(RequestPtr& req, DiskId disk) {
 #ifdef THRILL_HACK_SINGLE_IO_THREAD
         disk = 42;
 #endif
         RequestQueueMap::iterator qi = queues.find(disk);
-        RequestQueue* q;
+        RequestQueue* q = nullptr;
         if (qi == queues.end())
         {
             // create new request queue

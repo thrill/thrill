@@ -17,6 +17,7 @@
 #include <thrill/io/config_file.hpp>
 #include <thrill/io/create_file.hpp>
 #include <thrill/io/disk_allocator.hpp>
+#include <thrill/io/disk_queues.hpp>
 #include <thrill/io/file_base.hpp>
 
 #include <cstddef>
@@ -67,6 +68,9 @@ BlockManager::BlockManager() {
         }
 
         total_size += cfg.size;
+
+        // create queue for the file.
+        DiskQueues::get_instance()->make_queue(disk_files_[i]);
 
         disk_allocators_[i] = new DiskAllocator(disk_files_[i], cfg);
     }
