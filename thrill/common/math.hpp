@@ -62,6 +62,43 @@ static inline bool IsPowerOfTwo(size_t i) {
     return ! (i & (i - 1));
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+//! ffs (find first set bit)
+static inline size_t ffs(const int& x) {
+    return __builtin_ffs(x);
+}
+//! ffs (find first set bit)
+static inline size_t ffs(const unsigned& x) {
+    return __builtin_ffs(x);
+}
+//! ffs (find first set bit)
+static inline size_t ffs(const long& x) {
+    return __builtin_ffsl(x);
+}
+//! ffs (find first set bit)
+static inline size_t ffs(const unsigned long& x) {
+    return __builtin_ffsl(x);
+}
+//! ffs (find first set bit)
+static inline size_t ffs(const long long& x) {
+    return __builtin_ffsl(x);
+}
+//! ffs (find first set bit)
+static inline size_t ffs(const unsigned long long& x) {
+    return __builtin_ffsl(x);
+}
+#else
+//! ffs (find first set bit) - generic implementation
+template <typename Integral>
+static inline size_t ffs(Integral x) {
+    if (x == 0) return x;
+    size_t r = 1;
+    while ((x & 1) == 0)
+        x >>= 1, ++r;
+    return r;
+}
+#endif
+
 /******************************************************************************/
 
 //! calculate n div k with rounding up
