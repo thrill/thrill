@@ -32,7 +32,7 @@ namespace io {
 //! Suspends calling thread until \b all given requests are completed.
 //! \param reqs_begin begin of request sequence to wait for
 //! \param reqs_end end of request sequence to wait for
-template <class RequestIterator>
+template <typename RequestIterator>
 void wait_all(RequestIterator reqs_begin, RequestIterator reqs_end) {
     for ( ; reqs_begin != reqs_end; ++reqs_begin)
         (RequestPtr(*reqs_begin))->wait();
@@ -53,7 +53,7 @@ static inline void wait_all(RequestPtr req_array[], size_t count) {
 //! \param reqs_begin begin of request sequence
 //! \param reqs_end end of request sequence
 //! \return number of request canceled
-template <class RequestIterator>
+template <typename RequestIterator>
 typename std::iterator_traits<RequestIterator>::difference_type
 cancel_all(RequestIterator reqs_begin, RequestIterator reqs_end) {
     typename std::iterator_traits<RequestIterator>::difference_type num_canceled = 0;
@@ -70,7 +70,7 @@ cancel_all(RequestIterator reqs_begin, RequestIterator reqs_end) {
 //! \param reqs_begin begin of request sequence to poll
 //! \param reqs_end end of request sequence to poll
 //! \return \c true if any of requests is completed, then index contains valid value, otherwise \c false
-template <class RequestIterator>
+template <typename RequestIterator>
 RequestIterator poll_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
     while (reqs_begin != reqs_end)
     {
@@ -97,7 +97,7 @@ inline bool poll_any(RequestPtr req_array[], size_t count, size_t& index) {
 //! \param reqs_begin begin of request sequence to wait for
 //! \param reqs_end end of request sequence to wait for
 //! \return index in req_array pointing to the \b first completed request
-template <class RequestIterator>
+template <typename RequestIterator>
 RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
     Stats::scoped_wait_timer wait_timer(Stats::WAIT_OP_ANY);
 

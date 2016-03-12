@@ -30,7 +30,7 @@ namespace common {
  * size() == end - begin == 0 after filling the ring buffer, and adding another
  * size_ member requires more book-keeping.
  */
-template <typename Type, class Allocator = std::allocator<Type> >
+template <typename Type, typename Allocator = std::allocator<Type> >
 class RingBuffer
 {
 public:

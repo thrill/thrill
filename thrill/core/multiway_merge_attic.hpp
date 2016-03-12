@@ -1239,7 +1239,7 @@ multiway_merge_loser_tree_unguarded(
     return target;
 }
 
-template <bool Stable, class ValueType, class Comparator>
+template <bool Stable, typename ValueType, typename Comparator>
 struct loser_tree_traits
 {
 public:
@@ -1247,7 +1247,7 @@ public:
 };
 
 #define THRILL_NO_POINTER(T)                             \
-    template <bool Stable, class Comparator>             \
+    template <bool Stable, typename Comparator>             \
     struct loser_tree_traits<Stable, T, Comparator>      \
     {                                                    \
         typedef LoserTreeCopy<Stable, T, Comparator> LT; \
@@ -1266,7 +1266,7 @@ THRILL_NO_POINTER(long long)
 
 #undef THRILL_NO_POINTER
 
-template <bool Stable, class ValueType, class Comparator>
+template <bool Stable, typename ValueType, typename Comparator>
 class loser_tree_traits_unguarded
 {
 public:
@@ -1274,7 +1274,7 @@ public:
 };
 
 #define THRILL_NO_POINTER_UNGUARDED(T)                            \
-    template <bool Stable, class Comparator>                      \
+    template <bool Stable, typename Comparator>                      \
     struct loser_tree_traits_unguarded<Stable, T, Comparator>     \
     {                                                             \
         typedef LoserTreeCopyUnguarded<Stable, T, Comparator> LT; \

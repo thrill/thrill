@@ -90,7 +90,7 @@ MyDelegate d5 = [&](double a) { return a + offset; };
 \endcode
  *
  */
-template <class R, class ... A, typename Allocator>
+template <typename R, typename ... A, typename Allocator>
 class delegate<R(A ...), Allocator>
 {
 public:
@@ -330,7 +330,7 @@ private:
         : caller_(m), object_ptr_(obj) { }
 
     //! deleter for stored functor closures
-    template <class T>
+    template <typename T>
     static void store_deleter(void* const ptr) {
         using Rebind = typename Allocator::template rebind<T>::other;
 

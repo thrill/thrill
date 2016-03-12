@@ -113,7 +113,7 @@ private:
 // Common BinaryArchive serialization functions
 
 //! Saving for POD types to binary
-template <class T, typename Writer>
+template <typename T, typename Writer>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
 CEREAL_SAVE_FUNCTION_NAME(ThrillOutputArchive<Writer>& ar, T const& t) {
@@ -121,7 +121,7 @@ CEREAL_SAVE_FUNCTION_NAME(ThrillOutputArchive<Writer>& ar, T const& t) {
 }
 
 //! Loading for POD types from binary
-template <class Reader, class T>
+template <typename Reader, typename T>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
 CEREAL_LOAD_FUNCTION_NAME(ThrillInputArchive<Reader>& ar, T& t) {
@@ -129,7 +129,7 @@ CEREAL_LOAD_FUNCTION_NAME(ThrillInputArchive<Reader>& ar, T& t) {
 }
 
 //! Serializing NVP types to binary
-template <class Writer, class T>
+template <typename Writer, typename T>
 inline void
 CEREAL_SERIALIZE_FUNCTION_NAME(
     ThrillOutputArchive<Writer>& ar, cereal::NameValuePair<T>& t) {
@@ -137,7 +137,7 @@ CEREAL_SERIALIZE_FUNCTION_NAME(
 }
 
 //! Serializing NVP types to binary
-template <class Reader, class T>
+template <typename Reader, typename T>
 inline void
 CEREAL_SERIALIZE_FUNCTION_NAME(
     ThrillInputArchive<Reader>& ar, cereal::NameValuePair<T>& t) {
@@ -145,7 +145,7 @@ CEREAL_SERIALIZE_FUNCTION_NAME(
 }
 
 //! Serializing SizeTags to binary
-template <class Writer, class T>
+template <typename Writer, typename T>
 inline void
 CEREAL_SERIALIZE_FUNCTION_NAME(
     ThrillOutputArchive<Writer>& ar, cereal::SizeTag<T>& t) {
@@ -153,7 +153,7 @@ CEREAL_SERIALIZE_FUNCTION_NAME(
 }
 
 //! Serializing SizeTags to binary
-template <class Reader, class T>
+template <typename Reader, typename T>
 inline void
 CEREAL_SERIALIZE_FUNCTION_NAME(
     ThrillInputArchive<Reader>& ar, cereal::SizeTag<T>& t) {
@@ -161,7 +161,7 @@ CEREAL_SERIALIZE_FUNCTION_NAME(
 }
 
 //! Saving binary data
-template <class T, typename Writer>
+template <typename T, typename Writer>
 inline
 void CEREAL_SAVE_FUNCTION_NAME(
     ThrillOutputArchive<Writer>& ar, cereal::BinaryData<T> const& bd) {
@@ -169,7 +169,7 @@ void CEREAL_SAVE_FUNCTION_NAME(
 }
 
 //! Loading binary data
-template <class Reader, class T>
+template <typename Reader, typename T>
 inline
 void CEREAL_LOAD_FUNCTION_NAME(
     ThrillInputArchive<Reader>& ar, cereal::BinaryData<T>& bd) {

@@ -197,7 +197,7 @@ struct SingleDisk
 //! Allocator functor adaptor.
 //!
 //! Gives offset to disk number sequence defined in constructor
-template <class BaseAllocator>
+template <typename BaseAllocator>
 struct OffsetAllocator
 {
     BaseAllocator base_;

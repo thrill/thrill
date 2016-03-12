@@ -82,13 +82,13 @@ public:
 #endif
 
     //! Constructs an element object on the location pointed by p.
-    template <class SubType, typename ... Args>
+    template <typename SubType, typename ... Args>
     void construct(SubType* p, Args&& ... args) {
         ::new ((void*)p)SubType(std::forward<Args>(args) ...); // NOLINT
     }
 
     //! Destroys in-place the object pointed by p.
-    template <class SubType>
+    template <typename SubType>
     void destroy(SubType* p) const noexcept {
         p->~SubType();
     }
@@ -115,7 +115,7 @@ public:
     using is_always_equal = std::true_type;
 
     //! Return allocator for different type.
-    template <class U>
+    template <typename U>
     struct rebind { using other = FixedAllocator<U, manager_>; };
 
     //! default constructor
@@ -181,13 +181,13 @@ public:
     }
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator == (const FixedAllocator<Other, manager_>&) const noexcept {
         return true;
     }
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator != (const FixedAllocator<Other, manager_>&) const noexcept {
         return true;
     }
@@ -201,7 +201,7 @@ public:
     using const_pointer = const void*;
     using value_type = void;
 
-    template <class U>
+    template <typename U>
     struct rebind { using other = FixedAllocator<U, manager_>; };
 };
 
@@ -216,7 +216,7 @@ template <typename Type>
 using BypassAllocator = FixedAllocator<Type, g_bypass_manager>;
 
 //! operator new with our Allocator
-template <typename T, class ... Args>
+template <typename T, typename ... Args>
 T * by_new(Args&& ... args) {
     BypassAllocator<T> allocator;
     T* value = allocator.allocate(1);

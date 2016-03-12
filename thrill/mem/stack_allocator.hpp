@@ -94,7 +94,7 @@ public:
     void reset() { ptr_ = buf_; }
 };
 
-template <class Type, size_t Size>
+template <typename Type, size_t Size>
 class StackAllocator : public AllocatorBase<Type>
 {
 public:
@@ -110,7 +110,7 @@ public:
     using is_always_equal = std::false_type;
 
     //! required rebind.
-    template <class Other>
+    template <typename Other>
     struct rebind { using other = StackAllocator<Other, Size>; };
 
     //! default constructor to invalid arena
@@ -121,7 +121,7 @@ public:
         : arena_(&arena) { }
 
     //! constructor from another allocator with same arena size
-    template <class Other>
+    template <typename Other>
     StackAllocator(const StackAllocator<Other, Size>& other) noexcept
         : arena_(other.arena_) { }
 
@@ -159,7 +159,7 @@ public:
         return Size != OtherSize || arena_ != other.arena_;
     }
 
-    template <class Other, size_t OtherSize>
+    template <typename Other, size_t OtherSize>
     friend class StackAllocator;
 
 private:
