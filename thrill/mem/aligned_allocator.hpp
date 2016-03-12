@@ -145,7 +145,7 @@ inline void* AlignedAllocator<Type, BaseAllocator, Alignment>::allocate_bytes(
     char* buffer = reinterpret_cast<char*>(base_.allocate(alloc_size));
 
     if (buffer == nullptr)
-        throw std::bad_alloc();
+        return nullptr;
 
     char* reserve_buffer = buffer + sizeof(char*) + meta_info_size;
     char* result = reserve_buffer + Alignment -
@@ -190,7 +190,7 @@ inline void* AlignedAllocator<Type, BaseAllocator, Alignment>::allocate_bytes(
 
 template <typename Type, typename BaseAllocator, size_t Alignment>
 inline void AlignedAllocator<Type, BaseAllocator, Alignment>::deallocate_bytes(
-    void* ptr, size_t size, size_t meta_info_size)  noexcept {
+    void* ptr, size_t size, size_t meta_info_size) noexcept {
     if (!ptr)
         return;
     char* buffer = *((reinterpret_cast<char**>(ptr)) - 1);

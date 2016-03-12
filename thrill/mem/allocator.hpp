@@ -70,14 +70,26 @@ public:
         if (n > this->max_size())
             throw std::bad_alloc();
 
-        manager_->add(n * sizeof(Type));
+        const size_t size = n * sizeof(Type);
+        manager_->add(size);
 
         if (debug) {
             printf("allocate() n=%zu sizeof(T)=%zu total=%zu\n",
                    n, sizeof(Type), manager_->total());
         }
 
-        return static_cast<Type*>(bypass_malloc(n * sizeof(Type)));
+        Type* r;
+        while ((r = static_cast<Type*>(bypass_malloc(size))) == nullptr)
+        {
+            // If malloc fails and there is a std::new_handler, call it to try
+            // free up memory.
+            std::new_handler nh = std::get_new_handler();
+            if (nh)
+                nh();
+            else
+                throw std::bad_alloc();
+        }
+        return r;
     }
 
     //! Releases a block of storage previously allocated with member allocate
