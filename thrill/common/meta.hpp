@@ -93,6 +93,54 @@ struct If<false, TypeTrue, TypeFalse>
 };
 
 /******************************************************************************/
+// Meta-template programming log_2(n) calculation.
+
+template <size_t Input>
+class Log2Floor
+{
+public:
+    static constexpr size_t value = Log2Floor<Input / 2>::value + 1;
+};
+
+template <>
+class Log2Floor<1>
+{
+public:
+    static constexpr size_t value = 0;
+};
+
+template <>
+class Log2Floor<0>
+{
+public:
+    static constexpr size_t value = 0;
+};
+
+template <size_t Input>
+class Log2
+{
+public:
+    static constexpr size_t floor = Log2Floor<Input>::value;
+    static constexpr size_t ceil = Log2Floor<Input - 1>::value + 1;
+};
+
+template <>
+class Log2<1>
+{
+public:
+    static constexpr size_t floor = 0;
+    static constexpr size_t ceil = 0;
+};
+
+template <>
+class Log2<0>
+{
+public:
+    static constexpr size_t floor = 0;
+    static constexpr size_t ceil = 0;
+};
+
+/******************************************************************************/
 // Variadic Template Expander: run a generic templated functor (like a generic
 // lambda) for each of the variadic template parameters. Called with
 // func(IndexSaver<> index, Argument arg).
