@@ -18,7 +18,9 @@
 #ifndef THRILL_IO_DISK_QUEUES_HEADER
 #define THRILL_IO_DISK_QUEUES_HEADER
 
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/iostats.hpp>
+#include <thrill/io/linuxaio_file.hpp>
 #include <thrill/io/linuxaio_queue.hpp>
 #include <thrill/io/linuxaio_request.hpp>
 #include <thrill/io/request.hpp>

@@ -8,9 +8,10 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/mem/stack_allocator.hpp>
+
 #include <gtest/gtest.h>
 #include <thrill/common/logger.hpp>
-#include <thrill/mem/stack_allocator.hpp>
 
 #include <deque>
 #include <string>

@@ -111,8 +111,8 @@ public:
     template <class Other>
     struct rebind { using other = StackAllocator<Other, Size>; };
 
-    // //! default constructor to invalid arena
-    // StackAllocator() : arena_(nullptr) { }
+    //! default constructor to invalid arena
+    StackAllocator() : arena_(nullptr) { }
 
     //! constructor with explicit arena reference
     explicit StackAllocator(Arena<Size>& arena) noexcept
