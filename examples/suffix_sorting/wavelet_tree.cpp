@@ -56,7 +56,7 @@ auto ConstructWaveletTree(const InputDIA &input_dia) {
 
         wt.Map(
             [maskbit](const uint64_t& a) {
-                return bool(a & maskbit);
+                return static_cast<bool>(a & maskbit);
             })
         .WriteBinary(common::str_sprintf("wt-%04u-", unsigned(level)));
 

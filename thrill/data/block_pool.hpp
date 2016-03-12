@@ -270,14 +270,14 @@ private:
 
     //! Updates the memory manager for internal memory. If the hard limit is
     //! reached, the call is blocked intil memory is free'd
-    void _RequestInternalMemory(std::unique_lock<std::mutex>& lock, size_t size);
+    void IntRequestInternalMemory(std::unique_lock<std::mutex>& lock, size_t size);
 
     //! Updates the memory manager for the internal memory, wakes up waiting
     //! BlockPool::RequestInternalMemory calls
-    void _ReleaseInternalMemory(size_t size);
+    void IntReleaseInternalMemory(size_t size);
 
     //! Increment a ByteBlock's pin count - without locking the mutex
-    void _IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
+    void IntIncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
 
     //! Unpins a block. If all pins are removed, the block might be swapped.
     //! Returns immediately. Actual unpinning is async.
@@ -294,7 +294,7 @@ private:
 
     //! Evict a block into external memory. The block must be unpinned and not
     //! swapped.
-    void EvictBlockNoLock(ByteBlock* block_ptr);
+    void IntEvictBlock(ByteBlock* block_ptr);
 
     //! make ostream-able
     friend std::ostream& operator << (std::ostream& os, const PinCount& p);
@@ -303,10 +303,10 @@ private:
     //! \{
 
     //! Total number of allocated blocks of this block pool
-    size_t total_blocks_nolock()  noexcept;
+    size_t int_total_blocks()  noexcept;
 
     //! Total number of bytes allocated in blocks of this block pool
-    size_t total_bytes_nolock()  noexcept;
+    size_t int_total_bytes()  noexcept;
 
     //! \}
 };

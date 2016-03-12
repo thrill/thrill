@@ -24,11 +24,11 @@ namespace common {
  * the minimum, the maximum, the average, the value number, and the standard
  * deviation is values.
  */
-template <typename _Type>
+template <typename Type_>
 class Aggregate
 {
 public:
-    using Type = _Type;
+    using Type = Type_;
 
     //! default constructor
     Aggregate() = default;
@@ -57,7 +57,7 @@ public:
 
     //! return the average over all values aggregated
     double Average() const {
-        // can't make noexcept since _Type's conversion is allowed to throw
+        // can't make noexcept since Type_'s conversion is allowed to throw
         return static_cast<double>(total_) / static_cast<double>(count_);
     }
 

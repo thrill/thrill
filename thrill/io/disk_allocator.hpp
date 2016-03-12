@@ -103,15 +103,15 @@ public:
         }
     }
 
-    inline int64_t get_free_bytes() const {
+    int64_t get_free_bytes() const {
         return free_bytes_;
     }
 
-    inline int64_t get_used_bytes() const {
+    int64_t get_used_bytes() const {
         return disk_bytes_ - free_bytes_;
     }
 
-    inline int64_t get_total_bytes() const {
+    int64_t get_total_bytes() const {
         return disk_bytes_;
     }
 

@@ -28,16 +28,16 @@ namespace common {
  * type, like unsigned long long value. If further operators are needed, they
  * should be added.
  */
-template <typename _ValueType, bool Active = true>
+template <typename ValueType_, bool Active = true>
 class StatsCounter
 { };
 
-template <typename _ValueType>
-class StatsCounter<_ValueType, true>
+template <typename ValueType_>
+class StatsCounter<ValueType_, true>
 {
 public:
     //! The counter's value type
-    using ValueType = _ValueType;
+    using ValueType = ValueType_;
 
 private:
     //! The counter's value
@@ -92,12 +92,12 @@ public:
     }
 };
 
-template <typename _ValueType>
-class StatsCounter<_ValueType, false>
+template <typename ValueType_>
+class StatsCounter<ValueType_, false>
 {
 public:
     //! The counter's value type
-    using ValueType = _ValueType;
+    using ValueType = ValueType_;
 
 public:
     StatsCounter(const ValueType& = ValueType()) // NOLINT

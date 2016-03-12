@@ -33,7 +33,7 @@ Multiplexer::~Multiplexer() {
 }
 
 CatStreamPtr
-Multiplexer::_GetOrCreateCatStream(size_t id, size_t local_worker_id) {
+Multiplexer::IntGetOrCreateCatStream(size_t id, size_t local_worker_id) {
     CatStreamSetPtr set =
         stream_sets_.GetOrCreate<CatStreamSet>(
             id, *this, id, workers_per_host_);
@@ -41,7 +41,7 @@ Multiplexer::_GetOrCreateCatStream(size_t id, size_t local_worker_id) {
 }
 
 MixStreamPtr
-Multiplexer::_GetOrCreateMixStream(size_t id, size_t local_worker_id) {
+Multiplexer::IntGetOrCreateMixStream(size_t id, size_t local_worker_id) {
     MixStreamSetPtr set =
         stream_sets_.GetOrCreate<MixStreamSet>(
             id, *this, id, workers_per_host_);

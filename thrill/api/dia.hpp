@@ -49,7 +49,7 @@ namespace api {
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename _ValueType, typename _Stack = FunctionStack<_ValueType> >
+template <typename ValueType_, typename Stack_ = FunctionStack<ValueType_> >
 class DIA
 {
     friend class Context;
@@ -59,17 +59,17 @@ class DIA
     using FunctionTraits = common::FunctionTraits<Function>;
 
 public:
+    //! type of the items virtually in the DIA, which is the type emitted by the
+    //! current LOp stack.
+    using ValueType = ValueType_;
+
     //! Type of this function stack
-    using Stack = _Stack;
+    using Stack = Stack_;
 
     //! type of the items delivered by the DOp, and pushed down the function
     //! stack towards the next nodes. If the function stack contains LOps nodes,
     //! these may transform the type.
     using StackInput = typename Stack::Input;
-
-    //! type of the items virtually in the DIA, which is the type emitted by the
-    //! current LOp stack.
-    using ValueType = _ValueType;
 
     //! boolean indication whether this FunctionStack is empty
     static constexpr bool stack_empty = Stack::empty;

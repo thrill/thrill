@@ -75,14 +75,14 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
             "ByteBlocks must be >= " << THRILL_DEFAULT_ALIGN << " and a power of two.");
     }
 
-    _RequestInternalMemory(lock, size);
+    IntRequestInternalMemory(lock, size);
 
     // allocate block memory.
     Byte* data = aligned_alloc_.allocate(size);
 
     // create common::CountingPtr, no need for special make_shared()-equivalent
     PinnedByteBlockPtr block_ptr(new ByteBlock(this, data, size), local_worker_id);
-    _IncBlockPinCount(block_ptr.get(), local_worker_id);
+    IntIncBlockPinCount(block_ptr.get(), local_worker_id);
 
     pin_count_.Increment(local_worker_id, size);
 
@@ -91,8 +91,8 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
         << " ptr=" << block_ptr.get()
         << " size=" << size
         << " local_worker_id=" << local_worker_id
-        << " total_blocks()=" << total_blocks_nolock()
-        << " total_bytes()=" << total_bytes_nolock()
+        << " total_blocks()=" << int_total_blocks()
+        << " total_bytes()=" << int_total_bytes()
         << pin_count_;
 
     return block_ptr;
@@ -130,7 +130,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
             << "BlockPool::PinBlock block=" << &block
             << " already pinned by thread";
 
-        _IncBlockPinCount(block_ptr, local_worker_id);
+        IntIncBlockPinCount(block_ptr, local_worker_id);
 
         std::promise<PinnedBlock> result;
         result.set_value(PinnedBlock(block, local_worker_id));
@@ -148,7 +148,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
             << " already pinned by another thread"
             << pin_count_;
 
-        _IncBlockPinCount(block_ptr, local_worker_id);
+        IntIncBlockPinCount(block_ptr, local_worker_id);
         pin_count_.Increment(local_worker_id, block_ptr->size());
 
         std::promise<PinnedBlock> result;
@@ -217,7 +217,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         unpinned_blocks_.erase(block_ptr);
         unpinned_bytes_ -= block_ptr->size();
 
-        _IncBlockPinCount(block_ptr, local_worker_id);
+        IntIncBlockPinCount(block_ptr, local_worker_id);
         pin_count_.Increment(local_worker_id, block_ptr->size());
 
         LOGC(debug_pin)
@@ -238,7 +238,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
 
     // maybe blocking call until memory is available, this also swaps out other
     // blocks.
-    _RequestInternalMemory(lock, block_ptr->size());
+    IntRequestInternalMemory(lock, block_ptr->size());
 
     // the requested memory is already counted as a pin.
     pin_count_.Increment(local_worker_id, block_ptr->size());
@@ -311,7 +311,7 @@ void BlockPool::OnReadComplete(
         // the requested memory was already counted as a pin.
         pin_count_.Decrement(read->local_worker_id, block_ptr->size());
 
-        _ReleaseInternalMemory(block_ptr->size());
+        IntReleaseInternalMemory(block_ptr->size());
 
         // deliver future
         read->result.set_value(PinnedBlock());
@@ -322,7 +322,7 @@ void BlockPool::OnReadComplete(
         block_ptr->data_ = read->data;
 
         // set pin on ByteBlock
-        _IncBlockPinCount(block_ptr, read->local_worker_id);
+        IntIncBlockPinCount(block_ptr, read->local_worker_id);
 
         if (!block_ptr->ext_file_) {
             bm_->delete_block(block_ptr->em_bid_);
@@ -351,10 +351,10 @@ void BlockPool::IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
     std::unique_lock<std::mutex> lock(mutex_);
     assert(local_worker_id < workers_per_host_);
     assert(block_ptr->pin_count_[local_worker_id] > 0);
-    return _IncBlockPinCount(block_ptr, local_worker_id);
+    return IntIncBlockPinCount(block_ptr, local_worker_id);
 }
 
-void BlockPool::_IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
+void BlockPool::IntIncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
 
     ++block_ptr->pin_count_[local_worker_id];
@@ -419,10 +419,10 @@ void BlockPool::UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
 
 size_t BlockPool::total_blocks() noexcept {
     std::unique_lock<std::mutex> lock(mutex_);
-    return total_blocks_nolock();
+    return int_total_blocks();
 }
 
-size_t BlockPool::total_blocks_nolock() noexcept {
+size_t BlockPool::int_total_blocks() noexcept {
 
     LOG1 << "BlockPool::total_blocks()"
          << " pinned_blocks_=" << pin_count_.total_pins_
@@ -438,10 +438,10 @@ size_t BlockPool::total_blocks_nolock() noexcept {
 
 size_t BlockPool::total_bytes() noexcept {
     std::unique_lock<std::mutex> lock(mutex_);
-    return total_bytes_nolock();
+    return int_total_bytes();
 }
 
-size_t BlockPool::total_bytes_nolock() noexcept {
+size_t BlockPool::int_total_bytes() noexcept {
     LOG1 << "BlockPool::total_bytes()"
          << " pinned_bytes_=" << pin_count_.total_pinned_bytes_
          << " unpinned_bytes_=" << unpinned_bytes_
@@ -545,7 +545,7 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
         aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
-        _ReleaseInternalMemory(block_ptr->size());
+        IntReleaseInternalMemory(block_ptr->size());
     }
     else if (block_ptr->ext_file_)
     {
@@ -567,10 +567,10 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
 
 void BlockPool::RequestInternalMemory(size_t size) {
     std::unique_lock<std::mutex> lock(mutex_);
-    return _RequestInternalMemory(lock, size);
+    return IntRequestInternalMemory(lock, size);
 }
 
-void BlockPool::_RequestInternalMemory(
+void BlockPool::IntRequestInternalMemory(
     std::unique_lock<std::mutex>& lock, size_t size) {
 
     requested_bytes_ += size;
@@ -666,10 +666,10 @@ void BlockPool::AdviseFree(size_t size) {
 
 void BlockPool::ReleaseInternalMemory(size_t size) {
     std::unique_lock<std::mutex> lock(mutex_);
-    return _ReleaseInternalMemory(size);
+    return IntReleaseInternalMemory(size);
 }
 
-void BlockPool::_ReleaseInternalMemory(size_t size) {
+void BlockPool::IntReleaseInternalMemory(size_t size) {
 
     assert(total_ram_use_ >= size);
     total_ram_use_ -= size;
@@ -686,7 +686,7 @@ void BlockPool::EvictBlock(ByteBlock* block_ptr) {
     unpinned_blocks_.erase(block_ptr);
     unpinned_bytes_ -= block_ptr->size();
 
-    EvictBlockNoLock(block_ptr);
+    IntEvictBlock(block_ptr);
 }
 
 void BlockPool::EvictBlockLRU() {
@@ -696,10 +696,10 @@ void BlockPool::EvictBlockLRU() {
     assert(block_ptr);
     unpinned_bytes_ -= block_ptr->size();
 
-    EvictBlockNoLock(block_ptr);
+    IntEvictBlock(block_ptr);
 }
 
-void BlockPool::EvictBlockNoLock(ByteBlock* block_ptr) {
+void BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
 
     assert(block_ptr->em_bid_.storage == nullptr);
 
@@ -707,14 +707,14 @@ void BlockPool::EvictBlockNoLock(ByteBlock* block_ptr) {
         // if in external file -> free memory without writing
 
         LOGC(debug_em)
-            << "EvictBlockNoLock(): " << block_ptr << " - " << *block_ptr
+            << "EvictBlock(): " << block_ptr << " - " << *block_ptr
             << " from ext_file " << block_ptr->ext_file_;
 
         // release memory
         aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
-        _ReleaseInternalMemory(block_ptr->size());
+        IntReleaseInternalMemory(block_ptr->size());
         return;
     }
 
@@ -723,7 +723,7 @@ void BlockPool::EvictBlockNoLock(ByteBlock* block_ptr) {
     bm_->new_block(io::Striping(), block_ptr->em_bid_);
 
     LOGC(debug_em)
-        << "EvictBlockNoLock(): " << block_ptr << " - " << *block_ptr
+        << "EvictBlock(): " << block_ptr << " - " << *block_ptr
         << " to em_bid " << block_ptr->em_bid_;
 
     writing_bytes_ += block_ptr->size();
@@ -770,7 +770,7 @@ void BlockPool::OnWriteComplete(
         aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
-        _ReleaseInternalMemory(block_ptr->size());
+        IntReleaseInternalMemory(block_ptr->size());
     }
 }
 

@@ -38,12 +38,13 @@ Request::Request(
       offset_(offset),
       bytes_(bytes),
       type_(type) {
-    LOG << "request::(...), ref_cnt=" << reference_count();
+    LOG << "Request::(...), ref_cnt=" << reference_count();
     file_->add_request_ref();
 }
 
 Request::~Request() {
-    LOG << "request::~request(), ref_cnt=" << reference_count();
+    LOG << "Request::~Request()"
+        << " ref_cnt=" << reference_count() << " state_=" << state_();
     assert(state_() == DONE || state_() == READY2DIE);
 }
 

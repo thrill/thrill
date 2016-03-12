@@ -56,7 +56,7 @@ public:
         size_t num_hosts);
 
     /*!
-     * Construct a test network with an underlying full mesh of _REAL_ tcp
+     * Construct a test network with an underlying full mesh of *REAL* tcp
      * streams interconnected via localhost ports.
      */
     static std::vector<std::unique_ptr<Group> > ConstructLocalRealTCPMesh(

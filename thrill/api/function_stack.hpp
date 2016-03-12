@@ -73,11 +73,11 @@ auto RunEmitter(const Lambda &lambda, const MoreLambdas &... rest)
  *
  * \tparam Lambdas Types of the different lambda functions.
  */
-template <typename _Input, typename ... Lambdas>
+template <typename Input_, typename ... Lambdas>
 class FunctionStack
 {
 public:
-    using Input = _Input;
+    using Input = Input_;
 
     FunctionStack() = default;
 
