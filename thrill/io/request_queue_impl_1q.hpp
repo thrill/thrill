@@ -33,8 +33,7 @@ namespace io {
 class RequestQueueImpl1Q : public RequestQueueImplWorker
 {
 private:
-    using Self = RequestQueueImpl1Q;
-    using Queue = std::list<RequestPtr>;
+    using Queue = std::list<RequestPtr, mem::GPoolAllocator<RequestPtr> >;
 
     std::mutex queue_mutex_;
     Queue queue_;

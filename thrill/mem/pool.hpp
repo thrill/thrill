@@ -17,7 +17,7 @@
 #ifndef THRILL_MEM_POOL_HEADER
 #define THRILL_MEM_POOL_HEADER
 
-#include <thrill/common/logger.hpp>
+#include <thrill/common/die.hpp>
 #include <thrill/common/splay_tree.hpp>
 #include <thrill/mem/allocator_base.hpp>
 
@@ -27,6 +27,8 @@
 #include <memory>
 #include <mutex>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace thrill {
 namespace mem {
@@ -70,6 +72,8 @@ template <size_t ArenaSize,
 class Pool
 {
     static constexpr bool debug = false;
+    static constexpr bool debug_check = true;
+    static constexpr size_t check_limit = 4 * 1024 * 1024;
 
     static_assert(sizeof(typename BaseAllocator::value_type) == 1,
                   "BaseAllocator must be a char/byte allocator");
@@ -77,7 +81,10 @@ class Pool
 public:
     //! construct with base allocator
     explicit Pool(const BaseAllocator& base = BaseAllocator()) noexcept
-        : base_(base) { }
+        : base_(base) {
+        if (debug_check)
+            allocs_.resize(check_limit, std::make_pair(nullptr, 0));
+    }
 
     //! non-copyable: delete copy-constructor
     Pool(const Pool&) = delete;
@@ -103,6 +110,16 @@ public:
 
     ~Pool() noexcept {
         std::unique_lock<std::mutex> lock(mutex_);
+        if (size_ != 0) {
+            std::cout << "~Pool() still contains "
+                      << sizeof(Slot) * size_ << " bytes" << std::endl;
+
+            for (size_t i = 0; i < allocs_.size(); ++i) {
+                if (allocs_[i].first == nullptr) continue;
+                std::cout << "~Pool() has ptr=" << allocs_[i].first
+                          << " size=" << allocs_[i].second << std::endl;
+            }
+        }
         assert(size_ == 0);
         DeallocateAll();
     }
@@ -111,14 +128,18 @@ public:
     void * allocate(size_t n) {
         std::unique_lock<std::mutex> lock(mutex_);
 
-        sLOG << "allocate() n" << n
-             << "kSlotsPerArena" << size_t(kSlotsPerArena);
+        if (debug) {
+            std::cout << "allocate() n=" << n
+                      << " kSlotsPerArena=" << size_t(kSlotsPerArena)
+                      << std::endl;
+        }
 
         assert(n <= max_size());
         if (n > max_size())
             throw std::bad_alloc();
 
         // round up to whole slot size, and divide by slot size
+        size_t orig_size = n;
         n = (n + sizeof(Slot) - 1) / sizeof(Slot);
 
         Arena* curr_arena = free_arena_;
@@ -164,14 +185,32 @@ public:
 
                     print();
 
+                    if (debug_check) {
+                        size_t i;
+                        for (i = 0; i < allocs_.size(); ++i) {
+                            if (allocs_[i].first == nullptr) {
+                                allocs_[i].first = curr_slot;
+                                allocs_[i].second = orig_size;
+                                break;
+                            }
+                        }
+                        if (i == allocs_.size()) {
+                            assert(!"Increase allocs array in Pool().");
+                            abort();
+                        }
+                    }
+
                     return reinterpret_cast<void*>(curr_slot);
                 }
             }
 
             // advance to next arena in free list order
-            sLOG << "advance next arena"
-                 << "curr_arena" << curr_arena
-                 << "next_arena" << curr_arena->next_arena;
+            if (debug) {
+                std::cout << "advance next arena"
+                          << " curr_arena=" << curr_arena
+                          << " next_arena=" << curr_arena->next_arena
+                          << std::endl;
+            }
 
             curr_arena = curr_arena->next_arena;
 
@@ -187,7 +226,26 @@ public:
         if (ptr == nullptr) return;
 
         std::unique_lock<std::mutex> lock(mutex_);
-        sLOG << "deallocate() ptr" << ptr << "n" << n;
+        if (debug) {
+            std::cout << "deallocate() ptr" << ptr << "n" << n << std::endl;
+        }
+        if (debug_check) {
+            size_t i;
+            for (i = 0; i < allocs_.size(); ++i) {
+                if (allocs_[i].first != ptr) continue;
+                if (n != allocs_[i].second) {
+                    assert(!"Mismatching deallocate() size in Pool().");
+                    abort();
+                }
+                allocs_[i].first = nullptr;
+                allocs_[i].second = 0;
+                break;
+            }
+            if (i == allocs_.size()) {
+                assert(!"Unknown deallocate() in Pool().");
+                abort();
+            }
+        }
 
         // round up to whole slot size, and divide by slot size
         n = (n + sizeof(Slot) - 1) / sizeof(Slot);
@@ -271,8 +329,10 @@ public:
     //! Print out structure of the arenas.
     void print() {
 
-        LOG << "Pool::print()"
-            << " size_=" << size_ << " free_=" << free_;
+        if (debug) {
+            std::cout << "Pool::print()"
+                      << " size_=" << size_ << " free_=" << free_ << std::endl;
+        }
 
         size_t total_free = 0, total_size = 0;
 
@@ -294,7 +354,7 @@ public:
                         << ",next=" << curr_arena->slots[slot].next << ']';
 
                 if (curr_arena->slots[slot].next <= slot) {
-                    LOG << "invalid chain:" << oss.str();
+                    std::cout << "invalid chain:" << oss.str() << std::endl;
                     abort();
                 }
 
@@ -303,10 +363,13 @@ public:
                 slot = curr_arena->slots[slot].next;
             }
 
-            LOG << "arena[" << curr_arena << "]"
-                << " head_slot.(free)size=" << curr_arena->head_slot.size
-                << " head_slot.next=" << curr_arena->head_slot.next
-                << oss.str();
+            if (debug) {
+                std::cout << "arena[" << curr_arena << "]"
+                          << " head_slot.(free)size=" << curr_arena->head_slot.size
+                          << " head_slot.next=" << curr_arena->head_slot.next
+                          << oss.str()
+                          << std::endl;
+            }
 
             die_unequal(curr_arena->head_slot.size, free);
 
@@ -390,8 +453,14 @@ private:
     //! overall number of used slots
     size_t size_ = 0;
 
+    //! array of allocations for checking
+    std::vector<std::pair<void*, size_t> > allocs_;
+
+    //! allocate a new Arena blob
     Arena * AllocateFreeArena() {
-        LOG << "AllocateFreeArena()";
+        if (debug) {
+            std::cout << "AllocateFreeArena()" << std::endl;
+        }
 
         // Allocate space for the new block
         Arena* new_arena = reinterpret_cast<Arena*>(base_.allocate(ArenaSize));

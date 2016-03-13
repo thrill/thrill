@@ -16,6 +16,7 @@
 
 #include <thrill/common/die.hpp>
 #include <thrill/mem/allocator.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <sstream>
 #include <string>
@@ -25,9 +26,6 @@ namespace common {
 
 //! memory manager singleton for Logger
 extern mem::Manager g_logger_mem_manager;
-
-template <typename Type>
-using LoggerAllocator = mem::FixedAllocator<Type, g_logger_mem_manager>;
 
 //! Defines a name for the current thread.
 void NameThisThread(const mem::by_string& name);
@@ -101,7 +99,7 @@ class Logger
 private:
     //! collector stream
     std::basic_ostringstream<
-        char, std::char_traits<char>, LoggerAllocator<char> > oss_;
+        char, std::char_traits<char>, mem::GPoolAllocator<char> > oss_;
 
 public:
     Logger();
@@ -129,7 +127,7 @@ private:
 
     //! collector stream
     std::basic_ostringstream<
-        char, std::char_traits<char>, LoggerAllocator<char> > oss_;
+        char, std::char_traits<char>, mem::GPoolAllocator<char> > oss_;
 
 public:
     SpacingLogger();
