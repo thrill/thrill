@@ -14,7 +14,6 @@
 
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/lru_cache.hpp>
-#include <thrill/common/signal.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/byte_block.hpp>
