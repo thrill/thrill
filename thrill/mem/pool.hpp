@@ -15,6 +15,7 @@
 #define THRILL_MEM_POOL_HEADER
 
 #include <thrill/common/logger.hpp>
+#include <thrill/common/splay_tree.hpp>
 #include <thrill/mem/allocator_base.hpp>
 
 #include <algorithm>
@@ -76,18 +77,18 @@ public:
     Pool& operator = (const Pool&) = delete;
     //! move-constructor
     Pool(Pool&& pool) noexcept
-        : base_(pool.base_), first_arena_(pool.first_arena_),
+        : base_(pool.base_), free_arena_(pool.free_arena_),
           free_(pool.free_), size_(pool.size_) {
-        pool.first_arena_ = nullptr;
+        pool.free_arena_ = nullptr;
     }
     //! move-assignment
     Pool& operator = (Pool&& pool) noexcept {
         if (this == &pool) return *this;
         DeallocateAll();
         base_ = pool.base_;
-        first_arena_ = pool.first_arena_;
+        free_arena_ = pool.free_arena_;
         free_ = pool.free_, size_ = pool.size_;
-        pool.first_arena_ = nullptr;
+        pool.free_arena_ = nullptr;
         pool.free_ = pool.size_ = 0;
         return *this;
     }
@@ -109,7 +110,7 @@ public:
         // round up to whole slot size
         n = (n + sizeof(Slot) - 1) / sizeof(Slot);
 
-        Arena* curr_arena = first_arena_;
+        Arena* curr_arena = free_arena_;
 
         if (curr_arena == nullptr || free_ < n)
             curr_arena = AllocateFreeArena();
@@ -172,65 +173,68 @@ public:
     void deallocate(void* ptr, size_t n) {
         if (ptr == nullptr) return;
 
-        sLOG << "deallocate() n" << n;
+        sLOG << "deallocate() ptr" << ptr << "n" << n;
 
         n = (n + sizeof(Slot) - 1) / sizeof(Slot);
         assert(n <= size_);
 
-        // iterate over arenas and find arena containing ptr
-        for (Arena* curr_arena = first_arena_, * prev_arena = nullptr;
-             curr_arena != nullptr;
-             prev_arena = curr_arena, curr_arena = curr_arena->next_arena)
-        {
-            if (ptr < curr_arena->begin() || ptr >= curr_arena->end())
-                continue;
+        // splay arenas to find arena containing ptr
+        root_arena_ = common::splayz(ptr, root_arena_, ArenaCompare());
 
-            Slot* prev_slot = &curr_arena->head_slot;
-            Slot* ptr_slot = reinterpret_cast<Slot*>(ptr);
-
-            // advance prev_slot until the next jumps over ptr.
-            while (curr_arena->slots + prev_slot->next < ptr_slot) {
-                prev_slot = curr_arena->slots + prev_slot->next;
-            }
-
-            // fill deallocated slot with free information
-            ptr_slot->next = prev_slot->next;
-            ptr_slot->size = n;
-
-            prev_slot->next = ptr_slot - curr_arena->slots;
-
-            // defragment free slots, but exempt the head_slot
-            if (prev_slot == &curr_arena->head_slot)
-                prev_slot = curr_arena->slots + curr_arena->head_slot.next;
-
-            while (prev_slot->next != kSlotsPerArena &&
-                   prev_slot->next == prev_slot - curr_arena->slots + prev_slot->size)
-            {
-                // join free slots
-                Slot* next_slot = curr_arena->slots + prev_slot->next;
-                prev_slot->size += next_slot->size;
-                prev_slot->next = next_slot->next;
-            }
-
-            curr_arena->head_slot.size += n;
-            size_ -= n;
-            free_ += n;
-
-            if (curr_arena->head_slot.size == kSlotsPerArena)
-            {
-                // splice current arena from chain
-                if (prev_arena)
-                    prev_arena->next_arena = curr_arena->next_arena;
-                else
-                    first_arena_ = curr_arena->next_arena;
-
-                base_.deallocate(reinterpret_cast<char*>(curr_arena), ArenaSize);
-                free_ -= kSlotsPerArena;
-            }
-
-            print();
-            break;
+        if (!(ptr >= root_arena_->begin() && ptr < root_arena_->end())) {
+            assert(!"deallocate() of memory not in any arena.");
+            abort();
         }
+
+        Slot* prev_slot = &root_arena_->head_slot;
+        Slot* ptr_slot = reinterpret_cast<Slot*>(ptr);
+
+        // advance prev_slot until the next jumps over ptr.
+        while (root_arena_->slots + prev_slot->next < ptr_slot) {
+            prev_slot = root_arena_->slots + prev_slot->next;
+        }
+
+        // fill deallocated slot with free information
+        ptr_slot->next = prev_slot->next;
+        ptr_slot->size = n;
+
+        prev_slot->next = ptr_slot - root_arena_->slots;
+
+        // defragment free slots, but exempt the head_slot
+        if (prev_slot == &root_arena_->head_slot)
+            prev_slot = root_arena_->slots + root_arena_->head_slot.next;
+
+        while (prev_slot->next != kSlotsPerArena &&
+               prev_slot->next == prev_slot - root_arena_->slots + prev_slot->size)
+        {
+            // join free slots
+            Slot* next_slot = root_arena_->slots + prev_slot->next;
+            prev_slot->size += next_slot->size;
+            prev_slot->next = next_slot->next;
+        }
+
+        root_arena_->head_slot.size += n;
+        size_ -= n;
+        free_ += n;
+
+        if (root_arena_->head_slot.size == kSlotsPerArena)
+        {
+            // remove current arena from tree
+            Arena* root = common::splayz_erase_top(root_arena_, ArenaCompare());
+
+            // splice current arena from free list
+            if (root->prev_arena)
+                root->prev_arena->next_arena = root->next_arena;
+            if (root->next_arena)
+                root->next_arena->prev_arena = root->prev_arena;
+            if (free_arena_ == root)
+                free_arena_ = root->next_arena;
+
+            base_.deallocate(reinterpret_cast<char*>(root), ArenaSize);
+            free_ -= kSlotsPerArena;
+        }
+
+        print();
     }
 
     void print() const {
@@ -239,7 +243,7 @@ public:
 
         size_t total_free = 0, total_size = 0;
 
-        for (Arena* curr_arena = first_arena_; curr_arena != nullptr;
+        for (Arena* curr_arena = free_arena_; curr_arena != nullptr;
              curr_arena = curr_arena->next_arena)
         {
             std::ostringstream oss;
@@ -275,6 +279,11 @@ public:
 
             total_free += free;
             total_size += size;
+
+            if (curr_arena->next_arena)
+                die_unequal(curr_arena->next_arena->prev_arena, curr_arena);
+            if (curr_arena->prev_arena)
+                die_unequal(curr_arena->prev_arena->next_arena, curr_arena);
         }
         die_unequal(total_size, size_);
         die_unequal(total_free, free_);
@@ -297,8 +306,17 @@ private:
 
     //! header of an Arena, used to calculate number of slots
     struct Header {
-        Arena* next_arena;
-        Slot head_slot;
+        Arena  * next_arena, *prev_arena;
+        Slot   head_slot;
+
+        Arena  * left = nullptr, * right = nullptr;
+        size_t size;
+
+        friend std::ostream& operator << (std::ostream& os, const Header& h)
+        {
+            //->key << "(" << t->size << ")"
+            return os << &h;
+        }
     };
 
     static constexpr size_t kSlotsPerArena =
@@ -315,11 +333,27 @@ private:
 
     static_assert(ArenaSize >= sizeof(Arena), "ArenaSize too small.");
 
+    //! comparison function for splay tree
+    struct ArenaCompare {
+        bool operator () (const Arena* a, const void* ptr) const {
+            return a + 1 /* (= ArenaSize) */ < ptr;
+        }
+        bool operator () (const void* ptr, const Arena* a) const {
+            return ptr < a;
+        }
+        bool operator () (const Arena* a, const Arena* b) const {
+            return a < b;
+        }
+    };
+
     //! base allocator
     BaseAllocator base_;
 
     //! pointer to first arena, arenas are in allocation order
-    Arena* first_arena_ = nullptr;
+    Arena* free_arena_ = nullptr;
+
+    //! pointer to root arena in splay tree
+    Arena* root_arena_ = nullptr;
 
     //! number of free slots in the arenas
     size_t free_ = 0;
@@ -331,8 +365,11 @@ private:
 
         // Allocate space for the new block
         Arena* new_arena = reinterpret_cast<Arena*>(base_.allocate(ArenaSize));
-        new_arena->next_arena = first_arena_;
-        first_arena_ = new_arena;
+        new_arena->next_arena = free_arena_;
+        new_arena->prev_arena = nullptr;
+        if (free_arena_)
+            free_arena_->prev_arena = new_arena;
+        free_arena_ = new_arena;
 
         new_arena->head_slot.size = kSlotsPerArena;
         new_arena->head_slot.next = 0;
@@ -342,11 +379,14 @@ private:
 
         free_ += kSlotsPerArena;
 
+        root_arena_ = common::splayz(new_arena, root_arena_, ArenaCompare());
+        root_arena_ = common::splayz_insert(new_arena, root_arena_, ArenaCompare());
+
         return new_arena;
     }
 
     void DeallocateAll() {
-        Arena* curr_arena = first_arena_;
+        Arena* curr_arena = free_arena_;
         while (curr_arena != nullptr) {
             Arena* next_arena = curr_arena->next_arena;
             base_.deallocate(reinterpret_cast<char*>(curr_arena), ArenaSize);

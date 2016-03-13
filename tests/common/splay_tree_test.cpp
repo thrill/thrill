@@ -12,7 +12,9 @@
 
 #include <gtest/gtest.h>
 
+#include <deque>
 #include <iterator>
+#include <random>
 #include <set>
 #include <vector>
 
@@ -75,6 +77,42 @@ TEST(SplayTree, Test1) {
 
     for (size_t i = 0; i < 100; i++) {
         tree.erase((541 * i) & 1023);
+    }
+}
+
+TEST(SplayTree, Random) {
+
+    using Tree = common::SplayzTree<size_t>;
+
+    Tree tree;
+    std::deque<size_t> check;
+
+    std::default_random_engine rng(1234);
+
+    size_t limit = 1000;
+    for (size_t i = 0; i < limit; ++i) {
+        size_t op = rng() % 2;
+        if (op == 0 && limit > i + check.size())
+        {
+            size_t v = rng();
+            tree.insert(v);
+            check.insert(std::lower_bound(check.begin(), check.end(), v), v);
+        }
+        else if (check.size())
+        {
+            size_t idx = rng() % check.size();
+            auto it = check.begin() + idx;
+
+            ASSERT_TRUE(tree.exists(*it));
+            tree.erase(*it);
+            check.erase(it);
+        }
+
+        std::deque<size_t> preorder;
+        tree.traverse_preorder(
+            [&](const size_t& t) { preorder.push_back(t); });
+
+        ASSERT_EQ(check, preorder);
     }
 }
 

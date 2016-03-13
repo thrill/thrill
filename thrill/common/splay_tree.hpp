@@ -73,48 +73,90 @@ inline size_t splayz_size(Tree* x) {
     return (x == nullptr) ? 0 : x->size;
 }
 
+//! print the tree
+template <typename Tree>
+inline void splayz_print(Tree* t, size_t d = 0) {
+    if (t == nullptr) return;
+    splayz_print(t->right, d + 1);
+    for (size_t i = 0; i < d; i++) std::cout << "  ";
+    std::cout << *t << std::endl;
+    splayz_print(t->left, d + 1);
+}
+
+//! check the tree order, recursively calculate min and max elements
+template <typename Tree, typename Compare>
+inline void splayz_check(
+    const Tree* t,
+    const Tree*& out_tmin, const Tree*& out_tmax, size_t & out_size,
+    const Compare& cmp) {
+
+    if (t == nullptr) return;
+
+    const Tree* tmin = nullptr, *tmax = nullptr;
+    size_t left_size = 0, right_size = 0;
+    splayz_check(t->left, out_tmin, tmax, left_size, cmp);
+    splayz_check(t->right, tmin, out_tmax, right_size, cmp);
+
+    if (tmax) assert(cmp(tmax, t));
+    if (tmin) assert(cmp(t, tmin));
+    assert(t->size == left_size + 1 + right_size);
+    out_size = t->size;
+}
+
+//! check the tree order
+template <typename Tree, typename Compare>
+inline void splayz_check(const Tree* t, const Compare& cmp) {
+    if (t == nullptr) return;
+    const Tree* tmin = nullptr, *tmax = nullptr;
+    size_t size = 0;
+    splayz_check(t, tmin, tmax, size, cmp);
+}
+
 //! Splay using the key i (which may or may not be in the tree.)  The starting
 //! root is t, and the tree used is defined by rat size fields are maintained.
-template <typename Key, typename Tree>
-inline Tree * splayz(const Key& k, Tree* t) {
-    Tree N, * l, * r, * y;
+template <typename Key, typename Tree, typename Compare>
+inline Tree * splayz(const Key& k, Tree* t, const Compare& cmp) {
+    Tree* N_left = nullptr, * N_right = nullptr;
+    Tree* l = nullptr, * r = nullptr;
     size_t root_size, l_size, r_size;
 
     if (t == nullptr) return t;
-    N.left = N.right = nullptr;
-    l = r = &N;
     root_size = splayz_size(t);
     l_size = r_size = 0;
 
     for ( ; ; ) {
-        if (k < t->key) {
+        if (cmp(k, t)) {
             if (t->left == nullptr) break;
 
-            if (k < t->left->key) {
-                y = t->left;                     /* rotate right */
+            if (cmp(k, t->left)) {
+                /* rotate right */
+                Tree* y = t->left;
                 t->left = y->right;
                 y->right = t;
                 t->size = splayz_size(t->left) + splayz_size(t->right) + 1;
                 t = y;
                 if (t->left == nullptr) break;
             }
-            r->left = t;                           /* link right */
+            /* link right */
+            (r ? r->left : N_left) = t;
             r = t;
             t = t->left;
             r_size += 1 + splayz_size(r->right);
         }
-        else if (k > t->key) {
+        else if (cmp(t, k)) {
             if (t->right == nullptr) break;
 
-            if (k > t->right->key) {
-                y = t->right;                    /* rotate left */
+            if (cmp(t->right, k)) {
+                /* rotate left */
+                Tree* y = t->right;
                 t->right = y->left;
                 y->left = t;
                 t->size = splayz_size(t->left) + splayz_size(t->right) + 1;
                 t = y;
                 if (t->right == nullptr) break;
             }
-            l->right = t;                          /* link left */
+            /* link left */
+            (l ? l->right : N_right) = t;
             l = t;
             t = t->right;
             l_size += 1 + splayz_size(l->left);
@@ -130,94 +172,103 @@ inline Tree * splayz(const Key& k, Tree* t) {
     r_size += splayz_size(t->right);
     t->size = l_size + r_size + 1;
 
-    l->right = r->left = nullptr;
+    (l ? l->right : N_right) = (r ? r->left : N_left) = nullptr;
 
     /* The following two loops correct the size fields of the right path  */
     /* from the left child of the root and the right path from the left   */
     /* child of the root.                                                 */
-    for (y = N.right; y != nullptr; y = y->right) {
+    for (Tree* y = N_right; y != nullptr; y = y->right) {
         y->size = l_size;
         l_size -= 1 + splayz_size(y->left);
     }
-    for (y = N.left; y != nullptr; y = y->left) {
+    for (Tree* y = N_left; y != nullptr; y = y->left) {
         y->size = r_size;
         r_size -= 1 + splayz_size(y->right);
     }
 
     /* assemble */
-    l->right = t->left;
-    r->left = t->right;
-    t->left = N.right;
-    t->right = N.left;
+    (l ? l->right : N_right) = t->left;
+    (r ? r->left : N_left) = t->right;
+    t->left = N_right;
+    t->right = N_left;
 
     return t;
 }
 
-//! Insert key i into the tree t, if it is not already there.  Return a pointer
-//! to the resulting tree.
-template <typename Key, typename Tree>
-inline Tree * splayz_insert(const Key& k, Tree* t) {
-
-    Tree* new_node;
-
-    if (t != nullptr) {
-        t = splayz(k, t);
-        if (k == t->key) {
-            return t; /* it's already there */
-        }
-    }
-    new_node = new Tree();
-
+//! Insert key i into the tree t, if it is not already there.  Before calling
+//! this method, one *MUST* call splayz() to rotate the tree to the right
+//! position. Return a pointer to the resulting tree.
+template <typename Tree, typename Compare>
+inline Tree * splayz_insert(Tree* nn, Tree* t, const Compare& cmp) {
     if (t == nullptr) {
-        new_node->left = new_node->right = nullptr;
+        nn->left = nn->right = nullptr;
     }
-    else if (k < t->key) {
-        new_node->left = t->left;
-        new_node->right = t;
+    else if (cmp(nn, t)) {
+        nn->left = t->left;
+        nn->right = t;
         t->left = nullptr;
         t->size = 1 + splayz_size(t->right);
     }
     else {
-        new_node->right = t->right;
-        new_node->left = t;
+        nn->right = t->right;
+        nn->left = t;
         t->right = nullptr;
         t->size = 1 + splayz_size(t->left);
     }
-    new_node->key = k;
-    new_node->size =
-        1 + splayz_size(new_node->left) + splayz_size(new_node->right);
-    return new_node;
+    nn->size = 1 + splayz_size(nn->left) + splayz_size(nn->right);
+    return nn;
 }
 
 //! Erases i from the tree if it's there.  Return a pointer to the resulting
 //! tree.
-template <typename Key, typename Tree>
-inline Tree * splayz_erase(const Key& k, Tree* t) {
-    Tree* x;
-    size_t tsize;
-
+template <typename Key, typename Tree, typename Compare>
+inline Tree * splayz_erase(const Key& k, Tree*& t, const Compare& cmp) {
     if (t == nullptr) return nullptr;
-    tsize = t->size;
-    t = splayz(k, t);
-    if (k == t->key) {
+    size_t tsize = t->size;
+    t = splayz(k, t, cmp);
+    /* k == t->key ? */
+    if (!cmp(k, t) && !cmp(t, k)) {
         /* found it */
+        Tree* r = t;
         if (t->left == nullptr) {
-            x = t->right;
+            t = t->right;
         }
         else {
-            x = splayz(k, t->left);
+            Tree* x = splayz(k, t->left, cmp);
             x->right = t->right;
+            t = x;
         }
-        delete t;
-        if (x != nullptr) {
-            x->size = tsize - 1;
+        if (t != nullptr) {
+            t->size = tsize - 1;
         }
-        return x;
+        return r;
     }
     else {
         /* It wasn't there */
-        return t;
+        return nullptr;
     }
+}
+
+//! Erases i from the tree if it's there.  Return a pointer to the resulting
+//! tree.
+template <typename Tree, typename Compare>
+inline Tree * splayz_erase_top(Tree*& t, const Compare& cmp) {
+    if (t == nullptr) return nullptr;
+    size_t tsize = t->size;
+    /* found it */
+    Tree* r = t;
+    if (t->left == nullptr) {
+        t = t->right;
+    }
+    else {
+        Tree* x = splayz(r, t->left, cmp);
+        x->right = t->right;
+        t = x;
+    }
+    if (t != nullptr) {
+        t->size = tsize - 1;
+    }
+    return r;
 }
 
 //! Returns a pointer to the node in the tree with the given rank.  Returns
@@ -251,16 +302,6 @@ inline void splayz_traverse_preorder(const Functor& f, const Tree* t) {
     splayz_traverse_preorder(f, t->right);
 }
 
-// print the tree
-template <typename Tree>
-inline void splayz_print(Tree* t, size_t d = 0) {
-    if (t == nullptr) return;
-    splayz_print(t->right, d + 1);
-    for (size_t i = 0; i < d; i++) std::cout << "  ";
-    std::cout << t->key << "(" << t->size << ")" << std::endl;
-    splayz_print(t->left, d + 1);
-}
-
 /******************************************************************************/
 // Splay Tree with tree sizes
 
@@ -273,16 +314,50 @@ public:
         /* maintained to be the number of nodes rooted here */
         size_t size;
         Key    key;
+        explicit Node(const Key& k) : key(k) { }
+        Node() = default;
+    };
+
+    struct NodeCompare {
+        bool operator () (const Node* n, const Key& k) const {
+            return n->key < k;
+        }
+        bool operator () (const Key& k, const Node* n) const {
+            return k < n->key;
+        }
+        bool operator () (const Node* a, const Node* b) const {
+            return a->key < b->key;
+        }
     };
 
     Node* root_ = nullptr;
 
-    void insert(const Key& k) {
-        root_ = splayz_insert(k, root_);
+    //! insert key into tree if it does not exist, returns true if inserted.
+    bool insert(const Key& k) {
+        NodeCompare cmp;
+        if (root_ != nullptr) {
+            root_ = splayz(k, root_, cmp);
+            /* k == t->key ? */
+            if (!cmp(k, root_) && !cmp(root_, k)) {
+                /* it's already there */
+                return false;
+            }
+        }
+        Node* nn = new Node(k);
+        root_ = splayz_insert(nn, root_, cmp);
+        return true;
     }
 
-    void erase(const Key& k) {
-        root_ = splayz_erase(k, root_);
+    bool erase(const Key& k) {
+        Node* out = splayz_erase(k, root_, NodeCompare());
+        if (!out) return false;
+        delete out;
+        return true;
+    }
+
+    bool exists(const Key& k) {
+        root_ = splayz(k, root_, NodeCompare());
+        return root_->key == k;
     }
 
     const Node * rank(size_t i) const {
@@ -290,7 +365,7 @@ public:
     }
 
     Node * find(const Key& k) {
-        return (root_ = splayz(k, root_));
+        return (root_ = splayz(k, root_, NodeCompare()));
     }
 
     template <typename Functor>
