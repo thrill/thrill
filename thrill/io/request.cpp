@@ -100,9 +100,11 @@ void RequestDeleter(Request* req) {
     if (ServingRequest* r = dynamic_cast<ServingRequest*>(req)) {
         mem::g_pool.destroy(r);
     }
+#if THRILL_HAVE_LINUXAIO_FILE
     else if (LinuxaioRequest* r = dynamic_cast<LinuxaioRequest*>(req)) {
         mem::g_pool.destroy(r);
     }
+#endif
     else {
         abort();
     }

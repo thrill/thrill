@@ -25,10 +25,12 @@
 #include <thrill/mem/pool.hpp>
 
 #include <deque>
+#include <functional>
 #include <future>
 #include <mutex>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -219,7 +221,10 @@ private:
     PinCount pin_count_;
 
     //! type of set of ByteBlocks currently begin written to EM.
-    using WritingMap = std::unordered_map<ByteBlock*, io::RequestPtr>;
+    using WritingMap = std::unordered_map<
+              ByteBlock*, io::RequestPtr,
+              std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+              mem::GPoolAllocator<std::pair<ByteBlock* const, io::RequestPtr> > >;
 
     //! set of ByteBlocks currently begin written to EM.
     WritingMap writing_;
@@ -231,7 +236,9 @@ private:
     size_t writing_bytes_ = 0;
 
     //! set of ByteBlock currently in EM.
-    std::unordered_set<ByteBlock*> swapped_;
+    std::unordered_set<
+        ByteBlock*, std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+        mem::GPoolAllocator<ByteBlock*> > swapped_;
 
     //! total number of bytes in swapped blocks
     size_t swapped_bytes_ = 0;
@@ -251,7 +258,10 @@ private:
 
     //! type of set of ByteBlocks currently begin read from EM.
     using ReadingMap = std::unordered_map<
-              ByteBlock*, std::unique_ptr<ReadRequest> >;
+              ByteBlock*, std::unique_ptr<ReadRequest>,
+              std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+              mem::GPoolAllocator<
+                  std::pair<ByteBlock* const, std::unique_ptr<ReadRequest> > > >;
 
     //! set of ByteBlocks currently begin read from EM.
     ReadingMap reading_;
