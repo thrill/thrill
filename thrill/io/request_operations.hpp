@@ -17,7 +17,6 @@
 #ifndef THRILL_IO_REQUEST_OPERATIONS_HEADER
 #define THRILL_IO_REQUEST_OPERATIONS_HEADER
 
-#include <thrill/common/onoff_switch.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request.hpp>
 

@@ -19,7 +19,6 @@
 
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/delegate.hpp>
-#include <thrill/common/onoff_switch.hpp>
 #include <thrill/common/state.hpp>
 #include <thrill/io/exceptions.hpp>
 
