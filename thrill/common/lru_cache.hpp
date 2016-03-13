@@ -16,6 +16,7 @@
 #ifndef THRILL_COMMON_LRU_CACHE_HEADER
 #define THRILL_COMMON_LRU_CACHE_HEADER
 
+#include <cassert>
 #include <cstddef>
 #include <list>
 #include <stdexcept>

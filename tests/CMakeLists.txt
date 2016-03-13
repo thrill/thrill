@@ -94,6 +94,7 @@ thrill_build_test_group(common/tests
   common/math_test.cpp
   common/matrix_test.cpp
   common/meta_test.cpp
+  common/splay_tree_test.cpp
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
   common/string_view_test.cpp
