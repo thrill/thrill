@@ -311,6 +311,9 @@ private:
     //! make ostream-able
     friend std::ostream& operator << (std::ostream& os, const PinCount& p);
 
+    //! for calling OnWriteComplete
+    friend class ByteBlock;
+
     //! \name Block Statistics
     //! \{
 

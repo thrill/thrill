@@ -31,6 +31,7 @@ namespace io {
 
 // forward declarations
 class FileBase;
+class Request;
 
 //! Block identifier class.
 //!

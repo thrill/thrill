@@ -126,6 +126,9 @@ private:
     friend class Block;
     friend class PinnedBlock;
 
+    //! No default construction of Byteblock
+    ByteBlock() = delete;
+
     /*!
      * Constructor to initialize ByteBlock in a buffer of memory. Protected,
      * used BlockPool::AllocateByteBlock() for construction.
@@ -144,8 +147,8 @@ private:
 
     friend std::ostream& operator << (std::ostream& os, const ByteBlock& b);
 
-    //! No default construction of Byteblock
-    ByteBlock() = delete;
+    //! forwarded to block_pool_
+    void OnWriteComplete(io::Request* req, bool success);
 };
 
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;

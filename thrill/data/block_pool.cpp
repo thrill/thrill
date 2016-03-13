@@ -701,6 +701,7 @@ void BlockPool::EvictBlockLRU() {
 
 void BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
 
+    assert(block_ptr->block_pool_ == this);
     assert(block_ptr->em_bid_.storage == nullptr);
 
     if (block_ptr->ext_file_) {
@@ -732,9 +733,9 @@ void BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
     writing_[block_ptr] =
         block_ptr->em_bid_.storage->awrite(
             block_ptr->data_, block_ptr->em_bid_.offset, block_ptr->size(),
-            [this, block_ptr](io::Request* req, bool success) {
-                return OnWriteComplete(block_ptr, req, success);
-            });
+            // construct an immediate CompletionHandler callback
+            io::CompletionHandler::from<
+                ByteBlock, & ByteBlock::OnWriteComplete>(block_ptr));
 }
 
 void BlockPool::OnWriteComplete(

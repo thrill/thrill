@@ -61,6 +61,10 @@ void ByteBlock::DecPinCount(size_t local_worker_id) {
     return block_pool_->DecBlockPinCount(this, local_worker_id);
 }
 
+void ByteBlock::OnWriteComplete(io::Request* req, bool success) {
+    return block_pool_->OnWriteComplete(this, req, success);
+}
+
 std::ostream& operator << (std::ostream& os, const ByteBlock& b) {
     os << "[ByteBlock"
        << " size_=" << b.size_

@@ -37,8 +37,8 @@ BlockManager::BlockManager() {
 
     // allocate disk_allocators
     ndisks_ = config->disks_number();
-    disk_allocators_ = new DiskAllocator*[ndisks_];
-    disk_files_ = new FileBase*[ndisks_];
+    disk_allocators_.resize(ndisks_);
+    disk_files_.resize(ndisks_);
 
     uint64_t total_size = 0;
 
@@ -96,8 +96,6 @@ BlockManager::~BlockManager() {
         delete disk_allocators_[i];
         delete disk_files_[i];
     }
-    delete[] disk_allocators_;
-    delete[] disk_files_;
 }
 
 uint64_t BlockManager::get_total_bytes() const {
