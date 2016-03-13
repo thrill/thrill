@@ -111,7 +111,7 @@ public:
     void * allocate(size_t n) {
         std::unique_lock<std::mutex> lock(mutex_);
 
-        sLOG1 << "allocate() n" << n
+        sLOG << "allocate() n" << n
              << "kSlotsPerArena" << size_t(kSlotsPerArena);
 
         assert(n <= max_size());
@@ -187,7 +187,7 @@ public:
         if (ptr == nullptr) return;
 
         std::unique_lock<std::mutex> lock(mutex_);
-        sLOG1 << "deallocate() ptr" << ptr << "n" << n;
+        sLOG << "deallocate() ptr" << ptr << "n" << n;
 
         // round up to whole slot size, and divide by slot size
         n = (n + sizeof(Slot) - 1) / sizeof(Slot);

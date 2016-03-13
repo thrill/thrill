@@ -109,43 +109,6 @@ void RequestDeleter(Request* req) {
 }
 
 /******************************************************************************/
-// Waiters
-
-bool Request::add_waiter(common::onoff_switch* sw) {
-    // this lock needs to be obtained before poll(), otherwise a race
-    // condition might occur: the state might change and notify_waiters()
-    // could be called between poll() and insert() resulting in waiter sw
-    // never being notified
-    std::unique_lock<std::mutex> lock(waiters_mutex_);
-
-    if (poll()) {
-        // request already finished
-        return true;
-    }
-
-    waiters_.insert(sw);
-
-    return false;
-}
-
-void Request::delete_waiter(common::onoff_switch* sw) {
-    std::unique_lock<std::mutex> lock(waiters_mutex_);
-    waiters_.erase(sw);
-}
-
-void Request::notify_waiters() {
-    std::unique_lock<std::mutex> lock(waiters_mutex_);
-    std::for_each(waiters_.begin(),
-                  waiters_.end(),
-                  std::mem_fun(&common::onoff_switch::on));
-}
-
-size_t Request::num_waiters() {
-    std::unique_lock<std::mutex> lock(waiters_mutex_);
-    return waiters_.size();
-}
-
-/******************************************************************************/
 // Request Completion State
 
 void Request::wait(bool measure_time) {
@@ -171,7 +134,6 @@ bool Request::cancel() {
             // user callback
             if (on_complete_)
                 on_complete_(this, false);
-            notify_waiters();
             file_->delete_request_ref();
             file_ = nullptr;
             state_.set_to(READY2DIE);
@@ -197,7 +159,6 @@ void Request::completed(bool canceled) {
     if (on_complete_)
         on_complete_(this, !canceled);
     // notify waiters
-    notify_waiters();
     file_->delete_request_ref();
     file_ = nullptr;
     state_.set_to(READY2DIE);

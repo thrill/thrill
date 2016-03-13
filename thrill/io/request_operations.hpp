@@ -93,59 +93,6 @@ inline bool poll_any(RequestPtr req_array[], size_t count, size_t& index) {
     return res != (req_array + count);
 }
 
-//! Suspends calling thread until \b any of requests is completed.
-//! \param reqs_begin begin of request sequence to wait for
-//! \param reqs_end end of request sequence to wait for
-//! \return index in req_array pointing to the \b first completed request
-template <typename RequestIterator>
-RequestIterator wait_any(RequestIterator reqs_begin, RequestIterator reqs_end) {
-    Stats::scoped_wait_timer wait_timer(Stats::WAIT_OP_ANY);
-
-    common::onoff_switch sw;
-
-    RequestIterator cur = reqs_begin, result = reqs_end;
-
-    for ( ; cur != reqs_end; cur++)
-    {
-        if ((RequestPtr(*cur))->add_waiter(&sw))
-        {
-            // request is already done, no waiter was added to the request
-            result = cur;
-
-            if (cur != reqs_begin)
-            {
-                while (--cur != reqs_begin)
-                    (RequestPtr(*cur))->delete_waiter(&sw);
-
-                (RequestPtr(*cur))->delete_waiter(&sw);
-            }
-
-            (RequestPtr(*result))->check_error();
-
-            return result;
-        }
-    }
-
-    sw.wait_for_on();
-
-    for (cur = reqs_begin; cur != reqs_end; cur++)
-    {
-        (RequestPtr(*cur))->delete_waiter(&sw);
-        if (result == reqs_end && (RequestPtr(*cur))->poll())
-            result = cur;
-    }
-
-    return result;
-}
-
-//! Suspends calling thread until \b any of requests is completed.
-//! \param req_array array of \c request_ptr objects
-//! \param count size of req_array
-//! \return index in req_array pointing to the \b first completed request
-static inline size_t wait_any(RequestPtr req_array[], size_t count) {
-    return wait_any(req_array, req_array + count) - req_array;
-}
-
 //! \}
 
 } // namespace io

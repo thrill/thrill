@@ -26,7 +26,6 @@
 #include <cassert>
 #include <memory>
 #include <mutex>
-#include <set>
 #include <string>
 
 namespace thrill {
@@ -131,27 +130,6 @@ protected:
 
 private:
     void check_nref_failed(bool after);
-
-    //! \}
-
-    //! \name Waiters
-    //! \{
-
-public:
-    //! add a waiter to notify on completion
-    bool add_waiter(common::onoff_switch* sw);
-    //! remove waiter to notify.
-    void delete_waiter(common::onoff_switch* sw);
-    //! returns number of waiters
-    size_t num_waiters();
-
-protected:
-    //! called by the file implementation to notify all waiters
-    void notify_waiters();
-
-private:
-    std::mutex waiters_mutex_;
-    std::set<common::onoff_switch*> waiters_;
 
     //! \}
 
