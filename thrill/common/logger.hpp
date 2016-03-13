@@ -14,10 +14,10 @@
 #ifndef THRILL_COMMON_LOGGER_HEADER
 #define THRILL_COMMON_LOGGER_HEADER
 
+#include <thrill/common/die.hpp>
 #include <thrill/mem/allocator.hpp>
 
 #include <sstream>
-#include <stdexcept>
 #include <string>
 
 namespace thrill {
@@ -179,41 +179,6 @@ public:
 //! Override default output: never or always output log.
 #define sLOG0 sLOGC(false)
 #define sLOG1 sLOGC(true)
-
-/******************************************************************************/
-
-//! Instead of abort(), throw the output the message via an exception.
-#define die(msg)                                            \
-    do {                                                    \
-        std::ostringstream oss;                             \
-        oss << msg << " @ " << __FILE__ << ':' << __LINE__; \
-        throw std::runtime_error(oss.str());                \
-    } while (0)
-
-//! Check condition X and die miserably if false. Same as assert() except this
-//! is also active in Release mode.
-#define die_unless(X) \
-    do { if (!(X)) die("Assertion \"" #X "\" failed"); } while (0)
-
-//! Check that X == Y or die miserably, but output the values of X and Y for
-//! better debugging.
-#define die_unequal(X, Y)                              \
-    do {                                               \
-        if ((X) != (Y))                                \
-            die("Inequality: " #X " != " #Y " : "      \
-                "\"" << X << "\" != \"" << Y << "\""); \
-    } while (0)
-
-//! Check that code throws an Exception
-#define die_unless_throws(code, Exception)                        \
-    do {                                                          \
-        bool t_ = false; try { code; }                            \
-        catch (const Exception&) { t_ = true; }                   \
-        if (t_) break;                                            \
-        die("UNLESS-THROWS: " #code " - NO EXCEPTION " #Exception \
-            " @ " __FILE__ ":" << __LINE__);                      \
-        abort();                                                  \
-    } while (0)
 
 } // namespace common
 } // namespace thrill
