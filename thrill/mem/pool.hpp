@@ -179,7 +179,7 @@ public:
         assert(n <= size_);
 
         // splay arenas to find arena containing ptr
-        root_arena_ = common::splayz(ptr, root_arena_, ArenaCompare());
+        root_arena_ = common::splay(ptr, root_arena_, ArenaCompare());
 
         if (!(ptr >= root_arena_->begin() && ptr < root_arena_->end())) {
             assert(!"deallocate() of memory not in any arena.");
@@ -220,7 +220,7 @@ public:
         if (root_arena_->head_slot.size == kSlotsPerArena)
         {
             // remove current arena from tree
-            Arena* root = common::splayz_erase_top(root_arena_, ArenaCompare());
+            Arena* root = common::splay_erase_top(root_arena_, ArenaCompare());
 
             // splice current arena from free list
             if (root->prev_arena)
@@ -306,17 +306,10 @@ private:
 
     //! header of an Arena, used to calculate number of slots
     struct Header {
-        Arena  * next_arena, *prev_arena;
-        Slot   head_slot;
+        Arena* next_arena, * prev_arena;
+        Slot head_slot;
 
-        Arena  * left = nullptr, * right = nullptr;
-        size_t size;
-
-        friend std::ostream& operator << (std::ostream& os, const Header& h)
-        {
-            //->key << "(" << t->size << ")"
-            return os << &h;
-        }
+        Arena* left = nullptr, * right = nullptr;
     };
 
     static constexpr size_t kSlotsPerArena =
@@ -379,8 +372,8 @@ private:
 
         free_ += kSlotsPerArena;
 
-        root_arena_ = common::splayz(new_arena, root_arena_, ArenaCompare());
-        root_arena_ = common::splayz_insert(new_arena, root_arena_, ArenaCompare());
+        root_arena_ = common::splay(new_arena, root_arena_, ArenaCompare());
+        root_arena_ = common::splay_insert(new_arena, root_arena_, ArenaCompare());
 
         return new_arena;
     }

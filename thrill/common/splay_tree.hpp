@@ -66,7 +66,177 @@ namespace thrill {
 namespace common {
 
 /******************************************************************************/
-// Free Splay Tree methods with tree sizes
+// splay -- Free Splay Tree methods without tree sizes
+
+//! print the tree
+template <typename Tree>
+inline void splay_print(Tree* t, size_t d = 0) {
+    if (t == nullptr) return;
+    splay_print(t->right, d + 1);
+    for (size_t i = 0; i < d; i++) std::cout << "  ";
+    std::cout << *t << std::endl;
+    splay_print(t->left, d + 1);
+}
+
+//! check the tree order, recursively calculate min and max elements
+template <typename Tree, typename Compare>
+inline void splay_check(
+    const Tree* t,
+    const Tree*& out_tmin, const Tree*& out_tmax,
+    const Compare& cmp) {
+
+    if (t == nullptr) return;
+
+    const Tree* tmin = nullptr, * tmax = nullptr;
+    splay_check(t->left, out_tmin, tmax, cmp);
+    splay_check(t->right, tmin, out_tmax, cmp);
+
+    if (tmax) assert(cmp(tmax, t));
+    if (tmin) assert(cmp(t, tmin));
+}
+
+//! check the tree order
+template <typename Tree, typename Compare>
+inline void splay_check(const Tree* t, const Compare& cmp) {
+    if (t == nullptr) return;
+    const Tree* tmin = nullptr, * tmax = nullptr;
+    splay_check(t, tmin, tmax, cmp);
+}
+
+//! Splay using the key i (which may or may not be in the tree.)  The starting
+//! root is t, and the tree used is defined by rat size fields are maintained.
+template <typename Key, typename Tree, typename Compare>
+inline Tree * splay(const Key& k, Tree* t, const Compare& cmp) {
+    Tree* N_left = nullptr, * N_right = nullptr;
+    Tree* l = nullptr, * r = nullptr;
+
+    if (t == nullptr) return t;
+
+    for ( ; ; ) {
+        if (cmp(k, t)) {
+            if (t->left == nullptr) break;
+
+            if (cmp(k, t->left)) {
+                /* rotate right */
+                Tree* y = t->left;
+                t->left = y->right;
+                y->right = t;
+                t = y;
+                if (t->left == nullptr) break;
+            }
+            /* link right */
+            (r ? r->left : N_left) = t;
+            r = t;
+            t = t->left;
+        }
+        else if (cmp(t, k)) {
+            if (t->right == nullptr) break;
+
+            if (cmp(t->right, k)) {
+                /* rotate left */
+                Tree* y = t->right;
+                t->right = y->left;
+                y->left = t;
+                t = y;
+                if (t->right == nullptr) break;
+            }
+            /* link left */
+            (l ? l->right : N_right) = t;
+            l = t;
+            t = t->right;
+        }
+        else {
+            break;
+        }
+    }
+
+    (l ? l->right : N_right) = (r ? r->left : N_left) = nullptr;
+
+    /* assemble */
+    (l ? l->right : N_right) = t->left;
+    (r ? r->left : N_left) = t->right;
+    t->left = N_right;
+    t->right = N_left;
+
+    return t;
+}
+
+//! Insert key i into the tree t, if it is not already there.  Before calling
+//! this method, one *MUST* call splay() to rotate the tree to the right
+//! position. Return a pointer to the resulting tree.
+template <typename Tree, typename Compare>
+inline Tree * splay_insert(Tree* nn, Tree* t, const Compare& cmp) {
+    if (t == nullptr) {
+        nn->left = nn->right = nullptr;
+    }
+    else if (cmp(nn, t)) {
+        nn->left = t->left;
+        nn->right = t;
+        t->left = nullptr;
+    }
+    else {
+        nn->right = t->right;
+        nn->left = t;
+        t->right = nullptr;
+    }
+    return nn;
+}
+
+//! Erases i from the tree if it's there.  Return a pointer to the resulting
+//! tree.
+template <typename Key, typename Tree, typename Compare>
+inline Tree * splay_erase(const Key& k, Tree*& t, const Compare& cmp) {
+    if (t == nullptr) return nullptr;
+    t = splay(k, t, cmp);
+    /* k == t->key ? */
+    if (!cmp(k, t) && !cmp(t, k)) {
+        /* found it */
+        Tree* r = t;
+        if (t->left == nullptr) {
+            t = t->right;
+        }
+        else {
+            Tree* x = splay(k, t->left, cmp);
+            x->right = t->right;
+            t = x;
+        }
+        return r;
+    }
+    else {
+        /* It wasn't there */
+        return nullptr;
+    }
+}
+
+//! Erases i from the tree if it's there.  Return a pointer to the resulting
+//! tree.
+template <typename Tree, typename Compare>
+inline Tree * splay_erase_top(Tree*& t, const Compare& cmp) {
+    if (t == nullptr) return nullptr;
+    /* found it */
+    Tree* r = t;
+    if (t->left == nullptr) {
+        t = t->right;
+    }
+    else {
+        Tree* x = splay(r, t->left, cmp);
+        x->right = t->right;
+        t = x;
+    }
+    return r;
+}
+
+//! traverse the tree in preorder
+template <typename Tree, typename Functor>
+inline void splay_traverse_preorder(const Functor& f, const Tree* t) {
+    if (t == nullptr) return;
+    splay_traverse_preorder(f, t->left);
+    f(*t);
+    splay_traverse_preorder(f, t->right);
+}
+
+/******************************************************************************/
+// splayz -- Free Splay Tree methods with tree sizes
 
 template <typename Tree>
 inline size_t splayz_size(Tree* x) {
@@ -87,12 +257,12 @@ inline void splayz_print(Tree* t, size_t d = 0) {
 template <typename Tree, typename Compare>
 inline void splayz_check(
     const Tree* t,
-    const Tree*& out_tmin, const Tree*& out_tmax, size_t & out_size,
+    const Tree*& out_tmin, const Tree*& out_tmax, size_t& out_size,
     const Compare& cmp) {
 
     if (t == nullptr) return;
 
-    const Tree* tmin = nullptr, *tmax = nullptr;
+    const Tree* tmin = nullptr, * tmax = nullptr;
     size_t left_size = 0, right_size = 0;
     splayz_check(t->left, out_tmin, tmax, left_size, cmp);
     splayz_check(t->right, tmin, out_tmax, right_size, cmp);
@@ -107,7 +277,7 @@ inline void splayz_check(
 template <typename Tree, typename Compare>
 inline void splayz_check(const Tree* t, const Compare& cmp) {
     if (t == nullptr) return;
-    const Tree* tmin = nullptr, *tmax = nullptr;
+    const Tree* tmin = nullptr, * tmax = nullptr;
     size_t size = 0;
     splayz_check(t, tmin, tmax, size, cmp);
 }
