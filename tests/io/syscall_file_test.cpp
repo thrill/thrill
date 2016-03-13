@@ -29,7 +29,7 @@ using namespace thrill;
 struct my_handler
 {
     void operator () (io::Request* ptr, bool /* success */) {
-        LOG1 << "Request completed: " << ptr;
+        LOG0 << "Request completed: " << ptr;
     }
 };
 
@@ -44,17 +44,21 @@ int main(int argc, char** argv) {
     tempfilename[0] = std::string(argv[1]) + "/test_io_1.dat";
     tempfilename[1] = std::string(argv[1]) + "/test_io_2.dat";
 
-    LOG1 << sizeof(void*);
     const int size = 1024 * 384;
     char* buffer = static_cast<char*>(mem::aligned_alloc(size));
     memset(buffer, 0, size);
 
 #if THRILL_HAVE_MMAP_FILE
-    io::MmapFile file1(tempfilename[0], io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT, 0);
+    io::MmapFile file1(
+        tempfilename[0],
+        io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT, 0);
+
     file1.set_size(size * 1024);
 #endif
 
-    io::SyscallFile file2(tempfilename[1], io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT, 1);
+    io::SyscallFile file2(
+        tempfilename[1],
+        io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT, 1);
 
     std::vector<io::RequestPtr> req(16);
     unsigned i;
@@ -73,7 +77,7 @@ int main(int argc, char** argv) {
 
     mem::aligned_dealloc(buffer, size);
 
-    std::cout << *(io::Stats::get_instance());
+    LOG0 << *(io::Stats::get_instance());
 
 #if THRILL_HAVE_MMAP_FILE
     file1.close_remove();

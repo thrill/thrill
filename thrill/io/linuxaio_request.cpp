@@ -91,7 +91,7 @@ bool LinuxaioRequest::post() {
 //!
 //! Routine is called by user, as part of the request interface.
 bool LinuxaioRequest::cancel() {
-    LOG1 << "LinuxaioRequest[" << this << "] cancel()";
+    LOG << "LinuxaioRequest[" << this << "] cancel()";
 
     if (!file_) return false;
 
@@ -103,7 +103,7 @@ bool LinuxaioRequest::cancel() {
 
 //! Cancel already posted request
 bool LinuxaioRequest::cancel_aio() {
-    LOG1 << "LinuxaioRequest[" << this << "] cancel_aio()";
+    LOG << "LinuxaioRequest[" << this << "] cancel_aio()";
 
     if (!file_) return false;
 

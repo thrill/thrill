@@ -22,19 +22,21 @@
 #include <cstring>
 #include <vector>
 
+static constexpr bool debug = false;
+
 using namespace thrill;
 
 struct print_completion
 {
     void operator () (io::Request* ptr, bool /* success */) {
-        std::cout << "Request completed: " << ptr << std::endl;
+        LOG << "Request completed: " << ptr;
     }
 };
 
 int main(int argc, char** argv) {
     if (argc < 3)
     {
-        std::cout << "Usage: " << argv[0] << " filetype tempfile" << std::endl;
+        LOG1 << "Usage: " << argv[0] << " filetype tempfile";
         return -1;
     }
 
@@ -51,33 +53,33 @@ int main(int argc, char** argv) {
     std::vector<io::RequestPtr> req(num_blocks);
 
     // without cancelation
-    std::cout << "Posting " << num_blocks << " requests." << std::endl;
+    LOG << "Posting " << num_blocks << " requests.";
     io::StatsData stats1(*io::Stats::get_instance());
     for (unsigned i = 0; i < num_blocks; i++)
         req[i] = file->awrite(buffer, i * size, size, print_completion());
     wait_all(req.begin(), req.end());
-    std::cout << io::StatsData(*io::Stats::get_instance()) - stats1;
+    LOG << io::StatsData(*io::Stats::get_instance()) - stats1;
 
     // with cancelation
-    std::cout << "Posting " << num_blocks << " requests." << std::endl;
+    LOG << "Posting " << num_blocks << " requests.";
     io::StatsData stats2(*io::Stats::get_instance());
     for (unsigned i = 0; i < num_blocks; i++)
         req[i] = file->awrite(buffer, i * size, size, print_completion());
     // cancel first half
-    std::cout << "Canceling first " << num_blocks / 2 << " requests." << std::endl;
+    LOG << "Canceling first " << num_blocks / 2 << " requests.";
     size_t num_canceled = cancel_all(req.begin(), req.begin() + num_blocks / 2);
-    std::cout << "Successfully canceled " << num_canceled << " requests." << std::endl;
+    LOG << "Successfully canceled " << num_canceled << " requests.";
     // cancel every second in second half
     for (unsigned i = num_blocks / 2; i < num_blocks; i += 2)
     {
-        std::cout << "Canceling request " << &(*(req[i])) << std::endl;
+        LOG << "Canceling request " << &(*(req[i]));
         if (req[i]->cancel())
-            std::cout << "Request canceled: " << &(*(req[i])) << std::endl;
+            LOG << "Request canceled: " << &(*(req[i]));
         else
-            std::cout << "Request not canceled: " << &(*(req[i])) << std::endl;
+            LOG << "Request not canceled: " << &(*(req[i]));
     }
     wait_all(req.begin(), req.end());
-    std::cout << io::StatsData(*io::Stats::get_instance()) - stats2;
+    LOG << io::StatsData(*io::Stats::get_instance()) - stats2;
 
     mem::aligned_dealloc(buffer, size);
 

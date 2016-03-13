@@ -77,7 +77,7 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLocalRealTCPMesh(
         endpoints.push_back("127.0.0.1:" + std::to_string(port_base + i));
     }
 
-    sLOG1 << "Group test uses ports" << port_base << "-" << port_base + num_hosts;
+    sLOG << "Group test uses ports" << port_base << "-" << port_base + num_hosts;
 
     std::vector<std::thread> threads(num_hosts);
 

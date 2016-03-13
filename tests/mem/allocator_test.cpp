@@ -8,37 +8,37 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/mem/allocator.hpp>
+
 #include <gtest/gtest.h>
 #include <thrill/common/logger.hpp>
-#include <thrill/mem/allocator.hpp>
 
 #include <deque>
 #include <vector>
 
 using namespace thrill;
 
-TEST(Allocator, Test1) {
+TEST(Allocator, Vector) {
     mem::Manager mem_manager(nullptr, "TestAllocator");
 
-    LOG1 << "vector";
-    {
-        std::vector<int, mem::Allocator<int> > my_vector {
-            mem::Allocator<int>(mem_manager)
-        };
+    std::vector<int, mem::Allocator<int> > my_vector {
+        mem::Allocator<int>(mem_manager)
+    };
 
-        for (int i = 0; i < 100; ++i) {
-            my_vector.push_back(i);
-        }
+    for (int i = 0; i < 100; ++i) {
+        my_vector.push_back(i);
     }
-    LOG1 << "deque";
-    {
-        std::deque<size_t, mem::Allocator<size_t> > my_deque {
-            mem::Allocator<size_t>(mem_manager)
-        };
+}
 
-        for (int i = 0; i < 100; ++i) {
-            my_deque.push_back(i);
-        }
+TEST(Allocator, Deque) {
+    mem::Manager mem_manager(nullptr, "TestAllocator");
+
+    std::deque<size_t, mem::Allocator<size_t> > my_deque {
+        mem::Allocator<size_t>(mem_manager)
+    };
+
+    for (int i = 0; i < 100; ++i) {
+        my_deque.push_back(i);
     }
 }
 
