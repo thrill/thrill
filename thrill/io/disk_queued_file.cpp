@@ -16,17 +16,17 @@
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/request.hpp>
 #include <thrill/io/serving_request.hpp>
+#include <thrill/mem/pool.hpp>
 
 namespace thrill {
 namespace io {
 
 RequestPtr DiskQueuedFile::aread(
-    void* buffer,
-    offset_type pos,
-    size_type bytes,
+    void* buffer, offset_type pos, size_type bytes,
     const CompletionHandler& on_cmpl) {
-    RequestPtr req(new ServingRequest(on_cmpl, this, buffer, pos, bytes,
-                                      Request::READ));
+
+    RequestPtr req(mem::g_pool.make<ServingRequest>(
+                       on_cmpl, this, buffer, pos, bytes, Request::READ));
 
     DiskQueues::get_instance()->add_request(req, get_queue_id());
 
@@ -34,12 +34,11 @@ RequestPtr DiskQueuedFile::aread(
 }
 
 RequestPtr DiskQueuedFile::awrite(
-    void* buffer,
-    offset_type pos,
-    size_type bytes,
+    void* buffer, offset_type pos, size_type bytes,
     const CompletionHandler& on_cmpl) {
-    RequestPtr req(new ServingRequest(on_cmpl, this, buffer, pos, bytes,
-                                      Request::WRITE));
+
+    RequestPtr req(mem::g_pool.make<ServingRequest>(
+                       on_cmpl, this, buffer, pos, bytes, Request::WRITE));
 
     DiskQueues::get_instance()->add_request(req, get_queue_id());
 

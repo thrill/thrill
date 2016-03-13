@@ -1,7 +1,10 @@
 /*******************************************************************************
  * thrill/mem/pool.hpp
  *
- * A simple memory allocation manager and object allocator.
+ * A simple memory allocation manager and object allocator. The main reason for
+ * this allocation Pool is to keep memory for allocation of I/O data structures
+ * once the main malloc() memory pool runs out. The allocator itself may not be
+ * as faster as possible.
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -22,6 +25,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <type_traits>
 
 namespace thrill {
@@ -33,6 +37,10 @@ namespace mem {
 /*!
  * A simple memory allocation manager. The Pool gets chunks of memory of size
  * ArenaSize from new/delete and delivers smaller byte areas to PoolAllocator.
+ *
+ * The main reason for this allocation Pool is to keep memory for allocation of
+ * I/O data structures once the main malloc() memory pool runs out. The
+ * allocator itself may not be as faster as possible.
  *
  * An Arena is organized as a singly-linked list of continuous free areas, where
  * the free information is stored inside the free memory as a Slot. A Slot is
@@ -94,20 +102,23 @@ public:
     }
 
     ~Pool() noexcept {
+        std::unique_lock<std::mutex> lock(mutex_);
         assert(size_ == 0);
         DeallocateAll();
     }
 
     //! allocate a continuous segment of n bytes in the arenas
     void * allocate(size_t n) {
+        std::unique_lock<std::mutex> lock(mutex_);
 
-        sLOG << "allocate() n" << n
+        sLOG1 << "allocate() n" << n
              << "kSlotsPerArena" << size_t(kSlotsPerArena);
+
         assert(n <= max_size());
         if (n > max_size())
             throw std::bad_alloc();
 
-        // round up to whole slot size
+        // round up to whole slot size, and divide by slot size
         n = (n + sizeof(Slot) - 1) / sizeof(Slot);
 
         Arena* curr_arena = free_arena_;
@@ -170,11 +181,15 @@ public:
         abort();
     }
 
+    //! Deallocate a continuous segment of n bytes in the arenas, the size n
+    //! *MUST* match the allocation.
     void deallocate(void* ptr, size_t n) {
         if (ptr == nullptr) return;
 
-        sLOG << "deallocate() ptr" << ptr << "n" << n;
+        std::unique_lock<std::mutex> lock(mutex_);
+        sLOG1 << "deallocate() ptr" << ptr << "n" << n;
 
+        // round up to whole slot size, and divide by slot size
         n = (n + sizeof(Slot) - 1) / sizeof(Slot);
         assert(n <= size_);
 
@@ -237,7 +252,25 @@ public:
         print();
     }
 
-    void print() const {
+    //! Allocate and construct a single item of given Type using memory from the
+    //! Pool.
+    template <typename Type, typename ... Args>
+    Type * make(Args&& ... args) {
+        Type* t = reinterpret_cast<Type*>(allocate(sizeof(Type)));
+        ::new (t)Type(std::forward<Args>(args) ...);
+        return t;
+    }
+
+    //! Destroy and deallocate a single item of given Type.
+    template <typename Type>
+    void destroy(Type* t) {
+        t->~Type();
+        deallocate(t, sizeof(Type));
+    }
+
+    //! Print out structure of the arenas.
+    void print() {
+
         LOG << "Pool::print()"
             << " size_=" << size_ << " free_=" << free_;
 
@@ -306,10 +339,11 @@ private:
 
     //! header of an Arena, used to calculate number of slots
     struct Header {
+        // next and prev pointers for free list.
         Arena* next_arena, * prev_arena;
-        Slot head_slot;
-
+        // left and right pointers for splay tree
         Arena* left = nullptr, * right = nullptr;
+        Slot head_slot;
     };
 
     static constexpr size_t kSlotsPerArena =
@@ -342,9 +376,12 @@ private:
     //! base allocator
     BaseAllocator base_;
 
+    //! mutex to protect data structures (remove this if you use it in another
+    //! context than Thrill).
+    std::mutex mutex_;
+
     //! pointer to first arena, arenas are in allocation order
     Arena* free_arena_ = nullptr;
-
     //! pointer to root arena in splay tree
     Arena* root_arena_ = nullptr;
 
@@ -387,6 +424,9 @@ private:
         }
     }
 };
+
+//! singleton instance of global pool for I/O data structures
+extern Pool<16384> g_pool;
 
 /******************************************************************************/
 // PoolAllocator - an allocator to draw objects from a Pool.

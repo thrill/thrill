@@ -79,10 +79,7 @@ protected:
 public:
     //! ctor: initialize
     Request(const CompletionHandler& on_complete,
-            FileBase* file,
-            void* buffer,
-            offset_type offset,
-            size_type bytes,
+            FileBase* file, void* buffer, offset_type offset, size_type bytes,
             ReadOrWriteType type);
 
     //! non-copyable: delete copy-constructor
@@ -207,13 +204,14 @@ private:
     //! \}
 };
 
-static inline
-std::ostream& operator << (std::ostream& out, const Request& req) {
-    return req.print(out);
-}
+//! make Request ostreamable
+std::ostream& operator << (std::ostream& out, const Request& req);
+
+//! deleter for Requests which are allocated from mem::g_pool.
+void RequestDeleter(Request* req);
 
 //! A reference counting pointer for \c request.
-using RequestPtr = common::CountingPtr<Request>;
+using RequestPtr = common::CountingPtr<Request, RequestDeleter>;
 
 //! \}
 

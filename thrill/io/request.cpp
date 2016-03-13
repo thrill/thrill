@@ -17,6 +17,7 @@
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <ostream>
 
@@ -87,6 +88,24 @@ std::ostream& Request::print(std::ostream& out) const {
     out << " Transfer size: " << bytes_ << " bytes";
     out << " Type of transfer: " << ((type_ == READ) ? "READ" : "WRITE");
     return out;
+}
+
+std::ostream& operator << (std::ostream& out, const Request& req) {
+    return req.print(out);
+}
+
+void RequestDeleter(Request* req) {
+    // switch between virtual subclasses to make g_pool get the right size of
+    // req's object.
+    if (ServingRequest* r = dynamic_cast<ServingRequest*>(req)) {
+        mem::g_pool.destroy(r);
+    }
+    else if (LinuxaioRequest* r = dynamic_cast<LinuxaioRequest*>(req)) {
+        mem::g_pool.destroy(r);
+    }
+    else {
+        abort();
+    }
 }
 
 /******************************************************************************/
