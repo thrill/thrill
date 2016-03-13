@@ -15,6 +15,7 @@
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/future.hpp>
 #include <thrill/io/bid.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <string>
 #include <vector>
@@ -105,7 +106,7 @@ private:
     BlockPool* block_pool_;
 
     //! counts the number of pins in this block per thread_id.
-    std::vector<size_t> pin_count_;
+    std::vector<size_t, mem::GPoolAllocator<size_t> > pin_count_;
 
     //! counts the total number of pins, the data_ may be swapped out when this
     //! reaches zero.

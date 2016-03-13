@@ -22,6 +22,7 @@
 #include <thrill/io/request.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 #include <thrill/mem/manager.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <deque>
 #include <future>
@@ -173,7 +174,8 @@ private:
     size_t workers_per_host_;
 
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
-    common::LruCacheSet<ByteBlock*> unpinned_blocks_;
+    common::LruCacheSet<
+        ByteBlock*, mem::GPoolAllocator<ByteBlock*> > unpinned_blocks_;
 
     //! number of unpinned bytes
     size_t unpinned_bytes_ = 0;

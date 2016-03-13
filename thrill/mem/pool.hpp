@@ -431,7 +431,7 @@ extern Pool<16384> g_pool;
 /******************************************************************************/
 // PoolAllocator - an allocator to draw objects from a Pool.
 
-template <typename Type, size_t ArenaSize>
+template <typename Type, size_t ArenaSize = 16384>
 class PoolAllocator : public AllocatorBase<Type>
 {
 public:
@@ -513,6 +513,88 @@ public:
         return (pool_ != other.pool_);
     }
 };
+
+/******************************************************************************/
+// FixedPoolAllocator - an allocator to draw objects from a fixed Pool.
+
+template <typename Type, Pool<16384>& pool_>
+class FixedPoolAllocator : public AllocatorBase<Type>
+{
+public:
+    using value_type = Type;
+    using pointer = Type *;
+    using const_pointer = const Type *;
+    using reference = Type &;
+    using const_reference = const Type &;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+
+    //! C++11 type flag
+    using is_always_equal = std::true_type;
+
+    //! Return allocator for different type.
+    template <typename U>
+    struct rebind { using other = FixedPoolAllocator<U, pool_>; };
+
+    //! construct FixedPoolAllocator with Pool object
+    FixedPoolAllocator() noexcept = default;
+
+    //! copy-constructor
+    FixedPoolAllocator(const FixedPoolAllocator&) noexcept = default;
+
+    //! copy-constructor from a rebound allocator
+    template <typename OtherType>
+    FixedPoolAllocator(const FixedPoolAllocator<OtherType, pool_>&) noexcept { }
+
+    //! copy-assignment operator
+    FixedPoolAllocator& operator = (const FixedPoolAllocator&) noexcept = default;
+
+    //! maximum size possible to allocate
+    size_type max_size() const noexcept {
+        return pool_.max_size();
+    }
+
+    //! attempts to allocate a block of storage with a size large enough to
+    //! contain n elements of member type value_type, and returns a pointer to
+    //! the first element.
+    pointer allocate(size_type n, const void* /* hint */ = nullptr) {
+        Type* r;
+        while ((r = static_cast<Type*>(
+                    pool_.allocate(n * sizeof(Type)))) == nullptr)
+        {
+            // If malloc fails and there is a std::new_handler, call it to try
+            // free up memory.
+            std::new_handler nh = std::get_new_handler();
+            if (nh)
+                nh();
+            else
+                throw std::bad_alloc();
+        }
+        return r;
+    }
+
+    //! releases a block of storage previously allocated with member allocate
+    //! and not yet released.
+    void deallocate(pointer p, size_type n) const noexcept {
+        pool_.deallocate(p, n * sizeof(Type));
+    }
+
+    //! compare to another allocator of same type
+    template <typename Other>
+    bool operator == (const FixedPoolAllocator<Other, pool_>&) const noexcept {
+        return true;
+    }
+
+    //! compare to another allocator of same type
+    template <typename Other>
+    bool operator != (const FixedPoolAllocator<Other, pool_>&) const noexcept {
+        return true;
+    }
+};
+
+//! template alias for allocating from mem::g_pool.
+template <typename Type>
+using GPoolAllocator = FixedPoolAllocator<Type, g_pool>;
 
 } // namespace mem
 } // namespace thrill
