@@ -547,6 +547,7 @@ void * malloc(size_t size) NOEXCEPT {
 
     //! call real malloc procedure in libc
     void* ret = (*real_malloc)(size);
+    if (!ret) return nullptr;
 
     size_t size_used = MALLOC_USABLE_SIZE(ret);
     inc_count(size_used);
@@ -661,6 +662,7 @@ ATTRIBUTE_NO_SANITIZE
 void * calloc(size_t nmemb, size_t size) NOEXCEPT {
     size *= nmemb;
     void* ret = malloc(size);
+    if (!ret) return ret;
     memset(ret, 0, size);
     return ret;
 }
@@ -688,22 +690,25 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     dec_count(oldsize_used);
 
     void* newptr = (*real_realloc)(ptr, size);
+    if (!newptr) return nullptr;
 
     size_t newsize_used = MALLOC_USABLE_SIZE(newptr);
     inc_count(newsize_used);
 
     if (log_operations && newsize_used >= log_operations_threshold)
     {
-        if (newptr == ptr)
+        if (newptr == ptr) {
             fprintf(stderr, PPREFIX
                     "realloc(%zu -> %zu / %zu) = %p   (current %zu / %zu)\n",
                     oldsize_used, size, newsize_used, newptr,
                     get(float_curr), get(base_curr));
-        else
+        }
+        else {
             fprintf(stderr, PPREFIX
                     "realloc(%zu -> %zu / %zu) = %p -> %p   (current %zu / %zu)\n",
                     oldsize_used, size, newsize_used, ptr, newptr,
                     get(float_curr), get(base_curr));
+        }
     }
 
     return newptr;
