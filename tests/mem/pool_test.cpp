@@ -25,8 +25,8 @@
 using namespace thrill;
 
 TEST(MemPool, Vector) {
-    mem::Pool<1024> pool;
-    using IntAlloc = mem::PoolAllocator<int, 1024>;
+    mem::Pool pool(1024);
+    using IntAlloc = mem::PoolAllocator<int>;
 
     std::vector<int, IntAlloc> my_vector {
         IntAlloc(pool)
@@ -42,8 +42,8 @@ TEST(MemPool, Vector) {
 }
 
 TEST(MemPool, Deque) {
-    mem::Pool<(1024* 1024)> pool;
-    using IntAlloc = mem::PoolAllocator<int, (1024* 1024)>;
+    mem::Pool pool(1024* 1024);
+    using IntAlloc = mem::PoolAllocator<int>;
 
     std::deque<int, IntAlloc> my_deque {
         IntAlloc(pool)
@@ -59,8 +59,8 @@ TEST(MemPool, Deque) {
 }
 
 TEST(MemPool, Set) {
-    mem::Pool<256> pool;
-    using IntAlloc = mem::PoolAllocator<int, 256>;
+    mem::Pool pool(256);
+    using IntAlloc = mem::PoolAllocator<int>;
 
     std::set<int, std::less<int>, IntAlloc> my_set {
         IntAlloc(pool)
@@ -78,8 +78,8 @@ TEST(MemPool, Set) {
 }
 
 TEST(MemPool, SetRandom) {
-    mem::Pool<256> pool;
-    using IntAlloc = mem::PoolAllocator<int, 256>;
+    mem::Pool pool(256);
+    using IntAlloc = mem::PoolAllocator<int>;
 
     std::set<int, std::less<int>, IntAlloc> my_set {
         IntAlloc(pool)
@@ -121,9 +121,9 @@ TEST(MemPool, SetRandom) {
 }
 
 TEST(MemPool, UnorderedMap) {
-    mem::Pool<4096> pool;
+    mem::Pool pool(4096);
     using IntAlloc =
-              mem::PoolAllocator<std::pair<const int, std::string>, 4096>;
+              mem::PoolAllocator<std::pair<const int, std::string> >;
 
     std::unordered_map<int, std::string,
                        std::hash<int>, std::equal_to<int>,
@@ -150,8 +150,7 @@ namespace thrill {
 namespace mem {
 
 // forced instantiations
-template class Pool<128>;
-template class PoolAllocator<int, 128>;
+template class PoolAllocator<int>;
 
 } // namespace mem
 } // namespace thrill

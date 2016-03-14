@@ -68,16 +68,18 @@ namespace mem {
  * During allocation the next fitting free slot is searched for. During
  * deallocation multiple free areas may be consolidated.
  */
-template <size_t ArenaSize>
 class Pool
 {
     static constexpr bool debug = false;
     static constexpr bool debug_check = common::g_debug_mode;
     static constexpr size_t check_limit = 4 * 1024 * 1024;
 
+    static constexpr size_t default_arena_size = 16384;
+
 public:
     //! construct with base allocator
-    Pool() noexcept {
+    Pool(size_t arena_size = default_arena_size) noexcept
+        : arena_size_(arena_size) {
         if (debug_check)
             allocs_.resize(check_limit, std::make_pair(nullptr, 0));
     }
@@ -148,11 +150,11 @@ public:
             {
                 // iterative over free areas to find a possible fit
                 Slot* prev_slot = &curr_arena->head_slot;
-                Slot* curr_slot = curr_arena->slots + prev_slot->next;
+                Slot* curr_slot = curr_arena->begin() + prev_slot->next;
 
                 while (curr_slot != curr_arena->end() && curr_slot->size < n) {
                     prev_slot = curr_slot;
-                    curr_slot = curr_arena->slots + curr_slot->next;
+                    curr_slot = curr_arena->begin() + curr_slot->next;
                 }
 
                 // if curr_slot == end then no continuous area was found.
@@ -166,7 +168,7 @@ public:
 
                     if (curr_slot->size > n) {
                         // splits free area, since it is larger than needed
-                        Slot* next_slot = curr_arena->slots + prev_slot->next;
+                        Slot* next_slot = curr_arena->begin() + prev_slot->next;
                         assert(next_slot != curr_arena->end());
 
                         next_slot->size = curr_slot->size - n;
@@ -257,25 +259,25 @@ public:
         Slot* ptr_slot = reinterpret_cast<Slot*>(ptr);
 
         // advance prev_slot until the next jumps over ptr.
-        while (root_arena_->slots + prev_slot->next < ptr_slot) {
-            prev_slot = root_arena_->slots + prev_slot->next;
+        while (root_arena_->begin() + prev_slot->next < ptr_slot) {
+            prev_slot = root_arena_->begin() + prev_slot->next;
         }
 
         // fill deallocated slot with free information
         ptr_slot->next = prev_slot->next;
         ptr_slot->size = n;
 
-        prev_slot->next = ptr_slot - root_arena_->slots;
+        prev_slot->next = ptr_slot - root_arena_->begin();
 
         // defragment free slots, but exempt the head_slot
         if (prev_slot == &root_arena_->head_slot)
-            prev_slot = root_arena_->slots + root_arena_->head_slot.next;
+            prev_slot = root_arena_->begin() + root_arena_->head_slot.next;
 
-        while (prev_slot->next != kSlotsPerArena &&
-               prev_slot->next == prev_slot - root_arena_->slots + prev_slot->size)
+        while (prev_slot->next != root_arena_->num_slots() &&
+               prev_slot->next == prev_slot - root_arena_->begin() + prev_slot->size)
         {
             // join free slots
-            Slot* next_slot = root_arena_->slots + prev_slot->next;
+            Slot* next_slot = root_arena_->begin() + prev_slot->next;
             prev_slot->size += next_slot->size;
             prev_slot->next = next_slot->next;
         }
@@ -284,7 +286,7 @@ public:
         size_ -= n;
         free_ += n;
 
-        if (root_arena_->head_slot.size == kSlotsPerArena)
+        if (root_arena_->head_slot.size == root_arena_->num_slots())
         {
             // remove current arena from tree
             Arena* root = common::splay_erase_top(root_arena_, ArenaCompare());
@@ -297,8 +299,8 @@ public:
             if (free_arena_ == root)
                 free_arena_ = root->next_arena;
 
+            free_ -= root->num_slots();
             operator delete (root);
-            free_ -= kSlotsPerArena;
         }
 
         print();
@@ -341,20 +343,20 @@ public:
             // used area at beginning
             size += slot;
 
-            while (slot != kSlotsPerArena) {
+            while (slot != curr_arena->num_slots()) {
                 if (debug)
                     oss << " slot[" << slot
-                        << ",size=" << curr_arena->slots[slot].size
-                        << ",next=" << curr_arena->slots[slot].next << ']';
+                        << ",size=" << curr_arena->slot(slot)->size
+                        << ",next=" << curr_arena->slot(slot)->next << ']';
 
-                if (curr_arena->slots[slot].next <= slot) {
+                if (curr_arena->slot(slot)->next <= slot) {
                     std::cout << "invalid chain:" << oss.str() << std::endl;
                     abort();
                 }
 
-                free += curr_arena->slots[slot].size;
-                size += curr_arena->slots[slot].next - slot - curr_arena->slots[slot].size;
-                slot = curr_arena->slots[slot].next;
+                free += curr_arena->slot(slot)->size;
+                size += curr_arena->slot(slot)->next - slot - curr_arena->slot(slot)->size;
+                slot = curr_arena->slot(slot)->next;
             }
 
             if (debug) {
@@ -381,7 +383,7 @@ public:
 
     //! maximum size possible to allocate
     size_t max_size() const noexcept {
-        return kSlotsPerArena * sizeof(Slot);
+        return 65536 * sizeof(Slot);
     }
 
 private:
@@ -395,32 +397,31 @@ private:
     };
 
     //! header of an Arena, used to calculate number of slots
-    struct Header {
+    struct Arena {
+        //! total size of this Arena
+        size_t total_size;
         // next and prev pointers for free list.
         Arena* next_arena, * prev_arena;
         // left and right pointers for splay tree
         Arena* left = nullptr, * right = nullptr;
+        //! first sentinel Slot which is never used for payload data
         Slot head_slot;
+        // following here are actual data slots
+
+        //! the number of available payload slots (excluding head_slot)
+        size_t num_slots() const {
+            return (total_size - sizeof(Arena)) / sizeof(Slot);
+        }
+
+        Slot * begin() { return &head_slot + 1; }
+        Slot * end() { return &head_slot + 1 + num_slots(); }
+        Slot * slot(size_t i) { return &head_slot + 1 + i; }
     };
-
-    static constexpr size_t kSlotsPerArena =
-        (ArenaSize - sizeof(Header)) / sizeof(Slot);
-
-    //! structure of an Arena
-    struct Arena : public Header
-    {
-        Slot slots[kSlotsPerArena];
-
-        Slot * begin() { return slots; }
-        Slot * end() { return slots + kSlotsPerArena; }
-    };
-
-    static_assert(ArenaSize >= sizeof(Arena), "ArenaSize too small.");
 
     //! comparison function for splay tree
     struct ArenaCompare {
         bool operator () (const Arena* a, const void* ptr) const {
-            return a + 1 /* (= ArenaSize) */ < ptr;
+            return reinterpret_cast<const char*>(a) + a->total_size < ptr;
         }
         bool operator () (const void* ptr, const Arena* a) const {
             return ptr < a;
@@ -433,6 +434,9 @@ private:
     //! mutex to protect data structures (remove this if you use it in another
     //! context than Thrill).
     std::mutex mutex_;
+
+    //! size of the default arena allocation
+    size_t arena_size_;
 
     //! pointer to first arena, arenas are in allocation order
     Arena* free_arena_ = nullptr;
@@ -454,20 +458,21 @@ private:
         }
 
         // Allocate space for the new block
-        Arena* new_arena = reinterpret_cast<Arena*>(operator new (ArenaSize));
+        Arena* new_arena = reinterpret_cast<Arena*>(operator new (arena_size_));
+        new_arena->total_size = arena_size_;
         new_arena->next_arena = free_arena_;
         new_arena->prev_arena = nullptr;
         if (free_arena_)
             free_arena_->prev_arena = new_arena;
         free_arena_ = new_arena;
 
-        new_arena->head_slot.size = kSlotsPerArena;
+        new_arena->head_slot.size = new_arena->num_slots();
         new_arena->head_slot.next = 0;
 
-        new_arena->slots[0].size = kSlotsPerArena;
-        new_arena->slots[0].next = kSlotsPerArena;
+        new_arena->slot(0)->size = new_arena->num_slots();
+        new_arena->slot(0)->next = new_arena->num_slots();
 
-        free_ += kSlotsPerArena;
+        free_ += new_arena->num_slots();
 
         root_arena_ = common::splay(new_arena, root_arena_, ArenaCompare());
         root_arena_ = common::splay_insert(new_arena, root_arena_, ArenaCompare());
@@ -486,12 +491,12 @@ private:
 };
 
 //! singleton instance of global pool for I/O data structures
-extern Pool<16384> g_pool;
+extern Pool g_pool;
 
 /******************************************************************************/
 // PoolAllocator - an allocator to draw objects from a Pool.
 
-template <typename Type, size_t ArenaSize = 16384>
+template <typename Type>
 class PoolAllocator : public AllocatorBase<Type>
 {
 public:
@@ -506,11 +511,9 @@ public:
     //! C++11 type flag
     using is_always_equal = std::false_type;
 
-    using Pool = mem::Pool<ArenaSize>;
-
     //! Return allocator for different type.
     template <typename U>
-    struct rebind { using other = PoolAllocator<U, ArenaSize>; };
+    struct rebind { using other = PoolAllocator<U>; };
 
     //! construct PoolAllocator with Pool object
     explicit PoolAllocator(Pool& pool) noexcept
@@ -521,7 +524,7 @@ public:
 
     //! copy-constructor from a rebound allocator
     template <typename OtherType>
-    PoolAllocator(const PoolAllocator<OtherType, ArenaSize>& other) noexcept
+    PoolAllocator(const PoolAllocator<OtherType>& other) noexcept
         : pool_(other.pool_) { }
 
     //! copy-assignment operator
@@ -563,13 +566,13 @@ public:
 
     //! compare to another allocator of same type
     template <typename Other>
-    bool operator == (const PoolAllocator<Other, ArenaSize>& other) const noexcept {
+    bool operator == (const PoolAllocator<Other>& other) const noexcept {
         return (pool_ == other.pool_);
     }
 
     //! compare to another allocator of same type
     template <typename Other>
-    bool operator != (const PoolAllocator<Other, ArenaSize>& other) const noexcept {
+    bool operator != (const PoolAllocator<Other>& other) const noexcept {
         return (pool_ != other.pool_);
     }
 };
@@ -577,7 +580,7 @@ public:
 /******************************************************************************/
 // FixedPoolAllocator - an allocator to draw objects from a fixed Pool.
 
-template <typename Type, Pool<16384>& pool_>
+template <typename Type, Pool& pool_>
 class FixedPoolAllocator : public AllocatorBase<Type>
 {
 public:

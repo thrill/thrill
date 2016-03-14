@@ -12,7 +12,7 @@
 namespace thrill {
 namespace mem {
 
-Pool<16384> g_pool;
+Pool g_pool;
 
 } // namespace mem
 } // namespace thrill
