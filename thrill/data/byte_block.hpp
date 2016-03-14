@@ -125,6 +125,8 @@ private:
     // Block is a friend to call {Increase,Reduce}PinCount()
     friend class Block;
     friend class PinnedBlock;
+    // for calling protected constructor
+    friend class mem::Pool;
 
     //! No default construction of Byteblock
     ByteBlock() = delete;

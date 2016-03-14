@@ -162,7 +162,8 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     lock.lock();
 
     // create common::CountingPtr, no need for special make_shared()-equivalent
-    PinnedByteBlockPtr block_ptr(new ByteBlock(this, data, size), local_worker_id);
+    PinnedByteBlockPtr block_ptr(
+        mem::g_pool.make<ByteBlock>(this, data, size), local_worker_id);
     IntIncBlockPinCount(block_ptr.get(), local_worker_id);
 
     pin_count_.Increment(local_worker_id, size);
@@ -182,7 +183,8 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
 ByteBlockPtr BlockPool::MapExternalBlock(
     const std::shared_ptr<io::FileBase>& file, int64_t offset, size_t size) {
     // create common::CountingPtr, no need for special make_shared()-equivalent
-    ByteBlockPtr block_ptr(new ByteBlock(this, file, offset, size));
+    ByteBlockPtr block_ptr(
+        mem::g_pool.make<ByteBlock>(this, file, offset, size));
 
     LOGC(debug_blc)
         << "BlockPool::MapExternalBlock()"

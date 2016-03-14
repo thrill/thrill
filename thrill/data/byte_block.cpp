@@ -10,6 +10,7 @@
 
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/byte_block.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <sstream>
 #include <string>
@@ -42,7 +43,7 @@ void ByteBlock::deleter(ByteBlock* bb) {
     assert(bb->block_pool_);
     bb->block_pool_->DestroyBlock(bb);
 
-    delete bb;
+    mem::g_pool.destroy(bb);
 }
 
 void ByteBlock::deleter(const ByteBlock* bb) {
