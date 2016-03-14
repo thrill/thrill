@@ -33,7 +33,7 @@ public:
     MultiwayMergeTree(ReaderIterator readers_begin, ReaderIterator readers_end,
                       const Comparator& comp)
         : readers_(readers_begin),
-          num_inputs_(readers_end - readers_begin),
+          num_inputs_(static_cast<unsigned>(readers_end - readers_begin)),
           remaining_inputs_(num_inputs_),
           lt_(num_inputs_, comp),
           current_(num_inputs_) {

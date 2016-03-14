@@ -41,8 +41,9 @@ struct Pool::Arena {
     // following here are actual data slots
 
     //! the number of available payload slots (excluding head_slot)
-    size_t num_slots() const {
-        return (total_size - sizeof(Arena)) / sizeof(Slot);
+    uint32_t num_slots() const {
+        return static_cast<uint32_t>(
+            (total_size - sizeof(Arena)) / sizeof(Slot));
     }
 
     Slot * begin() { return &head_slot + 1; }

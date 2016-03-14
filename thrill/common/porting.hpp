@@ -40,7 +40,7 @@ std::thread CreateThread(Args&& ... args) {
         try {
             return std::thread(std::forward<Args>(args) ...);
         }
-        catch (std::system_error& e) {
+        catch (std::system_error&) {
             if (--r == 0) throw;
             LOG1 << "Thread creation failed, retrying.";
             std::this_thread::sleep_for(std::chrono::milliseconds(100));

@@ -20,11 +20,11 @@ namespace thrill {
 namespace common {
 
 //! Instead of abort(), throw the output the message via an exception.
-#define die(msg)                                            \
-    do {                                                    \
-        std::ostringstream oss;                             \
-        oss << msg << " @ " << __FILE__ << ':' << __LINE__; \
-        throw std::runtime_error(oss.str());                \
+#define die(msg)                                                \
+    do {                                                        \
+        std::ostringstream die_oss;                             \
+        die_oss << msg << " @ " << __FILE__ << ':' << __LINE__; \
+        throw std::runtime_error(die_oss.str());                \
     } while (0)
 
 //! Check condition X and die miserably if false. Same as assert() except this
