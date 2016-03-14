@@ -102,10 +102,10 @@ void Connection::SyncRecv(void* out_data, size_t size) {
 /******************************************************************************/
 // mpi::Group
 
-mem::mm_unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
+mem::unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
     mem::Manager& mem_manager) const {
     // construct mpi::Dispatcher
-    return mem::mm_unique_ptr<net::Dispatcher>(
+    return mem::unique_ptr<net::Dispatcher>(
         mem::mm_new<Dispatcher>(mem_manager,
                                 mem_manager, group_tag_, num_hosts()),
         mem::Deleter<net::Dispatcher>(mem_manager));

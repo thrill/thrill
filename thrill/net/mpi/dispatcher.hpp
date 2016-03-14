@@ -111,8 +111,9 @@ public:
         return request;
     }
 
-    void AsyncWrite(net::Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback()) final {
+    void AsyncWrite(
+        net::Connection& c, Buffer&& buffer,
+        const AsyncWriteCallback& done_cb = AsyncWriteCallback()) final {
         assert(c.IsValid());
 
         if (buffer.size() == 0) {
@@ -133,8 +134,9 @@ public:
         mpi_async_status_.emplace_back();
     }
 
-    void AsyncWrite(net::Connection& c, const data::PinnedBlock& block,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback()) final {
+    void AsyncWrite(
+        net::Connection& c, const data::PinnedBlock& block,
+        const AsyncWriteCallback& done_cb = AsyncWriteCallback()) final {
         assert(c.IsValid());
 
         if (block.size() == 0) {
@@ -169,7 +171,7 @@ public:
     }
 
     void AsyncRead(net::Connection& c, size_t n,
-                   AsyncReadCallback done_cb = AsyncReadCallback()) final {
+                   const AsyncReadCallback& done_cb = AsyncReadCallback()) final {
         assert(c.IsValid());
 
         if (n == 0) {
@@ -194,7 +196,7 @@ public:
 
     void AsyncRead(net::Connection& c, size_t n,
                    data::PinnedByteBlockPtr&& block,
-                   AsyncReadByteBlockCallback done_cb) final {
+                   const AsyncReadByteBlockCallback& done_cb) final {
         assert(c.IsValid());
         assert(block.valid());
 
@@ -230,18 +232,18 @@ private:
     struct Watch
     {
         //! boolean check whether any callbacks are registered
-        bool                    active = false;
+        bool                 active = false;
         //! queue of callbacks for peer.
-        mem::mm_deque<Callback> read_cb;
+        mem::deque<Callback> read_cb;
         //! only one exception callback for the peer.
-        Callback                except_cb;
+        Callback             except_cb;
 
         explicit Watch(mem::Manager& mem_manager)
             : read_cb(mem::Allocator<Callback>(mem_manager)) { }
     };
 
     //! callback watch vector
-    mem::mm_vector<Watch> watch_ { mem::Allocator<Watch>(mem_manager_) };
+    mem::vector<Watch> watch_ { mem::Allocator<Watch>(mem_manager_) };
 
     //! counter of active watches
     size_t watch_active_ { 0 };
@@ -382,22 +384,22 @@ private:
 
     //! array of asynchronous writers and readers (these have to align with
     //! mpi_async_requests_)
-    mem::mm_vector<MpiAsync> mpi_async_ {
+    mem::vector<MpiAsync> mpi_async_ {
         mem::Allocator<MpiAsync>(mem_manager_)
     };
 
     //! array of current async MPI_Request for MPI_Testsome().
-    mem::mm_vector<MPI_Request> mpi_async_requests_ {
+    mem::vector<MPI_Request> mpi_async_requests_ {
         mem::Allocator<MPI_Request>(mem_manager_)
     };
 
     //! array of output integer of finished requests for MPI_Testsome().
-    mem::mm_vector<int> mpi_async_out_ {
+    mem::vector<int> mpi_async_out_ {
         mem::Allocator<int>(mem_manager_)
     };
 
     //! array of output status of finished requests for MPI_Testsome().
-    mem::mm_vector<MPI_Status> mpi_async_status_ {
+    mem::vector<MPI_Status> mpi_async_status_ {
         mem::Allocator<MPI_Status>(mem_manager_)
     };
 };

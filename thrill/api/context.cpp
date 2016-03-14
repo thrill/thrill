@@ -445,12 +445,6 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
     char* endptr;
 
-    // detect memory config
-
-    MemoryConfig mem_config;
-    if (mem_config.setup_detect() < 0) return -1;
-    mem_config.print();
-
     // determine number of local worker threads per MPI process
 
     size_t workers_per_host = 1;
