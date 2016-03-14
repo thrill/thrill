@@ -20,6 +20,7 @@
 #include <thrill/api/groupby_iterator.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/group.hpp>
 
@@ -534,8 +535,10 @@ private:
         data::MixStreamPtr data_stream = context_.GetNewMixStream();
 
         // launch receiver thread.
-        std::thread thread = std::thread(
-            [this, &data_stream]() { return ReceiveItems(data_stream); });
+        std::thread thread = common::CreateThread(
+            [this, &data_stream]() {
+                return ReceiveItems(data_stream);
+            });
 
         TransmitItems(
             splitter_tree, // Tree. sizeof |splitter|

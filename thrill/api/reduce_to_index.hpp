@@ -21,6 +21,7 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/meta.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/core/reduce_by_index_post_stage.hpp>
 #include <thrill/core/reduce_pre_stage.hpp>
 
@@ -160,7 +161,7 @@ public:
             post_stage_.Initialize(DIABase::mem_limit_ / 2);
 
             // start additional thread to receive from the channel
-            thread_ = std::thread([this] { ProcessChannel(); });
+            thread_ = common::CreateThread([this] { ProcessChannel(); });
         }
     }
 
