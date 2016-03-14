@@ -42,7 +42,7 @@ TEST(MemPool, Vector) {
 }
 
 TEST(MemPool, Deque) {
-    mem::Pool pool(1024* 1024);
+    mem::Pool pool(1024 * 1024);
     using IntAlloc = mem::PoolAllocator<int>;
 
     std::deque<int, IntAlloc> my_deque {
