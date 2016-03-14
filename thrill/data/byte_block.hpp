@@ -13,7 +13,6 @@
 #define THRILL_DATA_BYTE_BLOCK_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
-#include <thrill/common/future.hpp>
 #include <thrill/io/bid.hpp>
 #include <thrill/mem/pool.hpp>
 
