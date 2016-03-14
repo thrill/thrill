@@ -208,19 +208,7 @@ public:
     //! contain n elements of member type value_type, and returns a pointer to
     //! the first element.
     pointer allocate(size_type n, const void* /* hint */ = nullptr) {
-        Type* r;
-        while ((r = static_cast<Type*>(
-                    pool_->allocate(n * sizeof(Type)))) == nullptr)
-        {
-            // If malloc fails and there is a std::new_handler, call it to try
-            // free up memory.
-            std::new_handler nh = std::get_new_handler();
-            if (nh)
-                nh();
-            else
-                throw std::bad_alloc();
-        }
-        return r;
+        return static_cast<Type*>(pool_->allocate(n * sizeof(Type)));
     }
 
     //! releases a block of storage previously allocated with member allocate
@@ -290,19 +278,7 @@ public:
     //! contain n elements of member type value_type, and returns a pointer to
     //! the first element.
     pointer allocate(size_type n, const void* /* hint */ = nullptr) {
-        Type* r;
-        while ((r = static_cast<Type*>(
-                    pool_.allocate(n * sizeof(Type)))) == nullptr)
-        {
-            // If malloc fails and there is a std::new_handler, call it to try
-            // free up memory.
-            std::new_handler nh = std::get_new_handler();
-            if (nh)
-                nh();
-            else
-                throw std::bad_alloc();
-        }
-        return r;
+        return static_cast<Type*>(pool_.allocate(n * sizeof(Type)));
     }
 
     //! releases a block of storage previously allocated with member allocate

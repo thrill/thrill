@@ -78,16 +78,16 @@ public:
                    n, sizeof(Type), manager_->total());
         }
 
-        Type* r;
-        while ((r = static_cast<Type*>(bypass_malloc(size))) == nullptr)
+        Type* r = static_cast<Type*>(bypass_malloc(size));
+        while (r == nullptr)
         {
             // If malloc fails and there is a std::new_handler, call it to try
             // free up memory.
             std::new_handler nh = std::get_new_handler();
-            if (nh)
-                nh();
-            else
+            if (!nh)
                 throw std::bad_alloc();
+            nh();
+            r = static_cast<Type*>(bypass_malloc(size));
         }
         return r;
     }

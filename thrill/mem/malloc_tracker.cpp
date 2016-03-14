@@ -379,6 +379,12 @@ static __attribute__ ((destructor)) void finish() { // NOLINT
 //! bypass malloc tracker and access malloc() directly
 ATTRIBUTE_NO_SANITIZE
 void * bypass_malloc(size_t size) noexcept {
+#if defined(_MSC_VER)
+    void* ptr = malloc(size);
+#else
+    void* ptr = real_malloc(size);
+#endif
+
     size_t mycurr = sync_add_and_fetch(base_curr, size);
 
     total_bytes += size;
@@ -389,11 +395,7 @@ void * bypass_malloc(size_t size) noexcept {
 
     update_memprofile(get(float_curr), mycurr);
 
-#if defined(_MSC_VER)
-    return malloc(size);
-#else
-    return real_malloc(size);
-#endif
+    return ptr;
 }
 
 //! bypass malloc tracker and access free() directly
@@ -547,7 +549,11 @@ void * malloc(size_t size) NOEXCEPT {
 
     //! call real malloc procedure in libc
     void* ret = (*real_malloc)(size);
-    if (!ret) return nullptr;
+    if (!ret) {
+        fprintf(stderr, PPREFIX "malloc(%zu size) = %p   (current %zu / %zu)\n",
+                size, ret, get(float_curr), get(base_curr));
+        return nullptr;
+    }
 
     size_t size_used = MALLOC_USABLE_SIZE(ret);
     inc_count(size_used);
@@ -794,6 +800,7 @@ void * calloc(size_t nmemb, size_t size) NOEXCEPT {
     size *= nmemb;
     if (!size) return nullptr;
     void* ret = malloc(size);
+    if (!ret) return ret;
     memset(ret, 0, size);
     return ret;
 }
