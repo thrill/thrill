@@ -73,6 +73,7 @@ static void our_new_handler() {
 
     if (req) {
         req->wait();
+        in_new_handler = false;
     }
     else {
         printf("new handler found no ByteBlock to evict.\n");
@@ -86,10 +87,11 @@ static void our_new_handler() {
                  << " reading_blocks=" << s_blockpools[i]->reading_blocks();
         }
         mem::malloc_tracker_print_status();
+        in_new_handler = false;
+
+        lock.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-
-    in_new_handler = false;
 }
 
 /******************************************************************************/
