@@ -38,21 +38,23 @@ namespace net {
 //! \{
 
 //! Signature of timer callbacks.
-using TimerCallback = common::delegate<bool()>;
+using TimerCallback = common::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async connection readability/writability callbacks.
-using AsyncCallback = common::delegate<bool()>;
+using AsyncCallback = common::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read callbacks.
 using AsyncReadCallback = common::delegate<
-          void(Connection& c, Buffer&& buffer)>;
+          void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
 using AsyncReadByteBlockCallback = common::delegate<
-          void(Connection& c, data::PinnedByteBlockPtr&& bytes)>;
+          void(Connection& c, data::PinnedByteBlockPtr&& bytes),
+          mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
-using AsyncWriteCallback = common::delegate<void(Connection&)>;
+using AsyncWriteCallback = common::delegate<
+          void(Connection&), mem::GPoolAllocator<char> >;
 
 /**
  * Dispatcher is a high level wrapper for asynchronous callback
@@ -328,14 +330,12 @@ protected:
     };
 
     //! priority queue of timer callbacks
-    using TimerPQ = std::priority_queue<Timer, mem::vector<Timer> >;
+    using TimerPQ = std::priority_queue<
+              Timer, std::vector<Timer, mem::GPoolAllocator<Timer> > >;
 
     //! priority queue of timer callbacks, obviously kept in timeout
     //! order. Currently not addressable.
-    TimerPQ timer_pq_ {
-        std::less<Timer>(),
-        mem::vector<Timer>(mem::Allocator<Timer>(mem_manager_))
-    };
+    TimerPQ timer_pq_;
 
     /**************************************************************************/
 
@@ -406,9 +406,8 @@ protected:
     };
 
     //! deque of asynchronous readers
-    mem::deque<AsyncReadBuffer> async_read_ {
-        mem::Allocator<AsyncReadBuffer>(mem_manager_)
-    };
+    std::deque<AsyncReadBuffer,
+               mem::GPoolAllocator<AsyncReadBuffer> > async_read_;
 
     /**************************************************************************/
 
@@ -475,9 +474,8 @@ protected:
     };
 
     //! deque of asynchronous writers
-    mem::deque<AsyncWriteBuffer> async_write_ {
-        mem::Allocator<AsyncWriteBuffer>(mem_manager_)
-    };
+    std::deque<AsyncWriteBuffer,
+               mem::GPoolAllocator<AsyncWriteBuffer> > async_write_;
 
     /**************************************************************************/
 
@@ -554,9 +552,8 @@ protected:
     };
 
     //! deque of asynchronous readers
-    mem::deque<AsyncReadByteBlock> async_read_block_ {
-        mem::Allocator<AsyncReadByteBlock>(mem_manager_)
-    };
+    std::deque<AsyncReadByteBlock,
+               mem::GPoolAllocator<AsyncReadByteBlock> > async_read_block_;
 
     /**************************************************************************/
 
@@ -623,9 +620,8 @@ protected:
     };
 
     //! deque of asynchronous writers
-    mem::deque<AsyncWriteBlock> async_write_block_ {
-        mem::Allocator<AsyncWriteBlock>(mem_manager_)
-    };
+    std::deque<AsyncWriteBlock,
+               mem::GPoolAllocator<AsyncWriteBlock> > async_write_block_;
 
     /**************************************************************************/
 

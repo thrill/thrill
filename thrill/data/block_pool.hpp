@@ -259,6 +259,9 @@ private:
         Byte* data;
         io::RequestPtr req;
 
+        ReadRequest()
+            : result(std::allocator_arg, mem::GPoolAllocator<PinnedBlock>()) { }
+
         void OnComplete(io::Request* req, bool success);
     };
 

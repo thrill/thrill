@@ -184,7 +184,7 @@ public:
               // allocate memory for T in shared_ptr with appropriate deleter
               typename Allocator::template rebind<
                   typename std::decay<T>::type>::other().allocate(1),
-              store_deleter<typename std::decay<T>::type>) {
+              store_deleter<typename std::decay<T>::type>, Allocator()) {
 
         using Functor = typename std::decay<T>::type;
         using Rebind = typename Allocator::template rebind<Functor>::other;

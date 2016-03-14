@@ -215,7 +215,8 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
 
         IntIncBlockPinCount(block_ptr, local_worker_id);
 
-        std::promise<PinnedBlock> result;
+        std::promise<PinnedBlock> result(
+            std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
     }
@@ -234,7 +235,8 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         IntIncBlockPinCount(block_ptr, local_worker_id);
         pin_count_.Increment(local_worker_id, block_ptr->size());
 
-        std::promise<PinnedBlock> result;
+        std::promise<PinnedBlock> result(
+            std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
     }
@@ -308,7 +310,8 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
             << " pinned from internal memory"
             << pin_count_;
 
-        std::promise<PinnedBlock> result;
+        std::promise<PinnedBlock> result(
+            std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
     }
