@@ -288,11 +288,9 @@ template <typename Key, typename Tree, typename Compare>
 inline Tree * splayz(const Key& k, Tree* t, const Compare& cmp) {
     Tree* N_left = nullptr, * N_right = nullptr;
     Tree* l = nullptr, * r = nullptr;
-    size_t root_size, l_size, r_size;
+    size_t l_size = 0, r_size = 0;
 
     if (t == nullptr) return t;
-    root_size = splayz_size(t);
-    l_size = r_size = 0;
 
     for ( ; ; ) {
         if (cmp(k, t)) {

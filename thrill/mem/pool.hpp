@@ -17,6 +17,7 @@
 #ifndef THRILL_MEM_POOL_HEADER
 #define THRILL_MEM_POOL_HEADER
 
+#include <thrill/common/config.hpp>
 #include <thrill/common/die.hpp>
 #include <thrill/common/splay_tree.hpp>
 #include <thrill/mem/allocator_base.hpp>
@@ -67,21 +68,16 @@ namespace mem {
  * During allocation the next fitting free slot is searched for. During
  * deallocation multiple free areas may be consolidated.
  */
-template <size_t ArenaSize,
-          typename BaseAllocator = std::allocator<char> >
+template <size_t ArenaSize>
 class Pool
 {
     static constexpr bool debug = false;
-    static constexpr bool debug_check = true;
+    static constexpr bool debug_check = common::g_debug_mode;
     static constexpr size_t check_limit = 4 * 1024 * 1024;
-
-    static_assert(sizeof(typename BaseAllocator::value_type) == 1,
-                  "BaseAllocator must be a char/byte allocator");
 
 public:
     //! construct with base allocator
-    explicit Pool(const BaseAllocator& base = BaseAllocator()) noexcept
-        : base_(base) {
+    Pool() noexcept {
         if (debug_check)
             allocs_.resize(check_limit, std::make_pair(nullptr, 0));
     }
@@ -92,7 +88,7 @@ public:
     Pool& operator = (const Pool&) = delete;
     //! move-constructor
     Pool(Pool&& pool) noexcept
-        : base_(pool.base_), free_arena_(pool.free_arena_),
+        : free_arena_(pool.free_arena_),
           free_(pool.free_), size_(pool.size_) {
         pool.free_arena_ = nullptr;
     }
@@ -100,7 +96,6 @@ public:
     Pool& operator = (Pool&& pool) noexcept {
         if (this == &pool) return *this;
         DeallocateAll();
-        base_ = pool.base_;
         free_arena_ = pool.free_arena_;
         free_ = pool.free_, size_ = pool.size_;
         pool.free_arena_ = nullptr;
@@ -130,7 +125,6 @@ public:
 
         if (debug) {
             std::cout << "allocate() n=" << n
-                      << " kSlotsPerArena=" << size_t(kSlotsPerArena)
                       << std::endl;
         }
 
@@ -303,7 +297,7 @@ public:
             if (free_arena_ == root)
                 free_arena_ = root->next_arena;
 
-            base_.deallocate(reinterpret_cast<char*>(root), ArenaSize);
+            operator delete (root);
             free_ -= kSlotsPerArena;
         }
 
@@ -436,9 +430,6 @@ private:
         }
     };
 
-    //! base allocator
-    BaseAllocator base_;
-
     //! mutex to protect data structures (remove this if you use it in another
     //! context than Thrill).
     std::mutex mutex_;
@@ -463,7 +454,7 @@ private:
         }
 
         // Allocate space for the new block
-        Arena* new_arena = reinterpret_cast<Arena*>(base_.allocate(ArenaSize));
+        Arena* new_arena = reinterpret_cast<Arena*>(operator new (ArenaSize));
         new_arena->next_arena = free_arena_;
         new_arena->prev_arena = nullptr;
         if (free_arena_)
@@ -488,7 +479,7 @@ private:
         Arena* curr_arena = free_arena_;
         while (curr_arena != nullptr) {
             Arena* next_arena = curr_arena->next_arena;
-            base_.deallocate(reinterpret_cast<char*>(curr_arena), ArenaSize);
+            operator delete (curr_arena);
             curr_arena = next_arena;
         }
     }

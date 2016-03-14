@@ -206,8 +206,8 @@ size_t malloc_tracker_total_allocs() {
 
 //! user function which prints current and peak allocation to stderr
 void malloc_tracker_print_status() {
-    fprintf(stderr, PPREFIX "current %zu, peak %zu\n",
-            get(float_curr), get(peak_bytes));
+    fprintf(stderr, PPREFIX "floating %zu, peak %zu, base %zu\n",
+            get(float_curr), get(peak_bytes), get(base_curr));
 }
 
 void set_memory_limit_indication(size_t size) {
