@@ -96,6 +96,13 @@ public:
     //! future request.
     void AdviseFree(size_t size);
 
+    //! Return any currently being written block (for waiting on completion)
+    io::RequestPtr GetAnyWriting();
+
+    //! Evict a Block from the LRU chain into external memory. This can return
+    //! nullptr if no blocks available, or if the Block was not dirty.
+    io::RequestPtr EvictBlockLRU();
+
     //! Allocates a byte block with the request size. May block this thread if
     //! the hard memory limit is reached, until memory is freed by another
     //! thread.  The returned Block is allocated in RAM, but with a zero pin
@@ -301,11 +308,11 @@ private:
     void OnReadComplete(ReadRequest* read, io::Request* req, bool success);
 
     //! Evict a block from the lru list into external memory
-    void EvictBlockLRU();
+    io::RequestPtr IntEvictBlockLRU();
 
     //! Evict a block into external memory. The block must be unpinned and not
     //! swapped.
-    void IntEvictBlock(ByteBlock* block_ptr);
+    io::RequestPtr IntEvictBlock(ByteBlock* block_ptr);
 
     //! make ostream-able
     friend std::ostream& operator << (std::ostream& os, const PinCount& p);
