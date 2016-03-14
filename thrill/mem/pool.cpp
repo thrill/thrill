@@ -12,6 +12,8 @@
 #include <thrill/common/die.hpp>
 #include <thrill/common/splay_tree.hpp>
 
+#include <new>
+
 namespace thrill {
 namespace mem {
 
@@ -55,6 +57,9 @@ Pool::Pool(size_t arena_size) noexcept
     : arena_size_(arena_size) {
     if (debug_check)
         allocs_.resize(check_limit);
+
+    while (free_ < min_free)
+        AllocateFreeArena();
 }
 
 Pool::Pool(Pool&& pool) noexcept
@@ -107,7 +112,9 @@ Pool::Arena* Pool::AllocateFreeArena() {
     }
 
     // Allocate space for the new block
-    Arena* new_arena = reinterpret_cast<Arena*>(operator new (arena_size_));
+    Arena* new_arena =
+        reinterpret_cast<Arena*>(operator new (arena_size_, std::nothrow));
+    if (!new_arena) abort();
     new_arena->total_size = arena_size_;
     new_arena->next_arena = free_arena_;
     new_arena->prev_arena = nullptr;
@@ -300,7 +307,8 @@ void Pool::deallocate(void* ptr, size_t n) {
     size_ -= n;
     free_ += n;
 
-    if (root_arena_->head_slot.size == root_arena_->num_slots())
+    if (root_arena_->head_slot.size == root_arena_->num_slots() &&
+        free_ >= min_free)
     {
         // remove current arena from tree
         Arena* root = common::splay_erase_top(root_arena_, ArenaCompare());

@@ -73,6 +73,7 @@ class Pool
     static constexpr size_t check_limit = 4 * 1024 * 1024;
 
     static constexpr size_t default_arena_size = 16384;
+    static constexpr size_t min_free = 1024 * 1024 / 8;
 
 public:
     //! construct with base allocator
