@@ -53,7 +53,7 @@ void DispatcherThread::Terminate() {
 
 //! Register a relative timeout callback
 void DispatcherThread::AddTimer(
-    const std::chrono::milliseconds& timeout, const TimerCallback& cb) {
+    std::chrono::milliseconds timeout, TimerCallback cb) {
     Enqueue([=]() {
                 dispatcher_->AddTimer(timeout, cb);
             });
@@ -61,8 +61,7 @@ void DispatcherThread::AddTimer(
 }
 
 //! Register a buffered read callback and a default exception callback.
-void DispatcherThread::AddRead(
-    Connection& c, const AsyncCallback& read_cb) {
+void DispatcherThread::AddRead(Connection& c, AsyncCallback read_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddRead(c, read_cb);
             });
@@ -70,8 +69,7 @@ void DispatcherThread::AddRead(
 }
 
 //! Register a buffered write callback and a default exception callback.
-void DispatcherThread::AddWrite(
-    Connection& c, const AsyncCallback& write_cb) {
+void DispatcherThread::AddWrite(Connection& c, AsyncCallback write_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddWrite(c, write_cb);
             });
@@ -80,7 +78,7 @@ void DispatcherThread::AddWrite(
 
 //! Cancel all callbacks on a given connection.
 void DispatcherThread::Cancel(Connection& c) {
-    Enqueue([this, &c]() {
+    Enqueue([=, &c]() {
                 dispatcher_->Cancel(c);
             });
     WakeUpThread();
@@ -121,9 +119,9 @@ void DispatcherThread::AsyncWrite(
 
 //! asynchronously write buffer and callback when delivered. The buffer is
 //! MOVED into the async writer.
-void DispatcherThread::AsyncWrite(Connection& c, Buffer&& buffer,
-                                  const data::PinnedBlock& block,
-                                  AsyncWriteCallback done_cb) {
+void DispatcherThread::AsyncWrite(
+    Connection& c, Buffer&& buffer, const data::PinnedBlock& block,
+    AsyncWriteCallback done_cb) {
     assert(block.IsValid());
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c,
@@ -136,8 +134,9 @@ void DispatcherThread::AsyncWrite(Connection& c, Buffer&& buffer,
 
 //! asynchronously write buffer and callback when delivered. COPIES the data
 //! into a Buffer!
-void DispatcherThread::AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
-                                      AsyncWriteCallback done_cb) {
+void DispatcherThread::AsyncWriteCopy(
+    Connection& c, const void* buffer, size_t size,
+    AsyncWriteCallback done_cb) {
     return AsyncWrite(c, Buffer(buffer, size), done_cb);
 }
 
