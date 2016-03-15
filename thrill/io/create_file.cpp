@@ -83,8 +83,8 @@ FileBase * CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
         if (cfg.raw_device && !result->is_device())
         {
             delete result;
-            THRILL_THROW(IoError, "Disk " << cfg.path << " was expected to be "
-                         "a raw block device, but it is a normal file!");
+            THRILL_THROWS(IoError, "Disk " << cfg.path << " was expected to be "
+                          "a raw block device, but it is a normal file!");
         }
 
         // if is raw_device -> get size and remove some flags.
@@ -123,8 +123,8 @@ FileBase * CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
         if (cfg.raw_device && !result->is_device())
         {
             delete result;
-            THRILL_THROW(IoError, "Disk " << cfg.path << " was expected to be "
-                         "a raw block device, but it is a normal file!");
+            THRILL_THROWS(IoError, "Disk " << cfg.path << " was expected to be "
+                          "a raw block device, but it is a normal file!");
         }
 
         // if is raw_device -> get size and remove some flags.

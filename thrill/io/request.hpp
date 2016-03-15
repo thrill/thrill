@@ -21,6 +21,7 @@
 #include <thrill/common/delegate.hpp>
 #include <thrill/common/state.hpp>
 #include <thrill/io/exceptions.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <cassert>
 #include <memory>
@@ -55,7 +56,7 @@ protected:
     static constexpr bool debug = false;
 
     CompletionHandler on_complete_;
-    std::unique_ptr<IoError> error_;
+    mem::safe_unique_ptr<IoError> error_;
 
 protected:
     //! \name Base Parameter of an I/O Request
@@ -108,8 +109,8 @@ public:
 
     //! Inform the request object that an error occurred during the I/O
     //! execution.
-    void save_error(const std::string& msg) {
-        error_.reset(new IoError(msg));
+    void save_error(const mem::safe_string& msg) {
+        error_ = mem::safe_make_unique<IoError>(msg);
     }
 
     //! return error if one occured

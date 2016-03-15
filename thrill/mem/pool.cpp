@@ -9,7 +9,6 @@
 
 #include <thrill/mem/pool.hpp>
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/splay_tree.hpp>
 
 #include <new>
@@ -382,18 +381,18 @@ void Pool::print() {
                       << std::endl;
         }
 
-        die_unequal(curr_arena->head_slot.size, free);
+        assert(curr_arena->head_slot.size == free);
 
         total_free += free;
         total_size += size;
 
         if (curr_arena->next_arena)
-            die_unequal(curr_arena->next_arena->prev_arena, curr_arena);
+            assert(curr_arena->next_arena->prev_arena == curr_arena);
         if (curr_arena->prev_arena)
-            die_unequal(curr_arena->prev_arena->next_arena, curr_arena);
+            assert(curr_arena->prev_arena->next_arena == curr_arena);
     }
-    die_unequal(total_size, size_);
-    die_unequal(total_free, free_);
+    assert(total_size == size_);
+    assert(total_free == free_);
 }
 
 } // namespace mem

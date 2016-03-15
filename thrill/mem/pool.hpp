@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -303,6 +304,38 @@ public:
 //! template alias for allocating from mem::g_pool.
 template <typename Type>
 using GPoolAllocator = FixedPoolAllocator<Type, g_pool>;
+
+//! deleter for unique_ptr with memory from mem::g_pool.
+template <typename T>
+class GPoolDeleter
+{
+public:
+    //! free the pointer
+    void operator () (T* ptr) const noexcept {
+        g_pool.destroy(ptr);
+    }
+};
+
+//! unique_ptr with memory from mem::g_pool.
+template <typename T>
+using safe_unique_ptr = std::unique_ptr<T, GPoolDeleter<T> >;
+
+//! make_unique with Manager tracking
+template <typename T, typename ... Args>
+safe_unique_ptr<T> safe_make_unique(Args&& ... args) {
+    return safe_unique_ptr<T>(
+        g_pool.make<T>(std::forward<Args>(args) ...));
+}
+
+//! alias for std::string except that its memory is allocated in the safer
+//! g_pool.
+using safe_string = std::basic_string<
+          char, std::char_traits<char>, mem::GPoolAllocator<char> >;
+
+//! alias for std::ostringstream except that it uses the safer g_pool as
+//! allocator for the internal string buffer
+using safe_ostringstream = std::basic_ostringstream<
+          char, std::char_traits<char>, mem::GPoolAllocator<char> >;
 
 } // namespace mem
 } // namespace thrill

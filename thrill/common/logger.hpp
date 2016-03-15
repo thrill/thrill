@@ -98,8 +98,7 @@ class Logger
 {
 private:
     //! collector stream
-    std::basic_ostringstream<
-        char, std::char_traits<char>, mem::GPoolAllocator<char> > oss_;
+    mem::safe_ostringstream oss_;
 
 public:
     Logger();
@@ -126,8 +125,7 @@ private:
     bool first_ = true;
 
     //! collector stream
-    std::basic_ostringstream<
-        char, std::char_traits<char>, mem::GPoolAllocator<char> > oss_;
+    mem::safe_ostringstream oss_;
 
 public:
     SpacingLogger();
