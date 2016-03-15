@@ -216,8 +216,8 @@ static void TestDispatcherSyncSendAsyncRead(net::Group* net) {
 
     size_t received = 0;
     mem::Manager mem_manager(nullptr, "Dispatcher");
-    mem::unique_ptr<net::Dispatcher>
-    dispatcher = net->ConstructDispatcher(mem_manager);
+    std::unique_ptr<net::Dispatcher>
+        dispatcher = net->ConstructDispatcher(mem_manager);
 
     net::AsyncReadCallback callback =
         [net, &received](net::Connection& /* s */, const net::Buffer& buffer) {

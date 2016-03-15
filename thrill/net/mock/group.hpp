@@ -123,7 +123,7 @@ public:
 
     void Close() final;
 
-    mem::unique_ptr<net::Dispatcher> ConstructDispatcher(
+    std::unique_ptr<net::Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const final;
 
     //! \}

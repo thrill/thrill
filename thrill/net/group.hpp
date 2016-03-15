@@ -76,7 +76,7 @@ public:
 
     //! Construct a network dispatcher object for this group, matching its
     //! internal implementation.
-    virtual mem::unique_ptr<class Dispatcher> ConstructDispatcher(
+    virtual std::unique_ptr<class Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const = 0;
 
     //! Number of of 1-factor iterations

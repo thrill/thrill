@@ -64,7 +64,7 @@ public:
 
     DispatcherThread(
         mem::Manager& mem_manager,
-        mem::unique_ptr<class Dispatcher>&& dispatcher,
+        std::unique_ptr<class Dispatcher>&& dispatcher,
         const mem::by_string& thread_name);
 
     DispatcherThread(
@@ -166,7 +166,7 @@ private:
     std::thread thread_;
 
     //! enclosed dispatcher.
-    mem::unique_ptr<class Dispatcher> dispatcher_;
+    std::unique_ptr<class Dispatcher> dispatcher_;
 
     //! termination flag
     std::atomic<bool> terminate_ { false };
