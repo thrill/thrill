@@ -293,7 +293,21 @@ set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
 
 set(ALL_LIBRARIES ${ALL_LIBRARIES} ${CMAKE_DL_LIBS})
 
+# try to find jemalloc (optional)
+
+find_package(JeMalloc)
+
+if(NOT JEMALLOC_FOUND)
+  message(STATUS "jemalloc library found. No problem, it is optional,")
+  message(STATUS "but consider installing it for systems with limited memory.")
+else()
+  include_directories(SYSTEM ${JEMALLOC_INCLUDE_DIRS})
+  set(ALL_LIBRARIES ${JEMALLOC_LIBRARIES} ${ALL_LIBRARIES})
+  add_definitions(-DTHRILL_HAVE_JEMALLOC=1)
+endif()
+
 # try to find Intel TBB (optional)
+
 if(THRILL_USE_TBB)
   find_package(TBB)
 endif()
