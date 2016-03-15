@@ -158,7 +158,7 @@ namespace io {
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),                          \
             (LPTSTR)&lpMsgBuf,                                                  \
             0, nullptr);                                                        \
-        std::ostringstream msg;                                                 \
+        mem::safe_ostringstream msg;                                            \
         msg << "Error in " << THRILL_PRETTY_FUNCTION_NAME                       \
             << " : " << error_message                                           \
             << " : error code " << dw << " : " << static_cast<char*>(lpMsgBuf); \

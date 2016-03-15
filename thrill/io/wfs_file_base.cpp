@@ -107,7 +107,7 @@ WfsFileBase::WfsFileBase(const std::string& filename, int mode)
     : file_des_(INVALID_HANDLE_VALUE), mode_(mode),
       filename(filename), locked(false) {
     file_des_ = open_file_impl(filename, mode);
-    need_alignment_ = (mode & FileBase::DIRECT);
+    need_alignment_ = (mode& FileBase::DIRECT) != 0;
 
     if (!(mode & NO_LOCK))
     {
