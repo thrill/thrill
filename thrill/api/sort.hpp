@@ -443,7 +443,7 @@ private:
         std::vector<ValueType>& vec, std::deque<data::File>& files) {
 
         LOG1 << "SortAndWriteToFile() " << vec.size()
-             << " into file #" << files.size();
+             << " items into file #" << files.size();
 
         local_out_size_ += vec.size();
 
@@ -535,7 +535,7 @@ private:
         data::MixStreamPtr data_stream = context_.GetNewMixStream();
 
         // launch receiver thread.
-        std::thread thread = common::CreateThread(
+        context_.thread_pool_.Enqueue(
             [this, &data_stream]() {
                 return ReceiveItems(data_stream);
             });
@@ -552,7 +552,7 @@ private:
 
         delete[] splitter_tree;
 
-        thread.join();
+        context_.thread_pool_.LoopUntilEmpty();
 
         data_stream->Close();
 
