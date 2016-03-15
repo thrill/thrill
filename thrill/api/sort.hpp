@@ -566,7 +566,7 @@ private:
         data::MixStreamPtr data_stream = context_.GetNewMixStream();
 
         // launch receiver thread.
-        context_.thread_pool_.Enqueue(
+        std::thread thread = common::CreateThread(
             [this, &data_stream]() {
                 return ReceiveItems(data_stream);
             });
@@ -583,7 +583,7 @@ private:
 
         delete[] splitter_tree;
 
-        context_.thread_pool_.LoopUntilEmpty();
+        thread.join();
 
         data_stream->Close();
 

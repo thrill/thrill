@@ -161,7 +161,7 @@ public:
             post_stage_.Initialize(DIABase::mem_limit_ / 2);
 
             // start additional thread to receive from the channel
-            context_.thread_pool_.Enqueue([this] { ProcessChannel(); });
+            thread_ = common::CreateThread([this] { ProcessChannel(); });
         }
     }
 
@@ -171,7 +171,7 @@ public:
         pre_stage_.FlushAll();
         pre_stage_.CloseAll();
         // waiting for the additional thread to finish the reduce
-        if (use_post_thread_) context_.thread_pool_.LoopUntilEmpty();
+        if (use_post_thread_) thread_.join();
         use_mix_stream_ ? mix_stream_->Close() : cat_stream_->Close();
     }
 
@@ -228,6 +228,9 @@ private:
     std::vector<data::Stream::Writer> emitters_;
 
     size_t result_size_;
+
+    //! handle to additional thread for post stage
+    std::thread thread_;
 
     core::ReducePreStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,

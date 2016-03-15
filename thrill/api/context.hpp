@@ -17,7 +17,6 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/json_logger.hpp>
-#include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/cat_stream.hpp>
 #include <thrill/data/file.hpp>
@@ -386,9 +385,6 @@ public:
     };
 
     //! }
-
-    //! thread pool for the worker context -- only one background thread.
-    common::ThreadPool thread_pool_ { 1 };
 };
 
 //! \name Run Methods with Internal Networks for Testing
