@@ -338,7 +338,11 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     read->local_worker_id = local_worker_id;
 
     // allocate block memory.
+    lock.unlock();
     read->data = aligned_alloc_.allocate(block_ptr->size());
+    lock.lock();
+
+    die_unless(reading_.find(block_ptr) == reading_.end());
 
     if (!block_ptr->ext_file_) {
         swapped_.erase(block_ptr);
