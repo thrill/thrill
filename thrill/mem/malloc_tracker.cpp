@@ -27,6 +27,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <mutex>
+#include <utility>
 
 #if defined(__clang__) || defined (__GNUC__)
 
@@ -57,6 +59,9 @@ static constexpr int log_operations = 0; //! <-- set this to 1 for log output
 static constexpr size_t log_operations_threshold = 100000;
 
 #define LOG_MALLOC_PROFILER 0
+
+// enable checking of bypass_malloc() and bypass_free() pairing
+#define BYPASS_CHECKER 0
 
 /******************************************************************************/
 // variables of malloc tracker
@@ -376,6 +381,12 @@ static __attribute__ ((destructor)) void finish() { // NOLINT
 /******************************************************************************/
 // Functions to bypass the malloc tracker
 
+#if !defined(NDEBUG) && BYPASS_CHECKER
+static constexpr size_t kBypassCheckerSize = 1024 * 1024;
+static std::pair<void*, size_t> s_bypass_checker[kBypassCheckerSize];
+static std::mutex s_bypass_mutex;
+#endif
+
 //! bypass malloc tracker and access malloc() directly
 ATTRIBUTE_NO_SANITIZE
 void * bypass_malloc(size_t size) noexcept {
@@ -383,6 +394,25 @@ void * bypass_malloc(size_t size) noexcept {
     void* ptr = malloc(size);
 #else
     void* ptr = real_malloc(size);
+#endif
+    if (!ptr) {
+        fprintf(stderr, PPREFIX "bypass_malloc(%zu size) = %p   (current %zu / %zu)\n",
+                size, ptr, get(float_curr), get(base_curr));
+        return ptr;
+    }
+
+#if !defined(NDEBUG) && BYPASS_CHECKER
+    {
+        std::unique_lock<std::mutex> lock(s_bypass_mutex);
+        size_t i;
+        for (i = 0; i < kBypassCheckerSize; ++i) {
+            if (s_bypass_checker[i].first != nullptr) continue;
+            s_bypass_checker[i].first = ptr;
+            s_bypass_checker[i].second = size;
+            break;
+        }
+        if (i == kBypassCheckerSize) abort();
+    }
 #endif
 
     size_t mycurr = sync_add_and_fetch(base_curr, size);
@@ -401,6 +431,32 @@ void * bypass_malloc(size_t size) noexcept {
 //! bypass malloc tracker and access free() directly
 ATTRIBUTE_NO_SANITIZE
 void bypass_free(void* ptr, size_t size) noexcept {
+
+#if !defined(NDEBUG) && BYPASS_CHECKER
+    {
+        std::unique_lock<std::mutex> lock(s_bypass_mutex);
+        size_t i;
+        for (i = 0; i < kBypassCheckerSize; ++i) {
+            if (s_bypass_checker[i].first != ptr) continue;
+
+            if (s_bypass_checker[i].second == size) {
+                s_bypass_checker[i].first = nullptr;
+                break;
+            }
+
+            printf(PPREFIX "bypass_free() checker: "
+                   "ptr %p size %zu mismatches allocation of %zu\n",
+                   ptr, size, s_bypass_checker[i].second);
+            abort();
+        }
+        if (i == kBypassCheckerSize) {
+            printf(PPREFIX "bypass_free() checker: "
+                   "ptr = %p size %zu was not found\n", ptr, size);
+            abort();
+        }
+    }
+#endif
+
     size_t mycurr = sync_sub_and_fetch(base_curr, size);
 
     sync_sub_and_fetch(current_allocs, 1);
