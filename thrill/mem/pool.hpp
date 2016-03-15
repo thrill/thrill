@@ -70,7 +70,7 @@ namespace mem {
 class Pool
 {
     static constexpr bool debug = false;
-    static constexpr bool debug_check = common::g_debug_mode;
+    static constexpr bool debug_check = false;
     static constexpr size_t check_limit = 4 * 1024 * 1024;
 
     static constexpr size_t default_arena_size = 16384;

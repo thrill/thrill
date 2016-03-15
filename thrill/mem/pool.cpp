@@ -338,11 +338,10 @@ void Pool::deallocate(void* ptr, size_t n) {
 }
 
 void Pool::print() {
+    if (!debug) return;
 
-    if (debug) {
-        std::cout << "Pool::print()"
-                  << " size_=" << size_ << " free_=" << free_ << std::endl;
-    }
+    std::cout << "Pool::print()"
+              << " size_=" << size_ << " free_=" << free_ << std::endl;
 
     size_t total_free = 0, total_size = 0;
 
