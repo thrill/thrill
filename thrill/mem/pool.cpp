@@ -107,15 +107,20 @@ struct Pool::ArenaCompare {
     }
 };
 
-Pool::Arena* Pool::AllocateFreeArena() {
+Pool::Arena* Pool::AllocateFreeArena(bool die_on_failure) {
     if (debug) {
         std::cout << "AllocateFreeArena()" << std::endl;
     }
 
     // Allocate space for the new block
     Arena* new_arena =
-        reinterpret_cast<Arena*>(operator new (arena_size_, std::nothrow));
-    if (!new_arena) abort();
+        reinterpret_cast<Arena*>(bypass_malloc(arena_size_));
+    if (!new_arena) {
+        if (!die_on_failure) return nullptr;
+        fprintf(stderr, "out-of-memory - mem::Pool cannot allocate a new Arena."
+                " size_=%zu\n", size_);
+        abort();
+    }
     new_arena->total_size = arena_size_;
     new_arena->next_arena = free_arena_;
     new_arena->prev_arena = nullptr;
@@ -141,7 +146,7 @@ void Pool::DeallocateAll() {
     Arena* curr_arena = free_arena_;
     while (curr_arena != nullptr) {
         Arena* next_arena = curr_arena->next_arena;
-        operator delete (curr_arena);
+        bypass_free(curr_arena, curr_arena->total_size);
         curr_arena = next_arena;
     }
 }
@@ -189,6 +194,10 @@ void* Pool::allocate(size_t n) {
                 prev_slot->next += n;
                 size_ += n;
                 free_ -= n;
+
+                while (free_ < min_free) {
+                    if (!AllocateFreeArena(false)) break;
+                }
 
                 if (curr_slot->size > n) {
                     // splits free area, since it is larger than needed
@@ -309,7 +318,7 @@ void Pool::deallocate(void* ptr, size_t n) {
     free_ += n;
 
     if (root_arena_->head_slot.size == root_arena_->num_slots() &&
-        free_ >= min_free)
+        free_ >= min_free + root_arena_->num_slots())
     {
         // remove current arena from tree
         Arena* root = common::splay_erase_top(root_arena_, ArenaCompare());
@@ -323,7 +332,7 @@ void Pool::deallocate(void* ptr, size_t n) {
             free_arena_ = root->next_arena;
 
         free_ -= root->num_slots();
-        operator delete (root);
+        bypass_free(root, root->total_size);
     }
 
     print();

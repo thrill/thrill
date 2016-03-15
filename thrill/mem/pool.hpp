@@ -153,7 +153,7 @@ private:
     std::vector<std::pair<void*, size_t> > allocs_;
 
     //! allocate a new Arena blob
-    Arena * AllocateFreeArena();
+    Arena * AllocateFreeArena(bool die_on_failure = true);
 
     //! deallocate all Arenas
     void DeallocateAll();
