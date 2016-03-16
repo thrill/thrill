@@ -59,6 +59,18 @@ public:
         writer_.Put(input);
     }
 
+    bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
+        if (!ParentDIA::stack_empty) return false;
+        // copy complete Block references to writer_
+        writer_.AppendBlocks(file.blocks());
+        // read File for prefix sum.
+        auto reader = file.GetKeepReader();
+        while (reader.HasNext()) {
+            local_sum_ = sum_function_(local_sum_, reader.Next<ValueType>());
+        }
+        return true;
+    }
+
     void StopPreOp(size_t /* id */) final {
         writer_.Close();
     }
