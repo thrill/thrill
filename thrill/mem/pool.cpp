@@ -56,13 +56,15 @@ struct Pool::Arena {
 /******************************************************************************/
 // Pool
 
-Pool::Pool(size_t arena_size) noexcept
-    : arena_size_(arena_size) {
-    if (debug_check)
+Pool::Pool(size_t default_arena_size) noexcept
+    : default_arena_size_(default_arena_size) {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    if (debug_check_pairing)
         allocs_.resize(check_limit);
 
     while (free_ < min_free)
-        AllocateFreeArena();
+        AllocateFreeArena(default_arena_size_);
 }
 
 Pool::Pool(Pool&& pool) noexcept
@@ -109,21 +111,22 @@ struct Pool::ArenaCompare {
     }
 };
 
-Pool::Arena* Pool::AllocateFreeArena(bool die_on_failure) {
+Pool::Arena* Pool::AllocateFreeArena(size_t arena_size, bool die_on_failure) {
+
     if (debug) {
         std::cout << "AllocateFreeArena()" << std::endl;
     }
 
     // Allocate space for the new block
     Arena* new_arena =
-        reinterpret_cast<Arena*>(bypass_malloc(arena_size_));
+        reinterpret_cast<Arena*>(bypass_malloc(arena_size));
     if (!new_arena) {
         if (!die_on_failure) return nullptr;
         fprintf(stderr, "out-of-memory - mem::Pool cannot allocate a new Arena."
                 " size_=%zu\n", size_);
         abort();
     }
-    new_arena->total_size = arena_size_;
+    new_arena->total_size = arena_size;
     new_arena->next_arena = free_arena_;
     new_arena->prev_arena = nullptr;
     if (free_arena_)
@@ -153,6 +156,14 @@ void Pool::DeallocateAll() {
     }
 }
 
+size_t Pool::max_size() const noexcept {
+    return size_t(-1);
+}
+
+size_t Pool::bytes_per_arena(size_t arena_size) {
+    return arena_size - sizeof(Arena);
+}
+
 void* Pool::allocate(size_t n) {
     std::unique_lock<std::mutex> lock(mutex_);
 
@@ -161,18 +172,24 @@ void* Pool::allocate(size_t n) {
                   << std::endl;
     }
 
-    assert(n <= max_size());
-    if (n > max_size())
-        throw std::bad_alloc();
-
     // round up to whole slot size, and divide by slot size
     size_t orig_size = n;
     n = (n + sizeof(Slot) - 1) / sizeof(Slot);
 
+    // check whether n is too large for allocation in our default Arenas, then
+    // allocate a special larger one.
+    if (n * sizeof(Slot) > bytes_per_arena(default_arena_size_)) {
+        if (debug) {
+            std::cout << "Allocate larger Arena of size "
+                      << n * sizeof(Slot) << std::endl;
+        }
+        AllocateFreeArena(sizeof(Arena) + n * sizeof(Slot));
+    }
+
     Arena* curr_arena = free_arena_;
 
     if (curr_arena == nullptr || free_ < n)
-        curr_arena = AllocateFreeArena();
+        curr_arena = AllocateFreeArena(default_arena_size_);
 
     while (curr_arena != nullptr)
     {
@@ -197,8 +214,9 @@ void* Pool::allocate(size_t n) {
                 size_ += n;
                 free_ -= n;
 
+                // allocate more sparse memory
                 while (free_ < min_free) {
-                    if (!AllocateFreeArena(false)) break;
+                    if (!AllocateFreeArena(default_arena_size_, false)) break;
                 }
 
                 if (curr_slot->size > n) {
@@ -216,7 +234,7 @@ void* Pool::allocate(size_t n) {
 
                 print();
 
-                if (debug_check) {
+                if (debug_check_pairing) {
                     size_t i;
                     for (i = 0; i < allocs_.size(); ++i) {
                         if (allocs_[i].first == nullptr) {
@@ -236,7 +254,7 @@ void* Pool::allocate(size_t n) {
         }
 
         // advance to next arena in free list order
-        if (debug) {
+        if (debug && 0) {
             std::cout << "advance next arena"
                       << " curr_arena=" << curr_arena
                       << " next_arena=" << curr_arena->next_arena
@@ -246,7 +264,7 @@ void* Pool::allocate(size_t n) {
         curr_arena = curr_arena->next_arena;
 
         if (curr_arena == nullptr)
-            curr_arena = AllocateFreeArena();
+            curr_arena = AllocateFreeArena(default_arena_size_);
     }
     abort();
 }
@@ -258,7 +276,7 @@ void Pool::deallocate(void* ptr, size_t n) {
     if (debug) {
         std::cout << "deallocate() ptr" << ptr << "n" << n << std::endl;
     }
-    if (debug_check) {
+    if (debug_check_pairing) {
         size_t i;
         for (i = 0; i < allocs_.size(); ++i) {
             if (allocs_[i].first != ptr) continue;
@@ -341,10 +359,12 @@ void Pool::deallocate(void* ptr, size_t n) {
 }
 
 void Pool::print() {
-    if (!debug) return;
+    if (!debug_verify) return;
 
-    std::cout << "Pool::print()"
-              << " size_=" << size_ << " free_=" << free_ << std::endl;
+    if (debug) {
+        std::cout << "Pool::print()"
+                  << " size_=" << size_ << " free_=" << free_ << std::endl;
+    }
 
     size_t total_free = 0, total_size = 0;
 

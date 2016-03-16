@@ -70,15 +70,16 @@ namespace mem {
 class Pool
 {
     static constexpr bool debug = false;
-    static constexpr bool debug_check = false;
+    static constexpr bool debug_verify = false;
+    //! debug flag to check pairing of allocate()/deallocate() client calls
+    static constexpr bool debug_check_pairing = false;
     static constexpr size_t check_limit = 4 * 1024 * 1024;
 
-    static constexpr size_t default_arena_size = 16384;
     static constexpr size_t min_free = 1024 * 1024 / 8;
 
 public:
     //! construct with base allocator
-    explicit Pool(size_t arena_size = default_arena_size) noexcept;
+    explicit Pool(size_t default_arena_size = 16384) noexcept;
 
     //! non-copyable: delete copy-constructor
     Pool(const Pool&) = delete;
@@ -119,9 +120,7 @@ public:
     void print();
 
     //! maximum size possible to allocate
-    size_t max_size() const noexcept {
-        return 65536;
-    }
+    size_t max_size() const noexcept;
 
 private:
     //! struct in a Slot, which contains free information
@@ -137,9 +136,6 @@ private:
     //! context than Thrill).
     std::mutex mutex_;
 
-    //! size of the default arena allocation
-    size_t arena_size_;
-
     //! pointer to first arena, arenas are in allocation order
     Arena* free_arena_ = nullptr;
     //! pointer to root arena in splay tree
@@ -150,11 +146,17 @@ private:
     //! overall number of used slots
     size_t size_ = 0;
 
+    //! size of default Arena allocation
+    size_t default_arena_size_;
+
     //! array of allocations for checking
     std::vector<std::pair<void*, size_t> > allocs_;
 
+    //! calculate maximum bytes fitting into an Arena with given size.
+    size_t bytes_per_arena(size_t arena_size);
+
     //! allocate a new Arena blob
-    Arena * AllocateFreeArena(bool die_on_failure = true);
+    Arena * AllocateFreeArena(size_t arena_size, bool die_on_failure = true);
 
     //! deallocate all Arenas
     void DeallocateAll();
