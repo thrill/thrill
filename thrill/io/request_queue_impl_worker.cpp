@@ -42,7 +42,7 @@ void RequestQueueImplWorker::StopThread(
     std::thread& t, common::SharedState<ThreadState>& s, common::Semaphore& sem) {
     assert(s() == RUNNING);
     s.set_to(TERMINATING);
-    sem++;
+    sem.notify();
 #if THRILL_MSVC >= 1700
     // In the Visual C++ Runtime 2012 and 2013, there is a deadlock bug, which
     // occurs when threads are joined after main() exits. Apparently, Microsoft

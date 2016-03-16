@@ -45,7 +45,7 @@ struct file_offset_match : public std::binary_function<RequestPtr, RequestPtr, b
 };
 
 RequestQueueImplQwQr::RequestQueueImplQwQr(int n)
-    : thread_state_(NOT_RUNNING), sem_(0) {
+    : thread_state_(NOT_RUNNING) {
     common::THRILL_UNUSED(n);
     StartThread(worker, static_cast<void*>(this), thread_, thread_state_);
 }
@@ -91,7 +91,7 @@ void RequestQueueImplQwQr::add_request(RequestPtr& req) {
         write_queue_.push_back(req);
     }
 
-    sem_++;
+    sem_.notify();
 }
 
 bool RequestQueueImplQwQr::cancel_request(RequestPtr& req) {
@@ -113,7 +113,7 @@ bool RequestQueueImplQwQr::cancel_request(RequestPtr& req) {
             read_queue_.erase(pos);
             was_still_in_queue = true;
             Lock.unlock();
-            sem_--;
+            sem_.wait();
         }
     }
     else
@@ -126,7 +126,7 @@ bool RequestQueueImplQwQr::cancel_request(RequestPtr& req) {
             write_queue_.erase(pos);
             was_still_in_queue = true;
             Lock.unlock();
-            sem_--;
+            sem_.wait();
         }
     }
 
@@ -143,7 +143,7 @@ void* RequestQueueImplQwQr::worker(void* arg) {
     bool write_phase = true;
     for ( ; ; )
     {
-        pthis->sem_--;
+        pthis->sem_.wait();
 
         if (write_phase)
         {
@@ -162,7 +162,7 @@ void* RequestQueueImplQwQr::worker(void* arg) {
             {
                 WriteLock.unlock();
 
-                pthis->sem_++;
+                pthis->sem_.notify();
 
                 if (pthis->priority_op_ == WRITE)
                     write_phase = false;
@@ -191,7 +191,7 @@ void* RequestQueueImplQwQr::worker(void* arg) {
             {
                 ReadLock.unlock();
 
-                pthis->sem_++;
+                pthis->sem_.notify();
 
                 if (pthis->priority_op_ == READ)
                     write_phase = true;
@@ -203,10 +203,10 @@ void* RequestQueueImplQwQr::worker(void* arg) {
 
         // terminate if it has been requested and queues are empty
         if (pthis->thread_state_() == TERMINATING) {
-            if ((pthis->sem_--) == 0)
+            if (pthis->sem_.wait() == 0)
                 break;
             else
-                pthis->sem_++;
+                pthis->sem_.notify();
         }
     }
 
