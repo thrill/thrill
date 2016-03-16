@@ -10,6 +10,7 @@
 
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/byte_block.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <sstream>
 #include <string>
@@ -42,7 +43,7 @@ void ByteBlock::deleter(ByteBlock* bb) {
     assert(bb->block_pool_);
     bb->block_pool_->DestroyBlock(bb);
 
-    delete bb;
+    mem::GPool().destroy(bb);
 }
 
 void ByteBlock::deleter(const ByteBlock* bb) {
@@ -59,6 +60,10 @@ void ByteBlock::IncPinCount(size_t local_worker_id) {
 
 void ByteBlock::DecPinCount(size_t local_worker_id) {
     return block_pool_->DecBlockPinCount(this, local_worker_id);
+}
+
+void ByteBlock::OnWriteComplete(io::Request* req, bool success) {
+    return block_pool_->OnWriteComplete(this, req, success);
 }
 
 std::ostream& operator << (std::ostream& os, const ByteBlock& b) {

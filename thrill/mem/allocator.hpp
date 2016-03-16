@@ -45,7 +45,7 @@ public:
     using is_always_equal = std::false_type;
 
     //! Return allocator for different type.
-    template <class U>
+    template <typename U>
     struct rebind { using other = Allocator<U>; };
 
     //! Construct Allocator with Manager object
@@ -78,16 +78,16 @@ public:
                    n, sizeof(Type), manager_->total());
         }
 
-        Type* r;
-        while ((r = static_cast<Type*>(bypass_malloc(size))) == nullptr)
+        Type* r = static_cast<Type*>(bypass_malloc(size));
+        while (r == nullptr)
         {
             // If malloc fails and there is a std::new_handler, call it to try
             // free up memory.
             std::new_handler nh = std::get_new_handler();
-            if (nh)
-                nh();
-            else
+            if (!nh)
                 throw std::bad_alloc();
+            nh();
+            r = static_cast<Type*>(bypass_malloc(size));
         }
         return r;
     }
@@ -111,13 +111,13 @@ public:
     Manager* manager_;
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator == (const Allocator<Other>& other) const noexcept {
         return (manager_ == other.manager_);
     }
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator != (const Allocator<Other>& other) const noexcept {
         return (manager_ != other.manager_);
     }
@@ -134,7 +134,7 @@ public:
     //! C++11 type flag
     using is_always_equal = std::false_type;
 
-    template <class U>
+    template <typename U>
     struct rebind { using other = Allocator<U>; };
 
     //! Construct Allocator with Manager object
@@ -154,20 +154,20 @@ public:
     Manager* manager_;
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator == (const Allocator<Other>& other) const noexcept {
         return (manager_ == other.manager_);
     }
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator != (const Allocator<Other>& other) const noexcept {
         return (manager_ != other.manager_);
     }
 };
 
 //! operator new with our Allocator
-template <typename T, class ... Args>
+template <typename T, typename ... Args>
 T * mm_new(Manager& manager, Args&& ... args) {
     Allocator<T> allocator(manager);
     T* value = allocator.allocate(1);
@@ -208,7 +208,7 @@ template <typename T>
 using unique_ptr = std::unique_ptr<T, Deleter<T> >;
 
 //! make_unique with Manager tracking
-template <typename T, class ... Args>
+template <typename T, typename ... Args>
 unique_ptr<T> make_unique(Manager& manager, Args&& ... args) {
     return unique_ptr<T>(
         mm_new<T>(manager, std::forward<Args>(args) ...),

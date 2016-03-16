@@ -16,7 +16,8 @@
 #ifndef THRILL_IO_EXCEPTIONS_HEADER
 #define THRILL_IO_EXCEPTIONS_HEADER
 
-#include <ios>
+#include <thrill/mem/pool.hpp>
+
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -27,16 +28,20 @@ namespace io {
 //! \addtogroup reqlayer
 //! \{
 
-class IoError : public std::ios_base::failure
+class IoError : public std::exception
 {
 public:
-    IoError() noexcept
-        : std::ios_base::failure(std::string())
-    { }
+    explicit IoError(const mem::safe_string& message) noexcept
+        : std::exception(), safe_message_(message) { }
 
-    explicit IoError(const std::string& message) noexcept
-        : std::ios_base::failure(message)
-    { }
+    virtual const char * what() const noexcept {
+        return safe_message_.c_str();
+    }
+
+    const mem::safe_string & safe_message() const { return safe_message_; }
+
+private:
+    mem::safe_string safe_message_;
 };
 
 class BadExternalAlloc : public std::runtime_error

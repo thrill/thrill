@@ -40,14 +40,11 @@ class LinuxaioRequest final : public Request
 public:
     LinuxaioRequest(
         const CompletionHandler& on_complete,
-        FileBase* file,
-        void* buffer,
-        offset_type offset,
-        size_type bytes,
+        FileBase* file, void* buffer, offset_type offset, size_type bytes,
         ReadOrWriteType type)
         : Request(on_complete, file, buffer, offset, bytes, type) {
         assert(dynamic_cast<LinuxaioFile*>(file));
-        LOG << "linuxaio_request[" << this << "]" << " linuxaio_request"
+        LOG << "LinuxaioRequest[" << this << "]" << " LinuxaioRequest"
             << "(file=" << file << " buffer=" << buffer
             << " offset=" << offset << " bytes=" << bytes
             << " type=" << type << ")";

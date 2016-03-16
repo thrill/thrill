@@ -133,10 +133,12 @@ public:
      * UNCONDITIONALLY, the File will always be emptied whether all items were
      * read via the Reader or not.
      */
-    Reader GetReader(bool consume);
+    Reader GetReader(
+        bool consume, size_t num_prefetch = File::default_prefetch);
 
     //! Get BlockReader for beginning of File
-    KeepReader GetKeepReader() const;
+    KeepReader GetKeepReader(
+        size_t num_prefetch = File::default_prefetch) const;
 
     /*!
      * Get consuming BlockReader for beginning of File
@@ -145,7 +147,8 @@ public:
      * File will always be emptied whether all items were read via the Reader or
      * not.
      */
-    ConsumeReader GetConsumeReader();
+    ConsumeReader GetConsumeReader(
+        size_t num_prefetch = File::default_prefetch);
 
     //! Get BufferedBlockReader for beginning of File
     template <typename ValueType>

@@ -89,12 +89,6 @@ TEST(RealTcpGroup, DispatcherSyncSendAsyncRead) {
 TEST(RealTcpGroup, DispatcherLaunchAndTerminate) {
     RealGroupTest(TestDispatcherLaunchAndTerminate);
 }
-TEST(RealTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
-    RealGroupTest(TestDispatcherAsyncWriteAndReadIntoFuture);
-}
-TEST(RealTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
-    RealGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
-}
 TEST(LocalTcpGroup, NoOperation) {
     LocalGroupTest(TestNoOperation);
 }
@@ -136,12 +130,6 @@ TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
 }
 TEST(LocalTcpGroup, DispatcherLaunchAndTerminate) {
     LocalGroupTest(TestDispatcherLaunchAndTerminate);
-}
-TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
-    LocalGroupTest(TestDispatcherAsyncWriteAndReadIntoFuture);
-}
-TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
-    LocalGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
 }
 TEST(LocalTcpGroup, SingleThreadPrefixSum) {
     LocalGroupTest(TestSingleThreadPrefixSum);

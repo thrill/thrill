@@ -14,6 +14,7 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
 
 // mock net backend is always available -tb :)
@@ -120,7 +121,7 @@ RunLoopbackThreads(
     for (size_t host = 0; host < num_hosts; ++host) {
         mem::by_string log_prefix = "host " + mem::to_string(host);
         for (size_t worker = 0; worker < workers_per_host; ++worker) {
-            threads[host * workers_per_host + worker] = std::thread(
+            threads[host * workers_per_host + worker] = common::CreateThread(
                 [&host_contexts, &job_startpoint, host, worker, log_prefix] {
                     Context ctx(*host_contexts[host], worker);
                     common::NameThisThread(
@@ -418,7 +419,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     std::vector<std::thread> threads(workers_per_host);
 
     for (size_t worker = 0; worker < workers_per_host; worker++) {
-        threads[worker] = std::thread(
+        threads[worker] = common::CreateThread(
             [&host_context, &job_startpoint, worker] {
                 Context ctx(host_context, worker);
                 common::NameThisThread("worker " + mem::to_string(worker));
@@ -443,12 +444,6 @@ static inline
 int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
     char* endptr;
-
-    // detect memory config
-
-    MemoryConfig mem_config;
-    if (mem_config.setup_detect() < 0) return -1;
-    mem_config.print();
 
     // determine number of local worker threads per MPI process
 
@@ -504,7 +499,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
     std::vector<std::thread> threads(workers_per_host);
 
     for (size_t worker = 0; worker < workers_per_host; worker++) {
-        threads[worker] = std::thread(
+        threads[worker] = common::CreateThread(
             [&host_context, &job_startpoint, worker] {
                 Context ctx(host_context, worker);
                 common::NameThisThread("host " + mem::to_string(ctx.host_rank())

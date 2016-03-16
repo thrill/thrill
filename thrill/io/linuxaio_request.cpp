@@ -26,7 +26,7 @@ namespace thrill {
 namespace io {
 
 void LinuxaioRequest::completed(bool posted, bool canceled) {
-    LOG << "linuxaio_request[" << this << "] completed("
+    LOG << "LinuxaioRequest[" << this << "] completed("
         << posted << "," << canceled << ")";
 
     if (!canceled)
@@ -63,7 +63,7 @@ void LinuxaioRequest::fill_control_block() {
 //! Submits an I/O request to the OS
 //! \returns false if submission fails
 bool LinuxaioRequest::post() {
-    LOG << "linuxaio_request[" << this << "] post()";
+    LOG << "LinuxaioRequest[" << this << "] post()";
 
     fill_control_block();
     iocb* cb_pointer = &cb;
@@ -81,7 +81,7 @@ bool LinuxaioRequest::post() {
             Stats::get_instance()->write_started(bytes_, now);
     }
     else if (success == -1 && errno != EAGAIN)
-        THRILL_THROW_ERRNO(IoError, "linuxaio_request::post"
+        THRILL_THROW_ERRNO(IoError, "LinuxaioRequest::post"
                            " io_submit()");
 
     return success == 1;
@@ -91,7 +91,7 @@ bool LinuxaioRequest::post() {
 //!
 //! Routine is called by user, as part of the request interface.
 bool LinuxaioRequest::cancel() {
-    LOG1 << "linuxaio_request[" << this << "] cancel()";
+    LOG << "LinuxaioRequest[" << this << "] cancel()";
 
     if (!file_) return false;
 
@@ -103,7 +103,7 @@ bool LinuxaioRequest::cancel() {
 
 //! Cancel already posted request
 bool LinuxaioRequest::cancel_aio() {
-    LOG1 << "linuxaio_request[" << this << "] cancel_aio()";
+    LOG << "LinuxaioRequest[" << this << "] cancel_aio()";
 
     if (!file_) return false;
 

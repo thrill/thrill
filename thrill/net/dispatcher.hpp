@@ -38,21 +38,23 @@ namespace net {
 //! \{
 
 //! Signature of timer callbacks.
-using TimerCallback = common::delegate<bool()>;
+using TimerCallback = common::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async connection readability/writability callbacks.
-using AsyncCallback = common::delegate<bool()>;
+using AsyncCallback = common::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read callbacks.
 using AsyncReadCallback = common::delegate<
-          void(Connection& c, Buffer&& buffer)>;
+          void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
 using AsyncReadByteBlockCallback = common::delegate<
-          void(Connection& c, data::PinnedByteBlockPtr&& bytes)>;
+          void(Connection& c, data::PinnedByteBlockPtr&& bytes),
+          mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
-using AsyncWriteCallback = common::delegate<void(Connection&)>;
+using AsyncWriteCallback = common::delegate<
+          void(Connection&), mem::GPoolAllocator<char> >;
 
 /**
  * Dispatcher is a high level wrapper for asynchronous callback
@@ -118,7 +120,8 @@ public:
     //! \{
 
     //! asynchronously read n bytes and deliver them to the callback
-    virtual void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
+    virtual void AsyncRead(Connection& c, size_t n,
+                           const AsyncReadCallback& done_cb) {
         assert(c.IsValid());
 
         LOG << "async read on read dispatcher";
@@ -139,7 +142,7 @@ public:
     //! asynchronously read the full ByteBlock and deliver it to the callback
     virtual void AsyncRead(Connection& c, size_t n,
                            data::PinnedByteBlockPtr&& block,
-                           AsyncReadByteBlockCallback done_cb) {
+                           const AsyncReadByteBlockCallback& done_cb) {
         assert(c.IsValid());
 
         LOG << "async read on read dispatcher";
@@ -159,8 +162,9 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    virtual void AsyncWrite(Connection& c, Buffer&& buffer,
-                            AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+    virtual void AsyncWrite(
+        Connection& c, Buffer&& buffer,
+        const AsyncWriteCallback& done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
         if (buffer.size() == 0) {
@@ -179,8 +183,9 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    virtual void AsyncWrite(Connection& c, const data::PinnedBlock& block,
-                            AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+    virtual void AsyncWrite(
+        Connection& c, const data::PinnedBlock& block,
+        const AsyncWriteCallback& done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
         if (block.size() == 0) {
@@ -199,15 +204,17 @@ public:
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
-    void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
-                        AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+    void AsyncWriteCopy(
+        Connection& c, const void* buffer, size_t size,
+        const AsyncWriteCallback& done_cb = AsyncWriteCallback()) {
         return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
-    void AsyncWriteCopy(Connection& c, const std::string& str,
-                        AsyncWriteCallback done_cb = AsyncWriteCallback()) {
+    void AsyncWriteCopy(
+        Connection& c, const std::string& str,
+        const AsyncWriteCallback& done_cb = AsyncWriteCallback()) {
         return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
     }
 
@@ -323,14 +330,12 @@ protected:
     };
 
     //! priority queue of timer callbacks
-    using TimerPQ = std::priority_queue<Timer, mem::vector<Timer> >;
+    using TimerPQ = std::priority_queue<
+              Timer, std::vector<Timer, mem::GPoolAllocator<Timer> > >;
 
     //! priority queue of timer callbacks, obviously kept in timeout
     //! order. Currently not addressable.
-    TimerPQ timer_pq_ {
-        std::less<Timer>(),
-        mem::vector<Timer>(mem::Allocator<Timer>(mem_manager_))
-    };
+    TimerPQ timer_pq_;
 
     /**************************************************************************/
 
@@ -401,9 +406,8 @@ protected:
     };
 
     //! deque of asynchronous readers
-    mem::deque<AsyncReadBuffer> async_read_ {
-        mem::Allocator<AsyncReadBuffer>(mem_manager_)
-    };
+    std::deque<AsyncReadBuffer,
+               mem::GPoolAllocator<AsyncReadBuffer> > async_read_;
 
     /**************************************************************************/
 
@@ -470,9 +474,8 @@ protected:
     };
 
     //! deque of asynchronous writers
-    mem::deque<AsyncWriteBuffer> async_write_ {
-        mem::Allocator<AsyncWriteBuffer>(mem_manager_)
-    };
+    std::deque<AsyncWriteBuffer,
+               mem::GPoolAllocator<AsyncWriteBuffer> > async_write_;
 
     /**************************************************************************/
 
@@ -549,9 +552,8 @@ protected:
     };
 
     //! deque of asynchronous readers
-    mem::deque<AsyncReadByteBlock> async_read_block_ {
-        mem::Allocator<AsyncReadByteBlock>(mem_manager_)
-    };
+    std::deque<AsyncReadByteBlock,
+               mem::GPoolAllocator<AsyncReadByteBlock> > async_read_block_;
 
     /**************************************************************************/
 
@@ -618,9 +620,8 @@ protected:
     };
 
     //! deque of asynchronous writers
-    mem::deque<AsyncWriteBlock> async_write_block_ {
-        mem::Allocator<AsyncWriteBlock>(mem_manager_)
-    };
+    std::deque<AsyncWriteBlock,
+               mem::GPoolAllocator<AsyncWriteBlock> > async_write_block_;
 
     /**************************************************************************/
 

@@ -19,6 +19,7 @@
 #define THRILL_IO_REQUEST_QUEUE_IMPL_QW_QR_HEADER
 
 #include <thrill/io/request_queue_impl_worker.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <list>
 #include <mutex>
@@ -37,13 +38,12 @@ class RequestQueueImplQwQr : public RequestQueueImplWorker
     static constexpr bool debug = false;
 
 private:
-    using self = RequestQueueImplQwQr;
-    using queue_type = std::list<RequestPtr>;
+    using Queue = std::list<RequestPtr, mem::GPoolAllocator<RequestPtr> >;
 
     std::mutex write_mutex_;
     std::mutex read_mutex_;
-    queue_type write_queue_;
-    queue_type read_queue_;
+    Queue write_queue_;
+    Queue read_queue_;
 
     common::state<thread_state> thread_state_;
     Thread thread_;

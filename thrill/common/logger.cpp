@@ -32,8 +32,11 @@ mem::Manager g_logger_mem_manager(nullptr, "Logger");
 
 using StringCount = std::pair<mem::by_string, size_t>;
 
+template <typename Type>
+using LoggerAllocator = mem::FixedAllocator<Type, g_logger_mem_manager>;
+
 //! deque without malloc tracking
-template <class Key, class T, class Compare = std::less<Key> >
+template <typename Key, typename  T, typename  Compare = std::less<Key> >
 using logger_map = std::map<Key, T, Compare,
                             LoggerAllocator<std::pair<const Key, T> > >;
 

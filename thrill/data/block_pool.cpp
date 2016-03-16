@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <vector>
 
 namespace thrill {
 namespace data {
@@ -32,6 +33,70 @@ static constexpr bool debug_mem = false;
 //! debug block eviction: evict, write complete, read complete
 static constexpr bool debug_em = false;
 
+/******************************************************************************/
+// std::new_handler() which gets called when malloc() returns nullptr
+
+static std::recursive_mutex s_new_mutex;
+static std::vector<BlockPool*> s_blockpools;
+
+static std::atomic<bool> in_new_handler {
+    false
+};
+
+static void our_new_handler() {
+    std::unique_lock<std::recursive_mutex> lock(s_new_mutex);
+    if (in_new_handler) {
+        printf("new handler called recursively! fixup using mem::Pool!\n");
+        abort();
+    }
+
+    in_new_handler = true;
+
+    static size_t s_iter = 0;
+    io::RequestPtr req;
+
+    // first try to find a handle to a currently being written block.
+    for (size_t i = 0; i < s_blockpools.size(); ++i) {
+        req = s_blockpools[s_iter]->GetAnyWriting();
+        ++s_iter %= s_blockpools.size();
+        if (req) break;
+    }
+
+    if (!req) {
+        // if no writing active, evict a block
+        for (size_t i = 0; i < s_blockpools.size(); ++i) {
+            req = s_blockpools[s_iter]->EvictBlockLRU();
+            ++s_iter %= s_blockpools.size();
+            if (req) break;
+        }
+    }
+
+    if (req) {
+        req->wait();
+        in_new_handler = false;
+    }
+    else {
+        printf("new handler found no ByteBlock to evict.\n");
+        for (size_t i = 0; i < s_blockpools.size(); ++i) {
+            LOG1 << "BlockPool[" << i << "]"
+                 << " total_blocks=" << s_blockpools[i]->total_blocks()
+                 << " total_bytes=" << s_blockpools[i]->total_bytes()
+                 << " pinned_blocks=" << s_blockpools[i]->pinned_blocks()
+                 << " writing_blocks=" << s_blockpools[i]->writing_blocks()
+                 << " swapped_blocks=" << s_blockpools[i]->swapped_blocks()
+                 << " reading_blocks=" << s_blockpools[i]->reading_blocks();
+        }
+        mem::malloc_tracker_print_status();
+        in_new_handler = false;
+
+        lock.unlock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+}
+
+/******************************************************************************/
+// BlockPool
+
 BlockPool::BlockPool(size_t workers_per_host)
     : BlockPool(0, 0, nullptr, nullptr, workers_per_host) { }
 
@@ -45,7 +110,16 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
       pin_count_(workers_per_host),
       soft_ram_limit_(soft_ram_limit),
       hard_ram_limit_(hard_ram_limit) {
+
     die_unless(hard_ram_limit >= soft_ram_limit);
+    {
+        std::unique_lock<std::recursive_mutex> lock(s_new_mutex);
+        // register BlockPool as method of our_new_handler to free memory.
+        s_blockpools.reserve(32);
+        s_blockpools.push_back(this);
+
+        std::set_new_handler(our_new_handler);
+    }
 }
 
 BlockPool::~BlockPool() {
@@ -60,6 +134,10 @@ BlockPool::~BlockPool() {
             << "event" << "destroy"
             << "max_pins" << pin_count_.max_pins
             << "max_pinned_bytes" << pin_count_.max_pinned_bytes;
+
+    std::unique_lock<std::recursive_mutex> lock(s_new_mutex);
+    s_blockpools.erase(
+        std::find(s_blockpools.begin(), s_blockpools.end(), this));
 }
 
 PinnedByteBlockPtr
@@ -77,11 +155,15 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
 
     IntRequestInternalMemory(lock, size);
 
-    // allocate block memory.
+    // allocate block memory. -- unlock mutex for that time, since it may
+    // require block eviction.
+    lock.unlock();
     Byte* data = aligned_alloc_.allocate(size);
+    lock.lock();
 
     // create common::CountingPtr, no need for special make_shared()-equivalent
-    PinnedByteBlockPtr block_ptr(new ByteBlock(this, data, size), local_worker_id);
+    PinnedByteBlockPtr block_ptr(
+        mem::GPool().make<ByteBlock>(this, data, size), local_worker_id);
     IntIncBlockPinCount(block_ptr.get(), local_worker_id);
 
     pin_count_.Increment(local_worker_id, size);
@@ -101,7 +183,8 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
 ByteBlockPtr BlockPool::MapExternalBlock(
     const std::shared_ptr<io::FileBase>& file, int64_t offset, size_t size) {
     // create common::CountingPtr, no need for special make_shared()-equivalent
-    ByteBlockPtr block_ptr(new ByteBlock(this, file, offset, size));
+    ByteBlockPtr block_ptr(
+        mem::GPool().make<ByteBlock>(this, file, offset, size));
 
     LOGC(debug_blc)
         << "BlockPool::MapExternalBlock()"
@@ -132,7 +215,8 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
 
         IntIncBlockPinCount(block_ptr, local_worker_id);
 
-        std::promise<PinnedBlock> result;
+        std::promise<PinnedBlock> result(
+            std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
     }
@@ -151,7 +235,8 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         IntIncBlockPinCount(block_ptr, local_worker_id);
         pin_count_.Increment(local_worker_id, block_ptr->size());
 
-        std::promise<PinnedBlock> result;
+        std::promise<PinnedBlock> result(
+            std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
     }
@@ -225,7 +310,8 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
             << " pinned from internal memory"
             << pin_count_;
 
-        std::promise<PinnedBlock> result;
+        std::promise<PinnedBlock> result(
+            std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
     }
@@ -252,7 +338,11 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
     read->local_worker_id = local_worker_id;
 
     // allocate block memory.
+    lock.unlock();
     read->data = aligned_alloc_.allocate(block_ptr->size());
+    lock.lock();
+
+    die_unless(reading_.find(block_ptr) == reading_.end());
 
     if (!block_ptr->ext_file_) {
         swapped_.erase(block_ptr);
@@ -424,12 +514,12 @@ size_t BlockPool::total_blocks() noexcept {
 
 size_t BlockPool::int_total_blocks() noexcept {
 
-    LOG1 << "BlockPool::total_blocks()"
-         << " pinned_blocks_=" << pin_count_.total_pins_
-         << " unpinned_blocks_=" << unpinned_blocks_.size()
-         << " writing_.size()=" << writing_.size()
-         << " swapped_.size()=" << swapped_.size()
-         << " reading_.size()=" << reading_.size();
+    LOG << "BlockPool::total_blocks()"
+        << " pinned_blocks_=" << pin_count_.total_pins_
+        << " unpinned_blocks_=" << unpinned_blocks_.size()
+        << " writing_.size()=" << writing_.size()
+        << " swapped_.size()=" << swapped_.size()
+        << " reading_.size()=" << reading_.size();
 
     return pin_count_.total_pins_
            + unpinned_blocks_.size() + writing_.size()
@@ -442,12 +532,12 @@ size_t BlockPool::total_bytes() noexcept {
 }
 
 size_t BlockPool::int_total_bytes() noexcept {
-    LOG1 << "BlockPool::total_bytes()"
-         << " pinned_bytes_=" << pin_count_.total_pinned_bytes_
-         << " unpinned_bytes_=" << unpinned_bytes_
-         << " writing_bytes_=" << writing_bytes_
-         << " swapped_bytes_=" << swapped_bytes_
-         << " reading_bytes_=" << reading_bytes_;
+    LOG << "BlockPool::total_bytes()"
+        << " pinned_bytes_=" << pin_count_.total_pinned_bytes_
+        << " unpinned_bytes_=" << unpinned_bytes_
+        << " writing_bytes_=" << writing_bytes_
+        << " swapped_bytes_=" << swapped_bytes_
+        << " reading_bytes_=" << reading_bytes_;
 
     return pin_count_.total_pinned_bytes_
            + unpinned_bytes_ + writing_bytes_
@@ -592,7 +682,7 @@ void BlockPool::IntRequestInternalMemory(
            total_ram_use_ - writing_bytes_ + requested_bytes_ > soft_ram_limit_)
     {
         // evict blocks: schedule async writing which increases writing_bytes_.
-        EvictBlockLRU();
+        IntEvictBlockLRU();
     }
 
     // wait up to 60 seconds for other threads to free up memory or pins
@@ -608,7 +698,7 @@ void BlockPool::IntRequestInternalMemory(
                total_ram_use_ - writing_bytes_ + requested_bytes_ > hard_ram_limit_)
         {
             // evict blocks: schedule async writing which increases writing_bytes_.
-            EvictBlockLRU();
+            IntEvictBlockLRU();
         }
 
         cv_memory_change_.wait_for(lock, std::chrono::seconds(1));
@@ -660,10 +750,9 @@ void BlockPool::AdviseFree(size_t size) {
            total_ram_use_ - writing_bytes_ + requested_bytes_ + size > hard_ram_limit_)
     {
         // evict blocks: schedule async writing which increases writing_bytes_.
-        EvictBlockLRU();
+        IntEvictBlockLRU();
     }
 }
-
 void BlockPool::ReleaseInternalMemory(size_t size) {
     std::unique_lock<std::mutex> lock(mutex_);
     return IntReleaseInternalMemory(size);
@@ -689,18 +778,31 @@ void BlockPool::EvictBlock(ByteBlock* block_ptr) {
     IntEvictBlock(block_ptr);
 }
 
-void BlockPool::EvictBlockLRU() {
+io::RequestPtr BlockPool::GetAnyWriting() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    if (!writing_.size()) return io::RequestPtr();
+    return writing_.begin()->second;
+}
 
-    assert(unpinned_blocks_.size());
+io::RequestPtr BlockPool::EvictBlockLRU() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    return IntEvictBlockLRU();
+}
+
+io::RequestPtr BlockPool::IntEvictBlockLRU() {
+
+    if (!unpinned_blocks_.size()) return io::RequestPtr();
+
     ByteBlock* block_ptr = unpinned_blocks_.pop();
     assert(block_ptr);
     unpinned_bytes_ -= block_ptr->size();
 
-    IntEvictBlock(block_ptr);
+    return IntEvictBlock(block_ptr);
 }
 
-void BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
+io::RequestPtr BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
 
+    assert(block_ptr->block_pool_ == this);
     assert(block_ptr->em_bid_.storage == nullptr);
 
     if (block_ptr->ext_file_) {
@@ -715,7 +817,7 @@ void BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
         block_ptr->data_ = nullptr;
 
         IntReleaseInternalMemory(block_ptr->size());
-        return;
+        return io::RequestPtr();
     }
 
     // allocate EM block
@@ -729,12 +831,14 @@ void BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
     writing_bytes_ += block_ptr->size();
 
     // initiate writing to EM.
-    writing_[block_ptr] =
+    io::RequestPtr req =
         block_ptr->em_bid_.storage->awrite(
             block_ptr->data_, block_ptr->em_bid_.offset, block_ptr->size(),
-            [this, block_ptr](io::Request* req, bool success) {
-                return OnWriteComplete(block_ptr, req, success);
-            });
+            // construct an immediate CompletionHandler callback
+            io::CompletionHandler::from<
+                ByteBlock, & ByteBlock::OnWriteComplete>(block_ptr));
+
+    return (writing_[block_ptr] = req);
 }
 
 void BlockPool::OnWriteComplete(

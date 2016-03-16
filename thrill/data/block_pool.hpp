@@ -14,7 +14,6 @@
 
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/lru_cache.hpp>
-#include <thrill/common/signal.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/byte_block.hpp>
@@ -22,12 +21,15 @@
 #include <thrill/io/request.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 #include <thrill/mem/manager.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <deque>
+#include <functional>
 #include <future>
 #include <mutex>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -93,6 +95,13 @@ public:
     //! Advice the block pool to free up memory in anticipation of a large
     //! future request.
     void AdviseFree(size_t size);
+
+    //! Return any currently being written block (for waiting on completion)
+    io::RequestPtr GetAnyWriting();
+
+    //! Evict a Block from the LRU chain into external memory. This can return
+    //! nullptr if no blocks available, or if the Block was not dirty.
+    io::RequestPtr EvictBlockLRU();
 
     //! Allocates a byte block with the request size. May block this thread if
     //! the hard memory limit is reached, until memory is freed by another
@@ -173,7 +182,8 @@ private:
     size_t workers_per_host_;
 
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
-    common::LruCacheSet<ByteBlock*> unpinned_blocks_;
+    common::LruCacheSet<
+        ByteBlock*, mem::GPoolAllocator<ByteBlock*> > unpinned_blocks_;
 
     //! number of unpinned bytes
     size_t unpinned_bytes_ = 0;
@@ -217,7 +227,10 @@ private:
     PinCount pin_count_;
 
     //! type of set of ByteBlocks currently begin written to EM.
-    using WritingMap = std::unordered_map<ByteBlock*, io::RequestPtr>;
+    using WritingMap = std::unordered_map<
+              ByteBlock*, io::RequestPtr,
+              std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+              mem::GPoolAllocator<std::pair<ByteBlock* const, io::RequestPtr> > >;
 
     //! set of ByteBlocks currently begin written to EM.
     WritingMap writing_;
@@ -229,7 +242,9 @@ private:
     size_t writing_bytes_ = 0;
 
     //! set of ByteBlock currently in EM.
-    std::unordered_set<ByteBlock*> swapped_;
+    std::unordered_set<
+        ByteBlock*, std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+        mem::GPoolAllocator<ByteBlock*> > swapped_;
 
     //! total number of bytes in swapped blocks
     size_t swapped_bytes_ = 0;
@@ -244,12 +259,18 @@ private:
         Byte* data;
         io::RequestPtr req;
 
+        ReadRequest()
+            : result(std::allocator_arg, mem::GPoolAllocator<PinnedBlock>()) { }
+
         void OnComplete(io::Request* req, bool success);
     };
 
     //! type of set of ByteBlocks currently begin read from EM.
     using ReadingMap = std::unordered_map<
-              ByteBlock*, std::unique_ptr<ReadRequest> >;
+              ByteBlock*, std::unique_ptr<ReadRequest>,
+              std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+              mem::GPoolAllocator<
+                  std::pair<ByteBlock* const, std::unique_ptr<ReadRequest> > > >;
 
     //! set of ByteBlocks currently begin read from EM.
     ReadingMap reading_;
@@ -290,14 +311,17 @@ private:
     void OnReadComplete(ReadRequest* read, io::Request* req, bool success);
 
     //! Evict a block from the lru list into external memory
-    void EvictBlockLRU();
+    io::RequestPtr IntEvictBlockLRU();
 
     //! Evict a block into external memory. The block must be unpinned and not
     //! swapped.
-    void IntEvictBlock(ByteBlock* block_ptr);
+    io::RequestPtr IntEvictBlock(ByteBlock* block_ptr);
 
     //! make ostream-able
     friend std::ostream& operator << (std::ostream& os, const PinCount& p);
+
+    //! for calling OnWriteComplete
+    friend class ByteBlock;
 
     //! \name Block Statistics
     //! \{

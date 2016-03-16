@@ -97,12 +97,6 @@ TEST(MockGroup, DispatcherSyncSendAsyncRead) {
 TEST(MockGroup, DispatcherLaunchAndTerminate) {
     MockTest(TestDispatcherLaunchAndTerminate);
 }
-TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFuture) {
-    MockTest(TestDispatcherAsyncWriteAndReadIntoFuture);
-}
-TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
-    MockTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
-}
 TEST(MockGroup, SingleThreadPrefixSum) {
     MockTestLess(TestSingleThreadPrefixSum);
 }

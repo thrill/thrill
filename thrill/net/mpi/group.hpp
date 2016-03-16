@@ -162,7 +162,7 @@ public:
     void Close() final { }
 
     //! construct a mpi::Dispatcher exclusively for this Group.
-    mem::mm_unique_ptr<net::Dispatcher> ConstructDispatcher(
+    std::unique_ptr<net::Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const final;
 
     //! run a MPI_Barrier() for synchronization.

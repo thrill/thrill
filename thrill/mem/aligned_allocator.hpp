@@ -60,7 +60,7 @@ public:
     using is_always_equal = std::false_type;
 
     //! Return allocator for different type.
-    template <class U>
+    template <typename U>
     struct rebind { using other = AlignedAllocator<U>; };
 
     //! Construct with base allocator
@@ -95,13 +95,13 @@ public:
     }
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator == (const AlignedAllocator<Other>& other) const noexcept {
         return (base_ == other.base_);
     }
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator != (const AlignedAllocator<Other>& other) const noexcept {
         return (base_ != other.base_);
     }

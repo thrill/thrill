@@ -99,7 +99,7 @@ public:
         return tcp_connection(id);
     }
 
-    mem::unique_ptr<Dispatcher> ConstructDispatcher(
+    std::unique_ptr<Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const final;
 
     /**

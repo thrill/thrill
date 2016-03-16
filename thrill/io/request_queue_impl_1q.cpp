@@ -107,7 +107,7 @@ RequestQueueImpl1Q::~RequestQueueImpl1Q() {
 }
 
 void* RequestQueueImpl1Q::worker(void* arg) {
-    Self* pthis = static_cast<Self*>(arg);
+    RequestQueueImpl1Q* pthis = static_cast<RequestQueueImpl1Q*>(arg);
 
     for ( ; ; )
     {

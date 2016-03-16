@@ -90,7 +90,7 @@ public:
           dist_(make_dist(N, s, q)) { }
 
     //! pick next random number in the range [1,num)
-    template <class Engine>
+    template <typename Engine>
     size_t operator () (Engine& eng) { return dist_(eng) + 1; }
 
     //! deliver population size

@@ -22,6 +22,7 @@
 #include <thrill/io/config_file.hpp>
 #include <thrill/io/error_handling.hpp>
 #include <thrill/io/file_base.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -52,7 +53,9 @@ class DiskAllocator
         }
     };
 
-    using SortSeq = std::map<int64_t, int64_t>;
+    using SortSeq = std::map<
+              int64_t, int64_t, std::less<int64_t>,
+              mem::GPoolAllocator<std::pair<const int64_t, int64_t> > >;
 
     std::mutex mutex_;
     SortSeq free_space_;
@@ -122,14 +125,6 @@ public:
 
     template <typename BidIterator>
     void new_blocks(BidIterator begin, BidIterator end);
-
-#if 0
-    template <size_t BlockSize>
-    void delete_blocks(const BIDArray<BlockSize>& bids) {
-        for (size_t i = 0; i < bids.size(); ++i)
-            delete_block(bids[i]);
-    }
-#endif
 
     template <size_t BlockSize>
     void delete_block(const BID<BlockSize>& bid) {

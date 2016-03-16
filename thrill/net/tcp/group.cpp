@@ -27,12 +27,10 @@ namespace thrill {
 namespace net {
 namespace tcp {
 
-mem::unique_ptr<Dispatcher>
+std::unique_ptr<Dispatcher>
 Group::ConstructDispatcher(mem::Manager& mem_manager) const {
     // construct tcp::SelectDispatcher
-    return mem::unique_ptr<Dispatcher>(
-        mem::mm_new<SelectDispatcher>(mem_manager, mem_manager),
-        mem::Deleter<Dispatcher>(mem_manager));
+    return std::make_unique<SelectDispatcher>(mem_manager);
 }
 
 std::vector<std::unique_ptr<Group> > Group::ConstructLoopbackMesh(
@@ -77,7 +75,7 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLocalRealTCPMesh(
         endpoints.push_back("127.0.0.1:" + std::to_string(port_base + i));
     }
 
-    sLOG1 << "Group test uses ports" << port_base << "-" << port_base + num_hosts;
+    sLOG << "Group test uses ports" << port_base << "-" << port_base + num_hosts;
 
     std::vector<std::thread> threads(num_hosts);
 

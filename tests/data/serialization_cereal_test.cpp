@@ -39,7 +39,7 @@ struct SerializationCereal : public::testing::Test {
 struct CerealObject3 {
     int x_, y_, z_;
 
-    template <class Archive>
+    template <typename Archive>
     void serialize(Archive& archive) {
         archive(x_, y_, z_);
     }
@@ -57,7 +57,7 @@ struct CerealObject2 {
     CerealObject3 tco;
 
     // This method lets cereal know which data members to serialize
-    template <class Archive>
+    template <typename Archive>
     void serialize(Archive& archive) {
         archive(x_, y_, z_, tco);
     }
@@ -70,7 +70,7 @@ struct CerealObject
     std::string              a;
     std::vector<std::string> b;
 
-    template <class Archive>
+    template <typename Archive>
     void serialize(Archive& ar) {
         ar(x, y, z, a, b);
     }

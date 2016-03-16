@@ -23,12 +23,16 @@ set(CTEST_BUILD_COMMAND "make -j4")
 
 ctest_start(Continuous)
 ctest_build()
-ctest_test()
+ctest_test(RETURN_VALUE retval)
 
 message(STATUS "CTEST_SITE: ${CTEST_SITE}")
 
 if(CTEST_SITE MATCHES "^travis-(thrill|bingmann)/")
   ctest_submit()
+endif()
+
+if(NOT ${retval} EQUAL 0)
+  message(FATAL_ERROR "Tests failed")
 endif()
 
 ################################################################################

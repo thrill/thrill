@@ -106,7 +106,7 @@ bool RequestQueueImplQwQr::cancel_request(RequestPtr& req) {
     if (req.get()->type() == Request::READ)
     {
         std::unique_lock<std::mutex> Lock(read_mutex_);
-        queue_type::iterator pos
+        Queue::iterator pos
             = std::find(read_queue_.begin(), read_queue_.end(), req);
         if (pos != read_queue_.end())
         {
@@ -119,7 +119,7 @@ bool RequestQueueImplQwQr::cancel_request(RequestPtr& req) {
     else
     {
         std::unique_lock<std::mutex> Lock(write_mutex_);
-        queue_type::iterator pos
+        Queue::iterator pos
             = std::find(write_queue_.begin(), write_queue_.end(), req);
         if (pos != write_queue_.end())
         {
@@ -138,7 +138,7 @@ RequestQueueImplQwQr::~RequestQueueImplQwQr() {
 }
 
 void* RequestQueueImplQwQr::worker(void* arg) {
-    self* pthis = static_cast<self*>(arg);
+    RequestQueueImplQwQr* pthis = static_cast<RequestQueueImplQwQr*>(arg);
 
     bool write_phase = true;
     for ( ; ; )

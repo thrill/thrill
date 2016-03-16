@@ -21,6 +21,8 @@
 #include <utility>
 #include <vector>
 
+static constexpr bool debug = false;
+
 using namespace thrill;
 
 //! Table emitter implementation to collect output of a reduce hash table
@@ -96,7 +98,7 @@ void TestAddMyStructModulo(Context& ctx) {
     for (size_t pi = 0; pi < collector.size(); ++pi) {
         const auto& partition = collector[pi];
 
-        sLOG1 << "partition" << pi << ":" << partition.size() << ":";
+        sLOG << "partition" << pi << ":" << partition.size() << ":";
         for (const auto& v : partition) {
             result.emplace_back(v.second);
         }

@@ -150,8 +150,8 @@ protected:
 private:
     friend class common::Singleton<BlockManager>;
 
-    DiskAllocator** disk_allocators_;
-    FileBase** disk_files_;
+    std::vector<DiskAllocator*> disk_allocators_;
+    std::vector<FileBase*> disk_files_;
 
     size_t ndisks_;
     BlockManager();

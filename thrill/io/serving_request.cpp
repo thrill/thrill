@@ -54,7 +54,7 @@ void ServingRequest::serve() {
     }
     catch (const IoError& ex)
     {
-        save_error(ex.what());
+        save_error(ex.safe_message());
     }
 
     check_nref(true);

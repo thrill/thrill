@@ -13,8 +13,8 @@
 #define THRILL_DATA_BYTE_BLOCK_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
-#include <thrill/common/future.hpp>
 #include <thrill/io/bid.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <string>
 #include <vector>
@@ -105,7 +105,7 @@ private:
     BlockPool* block_pool_;
 
     //! counts the number of pins in this block per thread_id.
-    std::vector<size_t> pin_count_;
+    std::vector<size_t, mem::GPoolAllocator<size_t> > pin_count_;
 
     //! counts the total number of pins, the data_ may be swapped out when this
     //! reaches zero.
@@ -124,6 +124,11 @@ private:
     // Block is a friend to call {Increase,Reduce}PinCount()
     friend class Block;
     friend class PinnedBlock;
+    // for calling protected constructor
+    friend class mem::Pool;
+
+    //! No default construction of Byteblock
+    ByteBlock() = delete;
 
     /*!
      * Constructor to initialize ByteBlock in a buffer of memory. Protected,
@@ -143,8 +148,8 @@ private:
 
     friend std::ostream& operator << (std::ostream& os, const ByteBlock& b);
 
-    //! No default construction of Byteblock
-    ByteBlock() = delete;
+    //! forwarded to block_pool_
+    void OnWriteComplete(io::Request* req, bool success);
 };
 
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;

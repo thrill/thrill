@@ -27,8 +27,6 @@ namespace io {
 //! Request which serves an I/O by calling the synchronous routine of the file.
 class ServingRequest final : public Request
 {
-    template <class base_file_type>
-    friend class fileperblock_file;
     friend class RequestQueueImplQwQr;
     friend class RequestQueueImpl1Q;
 

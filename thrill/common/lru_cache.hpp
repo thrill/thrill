@@ -16,8 +16,11 @@
 #ifndef THRILL_COMMON_LRU_CACHE_HEADER
 #define THRILL_COMMON_LRU_CACHE_HEADER
 
+#include <cassert>
 #include <cstddef>
+#include <functional>
 #include <list>
+#include <memory>
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -109,14 +112,20 @@ private:
  * the user program must check size() after an insert and may extract the least
  * recently used element.
  */
-template <typename Key>
+template <typename Key, typename Alloc = std::allocator<Key> >
 class LruCacheSet
 {
 public:
-    using List = typename std::list<Key>;
+    using List = typename std::list<Key, Alloc>;
     using ListIterator = typename List::iterator;
 
-    using Map = typename std::unordered_map<Key, ListIterator>;
+    using Map = typename std::unordered_map<
+              Key, ListIterator, std::hash<Key>, std::equal_to<Key>,
+              typename Alloc::template rebind<
+                  std::pair<const Key, ListIterator> >::other>;
+
+    explicit LruCacheSet(const Alloc& alloc = Alloc())
+        : list_(alloc), map_(alloc) { }
 
     //! put or replace/touch item in LRU cache
     void put(const Key& key) {

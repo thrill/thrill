@@ -87,13 +87,12 @@ thrill_build_test_group(common/tests
   common/delegate_test.cpp
   common/fast_string_test.cpp
   common/function_traits_test.cpp
-  common/future_queue_test.cpp
-  common/future_test.cpp
   common/json_logger_test.cpp
   common/lru_cache_test.cpp
   common/math_test.cpp
   common/matrix_test.cpp
   common/meta_test.cpp
+  common/splay_tree_test.cpp
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
   common/string_view_test.cpp
@@ -104,6 +103,7 @@ thrill_build_test_group(common/tests
   )
 
 thrill_build_test(mem/allocator_test)
+thrill_build_test(mem/pool_test)
 thrill_build_test(mem/stack_allocator_test)
 if(NOT MSVC)
   thrill_build_test(mem/malloc_tracker_test)

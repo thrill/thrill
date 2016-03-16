@@ -129,7 +129,7 @@ public:
     //! If value is available, pops it from the queue, move it to
     //! destination. If no item is in the queue, wait until there is one, or
     //! timeout and return false. NOTE: not available in TBB!
-    template <class Rep, class Period>
+    template <typename Rep, typename Period>
     bool pop_for(T& destination,
                  const std::chrono::duration<Rep, Period>& timeout) {
         std::unique_lock<std::mutex> lock(mutex_);

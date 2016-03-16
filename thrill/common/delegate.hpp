@@ -90,7 +90,7 @@ MyDelegate d5 = [&](double a) { return a + offset; };
 \endcode
  *
  */
-template <class R, class ... A, typename Allocator>
+template <typename R, typename ... A, typename Allocator>
 class delegate<R(A ...), Allocator>
 {
 public:
@@ -184,7 +184,7 @@ public:
               // allocate memory for T in shared_ptr with appropriate deleter
               typename Allocator::template rebind<
                   typename std::decay<T>::type>::other().allocate(1),
-              store_deleter<typename std::decay<T>::type>) {
+              store_deleter<typename std::decay<T>::type>, Allocator()) {
 
         using Functor = typename std::decay<T>::type;
         using Rebind = typename Allocator::template rebind<Functor>::other;
@@ -330,7 +330,7 @@ private:
         : caller_(m), object_ptr_(obj) { }
 
     //! deleter for stored functor closures
-    template <class T>
+    template <typename T>
     static void store_deleter(void* const ptr) {
         using Rebind = typename Allocator::template rebind<T>::other;
 
