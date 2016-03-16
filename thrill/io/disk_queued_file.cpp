@@ -25,7 +25,7 @@ RequestPtr DiskQueuedFile::aread(
     void* buffer, offset_type pos, size_type bytes,
     const CompletionHandler& on_cmpl) {
 
-    RequestPtr req(mem::g_pool.make<ServingRequest>(
+    RequestPtr req(mem::GPool().make<ServingRequest>(
                        on_cmpl, this, buffer, pos, bytes, Request::READ));
 
     DiskQueues::get_instance()->add_request(req, get_queue_id());
@@ -37,7 +37,7 @@ RequestPtr DiskQueuedFile::awrite(
     void* buffer, offset_type pos, size_type bytes,
     const CompletionHandler& on_cmpl) {
 
-    RequestPtr req(mem::g_pool.make<ServingRequest>(
+    RequestPtr req(mem::GPool().make<ServingRequest>(
                        on_cmpl, this, buffer, pos, bytes, Request::WRITE));
 
     DiskQueues::get_instance()->add_request(req, get_queue_id());

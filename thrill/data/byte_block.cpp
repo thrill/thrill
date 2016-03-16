@@ -43,7 +43,7 @@ void ByteBlock::deleter(ByteBlock* bb) {
     assert(bb->block_pool_);
     bb->block_pool_->DestroyBlock(bb);
 
-    mem::g_pool.destroy(bb);
+    mem::GPool().destroy(bb);
 }
 
 void ByteBlock::deleter(const ByteBlock* bb) {

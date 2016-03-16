@@ -161,7 +161,7 @@ private:
 };
 
 //! singleton instance of global pool for I/O data structures
-extern Pool g_pool;
+Pool & GPool();
 
 /******************************************************************************/
 // PoolAllocator - an allocator to draw objects from a Pool.
@@ -238,7 +238,7 @@ public:
 /******************************************************************************/
 // FixedPoolAllocator - an allocator to draw objects from a fixed Pool.
 
-template <typename Type, Pool& pool_>
+template <typename Type, Pool& (* pool_)()>
 class FixedPoolAllocator : public AllocatorBase<Type>
 {
 public:
@@ -272,20 +272,20 @@ public:
 
     //! maximum size possible to allocate
     size_type max_size() const noexcept {
-        return pool_.max_size();
+        return pool_().max_size();
     }
 
     //! attempts to allocate a block of storage with a size large enough to
     //! contain n elements of member type value_type, and returns a pointer to
     //! the first element.
     pointer allocate(size_type n, const void* /* hint */ = nullptr) {
-        return static_cast<Type*>(pool_.allocate(n * sizeof(Type)));
+        return static_cast<Type*>(pool_().allocate(n * sizeof(Type)));
     }
 
     //! releases a block of storage previously allocated with member allocate
     //! and not yet released.
     void deallocate(pointer p, size_type n) const noexcept {
-        pool_.deallocate(p, n * sizeof(Type));
+        pool_().deallocate(p, n * sizeof(Type));
     }
 
     //! compare to another allocator of same type
@@ -303,7 +303,7 @@ public:
 
 //! template alias for allocating from mem::g_pool.
 template <typename Type>
-using GPoolAllocator = FixedPoolAllocator<Type, g_pool>;
+using GPoolAllocator = FixedPoolAllocator<Type, GPool>;
 
 //! deleter for unique_ptr with memory from mem::g_pool.
 template <typename T>
@@ -312,7 +312,7 @@ class GPoolDeleter
 public:
     //! free the pointer
     void operator () (T* ptr) const noexcept {
-        g_pool.destroy(ptr);
+        GPool().destroy(ptr);
     }
 };
 
@@ -324,7 +324,7 @@ using safe_unique_ptr = std::unique_ptr<T, GPoolDeleter<T> >;
 template <typename T, typename ... Args>
 safe_unique_ptr<T> safe_make_unique(Args&& ... args) {
     return safe_unique_ptr<T>(
-        g_pool.make<T>(std::forward<Args>(args) ...));
+        GPool().make<T>(std::forward<Args>(args) ...));
 }
 
 //! alias for std::string except that its memory is allocated in the safer

@@ -98,11 +98,11 @@ void RequestDeleter(Request* req) {
     // switch between virtual subclasses to make g_pool get the right size of
     // req's object.
     if (ServingRequest* r = dynamic_cast<ServingRequest*>(req)) {
-        mem::g_pool.destroy(r);
+        mem::GPool().destroy(r);
     }
 #if THRILL_HAVE_LINUXAIO_FILE
     else if (LinuxaioRequest* r = dynamic_cast<LinuxaioRequest*>(req)) {
-        mem::g_pool.destroy(r);
+        mem::GPool().destroy(r);
     }
 #endif
     else {
