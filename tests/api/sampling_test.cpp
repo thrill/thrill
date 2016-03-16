@@ -42,7 +42,6 @@ TEST(SamplingNode, CompileAndExecute) {
 
             LOG << "result size 0.25: " << out_vec1.size() << " / " << sizets.Size();
             LOG << "result size 0.05: " << out_vec2.size() << " / " << sizets.Size();
-
         };
 
     api::RunLocalTests(start_func);

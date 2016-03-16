@@ -42,7 +42,7 @@ auto RunEmitter(const Lambda &lambda)
 {
     // lambda is captured by non-const copy so that we can use functors with
     // non-const operator(), i.e. stateful functors (e.g. for sampling)
-    return [=,lambda=lambda](const auto & input) mutable -> void {
+    return [=, lambda = lambda](const auto & input) mutable->void {
                lambda(input);
     };
 }
@@ -62,7 +62,7 @@ auto RunEmitter(const Lambda &lambda, const MoreLambdas &... rest)
 {
     // lambda is captured by non-const copy so that we can use functors with
     // non-const operator(), i.e. stateful functors (e.g. for sampling)
-    return [=,lambda=lambda](const auto & input) mutable -> void {
+    return [=, lambda = lambda](const auto & input) mutable->void {
                lambda(input, RunEmitter(rest ...));
     };
 }

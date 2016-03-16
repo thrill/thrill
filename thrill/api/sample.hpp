@@ -24,15 +24,15 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class SamplingFunctor {
+class SamplingFunctor
+{
     static const bool debug = false;
 
     using SkipDistValueType = int;
 
 public:
-    SamplingFunctor(double p)
-        : p_(p), use_skip_(p < 0.1)  // use skip values if p < 0.1
-    {
+    explicit SamplingFunctor(double p)
+        : p_(p), use_skip_(p < 0.1) { // use skip values if p < 0.1
         assert(p >= 0.0 && p <= 1.0);
 
         if (use_skip_) {
@@ -40,13 +40,14 @@ public:
             skip_remaining_ = skip_dist_(engine_);
 
             LOG << "Skip value initialised with " << skip_remaining_;
-        } else {
+        }
+        else {
             simple_dist_ = std::bernoulli_distribution(p);
         }
     }
 
     template <typename Emitter>
-    inline void operator()(const ValueType &item, Emitter &&emit) {
+    inline void operator () (const ValueType& item, Emitter&& emit) {
         if (use_skip_) {
             // use geometric distribution and skip values
             if (skip_remaining_ == 0) {
@@ -54,10 +55,12 @@ public:
                 LOG << "sampled item " << item;
                 emit(item);
                 skip_remaining_ = skip_dist_(engine_);
-            } else {
+            }
+            else {
                 --skip_remaining_;
             }
-        } else {
+        }
+        else {
             // use bernoulli distribution
             if (simple_dist_(engine_)) {
                 LOG << "sampled item " << item;
@@ -77,7 +80,7 @@ private:
     // the naive method
     const bool use_skip_;
     // Random generator
-    std::default_random_engine engine_ { std::random_device{}() };
+    std::default_random_engine engine_ { std::random_device { } () };
     std::bernoulli_distribution simple_dist_;
     std::geometric_distribution<SkipDistValueType> skip_dist_;
     SkipDistValueType skip_remaining_ = -1;
