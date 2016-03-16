@@ -98,7 +98,6 @@ private:
  *
  * \param seqs_begin Begin iterator of iterator pair input sequence.
  * \param seqs_end End iterator of iterator pair input sequence.
- * \param length Maximum length to merge.
  * \param comp Comparator.
  * \tparam Stable Stable merging incurs a performance penalty.
  * \tparam Sentinels The sequences have a sentinel element.

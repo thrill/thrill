@@ -421,7 +421,7 @@ DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
  * creates an ordered DIA according to a given read function.
  *
  * \param ctx Reference to the context object
- * \param filepath Path of the file in the file system
+ * \param filepaths Path of the file in the file system
  */
 DIA<std::string> ReadLines(
     Context& ctx, const std::vector<std::string>& filepaths) {

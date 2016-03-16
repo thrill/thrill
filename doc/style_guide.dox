@@ -22,7 +22,7 @@ In general we follow the [Google C++ Style Guide](http://google.github.io/styleg
 Header files end with `.hpp`, source files end with `.cpp`. All are lowercase, and CamelCase is transformed into `camel_case` with underscores.
 
 ### Forward Declarations
-- You may and should forward declare classes in order to avoid unnecessary `#includes`
+- You may and should forward declare classes in order to avoid unnecessary <tt>\#includes</tt>
 
 ### Inline Functions
 - No Restrictions on number of lines.
@@ -190,7 +190,7 @@ Header files end with `.hpp`, source files end with `.cpp`. All are lowercase, a
 - no randomization makes "this test if failing on my computer" more deterministic!
 
 ### Include Files
-- *never* use `#include <thrill/thrill.hpp>` in a test! this file compiles everything (including future complex algorithms) and makes test compilation time needlessly long.
+- *never* use <tt>\#include <thrill/thrill.hpp></tt> in a test! this file compiles everything (including future complex algorithms) and makes test compilation time needlessly long.
 
 */
 

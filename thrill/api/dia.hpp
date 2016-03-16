@@ -137,8 +137,6 @@ public:
      * a non-empty chain.  The functionality of the chain is stored in a newly
      * created LOpNode.  The current DIA than points to this LOpNode.  This
      * is needed to support assignment operations between DIA's.
-     *
-     * \param rhs DIA containing a non-empty function chain.
      */
     template <typename AnyStack>
     DIA(const DIA<ValueType, AnyStack>& rhs)

@@ -29,11 +29,19 @@ namespace thrill {
   </tr>
   <tr>
     <td style="width: 50%">
-      <div style="text-align: center">\ref net "net: Network Layer"</div>
-      Controls connections between compute nodes, contains collective communication primitives like Broadcast, AllReduce for simple datatypes.</td>
-    <td style="width: 50%">
       <div style="text-align: center">\ref data "data: Data Layer"</div>
       Manages transfer of large amounts of data between workers. Contains Serialization, File, BlockWriter, Channel, and Multiplexer.</td>
+    <td style="width: 50%">
+      <div style="text-align: center">\ref net "net: Network Layer"</div>
+      Controls connections between compute nodes, contains collective communication primitives like Broadcast, AllReduce for simple datatypes.</td>
+  </tr>
+  <tr>
+    <td style="width: 50%">
+      <div style="text-align: center">\ref data "io: Async I/O Layer"</div>
+      asynchronous I/O, direct file access impl, and disk allocation. (mostly borrowed from STXXL)</td>
+    <td style="width: 50%">
+      <div style="text-align: center">\ref net::mock "net::mock", \ref net::tcp "net::tcp", \ref net::mpi "net::mpi"</div>
+      Network backend implementations.</td>
   </tr>
   <tr>
     <td style="width: 50%">
@@ -41,7 +49,7 @@ namespace thrill {
       Independent common tools such as Logger, ThreadPool, Delegates, ConcurrentQueue, CmdlineParser, etc.</td>
     <td style="width: 50%">
       <div style="text-align: center">\ref mem "mem: Memory Management Layer"</div>
-      Keeps track of memory consumption of all stakeholders in system.</td>
+      Keeps track of memory consumption of all stakeholders in system. Extra memory pool for I/O data structures.</td>
   </tr>
 </table>
 
