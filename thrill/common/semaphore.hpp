@@ -22,7 +22,7 @@
 namespace thrill {
 namespace common {
 
-class semaphore
+class Semaphore
 {
     //! value of the semaphore
     int value_;
@@ -35,14 +35,14 @@ class semaphore
 
 public:
     //! construct semaphore
-    explicit semaphore(int init_value = 1)
+    explicit Semaphore(int init_value = 1)
         : value_(init_value)
     { }
 
     //! non-copyable: delete copy-constructor
-    semaphore(const semaphore&) = delete;
+    Semaphore(const Semaphore&) = delete;
     //! non-copyable: delete assignment operator
-    semaphore& operator = (const semaphore&) = delete;
+    Semaphore& operator = (const Semaphore&) = delete;
 
     //! function increments the semaphore and signals any threads that are
     //! blocked waiting a change in the semaphore

@@ -20,7 +20,7 @@
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/semaphore.hpp>
-#include <thrill/common/state.hpp>
+#include <thrill/common/shared_state.hpp>
 #include <thrill/io/request_queue.hpp>
 
 #include <thread>
@@ -37,13 +37,16 @@ namespace io {
 class RequestQueueImplWorker : public RequestQueue
 {
 protected:
-    enum thread_state { NOT_RUNNING, RUNNING, TERMINATING, TERMINATED };
-
-    using Thread = std::thread *;
+    enum ThreadState { NOT_RUNNING, RUNNING, TERMINATING, TERMINATED };
 
 protected:
-    void start_thread(void* (*worker)(void*), void* arg, Thread& t, common::state<thread_state>& s);
-    void stop_thread(Thread& t, common::state<thread_state>& s, common::semaphore& sem);
+    void StartThread(
+        void* (*worker)(void*), void* arg,
+        std::thread& t, common::SharedState<ThreadState>& s);
+
+    void StopThread(
+        std::thread& t, common::SharedState<ThreadState>& s,
+        common::Semaphore& sem);
 };
 
 //! \}

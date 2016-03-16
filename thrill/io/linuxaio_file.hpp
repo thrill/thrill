@@ -41,7 +41,7 @@ class LinuxaioFile final : public UfsFileBase, public DiskQueuedFile
     friend class LinuxaioRequest;
 
 private:
-    int desired_queue_length;
+    int desired_queue_length_;
 
 public:
     //! Constructs file object
@@ -60,7 +60,7 @@ public:
         : FileBase(device_id),
           UfsFileBase(filename, mode),
           DiskQueuedFile(queue_id, allocator_id),
-          desired_queue_length(desired_queue_length)
+          desired_queue_length_(desired_queue_length)
     { }
 
     void serve(void* buffer, offset_type offset, size_type bytes,
@@ -71,8 +71,8 @@ public:
                       const CompletionHandler& on_cmpl = CompletionHandler()) final;
     const char * io_type() const final;
 
-    int get_desired_queue_length() const {
-        return desired_queue_length;
+    int desired_queue_length() const {
+        return desired_queue_length_;
     }
 };
 

@@ -32,103 +32,103 @@ namespace thrill {
 namespace io {
 
 LinuxaioQueue::LinuxaioQueue(int desired_queue_length)
-    : num_waiting_requests(0), num_free_events(0), num_posted_requests(0),
-      post_thread_state(NOT_RUNNING), wait_thread_state(NOT_RUNNING) {
+    : num_waiting_requests_(0), num_free_events_(0), num_posted_requests_(0),
+      post_thread_state_(NOT_RUNNING), wait_thread_state_(NOT_RUNNING) {
     if (desired_queue_length == 0) {
         // default value, 64 entries per queue (i.e. usually per disk) should
         // be enough
-        max_events = 64;
+        max_events_ = 64;
     }
     else
-        max_events = desired_queue_length;
+        max_events_ = desired_queue_length;
 
     // negotiate maximum number of simultaneous events with the OS
-    context = 0;
+    context_ = 0;
     long result;
-    while ((result = syscall(SYS_io_setup, max_events, &context)) == -1 &&
-           errno == EAGAIN && max_events > 1)
+    while ((result = syscall(SYS_io_setup, max_events_, &context_)) == -1 &&
+           errno == EAGAIN && max_events_ > 1)
     {
-        max_events <<= 1;               // try with half as many events
+        max_events_ <<= 1;               // try with half as many events
     }
     if (result != 0) {
         THRILL_THROW_ERRNO(IoError, "linuxaio_queue::linuxaio_queue"
-                           " io_setup() nr_events=" << max_events);
+                           " io_setup() nr_events=" << max_events_);
     }
 
-    for (int e = 0; e < max_events; ++e)
-        num_free_events++;  // cannot set semaphore to value directly
+    for (int e = 0; e < max_events_; ++e)
+        num_free_events_++;  // cannot set semaphore to value directly
 
-    LOG1 << "Set up an linuxaio queue with " << max_events << " entries.";
+    LOG1 << "Set up an linuxaio queue with " << max_events_ << " entries.";
 
-    start_thread(post_async, static_cast<void*>(this), post_thread, post_thread_state);
-    start_thread(wait_async, static_cast<void*>(this), wait_thread, wait_thread_state);
+    StartThread(post_async, static_cast<void*>(this), post_thread_, post_thread_state_);
+    StartThread(wait_async, static_cast<void*>(this), wait_thread_, wait_thread_state_);
 }
 
 LinuxaioQueue::~LinuxaioQueue() {
-    stop_thread(post_thread, post_thread_state, num_waiting_requests);
-    stop_thread(wait_thread, wait_thread_state, num_posted_requests);
-    syscall(SYS_io_destroy, context);
+    StopThread(post_thread_, post_thread_state_, num_waiting_requests_);
+    StopThread(wait_thread_, wait_thread_state_, num_posted_requests_);
+    syscall(SYS_io_destroy, context_);
 }
 
 void LinuxaioQueue::add_request(RequestPtr& req) {
     if (req.empty())
         THRILL_THROW_INVALID_ARGUMENT("Empty request submitted to disk_queue.");
-    if (post_thread_state() != RUNNING)
+    if (post_thread_state_() != RUNNING)
         LOG1 << "Request submitted to stopped queue.";
     if (!dynamic_cast<LinuxaioRequest*>(req.get()))
         LOG1 << "Non-LinuxAIO request submitted to LinuxAIO queue.";
 
-    std::unique_lock<std::mutex> lock(waiting_mtx);
+    std::unique_lock<std::mutex> lock(waiting_mtx_);
 
-    waiting_requests.push_back(req);
-    num_waiting_requests++;
+    waiting_requests_.push_back(req);
+    num_waiting_requests_++;
 }
 
 bool LinuxaioQueue::cancel_request(RequestPtr& req) {
     if (req.empty())
         THRILL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
-    if (post_thread_state() != RUNNING)
+    if (post_thread_state_() != RUNNING)
         LOG1 << "Request canceled in stopped queue.";
     if (!dynamic_cast<LinuxaioRequest*>(req.get()))
         LOG1 << "Non-LinuxAIO request submitted to LinuxAIO queue.";
 
-    queue_type::iterator pos;
+    Queue::iterator pos;
     {
-        std::unique_lock<std::mutex> lock(waiting_mtx);
+        std::unique_lock<std::mutex> lock(waiting_mtx_);
 
-        pos = std::find(waiting_requests.begin(), waiting_requests.end(), req);
-        if (pos != waiting_requests.end())
+        pos = std::find(waiting_requests_.begin(), waiting_requests_.end(), req);
+        if (pos != waiting_requests_.end())
         {
-            waiting_requests.erase(pos);
+            waiting_requests_.erase(pos);
 
             // polymorphic_downcast to linuxaio_request,
             // request is canceled, but was not yet posted.
             dynamic_cast<LinuxaioRequest*>(req.get())->completed(false, true);
 
-            num_waiting_requests--; // will never block
+            num_waiting_requests_--; // will never block
             return true;
         }
     }
 
-    std::unique_lock<std::mutex> lock(posted_mtx);
+    std::unique_lock<std::mutex> lock(posted_mtx_);
 
-    pos = std::find(posted_requests.begin(), posted_requests.end(), req);
-    if (pos != posted_requests.end())
+    pos = std::find(posted_requests_.begin(), posted_requests_.end(), req);
+    if (pos != posted_requests_.end())
     {
         // polymorphic_downcast to linuxaio_request,
         bool canceled_io_operation = (dynamic_cast<LinuxaioRequest*>(req.get()))->cancel_aio();
 
         if (canceled_io_operation)
         {
-            posted_requests.erase(pos);
+            posted_requests_.erase(pos);
 
             // polymorphic_downcast to linuxaio_request,
 
             // request is canceled, already posted
             dynamic_cast<LinuxaioRequest*>(req.get())->completed(true, true);
 
-            num_free_events++;
-            num_posted_requests--; // will never block
+            num_free_events_++;
+            num_posted_requests_--; // will never block
             return true;
         }
     }
@@ -139,25 +139,25 @@ bool LinuxaioQueue::cancel_request(RequestPtr& req) {
 // internal routines, run by the posting thread
 void LinuxaioQueue::post_requests() {
     RequestPtr req;
-    io_event* events = new io_event[max_events];
+    io_event* events = new io_event[max_events_];
 
     for ( ; ; ) // as long as thread is running
     {
         // might block until next request or message comes in
-        int num_currently_waiting_requests = num_waiting_requests--;
+        int num_currently_waiting_requests = num_waiting_requests_--;
 
         // terminate if termination has been requested
-        if (post_thread_state() == TERMINATING && num_currently_waiting_requests == 0)
+        if (post_thread_state_() == TERMINATING && num_currently_waiting_requests == 0)
             break;
 
-        std::unique_lock<std::mutex> lock(waiting_mtx);
-        if (!waiting_requests.empty())
+        std::unique_lock<std::mutex> lock(waiting_mtx_);
+        if (!waiting_requests_.empty())
         {
-            req = waiting_requests.front();
-            waiting_requests.pop_front();
+            req = waiting_requests_.front();
+            waiting_requests_.pop_front();
             lock.unlock();
 
-            num_free_events--; // might block because too many requests are posted
+            num_free_events_--; // might block because too many requests are posted
 
             // polymorphic_downcast
             while (!dynamic_cast<LinuxaioRequest*>(req.get())->post())
@@ -166,7 +166,7 @@ void LinuxaioQueue::post_requests() {
                 // empty, then try again.
 
                 // wait for at least one event to complete, no time limit
-                long num_events = syscall(SYS_io_getevents, context, 1, max_events, events, nullptr);
+                long num_events = syscall(SYS_io_getevents, context_, 1, max_events_, events, nullptr);
                 if (num_events < 0) {
                     THRILL_THROW_ERRNO(IoError, "linuxaio_queue::post_requests"
                                        " io_getevents() nr_events=" << num_events);
@@ -178,9 +178,9 @@ void LinuxaioQueue::post_requests() {
             // request is finally posted
 
             {
-                std::unique_lock<std::mutex> lock(posted_mtx);
-                posted_requests.push_back(req);
-                num_posted_requests++;
+                std::unique_lock<std::mutex> lock(posted_mtx_);
+                posted_requests_.push_back(req);
+                num_posted_requests_++;
             }
         }
         else
@@ -188,7 +188,7 @@ void LinuxaioQueue::post_requests() {
             lock.unlock();
 
             // num_waiting_requests-- was premature, compensate for that
-            num_waiting_requests++;
+            num_waiting_requests_++;
         }
     }
 
@@ -202,33 +202,33 @@ void LinuxaioQueue::handle_events(io_event* events, long num_events, bool cancel
         RequestPtr* r = reinterpret_cast<RequestPtr*>(static_cast<size_t>(events[e].data));
         r->get()->completed(canceled);
         delete r;              // release auto_ptr reference
-        num_free_events++;
-        num_posted_requests--; // will never block
+        num_free_events_++;
+        num_posted_requests_--; // will never block
     }
 }
 
 // internal routines, run by the waiting thread
 void LinuxaioQueue::wait_requests() {
     RequestPtr req;
-    io_event* events = new io_event[max_events];
+    io_event* events = new io_event[max_events_];
 
     for ( ; ; ) // as long as thread is running
     {
         // might block until next request is posted or message comes in
-        int num_currently_posted_requests = num_posted_requests--;
+        int num_currently_posted_requests = num_posted_requests_--;
 
         // terminate if termination has been requested
-        if (wait_thread_state() == TERMINATING && num_currently_posted_requests == 0)
+        if (wait_thread_state_() == TERMINATING && num_currently_posted_requests == 0)
             break;
 
         // wait for at least one of them to finish
-        long num_events = syscall(SYS_io_getevents, context, 1, max_events, events, nullptr);
+        long num_events = syscall(SYS_io_getevents, context_, 1, max_events_, events, nullptr);
         if (num_events < 0) {
             THRILL_THROW_ERRNO(IoError, "linuxaio_queue::wait_requests"
-                               " io_getevents() nr_events=" << max_events);
+                               " io_getevents() nr_events=" << max_events_);
         }
 
-        num_posted_requests++; // compensate for the one eaten prematurely above
+        num_posted_requests_++; // compensate for the one eaten prematurely above
 
         handle_events(events, num_events, false);
     }
@@ -240,7 +240,7 @@ void* LinuxaioQueue::post_async(void* arg) {
     (static_cast<LinuxaioQueue*>(arg))->post_requests();
 
     self_type* pthis = static_cast<self_type*>(arg);
-    pthis->post_thread_state.set_to(TERMINATED);
+    pthis->post_thread_state_.set_to(TERMINATED);
 
 #if THRILL_STD_THREADS && THRILL_MSVC >= 1700
     // Workaround for deadlock bug in Visual C++ Runtime 2012 and 2013, see
@@ -255,7 +255,7 @@ void* LinuxaioQueue::wait_async(void* arg) {
     (static_cast<LinuxaioQueue*>(arg))->wait_requests();
 
     self_type* pthis = static_cast<self_type*>(arg);
-    pthis->wait_thread_state.set_to(TERMINATED);
+    pthis->wait_thread_state_.set_to(TERMINATED);
 
 #if THRILL_STD_THREADS && THRILL_MSVC >= 1700
     // Workaround for deadlock bug in Visual C++ Runtime 2012 and 2013, see

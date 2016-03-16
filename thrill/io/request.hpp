@@ -19,7 +19,7 @@
 
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/delegate.hpp>
-#include <thrill/common/state.hpp>
+#include <thrill/common/shared_state.hpp>
 #include <thrill/io/exceptions.hpp>
 #include <thrill/mem/pool.hpp>
 
@@ -177,7 +177,7 @@ protected:
 
 private:
     //! state of the request.
-    common::state<State> state_ { OP };
+    common::SharedState<State> state_ { OP };
 
     //! \}
 };

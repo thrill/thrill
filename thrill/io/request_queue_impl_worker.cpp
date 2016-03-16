@@ -16,7 +16,7 @@
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/semaphore.hpp>
-#include <thrill/common/state.hpp>
+#include <thrill/common/shared_state.hpp>
 #include <thrill/io/error_handling.hpp>
 #include <thrill/io/request_queue_impl_worker.hpp>
 
@@ -30,13 +30,16 @@
 namespace thrill {
 namespace io {
 
-void RequestQueueImplWorker::start_thread(void* (*worker)(void*), void* arg, Thread& t, common::state<thread_state>& s) {
+void RequestQueueImplWorker::StartThread(
+    void* (*worker)(void*), void* arg, std::thread& t,
+    common::SharedState<ThreadState>& s) {
     assert(s() == NOT_RUNNING);
-    t = new std::thread(worker, arg);
+    t = std::thread(worker, arg);
     s.set_to(RUNNING);
 }
 
-void RequestQueueImplWorker::stop_thread(Thread& t, common::state<thread_state>& s, common::semaphore& sem) {
+void RequestQueueImplWorker::StopThread(
+    std::thread& t, common::SharedState<ThreadState>& s, common::Semaphore& sem) {
     assert(s() == RUNNING);
     s.set_to(TERMINATING);
     sem++;
@@ -54,8 +57,7 @@ void RequestQueueImplWorker::stop_thread(Thread& t, common::state<thread_state>&
     WaitForSingleObject(t->native_handle(), INFINITE);
     CloseHandle(t->native_handle());
 #else
-    t->join();
-    delete t;
+    t.join();
 #endif
     assert(s() == TERMINATED);
     s.set_to(NOT_RUNNING);

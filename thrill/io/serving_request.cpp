@@ -12,7 +12,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/state.hpp>
+#include <thrill/common/shared_state.hpp>
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/request.hpp>
 #include <thrill/io/serving_request.hpp>

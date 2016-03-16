@@ -62,7 +62,7 @@ public:
 #if THRILL_HAVE_LINUXAIO_FILE
         if (dynamic_cast<const LinuxaioFile*>(file)) {
             queues[queue_id] = new LinuxaioQueue(
-                dynamic_cast<const LinuxaioFile*>(file)->get_desired_queue_length());
+                dynamic_cast<const LinuxaioFile*>(file)->desired_queue_length());
             return;
         }
 #endif
@@ -81,7 +81,7 @@ public:
 #if THRILL_HAVE_LINUXAIO_FILE
             if (dynamic_cast<LinuxaioRequest*>(req.get()))
                 q = queues[disk] = new LinuxaioQueue(
-                        dynamic_cast<LinuxaioFile*>(req->file())->get_desired_queue_length());
+                        dynamic_cast<LinuxaioFile*>(req->file())->desired_queue_length());
             else
 #endif
             q = queues[disk] = new RequestQueueImplQwQr();
@@ -128,7 +128,7 @@ public:
     //!                 - READ, read requests are served before write requests within a disk queue
     //!                 - WRITE, write requests are served before read requests within a disk queue
     //!                 - NONE, read and write requests are served by turns, alternately
-    void set_priority_op(RequestQueue::priority_op op) {
+    void set_priority_op(RequestQueue::PriorityOp op) {
         for (RequestQueueMap::iterator i = queues.begin(); i != queues.end(); i++)
             i->second->set_priority_op(op);
     }

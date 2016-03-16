@@ -42,24 +42,24 @@ class LinuxaioQueue final : public RequestQueueImplWorker
 
 private:
     //! OS context
-    aio_context_t context;
+    aio_context_t context_;
 
     //! storing linuxaio_request* would drop ownership
-    using queue_type = std::list<RequestPtr>;
+    using Queue = std::list<RequestPtr>;
 
     // "waiting" request have submitted to this queue, but not yet to the OS,
     // those are "posted"
-    std::mutex waiting_mtx, posted_mtx;
-    queue_type waiting_requests, posted_requests;
+    std::mutex waiting_mtx_, posted_mtx_;
+    Queue waiting_requests_, posted_requests_;
 
     //! max number of OS requests
-    int max_events;
+    int max_events_;
     //! number of requests in waitings_requests
-    common::semaphore num_waiting_requests, num_free_events, num_posted_requests;
+    common::Semaphore num_waiting_requests_, num_free_events_, num_posted_requests_;
 
     // two threads, one for posting, one for waiting
-    Thread post_thread, wait_thread;
-    common::state<thread_state> post_thread_state, wait_thread_state;
+    std::thread post_thread_, wait_thread_;
+    common::SharedState<ThreadState> post_thread_state_, wait_thread_state_;
 
     // Why do we need two threads, one for posting, and one for waiting?  Is
     // one not enough?
@@ -69,7 +69,7 @@ private:
     //    and the OS to produce I/O completion events at the same time
     //    (IOCB_CMD_NOOP does not seem to help here either)
 
-    static constexpr priority_op _priority_op = WRITE;
+    static constexpr PriorityOp priority_op_ = WRITE;
 
     static void * post_async(void* arg);   // thread start callback
     static void * wait_async(void* arg);   // thread start callback
@@ -79,7 +79,7 @@ private:
     void suspend();
 
     // needed by linuxaio_request
-    aio_context_t get_io_context() { return context; }
+    aio_context_t io_context() { return context_; }
 
 public:
     //! Construct queue. Requests max number of requests simultaneously

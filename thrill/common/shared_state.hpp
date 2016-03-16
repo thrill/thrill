@@ -24,7 +24,7 @@ namespace thrill {
 namespace common {
 
 template <typename ValueType = size_t>
-class state
+class SharedState
 {
     using value_type = ValueType;
 
@@ -38,14 +38,14 @@ class state
     value_type state_;
 
 public:
-    explicit state(const value_type& s)
+    explicit SharedState(const value_type& s)
         : state_(s)
     { }
 
     //! non-copyable: delete copy-constructor
-    state(const state&) = delete;
+    SharedState(const SharedState&) = delete;
     //! non-copyable: delete assignment operator
-    state& operator = (const state&) = delete;
+    SharedState& operator = (const SharedState&) = delete;
 
     void set_to(const value_type& new_state) {
         std::unique_lock<std::mutex> lock(mutex_);

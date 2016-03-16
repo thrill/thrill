@@ -33,7 +33,7 @@ namespace io {
 class LinuxaioRequest final : public Request
 {
     //! control block of async request
-    iocb cb;
+    iocb cb_;
 
     void fill_control_block();
 
