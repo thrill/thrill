@@ -147,18 +147,34 @@ int main(int argc, char* argv[]) {
                 // parse first argument like "100mib" size
                 uint64_t size;
                 die_unless(common::ParseSiIecUnits(input[0].c_str(), size));
+                die_unless(!use_signed_char);
 
-                Generate(ctx, GenerateRecord(), size / sizeof(Record))
-                .Sort()
-                .WriteBinary(output);
+                auto r =
+                    Generate(ctx, GenerateRecord(), size / sizeof(Record))
+                    .Sort();
+
+                if (output.size())
+                    r.WriteBinary(output);
+                else
+                    r.Execute();
             }
             else {
-                if (use_signed_char)
-                    ReadBinary<RecordSigned>(ctx, input)
-                    .Sort().WriteBinary(output);
-                else
-                    ReadBinary<Record>(ctx, input)
-                    .Sort().WriteBinary(output);
+                if (use_signed_char) {
+                    auto r = ReadBinary<RecordSigned>(ctx, input).Sort();
+
+                    if (output.size())
+                        r.WriteBinary(output);
+                    else
+                        r.Execute();
+                }
+                else {
+                    auto r = ReadBinary<Record>(ctx, input).Sort();
+
+                    if (output.size())
+                        r.WriteBinary(output);
+                    else
+                        r.Execute();
+                }
             }
         });
 }
