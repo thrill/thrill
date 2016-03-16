@@ -301,7 +301,7 @@ private:
                  << common::Hexdump(b.ToString());
         }
 
-        queues_[from].AppendBlock(std::move(b));
+        queues_[from].AppendPinnedBlock(std::move(b));
     }
 
     //! called from Multiplexer when a CatStream closed notification was

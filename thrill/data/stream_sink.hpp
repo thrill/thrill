@@ -56,7 +56,16 @@ public:
     StreamSink& operator = (StreamSink&&) = default;
 
     //! Appends data to the StreamSink.  Data may be sent but may be delayed.
-    void AppendBlock(const PinnedBlock& block) final;
+    void AppendBlock(const Block& block) final;
+
+    //! Appends data to the StreamSink.  Data may be sent but may be delayed.
+    void AppendBlock(Block&& block) final;
+
+    //! Appends data to the StreamSink.  Data may be sent but may be delayed.
+    void AppendPinnedBlock(const PinnedBlock& block) final;
+
+    //! Appends data to the StreamSink.  Data may be sent but may be delayed.
+    void AppendPinnedBlock(PinnedBlock&& block) final;
 
     //! Closes the connection
     void Close() final;

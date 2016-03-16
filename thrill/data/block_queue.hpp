@@ -73,24 +73,17 @@ public:
     //! move-assignment operator: default
     BlockQueue& operator = (BlockQueue&&) = default;
 
-    void AppendBlock(const Block& b) {
+    void AppendBlock(const Block& b) final {
         LOG << "BlockQueue::AppendBlock() " << b;
         byte_counter_ += b.size();
         block_counter_++;
         queue_.emplace(b);
     }
-    void AppendBlock(Block&& b) {
+    void AppendBlock(Block&& b) final {
         LOG << "BlockQueue::AppendBlock() move " << b;
         byte_counter_ += b.size();
         block_counter_++;
         queue_.emplace(std::move(b));
-    }
-
-    void AppendBlock(const PinnedBlock& b) final {
-        return AppendBlock(b.ToBlock());
-    }
-    void AppendBlock(PinnedBlock&& b) {
-        return AppendBlock(std::move(b).MoveToBlock());
     }
 
     //! Close called by BlockWriter.

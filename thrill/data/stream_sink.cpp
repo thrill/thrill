@@ -40,7 +40,15 @@ StreamSink::StreamSink(Stream& stream,
         << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_id_;
 }
 
-void StreamSink::AppendBlock(const PinnedBlock& block) {
+void StreamSink::AppendBlock(const Block& block) {
+    return AppendPinnedBlock(block.PinWait(local_worker_id()));
+}
+
+void StreamSink::AppendBlock(Block&& block) {
+    return AppendPinnedBlock(block.PinWait(local_worker_id()));
+}
+
+void StreamSink::AppendPinnedBlock(const PinnedBlock& block) {
     if (block.size() == 0) return;
 
     sLOG << "StreamSink::AppendBlock" << block;
@@ -66,6 +74,10 @@ void StreamSink::AppendBlock(const PinnedBlock& block) {
         *connection_,
         // send out Buffer and Block, guaranteed to be successive
         std::move(buffer), block);
+}
+
+void StreamSink::AppendPinnedBlock(PinnedBlock&& block) {
+    return AppendPinnedBlock(block);
 }
 
 void StreamSink::Close() {

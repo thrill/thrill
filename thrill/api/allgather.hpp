@@ -64,6 +64,9 @@ public:
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
         if (!ParentDIA::stack_empty) return false;
+        // the following does not quite work yet, since the files may or may not
+        // contain the selfverify typeids in the Blocks.
+        return false;
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].AppendBlocks(file.blocks());
         }

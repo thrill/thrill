@@ -37,8 +37,11 @@ public:
         : BlockSink(block_pool, local_worker_id)
     { }
 
-    //! Discards Block.
-    void AppendBlock(const PinnedBlock&) final { }
+    //! Discards a Block.
+    void AppendBlock(const Block&) final { }
+
+    //! Discards a Block.
+    void AppendBlock(Block&&) final { }
 
     //! Closes the sink
     void Close() final {

@@ -125,10 +125,22 @@ private:
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }
 
-        void AppendBlock(const data::PinnedBlock& b) final {
+        void AppendPinnedBlock(const data::PinnedBlock& b) final {
             sLOG << "SysFileSink::AppendBlock()" << b;
             stats_total_writes_++;
             file_.write(b.data_begin(), b.size());
+        }
+
+        void AppendPinnedBlock(data::PinnedBlock&& b) final {
+            return AppendPinnedBlock(b);
+        }
+
+        void AppendBlock(const data::Block& block) {
+            return AppendPinnedBlock(block.PinWait(local_worker_id()));
+        }
+
+        void AppendBlock(data::Block&& block) {
+            return AppendPinnedBlock(block.PinWait(local_worker_id()));
         }
 
         void Close() final {

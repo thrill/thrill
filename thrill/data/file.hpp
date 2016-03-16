@@ -72,19 +72,19 @@ public:
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(const PinnedBlock& b) final {
+    void AppendPinnedBlock(const PinnedBlock& b) final {
         return AppendBlock(b.ToBlock());
     }
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(PinnedBlock&& b) {
+    void AppendPinnedBlock(PinnedBlock&& b) {
         return AppendBlock(std::move(b).MoveToBlock());
     }
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(const Block& b) {
+    void AppendBlock(const Block& b) final {
         if (b.size() == 0) return;
         num_items_sum_.push_back(num_items() + b.num_items());
         size_bytes_ += b.size();
@@ -188,7 +188,7 @@ public:
     }
 
     //! Returns constant reference to all Blocks in the File.
-    const std::deque<Block>& blocks() const { return blocks_; }
+    const std::deque<Block> & blocks() const { return blocks_; }
 
     //! Return number of items starting in block i
     size_t ItemsStartIn(size_t i) const {

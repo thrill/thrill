@@ -85,7 +85,7 @@ DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs)
     LOG0 << "Consider whether you can use auto instead of DIA.";
 }
 
-#endif // THRILL_DOXYGEN_IGNORE
+#endif  // THRILL_DOXYGEN_IGNORE
 
 template <typename ValueType, typename Stack>
 auto DIA<ValueType, Stack>::Collapse() const {

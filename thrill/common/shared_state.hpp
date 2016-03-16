@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/common/state.hpp
+ * thrill/common/shared_state.hpp
  *
  * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
  * distributed under the Boost Software License, Version 1.0.
@@ -14,8 +14,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_COMMON_STATE_HEADER
-#define THRILL_COMMON_STATE_HEADER
+#ifndef THRILL_COMMON_SHARED_STATE_HEADER
+#define THRILL_COMMON_SHARED_STATE_HEADER
 
 #include <condition_variable>
 #include <mutex>
@@ -69,6 +69,6 @@ public:
 } // namespace common
 } // namespace thrill
 
-#endif // !THRILL_COMMON_STATE_HEADER
+#endif // !THRILL_COMMON_SHARED_STATE_HEADER
 
 /******************************************************************************/

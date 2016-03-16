@@ -44,7 +44,7 @@ TEST_F(BlockQueue, FreshQueueIsEmpty) {
 TEST_F(BlockQueue, QueueNonEmptyAfterAppend) {
     data::BlockQueue q(block_pool_, 0);
     data::PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(16, 0);
-    q.AppendBlock(data::PinnedBlock(std::move(bytes), 0, 0, 0, 0));
+    q.AppendPinnedBlock(data::PinnedBlock(std::move(bytes), 0, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
 

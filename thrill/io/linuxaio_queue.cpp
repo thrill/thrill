@@ -201,7 +201,7 @@ void LinuxaioQueue::handle_events(io_event* events, long num_events, bool cancel
         // size_t is as long as a pointer, and like this, we avoid an icpc warning
         RequestPtr* r = reinterpret_cast<RequestPtr*>(static_cast<size_t>(events[e].data));
         r->get()->completed(canceled);
-        delete r;              // release auto_ptr reference
+        delete r;               // release auto_ptr reference
         num_free_events_++;
         num_posted_requests_--; // will never block
     }
