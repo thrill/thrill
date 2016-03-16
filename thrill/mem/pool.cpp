@@ -11,6 +11,7 @@
 
 #include <thrill/common/splay_tree.hpp>
 
+#include <limits>
 #include <new>
 
 namespace thrill {
@@ -19,9 +20,16 @@ namespace mem {
 /******************************************************************************/
 
 Pool & GPool() {
-    static Pool pool;
-    return pool;
+    static Pool* pool = new Pool();
+    return *pool;
 }
+
+#if defined(__clang__) || defined (__GNUC__)
+static __attribute__ ((destructor)) void s_gpool_destroy() {
+    // deallocate memory arenas but do not destroy the pool
+    GPool().DeallocateAll();
+}
+#endif
 
 /******************************************************************************/
 // Pool::Arena
@@ -63,24 +71,8 @@ Pool::Pool(size_t default_arena_size) noexcept
     if (debug_check_pairing)
         allocs_.resize(check_limit);
 
-    while (free_ < min_free)
+    while (free_ < min_free_)
         AllocateFreeArena(default_arena_size_);
-}
-
-Pool::Pool(Pool&& pool) noexcept
-    : free_arena_(pool.free_arena_),
-      free_(pool.free_), size_(pool.size_) {
-    pool.free_arena_ = nullptr;
-}
-
-Pool& Pool::operator = (Pool&& pool) noexcept {
-    if (this == &pool) return *this;
-    DeallocateAll();
-    free_arena_ = pool.free_arena_;
-    free_ = pool.free_, size_ = pool.size_;
-    pool.free_arena_ = nullptr;
-    pool.free_ = pool.size_ = 0;
-    return *this;
 }
 
 Pool::~Pool() noexcept {
@@ -96,7 +88,7 @@ Pool::~Pool() noexcept {
         }
     }
     assert(size_ == 0);
-    DeallocateAll();
+    IntDeallocateAll();
 }
 
 struct Pool::ArenaCompare {
@@ -148,33 +140,39 @@ Pool::Arena* Pool::AllocateFreeArena(size_t arena_size, bool die_on_failure) {
 }
 
 void Pool::DeallocateAll() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    IntDeallocateAll();
+}
+
+void Pool::IntDeallocateAll() {
     Arena* curr_arena = free_arena_;
     while (curr_arena != nullptr) {
         Arena* next_arena = curr_arena->next_arena;
         bypass_free(curr_arena, curr_arena->total_size);
         curr_arena = next_arena;
     }
+    min_free_ = 0;
 }
 
 size_t Pool::max_size() const noexcept {
-    return size_t(-1);
+    return sizeof(Slot) * std::numeric_limits<uint32_t>::max();
 }
 
 size_t Pool::bytes_per_arena(size_t arena_size) {
     return arena_size - sizeof(Arena);
 }
 
-void* Pool::allocate(size_t n) {
+void* Pool::allocate(size_t bytes) {
     std::unique_lock<std::mutex> lock(mutex_);
 
     if (debug) {
-        std::cout << "allocate() n=" << n
+        std::cout << "allocate() bytes=" << bytes
                   << std::endl;
     }
 
     // round up to whole slot size, and divide by slot size
-    size_t orig_size = n;
-    n = (n + sizeof(Slot) - 1) / sizeof(Slot);
+    uint32_t n =
+        static_cast<uint32_t>((bytes + sizeof(Slot) - 1) / sizeof(Slot));
 
     // check whether n is too large for allocation in our default Arenas, then
     // allocate a special larger one.
@@ -215,7 +213,7 @@ void* Pool::allocate(size_t n) {
                 free_ -= n;
 
                 // allocate more sparse memory
-                while (free_ < min_free) {
+                while (free_ < min_free_) {
                     if (!AllocateFreeArena(default_arena_size_, false)) break;
                 }
 
@@ -239,7 +237,7 @@ void* Pool::allocate(size_t n) {
                     for (i = 0; i < allocs_.size(); ++i) {
                         if (allocs_[i].first == nullptr) {
                             allocs_[i].first = curr_slot;
-                            allocs_[i].second = orig_size;
+                            allocs_[i].second = bytes;
                             break;
                         }
                     }
@@ -269,18 +267,18 @@ void* Pool::allocate(size_t n) {
     abort();
 }
 
-void Pool::deallocate(void* ptr, size_t n) {
+void Pool::deallocate(void* ptr, size_t bytes) {
     if (ptr == nullptr) return;
 
     std::unique_lock<std::mutex> lock(mutex_);
     if (debug) {
-        std::cout << "deallocate() ptr" << ptr << "n" << n << std::endl;
+        std::cout << "deallocate() ptr" << ptr << "bytes" << bytes << std::endl;
     }
     if (debug_check_pairing) {
         size_t i;
         for (i = 0; i < allocs_.size(); ++i) {
             if (allocs_[i].first != ptr) continue;
-            if (n != allocs_[i].second) {
+            if (bytes != allocs_[i].second) {
                 assert(!"Mismatching deallocate() size in Pool().");
                 abort();
             }
@@ -295,7 +293,8 @@ void Pool::deallocate(void* ptr, size_t n) {
     }
 
     // round up to whole slot size, and divide by slot size
-    n = (n + sizeof(Slot) - 1) / sizeof(Slot);
+    uint32_t n
+        = static_cast<uint32_t>((bytes + sizeof(Slot) - 1) / sizeof(Slot));
     assert(n <= size_);
 
     // splay arenas to find arena containing ptr
@@ -338,7 +337,7 @@ void Pool::deallocate(void* ptr, size_t n) {
     free_ += n;
 
     if (root_arena_->head_slot.size == root_arena_->num_slots() &&
-        free_ >= min_free + root_arena_->num_slots())
+        free_ >= min_free_ + root_arena_->num_slots())
     {
         // remove current arena from tree
         Arena* root = common::splay_erase_top(root_arena_, ArenaCompare());

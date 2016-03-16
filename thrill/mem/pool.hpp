@@ -75,8 +75,6 @@ class Pool
     static constexpr bool debug_check_pairing = false;
     static constexpr size_t check_limit = 4 * 1024 * 1024;
 
-    static constexpr size_t min_free = 1024 * 1024 / 8;
-
 public:
     //! construct with base allocator
     explicit Pool(size_t default_arena_size = 16384) noexcept;
@@ -85,20 +83,16 @@ public:
     Pool(const Pool&) = delete;
     //! non-copyable: delete assignment operator
     Pool& operator = (const Pool&) = delete;
-    //! move-constructor
-    Pool(Pool&& pool) noexcept;
-    //! move-assignment
-    Pool& operator = (Pool&& pool) noexcept;
 
     //! dtor
     ~Pool() noexcept;
 
     //! allocate a continuous segment of n bytes in the arenas
-    void * allocate(size_t n);
+    void * allocate(size_t bytes);
 
     //! Deallocate a continuous segment of n bytes in the arenas, the size n
     //! *MUST* match the allocation.
-    void deallocate(void* ptr, size_t n);
+    void deallocate(void* ptr, size_t bytes);
 
     //! Allocate and construct a single item of given Type using memory from the
     //! Pool.
@@ -121,6 +115,9 @@ public:
 
     //! maximum size possible to allocate
     size_t max_size() const noexcept;
+
+    //! deallocate all Arenas
+    void DeallocateAll();
 
 private:
     //! struct in a Slot, which contains free information
@@ -149,6 +146,9 @@ private:
     //! size of default Arena allocation
     size_t default_arena_size_;
 
+    //! minimum amount of spare memory to keep in the Pool.
+    size_t min_free_ = 1024 * 1024 / 8;
+
     //! array of allocations for checking
     std::vector<std::pair<void*, size_t> > allocs_;
 
@@ -159,7 +159,7 @@ private:
     Arena * AllocateFreeArena(size_t arena_size, bool die_on_failure = true);
 
     //! deallocate all Arenas
-    void DeallocateAll();
+    void IntDeallocateAll();
 };
 
 //! singleton instance of global pool for I/O data structures
