@@ -330,7 +330,6 @@ private:
         }
 
         void recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
-
             // pick middle element as splitter
             ValueType* mid = lo + (ssize_t)(hi - lo) / 2;
             assert(mid < samples_ + ssplitter_);
@@ -477,29 +476,42 @@ private:
         LOG1 << "SortAndWriteToFile() " << vec.size()
              << " items into file #" << files.size();
 
+        size_t vec_size = vec.size();
         local_out_size_ += vec.size();
 
         // advice block pool to write out data if necessary
         context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
 
-        common::StatsTimerStart timer;
-
+        common::StatsTimerStart sort_time;
         std::sort(vec.begin(), vec.end(), compare_function_);
+        sort_time.Stop();
 
-        LOG << "SortAndWriteToFile() sort took " << timer;
+        LOG << "SortAndWriteToFile() sort took " << time;
+
+        common::StatsTimerStart write_time;
 
         files.emplace_back(context_.GetFile());
         auto writer = files.back().GetWriter();
-        for (const ValueType& ele : vec) {
-            writer.Put(ele);
+        for (const ValueType& elem : vec) {
+            writer.Put(elem);
         }
         writer.Close();
+
+        write_time.Stop();
 
         LOG << "SortAndWriteToFile() finished writing files";
 
         vec.clear();
 
         LOG << "SortAndWriteToFile() vector cleared";
+
+        Super::logger_
+            << "class" << "SortNode"
+            << "event" << "write_file"
+            << "file_num" << (files.size() - 1)
+            << "items" << vec_size
+            << "sort_time" << sort_time
+            << "write_time" << write_time;
     }
 
     void MainOp() {
@@ -553,14 +565,14 @@ private:
 
         // code from SS2NPartition, slightly altered
 
-        ValueType* splitter_tree = new ValueType[workers_algo + 1];
+        std::vector<ValueType> splitter_tree(workers_algo + 1);
 
         // add sentinel splitters if fewer nodes than splitters.
         for (size_t i = num_total_workers; i < workers_algo; i++) {
             splitters.push_back(splitters.back());
         }
 
-        TreeBuilder(splitter_tree,
+        TreeBuilder(splitter_tree.data(),
                     splitters.data(),
                     splitter_count_algo);
 
@@ -573,7 +585,7 @@ private:
             });
 
         TransmitItems(
-            splitter_tree, // Tree. sizeof |splitter|
+            splitter_tree.data(), // Tree. sizeof |splitter|
             workers_algo,  // Number of buckets
             ceil_log,
             num_total_workers,
@@ -582,7 +594,7 @@ private:
             total_items,
             data_stream);
 
-        delete[] splitter_tree;
+        std::vector<ValueType>().swap(splitter_tree);
 
         thread.join();
 

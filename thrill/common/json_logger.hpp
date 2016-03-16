@@ -75,7 +75,7 @@ public:
     }
 
 public:
-    //! output to superior JsonLogger;
+    //! output to superior JsonLogger
     JsonLogger* super_ = nullptr;
 
     //! direct output stream for top loggers

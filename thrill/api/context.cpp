@@ -821,11 +821,12 @@ std::string HostContext::MakeHostLogPath(size_t host_rank) {
     }
 
     std::string output = env_log;
+    if (output == "" || output == "-")
+        return std::string();
     if (output == "/dev/stdout")
         return output;
-
-    if (output == "")
-        return std::string();
+    if (output == "stdout")
+        return "/dev/stdout";
 
     return output + "-host-" + std::to_string(host_rank) + ".json";
 }
@@ -838,11 +839,12 @@ std::string Context::MakeWorkerLogPath(size_t worker_rank) {
     }
 
     std::string output = env_log;
+    if (output == "" || output == "-")
+        return std::string();
     if (output == "/dev/stdout")
         return output;
-
-    if (output == "")
-        return std::string();
+    if (output == "stdout")
+        return "/dev/stdout";
 
     return output + "-worker-" + std::to_string(worker_rank) + ".json";
 }
