@@ -40,7 +40,9 @@ namespace api {
 template <typename Lambda>
 auto RunEmitter(const Lambda &lambda)
 {
-    return [=](const auto & input)->void {
+    // lambda is captured by non-const copy so that we can use functors with
+    // non-const operator(), i.e. stateful functors (e.g. for sampling)
+    return [=,lambda=lambda](const auto & input) mutable -> void {
                lambda(input);
     };
 }
@@ -58,7 +60,9 @@ auto RunEmitter(const Lambda &lambda)
 template <typename Lambda, typename ... MoreLambdas>
 auto RunEmitter(const Lambda &lambda, const MoreLambdas &... rest)
 {
-    return [=](const auto & input)->void {
+    // lambda is captured by non-const copy so that we can use functors with
+    // non-const operator(), i.e. stateful functors (e.g. for sampling)
+    return [=,lambda=lambda](const auto & input) mutable -> void {
                lambda(input, RunEmitter(rest ...));
     };
 }

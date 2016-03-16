@@ -340,6 +340,11 @@ public:
     }
 
     /*!
+     * Bernoulli sampling (local operation) with success probability p
+     */
+    auto Sample(double p) const;
+
+    /*!
      * Create a CollapseNode which is mainly used to collapse the LOp chain into
      * a DIA<T> with an empty stack. This is most often necessary for iterative
      * algorithms, where a DIA<T> reference variable is updated in each
