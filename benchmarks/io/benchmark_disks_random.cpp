@@ -237,11 +237,11 @@ int main(int argc, char* argv[]) {
     if (allocstr.size())
     {
         if (allocstr == "RC")
-            return run_alloc(io::RC);
+            return run_alloc(io::RandomCyclic);
         if (allocstr == "SR")
-            return run_alloc(io::SR);
+            return run_alloc(io::SimpleRandom);
         if (allocstr == "FR")
-            return run_alloc(io::FR);
+            return run_alloc(io::FullyRandom);
         if (allocstr == "striping")
             return run_alloc(io::Striping);
 

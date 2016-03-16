@@ -281,13 +281,13 @@ int main(int argc, char* argv[]) {
     if (allocstr.size())
     {
         if (allocstr == "RC")
-            return benchmark_disks_alloc<io::RC>(
+            return benchmark_disks_alloc<io::RandomCyclic>(
                 length, offset, batch_size, block_size, optrw);
         if (allocstr == "SR")
-            return benchmark_disks_alloc<io::SR>(
+            return benchmark_disks_alloc<io::SimpleRandom>(
                 length, offset, batch_size, block_size, optrw);
         if (allocstr == "FR")
-            return benchmark_disks_alloc<io::FR>(
+            return benchmark_disks_alloc<io::FullyRandom>(
                 length, offset, batch_size, block_size, optrw);
         if (allocstr == "striping")
             return benchmark_disks_alloc<io::Striping>(
