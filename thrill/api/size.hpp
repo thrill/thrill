@@ -47,6 +47,13 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
+    //! Receive a whole data::File of ValueType, but only if our stack is empty.
+    bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
+        if (!ParentDIA::stack_empty) return false;
+        local_size_ = file.num_items();
+        return true;
+    }
+
     //! Executes the size operation.
     void Execute() final {
         MainOp();
