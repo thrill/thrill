@@ -17,15 +17,18 @@
 #ifndef THRILL_EXAMPLES_LOGISTIC_REGRESSION_LOGREG_HEADER
 #define THRILL_EXAMPLES_LOGISTIC_REGRESSION_LOGREG_HEADER
 
+#include <thrill/api/cache.hpp>
 #include <thrill/api/dia.hpp>
+#include <thrill/api/size.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/common/logger.hpp>
 
 #include <algorithm>
 #include <array>
-#include <string>
+#include <cmath>
+#include <functional>
+#include <numeric>
 #include <utility>
-#include <vector>
 
 #define LOGM LOGC(debug && ctx.my_rank() == 0)
 
@@ -71,12 +74,12 @@ auto train_logreg(const DIA<std::pair<T, Element>, InStack> &data,
                      size_t max_iterations, double gamma = 0.002,
                      double epsilon = 0.0001)
 {
-    Element weights{}, new_weights; // weights, initialized to zero
+    Element weights{{0.0}}, new_weights; // weights, initialized to zero
     size_t iter = 0;
     T norm = 0.;
 
-    while (iter++ < max_iterations) {
-        auto grad = data
+    while (iter < max_iterations) {
+        Element grad = data
             .Map(
                 [&weights](const std::pair<T, Element> &elem) -> Element {
                     return gradient(elem.first, elem.second, weights);
@@ -96,10 +99,51 @@ auto train_logreg(const DIA<std::pair<T, Element>, InStack> &data,
         norm = calc_norm(new_weights, weights);
         weights = new_weights;
 
+        iter++;
         if (norm < epsilon) break;
     }
 
-    return std::make_tuple(weights, norm, iter - 1);
+    return std::make_tuple(weights, norm, iter);
+}
+
+
+template <typename T, size_t dim, typename InStack,
+          typename Element = std::array<T, dim>>
+auto test_logreg(const DIA<std::pair<T, Element>, InStack> &data,
+                 const Element &weights)
+{
+    size_t expected_true = data
+        .Filter(
+            [](const std::pair<T, Element> &elem) -> bool {
+                return static_cast<bool>(elem.first);
+            })
+        .Size();
+    size_t expected_false = data.Size() - expected_true;
+
+    using Prediction = std::pair<bool, bool>;
+    auto classification = data
+        .Map(
+            [&weights](const std::pair<T, Element> &elem) -> Prediction {
+                const Element &coords = elem.second;
+                T predicted_y = std::inner_product(
+                    weights.begin(), weights.end(), coords.begin(), T{0.0});
+
+                bool prediction = (sigmoid(predicted_y) > 0.5);
+                return Prediction{elem.first, prediction};
+            })
+        .Cache(); // don't evaluate this twice
+
+    size_t true_trues = classification
+        .Filter([](const Prediction &p) { return p.first && p.second; })
+        .Size();
+
+    size_t true_falses = classification
+        .Filter([](const Prediction &p) { return !p.first && !p.second; })
+        .Size();
+
+    return std::make_tuple(expected_true, true_trues,
+                           expected_false, true_falses);
+
 }
 
 } // namespace logistic_regression
