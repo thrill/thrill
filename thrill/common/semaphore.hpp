@@ -24,50 +24,52 @@ namespace common {
 
 class Semaphore
 {
-    //! value of the semaphore
-    int value_;
-
-    //! mutex for condition variable
-    std::mutex mutex_;
-
-    //! condition variable
-    std::condition_variable cv_;
-
 public:
     //! construct semaphore
-    explicit Semaphore(int init_value = 0)
+    explicit Semaphore(size_t init_value = 0)
         : value_(init_value) { }
 
     //! non-copyable: delete copy-constructor
     Semaphore(const Semaphore&) = delete;
     //! non-copyable: delete assignment operator
     Semaphore& operator = (const Semaphore&) = delete;
+    //! move-constructor: just move the value
+    Semaphore(Semaphore&& s) : value_(s.value_) { }
 
     //! function increments the semaphore and signals any threads that are
     //! blocked waiting a change in the semaphore
-    int notify() {
+    size_t notify() {
         std::unique_lock<std::mutex> lock(mutex_);
-        int res = ++value_;
+        size_t res = ++value_;
         cv_.notify_one();
         return res;
     }
     //! function increments the semaphore and signals any threads that are
     //! blocked waiting a change in the semaphore
-    int notify(int delta) {
+    size_t notify(size_t delta) {
         std::unique_lock<std::mutex> lock(mutex_);
-        int res = (value_ += delta);
+        size_t res = (value_ += delta);
         cv_.notify_all();
         return res;
     }
     //! function decrements the semaphore and blocks if the semaphore is <= 0
     //! until another thread signals a change
-    int wait() {
+    size_t wait() {
         std::unique_lock<std::mutex> lock(mutex_);
         while (value_ <= 0)
             cv_.wait(lock);
-
         return --value_;
     }
+
+private:
+    //! value of the semaphore
+    size_t value_;
+
+    //! mutex for condition variable
+    std::mutex mutex_;
+
+    //! condition variable
+    std::condition_variable cv_;
 };
 
 } // namespace common

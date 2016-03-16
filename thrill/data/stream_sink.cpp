@@ -51,6 +51,8 @@ void StreamSink::AppendBlock(Block&& block) {
 void StreamSink::AppendPinnedBlock(const PinnedBlock& block) {
     if (block.size() == 0) return;
 
+    sem_.wait();
+
     sLOG << "StreamSink::AppendBlock" << block;
 
     StreamBlockHeader header(magic_, block);
@@ -73,7 +75,8 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block) {
     stream_.multiplexer_.dispatcher_.AsyncWrite(
         *connection_,
         // send out Buffer and Block, guaranteed to be successive
-        std::move(buffer), block);
+        std::move(buffer), block,
+        [this](net::Connection&) { sem_.notify(); });
 }
 
 void StreamSink::AppendPinnedBlock(PinnedBlock&& block) {
@@ -83,6 +86,10 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block) {
 void StreamSink::Close() {
     assert(!closed_);
     closed_ = true;
+
+    // wait for the last Blocks to be transmitted (take away semaphore tokens)
+    for (size_t i = 0; i < num_queue_; ++i)
+        sem_.wait();
 
     sLOG << "sending 'close stream' from host_rank" << host_rank_
          << "worker" << local_worker_id_
