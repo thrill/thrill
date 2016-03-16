@@ -9,17 +9,17 @@
  ******************************************************************************/
 
 #include <thrill/api/cache.hpp>
-#include <thrill/api/generate.hpp>
+#include <thrill/api/dia.hpp>
 #include <thrill/api/read_lines.hpp>
-#include <thrill/api/sort.hpp>
-#include <thrill/api/write_binary.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 
-#include <algorithm>
+#include <array>
 #include <string>
+#include <tuple>
 #include <utility>
+#include <vector>
 
 #include "logreg.hpp"
 #include "strtonumber.hpp"
@@ -31,17 +31,14 @@ using namespace examples::logistic_regression;  // NOLINT
 constexpr size_t dim = 3;
 using T = double;
 
+using Element = std::array<T, dim>;
+using DataObject = std::pair<T, Element>;
+
 #define LOGM LOGC(debug && ctx.my_rank() == 0)
 
-
-static void RunLogReg(api::Context& ctx,
-                      const std::vector<std::string> &input_path,
-                      size_t max_iterations, double gamma, double epsilon) {
-    using Element = std::array<T, dim>;
-    using DataObject = std::pair<T, Element>;
-
-    auto input =
-        ReadLines(ctx, input_path)
+template <typename Input>
+static auto ReadFile(api::Context &ctx, const Input &input_path) {
+    return ReadLines(ctx, input_path)
         .Map([](const std::string& line) {
                 // parse "value,dim_1,dim_2,...,dim_n" lines
                 char* endptr;
@@ -54,13 +51,22 @@ static void RunLogReg(api::Context& ctx,
                 for (size_t i = 0; i < dim; ++i) {
                     T value = strtonumber<T>(endptr + 1, &endptr);
                     die_unless(endptr &&
-                               ((i+1 < dim && *endptr == ',') ||
+                               ((i+1 <=dim && *endptr == ',') ||
                                 (i+1 ==dim && *endptr == 0)) &&
                                "Could not parse input line");
                     obj.second[i] = value;
                 }
                 return obj;
-            });
+            })
+        .Cache();
+}
+
+
+static void RunLogReg(api::Context& ctx,
+                      const std::string &training_path,
+                      const std::vector<std::string> &test_path,
+                      size_t max_iterations, double gamma, double epsilon) {
+    auto input = ReadFile(ctx, training_path);
 
     Element weights;
     double norm;
@@ -74,14 +80,29 @@ static void RunLogReg(api::Context& ctx,
     for (size_t i = 0; i < dim; ++i) {
         LOGM << "Model[" << i << "] = " << weights[i];
     }
+
+    for (const auto &test_file : test_path) {
+        auto data = ReadFile(ctx, test_file);
+        size_t num_trues, true_trues, num_falses, true_falses;
+        std::tie(num_trues, true_trues, num_falses, true_falses)
+            = test_logreg<T, dim>(data, weights);
+        LOGM << "Evaluation result for " << test_file << ":";
+        LOGM << "\tTrue:  " << true_trues << " of " << num_trues << " correct, "
+             << num_trues - true_trues  << " incorrect ("
+             << static_cast<double>(true_trues)/num_trues * 100.0 << "%)";
+        LOGM << "\tFalse: " << true_falses << " of " << num_falses
+             << " correct, " << num_falses - true_falses << " incorrect ("
+             << static_cast<double>(true_falses)/num_falses * 100.0 << "%)";
+    }
 }
 
 int main(int argc, char* argv[]) {
     common::CmdlineParser clp;
 
-    std::vector<std::string> input_path;
-    clp.AddParamStringlist("input", input_path,
-                           "input file pattern(s)");
+    std::string training_path;
+    std::vector<std::string> test_path;
+    clp.AddParamString("input", training_path, "training file pattern(s)");
+    clp.AddParamStringlist("test", test_path, "test file pattern(s)");
 
     size_t max_iterations(1000);
     clp.AddSizeT('n', "iterations", max_iterations, "Maximum number of iterations, default: 1000");
@@ -98,7 +119,8 @@ int main(int argc, char* argv[]) {
 
     return api::Run(
         [&](api::Context& ctx) {
-            RunLogReg(ctx, input_path, max_iterations, gamma, epsilon);
+            RunLogReg(ctx, training_path, test_path,
+                      max_iterations, gamma, epsilon);
         });
 }
 
