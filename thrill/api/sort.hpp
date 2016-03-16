@@ -162,7 +162,8 @@ public:
             // less files than available Blocks -> split blocks equally among
             // Files.
             return std::make_pair(
-                files_.size(), (avail_blocks / files_.size()) - 1);
+                files_.size(),
+                std::max<size_t>(16u, (avail_blocks / files_.size()) - 1));
         }
     }
 

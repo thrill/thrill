@@ -187,6 +187,9 @@ public:
         return blocks_[i];
     }
 
+    //! Returns constant reference to all Blocks in the File.
+    const std::deque<Block>& blocks() const { return blocks_; }
+
     //! Return number of items starting in block i
     size_t ItemsStartIn(size_t i) const {
         assert(i < blocks_.size());

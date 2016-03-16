@@ -62,6 +62,14 @@ public:
         }
     }
 
+    bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
+        if (!ParentDIA::stack_empty) return false;
+        for (size_t i = 0; i < emitters_.size(); i++) {
+            emitters_[i].AppendBlocks(file.blocks());
+        }
+        return true;
+    }
+
     void StopPreOp(size_t /* id */) final {
         // data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {

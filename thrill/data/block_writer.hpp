@@ -161,8 +161,15 @@ public:
 
         for (const Block& b : blocks)
             sink_->AppendBlock(b.PinWait(sink_->local_worker_id()));
+    }
 
-        AllocateBlock();
+    //! Directly write Blocks to the underlying BlockSink (after flushing the
+    //! current one if need be).
+    void AppendBlocks(const std::deque<Block>& blocks) {
+        Flush();
+
+        for (const Block& b : blocks)
+            sink_->AppendBlock(b.PinWait(sink_->local_worker_id()));
     }
 
     //! \name Appending (Generic) Serializable Items
