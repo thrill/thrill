@@ -38,7 +38,7 @@ public:
 
     //! function increments the semaphore and signals any threads that are
     //! blocked waiting a change in the semaphore
-    size_t notify() {
+    size_t signal() {
         std::unique_lock<std::mutex> lock(mutex_);
         size_t res = ++value_;
         cv_.notify_one();
@@ -46,7 +46,7 @@ public:
     }
     //! function increments the semaphore and signals any threads that are
     //! blocked waiting a change in the semaphore
-    size_t notify(size_t delta) {
+    size_t signal(size_t delta) {
         std::unique_lock<std::mutex> lock(mutex_);
         size_t res = (value_ += delta);
         cv_.notify_all();

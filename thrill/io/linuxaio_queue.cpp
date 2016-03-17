@@ -54,7 +54,7 @@ LinuxaioQueue::LinuxaioQueue(int desired_queue_length)
                            " io_setup() nr_events=" << max_events_);
     }
 
-    num_free_events_.notify(max_events_);
+    num_free_events_.signal(max_events_);
 
     LOG1 << "Set up an linuxaio queue with " << max_events_ << " entries.";
 
@@ -79,7 +79,7 @@ void LinuxaioQueue::add_request(RequestPtr& req) {
     std::unique_lock<std::mutex> lock(waiting_mtx_);
 
     waiting_requests_.push_back(req);
-    num_waiting_requests_.notify();
+    num_waiting_requests_.signal();
 }
 
 bool LinuxaioQueue::cancel_request(Request* req) {
@@ -125,7 +125,7 @@ bool LinuxaioQueue::cancel_request(Request* req) {
             // request is canceled, already posted
             dynamic_cast<LinuxaioRequest*>(req)->completed(true, true);
 
-            num_free_events_.notify();
+            num_free_events_.signal();
             num_posted_requests_.wait(); // will never block
             return true;
         }
@@ -179,7 +179,7 @@ void LinuxaioQueue::post_requests() {
             {
                 std::unique_lock<std::mutex> lock(posted_mtx_);
                 posted_requests_.push_back(req);
-                num_posted_requests_.notify();
+                num_posted_requests_.signal();
             }
         }
         else
@@ -187,7 +187,7 @@ void LinuxaioQueue::post_requests() {
             lock.unlock();
 
             // num_waiting_requests-- was premature, compensate for that
-            num_waiting_requests_.notify();
+            num_waiting_requests_.signal();
         }
     }
 
@@ -201,7 +201,7 @@ void LinuxaioQueue::handle_events(io_event* events, long num_events, bool cancel
         RequestPtr* r = reinterpret_cast<RequestPtr*>(static_cast<size_t>(events[e].data));
         r->get()->completed(canceled);
         delete r;                    // release auto_ptr reference
-        num_free_events_.notify();
+        num_free_events_.signal();
         num_posted_requests_.wait(); // will never block
     }
 }
@@ -228,7 +228,7 @@ void LinuxaioQueue::wait_requests() {
         }
 
         // compensate for the one eaten prematurely above
-        num_posted_requests_.notify();
+        num_posted_requests_.signal();
 
         handle_events(events, num_events, false);
     }

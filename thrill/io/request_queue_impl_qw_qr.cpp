@@ -91,7 +91,7 @@ void RequestQueueImplQwQr::add_request(RequestPtr& req) {
         write_queue_.push_back(req);
     }
 
-    sem_.notify();
+    sem_.signal();
 }
 
 bool RequestQueueImplQwQr::cancel_request(Request* req) {
@@ -162,7 +162,7 @@ void* RequestQueueImplQwQr::worker(void* arg) {
             {
                 WriteLock.unlock();
 
-                pthis->sem_.notify();
+                pthis->sem_.signal();
 
                 if (pthis->priority_op_ == WRITE)
                     write_phase = false;
@@ -191,7 +191,7 @@ void* RequestQueueImplQwQr::worker(void* arg) {
             {
                 ReadLock.unlock();
 
-                pthis->sem_.notify();
+                pthis->sem_.signal();
 
                 if (pthis->priority_op_ == READ)
                     write_phase = true;
@@ -206,7 +206,7 @@ void* RequestQueueImplQwQr::worker(void* arg) {
             if (pthis->sem_.wait() == 0)
                 break;
             else
-                pthis->sem_.notify();
+                pthis->sem_.signal();
         }
     }
 

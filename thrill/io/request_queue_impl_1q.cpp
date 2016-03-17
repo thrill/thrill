@@ -73,7 +73,7 @@ void RequestQueueImpl1Q::add_request(RequestPtr& req) {
     std::unique_lock<std::mutex> Lock(queue_mutex_);
     queue_.push_back(req);
 
-    sem_.notify();
+    sem_.signal();
 }
 
 bool RequestQueueImpl1Q::cancel_request(Request* req) {
@@ -129,7 +129,7 @@ void* RequestQueueImpl1Q::worker(void* arg) {
             {
                 Lock.unlock();
 
-                pthis->sem_.notify();
+                pthis->sem_.signal();
             }
         }
 
@@ -138,7 +138,7 @@ void* RequestQueueImpl1Q::worker(void* arg) {
             if (pthis->sem_.wait() == 0)
                 break;
             else
-                pthis->sem_.notify();
+                pthis->sem_.signal();
         }
     }
 

@@ -312,7 +312,7 @@ private:
             rx_timespan_.StopEventually();
         }
 
-        sem_closing_blocks_.notify();
+        sem_closing_blocks_.signal();
     }
 
     //! Returns the loopback queue for the worker of this stream.

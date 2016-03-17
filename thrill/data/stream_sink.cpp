@@ -76,7 +76,7 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block) {
         *connection_,
         // send out Buffer and Block, guaranteed to be successive
         std::move(buffer), block,
-        [this](net::Connection&) { sem_.notify(); });
+        [this](net::Connection&) { sem_.signal(); });
 }
 
 void StreamSink::AppendPinnedBlock(PinnedBlock&& block) {
