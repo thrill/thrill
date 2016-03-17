@@ -529,11 +529,16 @@ int RunNotSupported(const char* env_net) {
 
 static inline
 const char * DetectNetBackend() {
-#if THRILL_HAVE_NET_MPI
     // detect openmpi run, add others as well.
-    if (getenv("OMPI_COMM_WORLD_SIZE") != nullptr)
+    if (getenv("OMPI_COMM_WORLD_SIZE") != nullptr) {
+#if THRILL_HAVE_NET_MPI
         return "mpi";
+#else
+        std::cerr << "Thrill: MPI environment detected, but network backend mpi"
+                  << " is not supported by this binary." << std::endl;
+        return nullptr;
 #endif
+    }
 #if defined(_MSC_VER)
     return "mock";
 #else
@@ -621,7 +626,10 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
     const char* env_net = getenv("THRILL_NET");
 
     // if no backend configured: automatically select one.
-    if (!env_net || !*env_net) env_net = DetectNetBackend();
+    if (!env_net || !*env_net) {
+        env_net = DetectNetBackend();
+        if (!env_net) return -1;
+    }
 
     // run with selected backend
     if (strcmp(env_net, "mock") == 0) {
