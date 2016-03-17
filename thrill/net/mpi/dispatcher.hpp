@@ -209,13 +209,13 @@ public:
         Connection* mpic = static_cast<Connection*>(&c);
 
         // associated Block's memory (Irecv needs memory).
-        mpi_async_.emplace_back(c, n, std::move(block), done_cb);
-        mpi_async_out_.emplace_back();
-        mpi_async_status_.emplace_back();
 
         // perform Irecv.
         MPI_Request req = IRecv(mpic->peer(), block->data(), n);
+        mpi_async_.emplace_back(c, n, std::move(block), done_cb);
+        mpi_async_out_.emplace_back();
         mpi_async_requests_.emplace_back(req);
+        mpi_async_status_.emplace_back();
     }
 
     //! Run one iteration of dispatching using MPI_Iprobe().
