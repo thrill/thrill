@@ -15,6 +15,7 @@
 
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <thrill/common/semaphore.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
@@ -46,8 +47,8 @@ public:
         : id_(id),
           local_worker_id_(local_worker_id),
           multiplexer_(multiplexer),
-          expected_closing_blocks_((num_hosts() - 1) * workers_per_host()),
-          received_closing_blocks_(0) { }
+          remaining_closing_blocks_((num_hosts() - 1) * workers_per_host())
+    { }
 
     virtual ~Stream() { }
 
@@ -166,9 +167,12 @@ protected:
     //! reference to multiplexer
     Multiplexer& multiplexer_;
 
-    //! number of expected / received stream closing operations. Required to
-    //! know when to stop rx_lifetime
-    size_t expected_closing_blocks_, received_closing_blocks_;
+    //! number of remaining expected stream closing operations. Required to know
+    //! when to stop rx_lifetime
+    size_t remaining_closing_blocks_;
+
+    //! number of received stream closing Blocks.
+    common::Semaphore sem_closing_blocks_;
 
     //! friends for access to multiplexer_
     friend class StreamSink;

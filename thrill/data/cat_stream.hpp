@@ -247,17 +247,10 @@ public:
         if (!queues_[my_global_worker_id].write_closed())
             queues_[my_global_worker_id].Close();
 
-        // wait for close packets to arrive (this is a busy waiting loop, try to
-        // do it better -tb)
-        for (size_t i = 0; i < queues_.size(); ++i) {
-            while (!queues_[i].write_closed()) {
-                sLOG << "CatStream" << id()
-                     << "host" << my_host_rank()
-                     << "local_worker_id_" << local_worker_id_
-                     << "wait for close from worker" << i;
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-        }
+        // wait for close packets to arrive
+        for (size_t i = 0; i < queues_.size() - workers_per_host(); ++i)
+            sem_closing_blocks_.wait();
+
         tx_lifetime_.StopEventually();
         tx_timespan_.StopEventually();
         OnAllClosed();
@@ -314,11 +307,12 @@ private:
 
         sLOG << "OnCatCloseStream from=" << from;
 
-        if (expected_closing_blocks_ == ++received_closing_blocks_) {
+        if (--remaining_closing_blocks_ == 0) {
             rx_lifetime_.StopEventually();
             rx_timespan_.StopEventually();
-            OnAllClosed();
         }
+
+        sem_closing_blocks_.notify();
     }
 
     //! Returns the loopback queue for the worker of this stream.
