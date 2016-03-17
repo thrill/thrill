@@ -75,6 +75,8 @@ public:
     template <typename Type>
     JsonLine operator << (const Type& t);
 
+    //! launch background profiler
+    void StartProfiler();
 
 public:
     //! output to superior JsonLogger

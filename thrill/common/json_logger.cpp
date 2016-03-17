@@ -14,6 +14,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 
+#include <dirent.h>
 #include <unistd.h>
 
 #include <atomic>
@@ -36,18 +37,24 @@ using steady_clock = std::chrono::steady_clock;
 
 class LinuxProcStats
 {
-    static constexpr bool debug = true;
+    static constexpr bool debug = false;
 
 public:
     explicit LinuxProcStats(JsonLogger& logger) : logger_(logger) {
 
         file_stat_.open("/proc/stat");
         file_net_dev_.open("/proc/net/dev");
+        file_diskstats_.open("/proc/diskstats");
 
         pid_t mypid = getpid();
         file_pid_stat_.open("/proc/" + std::to_string(mypid) + "/stat");
         file_pid_io_.open("/proc/" + std::to_string(mypid) + "/io");
+
+        read_sys_block_devices();
     }
+
+    //! read /sys/block to find block devices
+    void read_sys_block_devices();
 
     //! calculate percentage of change relative to base.
     static double perc(unsigned long long prev, unsigned long long curr,
@@ -59,7 +66,7 @@ public:
     }
 
     //! method to prepare JsonLine
-    void common_out(JsonLine& out);
+    JsonLine& prepare_out(JsonLine& out);
 
     //! read /proc/stat
     void read_stat(JsonLine& out);
@@ -73,6 +80,9 @@ public:
     //! read /proc/<pid>/io
     void read_pid_io(const steady_clock::time_point& tp, JsonLine& out);
 
+    //! read /proc/diskstats
+    void read_diskstats(JsonLine& out);
+
     void tick(const steady_clock::time_point& tp) {
 
         // JsonLine to construct
@@ -82,6 +92,7 @@ public:
         read_pid_stat(out);
         read_net_dev(tp, out);
         read_pid_io(tp, out);
+        read_diskstats(out);
 
         tp_last_ = tp;
     }
@@ -98,6 +109,8 @@ private:
     std::ifstream file_pid_stat_;
     //! open file handle to /proc/<our-pid>/io
     std::ifstream file_pid_io_;
+    //! open file handle to /proc/diskstats
+    std::ifstream file_diskstats_;
 
     //! last time point called
     steady_clock::time_point tp_last_;
@@ -149,6 +162,34 @@ private:
         unsigned long long write_bytes = 0;
     };
 
+    struct DiskStats {
+        std::string        dev_name;
+        //! number of read operations issued to the device
+        unsigned long long rd_ios = 0;
+        //! number of read requests merged
+        unsigned long long rd_merged = 0;
+        //! number of sectors read (512b sectors)
+        unsigned long long rd_sectors = 0;
+        //! time of read requests in queue (ms)
+        unsigned long long rd_time = 0;
+
+        //! number of write operations issued to the device
+        unsigned long long wr_ios = 0;
+        //! number of write requests merged
+        unsigned long long wr_merged = 0;
+        //! number of sectors written (512b sectors)
+        unsigned long long wr_sectors = 0;
+        //! Time of write requests in queue (ms)
+        unsigned long long wr_time = 0;
+
+        //! number of I/Os in progress
+        unsigned long long ios_progr = 0;
+        //! number of time total (for this device) for I/O (ms)
+        unsigned long long total_time = 0;
+        //! number of time requests spent in queue (ms)
+        unsigned long long rq_time = 0;
+    };
+
     //! delta jiffies since the last iteration (read from uptime() of the cpu
     //! summary)
     unsigned long long jiffies_delta_ = 0;
@@ -173,12 +214,19 @@ private:
 
     //! previous reading of pid's io file
     PidIoStat pid_io_prev_;
+
+    //! find or create entry for net_dev
+    DiskStats * find_diskstats(const char* dev_name);
+
+    //! previous reading from diskstats
+    std::vector<DiskStats> diskstats_prev_;
 };
 
-void LinuxProcStats::common_out(JsonLine& out) {
+JsonLine& LinuxProcStats::prepare_out(JsonLine& out) {
     if (out.items() == 2) {
         out << "class" << "LinuxProcStats";
     }
+    return out;
 }
 
 void LinuxProcStats::read_stat(JsonLine& out) {
@@ -200,18 +248,21 @@ void LinuxProcStats::read_stat(JsonLine& out) {
         if (common::StartsWith(line, "cpu  ")) {
 
             CpuStat curr;
-            sscanf(line.data() + 5,
-                   "%llu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
-                   &curr.user,
-                   &curr.nice,
-                   &curr.sys,
-                   &curr.idle,
-                   &curr.iowait,
-                   &curr.hardirq,
-                   &curr.softirq,
-                   &curr.steal,
-                   &curr.guest,
-                   &curr.guest_nice);
+            int ret = sscanf(
+                line.data() + 5,
+                "%llu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
+                &curr.user,
+                &curr.nice,
+                &curr.sys,
+                &curr.idle,
+                &curr.iowait,
+                &curr.hardirq,
+                &curr.softirq,
+                &curr.steal,
+                &curr.guest,
+                &curr.guest_nice);
+
+            die_unequal(10, ret);
 
             CpuStat& prev = cpu_prev_;
 
@@ -237,8 +288,8 @@ void LinuxProcStats::read_stat(JsonLine& out) {
                  << "guest_nice" << perc(prev.guest_nice, curr.guest_nice, base)
                  << "idle" << perc(prev.idle, curr.idle, base);
 
-            common_out(out);
-            out << "cpu_user" << perc(prev.user, curr.user, base)
+            prepare_out(out)
+                << "cpu_user" << perc(prev.user, curr.user, base)
                 << "cpu_nice" << perc(prev.nice, curr.nice, base)
                 << "cpu_sys" << perc(prev.sys, curr.sys, base)
                 << "cpu_idle" << perc(prev.idle, curr.idle, base)
@@ -255,19 +306,22 @@ void LinuxProcStats::read_stat(JsonLine& out) {
 
             unsigned core_id;
             CpuStat curr;
-            sscanf(line.data() + 3,
-                   "%u %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
-                   &core_id,
-                   &curr.user,
-                   &curr.nice,
-                   &curr.sys,
-                   &curr.idle,
-                   &curr.iowait,
-                   &curr.hardirq,
-                   &curr.softirq,
-                   &curr.steal,
-                   &curr.guest,
-                   &curr.guest_nice);
+            int ret = sscanf(
+                line.data() + 3,
+                "%u %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
+                &core_id,
+                &curr.user,
+                &curr.nice,
+                &curr.sys,
+                &curr.idle,
+                &curr.iowait,
+                &curr.hardirq,
+                &curr.softirq,
+                &curr.steal,
+                &curr.guest,
+                &curr.guest_nice);
+
+            die_unequal(11, ret);
 
             if (cpu_core_prev_.size() < core_id + 1)
                 cpu_core_prev_.resize(core_id + 1);
@@ -364,20 +418,22 @@ void LinuxProcStats::read_pid_stat(JsonLine& out) {
     /*  vsize         virtual memory size */
     /*  rss           resident set memory size */
     /*  rsslim        current limit in bytes on the rss */
-    sscanf(line.data(),
-           /* pid tcomm state ppid pgrp sid tty_nr tty_pgrp flags */
-           /* 19162 (firefox) R 1 19162 19162 0 -1 4218880 */
-           "%llu %*s %*s %*u %*u %*u %*u %*u %*u "
-           /* min_flt cmin_flt maj_flt cmaj_flt utime stime cutime cstime priority nice */
-           /* 340405 6560 3 0 7855 526 3 2 20 0 */
-           "%*u %*u %*u %*u %llu %llu %llu %llu %*u %*u "
-           /* num_threads it_real_value start_time vsize rss rsslim */
-           /* 44 0 130881921 1347448832 99481 18446744073709551615 */
-           "%llu %*u %*u %llu %llu",
-           /* (firefox) more: 4194304 4515388 140732862948048 140732862941536 246430093205 0 0 4096 33572015 18446744073709551615 0 0 17 0 0 0 0 0 0 8721489 8726954 14176256 140732862948868 140732862948876 140732862948876 140732862951399 0 */
-           &curr.check_pid,
-           &curr.utime, &curr.stime, &curr.cutime, &curr.cstime,
-           &curr.num_threads, &curr.vsize, &curr.rss);
+    int ret = sscanf(line.data(),
+                     /* pid tcomm state ppid pgrp sid tty_nr tty_pgrp flags */
+                     /* 19162 (firefox) R 1 19162 19162 0 -1 4218880 */
+                     "%llu %*s %*s %*u %*u %*u %*u %*u %*u "
+                     /* min_flt cmin_flt maj_flt cmaj_flt utime stime cutime cstime priority nice */
+                     /* 340405 6560 3 0 7855 526 3 2 20 0 */
+                     "%*u %*u %*u %*u %llu %llu %llu %llu %*u %*u "
+                     /* num_threads it_real_value start_time vsize rss rsslim */
+                     /* 44 0 130881921 1347448832 99481 18446744073709551615 */
+                     "%llu %*u %*u %llu %llu",
+                     /* (firefox) more: 4194304 4515388 140732862948048 140732862941536 246430093205 0 0 4096 33572015 18446744073709551615 0 0 17 0 0 0 0 0 0 8721489 8726954 14176256 140732862948868 140732862948876 140732862948876 140732862951399 0 */
+                     &curr.check_pid,
+                     &curr.utime, &curr.stime, &curr.cutime, &curr.cstime,
+                     &curr.num_threads, &curr.vsize, &curr.rss);
+
+    die_unequal(8, ret);
 
     if (!pid_stat_prev_.check_pid) {
         pid_stat_prev_ = curr;
@@ -435,10 +491,11 @@ void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp, JsonLine& 
         common::Trim(if_name);
 
         NetDevStat curr;
-        sscanf(line.data() + colonpos + 1,
-               "%llu %llu %*u %*u %*u %*u %*u %*u %llu %llu",
-               &curr.rx_bytes, &curr.rx_pkts,
-               &curr.tx_bytes, &curr.tx_pkts);
+        int ret = sscanf(line.data() + colonpos + 1,
+                         "%llu %llu %*u %*u %*u %*u %*u %*u %llu %llu",
+                         &curr.rx_bytes, &curr.rx_pkts,
+                         &curr.tx_bytes, &curr.tx_pkts);
+        die_unequal(4, ret);
 
         sum.rx_bytes += curr.rx_bytes;
         sum.tx_bytes += curr.tx_bytes;
@@ -486,8 +543,8 @@ void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp, JsonLine& 
              << "tx_speed"
              << static_cast<double>(sum.tx_bytes - prev.tx_bytes) / elapsed * 1e6;
 
-        common_out(out);
-        out << "net_rx_bytes" << sum.rx_bytes - prev.rx_bytes
+        prepare_out(out)
+            << "net_rx_bytes" << sum.rx_bytes - prev.rx_bytes
             << "net_tx_bytes" << sum.tx_bytes - prev.tx_bytes
             << "net_rx_pkts" << sum.rx_pkts - prev.rx_pkts
             << "net_tx_pkts" << sum.tx_pkts - prev.tx_pkts
@@ -512,10 +569,12 @@ void LinuxProcStats::read_pid_io(const steady_clock::time_point& tp, JsonLine& o
     std::string line;
     while (std::getline(file_stat_, line)) {
         if (common::StartsWith(line, "read_bytes: ")) {
-            sscanf(line.data() + 12, "%llu", &curr.read_bytes);
+            int ret = sscanf(line.data() + 12, "%llu", &curr.read_bytes);
+            die_unequal(1, ret);
         }
         else if (common::StartsWith(line, "write_bytes: ")) {
-            sscanf(line.data() + 13, "%llu", &curr.write_bytes);
+            int ret = sscanf(line.data() + 13, "%llu", &curr.write_bytes);
+            die_unequal(1, ret);
         }
     }
 
@@ -539,8 +598,8 @@ void LinuxProcStats::read_pid_io(const steady_clock::time_point& tp, JsonLine& o
          << "write_speed"
          << static_cast<double>(curr.write_bytes - prev.write_bytes) / elapsed * 1e6;
 
-    common_out(out);
-    out << "pr_io_read_bytes" << curr.read_bytes - prev.read_bytes
+    prepare_out(out)
+        << "pr_io_read_bytes" << curr.read_bytes - prev.read_bytes
         << "pr_io_write_bytes" << curr.read_bytes - prev.read_bytes
         << "pr_io_read_speed"
         << static_cast<double>(curr.read_bytes - prev.read_bytes) / elapsed * 1e6
@@ -548,6 +607,123 @@ void LinuxProcStats::read_pid_io(const steady_clock::time_point& tp, JsonLine& o
         << static_cast<double>(curr.write_bytes - prev.write_bytes) / elapsed * 1e6;
 
     prev = curr;
+}
+
+LinuxProcStats::DiskStats*
+LinuxProcStats::find_diskstats(const char* dev_name) {
+    for (DiskStats& i : diskstats_prev_) {
+        if (strcmp(i.dev_name.c_str(), dev_name) == 0) return &i;
+    }
+    return nullptr;
+}
+
+void LinuxProcStats::read_sys_block_devices() {
+    DIR* dirp = opendir("/sys/block");
+    if (!dirp) return;
+
+    struct dirent de_prev, * de;
+    while (readdir_r(dirp, &de_prev, &de) == 0 && de != nullptr) {
+        if (de->d_name[0] == '.') continue;
+        // push into diskstats vector
+        diskstats_prev_.emplace_back();
+        diskstats_prev_.back().dev_name = de->d_name;
+    }
+    closedir(dirp);
+}
+
+void LinuxProcStats::read_diskstats(JsonLine& out) {
+    if (!file_diskstats_.is_open()) return;
+
+    file_diskstats_.clear();
+    file_diskstats_.seekg(0);
+    if (!file_diskstats_.good()) return;
+
+    DiskStats sum;
+    JsonLine disks = out.sub("disks");
+
+    std::string line;
+    while (std::getline(file_diskstats_, line)) {
+
+        char dev_name[32];
+        DiskStats curr;
+        int ret = sscanf(
+            line.data(),
+            "%*u %*u %31s %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
+            dev_name,
+            &curr.rd_ios, &curr.rd_merged, &curr.rd_sectors, &curr.rd_time,
+            &curr.wr_ios, &curr.wr_merged, &curr.wr_sectors, &curr.wr_time,
+            &curr.ios_progr, &curr.total_time, &curr.rq_time);
+        die_unequal(12, ret);
+
+        DiskStats* ptr_prev = find_diskstats(dev_name);
+        if (!ptr_prev) continue;
+
+        DiskStats& prev = *ptr_prev;
+        curr.dev_name = dev_name;
+
+        if (!prev.rd_ios && !prev.wr_ios && !prev.ios_progr) {
+            // just store the first reading, also: skipped entries that remain
+            // zero.
+            prev = curr;
+            continue;
+        }
+
+        sLOG << "diskstats"
+             << "dev" << dev_name
+             << "rd_ios" << curr.rd_ios - prev.rd_ios
+             << "rd_merged" << curr.rd_merged - prev.rd_merged
+             << "rd_bytes" << (curr.rd_sectors - prev.rd_sectors) * 512
+             << "rd_time" << (curr.rd_time - prev.rd_time) / 1e3
+             << "wr_ios" << curr.wr_ios - prev.wr_ios
+             << "wr_merged" << curr.wr_merged - prev.wr_merged
+             << "wr_bytes" << (curr.wr_sectors - prev.wr_sectors) * 512
+             << "wr_time" << (curr.wr_time - prev.wr_time) / 1e3
+             << "ios_progr" << curr.ios_progr
+             << "total_time" << (curr.total_time - prev.total_time) / 1e3
+             << "rq_time" << (curr.rq_time - prev.rq_time) / 1e3;
+
+        disks.sub(dev_name)
+            << "rd_ios" << curr.rd_ios - prev.rd_ios
+            << "rd_merged" << curr.rd_merged - prev.rd_merged
+            << "rd_bytes" << (curr.rd_sectors - prev.rd_sectors) * 512
+            << "rd_time" << (curr.rd_time - prev.rd_time) / 1e3
+            << "wr_ios" << curr.wr_ios - prev.wr_ios
+            << "wr_merged" << curr.wr_merged - prev.wr_merged
+            << "wr_bytes" << (curr.wr_sectors - prev.wr_sectors) * 512
+            << "wr_time" << (curr.wr_time - prev.wr_time) / 1e3
+            << "ios_progr" << curr.ios_progr
+            << "total_time" << (curr.total_time - prev.total_time) / 1e3
+            << "rq_time" << (curr.rq_time - prev.rq_time) / 1e3;
+
+        sum.rd_ios += curr.rd_ios - prev.rd_ios;
+        sum.rd_merged += curr.rd_merged - prev.rd_merged;
+        sum.rd_sectors += curr.rd_sectors - prev.rd_sectors;
+        sum.rd_time += curr.rd_time - prev.rd_time;
+        sum.wr_ios += curr.wr_ios - prev.wr_ios;
+        sum.wr_merged += curr.wr_merged - prev.wr_merged;
+        sum.wr_sectors += curr.wr_sectors - prev.wr_sectors;
+        sum.wr_time += curr.wr_time - prev.wr_time;
+        sum.ios_progr += curr.ios_progr;
+        sum.total_time += curr.total_time - prev.total_time;
+        sum.rq_time += curr.rq_time - prev.rq_time;
+
+        prev = curr;
+    }
+
+    disks.Close();
+
+    out.sub("diskstats")
+        << "rd_ios" << sum.rd_ios
+        << "rd_merged" << sum.rd_merged
+        << "rd_bytes" << sum.rd_sectors * 512
+        << "rd_time" << sum.rd_time / 1e3
+        << "wr_ios" << sum.wr_ios
+        << "wr_merged" << sum.wr_merged
+        << "wr_bytes" << sum.wr_sectors * 512
+        << "wr_time" << sum.wr_time / 1e3
+        << "ios_progr" << sum.ios_progr
+        << "total_time" << sum.total_time / 1e3
+        << "rq_time" << sum.rq_time / 1e3;
 }
 
 /******************************************************************************/
@@ -623,17 +799,19 @@ JsonLogger::JsonLogger(const std::string& path) {
         die("Could not open json log output: "
             << path << " : " << strerror(errno));
     }
-
-    profiler_ = std::make_unique<JsonProfiler>(*this);
 }
 
 JsonLogger::JsonLogger(JsonLogger* super)
     : super_(super) { }
 
-JsonLogger::~JsonLogger() { }
+JsonLogger::~JsonLogger() {
+    /* necessary for destruction of profiler_ */
+}
 
-/******************************************************************************/
-// JsonLine
+void JsonLogger::StartProfiler() {
+    assert(!profiler_);
+    profiler_ = std::make_unique<JsonProfiler>(*this);
+}
 
 JsonLine JsonLogger::line() {
     if (super_) {

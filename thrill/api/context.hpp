@@ -83,8 +83,9 @@ public:
           logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
           mem_config_(mem_config),
           workers_per_host_(workers_per_host),
-          net_manager_(std::move(groups))
-    { }
+          net_manager_(std::move(groups)) {
+        logger_.StartProfiler();
+    }
 
     //! Construct a number of mock hosts running in this process.
     static std::vector<std::unique_ptr<HostContext> >
