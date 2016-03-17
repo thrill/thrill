@@ -18,6 +18,7 @@
 #include <cassert>
 #include <fstream>
 #include <initializer_list>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -27,6 +28,7 @@ namespace common {
 
 // forward declarations
 class JsonLine;
+class JsonProfiler;
 template <typename Type>
 struct JsonLinePutSwitch;
 
@@ -56,12 +58,15 @@ public:
     explicit JsonLogger(const std::string& path);
 
     //! open JsonLogger with a super logger
-    explicit JsonLogger(JsonLogger* super) : super_(super) { }
+    explicit JsonLogger(JsonLogger* super);
 
     //! open JsonLogger with a super logger and some additional common key:value
     //! pairs
     template <typename ... Args>
     explicit JsonLogger(JsonLogger* super, const Args& ... args);
+
+    //! destructor: stop profiling thread
+    ~JsonLogger();
 
     //! create new JsonLine instance which will be written to this logger.
     JsonLine line();
@@ -83,6 +88,9 @@ public:
 
     //! common items outputted to each line
     JsonVerbatim common_;
+
+    //! Json profiler (pimpl)
+    std::unique_ptr<JsonProfiler> profiler_;
 
     //! friends for sending to os_
     friend class JsonLine;
@@ -133,7 +141,7 @@ public:
 
     //! destructor: deliver to output
     ~JsonLine() {
-        if (logger_) {
+        if (logger_ && items_ != 0) {
             assert(items_ % 2 == 0);
             logger_->Output();
         }
