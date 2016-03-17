@@ -19,6 +19,7 @@
 #include <fstream>
 #include <initializer_list>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -86,6 +87,9 @@ public:
     //! direct output stream for top loggers
     std::ofstream os_;
 
+    //! mutex to lock logger output
+    std::mutex mutex_;
+
     //! common items outputted to each line
     JsonVerbatim common_;
 
@@ -106,18 +110,12 @@ public:
 class JsonLine
 {
 public:
-    //! when destructed this object is delivered to the output.
-    JsonLogger* logger_;
-
-    //! reference to output stream
-    std::ostream& os_;
-
-    //! items counter for output stream
-    size_t items_ = 0;
-
     //! ctor: bind output
     explicit JsonLine(JsonLogger* logger, std::ostream& os)
-        : logger_(logger), os_(os) { }
+        : logger_(logger), os_(os) {
+        if (logger)
+            lock_ = std::unique_lock<std::mutex>(logger_->mutex_);
+    }
 
     // //! ctor: initialize with a list of key:value pairs of variadic type.
     // template <typename ... Args>
@@ -146,6 +144,9 @@ public:
             logger_->Output();
         }
     }
+
+    //! number of items already put
+    size_t items() const { return items_; }
 
     //! put an items separator (either ',' or ':') and increment counter.
     void PutSeparator() {
@@ -178,6 +179,20 @@ public:
             break;
         }
     }
+
+private:
+    //! when destructed this object is delivered to the output.
+    JsonLogger* logger_ = nullptr;
+
+    //! lock on the logger output stream
+    std::unique_lock<std::mutex> lock_;
+
+public:
+    //! reference to output stream
+    std::ostream& os_;
+
+    //! items counter for output stream
+    size_t items_ = 0;
 };
 
 /******************************************************************************/

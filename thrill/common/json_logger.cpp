@@ -58,23 +58,30 @@ public:
             return static_cast<double>(curr - prev) / base * 100.0;
     }
 
+    //! method to prepare JsonLine
+    void common_out(JsonLine& out);
+
     //! read /proc/stat
-    void read_stat();
+    void read_stat(JsonLine& out);
 
     //! read /proc/<pid>/stat
-    void read_pid_stat();
+    void read_pid_stat(JsonLine& out);
 
     //! read /proc/net/dev
-    void read_net_dev(const steady_clock::time_point& tp);
+    void read_net_dev(const steady_clock::time_point& tp, JsonLine& out);
 
     //! read /proc/<pid>/io
-    void read_pid_io();
+    void read_pid_io(const steady_clock::time_point& tp, JsonLine& out);
 
     void tick(const steady_clock::time_point& tp) {
-        read_stat();
-        read_pid_stat();
-        read_net_dev(tp);
-        read_pid_io();
+
+        // JsonLine to construct
+        JsonLine out = logger_.line();
+
+        read_stat(out);
+        read_pid_stat(out);
+        read_net_dev(tp, out);
+        read_pid_io(tp, out);
 
         tp_last_ = tp;
     }
@@ -131,8 +138,8 @@ private:
 
     struct NetDevStat {
         std::string        if_name;
-        unsigned long long rx_packets = 0;
-        unsigned long long tx_packets = 0;
+        unsigned long long rx_pkts = 0;
+        unsigned long long tx_pkts = 0;
         unsigned long long rx_bytes = 0;
         unsigned long long tx_bytes = 0;
     };
@@ -168,7 +175,13 @@ private:
     PidIoStat pid_io_prev_;
 };
 
-void LinuxProcStats::read_stat() {
+void LinuxProcStats::common_out(JsonLine& out) {
+    if (out.items() == 2) {
+        out << "class" << "LinuxProcStats";
+    }
+}
+
+void LinuxProcStats::read_stat(JsonLine& out) {
     if (!file_stat_.is_open()) return;
 
     file_stat_.clear();
@@ -177,6 +190,10 @@ void LinuxProcStats::read_stat() {
 
     // read the number of jiffies spent in the various modes since the
     // last tick.
+
+    std::vector<double> cores_user, cores_nice, cores_sys, cores_idle,
+        cores_iowait, cores_hardirq, cores_softirq,
+        cores_steal, cores_guest, cores_guest_nice;
 
     std::string line;
     while (std::getline(file_stat_, line)) {
@@ -219,6 +236,18 @@ void LinuxProcStats::read_stat() {
                  << "guest" << perc(prev.guest, curr.guest, base)
                  << "guest_nice" << perc(prev.guest_nice, curr.guest_nice, base)
                  << "idle" << perc(prev.idle, curr.idle, base);
+
+            common_out(out);
+            out << "cpu_user" << perc(prev.user, curr.user, base)
+                << "cpu_nice" << perc(prev.nice, curr.nice, base)
+                << "cpu_sys" << perc(prev.sys, curr.sys, base)
+                << "cpu_idle" << perc(prev.idle, curr.idle, base)
+                << "cpu_iowait" << perc(prev.iowait, curr.iowait, base)
+                << "cpu_hardirq" << perc(prev.hardirq, curr.hardirq, base)
+                << "cpu_softirq" << perc(prev.softirq, curr.softirq, base)
+                << "cpu_steal" << perc(prev.steal, curr.steal, base)
+                << "cpu_guest" << perc(prev.guest, curr.guest, base)
+                << "cpu_guest_nice" << perc(prev.guest_nice, curr.guest_nice, base);
 
             prev = curr;
         }
@@ -267,12 +296,36 @@ void LinuxProcStats::read_stat() {
                  << "guest_nice" << perc(prev.guest_nice, curr.guest_nice, base)
                  << "idle" << perc(prev.idle, curr.idle, base);
 
+            cores_user.emplace_back(perc(prev.user, curr.user, base));
+            cores_nice.emplace_back(perc(prev.nice, curr.nice, base));
+            cores_sys.emplace_back(perc(prev.sys, curr.sys, base));
+            cores_idle.emplace_back(perc(prev.idle, curr.idle, base));
+            cores_iowait.emplace_back(perc(prev.iowait, curr.iowait, base));
+            cores_hardirq.emplace_back(perc(prev.hardirq, curr.hardirq, base));
+            cores_softirq.emplace_back(perc(prev.softirq, curr.softirq, base));
+            cores_steal.emplace_back(perc(prev.steal, curr.steal, base));
+            cores_guest.emplace_back(perc(prev.guest, curr.guest, base));
+            cores_guest_nice.emplace_back(perc(prev.guest_nice, curr.guest_nice, base));
+
             prev = curr;
         }
     }
+
+    if (cores_user.size()) {
+        out << "cores_user" << cores_user
+            << "cores_nice" << cores_nice
+            << "cores_sys" << cores_sys
+            << "cores_idle" << cores_idle
+            << "cores_iowait" << cores_iowait
+            << "cores_hardirq" << cores_hardirq
+            << "cores_softirq" << cores_softirq
+            << "cores_steal" << cores_steal
+            << "cores_guest" << cores_guest
+            << "cores_guest_nice" << cores_guest_nice;
+    }
 }
 
-void LinuxProcStats::read_pid_stat() {
+void LinuxProcStats::read_pid_stat(JsonLine& out) {
     if (!file_pid_stat_.is_open()) return;
 
     file_pid_stat_.clear();
@@ -341,6 +394,12 @@ void LinuxProcStats::read_pid_stat() {
          << "vsize" << curr.vsize
          << "rss" << curr.rss;
 
+    out << "pr_user" << perc(pid_stat_prev_.utime, curr.utime, base)
+        << "pr_sys" << perc(pid_stat_prev_.stime, curr.stime, base)
+        << "pr_nthreads" << curr.num_threads
+        << "pr_vsize" << curr.vsize
+        << "pr_rss" << curr.rss;
+
     pid_stat_prev_ = curr;
 }
 
@@ -354,7 +413,7 @@ LinuxProcStats::find_net_dev(const std::string& if_name) {
     return net_dev_prev_.back();
 }
 
-void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp) {
+void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp, JsonLine& out) {
     if (!file_net_dev_.is_open()) return;
 
     file_net_dev_.clear();
@@ -378,13 +437,13 @@ void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp) {
         NetDevStat curr;
         sscanf(line.data() + colonpos + 1,
                "%llu %llu %*u %*u %*u %*u %*u %*u %llu %llu",
-               &curr.rx_bytes, &curr.rx_packets,
-               &curr.tx_bytes, &curr.tx_packets);
+               &curr.rx_bytes, &curr.rx_pkts,
+               &curr.tx_bytes, &curr.tx_pkts);
 
         sum.rx_bytes += curr.rx_bytes;
         sum.tx_bytes += curr.tx_bytes;
-        sum.rx_packets += curr.rx_packets;
-        sum.tx_packets += curr.tx_packets;
+        sum.rx_pkts += curr.rx_pkts;
+        sum.tx_pkts += curr.tx_pkts;
 
         curr.if_name = if_name;
         NetDevStat& prev = find_net_dev(if_name);
@@ -398,8 +457,8 @@ void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp) {
         sLOG << "net" << if_name
              << "rx_bytes" << curr.rx_bytes - prev.rx_bytes
              << "tx_bytes" << curr.tx_bytes - prev.tx_bytes
-             << "rx_packets" << curr.rx_packets - prev.rx_packets
-             << "tx_packets" << curr.tx_packets - prev.tx_packets
+             << "rx_pkts" << curr.rx_pkts - prev.rx_pkts
+             << "tx_pkts" << curr.tx_pkts - prev.tx_pkts
              << "rx_speed"
              << static_cast<double>(curr.rx_bytes - prev.rx_bytes) / elapsed * 1e6
              << "tx_speed"
@@ -420,18 +479,28 @@ void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp) {
         sLOG << "net" << "(all)"
              << "rx_bytes" << sum.rx_bytes - prev.rx_bytes
              << "tx_bytes" << sum.tx_bytes - prev.tx_bytes
-             << "rx_packets" << sum.rx_packets - prev.rx_packets
-             << "tx_packets" << sum.tx_packets - prev.tx_packets
+             << "rx_pkts" << sum.rx_pkts - prev.rx_pkts
+             << "tx_pkts" << sum.tx_pkts - prev.tx_pkts
              << "rx_speed"
              << static_cast<double>(sum.rx_bytes - prev.rx_bytes) / elapsed * 1e6
              << "tx_speed"
              << static_cast<double>(sum.tx_bytes - prev.tx_bytes) / elapsed * 1e6;
 
+        common_out(out);
+        out << "net_rx_bytes" << sum.rx_bytes - prev.rx_bytes
+            << "net_tx_bytes" << sum.tx_bytes - prev.tx_bytes
+            << "net_rx_pkts" << sum.rx_pkts - prev.rx_pkts
+            << "net_tx_pkts" << sum.tx_pkts - prev.tx_pkts
+            << "net_rx_speed"
+            << static_cast<double>(sum.rx_bytes - prev.rx_bytes) / elapsed * 1e6
+            << "net_tx_speed"
+            << static_cast<double>(sum.tx_bytes - prev.tx_bytes) / elapsed * 1e6;
+
         prev = sum;
     }
 }
 
-void LinuxProcStats::read_pid_io() {
+void LinuxProcStats::read_pid_io(const steady_clock::time_point& tp, JsonLine& out) {
     if (!file_pid_io_.is_open()) return;
 
     file_pid_io_.clear();
@@ -456,11 +525,29 @@ void LinuxProcStats::read_pid_io() {
         return;
     }
 
-    sLOG << "pid_io"
-         << "read_bytes" << curr.read_bytes - pid_io_prev_.read_bytes
-         << "write_bytes" << curr.write_bytes - pid_io_prev_.write_bytes;
+    unsigned long long elapsed
+        = std::chrono::duration_cast<std::chrono::microseconds>(
+        tp - tp_last_).count();
 
-    pid_io_prev_ = curr;
+    PidIoStat& prev = pid_io_prev_;
+
+    sLOG << "pid_io"
+         << "read_bytes" << curr.read_bytes - prev.read_bytes
+         << "write_bytes" << curr.write_bytes - prev.write_bytes
+         << "read_speed"
+         << static_cast<double>(curr.read_bytes - prev.read_bytes) / elapsed * 1e6
+         << "write_speed"
+         << static_cast<double>(curr.write_bytes - prev.write_bytes) / elapsed * 1e6;
+
+    common_out(out);
+    out << "pr_io_read_bytes" << curr.read_bytes - prev.read_bytes
+        << "pr_io_write_bytes" << curr.read_bytes - prev.read_bytes
+        << "pr_io_read_speed"
+        << static_cast<double>(curr.read_bytes - prev.read_bytes) / elapsed * 1e6
+        << "pr_io_write_speed"
+        << static_cast<double>(curr.write_bytes - prev.write_bytes) / elapsed * 1e6;
+
+    prev = curr;
 }
 
 /******************************************************************************/
@@ -544,6 +631,9 @@ JsonLogger::JsonLogger(JsonLogger* super)
     : super_(super) { }
 
 JsonLogger::~JsonLogger() { }
+
+/******************************************************************************/
+// JsonLine
 
 JsonLine JsonLogger::line() {
     if (super_) {
