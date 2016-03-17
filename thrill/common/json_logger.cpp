@@ -206,9 +206,6 @@ private:
     //! previous reading from network stats
     std::vector<NetDevStat> net_dev_prev_;
 
-    //! previous summarized reading from network stats
-    NetDevStat net_dev_sum_prev_;
-
     //! find or create entry for net_dev
     NetDevStat& find_net_dev(const std::string& if_name);
 
@@ -481,6 +478,7 @@ void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp, JsonLine& 
         tp - tp_last_).count();
 
     NetDevStat sum;
+    bool sum_output = false;
 
     std::string line;
     while (std::getline(file_net_dev_, line)) {
@@ -496,11 +494,6 @@ void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp, JsonLine& 
                          &curr.rx_bytes, &curr.rx_pkts,
                          &curr.tx_bytes, &curr.tx_pkts);
         die_unequal(4, ret);
-
-        sum.rx_bytes += curr.rx_bytes;
-        sum.tx_bytes += curr.tx_bytes;
-        sum.rx_pkts += curr.rx_pkts;
-        sum.tx_pkts += curr.tx_pkts;
 
         curr.if_name = if_name;
         NetDevStat& prev = find_net_dev(if_name);
@@ -521,39 +514,33 @@ void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp, JsonLine& 
              << "tx_speed"
              << static_cast<double>(curr.tx_bytes - prev.tx_bytes) / elapsed * 1e6;
 
+        sum.rx_bytes += curr.rx_bytes - prev.rx_bytes;
+        sum.tx_bytes += curr.tx_bytes - prev.tx_bytes;
+        sum.rx_pkts += curr.rx_pkts - prev.rx_pkts;
+        sum.tx_pkts += curr.tx_pkts - prev.tx_pkts;
+        sum_output = true;
+
         prev = curr;
     }
 
     // summarizes interfaces
+    if (sum_output)
     {
-        NetDevStat& prev = net_dev_sum_prev_;
-
-        if (prev.rx_bytes == 0) {
-            prev = sum;
-            return;
-        }
-
         sLOG << "net" << "(all)"
-             << "rx_bytes" << sum.rx_bytes - prev.rx_bytes
-             << "tx_bytes" << sum.tx_bytes - prev.tx_bytes
-             << "rx_pkts" << sum.rx_pkts - prev.rx_pkts
-             << "tx_pkts" << sum.tx_pkts - prev.tx_pkts
-             << "rx_speed"
-             << static_cast<double>(sum.rx_bytes - prev.rx_bytes) / elapsed * 1e6
-             << "tx_speed"
-             << static_cast<double>(sum.tx_bytes - prev.tx_bytes) / elapsed * 1e6;
+             << "rx_bytes" << sum.rx_bytes
+             << "tx_bytes" << sum.tx_bytes
+             << "rx_pkts" << sum.rx_pkts
+             << "tx_pkts" << sum.tx_pkts
+             << "rx_speed" << static_cast<double>(sum.rx_bytes) / elapsed * 1e6
+             << "tx_speed" << static_cast<double>(sum.tx_bytes) / elapsed * 1e6;
 
         prepare_out(out)
-            << "net_rx_bytes" << sum.rx_bytes - prev.rx_bytes
-            << "net_tx_bytes" << sum.tx_bytes - prev.tx_bytes
-            << "net_rx_pkts" << sum.rx_pkts - prev.rx_pkts
-            << "net_tx_pkts" << sum.tx_pkts - prev.tx_pkts
-            << "net_rx_speed"
-            << static_cast<double>(sum.rx_bytes - prev.rx_bytes) / elapsed * 1e6
-            << "net_tx_speed"
-            << static_cast<double>(sum.tx_bytes - prev.tx_bytes) / elapsed * 1e6;
-
-        prev = sum;
+            << "net_rx_bytes" << sum.rx_bytes
+            << "net_tx_bytes" << sum.tx_bytes
+            << "net_rx_pkts" << sum.rx_pkts
+            << "net_tx_pkts" << sum.tx_pkts
+            << "net_rx_speed" << static_cast<double>(sum.rx_bytes) / elapsed * 1e6
+            << "net_tx_speed" << static_cast<double>(sum.tx_bytes) / elapsed * 1e6;
     }
 }
 
@@ -824,9 +811,8 @@ JsonLine JsonLogger::line() {
         return out;
     }
 
-    os_ << '{';
-
     JsonLine out(this, os_);
+    os_ << '{';
 
     // output timestamp in microseconds
     out << "ts"

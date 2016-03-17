@@ -206,7 +206,7 @@ public:
           flow_manager_(host_context.flow_manager()),
           block_pool_(host_context.block_pool()),
           multiplexer_(host_context.data_multiplexer()),
-          base_logger_(MakeWorkerLogPath(my_rank())) {
+          base_logger_(&host_context.base_logger_) {
         assert(local_worker_id < workers_per_host());
     }
 
