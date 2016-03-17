@@ -265,7 +265,7 @@ struct CmdlineParser::ArgumentBytes32 final : public Argument
     const char * TypeName() const final
     { return "bytes"; }
 
-    //! parse byte size using SI/IEC parser from stxxl.
+    //! parse byte size using SI/IEC parser.
     bool Process(int& argc, const char* const*& argv) final {
         if (argc == 0) return false;
         uint64_t dest;
@@ -300,7 +300,7 @@ struct CmdlineParser::ArgumentBytes64 final : public Argument
     const char * TypeName() const final
     { return "bytes"; }
 
-    //! parse byte size using SI/IEC parser from stxxl.
+    //! parse byte size using SI/IEC parser.
     bool Process(int& argc, const char* const*& argv) final {
         if (argc == 0) return false;
         if (ParseSiIecUnits(argv[0], dest_)) {

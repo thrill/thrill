@@ -64,7 +64,7 @@ public:
     }
 };
 
-//! Contains data elements for \c stxxl::typed_block , not intended for direct use.
+//! Contains data elements for \c TypedBlock , not intended for direct use.
 template <typename Type, size_t Size>
 class ElementBlock
 {
@@ -125,7 +125,7 @@ public:
     }
 };
 
-//! Contains BID references for \c stxxl::typed_block , not intended for direct use.
+//! Contains BID references for \c TypedBlock , not intended for direct use.
 template <typename Type, size_t Size, size_t RawSize, size_t NBids = 0>
 class BlockWithBids : public ElementBlock<Type, Size>
 {
@@ -169,7 +169,7 @@ public:
     }
 };
 
-//! Contains per block information for \c stxxl::typed_block , not intended for direct use.
+//! Contains per block information for \c TypedBlock , not intended for direct use.
 template <typename Type, size_t RawSize, size_t NBids, typename MetaInfoType = void>
 class BlockWithInfo
     : public BlockWithBids<Type, ((RawSize - sizeof(BID<RawSize>)* NBids - sizeof(MetaInfoType)) / sizeof(Type)), RawSize, NBids>
@@ -198,7 +198,7 @@ public:
     }
 };
 
-//! Contains per block filler for \c stxxl::typed_block , not intended for direct use.
+//! Contains per block filler for \c TypedBlock , not intended for direct use.
 template <typename BaseType, size_t FillSize = 0>
 class AddFiller : public BaseType
 {
@@ -238,9 +238,9 @@ class ExpandStruct : public AddFiller<Type, RawSize - sizeof(Type)>
 //! \tparam NRef number of block references (BIDs) that can be stored in the block (default is 0)
 //! \tparam MetaInfoType type of per block information (default is no information - void)
 //!
-//! The data array of type Type is contained in the parent class \c stxxl::element_block, see related information there.
-//! The BID array of references is contained in the parent class \c stxxl::block_w_bids, see related information there.
-//! The "per block information" is contained in the parent class \c stxxl::block_w_info, see related information there.
+//! The data array of type Type is contained in the parent class \c ElementBlock, see related information there.
+//! The BID array of references is contained in the parent class \c BlockWithBids, see related information there.
+//! The "per block information" is contained in the parent class \c BlockWithInfo, see related information there.
 //!  \warning If \c RawSize > 2MB object(s) of this type can not be allocated on the stack (as a
 //! function variable for example), because Linux POSIX library limits the stack size for the
 //! main thread to (2MB - system page size)

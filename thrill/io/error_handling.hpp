@@ -81,13 +81,6 @@ namespace io {
                   THRILL_PRETTY_FUNCTION_NAME,       \
                   error_message)
 
-//! Throws stxxl::unreachable with "Error in file [file], line [line] : this
-//! code should never be reachable"
-#define THRILL_THROW_UNREACHABLE()                              \
-    THRILL_THROW2(stxxl::unreachable,                           \
-                  "file " << __FILE__ << ", line " << __LINE__, \
-                  "this code should never be reachable")
-
 ////////////////////////////////////////////////////////////////////////////
 
 //! Throws exception_type if (expr) with "Error in [function] : [error_message]"
@@ -131,17 +124,6 @@ namespace io {
 //! Throws exception_type if (expr < 0) with "Error in [function] : [error_message] : [errno message]"
 #define THRILL_THROW_ERRNO_LT_0(expr, exception_type, error_message) \
     THRILL_THROW_ERRNO_IF((expr) < 0, exception_type, error_message)
-
-////////////////////////////////////////////////////////////////////////////
-
-//! Checks pthread call, if return != 0, throws stxxl::resource_error with "Error in [function] : [pthread_expr] : [errno message]
-#define THRILL_CHECK_PTHREAD_CALL(expr)                             \
-    do {                                                            \
-        int res = (expr);                                           \
-        if (res != 0) {                                             \
-            THRILL_THROW_ERRNO2(stxxl::resource_error, #expr, res); \
-        }                                                           \
-    } while (false)
 
 ////////////////////////////////////////////////////////////////////////////
 

@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
                "32-bit pattern to write (default: block index)");
 
     cp.SetDescription(
-        "Open a file using one of STXXL's file abstractions and perform "
+        "Open a file using one of Thrill's file abstractions and perform "
         "write/read/verify tests on the file. "
         "Block sizes and batch size can be adjusted via command line. "
         "If length == 0 , then operation will continue till end of space "

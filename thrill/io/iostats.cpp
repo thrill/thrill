@@ -259,7 +259,7 @@ std::string format_with_SI_IEC_unit_multiplier(uint64_t number, const char* unit
 
 std::ostream& operator << (std::ostream& o, const StatsData& s) {
 #define hr add_IEC_binary_multiplier
-    o << "STXXL I/O statistics" << std::endl;
+    o << "Thrill I/O statistics" << std::endl;
 #if THRILL_IO_STATS
     o << " total number of reads                      : " << hr(s.get_reads()) << std::endl;
     o << " average block size (read)                  : "

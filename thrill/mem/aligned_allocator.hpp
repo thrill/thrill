@@ -168,7 +168,7 @@ inline void* AlignedAllocator<Type, BaseAllocator, Alignment>::allocate_bytes(
         if (buffer != realloced) {
             // hmm, realloc does move the memory block around while shrinking,
             // might run under valgrind, so disable realloc and retry
-            LOG1 << "stxxl::aligned_alloc: disabling realloc()";
+            LOG1 << "mem::aligned_alloc: disabling realloc()";
             std::free(realloced);
             aligned_alloc_settings<int>::may_use_realloc = false;
             return allocate(size, meta_info_size);

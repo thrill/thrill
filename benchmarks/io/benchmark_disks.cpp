@@ -268,7 +268,7 @@ int main(int argc, char* argv[]) {
 
     cp.SetDescription(
         "This program will benchmark the disks configured by the standard "
-        ".stxxl disk configuration files mechanism. Blocks of 8 MiB are "
+        ".thrill disk configuration files mechanism. Blocks of 8 MiB are "
         "written and/or read in sequence using the block manager. The batch "
         "size describes how many blocks are written/read in one batch. The "
         "are taken from block_manager using given the specified allocation "

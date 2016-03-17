@@ -69,10 +69,10 @@ void Config::initialize() {
 void Config::find_config() {
     // check several locations for disk configuration files
 
-    // check STXXLCFG environment path
-    const char* stxxlcfg = getenv("THRILLCFG");
-    if (stxxlcfg && exist_file(stxxlcfg))
-        return load_config_file(stxxlcfg);
+    // check THRILLCFG environment path
+    const char* thrill_cfg = getenv("THRILLCFG");
+    if (thrill_cfg && exist_file(thrill_cfg))
+        return load_config_file(thrill_cfg);
 
 #if !THRILL_WINDOWS
     // read environment, unix style

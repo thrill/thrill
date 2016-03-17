@@ -225,7 +225,7 @@ int main(int argc, char* argv[]) {
 
     cp.SetDescription(
         "This program will benchmark _random_ block access on the disks "
-        "configured by the standard .stxxl disk configuration files mechanism. "
+        "configured by the standard .thrill disk configuration files mechanism. "
         "Available block sizes are power of two from 4 KiB to 128 MiB. "
         "A set of three operations can be performed: sequential initialization, "
         "random reading and random writing.");

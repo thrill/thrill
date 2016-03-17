@@ -66,7 +66,6 @@ TEST(BlockManager, Test1) {
     {
         block[0].elem_[i].integer = i;
         block[1].elem_[i].integer = i;
-        // memcpy (block->elem[i].chars, "STXXL", 4);
     }
     for (size_t i = 0; i < nblocks; ++i)
         reqs[i] = block[i].write(bids[i], my_handler());

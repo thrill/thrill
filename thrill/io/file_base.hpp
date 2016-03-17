@@ -40,7 +40,7 @@ namespace io {
 //! \{
 
 //! \defgroup fileimpl File I/O Implementations
-//! Implementations of \c stxxl::file for various file access methods and
+//! Implementations of \ref FileBase for various file access methods and
 //! operating systems.
 //! \{
 
@@ -168,7 +168,7 @@ public:
     virtual ~FileBase() {
         size_t nr = get_request_nref();
         if (nr != 0)
-            LOG1 << "thrill::file is being deleted while there are "
+            LOG1 << "thrill::io::FileBase is being deleted while there are "
                  << "still " << nr << " (unfinished) requests referencing it";
     }
 
