@@ -381,7 +381,8 @@ void BlockPool::OnReadComplete(
     ByteBlock* block_ptr = read->block.byte_block();
 
     LOGC(debug_em)
-        << "OnReadComplete(): " << req << " done, from "
+        << "OnReadComplete():"
+        << " req " << req << " block " << block_ptr << " done, from "
         << block_ptr->em_bid_ << " success = " << success;
     req->check_error();
 
@@ -424,8 +425,11 @@ void BlockPool::OnReadComplete(
             PinnedBlock(std::move(read->block), read->local_worker_id));
     }
 
+    // first clear the reference count to the request
+    read->req.reset();
+
     // remove the ReadRequest from the hash map. The problem here is that the
-    // std::future may have been discarded (the Pin wants needed after all). In
+    // std::future may have been discarded (the Pin wasn't needed after all). In
     // that case, deletion of ReadRequest will call Unpin, which creates a
     // deadlock on the mutex_. Hence, we first move the ReadRequest out of them
     // map, then unlock, and delete it. -tb
@@ -581,50 +585,68 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
     // pinned blocks cannot be destroyed since they are always unpinned first
     assert(block_ptr->total_pins_ == 0);
 
-    if (block_ptr->in_memory())
-    {
-        // block was evicted, may still be writing to EM.
-        WritingMap::iterator it;
-        while ((it = writing_.find(block_ptr)) != writing_.end()) {
-            // get reference count to request, since complete handler removes it
-            // from the map.
-            io::RequestPtr req = it->second;
-            lock.unlock();
-            // cancel I/O request
-            if (!req->cancel()) {
-                // must still wait for cancellation to complete and the I/O
-                // handler.
-                req->wait();
-            }
-            lock.lock();
+    do {
+        if (block_ptr->in_memory())
+        {
+            // block was evicted, may still be writing to EM.
+            WritingMap::iterator it = writing_.find(block_ptr);
+            if (it != writing_.end()) {
+                // get reference count to request, since complete handler
+                // removes it from the map.
+                io::RequestPtr req = it->second;
+                lock.unlock();
+                // cancel I/O request
+                if (!req->cancel()) {
+                    // must still wait for cancellation to complete and the I/O
+                    // handler.
+                    req->wait();
+                }
+                lock.lock();
 
-            // recheck whether block is being written, it may have been evicting
-            // the unlocked time.
+                // recheck whether block is being written, it may have been
+                // evicting the unlocked time.
+                continue;
+            }
+        }
+        else
+        {
+            // block was being pinned. cancel read operation
+            ReadingMap::iterator it = reading_.find(block_ptr);
+            if (it != reading_.end()) {
+                // get reference count to request, since complete handler
+                // removes it from the map.
+                io::RequestPtr req = it->second->req;
+                lock.unlock();
+                // cancel I/O request
+                if (!req->cancel()) {
+                    // must still wait for cancellation to complete and the I/O
+                    // handler.
+                    req->wait();
+                }
+                lock.lock();
+
+                // recheck whether block is being read, it may have been
+                // evicting again in the unlocked time.
+                continue;
+            }
         }
     }
-    else
+    while (0);
+
+    if (block_ptr->ext_file_ && block_ptr->in_memory())
     {
-        // block was being pinned. cancel read operation
-        ReadingMap::iterator it;
-        while ((it = reading_.find(block_ptr)) != reading_.end()) {
-            // get reference count to request, since complete handler removes it
-            // from the map.
-            io::RequestPtr req = it->second->req;
-            lock.unlock();
-            // cancel I/O request
-            if (!req->cancel()) {
-                // must still wait for cancellation to complete and the I/O
-                // handler.
-                req->wait();
-            }
-            lock.lock();
+        // external block, in memory: release memory.
+        aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
+        block_ptr->data_ = nullptr;
 
-            // recheck whether block is being read, it may have been evicting
-            // again in the unlocked time.
-        }
+        IntReleaseInternalMemory(block_ptr->size());
     }
-
-    if (block_ptr->in_memory())
+    else if (block_ptr->ext_file_)
+    {
+        // external block, but not in memory: nothing to do, thus just delete
+        // the reference
+    }
+    else if (block_ptr->in_memory())
     {
         // unpinned block in memory, remove from list
         assert(unpinned_blocks_.exists(block_ptr));
@@ -636,11 +658,6 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
         block_ptr->data_ = nullptr;
 
         IntReleaseInternalMemory(block_ptr->size());
-    }
-    else if (block_ptr->ext_file_)
-    {
-        // external block, but not in memory: nothing to do, this just delete
-        // the reference
     }
     else
     {
@@ -714,7 +731,9 @@ void BlockPool::IntRequestInternalMemory(
             << " unpinned_blocks_.size()=" << unpinned_blocks_.size()
             << " swapped_.size()=" << swapped_.size();
 
-        if (writing_bytes_ == 0 && total_ram_use_ + requested_bytes_ > hard_ram_limit_) {
+        if (writing_bytes_ == 0 &&
+            total_ram_use_ + requested_bytes_ > hard_ram_limit_) {
+
             LOG1 << "abort() due to out-of-pinned-memory ???";
             if (writing_bytes_ == last_writing_bytes) {
                 if (--retry == 0)

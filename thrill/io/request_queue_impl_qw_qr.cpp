@@ -94,16 +94,16 @@ void RequestQueueImplQwQr::add_request(RequestPtr& req) {
     sem_.notify();
 }
 
-bool RequestQueueImplQwQr::cancel_request(RequestPtr& req) {
-    if (req.empty())
+bool RequestQueueImplQwQr::cancel_request(Request* req) {
+    if (!req)
         THRILL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
     if (thread_state_() != RUNNING)
         THRILL_THROW_INVALID_ARGUMENT("Request canceled to not running queue.");
-    if (!dynamic_cast<ServingRequest*>(req.get()))
+    if (!dynamic_cast<ServingRequest*>(req))
         LOG1 << "Incompatible request submitted to running queue.";
 
     bool was_still_in_queue = false;
-    if (req.get()->type() == Request::READ)
+    if (req->type() == Request::READ)
     {
         std::unique_lock<std::mutex> Lock(read_mutex_);
         Queue::iterator pos

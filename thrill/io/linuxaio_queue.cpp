@@ -82,12 +82,12 @@ void LinuxaioQueue::add_request(RequestPtr& req) {
     num_waiting_requests_.notify();
 }
 
-bool LinuxaioQueue::cancel_request(RequestPtr& req) {
-    if (req.empty())
+bool LinuxaioQueue::cancel_request(Request* req) {
+    if (!req)
         THRILL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
     if (post_thread_state_() != RUNNING)
         LOG1 << "Request canceled in stopped queue.";
-    if (!dynamic_cast<LinuxaioRequest*>(req.get()))
+    if (!dynamic_cast<LinuxaioRequest*>(req))
         LOG1 << "Non-LinuxAIO request submitted to LinuxAIO queue.";
 
     Queue::iterator pos;
@@ -101,7 +101,7 @@ bool LinuxaioQueue::cancel_request(RequestPtr& req) {
 
             // polymorphic_downcast to linuxaio_request,
             // request is canceled, but was not yet posted.
-            dynamic_cast<LinuxaioRequest*>(req.get())->completed(false, true);
+            dynamic_cast<LinuxaioRequest*>(req)->completed(false, true);
 
             num_waiting_requests_.wait(); // will never block
             return true;
@@ -114,7 +114,7 @@ bool LinuxaioQueue::cancel_request(RequestPtr& req) {
     if (pos != posted_requests_.end())
     {
         // polymorphic_downcast to linuxaio_request,
-        bool canceled_io_operation = (dynamic_cast<LinuxaioRequest*>(req.get()))->cancel_aio();
+        bool canceled_io_operation = (dynamic_cast<LinuxaioRequest*>(req))->cancel_aio();
 
         if (canceled_io_operation)
         {
@@ -123,7 +123,7 @@ bool LinuxaioQueue::cancel_request(RequestPtr& req) {
             // polymorphic_downcast to linuxaio_request,
 
             // request is canceled, already posted
-            dynamic_cast<LinuxaioRequest*>(req.get())->completed(true, true);
+            dynamic_cast<LinuxaioRequest*>(req)->completed(true, true);
 
             num_free_events_.notify();
             num_posted_requests_.wait(); // will never block

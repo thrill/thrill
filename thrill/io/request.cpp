@@ -128,19 +128,18 @@ void Request::wait(bool measure_time) {
 bool Request::cancel() {
     LOG << "request::cancel() " << file_ << " " << buffer_ << " " << offset_;
 
-    if (file_) {
-        RequestPtr rp(this);
-        if (DiskQueues::get_instance()->cancel_request(rp, file_->get_queue_id()))
-        {
-            state_.set_to(DONE);
-            // user callback
-            if (on_complete_)
-                on_complete_(this, false);
-            file_->delete_request_ref();
-            file_ = nullptr;
-            state_.set_to(READY2DIE);
-            return true;
-        }
+    if (!file_) return false;
+
+    if (DiskQueues::get_instance()->cancel_request(this, file_->get_queue_id()))
+    {
+        state_.set_to(DONE);
+        // user callback
+        if (on_complete_)
+            on_complete_(this, false);
+        file_->delete_request_ref();
+        file_ = nullptr;
+        state_.set_to(READY2DIE);
+        return true;
     }
     return false;
 }

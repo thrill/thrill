@@ -87,7 +87,7 @@ public:
     explicit LinuxaioQueue(int desired_queue_length = 0);
 
     void add_request(RequestPtr& req) final;
-    bool cancel_request(RequestPtr& req) final;
+    bool cancel_request(Request* req) final;
     void complete_request(RequestPtr& req);
     ~LinuxaioQueue();
 };

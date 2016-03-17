@@ -59,7 +59,7 @@ public:
         common::THRILL_UNUSED(op);
     }
     void add_request(RequestPtr& req) final;
-    bool cancel_request(RequestPtr& req) final;
+    bool cancel_request(Request* req) final;
     ~RequestQueueImpl1Q();
 };
 

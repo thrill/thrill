@@ -100,7 +100,7 @@ public:
     //! \param req request to cancel
     //! \param disk disk number for disk that \c req was scheduled on
     //! \return \c true iff the request was canceled successfully
-    bool cancel_request(RequestPtr& req, DiskId disk) {
+    bool cancel_request(Request* req, DiskId disk) {
 #ifdef THRILL_HACK_SINGLE_IO_THREAD
         disk = 42;
 #endif
