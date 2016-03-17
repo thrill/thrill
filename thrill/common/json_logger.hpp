@@ -75,10 +75,6 @@ public:
     template <typename Type>
     JsonLine operator << (const Type& t);
 
-    //! method called by output objects
-    void Output() {
-        os_ << '}' << std::endl;
-    }
 
 public:
     //! output to superior JsonLogger
@@ -117,20 +113,14 @@ public:
             lock_ = std::unique_lock<std::mutex>(logger_->mutex_);
     }
 
-    // //! ctor: initialize with a list of key:value pairs of variadic type.
-    // template <typename ... Args>
-    // explicit JsonLine(const Args& ... args) {
-    //     using ForeachExpander = int[];
-    //     (void)ForeachExpander { (operator << (args), 0) ... };
-    // }
-
     //! non-copyable: delete copy-constructor
     JsonLine(const JsonLine&) = delete;
     //! non-copyable: delete assignment operator
     JsonLine& operator = (const JsonLine&) = delete;
     //! move-constructor: unlink pointer
     JsonLine(JsonLine&& o)
-        : logger_(o.logger_), os_(o.os_), items_(o.items_)
+        : logger_(o.logger_), lock_(std::move(o.lock_)),
+          os_(o.os_), items_(o.items_), sub_dict_(o.sub_dict_)
     { o.logger_ = nullptr; }
 
     //! output any type
@@ -139,14 +129,34 @@ public:
 
     //! destructor: deliver to output
     ~JsonLine() {
+        Close();
+    }
+
+    //! close the line
+    void Close() {
         if (logger_ && items_ != 0) {
             assert(items_ % 2 == 0);
-            logger_->Output();
+            os_ << '}' << std::endl;
+            items_ = 0;
+        }
+        else if (!logger_ && sub_dict_) {
+            os_ << '}';
+            sub_dict_ = false;
         }
     }
 
     //! number of items already put
     size_t items() const { return items_; }
+
+    //! return JsonLine has sub-dictionary of this one
+    template <typename Key>
+    JsonLine sub(const Key& key) {
+        // write key
+        operator << (key);
+        PutSeparator();
+        os_ << '{';
+        return JsonLine(/* sentinel */ true, *this);
+    }
 
     //! put an items separator (either ',' or ':') and increment counter.
     void PutSeparator() {
@@ -187,12 +197,19 @@ private:
     //! lock on the logger output stream
     std::unique_lock<std::mutex> lock_;
 
+    //! construct sub-dictionary
+    JsonLine(bool /* sentinel */, JsonLine& parent)
+        : os_(parent.os_), sub_dict_(true) { }
+
 public:
     //! reference to output stream
     std::ostream& os_;
 
     //! items counter for output stream
     size_t items_ = 0;
+
+    //! indicator for sub-dictionaries.
+    bool sub_dict_ = false;
 };
 
 /******************************************************************************/
