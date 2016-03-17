@@ -111,7 +111,7 @@ public:
     void * allocate_bytes(size_t size, size_t meta_info_size = 0);
     void deallocate_bytes(void* ptr, size_t size, size_t meta_info_size = 0) noexcept;
 
-    const BaseAllocator & base() const { return base_; }
+    const BaseAllocator& base() const { return base_; }
 
 private:
     //! base allocator

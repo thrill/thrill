@@ -82,13 +82,13 @@ struct is_std_array<std::array<T, N> >: public std::true_type { };
 
 //! template for constexpr min, because std::min is not good enough.
 template <typename T>
-constexpr static inline const T & min(const T& a, const T& b) {
+constexpr static inline const T& min(const T& a, const T& b) {
     return a < b ? a : b;
 }
 
 //! template for constexpr max, because std::max is not good enough.
 template <typename T>
-constexpr static inline const T & max(const T& a, const T& b) {
+constexpr static inline const T& max(const T& a, const T& b) {
     return a > b ? a : b;
 }
 

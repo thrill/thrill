@@ -82,7 +82,7 @@ public:
     size_t workers_per_host() const { return workers_per_host_; }
 
     //! Returns logger_
-    common::JsonLogger & logger() { return logger_; }
+    common::JsonLogger& logger() { return logger_; }
 
     //! Updates the memory manager for internal memory. If the hard limit is
     //! reached, the call is blocked intil memory is free'd

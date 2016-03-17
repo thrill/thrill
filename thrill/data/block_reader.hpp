@@ -51,7 +51,7 @@ public:
     BlockReader() = default;
 
     //! Return reference to enclosed BlockSource
-    BlockSource & source() { return source_; }
+    BlockSource& source() { return source_; }
 
     //! non-copyable: delete copy-constructor
     BlockReader(const BlockReader&) = delete;
@@ -250,7 +250,7 @@ public:
 
     //! Fetch a number of unstructured bytes from the current block, advancing
     //! the cursor.
-    BlockReader & Read(void* outdata, size_t size) {
+    BlockReader& Read(void* outdata, size_t size) {
 
         Byte* cdata = reinterpret_cast<Byte*>(outdata);
 
@@ -282,7 +282,7 @@ public:
     }
 
     //! Advance the cursor given number of bytes without reading them.
-    BlockReader & Skip(size_t items, size_t bytes) {
+    BlockReader& Skip(size_t items, size_t bytes) {
         while (THRILL_UNLIKELY(current_ + bytes > end_)) {
             bytes -= end_ - current_;
             // deduct number of remaining items in skipped block from item skip

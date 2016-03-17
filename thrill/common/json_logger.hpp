@@ -176,55 +176,55 @@ public:
 // Template specializations for JsonLine
 
 static inline
-JsonLine & Put(JsonLine& line, bool const& value) {
+JsonLine& Put(JsonLine& line, bool const& value) {
     line.os_ << (value ? "true" : "false");
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, int const& value) {
+JsonLine& Put(JsonLine& line, int const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, unsigned int const& value) {
+JsonLine& Put(JsonLine& line, unsigned int const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, long const& value) {
+JsonLine& Put(JsonLine& line, long const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, unsigned long const& value) {
+JsonLine& Put(JsonLine& line, unsigned long const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, long long const& value) {
+JsonLine& Put(JsonLine& line, long long const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, unsigned long long const& value) {
+JsonLine& Put(JsonLine& line, unsigned long long const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, double const& value) {
+JsonLine& Put(JsonLine& line, double const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, const char* const& str) {
+JsonLine& Put(JsonLine& line, const char* const& str) {
     line.os_ << '"';
     for (const char* s = str; *s; ++s) line.PutEscapedChar(*s);
     line.os_ << '"';
@@ -232,7 +232,7 @@ JsonLine & Put(JsonLine& line, const char* const& str) {
 }
 
 static inline
-JsonLine & Put(JsonLine& line, std::string const& str) {
+JsonLine& Put(JsonLine& line, std::string const& str) {
     line.os_ << '"';
     for (std::string::const_iterator i = str.begin(); i != str.end(); ++i)
         line.PutEscapedChar(*i);
@@ -242,7 +242,7 @@ JsonLine & Put(JsonLine& line, std::string const& str) {
 
 template <typename Type, std::size_t N>
 static inline
-JsonLine & Put(JsonLine& line, const Type(&arr)[N]) {
+JsonLine& Put(JsonLine& line, const Type(&arr)[N]) {
     line.os_ << '[';
     for (size_t i = 0; i < N; ++i) {
         if (i != 0) line.os_ << ',';
@@ -254,7 +254,7 @@ JsonLine & Put(JsonLine& line, const Type(&arr)[N]) {
 
 template <typename Type>
 static inline
-JsonLine & Put(JsonLine& line, std::initializer_list<Type> const& list) {
+JsonLine& Put(JsonLine& line, std::initializer_list<Type> const& list) {
     line.os_ << '[';
     for (typename std::initializer_list<Type>::const_iterator it = list.begin();
          it != list.end(); ++it) {
@@ -268,7 +268,7 @@ JsonLine & Put(JsonLine& line, std::initializer_list<Type> const& list) {
 
 template <typename Type>
 static inline
-JsonLine & Put(JsonLine& line, std::vector<Type> const& vec) {
+JsonLine& Put(JsonLine& line, std::vector<Type> const& vec) {
     line.os_ << '[';
     for (typename std::vector<Type>::const_iterator it = vec.begin();
          it != vec.end(); ++it) {
@@ -282,7 +282,7 @@ JsonLine & Put(JsonLine& line, std::vector<Type> const& vec) {
 
 template <typename Type, std::size_t N>
 static inline
-JsonLine & Put(JsonLine& line, std::array<Type, N> const& arr) {
+JsonLine& Put(JsonLine& line, std::array<Type, N> const& arr) {
     line.os_ << '[';
     for (typename std::array<Type, N>::const_iterator it = arr.begin();
          it != arr.end(); ++it) {
@@ -295,7 +295,7 @@ JsonLine & Put(JsonLine& line, std::array<Type, N> const& arr) {
 }
 
 static inline
-JsonLine & Put(JsonLine& line, JsonVerbatim const& verbatim) {
+JsonLine& Put(JsonLine& line, JsonVerbatim const& verbatim) {
     // undo increment of item counter
     --line.items_;
     line.os_ << verbatim.str_;

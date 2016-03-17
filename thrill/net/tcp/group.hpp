@@ -82,7 +82,7 @@ public:
     //! \{
 
     //! Return Connection to client id.
-    Connection & tcp_connection(size_t id) {
+    Connection& tcp_connection(size_t id) {
         if (id >= connections_.size())
             throw Exception("Group::Connection() requested "
                             "invalid client id " + std::to_string(id));
@@ -95,7 +95,7 @@ public:
         return connections_[id];
     }
 
-    net::Connection & connection(size_t id) final {
+    net::Connection& connection(size_t id) final {
         return tcp_connection(id);
     }
 
@@ -112,7 +112,7 @@ public:
      * \return A ref to the assigned connection, which is always valid, but
      * might be different from the inut connection.
      */
-    Connection & AssignConnection(Connection& connection) {
+    Connection& AssignConnection(Connection& connection) {
         if (connection.peer_id() >= connections_.size())
             throw Exception("Group::GetClient() requested "
                             "invalid client id "

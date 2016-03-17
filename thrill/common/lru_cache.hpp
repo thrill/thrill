@@ -64,7 +64,7 @@ public:
     }
 
     //! get and touch value from LRU cache for key.
-    const Value & get(const Key& key) {
+    const Value& get(const Key& key) {
         typename Map::iterator it = map_.find(key);
         if (it == map_.end()) {
             throw std::range_error("There is no such key in cache");

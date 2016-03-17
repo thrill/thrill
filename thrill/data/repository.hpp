@@ -86,7 +86,7 @@ public:
     }
 
     //! return mutable reference to map of objects.
-    std::map<Id, ObjectPtr> & map() { return map_; }
+    std::map<Id, ObjectPtr>& map() { return map_; }
 
 private:
     //! Next ID to generate, one for each local worker.

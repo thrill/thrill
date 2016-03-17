@@ -105,7 +105,7 @@ public:
     void check_alignment() const;
 
     //! Dumps properties of a request.
-    std::ostream & print(std::ostream& out) const;
+    std::ostream& print(std::ostream& out) const;
 
     //! Inform the request object that an error occurred during the I/O
     //! execution.

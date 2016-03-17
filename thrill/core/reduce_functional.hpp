@@ -93,7 +93,7 @@ public:
     explicit ReduceByIndex(size_t begin = 0, size_t end = 0)
         : range_(begin, end) { }
 
-    const common::Range & range() const { return range_; }
+    const common::Range& range() const { return range_; }
 
     void set_range(const common::Range& range) { range_ = range; }
 

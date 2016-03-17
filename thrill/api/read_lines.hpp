@@ -222,7 +222,7 @@ private:
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
-        const std::string & Next() {
+        const std::string& Next() {
             total_elements_++;
             data_.clear();
             while (true) {
@@ -324,7 +324,7 @@ private:
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
-        const std::string & Next() {
+        const std::string& Next() {
             total_elements_++;
             data_.clear();
             while (true) {

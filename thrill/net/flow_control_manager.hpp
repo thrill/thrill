@@ -66,7 +66,7 @@ public:
      * \brief Gets all flow control channels for all threads.
      * \return A flow channel for each thread.
      */
-    std::vector<FlowControlChannel> & GetFlowControlChannels() {
+    std::vector<FlowControlChannel>& GetFlowControlChannels() {
         return channels_;
     }
 
@@ -74,7 +74,7 @@ public:
      * \brief Gets the flow control channel for a certain thread.
      * \return The flow control channel for a certain thread.
      */
-    FlowControlChannel & GetFlowControlChannel(size_t thread_id) {
+    FlowControlChannel& GetFlowControlChannel(size_t thread_id) {
         return channels_[thread_id];
     }
 };

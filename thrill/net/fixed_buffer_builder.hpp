@@ -87,14 +87,14 @@ public:
     //! \{
 
     //! Clears the memory contents, does not deallocate the memory.
-    FixedBufferBuilder & Clear() {
+    FixedBufferBuilder& Clear() {
         size_ = 0;
         return *this;
     }
 
     //! Set the valid bytes in the buffer, use if the buffer is filled
     //! directly.
-    FixedBufferBuilder & set_size(size_t n) {
+    FixedBufferBuilder& set_size(size_t n) {
         assert(n <= Capacity);
         size_ = n;
 
@@ -112,7 +112,7 @@ public:
     //! \{
 
     //! Append a memory range to the buffer
-    FixedBufferBuilder & Append(const void* data, size_t len) {
+    FixedBufferBuilder& Append(const void* data, size_t len) {
         assert(size_ + len <= Capacity);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
@@ -124,14 +124,14 @@ public:
 
     //! Append to contents of a std::string, excluding the null (which isn't
     //! contained in the string size anyway).
-    FixedBufferBuilder & AppendString(const std::string& s) {
+    FixedBufferBuilder& AppendString(const std::string& s) {
         return Append(s.data(), s.size());
     }
 
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    FixedBufferBuilder & Put(const Type& item) {
+    FixedBufferBuilder& Put(const Type& item) {
         static_assert(std::is_pod<Type>::value,
                       "You only want to Put() POD types as raw values.");
 
@@ -144,14 +144,14 @@ public:
     }
 
     //! Put a single byte to the buffer (used via CRTP from ItemWriterToolsBase)
-    FixedBufferBuilder & PutByte(Byte data) {
+    FixedBufferBuilder& PutByte(Byte data) {
         return Put<uint8_t>(data);
     }
 
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    FixedBufferBuilder & PutRaw(const Type& item) {
+    FixedBufferBuilder& PutRaw(const Type& item) {
         return Put<Type>(item);
     }
 

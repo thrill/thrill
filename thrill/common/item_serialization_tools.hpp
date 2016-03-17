@@ -32,7 +32,7 @@ class ItemWriterToolsBase
 {
 public:
     //! Append a varint to the writer.
-    Writer & PutVarint32(uint32_t v) {
+    Writer& PutVarint32(uint32_t v) {
         Writer& w = *static_cast<Writer*>(this);
 
         if (v < 128) {
@@ -65,7 +65,7 @@ public:
     }
 
     //! Append a varint to the writer.
-    Writer & PutVarint(uint64_t v) {
+    Writer& PutVarint(uint64_t v) {
         Writer& w = *static_cast<Writer*>(this);
 
         if (v < 128) {
@@ -148,17 +148,17 @@ public:
     }
 
     //! Put a string by saving it's length followed by the data itself.
-    Writer & PutString(const char* data, size_t len) {
+    Writer& PutString(const char* data, size_t len) {
         return PutVarint(len).Append(data, len);
     }
 
     //! Put a string by saving it's length followed by the data itself.
-    Writer & PutString(const uint8_t* data, size_t len) {
+    Writer& PutString(const uint8_t* data, size_t len) {
         return PutVarint(len).Append(data, len);
     }
 
     //! Put a string by saving it's length followed by the data itself.
-    Writer & PutString(const std::string& str) {
+    Writer& PutString(const std::string& str) {
         return PutString(str.data(), str.size());
     }
 };

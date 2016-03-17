@@ -114,10 +114,10 @@ public:
     }
 
     //! Get the used BlockPool
-    BlockPool & block_pool() { return block_pool_; }
+    BlockPool& block_pool() { return block_pool_; }
 
     //! Get the JsonLogger from the BlockPool
-    common::JsonLogger & logger();
+    common::JsonLogger& logger();
 
     //! \name CatStream
     //! \{

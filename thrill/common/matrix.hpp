@@ -61,14 +61,14 @@ public:
     size_t size() const { return data_.size(); }
 
     //! return reference to element at cell
-    const Type & at(size_t row, size_t column) const {
+    const Type& at(size_t row, size_t column) const {
         assert(row < rows_);
         assert(column < columns_);
         return data_[columns_ * row + column];
     }
 
     //! return reference to element at cell
-    Type & at(size_t row, size_t column) {
+    Type& at(size_t row, size_t column) {
         assert(row < rows_);
         assert(column < columns_);
         return data_[columns_ * row + column];

@@ -44,7 +44,7 @@ public:
     }
 
     //! Gets the value at the current position of this reader.
-    const ValueType & Value() const {
+    const ValueType& Value() const {
         assert(HasValue());
 
         return current_;

@@ -314,8 +314,8 @@ std::string Join(const Glue& glue, const Container& parts) {
  * \return              reference to str
  */
 static inline
-std::string & ReplaceAll(std::string& str, const std::string& needle,
-                         const std::string& instead) {
+std::string& ReplaceAll(std::string& str, const std::string& needle,
+                        const std::string& instead) {
     std::string::size_type lastpos = 0, thispos;
 
     while ((thispos = str.find(needle, lastpos)) != std::string::npos)

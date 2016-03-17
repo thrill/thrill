@@ -103,23 +103,23 @@ public:
     }
 
     //! host-global memory manager
-    mem::Manager & mem_manager() { return mem_manager_; }
+    mem::Manager& mem_manager() { return mem_manager_; }
 
     //! net manager constructs communication groups to other hosts.
-    net::Manager & net_manager() { return net_manager_; }
+    net::Manager& net_manager() { return net_manager_; }
 
     //! Returns id of this host in the cluser. A host is a machine in the
     //! cluster that hosts multiple workers
     size_t host_rank() const { return net_manager_.my_host_rank(); }
 
     //! the flow control group is used for collective communication.
-    net::FlowControlChannelManager & flow_manager() { return flow_manager_; }
+    net::FlowControlChannelManager& flow_manager() { return flow_manager_; }
 
     //! the block manager keeps all data blocks moving through the system.
-    data::BlockPool & block_pool() { return block_pool_; }
+    data::BlockPool& block_pool() { return block_pool_; }
 
     //! data multiplexer transmits large amounts of data asynchronously.
-    data::Multiplexer & data_multiplexer() { return data_multiplexer_; }
+    data::Multiplexer& data_multiplexer() { return data_multiplexer_; }
 
 public:
     //! \name Logging System
@@ -295,12 +295,12 @@ public:
     std::shared_ptr<Stream> GetNewStream();
 
     //! the block manager keeps all data blocks moving through the system.
-    data::BlockPool & block_pool() { return block_pool_; }
+    data::BlockPool& block_pool() { return block_pool_; }
 
     //! \}
 
     //! returns the host-global memory manager
-    mem::Manager & mem_manager() { return mem_manager_; }
+    mem::Manager& mem_manager() { return mem_manager_; }
 
     //! given a global range [0,global_size) and p PEs to split the range, calculate
     //! the [local_begin,local_end) index range assigned to the PE i. Takes the

@@ -151,7 +151,7 @@ public:
     ;                            // NOLINT
 
     //! Returns a pointer to the according DIANode.
-    const DIANodePtr & node() const {
+    const DIANodePtr& node() const {
         assert(IsValid());
         return node_;
     }
@@ -163,19 +163,19 @@ public:
     }
 
     //! Returns the stored function chain.
-    const Stack & stack() const {
+    const Stack& stack() const {
         assert(IsValid());
         return stack_;
     }
 
     //! Return context_ of DIANode, e.g. for creating new LOps and DOps
-    Context & context() const {
+    Context& context() const {
         assert(IsValid());
         return node_->context();
     }
 
     //! Return context_ of DIANode, e.g. for creating new LOps and DOps
-    Context & ctx() const {
+    Context& ctx() const {
         assert(IsValid());
         return node_->context();
     }
@@ -191,7 +191,7 @@ public:
      * statistical outputs. This does not create a new DIA, but returns the
      * existing one.
      */
-    DIA & Label(const std::string& msg) {
+    DIA& Label(const std::string& msg) {
         node_->AddStats(msg);
         return *this;
     }
@@ -201,7 +201,7 @@ public:
      * the data when executing. This does not create a new DIA, but returns the
      * existing one.
      */
-    DIA & Keep(size_t increase = 1) {
+    DIA& Keep(size_t increase = 1) {
         assert(IsValid());
         node_->IncConsumeCounter(increase);
         return *this;
@@ -211,7 +211,7 @@ public:
      * Execute DIA's scope and parents such that this (Action)Node is
      * Executed. This does not create a new DIA, but returns the existing one.
      */
-    DIA & Execute() {
+    DIA& Execute() {
         assert(IsValid());
         node_->RunScope();
         return *this;

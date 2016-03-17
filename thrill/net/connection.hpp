@@ -81,7 +81,7 @@ public:
     virtual std::string ToString() const = 0;
 
     //! virtual method to output to a std::ostream
-    virtual std::ostream & OutputOstream(std::ostream& os) const = 0;
+    virtual std::ostream& OutputOstream(std::ostream& os) const = 0;
 
     //! \}
 

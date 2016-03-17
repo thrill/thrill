@@ -51,7 +51,7 @@ public:
 
     virtual ~Stream() { }
 
-    const StreamId & id() const {
+    const StreamId& id() const {
         return id_;
     }
 

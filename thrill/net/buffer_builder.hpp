@@ -127,7 +127,7 @@ public:
 
     //! Deallocates the kept memory space (we use dealloc() instead of free()
     //! as a name, because sometimes "free" is replaced by the preprocessor)
-    BufferBuilder & Deallocate() {
+    BufferBuilder& Deallocate() {
         if (data_) free(data_);
         data_ = nullptr;
         size_ = capacity_ = 0;
@@ -166,14 +166,14 @@ public:
     //! \{
 
     //! Clears the memory contents, does not deallocate the memory.
-    BufferBuilder & Clear() {
+    BufferBuilder& Clear() {
         size_ = 0;
         return *this;
     }
 
     //! Set the valid bytes in the buffer, use if the buffer is filled
     //! directly.
-    BufferBuilder & set_size(size_t n) {
+    BufferBuilder& set_size(size_t n) {
         assert(n <= capacity_);
         size_ = n;
 
@@ -181,7 +181,7 @@ public:
     }
 
     //! Make sure that at least n bytes are allocated.
-    BufferBuilder & Reserve(size_t n) {
+    BufferBuilder& Reserve(size_t n) {
         if (capacity_ < n)
         {
             capacity_ = n;
@@ -193,7 +193,7 @@ public:
 
     //! Dynamically allocate more memory. At least n bytes will be available,
     //! probably more to compensate future growth.
-    BufferBuilder & DynReserve(size_t n) {
+    BufferBuilder& DynReserve(size_t n) {
         if (capacity_ < n)
         {
             // place to adapt the buffer growing algorithm as need.
@@ -238,7 +238,7 @@ public:
 
     //! Copy a memory range into the buffer, overwrites all current
     //! data. Roughly equivalent to clear() followed by append().
-    BufferBuilder & Assign(const void* data, size_t len) {
+    BufferBuilder& Assign(const void* data, size_t len) {
         if (len > capacity_) Reserve(len);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
@@ -250,7 +250,7 @@ public:
 
     //! Copy the contents of another buffer object into this buffer, overwrites
     //! all current data. Roughly equivalent to clear() followed by append().
-    BufferBuilder & Assign(const BufferBuilder& other) {
+    BufferBuilder& Assign(const BufferBuilder& other) {
         if (&other != this)
             Assign(other.data(), other.size());
 
@@ -258,7 +258,7 @@ public:
     }
 
     //! Align the size of the buffer to a multiple of n. Fills up with 0s.
-    BufferBuilder & Align(size_t n) {
+    BufferBuilder& Align(size_t n) {
         assert(n > 0);
         size_t rem = size_ % n;
         if (rem != 0)
@@ -279,7 +279,7 @@ public:
     //! \{
 
     //! Append a memory range to the buffer
-    BufferBuilder & Append(const void* data, size_t len) {
+    BufferBuilder& Append(const void* data, size_t len) {
         if (size_ + len > capacity_) DynReserve(size_ + len);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
@@ -290,20 +290,20 @@ public:
     }
 
     //! Append the contents of a different buffer object to this one.
-    BufferBuilder & Append(const class BufferBuilder& bb) {
+    BufferBuilder& Append(const class BufferBuilder& bb) {
         return Append(bb.data(), bb.size());
     }
 
     //! Append to contents of a std::string, excluding the null (which isn't
     //! contained in the string size anyway).
-    BufferBuilder & AppendString(const std::string& s) {
+    BufferBuilder& AppendString(const std::string& s) {
         return Append(s.data(), s.size());
     }
 
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    BufferBuilder & Put(const Type& item) {
+    BufferBuilder& Put(const Type& item) {
         static_assert(std::is_pod<Type>::value,
                       "You only want to Put() POD types as raw values.");
 
@@ -316,14 +316,14 @@ public:
     }
 
     //! Put a single byte to the buffer (used via CRTP from ItemWriterToolsBase)
-    BufferBuilder & PutByte(Byte data) {
+    BufferBuilder& PutByte(Byte data) {
         return Put<uint8_t>(data);
     }
 
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    BufferBuilder & PutRaw(const Type& item) {
+    BufferBuilder& PutRaw(const Type& item) {
         return Put<Type>(item);
     }
 

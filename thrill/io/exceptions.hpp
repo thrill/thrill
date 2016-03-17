@@ -38,7 +38,7 @@ public:
         return safe_message_.c_str();
     }
 
-    const mem::safe_string & safe_message() const { return safe_message_; }
+    const mem::safe_string& safe_message() const { return safe_message_; }
 
 private:
     mem::safe_string safe_message_;

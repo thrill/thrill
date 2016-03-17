@@ -19,7 +19,7 @@ namespace mem {
 
 /******************************************************************************/
 
-Pool & GPool() {
+Pool& GPool() {
     static Pool* pool = new Pool();
     return *pool;
 }

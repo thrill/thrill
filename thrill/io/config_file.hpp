@@ -165,7 +165,7 @@ public:
     //!
     //! \warning This function should only be used during initialization, as it
     //! has no effect after construction of block_manager.
-    Config & add_disk(const DiskConfig& cfg) {
+    Config& add_disk(const DiskConfig& cfg) {
         disks_list.push_back(cfg);
         return *this;
     }
@@ -217,13 +217,13 @@ public:
     }
 
     //! Returns mutable disk_config structure for additional disk parameters
-    DiskConfig & disk(size_t disk) {
+    DiskConfig& disk(size_t disk) {
         check_initialized();
         return disks_list[disk];
     }
 
     //! Returns constant disk_config structure for additional disk parameters
-    const DiskConfig & disk(size_t disk) const {
+    const DiskConfig& disk(size_t disk) const {
         assert(is_initialized);
         return disks_list[disk];
     }
@@ -231,7 +231,7 @@ public:
     //! Returns path of disks.
     //! \param disk disk's identifier
     //! \return string that contains the disk's path name
-    const std::string & disk_path(size_t disk) const {
+    const std::string& disk_path(size_t disk) const {
         assert(is_initialized);
         return disks_list[disk].path;
     }
@@ -246,7 +246,7 @@ public:
 
     //! Returns name of I/O implementation of particular disk.
     //! \param disk disk's identifier
-    const std::string & disk_io_impl(size_t disk) const {
+    const std::string& disk_io_impl(size_t disk) const {
         assert(is_initialized);
         return disks_list[disk].io_impl;
     }

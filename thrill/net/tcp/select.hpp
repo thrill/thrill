@@ -42,7 +42,7 @@ public:
     }
 
     //! Add a socket to the read and exception selection set
-    Select & SetRead(int fd) {
+    Select& SetRead(int fd) {
         assert(fd >= 0);
         FD_SET(fd, &read_set_);
         max_fd_ = std::max(max_fd_, fd);
@@ -50,7 +50,7 @@ public:
     }
 
     //! Add a socket to the write and exception selection set
-    Select & SetWrite(int fd) {
+    Select& SetWrite(int fd) {
         assert(fd >= 0);
         FD_SET(fd, &write_set_);
         max_fd_ = std::max(max_fd_, fd);
@@ -58,7 +58,7 @@ public:
     }
 
     //! Add a socket to the exception selection set
-    Select & SetException(int fd) {
+    Select& SetException(int fd) {
         assert(fd >= 0);
         FD_SET(fd, &except_set_);
         max_fd_ = std::max(max_fd_, fd);
@@ -78,19 +78,19 @@ public:
     { return FD_ISSET(fd, &except_set_) != 0; }
 
     //! Clear a file descriptor from the read set
-    Select & ClearRead(int fd)
+    Select& ClearRead(int fd)
     { assert(fd >= 0); FD_CLR(fd, &read_set_); return *this; }
 
     //! Clear a file descriptor from the write set
-    Select & ClearWrite(int fd)
+    Select& ClearWrite(int fd)
     { assert(fd >= 0); FD_CLR(fd, &write_set_); return *this; }
 
     //! Clear a file descriptor from the exception set
-    Select & ClearException(int fd)
+    Select& ClearException(int fd)
     { assert(fd >= 0); FD_CLR(fd, &except_set_); return *this; }
 
     //! Clear a file descriptor from all sets
-    Select & Clear(int fd)
+    Select& Clear(int fd)
     { return ClearRead(fd).ClearWrite(fd).ClearException(fd); }
 
     //! Do a select(), which modifies the enclosed file descriptor objects.

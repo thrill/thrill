@@ -182,13 +182,13 @@ public:
     size_t size_bytes() const { return size_bytes_; }
 
     //! Return reference to a block
-    const Block & block(size_t i) const {
+    const Block& block(size_t i) const {
         assert(i < blocks_.size());
         return blocks_[i];
     }
 
     //! Returns constant reference to all Blocks in the File.
-    const std::deque<Block> & blocks() const { return blocks_; }
+    const std::deque<Block>& blocks() const { return blocks_; }
 
     //! Return number of items starting in block i
     size_t ItemsStartIn(size_t i) const {

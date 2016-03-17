@@ -105,7 +105,7 @@ public:
      * Convert to wrapped iterator.
      * \return Wrapped iterator.
      */
-    RandomAccessIterator & iterator() {
+    RandomAccessIterator& iterator() {
         return current;
     }
 
@@ -188,7 +188,7 @@ public:
      * Convert to wrapped iterator.
      * \return Wrapped iterator.
      */
-    RandomAccessIterator & iterator() {
+    RandomAccessIterator& iterator() {
         return current;
     }
 

@@ -385,7 +385,7 @@ protected:
         bool IsDone() const { return size_ == buffer_.size(); }
 
         //! reference to Buffer
-        Buffer & buffer() { return buffer_; }
+        Buffer& buffer() { return buffer_; }
 
         void DoCallback() {
             if (callback_) callback_(*conn_, std::move(buffer_));
@@ -528,7 +528,7 @@ protected:
             return !block_ || pos_ == size_;
         }
 
-        data::PinnedByteBlockPtr & byte_block() { return block_; }
+        data::PinnedByteBlockPtr& byte_block() { return block_; }
 
         void DoCallback() {
             if (callback_) callback_(*conn_, std::move(block_));

@@ -125,7 +125,7 @@ public:
     //! Returns block_counter_
     size_t block_counter() const { return block_counter_; }
     //! Returns timespan_
-    const common::StatsTimer & timespan() const { return timespan_; }
+    const common::StatsTimer& timespan() const { return timespan_; }
 
     //! Return a BlockWriter delivering to this BlockQueue.
     Writer GetWriter(size_t block_size = default_block_size) {

@@ -60,7 +60,7 @@ public:
     }
 
     //! Returns BlockPool.logger_
-    common::JsonLogger & logger() { return block_pool_->logger(); }
+    common::JsonLogger& logger() { return block_pool_->logger(); }
 
     //! return number of workers per host
     size_t workers_per_host() const { return block_pool_->workers_per_host(); }

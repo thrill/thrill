@@ -69,7 +69,7 @@ public:
     virtual size_t num_hosts() const = 0;
 
     //! Return Connection to client id.
-    virtual Connection & connection(size_t id) = 0;
+    virtual Connection& connection(size_t id) = 0;
 
     //! Close
     virtual void Close() = 0;

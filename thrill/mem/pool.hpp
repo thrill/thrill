@@ -163,7 +163,7 @@ private:
 };
 
 //! singleton instance of global pool for I/O data structures
-Pool & GPool();
+Pool& GPool();
 
 /******************************************************************************/
 // PoolAllocator - an allocator to draw objects from a Pool.

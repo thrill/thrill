@@ -93,7 +93,7 @@ public:
     MixBlockQueue& operator = (MixBlockQueue&&) = default;
 
     //! return block pool
-    BlockPool & block_pool() { return block_pool_; }
+    BlockPool& block_pool() { return block_pool_; }
 
     //! append block delivered via the network from src.
     void AppendBlock(size_t src, const Block& block) {

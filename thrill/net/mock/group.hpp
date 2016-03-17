@@ -54,7 +54,7 @@ public:
 
     std::string ToString() const final;
 
-    std::ostream & OutputOstream(std::ostream& os) const final;
+    std::ostream& OutputOstream(std::ostream& os) const final;
 
     //! \}
 
@@ -119,7 +119,7 @@ public:
 
     size_t num_hosts() const final;
 
-    net::Connection & connection(size_t peer) final;
+    net::Connection& connection(size_t peer) final;
 
     void Close() final;
 
@@ -195,7 +195,7 @@ private:
     struct Watch;
 
     //! lookup method
-    Watch & GetWatch(Connection* c);
+    Watch& GetWatch(Connection* c);
 };
 
 //! \}

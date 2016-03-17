@@ -72,10 +72,10 @@ public:
     }
 
     //! access to byte_block_
-    const ByteBlockPtr & byte_block() const { return byte_block_; }
+    const ByteBlockPtr& byte_block() const { return byte_block_; }
 
     //! mutable access to byte_block_
-    ByteBlockPtr & byte_block() { return byte_block_; }
+    ByteBlockPtr& byte_block() { return byte_block_; }
 
     //! return number of items beginning in this block
     size_t num_items() const { return num_items_; }
@@ -210,10 +210,10 @@ public:
     bool IsValid() const { return Block::IsValid(); }
 
     //! access to byte_block_
-    const ByteBlockPtr & byte_block() const { return Block::byte_block(); }
+    const ByteBlockPtr& byte_block() const { return Block::byte_block(); }
 
     //! mutable access to byte_block_
-    ByteBlockPtr & byte_block() { return Block::byte_block(); }
+    ByteBlockPtr& byte_block() { return Block::byte_block(); }
 
     //! return number of items beginning in this block
     size_t num_items() const { return Block::num_items(); }

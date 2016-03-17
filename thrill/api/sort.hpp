@@ -586,7 +586,7 @@ private:
 
         TransmitItems(
             splitter_tree.data(), // Tree. sizeof |splitter|
-            workers_algo,  // Number of buckets
+            workers_algo,         // Number of buckets
             ceil_log,
             num_total_workers,
             splitters.data(),

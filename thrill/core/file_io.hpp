@@ -217,7 +217,7 @@ public:
     TemporaryDirectory& operator = (const TemporaryDirectory&) = delete;
 
     //! return the temporary directory name
-    const std::string & get() const { return dir_; }
+    const std::string& get() const { return dir_; }
 
     //! wipe contents of directory
     void wipe() const {
