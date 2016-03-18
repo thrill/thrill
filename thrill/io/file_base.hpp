@@ -48,7 +48,7 @@ namespace io {
 //!
 //! It is a base class for different implementations that might
 //! base on various file systems or even remote storage interfaces
-class FileBase
+class FileBase : public common::ReferenceCount
 {
 public:
     static constexpr bool debug = false;
@@ -105,25 +105,25 @@ public:
 
     //! Schedules an asynchronous read request to the file.
     //! \param buffer pointer to memory buffer to read into
-    //! \param pos file position to start read from
+    //! \param offset file position to start read from
     //! \param bytes number of bytes to transfer
     //! \param on_cmpl I/O completion handler
     //! \return \c request_ptr request object, which can be used to track the
     //! status of the operation
 
     virtual RequestPtr aread(
-        void* buffer, offset_type pos, size_type bytes,
+        void* buffer, offset_type offset, size_type bytes,
         const CompletionHandler& on_cmpl = CompletionHandler()) = 0;
 
     //! Schedules an asynchronous write request to the file.
     //! \param buffer pointer to memory buffer to write from
-    //! \param pos starting file position to write
+    //! \param offset starting file position to write
     //! \param bytes number of bytes to transfer
     //! \param on_cmpl I/O completion handler
     //! \return \c request_ptr request object, which can be used to track the
     //! status of the operation
     virtual RequestPtr awrite(
-        void* buffer, offset_type pos, size_type bytes,
+        void* buffer, offset_type offset, size_type bytes,
         const CompletionHandler& on_cmpl = CompletionHandler()) = 0;
 
     virtual void serve(void* buffer, offset_type offset, size_type bytes,
@@ -165,12 +165,7 @@ public:
     //! close and remove file
     virtual void close_remove() { }
 
-    virtual ~FileBase() {
-        size_t nr = get_request_nref();
-        if (nr != 0)
-            LOG1 << "thrill::io::FileBase is being deleted while there are "
-                 << "still " << nr << " (unfinished) requests referencing it";
-    }
+    virtual ~FileBase() { }
 
     //! Identifies the type of I/O implementation.
     //! \return pointer to null terminated string of characters, containing the
@@ -194,26 +189,6 @@ public:
         return device_id_;
     }
 
-protected:
-    //! count the number of requests referencing this file
-    common::ReferenceCount request_ref_;
-
-public:
-    //! increment referenced requests
-    void add_request_ref() {
-        request_ref_.IncReference();
-    }
-
-    //! decrement referenced requests
-    void delete_request_ref() {
-        request_ref_.DecReference();
-    }
-
-    //! return number of referenced requests
-    size_t get_request_nref() {
-        return request_ref_.reference_count();
-    }
-
 public:
     //! \name Static Functions for Platform Abstraction
     //! \{
@@ -227,6 +202,8 @@ public:
 
     //! \}
 };
+
+using FileBasePtr = common::CountingPtr<FileBase>;
 
 // implementation here due to forward declaration of file.
 template <size_t Size>

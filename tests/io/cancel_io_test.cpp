@@ -44,10 +44,10 @@ int main(int argc, char** argv) {
     char* buffer = static_cast<char*>(mem::aligned_alloc(size));
     memset(buffer, 0, size);
 
-    std::unique_ptr<io::FileBase> file(
+    io::FileBasePtr file =
         io::CreateFile(
             argv[1], argv[2],
-            io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT));
+            io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT);
 
     file->set_size(num_blocks * size);
     std::vector<io::RequestPtr> req(num_blocks);

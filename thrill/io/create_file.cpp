@@ -29,9 +29,9 @@
 namespace thrill {
 namespace io {
 
-FileBase * CreateFile(const std::string& io_impl,
-                      const std::string& filename,
-                      int options, int physical_device_id, int disk_allocator_id) {
+FileBasePtr CreateFile(const std::string& io_impl,
+                       const std::string& filename,
+                       int options, int physical_device_id, int disk_allocator_id) {
     // construct temporary disk_config structure
     DiskConfig cfg(filename, 0, io_impl);
     cfg.queue = physical_device_id;
@@ -43,7 +43,7 @@ FileBase * CreateFile(const std::string& io_impl,
     return CreateFile(cfg, options, disk_allocator_id);
 }
 
-FileBase * CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
+FileBasePtr CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
     // apply disk_config settings to open mode
 
     mode &= ~(FileBase::DIRECT | FileBase::REQUIRE_DIRECT); // clear DIRECT and REQUIRE_DIRECT
@@ -98,13 +98,13 @@ FileBase * CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
         if (cfg.unlink_on_open)
             result->unlink();
 
-        return result;
+        return FileBasePtr(result);
     }
     else if (cfg.io_impl == "memory")
     {
         MemoryFile* result = new MemoryFile(cfg.queue, disk_allocator_id, cfg.device_id);
         result->lock();
-        return result;
+        return FileBasePtr(result);
     }
 #if THRILL_HAVE_LINUXAIO_FILE
     // linuxaio can have the desired queue length, specified as queue_length=?
@@ -138,7 +138,7 @@ FileBase * CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
         if (cfg.unlink_on_open)
             result->unlink();
 
-        return result;
+        return FileBasePtr(result);
     }
 #endif
 #if THRILL_HAVE_MMAP_FILE
@@ -152,7 +152,7 @@ FileBase * CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
         if (cfg.unlink_on_open)
             result->unlink();
 
-        return result;
+        return FileBasePtr(result);
     }
 #endif
 #if THRILL_HAVE_WINCALL_FILE
@@ -162,7 +162,7 @@ FileBase * CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
             new WincallFile(cfg.path, mode, cfg.queue, disk_allocator_id,
                             cfg.device_id);
         result->lock();
-        return result;
+        return FileBasePtr(result);
     }
 #endif
 

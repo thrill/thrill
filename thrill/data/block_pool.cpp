@@ -181,7 +181,7 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
 }
 
 ByteBlockPtr BlockPool::MapExternalBlock(
-    const std::shared_ptr<io::FileBase>& file, int64_t offset, size_t size) {
+    const io::FileBasePtr& file, int64_t offset, size_t size) {
     // create common::CountingPtr, no need for special make_shared()-equivalent
     ByteBlockPtr block_ptr(
         mem::GPool().make<ByteBlock>(this, file, offset, size));
@@ -379,11 +379,12 @@ void BlockPool::OnReadComplete(
     std::unique_lock<std::mutex> lock(mutex_);
 
     ByteBlock* block_ptr = read->block.byte_block();
+    size_t block_size = block_ptr->size();
 
     LOGC(debug_em)
         << "OnReadComplete():"
-        << " req " << req << " block " << block_ptr << " done, from "
-        << block_ptr->em_bid_ << " success = " << success;
+        << " req " << req << " block " << block_ptr << " done,"
+        << " from " << block_ptr->em_bid_ << " success = " << success;
     req->check_error();
 
     if (!success)
@@ -393,16 +394,16 @@ void BlockPool::OnReadComplete(
 
         if (!block_ptr->ext_file_) {
             swapped_.insert(block_ptr);
-            swapped_bytes_ += block_ptr->size();
+            swapped_bytes_ += block_size;
         }
 
         // release memory
-        aligned_alloc_.deallocate(read->data, block_ptr->size());
+        aligned_alloc_.deallocate(read->data, block_size);
 
         // the requested memory was already counted as a pin.
-        pin_count_.Decrement(read->local_worker_id, block_ptr->size());
+        pin_count_.Decrement(read->local_worker_id, block_size);
 
-        IntReleaseInternalMemory(block_ptr->size());
+        IntReleaseInternalMemory(block_size);
 
         // deliver future
         read->result.set_value(PinnedBlock());
@@ -425,17 +426,14 @@ void BlockPool::OnReadComplete(
             PinnedBlock(std::move(read->block), read->local_worker_id));
     }
 
-    // first clear the reference count to the request
-    read->req.reset();
-
     // remove the ReadRequest from the hash map. The problem here is that the
     // std::future may have been discarded (the Pin wasn't needed after all). In
     // that case, deletion of ReadRequest will call Unpin, which creates a
-    // deadlock on the mutex_. Hence, we first move the ReadRequest out of them
+    // deadlock on the mutex_. Hence, we first move the ReadRequest out of the
     // map, then unlock, and delete it. -tb
     auto it = reading_.find(block_ptr);
     assert(it != reading_.end());
-    reading_bytes_ -= block_ptr->size();
+    reading_bytes_ -= block_size;
     std::unique_ptr<ReadRequest> holder = std::move(it->second);
     reading_.erase(it);
     lock.unlock();
@@ -631,7 +629,7 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
             }
         }
     }
-    while (0);
+    while (0); // NOLINT
 
     if (block_ptr->ext_file_ && block_ptr->in_memory())
     {
@@ -857,7 +855,7 @@ io::RequestPtr BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
             io::CompletionHandler::from<
                 ByteBlock, & ByteBlock::OnWriteComplete>(block_ptr));
 
-    return (writing_[block_ptr] = req);
+    return (writing_[block_ptr] = std::move(req));
 }
 
 void BlockPool::OnWriteComplete(
@@ -869,6 +867,7 @@ void BlockPool::OnWriteComplete(
         << " done, to " << block_ptr->em_bid_ << " success = " << success;
     req->check_error();
 
+    assert(!block_ptr->ext_file_);
     die_unequal(writing_.erase(block_ptr), 1);
     writing_bytes_ -= block_ptr->size();
 

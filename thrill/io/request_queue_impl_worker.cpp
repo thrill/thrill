@@ -18,6 +18,7 @@
 #include <thrill/common/semaphore.hpp>
 #include <thrill/common/shared_state.hpp>
 #include <thrill/io/error_handling.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/request_queue_impl_worker.hpp>
 
 #include <cassert>

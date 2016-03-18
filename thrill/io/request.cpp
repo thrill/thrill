@@ -28,7 +28,7 @@ namespace io {
 
 Request::Request(
     const CompletionHandler& on_complete,
-    io::FileBase* file,
+    const FileBasePtr& file,
     void* buffer,
     offset_type offset,
     size_type bytes,
@@ -40,7 +40,6 @@ Request::Request(
       bytes_(bytes),
       type_(type) {
     LOG << "Request::(...), ref_cnt=" << reference_count();
-    file_->add_request_ref();
 }
 
 Request::~Request() {
@@ -114,7 +113,7 @@ void RequestDeleter(Request* req) {
 // Request Completion State
 
 void Request::wait(bool measure_time) {
-    LOG << "request::wait()";
+    LOG << "Request::wait()";
 
     Stats::scoped_wait_timer wait_timer(
         type_ == READ ? Stats::WAIT_OP_READ : Stats::WAIT_OP_WRITE,
@@ -136,8 +135,7 @@ bool Request::cancel() {
         // user callback
         if (on_complete_)
             on_complete_(this, false);
-        file_->delete_request_ref();
-        file_ = nullptr;
+        file_.reset();
         state_.set_to(READY2DIE);
         return true;
     }
@@ -153,15 +151,14 @@ bool Request::poll() {
 }
 
 void Request::completed(bool canceled) {
-    LOG << "request::completed()";
+    LOG << "Request::completed()";
     // change state
     state_.set_to(DONE);
     // user callback
     if (on_complete_)
         on_complete_(this, !canceled);
     // notify waiters
-    file_->delete_request_ref();
-    file_ = nullptr;
+    file_.reset();
     state_.set_to(READY2DIE);
 }
 

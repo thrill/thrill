@@ -94,7 +94,7 @@ BlockManager::~BlockManager() {
     {
         --i;
         delete disk_allocators_[i];
-        delete disk_files_[i];
+        disk_files_[i].reset();
     }
 }
 

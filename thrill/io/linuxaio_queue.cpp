@@ -12,6 +12,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/linuxaio_queue.hpp>
 
 #if THRILL_HAVE_LINUXAIO_FILE

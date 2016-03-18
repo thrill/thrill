@@ -51,7 +51,7 @@ protected:
     }
 
 public:
-    void make_queue(const FileBase* file) {
+    void make_queue(const FileBasePtr& file) {
         int queue_id = file->get_queue_id();
 
         RequestQueueMap::iterator qi = queues.find(queue_id);
@@ -60,9 +60,9 @@ public:
 
         // create new request queue
 #if THRILL_HAVE_LINUXAIO_FILE
-        if (dynamic_cast<const LinuxaioFile*>(file)) {
-            queues[queue_id] = new LinuxaioQueue(
-                dynamic_cast<const LinuxaioFile*>(file)->desired_queue_length());
+        if (const LinuxaioFile* af =
+                dynamic_cast<const LinuxaioFile*>(file.get())) {
+            queues[queue_id] = new LinuxaioQueue(af->desired_queue_length());
             return;
         }
 #endif
@@ -81,7 +81,8 @@ public:
 #if THRILL_HAVE_LINUXAIO_FILE
             if (dynamic_cast<LinuxaioRequest*>(req.get()))
                 q = queues[disk] = new LinuxaioQueue(
-                        dynamic_cast<LinuxaioFile*>(req->file())->desired_queue_length());
+                        dynamic_cast<LinuxaioFile*>(req->file().get())
+                        ->desired_queue_length());
             else
 #endif
             q = queues[disk] = new RequestQueueImplQwQr();

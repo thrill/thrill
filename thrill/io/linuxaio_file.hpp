@@ -65,9 +65,9 @@ public:
 
     void serve(void* buffer, offset_type offset, size_type bytes,
                Request::ReadOrWriteType type) final;
-    RequestPtr aread(void* buffer, offset_type pos, size_type bytes,
+    RequestPtr aread(void* buffer, offset_type offset, size_type bytes,
                      const CompletionHandler& on_cmpl = CompletionHandler()) final;
-    RequestPtr awrite(void* buffer, offset_type pos, size_type bytes,
+    RequestPtr awrite(void* buffer, offset_type offset, size_type bytes,
                       const CompletionHandler& on_cmpl = CompletionHandler()) final;
     const char * io_type() const final;
 

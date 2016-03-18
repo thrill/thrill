@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
     const uint64_t step_size_int = step_size / sizeof(int);
 
     unsigned* buffer = reinterpret_cast<unsigned*>(mem::aligned_alloc(step_size * nfiles));
-    io::FileBase** files = new io::FileBase*[nfiles];
+    std::vector<io::FileBasePtr> files(nfiles);
     io::RequestPtr* reqs = new io::RequestPtr[nfiles * batch_size];
 
 #ifdef WATCH_TIMES
@@ -431,9 +431,7 @@ int main(int argc, char* argv[]) {
     delete[] w_finish_times;
 #endif
     delete[] reqs;
-    for (unsigned i = 0; i < nfiles; i++)
-        delete files[i];
-    delete[] files;
+    files.clear();
     mem::aligned_dealloc(buffer, step_size * nfiles);
 
     return (verify_failed ? 1 : 0);

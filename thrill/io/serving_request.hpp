@@ -33,11 +33,9 @@ class ServingRequest final : public Request
 public:
     ServingRequest(
         const CompletionHandler& on_cmpl,
-        io::FileBase* f,
-        void* buf,
-        offset_type off,
-        size_type b,
-        ReadOrWriteType t);
+        const FileBasePtr& file,
+        void* buffer, offset_type offset, size_type bytes,
+        ReadOrWriteType type);
 
 protected:
     void serve();

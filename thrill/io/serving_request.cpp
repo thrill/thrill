@@ -24,17 +24,15 @@ namespace io {
 
 ServingRequest::ServingRequest(
     const CompletionHandler& on_cmpl,
-    io::FileBase* f,
-    void* buf,
-    offset_type off,
-    size_type b,
-    ReadOrWriteType t)
-    : Request(on_cmpl, f, buf, off, b, t) {
+    const FileBasePtr& file,
+    void* buffer, offset_type offset, size_type bytes,
+    ReadOrWriteType type)
+    : Request(on_cmpl, file, buffer, offset, bytes, type) {
 #ifdef THRILL_CHECK_BLOCK_ALIGNING
     // Direct I/O requires file system block size alignment for file offsets,
     // memory buffer addresses, and transfer(buffer) size must be multiple
     // of the file system block size
-    if (f->need_alignment())
+    if (file->need_alignment())
         check_alignment();
 #endif
 }

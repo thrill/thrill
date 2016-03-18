@@ -34,10 +34,10 @@ int main(int argc, char** argv) {
 
     try
     {
-        std::unique_ptr<io::FileBase> file(
+        io::FileBasePtr file =
             io::CreateFile(
                 argv[1], argv[2],
-                io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT));
+                io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT);
         file->set_size(max_size);
 
         io::RequestPtr req;

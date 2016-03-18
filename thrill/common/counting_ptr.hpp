@@ -206,6 +206,12 @@ void swap(CountingPtr<A>& a1, CountingPtr<A>& a2) noexcept {
     a1.swap(a2);
 }
 
+//! print pointer
+template <typename A>
+std::ostream& operator << (std::ostream& os, const CountingPtr<A>& c) {
+    return os << c.get();
+}
+
 /*!
  * Provides reference counting abilities for use with CountingPtr.
  *

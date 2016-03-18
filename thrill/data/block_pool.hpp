@@ -112,7 +112,7 @@ public:
     //! Allocate a byte block from an external file, used to directly map system
     //! files to data::File.
     ByteBlockPtr MapExternalBlock(
-        const std::shared_ptr<io::FileBase>& file, int64_t offset, size_t size);
+        const io::FileBasePtr& file, int64_t offset, size_t size);
 
     //! Pins a block by swapping it in if required.
     std::future<PinnedBlock> PinBlock(const Block& block, size_t local_worker_id);

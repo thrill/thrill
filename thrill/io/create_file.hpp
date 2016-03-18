@@ -24,18 +24,18 @@ namespace thrill {
 namespace io {
 
 //! create fileio object from io_impl string and a few parameters
-FileBase * CreateFile(const std::string& io_impl,
-                      const std::string& filename,
-                      int options,
-                      int physical_device_id = FileBase::DEFAULT_QUEUE,
-                      int disk_allocator_id = FileBase::NO_ALLOCATOR);
+FileBasePtr CreateFile(const std::string& io_impl,
+                       const std::string& filename,
+                       int options,
+                       int physical_device_id = FileBase::DEFAULT_QUEUE,
+                       int disk_allocator_id = FileBase::NO_ALLOCATOR);
 
 // prototype
 class DiskConfig;
 
 //! create fileio object from disk_config parameter
-FileBase * CreateFile(DiskConfig& config, int mode,
-                      int disk_allocator_id = FileBase::NO_ALLOCATOR);
+FileBasePtr CreateFile(DiskConfig& config, int mode,
+                       int disk_allocator_id = FileBase::NO_ALLOCATOR);
 
 } // namespace io
 } // namespace thrill

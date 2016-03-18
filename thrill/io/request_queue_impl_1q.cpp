@@ -17,6 +17,7 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/io/error_handling.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/request_queue_impl_1q.hpp>
 #include <thrill/io/serving_request.hpp>
 

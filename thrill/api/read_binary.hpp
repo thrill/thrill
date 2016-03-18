@@ -130,9 +130,9 @@ public:
 #if 0
                 my_files_.push_back(fi);
 #else
-                std::shared_ptr<io::FileBase> file =
-                    std::make_shared<io::SyscallFile>(
-                        fi.path, io::FileBase::RDONLY | io::FileBase::NO_LOCK);
+                io::FileBasePtr file(
+                    new io::SyscallFile(
+                        fi.path, io::FileBase::RDONLY | io::FileBase::NO_LOCK));
 
                 size_t item_off = 0;
 

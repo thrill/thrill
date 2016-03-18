@@ -34,8 +34,9 @@ namespace io {
 //! \addtogroup reqlayer
 //! \{
 
-class FileBase;
 class Request;
+class FileBase;
+using FileBasePtr = common::CountingPtr<FileBase>;
 
 using CompletionHandler = common::delegate<void(Request*, bool)>;
 
@@ -63,7 +64,7 @@ protected:
     //! \{
 
     //! file implementation to perform I/O with
-    io::FileBase* file_;
+    FileBasePtr file_;
     //! data buffer to transfer
     void* buffer_;
     //! offset within file
@@ -78,7 +79,8 @@ protected:
 public:
     //! ctor: initialize
     Request(const CompletionHandler& on_complete,
-            FileBase* file, void* buffer, offset_type offset, size_type bytes,
+            const FileBasePtr& file,
+            void* buffer, offset_type offset, size_type bytes,
             ReadOrWriteType type);
 
     //! non-copyable: delete copy-constructor
@@ -96,7 +98,7 @@ public:
     //! \name Accessors
     //! \{
 
-    io::FileBase * file() const { return file_; }
+    const FileBasePtr& file() const { return file_; }
     void * buffer() const { return buffer_; }
     offset_type offset() const { return offset_; }
     size_type bytes() const { return bytes_; }

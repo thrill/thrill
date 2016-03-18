@@ -14,6 +14,7 @@
 
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/io/bid.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/mem/pool.hpp>
 
 #include <string>
@@ -117,7 +118,7 @@ private:
 
     //! shared pointer to external file, if this is != nullptr then the Block
     //! was created for directly reading binary files.
-    std::shared_ptr<io::FileBase> ext_file_;
+    io::FileBasePtr ext_file_;
 
     // BlockPool is a friend to call ctor and to manipulate data_.
     friend class BlockPool;
@@ -143,7 +144,7 @@ private:
     //! Constructor to initialize ByteBlock as a mapping to an external
     //! io::FileBase area.
     ByteBlock(BlockPool* block_pool,
-              const std::shared_ptr<io::FileBase>& ext_file,
+              const io::FileBasePtr& ext_file,
               int64_t offset, size_t size);
 
     friend std::ostream& operator << (std::ostream& os, const ByteBlock& b);

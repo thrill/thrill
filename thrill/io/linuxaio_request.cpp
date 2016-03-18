@@ -47,7 +47,7 @@ void LinuxaioRequest::completed(bool posted, bool canceled) {
 }
 
 void LinuxaioRequest::fill_control_block() {
-    LinuxaioFile* af = dynamic_cast<LinuxaioFile*>(file_);
+    LinuxaioFile* af = dynamic_cast<LinuxaioFile*>(file_.get());
 
     memset(&cb_, 0, sizeof(cb_));
     // indirection, so the I/O system retains a counting_ptr reference

@@ -49,29 +49,33 @@ int main(int argc, char** argv) {
     memset(buffer, 0, size);
 
 #if THRILL_HAVE_MMAP_FILE
-    io::MmapFile file1(
-        tempfilename[0],
-        io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT, 0);
+    io::FileBasePtr file1(
+        new io::MmapFile(
+            tempfilename[0],
+            io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT,
+            0));
 
-    file1.set_size(size * 1024);
+    file1->set_size(size * 1024);
 #endif
 
-    io::SyscallFile file2(
-        tempfilename[1],
-        io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT, 1);
+    io::FileBasePtr file2(
+        new io::SyscallFile(
+            tempfilename[1],
+            io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT,
+            1));
 
     std::vector<io::RequestPtr> req(16);
     unsigned i;
     for (i = 0; i < 16; i++)
-        req[i] = file2.awrite(buffer, i * size, size, my_handler());
+        req[i] = file2->awrite(buffer, i * size, size, my_handler());
 
     io::wait_all(req.begin(), req.end());
 
     // check behaviour of having requests to the same location at the same time
     for (i = 2; i < 16; i++)
-        req[i] = file2.awrite(buffer, 0, size, my_handler());
-    req[0] = file2.aread(buffer, 0, size, my_handler());
-    req[1] = file2.awrite(buffer, 0, size, my_handler());
+        req[i] = file2->awrite(buffer, 0, size, my_handler());
+    req[0] = file2->aread(buffer, 0, size, my_handler());
+    req[1] = file2->awrite(buffer, 0, size, my_handler());
 
     wait_all(req.begin(), req.end());
 
@@ -80,10 +84,10 @@ int main(int argc, char** argv) {
     LOG0 << *(io::Stats::get_instance());
 
 #if THRILL_HAVE_MMAP_FILE
-    file1.close_remove();
+    file1->close_remove();
 #endif
 
-    file2.close_remove();
+    file2->close_remove();
 
     return 0;
 }

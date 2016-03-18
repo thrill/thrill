@@ -151,7 +151,7 @@ private:
     friend class common::Singleton<BlockManager>;
 
     std::vector<DiskAllocator*> disk_allocators_;
-    std::vector<FileBase*> disk_files_;
+    std::vector<FileBasePtr> disk_files_;
 
     size_t ndisks_;
     BlockManager();

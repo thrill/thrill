@@ -25,7 +25,7 @@ ByteBlock::ByteBlock(BlockPool* block_pool, Byte* data, size_t size)
 { }
 
 ByteBlock::ByteBlock(
-    BlockPool* block_pool, const std::shared_ptr<io::FileBase>& ext_file,
+    BlockPool* block_pool, const io::FileBasePtr& ext_file,
     int64_t offset, size_t size)
     : data_(nullptr), size_(size),
       block_pool_(block_pool),
@@ -35,7 +35,8 @@ ByteBlock::ByteBlock(
 { }
 
 void ByteBlock::deleter(ByteBlock* bb) {
-    sLOG << "ByteBlock::deleter() pin_count_" << bb->pin_count_str();
+    sLOG << "ByteBlock[" << bb << "]::deleter()"
+         << "pin_count_" << bb->pin_count_str();
     assert(bb->total_pins_ == 0);
     assert(bb->reference_count() == 0);
 
@@ -43,6 +44,7 @@ void ByteBlock::deleter(ByteBlock* bb) {
     assert(bb->block_pool_);
     bb->block_pool_->DestroyBlock(bb);
 
+    sLOG << "ByteBlock[ " << bb << "]::destroy()";
     mem::GPool().destroy(bb);
 }
 
