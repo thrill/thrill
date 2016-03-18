@@ -100,7 +100,7 @@ private:
     Byte* data_;
 
     //! the allocated size of the buffer in bytes
-    size_t size_;
+    const size_t size_;
 
     //! reference to BlockPool for deletion.
     BlockPool* block_pool_;

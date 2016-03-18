@@ -302,7 +302,7 @@ private:
 
     //! Unpins a block. If all pins are removed, the block might be swapped.
     //! Returns immediately. Actual unpinning is async.
-    void UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
+    void IntUnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
 
     //! callback for async write of blocks during eviction
     void OnWriteComplete(ByteBlock* block_ptr, io::Request* req, bool success);
@@ -343,7 +343,8 @@ class BlockPoolMemoryHolder
 public:
     BlockPoolMemoryHolder(BlockPool& block_pool, size_t size)
         : block_pool_(block_pool), size_(size) {
-        block_pool_.RequestInternalMemory(size);
+        if (size)
+            block_pool_.RequestInternalMemory(size);
     }
 
     //! non-copyable: delete copy-constructor
@@ -352,7 +353,8 @@ public:
     BlockPoolMemoryHolder& operator = (const BlockPoolMemoryHolder&) = delete;
 
     ~BlockPoolMemoryHolder() {
-        block_pool_.ReleaseInternalMemory(size_);
+        if (size_)
+            block_pool_.ReleaseInternalMemory(size_);
     }
 
 private:

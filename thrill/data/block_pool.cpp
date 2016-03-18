@@ -123,7 +123,70 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
 }
 
 BlockPool::~BlockPool() {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    // check that not writing any block.
+    while (writing_.begin() != writing_.end()) {
+
+        ByteBlock* block_ptr = writing_.begin()->first;
+        io::RequestPtr req = writing_.begin()->second;
+
+        LOGC(debug_em)
+            << "BlockPool::~BlockPool() block=" << block_ptr
+            << " is currently begin written to external memory, canceling.";
+
+        die_unless(!block_ptr->ext_file_);
+
+        // get reference count to request, since complete handler removes it
+        // from the map.
+        lock.unlock();
+        // cancel I/O request
+        if (!req->cancel()) {
+
+            LOGC(debug_em)
+                << "BlockPool::~BlockPool() block=" << block_ptr
+                << " is currently begin written to external memory, cancel failed, waiting.";
+
+            // must still wait for cancellation to complete and the I/O
+            // handler.
+            req->wait();
+        }
+        lock.lock();
+
+        LOGC(debug_em)
+            << "BlockPool::PinBlock block=" << block_ptr
+            << " is currently begin written to external memory, cancel/wait done.";
+
+        // recheck whether block is being written, it may have been evicting the
+        // unlocked time.
+    }
+
+    die_unless(writing_bytes_ == 0);
+
+    while (reading_.begin() != reading_.end()) {
+
+        ByteBlock* block_ptr = reading_.begin()->first;
+        std::unique_ptr<ReadRequest>& read = reading_.begin()->second;
+
+        LOGC(debug_em)
+            << "BlockPool::~BlockPool() block=" << block_ptr
+            << " is currently begin read from external memory, waiting.";
+
+        // get reference count to request, since complete handler removes it
+        // from the map.
+        lock.unlock();
+        // wait for I/O request for completion and the I/O handler.
+        read->req->wait();
+        lock.lock();
+
+        // recheck whether block is being read, it may have been evicting
+        // again in the unlocked time.
+    }
+
+    die_unless(reading_bytes_ == 0);
+
     pin_count_.AssertZero();
+    die_unless(total_ram_use_ == 0);
 
     LOGC(debug_pin)
         << "~BlockPool()"
@@ -135,7 +198,7 @@ BlockPool::~BlockPool() {
             << "max_pins" << pin_count_.max_pins
             << "max_pinned_bytes" << pin_count_.max_pinned_bytes;
 
-    std::unique_lock<std::recursive_mutex> lock(s_new_mutex);
+    std::unique_lock<std::recursive_mutex> s_new_lock(s_new_mutex);
     s_blockpools.erase(
         std::find(s_blockpools.begin(), s_blockpools.end(), this));
 }
@@ -207,7 +270,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         // PinnedBlock become Blocks when transfered between Files or delivered
         // via GetItemRange() or Scatter().
 
-        assert(!unpinned_blocks_.exists(block_ptr));
+        die_unless(!unpinned_blocks_.exists(block_ptr));
 
         LOGC(debug_pin)
             << "BlockPool::PinBlock block=" << &block
@@ -225,7 +288,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         // This block was already pinned by another thread, hence we only need
         // to get a pin for the new thread.
 
-        assert(!unpinned_blocks_.exists(block_ptr));
+        die_unless(!unpinned_blocks_.exists(block_ptr));
 
         LOGC(debug_pin)
             << "BlockPool::PinBlock block=" << &block
@@ -249,7 +312,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
             << "BlockPool::PinBlock block=" << block_ptr
             << " is currently begin written to external memory, canceling.";
 
-        assert(!block_ptr->ext_file_);
+        die_unless(!block_ptr->ext_file_);
 
         // get reference count to request, since complete handler removes it
         // from the map.
@@ -298,7 +361,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         // unpinned block in memory, no need to load from EM.
 
         // remove from unpinned list
-        assert(unpinned_blocks_.exists(block_ptr));
+        die_unless(unpinned_blocks_.exists(block_ptr));
         unpinned_blocks_.erase(block_ptr);
         unpinned_bytes_ -= block_ptr->size();
 
@@ -383,7 +446,8 @@ void BlockPool::OnReadComplete(
 
     LOGC(debug_em)
         << "OnReadComplete():"
-        << " req " << req << " block " << block_ptr << " done,"
+        << " req " << req << " block " << block_ptr
+        << " size " << block_size << " done,"
         << " from " << block_ptr->em_bid_ << " success = " << success;
     req->check_error();
 
@@ -400,10 +464,10 @@ void BlockPool::OnReadComplete(
         // release memory
         aligned_alloc_.deallocate(read->data, block_size);
 
+        IntReleaseInternalMemory(block_size);
+
         // the requested memory was already counted as a pin.
         pin_count_.Decrement(read->local_worker_id, block_size);
-
-        IntReleaseInternalMemory(block_size);
 
         // deliver future
         read->result.set_value(PinnedBlock());
@@ -432,7 +496,7 @@ void BlockPool::OnReadComplete(
     // deadlock on the mutex_. Hence, we first move the ReadRequest out of the
     // map, then unlock, and delete it. -tb
     auto it = reading_.find(block_ptr);
-    assert(it != reading_.end());
+    die_unless(it != reading_.end());
     reading_bytes_ -= block_size;
     std::unique_ptr<ReadRequest> holder = std::move(it->second);
     reading_.erase(it);
@@ -442,7 +506,7 @@ void BlockPool::OnReadComplete(
 void BlockPool::IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
     std::unique_lock<std::mutex> lock(mutex_);
     assert(local_worker_id < workers_per_host_);
-    assert(block_ptr->pin_count_[local_worker_id] > 0);
+    die_unless(block_ptr->pin_count_[local_worker_id] > 0);
     return IntIncBlockPinCount(block_ptr, local_worker_id);
 }
 
@@ -465,8 +529,8 @@ void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
     std::unique_lock<std::mutex> lock(mutex_);
 
     assert(local_worker_id < workers_per_host_);
-    assert(block_ptr->pin_count_[local_worker_id] > 0);
-    assert(block_ptr->total_pins_ > 0);
+    die_unless(block_ptr->pin_count_[local_worker_id] > 0);
+    die_unless(block_ptr->total_pins_ > 0);
 
     size_t p = --block_ptr->pin_count_[local_worker_id];
     size_t tp = --block_ptr->total_pins_;
@@ -479,31 +543,31 @@ void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
         << " local_worker_id=" << local_worker_id;
 
     if (p == 0)
-        UnpinBlock(block_ptr, local_worker_id);
+        IntUnpinBlock(block_ptr, local_worker_id);
 }
 
-void BlockPool::UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
+void BlockPool::IntUnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
 
     // decrease per-thread total pin count (memory locked by thread)
-    assert(block_ptr->pin_count(local_worker_id) == 0);
+    die_unless(block_ptr->pin_count(local_worker_id) == 0);
 
     pin_count_.Decrement(local_worker_id, block_ptr->size());
 
     if (block_ptr->total_pins_ != 0) {
         LOGC(debug_pin)
-            << "BlockPool::UnpinBlock()"
+            << "BlockPool::IntUnpinBlock()"
             << " --block.total_pins_=" << block_ptr->total_pins_;
         return;
     }
 
     // if all per-thread pins are zero, allow this Block to be swapped out.
-    assert(!unpinned_blocks_.exists(block_ptr));
+    die_unless(!unpinned_blocks_.exists(block_ptr));
     unpinned_blocks_.put(block_ptr);
     unpinned_bytes_ += block_ptr->size();
 
     LOGC(debug_pin)
-        << "BlockPool::UnpinBlock()"
+        << "BlockPool::IntUnpinBlock()"
         << " block=" << block_ptr
         << " --total_pins_=" << block_ptr->total_pins_
         << " allow swap out.";
@@ -581,7 +645,7 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
     // counter reaches zero to deallocate the block.
 
     // pinned blocks cannot be destroyed since they are always unpinned first
-    assert(block_ptr->total_pins_ == 0);
+    die_unless(block_ptr->total_pins_ == 0);
 
     do {
         if (block_ptr->in_memory())
@@ -647,7 +711,7 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
     else if (block_ptr->in_memory())
     {
         // unpinned block in memory, remove from list
-        assert(unpinned_blocks_.exists(block_ptr));
+        die_unless(unpinned_blocks_.exists(block_ptr));
         unpinned_blocks_.erase(block_ptr);
         unpinned_bytes_ -= block_ptr->size();
 
@@ -694,14 +758,14 @@ void BlockPool::IntRequestInternalMemory(
 
     while (soft_ram_limit_ != 0 &&
            unpinned_blocks_.size() &&
-           total_ram_use_ - writing_bytes_ + requested_bytes_ > soft_ram_limit_)
+           total_ram_use_ + requested_bytes_ > soft_ram_limit_ + writing_bytes_)
     {
         // evict blocks: schedule async writing which increases writing_bytes_.
         IntEvictBlockLRU();
     }
 
     // wait up to 60 seconds for other threads to free up memory or pins
-    static size_t max_retry = 60;
+    static constexpr size_t max_retry = 60;
     size_t retry = max_retry;
     size_t last_writing_bytes = 0;
 
@@ -710,7 +774,7 @@ void BlockPool::IntRequestInternalMemory(
     {
         while (hard_ram_limit_ != 0 &&
                unpinned_blocks_.size() &&
-               total_ram_use_ - writing_bytes_ + requested_bytes_ > hard_ram_limit_)
+               total_ram_use_ + requested_bytes_ > hard_ram_limit_ + writing_bytes_)
         {
             // evict blocks: schedule async writing which increases writing_bytes_.
             IntEvictBlockLRU();
@@ -732,7 +796,16 @@ void BlockPool::IntRequestInternalMemory(
         if (writing_bytes_ == 0 &&
             total_ram_use_ + requested_bytes_ > hard_ram_limit_) {
 
-            LOG1 << "abort() due to out-of-pinned-memory ???";
+            LOG1 << "abort() due to out-of-pinned-memory ???"
+                 << " total_ram_use_=" << total_ram_use_
+                 << " writing_bytes_=" << writing_bytes_
+                 << " requested_bytes_=" << requested_bytes_
+                 << " soft_ram_limit_=" << soft_ram_limit_
+                 << " hard_ram_limit_=" << hard_ram_limit_
+                 << pin_count_
+                 << " unpinned_blocks_.size()=" << unpinned_blocks_.size()
+                 << " swapped_.size()=" << swapped_.size();
+
             if (writing_bytes_ == last_writing_bytes) {
                 if (--retry == 0)
                     abort();
@@ -764,7 +837,7 @@ void BlockPool::AdviseFree(size_t size) {
         << " swapped_.size()=" << swapped_.size();
 
     while (soft_ram_limit_ != 0 && unpinned_blocks_.size() &&
-           total_ram_use_ - writing_bytes_ + requested_bytes_ + size > hard_ram_limit_)
+           total_ram_use_ + requested_bytes_ + size > hard_ram_limit_ + writing_bytes_)
     {
         // evict blocks: schedule async writing which increases writing_bytes_.
         IntEvictBlockLRU();
@@ -777,7 +850,12 @@ void BlockPool::ReleaseInternalMemory(size_t size) {
 
 void BlockPool::IntReleaseInternalMemory(size_t size) {
 
-    assert(total_ram_use_ >= size);
+    LOGC(debug_mem)
+        << "BlockPool::IntReleaseInternalMemory()"
+        << " size=" << size
+        << " total_ram_use_=" << total_ram_use_;
+
+    die_unless(total_ram_use_ >= size);
     total_ram_use_ -= size;
 
     cv_memory_change_.notify_all();
@@ -811,7 +889,7 @@ io::RequestPtr BlockPool::IntEvictBlockLRU() {
     if (!unpinned_blocks_.size()) return io::RequestPtr();
 
     ByteBlock* block_ptr = unpinned_blocks_.pop();
-    assert(block_ptr);
+    die_unless(block_ptr);
     unpinned_bytes_ -= block_ptr->size();
 
     return IntEvictBlock(block_ptr);
@@ -819,8 +897,8 @@ io::RequestPtr BlockPool::IntEvictBlockLRU() {
 
 io::RequestPtr BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
 
-    assert(block_ptr->block_pool_ == this);
-    assert(block_ptr->em_bid_.storage == nullptr);
+    die_unless(block_ptr->block_pool_ == this);
+    die_unless(block_ptr->em_bid_.storage == nullptr);
 
     if (block_ptr->ext_file_) {
         // if in external file -> free memory without writing
@@ -867,7 +945,7 @@ void BlockPool::OnWriteComplete(
         << " done, to " << block_ptr->em_bid_ << " success = " << success;
     req->check_error();
 
-    assert(!block_ptr->ext_file_);
+    die_unless(!block_ptr->ext_file_);
     die_unequal(writing_.erase(block_ptr), 1);
     writing_bytes_ -= block_ptr->size();
 
@@ -876,7 +954,7 @@ void BlockPool::OnWriteComplete(
         // request was canceled. this is not an I/O error, but intentional,
         // e.g. because the block was deleted.
 
-        assert(!unpinned_blocks_.exists(block_ptr));
+        die_unless(!unpinned_blocks_.exists(block_ptr));
         unpinned_blocks_.put(block_ptr);
         unpinned_bytes_ += block_ptr->size();
 
@@ -899,7 +977,6 @@ void BlockPool::OnWriteComplete(
 /******************************************************************************/
 // BlockPool::PinCount
 
-//! ctor: initializes vectors to correct size.
 BlockPool::PinCount::PinCount(size_t workers_per_host)
     : pin_count_(workers_per_host),
       pinned_bytes_(workers_per_host) { }
@@ -914,10 +991,10 @@ void BlockPool::PinCount::Increment(size_t local_worker_id, size_t size) {
 }
 
 void BlockPool::PinCount::Decrement(size_t local_worker_id, size_t size) {
-    assert(pin_count_[local_worker_id] > 0);
-    assert(pinned_bytes_[local_worker_id] >= size);
-    assert(total_pins_ > 0);
-    assert(total_pinned_bytes_ >= size);
+    die_unless(pin_count_[local_worker_id] > 0);
+    die_unless(pinned_bytes_[local_worker_id] >= size);
+    die_unless(total_pins_ > 0);
+    die_unless(total_pinned_bytes_ >= size);
 
     --pin_count_[local_worker_id];
     pinned_bytes_[local_worker_id] -= size;
@@ -926,8 +1003,8 @@ void BlockPool::PinCount::Decrement(size_t local_worker_id, size_t size) {
 }
 
 void BlockPool::PinCount::AssertZero() const {
-    assert(total_pins_ == 0);
-    assert(total_pinned_bytes_ == 0);
+    die_unless(total_pins_ == 0);
+    die_unless(total_pinned_bytes_ == 0);
     for (const size_t& pc : pin_count_)
         die_unless(pc == 0);
     for (const size_t& pb : pinned_bytes_)
