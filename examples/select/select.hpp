@@ -86,8 +86,8 @@ auto PickPivots(const DIA<ValueType, InStack>&data, size_t size, size_t rank,
 
 template <typename ValueType, typename InStack,
           typename Compare = std::less<ValueType> >
-auto Select(const DIA<ValueType, InStack>&data, size_t rank,
-            const Compare& compare = Compare()) {
+ValueType Select(const DIA<ValueType, InStack>& data, size_t rank,
+                 const Compare& compare = Compare()) {
     api::Context& ctx = data.context();
     const size_t size = data.Size();
 
