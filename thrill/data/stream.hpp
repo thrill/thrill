@@ -13,9 +13,9 @@
 #ifndef THRILL_DATA_STREAM_HEADER
 #define THRILL_DATA_STREAM_HEADER
 
+#include <thrill/common/semaphore.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/common/semaphore.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
@@ -142,13 +142,13 @@ public:
 
     ///////// expose these members - getters would be too java-ish /////////////
 
-    //! StatsCounter for incoming data transfer
-    //! Do not include loopback data transfer
+    //! StatsCounter for incoming data transfer.  Does not include loopback data
+    //! transfer
     size_t incoming_bytes_ = 0, incoming_blocks_ = 0;
 
-    //! StatsCounters for outgoing data transfer - shared by all sinks
-    //! Do not include loopback data transfer
-    size_t outgoing_bytes_ = 0, outgoing_blocks_ = 0;
+    //! StatsCounters for outgoing data transfer - shared by all sinks.  Does
+    //! not include loopback data transfer
+    std::atomic<size_t> outgoing_bytes_ { 0 }, outgoing_blocks_ { 0 };
 
     //! Timers from creation of stream until rx / tx direction is closed.
     common::StatsTimerStart tx_lifetime_, rx_lifetime_;

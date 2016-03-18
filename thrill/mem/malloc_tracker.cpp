@@ -155,9 +155,11 @@ bool memory_exceeded = false;
 size_t memory_limit_indication = std::numeric_limits<size_t>::max();
 
 // prototype for profiling
+ATTRIBUTE_NO_SANITIZE
 static void update_memprofile(
     size_t float_current, size_t base_current, bool flush = false);
 
+ATTRIBUTE_NO_SANITIZE
 void update_peak(size_t float_curr, size_t base_curr) {
     if (float_curr + base_curr > peak_bytes)
         peak_bytes = float_curr + base_curr;
@@ -234,9 +236,12 @@ static long long memprofile_last_update = 0;
 struct OhlcBar {
     size_t open, high, low, close;
 
+    ATTRIBUTE_NO_SANITIZE
     void   init(size_t current) {
         open = high = low = close = current;
     }
+
+    ATTRIBUTE_NO_SANITIZE
     void   aggregate(size_t current) {
         high = std::max(high, current);
         low = std::min(low, current);
@@ -247,6 +252,7 @@ struct OhlcBar {
 // Two Ohlc bars: for free floating memory and for Thrill base memory.
 static OhlcBar mp_float, mp_base;
 
+ATTRIBUTE_NO_SANITIZE
 static void init_memprofile() {
 
     // parse environment: THRILL_MEMPROFILE
@@ -272,6 +278,7 @@ static void init_memprofile() {
     enable_memprofile = true;
 }
 
+ATTRIBUTE_NO_SANITIZE
 static void update_memprofile(
     size_t float_current, size_t base_current, bool flush) {
 
