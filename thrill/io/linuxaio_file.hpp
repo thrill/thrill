@@ -41,12 +41,12 @@ class LinuxaioFile final : public UfsFileBase, public DiskQueuedFile
     friend class LinuxaioRequest;
 
 private:
-    int desired_queue_length;
+    int desired_queue_length_;
 
 public:
     //! Constructs file object
     //! \param filename path of file
-    //! \param mode open mode, see \c stxxl::file::open_modes
+    //! \param mode open mode, see \c FileBase::OpenMode
     //! \param queue_id disk queue identifier
     //! \param allocator_id linked disk_allocator
     //! \param device_id physical device identifier
@@ -60,19 +60,19 @@ public:
         : FileBase(device_id),
           UfsFileBase(filename, mode),
           DiskQueuedFile(queue_id, allocator_id),
-          desired_queue_length(desired_queue_length)
+          desired_queue_length_(desired_queue_length)
     { }
 
     void serve(void* buffer, offset_type offset, size_type bytes,
                Request::ReadOrWriteType type) final;
-    RequestPtr aread(void* buffer, offset_type pos, size_type bytes,
+    RequestPtr aread(void* buffer, offset_type offset, size_type bytes,
                      const CompletionHandler& on_cmpl = CompletionHandler()) final;
-    RequestPtr awrite(void* buffer, offset_type pos, size_type bytes,
+    RequestPtr awrite(void* buffer, offset_type offset, size_type bytes,
                       const CompletionHandler& on_cmpl = CompletionHandler()) final;
     const char * io_type() const final;
 
-    int get_desired_queue_length() const {
-        return desired_queue_length;
+    int desired_queue_length() const {
+        return desired_queue_length_;
     }
 };
 

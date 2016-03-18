@@ -17,6 +17,7 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/io/error_handling.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/request_queue_impl_1q.hpp>
 #include <thrill/io/serving_request.hpp>
 
@@ -46,9 +47,9 @@ struct file_offset_match : public std::binary_function<RequestPtr, RequestPtr, b
 };
 
 RequestQueueImpl1Q::RequestQueueImpl1Q(int n)
-    : thread_state_(NOT_RUNNING), sem_(0) {
+    : thread_state_(NOT_RUNNING) {
     common::THRILL_UNUSED(n);
-    start_thread(worker, static_cast<void*>(this), thread_, thread_state_);
+    StartThread(worker, static_cast<void*>(this), thread_, thread_state_);
 }
 
 void RequestQueueImpl1Q::add_request(RequestPtr& req) {
@@ -73,15 +74,15 @@ void RequestQueueImpl1Q::add_request(RequestPtr& req) {
     std::unique_lock<std::mutex> Lock(queue_mutex_);
     queue_.push_back(req);
 
-    sem_++;
+    sem_.signal();
 }
 
-bool RequestQueueImpl1Q::cancel_request(RequestPtr& req) {
-    if (req.empty())
+bool RequestQueueImpl1Q::cancel_request(Request* req) {
+    if (!req)
         THRILL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
     if (thread_state_() != RUNNING)
         THRILL_THROW_INVALID_ARGUMENT("Request canceled to not running queue.");
-    if (!dynamic_cast<ServingRequest*>(req.get()))
+    if (!dynamic_cast<ServingRequest*>(req))
         LOG1 << "Incompatible request submitted to running queue.";
 
     bool was_still_in_queue = false;
@@ -95,7 +96,7 @@ bool RequestQueueImpl1Q::cancel_request(RequestPtr& req) {
             queue_.erase(pos);
             was_still_in_queue = true;
             Lock.unlock();
-            sem_--;
+            sem_.wait();
         }
     }
 
@@ -103,15 +104,15 @@ bool RequestQueueImpl1Q::cancel_request(RequestPtr& req) {
 }
 
 RequestQueueImpl1Q::~RequestQueueImpl1Q() {
-    stop_thread(thread_, thread_state_, sem_);
+    StopThread(thread_, thread_state_, sem_);
 }
 
 void* RequestQueueImpl1Q::worker(void* arg) {
-    Self* pthis = static_cast<Self*>(arg);
+    RequestQueueImpl1Q* pthis = static_cast<RequestQueueImpl1Q*>(arg);
 
     for ( ; ; )
     {
-        pthis->sem_--;
+        pthis->sem_.wait();
 
         {
             std::unique_lock<std::mutex> Lock(pthis->queue_mutex_);
@@ -129,16 +130,16 @@ void* RequestQueueImpl1Q::worker(void* arg) {
             {
                 Lock.unlock();
 
-                pthis->sem_++;
+                pthis->sem_.signal();
             }
         }
 
         // terminate if it has been requested and queues are empty
         if (pthis->thread_state_() == TERMINATING) {
-            if ((pthis->sem_--) == 0)
+            if (pthis->sem_.wait() == 0)
                 break;
             else
-                pthis->sem_++;
+                pthis->sem_.signal();
         }
     }
 

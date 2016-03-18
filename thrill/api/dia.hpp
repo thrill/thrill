@@ -49,7 +49,7 @@ namespace api {
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename _ValueType, typename _Stack = FunctionStack<_ValueType> >
+template <typename ValueType_, typename Stack_ = FunctionStack<ValueType_> >
 class DIA
 {
     friend class Context;
@@ -59,17 +59,17 @@ class DIA
     using FunctionTraits = common::FunctionTraits<Function>;
 
 public:
+    //! type of the items virtually in the DIA, which is the type emitted by the
+    //! current LOp stack.
+    using ValueType = ValueType_;
+
     //! Type of this function stack
-    using Stack = _Stack;
+    using Stack = Stack_;
 
     //! type of the items delivered by the DOp, and pushed down the function
     //! stack towards the next nodes. If the function stack contains LOps nodes,
     //! these may transform the type.
     using StackInput = typename Stack::Input;
-
-    //! type of the items virtually in the DIA, which is the type emitted by the
-    //! current LOp stack.
-    using ValueType = _ValueType;
 
     //! boolean indication whether this FunctionStack is empty
     static constexpr bool stack_empty = Stack::empty;
@@ -137,8 +137,6 @@ public:
      * a non-empty chain.  The functionality of the chain is stored in a newly
      * created LOpNode.  The current DIA than points to this LOpNode.  This
      * is needed to support assignment operations between DIA's.
-     *
-     * \param rhs DIA containing a non-empty function chain.
      */
     template <typename AnyStack>
     DIA(const DIA<ValueType, AnyStack>& rhs)
@@ -153,7 +151,7 @@ public:
     ;                            // NOLINT
 
     //! Returns a pointer to the according DIANode.
-    const DIANodePtr & node() const {
+    const DIANodePtr& node() const {
         assert(IsValid());
         return node_;
     }
@@ -165,19 +163,19 @@ public:
     }
 
     //! Returns the stored function chain.
-    const Stack & stack() const {
+    const Stack& stack() const {
         assert(IsValid());
         return stack_;
     }
 
     //! Return context_ of DIANode, e.g. for creating new LOps and DOps
-    Context & context() const {
+    Context& context() const {
         assert(IsValid());
         return node_->context();
     }
 
     //! Return context_ of DIANode, e.g. for creating new LOps and DOps
-    Context & ctx() const {
+    Context& ctx() const {
         assert(IsValid());
         return node_->context();
     }
@@ -193,7 +191,7 @@ public:
      * statistical outputs. This does not create a new DIA, but returns the
      * existing one.
      */
-    DIA & Label(const std::string& msg) {
+    DIA& Label(const std::string& msg) {
         node_->AddStats(msg);
         return *this;
     }
@@ -203,7 +201,7 @@ public:
      * the data when executing. This does not create a new DIA, but returns the
      * existing one.
      */
-    DIA & Keep(size_t increase = 1) {
+    DIA& Keep(size_t increase = 1) {
         assert(IsValid());
         node_->IncConsumeCounter(increase);
         return *this;
@@ -213,7 +211,7 @@ public:
      * Execute DIA's scope and parents such that this (Action)Node is
      * Executed. This does not create a new DIA, but returns the existing one.
      */
-    DIA & Execute() {
+    DIA& Execute() {
         assert(IsValid());
         node_->RunScope();
         return *this;

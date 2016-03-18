@@ -19,7 +19,7 @@
 
 using namespace thrill;
 
-static constexpr bool debug = true;
+static constexpr bool debug = false;
 static constexpr size_t test_block_size = 1024;
 
 TEST(StreamSet, TestLoopbacks) {
@@ -31,30 +31,29 @@ TEST(StreamSet, TestLoopbacks) {
     data::BlockPool block_pool(workers_per_host);
     data::Multiplexer multiplexer(mem_manager, block_pool, workers_per_host, *group);
 
-    auto producer = [workers_per_host](std::shared_ptr<data::CatStream> stream, size_t my_id) {
-                        common::NameThisThread("worker " + mem::to_string(my_id));
-                        // send data between workers
-                        auto writers = stream->OpenWriters(test_block_size);
-                        for (size_t j = 0; j < workers_per_host; j++) {
-                            sLOG << "sending from" << my_id << "to" << j;
-                            writers[j].Put(std::to_string(my_id) + "->" + std::to_string(j));
-                            writers[j].Close();
-                        }
-                    };
-    auto consumer = [workers_per_host](std::shared_ptr<data::CatStream> stream, size_t my_id) {
-                        common::NameThisThread("worker " + mem::to_string(my_id));
-                        // check data on each worker
-                        auto readers = stream->OpenReaders();
-                        for (size_t j = 0; j < workers_per_host; j++) {
-                            /*std::string expected = std::to_string(j) + "->" + std::to_string(my_id);
-                            std::string actual = readers[j].Next<std::string>();
-                            ASSERT_EQ(expected, actual);*/
-                            auto vec = readers[j].ReadComplete<std::string>();
-                            for (auto& x : vec)
-                                std::cout << x << ",";
-                            std::cout << std::endl;
-                        }
-                    };
+    auto producer =
+        [workers_per_host](std::shared_ptr<data::CatStream> stream, size_t my_id) {
+            common::NameThisThread("worker " + mem::to_string(my_id));
+            // send data between workers
+            auto writers = stream->OpenWriters(test_block_size);
+            for (size_t j = 0; j < workers_per_host; j++) {
+                sLOG << "sending from" << my_id << "to" << j;
+                writers[j].Put(std::to_string(my_id) + "->" + std::to_string(j));
+                writers[j].Close();
+            }
+        };
+    auto consumer =
+        [workers_per_host](std::shared_ptr<data::CatStream> stream, size_t my_id) {
+            common::NameThisThread("worker " + mem::to_string(my_id));
+            // check data on each worker
+            auto readers = stream->OpenReaders();
+            for (size_t j = 0; j < workers_per_host; j++) {
+                std::string expected = std::to_string(j) + "->" + std::to_string(my_id);
+                std::string actual = readers[j].Next<std::string>();
+                ASSERT_EQ(expected, actual);
+                ASSERT_FALSE(readers[j].HasNext());
+            }
+        };
 
     // no we cannot use ExecuteLocalMock, because we need the same
     // CatStreamSet instance for all the threads.

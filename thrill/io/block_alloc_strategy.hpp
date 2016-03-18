@@ -65,16 +65,16 @@ public:
 
 //! Fully randomized disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct FR : public Striping
+struct FullyRandom : public Striping
 {
 private:
     mutable std::default_random_engine rng_ { std::random_device { } () };
 
 public:
-    FR(size_t b, size_t e) : Striping(b, e)
+    FullyRandom(size_t b, size_t e) : Striping(b, e)
     { }
 
-    FR() : Striping()
+    FullyRandom() : Striping()
     { }
 
     size_t operator () (size_t /*i*/) const {
@@ -88,7 +88,7 @@ public:
 
 //! Simple randomized disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct SR : public Striping
+struct SimpleRandom : public Striping
 {
 private:
     size_t offset_;
@@ -99,11 +99,11 @@ private:
     }
 
 public:
-    SR(size_t b, size_t e) : Striping(b, e) {
+    SimpleRandom(size_t b, size_t e) : Striping(b, e) {
         init();
     }
 
-    SR() : Striping() {
+    SimpleRandom() : Striping() {
         init();
     }
 
@@ -118,7 +118,7 @@ public:
 
 //! Randomized cycling disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct RC : public Striping
+struct RandomCyclic : public Striping
 {
 private:
     std::vector<size_t> perm_;
@@ -131,11 +131,11 @@ private:
     }
 
 public:
-    RC(size_t b, size_t e) : Striping(b, e), perm_(diff_) {
+    RandomCyclic(size_t b, size_t e) : Striping(b, e), perm_(diff_) {
         init();
     }
 
-    RC() : Striping(), perm_(diff_) {
+    RandomCyclic() : Striping(), perm_(diff_) {
         init();
     }
 
@@ -148,12 +148,13 @@ public:
     }
 };
 
-struct RCDisk : public RC
+struct RCDisk : public RandomCyclic
 {
-    RCDisk(size_t b, size_t e) : RC(b, e)
+    RCDisk(size_t b, size_t e) : RandomCyclic(b, e)
     { }
 
-    RCDisk() : RC(Config::get_instance()->regular_disk_range().first, Config::get_instance()->regular_disk_range().second)
+    RCDisk() : RandomCyclic(Config::get_instance()->regular_disk_range().first,
+                            Config::get_instance()->regular_disk_range().second)
     { }
 
     static const char * name() {
@@ -161,12 +162,13 @@ struct RCDisk : public RC
     }
 };
 
-struct RCFlash : public RC
+struct RCFlash : public RandomCyclic
 {
-    RCFlash(size_t b, size_t e) : RC(b, e)
+    RCFlash(size_t b, size_t e) : RandomCyclic(b, e)
     { }
 
-    RCFlash() : RC(Config::get_instance()->flash_range().first, Config::get_instance()->flash_range().second)
+    RCFlash() : RandomCyclic(Config::get_instance()->flash_range().first,
+                             Config::get_instance()->flash_range().second)
     { }
 
     static const char * name() {
@@ -197,7 +199,7 @@ struct SingleDisk
 //! Allocator functor adaptor.
 //!
 //! Gives offset to disk number sequence defined in constructor
-template <class BaseAllocator>
+template <typename BaseAllocator>
 struct OffsetAllocator
 {
     BaseAllocator base_;
@@ -232,7 +234,7 @@ struct OffsetAllocator
 };
 
 #ifndef THRILL_DEFAULT_ALLOC_STRATEGY
-  #define THRILL_DEFAULT_ALLOC_STRATEGY ::thrill::io::FR
+  #define THRILL_DEFAULT_ALLOC_STRATEGY ::thrill::io::FullyRandom
 #endif
 
 //! \}

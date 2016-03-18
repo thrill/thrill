@@ -114,10 +114,10 @@ public:
     }
 
     //! Get the used BlockPool
-    BlockPool & block_pool() { return block_pool_; }
+    BlockPool& block_pool() { return block_pool_; }
 
     //! Get the JsonLogger from the BlockPool
-    common::JsonLogger & logger();
+    common::JsonLogger& logger();
 
     //! \name CatStream
     //! \{
@@ -131,13 +131,13 @@ public:
     //! Get stream with given id, if it does not exist, create it.
     CatStreamPtr GetOrCreateCatStream(size_t id, size_t local_worker_id) {
         std::unique_lock<std::mutex> lock(mutex_);
-        return _GetOrCreateCatStream(id, local_worker_id);
+        return IntGetOrCreateCatStream(id, local_worker_id);
     }
 
     //! Request next stream.
     CatStreamPtr GetNewCatStream(size_t local_worker_id) {
         std::unique_lock<std::mutex> lock(mutex_);
-        return _GetOrCreateCatStream(
+        return IntGetOrCreateCatStream(
             stream_sets_.AllocateId(local_worker_id), local_worker_id);
     }
 
@@ -155,13 +155,13 @@ public:
     //! Get stream with given id, if it does not exist, create it.
     MixStreamPtr GetOrCreateMixStream(size_t id, size_t local_worker_id) {
         std::unique_lock<std::mutex> lock(mutex_);
-        return _GetOrCreateMixStream(id, local_worker_id);
+        return IntGetOrCreateMixStream(id, local_worker_id);
     }
 
     //! Request next stream.
     MixStreamPtr GetNewMixStream(size_t local_worker_id) {
         std::unique_lock<std::mutex> lock(mutex_);
-        return _GetOrCreateMixStream(
+        return IntGetOrCreateMixStream(
             stream_sets_.AllocateId(local_worker_id), local_worker_id);
     }
 
@@ -205,8 +205,8 @@ private:
     //! Streams have an ID in block headers. (worker id, stream id)
     Repository<StreamSetBase> stream_sets_;
 
-    CatStreamPtr _GetOrCreateCatStream(size_t id, size_t local_worker_id);
-    MixStreamPtr _GetOrCreateMixStream(size_t id, size_t local_worker_id);
+    CatStreamPtr IntGetOrCreateCatStream(size_t id, size_t local_worker_id);
+    MixStreamPtr IntGetOrCreateMixStream(size_t id, size_t local_worker_id);
 
     /**************************************************************************/
 

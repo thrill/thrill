@@ -30,7 +30,7 @@ namespace data {
 
 /*************** Base Template and Callable Serialize/Deserialize *************/
 
-template <typename Archive, typename T, class Enable = void>
+template <typename Archive, typename T, typename Enable = void>
 struct Serialization;
 
 /******************* Serialization of plain old data types ********************/

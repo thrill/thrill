@@ -8,6 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/api/generate.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/write_binary.hpp>
@@ -16,6 +17,7 @@
 #include <thrill/common/string.hpp>
 
 #include <algorithm>
+#include <random>
 #include <string>
 #include <utility>
 #include <vector>
@@ -48,6 +50,67 @@ struct RecordSigned {
     }
 } THRILL_ATTRIBUTE_PACKED;
 
+/*!
+ * Generate a Record in a similar way as the "binary" version of Hadoop's
+ * GenSort does. The underlying random generator is different.
+ */
+class GenerateRecord
+{
+public:
+    Record operator () (size_t index) {
+        Record r;
+
+        // generate random key record
+        for (size_t i = 0; i < 10; ++i)
+            r.key[i] = rng_();
+
+        uint8_t* v = r.value;
+
+        // add 2 bytes "break"
+        *v++ = 0x00;
+        *v++ = 0x11;
+
+        // fill values with hexadecimal representation of the record number
+        static constexpr uint8_t hexdigits[16] = {
+            '0', '1', '2', '3', '4', '5', '6', '7',
+            '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+        };
+        uint64_t rec = index;
+        for (size_t i = 0; i != 2 * sizeof(rec); ++i)
+            *v++ = hexdigits[(rec >> (4 * i)) & 0x0F];
+        for (size_t i = 0; i != 16; ++i)
+            *v++ = '0';
+
+        // add 4 bytes "break"
+        *v++ = 0x88;
+        *v++ = 0x99;
+        *v++ = 0xAA;
+        *v++ = 0xBB;
+
+        // add 48 byte filler based on index
+        for (size_t i = 0; i < 12; ++i) {
+            uint8_t f = hexdigits[((20 + rec) >> (4 * i)) & 0x0F];
+            *v++ = f;
+            *v++ = f;
+            *v++ = f;
+            *v++ = f;
+        }
+
+        // add 4 bytes "break"
+        *v++ = 0xCC;
+        *v++ = 0xDD;
+        *v++ = 0xEE;
+        *v++ = 0xFF;
+
+        assert(v == r.value + 90);
+
+        return r;
+    }
+
+private:
+    std::default_random_engine rng_ { std::random_device { } () };
+};
+
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
@@ -56,6 +119,11 @@ int main(int argc, char* argv[]) {
     clp.AddFlag('s', "signed_char", use_signed_char,
                 "compare with signed chars to compare with broken Java "
                 "implementations, default: false");
+
+    bool generate = false;
+    clp.AddFlag('g', "generate", generate,
+                "generate binary record on-the-fly for testing."
+                " size: first input pattern, default: false");
 
     std::string output;
     clp.AddString('o', "output", output,
@@ -74,10 +142,40 @@ int main(int argc, char* argv[]) {
     return api::Run(
         [&](api::Context& ctx) {
             ctx.enable_consume();
-            if (use_signed_char)
-                ReadBinary<RecordSigned>(ctx, input).Sort().WriteBinary(output);
-            else
-                ReadBinary<Record>(ctx, input).Sort().WriteBinary(output);
+            if (generate) {
+                die_unequal(input.size(), 1);
+                // parse first argument like "100mib" size
+                uint64_t size;
+                die_unless(common::ParseSiIecUnits(input[0].c_str(), size));
+                die_unless(!use_signed_char);
+
+                auto r =
+                    Generate(ctx, GenerateRecord(), size / sizeof(Record))
+                    .Sort();
+
+                if (output.size())
+                    r.WriteBinary(output);
+                else
+                    r.Execute();
+            }
+            else {
+                if (use_signed_char) {
+                    auto r = ReadBinary<RecordSigned>(ctx, input).Sort();
+
+                    if (output.size())
+                        r.WriteBinary(output);
+                    else
+                        r.Execute();
+                }
+                else {
+                    auto r = ReadBinary<Record>(ctx, input).Sort();
+
+                    if (output.size())
+                        r.WriteBinary(output);
+                    else
+                        r.Execute();
+                }
+            }
         });
 }
 

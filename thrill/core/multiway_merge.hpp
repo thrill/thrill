@@ -33,7 +33,7 @@ public:
     MultiwayMergeTree(ReaderIterator readers_begin, ReaderIterator readers_end,
                       const Comparator& comp)
         : readers_(readers_begin),
-          num_inputs_(readers_end - readers_begin),
+          num_inputs_(static_cast<unsigned>(readers_end - readers_begin)),
           remaining_inputs_(num_inputs_),
           lt_(num_inputs_, comp),
           current_(num_inputs_) {
@@ -98,7 +98,6 @@ private:
  *
  * \param seqs_begin Begin iterator of iterator pair input sequence.
  * \param seqs_end End iterator of iterator pair input sequence.
- * \param length Maximum length to merge.
  * \param comp Comparator.
  * \tparam Stable Stable merging incurs a performance penalty.
  * \tparam Sentinels The sequences have a sentinel element.

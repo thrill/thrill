@@ -93,13 +93,13 @@ public:
     MixBlockQueue& operator = (MixBlockQueue&&) = default;
 
     //! return block pool
-    BlockPool & block_pool() { return block_pool_; }
+    BlockPool& block_pool() { return block_pool_; }
 
     //! append block delivered via the network from src.
-    void AppendBlock(size_t src, const PinnedBlock& block) {
+    void AppendBlock(size_t src, const Block& block) {
         LOG << "MixBlockQueue::AppendBlock"
             << " src=" << src << " block=" << block;
-        mix_queue_.emplace(SrcBlockPair { src, block.ToBlock() });
+        mix_queue_.emplace(SrcBlockPair { src, block });
     }
 
     //! append closing sentinel block from src (also delivered via the network).
@@ -169,10 +169,16 @@ public:
           mix_queue_(mix_queue), from_global_(from_global)
     { }
 
-    void AppendBlock(const PinnedBlock& b) final {
+    void AppendBlock(const Block& b) final {
         LOG << "MixBlockQueueSink::AppendBlock()"
             << " from_global_=" << from_global_ << " b=" << b;
         mix_queue_.AppendBlock(from_global_, b);
+    }
+
+    void AppendBlock(Block&& b) final {
+        LOG << "MixBlockQueueSink::AppendBlock()"
+            << " from_global_=" << from_global_ << " b=" << b;
+        mix_queue_.AppendBlock(from_global_, std::move(b));
     }
 
     void Close() final {

@@ -16,8 +16,11 @@
 #ifndef THRILL_COMMON_LRU_CACHE_HEADER
 #define THRILL_COMMON_LRU_CACHE_HEADER
 
+#include <cassert>
 #include <cstddef>
+#include <functional>
 #include <list>
+#include <memory>
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -61,7 +64,7 @@ public:
     }
 
     //! get and touch value from LRU cache for key.
-    const Value & get(const Key& key) {
+    const Value& get(const Key& key) {
         typename Map::iterator it = map_.find(key);
         if (it == map_.end()) {
             throw std::range_error("There is no such key in cache");
@@ -109,14 +112,20 @@ private:
  * the user program must check size() after an insert and may extract the least
  * recently used element.
  */
-template <typename Key>
+template <typename Key, typename Alloc = std::allocator<Key> >
 class LruCacheSet
 {
 public:
-    using List = typename std::list<Key>;
+    using List = typename std::list<Key, Alloc>;
     using ListIterator = typename List::iterator;
 
-    using Map = typename std::unordered_map<Key, ListIterator>;
+    using Map = typename std::unordered_map<
+              Key, ListIterator, std::hash<Key>, std::equal_to<Key>,
+              typename Alloc::template rebind<
+                  std::pair<const Key, ListIterator> >::other>;
+
+    explicit LruCacheSet(const Alloc& alloc = Alloc())
+        : list_(alloc), map_(alloc) { }
 
     //! put or replace/touch item in LRU cache
     void put(const Key& key) {

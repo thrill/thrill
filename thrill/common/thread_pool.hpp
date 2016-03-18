@@ -152,7 +152,7 @@ public:
     }
 
     //! Return thread handle to thread i
-    std::thread & thread(size_t i) {
+    std::thread& thread(size_t i) {
         assert(i < threads_.size());
         return threads_[i];
     }

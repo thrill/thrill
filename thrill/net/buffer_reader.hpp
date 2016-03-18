@@ -92,7 +92,7 @@ public:
     //! \{
 
     //! Reset the read cursor.
-    BufferReader & Rewind() {
+    BufferReader& Rewind() {
         cursor_ = 0;
         return *this;
     }
@@ -105,7 +105,7 @@ public:
     }
 
     //! Advance the cursor given number of bytes without reading them.
-    BufferReader & Skip(size_t n) {
+    BufferReader& Skip(size_t n) {
         CheckAvailable(n);
         cursor_ += n;
 
@@ -119,7 +119,7 @@ public:
 
     //! Fetch a number of unstructured bytes from the buffer, advancing the
     //! cursor.
-    BufferReader & Read(void* outdata, size_t datalen) {
+    BufferReader& Read(void* outdata, size_t datalen) {
         CheckAvailable(datalen);
 
         Byte* coutdata = reinterpret_cast<Byte*>(outdata);

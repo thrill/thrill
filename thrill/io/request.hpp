@@ -19,14 +19,13 @@
 
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/delegate.hpp>
-#include <thrill/common/onoff_switch.hpp>
-#include <thrill/common/state.hpp>
+#include <thrill/common/shared_state.hpp>
 #include <thrill/io/exceptions.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <cassert>
 #include <memory>
 #include <mutex>
-#include <set>
 #include <string>
 
 namespace thrill {
@@ -35,8 +34,9 @@ namespace io {
 //! \addtogroup reqlayer
 //! \{
 
-class FileBase;
 class Request;
+class FileBase;
+using FileBasePtr = common::CountingPtr<FileBase>;
 
 using CompletionHandler = common::delegate<void(Request*, bool)>;
 
@@ -57,14 +57,14 @@ protected:
     static constexpr bool debug = false;
 
     CompletionHandler on_complete_;
-    std::unique_ptr<IoError> error_;
+    mem::safe_unique_ptr<IoError> error_;
 
 protected:
     //! \name Base Parameter of an I/O Request
     //! \{
 
     //! file implementation to perform I/O with
-    io::FileBase* file_;
+    FileBasePtr file_;
     //! data buffer to transfer
     void* buffer_;
     //! offset within file
@@ -79,10 +79,8 @@ protected:
 public:
     //! ctor: initialize
     Request(const CompletionHandler& on_complete,
-            FileBase* file,
-            void* buffer,
-            offset_type offset,
-            size_type bytes,
+            const FileBasePtr& file,
+            void* buffer, offset_type offset, size_type bytes,
             ReadOrWriteType type);
 
     //! non-copyable: delete copy-constructor
@@ -100,7 +98,7 @@ public:
     //! \name Accessors
     //! \{
 
-    io::FileBase * file() const { return file_; }
+    const FileBasePtr& file() const { return file_; }
     void * buffer() const { return buffer_; }
     offset_type offset() const { return offset_; }
     size_type bytes() const { return bytes_; }
@@ -109,12 +107,12 @@ public:
     void check_alignment() const;
 
     //! Dumps properties of a request.
-    std::ostream & print(std::ostream& out) const;
+    std::ostream& print(std::ostream& out) const;
 
     //! Inform the request object that an error occurred during the I/O
     //! execution.
-    void save_error(const std::string& msg) {
-        error_.reset(new IoError(msg));
+    void save_error(const mem::safe_string& msg) {
+        error_ = mem::safe_make_unique<IoError>(msg);
     }
 
     //! return error if one occured
@@ -134,27 +132,6 @@ protected:
 
 private:
     void check_nref_failed(bool after);
-
-    //! \}
-
-    //! \name Waiters
-    //! \{
-
-public:
-    //! add a waiter to notify on completion
-    bool add_waiter(common::onoff_switch* sw);
-    //! remove waiter to notify.
-    void delete_waiter(common::onoff_switch* sw);
-    //! returns number of waiters
-    size_t num_waiters();
-
-protected:
-    //! called by the file implementation to notify all waiters
-    void notify_waiters();
-
-private:
-    std::mutex waiters_mutex_;
-    std::set<common::onoff_switch*> waiters_;
 
     //! \}
 
@@ -202,18 +179,19 @@ protected:
 
 private:
     //! state of the request.
-    common::state<State> state_ { OP };
+    common::SharedState<State> state_ { OP };
 
     //! \}
 };
 
-static inline
-std::ostream& operator << (std::ostream& out, const Request& req) {
-    return req.print(out);
-}
+//! make Request ostreamable
+std::ostream& operator << (std::ostream& out, const Request& req);
+
+//! deleter for Requests which are allocated from mem::g_pool.
+void RequestDeleter(Request* req);
 
 //! A reference counting pointer for \c request.
-using RequestPtr = common::CountingPtr<Request>;
+using RequestPtr = common::CountingPtr<Request, RequestDeleter>;
 
 //! \}
 

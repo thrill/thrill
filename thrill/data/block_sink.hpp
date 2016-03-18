@@ -60,7 +60,7 @@ public:
     }
 
     //! Returns BlockPool.logger_
-    common::JsonLogger & logger() { return block_pool_->logger(); }
+    common::JsonLogger& logger() { return block_pool_->logger(); }
 
     //! return number of workers per host
     size_t workers_per_host() const { return block_pool_->workers_per_host(); }
@@ -73,8 +73,21 @@ public:
     //! Closes the sink. Must not be called multiple times
     virtual void Close() = 0;
 
-    //! Appends the Block, moving it out.
-    virtual void AppendBlock(const PinnedBlock& b) = 0;
+    //! Appends the (unpinned) Block
+    virtual void AppendBlock(const Block& b) = 0;
+
+    //! Appends the (unpinned) Block
+    virtual void AppendBlock(Block&& b) = 0;
+
+    //! Appends the PinnedBlock
+    virtual void AppendPinnedBlock(const PinnedBlock& b) {
+        return AppendBlock(b.ToBlock());
+    }
+
+    //! Appends the PinnedBlock
+    virtual void AppendPinnedBlock(PinnedBlock&& b) {
+        return AppendBlock(std::move(b).MoveToBlock());
+    }
 
     //! local worker id to associate pinned block with
     size_t local_worker_id() const { return local_worker_id_; }

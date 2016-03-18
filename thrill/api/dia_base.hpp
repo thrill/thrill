@@ -185,12 +185,12 @@ public:
     virtual void RemoveAllChildren() = 0;
 
     //! Returns the api::Context of this DIABase.
-    Context & context() {
+    Context& context() {
         return context_;
     }
 
     //! return unique id() of DIANode subclass as stored by StatsNode
-    const size_t & id() const {
+    const size_t& id() const {
         return id_;
     }
 
@@ -212,7 +212,7 @@ public:
     }
 
     //! Returns the parents of this DIABase.
-    const std::vector<DIABasePtr> & parents() const {
+    const std::vector<DIABasePtr>& parents() const {
         return parents_;
     }
 
@@ -237,7 +237,7 @@ public:
     void RunScope();
 
     //! Return the Context's memory manager
-    mem::Manager & mem_manager() {
+    mem::Manager& mem_manager() {
         return context_.mem_manager();
     }
 

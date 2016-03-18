@@ -82,13 +82,13 @@ public:
 #endif
 
     //! Constructs an element object on the location pointed by p.
-    template <class SubType, typename ... Args>
+    template <typename SubType, typename ... Args>
     void construct(SubType* p, Args&& ... args) {
         ::new ((void*)p)SubType(std::forward<Args>(args) ...); // NOLINT
     }
 
     //! Destroys in-place the object pointed by p.
-    template <class SubType>
+    template <typename SubType>
     void destroy(SubType* p) const noexcept {
         p->~SubType();
     }
@@ -115,7 +115,7 @@ public:
     using is_always_equal = std::true_type;
 
     //! Return allocator for different type.
-    template <class U>
+    template <typename U>
     struct rebind { using other = FixedAllocator<U, manager_>; };
 
     //! default constructor
@@ -144,14 +144,26 @@ public:
         if (n > this->max_size())
             throw std::bad_alloc();
 
-        manager_.add(n * sizeof(Type));
+        const size_t size = n * sizeof(Type);
+        manager_.add(size);
 
         if (debug) {
             printf("allocate() n=%zu sizeof(T)=%zu total=%zu\n",
                    n, sizeof(Type), manager_.total());
         }
 
-        return static_cast<Type*>(bypass_malloc(n * sizeof(Type)));
+        Type* r = static_cast<Type*>(bypass_malloc(size));
+        while (r == nullptr)
+        {
+            // If malloc fails and there is a std::new_handler, call it to try
+            // free up memory.
+            std::new_handler nh = std::get_new_handler();
+            if (!nh)
+                throw std::bad_alloc();
+            nh();
+            r = static_cast<Type*>(bypass_malloc(size));
+        }
+        return r;
     }
 
     //! Releases a block of storage previously allocated with member allocate
@@ -169,13 +181,13 @@ public:
     }
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator == (const FixedAllocator<Other, manager_>&) const noexcept {
         return true;
     }
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator != (const FixedAllocator<Other, manager_>&) const noexcept {
         return true;
     }
@@ -189,7 +201,7 @@ public:
     using const_pointer = const void*;
     using value_type = void;
 
-    template <class U>
+    template <typename U>
     struct rebind { using other = FixedAllocator<U, manager_>; };
 };
 
@@ -204,7 +216,7 @@ template <typename Type>
 using BypassAllocator = FixedAllocator<Type, g_bypass_manager>;
 
 //! operator new with our Allocator
-template <typename T, class ... Args>
+template <typename T, typename ... Args>
 T * by_new(Args&& ... args) {
     BypassAllocator<T> allocator;
     T* value = allocator.allocate(1);

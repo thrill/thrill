@@ -133,12 +133,10 @@ net::Connection& Group::connection(size_t peer) {
 
 void Group::Close() { }
 
-mem::unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
+std::unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
     mem::Manager& mem_manager) const {
     // construct mock::Dispatcher
-    return mem::unique_ptr<net::Dispatcher>(
-        mem::mm_new<Dispatcher>(mem_manager, mem_manager),
-        mem::Deleter<net::Dispatcher>(mem_manager));
+    return std::make_unique<Dispatcher>(mem_manager);
 }
 
 std::vector<std::unique_ptr<Group> >

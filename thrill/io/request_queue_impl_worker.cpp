@@ -16,8 +16,9 @@
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/semaphore.hpp>
-#include <thrill/common/state.hpp>
+#include <thrill/common/shared_state.hpp>
 #include <thrill/io/error_handling.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/request_queue_impl_worker.hpp>
 
 #include <cassert>
@@ -30,32 +31,34 @@
 namespace thrill {
 namespace io {
 
-void RequestQueueImplWorker::start_thread(void* (*worker)(void*), void* arg, Thread& t, common::state<thread_state>& s) {
+void RequestQueueImplWorker::StartThread(
+    void* (*worker)(void*), void* arg, std::thread& t,
+    common::SharedState<ThreadState>& s) {
     assert(s() == NOT_RUNNING);
-    t = new std::thread(worker, arg);
+    t = std::thread(worker, arg);
     s.set_to(RUNNING);
 }
 
-void RequestQueueImplWorker::stop_thread(Thread& t, common::state<thread_state>& s, common::semaphore& sem) {
+void RequestQueueImplWorker::StopThread(
+    std::thread& t, common::SharedState<ThreadState>& s, common::Semaphore& sem) {
     assert(s() == RUNNING);
     s.set_to(TERMINATING);
-    sem++;
+    sem.signal();
 #if THRILL_MSVC >= 1700
     // In the Visual C++ Runtime 2012 and 2013, there is a deadlock bug, which
     // occurs when threads are joined after main() exits. Apparently, Microsoft
     // thinks this is not a big issue. It has not been fixed in VC++RT 2013.
     // https://connect.microsoft.com/VisualStudio/feedback/details/747145
     //
-    // All STXXL threads are created by singletons, which are global variables
-    // that are deleted after main() exits. The fix applied here it to use
+    // All threads are created by singletons, which are global variables that
+    // are deleted after main() exits. The fix applied here it to use
     // std::thread::native_handle() and access the WINAPI to terminate the
     // thread directly (after it finished handling its i/o requests).
 
     WaitForSingleObject(t->native_handle(), INFINITE);
     CloseHandle(t->native_handle());
 #else
-    t->join();
-    delete t;
+    t.join();
 #endif
     assert(s() == TERMINATED);
     s.set_to(NOT_RUNNING);

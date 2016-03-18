@@ -13,6 +13,7 @@
 #ifndef THRILL_DATA_STREAM_HEADER
 #define THRILL_DATA_STREAM_HEADER
 
+#include <thrill/common/semaphore.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/data/block_writer.hpp>
@@ -46,12 +47,12 @@ public:
         : id_(id),
           local_worker_id_(local_worker_id),
           multiplexer_(multiplexer),
-          expected_closing_blocks_((num_hosts() - 1) * workers_per_host()),
-          received_closing_blocks_(0) { }
+          remaining_closing_blocks_((num_hosts() - 1) * workers_per_host())
+    { }
 
     virtual ~Stream() { }
 
-    const StreamId & id() const {
+    const StreamId& id() const {
         return id_;
     }
 
@@ -141,13 +142,13 @@ public:
 
     ///////// expose these members - getters would be too java-ish /////////////
 
-    //! StatsCounter for incoming data transfer
-    //! Do not include loopback data transfer
+    //! StatsCounter for incoming data transfer.  Does not include loopback data
+    //! transfer
     size_t incoming_bytes_ = 0, incoming_blocks_ = 0;
 
-    //! StatsCounters for outgoing data transfer - shared by all sinks
-    //! Do not include loopback data transfer
-    size_t outgoing_bytes_ = 0, outgoing_blocks_ = 0;
+    //! StatsCounters for outgoing data transfer - shared by all sinks.  Does
+    //! not include loopback data transfer
+    std::atomic<size_t> outgoing_bytes_ { 0 }, outgoing_blocks_ { 0 };
 
     //! Timers from creation of stream until rx / tx direction is closed.
     common::StatsTimerStart tx_lifetime_, rx_lifetime_;
@@ -166,9 +167,12 @@ protected:
     //! reference to multiplexer
     Multiplexer& multiplexer_;
 
-    //! number of expected / received stream closing operations. Required to
-    //! know when to stop rx_lifetime
-    size_t expected_closing_blocks_, received_closing_blocks_;
+    //! number of remaining expected stream closing operations. Required to know
+    //! when to stop rx_lifetime
+    size_t remaining_closing_blocks_;
+
+    //! number of received stream closing Blocks.
+    common::Semaphore sem_closing_blocks_;
 
     //! friends for access to multiplexer_
     friend class StreamSink;

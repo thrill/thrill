@@ -329,7 +329,7 @@ enum SG_FileType {
 #define SG_PATH_CHAR    '\\'
 
 /*! \brief Windows glob implementation. */
-template <class SOCHAR>
+template <typename SOCHAR>
 class SimpleGlobBase
 {
 public:
@@ -410,7 +410,7 @@ private:
 #define SG_PATH_CHAR    '/'
 
 /*! \brief Unix glob implementation. */
-template <class SOCHAR>
+template <typename SOCHAR>
 class SimpleGlobBase
 {
 public:
@@ -546,7 +546,7 @@ private:
 // ---------------------------------------------------------------------------
 
 /*! \brief Implementation of the SimpleGlob class */
-template <class SOCHAR>
+template <typename SOCHAR>
 class CSimpleGlobTempl : private SimpleGlobBase<SOCHAR>
 {
 public:
@@ -667,7 +667,7 @@ private:
 //                                  IMPLEMENTATION
 // ---------------------------------------------------------------------------
 
-template <class SOCHAR>
+template <typename SOCHAR>
 CSimpleGlobTempl<SOCHAR>::CSimpleGlobTempl(
     unsigned int a_uiFlags,
     int a_nReservedSlots
@@ -680,13 +680,13 @@ CSimpleGlobTempl<SOCHAR>::CSimpleGlobTempl(
     Init(a_uiFlags, a_nReservedSlots);
 }
 
-template <class SOCHAR>
+template <typename SOCHAR>
 CSimpleGlobTempl<SOCHAR>::~CSimpleGlobTempl() {
     if (m_rgpArgs) free(m_rgpArgs);
     if (m_pBuffer) free(m_pBuffer);
 }
 
-template <class SOCHAR>
+template <typename SOCHAR>
 int
 CSimpleGlobTempl<SOCHAR>::Init(
     unsigned int a_uiFlags,
@@ -710,7 +710,7 @@ CSimpleGlobTempl<SOCHAR>::Init(
     return SG_SUCCESS;
 }
 
-template <class SOCHAR>
+template <typename SOCHAR>
 int
 CSimpleGlobTempl<SOCHAR>::Add(
     const SOCHAR* a_pszFileSpec
@@ -791,7 +791,7 @@ CSimpleGlobTempl<SOCHAR>::Add(
     return nError;
 }
 
-template <class SOCHAR>
+template <typename SOCHAR>
 int
 CSimpleGlobTempl<SOCHAR>::Add(
     int a_nCount,
@@ -807,7 +807,7 @@ CSimpleGlobTempl<SOCHAR>::Add(
     return SG_SUCCESS;
 }
 
-template <class SOCHAR>
+template <typename SOCHAR>
 int
 CSimpleGlobTempl<SOCHAR>::AppendName(
     const SOCHAR* a_pszFileName,
@@ -867,7 +867,7 @@ CSimpleGlobTempl<SOCHAR>::AppendName(
     return SG_SUCCESS;
 }
 
-template <class SOCHAR>
+template <typename SOCHAR>
 void
 CSimpleGlobTempl<SOCHAR>::SetArgvArrayType(
     ARG_ARRAY_TYPE a_nNewType
@@ -892,7 +892,7 @@ CSimpleGlobTempl<SOCHAR>::SetArgvArrayType(
     m_nArgArrayType = a_nNewType;
 }
 
-template <class SOCHAR>
+template <typename SOCHAR>
 bool
 CSimpleGlobTempl<SOCHAR>::GrowArgvArray(
     int a_nNewLen
@@ -912,7 +912,7 @@ CSimpleGlobTempl<SOCHAR>::GrowArgvArray(
     return true;
 }
 
-template <class SOCHAR>
+template <typename SOCHAR>
 bool
 CSimpleGlobTempl<SOCHAR>::GrowStringBuffer(
     size_t a_uiMinSize
@@ -932,7 +932,7 @@ CSimpleGlobTempl<SOCHAR>::GrowStringBuffer(
     return true;
 }
 
-template <class SOCHAR>
+template <typename SOCHAR>
 int
 CSimpleGlobTempl<SOCHAR>::fileSortCompare(
     const void* a1,

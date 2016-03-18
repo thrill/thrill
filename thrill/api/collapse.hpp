@@ -72,6 +72,8 @@ public:
     }
 };
 
+#ifndef THRILL_DOXYGEN_IGNORE
+
 template <typename ValueType, typename Stack>
 template <typename AnyStack>
 DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs)
@@ -82,6 +84,8 @@ DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs)
     LOG0 << "WARNING: cast to DIA creates CollapseNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIA.";
 }
+
+#endif  // THRILL_DOXYGEN_IGNORE
 
 template <typename ValueType, typename Stack>
 auto DIA<ValueType, Stack>::Collapse() const {

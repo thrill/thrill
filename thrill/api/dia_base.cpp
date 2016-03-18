@@ -152,7 +152,7 @@ public:
         logger_ << "class" << "StageBuilder" << "event" << "pushdata-start"
                 << "targets" << target_ids;
 
-        // collect memory requests of all targets children
+        // collect memory requests of source node and all targeted children
 
         std::vector<DIABase*> targets = TargetPtrs();
 
@@ -161,8 +161,8 @@ public:
         size_t const_mem = 0;
 
         {
-            // process node to PushData()
-            DIAMemUse m = node_->PreOpMemUse();
+            // process node which will PushData() to targets
+            DIAMemUse m = node_->PushDataMemUse();
             if (m.is_max()) {
                 max_mem_nodes.emplace_back(node_.get());
             }
@@ -171,21 +171,24 @@ public:
                 node_->set_mem_limit(m.limit());
             }
         }
-
-        for (DIABase* target : TargetPtrs()) {
-            DIAMemUse m = target->PreOpMemUse();
-            if (m.is_max()) {
-                max_mem_nodes.emplace_back(target);
-            }
-            else {
-                const_mem += m.limit();
-                target->set_mem_limit(m.limit());
+        {
+            // process nodes which will receive data
+            for (DIABase* target : TargetPtrs()) {
+                DIAMemUse m = target->PreOpMemUse();
+                if (m.is_max()) {
+                    max_mem_nodes.emplace_back(target);
+                }
+                else {
+                    const_mem += m.limit();
+                    target->set_mem_limit(m.limit());
+                }
             }
         }
 
         if (const_mem > mem_limit) {
             sLOG1 << "StageBuilder: constant memory usage of DIANodes in Stage: "
-                  << const_mem << ", already exceeds Context's limit: " << mem_limit;
+                  << const_mem
+                  << ", already exceeds Context's mem_limit: " << mem_limit;
             abort();
         }
 

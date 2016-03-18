@@ -14,7 +14,6 @@
 
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/lru_cache.hpp>
-#include <thrill/common/signal.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/byte_block.hpp>
@@ -22,12 +21,15 @@
 #include <thrill/io/request.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 #include <thrill/mem/manager.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <deque>
+#include <functional>
 #include <future>
 #include <mutex>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -80,7 +82,7 @@ public:
     size_t workers_per_host() const { return workers_per_host_; }
 
     //! Returns logger_
-    common::JsonLogger & logger() { return logger_; }
+    common::JsonLogger& logger() { return logger_; }
 
     //! Updates the memory manager for internal memory. If the hard limit is
     //! reached, the call is blocked intil memory is free'd
@@ -89,6 +91,17 @@ public:
     //! Updates the memory manager for the internal memory, wakes up waiting
     //! BlockPool::RequestInternalMemory calls
     void ReleaseInternalMemory(size_t size);
+
+    //! Advice the block pool to free up memory in anticipation of a large
+    //! future request.
+    void AdviseFree(size_t size);
+
+    //! Return any currently being written block (for waiting on completion)
+    io::RequestPtr GetAnyWriting();
+
+    //! Evict a Block from the LRU chain into external memory. This can return
+    //! nullptr if no blocks available, or if the Block was not dirty.
+    io::RequestPtr EvictBlockLRU();
 
     //! Allocates a byte block with the request size. May block this thread if
     //! the hard memory limit is reached, until memory is freed by another
@@ -99,7 +112,7 @@ public:
     //! Allocate a byte block from an external file, used to directly map system
     //! files to data::File.
     ByteBlockPtr MapExternalBlock(
-        const std::shared_ptr<io::FileBase>& file, int64_t offset, size_t size);
+        const io::FileBasePtr& file, int64_t offset, size_t size);
 
     //! Pins a block by swapping it in if required.
     std::future<PinnedBlock> PinBlock(const Block& block, size_t local_worker_id);
@@ -169,7 +182,8 @@ private:
     size_t workers_per_host_;
 
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
-    common::LruCacheSet<ByteBlock*> unpinned_blocks_;
+    common::LruCacheSet<
+        ByteBlock*, mem::GPoolAllocator<ByteBlock*> > unpinned_blocks_;
 
     //! number of unpinned bytes
     size_t unpinned_bytes_ = 0;
@@ -213,7 +227,10 @@ private:
     PinCount pin_count_;
 
     //! type of set of ByteBlocks currently begin written to EM.
-    using WritingMap = std::unordered_map<ByteBlock*, io::RequestPtr>;
+    using WritingMap = std::unordered_map<
+              ByteBlock*, io::RequestPtr,
+              std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+              mem::GPoolAllocator<std::pair<ByteBlock* const, io::RequestPtr> > >;
 
     //! set of ByteBlocks currently begin written to EM.
     WritingMap writing_;
@@ -225,7 +242,9 @@ private:
     size_t writing_bytes_ = 0;
 
     //! set of ByteBlock currently in EM.
-    std::unordered_set<ByteBlock*> swapped_;
+    std::unordered_set<
+        ByteBlock*, std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+        mem::GPoolAllocator<ByteBlock*> > swapped_;
 
     //! total number of bytes in swapped blocks
     size_t swapped_bytes_ = 0;
@@ -240,12 +259,18 @@ private:
         Byte* data;
         io::RequestPtr req;
 
+        ReadRequest()
+            : result(std::allocator_arg, mem::GPoolAllocator<PinnedBlock>()) { }
+
         void OnComplete(io::Request* req, bool success);
     };
 
     //! type of set of ByteBlocks currently begin read from EM.
     using ReadingMap = std::unordered_map<
-              ByteBlock*, std::unique_ptr<ReadRequest> >;
+              ByteBlock*, std::unique_ptr<ReadRequest>,
+              std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+              mem::GPoolAllocator<
+                  std::pair<ByteBlock* const, std::unique_ptr<ReadRequest> > > >;
 
     //! set of ByteBlocks currently begin read from EM.
     ReadingMap reading_;
@@ -266,18 +291,18 @@ private:
 
     //! Updates the memory manager for internal memory. If the hard limit is
     //! reached, the call is blocked intil memory is free'd
-    void _RequestInternalMemory(std::unique_lock<std::mutex>& lock, size_t size);
+    void IntRequestInternalMemory(std::unique_lock<std::mutex>& lock, size_t size);
 
     //! Updates the memory manager for the internal memory, wakes up waiting
     //! BlockPool::RequestInternalMemory calls
-    void _ReleaseInternalMemory(size_t size);
+    void IntReleaseInternalMemory(size_t size);
 
     //! Increment a ByteBlock's pin count - without locking the mutex
-    void _IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
+    void IntIncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
 
     //! Unpins a block. If all pins are removed, the block might be swapped.
     //! Returns immediately. Actual unpinning is async.
-    void UnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
+    void IntUnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
 
     //! callback for async write of blocks during eviction
     void OnWriteComplete(ByteBlock* block_ptr, io::Request* req, bool success);
@@ -286,23 +311,26 @@ private:
     void OnReadComplete(ReadRequest* read, io::Request* req, bool success);
 
     //! Evict a block from the lru list into external memory
-    void EvictBlockLRU();
+    io::RequestPtr IntEvictBlockLRU();
 
     //! Evict a block into external memory. The block must be unpinned and not
     //! swapped.
-    void EvictBlockNoLock(ByteBlock* block_ptr);
+    io::RequestPtr IntEvictBlock(ByteBlock* block_ptr);
 
     //! make ostream-able
     friend std::ostream& operator << (std::ostream& os, const PinCount& p);
+
+    //! for calling OnWriteComplete
+    friend class ByteBlock;
 
     //! \name Block Statistics
     //! \{
 
     //! Total number of allocated blocks of this block pool
-    size_t total_blocks_nolock()  noexcept;
+    size_t int_total_blocks()  noexcept;
 
     //! Total number of bytes allocated in blocks of this block pool
-    size_t total_bytes_nolock()  noexcept;
+    size_t int_total_bytes()  noexcept;
 
     //! \}
 };
@@ -315,7 +343,8 @@ class BlockPoolMemoryHolder
 public:
     BlockPoolMemoryHolder(BlockPool& block_pool, size_t size)
         : block_pool_(block_pool), size_(size) {
-        block_pool_.RequestInternalMemory(size);
+        if (size)
+            block_pool_.RequestInternalMemory(size);
     }
 
     //! non-copyable: delete copy-constructor
@@ -324,7 +353,8 @@ public:
     BlockPoolMemoryHolder& operator = (const BlockPoolMemoryHolder&) = delete;
 
     ~BlockPoolMemoryHolder() {
-        block_pool_.ReleaseInternalMemory(size_);
+        if (size_)
+            block_pool_.ReleaseInternalMemory(size_);
     }
 
 private:

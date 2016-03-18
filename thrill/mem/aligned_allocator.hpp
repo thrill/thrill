@@ -60,7 +60,7 @@ public:
     using is_always_equal = std::false_type;
 
     //! Return allocator for different type.
-    template <class U>
+    template <typename U>
     struct rebind { using other = AlignedAllocator<U>; };
 
     //! Construct with base allocator
@@ -95,13 +95,13 @@ public:
     }
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator == (const AlignedAllocator<Other>& other) const noexcept {
         return (base_ == other.base_);
     }
 
     //! Compare to another allocator of same type
-    template <class Other>
+    template <typename Other>
     bool operator != (const AlignedAllocator<Other>& other) const noexcept {
         return (base_ != other.base_);
     }
@@ -111,7 +111,7 @@ public:
     void * allocate_bytes(size_t size, size_t meta_info_size = 0);
     void deallocate_bytes(void* ptr, size_t size, size_t meta_info_size = 0) noexcept;
 
-    const BaseAllocator & base() const { return base_; }
+    const BaseAllocator& base() const { return base_; }
 
 private:
     //! base allocator
@@ -145,7 +145,7 @@ inline void* AlignedAllocator<Type, BaseAllocator, Alignment>::allocate_bytes(
     char* buffer = reinterpret_cast<char*>(base_.allocate(alloc_size));
 
     if (buffer == nullptr)
-        throw std::bad_alloc();
+        return nullptr;
 
     char* reserve_buffer = buffer + sizeof(char*) + meta_info_size;
     char* result = reserve_buffer + Alignment -
@@ -168,7 +168,7 @@ inline void* AlignedAllocator<Type, BaseAllocator, Alignment>::allocate_bytes(
         if (buffer != realloced) {
             // hmm, realloc does move the memory block around while shrinking,
             // might run under valgrind, so disable realloc and retry
-            LOG1 << "stxxl::aligned_alloc: disabling realloc()";
+            LOG1 << "mem::aligned_alloc: disabling realloc()";
             std::free(realloced);
             aligned_alloc_settings<int>::may_use_realloc = false;
             return allocate(size, meta_info_size);
@@ -190,7 +190,7 @@ inline void* AlignedAllocator<Type, BaseAllocator, Alignment>::allocate_bytes(
 
 template <typename Type, typename BaseAllocator, size_t Alignment>
 inline void AlignedAllocator<Type, BaseAllocator, Alignment>::deallocate_bytes(
-    void* ptr, size_t size, size_t meta_info_size)  noexcept {
+    void* ptr, size_t size, size_t meta_info_size) noexcept {
     if (!ptr)
         return;
     char* buffer = *((reinterpret_cast<char**>(ptr)) - 1);

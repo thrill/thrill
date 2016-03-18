@@ -29,7 +29,7 @@ namespace io {
 class RequestQueue
 {
 public:
-    enum priority_op { READ, WRITE, NONE };
+    enum PriorityOp { READ, WRITE, NONE };
 
     RequestQueue() = default;
 
@@ -44,9 +44,9 @@ public:
 
 public:
     virtual void add_request(RequestPtr& req) = 0;
-    virtual bool cancel_request(RequestPtr& req) = 0;
+    virtual bool cancel_request(Request* req) = 0;
     virtual ~RequestQueue() { }
-    virtual void set_priority_op(priority_op p) { common::THRILL_UNUSED(p); }
+    virtual void set_priority_op(PriorityOp p) { common::THRILL_UNUSED(p); }
 };
 
 //! \}

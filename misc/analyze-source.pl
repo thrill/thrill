@@ -322,6 +322,18 @@ sub process_cpp {
             print("replacing NULL in $path:$i\n");
         }
 
+        # check for double underscore identifiers
+        if ($data[$i] =~ m@\s__(?!(attribute__|sync_|builtin_|has_feature|FILE__|LINE__|FUNCTION__|PRETTY_FUNCTION__|GNUC__|linux__|APPLE__|FreeBSD__|clang__|STDC_WANT_SECURE_LIB__))@) {
+            print("double underscore identifier found in $path:$i\n");
+            print("$data[$i]\n");
+        }
+
+        # check for single underscore + uppercase identifiers
+        if ($data[$i] =~ m@\s_(?!(GNU_SOURCE|WIN32|MSC_VER|UNICODE|DEBUG|ASSERTE|S_))[A-Z]@) {
+            print("underscore + uppercase identifier found in $path:$i\n");
+            print("$data[$i]\n");
+        }
+
         if ($path !~ m!^frontends/swig_!) {
             # check for typedef, issue warnings.
             #if ($data[$i] =~ m/\btypedef\b/) {

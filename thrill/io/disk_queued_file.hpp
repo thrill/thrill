@@ -37,15 +37,11 @@ public:
     { }
 
     RequestPtr aread(
-        void* buffer,
-        offset_type pos,
-        size_type bytes,
+        void* buffer, offset_type offset, size_type bytes,
         const CompletionHandler& on_cmpl = CompletionHandler()) override;
 
     RequestPtr awrite(
-        void* buffer,
-        offset_type pos,
-        size_type bytes,
+        void* buffer, offset_type offset, size_type bytes,
         const CompletionHandler& on_cmpl = CompletionHandler()) override;
 
     int get_queue_id() const override {

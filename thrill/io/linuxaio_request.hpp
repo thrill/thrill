@@ -33,21 +33,19 @@ namespace io {
 class LinuxaioRequest final : public Request
 {
     //! control block of async request
-    iocb cb;
+    iocb cb_;
 
     void fill_control_block();
 
 public:
     LinuxaioRequest(
         const CompletionHandler& on_complete,
-        FileBase* file,
-        void* buffer,
-        offset_type offset,
-        size_type bytes,
+        const FileBasePtr& file,
+        void* buffer, offset_type offset, size_type bytes,
         ReadOrWriteType type)
         : Request(on_complete, file, buffer, offset, bytes, type) {
-        assert(dynamic_cast<LinuxaioFile*>(file));
-        LOG << "linuxaio_request[" << this << "]" << " linuxaio_request"
+        assert(dynamic_cast<LinuxaioFile*>(file.get()));
+        LOG << "LinuxaioRequest[" << this << "]" << " LinuxaioRequest"
             << "(file=" << file << " buffer=" << buffer
             << " offset=" << offset << " bytes=" << bytes
             << " type=" << type << ")";

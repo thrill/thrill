@@ -72,19 +72,19 @@ public:
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(const PinnedBlock& b) final {
+    void AppendPinnedBlock(const PinnedBlock& b) final {
         return AppendBlock(b.ToBlock());
     }
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(PinnedBlock&& b) {
+    void AppendPinnedBlock(PinnedBlock&& b) {
         return AppendBlock(std::move(b).MoveToBlock());
     }
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(const Block& b) {
+    void AppendBlock(const Block& b) final {
         if (b.size() == 0) return;
         num_items_sum_.push_back(num_items() + b.num_items());
         size_bytes_ += b.size();
@@ -133,10 +133,12 @@ public:
      * UNCONDITIONALLY, the File will always be emptied whether all items were
      * read via the Reader or not.
      */
-    Reader GetReader(bool consume);
+    Reader GetReader(
+        bool consume, size_t num_prefetch = File::default_prefetch);
 
     //! Get BlockReader for beginning of File
-    KeepReader GetKeepReader() const;
+    KeepReader GetKeepReader(
+        size_t num_prefetch = File::default_prefetch) const;
 
     /*!
      * Get consuming BlockReader for beginning of File
@@ -145,7 +147,8 @@ public:
      * File will always be emptied whether all items were read via the Reader or
      * not.
      */
-    ConsumeReader GetConsumeReader();
+    ConsumeReader GetConsumeReader(
+        size_t num_prefetch = File::default_prefetch);
 
     //! Get BufferedBlockReader for beginning of File
     template <typename ValueType>
@@ -179,10 +182,13 @@ public:
     size_t size_bytes() const { return size_bytes_; }
 
     //! Return reference to a block
-    const Block & block(size_t i) const {
+    const Block& block(size_t i) const {
         assert(i < blocks_.size());
         return blocks_[i];
     }
+
+    //! Returns constant reference to all Blocks in the File.
+    const std::deque<Block>& blocks() const { return blocks_; }
 
     //! Return number of items starting in block i
     size_t ItemsStartIn(size_t i) const {

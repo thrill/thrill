@@ -222,7 +222,7 @@ private:
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
-        const std::string & Next() {
+        const std::string& Next() {
             total_elements_++;
             data_.clear();
             while (true) {
@@ -324,7 +324,7 @@ private:
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
-        const std::string & Next() {
+        const std::string& Next() {
             total_elements_++;
             data_.clear();
             while (true) {
@@ -421,7 +421,7 @@ DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
  * creates an ordered DIA according to a given read function.
  *
  * \param ctx Reference to the context object
- * \param filepath Path of the file in the file system
+ * \param filepaths Path of the file in the file system
  */
 DIA<std::string> ReadLines(
     Context& ctx, const std::vector<std::string>& filepaths) {

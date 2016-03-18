@@ -29,19 +29,29 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type")
 endif()
 
-option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
+option(THRILL_USE_MPI
+  "Use (optional) MPI net backend." OFF)
 
-option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
+option(THRILL_USE_TBB
+  "Use (optional) Intel TBB library if available." ON)
 
-option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
+option(THRILL_USE_JEMALLOC
+  "Use (optional) JeMalloc allocation library if available." ON)
 
-option(THRILL_USE_TBB "Use (optional) Intel TBB library if available." ON)
+option(THRILL_USE_GCOV
+  "Compile and run tests with gcov for coverage analysis." OFF)
 
-option(THRILL_USE_MPI "Use (optional) MPI net backend." OFF)
+option(THRILL_USE_VALGRIND
+  "Run tests with valgrind, reports using XML files." OFF)
 
-option(THRILL_FULL_BUILD "Disable large compilation units for faster development." OFF)
+option(THRILL_USE_IWYU
+  "Compile with include-what-you-use (iwyu) tool." OFF)
 
-option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
+option(THRILL_FULL_BUILD
+  "Disable large compilation units for faster development." OFF)
+
+option(THRILL_TRY_COMPILE_HEADERS
+  "Test header files for self-sufficiency: try to compile them." OFF)
 
 # BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
 # make it prominent in the GUI.
@@ -148,7 +158,7 @@ elseif(MSVC)
   add_definitions(-DNOMINMAX)
 endif()
 
-if(USE_IWYU)
+if(THRILL_USE_IWYU)
   # Generate clang compilation database
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -185,7 +195,7 @@ endmacro(set_join)
 ###############################################################################
 # enable gcov coverage analysis with gcc
 
-if(USE_GCOV)
+if(THRILL_USE_GCOV)
   # find programs
   find_program(GENHTML genhtml)
   find_program(LCOV lcov)
@@ -235,7 +245,7 @@ if(USE_GCOV)
     COMMENT "Generate HTML coverage report "
     DEPENDS lcov-html)
 
-endif(USE_GCOV)
+endif(THRILL_USE_GCOV)
 
 ###############################################################################
 # enable gtest framework, valgrind, and collection of results
@@ -293,7 +303,23 @@ set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
 
 set(ALL_LIBRARIES ${ALL_LIBRARIES} ${CMAKE_DL_LIBS})
 
+# try to find jemalloc (optional)
+
+if(THRILL_USE_JEMALLOC)
+  find_package(JeMalloc)
+
+  if(NOT JEMALLOC_FOUND)
+    message(STATUS "jemalloc library found. No problem, it is optional,")
+    message(STATUS "but consider installing it for systems with limited memory.")
+  else()
+    include_directories(SYSTEM ${JEMALLOC_INCLUDE_DIRS})
+    set(ALL_LIBRARIES ${JEMALLOC_LIBRARIES} ${ALL_LIBRARIES})
+    add_definitions(-DTHRILL_HAVE_JEMALLOC=1)
+  endif()
+endif()
+
 # try to find Intel TBB (optional)
+
 if(THRILL_USE_TBB)
   find_package(TBB)
 endif()
@@ -357,7 +383,7 @@ endmacro(thrill_build_prog)
 # Usage: thrill_test_single(testname "ENV=1;ENV2=1" program args)
 macro(thrill_test_single TESTNAME ENVIRON PROG)
 
-  if(USE_VALGRIND)
+  if(THRILL_USE_VALGRIND)
     # prepend valgrind call
     add_test(
       NAME ${TESTNAME}
@@ -401,9 +427,9 @@ add_subdirectory(benchmarks)
 add_subdirectory(frontends)
 
 ###############################################################################
-### cmake script TRY_COMPILE all Thrill header files
+### cmake script THRILL_TRY_COMPILE_HEADERS to copmile all Thrill header files
 
-if(TRY_COMPILE_HEADERS)
+if(THRILL_TRY_COMPILE_HEADERS)
 
   include(CheckCXXSourceCompiles)
   set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS})
@@ -430,6 +456,6 @@ if(TRY_COMPILE_HEADERS)
     endif()
   endforeach()
 
-endif(TRY_COMPILE_HEADERS)
+endif(THRILL_TRY_COMPILE_HEADERS)
 
 ################################################################################

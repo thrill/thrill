@@ -225,7 +225,7 @@ int main(int argc, char* argv[]) {
 
     cp.SetDescription(
         "This program will benchmark _random_ block access on the disks "
-        "configured by the standard .stxxl disk configuration files mechanism. "
+        "configured by the standard .thrill disk configuration files mechanism. "
         "Available block sizes are power of two from 4 KiB to 128 MiB. "
         "A set of three operations can be performed: sequential initialization, "
         "random reading and random writing.");
@@ -237,11 +237,11 @@ int main(int argc, char* argv[]) {
     if (allocstr.size())
     {
         if (allocstr == "RC")
-            return run_alloc(io::RC);
+            return run_alloc(io::RandomCyclic);
         if (allocstr == "SR")
-            return run_alloc(io::SR);
+            return run_alloc(io::SimpleRandom);
         if (allocstr == "FR")
-            return run_alloc(io::FR);
+            return run_alloc(io::FullyRandom);
         if (allocstr == "striping")
             return run_alloc(io::Striping);
 

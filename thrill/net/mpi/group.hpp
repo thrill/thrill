@@ -84,7 +84,7 @@ public:
         return "peer: " + std::to_string(peer_);
     }
 
-    std::ostream & OutputOstream(std::ostream& os) const final {
+    std::ostream& OutputOstream(std::ostream& os) const final {
         return os << "[mpi::Connection"
                   << " group_tag_=" << group_tag_
                   << " peer_=" << peer_
@@ -154,7 +154,7 @@ public:
     //! number of hosts configured.
     size_t num_hosts() const final { return conns_.size(); }
 
-    net::Connection & connection(size_t peer) final {
+    net::Connection& connection(size_t peer) final {
         assert(peer < conns_.size());
         return conns_[peer];
     }
@@ -162,7 +162,7 @@ public:
     void Close() final { }
 
     //! construct a mpi::Dispatcher exclusively for this Group.
-    mem::mm_unique_ptr<net::Dispatcher> ConstructDispatcher(
+    std::unique_ptr<net::Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const final;
 
     //! run a MPI_Barrier() for synchronization.

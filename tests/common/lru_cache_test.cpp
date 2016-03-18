@@ -12,8 +12,9 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
 #include <thrill/common/lru_cache.hpp>
+
+#include <gtest/gtest.h>
 
 using namespace thrill;
 

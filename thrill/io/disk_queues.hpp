@@ -18,7 +18,9 @@
 #ifndef THRILL_IO_DISK_QUEUES_HEADER
 #define THRILL_IO_DISK_QUEUES_HEADER
 
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/iostats.hpp>
+#include <thrill/io/linuxaio_file.hpp>
 #include <thrill/io/linuxaio_queue.hpp>
 #include <thrill/io/linuxaio_request.hpp>
 #include <thrill/io/request.hpp>
@@ -49,19 +51,38 @@ protected:
     }
 
 public:
+    void make_queue(const FileBasePtr& file) {
+        int queue_id = file->get_queue_id();
+
+        RequestQueueMap::iterator qi = queues.find(queue_id);
+        if (qi != queues.end())
+            return;
+
+        // create new request queue
+#if THRILL_HAVE_LINUXAIO_FILE
+        if (const LinuxaioFile* af =
+                dynamic_cast<const LinuxaioFile*>(file.get())) {
+            queues[queue_id] = new LinuxaioQueue(af->desired_queue_length());
+            return;
+        }
+#endif
+        queues[queue_id] = new RequestQueueImplQwQr();
+    }
+
     void add_request(RequestPtr& req, DiskId disk) {
 #ifdef THRILL_HACK_SINGLE_IO_THREAD
         disk = 42;
 #endif
         RequestQueueMap::iterator qi = queues.find(disk);
-        RequestQueue* q;
+        RequestQueue* q = nullptr;
         if (qi == queues.end())
         {
             // create new request queue
 #if THRILL_HAVE_LINUXAIO_FILE
             if (dynamic_cast<LinuxaioRequest*>(req.get()))
                 q = queues[disk] = new LinuxaioQueue(
-                        dynamic_cast<LinuxaioFile*>(req->file())->get_desired_queue_length());
+                        dynamic_cast<LinuxaioFile*>(req->file().get())
+                        ->desired_queue_length());
             else
 #endif
             q = queues[disk] = new RequestQueueImplQwQr();
@@ -80,7 +101,7 @@ public:
     //! \param req request to cancel
     //! \param disk disk number for disk that \c req was scheduled on
     //! \return \c true iff the request was canceled successfully
-    bool cancel_request(RequestPtr& req, DiskId disk) {
+    bool cancel_request(Request* req, DiskId disk) {
 #ifdef THRILL_HACK_SINGLE_IO_THREAD
         disk = 42;
 #endif
@@ -108,7 +129,7 @@ public:
     //!                 - READ, read requests are served before write requests within a disk queue
     //!                 - WRITE, write requests are served before read requests within a disk queue
     //!                 - NONE, read and write requests are served by turns, alternately
-    void set_priority_op(RequestQueue::priority_op op) {
+    void set_priority_op(RequestQueue::PriorityOp op) {
         for (RequestQueueMap::iterator i = queues.begin(); i != queues.end(); i++)
             i->second->set_priority_op(op);
     }

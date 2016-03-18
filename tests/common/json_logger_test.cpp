@@ -17,12 +17,6 @@
 
 using namespace thrill;
 
-// common::JsonLine SubFunction() {
-//     common::JsonLine out;
-//     out << "answer" << 42;
-//     return out;
-// }
-
 TEST(JsonLogger, Test1) {
 
     common::JsonLogger logger("/dev/stdout");
@@ -35,8 +29,17 @@ TEST(JsonLogger, Test1) {
            << "vector" << std::vector<int>({ 6, 9, 42 })
            << "plain_array" << (common::Array<size_t>{ 1, 2, 3 })
            << "string vector" << std::vector<const char*>({ "abc", "def" });
-//           << "sub" << SubFunction()
-//           << "sub2" << common::JsonLine("answer", 42);
+
+    {
+        common::JsonLine long_line = logger.line();
+        long_line << "Node" << "LongerLine";
+
+        common::JsonLine subitem = long_line.sub("sub");
+        subitem << "inside" << "stuff";
+        subitem.Close();
+
+        long_line << "more" << 42;
+    }
 }
 
 TEST(JsonLogger, Sublogger) {

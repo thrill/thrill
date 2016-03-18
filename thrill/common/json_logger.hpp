@@ -18,6 +18,8 @@
 #include <cassert>
 #include <fstream>
 #include <initializer_list>
+#include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -27,6 +29,7 @@ namespace common {
 
 // forward declarations
 class JsonLine;
+class JsonProfiler;
 template <typename Type>
 struct JsonLinePutSwitch;
 
@@ -56,12 +59,15 @@ public:
     explicit JsonLogger(const std::string& path);
 
     //! open JsonLogger with a super logger
-    explicit JsonLogger(JsonLogger* super) : super_(super) { }
+    explicit JsonLogger(JsonLogger* super);
 
     //! open JsonLogger with a super logger and some additional common key:value
     //! pairs
     template <typename ... Args>
     explicit JsonLogger(JsonLogger* super, const Args& ... args);
+
+    //! destructor: stop profiling thread
+    ~JsonLogger();
 
     //! create new JsonLine instance which will be written to this logger.
     JsonLine line();
@@ -69,20 +75,24 @@ public:
     template <typename Type>
     JsonLine operator << (const Type& t);
 
-    //! method called by output objects
-    void Output() {
-        os_ << '}' << std::endl;
-    }
+    //! launch background profiler
+    void StartProfiler();
 
 public:
-    //! output to superior JsonLogger;
+    //! output to superior JsonLogger
     JsonLogger* super_ = nullptr;
 
     //! direct output stream for top loggers
     std::ofstream os_;
 
+    //! mutex to lock logger output
+    std::mutex mutex_;
+
     //! common items outputted to each line
     JsonVerbatim common_;
+
+    //! Json profiler (pimpl)
+    std::unique_ptr<JsonProfiler> profiler_;
 
     //! friends for sending to os_
     friend class JsonLine;
@@ -98,25 +108,12 @@ public:
 class JsonLine
 {
 public:
-    //! when destructed this object is delivered to the output.
-    JsonLogger* logger_;
-
-    //! reference to output stream
-    std::ostream& os_;
-
-    //! items counter for output stream
-    size_t items_ = 0;
-
     //! ctor: bind output
     explicit JsonLine(JsonLogger* logger, std::ostream& os)
-        : logger_(logger), os_(os) { }
-
-    // //! ctor: initialize with a list of key:value pairs of variadic type.
-    // template <typename ... Args>
-    // explicit JsonLine(const Args& ... args) {
-    //     using ForeachExpander = int[];
-    //     (void)ForeachExpander { (operator << (args), 0) ... };
-    // }
+        : logger_(logger), os_(os) {
+        if (logger)
+            lock_ = std::unique_lock<std::mutex>(logger_->mutex_);
+    }
 
     //! non-copyable: delete copy-constructor
     JsonLine(const JsonLine&) = delete;
@@ -124,7 +121,8 @@ public:
     JsonLine& operator = (const JsonLine&) = delete;
     //! move-constructor: unlink pointer
     JsonLine(JsonLine&& o)
-        : logger_(o.logger_), os_(o.os_), items_(o.items_)
+        : logger_(o.logger_), lock_(std::move(o.lock_)),
+          os_(o.os_), items_(o.items_), sub_dict_(o.sub_dict_)
     { o.logger_ = nullptr; }
 
     //! output any type
@@ -133,10 +131,33 @@ public:
 
     //! destructor: deliver to output
     ~JsonLine() {
-        if (logger_) {
+        Close();
+    }
+
+    //! close the line
+    void Close() {
+        if (logger_ && items_ != 0) {
             assert(items_ % 2 == 0);
-            logger_->Output();
+            os_ << '}' << std::endl;
+            items_ = 0;
         }
+        else if (!logger_ && sub_dict_) {
+            os_ << '}';
+            sub_dict_ = false;
+        }
+    }
+
+    //! number of items already put
+    size_t items() const { return items_; }
+
+    //! return JsonLine has sub-dictionary of this one
+    template <typename Key>
+    JsonLine sub(const Key& key) {
+        // write key
+        operator << (key);
+        PutSeparator();
+        os_ << '{';
+        return JsonLine(/* sentinel */ true, *this);
     }
 
     //! put an items separator (either ',' or ':') and increment counter.
@@ -170,61 +191,82 @@ public:
             break;
         }
     }
+
+private:
+    //! when destructed this object is delivered to the output.
+    JsonLogger* logger_ = nullptr;
+
+    //! lock on the logger output stream
+    std::unique_lock<std::mutex> lock_;
+
+    //! construct sub-dictionary
+    JsonLine(bool /* sentinel */, JsonLine& parent)
+        : os_(parent.os_), sub_dict_(true) { }
+
+public:
+    //! reference to output stream
+    std::ostream& os_;
+
+    //! items counter for output stream
+    size_t items_ = 0;
+
+    //! indicator for sub-dictionaries.
+    bool sub_dict_ = false;
 };
 
 /******************************************************************************/
 // Template specializations for JsonLine
 
 static inline
-JsonLine & Put(JsonLine& line, bool const& value) {
+JsonLine& Put(JsonLine& line, bool const& value) {
     line.os_ << (value ? "true" : "false");
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, int const& value) {
+JsonLine& Put(JsonLine& line, int const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, unsigned int const& value) {
+JsonLine& Put(JsonLine& line, unsigned int const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, long const& value) {
+JsonLine& Put(JsonLine& line, long const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, unsigned long const& value) {
+JsonLine& Put(JsonLine& line, unsigned long const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, long long const& value) {
+JsonLine& Put(JsonLine& line, long long const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, unsigned long long const& value) {
+JsonLine& Put(JsonLine& line, unsigned long long const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, double const& value) {
+JsonLine& Put(JsonLine& line, double const& value) {
     line.os_ << value;
     return line;
 }
 
 static inline
-JsonLine & Put(JsonLine& line, const char* const& str) {
+JsonLine& Put(JsonLine& line, const char* const& str) {
     line.os_ << '"';
     for (const char* s = str; *s; ++s) line.PutEscapedChar(*s);
     line.os_ << '"';
@@ -232,7 +274,7 @@ JsonLine & Put(JsonLine& line, const char* const& str) {
 }
 
 static inline
-JsonLine & Put(JsonLine& line, std::string const& str) {
+JsonLine& Put(JsonLine& line, std::string const& str) {
     line.os_ << '"';
     for (std::string::const_iterator i = str.begin(); i != str.end(); ++i)
         line.PutEscapedChar(*i);
@@ -242,7 +284,7 @@ JsonLine & Put(JsonLine& line, std::string const& str) {
 
 template <typename Type, std::size_t N>
 static inline
-JsonLine & Put(JsonLine& line, const Type(&arr)[N]) {
+JsonLine& Put(JsonLine& line, const Type(&arr)[N]) {
     line.os_ << '[';
     for (size_t i = 0; i < N; ++i) {
         if (i != 0) line.os_ << ',';
@@ -254,7 +296,7 @@ JsonLine & Put(JsonLine& line, const Type(&arr)[N]) {
 
 template <typename Type>
 static inline
-JsonLine & Put(JsonLine& line, std::initializer_list<Type> const& list) {
+JsonLine& Put(JsonLine& line, std::initializer_list<Type> const& list) {
     line.os_ << '[';
     for (typename std::initializer_list<Type>::const_iterator it = list.begin();
          it != list.end(); ++it) {
@@ -268,7 +310,7 @@ JsonLine & Put(JsonLine& line, std::initializer_list<Type> const& list) {
 
 template <typename Type>
 static inline
-JsonLine & Put(JsonLine& line, std::vector<Type> const& vec) {
+JsonLine& Put(JsonLine& line, std::vector<Type> const& vec) {
     line.os_ << '[';
     for (typename std::vector<Type>::const_iterator it = vec.begin();
          it != vec.end(); ++it) {
@@ -282,7 +324,7 @@ JsonLine & Put(JsonLine& line, std::vector<Type> const& vec) {
 
 template <typename Type, std::size_t N>
 static inline
-JsonLine & Put(JsonLine& line, std::array<Type, N> const& arr) {
+JsonLine& Put(JsonLine& line, std::array<Type, N> const& arr) {
     line.os_ << '[';
     for (typename std::array<Type, N>::const_iterator it = arr.begin();
          it != arr.end(); ++it) {
@@ -295,7 +337,7 @@ JsonLine & Put(JsonLine& line, std::array<Type, N> const& arr) {
 }
 
 static inline
-JsonLine & Put(JsonLine& line, JsonVerbatim const& verbatim) {
+JsonLine& Put(JsonLine& line, JsonVerbatim const& verbatim) {
     // undo increment of item counter
     --line.items_;
     line.os_ << verbatim.str_;

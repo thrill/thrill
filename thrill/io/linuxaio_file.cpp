@@ -17,16 +17,18 @@
 
 #include <thrill/io/disk_queues.hpp>
 #include <thrill/io/linuxaio_request.hpp>
+#include <thrill/mem/pool.hpp>
 
 namespace thrill {
 namespace io {
 
 RequestPtr LinuxaioFile::aread(
-    void* buffer,
-    offset_type pos,
-    size_type bytes,
+    void* buffer, offset_type offset, size_type bytes,
     const CompletionHandler& on_cmpl) {
-    RequestPtr req(new LinuxaioRequest(on_cmpl, this, buffer, pos, bytes, Request::READ));
+
+    RequestPtr req(mem::GPool().make<LinuxaioRequest>(
+                       on_cmpl, FileBasePtr(this),
+                       buffer, offset, bytes, Request::READ));
 
     DiskQueues::get_instance()->add_request(req, get_queue_id());
 
@@ -34,11 +36,12 @@ RequestPtr LinuxaioFile::aread(
 }
 
 RequestPtr LinuxaioFile::awrite(
-    void* buffer,
-    offset_type pos,
-    size_type bytes,
+    void* buffer, offset_type offset, size_type bytes,
     const CompletionHandler& on_cmpl) {
-    RequestPtr req(new LinuxaioRequest(on_cmpl, this, buffer, pos, bytes, Request::WRITE));
+
+    RequestPtr req(mem::GPool().make<LinuxaioRequest>(
+                       on_cmpl, FileBasePtr(this),
+                       buffer, offset, bytes, Request::WRITE));
 
     DiskQueues::get_instance()->add_request(req, get_queue_id());
 

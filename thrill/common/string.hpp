@@ -157,34 +157,9 @@ bool from_str(const std::string& str, Type& outval) {
  * \param limit  maximum number of parts returned
  * \return       vector containing each split substring
  */
-static inline
 std::vector<std::string> Split(
     const std::string& str, char sep,
-    std::string::size_type limit = std::string::npos) {
-
-    std::vector<std::string> out;
-    if (limit == 0) return out;
-
-    std::string::const_iterator it = str.begin(), last = it;
-
-    for ( ; it != str.end(); ++it)
-    {
-        if (*it == sep)
-        {
-            if (out.size() + 1 >= limit)
-            {
-                out.push_back(std::string(last, str.end()));
-                return out;
-            }
-
-            out.push_back(std::string(last, it));
-            last = it + 1;
-        }
-    }
-
-    out.push_back(std::string(last, it));
-    return out;
-}
+    std::string::size_type limit = std::string::npos);
 
 /*!
  * Split the given string at each separator string into distinct
@@ -196,73 +171,16 @@ std::vector<std::string> Split(
  * \param limit   maximum number of parts returned
  * \return        vector containing each split substring
  */
-static inline
 std::vector<std::string> Split(
     const std::string& str, const std::string& sepstr,
-    std::string::size_type limit = std::string::npos) {
-
-    std::vector<std::string> out;
-    if (limit == 0) return out;
-    if (sepstr.empty()) return out;
-
-    std::string::const_iterator it = str.begin(), last = it;
-
-    for ( ; it + sepstr.size() < str.end(); ++it)
-    {
-        if (std::equal(sepstr.begin(), sepstr.end(), it))
-        {
-            if (out.size() + 1 >= limit)
-            {
-                out.push_back(std::string(last, str.end()));
-                return out;
-            }
-
-            out.push_back(std::string(last, it));
-            last = it + sepstr.size();
-        }
-    }
-
-    out.push_back(std::string(last, str.end()));
-    return out;
-}
+    std::string::size_type limit = std::string::npos);
 
 //! Split a string by given separator string. Returns a vector of strings with
 //! at least min_fields and at most limit_fields
-static inline std::vector<std::string>
+std::vector<std::string>
 Split(const std::string& str, const std::string& sep,
       unsigned int min_fields,
-      unsigned int limit_fields = std::numeric_limits<unsigned int>::max()) {
-    std::vector<std::string> result;
-    if (str.empty()) {
-        result.resize(min_fields);
-        return result;
-    }
-
-    std::string::size_type cur_pos(0), last_pos(0);
-    while (1)
-    {
-        if (result.size() + 1 == limit_fields)
-            break;
-
-        cur_pos = str.find(sep, last_pos);
-        if (cur_pos == std::string::npos)
-            break;
-
-        result.push_back(
-            str.substr(last_pos,
-                       std::string::size_type(cur_pos - last_pos)));
-
-        last_pos = cur_pos + sep.size();
-    }
-
-    std::string sub = str.substr(last_pos);
-    result.push_back(sub);
-
-    if (result.size() < min_fields)
-        result.resize(min_fields);
-
-    return result;
-}
+      unsigned int limit_fields = std::numeric_limits<unsigned int>::max());
 
 /*!
  * Join a sequence of strings by some glue string between each pair from the
@@ -313,18 +231,18 @@ std::string Join(const Glue& glue, const Container& parts) {
  * \param instead       replace needle with instead
  * \return              reference to str
  */
-static inline
-std::string & ReplaceAll(std::string& str, const std::string& needle,
-                         const std::string& instead) {
-    std::string::size_type lastpos = 0, thispos;
+std::string& ReplaceAll(std::string& str, const std::string& needle,
+                        const std::string& instead);
 
-    while ((thispos = str.find(needle, lastpos)) != std::string::npos)
-    {
-        str.replace(thispos, needle.size(), instead);
-        lastpos = thispos + instead.size();
-    }
-    return str;
-}
+/*!
+ * Trims the given string in-place on the left and right. Removes all
+ * characters in the given drop array, which defaults to " \r\n\t".
+ *
+ * \param str   string to process
+ * \param drop  remove these characters
+ * \return      reference to the modified string
+ */
+std::string& Trim(std::string& str, const std::string& drop = " \r\n\t");
 
 /*!
  * Generate a random string of given length. The set of available

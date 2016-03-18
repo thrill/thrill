@@ -33,17 +33,16 @@ namespace io {
 class RequestQueueImpl1Q : public RequestQueueImplWorker
 {
 private:
-    using Self = RequestQueueImpl1Q;
-    using Queue = std::list<RequestPtr>;
+    using Queue = std::list<RequestPtr, mem::GPoolAllocator<RequestPtr> >;
 
     std::mutex queue_mutex_;
     Queue queue_;
 
-    common::state<thread_state> thread_state_;
-    Thread thread_;
-    common::semaphore sem_;
+    common::SharedState<ThreadState> thread_state_;
+    std::thread thread_;
+    common::Semaphore sem_;
 
-    static constexpr priority_op priority_op_ = WRITE;
+    static constexpr PriorityOp priority_op_ = WRITE;
 
     static void * worker(void* arg);
 
@@ -55,12 +54,12 @@ public:
     // also there were race conditions possible
     // and actually an old value was never restored once a new one was set ...
     // so just disable it and all it's nice implications
-    void set_priority_op(priority_op op) final {
+    void set_priority_op(PriorityOp op) final {
         // _priority_op = op;
         common::THRILL_UNUSED(op);
     }
     void add_request(RequestPtr& req) final;
-    bool cancel_request(RequestPtr& req) final;
+    bool cancel_request(Request* req) final;
     ~RequestQueueImpl1Q();
 };
 

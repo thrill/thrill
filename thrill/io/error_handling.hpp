@@ -18,6 +18,7 @@
 
 #include <thrill/common/config.hpp>
 #include <thrill/io/exceptions.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <cerrno>
 #include <cstring>
@@ -42,19 +43,35 @@ namespace io {
         throw exception_type(msg.str());                          \
     } while (false)
 
+//! Throws exception_type with "Error in [location] : [error_message]"
+#define THRILL_THROW2S(exception_type, location, error_message)   \
+    do {                                                          \
+        mem::safe_ostringstream msg;                              \
+        msg << "Error in " << location << " : " << error_message; \
+        throw exception_type(msg.str());                          \
+    } while (false)
+
 //! Throws exception_type with "Error in [function] : [error_message]"
 #define THRILL_THROW(exception_type, error_message) \
     THRILL_THROW2(exception_type,                   \
                   THRILL_PRETTY_FUNCTION_NAME,      \
                   error_message)
 
-//! Throws exception_type with "Error in [function] : [error_message] : [errno_value message]"
-#define THRILL_THROW_ERRNO2(exception_type, error_message, errno_value) \
-    THRILL_THROW2(exception_type,                                       \
-                  THRILL_PRETTY_FUNCTION_NAME,                          \
-                  error_message << " : " << strerror(errno_value))
+//! Throws exception_type with "Error in [function] : [error_message]"
+#define THRILL_THROWS(exception_type, error_message) \
+    THRILL_THROW2S(exception_type,                   \
+                   THRILL_PRETTY_FUNCTION_NAME,      \
+                   error_message)
 
-//! Throws exception_type with "Error in [function] : [error_message] : [errno message]"
+//! Throws exception_type with "Error in [function] : [error_message] :
+//! [errno_value message]"
+#define THRILL_THROW_ERRNO2(exception_type, error_message, errno_value) \
+    THRILL_THROW2S(exception_type,                                      \
+                   THRILL_PRETTY_FUNCTION_NAME,                         \
+                   error_message << " : " << strerror(errno_value))
+
+//! Throws exception_type with "Error in [function] : [error_message] : [errno
+//! message]"
 #define THRILL_THROW_ERRNO(exception_type, error_message) \
     THRILL_THROW_ERRNO2(exception_type, error_message, errno)
 
@@ -63,12 +80,6 @@ namespace io {
     THRILL_THROW2(std::invalid_argument,             \
                   THRILL_PRETTY_FUNCTION_NAME,       \
                   error_message)
-
-//! Throws stxxl::unreachable with "Error in file [file], line [line] : this code should never be reachable"
-#define THRILL_THROW_UNREACHABLE()                              \
-    THRILL_THROW2(stxxl::unreachable,                           \
-                  "file " << __FILE__ << ", line " << __LINE__, \
-                  "this code should never be reachable")
 
 ////////////////////////////////////////////////////////////////////////////
 
@@ -116,17 +127,6 @@ namespace io {
 
 ////////////////////////////////////////////////////////////////////////////
 
-//! Checks pthread call, if return != 0, throws stxxl::resource_error with "Error in [function] : [pthread_expr] : [errno message]
-#define THRILL_CHECK_PTHREAD_CALL(expr)                             \
-    do {                                                            \
-        int res = (expr);                                           \
-        if (res != 0) {                                             \
-            THRILL_THROW_ERRNO2(stxxl::resource_error, #expr, res); \
-        }                                                           \
-    } while (false)
-
-////////////////////////////////////////////////////////////////////////////
-
 #if THRILL_WINDOWS || defined(__MINGW32__)
 
 //! Throws exception_type with "Error in [function] : [error_message] : [formatted GetLastError()]"
@@ -140,7 +140,7 @@ namespace io {
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),                          \
             (LPTSTR)&lpMsgBuf,                                                  \
             0, nullptr);                                                        \
-        std::ostringstream msg;                                                 \
+        mem::safe_ostringstream msg;                                            \
         msg << "Error in " << THRILL_PRETTY_FUNCTION_NAME                       \
             << " : " << error_message                                           \
             << " : error code " << dw << " : " << static_cast<char*>(lpMsgBuf); \

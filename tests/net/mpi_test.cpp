@@ -99,12 +99,6 @@ TEST(MpiGroup, DispatcherSyncSendAsyncRead) {
 TEST(MpiGroup, DispatcherLaunchAndTerminate) {
     MpiTest(TestDispatcherLaunchAndTerminate);
 }
-TEST(MpiGroup, DispatcherAsyncWriteAndReadIntoFuture) {
-    MpiTest(TestDispatcherAsyncWriteAndReadIntoFuture);
-}
-TEST(MpiGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
-    MpiTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
-}
 TEST(MpiGroup, SingleThreadPrefixSum) {
     MpiTest(TestSingleThreadPrefixSum);
 }

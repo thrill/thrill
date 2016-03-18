@@ -168,7 +168,7 @@ public:
           barrier_(barrier), shmem_(shmem), generation_(generation) { }
 
     //! Return the associated net::Group. USE AT YOUR OWN RISK.
-    Group & group() { return group_; }
+    Group& group() { return group_; }
 
     //! Return the worker's global rank
     size_t my_rank() const {

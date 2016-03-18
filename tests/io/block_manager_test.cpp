@@ -19,7 +19,6 @@
 
 #include <gtest/gtest.h>
 
-#include <iostream>
 #include <vector>
 
 using namespace thrill;
@@ -36,14 +35,14 @@ struct MyType
 struct my_handler
 {
     void operator () (io::Request* req, bool /* success */) {
-        LOG1 << req << " done, type=" << req->io_type();
+        LOG0 << req << " done, type=" << req->io_type();
     }
 };
 template class io::TypedBlock<BLOCK_SIZE, int>;    // forced instantiation
 template class io::TypedBlock<BLOCK_SIZE, MyType>; // forced instantiation
 
 TEST(BlockManager, Test1) {
-    static constexpr bool debug = true;
+    static constexpr bool debug = false;
 
     using block_type = io::TypedBlock<BLOCK_SIZE, MyType>;
 
@@ -67,12 +66,11 @@ TEST(BlockManager, Test1) {
     {
         block[0].elem_[i].integer = i;
         block[1].elem_[i].integer = i;
-        // memcpy (block->elem[i].chars, "STXXL", 4);
     }
     for (size_t i = 0; i < nblocks; ++i)
         reqs[i] = block[i].write(bids[i], my_handler());
 
-    std::cout << "Waiting " << std::endl;
+    LOG << "Waiting ";
     wait_all(reqs, nblocks);
 
     for (size_t i = 0; i < nblocks; ++i)
@@ -89,20 +87,22 @@ TEST(BlockManager, Test1) {
 
     delete[] reqs;
 
-#if 0
-    // variable-size blocks, not supported currently
+    {
+        // variable-size blocks
 
-    BIDArray<0> vbids(nblocks);
-    for (i = 0; i < nblocks; i++)
-        vbids[i].size = 1024 + i;
+        io::BIDArray<0> vbids(nblocks);
+        for (size_t i = 0; i < nblocks; i++)
+            vbids[i].size = 1024 + i;
 
-    bm->new_blocks(striping(), vbids.begin(), vbids.end());
+        bm->new_blocks(io::Striping(), vbids.begin(), vbids.end());
 
-    for (i = 0; i < nblocks; i++)
-        LOG1 << "Allocated block: offset=" << vbids[i].offset << ", size=" << vbids[i].size;
+        for (size_t i = 0; i < nblocks; i++) {
+            LOG << "Allocated block: offset=" << vbids[i].offset
+                << ", size=" << vbids[i].size;
+        }
 
-    bm->delete_blocks(vbids.begin(), vbids.end());
-#endif
+        bm->delete_blocks(vbids.begin(), vbids.end());
+    }
 }
 
 TEST(BlockManager, Test2) {
@@ -126,7 +126,7 @@ TEST(BlockManager, Test2) {
 }
 
 TEST(BlockManager, Test3) {
-    static constexpr bool debug = true;
+    static constexpr bool debug = false;
 
     using block_type = io::TypedBlock<BLOCK_SIZE, int>;
 

@@ -20,6 +20,7 @@
 #include <thrill/api/groupby_iterator.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/group.hpp>
 
@@ -106,8 +107,10 @@ public:
         unsorted_file_ = file;
         local_items_ = unsorted_file_.num_items();
 
-        sLOG << "Pick" << wanted_sample_size() << "samples by random access.";
-        for (size_t i = 0; i < wanted_sample_size(); ++i) {
+        size_t pick_items = std::min(local_items_, wanted_sample_size());
+
+        sLOG << "Pick" << pick_items << "samples by random access.";
+        for (size_t i = 0; i < pick_items; ++i) {
             size_t index = rng_() % local_items_;
             sLOG << "got index[" << i << "] = " << index;
             samples_.emplace_back(
@@ -135,8 +138,36 @@ public:
         MainOp();
     }
 
+    DIAMemUse PushDataMemUse() final {
+        if (files_.size() <= 1) {
+            // direct push, no merge necessary
+            return 0;
+        }
+        else {
+            // need to perform multiway merging
+            return DIAMemUse::Max();
+        }
+    }
+
+    //! calculate maximum merging degree from available memory and the number of
+    //! files. additionally calculate the prefetch size of each File.
+    std::pair<size_t, size_t> MaxMergeDegreePrefetch() {
+        size_t avail_blocks = DIABase::mem_limit_ / data::default_block_size;
+        if (files_.size() >= avail_blocks) {
+            // more files than blocks available -> partial merge of avail_blocks
+            // Files with prefetch = 0, which is one read Block per File.
+            return std::make_pair(avail_blocks, 0u);
+        }
+        else {
+            // less files than available Blocks -> split blocks equally among
+            // Files.
+            return std::make_pair(
+                files_.size(),
+                std::max<size_t>(16u, (avail_blocks / files_.size()) - 1));
+        }
+    }
+
     void PushData(bool consume) final {
-        assert(merge_degree_ > 1);
         if (files_.size() == 0) {
             // nothing to push
         }
@@ -144,20 +175,22 @@ public:
             this->PushFile(files_[0], consume);
         }
         else {
-            sLOG1 << "Start multi-way-merge with" << files_.size() << "files";
+            size_t merge_degree, prefetch;
 
             // merge batches of files if necessary
-            while (files_.size() > merge_degree_)
+            while (files_.size() > MaxMergeDegreePrefetch().first)
             {
-                sLOG1 << "Partial multi-way-merge with"
-                      << size_t(merge_degree_) << "files";
+                std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch();
+
+                sLOG1 << "Partial multi-way-merge of"
+                      << merge_degree << "files with prefetch" << prefetch;
 
                 // create merger for first merge_degree_ Files
                 std::vector<data::File::ConsumeReader> seq;
-                seq.reserve(merge_degree_);
+                seq.reserve(merge_degree);
 
-                for (size_t t = 0; t < merge_degree_; ++t)
-                    seq.emplace_back(files_[t].GetConsumeReader());
+                for (size_t t = 0; t < merge_degree; ++t)
+                    seq.emplace_back(files_[t].GetConsumeReader(prefetch));
 
                 auto puller = core::make_multiway_merge_tree<ValueType>(
                     seq.begin(), seq.end(), compare_function_);
@@ -175,15 +208,20 @@ public:
                 seq.clear();
 
                 // remove merged files
-                files_.erase(files_.begin(), files_.begin() + merge_degree_);
+                files_.erase(files_.begin(), files_.begin() + merge_degree);
             }
+
+            std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch();
+
+            sLOG1 << "Start multi-way-merge of" << files_.size() << "files"
+                  << "with prefetch" << prefetch;
 
             // construct output merger of remaining Files
             std::vector<data::File::ConsumeReader> seq;
             seq.reserve(files_.size());
 
             for (size_t t = 0; t < files_.size(); ++t)
-                seq.emplace_back(files_[t].GetConsumeReader());
+                seq.emplace_back(files_[t].GetConsumeReader(prefetch));
 
             auto puller = core::make_multiway_merge_tree<ValueType>(
                 seq.begin(), seq.end(), compare_function_);
@@ -226,9 +264,6 @@ private:
     }
 
     //! }
-
-    //! Maximum merging degree
-    static constexpr size_t merge_degree_ = 64;
 
     //! Local data files
     std::deque<data::File> files_;
@@ -295,7 +330,6 @@ private:
         }
 
         void recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
-
             // pick middle element as splitter
             ValueType* mid = lo + (ssize_t)(hi - lo) / 2;
             assert(mid < samples_ + ssplitter_);
@@ -440,28 +474,44 @@ private:
         std::vector<ValueType>& vec, std::deque<data::File>& files) {
 
         LOG1 << "SortAndWriteToFile() " << vec.size()
-             << " into file #" << files.size();
+             << " items into file #" << files.size();
 
+        size_t vec_size = vec.size();
         local_out_size_ += vec.size();
 
-        common::StatsTimerStart timer;
+        // advice block pool to write out data if necessary
+        context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
 
+        common::StatsTimerStart sort_time;
         std::sort(vec.begin(), vec.end(), compare_function_);
+        sort_time.Stop();
 
-        LOG << "SortAndWriteToFile() sort took " << timer;
+        LOG << "SortAndWriteToFile() sort took " << time;
+
+        common::StatsTimerStart write_time;
 
         files.emplace_back(context_.GetFile());
         auto writer = files.back().GetWriter();
-        for (const ValueType& ele : vec) {
-            writer.Put(ele);
+        for (const ValueType& elem : vec) {
+            writer.Put(elem);
         }
         writer.Close();
+
+        write_time.Stop();
 
         LOG << "SortAndWriteToFile() finished writing files";
 
         vec.clear();
 
         LOG << "SortAndWriteToFile() vector cleared";
+
+        Super::logger_
+            << "class" << "SortNode"
+            << "event" << "write_file"
+            << "file_num" << (files.size() - 1)
+            << "items" << vec_size
+            << "sort_time" << sort_time
+            << "write_time" << write_time;
     }
 
     void MainOp() {
@@ -515,26 +565,28 @@ private:
 
         // code from SS2NPartition, slightly altered
 
-        ValueType* splitter_tree = new ValueType[workers_algo + 1];
+        std::vector<ValueType> splitter_tree(workers_algo + 1);
 
         // add sentinel splitters if fewer nodes than splitters.
         for (size_t i = num_total_workers; i < workers_algo; i++) {
             splitters.push_back(splitters.back());
         }
 
-        TreeBuilder(splitter_tree,
+        TreeBuilder(splitter_tree.data(),
                     splitters.data(),
                     splitter_count_algo);
 
         data::MixStreamPtr data_stream = context_.GetNewMixStream();
 
         // launch receiver thread.
-        std::thread thread = std::thread(
-            [this, &data_stream]() { return ReceiveItems(data_stream); });
+        std::thread thread = common::CreateThread(
+            [this, &data_stream]() {
+                return ReceiveItems(data_stream);
+            });
 
         TransmitItems(
-            splitter_tree, // Tree. sizeof |splitter|
-            workers_algo,  // Number of buckets
+            splitter_tree.data(), // Tree. sizeof |splitter|
+            workers_algo,         // Number of buckets
             ceil_log,
             num_total_workers,
             splitters.data(),
@@ -542,7 +594,7 @@ private:
             total_items,
             data_stream);
 
-        delete[] splitter_tree;
+        std::vector<ValueType>().swap(splitter_tree);
 
         thread.join();
 
@@ -575,7 +627,7 @@ private:
         LOG << "Writing files";
 
         // M/2 such that the other half is used to prepare the next bulk
-        size_t capacity = DIABase::mem_limit_ / sizeof(ValueType);
+        size_t capacity = DIABase::mem_limit_ / sizeof(ValueType) / 2;
         std::vector<ValueType> temp_data;
         temp_data.reserve(capacity);
 

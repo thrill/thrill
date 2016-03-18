@@ -23,17 +23,17 @@ TEST(IO_ConfigFile, Test1) {
 
     io::DiskConfig cfg;
 
-    cfg.parse_line("disk=/var/tmp/stxxl.tmp, 100 GiB , syscall unlink direct=on");
+    cfg.parse_line("disk=/var/tmp/thrill.tmp, 100 GiB , syscall unlink direct=on");
 
-    die_unequal(cfg.path, "/var/tmp/stxxl.tmp");
+    die_unequal(cfg.path, "/var/tmp/thrill.tmp");
     die_unequal(cfg.size, 100 * 1024 * 1024 * uint64_t(1024));
     die_unequal(cfg.fileio_string(), "syscall direct=on unlink_on_open");
 
     // test disk_config parser:
 
-    cfg.parse_line("disk=/var/tmp/stxxl.tmp, 100 , wincall queue=5 delete_on_exit direct=on");
+    cfg.parse_line("disk=/var/tmp/thrill.tmp, 100 , wincall queue=5 delete_on_exit direct=on");
 
-    die_unequal(cfg.path, "/var/tmp/stxxl.tmp");
+    die_unequal(cfg.path, "/var/tmp/thrill.tmp");
     die_unequal(cfg.size, 100 * 1024 * uint64_t(1024));
     die_unequal(cfg.fileio_string(), "wincall delete_on_exit direct=on queue=5");
     die_unequal(cfg.queue, 5);
@@ -42,11 +42,11 @@ TEST(IO_ConfigFile, Test1) {
     // bad configurations
 
     die_unless_throws(
-        cfg.parse_line("disk=/var/tmp/stxxl.tmp, 100 GiB, wincall_fileperblock unlink direct=on"),
+        cfg.parse_line("disk=/var/tmp/thrill.tmp, 100 GiB, wincall_fileperblock unlink direct=on"),
         std::runtime_error);
 
     die_unless_throws(
-        cfg.parse_line("disk=/var/tmp/stxxl.tmp,0x,syscall"),
+        cfg.parse_line("disk=/var/tmp/thrill.tmp,0x,syscall"),
         std::runtime_error);
 }
 
@@ -58,12 +58,12 @@ TEST(IO_ConfigFile, Test2) {
     io::Config* config = io::Config::get_instance();
 
     {
-        io::DiskConfig disk1("/tmp/stxxl-1.tmp", 100 * 1024 * 1024,
+        io::DiskConfig disk1("/tmp/thrill-1.tmp", 100 * 1024 * 1024,
                              "syscall");
         disk1.unlink_on_open = true;
         disk1.direct = io::DiskConfig::DIRECT_OFF;
 
-        die_unequal(disk1.path, "/tmp/stxxl-1.tmp");
+        die_unequal(disk1.path, "/tmp/thrill-1.tmp");
         die_unequal(disk1.size, 100 * 1024 * uint64_t(1024));
         die_unequal(disk1.autogrow, 1);
         die_unequal(disk1.fileio_string(),
@@ -71,11 +71,11 @@ TEST(IO_ConfigFile, Test2) {
 
         config->add_disk(disk1);
 
-        io::DiskConfig disk2("/tmp/stxxl-2.tmp", 200 * 1024 * 1024,
+        io::DiskConfig disk2("/tmp/thrill-2.tmp", 200 * 1024 * 1024,
                              "syscall autogrow=no direct=off");
         disk2.unlink_on_open = true;
 
-        die_unequal(disk2.path, "/tmp/stxxl-2.tmp");
+        die_unequal(disk2.path, "/tmp/thrill-2.tmp");
         die_unequal(disk2.size, 200 * 1024 * uint64_t(1024));
         die_unequal(disk2.fileio_string(),
                     "syscall autogrow=no direct=off unlink_on_open");

@@ -32,7 +32,7 @@ namespace mem {
  * Storage area allocated on the stack and usable by a StackAllocator.
  */
 template <size_t Size>
-class Arena
+class StackArena
 {
     static constexpr size_t alignment = 16;
 
@@ -48,16 +48,17 @@ class Arena
 
 public:
     //! default constructor: free pointer at the beginning.
-    Arena() noexcept : ptr_(buf_) { }
+    StackArena() noexcept : ptr_(buf_) { }
 
     //! destructor clears ptr_ for debugging.
-    ~Arena() { ptr_ = nullptr; }
+    ~StackArena() { ptr_ = nullptr; }
 
-    Arena(const Arena&) = delete;
-    Arena& operator = (const Arena&) = delete;
+    StackArena(const StackArena&) = delete;
+    StackArena& operator = (const StackArena&) = delete;
 
     char * allocate(size_t n) {
-        assert(pointer_in_buffer(ptr_) && "StackAllocator has outlived Arena");
+        assert(pointer_in_buffer(ptr_) &&
+               "StackAllocator has outlived StackArena");
 
         // try to allocate from stack memory area
         if (buf_ + Size >= ptr_ + n) {
@@ -70,7 +71,8 @@ public:
     }
 
     void deallocate(char* p, size_t n) noexcept {
-        assert(pointer_in_buffer(ptr_) && "StackAllocator has outlived Arena");
+        assert(pointer_in_buffer(ptr_) &&
+               "StackAllocator has outlived StackArena");
         if (pointer_in_buffer(p)) {
             // free memory area (only works for a stack-ordered
             // allocations/deallocations).
@@ -85,14 +87,14 @@ public:
     //! size of memory area
     static constexpr size_t size() { return Size; }
 
-    //! return number of bytes used in Arena
+    //! return number of bytes used in StackArena
     size_t used() const { return static_cast<size_t>(ptr_ - buf_); }
 
     //! reset memory area
     void reset() { ptr_ = buf_; }
 };
 
-template <class Type, size_t Size>
+template <typename Type, size_t Size>
 class StackAllocator : public AllocatorBase<Type>
 {
 public:
@@ -108,18 +110,18 @@ public:
     using is_always_equal = std::false_type;
 
     //! required rebind.
-    template <class Other>
+    template <typename Other>
     struct rebind { using other = StackAllocator<Other, Size>; };
 
     //! default constructor to invalid arena
     StackAllocator() : arena_(nullptr) { }
 
     //! constructor with explicit arena reference
-    explicit StackAllocator(Arena<Size>& arena) noexcept
+    explicit StackAllocator(StackArena<Size>& arena) noexcept
         : arena_(&arena) { }
 
     //! constructor from another allocator with same arena size
-    template <class Other>
+    template <typename Other>
     StackAllocator(const StackAllocator<Other, Size>& other) noexcept
         : arena_(other.arena_) { }
 
@@ -157,11 +159,11 @@ public:
         return Size != OtherSize || arena_ != other.arena_;
     }
 
-    template <class Other, size_t OtherSize>
+    template <typename Other, size_t OtherSize>
     friend class StackAllocator;
 
 private:
-    Arena<Size>* arena_;
+    StackArena<Size>* arena_;
 };
 
 } // namespace mem

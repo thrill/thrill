@@ -37,21 +37,23 @@ File::DynWriter File::GetDynWriter(size_t block_size) {
     return DynWriter(this, block_size);
 }
 
-File::KeepReader File::GetKeepReader() const {
-    return KeepReader(KeepFileBlockSource(*this, local_worker_id_));
+File::KeepReader File::GetKeepReader(size_t num_prefetch) const {
+    return KeepReader(
+        KeepFileBlockSource(*this, local_worker_id_, num_prefetch));
 }
 
-File::ConsumeReader File::GetConsumeReader() {
-    return ConsumeReader(ConsumeFileBlockSource(this, local_worker_id_));
+File::ConsumeReader File::GetConsumeReader(size_t num_prefetch) {
+    return ConsumeReader(
+        ConsumeFileBlockSource(this, local_worker_id_, num_prefetch));
 }
 
-File::Reader File::GetReader(bool consume) {
+File::Reader File::GetReader(bool consume, size_t num_prefetch) {
     if (consume)
         return ConstructDynBlockReader<ConsumeFileBlockSource>(
-            this, local_worker_id_);
+            this, local_worker_id_, num_prefetch);
     else
         return ConstructDynBlockReader<KeepFileBlockSource>(
-            *this, local_worker_id_);
+            *this, local_worker_id_, num_prefetch);
 }
 
 std::string File::ReadComplete() const {

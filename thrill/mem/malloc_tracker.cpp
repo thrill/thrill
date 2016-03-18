@@ -27,6 +27,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <mutex>
+#include <utility>
 
 #if defined(__clang__) || defined (__GNUC__)
 
@@ -57,6 +59,9 @@ static constexpr int log_operations = 0; //! <-- set this to 1 for log output
 static constexpr size_t log_operations_threshold = 100000;
 
 #define LOG_MALLOC_PROFILER 0
+
+// enable checking of bypass_malloc() and bypass_free() pairing
+#define BYPASS_CHECKER 0
 
 /******************************************************************************/
 // variables of malloc tracker
@@ -150,9 +155,11 @@ bool memory_exceeded = false;
 size_t memory_limit_indication = std::numeric_limits<size_t>::max();
 
 // prototype for profiling
+ATTRIBUTE_NO_SANITIZE
 static void update_memprofile(
     size_t float_current, size_t base_current, bool flush = false);
 
+ATTRIBUTE_NO_SANITIZE
 void update_peak(size_t float_curr, size_t base_curr) {
     if (float_curr + base_curr > peak_bytes)
         peak_bytes = float_curr + base_curr;
@@ -206,8 +213,8 @@ size_t malloc_tracker_total_allocs() {
 
 //! user function which prints current and peak allocation to stderr
 void malloc_tracker_print_status() {
-    fprintf(stderr, PPREFIX "current %zu, peak %zu\n",
-            get(float_curr), get(peak_bytes));
+    fprintf(stderr, PPREFIX "floating %zu, peak %zu, base %zu\n",
+            get(float_curr), get(peak_bytes), get(base_curr));
 }
 
 void set_memory_limit_indication(size_t size) {
@@ -229,9 +236,12 @@ static long long memprofile_last_update = 0;
 struct OhlcBar {
     size_t open, high, low, close;
 
+    ATTRIBUTE_NO_SANITIZE
     void   init(size_t current) {
         open = high = low = close = current;
     }
+
+    ATTRIBUTE_NO_SANITIZE
     void   aggregate(size_t current) {
         high = std::max(high, current);
         low = std::min(low, current);
@@ -242,6 +252,7 @@ struct OhlcBar {
 // Two Ohlc bars: for free floating memory and for Thrill base memory.
 static OhlcBar mp_float, mp_base;
 
+ATTRIBUTE_NO_SANITIZE
 static void init_memprofile() {
 
     // parse environment: THRILL_MEMPROFILE
@@ -267,6 +278,7 @@ static void init_memprofile() {
     enable_memprofile = true;
 }
 
+ATTRIBUTE_NO_SANITIZE
 static void update_memprofile(
     size_t float_current, size_t base_current, bool flush) {
 
@@ -376,9 +388,40 @@ static __attribute__ ((destructor)) void finish() { // NOLINT
 /******************************************************************************/
 // Functions to bypass the malloc tracker
 
+#if !defined(NDEBUG) && BYPASS_CHECKER
+static constexpr size_t kBypassCheckerSize = 1024 * 1024;
+static std::pair<void*, size_t> s_bypass_checker[kBypassCheckerSize];
+static std::mutex s_bypass_mutex;
+#endif
+
 //! bypass malloc tracker and access malloc() directly
 ATTRIBUTE_NO_SANITIZE
 void * bypass_malloc(size_t size) noexcept {
+#if defined(_MSC_VER)
+    void* ptr = malloc(size);
+#else
+    void* ptr = real_malloc(size);
+#endif
+    if (!ptr) {
+        fprintf(stderr, PPREFIX "bypass_malloc(%zu size) = %p   (current %zu / %zu)\n",
+                size, ptr, get(float_curr), get(base_curr));
+        return ptr;
+    }
+
+#if !defined(NDEBUG) && BYPASS_CHECKER
+    {
+        std::unique_lock<std::mutex> lock(s_bypass_mutex);
+        size_t i;
+        for (i = 0; i < kBypassCheckerSize; ++i) {
+            if (s_bypass_checker[i].first != nullptr) continue;
+            s_bypass_checker[i].first = ptr;
+            s_bypass_checker[i].second = size;
+            break;
+        }
+        if (i == kBypassCheckerSize) abort();
+    }
+#endif
+
     size_t mycurr = sync_add_and_fetch(base_curr, size);
 
     total_bytes += size;
@@ -389,16 +432,38 @@ void * bypass_malloc(size_t size) noexcept {
 
     update_memprofile(get(float_curr), mycurr);
 
-#if defined(_MSC_VER)
-    return malloc(size);
-#else
-    return real_malloc(size);
-#endif
+    return ptr;
 }
 
 //! bypass malloc tracker and access free() directly
 ATTRIBUTE_NO_SANITIZE
 void bypass_free(void* ptr, size_t size) noexcept {
+
+#if !defined(NDEBUG) && BYPASS_CHECKER
+    {
+        std::unique_lock<std::mutex> lock(s_bypass_mutex);
+        size_t i;
+        for (i = 0; i < kBypassCheckerSize; ++i) {
+            if (s_bypass_checker[i].first != ptr) continue;
+
+            if (s_bypass_checker[i].second == size) {
+                s_bypass_checker[i].first = nullptr;
+                break;
+            }
+
+            printf(PPREFIX "bypass_free() checker: "
+                   "ptr %p size %zu mismatches allocation of %zu\n",
+                   ptr, size, s_bypass_checker[i].second);
+            abort();
+        }
+        if (i == kBypassCheckerSize) {
+            printf(PPREFIX "bypass_free() checker: "
+                   "ptr = %p size %zu was not found\n", ptr, size);
+            abort();
+        }
+    }
+#endif
+
     size_t mycurr = sync_sub_and_fetch(base_curr, size);
 
     sync_sub_and_fetch(current_allocs, 1);
@@ -547,6 +612,11 @@ void * malloc(size_t size) NOEXCEPT {
 
     //! call real malloc procedure in libc
     void* ret = (*real_malloc)(size);
+    if (!ret) {
+        fprintf(stderr, PPREFIX "malloc(%zu size) = %p   (current %zu / %zu)\n",
+                size, ret, get(float_curr), get(base_curr));
+        return nullptr;
+    }
 
     size_t size_used = MALLOC_USABLE_SIZE(ret);
     inc_count(size_used);
@@ -661,6 +731,7 @@ ATTRIBUTE_NO_SANITIZE
 void * calloc(size_t nmemb, size_t size) NOEXCEPT {
     size *= nmemb;
     void* ret = malloc(size);
+    if (!ret) return ret;
     memset(ret, 0, size);
     return ret;
 }
@@ -688,22 +759,25 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     dec_count(oldsize_used);
 
     void* newptr = (*real_realloc)(ptr, size);
+    if (!newptr) return nullptr;
 
     size_t newsize_used = MALLOC_USABLE_SIZE(newptr);
     inc_count(newsize_used);
 
     if (log_operations && newsize_used >= log_operations_threshold)
     {
-        if (newptr == ptr)
+        if (newptr == ptr) {
             fprintf(stderr, PPREFIX
                     "realloc(%zu -> %zu / %zu) = %p   (current %zu / %zu)\n",
                     oldsize_used, size, newsize_used, newptr,
                     get(float_curr), get(base_curr));
-        else
+        }
+        else {
             fprintf(stderr, PPREFIX
                     "realloc(%zu -> %zu / %zu) = %p -> %p   (current %zu / %zu)\n",
                     oldsize_used, size, newsize_used, ptr, newptr,
                     get(float_curr), get(base_curr));
+        }
     }
 
     return newptr;
@@ -789,6 +863,7 @@ void * calloc(size_t nmemb, size_t size) NOEXCEPT {
     size *= nmemb;
     if (!size) return nullptr;
     void* ret = malloc(size);
+    if (!ret) return ret;
     memset(ret, 0, size);
     return ret;
 }

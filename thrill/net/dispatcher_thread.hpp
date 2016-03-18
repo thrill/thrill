@@ -32,21 +32,23 @@ namespace net {
 //! \{
 
 //! Signature of timer callbacks.
-using TimerCallback = common::delegate<bool()>;
+using TimerCallback = common::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async connection readability/writability callbacks.
-using AsyncCallback = common::delegate<bool()>;
+using AsyncCallback = common::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read callbacks.
 using AsyncReadCallback = common::delegate<
-          void(Connection& c, Buffer&& buffer)>;
+          void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
 using AsyncReadByteBlockCallback = common::delegate<
-          void(Connection& c, data::PinnedByteBlockPtr&& block)>;
+          void(Connection& c, data::PinnedByteBlockPtr&& block),
+          mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
-using AsyncWriteCallback = common::delegate<void(Connection&)>;
+using AsyncWriteCallback = common::delegate<
+          void(Connection&), mem::GPoolAllocator<char> >;
 
 /**
  * DispatcherThread contains a net::Dispatcher object and an associated thread
@@ -58,11 +60,11 @@ class DispatcherThread
 
 public:
     //! Signature of async jobs to be run by the dispatcher thread.
-    using Job = common::ThreadPool::Job;
+    using Job = common::delegate<void(), mem::GPoolAllocator<char> >;
 
     DispatcherThread(
         mem::Manager& mem_manager,
-        mem::unique_ptr<class Dispatcher>&& dispatcher,
+        std::unique_ptr<class Dispatcher>&& dispatcher,
         const mem::by_string& thread_name);
 
     DispatcherThread(
@@ -79,12 +81,14 @@ public:
     //! Terminate the dispatcher thread (if now already done).
     void Terminate();
 
+    // *** note that callbacks are passed by value, because they must be copied
+    // *** into the closured by the methods. -tb
+
     //! \name Timeout Callbacks
     //! \{
 
     //! Register a relative timeout callback
-    void AddTimer(const std::chrono::milliseconds& timeout,
-                  const TimerCallback& cb);
+    void AddTimer(std::chrono::milliseconds timeout, TimerCallback cb);
 
     //! \}
 
@@ -92,10 +96,10 @@ public:
     //! \{
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, const AsyncCallback& read_cb);
+    void AddRead(Connection& c, AsyncCallback read_cb);
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, const AsyncCallback& write_cb);
+    void AddWrite(Connection& c, AsyncCallback write_cb);
 
     //! Cancel all callbacks on a given connection.
     void Cancel(Connection& c);
@@ -127,13 +131,15 @@ public:
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
-    void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
-                        AsyncWriteCallback done_cb = AsyncWriteCallback());
+    void AsyncWriteCopy(
+        Connection& c, const void* buffer, size_t size,
+        AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
-    void AsyncWriteCopy(Connection& c, const std::string& str,
-                        AsyncWriteCallback done_cb = AsyncWriteCallback());
+    void AsyncWriteCopy(
+        Connection& c, const std::string& str,
+        AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! \}
 
@@ -160,7 +166,7 @@ private:
     std::thread thread_;
 
     //! enclosed dispatcher.
-    mem::unique_ptr<class Dispatcher> dispatcher_;
+    std::unique_ptr<class Dispatcher> dispatcher_;
 
     //! termination flag
     std::atomic<bool> terminate_ { false };

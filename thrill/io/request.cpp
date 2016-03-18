@@ -17,6 +17,7 @@
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <ostream>
 
@@ -27,7 +28,7 @@ namespace io {
 
 Request::Request(
     const CompletionHandler& on_complete,
-    io::FileBase* file,
+    const FileBasePtr& file,
     void* buffer,
     offset_type offset,
     size_type bytes,
@@ -38,12 +39,12 @@ Request::Request(
       offset_(offset),
       bytes_(bytes),
       type_(type) {
-    LOG << "request::(...), ref_cnt=" << reference_count();
-    file_->add_request_ref();
+    LOG << "Request::(...), ref_cnt=" << reference_count();
 }
 
 Request::~Request() {
-    LOG << "request::~request(), ref_cnt=" << reference_count();
+    LOG << "Request::~Request()"
+        << " ref_cnt=" << reference_count() << " state_=" << state_();
     assert(state_() == DONE || state_() == READY2DIE);
 }
 
@@ -88,48 +89,31 @@ std::ostream& Request::print(std::ostream& out) const {
     return out;
 }
 
-/******************************************************************************/
-// Waiters
+std::ostream& operator << (std::ostream& out, const Request& req) {
+    return req.print(out);
+}
 
-bool Request::add_waiter(common::onoff_switch* sw) {
-    // this lock needs to be obtained before poll(), otherwise a race
-    // condition might occur: the state might change and notify_waiters()
-    // could be called between poll() and insert() resulting in waiter sw
-    // never being notified
-    std::unique_lock<std::mutex> lock(waiters_mutex_);
-
-    if (poll()) {
-        // request already finished
-        return true;
+void RequestDeleter(Request* req) {
+    // switch between virtual subclasses to make g_pool get the right size of
+    // req's object.
+    if (ServingRequest* r = dynamic_cast<ServingRequest*>(req)) {
+        mem::GPool().destroy(r);
     }
-
-    waiters_.insert(sw);
-
-    return false;
-}
-
-void Request::delete_waiter(common::onoff_switch* sw) {
-    std::unique_lock<std::mutex> lock(waiters_mutex_);
-    waiters_.erase(sw);
-}
-
-void Request::notify_waiters() {
-    std::unique_lock<std::mutex> lock(waiters_mutex_);
-    std::for_each(waiters_.begin(),
-                  waiters_.end(),
-                  std::mem_fun(&common::onoff_switch::on));
-}
-
-size_t Request::num_waiters() {
-    std::unique_lock<std::mutex> lock(waiters_mutex_);
-    return waiters_.size();
+#if THRILL_HAVE_LINUXAIO_FILE
+    else if (LinuxaioRequest* r = dynamic_cast<LinuxaioRequest*>(req)) {
+        mem::GPool().destroy(r);
+    }
+#endif
+    else {
+        abort();
+    }
 }
 
 /******************************************************************************/
 // Request Completion State
 
 void Request::wait(bool measure_time) {
-    LOG << "request::wait()";
+    LOG << "Request::wait()";
 
     Stats::scoped_wait_timer wait_timer(
         type_ == READ ? Stats::WAIT_OP_READ : Stats::WAIT_OP_WRITE,
@@ -143,20 +127,17 @@ void Request::wait(bool measure_time) {
 bool Request::cancel() {
     LOG << "request::cancel() " << file_ << " " << buffer_ << " " << offset_;
 
-    if (file_) {
-        RequestPtr rp(this);
-        if (DiskQueues::get_instance()->cancel_request(rp, file_->get_queue_id()))
-        {
-            state_.set_to(DONE);
-            // user callback
-            if (on_complete_)
-                on_complete_(this, false);
-            notify_waiters();
-            file_->delete_request_ref();
-            file_ = nullptr;
-            state_.set_to(READY2DIE);
-            return true;
-        }
+    if (!file_) return false;
+
+    if (DiskQueues::get_instance()->cancel_request(this, file_->get_queue_id()))
+    {
+        state_.set_to(DONE);
+        // user callback
+        if (on_complete_)
+            on_complete_(this, false);
+        file_.reset();
+        state_.set_to(READY2DIE);
+        return true;
     }
     return false;
 }
@@ -170,16 +151,14 @@ bool Request::poll() {
 }
 
 void Request::completed(bool canceled) {
-    LOG << "request::completed()";
+    LOG << "Request::completed()";
     // change state
     state_.set_to(DONE);
     // user callback
     if (on_complete_)
         on_complete_(this, !canceled);
     // notify waiters
-    notify_waiters();
-    file_->delete_request_ref();
-    file_ = nullptr;
+    file_.reset();
     state_.set_to(READY2DIE);
 }
 

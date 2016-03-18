@@ -8,9 +8,10 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/mem/stack_allocator.hpp>
+
 #include <gtest/gtest.h>
 #include <thrill/common/logger.hpp>
-#include <thrill/mem/stack_allocator.hpp>
 
 #include <deque>
 #include <string>
@@ -28,7 +29,7 @@ TEST(StackAllocator, Test1) {
 
     LOG << "string";
     {
-        mem::Arena<128> arena;
+        mem::StackArena<128> arena;
         const char* text = "abcdefghijklmnopqrstuvwxyz";
         {
             s_string str(text, CharAlloc(arena));
@@ -40,7 +41,7 @@ TEST(StackAllocator, Test1) {
     }
     LOG << "vector";
     {
-        mem::Arena<128> arena;
+        mem::StackArena<128> arena;
         std::vector<int, IntAlloc> my_vector {
             IntAlloc(arena)
         };
@@ -56,7 +57,7 @@ TEST(StackAllocator, Test1) {
     }
     LOG << "deque";
     {
-        mem::Arena<128> arena;
+        mem::StackArena<128> arena;
         std::deque<int, IntAlloc> my_deque {
             IntAlloc(arena)
         };
@@ -76,7 +77,7 @@ namespace thrill {
 namespace mem {
 
 // forced instantiations
-template class Arena<128>;
+template class StackArena<128>;
 template class StackAllocator<int, 128>;
 
 } // namespace mem

@@ -18,6 +18,8 @@
 #include <thrill/io/request_operations.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 
+static constexpr bool debug = false;
+
 using namespace thrill;
 
 int main(int argc, char** argv) {
@@ -32,10 +34,10 @@ int main(int argc, char** argv) {
 
     try
     {
-        std::unique_ptr<io::FileBase> file(
+        io::FileBasePtr file =
             io::CreateFile(
                 argv[1], argv[2],
-                io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT));
+                io::FileBase::CREAT | io::FileBase::RDWR | io::FileBase::DIRECT);
         file->set_size(max_size);
 
         io::RequestPtr req;
@@ -47,7 +49,7 @@ int main(int argc, char** argv) {
                 buffer[i] = i;
 
             // write
-            LOG1 << common::FormatIecUnits(size) << "B are being written at once";
+            LOG << common::FormatIecUnits(size) << "B are being written at once";
             req = file->awrite(buffer, 0, size);
             wait_all(&req, 1);
 
@@ -56,7 +58,7 @@ int main(int argc, char** argv) {
                 buffer[i] = 0xFFFFFFFFFFFFFFFFull;
 
             // read again
-            LOG1 << common::FormatIecUnits(size) << "B are being read at once";
+            LOG << common::FormatIecUnits(size) << "B are being read at once";
             req = file->aread(buffer, 0, size);
             wait_all(&req, 1);
 
@@ -65,7 +67,7 @@ int main(int argc, char** argv) {
             for (uint64_t i = 0; i < size / sizeof(uint64_t); ++i) {
                 if (buffer[i] != i)
                 {
-                    LOG1 << "Read inconsistent data at position " << i * sizeof(uint64_t);
+                    LOG << "Read inconsistent data at position " << i * sizeof(uint64_t);
                     wrong = true;
                     break;
                 }

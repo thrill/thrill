@@ -67,12 +67,12 @@ public:
     }
 
     //! Returns the net::Group for the flow control channel.
-    Group & GetFlowGroup() {
+    Group& GetFlowGroup() {
         return *groups_[0];
     }
 
     //! Returns the net::Group for the data manager.
-    Group & GetDataGroup() {
+    Group& GetDataGroup() {
         return *groups_[1];
     }
 

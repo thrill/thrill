@@ -33,7 +33,7 @@ namespace data {
  * deterministically (the repository will issue the same id sequence to all
  * workers).  Objects are created inplace via argument forwarding.
  */
-template <class Object>
+template <typename Object>
 class Repository
 {
 public:
@@ -86,7 +86,7 @@ public:
     }
 
     //! return mutable reference to map of objects.
-    std::map<Id, ObjectPtr> & map() { return map_; }
+    std::map<Id, ObjectPtr>& map() { return map_; }
 
 private:
     //! Next ID to generate, one for each local worker.

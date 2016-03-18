@@ -56,7 +56,7 @@ public:
         size_t num_hosts);
 
     /*!
-     * Construct a test network with an underlying full mesh of _REAL_ tcp
+     * Construct a test network with an underlying full mesh of *REAL* tcp
      * streams interconnected via localhost ports.
      */
     static std::vector<std::unique_ptr<Group> > ConstructLocalRealTCPMesh(
@@ -82,7 +82,7 @@ public:
     //! \{
 
     //! Return Connection to client id.
-    Connection & tcp_connection(size_t id) {
+    Connection& tcp_connection(size_t id) {
         if (id >= connections_.size())
             throw Exception("Group::Connection() requested "
                             "invalid client id " + std::to_string(id));
@@ -95,11 +95,11 @@ public:
         return connections_[id];
     }
 
-    net::Connection & connection(size_t id) final {
+    net::Connection& connection(size_t id) final {
         return tcp_connection(id);
     }
 
-    mem::unique_ptr<Dispatcher> ConstructDispatcher(
+    std::unique_ptr<Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const final;
 
     /**
@@ -112,7 +112,7 @@ public:
      * \return A ref to the assigned connection, which is always valid, but
      * might be different from the inut connection.
      */
-    Connection & AssignConnection(Connection& connection) {
+    Connection& AssignConnection(Connection& connection) {
         if (connection.peer_id() >= connections_.size())
             throw Exception("Group::GetClient() requested "
                             "invalid client id "

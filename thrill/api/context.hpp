@@ -83,8 +83,9 @@ public:
           logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
           mem_config_(mem_config),
           workers_per_host_(workers_per_host),
-          net_manager_(std::move(groups))
-    { }
+          net_manager_(std::move(groups)) {
+        logger_.StartProfiler();
+    }
 
     //! Construct a number of mock hosts running in this process.
     static std::vector<std::unique_ptr<HostContext> >
@@ -103,23 +104,23 @@ public:
     }
 
     //! host-global memory manager
-    mem::Manager & mem_manager() { return mem_manager_; }
+    mem::Manager& mem_manager() { return mem_manager_; }
 
     //! net manager constructs communication groups to other hosts.
-    net::Manager & net_manager() { return net_manager_; }
+    net::Manager& net_manager() { return net_manager_; }
 
     //! Returns id of this host in the cluser. A host is a machine in the
     //! cluster that hosts multiple workers
     size_t host_rank() const { return net_manager_.my_host_rank(); }
 
     //! the flow control group is used for collective communication.
-    net::FlowControlChannelManager & flow_manager() { return flow_manager_; }
+    net::FlowControlChannelManager& flow_manager() { return flow_manager_; }
 
     //! the block manager keeps all data blocks moving through the system.
-    data::BlockPool & block_pool() { return block_pool_; }
+    data::BlockPool& block_pool() { return block_pool_; }
 
     //! data multiplexer transmits large amounts of data asynchronously.
-    data::Multiplexer & data_multiplexer() { return data_multiplexer_; }
+    data::Multiplexer& data_multiplexer() { return data_multiplexer_; }
 
 public:
     //! \name Logging System
@@ -205,7 +206,7 @@ public:
           flow_manager_(host_context.flow_manager()),
           block_pool_(host_context.block_pool()),
           multiplexer_(host_context.data_multiplexer()),
-          base_logger_(MakeWorkerLogPath(my_rank())) {
+          base_logger_(&host_context.base_logger_) {
         assert(local_worker_id < workers_per_host());
     }
 
@@ -295,12 +296,12 @@ public:
     std::shared_ptr<Stream> GetNewStream();
 
     //! the block manager keeps all data blocks moving through the system.
-    data::BlockPool & block_pool() { return block_pool_; }
+    data::BlockPool& block_pool() { return block_pool_; }
 
     //! \}
 
     //! returns the host-global memory manager
-    mem::Manager & mem_manager() { return mem_manager_; }
+    mem::Manager& mem_manager() { return mem_manager_; }
 
     //! given a global range [0,global_size) and p PEs to split the range, calculate
     //! the [local_begin,local_end) index range assigned to the PE i. Takes the

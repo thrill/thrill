@@ -73,7 +73,7 @@ public:
     }
 
     //! start timer
-    StatsTimerBase & Start() {
+    StatsTimerBase& Start() {
         assert(!running_);
         running_ = true;
         last_start_ = steady_clock::now();
@@ -81,7 +81,7 @@ public:
     }
 
     //! start timer only if it not running
-    StatsTimerBase & StartEventually() {
+    StatsTimerBase& StartEventually() {
         if (!running_) {
             running_ = true;
             last_start_ = steady_clock::now();
@@ -90,7 +90,7 @@ public:
     }
 
     //! stop timer
-    StatsTimerBase & Stop() {
+    StatsTimerBase& Stop() {
         assert(running_);
         running_ = false;
         accumulated_ += std::chrono::duration_cast<duration>(
@@ -99,14 +99,14 @@ public:
     }
 
     //! stop timer if it is running
-    StatsTimerBase & StopEventually() {
+    StatsTimerBase& StopEventually() {
         if (running_)
             Stop();
         return *this;
     }
 
     //! return accumulated time
-    StatsTimerBase & Reset() {
+    StatsTimerBase& Reset() {
         accumulated_ = duration(0);
         last_start_ = steady_clock::now();
         return *this;
@@ -152,7 +152,7 @@ public:
         return os << t.Microseconds() / 1e6;
     }
 
-    friend JsonLine & Put(JsonLine& line, const StatsTimerBase& t) {
+    friend JsonLine& Put(JsonLine& line, const StatsTimerBase& t) {
         return Put(line, t.Microseconds());
     }
 };
@@ -178,27 +178,27 @@ public:
     }
 
     //! start timer
-    StatsTimerBase & Start() {
+    StatsTimerBase& Start() {
         return *this;
     }
 
     //! start timer only if it not running
-    StatsTimerBase & StartEventually() {
+    StatsTimerBase& StartEventually() {
         return *this;
     }
 
     //! stop timer
-    StatsTimerBase & Stop() {
+    StatsTimerBase& Stop() {
         return *this;
     }
 
     //! stop timer if it is running
-    StatsTimerBase & StopEventually() {
+    StatsTimerBase& StopEventually() {
         return *this;
     }
 
     //! return accumulated time
-    StatsTimerBase & Reset() {
+    StatsTimerBase& Reset() {
         return *this;
     }
 

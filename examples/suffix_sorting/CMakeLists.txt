@@ -10,6 +10,7 @@
 ################################################################################
 
 thrill_build_prog(prefix_doubling)
+thrill_build_prog(wavelet_tree)
 
 if(MSVC)
   # requires /bigobj flag to build
@@ -17,11 +18,11 @@ if(MSVC)
 endif()
 
 if(THRILL_FULL_BUILD)
-  thrill_build_prog(dc3)
+  #thrill_build_prog(dc3)
 
   if(MSVC)
     # requires /bigobj flag to build
-    set_target_properties(dc3 PROPERTIES COMPILE_FLAGS /bigobj)
+    #set_target_properties(dc3 PROPERTIES COMPILE_FLAGS /bigobj)
   endif()
 
   # tests currently fail, probably due to MergeNode -tb

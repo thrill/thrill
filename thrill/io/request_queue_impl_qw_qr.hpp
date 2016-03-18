@@ -19,6 +19,7 @@
 #define THRILL_IO_REQUEST_QUEUE_IMPL_QW_QR_HEADER
 
 #include <thrill/io/request_queue_impl_worker.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <list>
 #include <mutex>
@@ -37,19 +38,18 @@ class RequestQueueImplQwQr : public RequestQueueImplWorker
     static constexpr bool debug = false;
 
 private:
-    using self = RequestQueueImplQwQr;
-    using queue_type = std::list<RequestPtr>;
+    using Queue = std::list<RequestPtr, mem::GPoolAllocator<RequestPtr> >;
 
     std::mutex write_mutex_;
     std::mutex read_mutex_;
-    queue_type write_queue_;
-    queue_type read_queue_;
+    Queue write_queue_;
+    Queue read_queue_;
 
-    common::state<thread_state> thread_state_;
-    Thread thread_;
-    common::semaphore sem_;
+    common::SharedState<ThreadState> thread_state_;
+    std::thread thread_;
+    common::Semaphore sem_;
 
-    static constexpr priority_op priority_op_ = WRITE;
+    static constexpr PriorityOp priority_op_ = WRITE;
 
     static void * worker(void* arg);
 
@@ -61,12 +61,12 @@ public:
     // also there were race conditions possible
     // and actually an old value was never restored once a new one was set ...
     // so just disable it and all it's nice implications
-    void set_priority_op(priority_op op) final {
+    void set_priority_op(PriorityOp op) final {
         // _priority_op = op;
         common::THRILL_UNUSED(op);
     }
     void add_request(RequestPtr& req) final;
-    bool cancel_request(RequestPtr& req) final;
+    bool cancel_request(Request* req) final;
     ~RequestQueueImplQwQr();
 };
 

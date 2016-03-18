@@ -43,7 +43,7 @@ public:
     size_t total() const { return total_; }
 
     //! add memory consumption.
-    Manager & add(size_t amount) {
+    Manager& add(size_t amount) {
         size_t current = (total_ += amount);
         peak_ = std::max(peak_.load(), current);
         ++alloc_count_;
@@ -52,7 +52,7 @@ public:
     }
 
     //! subtract memory consumption.
-    Manager & subtract(size_t amount) {
+    Manager& subtract(size_t amount) {
         assert(total_ >= amount);
         total_ -= amount;
         if (super_) super_->subtract(amount);

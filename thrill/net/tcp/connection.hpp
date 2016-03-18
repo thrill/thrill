@@ -127,11 +127,11 @@ public:
     { return std::to_string(GetSocket().fd()); }
 
     //! Return the raw socket object for more low-level network programming.
-    Socket & GetSocket()
+    Socket& GetSocket()
     { return socket_; }
 
     //! Return the raw socket object for more low-level network programming.
-    const Socket & GetSocket() const
+    const Socket& GetSocket() const
     { return socket_; }
 
     //! Return the associated socket error
@@ -192,7 +192,7 @@ public:
     }
 
     //! make ostreamable
-    std::ostream & OutputOstream(std::ostream& os) const final {
+    std::ostream& OutputOstream(std::ostream& os) const final {
         os << "[tcp::Connection"
            << " fd=" << GetSocket().fd();
 

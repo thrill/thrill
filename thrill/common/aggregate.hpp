@@ -24,11 +24,11 @@ namespace common {
  * the minimum, the maximum, the average, the value number, and the standard
  * deviation is values.
  */
-template <typename _Type>
+template <typename Type_>
 class Aggregate
 {
 public:
-    using Type = _Type;
+    using Type = Type_;
 
     //! default constructor
     Aggregate() = default;
@@ -40,7 +40,7 @@ public:
           min_(min), max_(max), total_squares_(total_squares) { }
 
     //! add a value to the running aggregation
-    Aggregate & Add(const Type& value) noexcept {
+    Aggregate& Add(const Type& value) noexcept {
         count_++;
         total_ += value;
         min_ = std::min(min_, value);
@@ -53,11 +53,11 @@ public:
     size_t Count() const noexcept { return count_; }
 
     //! return sum over all values aggregated
-    const Type & Total() const noexcept { return total_; }
+    const Type& Total() const noexcept { return total_; }
 
     //! return the average over all values aggregated
     double Average() const {
-        // can't make noexcept since _Type's conversion is allowed to throw
+        // can't make noexcept since Type_'s conversion is allowed to throw
         return static_cast<double>(total_) / static_cast<double>(count_);
     }
 
@@ -65,13 +65,13 @@ public:
     double Avg() const { return Average(); }
 
     //! return minimum over all values aggregated
-    const Type & Min() const noexcept { return min_; }
+    const Type& Min() const noexcept { return min_; }
 
     //! return maximum over all values aggregated
-    const Type & Max() const noexcept { return max_; }
+    const Type& Max() const noexcept { return max_; }
 
     //! return sum over all squared values aggregated
-    const Type & TotalSquares() const noexcept { return total_squares_; }
+    const Type& TotalSquares() const noexcept { return total_squares_; }
 
     //! return the standard deviation of all values aggregated
     double StandardDeviation() const {

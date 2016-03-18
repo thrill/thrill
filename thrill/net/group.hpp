@@ -69,14 +69,14 @@ public:
     virtual size_t num_hosts() const = 0;
 
     //! Return Connection to client id.
-    virtual Connection & connection(size_t id) = 0;
+    virtual Connection& connection(size_t id) = 0;
 
     //! Close
     virtual void Close() = 0;
 
     //! Construct a network dispatcher object for this group, matching its
     //! internal implementation.
-    virtual mem::unique_ptr<class Dispatcher> ConstructDispatcher(
+    virtual std::unique_ptr<class Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const = 0;
 
     //! Number of of 1-factor iterations
