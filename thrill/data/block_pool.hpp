@@ -278,6 +278,12 @@ private:
     //! number of bytes currently being read from to EM.
     size_t reading_bytes_ = 0;
 
+    //! total number of ByteBlocks allocated
+    size_t total_byte_blocks_ = 0;
+
+    //! condition variable to wait on for ByteBlock deallocation
+    std::condition_variable cv_total_byte_blocks_;
+
     //! total number of bytes used in RAM by pinned and unpinned blocks.
     size_t total_ram_use_ = 0;
 

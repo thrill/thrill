@@ -135,10 +135,6 @@ BlockPool::~BlockPool() {
             << "BlockPool::~BlockPool() block=" << block_ptr
             << " is currently begin written to external memory, canceling.";
 
-        die_unless(!block_ptr->ext_file_);
-
-        // get reference count to request, since complete handler removes it
-        // from the map.
         lock.unlock();
         // cancel I/O request
         if (!req->cancel()) {
@@ -147,8 +143,7 @@ BlockPool::~BlockPool() {
                 << "BlockPool::~BlockPool() block=" << block_ptr
                 << " is currently begin written to external memory, cancel failed, waiting.";
 
-            // must still wait for cancellation to complete and the I/O
-            // handler.
+            // must still wait for cancellation to complete and the I/O handler.
             req->wait();
         }
         lock.lock();
@@ -156,13 +151,11 @@ BlockPool::~BlockPool() {
         LOGC(debug_em)
             << "BlockPool::PinBlock block=" << block_ptr
             << " is currently begin written to external memory, cancel/wait done.";
-
-        // recheck whether block is being written, it may have been evicting the
-        // unlocked time.
     }
 
     die_unless(writing_bytes_ == 0);
 
+    // check that not reading any block.
     while (reading_.begin() != reading_.end()) {
 
         ByteBlock* block_ptr = reading_.begin()->first;
@@ -172,21 +165,22 @@ BlockPool::~BlockPool() {
             << "BlockPool::~BlockPool() block=" << block_ptr
             << " is currently begin read from external memory, waiting.";
 
-        // get reference count to request, since complete handler removes it
-        // from the map.
         lock.unlock();
         // wait for I/O request for completion and the I/O handler.
         read->req->wait();
         lock.lock();
-
-        // recheck whether block is being read, it may have been evicting
-        // again in the unlocked time.
     }
 
     die_unless(reading_bytes_ == 0);
 
+    // wait for deletion of last ByteBlocks. this may actually be needed, when
+    // the I/O handlers have been finished, and the corresponding references are
+    // freed, but DestroyBlock() could not be called yet.
+    cv_total_byte_blocks_.wait(
+        lock, [this]() { return total_byte_blocks_ == 0; });
+
     pin_count_.AssertZero();
-    die_unless(total_ram_use_ == 0);
+    die_unequal(total_ram_use_, 0);
 
     LOGC(debug_pin)
         << "~BlockPool()"
@@ -227,6 +221,7 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     // create common::CountingPtr, no need for special make_shared()-equivalent
     PinnedByteBlockPtr block_ptr(
         mem::GPool().make<ByteBlock>(this, data, size), local_worker_id);
+    ++total_byte_blocks_;
     IntIncBlockPinCount(block_ptr.get(), local_worker_id);
 
     pin_count_.Increment(local_worker_id, size);
@@ -245,9 +240,11 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
 
 ByteBlockPtr BlockPool::MapExternalBlock(
     const io::FileBasePtr& file, int64_t offset, size_t size) {
+    std::unique_lock<std::mutex> lock(mutex_);
     // create common::CountingPtr, no need for special make_shared()-equivalent
     ByteBlockPtr block_ptr(
         mem::GPool().make<ByteBlock>(this, file, offset, size));
+    ++total_byte_blocks_;
 
     LOGC(debug_blc)
         << "BlockPool::MapExternalBlock()"
@@ -732,6 +729,10 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
         bm_->delete_block(block_ptr->em_bid_);
         block_ptr->em_bid_ = io::BID<0>();
     }
+
+    assert(total_byte_blocks_ > 0);
+    --total_byte_blocks_;
+    cv_total_byte_blocks_.notify_all();
 }
 
 void BlockPool::RequestInternalMemory(size_t size) {
