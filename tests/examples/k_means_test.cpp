@@ -36,7 +36,7 @@ TEST(KMeans, RandomPoints) {
     // generate some random points and centroids
     std::vector<Point2D> points, centroids;
 
-    std::default_random_engine rng(std::random_device { } ());
+    std::default_random_engine rng(123456);
     std::uniform_real_distribution<float> dist(0.0, 100000.0);
 
     points.reserve(num_points);
