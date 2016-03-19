@@ -288,6 +288,9 @@ DIA<size_t> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t i
 
 template <typename InputDIA>
 DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size) {
+
+    LOG1 << "Running PrefixDoublingDementiev";
+
     using Char = typename InputDIA::ValueType;
     using CharCharIndex = ::CharCharIndex<Char>;
 
@@ -299,17 +302,16 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                 emit(CharCharIndex {
                          { rb[0], rb[1] }, index
                      });
-                if (index == input_size - 2)
+                if (index == input_size - 2) {
                     emit(CharCharIndex {
                              { rb[1], std::numeric_limits<Char>::lowest() },
                              index + 1
                          });
+                }
             })
-        .Sort([](const CharCharIndex& a, const CharCharIndex& b) {
-                  return a < b;
-              });
+        .Sort();
 
-    DIA<size_t> renamed_ranks =
+    auto renamed_ranks =
         chars_sorted
         .template FlatWindow<size_t>(
             2,
@@ -322,15 +324,13 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                     else emit(index + 3);
                 }
             })
-        .PrefixSum([](const size_t a, const size_t b) {
-                       return a > b ? a : b;
-                   });
+        .PrefixSum(common::maximum<size_t>());
 
     size_t non_singletons =
         renamed_ranks
         .Window(
             2,
-            [&](size_t /*index*/, const RingBuffer<size_t>& rb) {
+            [&](size_t /* index */, const RingBuffer<size_t>& rb) {
                 return rb[0] == rb[1];
             })
         .Sum();
@@ -355,7 +355,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
 
     size_t shift_by = 1;
     while (true) {
-        DIA<IndexRank> names_sorted =
+        auto names_sorted =
             names
             .Sort([&](const IndexRank& a, const IndexRank& b) {
                       size_t mod_mask = (1 << shift_by) - 1;
@@ -391,9 +391,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                     if (index == input_size - 2)
                         emit(IndexRankRank { rb[1].index, rb[1].rank, size_t(0) });
                 })
-            .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
-                      return a < b;
-                  });
+            .Sort();
 
         renamed_ranks =
             triple_sorted
@@ -408,15 +406,13 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                         else emit(index + 3);
                     }
                 })
-            .PrefixSum([](const size_t a, const size_t b) {
-                           return a > b ? a : b;
-                       });
+            .PrefixSum(common::maximum<size_t>());
 
         non_singletons =
             renamed_ranks
             .Window(
                 2,
-                [](size_t /*index*/, const RingBuffer<size_t>& rb) {
+                [](size_t /* index */, const RingBuffer<size_t>& rb) {
                     return rb[0] == rb[1];
                 })
             .Sum();
@@ -448,19 +444,19 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
 }
 
 template <typename InputDIA>
-DIA<size_t> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
+auto PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
 
     using Char = typename InputDIA::ValueType;
     using IndexKMer = ::IndexKMer<size_t>;
 
-    size_t input_bit_size = sizeof(Char) << 3;
-    size_t k_fitting = (sizeof(size_t) << 3) / input_bit_size;
+    static constexpr size_t input_bit_size = sizeof(Char) << 3;
+    static constexpr size_t k_fitting = (sizeof(size_t) << 3) / input_bit_size;
 
     auto one_mers_sorted =
         input_dia
         .template FlatWindow<IndexKMer>(
             k_fitting,
-            [&](size_t index, const RingBuffer<Char>& rb, auto emit) {
+            [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 size_t result = rb[0];
                 for (size_t i = 1; i < k_fitting; ++i)
                     result = (result << input_bit_size) | rb[i];
@@ -475,14 +471,12 @@ DIA<size_t> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
                     }
                 }
             })
-        .Sort([](const IndexKMer& a, const IndexKMer& b) {
-                  return a < b;
-              });
+        .Sort();
 
     if (debug_print)
         one_mers_sorted.Print("one_mers_sorted");
 
-    DIA<size_t> rebucket =
+    auto rebucket =
         one_mers_sorted
         .template FlatWindow<size_t>(
             2,
@@ -495,9 +489,7 @@ DIA<size_t> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
                     else emit(index + 2);
                 }
             })
-        .PrefixSum([](const size_t a, const size_t b) {
-                       return a > b ? a : b;
-                   });
+        .PrefixSum(common::maximum<size_t>());
 
     if (debug_print)
         rebucket.Print("rebucket");
@@ -506,7 +498,8 @@ DIA<size_t> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
         one_mers_sorted
         .Map([](const IndexKMer& iom) {
                  return iom.index;
-             });
+            })
+        .Collapse();
 
     if (debug_print)
         sa.Print("sa");
@@ -568,8 +561,7 @@ DIA<size_t> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
         // If each suffix is unique regarding their 2h-prefix, we have computed
         // the suffix array and can return it.
         if (non_singletons == 0) {
-            die_unless(CheckSA(input_dia, sa));
-            return sa.Collapse();
+            return sa;
         }
 
         rebucket =
@@ -586,9 +578,7 @@ DIA<size_t> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
                         else emit(index + 2);
                     }
                 })
-            .PrefixSum([](const size_t a, const size_t b) {
-                           return a > b ? a : b;
-                       });
+            .PrefixSum(common::maximum<size_t>());
 
         if (debug_print)
             rebucket.Print("rebucket");
