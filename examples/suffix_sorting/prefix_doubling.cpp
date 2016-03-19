@@ -330,7 +330,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
         renamed_ranks
         .Window(
             2,
-            [&](size_t /* index */, const RingBuffer<size_t>& rb) {
+            [](size_t /* index */, const RingBuffer<size_t>& rb) {
                 return rb[0] == rb[1];
             })
         .Sum();
@@ -357,7 +357,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
     while (true) {
         auto names_sorted =
             names
-            .Sort([&](const IndexRank& a, const IndexRank& b) {
+            .Sort([shift_by](const IndexRank& a, const IndexRank& b) {
                       size_t mod_mask = (1 << shift_by) - 1;
                       size_t div_mask = ~mod_mask;
 
@@ -366,12 +366,6 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                       else
                           return (a.index & mod_mask) < (b.index & mod_mask);
                   });
-
-        // This is needed, as names_sorted is NOT collapsed otherwise.
-        size_t workaround =
-            names_sorted
-            .Size();
-        (void)workaround; // This shuts up the compiler regarding an unused variable.
 
         if (debug_print)  // If we have debug_print = true everything works fine.
             names_sorted.Print("names_sorted");
@@ -424,8 +418,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                 triple_sorted
                 .Map([](const IndexRankRank& irr) {
                          return irr.index;
-                     })
-                .Cache();
+                     });
 
             if (debug_print)
                 sa.Print("sa");
@@ -609,7 +602,7 @@ public:
         if (input_verbatim_) {
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
-            auto input_dia = Distribute<uint8_t>(ctx_, input_vec);
+            auto input_dia = EqualToDIA(ctx_, input_vec);
             StartPrefixDoublingInput(input_dia, input_vec.size());
         }
         else {
