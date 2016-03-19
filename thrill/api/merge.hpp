@@ -39,86 +39,6 @@ namespace api {
 //! \{
 
 /*!
- * merge_local holds functions internally used by merge.
- */
-namespace merge_local {
-
-//! Set this variable to true to enable generation and output of merge stats.
-static constexpr bool stats_enabled = false;
-
-using StatsTimer = common::StatsTimerBaseStopped<stats_enabled>;
-
-/*!
- * MergeStatsBase holds timers for measuring merge performance.
- */
-class MergeStatsBase
-{
-public:
-    //! A Timer accumulating all time spent in File operations.
-    StatsTimer file_op_timer_;
-    //! A Timer accumulating all time spent while actually merging.
-    StatsTimer merge_timer_;
-    //! A Timer accumulating all time spent while re-balancing the data.
-    StatsTimer balancing_timer_;
-    //! A Timer accumulating all time spent for selecting the global pivot elements.
-    StatsTimer pivot_selection_timer_;
-    //! A Timer accumulating all time spent in global search steps.
-    StatsTimer search_step_timer_;
-    //! A Timer accumulating all time spent communicating.
-    StatsTimer comm_timer_;
-    //! A Timer accumulating all time spent calling the scatter method of the data subsystem.
-    StatsTimer scatter_timer_;
-    //! The count of all elements processed on this host.
-    size_t result_size_ = 0;
-    //! The count of search iterations needed for balancing.
-    size_t iterations_ = 0;
-};
-
-/*!
- * MergeStats is an implementation of MergeStatsBase, that supports accumulating
- * the output and printing it to the standard out stream.
- */
-class MergeStats : public MergeStatsBase
-{
-public:
-    void PrintToSQLPlotTool(const std::string& label, size_t p, size_t value) {
-        static constexpr bool debug = true;
-
-        LOG << "RESULT " << "operation=" << label << " time=" << value
-            << " workers=" << p << " result_size_=" << result_size_;
-    }
-
-    void Print(Context& ctx) {
-        if (stats_enabled) {
-
-            size_t p = ctx.num_workers();
-
-            size_t merge = ctx.net.AllReduce(merge_timer_.Milliseconds()) / p;
-            size_t balance = ctx.net.AllReduce(balancing_timer_.Milliseconds()) / p;
-            size_t pivot_selection = ctx.net.AllReduce(pivot_selection_timer_.Milliseconds()) / p;
-            size_t search_step = ctx.net.AllReduce(search_step_timer_.Milliseconds()) / p;
-            size_t file_op = ctx.net.AllReduce(file_op_timer_.Milliseconds()) / p;
-            size_t comm = ctx.net.AllReduce(comm_timer_.Milliseconds()) / p;
-            size_t scatter = ctx.net.AllReduce(scatter_timer_.Milliseconds()) / p;
-            result_size_ = ctx.net.AllReduce(result_size_);
-
-            if (ctx.my_rank() == 0) {
-                PrintToSQLPlotTool("merge", p, merge);
-                PrintToSQLPlotTool("balance", p, balance);
-                PrintToSQLPlotTool("pivot_selection", p, pivot_selection);
-                PrintToSQLPlotTool("search_step", p, search_step);
-                PrintToSQLPlotTool("file_op", p, file_op);
-                PrintToSQLPlotTool("communication", p, comm);
-                PrintToSQLPlotTool("scatter", p, scatter);
-                PrintToSQLPlotTool("iterations", p, iterations_);
-            }
-        }
-    }
-};
-
-} // namespace merge_local
-
-/*!
  * Implementation of Thrill's merge. This merge implementation balances all data
  * before merging, so each worker has the same amount of data when merge
  * finishes.
@@ -135,8 +55,8 @@ class MergeNode : public DOpNode<ValueType>
     static constexpr bool debug = false;
     static constexpr bool self_verify = debug && common::g_debug_mode;
 
-    //! Instance of merge statistics
-    merge_local::MergeStats stats_;
+    //! Set this variable to true to enable generation and output of merge stats
+    static constexpr bool stats_enabled = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -343,6 +263,80 @@ private:
     private:
         Operator op_;
     };
+
+    using StatsTimer = common::StatsTimerBaseStopped<stats_enabled>;
+
+    /*!
+     * Stats holds timers for measuring merge performance, that supports
+     * accumulating the output and printing it to the standard out stream.
+     */
+    class Stats
+    {
+    public:
+        //! A Timer accumulating all time spent in File operations.
+        StatsTimer file_op_timer_;
+        //! A Timer accumulating all time spent while actually merging.
+        StatsTimer merge_timer_;
+        //! A Timer accumulating all time spent while re-balancing the data.
+        StatsTimer balancing_timer_;
+        //! A Timer accumulating all time spent for selecting the global pivot
+        //! elements.
+        StatsTimer pivot_selection_timer_;
+        //! A Timer accumulating all time spent in global search steps.
+        StatsTimer search_step_timer_;
+        //! A Timer accumulating all time spent communicating.
+        StatsTimer comm_timer_;
+        //! A Timer accumulating all time spent calling the scatter method of
+        //! the data subsystem.
+        StatsTimer scatter_timer_;
+        //! The count of all elements processed on this host.
+        size_t result_size_ = 0;
+        //! The count of search iterations needed for balancing.
+        size_t iterations_ = 0;
+
+        void PrintToSQLPlotTool(
+            const std::string& label, size_t p, size_t value) {
+
+            LOG1 << "RESULT " << "operation=" << label << " time=" << value
+                 << " workers=" << p << " result_size_=" << result_size_;
+        }
+
+        void Print(Context& ctx) {
+            if (stats_enabled) {
+                size_t p = ctx.num_workers();
+                size_t merge =
+                    ctx.net.AllReduce(merge_timer_.Milliseconds()) / p;
+                size_t balance =
+                    ctx.net.AllReduce(balancing_timer_.Milliseconds()) / p;
+                size_t pivot_selection =
+                    ctx.net.AllReduce(pivot_selection_timer_.Milliseconds()) / p;
+                size_t search_step =
+                    ctx.net.AllReduce(search_step_timer_.Milliseconds()) / p;
+                size_t file_op =
+                    ctx.net.AllReduce(file_op_timer_.Milliseconds()) / p;
+                size_t comm =
+                    ctx.net.AllReduce(comm_timer_.Milliseconds()) / p;
+                size_t scatter =
+                    ctx.net.AllReduce(scatter_timer_.Milliseconds()) / p;
+
+                result_size_ = ctx.net.AllReduce(result_size_);
+
+                if (ctx.my_rank() == 0) {
+                    PrintToSQLPlotTool("merge", p, merge);
+                    PrintToSQLPlotTool("balance", p, balance);
+                    PrintToSQLPlotTool("pivot_selection", p, pivot_selection);
+                    PrintToSQLPlotTool("search_step", p, search_step);
+                    PrintToSQLPlotTool("file_op", p, file_op);
+                    PrintToSQLPlotTool("communication", p, comm);
+                    PrintToSQLPlotTool("scatter", p, scatter);
+                    PrintToSQLPlotTool("iterations", p, iterations_);
+                }
+            }
+        }
+    };
+
+    //! Instance of merge statistics
+    Stats stats_;
 
     /*!
      * Selects random global pivots for all splitter searches based on all

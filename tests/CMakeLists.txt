@@ -161,6 +161,7 @@ thrill_build_test(core/multiway_merge_test)
 
 thrill_build_test(api/function_stack_test)
 thrill_build_test(api/groupby_node_test)
+thrill_build_test(api/merge_node_test)
 thrill_build_test(api/operations_test)
 thrill_build_test(api/read_write_test)
 thrill_build_test(api/reduce_node_test)
@@ -168,8 +169,6 @@ thrill_build_test(api/sampling_test)
 thrill_build_test(api/sort_node_test)
 thrill_build_test(api/stage_builder_test)
 thrill_build_test(api/zip_node_test)
-# currently disabled because it fails randomly when result is disbalanced
-thrill_build_only(api/merge_node_test)
 
 thrill_build_test(examples/k_means_test)
 thrill_build_test(examples/page_rank_test)
