@@ -258,8 +258,9 @@ private:
 
     //! calculate currently desired number of samples
     size_t wanted_sample_size() const {
-        size_t s = std::log2(local_items_ * context_.num_workers())
-                   * (1 / (desired_imbalance_ * desired_imbalance_));
+        size_t s = static_cast<size_t>(
+            std::log2(local_items_ * context_.num_workers())
+            * (1 / (desired_imbalance_ * desired_imbalance_)));
         return std::max(s, size_t(1));
     }
 

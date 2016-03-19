@@ -39,9 +39,9 @@ int main(int argc, char* argv[]) {
     bool group = false;
     clp.AddFlag('g', "group", group, "group outgoing links");
 
-    clp.AddSizeT('m', "size_mean", gg.size_mean,
-                 "mean of number of outgoing links, default: "
-                 + std::to_string(gg.size_mean));
+    clp.AddDouble('m', "size_mean", gg.size_mean,
+                  "mean of number of outgoing links, default: "
+                  + std::to_string(gg.size_mean));
 
     clp.AddDouble(0, "size_var", gg.size_var,
                   "variance of number of outgoing links, default: "

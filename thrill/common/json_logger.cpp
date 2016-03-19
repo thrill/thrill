@@ -15,9 +15,6 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 
-#include <dirent.h>
-#include <unistd.h>
-
 #include <atomic>
 #include <cerrno>
 #include <chrono>
@@ -28,10 +25,19 @@
 #include <thread>
 #include <vector>
 
+#if __linux__ || __APPLE__
+
+#include <dirent.h>
+#include <unistd.h>
+
+#endif
+
 namespace thrill {
 namespace common {
 
 using steady_clock = std::chrono::steady_clock;
+
+#if __linux__ || __APPLE__
 
 /******************************************************************************/
 // LinuxSystemStats
@@ -714,6 +720,8 @@ void LinuxProcStats::read_diskstats(JsonLine& out) {
         << "rq_time" << sum.rq_time / 1e3;
 }
 
+#endif  // __linux__ || __APPLE__
+
 /******************************************************************************/
 // JsonProfiler
 
@@ -756,7 +764,10 @@ private:
     //! profiling worker function
     void worker();
 
+#if __linux__ || __APPLE__
+    //! linux system and pid profiler
     LinuxProcStats linux_proc_stats_ { logger_ };
+#endif      // __linux__ || __APPLE__
 };
 
 void JsonProfiler::worker() {
@@ -766,11 +777,9 @@ void JsonProfiler::worker() {
 
     while (!terminate_)
     {
-        LOG0 << "hello "
-             << std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::system_clock::now().time_since_epoch()).count();
-
+#if __linux__ || __APPLE__
         linux_proc_stats_.tick(tm);
+#endif          // __linux__ || __APPLE__
 
         cv_.wait_until(mutex_, (tm += std::chrono::seconds(1)));
     }

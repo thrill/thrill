@@ -175,9 +175,9 @@ int main(int argc, char* argv[]) {
     // Graph Generator
     ZipfGraphGen gg(1);
 
-    clp.AddSizeT(0, "size_mean", gg.size_mean,
-                 "generated: mean of number of outgoing links, "
-                 "default: " + std::to_string(gg.size_mean));
+    clp.AddDouble(0, "size_mean", gg.size_mean,
+                  "generated: mean of number of outgoing links, "
+                  "default: " + std::to_string(gg.size_mean));
 
     clp.AddDouble(0, "size_var", gg.size_var,
                   "generated: variance of number of outgoing links, "

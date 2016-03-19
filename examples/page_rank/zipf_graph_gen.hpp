@@ -38,7 +38,7 @@ public:
     uint64_t pages;
 
     //! Gaussian mean and variance of content length
-    size_t size_mean = 50;
+    double size_mean = 50;
     double size_var = 10;
 
     //! Zipf distribution scale and exponent for generating outgoing links over
