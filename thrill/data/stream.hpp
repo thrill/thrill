@@ -92,7 +92,7 @@ public:
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     virtual std::vector<Writer>
-    OpenWriters(size_t block_size = default_block_size) = 0;
+    GetWriters(size_t block_size = default_block_size) = 0;
 
     /*!
      * Scatters a File to many worker
@@ -115,7 +115,7 @@ public:
         size_t current = 0;
         File::KeepReader reader = source.GetKeepReader();
 
-        std::vector<Writer> writers = OpenWriters();
+        std::vector<Writer> writers = GetWriters();
 
         for (size_t worker = 0; worker < num_workers(); ++worker) {
             // write [current,limit) to this worker

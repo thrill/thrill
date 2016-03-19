@@ -83,7 +83,7 @@ public:
     }
 
     void StartPreOp(size_t /* id */) final {
-        emitter_ = stream_->OpenWriters();
+        emitter_ = stream_->GetWriters();
     }
 
     //! Send all elements to their designated PEs
@@ -206,7 +206,7 @@ private:
 
         common::StatsTimerStart timer;
         // get incoming elements
-        auto reader = stream_->OpenCatReader(/* consume */ true);
+        auto reader = stream_->GetCatReader(/* consume */ true);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (mem::memory_exceeded) {

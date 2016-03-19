@@ -57,7 +57,7 @@ public:
     }
 
     void StartPreOp(size_t /* id */) final {
-        emitters_ = stream_->OpenWriters();
+        emitters_ = stream_->GetWriters();
 
         // close all but the target
         for (size_t i = 0; i < emitters_.size(); i++) {
@@ -71,7 +71,7 @@ public:
     }
 
     void Execute() final {
-        auto reader = stream_->OpenCatReader(true /* consume */);
+        auto reader = stream_->GetCatReader(true /* consume */);
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());

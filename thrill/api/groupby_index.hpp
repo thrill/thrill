@@ -171,7 +171,7 @@ private:
     size_t totalsize_ = 0;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream() };
-    std::vector<data::CatStream::Writer> emitter_ { stream_->OpenWriters() };
+    std::vector<data::CatStream::Writer> emitter_ { stream_->GetWriters() };
     std::vector<data::File> files_;
 
     void RunUserFunc(data::File& f, bool consume) {
@@ -226,7 +226,7 @@ private:
         std::vector<ValueIn> incoming;
 
         // get incoming elements
-        auto reader = stream_->OpenCatReader(/* consume */ true);
+        auto reader = stream_->GetCatReader(/* consume */ true);
         while (reader.HasNext()) {
             // if vector is full save to disk
             if (mem::memory_exceeded) {

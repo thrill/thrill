@@ -98,7 +98,7 @@ public:
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<Writer>
-    OpenWriters(size_t block_size = default_block_size) final {
+    GetWriters(size_t block_size = default_block_size) final {
         tx_timespan_.StartEventually();
 
         std::vector<Writer> result;
@@ -123,14 +123,14 @@ public:
     }
 
     //! Creates a BlockReader which mixes items from all workers.
-    MixReader OpenMixReader(bool consume) {
+    MixReader GetMixReader(bool consume) {
         rx_timespan_.StartEventually();
         return MixReader(queue_, consume, local_worker_id_);
     }
 
-    //! Open a MixReader (function name matches a method in CatStream).
-    MixReader OpenAnyReader(bool consume) {
-        return OpenMixReader(consume);
+    //! Open a MixReader (function name matches a method in File and CatStream).
+    MixReader GetReader(bool consume) {
+        return GetMixReader(consume);
     }
 
     //! shuts the stream down.

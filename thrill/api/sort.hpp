@@ -282,7 +282,7 @@ private:
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
 
-        auto reader = sample_stream->OpenMixReader(/* consume */ true);
+        auto reader = sample_stream->GetMixReader(/* consume */ true);
 
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
@@ -373,7 +373,7 @@ private:
             unsorted_file_.GetConsumeReader();
 
         std::vector<data::MixStream::Writer> data_writers =
-            data_stream->OpenWriters();
+            data_stream->GetWriters();
 
         // enlarge emitters array to next power of two to have direct access,
         // because we fill the splitter set up with sentinels == last splitter,
@@ -530,7 +530,7 @@ private:
 
         // Send all samples to worker 0.
         std::vector<data::MixStream::Writer> sample_writers =
-            sample_stream->OpenWriters();
+            sample_stream->GetWriters();
 
         for (const ValueType& sample : samples_) {
             sample_writers[0].Put(sample);
@@ -556,7 +556,7 @@ private:
                 sample_writers[j].Close();
             }
             data::MixStream::MixReader reader =
-                sample_stream->OpenMixReader(/* consume */ true);
+                sample_stream->GetMixReader(/* consume */ true);
             while (reader.HasNext()) {
                 splitters.push_back(reader.template Next<ValueType>());
             }
@@ -623,7 +623,7 @@ private:
 
     void ReceiveItems(data::MixStreamPtr& data_stream) {
 
-        auto reader = data_stream->OpenMixReader(/* consume */ true);
+        auto reader = data_stream->GetMixReader(/* consume */ true);
 
         LOG << "Writing files";
 

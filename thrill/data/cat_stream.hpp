@@ -151,7 +151,7 @@ public:
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<Writer>
-    OpenWriters(size_t block_size = default_block_size) final {
+    GetWriters(size_t block_size = default_block_size) final {
         tx_timespan_.StartEventually();
 
         std::vector<Writer> result;
@@ -178,7 +178,7 @@ public:
     //! Creates a BlockReader for each worker. The BlockReaders are attached to
     //! the BlockQueues in the Stream and wait for further Blocks to arrive or
     //! the Stream's remote close.
-    std::vector<BlockQueueReader> OpenReaders() {
+    std::vector<BlockQueueReader> GetReaders() {
         rx_timespan_.StartEventually();
 
         std::vector<BlockQueueReader> result;
@@ -216,13 +216,13 @@ public:
     //! Creates a BlockReader which concatenates items from all workers in
     //! worker rank order. The BlockReader is attached to one \ref
     //! CatBlockSource which includes all incoming queues of this stream.
-    CatReader OpenCatReader(bool consume) {
+    CatReader GetCatReader(bool consume) {
         return CatBlockReader(GetCatBlockSource(consume));
     }
 
-    //! Open a CatReader (function name matches a method in MixStream).
-    CatReader OpenAnyReader(bool consume) {
-        return OpenCatReader(consume);
+    //! Open a CatReader (function name matches a method in File and MixStream).
+    CatReader GetReader(bool consume) {
+        return GetCatReader(consume);
     }
 
     //! shuts the stream down.

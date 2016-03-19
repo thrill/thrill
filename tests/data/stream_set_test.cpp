@@ -35,7 +35,7 @@ TEST(StreamSet, TestLoopbacks) {
         [workers_per_host](std::shared_ptr<data::CatStream> stream, size_t my_id) {
             common::NameThisThread("worker " + mem::to_string(my_id));
             // send data between workers
-            auto writers = stream->OpenWriters(test_block_size);
+            auto writers = stream->GetWriters(test_block_size);
             for (size_t j = 0; j < workers_per_host; j++) {
                 sLOG << "sending from" << my_id << "to" << j;
                 writers[j].Put(std::to_string(my_id) + "->" + std::to_string(j));
@@ -46,7 +46,7 @@ TEST(StreamSet, TestLoopbacks) {
         [workers_per_host](std::shared_ptr<data::CatStream> stream, size_t my_id) {
             common::NameThisThread("worker " + mem::to_string(my_id));
             // check data on each worker
-            auto readers = stream->OpenReaders();
+            auto readers = stream->GetReaders();
             for (size_t j = 0; j < workers_per_host; j++) {
                 std::string expected = std::to_string(j) + "->" + std::to_string(my_id);
                 std::string actual = readers[j].Next<std::string>();

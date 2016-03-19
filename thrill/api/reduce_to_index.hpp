@@ -110,7 +110,7 @@ public:
           cat_stream_(use_mix_stream_ ?
                       nullptr : parent.ctx().GetNewCatStream()),
           emitters_(use_mix_stream_ ?
-                    mix_stream_->OpenWriters() : cat_stream_->OpenWriters()),
+                    mix_stream_->GetWriters() : cat_stream_->GetWriters()),
           result_size_(result_size),
           pre_stage_(
               context_, context_.num_workers(),
@@ -197,7 +197,7 @@ public:
     void ProcessChannel() {
         if (use_mix_stream_)
         {
-            auto reader = mix_stream_->OpenMixReader(/* consume */ true);
+            auto reader = mix_stream_->GetMixReader(/* consume */ true);
             sLOG << "reading data from" << mix_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
@@ -206,7 +206,7 @@ public:
         }
         else
         {
-            auto reader = cat_stream_->OpenCatReader(/* consume */ true);
+            auto reader = cat_stream_->GetCatReader(/* consume */ true);
             sLOG << "reading data from" << cat_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {

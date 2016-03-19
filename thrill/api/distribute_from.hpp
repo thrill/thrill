@@ -51,7 +51,7 @@ public:
     //! Executes the scatter operation: source sends out its data.
     void Execute() final {
 
-        std::vector<data::CatStream::Writer> emitters = stream_->OpenWriters();
+        std::vector<data::CatStream::Writer> emitters = stream_->GetWriters();
 
         if (context_.my_rank() == source_id_)
         {
@@ -67,15 +67,10 @@ public:
                 }
             }
         }
-
-        // close stream inputs.
-        for (size_t w = 0; w < emitters.size(); ++w) {
-            emitters[w].Close();
-        }
     }
 
     void PushData(bool consume) final {
-        data::CatStream::CatReader readers = stream_->OpenCatReader(consume);
+        data::CatStream::CatReader readers = stream_->GetCatReader(consume);
 
         while (readers.HasNext()) {
             this->PushItem(readers.Next<ValueType>());

@@ -145,7 +145,7 @@ public:
             // get inbound readers from all Streams
             std::array<data::CatStream::CatReader, kNumInputs> readers;
             for (size_t i = 0; i < kNumInputs; ++i)
-                readers[i] = streams_[i]->OpenCatReader(consume);
+                readers[i] = streams_[i]->GetCatReader(consume);
 
             ReaderNext reader_next(*this, readers);
 

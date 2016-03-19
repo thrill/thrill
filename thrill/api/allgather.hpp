@@ -53,7 +53,7 @@ public:
     }
 
     void StartPreOp(size_t /* id */) final {
-        emitters_ = stream_->OpenWriters();
+        emitters_ = stream_->GetWriters();
     }
 
     void PreOp(const ValueType& element) {
@@ -84,7 +84,7 @@ public:
     void Execute() final {
 
         bool consume = false;
-        auto reader = stream_->OpenCatReader(consume);
+        auto reader = stream_->GetCatReader(consume);
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());

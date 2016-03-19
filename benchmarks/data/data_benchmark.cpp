@@ -367,7 +367,7 @@ public:
 
         StatsTimerStart write_timer;
         {
-            auto writers = stream->OpenWriters(block_size_);
+            auto writers = stream->GetWriters(block_size_);
             while (data.HasNext())
                 writers[peer_id].Put(data.Next());
         }
@@ -398,12 +398,12 @@ public:
         {
             // this opens and closes the writers. this must be done,
             // otherwise the reader will wait infinitely on the loopback!
-            auto writers = stream->OpenWriters(block_size_);
+            auto writers = stream->GetWriters(block_size_);
         }
 
         StatsTimerStart read_timer;
         {
-            auto reader = stream->OpenAnyReader(consume_);
+            auto reader = stream->GetReader(consume_);
             while (reader.HasNext())
                 reader.template Next<Type>();
         }
@@ -581,14 +581,14 @@ public:
             threads.Enqueue(
                 [&]() {
                     read_timer.Start();
-                    auto reader = stream->OpenAnyReader(consume);
+                    auto reader = stream->GetReader(consume);
                     while (reader.HasNext())
                         reader.template Next<Type>();
                     read_timer.Stop();
                 });
 
             // start writer threads: send to all workers
-            auto writers = stream->OpenWriters(block_size_);
+            auto writers = stream->GetWriters(block_size_);
             std::chrono::microseconds::rep write_time = 0;
             for (size_t target = 0; target < ctx.num_workers(); target++) {
                 threads.Enqueue(
@@ -708,7 +708,7 @@ public:
             threads.Enqueue(
                 [&]() {
                     read_timer.Start();
-                    auto reader = stream->OpenAnyReader(consume);
+                    auto reader = stream->GetReader(consume);
                     while (reader.HasNext())
                         reader.template Next<Type>();
                     read_timer.Stop();

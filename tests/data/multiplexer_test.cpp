@@ -94,7 +94,7 @@ void TalkAllToAllViaCatStream(net::Group* net) {
         // open Writers and send a message to all workers
 
         auto writers = multiplexer.GetOrCreateCatStream(
-            id, my_local_worker_id)->OpenWriters(test_block_size);
+            id, my_local_worker_id)->GetWriters(test_block_size);
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
             writers[tgt].Put("hello I am " + std::to_string(net->my_host_rank())
@@ -114,7 +114,7 @@ void TalkAllToAllViaCatStream(net::Group* net) {
         // open Readers and receive message from all workers
 
         auto readers = multiplexer.GetOrCreateCatStream(
-            id, my_local_worker_id)->OpenReaders();
+            id, my_local_worker_id)->GetReaders();
 
         for (size_t src = 0; src != readers.size(); ++src) {
             std::string msg = readers[src].Next<std::string>();
@@ -150,7 +150,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
     auto w0 = [](data::Multiplexer& multiplexer) {
                   auto id = multiplexer.AllocateCatStreamId(0);
                   auto c = multiplexer.GetOrCreateCatStream(id, 0);
-                  auto writers = c->OpenWriters(test_block_size);
+                  auto writers = c->GetWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
                   writers[2].Put(msg1);
@@ -164,7 +164,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
     auto w1 = [](data::Multiplexer& multiplexer) {
                   auto id = multiplexer.AllocateCatStreamId(0);
                   auto c = multiplexer.GetOrCreateCatStream(id, 0);
-                  auto writers = c->OpenWriters(test_block_size);
+                  auto writers = c->GetWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2].Put(msg1);
                   for (auto& w : writers) {
@@ -175,13 +175,13 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
     auto w2 = [](data::Multiplexer& multiplexer) {
                   auto id = multiplexer.AllocateCatStreamId(0);
                   auto c = multiplexer.GetOrCreateCatStream(id, 0);
-                  auto writers = c->OpenWriters(test_block_size);
+                  auto writers = c->GetWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
                   }
 
-                  auto reader = c->OpenCatReader(true);
+                  auto reader = c->GetCatReader(true);
                   ASSERT_EQ("I came from worker 0", reader.Next<std::string>());
                   ASSERT_EQ("I am another message from worker 0", reader.Next<std::string>());
                   ASSERT_EQ("I came from worker 1", reader.Next<std::string>());
@@ -193,7 +193,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
     auto w0 = [](data::Multiplexer& multiplexer) {
                   auto id = multiplexer.AllocateCatStreamId(0);
                   auto c = multiplexer.GetOrCreateCatStream(id, 0);
-                  auto writers = c->OpenWriters(test_block_size);
+                  auto writers = c->GetWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
                   writers[2].Put(msg1);
@@ -207,7 +207,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
     auto w1 = [](data::Multiplexer& multiplexer) {
                   auto id = multiplexer.AllocateCatStreamId(0);
                   auto c = multiplexer.GetOrCreateCatStream(id, 0);
-                  auto writers = c->OpenWriters(test_block_size);
+                  auto writers = c->GetWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2].Put(msg1);
                   for (auto& w : writers) {
@@ -218,13 +218,13 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
     auto w2 = [](data::Multiplexer& multiplexer) {
                   auto id = multiplexer.AllocateCatStreamId(0);
                   auto c = multiplexer.GetOrCreateCatStream(id, 0);
-                  auto writers = c->OpenWriters(test_block_size);
+                  auto writers = c->GetWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
                   }
                   {
-                      auto reader = c->OpenCatReader(false);
+                      auto reader = c->GetCatReader(false);
                       ASSERT_EQ("I came from worker 0",
                                 reader.Next<std::string>());
                       ASSERT_EQ("I am another message from worker 0",
@@ -234,7 +234,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
                       ASSERT_TRUE(!reader.HasNext());
                   }
                   {
-                      auto reader = c->OpenCatReader(false);
+                      auto reader = c->GetCatReader(false);
                       ASSERT_EQ("I came from worker 0",
                                 reader.Next<std::string>());
                       ASSERT_EQ("I am another message from worker 0",
@@ -244,7 +244,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
                       ASSERT_TRUE(!reader.HasNext());
                   }
                   {
-                      auto reader = c->OpenCatReader(true);
+                      auto reader = c->GetCatReader(true);
                       ASSERT_EQ("I came from worker 0",
                                 reader.Next<std::string>());
                       ASSERT_EQ("I am another message from worker 0",
@@ -264,7 +264,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
     auto w0 = [](data::Multiplexer& multiplexer) {
                   auto id = multiplexer.AllocateMixStreamId(0);
                   auto c = multiplexer.GetOrCreateMixStream(id, 0);
-                  auto writers = c->OpenWriters(test_block_size);
+                  auto writers = c->GetWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
                   writers[2].Put(msg1);
@@ -278,7 +278,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
     auto w1 = [](data::Multiplexer& multiplexer) {
                   auto id = multiplexer.AllocateMixStreamId(0);
                   auto c = multiplexer.GetOrCreateMixStream(id, 0);
-                  auto writers = c->OpenWriters(test_block_size);
+                  auto writers = c->GetWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2].Put(msg1);
                   for (auto& w : writers) {
@@ -289,13 +289,13 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
     auto w2 = [](data::Multiplexer& multiplexer) {
                   auto id = multiplexer.AllocateMixStreamId(0);
                   auto c = multiplexer.GetOrCreateMixStream(id, 0);
-                  auto writers = c->OpenWriters(test_block_size);
+                  auto writers = c->GetWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
                   }
                   {
-                      auto reader = c->OpenMixReader(false);
+                      auto reader = c->GetMixReader(false);
                       // receive three std::string items
                       std::vector<std::string> recv;
 
@@ -313,7 +313,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                       ASSERT_EQ("I came from worker 1", recv[2]);
                   }
                   {
-                      auto reader = c->OpenMixReader(false);
+                      auto reader = c->GetMixReader(false);
                       // receive three std::string items
                       std::vector<std::string> recv;
 
@@ -331,7 +331,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                       ASSERT_EQ("I came from worker 1", recv[2]);
                   }
                   {
-                      auto reader = c->OpenMixReader(true);
+                      auto reader = c->GetMixReader(true);
                       // receive three std::string items
                       std::vector<std::string> recv;
 
@@ -376,7 +376,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
         // open Writers and send a message to all workers
 
         auto writers = multiplexer.GetOrCreateMixStream(
-            id, my_local_worker_id)->OpenWriters(test_block_size);
+            id, my_local_worker_id)->GetWriters(test_block_size);
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
             std::string txt =
@@ -400,7 +400,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
         // open mix Reader and receive messages from all workers
 
         auto reader = multiplexer.GetOrCreateMixStream(
-            id, my_local_worker_id)->OpenMixReader(true);
+            id, my_local_worker_id)->GetMixReader(true);
 
         std::vector<std::string> recv;
 
@@ -461,7 +461,7 @@ TEST_F(Multiplexer, Scatter_OneWorker) {
             ch->Scatter<std::string>(file, { 2 });
 
             // check that got items
-            auto reader = ch->OpenCatReader(true);
+            auto reader = ch->GetCatReader(true);
             ASSERT_TRUE(reader.HasNext());
             ASSERT_EQ(reader.Next<std::string>(), "foo");
             ASSERT_TRUE(reader.HasNext());
@@ -488,7 +488,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             ch->Scatter<std::string>(file, { 2, 2 });
 
             // check that got items
-            auto res = ch->OpenCatReader(true).ReadComplete<std::string>();
+            auto res = ch->GetCatReader(true).ReadComplete<std::string>();
             ASSERT_EQ(res, (std::vector<std::string>{ "foo", "bar" }));
         };
     auto w1 =
@@ -508,7 +508,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             ch->Scatter<std::string>(file, { 0, 3 });
 
             // check that got items
-            auto res = ch->OpenCatReader(true).ReadComplete<std::string>();
+            auto res = ch->GetCatReader(true).ReadComplete<std::string>();
             ASSERT_EQ(res, (std::vector<std::string>{ "hello", "world", "." }));
         };
     Execute(w0, w1);
@@ -530,7 +530,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
-                  auto res = ch->OpenCatReader(true).ReadComplete<std::string>();
+                  auto res = ch->GetCatReader(true).ReadComplete<std::string>();
                   ASSERT_EQ(res, (std::vector<std::string>{ "foo", "hello" }));
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
@@ -549,7 +549,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
-                  auto res = ch->OpenCatReader(true).ReadComplete<std::string>();
+                  auto res = ch->GetCatReader(true).ReadComplete<std::string>();
                   ASSERT_EQ(res, (std::vector<std::string>{ "bar", "world" }));
               };
     Execute(w0, w1);
@@ -571,7 +571,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   ch->Scatter<int>(file, { 2, 2, 2 });
 
                   // check that got items
-                  auto res = ch->OpenCatReader(true).ReadComplete<int>();
+                  auto res = ch->GetCatReader(true).ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 1, 2 }));
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
@@ -591,7 +591,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   ch->Scatter<int>(file, { 0, 2, 4 });
 
                   // check that got items
-                  auto res = ch->OpenCatReader(true).ReadComplete<int>();
+                  auto res = ch->GetCatReader(true).ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 3, 4 }));
               };
     auto w2 = [](data::Multiplexer& multiplexer) {
@@ -604,7 +604,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   ch->Scatter<int>(file, { 0, 0, 0 });
 
                   // check that got items
-                  auto res = ch->OpenCatReader(true).ReadComplete<int>();
+                  auto res = ch->GetCatReader(true).ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 5, 6 }));
               };
     Execute(w0, w1, w2);
