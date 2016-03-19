@@ -95,7 +95,7 @@ ValueType Select(const DIA<ValueType, InStack>& data, size_t rank,
 
     if (size <= base_case_size) {
         // base case, gather all data at worker with rank 0
-        ValueType result;
+        ValueType result = ValueType();
         auto elements = data.Gather();
 
         if (ctx.my_rank() == 0) {

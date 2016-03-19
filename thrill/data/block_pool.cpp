@@ -142,7 +142,8 @@ BlockPool::~BlockPool() {
 
             LOGC(debug_em)
                 << "BlockPool::~BlockPool() block=" << block_ptr
-                << " is currently begin written to external memory, cancel failed, waiting.";
+                << " is currently begin written to external memory,"
+                << " cancel failed, waiting.";
 
             // must still wait for cancellation to complete and the I/O handler.
             req->wait();
@@ -151,7 +152,8 @@ BlockPool::~BlockPool() {
 
         LOGC(debug_em)
             << "BlockPool::PinBlock block=" << block_ptr
-            << " is currently begin written to external memory, cancel/wait done.";
+            << " is currently begin written to external memory,"
+            << " cancel/wait done.";
     }
 
     die_unless(writing_bytes_ == 0);
@@ -182,6 +184,7 @@ BlockPool::~BlockPool() {
 
     pin_count_.AssertZero();
     die_unequal(total_ram_use_, 0);
+    die_unequal(unpinned_blocks_.size(), 0);
 
     LOGC(debug_pin)
         << "~BlockPool()"
@@ -302,57 +305,64 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         return result.get_future();
     }
 
-    // check that not writing the block.
-    WritingMap::iterator write_it;
-    while ((write_it = writing_.find(block_ptr)) != writing_.end()) {
-
-        LOGC(debug_em)
-            << "BlockPool::PinBlock block=" << block_ptr
-            << " is currently begin written to external memory, canceling.";
-
-        die_unless(!block_ptr->ext_file_);
-
-        // get reference count to request, since complete handler removes it
-        // from the map.
-        io::RequestPtr req = write_it->second;
-        lock.unlock();
-        // cancel I/O request
-        if (!req->cancel()) {
+    do {
+        // check that not writing the block.
+        WritingMap::iterator write_it = writing_.find(block_ptr);
+        if (write_it != writing_.end()) {
 
             LOGC(debug_em)
-                << "BlockPool::PinBlock block=" << block_ptr
-                << " is currently begin written to external memory, cancel failed, waiting.";
+                << "BlockPool::PinBlock() block=" << block_ptr
+                << " is currently begin written to external memory, canceling.";
 
-            // must still wait for cancellation to complete and the I/O
-            // handler.
-            req->wait();
+            die_unless(!block_ptr->ext_file_);
+
+            // get reference count to request, since complete handler removes it
+            // from the map.
+            io::RequestPtr req = write_it->second;
+            lock.unlock();
+            // cancel I/O request
+            if (!req->cancel()) {
+
+                LOGC(debug_em)
+                    << "BlockPool::PinBlock() block=" << block_ptr
+                    << " is currently begin written to external memory, "
+                    << "cancel failed, waiting.";
+
+                // must still wait for cancellation to complete and the I/O
+                // handler.
+                req->wait();
+            }
+            lock.lock();
+
+            LOGC(debug_em)
+                << "BlockPool::PinBlock() block=" << block_ptr
+                << " is currently begin written to external memory, "
+                << "cancel/wait done.";
+
+            // recheck whether block is being written, it may have been evicting
+            // the unlocked time.
+            continue;
         }
-        lock.lock();
 
-        LOGC(debug_em)
-            << "BlockPool::PinBlock block=" << block_ptr
-            << " is currently begin written to external memory, cancel/wait done.";
+        // check if block is being loaded. in this case, just wait for the I/O
+        // to complete, Alternatively we could figure out how to used _shared_
+        // future results, which deliver the result of the running read.
+        ReadingMap::iterator read_it = reading_.find(block_ptr);
+        while (read_it != reading_.end()) {
+            // get reference count to request, since complete handler removes it
+            // from the map.
+            io::RequestPtr req = read_it->second->req;
+            lock.unlock();
+            // wait for I/O request for completion and the I/O handler.
+            req->wait();
+            lock.lock();
 
-        // recheck whether block is being written, it may have been evicting the
-        // unlocked time.
+            // recheck whether block is being read, it may have been evicting
+            // again in the unlocked time.
+            continue;
+        }
     }
-
-    // check if block is being loaded. in this case, just wait for the I/O to
-    // complete, Alternatively we could figure out how to used _shared_ future
-    // results, which deliver the result of the running read.
-    ReadingMap::iterator read_it;
-    while ((read_it = reading_.find(block_ptr)) != reading_.end()) {
-        // get reference count to request, since complete handler removes it
-        // from the map.
-        io::RequestPtr req = read_it->second->req;
-        lock.unlock();
-        // wait for I/O request for completion and the I/O handler.
-        req->wait();
-        lock.lock();
-
-        // recheck whether block is being read, it may have been evicting
-        // again in the unlocked time.
-    }
+    while (0); // NOLINT
 
     if (block_ptr->in_memory())
     {
@@ -695,7 +705,15 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
 
     if (block_ptr->ext_file_ && block_ptr->in_memory())
     {
-        // external block, in memory: release memory.
+        LOGC(debug_blc)
+            << "BlockPool::DestroyBlock() block_ptr=" << block_ptr
+            << " external block, in memory: release memory.";
+
+        die_unless(unpinned_blocks_.exists(block_ptr));
+        unpinned_blocks_.erase(block_ptr);
+        unpinned_bytes_ -= block_ptr->size();
+
+        // release memory
         aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
@@ -703,12 +721,17 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
     }
     else if (block_ptr->ext_file_)
     {
-        // external block, but not in memory: nothing to do, thus just delete
-        // the reference
+        LOGC(debug_blc)
+            << "BlockPool::DestroyBlock() block_ptr=" << block_ptr
+            << " external block, but not in memory: nothing to do, thus just"
+            << " delete the reference";
     }
     else if (block_ptr->in_memory())
     {
-        // unpinned block in memory, remove from list
+        LOGC(debug_blc)
+            << "BlockPool::DestroyBlock() block_ptr=" << block_ptr
+            << " unpinned block in memory, remove from list";
+
         die_unless(unpinned_blocks_.exists(block_ptr));
         unpinned_blocks_.erase(block_ptr);
         unpinned_bytes_ -= block_ptr->size();
@@ -721,6 +744,10 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
     }
     else
     {
+        LOGC(debug_blc)
+            << "BlockPool::DestroyBlock() block_ptr=" << block_ptr
+            << " block in external memory, delete block";
+
         auto it = swapped_.find(block_ptr);
         die_unless(it != swapped_.end());
 
