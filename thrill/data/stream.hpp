@@ -95,12 +95,10 @@ public:
     GetWriters(size_t block_size = default_block_size) = 0;
 
     /*!
-     * Scatters a File to many worker
-     *
-     * elements from 0..offset[0] are sent to the first worker,
-     * elements from (offset[0] + 1)..offset[1] are sent to the second worker.
-     * elements from (offset[my_rank - 1] + 1)..(offset[my_rank]) are copied
-     * The offset values range from 0..Manager::GetNumElements().
+     * Scatters a File to many worker:
+     * elements from [0,offset[0]) are sent to the first worker,
+     * elements from [offset[0], offset[1]) are sent to the second worker, ...,
+     * elements from [offset[my_rank - 1],offset[my_rank]) are copied locally.
      * The number of given offsets must be equal to the net::Group::num_workers() * workers_per_host_.
      *
      * /param source File containing the data to be scattered.

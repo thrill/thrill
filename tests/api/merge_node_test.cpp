@@ -25,34 +25,30 @@
 
 using namespace thrill;
 
-using thrill::api::Context;
-using thrill::api::DIA;
-
-template <typename stackA, typename stackB>
+template <typename InputA, typename ... MoreInputs>
 void DoMergeAndCheckResult(
-    const api::DIA<size_t, stackA>& merge_input1,
-    const api::DIA<size_t, stackB>& merge_input2,
-    const std::vector<size_t>& expected, size_t num_workers) {
-    // merge
-    auto merge_result = merge_input1.Merge(merge_input2);
+    const std::vector<size_t>& expected,
+    const InputA& merge_input1, const MoreInputs& ... merge_inputs) {
 
-    // check if order was kept while merging.
+    size_t num_workers = merge_input1.context().num_workers();
+
+    // merge
+    auto merge_result = Merge(
+        std::less<size_t>(), merge_input1, merge_inputs ...);
+
+    // crude method to calculate the number of local items
     size_t count = 0;
-    auto res = merge_result.Map([&count](size_t in) {
-                                    count++;
-                                    return in;
-                                }).AllGather();
+    auto res = merge_result
+               .Map([&count](size_t in) { count++; return in; })
+               .AllGather();
 
     // Check if res is as expected.
     ASSERT_EQ(expected, res);
 
     // check if balancing condition was met
-    // TODO(EJ) There seems to be a bug with inbalanced arrays on a very
-    // low number of workers. I'm not sure why though.
-    // LOG << "count: " << count << " expected: " << ((float)res.size() / (float)num_workers);
-    float expectedCount =
-        static_cast<float>(res.size()) / static_cast<float>(num_workers);
-    ASSERT_LE(std::abs(expectedCount - count), num_workers + 100);
+    LOG0 << "count: " << count << " expected: " << res.size() / num_workers;
+    size_t expectedCount = res.size() / num_workers;
+    ASSERT_LE(common::abs_diff(expectedCount, count), num_workers + 50);
 }
 
 TEST(MergeNode, TwoBalancedIntegerArrays) {
@@ -77,16 +73,15 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
                 expected[i] = i;
             }
 
-            DoMergeAndCheckResult(merge_input1, merge_input2, expected, ctx.num_workers());
+            DoMergeAndCheckResult(expected, merge_input1, merge_input2);
         };
 
-    thrill::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(MergeNode, FourBalancedIntegerArrays) {
 
     static constexpr size_t test_size = 5000;
-    static constexpr bool debug = false;
 
     auto start_func =
         [](Context& ctx) {
@@ -108,30 +103,12 @@ TEST(MergeNode, FourBalancedIntegerArrays) {
                 expected[i] = i;
             }
 
-            auto merge_result = Merge(
-                std::less<size_t>(),
+            DoMergeAndCheckResult(
+                expected,
                 merge_input1, merge_input2, merge_input3, merge_input4);
-
-            // check if order was kept while merging.
-            size_t count = 0;
-            auto res = merge_result.Map([&count](size_t in) {
-                                            count++;
-                                            return in;
-                                        }).AllGather();
-
-            // Check if res is as expected.
-            ASSERT_EQ(expected, res);
-
-            LOG << "count: " << count << " expected: "
-                << (static_cast<float>(res.size())
-                / static_cast<float>(ctx.num_workers()));
-
-            float expectedCount = static_cast<float>(res.size())
-                                  / static_cast<float>(ctx.num_workers());
-            ASSERT_LE(std::abs(expectedCount - count), ctx.num_workers() + 100);
         };
 
-    thrill::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(MergeNode, TwoImbalancedIntegerArrays) {
@@ -162,10 +139,10 @@ TEST(MergeNode, TwoImbalancedIntegerArrays) {
                 expected.push_back(i + 10000);
             }
 
-            DoMergeAndCheckResult(merge_input1, merge_input2, expected, ctx.num_workers());
+            DoMergeAndCheckResult(expected, merge_input1, merge_input2);
         };
 
-    thrill::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
@@ -201,12 +178,10 @@ TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
 
             std::sort(expected.begin(), expected.end());
 
-            DoMergeAndCheckResult(merge_input1, merge_input2, expected, ctx.num_workers());
+            DoMergeAndCheckResult(expected, merge_input1, merge_input2);
         };
 
-    thrill::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
-
-// REVIEW(ej): test another data type, one which is not default constructible!
 
 /******************************************************************************/

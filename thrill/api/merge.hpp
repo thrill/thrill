@@ -5,7 +5,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
@@ -119,22 +119,21 @@ public:
 } // namespace merge_local
 
 /*!
-* Implementation of Thrill's merge. This merge implementation balances all data
-* before merging, so each worker has the same amount of data when merge
-* finishes.
-*
-* \tparam ValueType The type of the first and second input DIA
-* \tparam Comparator The comparator defining input and output order.
-* \tparam ParentDIA0 The type of the first input DIA
-* \tparam ParentDIAs The types of the other input DIAs
-*/
+ * Implementation of Thrill's merge. This merge implementation balances all data
+ * before merging, so each worker has the same amount of data when merge
+ * finishes.
+ *
+ * \tparam ValueType The type of the first and second input DIA
+ * \tparam Comparator The comparator defining input and output order.
+ * \tparam ParentDIA0 The type of the first input DIA
+ * \tparam ParentDIAs The types of the other input DIAs
+ */
 template <typename ValueType, typename Comparator,
-          typename ParentDIA0,
-          typename ... ParentDIAs>
+          typename ParentDIA0, typename ... ParentDIAs>
 class MergeNode : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
-    static constexpr bool self_verify = true;
+    static constexpr bool self_verify = debug && common::g_debug_mode;
 
     //! Instance of merge statistics
     merge_local::MergeStats stats_;
@@ -167,6 +166,34 @@ public:
             RegisterParent(this), parent0, parents ...);
     }
 
+    //! Register Parent PreOp Hooks, instantiated and called for each Merge
+    //! parent
+    class RegisterParent
+    {
+    public:
+        explicit RegisterParent(MergeNode* merge_node)
+            : merge_node_(merge_node) { }
+
+        template <typename Index, typename Parent>
+        void operator () (const Index&, Parent& parent) {
+
+            // construct lambda with only the writer in the closure
+            data::File::Writer* writer = &merge_node_->writers_[Index::index];
+            auto pre_op_fn = [writer](const ValueType& input) -> void {
+                                 writer->Put(input);
+                             };
+
+            // close the function stacks with our pre ops and register it at
+            // parent nodes for output
+            auto lop_chain = parent.stack().push(pre_op_fn).fold();
+
+            parent.node()->AddChild(merge_node_, lop_chain, Index::index);
+        }
+
+    private:
+        MergeNode* merge_node_;
+    };
+
     void StopPreOp(size_t id) final {
         writers_[id].Close();
     }
@@ -179,17 +206,14 @@ public:
         size_t result_count = 0;
         static constexpr bool debug = false;
 
-        LOG << "Entering Main OP";
-
         stats_.merge_timer_.Start();
 
         // get inbound readers from all Channels
         std::vector<data::CatStream::CatReader> readers;
         readers.reserve(kNumInputs);
 
-        for (size_t i = 0; i < kNumInputs; i++) {
+        for (size_t i = 0; i < kNumInputs; i++)
             readers.emplace_back(streams_[i]->GetCatReader(consume));
-        }
 
         auto puller = core::make_multiway_merge_tree<ValueType>(
             readers.begin(), readers.end(), comparator_);
@@ -234,98 +258,90 @@ private:
 
     using ArrayNumInputsSizeT = std::array<size_t, kNumInputs>;
 
-    //! Logging helper to print vectors.
+    //! Logging helper to print arrays.
     template <typename T, size_t N>
-    std::string VToStr(const std::array<T, N>& data) {
-        std::stringstream ss;
-
-        for (const T& elem : data)
-            ss << elem << " ";
-
-        return ss.str();
-    }
-
-    //! Logging helper to print vectors of vectors of size_t
-    std::string VToStr(const std::vector<ArrayNumInputsSizeT>& data) {
-        std::stringstream ss;
-
-        for (const ArrayNumInputsSizeT& elem : data) {
-            ss << VToStr(elem) << " ## ";
+    static std::string VToStr(const std::array<T, N>& data) {
+        std::ostringstream oss;
+        oss << '[';
+        for (typename std::array<T, N>::const_iterator it = data.begin();
+             it != data.end(); ++it)
+        {
+            if (it != data.begin()) oss << ',';
+            oss << *it;
         }
-
-        return ss.str();
+        oss << ']';
+        return oss.str();
     }
 
     //! Logging helper to print vectors.
     template <typename T>
-    std::string VToStr(const std::vector<T>& data) {
-        std::stringstream ss;
-
-        for (const T& elem : data)
-            ss << elem << " ";
-
-        return ss.str();
+    static std::string VToStr(const std::vector<T>& data) {
+        std::ostringstream oss;
+        oss << '[';
+        for (typename std::vector<T>::const_iterator it = data.begin();
+             it != data.end(); ++it)
+        {
+            if (it != data.begin()) oss << ',';
+            oss << *it;
+        }
+        oss << ']';
+        return oss.str();
     }
 
-    //! Logging helper to print vectors of vectors of size_t
-    std::string VToStr(const std::vector<std::vector<size_t> >& data) {
-        std::stringstream ss;
-
-        for (const std::vector<size_t>& elem : data) {
-            ss << VToStr(elem) << " ## ";
+    //! Logging helper to print vectors of arrays of size_t
+    static std::string VToStr(const std::vector<ArrayNumInputsSizeT>& data) {
+        std::ostringstream oss;
+        for (typename std::vector<ArrayNumInputsSizeT>::const_iterator
+             it = data.begin(); it != data.end(); ++it)
+        {
+            if (it != data.begin()) oss << " # ";
+            oss << VToStr(*it);
         }
-
-        return ss.str();
+        return oss.str();
     }
 
     //! Logging helper to print vectors of vectors of pivots.
-    std::string VToStr(const std::vector<Pivot>& data) {
-        std::stringstream ss;
-
-        for (const Pivot& elem : data)
-            ss << "(" << elem.value << ", itie: " << elem.tie_idx << ", len: " << elem.segment_len << ") ";
-
-        return ss.str();
-    }
-
-    //! Helper method that adds two size_t Vector. This is used
-    //! for global reduce operations.
-    static std::vector<size_t> AddSizeTVectors
-        (const std::vector<size_t>& a, const std::vector<size_t>& b) {
-        assert(a.size() == b.size());
-        std::vector<size_t> res(a.size());
-        for (size_t i = 0; i < a.size(); i++) {
-            res[i] = a[i] + b[i];
+    static std::string VToStr(const std::vector<Pivot>& data) {
+        std::stringstream oss;
+        for (const Pivot& elem : data) {
+            oss << "(" << elem.value
+                << ", itie: " << elem.tie_idx
+                << ", len: " << elem.segment_len << ") ";
         }
-        return res;
+        return oss.str();
     }
 
-    //! Register Parent PreOp Hooks, instantiated and called for each Merge
-    //! parent
-    class RegisterParent
+    //! Reduce functor that returns the pivot originating from the biggest
+    //! range.  That removes some nasty corner cases, like selecting the same
+    //! pivot over and over again from a tiny range.
+    class ReducePivots
     {
     public:
-        explicit RegisterParent(MergeNode* merge_node)
-            : merge_node_(merge_node) { }
+        Pivot operator () (const Pivot& a, const Pivot& b) const {
+            return a.segment_len > b.segment_len ? a : b;
+        }
+    };
 
-        template <typename Index, typename Parent>
-        void operator () (const Index&, Parent& parent) {
-
-            // construct lambda with only the writer in the closure
-            data::File::Writer* writer = &merge_node_->writers_[Index::index];
-            auto pre_op_fn = [writer](const ValueType& input) -> void {
-                                 writer->Put(input);
-                             };
-
-            // close the function stacks with our pre ops and register it at
-            // parent nodes for output
-            auto lop_chain = parent.stack().push(pre_op_fn).fold();
-
-            parent.node()->AddChild(merge_node_, lop_chain, Index::index);
+    //! Helper method that adds/reduces two size_t Vector. This is used as an
+    //! operator for global reduce operations.
+    template <typename Type, typename Operator>
+    class AddSizeTVectors
+    {
+    public:
+        explicit AddSizeTVectors(const Operator& op = Operator()) : op_(op) { }
+        std::vector<Type> operator () (
+            const std::vector<Type>& a, const std::vector<Type>& b) const {
+            assert(a.size() == b.size());
+            std::vector<Type> res;
+            res.reserve(a.size());
+            for (typename std::vector<Type>::const_iterator
+                 ai = a.begin(), bi = b.begin(); ai != a.end(); ++ai, ++bi)
+                res.emplace_back(op_(*ai, *bi));
+            return res;
         }
 
     private:
-        MergeNode* merge_node_;
+        Operator op_;
     };
 
     /*!
@@ -341,14 +357,13 @@ private:
      *
      * \param out_pivots The output pivots.
      */
-    // dim 1: Different splitters, dim 2: different files
     void SelectPivots(
         const std::vector<ArrayNumInputsSizeT>& left,
         const std::vector<ArrayNumInputsSizeT>& width,
         std::vector<Pivot>& out_pivots) {
 
-        // Select a random pivot for the largest range we have
-        // For each splitter.
+        // Select a random pivot for the largest range we have for each
+        // splitter.
         for (size_t s = 0; s < width.size(); s++) {
             size_t mp = 0;
 
@@ -359,7 +374,7 @@ private:
                 }
             }
 
-            // We can leave pivotElem uninitialized.  If it is not initialized
+            // We can leave pivot_elem uninitialized.  If it is not initialized
             // below, then an other worker's pivot will be taken for this range,
             // since our range is zero.
             ValueType pivot_elem = ValueType();
@@ -380,43 +395,19 @@ private:
             };
         }
 
-        LOG << "Local Pivots " << VToStr(out_pivots);
-
-        // Distribute pivots globally.
-
-        // Reduce function that returns the pivot originating from the biggest
-        // range.  That removes some nasty corner cases, like selecting the same
-        // pivot over and over again from a tiny range.
-        auto reduce_pivots = [](const Pivot& a, const Pivot& b) {
-                                 if (a.segment_len > b.segment_len) {
-                                     return a;
-                                 }
-                                 else {
-                                     return b;
-                                 }
-                             };
-
-        stats_.comm_timer_.Start();
+        LOG << "local pivots: " << VToStr(out_pivots);
 
         // Reduce vectors of pivots globally to select the pivots from the
         // largest ranges.
+        stats_.comm_timer_.Start();
         out_pivots = context_.net.AllReduce(
-            out_pivots,
-            [reduce_pivots]
-                (const std::vector<Pivot>& a, const std::vector<Pivot>& b) {
-                assert(a.size() == b.size());
-                std::vector<Pivot> res(a.size());
-                for (size_t i = 0; i < a.size(); i++) {
-                    res[i] = reduce_pivots(a[i], b[i]);
-                }
-                return res;
-            });
+            out_pivots, AddSizeTVectors<Pivot, ReducePivots>());
         stats_.comm_timer_.Stop();
     }
 
     /*!
      * Calculates the global ranks of the given pivots.
-     * Additionally retruns the local ranks so we can use them in the next step.
+     * Additionally returns the local ranks so we can use them in the next step.
      *
      * \param pivots The pivots.
      *
@@ -427,62 +418,58 @@ private:
      */
     void GetGlobalRanks(
         const std::vector<Pivot>& pivots,
-        std::vector<size_t>& ranks,
-        std::vector<ArrayNumInputsSizeT>& local_ranks) {
+        std::vector<size_t>& global_ranks,
+        std::vector<ArrayNumInputsSizeT>& out_local_ranks) {
 
-        // Simply get the rank of each pivot in each file.
-        // Sum the ranks up locally.
+        // Simply get the rank of each pivot in each file. Sum the ranks up
+        // locally.
         for (size_t s = 0; s < pivots.size(); s++) {
             size_t rank = 0;
             for (size_t i = 0; i < kNumInputs; i++) {
                 stats_.file_op_timer_.Start();
-                size_t idx = files_[i]->GetIndexOf(pivots[s].value, pivots[s].tie_idx, comparator_);
+                size_t idx = files_[i]->GetIndexOf(
+                    pivots[s].value, pivots[s].tie_idx, comparator_);
                 stats_.file_op_timer_.Stop();
 
                 rank += idx;
-
-                local_ranks[s][i] = idx;
+                out_local_ranks[s][i] = idx;
             }
-            ranks[s] = rank;
+            global_ranks[s] = rank;
         }
 
         stats_.comm_timer_.Start();
         // Sum up ranks globally.
-        ranks = context_.net.AllReduce(ranks, &AddSizeTVectors);
+        global_ranks = context_.net.AllReduce(
+            global_ranks, AddSizeTVectors<size_t, std::plus<size_t> >());
         stats_.comm_timer_.Stop();
     }
 
     /*!
-     * Shrinks the search ranges accoring to the global ranks of the pivots.
+     * Shrinks the search ranges according to the global ranks of the pivots.
      *
-     * \param ranks The global ranks of all pivots.
+     * \param global_ranks The global ranks of all pivots.
+     *
      * \param local_ranks The local ranks of each pivot in each file.
-     * \param target_ranks The desired ranks of the splitters we are looking for.
-     * \param left The left bounds of all search ranges for all files.
-     *             The first index identifies the splitter, the second index identifies the file.
-     *             This parameter will be modified.
-     * \param width The width of all search ranges for all files.
-     *              The first index identifies the splitter, the second index identifies the file.
-     *             This parameter will be modified.
      *
-     * TODO: This implementation
-     * suffers from an off-by-one error when there is only
-     * a single global range left per splitter. The binary search never
-     * terminates because the rank never gets zero. The result is
-     * the sloppy termination condition in MainOp and a worst-case
-     * balancing error of p * m, with p equals number of workers, m number of files.
+     * \param target_ranks The desired ranks of the splitters we are looking
+     * for.
+     *
+     * \param left The left bounds of all search ranges for all files.  The
+     * first index identifies the splitter, the second index identifies the
+     * file.  This parameter will be modified.
+     *
+     * \param width The width of all search ranges for all files.  The first
+     * index identifies the splitter, the second index identifies the file.
+     * This parameter will be modified.
      */
     void SearchStep(
-        const std::vector<size_t>& ranks,
-        std::vector<ArrayNumInputsSizeT>& local_ranks,
+        const std::vector<size_t>& global_ranks,
+        const std::vector<ArrayNumInputsSizeT>& local_ranks,
         const std::vector<size_t>& target_ranks,
         std::vector<ArrayNumInputsSizeT>& left,
         std::vector<ArrayNumInputsSizeT>& width) {
 
-        // This is basically a binary search for each
-        // splitter and each file.
         for (size_t s = 0; s < width.size(); s++) {
-
             for (size_t p = 0; p < width[s].size(); p++) {
 
                 if (width[s][p] == 0)
@@ -491,12 +478,12 @@ private:
                 size_t idx = local_ranks[s][p];
                 size_t old_width = width[s][p];
 
-                if (ranks[s] <= target_ranks[s]) {
+                if (global_ranks[s] < target_ranks[s]) {
                     assert(left[s][p] <= idx);
                     width[s][p] -= idx - left[s][p];
                     left[s][p] = idx;
                 }
-                else if (ranks[s] > target_ranks[s]) {
+                else if (global_ranks[s] >= target_ranks[s]) {
                     width[s][p] = idx - left[s][p];
                 }
 
@@ -516,7 +503,7 @@ private:
 
         // Count of all workers (and count of target partitions)
         size_t p = context_.num_workers();
-        LOG << "Splitting to " << p << " workers";
+        LOG << "splitting to " << p << " workers";
 
         // Count of all local elements.
         size_t local_size = 0;
@@ -528,13 +515,15 @@ private:
         // test that the data we got is sorted!
         if (self_verify) {
             for (size_t i = 0; i < kNumInputs; i++) {
-                auto reader = files_[i]->GetReader(/* consume */ false);
+                auto reader = files_[i]->GetKeepReader();
                 if (!reader.HasNext()) continue;
 
                 ValueType prev = reader.template Next<ValueType>();
                 while (reader.HasNext()) {
                     ValueType next = reader.template Next<ValueType>();
-                    die_unless(!comparator_(next, prev) || !"Merge input was not sorted!");
+                    if (comparator_(next, prev)) {
+                        die("Merge input was not sorted!");
+                    }
                     prev = std::move(next);
                 }
             }
@@ -545,36 +534,34 @@ private:
         size_t global_size = context_.net.AllReduce(local_size);
         stats_.comm_timer_.Stop();
 
-        LOG << "Global size: " << global_size;
+        LOG << "local size: " << local_size;
+        LOG << "global size: " << global_size;
 
         // Calculate and remember the ranks we search for.  In our case, we
         // search for ranks that split the data into equal parts.
         std::vector<size_t> target_ranks(p - 1);
-        std::vector<size_t> global_ranks(p - 1);
 
         for (size_t r = 0; r < p - 1; r++) {
             target_ranks[r] = (global_size / p) * (r + 1);
-        }
-
-        // Modify all ranks 0..(globalSize % p), in case global_size is not
-        // divisible by p.
-        for (size_t r = 0; r < global_size % p; r++) {
-            target_ranks[r] += 1;
+            // Modify all ranks 0..(globalSize % p), in case global_size is not
+            // divisible by p.
+            if (r < global_size % p)
+                target_ranks[r] += 1;
         }
 
         if (debug) {
-            for (size_t r = 0; r < p - 1; r++) {
-                LOG << "Search Rank " << r << ": " << target_ranks[r];
+            LOG << "target_ranks: " << VToStr(target_ranks);
 
-                stats_.comm_timer_.Start();
-                assert(context_.net.Broadcast(target_ranks[r]) == target_ranks[r]);
-                stats_.comm_timer_.Stop();
-            }
+            stats_.comm_timer_.Start();
+            assert(context_.net.Broadcast(target_ranks) == target_ranks);
+            stats_.comm_timer_.Stop();
         }
 
+        // buffer for the global ranks of selected pivots
+        std::vector<size_t> global_ranks(p - 1);
+
         // Search range bounds.
-        std::vector<ArrayNumInputsSizeT> left(p - 1);
-        std::vector<ArrayNumInputsSizeT> width(p - 1);
+        std::vector<ArrayNumInputsSizeT> left(p - 1), width(p - 1);
 
         // Auxillary arrays.
         std::vector<Pivot> pivots(p - 1);
@@ -591,109 +578,132 @@ private:
         bool finished = false;
         stats_.balancing_timer_.Start();
 
-        // TODO(?): Iterate until all splitters are found.
-        // Theoretically, the condition
-        //
-        // while(global_ranks != target_ranks)
-        //
-        // could be used here. If the binary-search error
-        // mentioned in SearchStep is fixed.
+        // Iterate until we find a pivot which is within the prescribed balance
+        // tolerance
         while (!finished) {
 
-            LOG << "left: " << VToStr(left);
-            LOG << "width: " << VToStr(width);
+            LOG << "iteration: " << stats_.iterations_;
+            LOG0 << "left: " << VToStr(left);
+            LOG0 << "width: " << VToStr(width);
+
+            if (debug) {
+                for (size_t q = 0; q < kNumInputs; q++) {
+                    std::ostringstream oss;
+                    for (size_t i = 0; i < p - 1; ++i) {
+                        if (i != 0) oss << " # ";
+                        oss << '[' << left[i][q] << ',' << left[i][q] + width[i][q] << ')';
+                    }
+                    LOG1 << "left/right[" << q << "]: " << oss.str();
+                }
+            }
 
             // Find pivots.
             stats_.pivot_selection_timer_.Start();
             SelectPivots(left, width, pivots);
             stats_.pivot_selection_timer_.Stop();
 
-            LOG << "Final Pivots " << VToStr(pivots);
+            LOG << "final pivots: " << VToStr(pivots);
 
             // Get global ranks and shrink ranges.
             stats_.search_step_timer_.Start();
             GetGlobalRanks(pivots, global_ranks, local_ranks);
 
-            LOG << "global_ranks " << VToStr(global_ranks);
-            LOG << "local_ranks " << VToStr(local_ranks);
+            LOG << "global_ranks: " << VToStr(global_ranks);
+            LOG << "local_ranks: " << VToStr(local_ranks);
 
             SearchStep(global_ranks, local_ranks, target_ranks, left, width);
 
-            // Check if all our ranges have at most size one.
-            // TODO(?): This can potentially be omitted. See comment
-            // above.
-            finished = true;
+            if (debug) {
+                for (size_t q = 0; q < kNumInputs; q++) {
+                    std::ostringstream oss;
+                    for (size_t i = 0; i < p - 1; ++i) {
+                        if (i != 0) oss << " # ";
+                        oss << '[' << left[i][q] << ',' << left[i][q] + width[i][q] << ')';
+                    }
+                    LOG1 << "left/right[" << q << "]: " << oss.str();
+                }
+            }
 
-            // TODO(?): We check for accuracy of kNumInputs + 1
-            // There is a off-by one error in the last search step.
-            // We need special treatment of search ranges with width 1, when the pivot
-            // originates from our host.
-            // An error of kNumInputs + 1 is the worst case.
+            // We check for accuracy of kNumInputs + 1
+            finished = true;
             for (size_t i = 0; i < p - 1; i++) {
-                size_t a = global_ranks[i];
-                size_t b = target_ranks[i];
-                if ((a > b && a - b > kNumInputs + 1) || (b > a && b - a > kNumInputs + 1)) {
+                size_t a = global_ranks[i], b = target_ranks[i];
+                if (common::abs_diff(a, b) > kNumInputs + 1) {
                     finished = false;
                     break;
                 }
             }
-
-            LOG << "srank: " << VToStr(target_ranks);
-            LOG << "grank: " << VToStr(global_ranks);
 
             stats_.search_step_timer_.Stop();
             stats_.iterations_++;
         }
         stats_.balancing_timer_.Stop();
 
+        LOG << "Finished after " << stats_.iterations_ << " iterations";
+
         LOG << "Creating channels";
 
         // Initialize channels for distributing data.
-        for (size_t j = 0; j < kNumInputs; j++) {
+        for (size_t j = 0; j < kNumInputs; j++)
             streams_[j] = context_.GetNewCatStream();
-        }
 
         stats_.scatter_timer_.Start();
 
         LOG << "Scattering.";
 
-        // For each file, initialize an array of offsets according
-        // to the splitters we found. Then call scatter to distribute the data.
+        // For each file, initialize an array of offsets according to the
+        // splitters we found. Then call scatter to distribute the data.
+
+        std::vector<size_t> tx_items(p);
         for (size_t j = 0; j < kNumInputs; j++) {
 
             std::vector<size_t> offsets(p);
 
-            for (size_t r = 0; r < p - 1; r++) {
-                offsets[r] = left[r][j];
-            }
+            for (size_t r = 0; r < p - 1; r++)
+                offsets[r] = local_ranks[r][j];
 
             offsets[p - 1] = files_[j]->num_items();
 
-            for (size_t i = 0; i < p; i++) {
-                LOG << "Offset " << i << " for file " << j << ": " << VToStr(offsets);
+            LOG << "Scatter from file " << j << " to other workers: "
+                << VToStr(offsets);
+
+            tx_items[0] += offsets[0];
+            for (size_t r = 1; r < p; ++r) {
+                tx_items[r] += offsets[r] - offsets[r - 1];
             }
 
             streams_[j]->template Scatter<ValueType>(*files_[j], offsets);
+            // trust Scatter to deliver items
+            files_[j]->Clear();
         }
+
+        LOG << "tx_items: " << VToStr(tx_items);
+
+        // calculate total items on each worker after Scatter
+        tx_items = context_.net.AllReduce(
+            tx_items, AddSizeTVectors<size_t, std::plus<size_t> >());
+        if (context_.my_rank() == 0)
+            LOG << "total_items: " << VToStr(tx_items);
+
         stats_.scatter_timer_.Stop();
     }
 };
 
 /*!
-* Merge is a DOp, which merges any number of sorted DIAs to a single sorted
-* DIA.  All input DIAs must be sorted conforming to the given comparator.  The
-* type of the output DIA will be the type of this DIA.
-*
-* The merge operation balances all input data, so that each worker will have an
-* equal number of elements when the merge completes.
-*
-* \tparam Comparator Comparator to specify the order of input and output.
-*
-* \param comparator Comparator to specify the order of input and output.
-*
-* \param first_dia first DIA
-* \param dias DIAs, which is merged with this DIA.
-*/
+ * Merge is a DOp, which merges any number of sorted DIAs to a single sorted
+ * DIA.  All input DIAs must be sorted conforming to the given comparator.  The
+ * type of the output DIA will be the type of this DIA.
+ *
+ * The merge operation balances all input data, so that each worker will have an
+ * equal number of elements when the merge completes.
+ *
+ * \tparam Comparator Comparator to specify the order of input and output.
+ *
+ * \param comparator Comparator to specify the order of input and output.
+ *
+ * \param first_dia first DIA
+ * \param dias DIAs, which is merged with this DIA.
+ */
 template <typename Comparator, typename FirstDIA, typename ... DIAs>
 auto Merge(const Comparator &comparator,
            const FirstDIA &first_dia, const DIAs &... dias) {

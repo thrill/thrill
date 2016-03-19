@@ -99,6 +99,12 @@ static inline size_t ffs(Integral x) {
 }
 #endif
 
+//! absolute difference, which also works for unsigned types
+template <typename T>
+T abs_diff(const T& a, const T& b) {
+    return a > b ? a - b : b - a;
+}
+
 /******************************************************************************/
 
 //! calculate n div k with rounding up
