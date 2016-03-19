@@ -21,11 +21,12 @@
 #include <thrill/common/meta.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/core/losertree.hpp>
+#include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
+#include <array>
 #include <functional>
 #include <random>
 #include <string>
@@ -142,9 +143,9 @@ class MergeNode : public DOpNode<ValueType>
     using Super::context_;
 
     //! Number of storage DIAs backing
-    static constexpr size_t num_inputs_ = 1 + sizeof ... (ParentDIAs);
+    static constexpr size_t kNumInputs = 1 + sizeof ... (ParentDIAs);
 
-    static_assert(num_inputs_ >= 2, "Merge requires at least two inputs.");
+    static_assert(kNumInputs >= 2, "Merge requires at least two inputs.");
 
 public:
     MergeNode(const Comparator& comparator,
@@ -156,10 +157,10 @@ public:
           comparator_(comparator)
     {
         // allocate files.
-        for (size_t i = 0; i < num_inputs_; ++i)
+        for (size_t i = 0; i < kNumInputs; ++i)
             files_[i] = context_.GetFilePtr();
 
-        for (size_t i = 0; i < num_inputs_; ++i)
+        for (size_t i = 0; i < kNumInputs; ++i)
             writers_[i] = files_[i]->GetWriter();
 
         common::VariadicCallForeachIndex(
@@ -182,67 +183,19 @@ public:
 
         stats_.merge_timer_.Start();
 
-        using Reader = data::BufferedBlockReader<
-                  ValueType, data::CatBlockSource<data::DynBlockSource> >;
+        // get inbound readers from all Channels
+        std::vector<data::CatStream::CatReader> readers;
+        readers.reserve(kNumInputs);
 
-        // get buffered inbound readers from all Channels
-        std::vector<Reader> readers;
-        for (size_t i = 0; i < num_inputs_; i++) {
-            readers.emplace_back(std::move(streams_[i]->GetCatBlockSource(consume)));
-        }
-        // init the looser-tree
-        using LoserTreeType = core::LoserTreePointer<true, ValueType, Comparator>;
-
-        LoserTreeType lt(num_inputs_, comparator_);
-
-        // Arbitrary element (copied!)
-        std::unique_ptr<ValueType> zero;
-
-        size_t completed = 0;
-
-        // Find abritary elem.
-        for (size_t i = 0; i < num_inputs_; i++) {
-            if (readers[i].HasValue()) {
-                zero = std::make_unique<ValueType>(readers[i].Value());
-                break;
-            }
+        for (size_t i = 0; i < kNumInputs; i++) {
+            readers.emplace_back(streams_[i]->GetCatReader(consume));
         }
 
-        if (zero) { //If so, we only have empty channels.
-            // Insert abritray element for each empty reader.
-            for (size_t i = 0; i < num_inputs_; i++) {
-                if (!readers[i].HasValue()) {
-                    lt.insert_start(&*zero, i, true);
-                    completed++;
-                }
-                else {
-                    lt.insert_start(nullptr, i, false);
-                }
-            }
-            lt.init();
+        auto puller = core::make_multiway_merge_tree<ValueType>(
+            readers.begin(), readers.end(), comparator_);
 
-            while (completed < num_inputs_) {
-
-                size_t min = lt.get_min_source();
-
-                auto& reader = readers[min];
-                assert(reader.HasValue());
-
-                this->PushItem(reader.Value());
-
-                reader.Next();
-
-                if (reader.HasValue()) {
-                    lt.delete_min_insert(reader.Value(), false);
-                }
-                else {
-                    lt.delete_min_insert(*zero, true);
-                    completed++;
-                }
-
-                result_count++;
-            }
-        }
+        while (puller.HasNext())
+            this->PushItem(puller.Next());
 
         stats_.merge_timer_.Stop();
 
@@ -262,13 +215,13 @@ private:
     std::default_random_engine rng_ { std::random_device { } () };
 
     //! Files for intermediate storage
-    std::array<data::FilePtr, num_inputs_> files_;
+    data::FilePtr files_[kNumInputs];
 
     //! Writers to intermediate files
-    std::array<data::File::Writer, num_inputs_> writers_;
+    data::File::Writer writers_[kNumInputs];
 
     //! Array of inbound CatStreams
-    std::array<data::CatStreamPtr, num_inputs_> streams_;
+    data::CatStreamPtr streams_[kNumInputs];
 
     struct Pivot {
         ValueType value;
@@ -279,7 +232,7 @@ private:
     //! Count of items on all prev workers.
     size_t prefix_size_;
 
-    using ArrayNumInputsSizeT = std::array<size_t, num_inputs_>;
+    using ArrayNumInputsSizeT = std::array<size_t, kNumInputs>;
 
     //! Logging helper to print vectors.
     template <typename T, size_t N>
@@ -481,7 +434,7 @@ private:
         // Sum the ranks up locally.
         for (size_t s = 0; s < pivots.size(); s++) {
             size_t rank = 0;
-            for (size_t i = 0; i < num_inputs_; i++) {
+            for (size_t i = 0; i < kNumInputs; i++) {
                 stats_.file_op_timer_.Start();
                 size_t idx = files_[i]->GetIndexOf(pivots[s].value, pivots[s].tie_idx, comparator_);
                 stats_.file_op_timer_.Stop();
@@ -568,13 +521,13 @@ private:
         // Count of all local elements.
         size_t local_size = 0;
 
-        for (size_t i = 0; i < files_.size(); i++) {
+        for (size_t i = 0; i < kNumInputs; i++) {
             local_size += files_[i]->num_items();
         }
 
         // test that the data we got is sorted!
         if (self_verify) {
-            for (size_t i = 0; i < num_inputs_; i++) {
+            for (size_t i = 0; i < kNumInputs; i++) {
                 auto reader = files_[i]->GetReader(/* consume */ false);
                 if (!reader.HasNext()) continue;
 
@@ -630,7 +583,7 @@ private:
         // Initialize all lefts with 0 and all widths with size of their
         // respective file.
         for (size_t r = 0; r < p - 1; r++) {
-            for (size_t q = 0; q < num_inputs_; q++) {
+            for (size_t q = 0; q < kNumInputs; q++) {
                 width[r][q] = files_[q]->num_items();
             }
         }
@@ -671,15 +624,15 @@ private:
             // above.
             finished = true;
 
-            // TODO(?): We check for accuracy of num_inputs_ + 1
+            // TODO(?): We check for accuracy of kNumInputs + 1
             // There is a off-by one error in the last search step.
             // We need special treatment of search ranges with width 1, when the pivot
             // originates from our host.
-            // An error of num_inputs_ + 1 is the worst case.
+            // An error of kNumInputs + 1 is the worst case.
             for (size_t i = 0; i < p - 1; i++) {
                 size_t a = global_ranks[i];
                 size_t b = target_ranks[i];
-                if ((a > b && a - b > num_inputs_ + 1) || (b > a && b - a > num_inputs_ + 1)) {
+                if ((a > b && a - b > kNumInputs + 1) || (b > a && b - a > kNumInputs + 1)) {
                     finished = false;
                     break;
                 }
@@ -696,7 +649,7 @@ private:
         LOG << "Creating channels";
 
         // Initialize channels for distributing data.
-        for (size_t j = 0; j < num_inputs_; j++) {
+        for (size_t j = 0; j < kNumInputs; j++) {
             streams_[j] = context_.GetNewCatStream();
         }
 
@@ -706,7 +659,7 @@ private:
 
         // For each file, initialize an array of offsets according
         // to the splitters we found. Then call scatter to distribute the data.
-        for (size_t j = 0; j < num_inputs_; j++) {
+        for (size_t j = 0; j < kNumInputs; j++) {
 
             std::vector<size_t> offsets(p);
 

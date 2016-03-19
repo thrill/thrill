@@ -19,7 +19,6 @@
 #include <thrill/data/block_reader.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
-#include <thrill/data/buffered_block_reader.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 
 #include <cassert>
@@ -150,10 +149,6 @@ public:
      */
     ConsumeReader GetConsumeReader(
         size_t num_prefetch = File::default_prefetch);
-
-    //! Get BufferedBlockReader for beginning of File
-    template <typename ValueType>
-    BufferedBlockReader<ValueType, KeepFileBlockSource> GetBufferedReader() const;
 
     //! Get BlockReader seeked to the corresponding item index
     template <typename ItemType>
@@ -346,14 +341,6 @@ private:
     //! current prefetch operations
     std::deque<std::future<PinnedBlock> > fetching_blocks_;
 };
-
-template <typename ValueType>
-inline
-BufferedBlockReader<ValueType, KeepFileBlockSource>
-File::GetBufferedReader() const {
-    return BufferedBlockReader<ValueType, KeepFileBlockSource>(
-        KeepFileBlockSource(*this, local_worker_id_));
-}
 
 //! Get BlockReader seeked to the corresponding item index
 template <typename ItemType>

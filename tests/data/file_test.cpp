@@ -11,7 +11,6 @@
 #include <gtest/gtest.h>
 #include <thrill/common/string.hpp>
 #include <thrill/data/block_queue.hpp>
-#include <thrill/data/buffered_block_reader.hpp>
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
@@ -329,28 +328,6 @@ TEST_F(File, TieGetIndexOfWithDuplicates) {
         size_t idxM = file.GetIndexOf(val / 4, val, std::less<size_t>());
         ASSERT_EQ(idxM, val);
     }
-}
-
-TEST_F(File, ReadFileWithBufferedReader) {
-    data::File file(block_pool_, 0);
-    data::File::Writer fw = file.GetWriter(53);
-
-    size_t size = 100;
-
-    for (size_t i = 0; i < size; i++) {
-        fw.Put(i);
-    }
-    fw.Close();
-
-    auto br = file.GetBufferedReader<size_t>();
-
-    for (size_t i = 0; i < size; i++) {
-        ASSERT_TRUE(br.HasValue());
-        ASSERT_EQ(br.Value(), i);
-        br.Next();
-    }
-
-    ASSERT_FALSE(br.HasValue());
 }
 
 TEST_F(File, SeekReadSlicesOfFiles) {
