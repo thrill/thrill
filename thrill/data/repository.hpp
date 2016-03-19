@@ -13,6 +13,7 @@
 #ifndef THRILL_DATA_REPOSITORY_HEADER
 #define THRILL_DATA_REPOSITORY_HEADER
 
+#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 
 #include <cassert>

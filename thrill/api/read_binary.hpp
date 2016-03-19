@@ -91,7 +91,7 @@ public:
                 if (files.list[i].size % fixed_size_ == 0) continue;
 
                 die("ReadBinary() path " + files.list[i].path +
-                    " size is not a multiple of " << fixed_size_);
+                    " size is not a multiple of " << size_t(fixed_size_));
             }
 
             common::Range my_range =

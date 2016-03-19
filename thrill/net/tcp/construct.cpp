@@ -9,6 +9,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/common/die.hpp>
 #include <thrill/net/tcp/connection.hpp>
 #include <thrill/net/tcp/construct.hpp>
 #include <thrill/net/tcp/group.hpp>
@@ -452,7 +453,7 @@ private:
 
         const WelcomeMsg* msg
             = reinterpret_cast<const WelcomeMsg*>(buffer.data());
-        die_unequal(msg->thrill_sign, thrill_sign);
+        die_unequal(msg->thrill_sign, uint64_t(thrill_sign));
         // We already know those values since we connected actively. So, check
         // for any errors.
         if (tcp.peer_id() != msg->id) {
@@ -486,7 +487,7 @@ private:
         die_unless(tcp.state() != ConnectionState::TransportConnected);
 
         const WelcomeMsg* msg_in = reinterpret_cast<const WelcomeMsg*>(buffer.data());
-        die_unequal(msg_in->thrill_sign, thrill_sign);
+        die_unequal(msg_in->thrill_sign, uint64_t(thrill_sign));
 
         LOG << "client " << my_rank_ << " got signature from client"
             << " group " << msg_in->group_id

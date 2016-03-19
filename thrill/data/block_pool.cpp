@@ -8,6 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/data/block.hpp>

@@ -11,10 +11,13 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
+#include <thrill/io/config_file.hpp>
+
+#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/io/block_manager.hpp>
-#include <thrill/io/config_file.hpp>
+
+#include <gtest/gtest.h>
 
 using namespace thrill;
 

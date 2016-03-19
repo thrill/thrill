@@ -14,6 +14,7 @@
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/defines.hpp>
+#include <thrill/common/die.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>

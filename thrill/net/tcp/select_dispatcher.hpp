@@ -16,6 +16,7 @@
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/delegate.hpp>
+#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/mem/allocator.hpp>

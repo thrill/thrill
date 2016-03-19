@@ -14,7 +14,6 @@
 #ifndef THRILL_COMMON_LOGGER_HEADER
 #define THRILL_COMMON_LOGGER_HEADER
 
-#include <thrill/common/die.hpp>
 #include <thrill/mem/allocator.hpp>
 #include <thrill/mem/pool.hpp>
 

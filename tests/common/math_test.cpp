@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
+#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 
