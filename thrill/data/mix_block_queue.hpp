@@ -102,6 +102,13 @@ public:
         mix_queue_.emplace(SrcBlockPair { src, block });
     }
 
+    //! append block delivered via the network from src.
+    void AppendBlock(size_t src, Block&& block) {
+        LOG << "MixBlockQueue::AppendBlock"
+            << " src=" << src << " block=" << block;
+        mix_queue_.emplace(SrcBlockPair { src, std::move(block) });
+    }
+
     //! append closing sentinel block from src (also delivered via the network).
     void Close(size_t src) {
         LOG << "MixBlockQueue::Close" << " src=" << src;
@@ -228,7 +235,8 @@ public:
     using CatBlockSource = data::CatBlockSource<DynBlockSource>;
     using CatBlockReader = BlockReader<CatBlockSource>;
 
-    MixBlockQueueReader(MixBlockQueue& mix_queue, bool consume, size_t local_worker_id)
+    MixBlockQueueReader(MixBlockQueue& mix_queue,
+                        bool consume, size_t local_worker_id)
         : mix_queue_(mix_queue),
           consume_(consume), reread_(mix_queue.read_closed()) {
 
@@ -287,9 +295,10 @@ public:
         }
         else {
             if (!available_) {
-                if (!PullBlock())
+                if (!PullBlock()) {
                     throw std::runtime_error(
                               "Data underflow in MixBlockQueueReader.");
+                }
             }
 
             assert(available_ > 0);
@@ -305,11 +314,11 @@ private:
     MixBlockQueue& mix_queue_;
 
     //! flag whether to consume the input
-    bool consume_;
+    const bool consume_;
 
-    //! flat whether we are rereading the mix queue by reading the files using
+    //! flag whether we are rereading the mix queue by reading the files using
     //! a cat_reader_.
-    bool reread_;
+    const bool reread_;
 
     //! \name Attributes for Mix Reading
     //! \{
@@ -339,11 +348,14 @@ private:
     bool PullBlock() {
         // no full item available: get next block from mix queue
         while (available_ == 0) {
-            LOG << "still open_=" << open_;
 
             MixBlockQueue::SrcBlockPair src_blk = mix_queue_.Pop();
             LOG << "MixBlockQueueReader::PullBlock()"
-                << " src=" << src_blk.src << " block=" << src_blk.block;
+                << " still open_=" << open_
+                << " src=" << src_blk.src << " block=" << src_blk.block
+                << " selected_=" << selected_
+                << " available_=" << available_
+                << " available_at_[src]=" << available_at_[src_blk.src];
 
             assert(src_blk.src < readers_.size());
 
@@ -380,8 +392,12 @@ private:
                 }
                 else if (open_ == 0) return false;
             }
-        }
 
+            LOG << "MixBlockQueueReader::PullBlock() afterwards"
+                << " selected_=" << selected_
+                << " available_=" << available_
+                << " available_at_[src]=" << available_at_[src_blk.src];
+        }
         return true;
     }
 };

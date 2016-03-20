@@ -198,7 +198,7 @@ private:
         sLOG << "stream" << id_ << "receive from" << from << ":"
              << common::Hexdump(b.ToString());
 
-        queue_.AppendBlock(from, b.ToBlock());
+        queue_.AppendBlock(from, std::move(b).MoveToBlock());
     }
 
     //! called from Multiplexer when a MixStream closed notification was

@@ -33,6 +33,12 @@ namespace common {
  */
 std::string Hexdump(const void* const data, size_t size);
 
+//! Dump a (binary) item as a sequence of hexadecimal pairs.
+template <typename Type>
+std::string HexdumpItem(const Type& t) {
+    return Hexdump(&t, sizeof(t));
+}
+
 /*!
  * Dump a (binary) string as a sequence of hexadecimal pairs.
  *

@@ -90,9 +90,10 @@ public:
             // for self-verification, T is prefixed with its hash code
             size_t code = GetRaw<size_t>();
             if (code != typeid(T).hash_code()) {
-                throw std::runtime_error(
-                          "BlockReader::Next() attempted to retrieve item "
-                          "with different typeid!");
+                die("BlockReader::Next() attempted to retrieve item "
+                    "with different typeid! - expected "
+                    << common::HexdumpItem(typeid(T).hash_code())
+                    << " got " << common::HexdumpItem(code));
             }
         }
         return Serialization<BlockReader, T>::Deserialize(*this);

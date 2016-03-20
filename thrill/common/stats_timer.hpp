@@ -17,6 +17,7 @@
 #ifndef THRILL_COMMON_STATS_TIMER_HEADER
 #define THRILL_COMMON_STATS_TIMER_HEADER
 
+#include <thrill/common/atomic_movable.hpp>
 #include <thrill/common/json_logger.hpp>
 
 #include <cassert>
@@ -49,7 +50,7 @@ public:
 
 protected:
     //! boolean whether the timer is currently running
-    bool running_;
+    common::AtomicMovable<bool> running_;
 
     //! total accumulated time in microseconds.
     duration accumulated_;
