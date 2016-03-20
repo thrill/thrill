@@ -702,7 +702,7 @@ private:
         tx_items = context_.net.AllReduce(
             tx_items, AddSizeTVectors<size_t, std::plus<size_t> >());
         if (context_.my_rank() == 0)
-            LOG << "total_items: " << VToStr(tx_items);
+            LOG1 << "Merge(): total_items: " << VToStr(tx_items);
 
         stats_.scatter_timer_.Stop();
     }

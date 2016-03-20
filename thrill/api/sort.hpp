@@ -87,8 +87,9 @@ public:
         // Therefore we draw samples based on current number of elements and
         // randomly replace older samples when we have too many.
         if (--sample_interval_ == 0) {
-            if (samples_.size() == 0 || samples_.size() < wanted_sample_size()) {
-                samples_.push_back(input);
+            if (samples_.size() < wanted_sample_size()) {
+                while (samples_.size() < wanted_sample_size())
+                    samples_.push_back(input);
             }
             else {
                 samples_[rng_() % samples_.size()] = input;
@@ -113,8 +114,7 @@ public:
         for (size_t i = 0; i < pick_items; ++i) {
             size_t index = rng_() % local_items_;
             sLOG << "got index[" << i << "] = " << index;
-            samples_.emplace_back(
-                unsorted_file_.GetItemAt<ValueType>(index));
+            samples_.emplace_back(unsorted_file_.GetItemAt<ValueType>(index));
         }
 
         return true;
@@ -125,8 +125,6 @@ public:
 
         LOG << "wanted_sample_size()=" << wanted_sample_size()
             << " samples.size()= " << samples_.size();
-        assert(samples_.size()
-               == std::min(local_items_, wanted_sample_size()));
     }
 
     DIAMemUse ExecuteMemUse() final {
@@ -260,7 +258,7 @@ private:
     size_t wanted_sample_size() const {
         size_t s = static_cast<size_t>(
             std::log2(local_items_ * context_.num_workers())
-            * (1 / (desired_imbalance_ * desired_imbalance_)));
+            * (1.0 / (desired_imbalance_ * desired_imbalance_)));
         return std::max(s, size_t(1));
     }
 
