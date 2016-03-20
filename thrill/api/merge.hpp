@@ -43,6 +43,26 @@ namespace api {
  * before merging, so each worker has the same amount of data when merge
  * finishes.
  *
+ * The algorithm performs a distributed multi-sequence selection by picking
+ * random pivots (from the largest remaining interval) for each DIA. The pivots
+ * are selected via a global AllReduce. There is one pivot per DIA.
+ *
+ * Then the pivots are searched for in the interval [left,left + width) in each
+ * local File's partition, where these are initialized with left = 0 and width =
+ * File.size(). This delivers the local_rank of each pivot. From the local_ranks
+ * the corresponding global_ranks of each pivot is calculated via a AllReduce.
+ *
+ * The global_ranks are then compared to the target_ranks (which are n/p *
+ * rank). If global_ranks is smaller, the interval [left,left + width) is
+ * reduced to [left,idx), where idx is the rank of the pivot in the local
+ * File. If global_ranks is larger, the interval is reduced to [idx,left+width).
+ *
+ * left  -> width
+ * V            V      V           V         V                   V
+ * +------------+      +-----------+         +-------------------+ DIA 0
+ *    ^
+ *    local_ranks,  global_ranks = sum over all local_ranks
+ *
  * \tparam ValueType The type of the first and second input DIA
  * \tparam Comparator The comparator defining input and output order.
  * \tparam ParentDIA0 The type of the first input DIA
@@ -61,7 +81,6 @@ class MergeNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
-    //! Number of storage DIAs backing
     static constexpr size_t kNumInputs = 1 + sizeof ... (ParentDIAs);
 
     static_assert(kNumInputs >= 2, "Merge requires at least two inputs.");
@@ -413,7 +432,9 @@ private:
     void GetGlobalRanks(
         const std::vector<Pivot>& pivots,
         std::vector<size_t>& global_ranks,
-        std::vector<ArrayNumInputsSizeT>& out_local_ranks) {
+        std::vector<ArrayNumInputsSizeT>& out_local_ranks,
+        const std::vector<ArrayNumInputsSizeT>& left,
+        const std::vector<ArrayNumInputsSizeT>& width) {
 
         // Simply get the rank of each pivot in each file. Sum the ranks up
         // locally.
@@ -421,8 +442,12 @@ private:
             size_t rank = 0;
             for (size_t i = 0; i < kNumInputs; i++) {
                 stats_.file_op_timer_.Start();
+
                 size_t idx = files_[i]->GetIndexOf(
-                    pivots[s].value, pivots[s].tie_idx, comparator_);
+                    pivots[s].value, pivots[s].tie_idx,
+                    left[s][i], left[s][i] + width[s][i],
+                    comparator_);
+
                 stats_.file_op_timer_.Stop();
 
                 rank += idx;
@@ -469,20 +494,20 @@ private:
                 if (width[s][p] == 0)
                     continue;
 
-                size_t idx = local_ranks[s][p];
+                size_t local_rank = local_ranks[s][p];
                 size_t old_width = width[s][p];
+                assert(left[s][p] <= local_rank);
 
                 if (global_ranks[s] < target_ranks[s]) {
-                    assert(left[s][p] <= idx);
-                    width[s][p] -= idx - left[s][p];
-                    left[s][p] = idx;
+                    width[s][p] -= local_rank - left[s][p];
+                    left[s][p] = local_rank;
                 }
                 else if (global_ranks[s] >= target_ranks[s]) {
-                    width[s][p] = idx - left[s][p];
+                    width[s][p] = local_rank - left[s][p];
                 }
 
                 if (debug) {
-                    die_unless(old_width >= width[s][p]);
+                    die_unless(width[s][p] <= old_width);
                 }
             }
         }
@@ -600,7 +625,7 @@ private:
 
             // Get global ranks and shrink ranges.
             stats_.search_step_timer_.Start();
-            GetGlobalRanks(pivots, global_ranks, local_ranks);
+            GetGlobalRanks(pivots, global_ranks, local_ranks, left, width);
 
             LOG << "global_ranks: " << VToStr(global_ranks);
             LOG << "local_ranks: " << VToStr(local_ranks);

@@ -197,17 +197,37 @@ public:
     template <typename ItemType>
     ItemType GetItemAt(size_t index) const;
 
-    //! Get index of the given item, or the next greater item,
-    //! in this file. The file has to be ordered according to the
-    //! given compare function. The tie value can be used to
-    //! make a decision in case of many successive equal elements.
-    //! The tie is compared with the local rank of the element.
-    //!
-    //! WARNING: This method uses GetItemAt combined with a binary search and
-    //! is therefore not efficient. The method will be reimplemented in near future.
+    /*!
+     * Get index of the given item, or the next greater item, in this file. The
+     * file has to be ordered according to the given compare function. The tie
+     * value can be used to make a decision in case of many successive equal
+     * elements.  The tie is compared with the local rank of the element.
+     *
+     * WARNING: This method uses GetItemAt combined with a binary search and is
+     * therefore not efficient. The method should be reimplemented in near
+     * future.
+     */
     template <typename ItemType, typename CompareFunction = std::less<ItemType> >
     size_t GetIndexOf(const ItemType& item, size_t tie,
+                      size_t left, size_t right,
                       const CompareFunction& func = CompareFunction()) const;
+
+    /*!
+     * Get index of the given item, or the next greater item, in this file. The
+     * file has to be ordered according to the given compare function. The tie
+     * value can be used to make a decision in case of many successive equal
+     * elements.  The tie is compared with the local rank of the element.
+     *
+     * WARNING: This method uses GetItemAt combined with a binary search and is
+     * therefore not efficient. The method should be reimplemented in near
+     * future.
+     */
+    template <typename ItemType, typename CompareFunction = std::less<ItemType> >
+    size_t GetIndexOf(const ItemType& item, size_t tie,
+                      const CompareFunction& less = CompareFunction()) const {
+        // start binary search with range [0,num_items)
+        return GetIndexOf(item, tie, 0, num_items(), less);
+    }
 
     //! Seek in File: return a Block range containing items begin, end of
     //! given type.
@@ -410,33 +430,33 @@ ItemType File::GetItemAt(size_t index) const {
 
 template <typename ItemType, typename CompareFunction>
 size_t File::GetIndexOf(
-    const ItemType& item, size_t tie, const CompareFunction& less) const {
+    const ItemType& item, size_t tie, size_t left, size_t right,
+    const CompareFunction& less) const {
 
     static constexpr bool debug = false;
 
     static_assert(
         std::is_convertible<
-            bool,
-            typename common::FunctionTraits<CompareFunction>::result_type
+            bool, typename common::FunctionTraits<CompareFunction>::result_type
             >::value,
-        "Comperator must return int.");
+        "Comperator must return boolean.");
 
-    LOG << "Looking for item " << item;
-    LOG << "Looking for tie " << tie;
-    LOG << "Len: " << num_items();
+    LOG << "File::GetIndexOf() looking for item " << item << " tie " << tie
+        << " in range [" << left << "," << right << ") ="
+        << " size " << right - left;
+
+    assert(left <= right);
+    assert(left <= num_items());
+    assert(right <= num_items());
 
     // Use a binary search to find the item.
-    size_t left = 0;
-    size_t right = num_items();
-
     while (left < right) {
         size_t mid = (right + left) >> 1;
-        LOG << "Left: " << left;
-        LOG << "Right: " << right;
-        LOG << "Mid: " << mid;
+        LOG << "left: " << left << "right: " << right << "mid: " << mid;
         ItemType cur = GetItemAt<ItemType>(mid);
         LOG << "Item at mid: " << cur;
-        if (less(item, cur) || (!less(item, cur) && !less(cur, item) && tie <= mid)) {
+        if (less(item, cur) ||
+            (!less(item, cur) && !less(cur, item) && tie <= mid)) {
             right = mid;
         }
         else {
@@ -444,8 +464,7 @@ size_t File::GetIndexOf(
         }
     }
 
-    LOG << "Found element at: " << left;
-
+    LOG << "found insert position at: " << left;
     return left;
 }
 
