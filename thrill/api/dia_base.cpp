@@ -236,7 +236,11 @@ public:
                 << "targets" << target_ids << "elapsed" << timer;
     }
 
-    bool operator < (const Stage& s) const { return node_ < s.node_; }
+    //! order for std::set in FindStages() - this must be deterministic such
+    //! that DIAs on different workers are executed in the same order.
+    bool operator < (const Stage& s) const {
+        return node_->id() < s.node_->id();
+    }
 
     //! shared pointer to node
     DIABasePtr node_;

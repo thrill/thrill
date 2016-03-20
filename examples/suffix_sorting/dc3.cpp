@@ -16,6 +16,7 @@
 #include <thrill/api/distribute_from.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
+#include <thrill/api/max.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/read_binary.hpp>
@@ -375,9 +376,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
         triple_prerank_sums.Print("triple_prerank_sums");
 
     // get the last element via an associative reduce.
-    size_t max_lexname =
-        triple_prerank_sums
-        .Sum([](const size_t&, const size_t& b) { return b; });
+    size_t max_lexname = triple_prerank_sums.Max();
 
     // compute the size of the 2/3 subproblem.
     size_t size_subp = (input_size / 3) * 2 + (input_size % 3 != 0);
