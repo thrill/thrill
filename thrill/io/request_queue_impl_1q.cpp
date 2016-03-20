@@ -26,7 +26,6 @@
 #endif
 
 #include <algorithm>
-#include <functional>
 
 #ifndef THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
 #define THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION 1
@@ -34,17 +33,6 @@
 
 namespace thrill {
 namespace io {
-
-struct file_offset_match : public std::binary_function<RequestPtr, RequestPtr, bool>
-{
-    bool operator () (
-        const RequestPtr& a,
-        const RequestPtr& b) const {
-        // matching file and offset are enough to cause problems
-        return (a->offset() == b->offset()) &&
-               (a->file() == b->file());
-    }
-};
 
 RequestQueueImpl1Q::RequestQueueImpl1Q(int n)
     : thread_state_(NOT_RUNNING) {
@@ -64,7 +52,7 @@ void RequestQueueImpl1Q::add_request(RequestPtr& req) {
     {
         std::unique_lock<std::mutex> Lock(queue_mutex_);
         if (std::find_if(queue_.begin(), queue_.end(),
-                         bind2nd(file_offset_match(), req))
+                         bind2nd(FileOffsetMatch(), req))
             != queue_.end())
         {
             LOG1 << "request submitted for a BID with a pending request";

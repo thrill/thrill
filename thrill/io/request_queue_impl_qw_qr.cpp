@@ -25,7 +25,6 @@
 #endif
 
 #include <algorithm>
-#include <functional>
 
 #ifndef THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
 #define THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION 1
@@ -33,17 +32,6 @@
 
 namespace thrill {
 namespace io {
-
-struct file_offset_match : public std::binary_function<RequestPtr, RequestPtr, bool>
-{
-    bool operator () (
-        const RequestPtr& a,
-        const RequestPtr& b) const {
-        // matching file and offset are enough to cause problems
-        return (a->offset() == b->offset()) &&
-               (a->file() == b->file());
-    }
-};
 
 RequestQueueImplQwQr::RequestQueueImplQwQr(int n)
     : thread_state_(NOT_RUNNING) {
@@ -65,7 +53,7 @@ void RequestQueueImplQwQr::add_request(RequestPtr& req) {
         {
             std::unique_lock<std::mutex> Lock(write_mutex_);
             if (std::find_if(write_queue_.begin(), write_queue_.end(),
-                             bind2nd(file_offset_match(), req))
+                             bind2nd(FileOffsetMatch(), req))
                 != write_queue_.end())
             {
                 LOG1 << "READ request submitted for a BID with a pending WRITE request";
@@ -81,7 +69,7 @@ void RequestQueueImplQwQr::add_request(RequestPtr& req) {
         {
             std::unique_lock<std::mutex> Lock(read_mutex_);
             if (std::find_if(read_queue_.begin(), read_queue_.end(),
-                             bind2nd(file_offset_match(), req))
+                             bind2nd(FileOffsetMatch(), req))
                 != read_queue_.end())
             {
                 LOG1 << "WRITE request submitted for a BID with a pending READ request";
