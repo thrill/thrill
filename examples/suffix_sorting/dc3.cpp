@@ -202,33 +202,6 @@ struct IndexCR12Pair {
     CharsRanks12<Char> cr1;
 } THRILL_ATTRIBUTE_PACKED;
 
-DIA<size_t> NaiveSuffixSort(const DIA<size_t>& _input) {
-    // this is cheating: perform naive suffix sorting. TODO(tb): templatize
-    // algorithm and call recursively.
-
-    LOG1 << "Doing naive suffix sorting";
-
-    std::vector<size_t> input = _input.Gather();
-    std::vector<size_t> output;
-
-    if (_input.ctx().my_rank() == 0)
-    {
-        output.resize(input.size());
-
-        for (size_t i = 0; i < output.size(); ++i)
-            output[i] = i;
-
-        std::sort(output.begin(), output.end(),
-                  [&input](const size_t& a, const size_t& b) {
-                      return std::lexicographical_compare(
-                          input.begin() + a, input.end(),
-                          input.begin() + b, input.end());
-                  });
-    }
-
-    return DistributeFrom(_input.ctx(), std::move(output));
-}
-
 template <typename InputDIA, typename SuffixArrayDIA>
 bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 
@@ -829,7 +802,6 @@ public:
         }
         else {
             DIA<uint8_t> input_dia = ReadBinary<uint8_t>(ctx_, input_path_);
-            // read total size of input. TODO(tb): get this directly?
             size_t input_size = input_dia.Size();
             StartDC3Input(input_dia, input_size);
         }

@@ -18,19 +18,19 @@ if(MSVC)
 endif()
 
 if(THRILL_FULL_BUILD)
-  #thrill_build_prog(dc3)
+  thrill_build_prog(dc3)
 
   if(MSVC)
     # requires /bigobj flag to build
-    #set_target_properties(dc3 PROPERTIES COMPILE_FLAGS /bigobj)
+    set_target_properties(dc3 PROPERTIES COMPILE_FLAGS /bigobj)
   endif()
 
   # tests currently fail, probably due to MergeNode -tb
-  #thrill_test_single(dc3_aaa3 "THRILL_LOCAL=3" dc3 -c -s 1000 unary)
-  #thrill_test_single(dc3_aaa4 "THRILL_LOCAL=4" dc3 -c -s 1000 unary)
+  thrill_test_single(dc3_aaa3 "THRILL_LOCAL=3" dc3 -c -s 1000 unary)
+  thrill_test_single(dc3_aaa4 "THRILL_LOCAL=4" dc3 -c -s 1000 unary)
 
-  #thrill_test_single(dc3_random3 "THRILL_LOCAL=3" dc3 -c -s 1000 random)
-  #thrill_test_single(dc3_random4 "THRILL_LOCAL=4" dc3 -c -s 1000 random)
+  thrill_test_single(dc3_random3 "THRILL_LOCAL=3" dc3 -c -s 1000 random)
+  thrill_test_single(dc3_random4 "THRILL_LOCAL=4" dc3 -c -s 1000 random)
 endif()
 
 ################################################################################
