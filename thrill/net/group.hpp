@@ -167,7 +167,9 @@ void ExecuteGroupThreads(
 
     for (size_t i = 0; i < num_hosts; ++i) {
         threads[i] = std::thread(
-            std::bind(thread_function, groups[i].get()));
+            [thread_function, g = groups[i].get()]() {
+                return thread_function(g);
+            });
     }
 
     for (size_t i = 0; i < num_hosts; ++i) {
