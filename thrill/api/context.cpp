@@ -15,6 +15,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/porting.hpp>
+#include <thrill/common/profile_thread.hpp>
 #include <thrill/common/system_exception.hpp>
 
 // mock net backend is always available -tb :)
@@ -772,6 +773,22 @@ void MemoryConfig::print(size_t workers_per_host) const {
         << common::FormatIecUnits(ram_workers_ / workers_per_host) << "B,"
         << " floating=" << common::FormatIecUnits(ram_floating_) << "B."
         << std::endl;
+}
+
+/******************************************************************************/
+// HostContext methods
+
+HostContext::HostContext(
+    const MemoryConfig& mem_config,
+    std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
+    size_t workers_per_host)
+    : base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
+      logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
+      profiler_(std::make_unique<common::ProfileThread>()),
+      mem_config_(mem_config),
+      workers_per_host_(workers_per_host),
+      net_manager_(std::move(groups)) {
+    StartLinuxProcStatsProfiler(*profiler_, logger_);
 }
 
 /******************************************************************************/

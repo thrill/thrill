@@ -16,7 +16,8 @@
 #include <thrill/common/die.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/schedule_thread.hpp>
+#include <thrill/common/profile_task.hpp>
+#include <thrill/common/profile_thread.hpp>
 #include <thrill/common/string.hpp>
 
 #include <cstring>
@@ -37,7 +38,7 @@ namespace common {
 
 using steady_clock = std::chrono::steady_clock;
 
-class LinuxProcStats : public ScheduleTask
+class LinuxProcStats : public ProfileTask
 {
     static constexpr bool debug = false;
 
@@ -722,14 +723,14 @@ void LinuxProcStats::read_diskstats(JsonLine& out) {
     }
 }
 
-void StartLinuxProcStatsProfiler(ScheduleThread& sched, JsonLogger& logger) {
+void StartLinuxProcStatsProfiler(ProfileThread& sched, JsonLogger& logger) {
     sched.Add(std::chrono::seconds(1),
               new LinuxProcStats(logger), /* own_task */ true);
 }
 
 #else
 
-void StartLinuxProcStatsProfiler(ScheduleThread&, JsonLogger&)
+void StartLinuxProcStatsProfiler(ProfileThread&, JsonLogger&)
 { }
 
 #endif  // __linux__

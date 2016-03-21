@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/common/linux_proc_stats.hpp
+ * thrill/common/profile_task.hpp
  *
  * A thread running a set of tasks scheduled at regular time intervals. Used in
  * Thrill for creating profiles of CPU usage, memory, etc.
@@ -12,22 +12,27 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_COMMON_LINUX_PROC_STATS_HEADER
-#define THRILL_COMMON_LINUX_PROC_STATS_HEADER
+#ifndef THRILL_COMMON_PROFILE_TASK_HEADER
+#define THRILL_COMMON_PROFILE_TASK_HEADER
+
+#include <chrono>
 
 namespace thrill {
 namespace common {
 
-// forward declarations
-class JsonLogger;
-class ProfileThread;
+class ProfileTask
+{
+public:
+    //! virtual destructor
+    virtual ~ProfileTask() { }
 
-//! launch profiler task
-void StartLinuxProcStatsProfiler(ProfileThread& sched, JsonLogger& logger);
+    //! method called by ProfileThread.
+    virtual void RunTask(const std::chrono::steady_clock::time_point& tp) = 0;
+};
 
 } // namespace common
 } // namespace thrill
 
-#endif // !THRILL_COMMON_LINUX_PROC_STATS_HEADER
+#endif // !THRILL_COMMON_PROFILE_TASK_HEADER
 
 /******************************************************************************/

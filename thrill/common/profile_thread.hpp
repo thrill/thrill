@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/common/schedule_thread.hpp
+ * thrill/common/profile_thread.hpp
  *
  * A thread running a set of tasks scheduled at regular time intervals. Used in
  * Thrill for creating profiles of CPU usage, memory, etc.
@@ -12,11 +12,12 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_COMMON_SCHEDULE_THREAD_HEADER
-#define THRILL_COMMON_SCHEDULE_THREAD_HEADER
+#ifndef THRILL_COMMON_PROFILE_THREAD_HEADER
+#define THRILL_COMMON_PROFILE_THREAD_HEADER
 
 #include <thrill/common/binary_heap.hpp>
 #include <thrill/common/delegate.hpp>
+#include <thrill/common/profile_task.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -28,34 +29,24 @@
 namespace thrill {
 namespace common {
 
-class ScheduleTask
-{
-public:
-    //! virtual destructor
-    virtual ~ScheduleTask() { }
-
-    //! method called by ScheduleThread.
-    virtual void RunTask(const std::chrono::steady_clock::time_point& tp) = 0;
-};
-
-class ScheduleThread
+class ProfileThread
 {
 public:
     using milliseconds = std::chrono::milliseconds;
     using steady_clock = std::chrono::steady_clock;
 
-    ScheduleThread();
+    ProfileThread();
 
     //! non-copyable: delete copy-constructor
-    ScheduleThread(const ScheduleThread&) = delete;
+    ProfileThread(const ProfileThread&) = delete;
     //! non-copyable: delete assignment operator
-    ScheduleThread& operator = (const ScheduleThread&) = delete;
+    ProfileThread& operator = (const ProfileThread&) = delete;
 
-    ~ScheduleThread();
+    ~ProfileThread();
 
     //! Register a regularly scheduled callback
     template <typename Period>
-    void Add(const Period& period, ScheduleTask* task, bool own_task = false) {
+    void Add(const Period& period, ProfileTask* task, bool own_task = false) {
         std::unique_lock<std::timed_mutex> lock(mutex_);
         tasks_.emplace(steady_clock::now() + period,
                        std::chrono::duration_cast<milliseconds>(period),
@@ -64,7 +55,7 @@ public:
     }
 
     //! Unregister a regularly scheduled callback
-    bool Remove(ScheduleTask* task) {
+    bool Remove(ProfileTask* task) {
         std::unique_lock<std::timed_mutex> lock(mutex_);
         return tasks_.erase([task](const Timer& t) { return t.task == task; });
     }
@@ -90,13 +81,13 @@ private:
         //! interval period for rescheduling
         milliseconds             period;
         //! callback
-        ScheduleTask             * task;
+        ProfileTask              * task;
         //! delete task on deletion
         bool                     own_task;
 
         Timer(const steady_clock::time_point& _next_timeout,
               const milliseconds& _period,
-              ScheduleTask* _task, bool _own_task);
+              ProfileTask* _task, bool _own_task);
 
         bool operator < (const Timer& b) const;
     };
@@ -114,6 +105,6 @@ private:
 } // namespace common
 } // namespace thrill
 
-#endif // !THRILL_COMMON_SCHEDULE_THREAD_HEADER
+#endif // !THRILL_COMMON_PROFILE_THREAD_HEADER
 
 /******************************************************************************/

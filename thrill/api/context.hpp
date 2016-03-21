@@ -18,7 +18,6 @@
 #include <thrill/common/defines.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/linux_proc_stats.hpp>
-#include <thrill/common/schedule_thread.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/cat_stream.hpp>
 #include <thrill/data/file.hpp>
@@ -80,14 +79,7 @@ public:
     //! constructor from existing net Groups. Used by the construction methods.
     HostContext(const MemoryConfig& mem_config,
                 std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
-                size_t workers_per_host)
-        : base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
-          logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
-          mem_config_(mem_config),
-          workers_per_host_(workers_per_host),
-          net_manager_(std::move(groups)) {
-        StartLinuxProcStatsProfiler(profiler_, logger_);
-    }
+                size_t workers_per_host);
 
     //! Construct a number of mock hosts running in this process.
     static std::vector<std::unique_ptr<HostContext> >
@@ -137,7 +129,7 @@ public:
     common::JsonLogger logger_;
 
     //! thread for scheduling profiling methods for statistical output
-    common::ScheduleThread profiler_;
+    std::unique_ptr<common::ProfileThread> profiler_;
 
     //! \}
 
