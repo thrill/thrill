@@ -8,9 +8,10 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/common/ring_buffer.hpp>
+
 #include <gtest/gtest.h>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/ring_buffer.hpp>
 
 using namespace thrill;
 

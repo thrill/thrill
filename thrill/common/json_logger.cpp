@@ -13,6 +13,7 @@
 #include <thrill/common/die.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/schedule_thread.hpp>
 #include <thrill/common/string.hpp>
 
 #include <atomic>
@@ -25,7 +26,7 @@
 #include <thread>
 #include <vector>
 
-#if __linux__ || __APPLE__
+#if __linux__
 
 #include <dirent.h>
 #include <unistd.h>
@@ -37,12 +38,12 @@ namespace common {
 
 using steady_clock = std::chrono::steady_clock;
 
-#if __linux__ || __APPLE__
+#if __linux__
 
 /******************************************************************************/
 // LinuxSystemStats
 
-class LinuxProcStats
+class LinuxProcStats : public ScheduleTask
 {
     static constexpr bool debug = false;
 
@@ -90,7 +91,7 @@ public:
     //! read /proc/diskstats
     void read_diskstats(JsonLine& out);
 
-    void tick(const steady_clock::time_point& tp) {
+    void RunTask(const steady_clock::time_point& tp) final {
 
         // JsonLine to construct
         JsonLine out = logger_.line();
@@ -422,20 +423,21 @@ void LinuxProcStats::read_pid_stat(JsonLine& out) {
     /*  vsize         virtual memory size */
     /*  rss           resident set memory size */
     /*  rsslim        current limit in bytes on the rss */
-    int ret = sscanf(line.data(),
-                     /* pid tcomm state ppid pgrp sid tty_nr tty_pgrp flags */
-                     /* 19162 (firefox) R 1 19162 19162 0 -1 4218880 */
-                     "%llu %*s %*s %*u %*u %*u %*u %*u %*u "
-                     /* min_flt cmin_flt maj_flt cmaj_flt utime stime cutime cstime priority nice */
-                     /* 340405 6560 3 0 7855 526 3 2 20 0 */
-                     "%*u %*u %*u %*u %llu %llu %llu %llu %*u %*u "
-                     /* num_threads it_real_value start_time vsize rss rsslim */
-                     /* 44 0 130881921 1347448832 99481 18446744073709551615 */
-                     "%llu %*u %*u %llu %llu",
-                     /* (firefox) more: 4194304 4515388 140732862948048 140732862941536 246430093205 0 0 4096 33572015 18446744073709551615 0 0 17 0 0 0 0 0 0 8721489 8726954 14176256 140732862948868 140732862948876 140732862948876 140732862951399 0 */
-                     &curr.check_pid,
-                     &curr.utime, &curr.stime, &curr.cutime, &curr.cstime,
-                     &curr.num_threads, &curr.vsize, &curr.rss);
+    int ret = sscanf(
+        line.data(),
+        /* pid tcomm state ppid pgrp sid tty_nr tty_pgrp flags */
+        /* 19162 (firefox) R 1 19162 19162 0 -1 4218880 */
+        "%llu %*s %*s %*u %*u %*u %*u %*u %*u "
+        /* min_flt cmin_flt maj_flt cmaj_flt utime stime cutime cstime priority nice */
+        /* 340405 6560 3 0 7855 526 3 2 20 0 */
+        "%*u %*u %*u %*u %llu %llu %llu %llu %*u %*u "
+        /* num_threads it_real_value start_time vsize rss rsslim */
+        /* 44 0 130881921 1347448832 99481 18446744073709551615 */
+        "%llu %*u %*u %llu %llu",
+        /* (firefox) more: 4194304 4515388 140732862948048 140732862941536 246430093205 0 0 4096 33572015 18446744073709551615 0 0 17 0 0 0 0 0 0 8721489 8726954 14176256 140732862948868 140732862948876 140732862948876 140732862951399 0 */
+        &curr.check_pid,
+        &curr.utime, &curr.stime, &curr.cutime, &curr.cstime,
+        &curr.num_threads, &curr.vsize, &curr.rss);
 
     die_unequal(8, ret);
 
@@ -720,70 +722,7 @@ void LinuxProcStats::read_diskstats(JsonLine& out) {
         << "rq_time" << sum.rq_time / 1e3;
 }
 
-#endif  // __linux__ || __APPLE__
-
-/******************************************************************************/
-// JsonProfiler
-
-class JsonProfiler
-{
-public:
-    explicit JsonProfiler(JsonLogger& logger) : logger_(logger) {
-        thread_ = std::thread([this]() { return worker(); });
-    }
-
-    //! non-copyable: delete copy-constructor
-    JsonProfiler(const JsonProfiler&) = delete;
-    //! non-copyable: delete assignment operator
-    JsonProfiler& operator = (const JsonProfiler&) = delete;
-
-    ~JsonProfiler() {
-        if (thread_.get_id() == std::thread::id()) return;
-
-        terminate_ = true;
-        cv_.notify_one();
-        thread_.join();
-    }
-
-private:
-    //! reference to JsonLogger
-    JsonLogger& logger_;
-
-    //! thread for profiling (only run on top-level loggers)
-    std::thread thread_;
-
-    //! flag to terminate profiling thread
-    std::atomic<bool> terminate_ { false };
-
-    //! cv/mutex pair to signal thread to terminate
-    std::timed_mutex mutex_;
-
-    //! cv/mutex pair to signal thread to terminate
-    std::condition_variable_any cv_;
-
-    //! profiling worker function
-    void worker();
-
-#if __linux__ || __APPLE__
-    //! linux system and pid profiler
-    LinuxProcStats linux_proc_stats_ { logger_ };
-#endif      // __linux__ || __APPLE__
-};
-
-void JsonProfiler::worker() {
-    std::unique_lock<std::timed_mutex> lock(mutex_);
-
-    steady_clock::time_point tm = steady_clock::now();
-
-    while (!terminate_)
-    {
-#if __linux__ || __APPLE__
-        linux_proc_stats_.tick(tm);
-#endif          // __linux__ || __APPLE__
-
-        cv_.wait_until(mutex_, (tm += std::chrono::seconds(1)));
-    }
-}
+#endif  // __linux__
 
 /******************************************************************************/
 // JsonLogger
@@ -807,7 +746,12 @@ JsonLogger::~JsonLogger() {
 
 void JsonLogger::StartProfiler() {
     assert(!profiler_);
-    profiler_ = std::make_unique<JsonProfiler>(*this);
+    profiler_ = std::make_unique<ScheduleThread>();
+
+#if __linux__
+    profiler_->Add(std::chrono::seconds(1),
+                   new LinuxProcStats(*this), /* own_task */ true);
+#endif  // __linux__
 }
 
 JsonLine JsonLogger::line() {

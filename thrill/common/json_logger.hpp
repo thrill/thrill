@@ -29,7 +29,7 @@ namespace common {
 
 // forward declarations
 class JsonLine;
-class JsonProfiler;
+class ScheduleThread;
 template <typename Type>
 struct JsonLinePutSwitch;
 
@@ -92,7 +92,7 @@ public:
     JsonVerbatim common_;
 
     //! Json profiler (pimpl)
-    std::unique_ptr<JsonProfiler> profiler_;
+    std::unique_ptr<ScheduleThread> profiler_;
 
     //! friends for sending to os_
     friend class JsonLine;
