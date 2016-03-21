@@ -25,7 +25,13 @@ for CMD in g++-5 g++-5.3.0 g++-5.2.0 g++-5.1.0 g++-4.9 g++-4.9.3; do
 done
 
 # detect number of cores
-CORES=$(grep -c ^processor /proc/cpuinfo)
+if [ -e /proc/cpuinfo ]; then
+    CORES=$(grep -c ^processor /proc/cpuinfo)
+elif [ "$(uname)" == "Darwin" ]; then
+    CORES=$(sysctl -n hw.ncpu)
+else
+    CORES=4
+fi
 MAKEOPTS=-j$CORES
 
 if [ ! -d "build" ]; then
