@@ -29,8 +29,9 @@ namespace api {
 //! \{
 
 template <typename ValueType, typename ParentDIA, typename WindowFunction>
-class WindowNode final : public DOpNode<ValueType>
+class BaseWindowNode : public DOpNode<ValueType>
 {
+protected:
     static constexpr bool debug = false;
 
     using Super = DOpNode<ValueType>;
@@ -42,10 +43,10 @@ class WindowNode final : public DOpNode<ValueType>
     using RingBuffer = common::RingBuffer<Input>;
 
 public:
-    WindowNode(const ParentDIA& parent,
-               size_t window_size,
-               const WindowFunction& window_function)
-        : Super(parent.ctx(), "Window", { parent.id() }, { parent.node() }),
+    BaseWindowNode(const ParentDIA& parent,
+                   const char* label, size_t window_size,
+                   const WindowFunction& window_function)
+        : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           window_size_(window_size),
           window_function_(window_function)
     {
@@ -93,6 +94,51 @@ public:
         writer_.Close();
     }
 
+    DIAMemUse PushDataMemUse() final {
+        // window_ is copied in PushData()
+        return 2 * window_size_ * sizeof(Input);
+    }
+
+    void Dispose() final {
+        window_.deallocate();
+        file_.Clear();
+    }
+
+protected:
+    //! Size of the window
+    size_t window_size_;
+    //! The window function which is applied to two elements.
+    WindowFunction window_function_;
+
+    //! cache the last k - 1 items for transmission
+    RingBuffer window_;
+
+    //! Local data file
+    data::File file_ { context_.GetFile() };
+    //! Data writer to local file (only active in PreOp).
+    data::File::Writer writer_ { file_.GetWriter() };
+
+    //! rank of our first element in file_
+    size_t first_rank_;
+};
+
+template <typename ValueType, typename ParentDIA, typename WindowFunction>
+class OverlapWindowNode final
+    : public BaseWindowNode<ValueType, ParentDIA, WindowFunction>
+{
+    using Super = BaseWindowNode<ValueType, ParentDIA, WindowFunction>;
+    using Super::debug;
+    using Super::context_;
+
+    using typename Super::Input;
+    using typename Super::RingBuffer;
+
+public:
+    OverlapWindowNode(const ParentDIA& parent,
+                      const char* label, size_t window_size,
+                      const WindowFunction& window_function)
+        : Super(parent, label, window_size, window_function) { }
+
     //! Executes the window operation by receiving k - 1 items from our
     //! preceding worker.
     void Execute() final {
@@ -123,11 +169,6 @@ public:
         // put k - 1 predecessors back into window_
         for (size_t i = 0; i < pre.size(); ++i)
             window_.push_back(pre[i]);
-    }
-
-    DIAMemUse PushDataMemUse() final {
-        // window_ is copied in PushData()
-        return 2 * window_size_ * sizeof(Input);
     }
 
     void PushData(bool consume) final {
@@ -162,27 +203,12 @@ public:
         }
     }
 
-    void Dispose() final {
-        window_.deallocate();
-        file_.Clear();
-    }
-
 private:
-    //! Size of the window
-    size_t window_size_;
-    //! The window function which is applied to two elements.
-    WindowFunction window_function_;
-
-    //! cache the last k - 1 items for transmission
-    RingBuffer window_;
-
-    //! Local data file
-    data::File file_ { context_.GetFile() };
-    //! Data writer to local file (only active in PreOp).
-    data::File::Writer writer_ { file_.GetWriter() };
-
-    //! rank of our first element in file_
-    size_t first_rank_;
+    using Super::file_;
+    using Super::first_rank_;
+    using Super::window_;
+    using Super::window_size_;
+    using Super::window_function_;
 };
 
 template <typename ValueType, typename Stack>
@@ -191,29 +217,13 @@ auto DIA<ValueType, Stack>::FlatWindow(
     size_t window_size, const WindowFunction &window_function) const {
     assert(IsValid());
 
-    using WindowNode = api::WindowNode<ValueOut, DIA, WindowFunction>;
+    using WindowNode = api::OverlapWindowNode<ValueOut, DIA, WindowFunction>;
 
-    // static_assert(
-    //     std::is_convertible<
-    //         ValueType,
-    //         typename FunctionTraits<WindowFunction>::template arg<0>
-    //         >::value,
-    //     "WindowFunction has the wrong input type");
+    // cannot check WindowFunction's arguments, since it is a template methods
+    // due to the auto emitter.
 
-    // static_assert(
-    //     std::is_convertible<
-    //         ValueType,
-    //         typename FunctionTraits<WindowFunction>::template arg<1> >::value,
-    //     "WindowFunction has the wrong input type");
-
-    // static_assert(
-    //     std::is_convertible<
-    //         typename FunctionTraits<WindowFunction>::result_type,
-    //         ValueType>::value,
-    //     "WindowFunction has the wrong input type");
-
-    auto shared_node =
-        std::make_shared<WindowNode>(*this, window_size, window_function);
+    auto shared_node = std::make_shared<WindowNode>(
+        *this, "Window", window_size, window_function);
 
     return DIA<ValueOut>(shared_node);
 }
@@ -227,7 +237,21 @@ auto DIA<ValueType, Stack>::Window(
     using Result
               = typename FunctionTraits<WindowFunction>::result_type;
 
-    // transform Map-like function into Flatmap-like function
+    static_assert(
+        std::is_convertible<
+            size_t,
+            typename FunctionTraits<WindowFunction>::template arg<0>
+            >::value,
+        "WindowFunction's first argument must be size_t (index)");
+
+    static_assert(
+        std::is_convertible<
+            common::RingBuffer<ValueType>,
+            typename FunctionTraits<WindowFunction>::template arg<1>
+            >::value,
+        "WindowFunction's second argument must be common::RingBuffer<T>");
+
+    // transform Map-like function into FlatMap-like function
     auto flatwindow_function =
         [window_function](size_t index,
                           const common::RingBuffer<ValueType>& window,
@@ -235,7 +259,192 @@ auto DIA<ValueType, Stack>::Window(
             emit(window_function(index, window));
         };
 
-    return FlatWindow<Result>(window_size, flatwindow_function);
+    using WindowNode =
+              api::OverlapWindowNode<Result, DIA, decltype(flatwindow_function)>;
+
+    auto shared_node = std::make_shared<WindowNode>(
+        *this, "Window", window_size, flatwindow_function);
+
+    return DIA<Result>(shared_node);
+}
+
+/******************************************************************************/
+
+template <typename ValueType, typename ParentDIA, typename WindowFunction>
+class DisjointWindowNode final
+    : public BaseWindowNode<ValueType, ParentDIA, WindowFunction>
+{
+    using Super = BaseWindowNode<ValueType, ParentDIA, WindowFunction>;
+    using Super::debug;
+    using Super::context_;
+
+    using typename Super::Input;
+    using typename Super::RingBuffer;
+
+public:
+    DisjointWindowNode(const ParentDIA& parent,
+                       const char* label, size_t window_size,
+                       const WindowFunction& window_function)
+        : Super(parent, label, window_size, window_function) { }
+
+    //! Executes the window operation by receiving k - 1 items from our
+    //! preceding worker.
+    void Execute() final {
+        // get rank of our first element
+        first_rank_ = context_.net.ExPrefixSum(file_.num_items());
+
+        // copy our last elements into a vector
+        std::vector<Input> my_last;
+        my_last.reserve(window_size_ - 1);
+
+        assert(window_.size() < window_size_);
+        while (!window_.empty()) {
+            my_last.emplace_back(window_.front());
+            window_.pop_front();
+        }
+
+        // collective operation: get k - 1 predecessors
+        std::vector<Input> pre =
+            context_.net.Predecessor(window_size_ - 1, my_last);
+
+        assert(pre.size() == std::min(window_size_ - 1, first_rank_));
+
+        // calculate how many (up to  k - 1) predecessors to put into window_
+
+        size_t fill_size = first_rank_ % window_size_;
+
+        sLOG << "Window::MainOp()"
+             << "first_rank_" << first_rank_
+             << "file_.size()" << file_.num_items()
+             << "window_size_" << window_size_
+             << "pre.size()" << pre.size()
+             << "fill_size" << fill_size;
+
+        assert(first_rank_ < window_size_ ||
+               (first_rank_ - fill_size) % window_size_ == 0);
+
+        // put those predecessors into window_ for PushData() to start with.
+        for (size_t i = pre.size() - fill_size; i < pre.size(); ++i)
+            window_.push_back(pre[i]);
+    }
+
+    void PushData(bool consume) final {
+        data::File::Reader reader = file_.GetReader(consume);
+
+        // copy window into vector containing first items
+        std::vector<Input> window;
+        window.reserve(window_size_);
+
+        while (!window_.empty()) {
+            window.emplace_back(window_.front());
+            window_.pop_front();
+        }
+        assert(window.size() < window_size_);
+
+        size_t rank = first_rank_ - (window_size_ - 1);
+
+        sLOG << "WindowNode::PushData()"
+             << "window.size()" << window.size()
+             << "rank" << rank
+             << "rank+window+1" << (rank + window.size() + 1)
+             << "file_.num_items" << file_.num_items();
+
+        for (size_t i = 0; i < file_.num_items(); ++i, ++rank) {
+            // append an item.
+            window.emplace_back(reader.Next<Input>());
+
+            sLOG << "rank" << rank << "window.size()" << window.size();
+
+            // only issue full window frames
+            if (window.size() != window_size_) continue;
+
+            // call window user-defined function
+            window_function_(rank, window,
+                             [this](const ValueType& output) {
+                                 this->PushItem(output);
+                             });
+
+            // clear window
+            window.clear();
+        }
+
+        // call user-defined function for last incomplete window
+        if (context_.my_rank() == context_.num_workers() - 1 &&
+            window.size() != 0)
+        {
+            rank += window_size_ - window.size() - 1;
+            window_function_(rank, window,
+                             [this](const ValueType& output) {
+                                 this->PushItem(output);
+                             });
+        }
+    }
+
+private:
+    using Super::file_;
+    using Super::first_rank_;
+    using Super::window_;
+    using Super::window_size_;
+    using Super::window_function_;
+};
+
+template <typename ValueType, typename Stack>
+template <typename ValueOut, typename WindowFunction>
+auto DIA<ValueType, Stack>::FlatWindow(
+    DisjointTag, size_t window_size,
+    const WindowFunction &window_function) const {
+    assert(IsValid());
+
+    using WindowNode = api::DisjointWindowNode<ValueOut, DIA, WindowFunction>;
+
+    // cannot check WindowFunction's arguments, since it is a template methods
+    // due to the auto emitter.
+
+    auto shared_node = std::make_shared<WindowNode>(
+        *this, "Window", window_size, window_function);
+
+    return DIA<ValueOut>(shared_node);
+}
+
+template <typename ValueType, typename Stack>
+template <typename WindowFunction>
+auto DIA<ValueType, Stack>::Window(
+    DisjointTag, size_t window_size,
+    const WindowFunction &window_function) const {
+    assert(IsValid());
+
+    using Result
+              = typename FunctionTraits<WindowFunction>::result_type;
+
+    static_assert(
+        std::is_convertible<
+            size_t,
+            typename FunctionTraits<WindowFunction>::template arg<0>
+            >::value,
+        "WindowFunction's first argument must be size_t (index)");
+
+    static_assert(
+        std::is_convertible<
+            std::vector<ValueType>,
+            typename FunctionTraits<WindowFunction>::template arg<1>
+            >::value,
+        "WindowFunction's second argument must be std::vector<T>");
+
+    // transform Map-like function into FlatMap-like function
+    auto flatwindow_function =
+        [window_function](size_t index,
+                          const std::vector<ValueType>& window,
+                          auto emit) {
+            emit(window_function(index, window));
+        };
+
+    using WindowNode =
+              api::DisjointWindowNode<Result, DIA, decltype(flatwindow_function)>;
+
+    auto shared_node = std::make_shared<WindowNode>(
+        *this, "Window", window_size, flatwindow_function);
+
+    return DIA<Result>(shared_node);
 }
 
 //! \}

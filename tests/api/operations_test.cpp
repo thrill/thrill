@@ -436,6 +436,60 @@ TEST(Operations, WindowCorrectResults) {
     api::RunLocalTests(start_func);
 }
 
+TEST(Operations, DisjointWindowCorrectResults) {
+
+    static constexpr bool debug = false;
+    static constexpr size_t test_size = 144;
+    static constexpr size_t window_size = 10;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            sLOG << ctx.num_hosts();
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& input) { return input * input; },
+                test_size);
+
+            auto window = integers.Window(
+                DisjointTag(), window_size,
+                [](size_t rank, const std::vector<size_t>& window) {
+
+                    sLOG << "rank" << rank << "window.size()" << window.size()
+                         << test_size - (test_size % window_size);
+
+                    // check received window
+                    die_unless(window_size == window.size() ||
+                               rank == test_size - (test_size % window_size));
+
+                    for (size_t i = 0; i < window.size(); ++i) {
+                        sLOG << rank + i << window[i];
+                        die_unequal((rank + i) * (rank + i), window[i]);
+                    }
+
+                    // return rank to check completeness
+                    return Integer(rank);
+                });
+
+            // check rank completeness
+
+            std::vector<Integer> out_vec = window.AllGather();
+
+            if (ctx.my_rank() == 0)
+                sLOG << common::Join(" - ", out_vec);
+
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(window_size * i, out_vec[i].value());
+            }
+
+            ASSERT_EQ(
+                (test_size + window_size - 1) / window_size, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(Operations, FilterResultsCorrectly) {
 
     auto start_func =

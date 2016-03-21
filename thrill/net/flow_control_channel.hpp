@@ -374,7 +374,8 @@ public:
     }
 
     /*!
-     * Collects up to k predecessors of type T from preceding PEs.
+     * Collects up to k predecessors of type T from preceding PEs. k must be
+     * equal on all PEs.
      *
      * Assume each worker has <= k items. Predecessor collects up to the k items
      * from preceding PEs. If the directly preceding PE has fewer than k items,

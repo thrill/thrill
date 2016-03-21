@@ -37,6 +37,9 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
+//! tag structure for Window() and FlatWindow()
+struct DisjointTag { };
+
 /*!
  * DIA is the interface between the user and the Thrill framework. A DIA can be
  * imagined as an immutable array, even though the data does not need to be
@@ -726,6 +729,21 @@ public:
                 const WindowFunction& window_function = WindowFunction()) const;
 
     /*!
+     * Window is a DOp, which applies a window function to every k
+     * consecutive items in a DIA. The window function is also given the index
+     * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \tparam WindowFunction Type of the window_function.
+     *
+     * \param window_size the size of the delivered window.
+     *
+     * \param window_function Window function applied to each k item.
+     */
+    template <typename WindowFunction>
+    auto Window(DisjointTag, size_t window_size,
+                const WindowFunction &window_function) const;
+
+    /*!
      * FlatWindow is a DOp, which applies a window function to every k
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
@@ -739,6 +757,21 @@ public:
     template <typename ValueOut, typename WindowFunction>
     auto FlatWindow(size_t window_size,
                     const WindowFunction& window_function = WindowFunction()) const;
+
+    /*!
+     * FlatWindow is a DOp, which applies a window function to every k
+     * consecutive items in a DIA. The window function is also given the index
+     * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \tparam WindowFunction Type of the window_function.
+     *
+     * \param window_size the size of the delivered window. Signature: TODO(tb).
+     *
+     * \param window_function Window function applied to each k item.
+     */
+    template <typename ValueOut, typename WindowFunction>
+    auto FlatWindow(DisjointTag, size_t window_size,
+                    const WindowFunction &window_function) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
@@ -902,6 +935,9 @@ private:
 
 //! imported from api namespace
 using api::DIA;
+
+//! imported from api namespace
+using api::DisjointTag;
 
 } // namespace thrill
 

@@ -35,8 +35,6 @@
 #include <vector>
 
 using namespace thrill;
-using thrill::api::Context;
-using thrill::api::DIA;
 
 TEST(IO, ReadSingleFile) {
     auto start_func =
