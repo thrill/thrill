@@ -12,6 +12,8 @@
 #define _GNU_SOURCE
 #endif
 
+#include <thrill/common/json_logger.hpp>
+#include <thrill/common/profile_thread.hpp>
 #include <thrill/mem/malloc_tracker.hpp>
 
 #if __linux__ || __APPLE__ || __FreeBSD__
@@ -156,8 +158,7 @@ size_t memory_limit_indication = std::numeric_limits<size_t>::max();
 
 // prototype for profiling
 ATTRIBUTE_NO_SANITIZE
-static void update_memprofile(
-    size_t float_current, size_t base_current, bool flush = false);
+static void update_memprofile(size_t float_current, size_t base_current);
 
 ATTRIBUTE_NO_SANITIZE
 void update_peak(size_t float_curr, size_t base_curr) {
@@ -223,28 +224,24 @@ void set_memory_limit_indication(size_t size) {
 }
 
 /******************************************************************************/
-// Run-time memory profile writer
+// Run-time memory profiler
 
-static bool enable_memprofile = false;
+static constexpr bool mp_enable = true;
 
-static FILE* memprofile_file = nullptr;
-
-// default to 0.1 sec resolution
-static long long memprofile_resolution = 100000;
-static long long memprofile_last_update = 0;
+static CounterType mp_next_bar COUNTER_ZERO;
 
 struct OhlcBar {
-    size_t open, high, low, close;
+    size_t high = 0, low = 0, close = 0;
 
     ATTRIBUTE_NO_SANITIZE
     void   init(size_t current) {
-        open = high = low = close = current;
+        high = low = close = current;
     }
 
     ATTRIBUTE_NO_SANITIZE
     void   aggregate(size_t current) {
-        high = std::max(high, current);
-        low = std::min(low, current);
+        if (high < current) high = current;
+        if (low > current) low = current;
         close = current;
     }
 };
@@ -253,72 +250,67 @@ struct OhlcBar {
 static OhlcBar mp_float, mp_base;
 
 ATTRIBUTE_NO_SANITIZE
-static void init_memprofile() {
+static void update_memprofile(size_t float_current, size_t base_current) {
 
-    // parse environment: THRILL_MEMPROFILE
-    const char* env_pro = getenv("THRILL_MEMPROFILE");
-    if (!env_pro) return;
+    if (!mp_enable) return;
 
-    memprofile_file = fopen(env_pro, "wt");
-    if (!memprofile_file) {
-        fprintf(stderr, PPREFIX "could not open profile output: %s\n",
-                env_pro);
-        abort();
+    if (mp_next_bar) {
+        // start new OHLC bars
+        mp_float.init(float_current);
+        mp_base.init(base_current);
+        mp_next_bar = false;
     }
-
-    fprintf(memprofile_file, "ts epochmicro\n");
-    fprintf(memprofile_file, "a skip\n");
-    fprintf(memprofile_file, "float ohlc\n");
-    fprintf(memprofile_file, "b skip\n");
-    fprintf(memprofile_file, "base ohlc\n");
-    fprintf(memprofile_file, "c skip\n");
-    fprintf(memprofile_file, "sum ohlc\n");
-    fprintf(memprofile_file, "\n");
-
-    enable_memprofile = true;
-}
-
-ATTRIBUTE_NO_SANITIZE
-static void update_memprofile(
-    size_t float_current, size_t base_current, bool flush) {
-
-    if (!enable_memprofile) return;
-
-    using system_clock = std::chrono::system_clock;
-    using duration = std::chrono::microseconds;
-
-    long long now = std::chrono::duration_cast<duration>(
-        system_clock::now().time_since_epoch()).count();
-
-    now -= now % memprofile_resolution;
-
-    if (now == memprofile_last_update && !flush)
-    {
+    else {
         // aggregate into OHLC bars
         mp_float.aggregate(float_current);
         mp_base.aggregate(base_current);
     }
-    else
-    {
-        // output last bar
-        if (memprofile_last_update != 0 || flush) {
-            fprintf(memprofile_file,
-                    "%lld float %zu %zu %zu %zu base %zu %zu %zu %zu "
-                    "sum %zu %zu %zu %zu\n",
-                    memprofile_last_update,
-                    mp_float.open, mp_float.high, mp_float.low, mp_float.close,
-                    mp_base.open, mp_base.high, mp_base.low, mp_base.close,
-                    mp_float.open + mp_base.open,
-                    mp_float.high + mp_base.high,
-                    mp_float.low + mp_base.low,
-                    mp_float.close + mp_base.close);
-        }
+}
 
-        // start new OHLC bars
-        memprofile_last_update = now;
-        mp_float.init(float_current);
-        mp_base.init(base_current);
-    }
+class MemoryProfiler final : public common::ProfileTask
+{
+public:
+    explicit MemoryProfiler(common::JsonLogger& logger) : logger_(logger) { }
+
+    void RunTask(const std::chrono::steady_clock::time_point& tp) final;
+
+private:
+    //! reference to JsonLogger for output
+    common::JsonLogger& logger_;
+};
+
+ATTRIBUTE_NO_SANITIZE
+void MemoryProfiler::RunTask(const std::chrono::steady_clock::time_point&) {
+
+    // -tb: the access to the these memory positions is not synchronized. I'm
+    // not sure how to do this right without a performance hit for each malloc()
+    // call.
+
+    // copy current values
+    OhlcBar copy_float = mp_base, copy_base = mp_base;
+    mp_next_bar = true;
+
+    common::JsonLine line = logger_.line();
+
+    line << "class" << "MemProfile"
+         << "total" << copy_float.close + copy_base.close
+         << "float" << copy_float.close
+         << "base" << copy_base.close;
+
+    line.sub("float_hlc")
+        << "high" << copy_float.high
+        << "low" << copy_float.low
+        << "close" << copy_float.close;
+
+    line.sub("base_hlc")
+        << "high" << copy_base.high
+        << "low" << copy_base.low
+        << "close" << copy_base.close;
+}
+
+void StartMemProfiler(common::ProfileThread& sched, common::JsonLogger& logger) {
+    sched.Add(std::chrono::milliseconds(250),
+              new MemoryProfiler(logger), /* own_task */ true);
 }
 
 /******************************************************************************/
@@ -347,7 +339,6 @@ static __attribute__ ((constructor)) void init() { // NOLINT
 
         fprintf(stderr, PPREFIX "using AddressSanitizer's malloc\n");
 
-        init_memprofile();
         return;
     }
 
@@ -368,13 +359,11 @@ static __attribute__ ((constructor)) void init() { // NOLINT
         fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
         exit(EXIT_FAILURE);
     }
-
-    init_memprofile();
 }
 
 ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((destructor)) void finish() { // NOLINT
-    update_memprofile(get(float_curr), get(base_curr), /* flush */ true);
+    update_memprofile(get(float_curr), get(base_curr));
     fprintf(stderr, PPREFIX
             "exiting, total: %zu, peak: %zu, current: %zu / %zu, "
             "allocs: %zu, unfreed: %zu\n",

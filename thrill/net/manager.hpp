@@ -36,7 +36,7 @@ namespace net {
  * \details This class is responsible for initializing the three net::Groups for
  * the major network components, SystemControl, FlowControl and DataManagement,
  */
-class Manager : public common::ProfileTask
+class Manager final : public common::ProfileTask
 {
     static constexpr bool debug = false;
 

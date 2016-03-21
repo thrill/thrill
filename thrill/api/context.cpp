@@ -95,7 +95,7 @@ ConstructLoopbackHostContexts(
 
         host_context.emplace_back(
             std::make_unique<HostContext>(
-                mem_config, std::move(host_group), workers_per_host));
+                h, mem_config, std::move(host_group), workers_per_host));
     }
 
     return host_context;
@@ -223,7 +223,7 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
     };
 
     HostContext host_context(
-        mem_config, std::move(host_group), workers_per_host);
+        0, mem_config, std::move(host_group), workers_per_host);
 
     Context ctx(host_context, 0);
     common::NameThisThread("worker " + mem::to_string(my_host_rank));
@@ -416,7 +416,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     // construct HostContext
     HostContext host_context(
-        mem_config, std::move(host_groups), workers_per_host);
+        0, mem_config, std::move(host_groups), workers_per_host);
 
     std::vector<std::thread> threads(workers_per_host);
 
@@ -495,7 +495,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
     // construct HostContext
     HostContext host_context(
-        mem_config, std::move(host_groups), workers_per_host);
+        0, mem_config, std::move(host_groups), workers_per_host);
 
     // launch worker threads
     std::vector<std::thread> threads(workers_per_host);
@@ -780,6 +780,7 @@ void MemoryConfig::print(size_t workers_per_host) const {
 // HostContext methods
 
 HostContext::HostContext(
+    size_t local_host_num,
     const MemoryConfig& mem_config,
     std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
     size_t workers_per_host)
@@ -790,6 +791,10 @@ HostContext::HostContext(
       workers_per_host_(workers_per_host),
       net_manager_(std::move(groups), logger_) {
     StartLinuxProcStatsProfiler(*profiler_, logger_);
+
+    // run memory profiler only on local host 0 (especially for test runs)
+    if (local_host_num == 0)
+        mem::StartMemProfiler(*profiler_, logger_);
 }
 
 /******************************************************************************/

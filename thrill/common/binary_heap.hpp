@@ -71,12 +71,13 @@ public:
     //! direct access to heap container
     Container& container() { return c_; }
 
-    //! iterate over all items, delete those for which f returns true.
+    //! iterate over all items, delete those for which f returns true. Takes
+    //! time O(n). If you need to erase items frequently, use a different PQ.
     template <typename Functor>
     size_t erase(Functor&& f) {
         size_t result = 0;
         for (typename std::vector<Type>::iterator it = c_.begin();
-             it != c_.end(); ++it)
+             it < c_.end(); ++it)
         {
             if (!std::forward<Functor>(f)(*it)) continue;
             std::swap(*it, c_.back());

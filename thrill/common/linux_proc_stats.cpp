@@ -38,7 +38,7 @@ namespace common {
 
 using steady_clock = std::chrono::steady_clock;
 
-class LinuxProcStats : public ProfileTask
+class LinuxProcStats final : public ProfileTask
 {
     static constexpr bool debug = false;
 

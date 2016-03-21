@@ -77,7 +77,7 @@ class HostContext
 public:
 #ifndef SWIG
     //! constructor from existing net Groups. Used by the construction methods.
-    HostContext(const MemoryConfig& mem_config,
+    HostContext(size_t local_host_num, const MemoryConfig& mem_config,
                 std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host);
 

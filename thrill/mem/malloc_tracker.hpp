@@ -15,6 +15,13 @@
 #include <cstdlib>
 
 namespace thrill {
+namespace common {
+
+// forward declarations
+class ProfileThread;
+class JsonLogger;
+
+} // namespace common
 namespace mem {
 
 //! boolean indication that the memory limit is exceeded
@@ -44,6 +51,9 @@ size_t malloc_tracker_total_allocs();
 
 //! user function which prints current and peak allocation to stderr
 void malloc_tracker_print_status();
+
+//! launch profiler task
+void StartMemProfiler(common::ProfileThread& sched, common::JsonLogger& logger);
 
 } // namespace mem
 } // namespace thrill
