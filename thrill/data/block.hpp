@@ -204,7 +204,7 @@ public:
     }
 
     //! \name Accessors to Super-Class
-    //! {
+    //! \{
 
     //! Return whether the enclosed ByteBlock is valid.
     bool IsValid() const { return Block::IsValid(); }
@@ -237,7 +237,7 @@ public:
     //! return the first_item_offset relative to data_begin().
     size_t first_item_relative() const { return Block::first_item_relative(); }
 
-    //! }
+    //! \}
 
     //! return pointer to beginning of valid data
     const Byte * data_begin() const {

@@ -549,7 +549,7 @@ public:
     //! \}
 
     //! \name Accessors
-    //! {
+    //! \{
 
     /*!
      * Returns the number of block in the table.
@@ -560,7 +560,7 @@ public:
         return num_blocks_;
     }
 
-    //! }
+    //! \}
 
 protected:
     //! BucketBlockPool to stack allocated BucketBlocks

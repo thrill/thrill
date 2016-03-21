@@ -134,7 +134,7 @@ public:
     virtual bool CanExecute() { return true; }
 
     //! \name Pure Virtual Methods called by StageBuilder
-    //! {
+    //! \{
 
     //! Amount of RAM used by PreOp after StartPreOp()
     virtual DIAMemUse PreOpMemUse() { return 0; }
@@ -167,7 +167,7 @@ public:
     //! Virtual clear method. Triggers actual disposing in sub-classes.
     virtual void Dispose() { }
 
-    //! }
+    //! \}
 
     //! Performing push operation. Notifies children and calls actual push
     //! method. Then cleans up the DIA graph by freeing parent references of
@@ -249,7 +249,7 @@ public:
 
 protected:
     //! \name Fixed DIA Information
-    //! {
+    //! \{
 
     //! associated Context
     Context& context_;
@@ -260,10 +260,10 @@ protected:
     //! DOp node static label.
     const char* const label_;
 
-    //! }
+    //! \}
 
     //! \name Runtime Operational Variables
-    //! {
+    //! \{
 
     //! State of the DIANode. State is NEW on creation.
     DIAState state_ = DIAState::NEW;
@@ -282,7 +282,7 @@ protected:
     //! Never full consume
     static constexpr size_t never_consume_ = static_cast<size_t>(-1);
 
-    //! }
+    //! \}
 
 public:
     /**************************************************************************/

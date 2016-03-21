@@ -235,7 +235,7 @@ private:
     CompareFunction compare_function_;
 
     //! \name PreOp Phase
-    //! {
+    //! \{
 
     //! All local unsorted items before communication
     data::File unsorted_file_ { context_.GetFile() };
@@ -262,7 +262,7 @@ private:
         return std::max(s, size_t(1));
     }
 
-    //! }
+    //! \}
 
     //! Local data files
     std::deque<data::File> files_;

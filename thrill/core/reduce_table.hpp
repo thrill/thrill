@@ -62,7 +62,7 @@ public:
     static constexpr bool use_post_thread_ = true;
 
     //! \name Accessors
-    //! {
+    //! \{
 
     //! Returns limit_partition_fill_rate_
     double limit_partition_fill_rate() const
@@ -71,7 +71,7 @@ public:
     //! Returns bucket_rate_
     double bucket_rate() const { return bucket_rate_; }
 
-    //! }
+    //! \}
 };
 
 /*!

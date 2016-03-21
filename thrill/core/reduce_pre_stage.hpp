@@ -185,7 +185,7 @@ public:
     }
 
     //! \name Accessors
-    //! {
+    //! \{
 
     //! Returns the total num of items in the table.
     size_t num_items() const { return table_.num_items(); }
@@ -194,7 +194,7 @@ public:
     common::Range key_range(size_t partition_id)
     { return table_.key_range(partition_id); }
 
-    //! }
+    //! \}
 
 private:
     //! Emitters used to parameterize hash table for output to network.

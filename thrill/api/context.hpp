@@ -124,7 +124,7 @@ public:
 
 public:
     //! \name Logging System
-    //! {
+    //! \{
 
     //! base logger exclusive for this host context
     common::JsonLogger base_logger_;
@@ -134,7 +134,7 @@ public:
     //! thread.
     common::JsonLogger logger_;
 
-    //! }
+    //! \}
 
 private:
     //! memory configuration
@@ -373,7 +373,7 @@ public:
 
 public:
     //! \name Logging System
-    //! {
+    //! \{
 
     //! base logger exclusive for this worker
     common::JsonLogger base_logger_;
@@ -385,7 +385,7 @@ public:
         &base_logger_, "host_rank", host_rank(), "worker_rank", my_rank()
     };
 
-    //! }
+    //! \}
 };
 
 //! \name Run Methods with Internal Networks for Testing

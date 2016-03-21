@@ -289,7 +289,7 @@ public:
     }
 
     //! \name Accessors
-    //! {
+    //! \{
 
     //! Returns mutable reference to first table_
     Table& table() { return table_; }
@@ -297,7 +297,7 @@ public:
     //! Returns the total num of items in the table.
     size_t num_items() const { return table_.num_items(); }
 
-    //! }
+    //! \}
 
 private:
     //! Stored reduce config to initialize the subtable.

@@ -68,7 +68,7 @@ public:
         : BlockSink(block_pool, local_worker_id) { }
 
     //! \name Methods of a BlockSink
-    //! {
+    //! \{
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
@@ -112,10 +112,10 @@ public:
     //! nullptr).
     static constexpr bool allocate_can_fail_ = false;
 
-    //! }
+    //! \}
 
     //! \name Writers and Readers
-    //! {
+    //! \{
 
     //! Get BlockWriter.
     Writer GetWriter(size_t block_size = default_block_size);
@@ -159,7 +159,7 @@ public:
     //! used for debugging!
     std::string ReadComplete() const;
 
-    //! }
+    //! \}
 
     //! Return the number of blocks
     size_t num_blocks() const { return blocks_.size(); }
