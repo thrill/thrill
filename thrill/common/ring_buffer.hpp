@@ -21,9 +21,8 @@ namespace thrill {
 namespace common {
 
 /*!
- * A ring (circular) buffer of static (non-growing) size allocated via
- * std::vector. This data structure is mostly used by the DIA.Window()
- * transformation.
+ * A ring (circular) buffer of static (non-growing) size allocated. This data
+ * structure is mostly used by the DIA.Window() transformation.
  *
  * Due to many modulo operations with capacity_, the capacity is rounded up to
  * the next power of two, even for powers of two! This is because otherwise
@@ -175,6 +174,20 @@ public:
     void clear() {
         while (begin_ != end_)
             pop_front();
+    }
+
+    //! copy all element into the vector
+    void copy_to(std::vector<value_type>& out) const {
+        for (size_t i = 0; i < size(); ++i)
+            out.emplace_back(operator [] (i));
+    }
+
+    //! move all element from the RingBuffer into the vector
+    void move_to(std::vector<value_type>& out) {
+        while (!empty()) {
+            out.emplace_back(std::move(front()));
+            pop_front();
+        }
     }
 
     //! \}
