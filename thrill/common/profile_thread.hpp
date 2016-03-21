@@ -55,10 +55,7 @@ public:
     }
 
     //! Unregister a regularly scheduled callback
-    bool Remove(ProfileTask* task) {
-        std::unique_lock<std::timed_mutex> lock(mutex_);
-        return tasks_.erase([task](const Timer& t) { return t.task == task; });
-    }
+    bool Remove(ProfileTask* task);
 
 private:
     //! thread for profiling (only run on top-level loggers)

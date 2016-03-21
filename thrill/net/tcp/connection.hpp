@@ -155,9 +155,8 @@ public:
     //! Destruction of Connection should be explicitly done by a NetGroup or
     //! other network class.
     ~Connection() {
-        if (IsValid()) {
+        if (IsValid())
             Close();
-        }
     }
 
     void SyncSend(const void* data, size_t size, Flags flags) final {
@@ -166,24 +165,30 @@ public:
         if (flags & MsgMore) f |= MSG_MORE;
         if (socket_.send(data, size, f) != static_cast<ssize_t>(size))
             throw Exception("Error during SyncSend", errno);
+        tx_bytes_ += size;
     }
 
     ssize_t SendOne(const void* data, size_t size, Flags flags) final {
         SetNonBlocking(true);
         int f = 0;
         if (flags & MsgMore) f |= MSG_MORE;
-        return socket_.send_one(data, size, f);
+        ssize_t wb = socket_.send_one(data, size, f);
+        if (wb > 0) tx_bytes_ += wb;
+        return wb;
     }
 
     void SyncRecv(void* out_data, size_t size) final {
         SetNonBlocking(false);
         if (socket_.recv(out_data, size) != static_cast<ssize_t>(size))
             throw Exception("Error during SyncRecv", errno);
+        rx_bytes_ += size;
     }
 
     ssize_t RecvOne(void* out_data, size_t size) final {
         SetNonBlocking(true);
-        return socket_.recv_one(out_data, size);
+        ssize_t rb = socket_.recv_one(out_data, size);
+        if (rb > 0) rx_bytes_ += rb;
+        return rb;
     }
 
     //! Close this Connection

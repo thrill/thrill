@@ -12,6 +12,7 @@
 #include <thrill/api/context.hpp>
 
 #include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/linux_proc_stats.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/porting.hpp>
@@ -787,7 +788,7 @@ HostContext::HostContext(
       profiler_(std::make_unique<common::ProfileThread>()),
       mem_config_(mem_config),
       workers_per_host_(workers_per_host),
-      net_manager_(std::move(groups)) {
+      net_manager_(std::move(groups), logger_) {
     StartLinuxProcStatsProfiler(*profiler_, logger_);
 }
 

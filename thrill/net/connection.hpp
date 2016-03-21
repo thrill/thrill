@@ -205,6 +205,23 @@ public:
 
     //! \}
 
+    //! \name Statistics
+    //! {
+
+    //! sent bytes
+    size_t tx_bytes_ = 0;
+
+    //! received bytes
+    size_t rx_bytes_ = 0;
+
+    //! previous read of sent bytes
+    size_t prev_tx_bytes_ = 0;
+
+    //! previous read of received bytes
+    size_t prev_rx_bytes_ = 0;
+
+    //! }
+
     //! make ostreamable
     friend std::ostream& operator << (std::ostream& os, const Connection& c) {
         return c.OutputOstream(os);

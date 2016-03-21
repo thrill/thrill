@@ -107,6 +107,7 @@ public:
             throw Exception("Error during ISend", r);
 
         sLOG0 << "Isend size" << size;
+        tx_bytes_ += size;
 
         return request;
     }
@@ -166,6 +167,7 @@ public:
             throw Exception("Error during IRecv", r);
 
         sLOG0 << "Irecv size" << size;
+        rx_bytes_ += size;
 
         return request;
     }

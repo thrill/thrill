@@ -20,6 +20,9 @@
 namespace thrill {
 namespace common {
 
+// forward declarations
+class ProfileThread;
+
 class ProfileTask
 {
 public:
@@ -28,6 +31,27 @@ public:
 
     //! method called by ProfileThread.
     virtual void RunTask(const std::chrono::steady_clock::time_point& tp) = 0;
+};
+
+class ProfileTaskRegistration
+{
+public:
+    ProfileTaskRegistration(const std::chrono::milliseconds& period,
+                            ProfileThread& profiler, ProfileTask* task);
+
+    //! non-copyable: delete copy-constructor
+    ProfileTaskRegistration(const ProfileTaskRegistration&) = delete;
+    //! non-copyable: delete assignment operator
+    ProfileTaskRegistration&
+    operator = (const ProfileTaskRegistration&) = delete;
+
+    ~ProfileTaskRegistration();
+
+private:
+    //! profiler at which the task was registered
+    ProfileThread& profiler_;
+    //! task to register and unregister
+    ProfileTask* task_;
 };
 
 } // namespace common

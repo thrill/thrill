@@ -54,6 +54,8 @@ void Connection::SyncSend(
 
     if (r != MPI_SUCCESS)
         throw Exception("Error during SyncSend", r);
+
+    tx_bytes_ += size;
 }
 
 ssize_t Connection::SendOne(
@@ -70,6 +72,7 @@ ssize_t Connection::SendOne(
         throw Exception("Error during SyncOne", r);
 
     MPI_Request_free(&request);
+    tx_bytes_ += size;
 
     return size;
 }
@@ -97,6 +100,8 @@ void Connection::SyncRecv(void* out_data, size_t size) {
 
     if (static_cast<size_t>(count) != size)
         throw Exception("Error during SyncRecv: message truncated?");
+
+    rx_bytes_ += size;
 }
 
 /******************************************************************************/

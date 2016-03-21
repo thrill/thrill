@@ -472,7 +472,8 @@ LinuxProcStats::find_net_dev(const std::string& if_name) {
     return net_dev_prev_.back();
 }
 
-void LinuxProcStats::read_net_dev(const steady_clock::time_point& tp, JsonLine& out) {
+void LinuxProcStats::read_net_dev(
+    const steady_clock::time_point& tp, JsonLine& out) {
     if (!file_net_dev_.is_open()) return;
 
     file_net_dev_.clear();

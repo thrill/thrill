@@ -4,7 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -13,10 +13,13 @@
 #ifndef THRILL_NET_MANAGER_HEADER
 #define THRILL_NET_MANAGER_HEADER
 
+#include <thrill/common/json_logger.hpp>
+#include <thrill/common/profile_task.hpp>
 #include <thrill/net/connection.hpp>
 #include <thrill/net/group.hpp>
 
 #include <array>
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -33,7 +36,7 @@ namespace net {
  * \details This class is responsible for initializing the three net::Groups for
  * the major network components, SystemControl, FlowControl and DataManagement,
  */
-class Manager
+class Manager : public common::ProfileTask
 {
     static constexpr bool debug = false;
 
@@ -57,11 +60,13 @@ public:
     Manager& operator = (const Manager&) = delete;
 
     //! Construct Manager from already initialized net::Groups.
-    explicit Manager(std::array<GroupPtr, kGroupCount>&& groups) noexcept
-        : groups_(std::move(groups)) { }
+    Manager(std::array<GroupPtr, kGroupCount>&& groups,
+            common::JsonLogger& logger) noexcept
+        : groups_(std::move(groups)), logger_(logger) { }
 
     //! Construct Manager from already initialized net::Groups.
-    explicit Manager(std::vector<GroupPtr>&& groups) {
+    Manager(std::vector<GroupPtr>&& groups, common::JsonLogger& logger) noexcept
+        : logger_(logger) {
         assert(groups.size() == kGroupCount);
         std::move(groups.begin(), groups.end(), groups_.begin());
     }
@@ -82,9 +87,22 @@ public:
         }
     }
 
+    //! \name Methods by ProfileTask
+    //! \{
+
+    void RunTask(const std::chrono::steady_clock::time_point& tp) final;
+
+    //! \}
+
 private:
     //! The Groups initialized and managed by this Manager.
     std::array<GroupPtr, kGroupCount> groups_;
+
+    //! JsonLogger for statists output
+    common::JsonLogger& logger_;
+
+    //! last time statistics where outputted
+    std::chrono::steady_clock::time_point tp_last_;
 };
 
 //! \}

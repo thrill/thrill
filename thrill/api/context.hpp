@@ -17,7 +17,7 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/json_logger.hpp>
-#include <thrill/common/linux_proc_stats.hpp>
+#include <thrill/common/profile_task.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/cat_stream.hpp>
 #include <thrill/data/file.hpp>
@@ -145,6 +145,11 @@ private:
 
     //! net manager constructs communication groups to other hosts.
     net::Manager net_manager_;
+
+    //! register net_manager_'s profiling method
+    common::ProfileTaskRegistration net_manager_profiler_ {
+        std::chrono::milliseconds(500), *profiler_, &net_manager_
+    };
 
     //! the flow control group is used for collective communication.
     net::FlowControlChannelManager flow_manager_ {

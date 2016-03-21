@@ -36,6 +36,8 @@ struct Record {
     }
 } THRILL_ATTRIBUTE_PACKED;
 
+static_assert(sizeof(Record) == 100, "struct Record packing incorrect.");
+
 struct RecordSigned {
     char key[10];
     char value[90];

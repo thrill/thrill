@@ -75,10 +75,12 @@ void Connection::SyncSend(const void* data, size_t size, Flags /* flags */) {
     // set errno : success (unconditionally)
     errno = 0;
     group_->Send(peer_, net::Buffer(data, size));
+    tx_bytes_ += size;
 }
 
 ssize_t Connection::SendOne(const void* data, size_t size, Flags flags) {
     SyncSend(data, size, flags);
+    tx_bytes_ += size;
     return size;
 }
 
@@ -90,6 +92,7 @@ net::Buffer Connection::RecvNext() {
 
     // set errno : success (other syscalls may have failed)
     errno = 0;
+    rx_bytes_ += msg.size();
 
     return msg;
 }

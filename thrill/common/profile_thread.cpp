@@ -36,6 +36,11 @@ ProfileThread::~ProfileThread() {
     }
 }
 
+bool ProfileThread::Remove(ProfileTask* task) {
+    std::unique_lock<std::timed_mutex> lock(mutex_);
+    return tasks_.erase([task](const Timer& t) { return t.task == task; });
+}
+
 void ProfileThread::Worker() {
     std::unique_lock<std::timed_mutex> lock(mutex_);
 
@@ -74,6 +79,20 @@ ProfileThread::Timer::Timer(const steady_clock::time_point& _next_timeout,
 
 bool ProfileThread::Timer::operator < (const Timer& b) const {
     return next_timeout > b.next_timeout;
+}
+
+/******************************************************************************/
+// ProfileTaskRegistration
+
+ProfileTaskRegistration::ProfileTaskRegistration(
+    const std::chrono::milliseconds& period,
+    ProfileThread& profiler, ProfileTask* task)
+    : profiler_(profiler), task_(task) {
+    profiler_.Add(period, task);
+}
+
+ProfileTaskRegistration::~ProfileTaskRegistration() {
+    profiler_.Remove(task_);
 }
 
 } // namespace common
