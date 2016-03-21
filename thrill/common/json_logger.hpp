@@ -66,9 +66,6 @@ public:
     template <typename ... Args>
     explicit JsonLogger(JsonLogger* super, const Args& ... args);
 
-    //! destructor: stop profiling thread
-    ~JsonLogger();
-
     //! create new JsonLine instance which will be written to this logger.
     JsonLine line();
 
@@ -90,9 +87,6 @@ public:
 
     //! common items outputted to each line
     JsonVerbatim common_;
-
-    //! Json profiler (pimpl)
-    std::unique_ptr<ScheduleThread> profiler_;
 
     //! friends for sending to os_
     friend class JsonLine;

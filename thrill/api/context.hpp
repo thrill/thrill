@@ -17,6 +17,8 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/json_logger.hpp>
+#include <thrill/common/linux_proc_stats.hpp>
+#include <thrill/common/schedule_thread.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/cat_stream.hpp>
 #include <thrill/data/file.hpp>
@@ -84,7 +86,7 @@ public:
           mem_config_(mem_config),
           workers_per_host_(workers_per_host),
           net_manager_(std::move(groups)) {
-        logger_.StartProfiler();
+        StartLinuxProcStatsProfiler(profiler_, logger_);
     }
 
     //! Construct a number of mock hosts running in this process.
@@ -133,6 +135,9 @@ public:
     //! logger is local to this Context which is exclusive for one worker
     //! thread.
     common::JsonLogger logger_;
+
+    //! thread for scheduling profiling methods for statistical output
+    common::ScheduleThread profiler_;
 
     //! \}
 
