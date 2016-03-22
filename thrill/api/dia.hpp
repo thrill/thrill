@@ -38,7 +38,12 @@ namespace api {
 //! \{
 
 //! tag structure for Window() and FlatWindow()
-struct DisjointTag { };
+struct DisjointTag {
+    DisjointTag() { }
+};
+
+//! global const DisjointTag instance
+const struct DisjointTag DisjointTag;
 
 /*!
  * DIA is the interface between the user and the Thrill framework. A DIA can be
@@ -740,7 +745,7 @@ public:
      * \param window_function Window function applied to each k item.
      */
     template <typename WindowFunction>
-    auto Window(DisjointTag, size_t window_size,
+    auto Window(struct DisjointTag, size_t window_size,
                 const WindowFunction &window_function) const;
 
     /*!
@@ -770,7 +775,7 @@ public:
      * \param window_function Window function applied to each k item.
      */
     template <typename ValueOut, typename WindowFunction>
-    auto FlatWindow(DisjointTag, size_t window_size,
+    auto FlatWindow(struct DisjointTag, size_t window_size,
                     const WindowFunction &window_function) const;
 
     /*!

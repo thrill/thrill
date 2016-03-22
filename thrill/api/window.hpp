@@ -381,7 +381,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename ValueOut, typename WindowFunction>
 auto DIA<ValueType, Stack>::FlatWindow(
-    DisjointTag, size_t window_size,
+    struct DisjointTag, size_t window_size,
     const WindowFunction &window_function) const {
     assert(IsValid());
 
@@ -399,7 +399,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
 template <typename ValueType, typename Stack>
 template <typename WindowFunction>
 auto DIA<ValueType, Stack>::Window(
-    DisjointTag, size_t window_size,
+    struct DisjointTag, size_t window_size,
     const WindowFunction &window_function) const {
     assert(IsValid());
 

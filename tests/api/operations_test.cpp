@@ -453,7 +453,7 @@ TEST(Operations, DisjointWindowCorrectResults) {
                 test_size);
 
             auto window = integers.Window(
-                DisjointTag(), window_size,
+                DisjointTag, window_size,
                 [](size_t rank, const std::vector<size_t>& window) {
 
                     sLOG << "rank" << rank << "window.size()" << window.size()
