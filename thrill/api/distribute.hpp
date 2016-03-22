@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/distribute_from.hpp
+ * thrill/api/distribute.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_API_DISTRIBUTE_FROM_HEADER
-#define THRILL_API_DISTRIBUTE_FROM_HEADER
+#ifndef THRILL_API_DISTRIBUTE_HEADER
+#define THRILL_API_DISTRIBUTE_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
@@ -26,24 +26,24 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class DistributeFromNode final : public SourceNode<ValueType>
+class DistributeNode final : public SourceNode<ValueType>
 {
 public:
     using Super = SourceNode<ValueType>;
     using Super::context_;
 
-    DistributeFromNode(Context& ctx,
-                       const std::vector<ValueType>& in_vector,
-                       size_t source_id)
-        : SourceNode<ValueType>(ctx, "DistributeFrom"),
+    DistributeNode(Context& ctx,
+                   const std::vector<ValueType>& in_vector,
+                   size_t source_id)
+        : SourceNode<ValueType>(ctx, "Distribute"),
           in_vector_(in_vector),
           source_id_(source_id)
     { }
 
-    DistributeFromNode(Context& ctx,
-                       std::vector<ValueType>&& in_vector,
-                       size_t source_id)
-        : SourceNode<ValueType>(ctx, "DistributeFrom"),
+    DistributeNode(Context& ctx,
+                   std::vector<ValueType>&& in_vector,
+                   size_t source_id)
+        : SourceNode<ValueType>(ctx, "Distribute"),
           in_vector_(std::move(in_vector)),
           source_id_(source_id)
     { }
@@ -89,37 +89,37 @@ private:
 };
 
 /*!
- * DistributeFrom is a Source DOp, which scatters the vector data from the
+ * Distribute is a Source DOp, which scatters the vector data from the
  * source_id to all workers, partitioning equally, and returning the data in a
  * DIA.
  */
 template <typename ValueType>
-auto DistributeFrom(
+auto Distribute(
     Context & ctx,
     const std::vector<ValueType>&in_vector, size_t source_id = 0) {
 
-    using DistributeFromNode = api::DistributeFromNode<ValueType>;
+    using DistributeNode = api::DistributeNode<ValueType>;
 
     auto shared_node =
-        std::make_shared<DistributeFromNode>(ctx, in_vector, source_id);
+        std::make_shared<DistributeNode>(ctx, in_vector, source_id);
 
     return DIA<ValueType>(shared_node);
 }
 
 /*!
- * DistributeFrom is a Source DOp, which scatters the vector data from the
+ * Distribute is a Source DOp, which scatters the vector data from the
  * source_id to all workers, partitioning equally, and returning the data in a
  * DIA.
  */
 template <typename ValueType>
-auto DistributeFrom(
+auto Distribute(
     Context & ctx,
     std::vector<ValueType>&& in_vector, size_t source_id = 0) {
 
-    using DistributeFromNode = api::DistributeFromNode<ValueType>;
+    using DistributeNode = api::DistributeNode<ValueType>;
 
     auto shared_node =
-        std::make_shared<DistributeFromNode>(ctx, std::move(in_vector), source_id);
+        std::make_shared<DistributeNode>(ctx, std::move(in_vector), source_id);
 
     return DIA<ValueType>(shared_node);
 }
@@ -129,10 +129,10 @@ auto DistributeFrom(
 } // namespace api
 
 //! imported from api namespace
-using api::DistributeFrom;
+using api::Distribute;
 
 } // namespace thrill
 
-#endif // !THRILL_API_DISTRIBUTE_FROM_HEADER
+#endif // !THRILL_API_DISTRIBUTE_HEADER
 
 /******************************************************************************/

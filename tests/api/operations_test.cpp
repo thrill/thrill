@@ -13,7 +13,7 @@
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/concat_to_dia.hpp>
-#include <thrill/api/distribute_from.hpp>
+#include <thrill/api/distribute.hpp>
 #include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
@@ -125,7 +125,7 @@ TEST(Operations, ConcatToDIAAndAllGatherElements) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, DistributeFromAndAllGatherElements) {
+TEST(Operations, DistributeAndAllGatherElements) {
 
     auto start_func =
         [](Context& ctx) {
@@ -143,7 +143,7 @@ TEST(Operations, DistributeFromAndAllGatherElements) {
                 std::random_shuffle(in_vector.begin(), in_vector.end());
             }
 
-            DIA<size_t> integers = DistributeFrom(ctx, in_vector, 0).Collapse();
+            DIA<size_t> integers = Distribute(ctx, in_vector, 0).Collapse();
 
             std::vector<size_t> out_vec = integers.AllGather();
 

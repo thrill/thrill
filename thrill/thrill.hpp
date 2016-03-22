@@ -25,7 +25,7 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dia_base.hpp>
 #include <thrill/api/dia_node.hpp>
-#include <thrill/api/distribute_from.hpp>
+#include <thrill/api/distribute.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/function_stack.hpp>
