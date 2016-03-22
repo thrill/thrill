@@ -12,7 +12,7 @@
 #include <examples/k-means/k-means.hpp>
 
 #include <thrill/api/allgather.hpp>
-#include <thrill/api/distribute.hpp>
+#include <thrill/api/equal_to_dia.hpp>
 
 #include <gtest/gtest.h>
 
@@ -101,8 +101,8 @@ TEST(KMeans, RandomPoints) {
         [&](Context& ctx) {
             ctx.enable_consume();
 
-            auto input_points = Distribute(ctx, points);
-            DIA<Point2D> centroids_dia = Distribute(ctx, orig_centroids);
+            auto input_points = EqualToDIA(ctx, points);
+            DIA<Point2D> centroids_dia = EqualToDIA(ctx, orig_centroids);
 
             auto means = KMeans(input_points, centroids_dia, iterations);
 

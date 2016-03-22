@@ -12,8 +12,8 @@
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
-#include <thrill/api/distribute.hpp>
 #include <thrill/api/distribute_from.hpp>
+#include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/generate_from_file.hpp>
@@ -64,7 +64,7 @@ protected:
     size_t value_;
 };
 
-TEST(Operations, DistributeAndAllGatherElements) {
+TEST(Operations, EqualToDIAAndAllGatherElements) {
 
     auto start_func =
         [](Context& ctx) {
@@ -82,7 +82,7 @@ TEST(Operations, DistributeAndAllGatherElements) {
             std::default_random_engine gen(123456);
             std::shuffle(in_vector.begin(), in_vector.end(), gen);
 
-            DIA<size_t> integers = Distribute(ctx, in_vector).Collapse();
+            DIA<size_t> integers = EqualToDIA(ctx, in_vector).Collapse();
 
             std::vector<size_t> out_vec = integers.AllGather();
 
@@ -130,7 +130,7 @@ TEST(Operations, DistributeFromAndAllGatherElements) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, DistributeAndGatherElements) {
+TEST(Operations, EqualToDIAAndGatherElements) {
 
     auto start_func =
         [](Context& ctx) {
@@ -148,7 +148,7 @@ TEST(Operations, DistributeAndGatherElements) {
             std::default_random_engine gen(123456);
             std::shuffle(in_vector.begin(), in_vector.end(), gen);
 
-            DIA<size_t> integers = Distribute(ctx, in_vector).Cache();
+            DIA<size_t> integers = EqualToDIA(ctx, in_vector).Cache();
 
             std::vector<size_t> out_vec = integers.Gather(0);
 

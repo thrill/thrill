@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/distribute.hpp
+ * thrill/api/equal_to_dia.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_API_DISTRIBUTE_HEADER
-#define THRILL_API_DISTRIBUTE_HEADER
+#ifndef THRILL_API_EQUAL_TO_DIA_HEADER
+#define THRILL_API_EQUAL_TO_DIA_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
@@ -26,21 +26,21 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class DistributeNode final : public SourceNode<ValueType>
+class EqualToDIANode final : public SourceNode<ValueType>
 {
 public:
     using Super = SourceNode<ValueType>;
     using Super::context_;
 
-    DistributeNode(Context& ctx,
+    EqualToDIANode(Context& ctx,
                    const std::vector<ValueType>& in_vector)
-        : SourceNode<ValueType>(ctx, "Distribute"),
+        : SourceNode<ValueType>(ctx, "EqualToDIA"),
           in_vector_(in_vector)
     { }
 
-    DistributeNode(Context& ctx,
+    EqualToDIANode(Context& ctx,
                    std::vector<ValueType>&& in_vector)
-        : SourceNode<ValueType>(ctx, "Distibute"),
+        : SourceNode<ValueType>(ctx, "EqualToDIA"),
           in_vector_(std::move(in_vector))
     { }
 
@@ -58,10 +58,10 @@ private:
 };
 
 /*!
- * Distribute is a Source-DOp, which takes a vector of data EQUAL on all
- * workers, and returns the data in a DIA. Use DistributeFrom to actually
- * distribute data from a single worker, Distribute is more a ToDIA wrapper if
- * the data is already distributed.
+ * EqualToDIA is a Source-DOp, which takes a vector of data EQUAL on all
+ * workers, and returns the data in a DIA. Use Distribute to actually distribute
+ * data from a single worker, EqualToDIA is a wrapper if the data is already
+ * distributed.
  *
  * \param ctx Reference to the Context object
  *
@@ -69,21 +69,19 @@ private:
  * DIANode.
  */
 template <typename ValueType>
-auto Distribute(Context & ctx,
+auto EqualToDIA(Context & ctx,
                 const std::vector<ValueType>&in_vector) {
 
-    using DistributeNode = api::DistributeNode<ValueType>;
+    using EqualToDIANode = api::EqualToDIANode<ValueType>;
 
-    auto shared_node = std::make_shared<DistributeNode>(ctx, in_vector);
-
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(std::make_shared<EqualToDIANode>(ctx, in_vector));
 }
 
 /*!
- * Distribute is an Initial-DOp, which takes a vector of data EQUAL on all
- * workers, and returns the data in a DIA. Use DistributeFrom to actually
- * distribute data from a single worker, Distribute is more a ToDIA wrapper if
- * the data is already distributed.
+ * EqualToDIA is an Source-DOp, which takes a vector of data EQUAL on all
+ * workers, and returns the data in a DIA. Use Distribute to actually distribute
+ * data from a single worker, EqualToDIA is a wrapper if the data is already
+ * distributed.
  *
  * \param ctx Reference to the Context object
  *
@@ -91,14 +89,13 @@ auto Distribute(Context & ctx,
  * DIANode.
  */
 template <typename ValueType>
-auto Distribute(Context & ctx,
+auto EqualToDIA(Context & ctx,
                 std::vector<ValueType>&& in_vector) {
 
-    using DistributeNode = api::DistributeNode<ValueType>;
+    using EqualToDIANode = api::EqualToDIANode<ValueType>;
 
-    auto shared_node = std::make_shared<DistributeNode>(ctx, std::move(in_vector));
-
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(
+        std::make_shared<EqualToDIANode>(ctx, std::move(in_vector)));
 }
 
 //! \}
@@ -106,10 +103,10 @@ auto Distribute(Context & ctx,
 } // namespace api
 
 //! imported from api namespace
-using api::Distribute;
+using api::EqualToDIA;
 
 } // namespace thrill
 
-#endif // !THRILL_API_DISTRIBUTE_HEADER
+#endif // !THRILL_API_EQUAL_TO_DIA_HEADER
 
 /******************************************************************************/
