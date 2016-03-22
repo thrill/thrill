@@ -64,8 +64,21 @@ public:
     static constexpr size_t default_prefetch = 2;
 
     //! Constructor from BlockPool
-    File(BlockPool& block_pool, size_t local_worker_id)
-        : BlockSink(block_pool, local_worker_id) { }
+    File(BlockPool& block_pool, size_t local_worker_id, size_t dia_id)
+        : BlockSink(block_pool, local_worker_id),
+          id_(block_pool.next_file_id()), dia_id_(dia_id) { }
+
+    //! non-copyable: delete copy-constructor
+    File(const File&) = delete;
+    //! non-copyable: delete assignment operator
+    File& operator = (const File&) = delete;
+    //! move-constructor: default
+    File(File&&) = default;
+    //! move-assignment operator: default
+    File& operator = (File&&) = default;
+
+    //! Return a copy of the File (explicit copy-constructor)
+    File Copy() const;
 
     //! \name Methods of a BlockSink
     //! \{
@@ -78,7 +91,7 @@ public:
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendPinnedBlock(PinnedBlock&& b) {
+    void AppendPinnedBlock(PinnedBlock&& b) final {
         return AppendBlock(std::move(b).MoveToBlock());
     }
 
@@ -88,21 +101,26 @@ public:
         if (b.size() == 0) return;
         num_items_sum_.push_back(num_items() + b.num_items());
         size_bytes_ += b.size();
+        stats_bytes_ += b.size();
+        stats_items_ += b.num_items();
         blocks_.push_back(b);
     }
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(Block&& b) {
+    void AppendBlock(Block&& b) final {
         if (b.size() == 0) return;
         num_items_sum_.push_back(num_items() + b.num_items());
         size_bytes_ += b.size();
+        stats_bytes_ += b.size();
+        stats_items_ += b.num_items();
         blocks_.emplace_back(std::move(b));
     }
 
-    void Close() final {
-        // 2016-02-04: Files are never closed, one can always append -tb.
-    }
+    void Close() final;
+
+    //! write out stats
+    ~File();
 
     //! Free all Blocks in the File and deallocate vectors
     void Clear();
@@ -239,7 +257,13 @@ public:
 
     // returns a string that identifies this string instance
     std::string ToString() {
-        return "File@" + std::to_string(reinterpret_cast<uintptr_t>(this));
+        return "File." + std::to_string(id_);
+    }
+
+    //! change dia_id after construction (needed because it may be unknown at
+    //! construction)
+    void set_dia_id(size_t dia_id) {
+        dia_id_ = dia_id;
     }
 
     //! flag to disable reading self_verify size_ts from File's with external
@@ -247,6 +271,12 @@ public:
     bool disable_self_verify = false;
 
 private:
+    //! unique file id
+    size_t id_;
+
+    //! optionally associated DIANode id
+    size_t dia_id_;
+
     //! container holding Blocks and thus shared pointers to all byte blocks.
     std::deque<Block> blocks_;
 
@@ -257,6 +287,14 @@ private:
 
     //! Total size of this file in bytes. Sum of all block sizes.
     size_t size_bytes_ = 0;
+
+    //! Total number of bytes stored in the File by a Writer: for stats, never
+    //! decreases.
+    size_t stats_bytes_ = 0;
+
+    //! Total number of items stored in the File by a Writer: for stats, never
+    //! decreases.
+    size_t stats_items_ = 0;
 
     //! for access to blocks_ and num_items_sum_
     friend class data::KeepFileBlockSource;

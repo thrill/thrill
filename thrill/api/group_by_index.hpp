@@ -173,7 +173,7 @@ private:
     ValueOut neutral_element_;
     size_t totalsize_ = 0;
 
-    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+    data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::CatStream::Writer> emitter_ { stream_->GetWriters() };
     std::vector<data::File> files_;
 
@@ -212,7 +212,7 @@ private:
         std::sort(v.begin(), v.end(), ValueComparator(*this));
         totalsize_ += v.size();
 
-        data::File f = context_.GetFile();
+        data::File f = context_.GetFile(this);
         data::File::Writer w = f.GetWriter();
         for (const ValueIn& e : v) {
             w.Put(e);

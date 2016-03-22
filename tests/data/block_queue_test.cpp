@@ -26,30 +26,30 @@ struct BlockQueue : public::testing::Test {
 };
 
 TEST_F(BlockQueue, FreshQueueIsNotClosed) {
-    data::BlockQueue q(block_pool_, 0);
+    data::BlockQueue q(block_pool_, 0, /* dia_id */ 0);
     ASSERT_FALSE(q.write_closed());
 }
 
 TEST_F(BlockQueue, QueueCanBeClosed) {
-    data::BlockQueue q(block_pool_, 0);
+    data::BlockQueue q(block_pool_, 0, /* dia_id */ 0);
     q.Close();
     ASSERT_TRUE(q.write_closed());
 }
 
 TEST_F(BlockQueue, FreshQueueIsEmpty) {
-    data::BlockQueue q(block_pool_, 0);
+    data::BlockQueue q(block_pool_, 0, /* dia_id */ 0);
     ASSERT_TRUE(q.empty());
 }
 
 TEST_F(BlockQueue, QueueNonEmptyAfterAppend) {
-    data::BlockQueue q(block_pool_, 0);
+    data::BlockQueue q(block_pool_, 0, /* dia_id */ 0);
     data::PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(16, 0);
     q.AppendPinnedBlock(data::PinnedBlock(std::move(bytes), 0, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
 
 TEST_F(BlockQueue, BlockWriterToQueue) {
-    data::BlockQueue q(block_pool_, 0);
+    data::BlockQueue q(block_pool_, 0, /* dia_id */ 0);
     data::BlockQueue::Writer bw = q.GetWriter(16);
     bw.Put<int>(42);
     bw.Put<std::string>("hello there BlockQueue");
@@ -62,7 +62,7 @@ TEST_F(BlockQueue, BlockWriterToQueue) {
 TEST_F(BlockQueue, WriteZeroItems) {
 
     // construct File with very small blocks for testing
-    data::BlockQueue q(block_pool_, 0);
+    data::BlockQueue q(block_pool_, 0, /* dia_id */ 0);
 
     {
         // construct File with very small blocks for testing
@@ -82,7 +82,7 @@ TEST_F(BlockQueue, WriteZeroItems) {
 
 TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
     common::ThreadPool pool(2);
-    data::BlockQueue q(block_pool_, 0);
+    data::BlockQueue q(block_pool_, 0, /* dia_id */ 0);
 
     pool.Enqueue(
         [&q]() {
@@ -143,7 +143,8 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
 TEST_F(BlockQueue, OrderedMultiQueue_Multithreaded) {
     using namespace std::literals;
     common::ThreadPool pool(3);
-    data::BlockQueue q(block_pool_, 0), q2(block_pool_, 0);
+    data::BlockQueue q(block_pool_, 0, /* dia_id */ 0),
+    q2(block_pool_, 0, /* dia_id */ 0);
 
     auto writer1 = q.GetWriter(16);
     auto writer2 = q2.GetWriter(16);
@@ -174,7 +175,7 @@ TEST_F(BlockQueue, OrderedMultiQueue_Multithreaded) {
 
 TEST_F(BlockQueue, ThreadedParallelBlockWriterAndDynBlockReader) {
     common::ThreadPool pool(2);
-    data::BlockQueue q(block_pool_, 0);
+    data::BlockQueue q(block_pool_, 0, /* dia_id */ 0);
 
     pool.Enqueue(
         [&q]() {

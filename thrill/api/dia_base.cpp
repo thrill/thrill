@@ -186,9 +186,9 @@ public:
         }
 
         if (const_mem > mem_limit) {
-            sLOG1 << "StageBuilder: constant memory usage of DIANodes in Stage: "
-                  << const_mem
-                  << ", already exceeds Context's mem_limit: " << mem_limit;
+            LOG1 << "StageBuilder: constant memory usage of DIANodes in Stage: "
+                 << const_mem
+                 << ", already exceeds Context's mem_limit: " << mem_limit;
             abort();
         }
 

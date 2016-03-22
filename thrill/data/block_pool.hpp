@@ -87,6 +87,9 @@ public:
     //! Returns logger_
     common::JsonLogger& logger() { return logger_; }
 
+    //! return next unique File id
+    size_t next_file_id() { return ++next_file_id_; }
+
     //! Updates the memory manager for internal memory. If the hard limit is
     //! reached, the call is blocked intil memory is free'd
     void RequestInternalMemory(size_t size);
@@ -183,6 +186,9 @@ private:
 
     //! number of workers per host
     size_t workers_per_host_;
+
+    //! next unique File id
+    std::atomic<size_t> next_file_id_ { 0 };
 
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
     common::LruCacheSet<

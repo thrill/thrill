@@ -53,7 +53,7 @@ public:
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
         if (!ParentDIA::stack_empty) return false;
         assert(file_.num_items() == 0);
-        file_ = file;
+        file_ = file.Copy();
         return true;
     }
 
@@ -70,7 +70,7 @@ public:
 
 private:
     //! Local data file
-    data::File file_ { context_.GetFile() };
+    data::File file_ { context_.GetFile(this) };
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ { file_.GetWriter() };
 };

@@ -32,20 +32,30 @@ Multiplexer::~Multiplexer() {
     group_.Close();
 }
 
-CatStreamPtr
-Multiplexer::IntGetOrCreateCatStream(size_t id, size_t local_worker_id) {
+CatStreamPtr Multiplexer::IntGetOrCreateCatStream(
+    size_t id, size_t local_worker_id, size_t dia_id) {
     CatStreamSetPtr set =
         stream_sets_.GetOrCreate<CatStreamSet>(
-            id, *this, id, workers_per_host_);
-    return set->peer(local_worker_id);
+            id, *this, id, workers_per_host_, dia_id);
+    CatStreamPtr ptr = set->peer(local_worker_id);
+    // update dia_id: the stream may have been created before the DIANode
+    // associated with it.
+    if (!ptr->dia_id_)
+        ptr->set_dia_id(dia_id);
+    return ptr;
 }
 
-MixStreamPtr
-Multiplexer::IntGetOrCreateMixStream(size_t id, size_t local_worker_id) {
+MixStreamPtr Multiplexer::IntGetOrCreateMixStream(
+    size_t id, size_t local_worker_id, size_t dia_id) {
     MixStreamSetPtr set =
         stream_sets_.GetOrCreate<MixStreamSet>(
-            id, *this, id, workers_per_host_);
-    return set->peer(local_worker_id);
+            id, *this, id, workers_per_host_, dia_id);
+    MixStreamPtr ptr = set->peer(local_worker_id);
+    // update dia_id: the stream may have been created before the DIANode
+    // associated with it.
+    if (!ptr->dia_id_)
+        ptr->set_dia_id(dia_id);
+    return ptr;
 }
 
 common::JsonLogger& Multiplexer::logger() {
@@ -85,8 +95,9 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
 
     if (header.magic == MagicByte::CatStreamBlock)
     {
-        CatStreamPtr stream = GetOrCreateCatStream(id, local_worker);
-        stream->incoming_bytes_ += buffer.size();
+        CatStreamPtr stream = GetOrCreateCatStream(
+            id, local_worker, /* dia_id (unknown at this time) */ 0);
+        stream->rx_bytes_ += buffer.size();
 
         if (header.IsEnd()) {
             sLOG << "end of stream on" << s << "in CatStream" << id
@@ -113,8 +124,9 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
     }
     else if (header.magic == MagicByte::MixStreamBlock)
     {
-        MixStreamPtr stream = GetOrCreateMixStream(id, local_worker);
-        stream->incoming_bytes_ += buffer.size();
+        MixStreamPtr stream = GetOrCreateMixStream(
+            id, local_worker, /* dia_id (unknown at this time) */ 0);
+        stream->rx_bytes_ += buffer.size();
 
         if (header.IsEnd()) {
             sLOG << "end of stream on" << s << "in MixStream" << id

@@ -28,7 +28,7 @@ struct File : public::testing::Test {
 TEST_F(File, PutSomeItemsGetItems) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_, 0);
+    data::File file(block_pool_, 0, /* dia_id */ 0);
 
     {
         data::File::Writer fw = file.GetWriter(16);
@@ -116,7 +116,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 TEST_F(File, WriteZeroItems) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_, 0);
+    data::File file(block_pool_, 0, /* dia_id */ 0);
 
     {
         // construct File with very small blocks for testing
@@ -137,7 +137,7 @@ TEST_F(File, WriteZeroItems) {
 TEST_F(File, SerializeSomeItems) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_, 0);
+    data::File file(block_pool_, 0, /* dia_id */ 0);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -179,7 +179,7 @@ TEST_F(File, SerializeSomeItems) {
 TEST_F(File, SerializeSomeItemsDynReader) {
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_, 0);
+    data::File file(block_pool_, 0, /* dia_id */ 0);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -222,7 +222,7 @@ TEST_F(File, SerializeSomeItemsConsumeReader) {
     static constexpr size_t size = 5000;
 
     // construct File with very small blocks for testing
-    data::File file(block_pool_, 0);
+    data::File file(block_pool_, 0, /* dia_id */ 0);
 
     // put into File some items (all of different serialization bytes)
     {
@@ -253,7 +253,7 @@ TEST_F(File, RandomGetIndexOf) {
     std::minstd_rand0 rng(0);
 
     // Create test file.
-    data::File file(block_pool_, 0);
+    data::File file(block_pool_, 0, /* dia_id */ 0);
 
     data::File::Writer fw = file.GetWriter(53);
 
@@ -277,7 +277,7 @@ TEST_F(File, TieGetIndexOf) {
     const size_t size = 500;
 
     // Create test file.
-    data::File file(block_pool_, 0);
+    data::File file(block_pool_, 0, /* dia_id */ 0);
 
     data::File::Writer fw = file.GetWriter(53);
 
@@ -300,7 +300,7 @@ TEST_F(File, TieGetIndexOfWithDuplicates) {
     std::minstd_rand0 rng(0);
 
     // Create test file.
-    data::File file(block_pool_, 0);
+    data::File file(block_pool_, 0, /* dia_id */ 0);
 
     data::File::Writer fw = file.GetWriter(53);
 
@@ -334,7 +334,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     static constexpr bool debug = false;
 
     // construct a small-block File with lots of items.
-    data::File file(block_pool_, 0);
+    data::File file(block_pool_, 0, /* dia_id */ 0);
 
     // yes, this is a prime number as block size. -tb
     data::File::Writer fw = file.GetWriter(/* block_size */ 53);
@@ -382,7 +382,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                 for (data::Block& b : blocks)
                     b.PinWait(0);
 
-                data::BlockQueue queue(block_pool_, 0);
+                data::BlockQueue queue(block_pool_, 0, /* dia_id */ 0);
 
                 for (data::Block& b : blocks)
                     queue.AppendPinnedBlock(b.PinWait(0));
@@ -408,7 +408,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(more);
 
-                data::BlockQueue queue(block_pool_, 0);
+                data::BlockQueue queue(block_pool_, 0, /* dia_id */ 0);
 
                 for (data::Block& b : blocks)
                     queue.AppendPinnedBlock(b.PinWait(0));
@@ -451,10 +451,11 @@ class BoundedFile : public virtual data::BoundedBlockSink,
 {
 public:
     //! constructor with reference to BlockPool
-    BoundedFile(data::BlockPool& block_pool, size_t local_worker_id, size_t max_size)
+    BoundedFile(data::BlockPool& block_pool, size_t local_worker_id,
+                size_t dia_id, size_t max_size)
         : BlockSink(block_pool, local_worker_id),
           BoundedBlockSink(block_pool, local_worker_id, max_size),
-          File(block_pool, local_worker_id)
+          File(block_pool, local_worker_id, dia_id)
     { }
 
     static constexpr bool allocate_can_fail_ = true;
@@ -466,7 +467,7 @@ public:
 TEST_F(File, BoundedFilePutIntegerUntilFull) {
 
     // construct Partition with very small blocks for testing
-    BoundedFile file(block_pool_, 0, 32 * 64);
+    BoundedFile file(block_pool_, 0, /* dia_id */ 0, 32 * 64);
 
     try {
         data::BlockWriter<BoundedFile> bw(&file, 64);

@@ -129,16 +129,17 @@ public:
     }
 
     //! Get stream with given id, if it does not exist, create it.
-    CatStreamPtr GetOrCreateCatStream(size_t id, size_t local_worker_id) {
+    CatStreamPtr GetOrCreateCatStream(
+        size_t id, size_t local_worker_id, size_t dia_id) {
         std::unique_lock<std::mutex> lock(mutex_);
-        return IntGetOrCreateCatStream(id, local_worker_id);
+        return IntGetOrCreateCatStream(id, local_worker_id, dia_id);
     }
 
     //! Request next stream.
-    CatStreamPtr GetNewCatStream(size_t local_worker_id) {
+    CatStreamPtr GetNewCatStream(size_t local_worker_id, size_t dia_id) {
         std::unique_lock<std::mutex> lock(mutex_);
         return IntGetOrCreateCatStream(
-            stream_sets_.AllocateId(local_worker_id), local_worker_id);
+            stream_sets_.AllocateId(local_worker_id), local_worker_id, dia_id);
     }
 
     //! \}
@@ -153,16 +154,17 @@ public:
     }
 
     //! Get stream with given id, if it does not exist, create it.
-    MixStreamPtr GetOrCreateMixStream(size_t id, size_t local_worker_id) {
+    MixStreamPtr GetOrCreateMixStream(
+        size_t id, size_t local_worker_id, size_t dia_id) {
         std::unique_lock<std::mutex> lock(mutex_);
-        return IntGetOrCreateMixStream(id, local_worker_id);
+        return IntGetOrCreateMixStream(id, local_worker_id, dia_id);
     }
 
     //! Request next stream.
-    MixStreamPtr GetNewMixStream(size_t local_worker_id) {
+    MixStreamPtr GetNewMixStream(size_t local_worker_id, size_t dia_id) {
         std::unique_lock<std::mutex> lock(mutex_);
         return IntGetOrCreateMixStream(
-            stream_sets_.AllocateId(local_worker_id), local_worker_id);
+            stream_sets_.AllocateId(local_worker_id), local_worker_id, dia_id);
     }
 
     //! \}
@@ -205,8 +207,10 @@ private:
     //! Streams have an ID in block headers. (worker id, stream id)
     Repository<StreamSetBase> stream_sets_;
 
-    CatStreamPtr IntGetOrCreateCatStream(size_t id, size_t local_worker_id);
-    MixStreamPtr IntGetOrCreateMixStream(size_t id, size_t local_worker_id);
+    CatStreamPtr IntGetOrCreateCatStream(
+        size_t id, size_t local_worker_id, size_t dia_id);
+    MixStreamPtr IntGetOrCreateMixStream(
+        size_t id, size_t local_worker_id, size_t dia_id);
 
     /**************************************************************************/
 

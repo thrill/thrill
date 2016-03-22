@@ -101,7 +101,7 @@ private:
     size_t local_size_ = 0;
 
     //! Temporary File for splitting correctly?
-    data::File temp_file_ { context_.GetFile() };
+    data::File temp_file_ { context_.GetFile(this) };
 
     //! File writer used.
     data::File::Writer writer_ { temp_file_.GetWriter() };

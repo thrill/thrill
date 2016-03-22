@@ -160,10 +160,10 @@ private:
     GroupFunction groupby_function_;
     HashFunction hash_function_;
 
-    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+    data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::Stream::Writer> emitter_;
     std::vector<data::File> files_;
-    data::File sorted_elems_ { context_.GetFile() };
+    data::File sorted_elems_ { context_.GetFile(this) };
     size_t totalsize_ = 0;
 
     void RunUserFunc(data::File& f, bool consume) {
@@ -191,7 +191,7 @@ private:
         std::sort(v.begin(), v.end(), ValueComparator(*this));
         totalsize_ += v.size();
 
-        data::File f = context_.GetFile();
+        data::File f = context_.GetFile(this);
         data::File::Writer w = f.GetWriter();
         for (const ValueIn& e : v) {
             w.Put(e);

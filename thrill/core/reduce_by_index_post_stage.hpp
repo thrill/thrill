@@ -89,6 +89,7 @@ public:
      */
     ReduceByIndexPostStage(
         Context& ctx,
+        size_t dia_id,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         const Emitter& emitter,
@@ -98,7 +99,7 @@ public:
         const EqualToFunction& equal_to_function = EqualToFunction())
         : config_(config),
           emitter_(emitter),
-          table_(ctx,
+          table_(ctx, dia_id,
                  key_extractor, reduce_function, emitter_,
                  /* num_partitions */ 32, /* TODO(tb): parameterize */
                  config, false,
@@ -250,7 +251,7 @@ public:
         // them iteratively.
 
         Table subtable(
-            table_.ctx(),
+            table_.ctx(), table_.dia_id(),
             table_.key_extractor(), table_.reduce_function(), emitter_,
             /* num_partitions */ 32, config_, false,
             table_.index_function(),
@@ -362,7 +363,7 @@ public:
             else {
                 // items were spilled, hence the reduce table must be emptied
                 // and we have to cache the output stream.
-                cache_ = table_.ctx().GetFilePtr();
+                cache_ = table_.ctx().GetFilePtr(table_.dia_id());
                 data::File::Writer writer = cache_->GetWriter();
                 Flush</* DoCache */ true>(true, &writer);
             }

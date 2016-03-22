@@ -71,7 +71,7 @@ public:
         if (!ParentDIA::stack_empty) return false;
         // accept file
         assert(file_.num_items() == 0);
-        file_ = file;
+        file_ = file.Copy();
         // read last k - 1 items from File
         size_t pos = file_.num_items() > window_size_ - 1 ?
                      file_.num_items() - window_size_ + 1 : 0;
@@ -114,7 +114,7 @@ protected:
     RingBuffer window_;
 
     //! Local data file
-    data::File file_ { context_.GetFile() };
+    data::File file_ { context_.GetFile(this) };
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ { file_.GetWriter() };
 

@@ -41,8 +41,7 @@ public:
         : ActionNode(parent.ctx(), label,
                      { parent.id() }, { parent.node() }),
           target_id_(target_id),
-          out_vector_(out_vector),
-          stream_(parent.ctx().GetNewCatStream())
+          out_vector_(out_vector)
     {
         assert(target_id_ < context_.num_workers());
 
@@ -85,7 +84,7 @@ private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::CatStreamPtr stream_;
+    data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::CatStream::Writer> emitters_;
 };
 

@@ -104,7 +104,7 @@ public:
         if (!ParentDIA::stack_empty) return false;
 
         // accept file
-        unsorted_file_ = file;
+        unsorted_file_ = file.Copy();
         local_items_ = unsorted_file_.num_items();
 
         size_t pick_items = std::min(local_items_, wanted_sample_size());
@@ -193,7 +193,7 @@ public:
                     seq.begin(), seq.end(), compare_function_);
 
                 // create new File for merged items
-                files_.emplace_back(context_.GetFile());
+                files_.emplace_back(context_.GetFile(this));
                 auto writer = files_.back().GetWriter();
 
                 while (puller.HasNext()) {
@@ -237,7 +237,7 @@ private:
     //! \{
 
     //! All local unsorted items before communication
-    data::File unsorted_file_ { context_.GetFile() };
+    data::File unsorted_file_ { context_.GetFile(this) };
     //! Writer for unsorted_file_
     data::File::Writer unsorted_writer_;
     //! Number of items on this worker
@@ -488,7 +488,7 @@ private:
 
         common::StatsTimerStart write_time;
 
-        files.emplace_back(context_.GetFile());
+        files.emplace_back(context_.GetFile(this));
         auto writer = files.back().GetWriter();
         for (const ValueType& elem : vec) {
             writer.Put(elem);
@@ -523,7 +523,7 @@ private:
         LOG << "Number of local items: " << local_items_;
 
         // stream to send samples to process 0 and receive them back
-        data::MixStreamPtr sample_stream = context_.GetNewMixStream();
+        data::MixStreamPtr sample_stream = context_.GetNewMixStream(this);
 
         // Send all samples to worker 0.
         std::vector<data::MixStream::Writer> sample_writers =
@@ -574,7 +574,7 @@ private:
                     splitters.data(),
                     splitter_count_algo);
 
-        data::MixStreamPtr data_stream = context_.GetNewMixStream();
+        data::MixStreamPtr data_stream = context_.GetNewMixStream(this);
 
         // launch receiver thread.
         std::thread thread = common::CreateThread(

@@ -57,9 +57,10 @@ public:
 
     //! Constructor from BlockPool
     explicit BlockQueue(BlockPool& block_pool, size_t local_worker_id,
+                        size_t dia_id,
                         const CloseCallback& close_callback = CloseCallback())
         : BlockSink(block_pool, local_worker_id),
-          file_(block_pool, local_worker_id),
+          file_(block_pool, local_worker_id, dia_id),
           close_callback_(close_callback) {
         assert(local_worker_id < block_pool.workers_per_host());
     }
@@ -107,6 +108,12 @@ public:
         queue_.pop(b);
         read_closed_ = !b.IsValid();
         return b;
+    }
+
+    //! change dia_id after construction (needed because it may be unknown at
+    //! construction)
+    void set_dia_id(size_t dia_id) {
+        file_.set_dia_id(dia_id);
     }
 
     //! check if writer side Close() was called.

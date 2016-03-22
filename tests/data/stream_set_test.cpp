@@ -57,9 +57,9 @@ TEST(StreamSet, TestLoopbacks) {
 
     // no we cannot use ExecuteLocalMock, because we need the same
     // CatStreamSet instance for all the threads.
-    auto stream0 = multiplexer.GetOrCreateCatStream(0, 0);
-    auto stream1 = multiplexer.GetOrCreateCatStream(0, 1);
-    auto stream2 = multiplexer.GetOrCreateCatStream(0, 2);
+    auto stream0 = multiplexer.GetOrCreateCatStream(0, 0, /* dia_id */ 0);
+    auto stream1 = multiplexer.GetOrCreateCatStream(0, 1, /* dia_id */ 0);
+    auto stream2 = multiplexer.GetOrCreateCatStream(0, 2, /* dia_id */ 0);
     producer(stream0, 0);
     producer(stream1, 1);
     producer(stream2, 2);

@@ -127,8 +127,8 @@ void StreamSink::Close() {
         << "blocks" << block_counter_
         << "timespan" << timespan_;
 
-    stream_.outgoing_bytes_ += byte_counter_;
-    stream_.outgoing_blocks_ += block_counter_;
+    stream_.tx_bytes_ += byte_counter_;
+    stream_.tx_blocks_ += block_counter_;
 }
 
 } // namespace data

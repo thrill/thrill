@@ -55,7 +55,7 @@ public:
 
         // allocate files.
         for (size_t i = 0; i < num_inputs_; ++i)
-            files_.emplace_back(context_.GetFile());
+            files_.emplace_back(context_.GetFile(this));
 
         for (size_t i = 0; i < num_inputs_; ++i)
             writers_.emplace_back(files_[i].GetWriter());
@@ -83,7 +83,7 @@ public:
 
         // allocate files.
         for (size_t i = 0; i < num_inputs_; ++i)
-            files_.emplace_back(context_.GetFile());
+            files_.emplace_back(context_.GetFile(this));
 
         for (size_t i = 0; i < num_inputs_; ++i)
             writers_.emplace_back(files_[i].GetWriter());
@@ -161,7 +161,7 @@ public:
 
         // accept file
         assert(files_[parent_index].num_items() == 0);
-        files_[parent_index] = file;
+        files_[parent_index] = file.Copy();
         return true;
     }
 
@@ -210,7 +210,7 @@ public:
 
         streams_.reserve(num_inputs_);
         for (size_t i = 0; i < num_inputs_; ++i)
-            streams_.emplace_back(context_.GetNewCatStream());
+            streams_.emplace_back(context_.GetNewCatStream(this));
 
         /*
          * Data Exchange in Concat (Example):

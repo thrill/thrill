@@ -33,7 +33,7 @@ int BenchmarkSerialization(T t, int iterations) {
     data::BlockPool block_pool;
 
     for (int i = 0; i < iterations; ++i) {
-        data::File f(block_pool, 0);
+        data::File f(block_pool, 0, /* dia_id */ 0);
         timer.Start();
         {
             auto w = f.GetWriter();

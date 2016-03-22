@@ -103,7 +103,7 @@ TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
         }
         std::sort(tmp.begin(), tmp.end());
 
-        data::File f(block_pool_, 0);
+        data::File f(block_pool_, 0, /* dia_id */ 0);
         {
             auto w = f.GetWriter();
             for (auto& t : tmp) {

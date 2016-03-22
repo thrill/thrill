@@ -39,8 +39,7 @@ public:
                   std::vector<ValueType>* out_vector)
         : ActionNode(parent.ctx(), "AllGather",
                      { parent.id() }, { parent.node() }),
-          out_vector_(out_vector),
-          stream_(parent.ctx().GetNewCatStream())
+          out_vector_(out_vector)
     {
         auto pre_op_function = [this](const ValueType& input) {
                                    PreOp(input);
@@ -95,7 +94,7 @@ private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::CatStreamPtr stream_;
+    data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::CatStream::Writer> emitters_;
 
     static constexpr bool debug = false;

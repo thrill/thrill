@@ -96,7 +96,7 @@ public:
     {
         // allocate files.
         for (size_t i = 0; i < kNumInputs; ++i)
-            files_[i] = context_.GetFilePtr();
+            files_[i] = context_.GetFilePtr(this);
 
         for (size_t i = 0; i < kNumInputs; ++i)
             writers_[i] = files_[i]->GetWriter();
@@ -146,7 +146,7 @@ public:
 
         // accept file
         assert(files_[parent_index]->num_items() == 0);
-        *files_[parent_index] = file;
+        *files_[parent_index] = file.Copy();
         return true;
     }
 
@@ -645,7 +645,7 @@ private:
 
         // Initialize channels for distributing data.
         for (size_t j = 0; j < kNumInputs; j++)
-            streams_[j] = context_.GetNewCatStream();
+            streams_[j] = context_.GetNewCatStream(this);
 
         stats_.scatter_timer_.Start();
 

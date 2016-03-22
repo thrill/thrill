@@ -64,7 +64,7 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceConfig& base_config) {
         decltype(key_ex), decltype(red_fn), decltype(emit_fn),
         /* SendPair */ true,
         core::DefaultReduceConfigSelect<table_impl> >
-    stage(ctx, key_ex, red_fn, emit_fn,
+    stage(ctx, 0, key_ex, red_fn, emit_fn,
           config);
 
     common::StatsTimerStart timer;
