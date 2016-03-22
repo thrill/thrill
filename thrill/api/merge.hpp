@@ -133,6 +133,23 @@ public:
         MergeNode* merge_node_;
     };
 
+    //! Receive a whole data::File of ValueType, but only if our stack is empty.
+    bool OnPreOpFile(const data::File& file, size_t parent_index) final {
+        assert(parent_index < kNumInputs);
+
+        //! indication whether the parent stack is empty
+        static constexpr bool parent_stack_empty[kNumInputs] = {
+            // parenthesis are due to a MSVC2015 parser bug
+            ParentDIA0::stack_empty, (ParentDIAs::stack_empty)...
+        };
+        if (!parent_stack_empty[parent_index]) return false;
+
+        // accept file
+        assert(files_[parent_index]->num_items() == 0);
+        *files_[parent_index] = file;
+        return true;
+    }
+
     void StopPreOp(size_t id) final {
         writers_[id].Close();
     }
