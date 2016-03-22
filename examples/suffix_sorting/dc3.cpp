@@ -12,8 +12,7 @@
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/api/distribute.hpp>
-#include <thrill/api/distribute_from.hpp>
+#include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
@@ -765,7 +764,7 @@ public:
         if (input_verbatim_) {
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
-            DIA<uint8_t> input_dia = Distribute<uint8_t>(ctx_, input_vec);
+            DIA<uint8_t> input_dia = EqualToDIA<uint8_t>(ctx_, input_vec);
             StartDC3Input(input_dia, input_vec.size());
         }
         else if (input_path_ == "unary") {

@@ -79,8 +79,8 @@ public:
     void Execute() final {
         LOG << "MainOp processing";
 
-        ValueType sum = context_.net.PrefixSum(
-            local_sum_, initial_element_, sum_function_, false);
+        ValueType sum = context_.net.ExPrefixSum(
+            local_sum_, initial_element_, sum_function_);
 
         if (context_.my_rank() == 0) {
             sum = initial_element_;

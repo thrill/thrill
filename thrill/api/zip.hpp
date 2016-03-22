@@ -18,6 +18,7 @@
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
+#include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/meta.hpp>
 #include <thrill/data/file.hpp>
@@ -185,7 +186,7 @@ private:
     //! \{
 
     //! prefix sum over the number of items in workers
-    size_t dia_size_prefixsum_[kNumInputs];
+    std::array<size_t, kNumInputs> dia_size_prefixsum_;
 
     //! shortest size of Zipped inputs
     size_t result_size_;
@@ -286,23 +287,24 @@ private:
     void MainOp() {
         // first: calculate total size of the DIAs to Zip
 
-        //! total number of items in DIAs over all workers
-        std::array<size_t, kNumInputs> dia_total_size;
+        using ArraySizeT = std::array<size_t, kNumInputs>;
 
-        for (size_t in = 0; in < kNumInputs; ++in) {
-            //! number of elements of this worker
-            size_t dia_local_size = files_[in].num_items();
-            sLOG << "input" << in << "dia_local_size" << dia_local_size;
-
-            //! inclusive prefixsum of number of elements: we have items from
-            //! [dia_size_prefixsum - local_size, dia_size_prefixsum).
-            dia_size_prefixsum_[in] = context_.net.PrefixSum(dia_local_size);
-
-            //! total number of elements, over all worker. take last worker's
-            //! prefixsum
-            dia_total_size[in] = context_.net.Broadcast(
-                dia_size_prefixsum_[in], context_.net.num_workers() - 1);
+        //! number of elements of this worker
+        ArraySizeT dia_local_size;
+        for (size_t i = 0; i < kNumInputs; ++i) {
+            dia_local_size[i] = files_[i].num_items();
+            sLOG << "input" << i << "dia_local_size" << dia_local_size[i];
         }
+
+        //! inclusive prefixsum of number of elements: we have items from
+        //! [dia_size_prefixsum - local_size, dia_size_prefixsum).
+        dia_size_prefixsum_ = context_.net.PrefixSum(
+            dia_local_size, ArraySizeT(), common::ComponentSum<ArraySizeT>());
+
+        //! total number of items in DIAs, over all worker. take last worker's
+        //! prefixsum
+        ArraySizeT dia_total_size = context_.net.Broadcast(
+            dia_size_prefixsum_, context_.net.num_workers() - 1);
 
         // return only the minimum size of all DIAs.
         result_size_ =
@@ -310,14 +312,14 @@ private:
             ? *std::max_element(dia_total_size.begin(), dia_total_size.end())
             : *std::min_element(dia_total_size.begin(), dia_total_size.end());
 
+        if (result_size_ == 0) return;
+
         // perform scatters to exchange data, with different types.
-        if (result_size_ != 0) {
-            common::VariadicCallEnumerate<kNumInputs>(
-                [=](auto index) {
-                    (void)index;
-                    this->DoScatter<decltype(index)::index>();
-                });
-        }
+        common::VariadicCallEnumerate<kNumInputs>(
+            [=](auto index) {
+                (void)index;
+                this->DoScatter<decltype(index)::index>();
+            });
     }
 
     //! Access CatReaders for different different parents.

@@ -116,6 +116,24 @@ public:
     }
 };
 
+//! Compute the component-wise sum of two std::array<T,N> of same sizes.
+template <typename ArrayType,
+          typename Operation = std::plus<typename ArrayType::value_type> >
+class ComponentSum
+    : public std::binary_function<ArrayType, ArrayType, ArrayType>
+{
+public:
+    explicit ComponentSum(const Operation& op = Operation()) : op_(op) { }
+    ArrayType operator () (const ArrayType& a, const ArrayType& b) const {
+        ArrayType out;
+        for (size_t i = 0; i < a.size(); ++i) out[i] = op_(a[i], b[i]);
+        return out;
+    }
+
+private:
+    Operation op_;
+};
+
 /******************************************************************************/
 
 // Compile-time integer sequences, an implementation of std::index_sequence and
