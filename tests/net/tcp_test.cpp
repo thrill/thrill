@@ -143,6 +143,9 @@ TEST(LocalTcpGroup, SingleThreadBroadcast) {
 TEST(LocalTcpGroup, MultiThreadBroadcast) {
     LocalGroupTest(TestMultiThreadBroadcast);
 }
+TEST(LocalTcpGroup, MultiThreadReduce) {
+    LocalGroupTest(TestMultiThreadReduce);
+}
 TEST(LocalTcpGroup, SingleThreadAllReduce) {
     LocalGroupTest(TestSingleThreadAllReduce);
 }

@@ -261,18 +261,26 @@ template <typename T, typename BinarySumOp = std::plus<T> >
 static inline
 void Reduce(Group& net, T& value, size_t root = 0,
             BinarySumOp sum_op = BinarySumOp()) {
+    static constexpr bool debug = false;
     const size_t num_hosts = net.num_hosts();
-    const size_t shifted_rank =
-        (net.my_host_rank() - root + num_hosts) % num_hosts;
+    const size_t my_rank = net.my_host_rank() + num_hosts;
+    const size_t shifted_rank = (my_rank - root) % num_hosts;
+    sLOG << net.my_host_rank() << "shifted_rank" << shifted_rank;
 
     for (size_t d = 1; d < num_hosts; d <<= 1) {
         if (shifted_rank & d) {
-            net.SendTo(shifted_rank - d, value);
+            sLOG << "Reduce" << net.my_host_rank()
+                 << "->" << (my_rank - d) % num_hosts << "/"
+                 << shifted_rank << "->" << shifted_rank - d;
+            net.SendTo((my_rank - d) % num_hosts, value);
             break;
         }
         else if (shifted_rank + d < num_hosts) {
+            sLOG << "Reduce" << net.my_host_rank()
+                 << "<-" << (my_rank + d) % num_hosts << "/"
+                 << shifted_rank << "<-" << shifted_rank + d;
             T recv_data;
-            net.ReceiveFrom(shifted_rank + d, &recv_data);
+            net.ReceiveFrom((my_rank + d) % num_hosts, &recv_data);
             value = sum_op(value, recv_data);
         }
     }

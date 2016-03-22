@@ -111,6 +111,9 @@ TEST(MpiGroup, SingleThreadBroadcast) {
 TEST(MpiGroup, MultiThreadBroadcast) {
     MpiTest(TestMultiThreadBroadcast);
 }
+TEST(MpiGroup, MultiThreadReduce) {
+    MpiTest(TestMultiThreadReduce);
+}
 TEST(MpiGroup, SingleThreadAllReduce) {
     MpiTest(TestSingleThreadAllReduce);
 }

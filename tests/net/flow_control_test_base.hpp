@@ -144,6 +144,31 @@ static void TestMultiThreadBroadcast(net::Group* net) {
 }
 
 /**
+ * Calculates a sum over all worker and thread ids.
+ */
+static void TestMultiThreadReduce(net::Group* net) {
+
+    const size_t count = 4;
+
+    ExecuteMultiThreads(
+        net, count, [=](net::FlowControlChannel& channel) {
+            size_t my_rank = channel.my_rank();
+
+            size_t root_rank = channel.num_workers() * 2 / 3;
+            sLOG0 << "root_rank" << root_rank;
+
+            size_t res = channel.Reduce(my_rank, root_rank);
+            size_t expected = 0;
+            for (size_t i = 0; i < net->num_hosts() * count; i++) {
+                expected += i;
+            }
+
+            if (my_rank == root_rank)
+                ASSERT_EQ(res, expected);
+        });
+}
+
+/**
  * Calculates a sum over all worker ids.
  */
 static void TestSingleThreadAllReduce(net::Group* net) {
