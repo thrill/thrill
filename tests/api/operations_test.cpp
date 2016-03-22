@@ -12,6 +12,7 @@
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
+#include <thrill/api/concat_to_dia.hpp>
 #include <thrill/api/distribute_from.hpp>
 #include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/gather.hpp>
@@ -91,6 +92,33 @@ TEST(Operations, EqualToDIAAndAllGatherElements) {
             ASSERT_EQ(test_size, out_vec.size());
             for (size_t i = 0; i < out_vec.size(); ++i) {
                 ASSERT_EQ(i, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, ConcatToDIAAndAllGatherElements) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            static constexpr size_t test_size = 1024;
+
+            std::vector<size_t> in_vector;
+
+            // generate data everywhere
+            for (size_t i = 0; i < test_size; ++i) {
+                in_vector.push_back(i);
+            }
+
+            DIA<size_t> integers = ConcatToDIA(ctx, in_vector).Collapse();
+
+            std::vector<size_t> out_vec = integers.AllGather();
+
+            ASSERT_EQ(ctx.num_workers() * test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i % test_size, out_vec[i]);
             }
         };
 
