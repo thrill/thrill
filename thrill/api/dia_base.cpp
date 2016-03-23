@@ -336,8 +336,17 @@ void DIABase::RunScope() {
 
     LOG << "DIABase::Execute() this=" << *this;
 
-    if (!CanExecute())
-        die("DIA node " << *this << " cannot be executed.");
+    if (state_ == DIAState::EXECUTED) {
+        LOG1 << "DIA node " << *this << " was already executed.";
+        return;
+    }
+
+    if (!CanExecute()) {
+        // CollapseNodes cannot be executed: execute their parent(s)
+        for (const DIABasePtr& p : parents_)
+            p->RunScope();
+        return;
+    }
 
     mm_set<Stage> stages {
         mem::Allocator<Stage>(mem_manager())
