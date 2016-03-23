@@ -242,7 +242,7 @@ private:
         //! number of elements per worker (rounded up)
         size_t per_pe = (result_size_ + workers - 1) / workers;
         //! offsets for scattering
-        std::vector<size_t> offsets(workers, 0);
+        std::vector<size_t> offsets(workers + 1, 0);
 
         size_t offset = 0;
         size_t count = std::min(per_pe - local_begin % per_pe, local_size);
@@ -257,18 +257,18 @@ private:
         //! do as long as there are elements to be scattered, includes elements
         //! kept on this worker
         while (local_size > 0 && target < workers) {
+            ++target;
             offsets[target] = offset + count;
             local_begin += count;
             local_size -= count;
             offset += count;
             count = std::min(per_pe - local_begin % per_pe, local_size);
-            ++target;
         }
 
         //! fill offset vector, no more scattering here
         while (target < workers) {
-            offsets[target] = target == 0 ? 0 : offsets[target - 1];
             ++target;
+            offsets[target] = target == 0 ? 0 : offsets[target - 1];
         }
 
         for (size_t i = 0; i != offsets.size(); ++i) {
@@ -280,7 +280,8 @@ private:
 
         //! scatter elements to other workers, if necessary
         using ZipArg = ZipArgN<Index>;
-        streams_[Index]->template Scatter<ZipArg>(files_[Index], offsets);
+        streams_[Index]->template Scatter<ZipArg>(
+            files_[Index], offsets, /* consume */ true);
     }
 
     //! Receive elements from other workers.

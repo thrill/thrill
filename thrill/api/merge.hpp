@@ -688,29 +688,27 @@ private:
         LOG << "Scattering.";
 
         // For each file, initialize an array of offsets according to the
-        // splitters we found. Then call scatter to distribute the data.
+        // splitters we found. Then call Scatter to distribute the data.
 
         std::vector<size_t> tx_items(p);
         for (size_t j = 0; j < kNumInputs; j++) {
 
-            std::vector<size_t> offsets(p);
+            std::vector<size_t> offsets(p + 1, 0);
 
             for (size_t r = 0; r < p - 1; r++)
-                offsets[r] = local_ranks[r][j];
+                offsets[r + 1] = local_ranks[r][j];
 
-            offsets[p - 1] = files_[j]->num_items();
+            offsets[p] = files_[j]->num_items();
 
             LOG << "Scatter from file " << j << " to other workers: "
                 << VToStr(offsets);
 
-            tx_items[0] += offsets[0];
-            for (size_t r = 1; r < p; ++r) {
-                tx_items[r] += offsets[r] - offsets[r - 1];
+            for (size_t r = 0; r < p; ++r) {
+                tx_items[r] += offsets[r + 1] - offsets[r];
             }
 
-            streams_[j]->template Scatter<ValueType>(*files_[j], offsets);
-            // trust Scatter to deliver items
-            files_[j]->Clear();
+            streams_[j]->template Scatter<ValueType>(
+                *files_[j], offsets, /* consume */ true);
         }
 
         LOG << "tx_items: " << VToStr(tx_items);

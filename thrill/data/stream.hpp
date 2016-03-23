@@ -95,29 +95,53 @@ public:
     GetWriters(size_t block_size = default_block_size) = 0;
 
     /*!
-     * Scatters a File to many worker:
-     * elements from [0,offset[0]) are sent to the first worker,
-     * elements from [offset[0], offset[1]) are sent to the second worker, ...,
-     * elements from [offset[my_rank - 1],offset[my_rank]) are copied locally.
-     * The number of given offsets must be equal to the net::Group::num_workers() * workers_per_host_.
+     * Scatters a File to many worker: elements from [offset[0],offset[1]) are
+     * sent to the first worker, elements from [offset[1], offset[2]) are sent
+     * to the second worker, ..., elements from [offset[my_rank -
+     * 1],offset[my_rank]) are copied locally, ..., elements from
+     * [offset[num_workers - 1], offset[num_workers]) are sent to the last
+     * worker.
+     *
+     * The number of given offsets must be equal to the
+     * net::Group::num_hosts() * workers_per_host_ + 1.
      *
      * /param source File containing the data to be scattered.
      *
-     * /param offsets - as described above. offsets.size must be equal to group.size
+     * /param offsets - as described above. offsets.size must be equal to
+     * num_workers + 1
      */
     template <typename ItemType>
-    void Scatter(const File& source, const std::vector<size_t>& offsets) {
+    void Scatter(File& source, const std::vector<size_t>& offsets,
+                 bool consume = false) {
         tx_timespan_.StartEventually();
 
-        // current item offset in Reader
+        assert(offsets.size() == num_workers() + 1);
+
+        File::Reader reader = source.GetReader(consume);
         size_t current = 0;
-        File::KeepReader reader = source.GetKeepReader();
+
+        {
+            // discard first items in Reader
+            size_t limit = offsets[0];
+#if 0
+            for ( ; current < limit; ++current) {
+                assert(reader.HasNext());
+                // discard one item (with deserialization)
+                reader.template Next<ItemType>();
+            }
+#else
+            if (current != limit) {
+                reader.template GetItemBatch<ItemType>(limit - current);
+                current = limit;
+            }
+#endif
+        }
 
         std::vector<Writer> writers = GetWriters();
 
         for (size_t worker = 0; worker < num_workers(); ++worker) {
             // write [current,limit) to this worker
-            size_t limit = offsets[worker];
+            size_t limit = offsets[worker + 1];
             assert(current <= limit);
 #if 0
             for ( ; current < limit; ++current) {
