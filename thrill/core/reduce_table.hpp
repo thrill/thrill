@@ -91,7 +91,7 @@ public:
  */
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
-          const bool RobustKey,
+          const bool VolatileKey,
           typename ReduceConfig_, typename IndexFunction,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceTable
@@ -295,7 +295,7 @@ template <ReduceTableImpl ImplSelect,
           typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           typename Emitter,
-          const bool RobustKey = false,
+          const bool VolatileKey = false,
           typename ReduceConfig = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >

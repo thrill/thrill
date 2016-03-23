@@ -50,7 +50,8 @@ TEST(Stage, CountReferencesSimple) {
             auto quadruples = integers.FlatMap(duplicate_elements);
 
             // Create new child reference to Generate
-            auto reduced = quadruples.ReduceByKey(modulo_two, add_function);
+            auto reduced = quadruples.ReduceByKey(
+                VolatileKeyTag, modulo_two, add_function);
 
             // Trigger execution
             std::vector<int> out_vec = reduced.AllGather();
@@ -99,7 +100,8 @@ TEST(Stage, CountReferencesLOpNode) {
             DIA<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
 
             // Create new child reference to LOpNode
-            auto reduced = quadruples.ReduceByKey(modulo_two, add_function);
+            auto reduced = quadruples.ReduceByKey(
+                VolatileKeyTag, modulo_two, add_function);
 
             // Trigger execution
             std::vector<int> out_vec = reduced.AllGather();
@@ -149,8 +151,8 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             DIA<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
 
             // Overwrite reference to LOpNode
-            quadruples =
-                quadruples.ReduceByKey(modulo_two, add_function).Cache();
+            quadruples = quadruples.ReduceByKey(
+                VolatileKeyTag, modulo_two, add_function).Cache();
 
             // Trigger execution
             std::vector<int> out_vec = quadruples.AllGather();
@@ -198,11 +200,11 @@ TEST(Stage, AdditionalChildReferences) {
             DIA<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
 
             // Create a child reference to LOpNode
-            DIA<int> octuples =
-                quadruples.ReduceByKey(modulo_two, add_function).Cache();
+            DIA<int> octuples = quadruples.ReduceByKey(
+                VolatileKeyTag, modulo_two, add_function).Cache();
             // Create a child reference to LOpNode
-            DIA<int> octuples_second =
-                quadruples.ReduceByKey(modulo_two, add_function).Cache();
+            DIA<int> octuples_second = quadruples.ReduceByKey(
+                VolatileKeyTag, modulo_two, add_function).Cache();
 
             // Trigger execution
             std::vector<int> out_vec = octuples.AllGather();

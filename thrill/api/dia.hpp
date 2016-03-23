@@ -37,13 +37,13 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-//! tag structure for ReduceByKey()
-struct RobustKeyTag {
-    RobustKeyTag() { }
+//! tag structure for ReduceByKey(), and ReduceToIndex()
+struct VolatileKeyTag {
+    VolatileKeyTag() { }
 };
 
-//! global const RobustKeyTag instance
-const struct RobustKeyTag RobustKeyTag;
+//! global const VolatileKeyTag instance
+const struct VolatileKeyTag VolatileKeyTag;
 
 //! tag structure for Window() and FlatWindow()
 struct DisjointTag {
@@ -403,8 +403,7 @@ public:
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
-    auto ReduceByKey(struct RobustKeyTag,
-                     const KeyExtractor &key_extractor,
+    auto ReduceByKey(const KeyExtractor &key_extractor,
                      const ReduceFunction &reduce_function,
                      const ReduceConfig& reduce_config = ReduceConfig()) const;
 
@@ -440,7 +439,8 @@ public:
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
-    auto ReduceByKey(const KeyExtractor &key_extractor,
+    auto ReduceByKey(struct VolatileKeyTag,
+                     const KeyExtractor &key_extractor,
                      const ReduceFunction &reduce_function,
                      const ReduceConfig& reduce_config = ReduceConfig()) const;
 
@@ -968,7 +968,7 @@ using api::DIA;
 using api::DisjointTag;
 
 //! imported from api namespace
-using api::RobustKeyTag;
+using api::VolatileKeyTag;
 
 } // namespace thrill
 

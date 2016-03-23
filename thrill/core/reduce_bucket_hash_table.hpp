@@ -81,18 +81,18 @@ namespace core {
  */
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
-          const bool RobustKey,
+          const bool VolatileKey,
           typename ReduceConfig, typename IndexFunction,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceBucketHashTable
     : public ReduceTable<ValueType, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
-                         RobustKey, ReduceConfig, IndexFunction,
+                         VolatileKey, ReduceConfig, IndexFunction,
                          EqualToFunction>
 {
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
-                              RobustKey, ReduceConfig, IndexFunction,
+                              VolatileKey, ReduceConfig, IndexFunction,
                               EqualToFunction>;
 
     using Super::debug;
@@ -665,18 +665,19 @@ private:
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
-          typename Emitter, const bool RobustKey,
+          typename Emitter, const bool VolatileKey,
           typename ReduceConfig, typename IndexFunction,
           typename EqualToFunction>
 class ReduceTableSelect<
         ReduceTableImpl::BUCKET,
         ValueType, Key, Value, KeyExtractor, ReduceFunction,
-        Emitter, RobustKey, ReduceConfig, IndexFunction, EqualToFunction>
+        Emitter, VolatileKey, ReduceConfig, IndexFunction, EqualToFunction>
 {
 public:
     using type = ReduceBucketHashTable<
               ValueType, Key, Value, KeyExtractor, ReduceFunction,
-              Emitter, RobustKey, ReduceConfig, IndexFunction, EqualToFunction>;
+              Emitter, VolatileKey, ReduceConfig,
+              IndexFunction, EqualToFunction>;
 };
 
 } // namespace core

@@ -42,7 +42,8 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
                                     return in1 + in2;
                                 };
 
-            auto reduced = integers.ReduceByKey(modulo_two, add_function);
+            auto reduced = integers.ReduceByKey(
+                VolatileKeyTag, modulo_two, add_function);
 
             std::vector<size_t> out_vec = reduced.AllGather();
 

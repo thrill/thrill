@@ -59,7 +59,7 @@ class DefaultReduceToIndexConfig : public core::DefaultReduceConfig
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
           typename ReduceConfig,
-          bool RobustKey, bool SendPair>
+          bool VolatileKey, bool SendPair>
 class ReduceToIndexNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -74,7 +74,7 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
     static_assert(std::is_same<Key, size_t>::value,
                   "Key must be an unsigned integer");
 
-    using Output = typename common::If<RobustKey, Value, KeyValuePair>::type;
+    using Output = typename common::If<VolatileKey, KeyValuePair, Value>::type;
 
     static constexpr bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
     static constexpr bool use_post_thread_ = ReduceConfig::use_post_thread_;
@@ -233,7 +233,7 @@ private:
     std::thread thread_;
 
     core::ReducePreStage<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, VolatileKey,
         ReduceConfig, core::ReduceByIndex<Key> > pre_stage_;
 
     core::ReduceByIndexPostStage<
@@ -289,10 +289,9 @@ auto DIA<ValueType, Stack>::ReduceToIndexByKey(
             size_t>::value,
         "The key has to be an unsigned long int (aka. size_t).");
 
-    using ReduceNode
-              = ReduceToIndexNode<DOpResult, DIA,
-                                  KeyExtractor, ReduceFunction, ReduceConfig,
-                                  false, false>;
+    using ReduceNode = ReduceToIndexNode<
+              DOpResult, DIA, KeyExtractor, ReduceFunction,
+              ReduceConfig, /* VolatileKey */ true, false>;
 
     auto shared_node
         = std::make_shared<ReduceNode>(
@@ -346,10 +345,9 @@ auto DIA<ValueType, Stack>::ReducePairToIndex(
 
     using Key = typename ValueType::first_type;
 
-    using ReduceNode
-              = ReduceToIndexNode<ValueType, DIA,
-                                  std::function<Key(Key)>,
-                                  ReduceFunction, ReduceConfig, false, true>;
+    using ReduceNode = ReduceToIndexNode<
+              ValueType, DIA, std::function<Key(Key)>, ReduceFunction,
+              ReduceConfig, /* VolatileKey */ true, true>;
 
     auto shared_node = std::make_shared<ReduceNode>(
         *this, "ReduceToPairIndex",
@@ -410,10 +408,9 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
             size_t>::value,
         "The key has to be an unsigned long int (aka. size_t).");
 
-    using ReduceNode
-              = ReduceToIndexNode<DOpResult, DIA,
-                                  KeyExtractor, ReduceFunction, ReduceConfig,
-                                  true, false>;
+    using ReduceNode = ReduceToIndexNode<
+              DOpResult, DIA, KeyExtractor, ReduceFunction,
+              ReduceConfig, /* VolatileKey */ false, false>;
 
     auto shared_node = std::make_shared<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,

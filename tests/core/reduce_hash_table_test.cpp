@@ -55,7 +55,7 @@ template <
     template <
         typename ValueType, typename Key, typename Value,
         typename KeyExtractor, typename ReduceFunction, typename Emitter,
-        const bool RobustKey,
+        const bool VolatileKey,
         typename ReduceConfig = core::DefaultReduceConfig,
         typename IndexFunction = core::ReduceByHash<Key>,
         typename EqualToFunction = std::equal_to<Key> >
