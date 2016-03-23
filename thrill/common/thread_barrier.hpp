@@ -129,7 +129,7 @@ protected:
 };
 
 // select thread barrier implementation.
-#if THRILL_HAVE_THREAD_SANITIZER
+#if THRILL_HAVE_THREAD_SANITIZER || __APPLE__
 using ThreadBarrier = ThreadBarrierLocking;
 #else
 using ThreadBarrier = ThreadBarrierSpinning;
