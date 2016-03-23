@@ -59,7 +59,7 @@ class DefaultReduceToIndexConfig : public core::DefaultReduceConfig
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
           typename ReduceConfig,
-          bool RobustKey, bool SendPair>
+          bool VolatileKey, bool SendPair>
 class ReduceToIndexNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -74,7 +74,8 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
     static_assert(std::is_same<Key, size_t>::value,
                   "Key must be an unsigned integer");
 
-    using Output = typename common::If<RobustKey, Value, KeyValuePair>::type;
+    using PreStageOutput =
+              typename common::If<VolatileKey, KeyValuePair, Value>::type;
 
     static constexpr bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
     static constexpr bool use_post_thread_ = ReduceConfig::use_post_thread_;
@@ -201,7 +202,7 @@ public:
             sLOG << "reading data from" << mix_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_stage_.Insert(reader.template Next<Output>());
+                post_stage_.Insert(reader.template Next<PreStageOutput>());
             }
         }
         else
@@ -210,7 +211,7 @@ public:
             sLOG << "reading data from" << cat_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_stage_.Insert(reader.template Next<Output>());
+                post_stage_.Insert(reader.template Next<PreStageOutput>());
             }
         }
     }
@@ -233,7 +234,7 @@ private:
     std::thread thread_;
 
     core::ReducePreStage<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, VolatileKey,
         ReduceConfig, core::ReduceByIndex<Key> > pre_stage_;
 
     core::ReduceByIndexPostStage<
@@ -242,127 +243,6 @@ private:
 
     bool reduced_ = false;
 };
-
-template <typename ValueType, typename Stack>
-template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
-auto DIA<ValueType, Stack>::ReduceToIndexByKey(
-    const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function,
-    size_t size,
-    const ValueType &neutral_element,
-    const ReduceConfig &reduce_config) const {
-    assert(IsValid());
-
-    using DOpResult
-              = typename common::FunctionTraits<ReduceFunction>::result_type;
-
-    static_assert(
-        std::is_convertible<
-            ValueType,
-            typename common::FunctionTraits<ReduceFunction>::template arg<0>
-            >::value,
-        "ReduceFunction has the wrong input type");
-
-    static_assert(
-        std::is_convertible<
-            ValueType,
-            typename common::FunctionTraits<ReduceFunction>::template arg<1>
-            >::value,
-        "ReduceFunction has the wrong input type");
-
-    static_assert(
-        std::is_same<
-            DOpResult,
-            ValueType>::value,
-        "ReduceFunction has the wrong output type");
-
-    static_assert(
-        std::is_same<
-            typename std::decay<typename common::FunctionTraits<KeyExtractor>::
-                                template arg<0> >::type,
-            ValueType>::value,
-        "KeyExtractor has the wrong input type");
-
-    static_assert(
-        std::is_same<
-            typename common::FunctionTraits<KeyExtractor>::result_type,
-            size_t>::value,
-        "The key has to be an unsigned long int (aka. size_t).");
-
-    using ReduceNode
-              = ReduceToIndexNode<DOpResult, DIA,
-                                  KeyExtractor, ReduceFunction, ReduceConfig,
-                                  false, false>;
-
-    auto shared_node
-        = std::make_shared<ReduceNode>(
-        *this, "ReduceToIndexByKey", key_extractor, reduce_function,
-        size, neutral_element, reduce_config);
-
-    return DIA<DOpResult>(shared_node);
-}
-
-template <typename ValueType, typename Stack>
-template <typename ReduceFunction, typename ReduceConfig>
-auto DIA<ValueType, Stack>::ReducePairToIndex(
-    const ReduceFunction &reduce_function,
-    size_t size,
-    const typename common::FunctionTraits<ReduceFunction>::result_type &
-    neutral_element,
-    const ReduceConfig &reduce_config) const {
-    assert(IsValid());
-
-    using DOpResult
-              = typename common::FunctionTraits<ReduceFunction>::result_type;
-
-    static_assert(common::is_std_pair<ValueType>::value,
-                  "ValueType is not a pair");
-
-    static_assert(
-        std::is_convertible<
-            typename ValueType::second_type,
-            typename common::FunctionTraits<ReduceFunction>::template arg<0>
-            >::value,
-        "ReduceFunction has the wrong input type");
-
-    static_assert(
-        std::is_convertible<
-            typename ValueType::second_type,
-            typename common::FunctionTraits<ReduceFunction>::template arg<1>
-            >::value,
-        "ReduceFunction has the wrong input type");
-
-    static_assert(
-        std::is_same<
-            DOpResult,
-            typename ValueType::second_type>::value,
-        "ReduceFunction has the wrong output type");
-
-    static_assert(
-        std::is_same<
-            typename ValueType::first_type,
-            size_t>::value,
-        "The key has to be an unsigned long int (aka. size_t).");
-
-    using Key = typename ValueType::first_type;
-
-    using ReduceNode
-              = ReduceToIndexNode<ValueType, DIA,
-                                  std::function<Key(Key)>,
-                                  ReduceFunction, ReduceConfig, false, true>;
-
-    auto shared_node = std::make_shared<ReduceNode>(
-        *this, "ReduceToPairIndex",
-        [](const Key& /* key */) {
-            // This function should not be called, it is only here to give the
-            // key type to the hashtables.
-            assert(1 == 0);
-            return Key();
-        },
-        reduce_function, size, neutral_element, reduce_config);
-
-    return DIA<ValueType>(shared_node);
-}
 
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
@@ -410,13 +290,71 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
             size_t>::value,
         "The key has to be an unsigned long int (aka. size_t).");
 
-    using ReduceNode
-              = ReduceToIndexNode<DOpResult, DIA,
-                                  KeyExtractor, ReduceFunction, ReduceConfig,
-                                  true, false>;
+    using ReduceNode = ReduceToIndexNode<
+              DOpResult, DIA, KeyExtractor, ReduceFunction,
+              ReduceConfig, /* VolatileKey */ false, false>;
 
     auto shared_node = std::make_shared<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,
+        size, neutral_element, reduce_config);
+
+    return DIA<DOpResult>(shared_node);
+}
+
+template <typename ValueType, typename Stack>
+template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
+auto DIA<ValueType, Stack>::ReduceToIndex(
+    struct VolatileKeyTag,
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
+    size_t size,
+    const ValueType &neutral_element,
+    const ReduceConfig &reduce_config) const {
+    assert(IsValid());
+
+    using DOpResult
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<0>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<1>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            DOpResult,
+            ValueType>::value,
+        "ReduceFunction has the wrong output type");
+
+    static_assert(
+        std::is_same<
+            typename std::decay<typename common::FunctionTraits<KeyExtractor>::
+                                template arg<0> >::type,
+            ValueType>::value,
+        "KeyExtractor has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            typename common::FunctionTraits<KeyExtractor>::result_type,
+            size_t>::value,
+        "The key has to be an unsigned long int (aka. size_t).");
+
+    using ReduceNode = ReduceToIndexNode<
+              DOpResult, DIA, KeyExtractor, ReduceFunction,
+              ReduceConfig, /* VolatileKey */ true, false>;
+
+    auto shared_node
+        = std::make_shared<ReduceNode>(
+        *this, "ReduceToIndexByKey", key_extractor, reduce_function,
         size, neutral_element, reduce_config);
 
     return DIA<DOpResult>(shared_node);

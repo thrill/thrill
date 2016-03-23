@@ -33,9 +33,9 @@
 namespace thrill {
 namespace core {
 
-//! template specialization switch class to output key+value if NonRobustKey and
-//! only value if RobustKey.
-template <typename KeyValuePair, bool RobustKey>
+//! template specialization switch class to output key+value if VolatileKey and
+//! only value if not VolatileKey (RobustKey).
+template <typename KeyValuePair, bool VolatileKey>
 class ReducePreStageEmitterSwitch;
 
 template <typename KeyValuePair>
@@ -43,7 +43,7 @@ class ReducePreStageEmitterSwitch<KeyValuePair, false>
 {
 public:
     static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
-        writer.Put(p);
+        writer.Put(p.second);
     }
 };
 
@@ -52,14 +52,14 @@ class ReducePreStageEmitterSwitch<KeyValuePair, true>
 {
 public:
     static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
-        writer.Put(p.second);
+        writer.Put(p);
     }
 };
 
 //! Emitter implementation to plug into a reduce hash table for
 //! collecting/flushing items while reducing. Items flushed in the pre-stage are
 //! transmitted via a network Channel.
-template <typename KeyValuePair, bool RobustKey>
+template <typename KeyValuePair, bool VolatileKey>
 class ReducePreStageEmitter
 {
     static constexpr bool debug = false;
@@ -74,7 +74,7 @@ public:
     void Emit(const size_t& partition_id, const KeyValuePair& p) {
         assert(partition_id < writer_.size());
         stats_[partition_id]++;
-        ReducePreStageEmitterSwitch<KeyValuePair, RobustKey>::Put(
+        ReducePreStageEmitterSwitch<KeyValuePair, VolatileKey>::Put(
             p, writer_[partition_id]);
     }
 
@@ -102,7 +102,7 @@ public:
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
-          const bool RobustKey = false,
+          const bool VolatileKey,
           typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >
@@ -114,13 +114,13 @@ public:
     using KeyValuePair = std::pair<Key, Value>;
     using ReduceConfig = ReduceConfig_;
 
-    using Emitter = ReducePreStageEmitter<KeyValuePair, RobustKey>;
+    using Emitter = ReducePreStageEmitter<KeyValuePair, VolatileKey>;
 
     using Table = typename ReduceTableSelect<
               ReduceConfig::table_impl_,
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, Emitter,
-              RobustKey, ReduceConfig, IndexFunction, EqualToFunction>::type;
+              VolatileKey, ReduceConfig, IndexFunction, EqualToFunction>::type;
 
     /*!
      * A data structure which takes an arbitrary value and extracts a key using

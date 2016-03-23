@@ -37,6 +37,14 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
+//! tag structure for ReduceByKey(), and ReduceToIndex()
+struct VolatileKeyTag {
+    VolatileKeyTag() { }
+};
+
+//! global const VolatileKeyTag instance
+const struct VolatileKeyTag VolatileKeyTag;
+
 //! tag structure for Window() and FlatWindow()
 struct DisjointTag {
     DisjointTag() { }
@@ -369,50 +377,16 @@ public:
      * ReduceBy is a DOp, which groups elements of the DIA with the
      * key_extractor and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
-     * can be reduced to a single element of equal type. The key of the reduced
-     * element has to be equal to the keys of the input elements. Since ReduceBy
-     * is a DOp, it creates a new DIANode. The DIA returned by Reduce links
-     * to this newly created DIANode. The stack_ of the returned DIA consists
-     * of the PostOp of Reduce, as a reduced element can
+     * can be reduced to a single element of equal type.
+     *
+     * The key of the reduced element has to be equal to the keys of the input
+     * elements. Since ReduceBy is a DOp, it creates a new DIANode. The DIA
+     * returned by Reduce links to this newly created DIANode. The stack_ of the
+     * returned DIA consists of the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
      * \tparam KeyExtractor Type of the key_extractor function.  The
      * key_extractor function is equal to a map function.
-     *
-     * \param key_extractor Key extractor function, which maps each element to a
-     * key of possibly different type.
-     *
-     * \tparam ReduceFunction Type of the reduce_function. This is a function
-     * reducing two elements of L's result type to a single element of equal
-     * type.
-     *
-     * \param reduce_function Reduce function, which defines how the key buckets
-     * are reduced to a single element. This function is applied associative but
-     * not necessarily commutative.
-     *
-     * \param reduce_config Reduce configuration.
-     */
-    template <typename KeyExtractor, typename ReduceFunction,
-              typename ReduceConfig = class DefaultReduceConfig>
-    auto ReduceBy(const KeyExtractor &key_extractor,
-                  const ReduceFunction &reduce_function,
-                  const ReduceConfig& reduce_config = ReduceConfig()) const;
-
-    /*!
-     * ReduceByKey is a DOp, which groups elements of the DIA with the
-     * key_extractor and reduces each key-bucket to a single element using the
-     * associative reduce_function. The reduce_function defines how two elements
-     * can be reduced to a single element of equal type.In contrast to ReduceBy,
-     * the reduce_function is allowed to change the key (Example: Integers
-     * with modulo function as key_extractor). Creates overhead as both key and
-     * value have to be sent in shuffle step. Since ReduceByKey
-     * is a DOp, it creates a new DIANode. The DIA returned by Reduce links
-     * to this newly created DIANode. The stack_ of the returned DIA consists
-     * of the PostOp of Reduce, as a reduced element can
-     * directly be chained to the following LOps.
-     *
-     * \tparam KeyExtractor Type of the key_extractor function.
-     * The key_extractor function is equal to a map function.
      *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
@@ -434,15 +408,51 @@ public:
                      const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
+     * ReduceByKey is a DOp, which groups elements of the DIA with the
+     * key_extractor and reduces each key-bucket to a single element using the
+     * associative reduce_function. The reduce_function defines how two elements
+     * can be reduced to a single element of equal type.
+     *
+     * In contrast to ReduceBy, the reduce_function is allowed to change the key
+     * (Example: Integers with modulo function as key_extractor). Creates
+     * overhead as both key and value have to be sent in shuffle step. Since
+     * ReduceByKey is a DOp, it creates a new DIANode. The DIA returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIA consists of the PostOp of Reduce, as a reduced element can directly
+     * be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam ReduceFunction Type of the reduce_function. This is a function
+     * reducing two elements of L's result type to a single element of equal
+     * type.
+     *
+     * \param reduce_function Reduce function, which defines how the key buckets
+     * are reduced to a single element. This function is applied associative but
+     * not necessarily commutative.
+     *
+     * \param reduce_config Reduce configuration.
+     */
+    template <typename KeyExtractor, typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig>
+    auto ReduceByKey(struct VolatileKeyTag,
+                     const KeyExtractor &key_extractor,
+                     const ReduceFunction &reduce_function,
+                     const ReduceConfig& reduce_config = ReduceConfig()) const;
+
+    /*!
      * ReducePair is a DOp, which groups key-value-pairs in the input DIA by
      * their key and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type. The reduce_function is
-     * allowed to change the key. Since ReducePair
-     * is a DOp, it creates a new DIANode. The DIA returned by Reduce links
-     * to this newly created DIANode. The stack_ of the returned DIA consists
-     * of the PostOp of Reduce, as a reduced element can
-     * directly be chained to the following LOps.
+     * allowed to change the key. Since ReducePair is a DOp, it creates a new
+     * DIANode. The DIA returned by Reduce links to this newly created
+     * DIANode. The stack_ of the returned DIA consists of the PostOp of Reduce,
+     * as a reduced element can directly be chained to the following LOps.
      *
      * \tparam ReduceFunction Type of the reduce_function. This is a function
      * reducing two elements of L's result type to a single element of equal
@@ -465,6 +475,7 @@ public:
      * to a single element using the associative reduce_function.
      * In contrast to ReduceBy, ReduceToIndex returns a DIA in a defined order,
      * which has the reduced element with key i in position i.
+     *
      * The reduce_function defines how two elements can be reduced to a single
      * element of equal type. The key of the reduced element has to be equal
      * to the keys of the input elements. Since ReduceToIndex is a DOp,
@@ -512,12 +523,13 @@ public:
      * In contrast to ReduceByKey, ReduceToIndexByKey returns a DIA in a defined
      * order, which has the reduced element with key i in position i.
      * The reduce_function defines how two elements can be reduced to a single
-     * element of equal type. ReduceToIndexByKey is the equivalent to
-     * ReduceByKey, as the reduce_function is allowed to change the key.
-     * Since ReduceToIndexByKey is a DOp,
-     * it creates a new DIANode. The DIA returned by ReduceToIndex links to
-     * this newly created DIANode. The stack_ of the returned DIA consists
-     * of the PostOp of ReduceToIndex, as a reduced element can
+     * element of equal type.
+     *
+     * ReduceToIndexByKey is the equivalent to ReduceByKey, as the
+     * reduce_function is allowed to change the key.  Since ReduceToIndexByKey
+     * is a DOp, it creates a new DIANode. The DIA returned by ReduceToIndex
+     * links to this newly created DIANode. The stack_ of the returned DIA
+     * consists of the PostOp of ReduceToIndex, as a reduced element can
      * directly be chained to the following LOps.
      *
      * \tparam KeyExtractor Type of the key_extractor function.
@@ -545,49 +557,12 @@ public:
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceToIndexConfig>
-    auto ReduceToIndexByKey(
+    auto ReduceToIndex(
+        struct VolatileKeyTag,
         const KeyExtractor &key_extractor,
         const ReduceFunction &reduce_function,
         size_t size,
         const ValueType& neutral_element = ValueType(),
-        const ReduceConfig& reduce_config = ReduceConfig()) const;
-
-    /*!
-     * ReducePairToIndex is a DOp, which groups key-value-pairs of the input
-     * DIA by their key, which has to be an unsigned integer. Each key-bucket
-     * is reduced to a single element using the associative reduce_function.
-     * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
-     * which has the reduced element with key i in position i.
-     * The reduce_function defines how two elements can be reduced to a single
-     * element of equal type. The reduce_function is allowed to change the key.
-     * Since ReduceToIndex is a DOp,
-     * it creates a new DIANode. The DIA returned by ReduceToIndex links to
-     * this newly created DIANode. The stack_ of the returned DIA consists
-     * of the PostOp of ReduceToIndex, as a reduced element can
-     * directly be chained to the following LOps.
-     *
-     * \tparam ReduceFunction Type of the reduce_function. This is a function
-     * reducing two elements of L's result type to a single element of equal
-     * type.
-     *
-     * \param reduce_function Reduce function, which defines how the key buckets
-     * are reduced to a single element. This function is applied associative but
-     * not necessarily commutative.
-     *
-     * \param size Resulting DIA size. Consequently, the key_extractor function
-     * but always return < size for any element in the input DIA.
-     *
-     * \param neutral_element Item value with which to start the reduction in
-     * each array cell.
-     *
-     * \param reduce_config Reduce configuration.
-     */
-    template <typename ReduceFunction,
-              typename ReduceConfig = class DefaultReduceToIndexConfig>
-    auto ReducePairToIndex(
-        const ReduceFunction &reduce_function, size_t size,
-        const typename FunctionTraits<ReduceFunction>::result_type&
-        neutral_element = typename FunctionTraits<ReduceFunction>::result_type(),
         const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
@@ -954,6 +929,9 @@ using api::DIA;
 
 //! imported from api namespace
 using api::DisjointTag;
+
+//! imported from api namespace
+using api::VolatileKeyTag;
 
 } // namespace thrill
 

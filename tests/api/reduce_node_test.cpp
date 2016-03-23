@@ -42,7 +42,8 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
                                     return in1 + in2;
                                 };
 
-            auto reduced = integers.ReduceByKey(modulo_two, add_function);
+            auto reduced = integers.ReduceByKey(
+                VolatileKeyTag, modulo_two, add_function);
 
             std::vector<size_t> out_vec = reduced.AllGather();
 
@@ -98,68 +99,6 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
     api::RunLocalTests(start_func);
 }
 
-TEST(ReduceNode, ReducePairToIndexCorrectResults) {
-
-    auto start_func =
-        [](Context& ctx) {
-
-            auto integers = Generate(
-                ctx,
-                [](const size_t& index) {
-                    return std::make_pair((index + 1) / 2, index + 1);
-                },
-                16);
-
-            auto add_function = [](const size_t& in1, const size_t& in2) {
-                                    return in1 + in2;
-                                };
-
-            size_t result_size = 9;
-
-            auto reduced = integers.ReducePairToIndex(add_function, result_size);
-
-            std::vector<std::pair<size_t, size_t> > out_vec = reduced.AllGather();
-            ASSERT_EQ(9u, out_vec.size());
-
-            int i = 0;
-            for (auto element : out_vec) {
-                switch (i++) {
-                case 0:
-                    ASSERT_EQ(1u, element.second);
-                    break;
-                case 1:
-                    ASSERT_EQ(5u, element.second);
-                    break;
-                case 2:
-                    ASSERT_EQ(9u, element.second);
-                    break;
-                case 3:
-                    ASSERT_EQ(13u, element.second);
-                    break;
-                case 4:
-                    ASSERT_EQ(17u, element.second);
-                    break;
-                case 5:
-                    ASSERT_EQ(21u, element.second);
-                    break;
-                case 6:
-                    ASSERT_EQ(25u, element.second);
-                    break;
-                case 7:
-                    ASSERT_EQ(29u, element.second);
-                    break;
-                case 8:
-                    ASSERT_EQ(16u, element.second);
-                    break;
-                default:
-                    ASSERT_EQ(42, 420);
-                }
-            }
-        };
-
-    api::RunLocalTests(start_func);
-}
-
 TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
     auto start_func =
@@ -182,7 +121,8 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
             size_t result_size = 9;
 
-            auto reduced = integers.ReduceToIndexByKey(key, add_function, result_size);
+            auto reduced = integers.ReduceToIndex(
+                VolatileKeyTag, key, add_function, result_size);
 
             std::vector<size_t> out_vec = reduced.AllGather();
             ASSERT_EQ(9u, out_vec.size());

@@ -62,7 +62,8 @@ static void TestAddMyStructByHash(Context& ctx) {
     // process items with stage
     using Stage = core::ReducePreStage<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), true,
+              decltype(key_ex), decltype(red_fn),
+              /* VolatileKey */ false,
               core::DefaultReduceConfigSelect<table_impl> >;
 
     Stage stage(ctx, num_partitions, key_ex, red_fn, emitters);
@@ -141,7 +142,8 @@ static void TestAddMyStructByIndex(Context& ctx) {
     // process items with stage
     using Stage = core::ReducePreStage<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), true,
+              decltype(key_ex), decltype(red_fn),
+              /* VolatileKey */ false,
               core::DefaultReduceConfigSelect<table_impl>,
               core::ReduceByIndex<size_t> >;
 

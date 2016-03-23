@@ -68,19 +68,19 @@ namespace core {
  */
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
-          const bool RobustKey,
+          const bool VolatileKey,
           typename ReduceConfig_,
           typename IndexFunction,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceProbingHashTable
     : public ReduceTable<ValueType, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
-                         RobustKey, ReduceConfig_,
+                         VolatileKey, ReduceConfig_,
                          IndexFunction, EqualToFunction>
 {
     using Super = ReduceTable<ValueType, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
-                              RobustKey, ReduceConfig_, IndexFunction,
+                              VolatileKey, ReduceConfig_, IndexFunction,
                               EqualToFunction>;
     using Super::debug;
     static constexpr bool debug_items = false;
@@ -425,18 +425,19 @@ private:
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
-          typename Emitter, const bool RobustKey,
+          typename Emitter, const bool VolatileKey,
           typename ReduceConfig, typename IndexFunction,
           typename EqualToFunction>
 class ReduceTableSelect<
         ReduceTableImpl::PROBING,
         ValueType, Key, Value, KeyExtractor, ReduceFunction,
-        Emitter, RobustKey, ReduceConfig, IndexFunction, EqualToFunction>
+        Emitter, VolatileKey, ReduceConfig, IndexFunction, EqualToFunction>
 {
 public:
     using type = ReduceProbingHashTable<
               ValueType, Key, Value, KeyExtractor, ReduceFunction,
-              Emitter, RobustKey, ReduceConfig, IndexFunction, EqualToFunction>;
+              Emitter, VolatileKey, ReduceConfig,
+              IndexFunction, EqualToFunction>;
 };
 
 } // namespace core
