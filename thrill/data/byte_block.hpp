@@ -23,6 +23,9 @@
 namespace thrill {
 namespace data {
 
+//! \addtogroup data_layer
+//! \{
+
 //! default size of blocks in File, Channel, BlockQueue, etc.
 static constexpr size_t default_block_size = 2 * 1024 * 1024;
 
@@ -233,6 +236,8 @@ private:
     //! for access to protected constructor to AllocateByteBlock().
     friend class BlockPool;
 };
+
+//! \}
 
 } // namespace data
 } // namespace thrill

@@ -722,10 +722,12 @@ TEST(Operations, WhileLoop) {
 }
 
 namespace thrill {
+namespace api {
 
 // forced instantiation
 template class DIA<std::string>;
 
+} // namespace api
 } // namespace thrill
 
 /******************************************************************************/

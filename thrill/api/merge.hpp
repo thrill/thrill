@@ -36,9 +36,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 /*!
  * Implementation of Thrill's merge. This merge implementation balances all data
  * before merging, so each worker has the same amount of data when merge
@@ -68,6 +65,8 @@ namespace api {
  * \tparam Comparator The comparator defining input and output order.
  * \tparam ParentDIA0 The type of the first input DIA
  * \tparam ParentDIAs The types of the other input DIAs
+ *
+ * \ingroup api_layer
  */
 template <typename ValueType, typename Comparator,
           typename ParentDIA0, typename ... ParentDIAs>
@@ -702,6 +701,8 @@ private:
  *
  * \param first_dia first DIA
  * \param dias DIAs, which is merged with this DIA.
+ *
+ * \ingroup dia_dops
  */
 template <typename Comparator, typename FirstDIA, typename ... DIAs>
 auto Merge(const Comparator &comparator,
@@ -757,8 +758,6 @@ auto DIA<ValueType, Stack>::Merge(
     const SecondDIA &second_dia, const Comparator &comparator) const {
     return api::Merge(comparator, *this, second_dia);
 }
-
-//! \}
 
 } // namespace api
 

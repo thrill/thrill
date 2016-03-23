@@ -180,7 +180,7 @@ void CEREAL_LOAD_FUNCTION_NAME(
 
 //! \}
 
-//! \addtogroup data Data Subsystem
+//! \addtogroup data_layer
 //! \{
 
 /************** Use cereal if serialization function is given *****************/

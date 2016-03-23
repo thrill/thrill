@@ -25,9 +25,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 /*!
  * A DIANode which performs a Generate operation. Generate creates an DIA
  * according to a generator function. This function is used to generate a DIA of
@@ -35,6 +32,7 @@ namespace api {
  *
  * \tparam ValueType Output type of the Generate operation.
  * \tparam GenerateNode Type of the generate function.
+ * \ingroup api_layer
  */
 template <typename ValueType, typename GeneratorFunction>
 class GenerateNode final : public SourceNode<ValueType>
@@ -121,8 +119,6 @@ auto Generate(Context & ctx,
 auto Generate(Context & ctx, size_t size) {
     return Generate(ctx, [](const size_t& index) { return index; }, size);
 }
-
-//! \}
 
 } // namespace api
 

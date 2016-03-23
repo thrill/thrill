@@ -35,6 +35,9 @@
 namespace thrill {
 namespace data {
 
+//! \addtogroup data_layer
+//! \{
+
 // forward declarations
 class Block;
 class PinnedBlock;
@@ -367,6 +370,8 @@ private:
     BlockPool& block_pool_;
     size_t size_;
 };
+
+//! \}
 
 } // namespace data
 } // namespace thrill

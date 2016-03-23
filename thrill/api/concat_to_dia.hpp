@@ -22,9 +22,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ValueType>
 class ConcatToDIANode final : public SourceNode<ValueType>
 {
@@ -95,8 +95,6 @@ auto ConcatToDIA(Context & ctx,
     return DIA<ValueType>(
         std::make_shared<ConcatToDIANode>(ctx, std::move(in_vector)));
 }
-
-//! \}
 
 } // namespace api
 

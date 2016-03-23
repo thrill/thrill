@@ -22,11 +22,10 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 /*!
  * A DOpNode which caches all items in an external file.
+ *
+ * \ingroup api_layer
  */
 template <typename ValueType, typename ParentDIA>
 class CacheNode final : public DIANode<ValueType>
@@ -82,8 +81,6 @@ auto DIA<ValueType, Stack>::Cache() const {
     return DIA<ValueType>(
         std::make_shared<api::CacheNode<ValueType, DIA> >(*this));
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

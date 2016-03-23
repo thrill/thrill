@@ -22,9 +22,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ParentDIA>
 class AllGatherNode final : public ActionNode
 {
@@ -126,8 +126,6 @@ void DIA<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) const 
 
     node->RunScope();
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

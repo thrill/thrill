@@ -18,9 +18,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 template <typename ValueType, typename Stack>
 template <typename MaxFunction>
 auto DIA<ValueType, Stack>::Max(
@@ -54,8 +51,6 @@ auto DIA<ValueType, Stack>::Max(
 
     return node->result();
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

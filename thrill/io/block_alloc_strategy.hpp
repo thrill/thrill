@@ -25,9 +25,9 @@
 namespace thrill {
 namespace io {
 
-//! \defgroup alloc Allocation Functors
-//! \ingroup mnglayer
-//! Standard allocation strategies encapsulated in functors.
+//! \defgroup io_layer_alloc Disk Allocation Functors
+//! \ingroup io_layer
+//! Standard disk allocation strategies encapsulated in functors.
 //! \{
 
 //! Example disk allocation scheme functor.

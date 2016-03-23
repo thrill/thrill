@@ -40,7 +40,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup mnglayer
+//! \addtogroup io_layer
 //! \{
 
 //! Block manager class.

@@ -27,7 +27,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup reqlayer
+//! \addtogroup io_layer_req
 //! \{
 
 //! Implementation of a local request queue having two queues, one for read and

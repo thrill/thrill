@@ -22,9 +22,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ParentDIA, typename ReduceFunction>
 class AllReduceNode final : public ActionNode
 {
@@ -119,8 +119,6 @@ auto DIA<ValueType, Stack>::AllReduce(
 
     return node->result();
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

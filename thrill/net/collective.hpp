@@ -27,7 +27,7 @@ namespace thrill {
 namespace net {
 namespace collective {
 
-//! \addtogroup net Network Communication
+//! \addtogroup net_layer
 //! \{
 
 /******************************************************************************/

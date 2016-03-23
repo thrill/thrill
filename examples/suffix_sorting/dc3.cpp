@@ -18,6 +18,7 @@
 #include <thrill/api/max.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
+#include <thrill/api/print.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>

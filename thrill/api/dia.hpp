@@ -34,7 +34,7 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
+//! \ingroup api_layer
 //! \{
 
 //! tag structure for ReduceByKey(), and ReduceToIndex()
@@ -158,9 +158,9 @@ public:
     template <typename AnyStack>
     DIA(const DIA<ValueType, AnyStack>& rhs);
 #else
-#if __GNUC__ && !__clang__
     template <typename AnyStack>
     DIA(const DIA<ValueType, AnyStack>& rhs)
+#if __GNUC__ && !__clang__
     // the attribute warning does not work with gcc?
     __attribute__ ((warning(         // NOLINT
                         "Casting to DIA creates LOpNode instead of inline chaining.\n"

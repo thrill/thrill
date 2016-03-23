@@ -22,9 +22,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ValueType>
 class EqualToDIANode final : public SourceNode<ValueType>
 {
@@ -101,8 +101,6 @@ auto EqualToDIA(Context & ctx,
     return DIA<ValueType>(
         std::make_shared<EqualToDIANode>(ctx, std::move(in_vector)));
 }
-
-//! \}
 
 } // namespace api
 

@@ -23,7 +23,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup reqlayer
+//! \addtogroup io_layer_req
 //! \{
 
 //! Collection of functions to track statuses of a number of requests.

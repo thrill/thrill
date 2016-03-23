@@ -23,9 +23,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ValueType, typename ParentDIA, typename SumFunction>
 class PrefixSumNode final : public DOpNode<ValueType>
 {
@@ -151,8 +151,6 @@ auto DIA<ValueType, Stack>::PrefixSum(
 
     return DIA<ValueType>(shared_node);
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

@@ -29,7 +29,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup fileimpl
+//! \addtogroup io_layer_fileimpl
 //! \{
 
 //! Implementation of memory mapped access file.

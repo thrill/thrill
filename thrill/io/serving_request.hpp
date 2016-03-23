@@ -21,7 +21,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup reqlayer
+//! \addtogroup io_layer_req
 //! \{
 
 //! Request which serves an I/O by calling the synchronous routine of the file.

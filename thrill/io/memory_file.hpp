@@ -25,7 +25,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup fileimpl
+//! \addtogroup io_layer_fileimpl
 //! \{
 
 //! Implementation of file based on new[] and memcpy.

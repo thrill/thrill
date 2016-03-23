@@ -18,9 +18,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIA<ValueType, Stack>::Sum(
@@ -54,8 +51,6 @@ auto DIA<ValueType, Stack>::Sum(
 
     return node->result();
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

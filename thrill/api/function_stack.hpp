@@ -26,7 +26,6 @@
 namespace thrill {
 namespace api {
 
-//! \defgroup api_internal API Internals
 //! \ingroup api
 //! \{
 

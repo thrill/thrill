@@ -27,7 +27,7 @@
 namespace thrill {
 namespace data {
 
-//! \addtogroup data Data Subsystem
+//! \addtogroup data_layer
 //! \{
 
 using StreamId = size_t;

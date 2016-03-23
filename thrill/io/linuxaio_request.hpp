@@ -26,7 +26,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup reqlayer
+//! \addtogroup io_layer_req
 //! \{
 
 //! Request for an linuxaio_file.

@@ -30,14 +30,14 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup mnglayer
+//! \addtogroup io_layer
 //! \{
 
 //! Block Manager Internals \internal
 namespace mng_local {
 
-//! \defgroup mnglayer_internals Internals
-//! \ingroup mnglayer
+//! \defgroup io_layer_internals Internals
+//! \ingroup io_layer
 //! Internals and support classes
 //! \{
 

@@ -40,26 +40,33 @@ uses the DIABase graph to optimize the order of operations.
 
 \defgroup dia_api DIA API Operations
 \{
-\}
 
 \defgroup dia_sources Source Nodes
-\{
-\ingroup dia_api
-\}
-
 \defgroup dia_lops Local Operations (LOps)
-\{
-\ingroup dia_api
-\}
-
 \defgroup dia_dops Distributed Operations (DOps)
-\{
-\ingroup dia_api
+\defgroup dia_actions Actions
+
 \}
 
-\defgroup dia_actions Actions
+\defgroup layers Thrill Layers
 \{
-\ingroup dia_api
+
+\defgroup api_layer DIA API Layer
+\{
+\defgroup api_internal API Internals
+\}
+
+\defgroup data_layer Data Subsystem Layer
+
+\defgroup net_layer Network Subsystem Layer
+\{
+\defgroup net_mock Mock Network API
+\defgroup net_tcp TCP Socket API
+\defgroup net_mpi MPI Network API
+\}
+
+\defgroup io_layer Asynchronous I/O Layer
+
 \}
 
 */

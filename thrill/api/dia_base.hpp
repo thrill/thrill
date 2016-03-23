@@ -24,7 +24,7 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
+//! \ingroup api_layer
 //! \{
 
 /*!

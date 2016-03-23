@@ -28,7 +28,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup fileimpl
+//! \addtogroup io_layer_fileimpl
 //! \{
 
 //! Base for UNIX file system implementations.

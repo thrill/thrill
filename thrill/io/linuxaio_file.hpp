@@ -31,7 +31,7 @@ namespace io {
 
 class LinuxaioQueue;
 
-//! \addtogroup fileimpl
+//! \addtogroup io_layer_fileimpl
 //! \{
 
 //! Implementation of \c file based on the Linux kernel interface for

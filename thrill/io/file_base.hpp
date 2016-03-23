@@ -36,10 +36,10 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup iolayer
+//! \addtogroup io_layer
 //! \{
 
-//! \defgroup fileimpl File I/O Implementations
+//! \defgroup io_layer_fileimpl File I/O Implementations
 //! Implementations of \ref FileBase for various file access methods and
 //! operating systems.
 //! \{
@@ -218,7 +218,7 @@ bool BID<0>::is_managed() const {
 
 //! \}
 
-//! \defgroup reqlayer I/O Requests and Queues
+//! \defgroup io_layer_req I/O Requests and Queues
 //! Encapsulation of an I/O request, queues for requests and threads to process
 //! them.
 //! \{

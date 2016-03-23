@@ -22,9 +22,12 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
+//! \ingroup api_layer
 //! \{
 
+/*!
+ * \ingroup api_layer
+ */
 template <typename ValueType>
 class DistributeNode final : public SourceNode<ValueType>
 {
@@ -127,8 +130,6 @@ auto Distribute(
 
     return DIA<ValueType>(shared_node);
 }
-
-//! \}
 
 } // namespace api
 

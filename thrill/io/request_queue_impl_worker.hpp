@@ -29,7 +29,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup reqlayer
+//! \addtogroup io_layer_req
 //! \{
 
 //! Implementation of request queue worker threads. Worker threads can be

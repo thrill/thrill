@@ -18,9 +18,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 template <typename ValueType, typename Stack>
 template <typename MinFunction>
 auto DIA<ValueType, Stack>::Min(
@@ -54,8 +51,6 @@ auto DIA<ValueType, Stack>::Min(
 
     return node->result();
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

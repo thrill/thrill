@@ -25,7 +25,7 @@ namespace thrill {
 namespace net {
 namespace tcp {
 
-//! \addtogroup net Network Communication
+//! \addtogroup net_tcp TCP Socket API
 //! \{
 
 class Construction

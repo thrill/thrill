@@ -25,9 +25,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ValueType, typename ParentDIA, typename WindowFunction>
 class BaseWindowNode : public DOpNode<ValueType>
 {
@@ -122,6 +122,9 @@ protected:
     size_t first_rank_;
 };
 
+/*!
+ * \ingroup api_layer
+ */
 template <typename ValueType, typename ParentDIA, typename WindowFunction>
 class OverlapWindowNode final
     : public BaseWindowNode<ValueType, ParentDIA, WindowFunction>
@@ -220,7 +223,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
     // due to the auto emitter.
 
     auto shared_node = std::make_shared<WindowNode>(
-        *this, "Window", window_size, window_function);
+        *this, "FlatWindow", window_size, window_function);
 
     return DIA<ValueOut>(shared_node);
 }
@@ -267,6 +270,9 @@ auto DIA<ValueType, Stack>::Window(
 
 /******************************************************************************/
 
+/*!
+ * \ingroup api_layer
+ */
 template <typename ValueType, typename ParentDIA, typename WindowFunction>
 class DisjointWindowNode final
     : public BaseWindowNode<ValueType, ParentDIA, WindowFunction>
@@ -391,7 +397,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
     // due to the auto emitter.
 
     auto shared_node = std::make_shared<WindowNode>(
-        *this, "Window", window_size, window_function);
+        *this, "FlatWindow", window_size, window_function);
 
     return DIA<ValueOut>(shared_node);
 }
@@ -436,8 +442,6 @@ auto DIA<ValueType, Stack>::Window(
 
     return DIA<Result>(shared_node);
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

@@ -35,9 +35,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 class DefaultReduceToIndexConfig : public core::DefaultReduceConfig
 { };
 
@@ -55,6 +52,8 @@ class DefaultReduceToIndexConfig : public core::DefaultReduceConfig
  * \tparam ParentStack Function stack, which contains the chained lambdas between the last and this DIANode.
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
+ *
+ * \ingroup api_layer
  */
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
@@ -359,8 +358,6 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
 
     return DIA<DOpResult>(shared_node);
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

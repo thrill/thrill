@@ -28,7 +28,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup mnglayer
+//! \addtogroup io_layer
 //! \{
 
 //! Encapsulate the configuration of one "disk". The disk is actually a file

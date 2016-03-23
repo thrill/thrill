@@ -30,12 +30,11 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 /*!
  * A DIANode which performs a line-based Read operation. Reads a file from the
  * file system and delivers it as a DIA.
+ *
+ * \ingroup api_layer
  */
 class ReadLinesNode final : public SourceNode<std::string>
 {
@@ -431,8 +430,6 @@ DIA<std::string> ReadLines(
     Context& ctx, const std::vector<std::string>& filepaths) {
     return DIA<std::string>(std::make_shared<ReadLinesNode>(ctx, filepaths));
 }
-
-//! \}
 
 } // namespace api
 

@@ -34,9 +34,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 /*!
  * A DIANode which performs a Zip operation. Zip combines two DIAs
  * element-by-element. The ZipNode stores the zip_function UDF. The chainable
@@ -69,6 +66,8 @@ namespace api {
  * between the last and this DIANode for second input DIA.
  *
  * \tparam ZipFunction Type of the ZipFunction.
+ *
+ * \ingroup api_layer
  */
 template <typename ValueType, typename ZipFunction, bool Pad,
           typename ParentDIA0, typename ... ParentDIAs>
@@ -384,6 +383,8 @@ private:
  * \param first_dia the initial DIA.
  *
  * \param dias DIAs, which is zipped together with the original DIA.
+ *
+ * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
 auto Zip(const ZipFunction &zip_function,
@@ -418,6 +419,9 @@ auto Zip(const ZipFunction &zip_function,
     return DIA<ZipResult>(zip_node);
 }
 
+/*!
+ * \ingroup dia_dops
+ */
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
@@ -442,6 +446,8 @@ auto DIA<ValueType, Stack>::Zip(
  * \param first_dia the initial DIA.
  *
  * \param dias DIAs, which is zipped together with the first DIA.
+ *
+ * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
 auto ZipPad(const ZipFunction &zip_function,
@@ -496,6 +502,8 @@ auto ZipPad(const ZipFunction &zip_function,
  * \param first_dia the initial DIA.
  *
  * \param dias DIAs, which is zipped together with the original DIA.
+ *
+ * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
 auto ZipPadding(

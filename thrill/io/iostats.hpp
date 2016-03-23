@@ -33,7 +33,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup iolayer
+//! \addtogroup io_layer
 //!
 //! \{
 

@@ -32,7 +32,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup fileimpl
+//! \addtogroup io_layer_fileimpl
 //! \{
 
 //! Base for Windows file system implementations.

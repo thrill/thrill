@@ -22,9 +22,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ParentDIA>
 class SizeNode final : public ActionNode
 {
@@ -94,8 +94,6 @@ size_t DIA<ValueType, Stack>::Size() const {
 
     return node->result();
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

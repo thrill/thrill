@@ -23,7 +23,7 @@
 namespace thrill {
 namespace net {
 
-//! \addtogroup net Network Communication
+//! \addtogroup net_layer
 //! \{
 
 class FlowControlChannelManager

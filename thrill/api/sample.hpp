@@ -20,9 +20,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ValueType>
 class SampleNode
 {
@@ -104,8 +104,6 @@ auto DIA<ValueType, Stack>::Sample(const double p) const {
     return DIA<ValueType, decltype(new_stack)>(
         node_, new_stack, new_id, "Sample");
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

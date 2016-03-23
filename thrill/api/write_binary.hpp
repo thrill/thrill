@@ -29,9 +29,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ParentDIA>
 class WriteBinaryNode final : public ActionNode
 {
@@ -207,8 +207,6 @@ void DIA<ValueType, Stack>::WriteBinary(
 
     node->RunScope();
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

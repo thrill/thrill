@@ -36,9 +36,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 class DefaultReduceConfig : public core::DefaultReduceConfig
 { };
 
@@ -57,6 +54,8 @@ class DefaultReduceConfig : public core::DefaultReduceConfig
  * \tparam ReduceFunction Type of the reduce_function.
  * \tparam VolatileKey Whether to reuse the key once extracted in during pre reduce
  * (false) or let the post reduce extract the key again (true).
+ *
+ * \ingroup api_layer
  */
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename ReduceFunction,
@@ -361,10 +360,8 @@ auto DIA<ValueType, Stack>::ReducePair(
               ReduceConfig, /* VolatileKey */ true, true>;
     auto shared_node = std::make_shared<ReduceNode>(
         *this, "ReducePair", [](Value value) {
-            // This function should not be
-            // called, it is only here to
-            // give the key type to the
-            // hashtables.
+            // This function should not be called, it is only here to give the
+            // key type to the hashtables.
             assert(1 == 0);
             value = value;
             return Key();
@@ -373,8 +370,6 @@ auto DIA<ValueType, Stack>::ReducePair(
 
     return DIA<ValueType>(shared_node);
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

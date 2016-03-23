@@ -36,9 +36,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 /*!
  * A DIANode which performs a Sort operation. Sort sorts a DIA according to a
  * given compare function
@@ -49,6 +46,8 @@ namespace api {
  * last and this DIANode.
  *
  * \tparam CompareFunction Type of the compare function
+ *
+ * \ingroup api_layer
  */
 template <typename ValueType, typename ParentDIA, typename CompareFunction>
 class SortNode final : public DOpNode<ValueType>
@@ -676,8 +675,6 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const 
 
     return DIA<ValueType>(shared_node);
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

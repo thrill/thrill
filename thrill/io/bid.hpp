@@ -26,7 +26,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup mnglayer
+//! \addtogroup io_layer
 //! \{
 
 // forward declarations

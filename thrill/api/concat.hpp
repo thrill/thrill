@@ -27,9 +27,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ValueType, typename ParentDIA0, typename ... ParentDIAs>
 class ConcatNode final : public DOpNode<ValueType>
 {
@@ -299,6 +299,8 @@ private:
  *
  * \param first_dia first DIA
  * \param dias DIAs, which are concatd with the first DIA.
+ *
+ * \ingroup dia_dops
  */
 template <typename FirstDIA, typename ... DIAs>
 auto Concat(const FirstDIA &first_dia, const DIAs &... dias) {
@@ -325,6 +327,8 @@ auto Concat(const FirstDIA &first_dia, const DIAs &... dias) {
  * an equal number of elements when the concat completes.
  *
  * \param dias DIAs, which is concatenated.
+ *
+ * \ingroup dia_dops
  */
 template <typename ValueType>
 auto Concat(const std::initializer_list<DIA<ValueType> >&dias) {
@@ -345,6 +349,8 @@ auto Concat(const std::initializer_list<DIA<ValueType> >&dias) {
  * an equal number of elements when the concat completes.
  *
  * \param dias DIAs, which is concatenated.
+ *
+ * \ingroup dia_dops
  */
 template <typename ValueType>
 auto Concat(const std::vector<DIA<ValueType> >&dias) {
@@ -363,8 +369,6 @@ auto DIA<ValueType, Stack>::Concat(
     const SecondDIA &second_dia) const {
     return api::Concat(*this, second_dia);
 }
-
-//! \}
 
 } // namespace api
 

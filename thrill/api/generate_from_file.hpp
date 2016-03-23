@@ -26,9 +26,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 /*!
  * A DIANode which performs a GenerateFromFile operation. GenerateFromFile uses
  * a file from the file system to generate random inputs. Therefore
@@ -38,6 +35,8 @@ namespace api {
  *
  * \tparam ValueType Output type of the Generate operation.
  * \tparam ReadFunction Type of the generate function.
+ *
+ * \ingroup api_layer
  */
 template <typename ValueType, typename GeneratorFunction>
 class GenerateFileNode final : public SourceNode<ValueType>
@@ -151,8 +150,6 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 
     return DIA<GeneratorResult>(shared_node);
 }
-
-//! \}
 
 } // namespace api
 

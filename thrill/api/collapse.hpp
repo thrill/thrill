@@ -21,9 +21,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ValueType, typename ParentDIA>
 class CollapseNode final : public DIANode<ValueType>
 {
@@ -99,8 +99,6 @@ auto DIA<ValueType, Stack>::Collapse() const {
 
     return DIA<ValueType>(shared_node);
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

@@ -35,7 +35,7 @@
 namespace thrill {
 namespace io {
 
-//! \ingroup mnglayer
+//! \ingroup io_layer
 //! \{
 
 class DiskAllocator

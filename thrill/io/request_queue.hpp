@@ -22,7 +22,7 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup reqlayer
+//! \addtogroup io_layer_req
 //! \{
 
 //! Interface of a request_queue to which requests can be added and canceled.

@@ -20,9 +20,6 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
 template <typename ValueType, typename Stack>
 void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) const {
     assert(IsValid());
@@ -51,8 +48,6 @@ template <typename ValueType, typename Stack>
 void DIA<ValueType, Stack>::Print(const std::string& name) const {
     return Print(name, std::cout);
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill

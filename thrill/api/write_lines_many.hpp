@@ -26,9 +26,9 @@
 namespace thrill {
 namespace api {
 
-//! \addtogroup api Interface
-//! \{
-
+/*!
+ * \ingroup api_layer
+ */
 template <typename ParentDIA>
 class WriteLinesManyNode final : public ActionNode
 {
@@ -187,8 +187,6 @@ void DIA<ValueType, Stack>::WriteLinesMany(
 
     node->RunScope();
 }
-
-//! \}
 
 } // namespace api
 } // namespace thrill
