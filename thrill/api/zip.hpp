@@ -21,6 +21,7 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/meta.hpp>
+#include <thrill/common/string.hpp>
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
@@ -271,9 +272,7 @@ private:
             offsets[target] = target == 0 ? 0 : offsets[target - 1];
         }
 
-        for (size_t i = 0; i != offsets.size(); ++i) {
-            LOG << "input " << Index << " offsets[" << i << "] = " << offsets[i];
-        }
+        LOG << "offsets[" << Index << "] = " << common::VecToStr(offsets);
 
         //! target stream id
         streams_[Index] = context_.GetNewCatStream();

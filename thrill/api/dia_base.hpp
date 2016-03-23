@@ -105,6 +105,22 @@ public:
                 << "parents" << parent_ids;
     }
 
+    /*!
+     * The constructor for a DIABase. Sets the parents for this node, but does
+     * not register it has a child, since this must be done with a callback.
+     */
+    DIABase(Context& ctx, const char* label,
+            std::vector<size_t>&& parent_ids,
+            std::vector<DIABasePtr>&& parents)
+        : context_(ctx), id_(ctx.next_dia_id()),
+          label_(std::move(label)), parents_(std::move(parents)) {
+        logger_ << "class" << "DIABase"
+                << "event" << "create"
+                << "type" << "DOp"
+                << "label" << label
+                << "parents" << parent_ids;
+    }
+
     //! non-copyable: delete copy-constructor
     DIABase(const DIABase&) = delete;
     //! non-copyable: delete assignment operator

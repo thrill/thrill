@@ -60,6 +60,15 @@ public:
         : DIABase(ctx, label, parent_ids, parents) { }
 
     /*!
+     * Constructor for a DIANode, which sets references to the
+     * parent nodes. Calls the constructor of DIABase with the same parameters.
+     */
+    DIANode(Context& ctx, const char* label,
+            std::vector<size_t>&& parent_ids,
+            std::vector<DIABasePtr>&& parents)
+        : DIABase(ctx, label, std::move(parent_ids), std::move(parents)) { }
+
+    /*!
      * Enables children to push their "folded" function chains to their parent.
      * This way the parent can push all its result elements to each of the
      * children. This procedure enables the minimization of IO-accesses.

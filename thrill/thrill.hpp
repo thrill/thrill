@@ -20,6 +20,7 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
+#include <thrill/api/concat.hpp>
 #include <thrill/api/concat_to_dia.hpp>
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>

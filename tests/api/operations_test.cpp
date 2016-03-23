@@ -12,6 +12,7 @@
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
+#include <thrill/api/concat.hpp>
 #include <thrill/api/concat_to_dia.hpp>
 #include <thrill/api/distribute.hpp>
 #include <thrill/api/equal_to_dia.hpp>
@@ -214,6 +215,58 @@ TEST(Operations, GenerateIntegers) {
 
             for (size_t i = 0; i < test_size; ++i) {
                 ASSERT_EQ(i, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndConcatTwo) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache();
+            auto dia2 = Generate(ctx, 2 * test_size);
+
+            auto cdia = dia1.Concat(dia2);
+
+            std::vector<size_t> out_vec = cdia.AllGather();
+
+            ASSERT_EQ(3 * test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i < test_size ? i : i - test_size, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndConcatThree) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache();
+            auto dia2 = Generate(ctx, 2 * test_size).Collapse();
+            auto dia3 = Generate(ctx, 3 * test_size).Collapse();
+            auto dia4 = Generate(ctx, 7).Collapse();
+
+            auto cdia = Concat({ dia1, dia2, dia3, dia4 });
+
+            std::vector<size_t> out_vec = cdia.AllGather();
+
+            ASSERT_EQ(6 * test_size + 7, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i < test_size ? i :
+                          i < 3 * test_size ? i - test_size :
+                          i < 6 * test_size ? i - 3 * test_size :
+                          i - 6 * test_size,
+                          out_vec[i]);
             }
         };
 
