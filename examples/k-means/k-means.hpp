@@ -13,7 +13,7 @@
 #ifndef THRILL_EXAMPLES_K_MEANS_K_MEANS_HEADER
 #define THRILL_EXAMPLES_K_MEANS_K_MEANS_HEADER
 
-#include <thrill/api/allgather.hpp>
+#include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/reduce_to_index.hpp>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/allgather.hpp
+ * thrill/api/all_gather.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_API_ALLGATHER_HEADER
-#define THRILL_API_ALLGATHER_HEADER
+#ifndef THRILL_API_ALL_GATHER_HEADER
+#define THRILL_API_ALL_GATHER_HEADER
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
@@ -132,6 +132,6 @@ void DIA<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) const 
 } // namespace api
 } // namespace thrill
 
-#endif // !THRILL_API_ALLGATHER_HEADER
+#endif // !THRILL_API_ALL_GATHER_HEADER
 
 /******************************************************************************/

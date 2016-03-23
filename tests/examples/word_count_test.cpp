@@ -12,7 +12,7 @@
 #include <examples/word_count/random_text_writer.hpp>
 #include <examples/word_count/word_count.hpp>
 
-#include <thrill/api/allgather.hpp>
+#include <thrill/api/all_gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/common/string.hpp>

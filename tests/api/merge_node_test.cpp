@@ -10,7 +10,7 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
-#include <thrill/api/allgather.hpp>
+#include <thrill/api/all_gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/size.hpp>

@@ -8,7 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/api/allgather.hpp>
+#include <thrill/api/all_gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/group_by_index.hpp>
 #include <thrill/api/group_by_key.hpp>

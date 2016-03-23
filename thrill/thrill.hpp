@@ -17,7 +17,7 @@
 print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 ]]]*/
 #include <thrill/api/action_node.hpp>
-#include <thrill/api/allgather.hpp>
+#include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/concat.hpp>

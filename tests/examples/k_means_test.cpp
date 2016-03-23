@@ -11,7 +11,7 @@
 
 #include <examples/k-means/k-means.hpp>
 
-#include <thrill/api/allgather.hpp>
+#include <thrill/api/all_gather.hpp>
 #include <thrill/api/equal_to_dia.hpp>
 
 #include <gtest/gtest.h>

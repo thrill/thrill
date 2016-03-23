@@ -11,7 +11,7 @@
 #include <examples/page_rank/page_rank.hpp>
 #include <examples/page_rank/zipf_graph_gen.hpp>
 
-#include <thrill/api/allgather.hpp>
+#include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/equal_to_dia.hpp>
 

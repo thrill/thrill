@@ -8,7 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/api/allgather.hpp>
+#include <thrill/api/all_gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/sort.hpp>
