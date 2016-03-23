@@ -17,6 +17,7 @@
 #include <array>
 #include <functional>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -116,17 +117,64 @@ public:
     }
 };
 
-//! Compute the component-wise sum of two std::array<T,N> of same sizes.
+/******************************************************************************/
+
+//! apply the Functor to each item in a std::vector<T> and return a new
+//! std::vector<U> with different type.
+template <typename Type, typename Functor>
+inline auto MapVector(const std::vector<Type>&input, const Functor &f)
+->std::vector<typename std::result_of<Functor(Type)>::type>
+{
+    std::vector<typename std::result_of<Functor(Type)>::type> output;
+    output.reserve(input.size());
+    for (typename std::vector<Type>::const_iterator it = input.begin();
+         it != input.end(); ++it) {
+        output.emplace_back(f(*it));
+    }
+    return output;
+}
+
+/******************************************************************************/
+
+//! template for computing the component-wise sum of std::array or std::vector.
 template <typename ArrayType,
           typename Operation = std::plus<typename ArrayType::value_type> >
-class ComponentSum
-    : public std::binary_function<ArrayType, ArrayType, ArrayType>
+class ComponentSum;
+
+//! Compute the component-wise sum of two std::array<T,N> of same sizes.
+template <typename Type, size_t N, typename Operation>
+class ComponentSum<std::array<Type, N>, Operation>
+    : public std::binary_function<
+          std::array<Type, N>, std::array<Type, N>, std::array<Type, N> >
 {
 public:
+    using ArrayType = std::array<Type, N>;
     explicit ComponentSum(const Operation& op = Operation()) : op_(op) { }
     ArrayType operator () (const ArrayType& a, const ArrayType& b) const {
         ArrayType out;
         for (size_t i = 0; i < a.size(); ++i) out[i] = op_(a[i], b[i]);
+        return out;
+    }
+
+private:
+    Operation op_;
+};
+
+//! Compute the component-wise sum of two std::vector<T> of same sizes.
+template <typename Type, typename Operation>
+class ComponentSum<std::vector<Type>, Operation>
+    : public std::binary_function<
+          std::vector<Type>, std::vector<Type>, std::vector<Type> >
+{
+public:
+    using VectorType = std::vector<Type>;
+    explicit ComponentSum(const Operation& op = Operation()) : op_(op) { }
+    VectorType operator () (const VectorType& a, const VectorType& b) const {
+        assert(a.size() == b.size());
+        VectorType out;
+        out.reserve(std::min(a.size(), b.size()));
+        for (size_t i = 0; i < min(a.size(), b.size()); ++i)
+            out.emplace_back(op_(a[i], b[i]));
         return out;
     }
 
