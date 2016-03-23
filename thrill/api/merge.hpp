@@ -21,6 +21,7 @@
 #include <thrill/common/meta.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <thrill/common/string.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>
@@ -133,6 +134,23 @@ public:
         MergeNode* merge_node_;
     };
 
+    //! Receive a whole data::File of ValueType, but only if our stack is empty.
+    bool OnPreOpFile(const data::File& file, size_t parent_index) final {
+        assert(parent_index < kNumInputs);
+
+        //! indication whether the parent stack is empty
+        static constexpr bool parent_stack_empty[kNumInputs] = {
+            // parenthesis are due to a MSVC2015 parser bug
+            ParentDIA0::stack_empty, (ParentDIAs::stack_empty)...
+        };
+        if (!parent_stack_empty[parent_index]) return false;
+
+        // accept file
+        assert(files_[parent_index]->num_items() == 0);
+        *files_[parent_index] = file;
+        return true;
+    }
+
     void StopPreOp(size_t id) final {
         writers_[id].Close();
     }
@@ -197,44 +215,15 @@ private:
 
     using ArrayNumInputsSizeT = std::array<size_t, kNumInputs>;
 
-    //! Logging helper to print arrays.
-    template <typename T, size_t N>
-    static std::string VToStr(const std::array<T, N>& data) {
-        std::ostringstream oss;
-        oss << '[';
-        for (typename std::array<T, N>::const_iterator it = data.begin();
-             it != data.end(); ++it)
-        {
-            if (it != data.begin()) oss << ',';
-            oss << *it;
-        }
-        oss << ']';
-        return oss.str();
-    }
-
-    //! Logging helper to print vectors.
-    template <typename T>
-    static std::string VToStr(const std::vector<T>& data) {
-        std::ostringstream oss;
-        oss << '[';
-        for (typename std::vector<T>::const_iterator it = data.begin();
-             it != data.end(); ++it)
-        {
-            if (it != data.begin()) oss << ',';
-            oss << *it;
-        }
-        oss << ']';
-        return oss.str();
-    }
-
     //! Logging helper to print vectors of arrays of size_t
-    static std::string VToStr(const std::vector<ArrayNumInputsSizeT>& data) {
+    static std::string
+    VecVecToStr(const std::vector<ArrayNumInputsSizeT>& data) {
         std::ostringstream oss;
         for (typename std::vector<ArrayNumInputsSizeT>::const_iterator
              it = data.begin(); it != data.end(); ++it)
         {
             if (it != data.begin()) oss << " # ";
-            oss << VToStr(*it);
+            oss << common::VecToStr(*it);
         }
         return oss.str();
     }
@@ -569,7 +558,7 @@ private:
         }
 
         if (debug) {
-            LOG << "target_ranks: " << VToStr(target_ranks);
+            LOG << "target_ranks: " << common::VecToStr(target_ranks);
 
             stats_.comm_timer_.Start();
             assert(context_.net.Broadcast(target_ranks) == target_ranks);
@@ -602,8 +591,8 @@ private:
         while (!finished) {
 
             LOG << "iteration: " << stats_.iterations_;
-            LOG0 << "left: " << VToStr(left);
-            LOG0 << "width: " << VToStr(width);
+            LOG0 << "left: " << VecVecToStr(left);
+            LOG0 << "width: " << VecVecToStr(width);
 
             if (debug) {
                 for (size_t q = 0; q < kNumInputs; q++) {
@@ -627,8 +616,8 @@ private:
             stats_.search_step_timer_.Start();
             GetGlobalRanks(pivots, global_ranks, local_ranks, left, width);
 
-            LOG << "global_ranks: " << VToStr(global_ranks);
-            LOG << "local_ranks: " << VToStr(local_ranks);
+            LOG << "global_ranks: " << common::VecToStr(global_ranks);
+            LOG << "local_ranks: " << VecVecToStr(local_ranks);
 
             SearchStep(global_ranks, local_ranks, target_ranks, left, width);
 
@@ -671,38 +660,36 @@ private:
         LOG << "Scattering.";
 
         // For each file, initialize an array of offsets according to the
-        // splitters we found. Then call scatter to distribute the data.
+        // splitters we found. Then call Scatter to distribute the data.
 
         std::vector<size_t> tx_items(p);
         for (size_t j = 0; j < kNumInputs; j++) {
 
-            std::vector<size_t> offsets(p);
+            std::vector<size_t> offsets(p + 1, 0);
 
             for (size_t r = 0; r < p - 1; r++)
-                offsets[r] = local_ranks[r][j];
+                offsets[r + 1] = local_ranks[r][j];
 
-            offsets[p - 1] = files_[j]->num_items();
+            offsets[p] = files_[j]->num_items();
 
             LOG << "Scatter from file " << j << " to other workers: "
-                << VToStr(offsets);
+                << common::VecToStr(offsets);
 
-            tx_items[0] += offsets[0];
-            for (size_t r = 1; r < p; ++r) {
-                tx_items[r] += offsets[r] - offsets[r - 1];
+            for (size_t r = 0; r < p; ++r) {
+                tx_items[r] += offsets[r + 1] - offsets[r];
             }
 
-            streams_[j]->template Scatter<ValueType>(*files_[j], offsets);
-            // trust Scatter to deliver items
-            files_[j]->Clear();
+            streams_[j]->template Scatter<ValueType>(
+                *files_[j], offsets, /* consume */ true);
         }
 
-        LOG << "tx_items: " << VToStr(tx_items);
+        LOG << "tx_items: " << common::VecToStr(tx_items);
 
         // calculate total items on each worker after Scatter
         tx_items = context_.net.AllReduce(
             tx_items, AddSizeTVectors<size_t, std::plus<size_t> >());
         if (context_.my_rank() == 0)
-            LOG1 << "Merge(): total_items: " << VToStr(tx_items);
+            LOG1 << "Merge(): total_items: " << common::VecToStr(tx_items);
 
         stats_.scatter_timer_.Stop();
     }

@@ -11,7 +11,7 @@
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/api/distribute.hpp>
+#include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
@@ -619,7 +619,7 @@ public:
         if (input_verbatim_) {
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
-            auto input_dia = Distribute<uint8_t>(ctx_, input_vec);
+            auto input_dia = EqualToDIA<uint8_t>(ctx_, input_vec);
             StartPrefixDoublingInput(input_dia, input_vec.size(), input_vec.size());
         }
         else {

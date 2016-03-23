@@ -143,7 +143,7 @@ RunLoopbackThreads(
 /******************************************************************************/
 // Constructions using TestGroup (either mock or tcp-loopback) for local testing
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || __APPLE__
 using TestGroup = net::mock::Group;
 #else
 using TestGroup = net::tcp::Group;

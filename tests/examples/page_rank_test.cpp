@@ -13,7 +13,7 @@
 
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
-#include <thrill/api/distribute.hpp>
+#include <thrill/api/equal_to_dia.hpp>
 
 #include <gtest/gtest.h>
 
@@ -81,7 +81,7 @@ TEST(PageRank, RandomZipfGraph) {
         [&outlinks, &correct_page_rank](Context& ctx) {
             ctx.enable_consume();
 
-            auto links = Distribute(ctx, outlinks).Cache();
+            auto links = EqualToDIA(ctx, outlinks).Cache();
 
             auto page_rank = PageRank(links, num_pages, iterations);
 

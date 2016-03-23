@@ -330,6 +330,50 @@ public:
     }
 
     /*!
+     * Reduces a value of a serializable type T over all workers to the given
+     * worker, provided a certain reduce function.
+     *
+     * This method is blocking. The reduce happens in order as with prefix
+     * sum. The operation is assumed to be associative.
+     *
+     * \param value The value to use for the reduce operation.
+     * \param root destination worker of the reduce
+     * \param sum_op The operation to use for
+     * calculating the reduced value. The default operation is a normal addition.
+     * \return The result of the reduce operation.
+     */
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    Reduce(const T& value, size_t root = 0,
+           const BinarySumOp& sum_op = BinarySumOp()) {
+        assert(root < num_workers());
+
+        T local = value;
+
+        SetLocalShared(&local);
+        barrier_.Await();
+
+        if (local_id_ == 0) {
+
+            // Local Reduce
+            for (size_t i = 1; i < thread_count_; i++) {
+                local = sum_op(local, *GetLocalShared<T>(i));
+            }
+
+            // Global reduce
+            group_.Reduce(local, root / thread_count_, sum_op);
+
+            // set the local value only at the root
+            if (root / thread_count_ == group_.my_host_rank())
+                *GetLocalShared<T>(root % thread_count_) = local;
+        }
+
+        barrier_.Await();
+
+        return local;
+    }
+
+    /*!
      * Reduces a value of a serializable type T over all workers given a certain
      * reduce function.
      *
@@ -350,19 +394,20 @@ public:
 
         barrier_.Await();
 
-        // Local Reduce
         if (local_id_ == 0) {
 
-            // Global reduce
+            // Local Reduce
             for (size_t i = 1; i < thread_count_; i++) {
                 local = sum_op(local, *GetLocalShared<T>(i));
             }
 
+            // Global reduce
             group_.AllReduce(local, sum_op);
 
-            // We have the choice: One more barrier so each slave can read
-            // from master's shared memory, or p writes to write to each slaves
-            // mem. I choose the latter since the cost of a barrier is very high.
+            // We have the choice: One more barrier so each slave can read from
+            // master's shared memory, or p writes to write to each slaves
+            // mem. I choose the latter since the cost of a barrier is very
+            // high.
             for (size_t i = 1; i < thread_count_; i++) {
                 *GetLocalShared<T>(i) = local;
             }

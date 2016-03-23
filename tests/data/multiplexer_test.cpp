@@ -458,7 +458,7 @@ TEST_F(Multiplexer, Scatter_OneWorker) {
             // scatter File contents via stream: only items [0,3) are sent
             data::StreamId id = multiplexer.AllocateCatStreamId(0);
             auto ch = multiplexer.GetOrCreateCatStream(id, 0);
-            ch->Scatter<std::string>(file, { 2 });
+            ch->Scatter<std::string>(file, { 0, 2 });
 
             // check that got items
             auto reader = ch->GetCatReader(true);
@@ -485,7 +485,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             // scatter File contents via stream: only items [0,2) are to local worker
             data::StreamId id = multiplexer.AllocateCatStreamId(0);
             auto ch = multiplexer.GetOrCreateCatStream(id, 0);
-            ch->Scatter<std::string>(file, { 2, 2 });
+            ch->Scatter<std::string>(file, { 0, 2, 2 });
 
             // check that got items
             auto res = ch->GetCatReader(true).ReadComplete<std::string>();
@@ -505,7 +505,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             // scatter File contents via stream: only items [0,3) are to local worker
             data::StreamId id = multiplexer.AllocateCatStreamId(0);
             auto ch = multiplexer.GetOrCreateCatStream(id, 0);
-            ch->Scatter<std::string>(file, { 0, 3 });
+            ch->Scatter<std::string>(file, { 0, 0, 3 });
 
             // check that got items
             auto res = ch->GetCatReader(true).ReadComplete<std::string>();
@@ -527,7 +527,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   // scatter File contents via stream.
                   data::StreamId id = multiplexer.AllocateCatStreamId(0);
                   auto ch = multiplexer.GetOrCreateCatStream(id, 0);
-                  ch->Scatter<std::string>(file, { 1, 2 });
+                  ch->Scatter<std::string>(file, { 0, 1, 2 });
 
                   // check that got items
                   auto res = ch->GetCatReader(true).ReadComplete<std::string>();
@@ -546,7 +546,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   // scatter File contents via stream.
                   data::StreamId id = multiplexer.AllocateCatStreamId(0);
                   auto ch = multiplexer.GetOrCreateCatStream(id, 0);
-                  ch->Scatter<std::string>(file, { 1, 2 });
+                  ch->Scatter<std::string>(file, { 0, 1, 2 });
 
                   // check that got items
                   auto res = ch->GetCatReader(true).ReadComplete<std::string>();
@@ -568,7 +568,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   // scatter File contents via stream.
                   data::StreamId id = multiplexer.AllocateCatStreamId(0);
                   auto ch = multiplexer.GetOrCreateCatStream(id, 0);
-                  ch->Scatter<int>(file, { 2, 2, 2 });
+                  ch->Scatter<int>(file, { 0, 2, 2, 2 });
 
                   // check that got items
                   auto res = ch->GetCatReader(true).ReadComplete<int>();
@@ -588,7 +588,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   // scatter File contents via stream.
                   data::StreamId id = multiplexer.AllocateCatStreamId(0);
                   auto ch = multiplexer.GetOrCreateCatStream(id, 0);
-                  ch->Scatter<int>(file, { 0, 2, 4 });
+                  ch->Scatter<int>(file, { 0, 0, 2, 4 });
 
                   // check that got items
                   auto res = ch->GetCatReader(true).ReadComplete<int>();
@@ -601,7 +601,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   // scatter File contents via stream.
                   data::StreamId id = multiplexer.AllocateCatStreamId(0);
                   auto ch = multiplexer.GetOrCreateCatStream(id, 0);
-                  ch->Scatter<int>(file, { 0, 0, 0 });
+                  ch->Scatter<int>(file, { 0, 0, 0, 0 });
 
                   // check that got items
                   auto res = ch->GetCatReader(true).ReadComplete<int>();

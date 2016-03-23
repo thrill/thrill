@@ -10,7 +10,7 @@
 
 #include <examples/select/select.hpp>
 
-#include <thrill/api/distribute.hpp>
+#include <thrill/api/equal_to_dia.hpp>
 
 #include <gtest/gtest.h>
 
@@ -55,7 +55,7 @@ TEST(Select, SelectRandom) {
         [&input, &correct](Context& ctx) {
             ctx.enable_consume();
 
-            auto input_dia = Distribute(ctx, input);
+            auto input_dia = EqualToDIA(ctx, input);
 
             size_t element = Select(input_dia, select_rank);
 

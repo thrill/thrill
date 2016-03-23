@@ -12,8 +12,10 @@
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
+#include <thrill/api/concat.hpp>
+#include <thrill/api/concat_to_dia.hpp>
 #include <thrill/api/distribute.hpp>
-#include <thrill/api/distribute_from.hpp>
+#include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/generate_from_file.hpp>
@@ -64,7 +66,7 @@ protected:
     size_t value_;
 };
 
-TEST(Operations, DistributeAndAllGatherElements) {
+TEST(Operations, EqualToDIAAndAllGatherElements) {
 
     auto start_func =
         [](Context& ctx) {
@@ -82,7 +84,7 @@ TEST(Operations, DistributeAndAllGatherElements) {
             std::default_random_engine gen(123456);
             std::shuffle(in_vector.begin(), in_vector.end(), gen);
 
-            DIA<size_t> integers = Distribute(ctx, in_vector).Collapse();
+            DIA<size_t> integers = EqualToDIA(ctx, in_vector).Collapse();
 
             std::vector<size_t> out_vec = integers.AllGather();
 
@@ -97,7 +99,34 @@ TEST(Operations, DistributeAndAllGatherElements) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, DistributeFromAndAllGatherElements) {
+TEST(Operations, ConcatToDIAAndAllGatherElements) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            static constexpr size_t test_size = 1024;
+
+            std::vector<size_t> in_vector;
+
+            // generate data everywhere
+            for (size_t i = 0; i < test_size; ++i) {
+                in_vector.push_back(i);
+            }
+
+            DIA<size_t> integers = ConcatToDIA(ctx, in_vector).Collapse();
+
+            std::vector<size_t> out_vec = integers.AllGather();
+
+            ASSERT_EQ(ctx.num_workers() * test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i % test_size, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, DistributeAndAllGatherElements) {
 
     auto start_func =
         [](Context& ctx) {
@@ -115,7 +144,7 @@ TEST(Operations, DistributeFromAndAllGatherElements) {
                 std::random_shuffle(in_vector.begin(), in_vector.end());
             }
 
-            DIA<size_t> integers = DistributeFrom(ctx, in_vector, 0).Collapse();
+            DIA<size_t> integers = Distribute(ctx, in_vector, 0).Collapse();
 
             std::vector<size_t> out_vec = integers.AllGather();
 
@@ -130,7 +159,7 @@ TEST(Operations, DistributeFromAndAllGatherElements) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, DistributeAndGatherElements) {
+TEST(Operations, EqualToDIAAndGatherElements) {
 
     auto start_func =
         [](Context& ctx) {
@@ -148,7 +177,7 @@ TEST(Operations, DistributeAndGatherElements) {
             std::default_random_engine gen(123456);
             std::shuffle(in_vector.begin(), in_vector.end(), gen);
 
-            DIA<size_t> integers = Distribute(ctx, in_vector).Cache();
+            DIA<size_t> integers = EqualToDIA(ctx, in_vector).Cache();
 
             std::vector<size_t> out_vec = integers.Gather(0);
 
@@ -186,6 +215,58 @@ TEST(Operations, GenerateIntegers) {
 
             for (size_t i = 0; i < test_size; ++i) {
                 ASSERT_EQ(i, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndConcatTwo) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache();
+            auto dia2 = Generate(ctx, 2 * test_size);
+
+            auto cdia = dia1.Concat(dia2);
+
+            std::vector<size_t> out_vec = cdia.AllGather();
+
+            ASSERT_EQ(3 * test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i < test_size ? i : i - test_size, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndConcatThree) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache();
+            auto dia2 = Generate(ctx, 2 * test_size).Collapse();
+            auto dia3 = Generate(ctx, 3 * test_size).Collapse();
+            auto dia4 = Generate(ctx, 7).Collapse();
+
+            auto cdia = Concat({ dia1, dia2, dia3, dia4 });
+
+            std::vector<size_t> out_vec = cdia.AllGather();
+
+            ASSERT_EQ(6 * test_size + 7, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i < test_size ? i :
+                          i < 3 * test_size ? i - test_size :
+                          i < 6 * test_size ? i - 3 * test_size :
+                          i - 6 * test_size,
+                          out_vec[i]);
             }
         };
 

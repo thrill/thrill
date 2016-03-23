@@ -109,6 +109,9 @@ TEST(MockGroup, SingleThreadBroadcast) {
 TEST(MockGroup, MultiThreadBroadcast) {
     MockTestLess(TestMultiThreadBroadcast);
 }
+TEST(MockGroup, MultiThreadReduce) {
+    MockTestLess(TestMultiThreadReduce);
+}
 TEST(MockGroup, SingleThreadAllReduce) {
     MockTestLess(TestSingleThreadAllReduce);
 }

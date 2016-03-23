@@ -830,6 +830,17 @@ public:
              const ValueType& initial_value = ValueType()) const;
 
     /*!
+     * Concat is a DOp, which concatenates any number of DIAs to a single DIA.
+     * All input DIAs must contain the same type, which is also the output DIA's
+     * type.
+     *
+     * The concat operation balances all input data, so that each worker will
+     * have an equal number of elements when the concat completes.
+     */
+    template <typename SecondDIA>
+    auto Concat(const SecondDIA &second_dia) const;
+
+    /*!
      * Size is an Action, which computes the total size of all elements across
      * all workers.
      */
