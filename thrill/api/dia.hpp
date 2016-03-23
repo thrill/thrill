@@ -557,49 +557,12 @@ public:
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceToIndexConfig>
-    auto ReduceToIndexByKey(
+    auto ReduceToIndex(
+        struct VolatileKeyTag,
         const KeyExtractor &key_extractor,
         const ReduceFunction &reduce_function,
         size_t size,
         const ValueType& neutral_element = ValueType(),
-        const ReduceConfig& reduce_config = ReduceConfig()) const;
-
-    /*!
-     * ReducePairToIndex is a DOp, which groups key-value-pairs of the input
-     * DIA by their key, which has to be an unsigned integer. Each key-bucket
-     * is reduced to a single element using the associative reduce_function.
-     * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
-     * which has the reduced element with key i in position i.
-     * The reduce_function defines how two elements can be reduced to a single
-     * element of equal type. The reduce_function is allowed to change the key.
-     * Since ReduceToIndex is a DOp,
-     * it creates a new DIANode. The DIA returned by ReduceToIndex links to
-     * this newly created DIANode. The stack_ of the returned DIA consists
-     * of the PostOp of ReduceToIndex, as a reduced element can
-     * directly be chained to the following LOps.
-     *
-     * \tparam ReduceFunction Type of the reduce_function. This is a function
-     * reducing two elements of L's result type to a single element of equal
-     * type.
-     *
-     * \param reduce_function Reduce function, which defines how the key buckets
-     * are reduced to a single element. This function is applied associative but
-     * not necessarily commutative.
-     *
-     * \param size Resulting DIA size. Consequently, the key_extractor function
-     * but always return < size for any element in the input DIA.
-     *
-     * \param neutral_element Item value with which to start the reduction in
-     * each array cell.
-     *
-     * \param reduce_config Reduce configuration.
-     */
-    template <typename ReduceFunction,
-              typename ReduceConfig = class DefaultReduceToIndexConfig>
-    auto ReducePairToIndex(
-        const ReduceFunction &reduce_function, size_t size,
-        const typename FunctionTraits<ReduceFunction>::result_type&
-        neutral_element = typename FunctionTraits<ReduceFunction>::result_type(),
         const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!

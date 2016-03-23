@@ -73,7 +73,8 @@ class ReduceNode final : public DOpNode<ValueType>
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
     using KeyValuePair = std::pair<Key, Value>;
 
-    using Output = typename common::If<VolatileKey, KeyValuePair, Value>::type;
+    using PreStageOutput =
+              typename common::If<VolatileKey, KeyValuePair, Value>::type;
 
     static constexpr bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
     static constexpr bool use_post_thread_ = ReduceConfig::use_post_thread_;
@@ -184,7 +185,7 @@ public:
             sLOG << "reading data from" << mix_stream_->id()
                  << "to push into post stage which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_stage_.Insert(reader.template Next<Output>());
+                post_stage_.Insert(reader.template Next<PreStageOutput>());
             }
         }
         else
@@ -193,7 +194,7 @@ public:
             sLOG << "reading data from" << cat_stream_->id()
                  << "to push into post stage which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_stage_.Insert(reader.template Next<Output>());
+                post_stage_.Insert(reader.template Next<PreStageOutput>());
             }
         }
     }
