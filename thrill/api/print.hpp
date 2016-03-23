@@ -14,6 +14,49 @@
 
 #include <thrill/api/gather.hpp>
 
+#include <string>
+#include <vector>
+
+namespace thrill {
+namespace api {
+
+//! \addtogroup api Interface
+//! \{
+
+template <typename ValueType, typename Stack>
+void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) const {
+    assert(IsValid());
+
+    using GatherNode = api::GatherNode<DIA>;
+
+    std::vector<ValueType> output;
+
+    auto node = std::make_shared<GatherNode>(*this, "Print", 0, &output);
+
+    node->RunScope();
+
+    if (node->context().my_rank() == 0)
+    {
+        os << name
+           << " --- Begin DIA.Print() --- size=" << output.size() << '\n';
+        for (size_t i = 0; i < output.size(); ++i) {
+            os << name << '[' << i << "]: " << output[i] << '\n';
+        }
+        os << name
+           << " --- End DIA.Print() --- size=" << output.size() << std::endl;
+    }
+}
+
+template <typename ValueType, typename Stack>
+void DIA<ValueType, Stack>::Print(const std::string& name) const {
+    return Print(name, std::cout);
+}
+
+//! \}
+
+} // namespace api
+} // namespace thrill
+
 #endif // !THRILL_API_PRINT_HEADER
 
 /******************************************************************************/
