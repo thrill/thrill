@@ -25,7 +25,7 @@
 #ifndef THRILL_CORE_MULTIWAY_MERGE_ATTIC_HEADER
 #define THRILL_CORE_MULTIWAY_MERGE_ATTIC_HEADER
 
-#include <thrill/api/groupby_iterator.hpp>
+#include <thrill/api/group_by_iterator.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/losertree.hpp>
 

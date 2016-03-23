@@ -17,10 +17,10 @@
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
-#include <thrill/api/groupby_iterator.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/porting.hpp>
+#include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/group.hpp>
 

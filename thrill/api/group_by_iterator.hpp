@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/groupby_iterator.hpp
+ * thrill/api/group_by_iterator.hpp
  *
  * DIANode for a groupby operation. Performs the actual groupby operation
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_API_GROUPBY_ITERATOR_HEADER
-#define THRILL_API_GROUPBY_ITERATOR_HEADER
+#ifndef THRILL_API_GROUP_BY_ITERATOR_HEADER
+#define THRILL_API_GROUP_BY_ITERATOR_HEADER
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
@@ -210,6 +210,6 @@ private:
 } // namespace api
 } // namespace thrill
 
-#endif // !THRILL_API_GROUPBY_ITERATOR_HEADER
+#endif // !THRILL_API_GROUP_BY_ITERATOR_HEADER
 
 /******************************************************************************/

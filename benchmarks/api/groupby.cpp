@@ -10,8 +10,8 @@
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/api/groupby.hpp>
-#include <thrill/api/groupby_index.hpp>
+#include <thrill/api/group_by_index.hpp>
+#include <thrill/api/group_by_key.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sum.hpp>
@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
 
                           // group by to compute median
                           thrill::common::StatsTimerStart timer;
-                          auto res2 = in.GroupBy<size_t>(modulo_keyfn, median_fn).Size();
+                          auto res2 = in.GroupByKey<size_t>(modulo_keyfn, median_fn).Size();
                           timer.Stop();
 
                           LOG1 //<< "\n"

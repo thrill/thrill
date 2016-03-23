@@ -566,7 +566,7 @@ public:
         const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
-     * GroupBy is a DOp, which groups elements of the DIA by its key.
+     * GroupByKey is a DOp, which groups elements of the DIA by its key.
      * After having grouped all elements of one key, all elements of one key
      * will be processed according to the GroupByFunction and returns an output
      * Contrary to Reduce, GroupBy allows usage of functions that require all
@@ -574,6 +574,7 @@ public:
      * all elements with the same key have been grouped. However because of this
      * reason, the communication overhead is also higher. If possible, usage of
      * Reduce is therefore recommended.
+     *
      * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
      * Reduce links to this newly created DIANode. The stack_ of the returned
      * DIA consists of the PostOp of Reduce, as a reduced element can
@@ -596,9 +597,9 @@ public:
               typename KeyExtractor,
               typename GroupByFunction,
               typename HashFunction =
-                  std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
-    auto GroupBy(const KeyExtractor &key_extractor,
-                 const GroupByFunction &groupby_function) const;
+                  std::hash<typename FunctionTraits<KeyExtractor>::result_type> >
+    auto GroupByKey(const KeyExtractor &key_extractor,
+                    const GroupByFunction &groupby_function) const;
 
     /*!
      * GroupBy is a DOp, which groups elements of the DIA by its key.

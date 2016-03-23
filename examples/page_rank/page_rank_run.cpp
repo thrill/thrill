@@ -12,7 +12,7 @@
 #include <examples/page_rank/zipf_graph_gen.hpp>
 
 #include <thrill/api/cache.hpp>
-#include <thrill/api/groupby_index.hpp>
+#include <thrill/api/group_by_index.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>

@@ -1,7 +1,8 @@
 /*******************************************************************************
- * thrill/api/groupby.hpp
+ * thrill/api/group_by_index.hpp
  *
- * DIANode for a groupby operation. Performs the actual groupby operation
+ * DIANode for a groupby to indx operation. Performs the actual groupby
+ * operation
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -11,12 +12,12 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_API_GROUPBY_HEADER
-#define THRILL_API_GROUPBY_HEADER
+#ifndef THRILL_API_GROUP_BY_INDEX_HEADER
+#define THRILL_API_GROUP_BY_INDEX_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
-#include <thrill/api/groupby_iterator.hpp>
+#include <thrill/api/group_by_iterator.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 
@@ -32,8 +33,8 @@ namespace thrill {
 namespace api {
 
 template <typename ValueType, typename ParentDIA,
-          typename KeyExtractor, typename GroupFunction, typename HashFunction>
-class GroupByNode final : public DOpNode<ValueType>
+          typename KeyExtractor, typename GroupFunction>
+class GroupByIndexNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
 
@@ -45,35 +46,41 @@ class GroupByNode final : public DOpNode<ValueType>
     using ValueIn =
               typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
 
-    struct ValueComparator
+    class ValueComparator
     {
     public:
-        explicit ValueComparator(const GroupByNode& node) : node_(node) { }
+        explicit ValueComparator(const GroupByIndexNode& node) : node_(node) { }
 
         bool operator () (const ValueIn& a, const ValueIn& b) const {
             return node_.key_extractor_(a) < node_.key_extractor_(b);
         }
 
     private:
-        const GroupByNode& node_;
+        const GroupByIndexNode& node_;
     };
 
 public:
     /*!
-     * Constructor for a GroupByNode. Sets the DataManager, parent, stack,
+     * Constructor for a GroupByIndexNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      */
-    GroupByNode(const ParentDIA& parent,
-                const KeyExtractor& key_extractor,
-                const GroupFunction& groupby_function,
-                const HashFunction& hash_function = HashFunction())
-        : Super(parent.ctx(), "GroupBy", { parent.id() }, { parent.node() }),
+    GroupByIndexNode(const ParentDIA& parent,
+                     const KeyExtractor& key_extractor,
+                     const GroupFunction& groupby_function,
+                     size_t result_size,
+                     const ValueOut& neutral_element)
+        : Super(parent.ctx(), "GroupByIndex",
+                { parent.id() }, { parent.node() }),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
-          hash_function_(hash_function)
+          result_size_(result_size),
+          key_range_(
+              common::CalculateLocalRange(
+                  result_size_, context_.num_workers(), context_.my_rank())),
+          neutral_element_(neutral_element)
     {
         // Hook PreOp
-        auto pre_op_fn = [=](const ValueIn& input) {
+        auto pre_op_fn = [this](const ValueIn& input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at
@@ -82,14 +89,12 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
-    void StartPreOp(size_t /* id */) final {
-        emitter_ = stream_->GetWriters();
-    }
-
     //! Send all elements to their designated PEs
     void PreOp(const ValueIn& v) {
         const Key k = key_extractor_(v);
-        const size_t recipient = hash_function_(k) % emitter_.size();
+        assert(k < result_size_);
+        const size_t recipient = k * emitter_.size() / result_size_;
+        assert(recipient < emitter_.size());
         emitter_[recipient].Put(v);
     }
 
@@ -104,30 +109,28 @@ public:
     }
 
     void PushData(bool consume) final {
-        LOG << "sort data";
-        common::StatsTimerStart timer;
+        sLOG1 << "GroupByIndexNode::PushData()";
+
         const size_t num_runs = files_.size();
         if (num_runs == 0) {
             // nothing to push
         }
         else if (num_runs == 1) {
-            // if there's only one run, call user funcs
+            // if there's only one run, store it
             RunUserFunc(files_[0], consume);
         }
         else {
             // otherwise sort all runs using multiway merge
-            LOG << "start multiwaymerge";
             std::vector<data::File::ConsumeReader> seq;
             seq.reserve(num_runs);
 
             for (size_t t = 0; t < num_runs; ++t)
                 seq.emplace_back(files_[t].GetConsumeReader());
 
-            LOG << "start multiwaymerge for real";
             auto puller = core::make_multiway_merge_tree<ValueIn>(
                 seq.begin(), seq.end(), ValueComparator(*this));
 
-            LOG << "run user func";
+            size_t curr_index = key_range_.begin;
             if (puller.HasNext()) {
                 // create iterator to pass to user_function
                 auto user_iterator = GroupByMultiwayMergeIterator<
@@ -135,19 +138,26 @@ public:
                     puller, key_extractor_);
 
                 while (user_iterator.HasNextForReal()) {
-                    // call user function
-                    const ValueOut res = groupby_function_(
-                        user_iterator, user_iterator.GetNextKey());
-                    // push result to callback functions
-                    this->PushItem(res);
+                    if (user_iterator.GetNextKey() != curr_index) {
+                        // push neutral element as result to callback functions
+                        this->PushItem(neutral_element_);
+                    }
+                    else {
+                        // call user function
+                        const ValueOut res = groupby_function_(
+                            user_iterator, user_iterator.GetNextKey());
+                        // push result to callback functions
+                        this->PushItem(res);
+                    }
+                    ++curr_index;
                 }
             }
+            while (curr_index < key_range_.end) {
+                // push neutral element as result to callback functions
+                this->PushItem(neutral_element_);
+                ++curr_index;
+            }
         }
-        timer.Stop();
-        LOG1 << "RESULT"
-             << " name=multiwaymerge"
-             << " time=" << timer.Milliseconds()
-             << " multiwaymerge=" << (num_runs > 1);
     }
 
     void Dispose() override { }
@@ -155,30 +165,41 @@ public:
 private:
     KeyExtractor key_extractor_;
     GroupFunction groupby_function_;
-    HashFunction hash_function_;
+    const size_t result_size_;
+    const common::Range key_range_;
+    ValueOut neutral_element_;
+    size_t totalsize_ = 0;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream() };
-    std::vector<data::Stream::Writer> emitter_;
+    std::vector<data::CatStream::Writer> emitter_ { stream_->GetWriters() };
     std::vector<data::File> files_;
-    data::File sorted_elems_ { context_.GetFile() };
-    size_t totalsize_ = 0;
 
     void RunUserFunc(data::File& f, bool consume) {
         auto r = f.GetReader(consume);
         if (r.HasNext()) {
             // create iterator to pass to user_function
-            LOG << "get iterator";
             auto user_iterator = GroupByIterator<
                 ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
-            LOG << "start running user func";
+            size_t curr_index = key_range_.begin;
             while (user_iterator.HasNextForReal()) {
-                // call user function
-                const ValueOut res = groupby_function_(user_iterator,
-                                                       user_iterator.GetNextKey());
-                // push result to callback functions
-                this->PushItem(res);
+                if (user_iterator.GetNextKey() != curr_index) {
+                    // push neutral element as result to callback functions
+                    this->PushItem(neutral_element_);
+                }
+                else {
+                    // push result to callback functions
+                    this->PushItem(
+                        // call user function
+                        groupby_function_(user_iterator,
+                                          user_iterator.GetNextKey()));
+                }
+                ++curr_index;
             }
-            LOG << "finished user func";
+            while (curr_index < key_range_.end) {
+                // push neutral element as result to callback functions
+                this->PushItem(neutral_element_);
+                ++curr_index;
+            }
         }
     }
 
@@ -200,11 +221,10 @@ private:
 
     //! Receive elements from other workers.
     void MainOp() {
-        LOG << "running group by main op";
+        LOG << "Running GroupBy MainOp";
 
         std::vector<ValueIn> incoming;
 
-        common::StatsTimerStart timer;
         // get incoming elements
         auto reader = stream_->GetCatReader(/* consume */ true);
         while (reader.HasNext()) {
@@ -218,15 +238,8 @@ private:
         }
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
-        LOG << "finished receiving elems";
+
         stream_->Close();
-
-        timer.Stop();
-
-        LOG1 << "RESULT"
-             << " name=mainop"
-             << " time=" << timer
-             << " number_files=" << files_.size();
     }
 };
 
@@ -235,13 +248,15 @@ private:
 template <typename ValueType, typename Stack>
 template <typename ValueOut,
           typename KeyExtractor,
-          typename GroupFunction,
-          typename HashFunction>
-auto DIA<ValueType, Stack>::GroupBy(
+          typename GroupFunction>
+auto DIA<ValueType, Stack>::GroupByIndex(
     const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function) const {
+    const GroupFunction &groupby_function,
+    const size_t result_size,
+    const ValueOut &neutral_element) const {
 
-    using DOpResult = ValueOut;
+    using DOpResult
+              = ValueOut;
 
     static_assert(
         std::is_same<
@@ -250,11 +265,11 @@ auto DIA<ValueType, Stack>::GroupBy(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    using GroupByNode = api::GroupByNode<
-              DOpResult, DIA, KeyExtractor, GroupFunction, HashFunction>;
-
-    auto shared_node =
-        std::make_shared<GroupByNode>(*this, key_extractor, groupby_function);
+    using GroupByNode
+              = GroupByIndexNode<DOpResult, DIA, KeyExtractor, GroupFunction>;
+    auto shared_node
+        = std::make_shared<GroupByNode>(
+        *this, key_extractor, groupby_function, result_size, neutral_element);
 
     return DIA<DOpResult>(shared_node);
 }
@@ -262,6 +277,6 @@ auto DIA<ValueType, Stack>::GroupBy(
 } // namespace api
 } // namespace thrill
 
-#endif // !THRILL_API_GROUPBY_HEADER
+#endif // !THRILL_API_GROUP_BY_INDEX_HEADER
 
 /******************************************************************************/

@@ -10,8 +10,8 @@
 
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/groupby.hpp>
-#include <thrill/api/groupby_index.hpp>
+#include <thrill/api/group_by_index.hpp>
+#include <thrill/api/group_by_key.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/common/logger.hpp>
 
@@ -52,7 +52,7 @@ TEST(GroupByNode, CompileAndSum) {
                 };
 
             // group by to compute sum and gather results
-            auto reduced = sizets.GroupBy<size_t>(modulo_keyfn, sum_fn);
+            auto reduced = sizets.GroupByKey<size_t>(modulo_keyfn, sum_fn);
             std::vector<size_t> out_vec = reduced.AllGather();
 
             // compute vector with expected results
@@ -102,7 +102,7 @@ TEST(GroupByNode, Median) {
                 };
 
             // group by to compute sum and gather results
-            auto reduced = sizets.GroupBy<size_t>(modulo_keyfn, median_fn);
+            auto reduced = sizets.GroupByKey<size_t>(modulo_keyfn, median_fn);
             std::vector<size_t> out_vec = reduced.AllGather();
 
             // compute vector with expected results
