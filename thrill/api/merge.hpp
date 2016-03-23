@@ -18,6 +18,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/string.hpp>
 #include <thrill/common/meta.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
@@ -214,44 +215,15 @@ private:
 
     using ArrayNumInputsSizeT = std::array<size_t, kNumInputs>;
 
-    //! Logging helper to print arrays.
-    template <typename T, size_t N>
-    static std::string VToStr(const std::array<T, N>& data) {
-        std::ostringstream oss;
-        oss << '[';
-        for (typename std::array<T, N>::const_iterator it = data.begin();
-             it != data.end(); ++it)
-        {
-            if (it != data.begin()) oss << ',';
-            oss << *it;
-        }
-        oss << ']';
-        return oss.str();
-    }
-
-    //! Logging helper to print vectors.
-    template <typename T>
-    static std::string VToStr(const std::vector<T>& data) {
-        std::ostringstream oss;
-        oss << '[';
-        for (typename std::vector<T>::const_iterator it = data.begin();
-             it != data.end(); ++it)
-        {
-            if (it != data.begin()) oss << ',';
-            oss << *it;
-        }
-        oss << ']';
-        return oss.str();
-    }
-
     //! Logging helper to print vectors of arrays of size_t
-    static std::string VToStr(const std::vector<ArrayNumInputsSizeT>& data) {
+    static std::string
+    VecVecToStr(const std::vector<ArrayNumInputsSizeT>& data) {
         std::ostringstream oss;
         for (typename std::vector<ArrayNumInputsSizeT>::const_iterator
              it = data.begin(); it != data.end(); ++it)
         {
             if (it != data.begin()) oss << " # ";
-            oss << VToStr(*it);
+            oss << common::VecToStr(*it);
         }
         return oss.str();
     }
@@ -586,7 +558,7 @@ private:
         }
 
         if (debug) {
-            LOG << "target_ranks: " << VToStr(target_ranks);
+            LOG << "target_ranks: " << common::VecToStr(target_ranks);
 
             stats_.comm_timer_.Start();
             assert(context_.net.Broadcast(target_ranks) == target_ranks);
@@ -619,8 +591,8 @@ private:
         while (!finished) {
 
             LOG << "iteration: " << stats_.iterations_;
-            LOG0 << "left: " << VToStr(left);
-            LOG0 << "width: " << VToStr(width);
+            LOG0 << "left: " << VecVecToStr(left);
+            LOG0 << "width: " << VecVecToStr(width);
 
             if (debug) {
                 for (size_t q = 0; q < kNumInputs; q++) {
@@ -644,8 +616,8 @@ private:
             stats_.search_step_timer_.Start();
             GetGlobalRanks(pivots, global_ranks, local_ranks, left, width);
 
-            LOG << "global_ranks: " << VToStr(global_ranks);
-            LOG << "local_ranks: " << VToStr(local_ranks);
+            LOG << "global_ranks: " << common::VecToStr(global_ranks);
+            LOG << "local_ranks: " << VecVecToStr(local_ranks);
 
             SearchStep(global_ranks, local_ranks, target_ranks, left, width);
 
@@ -701,7 +673,7 @@ private:
             offsets[p] = files_[j]->num_items();
 
             LOG << "Scatter from file " << j << " to other workers: "
-                << VToStr(offsets);
+                << common::VecToStr(offsets);
 
             for (size_t r = 0; r < p; ++r) {
                 tx_items[r] += offsets[r + 1] - offsets[r];
@@ -711,13 +683,13 @@ private:
                 *files_[j], offsets, /* consume */ true);
         }
 
-        LOG << "tx_items: " << VToStr(tx_items);
+        LOG << "tx_items: " << common::VecToStr(tx_items);
 
         // calculate total items on each worker after Scatter
         tx_items = context_.net.AllReduce(
             tx_items, AddSizeTVectors<size_t, std::plus<size_t> >());
         if (context_.my_rank() == 0)
-            LOG1 << "Merge(): total_items: " << VToStr(tx_items);
+            LOG1 << "Merge(): total_items: " << common::VecToStr(tx_items);
 
         stats_.scatter_timer_.Stop();
     }

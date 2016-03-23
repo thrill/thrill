@@ -14,6 +14,7 @@
 #ifndef THRILL_COMMON_STRING_HEADER
 #define THRILL_COMMON_STRING_HEADER
 
+#include <array>
 #include <cstdarg>
 #include <limits>
 #include <random>
@@ -225,6 +226,36 @@ template <typename Container, typename Glue>
 static inline
 std::string Join(const Glue& glue, const Container& parts) {
     return Join(glue, parts.begin(), parts.end());
+}
+
+//! Logging helper to print arrays as [a1,a2,a3,...]
+template <typename T, size_t N>
+static std::string VecToStr(const std::array<T, N>& data) {
+    std::ostringstream oss;
+    oss << '[';
+    for (typename std::array<T, N>::const_iterator it = data.begin();
+         it != data.end(); ++it)
+    {
+        if (it != data.begin()) oss << ',';
+        oss << *it;
+    }
+    oss << ']';
+    return oss.str();
+}
+
+//! Logging helper to print vectors as [a1,a2,a3,...]
+template <typename T>
+static std::string VecToStr(const std::vector<T>& data) {
+    std::ostringstream oss;
+    oss << '[';
+    for (typename std::vector<T>::const_iterator it = data.begin();
+         it != data.end(); ++it)
+    {
+        if (it != data.begin()) oss << ',';
+        oss << *it;
+    }
+    oss << ']';
+    return oss.str();
 }
 
 /*!
