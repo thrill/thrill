@@ -63,7 +63,8 @@ void ProfileThread::Worker() {
             tasks_.pop();
         }
 
-        cv_.wait_until(mutex_, tasks_.top().next_timeout);
+        tm = tasks_.top().next_timeout;
+        cv_.wait_until(mutex_, tm);
         tm = steady_clock::now();
     }
 }
