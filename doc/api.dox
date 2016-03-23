@@ -38,6 +38,30 @@ uses the DIABase graph to optimize the order of operations.
 \copybrief api::Distribute
 \copydoc api::Distribute
 
+\defgroup dia_api DIA API Operations
+\{
+\}
+
+\defgroup dia_sources Source Nodes
+\{
+\ingroup dia_api
+\}
+
+\defgroup dia_lops Local Operations (LOps)
+\{
+\ingroup dia_api
+\}
+
+\defgroup dia_dops Distributed Operations (DOps)
+\{
+\ingroup dia_api
+\}
+
+\defgroup dia_actions Actions
+\{
+\ingroup dia_api
+\}
+
 */
 
 } // namespace api

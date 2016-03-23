@@ -32,6 +32,9 @@
 namespace thrill {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction>
 class GroupByIndexNode final : public DOpNode<ValueType>
@@ -273,6 +276,8 @@ auto DIA<ValueType, Stack>::GroupByIndex(
 
     return DIA<DOpResult>(shared_node);
 }
+
+//! \}
 
 } // namespace api
 } // namespace thrill

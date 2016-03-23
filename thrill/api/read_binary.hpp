@@ -302,6 +302,8 @@ private:
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
+ *
+ * \ingroup dia_sources
  */
 template <typename ValueType>
 DIA<ValueType> ReadBinary(
@@ -319,6 +321,8 @@ DIA<ValueType> ReadBinary(
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
+ *
+ * \ingroup dia_sources
  */
 template <typename ValueType>
 DIA<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {

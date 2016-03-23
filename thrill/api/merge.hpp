@@ -410,13 +410,6 @@ private:
     /*!
      * Calculates the global ranks of the given pivots.
      * Additionally returns the local ranks so we can use them in the next step.
-     *
-     * \param pivots The pivots.
-     *
-     * \param ranks The global ranks of the pivots. This is an output parameter.
-     *
-     * \param local_ranks The local ranks. The first index corresponds to the
-     * splitter, the second one to the file. This is an output parameter.
      */
     void GetGlobalRanks(
         const std::vector<Pivot>& pivots,

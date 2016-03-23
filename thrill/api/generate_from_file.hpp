@@ -125,6 +125,8 @@ private:
  * \param generator_function Generator function, which is performed on each
  * element
  * \param size Size of the output DIA
+ *
+ * \ingroup dia_sources
  */
 template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,

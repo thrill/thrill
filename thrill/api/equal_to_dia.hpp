@@ -67,6 +67,8 @@ private:
  *
  * \param in_vector Vector to convert to a DIA, the contents is COPIED into the
  * DIANode.
+ *
+ * \ingroup dia_sources
  */
 template <typename ValueType>
 auto EqualToDIA(Context & ctx,
@@ -87,6 +89,8 @@ auto EqualToDIA(Context & ctx,
  *
  * \param in_vector Vector to convert to a DIA, the contents is MOVED into the
  * DIANode.
+ *
+ * \ingroup dia_sources
  */
 template <typename ValueType>
 auto EqualToDIA(Context & ctx,

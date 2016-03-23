@@ -92,6 +92,8 @@ private:
  * Distribute is a Source DOp, which scatters the vector data from the
  * source_id to all workers, partitioning equally, and returning the data in a
  * DIA.
+ *
+ * \ingroup dia_sources
  */
 template <typename ValueType>
 auto Distribute(
@@ -110,6 +112,8 @@ auto Distribute(
  * Distribute is a Source DOp, which scatters the vector data from the
  * source_id to all workers, partitioning equally, and returning the data in a
  * DIA.
+ *
+ * \ingroup dia_sources
  */
 template <typename ValueType>
 auto Distribute(

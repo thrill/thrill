@@ -154,17 +154,24 @@ public:
      * created LOpNode.  The current DIA than points to this LOpNode.  This
      * is needed to support assignment operations between DIA's.
      */
+#ifdef THRILL_DOXYGEN_IGNORE
+    template <typename AnyStack>
+    DIA(const DIA<ValueType, AnyStack>& rhs);
+#else
+#if __GNUC__ && !__clang__
     template <typename AnyStack>
     DIA(const DIA<ValueType, AnyStack>& rhs)
-#if __GNUC__ && !__clang__
     // the attribute warning does not work with gcc?
-    __attribute__ ((warning(     // NOLINT
+    __attribute__ ((warning(         // NOLINT
                         "Casting to DIA creates LOpNode instead of inline chaining.\n"
-                        "Consider whether you can use auto instead of DIA.")))
+                        "Consider whether you can use auto instead of DIA.")));
 #elif __GNUC__ && __clang__
-    __attribute__ ((deprecated)) // NOLINT
+    __attribute__ ((deprecated));    // NOLINT
 #endif
-    ;                            // NOLINT
+#endif  // THRILL_DOXYGEN_IGNORE
+
+    //! \name Const Accessors
+    //! \{
 
     //! Returns a pointer to the according DIANode.
     const DIANodePtr& node() const {
@@ -202,6 +209,7 @@ public:
     //! Returns label_
     const char * label() const { return label_; }
 
+    //! \}
 
     /*!
      * Mark the referenced DIANode for keeping, which makes children not consume
@@ -224,16 +232,19 @@ public:
         return *this;
     }
 
+    //! \name Local Operations (LOps)
+    //! \{
+
     /*!
      * Map is a LOp, which maps this DIA according to the map_fn given by the
      * user.  The map_fn maps each element to another
      * element of a possibly different type. The function chain of the returned
      * DIA is this DIA's stack_ chained with map_fn.
      *
-     * \tparam MapFunction Type of the map function.
-     *
      * \param map_function Map function of type MapFunction, which maps each
      * element to an element of a possibly different type.
+     *
+     * \ingroup dia_lops
      */
     template <typename MapFunction>
     auto Map(const MapFunction &map_function) const {
@@ -273,11 +284,10 @@ public:
      * to a boolean.  The function chain of the returned DIA is this DIA's
      * stack_ chained with filter_function.
      *
-     * \tparam FilterFunction Type of the map function.
-     *
      * \param filter_function Filter function of type FilterFunction, which maps
      * each element to a boolean.
      *
+     * \ingroup dia_lops
      */
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) const {
@@ -316,14 +326,14 @@ public:
      * has an emitter function as it's second parameter. This emitter is called
      * once for each element to be emitted. The function chain of the returned
      * DIA is this DIA's stack_ chained with flatmap_function.
-     *
+
      * \tparam ResultType ResultType of the FlatmapFunction, if different from
      * item type of DIA.
      *
-     * \tparam FlatmapFunction Type of the map function.
-     *
      * \param flatmap_function Map function of type FlatmapFunction, which maps
      * each element to elements of a possibly different type.
+     *
+     * \ingroup dia_lops
      */
     template <typename ResultType = ValueType, typename FlatmapFunction>
     auto FlatMap(const FlatmapFunction &flatmap_function) const {
@@ -346,23 +356,179 @@ public:
 
     /*!
      * Bernoulli sampling (local operation) with success probability p
+     *
+     * \ingroup dia_lops
      */
     auto Sample(double p) const;
 
-    /*!
-     * Create a CollapseNode which is mainly used to collapse the LOp chain into
-     * a DIA<T> with an empty stack. This is most often necessary for iterative
-     * algorithms, where a DIA<T> reference variable is updated in each
-     * iteration.
-     */
-    auto Collapse() const;
+    //! \}
+
+    //! \name Actions
+    //! \{
 
     /*!
-     * Create a CacheNode which contains all items of a DIA in calculated plain
-     * format. This is needed if a DIA is reused many times, in order to avoid
-     * recalculating a PostOp multiple times.
+     * Size is an Action, which computes the total size of all elements across
+     * all workers.
+     *
+     * \ingroup dia_actions
      */
-    auto Cache() const;
+    size_t Size() const;
+
+    /*!
+     * AllGather is an Action, which returns the whole DIA in an std::vector on
+     * each worker. This is only for testing purposes and should not be used on
+     * large datasets. Variant that returns the vector.
+     *
+     * \ingroup dia_actions
+     */
+    std::vector<ValueType> AllGather() const;
+
+    /*!
+     * Print is an Action, which collects all data of the DIA at the worker 0
+     * and prints using ostream serialization. It is implemented using Gather().
+     *
+     * \ingroup dia_actions
+     */
+    void Print(const std::string& name) const;
+
+    /*!
+     * Print is an Action, which collects all data of the DIA at the worker 0
+     * and prints using ostream serialization. It is implemented using Gather().
+     *
+     * \ingroup dia_actions
+     */
+    void Print(const std::string& name, std::ostream& out) const;
+
+    /*!
+     * AllGather is an Action, which returns the whole DIA in an std::vector on
+     * each worker. This is only for testing purposes and should not be used on
+     * large datasets.
+     *
+     * \ingroup dia_actions
+     */
+    void AllGather(std::vector<ValueType>* out_vector) const;
+
+    /*!
+     * Gather is an Action, which collects all data of the DIA into a vector at
+     * the given worker. This should only be done if the received data can fit
+     * into RAM of the one worker.
+     *
+     * \ingroup dia_actions
+     */
+    std::vector<ValueType> Gather(size_t target_id = 0) const;
+
+    /*!
+     * Gather is an Action, which collects all data of the DIA into a vector at
+     * the given worker. This should only be done if the received data can fit
+     * into RAM of the one worker.
+     *
+     * \ingroup dia_actions
+     */
+    void Gather(size_t target_id, std::vector<ValueType>* out_vector)  const;
+
+    /*!
+     * AllReduce is an Action, which computes the reduction sum of all elements
+     * globally and delivers the same value on all workers.
+     *
+     * \param reduce_function Reduce function.
+     *
+     * \param initial_value Initial value of the reduction.
+     *
+     * \ingroup dia_actions
+     */
+    template <typename ReduceFunction>
+    auto AllReduce(const ReduceFunction &reduce_function,
+                   const ValueType& initial_value = ValueType()) const;
+
+    /*!
+     * Sum is an Action, which computes the sum of all elements globally.
+     *
+     * \param sum_function Sum function.
+     *
+     * \param initial_value Initial value of the sum.
+     *
+     * \ingroup dia_actions
+     */
+    template <typename SumFunction = std::plus<ValueType> >
+    auto Sum(const SumFunction& sum_function = SumFunction(),
+             const ValueType& initial_value = ValueType()) const;
+
+    /*!
+     * Min is an Action, which computes the minimum of all elements globally.
+     *
+     * \param min_function Min function.
+     *
+     * \param initial_value Initial value of the min.
+     *
+     * \ingroup dia_actions
+     */
+    template <typename MinFunction = common::minimum<ValueType> >
+    auto Min(const MinFunction& min_function = MinFunction(),
+             const ValueType& initial_value = ValueType()) const;
+
+    /*!
+     * Max is an Action, which computes the maximum of all elements globally.
+     *
+     * \param max_function Max function.
+     *
+     * \param initial_value Initial value of the max.
+     *
+     * \ingroup dia_actions
+     */
+    template <typename MaxFunction = common::maximum<ValueType> >
+    auto Max(const MaxFunction& max_function = MaxFunction(),
+             const ValueType& initial_value = ValueType()) const;
+
+    /*!
+     * WriteLines is an Action, which writes std::strings to an output file.
+     * Strings are written using fstream with a newline after each entry.
+     *
+     * \param filepath Destination of the output file.
+     *
+     * \ingroup dia_actions
+     */
+    void WriteLines(const std::string& filepath) const;
+
+    /*!
+     * WriteLinesMany is an Action, which writes std::strings to multiple output
+     * files. Strings are written using fstream with a newline after each
+     * entry. Each worker creates its individual file.
+     *
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param target_file_size target size of each individual file.
+     *
+     * \ingroup dia_actions
+     */
+    void WriteLinesMany(const std::string& filepath,
+                        size_t target_file_size = 128* 1024* 1024) const;
+
+    /*!
+     * WriteBinary is a function, which writes a DIA to many files per
+     * worker. The input DIA can be recreated with ReadBinary and equal
+     * filepath.
+     *
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param max_file_size size limit of individual file.
+     *
+     * \ingroup dia_actions
+     */
+    void WriteBinary(const std::string& filepath,
+                     size_t max_file_size = 128* 1024* 1024) const;
+
+    //! \}
+
+    //! \name Distributed Operations (DOps)
+    //! \{
 
     /*!
      * ReduceBy is a DOp, which groups elements of the DIA with the
@@ -376,9 +542,6 @@ public:
      * returned DIA consists of the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
-     * \tparam KeyExtractor Type of the key_extractor function.  The
-     * key_extractor function is equal to a map function.
-     *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
      *
@@ -391,6 +554,8 @@ public:
      * not necessarily commutative.
      *
      * \param reduce_config Reduce configuration.
+     *
+     * \ingroup dia_dops
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
@@ -412,9 +577,6 @@ public:
      * DIA consists of the PostOp of Reduce, as a reduced element can directly
      * be chained to the following LOps.
      *
-     * \tparam KeyExtractor Type of the key_extractor function.
-     * The key_extractor function is equal to a map function.
-     *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
      *
@@ -427,6 +589,8 @@ public:
      * not necessarily commutative.
      *
      * \param reduce_config Reduce configuration.
+     *
+     * \ingroup dia_dops
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
@@ -454,6 +618,8 @@ public:
      * not necessarily commutative.
      *
      * \param reduce_config Reduce configuration.
+     *
+     * \ingroup dia_dops
      */
     template <typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
@@ -475,10 +641,6 @@ public:
      * of the PostOp of ReduceToIndex, as a reduced element can
      * directly be chained to the following LOps.
      *
-     * \tparam KeyExtractor Type of the key_extractor function.
-     * The key_extractor function is equal to a map function and has an unsigned
-     * integer as it's output type.
-     *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
      *
@@ -497,6 +659,8 @@ public:
      * each array cell.
      *
      * \param reduce_config Reduce configuration.
+     *
+     * \ingroup dia_dops
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceToIndexConfig>
@@ -523,10 +687,6 @@ public:
      * consists of the PostOp of ReduceToIndex, as a reduced element can
      * directly be chained to the following LOps.
      *
-     * \tparam KeyExtractor Type of the key_extractor function.
-     * The key_extractor function is equal to a map function and has an unsigned
-     * integer as it's output type.
-     *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
      *
@@ -545,6 +705,8 @@ public:
      * each array cell.
      *
      * \param reduce_config Reduce configuration.
+     *
+     * \ingroup dia_dops
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceToIndexConfig>
@@ -583,11 +745,11 @@ public:
      * \param groupby_function Reduce function, which defines how the key
      * buckets are grouped and processed.
      *      input param: api::GroupByReader with functions HasNext() and Next()
+     *
+     * \ingroup dia_dops
      */
-    template <typename ValueOut,
-              typename KeyExtractor,
-              typename GroupByFunction,
-              typename HashFunction =
+    template <typename ValueOut, typename KeyExtractor,
+              typename GroupByFunction, typename HashFunction =
                   std::hash<typename FunctionTraits<KeyExtractor>::result_type> >
     auto GroupByKey(const KeyExtractor &key_extractor,
                     const GroupByFunction &groupby_function) const;
@@ -601,6 +763,7 @@ public:
      * all elements with the same key have been grouped. However because of this
      * reason, the communication overhead is also higher. If possible, usage of
      * Reduce is therefore recommended.
+     *
      * In contrast to GroupBy, GroupByIndex returns a DIA in a defined order,
      * which has the reduced element with key i in position i.
      * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
@@ -626,9 +789,10 @@ public:
      *
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
+     *
+     * \ingroup dia_dops
      */
-    template <typename ValueOut,
-              typename KeyExtractor,
+    template <typename ValueOut, typename KeyExtractor,
               typename GroupByFunction>
     auto GroupByIndex(const KeyExtractor &key_extractor,
                       const GroupByFunction &groupby_function,
@@ -649,9 +813,25 @@ public:
      *
      * \param second_dia DIA, which is zipped together with the original
      * DIA.
+     *
+     * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
     auto Zip(const SecondDIA &second_dia, const ZipFunction &zip_function) const;
+
+    /*!
+     * Sort is a DOp, which sorts a given DIA according to the given compare_function.
+     *
+     * \tparam CompareFunction Type of the compare_function.
+     *  Should be (ValueType,ValueType)->bool
+     *
+     * \param compare_function Function, which compares two elements. Returns true, if
+     * first element is smaller than second. False otherwise.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename CompareFunction = std::less<ValueType> >
+    auto Sort(const CompareFunction& compare_function = CompareFunction()) const;
 
     /*!
      * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.
@@ -661,11 +841,11 @@ public:
      * The merge operation balances all input data, so that each worker will
      * have an equal number of elements when the merge completes.
      *
-     * \tparam Comparator Comparator to specify the order of input and output.
-     *
      * \param comparator Comparator to specify the order of input and output.
      *
      * \param second_dia DIA, which is merged with this DIA.
+     *
+     * \ingroup dia_dops
      */
     template <typename Comparator = std::less<ValueType>, typename SecondDIA>
     auto Merge(const SecondDIA &second_dia,
@@ -675,11 +855,11 @@ public:
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
      * function defines how two elements are combined to a single element.
      *
-     * \tparam SumFunction Type of the sum_function.
-     *
      * \param sum_function Sum function (any associative function).
      *
      * \param initial_element Initial element of the sum function.
+     *
+     * \ingroup dia_dops
      */
     template <typename SumFunction = std::plus<ValueType> >
     auto PrefixSum(const SumFunction& sum_function = SumFunction(),
@@ -690,11 +870,11 @@ public:
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
      *
-     * \tparam WindowFunction Type of the window_function.
-     *
      * \param window_size the size of the delivered window. Signature: TODO(tb).
      *
      * \param window_function Window function applied to each k item.
+     *
+     * \ingroup dia_dops
      */
     template <typename WindowFunction>
     auto Window(size_t window_size,
@@ -705,11 +885,11 @@ public:
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
      *
-     * \tparam WindowFunction Type of the window_function.
-     *
      * \param window_size the size of the delivered window.
      *
      * \param window_function Window function applied to each k item.
+     *
+     * \ingroup dia_dops
      */
     template <typename WindowFunction>
     auto Window(struct DisjointTag, size_t window_size,
@@ -720,11 +900,11 @@ public:
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
      *
-     * \tparam WindowFunction Type of the window_function.
-     *
      * \param window_size the size of the delivered window. Signature: TODO(tb).
      *
      * \param window_function Window function applied to each k item.
+     *
+     * \ingroup dia_dops
      */
     template <typename ValueOut, typename WindowFunction>
     auto FlatWindow(size_t window_size,
@@ -735,80 +915,15 @@ public:
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
      *
-     * \tparam WindowFunction Type of the window_function.
-     *
      * \param window_size the size of the delivered window. Signature: TODO(tb).
      *
      * \param window_function Window function applied to each k item.
+     *
+     * \ingroup dia_dops
      */
     template <typename ValueOut, typename WindowFunction>
     auto FlatWindow(struct DisjointTag, size_t window_size,
                     const WindowFunction &window_function) const;
-
-    /*!
-     * Sort is a DOp, which sorts a given DIA according to the given compare_function.
-     *
-     * \tparam CompareFunction Type of the compare_function.
-     *  Should be (ValueType,ValueType)->bool
-     *
-     * \param compare_function Function, which compares two elements. Returns true, if
-     * first element is smaller than second. False otherwise.
-     */
-    template <typename CompareFunction = std::less<ValueType> >
-    auto Sort(const CompareFunction& compare_function = CompareFunction()) const;
-
-    /*!
-     * AllReduce is an Action, which computes the reduction sum of all elements
-     * globally and delivers the same value on all workers.
-     *
-     * \tparam ReduceFunction Type of the reduce_function.
-     *
-     * \param reduce_function Reduce function.
-     *
-     * \param initial_value Initial value of the reduction.
-     */
-    template <typename ReduceFunction>
-    auto AllReduce(const ReduceFunction &reduce_function,
-                   const ValueType& initial_value = ValueType()) const;
-
-    /*!
-     * Sum is an Action, which computes the sum of all elements globally.
-     *
-     * \tparam SumFunction Type of the sum_function.
-     *
-     * \param sum_function Sum function.
-     *
-     * \param initial_value Initial value of the sum.
-     */
-    template <typename SumFunction = std::plus<ValueType> >
-    auto Sum(const SumFunction& sum_function = SumFunction(),
-             const ValueType& initial_value = ValueType()) const;
-
-    /*!
-     * Min is an Action, which computes the minimum of all elements globally.
-     *
-     * \tparam MinFunction Type of the min_function.
-     *
-     * \param min_function Min function.
-     *
-     * \param initial_value Initial value of the min.
-     */
-    template <typename MinFunction = common::minimum<ValueType> >
-    auto Min(const MinFunction& min_function = MinFunction(),
-             const ValueType& initial_value = ValueType()) const;
-
-    /*!
-     * Max is an Action, which computes the maximum of all elements globally.
-     *
-     * \tparam MaxFunction Type of the max_function.
-     *
-     * \param max_function Max function.
-     *
-     * \param initial_value Initial value of the max.
-     */
-    template <typename MaxFunction = common::maximum<ValueType> >
-    auto Max(const MaxFunction& max_function = MaxFunction(),
-             const ValueType& initial_value = ValueType()) const;
 
     /*!
      * Concat is a DOp, which concatenates any number of DIAs to a single DIA.
@@ -817,95 +932,32 @@ public:
      *
      * The concat operation balances all input data, so that each worker will
      * have an equal number of elements when the concat completes.
+     *
+     * \ingroup dia_dops
      */
     template <typename SecondDIA>
     auto Concat(const SecondDIA &second_dia) const;
 
     /*!
-     * Size is an Action, which computes the total size of all elements across
-     * all workers.
-     */
-    size_t Size() const;
-
-    /*!
-     * WriteLines is an Action, which writes std::strings to an output file.
-     * Strings are written using fstream with a newline after each entry.
+     * Create a CollapseNode which is mainly used to collapse the LOp chain into
+     * a DIA<T> with an empty stack. This is most often necessary for iterative
+     * algorithms, where a DIA<T> reference variable is updated in each
+     * iteration.
      *
-     * \param filepath Destination of the output file.
+     * \ingroup dia_dops
      */
-    void WriteLines(const std::string& filepath) const;
+    auto Collapse() const;
 
     /*!
-     * WriteLinesMany is an Action, which writes std::strings to multiple output
-     * files. Strings are written using fstream with a newline after each
-     * entry. Each worker creates its individual file.
+     * Create a CacheNode which contains all items of a DIA in calculated plain
+     * format. This is needed if a DIA is reused many times, in order to avoid
+     * recalculating a PostOp multiple times.
      *
-     * \param filepath Destination of the output file. This filepath must
-     * contain two special substrings: "$$$$$" is replaced by the worker id and
-     * "#####" will be replaced by the file chunk id. The last occurrences of
-     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
-     * automatically appended.
-     *
-     * \param target_file_size target size of each individual file.
+     * \ingroup dia_dops
      */
-    void WriteLinesMany(const std::string& filepath,
-                        size_t target_file_size = 128* 1024* 1024) const;
+    auto Cache() const;
 
-    /*!
-     * WriteBinary is a function, which writes a DIA to many files per
-     * worker. The input DIA can be recreated with ReadBinary and equal
-     * filepath.
-     *
-     * \param filepath Destination of the output file. This filepath must
-     * contain two special substrings: "$$$$$" is replaced by the worker id and
-     * "#####" will be replaced by the file chunk id. The last occurrences of
-     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
-     * automatically appended.
-     *
-     * \param max_file_size size limit of individual file.
-     */
-    void WriteBinary(const std::string& filepath,
-                     size_t max_file_size = 128* 1024* 1024) const;
-
-    /*!
-     * AllGather is an Action, which returns the whole DIA in an std::vector on
-     * each worker. This is only for testing purposes and should not be used on
-     * large datasets.
-     */
-    void AllGather(std::vector<ValueType>* out_vector) const;
-
-    /*!
-     * AllGather is an Action, which returns the whole DIA in an std::vector on
-     * each worker. This is only for testing purposes and should not be used on
-     * large datasets. Variant that returns the vector.
-     */
-    std::vector<ValueType> AllGather() const;
-
-    /*!
-     * Gather is an Action, which collects all data of the DIA into a vector at
-     * the given worker. This should only be done if the received data can fit
-     * into RAM of the one worker.
-     */
-    std::vector<ValueType> Gather(size_t target_id = 0) const;
-
-    /*!
-     * Gather is an Action, which collects all data of the DIA into a vector at
-     * the given worker. This should only be done if the received data can fit
-     * into RAM of the one worker.
-     */
-    void Gather(size_t target_id, std::vector<ValueType>* out_vector)  const;
-
-    /*!
-     * Print is an Action, which collects all data of the DIA at the worker 0
-     * and prints using ostream serialization. It is implemented using Gather().
-     */
-    void Print(const std::string& name) const;
-
-    /*!
-     * Print is an Action, which collects all data of the DIA at the worker 0
-     * and prints using ostream serialization. It is implemented using Gather().
-     */
-    void Print(const std::string& name, std::ostream& out) const;
+    //! \}
 
 private:
     //! The DIANode which DIA points to. The node represents the latest DOp

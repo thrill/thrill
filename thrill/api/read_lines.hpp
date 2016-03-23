@@ -411,6 +411,8 @@ private:
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
+ *
+ * \ingroup dia_sources
  */
 DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
     return DIA<std::string>(std::make_shared<ReadLinesNode>(ctx, filepath));
@@ -422,6 +424,8 @@ DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
  *
  * \param ctx Reference to the context object
  * \param filepaths Path of the file in the file system
+ *
+ * \ingroup dia_sources
  */
 DIA<std::string> ReadLines(
     Context& ctx, const std::vector<std::string>& filepaths) {

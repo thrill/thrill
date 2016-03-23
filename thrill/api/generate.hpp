@@ -81,6 +81,8 @@ private:
  * `[0,size)` to elements. Input type has to be `size_t`.
  *
  * \param size Size of the output DIA
+ *
+ * \ingroup dia_sources
  */
 template <typename GeneratorFunction>
 auto Generate(Context & ctx,
@@ -113,6 +115,8 @@ auto Generate(Context & ctx,
  * \param ctx Reference to the Context object
  *
  * \param size Size of the output DIA
+ *
+ * \ingroup dia_sources
  */
 auto Generate(Context & ctx, size_t size) {
     return Generate(ctx, [](const size_t& index) { return index; }, size);

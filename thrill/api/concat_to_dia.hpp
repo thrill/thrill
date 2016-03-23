@@ -64,6 +64,8 @@ private:
  *
  * \param in_vector Vector to concatenate into a DIA, the contents is COPIED
  * into the DIANode.
+ *
+ * \ingroup dia_sources
  */
 template <typename ValueType>
 auto ConcatToDIA(Context & ctx,

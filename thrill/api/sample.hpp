@@ -24,14 +24,14 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class SamplingFunctor
+class SampleNode
 {
     static const bool debug = false;
 
     using SkipDistValueType = int;
 
 public:
-    explicit SamplingFunctor(double p)
+    explicit SampleNode(double p)
         : p_(p), use_skip_(p < 0.1) { // use skip values if p < 0.1
         assert(p >= 0.0 && p <= 1.0);
 
@@ -100,7 +100,7 @@ auto DIA<ValueType, Stack>::Sample(const double p) const {
         << "type" << "LOp"
         << "parents" << (common::Array<size_t>{ id_ });
 
-    auto new_stack = stack_.push(SamplingFunctor<ValueType>(p));
+    auto new_stack = stack_.push(SampleNode<ValueType>(p));
     return DIA<ValueType, decltype(new_stack)>(
         node_, new_stack, new_id, "Sample");
 }

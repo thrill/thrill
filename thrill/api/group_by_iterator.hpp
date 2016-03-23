@@ -27,6 +27,9 @@
 namespace thrill {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // forward declarations for friend classes
@@ -206,6 +209,8 @@ private:
         new_key_ = old_key_;
     }
 };
+
+//! \}
 
 } // namespace api
 } // namespace thrill

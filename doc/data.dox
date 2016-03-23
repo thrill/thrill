@@ -49,7 +49,7 @@ Workers may need to exchange many data elements between each other in an asynchr
 
 Multiple Streams of different distributed operations can exist concurrently. Therefore the Stream objects have to be allocated in a deterministic order via \ref api::Context::GetNewCatStream().
 
-Write to Streams using a BlockWriter from \ref Stream::OpenWriters() which delivers writers for all workers!
+Write to Streams using a BlockWriter from \ref Stream::GetWriters() which delivers writers for all workers!
 
 See the documentation of Stream and StreamMultiplexer on how to read and write to Streams.
 
