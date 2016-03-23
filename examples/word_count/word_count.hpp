@@ -45,7 +45,8 @@ auto WordCount(const DIA<std::string, InputStack>&input) {
                 });
         });
 
-    return word_pairs.ReduceBy(
+    return word_pairs.ReduceByKey(
+        RobustKeyTag,
         [](const WordCountPair& in) -> std::string {
             /* reduction key: the word string */
             return in.first;

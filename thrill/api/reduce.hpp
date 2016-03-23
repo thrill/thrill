@@ -226,7 +226,8 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
-auto DIA<ValueType, Stack>::ReduceBy(
+auto DIA<ValueType, Stack>::ReduceByKey(
+    struct RobustKeyTag,
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     const ReduceConfig &reduce_config) const {
@@ -262,9 +263,9 @@ auto DIA<ValueType, Stack>::ReduceBy(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    using ReduceNode
-              = api::ReduceNode<DOpResult, DIA, KeyExtractor, ReduceFunction,
-                                ReduceConfig, true, false>;
+    using ReduceNode = api::ReduceNode<
+              DOpResult, DIA, KeyExtractor, ReduceFunction,
+              ReduceConfig, /* RobustKey */ true, false>;
     auto shared_node = std::make_shared<ReduceNode>(
         *this, "ReduceBy", key_extractor, reduce_function, reduce_config);
 
@@ -307,10 +308,9 @@ auto DIA<ValueType, Stack>::ReducePair(
     using Key = typename ValueType::first_type;
     using Value = typename ValueType::second_type;
 
-    using ReduceNode
-              = api::ReduceNode<ValueType, DIA,
-                                std::function<Key(Value)>, ReduceFunction,
-                                ReduceConfig, false, true>;
+    using ReduceNode = api::ReduceNode<
+              ValueType, DIA, std::function<Key(Value)>, ReduceFunction,
+              ReduceConfig, /* RobustKey */ false, true>;
     auto shared_node = std::make_shared<ReduceNode>(
         *this, "ReducePair", [](Value value) {
             // This function should not be
@@ -364,9 +364,9 @@ auto DIA<ValueType, Stack>::ReduceByKey(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    using ReduceNode
-              = api::ReduceNode<DOpResult, DIA, KeyExtractor,
-                                ReduceFunction, ReduceConfig, false, false>;
+    using ReduceNode = api::ReduceNode<
+              DOpResult, DIA, KeyExtractor,
+              ReduceFunction, ReduceConfig, /* RobustKey */ false, false>;
     auto shared_node = std::make_shared<ReduceNode>(
         *this, "ReduceByKey", key_extractor, reduce_function, reduce_config);
 
