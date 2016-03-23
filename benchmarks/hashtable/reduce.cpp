@@ -11,7 +11,7 @@
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/read_binary.hpp>
-#include <thrill/api/reduce.hpp>
+#include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/common/cmdline_parser.hpp>

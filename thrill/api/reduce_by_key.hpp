@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/reduce.hpp
+ * thrill/api/reduce_by_key.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
  *
@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_API_REDUCE_HEADER
-#define THRILL_API_REDUCE_HEADER
+#ifndef THRILL_API_REDUCE_BY_KEY_HEADER
+#define THRILL_API_REDUCE_BY_KEY_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
@@ -379,6 +379,6 @@ auto DIA<ValueType, Stack>::ReducePair(
 } // namespace api
 } // namespace thrill
 
-#endif // !THRILL_API_REDUCE_HEADER
+#endif // !THRILL_API_REDUCE_BY_KEY_HEADER
 
 /******************************************************************************/

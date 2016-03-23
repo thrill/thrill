@@ -16,7 +16,7 @@
 #ifndef THRILL_EXAMPLES_WORD_COUNT_WORD_COUNT_HEADER
 #define THRILL_EXAMPLES_WORD_COUNT_WORD_COUNT_HEADER
 
-#include <thrill/api/reduce.hpp>
+#include <thrill/api/reduce_by_key.hpp>
 #include <thrill/common/fast_string.hpp>
 #include <thrill/common/string_view.hpp>
 

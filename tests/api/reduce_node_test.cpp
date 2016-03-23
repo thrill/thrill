@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/reduce.hpp>
+#include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 
 #include <algorithm>
