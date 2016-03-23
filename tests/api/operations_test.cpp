@@ -721,4 +721,11 @@ TEST(Operations, WhileLoop) {
     api::RunLocalTests(start_func);
 }
 
+namespace thrill {
+
+// forced instantiation
+template class DIA<std::string>;
+
+} // namespace thrill
+
 /******************************************************************************/

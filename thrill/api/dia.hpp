@@ -202,15 +202,6 @@ public:
     //! Returns label_
     const char * label() const { return label_; }
 
-    /*!
-     * Set a custom label for this node in order to better identify it in
-     * statistical outputs. This does not create a new DIA, but returns the
-     * existing one.
-     */
-    DIA& Label(const std::string& msg) {
-        node_->AddStats(msg);
-        return *this;
-    }
 
     /*!
      * Mark the referenced DIANode for keeping, which makes children not consume
