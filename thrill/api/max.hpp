@@ -12,7 +12,7 @@
 #ifndef THRILL_API_MAX_HEADER
 #define THRILL_API_MAX_HEADER
 
-#include <thrill/api/sum.hpp>
+#include <thrill/api/all_reduce.hpp>
 #include <thrill/common/functional.hpp>
 
 namespace thrill {
@@ -27,7 +27,7 @@ auto DIA<ValueType, Stack>::Max(
     const MaxFunction &max_function, const ValueType &initial_value) const {
     assert(IsValid());
 
-    using MaxNode = api::SumNode<DIA, MaxFunction>;
+    using MaxNode = api::AllReduceNode<DIA, MaxFunction>;
 
     static_assert(
         std::is_convertible<

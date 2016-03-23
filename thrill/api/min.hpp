@@ -12,7 +12,7 @@
 #ifndef THRILL_API_MIN_HEADER
 #define THRILL_API_MIN_HEADER
 
-#include <thrill/api/sum.hpp>
+#include <thrill/api/all_reduce.hpp>
 #include <thrill/common/functional.hpp>
 
 namespace thrill {
@@ -27,7 +27,7 @@ auto DIA<ValueType, Stack>::Min(
     const MinFunction &min_function, const ValueType &initial_value) const {
     assert(IsValid());
 
-    using MinNode = api::SumNode<DIA, MinFunction>;
+    using MinNode = api::AllReduceNode<DIA, MinFunction>;
 
     static_assert(
         std::is_convertible<

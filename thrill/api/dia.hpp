@@ -767,6 +767,20 @@ public:
     auto Sort(const CompareFunction& compare_function = CompareFunction()) const;
 
     /*!
+     * AllReduce is an Action, which computes the reduction sum of all elements
+     * globally and delivers the same value on all workers.
+     *
+     * \tparam ReduceFunction Type of the reduce_function.
+     *
+     * \param reduce_function Reduce function.
+     *
+     * \param initial_value Initial value of the reduction.
+     */
+    template <typename ReduceFunction>
+    auto AllReduce(const ReduceFunction &reduce_function,
+                   const ValueType& initial_value = ValueType()) const;
+
+    /*!
      * Sum is an Action, which computes the sum of all elements globally.
      *
      * \tparam SumFunction Type of the sum_function.

@@ -15,6 +15,7 @@
 #include <thrill/api/group_by_index.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/read_lines.hpp>
+#include <thrill/api/sum.hpp>
 #include <thrill/api/write_lines_many.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
