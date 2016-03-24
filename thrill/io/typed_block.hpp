@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/io/typed_block.hpp
  *
- * Constructs a typed_block object containing as many elements elements plus
+ * Constructs a TypedBlock object containing as many elements elements plus
  * some metadata as fits into the given block size.
  *
  * Copied and modified from STXXL https://github.com/stxxl/stxxl, which is
@@ -246,9 +246,11 @@ class ExpandStruct : public AddFiller<Type, RawSize - sizeof(Type)>
 //! main thread to (2MB - system page size)
 template <size_t RawSize, typename Type, size_t NRef = 0, typename MetaInfoType = void>
 class TypedBlock
-    : public mng_local::ExpandStruct<mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>
+    : public mng_local::ExpandStruct<
+          mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>
 {
-    using Base = mng_local::ExpandStruct<mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>;
+    using Base = mng_local::ExpandStruct<
+              mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>;
 
     static constexpr bool debug = false;
 
@@ -272,7 +274,7 @@ public:
 
     TypedBlock() {
         static_assert(sizeof(TypedBlock) == raw_size, "Incorrect block size!");
-        LOG << "[" << static_cast<void*>(this) << "] typed_block is constructed";
+        LOG << "[" << static_cast<void*>(this) << "] TypedBlock is constructed";
 #if 0
         assert(((long)this) % THRILL_DEFAULT_ALIGN == 0);
 #endif
@@ -282,16 +284,17 @@ public:
     TypedBlock(const TypedBlock& tb) {
         THRILL_STATIC_ASSERT(sizeof(TypedBlock) == raw_size);
         LOG << "[" << static_cast<void*>(this)
-            << "] typed_block is copy constructed from "
+            << "] TypedBlock is copy constructed from "
             << "[" << static_cast<void*>(&tb) << "]";
         THRILL_UNUSED(tb);
     }
 #endif
 
-    /*! Writes block to the disk(s).
-     *! \param bid block identifier, points the file(disk) and position
-     *! \param on_cmpl completion handler
-     *! \return \c pointer_ptr object to track status I/O operation after the call
+    /*!
+     *  Writes block to the disk(s).
+     * \param bid block identifier, points the file(disk) and position
+     * \param on_cmpl completion handler
+     * \return \c pointer_ptr object to track status I/O operation after the call
      */
     RequestPtr write(const bid_type& bid,
                      CompletionHandler on_cmpl = CompletionHandler()) {
@@ -299,10 +302,11 @@ public:
         return bid.storage->awrite(this, bid.offset, raw_size, on_cmpl);
     }
 
-    /*! Reads block from the disk(s).
-     *! \param bid block identifier, points the file(disk) and position
-     *! \param on_cmpl completion handler
-     *! \return \c pointer_ptr object to track status I/O operation after the call
+    /*!
+     * Reads block from the disk(s).
+     * \param bid block identifier, points the file(disk) and position
+     * \param on_cmpl completion handler
+     * \return \c pointer_ptr object to track status I/O operation after the call
      */
     RequestPtr read(const bid_type& bid,
                     CompletionHandler on_cmpl = CompletionHandler()) {
@@ -310,7 +314,33 @@ public:
         return bid.storage->aread(this, bid.offset, raw_size, on_cmpl);
     }
 
-#if 1
+    /*!
+     *  Writes block to the disk(s).
+     * \param bid block identifier, points the file(disk) and position
+     * \param on_cmpl completion handler
+     * \return \c pointer_ptr object to track status I/O operation after the call
+     */
+    RequestPtr write(const BID<0>& bid,
+                     CompletionHandler on_cmpl = CompletionHandler()) {
+        LOG << "BLC:write  " << bid;
+        assert(bid.size >= raw_size);
+        return bid.storage->awrite(this, bid.offset, raw_size, on_cmpl);
+    }
+
+    /*!
+     * Reads block from the disk(s).
+     * \param bid block identifier, points the file(disk) and position
+     * \param on_cmpl completion handler
+     * \return \c pointer_ptr object to track status I/O operation after the call
+     */
+    RequestPtr read(const BID<0>& bid,
+                    CompletionHandler on_cmpl = CompletionHandler()) {
+        LOG << "BLC:read   " << bid;
+        assert(bid.size >= raw_size);
+        return bid.storage->aread(this, bid.offset, raw_size, on_cmpl);
+    }
+
+#if 0
     // STRANGE: implementing destructor makes g++ allocate
     // additional 4 bytes in the beginning of every array
     // of this type !? makes aligning to 4K boundaries difficult
@@ -321,7 +351,7 @@ public:
     //  difference of delta for metadata a compiler needs. It happens to
     //  be 8 bytes long in g++."
     ~TypedBlock() {
-        LOG << "[" << static_cast<void*>(this) << "] typed_block is destructed";
+        LOG << "[" << static_cast<void*>(this) << "] TypedBlock is destructed";
     }
 #endif
 };

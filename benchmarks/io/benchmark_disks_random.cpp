@@ -46,11 +46,13 @@ struct print_number
 using Timer = common::StatsTimerStart;
 
 template <unsigned BlockSize, typename AllocStrategy>
-void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool do_write) {
+void run_test(int64_t span, int64_t worksize,
+              bool do_init, bool do_read, bool do_write) {
+
     const unsigned raw_block_size = BlockSize;
 
-    using block_type = io::TypedBlock<raw_block_size, unsigned>;
-    using BID_type = io::BID<raw_block_size>;
+    using TypedBlock = io::TypedBlock<raw_block_size, unsigned>;
+    using BID = io::BID<0>;
 
     size_t num_blocks =
         (size_t)common::IntegerDivRoundUp<int64_t>(worksize, raw_block_size);
@@ -62,19 +64,20 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
 
     worksize = num_blocks * raw_block_size;
 
-    block_type* buffer = new block_type;
+    TypedBlock* buffer = new TypedBlock;
     io::RequestPtr* reqs = new io::RequestPtr[num_blocks_in_span];
-    std::vector<BID_type> blocks;
+    std::vector<BID> bids;
 
     // touch data, so it is actually allocated
-    for (unsigned i = 0; i < block_type::size; ++i)
+    for (unsigned i = 0; i < TypedBlock::size; ++i)
         (*buffer)[i] = i;
 
     try {
         AllocStrategy alloc;
 
-        blocks.resize(num_blocks_in_span);
-        io::BlockManager::GetInstance()->new_blocks(alloc, blocks.begin(), blocks.end());
+        bids.resize(num_blocks_in_span);
+        for (BID& b : bids) b.size = raw_block_size;
+        io::BlockManager::GetInstance()->new_blocks(alloc, bids.begin(), bids.end());
 
         std::cout << "# Span size: "
                   << common::FormatIecUnits(span) << " ("
@@ -93,7 +96,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
             Timer t_run;
             std::cout << "First fill up space by writing sequentially..." << std::endl;
             for (unsigned j = 0; j < num_blocks_in_span; j++)
-                reqs[j] = buffer->write(blocks[j]);
+                reqs[j] = buffer->write(bids[j]);
             wait_all(reqs, num_blocks_in_span);
             elapsed = t_run.SecondsDouble();
             std::cout << "Written "
@@ -105,14 +108,14 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
         std::cout << "Random block access..." << std::endl;
 
         srand((unsigned int)time(nullptr));
-        std::random_shuffle(blocks.begin(), blocks.end());
+        std::random_shuffle(bids.begin(), bids.end());
 
         if (do_read)
         {
             Timer t_run;
 
             for (unsigned j = 0; j < num_blocks; j++)
-                reqs[j] = buffer->read(blocks[j], print_number(j));
+                reqs[j] = buffer->read(bids[j], print_number(j));
             wait_all(reqs, num_blocks);
 
             elapsed = t_run.SecondsDouble();
@@ -122,14 +125,14 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
                       << std::setw(5) << std::setprecision(1) << (static_cast<double>(num_blocks * raw_block_size) / MiB / elapsed) << " MiB/s read" << std::endl;
         }
 
-        std::random_shuffle(blocks.begin(), blocks.end());
+        std::random_shuffle(bids.begin(), bids.end());
 
         if (do_write)
         {
             Timer t_run;
 
             for (unsigned j = 0; j < num_blocks; j++)
-                reqs[j] = buffer->write(blocks[j], print_number(j));
+                reqs[j] = buffer->write(bids[j], print_number(j));
             wait_all(reqs, num_blocks);
 
             elapsed = t_run.SecondsDouble();
@@ -148,7 +151,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
     delete[] reqs;
     delete buffer;
 
-    io::BlockManager::GetInstance()->delete_blocks(blocks.begin(), blocks.end());
+    io::BlockManager::GetInstance()->delete_blocks(bids.begin(), bids.end());
 }
 
 template <typename AllocStrategy>
@@ -221,7 +224,7 @@ int main(int argc, char* argv[]) {
         "Operations: [i]nitialize, [r]ead, and/or [w]rite (default: all).");
     cp.AddOptParamString(
         "alloc", allocstr,
-        "Block allocation strategy: RC, SR, FR, striping (default: RC).");
+        "Block allocation strategy: RC, SR, FR, S (default: RC).");
 
     cp.SetDescription(
         "This program will benchmark _random_ block access on the disks "
@@ -242,7 +245,7 @@ int main(int argc, char* argv[]) {
             return run_alloc(io::SimpleRandom);
         if (allocstr == "FR")
             return run_alloc(io::FullyRandom);
-        if (allocstr == "striping")
+        if (allocstr == "S")
             return run_alloc(io::Striping);
 
         std::cout << "Unknown allocation strategy '" << allocstr << "'" << std::endl;
@@ -253,7 +256,5 @@ int main(int argc, char* argv[]) {
     return run_alloc(THRILL_DEFAULT_ALLOC_STRATEGY);
 #undef run_alloc
 }
-
-// vim: et:ts=4:sw=4
 
 /******************************************************************************/

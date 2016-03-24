@@ -49,8 +49,10 @@ using namespace thrill; // NOLINT
 using Timer = common::StatsTimerStart;
 
 template <size_t RawBlockSize, typename AllocStrategy>
-int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint64_t batch_size,
-                                    std::string optrw) {
+int benchmark_disks_blocksize_alloc(
+    uint64_t length, uint64_t start_offset, uint64_t batch_size,
+    std::string optrw) {
+
     uint64_t endpos = start_offset + length;
 
     if (length == 0)
@@ -67,8 +69,8 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
     const size_t raw_block_size = RawBlockSize;
     const size_t block_size = raw_block_size / sizeof(int);
 
-    using block_type = io::TypedBlock<raw_block_size, unsigned>;
-    using BID_type = io::BID<raw_block_size>;
+    using TypedBlock = io::TypedBlock<raw_block_size, unsigned>;
+    using BID = io::BID<0>;
 
     if (batch_size == 0)
         batch_size = io::Config::GetInstance()->disks_number();
@@ -80,9 +82,9 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
         batch_size, raw_block_size);
     batch_size = num_blocks_per_batch * raw_block_size;
 
-    block_type* buffer = new block_type[num_blocks_per_batch];
-    io::RequestPtr* reqs = new io::RequestPtr[num_blocks_per_batch];
-    std::vector<BID_type> blocks;
+    TypedBlock* buffer = new TypedBlock[num_blocks_per_batch];
+    std::vector<io::RequestPtr> reqs(num_blocks_per_batch);
+    std::vector<BID> bids;
     double totaltimeread = 0, totaltimewrite = 0;
     uint64_t totalsizeread = 0, totalsizewrite = 0;
 
@@ -111,9 +113,12 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
             const size_t current_num_blocks_per_batch =
                 (size_t)common::IntegerDivRoundUp<uint64_t>(current_batch_size, raw_block_size);
 
-            size_t num_total_blocks = blocks.size();
-            blocks.resize(num_total_blocks + current_num_blocks_per_batch);
-            io::BlockManager::GetInstance()->new_blocks(alloc, blocks.begin() + num_total_blocks, blocks.end());
+            size_t num_total_blocks = bids.size();
+            bids.resize(num_total_blocks + current_num_blocks_per_batch);
+            for (BID& b : bids) b.size = raw_block_size;
+
+            io::BlockManager::GetInstance()->new_blocks(
+                alloc, bids.begin() + num_total_blocks, bids.end());
 
             if (offset < start_offset)
                 continue;
@@ -126,9 +131,9 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
             if (do_write)
             {
                 for (unsigned j = 0; j < current_num_blocks_per_batch; j++)
-                    reqs[j] = buffer[j].write(blocks[num_total_blocks + j]);
+                    reqs[j] = buffer[j].write(bids[num_total_blocks + j]);
 
-                io::wait_all(reqs, current_num_blocks_per_batch);
+                io::wait_all(reqs.begin(), reqs.end());
 
                 elapsed = t_run.SecondsDouble();
                 totalsizewrite += current_batch_size;
@@ -145,9 +150,9 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
             if (do_read)
             {
                 for (unsigned j = 0; j < current_num_blocks_per_batch; j++)
-                    reqs[j] = buffer[j].read(blocks[num_total_blocks + j]);
+                    reqs[j] = buffer[j].read(bids[num_total_blocks + j]);
 
-                wait_all(reqs, current_num_blocks_per_batch);
+                io::wait_all(reqs.begin(), reqs.end());
 
                 elapsed = t_run.SecondsDouble();
                 totalsizeread += current_batch_size;
@@ -190,7 +195,6 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
     std::cout << std::setw(5) << std::setprecision(1) << (static_cast<double>(totalsizewrite) / MiB / totaltimewrite) << " MiB/s write, ";
     std::cout << std::setw(5) << std::setprecision(1) << (static_cast<double>(totalsizeread) / MiB / totaltimeread) << " MiB/s read" << std::endl;
 
-    delete[] reqs;
     delete[] buffer;
 
     return 0;
@@ -258,7 +262,7 @@ int main(int argc, char* argv[]) {
         "Only read or write blocks (default: both write and read)");
     cp.AddOptParamString(
         "alloc", allocstr,
-        "Block allocation strategy: RC, SR, FR, striping. (default: RC)");
+        "Block allocation strategy: RC, SR, FR, S. (default: RC)");
 
     cp.AddUInt('b', "batch", batch_size,
                "Number of blocks written/read in one batch (default: D * B)");
@@ -290,7 +294,7 @@ int main(int argc, char* argv[]) {
         if (allocstr == "FR")
             return benchmark_disks_alloc<io::FullyRandom>(
                 length, offset, batch_size, block_size, optrw);
-        if (allocstr == "striping")
+        if (allocstr == "S")
             return benchmark_disks_alloc<io::Striping>(
                 length, offset, batch_size, block_size, optrw);
 

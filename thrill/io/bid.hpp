@@ -19,7 +19,6 @@
 #define THRILL_IO_BID_HEADER
 
 #include <cstring>
-#include <iomanip>
 #include <ostream>
 #include <vector>
 
@@ -66,8 +65,7 @@ public:
 
     template <size_t BlockSize>
     explicit BID(const BID<BlockSize>& obj)
-        : storage(obj.storage), offset(obj.offset)
-    { }
+        : storage(obj.storage), offset(obj.offset) { }
 
     template <size_t BlockSize>
     BID& operator = (const BID<BlockSize>& obj) {
@@ -76,7 +74,15 @@ public:
         return *this;
     }
 
-    inline bool is_managed() const;
+    bool is_managed() const;
+
+    bool operator == (const BID<Size>& b) const {
+        return storage == b.storage && offset == b.offset;
+    }
+
+    bool operator != (const BID<Size>& b) const {
+        return !operator == (b);
+    }
 };
 
 //! Specialization of block identifier class (BID) for variable size block size.
@@ -107,37 +113,19 @@ public:
         return (storage != nullptr);
     }
 
-    inline bool is_managed() const;
+    bool is_managed() const;
+
+    bool operator == (const BID<0>& b) const {
+        return storage == b.storage && offset == b.offset && size == b.size;
+    }
+
+    bool operator != (const BID<0>& b) const {
+        return !operator == (b);
+    }
 };
 
 template <size_t BlockSize>
-bool operator == (const BID<BlockSize>& a, const BID<BlockSize>& b) {
-    return (a.storage == b.storage) && (a.offset == b.offset) && (a.size == b.size);
-}
-
-template <size_t BlockSize>
-bool operator != (const BID<BlockSize>& a, const BID<BlockSize>& b) {
-    return (a.storage != b.storage) || (a.offset != b.offset) || (a.size != b.size);
-}
-
-template <size_t BlockSize>
-std::ostream& operator << (std::ostream& s, const BID<BlockSize>& bid) {
-    // [0x12345678|0]0x00100000/0x00010000
-    // [file ptr|file id]offset/size
-
-    std::ios state(nullptr);
-    state.copyfmt(s);
-
-    s << "[" << bid.storage << "|";
-    if (bid.storage)
-        s << bid.storage->get_allocator_id();
-    else
-        s << "?";
-    s << "]0x" << std::hex << std::setfill('0') << std::setw(8) << bid.offset << "/0x" << std::setw(8) << bid.size << std::dec;
-
-    s.copyfmt(state);
-    return s;
-}
+std::ostream& operator << (std::ostream& s, const BID<BlockSize>& bid);
 
 template <size_t BlockSize>
 using BIDArray = std::vector<BID<BlockSize> >;

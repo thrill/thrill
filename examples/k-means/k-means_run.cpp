@@ -17,6 +17,7 @@
 #include <thrill/common/logger.hpp>
 
 #include <algorithm>
+#include <iomanip>
 #include <random>
 #include <string>
 #include <utility>
