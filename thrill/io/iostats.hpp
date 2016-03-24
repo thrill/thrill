@@ -63,23 +63,27 @@ class Stats : public common::Singleton<Stats>
     double read_time_ = 0.0, write_time_ = 0.0;
     //! seconds spent in parallel operations
     double parallel_read_time_ = 0.0, parallel_write_time_ = 0.0;
-    //! start time of parallel operation
-    double parallel_read_begin_ = 0.0, parallel_write_begin_ = 0.0;
     //! seconds spent in all parallel I/O operations (read and write)
     double parallel_io_time_ = 0.0;
-    double parallel_io_begin_ = 0.0;
     //! seconds spent waiting for completion of I/O operations
-    double io_wait_time_ = 0.0, parallel_wait_time_ = 0.0;
+    double io_wait_time_ = 0.0;
+    double read_wait_time_ = 0.0, write_wait_time_ = 0.0;
+#if THRILL_IO_STATS_TIMING
+    //! start time of parallel operation
+    double parallel_read_begin_ = 0.0, parallel_write_begin_ = 0.0;
+    double parallel_io_begin_ = 0.0;
     double parallel_wait_begin_ = 0.0;
-    double read_wait_time_ = 0.0, parallel_wait_read_time_ = 0.0;
     double parallel_wait_read_begin_ = 0.0;
-    double write_wait_time_ = 0.0, parallel_wait_write_time_ = 0.0;
     double parallel_wait_write_begin_ = 0.0;
+    double parallel_wait_time_ = 0.0;
+    double parallel_wait_read_time_ = 0.0;
+    double parallel_wait_write_time_ = 0.0;
     //! number of requests, participating in parallel operation
     int acc_reads_ = 0, acc_writes_ = 0;
     int acc_ios_ = 0;
     int acc_waits_ = 0;
     int acc_wait_read_ = 0, acc_wait_write_ = 0;
+#endif
     double last_reset_time_ = 0.0;
 
     std::mutex read_mutex_, write_mutex_, io_mutex_, wait_mutex_;
