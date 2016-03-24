@@ -101,7 +101,6 @@ public:
         logger_ << "class" << "DIABase"
                 << "event" << "create"
                 << "type" << "DOp"
-                << "label" << label
                 << "parents" << parent_ids;
     }
 
@@ -117,7 +116,6 @@ public:
         logger_ << "class" << "DIABase"
                 << "event" << "create"
                 << "type" << "DOp"
-                << "label" << label
                 << "parents" << parent_ids;
     }
 
@@ -305,7 +303,7 @@ public:
     // JsonLogger for this DIANode
 
     common::JsonLogger logger_ {
-        &context_.logger_, "node_id", id(), "node_label", label()
+        &context_.logger_, "id", id(), "label", label()
     };
 };
 

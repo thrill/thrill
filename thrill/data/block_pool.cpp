@@ -191,7 +191,7 @@ BlockPool::~BlockPool() {
         lock, [this]() { return total_byte_blocks_ == 0; });
 
     pin_count_.AssertZero();
-    die_unequal(total_ram_use_, 0);
+    die_unequal(total_ram_bytes_, 0);
     die_unequal(unpinned_blocks_.size(), 0);
 
     LOGC(debug_pin)
@@ -784,7 +784,7 @@ void BlockPool::IntRequestInternalMemory(
     LOGC(debug_mem)
         << "BlockPool::RequestInternalMemory()"
         << " size=" << size
-        << " total_ram_use_=" << total_ram_use_
+        << " total_ram_bytes_=" << total_ram_bytes_
         << " writing_bytes_=" << writing_bytes_
         << " requested_bytes_=" << requested_bytes_
         << " soft_ram_limit_=" << soft_ram_limit_
@@ -795,7 +795,7 @@ void BlockPool::IntRequestInternalMemory(
 
     while (soft_ram_limit_ != 0 &&
            unpinned_blocks_.size() &&
-           total_ram_use_ + requested_bytes_ > soft_ram_limit_ + writing_bytes_)
+           total_ram_bytes_ + requested_bytes_ > soft_ram_limit_ + writing_bytes_)
     {
         // evict blocks: schedule async writing which increases writing_bytes_.
         IntEvictBlockLRU();
@@ -807,11 +807,11 @@ void BlockPool::IntRequestInternalMemory(
     size_t last_writing_bytes = 0;
 
     // wait for memory change due to blocks begin written and deallocated.
-    while (hard_ram_limit_ != 0 && total_ram_use_ + size > hard_ram_limit_)
+    while (hard_ram_limit_ != 0 && total_ram_bytes_ + size > hard_ram_limit_)
     {
         while (hard_ram_limit_ != 0 &&
                unpinned_blocks_.size() &&
-               total_ram_use_ + requested_bytes_ > hard_ram_limit_ + writing_bytes_)
+               total_ram_bytes_ + requested_bytes_ > hard_ram_limit_ + writing_bytes_)
         {
             // evict blocks: schedule async writing which increases writing_bytes_.
             IntEvictBlockLRU();
@@ -821,7 +821,7 @@ void BlockPool::IntRequestInternalMemory(
 
         LOGC(debug_mem)
             << "BlockPool::RequestInternalMemory() waiting for memory"
-            << " total_ram_use_=" << total_ram_use_
+            << " total_ram_bytes_=" << total_ram_bytes_
             << " writing_bytes_=" << writing_bytes_
             << " requested_bytes_=" << requested_bytes_
             << " soft_ram_limit_=" << soft_ram_limit_
@@ -831,10 +831,10 @@ void BlockPool::IntRequestInternalMemory(
             << " swapped_.size()=" << swapped_.size();
 
         if (writing_bytes_ == 0 &&
-            total_ram_use_ + requested_bytes_ > hard_ram_limit_) {
+            total_ram_bytes_ + requested_bytes_ > hard_ram_limit_) {
 
             LOG1 << "abort() due to out-of-pinned-memory ???"
-                 << " total_ram_use_=" << total_ram_use_
+                 << " total_ram_bytes_=" << total_ram_bytes_
                  << " writing_bytes_=" << writing_bytes_
                  << " requested_bytes_=" << requested_bytes_
                  << " soft_ram_limit_=" << soft_ram_limit_
@@ -855,7 +855,7 @@ void BlockPool::IntRequestInternalMemory(
     }
 
     requested_bytes_ -= size;
-    total_ram_use_ += size;
+    total_ram_bytes_ += size;
 }
 
 void BlockPool::AdviseFree(size_t size) {
@@ -864,7 +864,7 @@ void BlockPool::AdviseFree(size_t size) {
     LOGC(debug_mem)
         << "BlockPool::AdviseFree() advice to free memory"
         << " size=" << size
-        << " total_ram_use_=" << total_ram_use_
+        << " total_ram_bytes_=" << total_ram_bytes_
         << " writing_bytes_=" << writing_bytes_
         << " requested_bytes_=" << requested_bytes_
         << " soft_ram_limit_=" << soft_ram_limit_
@@ -874,7 +874,7 @@ void BlockPool::AdviseFree(size_t size) {
         << " swapped_.size()=" << swapped_.size();
 
     while (soft_ram_limit_ != 0 && unpinned_blocks_.size() &&
-           total_ram_use_ + requested_bytes_ + size > hard_ram_limit_ + writing_bytes_)
+           total_ram_bytes_ + requested_bytes_ + size > hard_ram_limit_ + writing_bytes_)
     {
         // evict blocks: schedule async writing which increases writing_bytes_.
         IntEvictBlockLRU();
@@ -890,10 +890,10 @@ void BlockPool::IntReleaseInternalMemory(size_t size) {
     LOGC(debug_mem)
         << "BlockPool::IntReleaseInternalMemory()"
         << " size=" << size
-        << " total_ram_use_=" << total_ram_use_;
+        << " total_ram_bytes_=" << total_ram_bytes_;
 
-    die_unless(total_ram_use_ >= size);
-    total_ram_use_ -= size;
+    die_unless(total_ram_bytes_ >= size);
+    total_ram_bytes_ -= size;
 
     cv_memory_change_.notify_all();
 }
@@ -1031,6 +1031,7 @@ void BlockPool::RunTask(const std::chrono::steady_clock::time_point& tp) {
             << "event" << "profile"
             << "total_blocks" << int_total_blocks()
             << "total_bytes" << int_total_bytes()
+            << "total_ram_bytes" << total_ram_bytes_
             << "pinned_blocks" << pin_count_.total_pins_
             << "pinned_bytes" << pin_count_.total_pinned_bytes_
             << "unpinned_blocks" << unpinned_blocks_.size()

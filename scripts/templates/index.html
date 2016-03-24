@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="https://code.jquery.com/jquery-1.12.2.min.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+
+    <!-- <link href="../static/css/main.css" rel="stylesheet" type="text/css" /> -->
+
+    <!-- SUPPORT FOR IE6-8 OF HTML5 ELEMENTS -->
+    <!--[if lt IE 9]>
+        <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+
+    <!-- <link rel="shortcut icon" href="{{ url_for('static', filename='ico/favicon.ico') }}"> -->
+    {% block head %}
+    <title>{% block title %} Title!{% endblock %}</title>
+    {% endblock %}
+  </head>
+
+  <body>
+    <div id={{ chartID|safe }} class="chart" style="min-width: 310px; height: 600px; margin: 0 auto"></div>
+    <script type="text/javascript">
+      var chart_id = {{ chartID|safe }}
+    $(document).ready(function() {
+        $(chart_id).highcharts({
+                chart: {{ chart|safe }},
+                title: {{ title|safe }},
+                xAxis: {{ xAxis|safe }},
+                yAxis: {{ yAxis|safe }},
+                legend: {{ legend|safe }},
+                plotOptions: {{ plotOptions|safe }},
+                series: {{ series|safe }}
+      });
+    });
+    </script>
+
+    {{ stream_table|safe }}
+
+    {{ file_table|safe }}
+  </body>
+</html>

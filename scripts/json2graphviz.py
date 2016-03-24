@@ -25,6 +25,8 @@ with open(sys.argv[1], 'r') as json_file:
     for line in json_file:
         data = json.loads(line)
 
+        if not "class" in data: continue
+
         if data["class"] == "DIABase" and data["event"] == "create":
             id = data["node_id"]
             nodes[id] = { "label": data["node_label"],

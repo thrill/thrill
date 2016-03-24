@@ -302,7 +302,7 @@ private:
     std::condition_variable cv_total_byte_blocks_;
 
     //! total number of bytes used in RAM by pinned and unpinned blocks.
-    size_t total_ram_use_ = 0;
+    size_t total_ram_bytes_ = 0;
 
     //! Soft limit for the block pool, blocks will be written to disk if this
     //! limit is reached. 0 for no limit.
