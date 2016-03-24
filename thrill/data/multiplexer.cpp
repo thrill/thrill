@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <map>
+#include <vector>
 
 namespace thrill {
 namespace data {

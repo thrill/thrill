@@ -46,6 +46,8 @@ std::ostream& operator << (std::ostream& s, const BID<BlockSize>& bid) {
 
 // template instantiations
 template std::ostream& operator << (std::ostream& s, const BID<0>& bid);
+template std::ostream& operator << (std::ostream& s, const BID<131072>& bid);
+template std::ostream& operator << (std::ostream& s, const BID<524288>& bid);
 
 } // namespace io
 } // namespace thrill

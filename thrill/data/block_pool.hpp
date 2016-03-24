@@ -13,7 +13,6 @@
 #define THRILL_DATA_BLOCK_POOL_HEADER
 
 #include <thrill/common/json_logger.hpp>
-#include <thrill/common/lru_cache.hpp>
 #include <thrill/common/profile_task.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block.hpp>
@@ -29,7 +28,6 @@
 #include <future>
 #include <mutex>
 #include <string>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -57,6 +55,11 @@ public:
      * memory limitations, never swaps to disk.
      */
     explicit BlockPool(size_t workers_per_host = 1);
+
+    //! non-copyable: delete copy-constructor
+    BlockPool(const BlockPool&) = delete;
+    //! non-copyable: delete assignment operator
+    BlockPool& operator = (const BlockPool&) = delete;
 
     /*!
      * Creates a BlockPool with given memory constrains
@@ -170,6 +173,8 @@ public:
 
     //! \}
 
+    class ReadRequest;
+
 private:
     //! locked before internal state is changed
     std::mutex mutex_;
@@ -197,10 +202,6 @@ private:
 
     //! next unique File id
     std::atomic<size_t> next_file_id_ { 0 };
-
-    //! list of all blocks that are _in_memory_ but are _not_ pinned.
-    common::LruCacheSet<
-        ByteBlock*, mem::GPoolAllocator<ByteBlock*> > unpinned_blocks_;
 
     //! number of unpinned bytes
     size_t unpinned_bytes_ = 0;
@@ -243,14 +244,11 @@ private:
     //! pin counter class
     PinCount pin_count_;
 
-    //! type of set of ByteBlocks currently begin written to EM.
-    using WritingMap = std::unordered_map<
-              ByteBlock*, io::RequestPtr,
-              std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
-              mem::GPoolAllocator<std::pair<ByteBlock* const, io::RequestPtr> > >;
+    //! pimpl data structure
+    class Data;
 
-    //! set of ByteBlocks currently begin written to EM.
-    WritingMap writing_;
+    //! pimpl data structure
+    std::unique_ptr<Data> d_;
 
     //! number of bytes currently begin requested from RAM.
     size_t requested_bytes_ = 0;
@@ -258,39 +256,8 @@ private:
     //! number of bytes currently being written to EM.
     size_t writing_bytes_ = 0;
 
-    //! set of ByteBlock currently in EM.
-    std::unordered_set<
-        ByteBlock*, std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
-        mem::GPoolAllocator<ByteBlock*> > swapped_;
-
     //! total number of bytes in swapped blocks
     size_t swapped_bytes_ = 0;
-
-    class ReadRequest
-    {
-    public:
-        BlockPool* block_pool;
-        Block block;
-        size_t local_worker_id;
-        std::promise<PinnedBlock> result;
-        Byte* data;
-        io::RequestPtr req;
-
-        ReadRequest()
-            : result(std::allocator_arg, mem::GPoolAllocator<PinnedBlock>()) { }
-
-        void OnComplete(io::Request* req, bool success);
-    };
-
-    //! type of set of ByteBlocks currently begin read from EM.
-    using ReadingMap = std::unordered_map<
-              ByteBlock*, std::unique_ptr<ReadRequest>,
-              std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
-              mem::GPoolAllocator<
-                  std::pair<ByteBlock* const, std::unique_ptr<ReadRequest> > > >;
-
-    //! set of ByteBlocks currently begin read from EM.
-    ReadingMap reading_;
 
     //! number of bytes currently being read from to EM.
     size_t reading_bytes_ = 0;

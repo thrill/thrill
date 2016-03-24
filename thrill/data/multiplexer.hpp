@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <atomic>
 #include <memory>
-#include <vector>
 
 namespace thrill {
 namespace data {
