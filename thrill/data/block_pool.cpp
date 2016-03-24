@@ -110,7 +110,10 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
       workers_per_host_(workers_per_host),
       pin_count_(workers_per_host),
       soft_ram_limit_(soft_ram_limit),
-      hard_ram_limit_(hard_ram_limit) {
+      hard_ram_limit_(hard_ram_limit),
+      io_stats_first_(*io::Stats::GetInstance()),
+      io_stats_prev_(io_stats_first_),
+      tp_last_(std::chrono::steady_clock::now()) {
 
     die_unless(hard_ram_limit >= soft_ram_limit);
     {
@@ -121,6 +124,11 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
 
         std::set_new_handler(our_new_handler);
     }
+
+    logger_ << "class" << "BlockPool"
+            << "event" << "create"
+            << "soft_ram_limit" << soft_ram_limit
+            << "hard_ram_limit" << hard_ram_limit;
 }
 
 BlockPool::~BlockPool() {
@@ -1001,6 +1009,50 @@ void BlockPool::OnWriteComplete(
 
         IntReleaseInternalMemory(block_ptr->size());
     }
+}
+
+void BlockPool::RunTask(const std::chrono::steady_clock::time_point& tp) {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    io::StatsData stnow(*io::Stats::GetInstance());
+    io::StatsData stf = stnow - io_stats_first_;
+    io::StatsData stp = stnow - io_stats_prev_;
+    io_stats_prev_ = stnow;
+
+    double elapsed = static_cast<double>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            tp - tp_last_).count()) / 1e6;
+    tp_last_ = tp;
+
+    // LOG0 << stp;
+    // LOG0 << stf;
+
+    logger_ << "class" << "BlockPool"
+            << "event" << "profile"
+            << "total_blocks" << int_total_blocks()
+            << "total_bytes" << int_total_bytes()
+            << "pinned_blocks" << pin_count_.total_pins_
+            << "pinned_bytes" << pin_count_.total_pinned_bytes_
+            << "unpinned_blocks" << unpinned_blocks_.size()
+            << "unpinned_bytes" << unpinned_bytes_
+            << "swapped_blocks" << swapped_.size()
+            << "swapped_bytes" << swapped_bytes_
+            << "max_pinned_blocks" << pin_count_.max_pins
+            << "max_pinned_bytes" << pin_count_.max_pinned_bytes
+            << "writing_blocks" << writing_.size()
+            << "writing_bytes" << writing_bytes_
+            << "reading_blocks" << reading_.size()
+            << "reading_bytes" << reading_bytes_
+            << "rd_ops_total" << stf.read_ops()
+            << "rd_bytes_total" << stf.read_volume()
+            << "wr_ops_total" << stf.write_ops()
+            << "wr_bytes_total" << stf.write_volume()
+            << "rd_ops" << stp.read_ops()
+            << "rd_bytes" << stp.read_volume()
+            << "rd_speed" << stp.read_volume() / elapsed
+            << "wr_ops" << stp.write_ops()
+            << "wr_bytes" << stp.write_volume()
+            << "wr_speed" << stp.write_volume() / elapsed;
 }
 
 /******************************************************************************/

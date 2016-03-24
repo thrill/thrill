@@ -17,8 +17,9 @@
 #ifndef THRILL_IO_IOSTATS_HEADER
 #define THRILL_IO_IOSTATS_HEADER
 
-#ifndef THRILL_IO_STATS
- #define THRILL_IO_STATS 1
+#ifndef THRILL_IO_STATS_TIMING
+ #define THRILL_IO_STATS_TIMING 0
+ #define THRILL_DO_NOT_COUNT_WAIT_TIME 1
 #endif
 
 #include <thrill/common/config.hpp>
@@ -95,17 +96,11 @@ public:
         using size_type = size_t;
 
         bool is_write_;
-#if THRILL_IO_STATS
-        bool running_;
-#endif
+        bool running_ = false;
 
     public:
         explicit ScopedReadWriteTimer(size_type size, bool is_write = false)
-            : is_write_(is_write)
-#if THRILL_IO_STATS
-              , running_(false)
-#endif
-        {
+            : is_write_(is_write) {
             Start(size);
         }
 
@@ -114,7 +109,6 @@ public:
         }
 
         void Start(size_type size) {
-#if THRILL_IO_STATS
             if (!running_) {
                 running_ = true;
                 if (is_write_)
@@ -122,13 +116,9 @@ public:
                 else
                     Stats::GetInstance()->read_started(size);
             }
-#else
-            common::THRILL_UNUSED(size);
-#endif
         }
 
         void Stop() {
-#if THRILL_IO_STATS
             if (running_) {
                 if (is_write_)
                     Stats::GetInstance()->write_finished();
@@ -136,24 +126,16 @@ public:
                     Stats::GetInstance()->read_finished();
                 running_ = false;
             }
-#endif
         }
     };
 
     class ScopedWriteTimer
     {
         using size_type = size_t;
-
-#if THRILL_IO_STATS
-        bool running_;
-#endif
+        bool running_ = false;
 
     public:
-        explicit ScopedWriteTimer(size_type size)
-#if THRILL_IO_STATS
-            : running_(false)
-#endif
-        {
+        explicit ScopedWriteTimer(size_type size) {
             Start(size);
         }
 
@@ -162,23 +144,17 @@ public:
         }
 
         void Start(size_type size) {
-#if THRILL_IO_STATS
             if (!running_) {
                 running_ = true;
                 Stats::GetInstance()->write_started(size);
             }
-#else
-            common::THRILL_UNUSED(size);
-#endif
         }
 
         void Stop() {
-#if THRILL_IO_STATS
             if (running_) {
                 Stats::GetInstance()->write_finished();
                 running_ = false;
             }
-#endif
         }
     };
 
@@ -186,16 +162,10 @@ public:
     {
         using size_type = size_t;
 
-#if THRILL_IO_STATS
-        bool running_;
-#endif
+        bool running_ = false;
 
     public:
-        explicit ScopedReadTimer(size_type size)
-#if THRILL_IO_STATS
-            : running_(false)
-#endif
-        {
+        explicit ScopedReadTimer(size_type size) {
             Start(size);
         }
 
@@ -204,41 +174,38 @@ public:
         }
 
         void Start(size_type size) {
-#if THRILL_IO_STATS
             if (!running_) {
                 running_ = true;
                 Stats::GetInstance()->read_started(size);
             }
-#else
-            common::THRILL_UNUSED(size);
-#endif
         }
 
         void Stop() {
-#if THRILL_IO_STATS
             if (running_) {
                 Stats::GetInstance()->read_finished();
                 running_ = false;
             }
-#endif
         }
     };
 
     class ScopedWaitTimer
     {
-#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
-        bool running_;
+#if !THRILL_DO_NOT_COUNT_WAIT_TIME
+        bool running_ = false;
         WaitOp wait_op_;
 #endif
 
     public:
         explicit ScopedWaitTimer(WaitOp wait_op, bool measure_time = true)
-#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
-            : running_(false), wait_op_(wait_op)
+#if !THRILL_DO_NOT_COUNT_WAIT_TIME
+            : wait_op_(wait_op)
 #endif
         {
             if (measure_time)
                 Start();
+#if THRILL_DO_NOT_COUNT_WAIT_TIME
+            common::THRILL_UNUSED(wait_op);
+#endif
         }
 
         ~ScopedWaitTimer() {
@@ -246,7 +213,7 @@ public:
         }
 
         void Start() {
-#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
+#if !THRILL_DO_NOT_COUNT_WAIT_TIME
             if (!running_) {
                 running_ = true;
                 Stats::GetInstance()->wait_started(wait_op_);
@@ -255,7 +222,7 @@ public:
         }
 
         void Stop() {
-#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
+#if !THRILL_DO_NOT_COUNT_WAIT_TIME
             if (running_) {
                 Stats::GetInstance()->wait_finished(wait_op_);
                 running_ = false;
@@ -329,25 +296,6 @@ public:
     void wait_started(WaitOp wait_op);
     void wait_finished(WaitOp wait_op);
 };
-
-#if !THRILL_IO_STATS
-inline void Stats::write_started(size_t size, double now) {
-    common::THRILL_UNUSED(size);
-    common::THRILL_UNUSED(now);
-}
-inline void Stats::write_cached(size_t size) {
-    common::THRILL_UNUSED(size);
-}
-inline void Stats::write_finished() { }
-inline void Stats::read_started(size_t size, double now) {
-    common::THRILL_UNUSED(size);
-    common::THRILL_UNUSED(now);
-}
-inline void Stats::read_cached(size_t size) {
-    common::THRILL_UNUSED(size);
-}
-inline void Stats::read_finished() { }
-#endif
 
 #ifdef THRILL_DO_NOT_COUNT_WAIT_TIME
 inline void Stats::wait_started(WaitOp) { }

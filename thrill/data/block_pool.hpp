@@ -14,6 +14,7 @@
 
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/lru_cache.hpp>
+#include <thrill/common/profile_task.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/byte_block.hpp>
@@ -46,7 +47,7 @@ class PinnedBlock;
  * Pool to allocate, keep, swap out/in, and free all ByteBlocks on the host.
  * Starts a backgroud thread which is responsible for disk I/O
  */
-class BlockPool
+class BlockPool : public common::ProfileTask
 {
     static constexpr bool debug = false;
 
@@ -159,6 +160,13 @@ public:
 
     //! Total number of blocks currently begin read from EM.
     size_t reading_blocks()  noexcept;
+
+    //! \}
+
+    //! \name Methods for ProfileTask
+    //! \{
+
+    void RunTask(const std::chrono::steady_clock::time_point& tp) final;
 
     //! \}
 
@@ -303,6 +311,15 @@ private:
     //! Hard limit for the block pool, memory requests will block if this limit
     //! is reached. 0 for no limit.
     size_t hard_ram_limit_;
+
+    //! I/O layer stats when BlockPool was created.
+    io::StatsData io_stats_first_;
+
+    //! I/O layer stats of previous profile tick
+    io::StatsData io_stats_prev_;
+
+    //! last time statistics where outputted
+    std::chrono::steady_clock::time_point tp_last_;
 
     //! Updates the memory manager for internal memory. If the hard limit is
     //! reached, the call is blocked intil memory is free'd

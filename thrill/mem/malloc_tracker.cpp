@@ -293,6 +293,7 @@ void MemoryProfiler::RunTask(const std::chrono::steady_clock::time_point&) {
     common::JsonLine line = logger_.line();
 
     line << "class" << "MemProfile"
+         << "event" << "profile"
          << "total" << copy_float.close + copy_base.close
          << "float" << copy_float.close
          << "base" << copy_base.close;

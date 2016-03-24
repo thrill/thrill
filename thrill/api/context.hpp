@@ -165,6 +165,11 @@ private:
         &logger_, &mem_manager_, workers_per_host_
     };
 
+    //! register BlockPool's profiling method
+    common::ProfileTaskRegistration block_pool_profiler_ {
+        std::chrono::milliseconds(500), *profiler_, &block_pool_
+    };
+
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer data_multiplexer_ {
         mem_manager_, block_pool_, workers_per_host_,

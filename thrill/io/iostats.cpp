@@ -27,20 +27,26 @@ namespace io {
 Stats::Stats()
     : last_reset_time_(timestamp()) { }
 
-#if THRILL_IO_STATS
 void Stats::write_started(size_t size, double now) {
+#if THRILL_IO_STATS_TIMING
     if (now == 0.0)
         now = timestamp();
+#else
+    common::THRILL_UNUSED(now);
+#endif
     {
         std::unique_lock<std::mutex> write_lock(write_mutex_);
 
         ++write_ops_;
         write_volume_ += size;
+#if THRILL_IO_STATS_TIMING
         double diff = now - parallel_write_begin_;
         write_time_ += static_cast<double>(acc_writes_) * diff;
         parallel_write_begin_ = now;
         parallel_write_time_ += (acc_writes_++) ? diff : 0.0;
+#endif
     }
+#if THRILL_IO_STATS_TIMING
     {
         std::unique_lock<std::mutex> io_lock(io_mutex_);
 
@@ -48,6 +54,7 @@ void Stats::write_started(size_t size, double now) {
         parallel_io_time_ += (acc_ios_++) ? diff : 0.0;
         parallel_io_begin_ = now;
     }
+#endif
 }
 
 void Stats::write_canceled(size_t size) {
@@ -61,6 +68,7 @@ void Stats::write_canceled(size_t size) {
 }
 
 void Stats::write_finished() {
+#if THRILL_IO_STATS_TIMING
     double now = timestamp();
     {
         std::unique_lock<std::mutex> write_lock(write_mutex_);
@@ -77,6 +85,7 @@ void Stats::write_finished() {
         parallel_io_time_ += (acc_ios_--) ? diff : 0.0;
         parallel_io_begin_ = now;
     }
+#endif
 }
 
 void Stats::write_cached(size_t size) {
@@ -87,18 +96,25 @@ void Stats::write_cached(size_t size) {
 }
 
 void Stats::read_started(size_t size, double now) {
+#if THRILL_IO_STATS_TIMING
     if (now == 0.0)
         now = timestamp();
+#else
+    common::THRILL_UNUSED(now);
+#endif
     {
         std::unique_lock<std::mutex> read_lock(read_mutex_);
 
         ++read_ops_;
         read_volume_ += size;
+#if THRILL_IO_STATS_TIMING
         double diff = now - parallel_read_begin_;
         read_time_ += static_cast<double>(acc_reads_) * diff;
         parallel_read_begin_ = now;
         parallel_read_time_ += (acc_reads_++) ? diff : 0.0;
+ #endif
     }
+ #if THRILL_IO_STATS_TIMING
     {
         std::unique_lock<std::mutex> io_lock(io_mutex_);
 
@@ -106,6 +122,7 @@ void Stats::read_started(size_t size, double now) {
         parallel_io_time_ += (acc_ios_++) ? diff : 0.0;
         parallel_io_begin_ = now;
     }
+ #endif
 }
 
 void Stats::read_canceled(size_t size) {
@@ -119,6 +136,7 @@ void Stats::read_canceled(size_t size) {
 }
 
 void Stats::read_finished() {
+#if THRILL_IO_STATS_TIMING
     double now = timestamp();
     {
         std::unique_lock<std::mutex> read_lock(read_mutex_);
@@ -135,6 +153,7 @@ void Stats::read_finished() {
         parallel_io_time_ += (acc_ios_--) ? diff : 0.0;
         parallel_io_begin_ = now;
     }
+#endif
 }
 
 void Stats::read_cached(size_t size) {
@@ -143,9 +162,8 @@ void Stats::read_cached(size_t size) {
     ++cached_read_ops_;
     cached_read_volume_ += size;
 }
-#endif
 
-#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
+#if !THRILL_DO_NOT_COUNT_WAIT_TIME
 void Stats::wait_started(WaitOp wait_op) {
     double now = timestamp();
     {
@@ -194,7 +212,7 @@ void Stats::wait_finished(WaitOp wait_op) {
             parallel_wait_write_begin_ = now;
             parallel_wait_write_time_ += (acc_wait_write_--) ? diff_write : 0.0;
         }
-#ifdef THRILL_WAIT_LOG_ENABLED
+#if THRILL_WAIT_LOG_ENABLED
         std::ofstream* waitlog = stxxl::logger::GetInstance()->waitlog_stream();
         if (waitlog)
             *waitlog << (now - last_reset_time_) << "\t"
@@ -209,13 +227,13 @@ void Stats::wait_finished(WaitOp wait_op) {
 std::ostream& operator << (std::ostream& o, const StatsData& s) {
 #define hr common::FormatIecUnits
     o << "Thrill I/O statistics" << std::endl;
-#if THRILL_IO_STATS
     o << " total number of reads                      : "
       << hr(s.read_ops()) << std::endl;
     o << " average block size (read)                  : "
       << hr(s.read_ops() ? s.read_volume() / s.read_ops() : 0) << std::endl;
     o << " number of bytes read from disks            : "
       << hr(s.read_volume()) << std::endl;
+#if THRILL_IO_STATS_TIMING
     o << " time spent in serving all read requests    : "
       << s.read_time() << " s"
       << " @ " << (static_cast<double>(s.read_volume()) / 1048576.0 / s.read_time()) << " MiB/s"
@@ -240,12 +258,14 @@ std::ostream& operator << (std::ostream& o, const StatsData& s) {
         o << " number of bytes written to cache           : "
           << hr(s.cached_write_volume()) << std::endl;
     }
+#endif
     o << " total number of writes                     : "
       << hr(s.write_ops()) << std::endl;
     o << " average block size (write)                 : "
       << hr(s.write_ops() ? s.write_volume() / s.write_ops() : 0) << std::endl;
     o << " number of bytes written to disks           : "
       << hr(s.write_volume()) << std::endl;
+#if THRILL_IO_STATS_TIMING
     o << " time spent in serving all write requests   : "
       << s.write_time() << " s"
       << " @ " << (static_cast<double>(s.write_volume()) / 1048576.0 / s.write_time()) << " MiB/s"
@@ -258,10 +278,7 @@ std::ostream& operator << (std::ostream& o, const StatsData& s) {
       << s.parallel_io_time() << " s"
       << " @ " << ((static_cast<double>(s.read_volume() + s.write_volume())) / 1048576.0 / s.parallel_io_time()) << " MiB/s"
       << std::endl;
-#else
-    o << " n/a" << std::endl;
-#endif
-#ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
+#if !THRILL_DO_NOT_COUNT_WAIT_TIME
     o << " I/O wait time                              : "
       << s.io_wait_time() << " s" << std::endl;
     if (s.read_wait_time() != 0.0)
@@ -273,8 +290,9 @@ std::ostream& operator << (std::ostream& o, const StatsData& s) {
 #endif
     o << " Time since the last reset                  : "
       << s.elapsed_time() << " s" << std::endl;
-    return o;
+#endif
 #undef hr
+    return o;
 }
 
 } // namespace io

@@ -225,7 +225,8 @@ private:
 
 JsonLine& LinuxProcStats::prepare_out(JsonLine& out) {
     if (out.items() == 2) {
-        out << "class" << "LinuxProcStats";
+        out << "class" << "LinuxProcStats"
+            << "event" << "profile";
     }
     return out;
 }
