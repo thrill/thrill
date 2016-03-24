@@ -95,6 +95,10 @@ public:
     //! move-constructor: default
     MixStream(MixStream&&) = default;
 
+    ~MixStream() final {
+        Close();
+    }
+
     //! change dia_id after construction (needed because it may be unknown at
     //! construction)
     void set_dia_id(size_t dia_id) {

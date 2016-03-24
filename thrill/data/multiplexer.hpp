@@ -14,13 +14,13 @@
 #define THRILL_DATA_MULTIPLEXER_HEADER
 
 #include <thrill/common/json_logger.hpp>
-#include <thrill/data/repository.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/group.hpp>
 
 #include <algorithm>
 #include <atomic>
 #include <memory>
+#include <vector>
 
 namespace thrill {
 namespace data {
@@ -67,23 +67,9 @@ class Multiplexer
     static constexpr bool debug = false;
 
 public:
-    explicit Multiplexer(mem::Manager& mem_manager,
-                         data::BlockPool& block_pool,
-                         size_t workers_per_host, net::Group& group)
-        : mem_manager_(mem_manager),
-          block_pool_(block_pool),
-          dispatcher_(
-              mem_manager, group,
-              "host " + mem::to_string(group.my_host_rank()) + " multiplexer"),
-          group_(group),
-          workers_per_host_(workers_per_host),
-          stream_sets_(workers_per_host) {
-        for (size_t id = 0; id < group_.num_hosts(); id++) {
-            if (id == group_.my_host_rank()) continue;
-            AsyncReadBlockHeader(group_.connection(id));
-        }
-        (void)mem_manager_; // silence unused variable warning.
-    }
+    Multiplexer(mem::Manager& mem_manager,
+                data::BlockPool& block_pool,
+                size_t workers_per_host, net::Group& group);
 
     //! non-copyable: delete copy-constructor
     Multiplexer(const Multiplexer&) = delete;
@@ -123,24 +109,14 @@ public:
     //! \{
 
     //! Allocate the next stream
-    size_t AllocateCatStreamId(size_t local_worker_id) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        return stream_sets_.AllocateId(local_worker_id);
-    }
+    size_t AllocateCatStreamId(size_t local_worker_id);
 
     //! Get stream with given id, if it does not exist, create it.
     CatStreamPtr GetOrCreateCatStream(
-        size_t id, size_t local_worker_id, size_t dia_id) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        return IntGetOrCreateCatStream(id, local_worker_id, dia_id);
-    }
+        size_t id, size_t local_worker_id, size_t dia_id);
 
     //! Request next stream.
-    CatStreamPtr GetNewCatStream(size_t local_worker_id, size_t dia_id) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        return IntGetOrCreateCatStream(
-            stream_sets_.AllocateId(local_worker_id), local_worker_id, dia_id);
-    }
+    CatStreamPtr GetNewCatStream(size_t local_worker_id, size_t dia_id);
 
     //! \}
 
@@ -148,24 +124,14 @@ public:
     //! \{
 
     //! Allocate the next stream
-    size_t AllocateMixStreamId(size_t local_worker_id) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        return stream_sets_.AllocateId(local_worker_id);
-    }
+    size_t AllocateMixStreamId(size_t local_worker_id);
 
     //! Get stream with given id, if it does not exist, create it.
     MixStreamPtr GetOrCreateMixStream(
-        size_t id, size_t local_worker_id, size_t dia_id) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        return IntGetOrCreateMixStream(id, local_worker_id, dia_id);
-    }
+        size_t id, size_t local_worker_id, size_t dia_id);
 
     //! Request next stream.
-    MixStreamPtr GetNewMixStream(size_t local_worker_id, size_t dia_id) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        return IntGetOrCreateMixStream(
-            stream_sets_.AllocateId(local_worker_id), local_worker_id, dia_id);
-    }
+    MixStreamPtr GetNewMixStream(size_t local_worker_id, size_t dia_id);
 
     //! \}
 
@@ -204,8 +170,11 @@ private:
 
     /**************************************************************************/
 
-    //! Streams have an ID in block headers. (worker id, stream id)
-    Repository<StreamSetBase> stream_sets_;
+    //! pimpl data structure
+    struct Data;
+
+    //! pimpl data structure
+    std::unique_ptr<Data> d_;
 
     CatStreamPtr IntGetOrCreateCatStream(
         size_t id, size_t local_worker_id, size_t dia_id);
