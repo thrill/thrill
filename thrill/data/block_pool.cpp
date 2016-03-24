@@ -106,7 +106,7 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
                      size_t workers_per_host)
     : logger_(logger),
       mem_manager_(mem_manager, "BlockPool"),
-      bm_(io::BlockManager::get_instance()),
+      bm_(io::BlockManager::GetInstance()),
       workers_per_host_(workers_per_host),
       pin_count_(workers_per_host),
       soft_ram_limit_(soft_ram_limit),

@@ -43,13 +43,6 @@ timestamp() {
     return static_cast<double>(
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count()) / 1e6;
-// #if THRILL_WINDOWS
-//     return GetTickCount() / 1000.0;
-// #else
-//     struct timeval tp;
-//     gettimeofday(&tp, nullptr);
-//     return static_cast<double>(tp.tv_sec) + static_cast<double>(tp.tv_usec) / 1000000.;
-// #endif
 }
 
 //! Collects various I/O statistics.
@@ -57,519 +50,464 @@ class Stats : public common::Singleton<Stats>
 {
     friend class common::Singleton<Stats>;
 
-    size_t reads, writes;                     // number of operations
-    int64_t volume_read, volume_written;      // number of bytes read/written
-    size_t c_reads, c_writes;                 // number of cached operations
-    int64_t c_volume_read, c_volume_written;  // number of bytes read/written from/to cache
-    double t_reads, t_writes;                 // seconds spent in operations
-    double p_reads, p_writes;                 // seconds spent in parallel operations
-    double p_begin_read, p_begin_write;       // start time of parallel operation
-    double p_ios;                             // seconds spent in all parallel I/O operations (read and write)
-    double p_begin_io;
-    double t_waits, p_waits;                  // seconds spent waiting for completion of I/O operations
-    double p_begin_wait;
-    double t_wait_read, p_wait_read;
-    double p_begin_wait_read;
-    double t_wait_write, p_wait_write;
-    double p_begin_wait_write;
-    int acc_reads, acc_writes;                  // number of requests, participating in parallel operation
-    int acc_ios;
-    int acc_waits;
-    int acc_wait_read, acc_wait_write;
-    double last_reset;
-    std::mutex read_mutex, write_mutex, io_mutex, wait_mutex;
+    //! number of operations
+    size_t read_ops_ = 0, write_ops_ = 0;
+    //! number of bytes read/written
+    int64_t read_volume_ = 0, write_volume_ = 0;
+    //! number of cached operations
+    size_t cached_read_ops_ = 0, cached_write_ops_ = 0;
+    //! number of bytes read/written from/to cache
+    int64_t cached_read_volume_ = 0, cached_write_volume_ = 0;
+    //! seconds spent in operations
+    double read_time_ = 0.0, write_time_ = 0.0;
+    //! seconds spent in parallel operations
+    double parallel_read_time_ = 0.0, parallel_write_time_ = 0.0;
+    //! start time of parallel operation
+    double parallel_read_begin_ = 0.0, parallel_write_begin_ = 0.0;
+    //! seconds spent in all parallel I/O operations (read and write)
+    double parallel_io_time_ = 0.0;
+    double parallel_io_begin_ = 0.0;
+    //! seconds spent waiting for completion of I/O operations
+    double io_wait_time_ = 0.0, parallel_wait_time_ = 0.0;
+    double parallel_wait_begin_ = 0.0;
+    double read_wait_time_ = 0.0, parallel_wait_read_time_ = 0.0;
+    double parallel_wait_read_begin_ = 0.0;
+    double write_wait_time_ = 0.0, parallel_wait_write_time_ = 0.0;
+    double parallel_wait_write_begin_ = 0.0;
+    //! number of requests, participating in parallel operation
+    int acc_reads_ = 0, acc_writes_ = 0;
+    int acc_ios_ = 0;
+    int acc_waits_ = 0;
+    int acc_wait_read_ = 0, acc_wait_write_ = 0;
+    double last_reset_time_ = 0.0;
+
+    std::mutex read_mutex_, write_mutex_, io_mutex_, wait_mutex_;
 
     Stats();
 
 public:
-    enum wait_op_type {
-        WAIT_OP_ANY,
-        WAIT_OP_READ,
-        WAIT_OP_WRITE
+    enum class WaitOp {
+        ANY, READ, WRITE
     };
 
-    class scoped_read_write_timer
+    class ScopedReadWriteTimer
     {
         using size_type = size_t;
 
-        bool is_write;
+        bool is_write_;
 #if THRILL_IO_STATS
-        bool running;
+        bool running_;
 #endif
 
     public:
-        explicit scoped_read_write_timer(size_type size, bool is_write = false)
-            : is_write(is_write)
+        explicit ScopedReadWriteTimer(size_type size, bool is_write = false)
+            : is_write_(is_write)
 #if THRILL_IO_STATS
-              , running(false)
+              , running_(false)
 #endif
         {
-            start(size);
+            Start(size);
         }
 
-        ~scoped_read_write_timer() {
-            stop();
+        ~ScopedReadWriteTimer() {
+            Stop();
         }
 
-        void start(size_type size) {
+        void Start(size_type size) {
 #if THRILL_IO_STATS
-            if (!running) {
-                running = true;
-                if (is_write)
-                    Stats::get_instance()->write_started(size);
+            if (!running_) {
+                running_ = true;
+                if (is_write_)
+                    Stats::GetInstance()->write_started(size);
                 else
-                    Stats::get_instance()->read_started(size);
+                    Stats::GetInstance()->read_started(size);
             }
 #else
             common::THRILL_UNUSED(size);
 #endif
         }
 
-        void stop() {
+        void Stop() {
 #if THRILL_IO_STATS
-            if (running) {
-                if (is_write)
-                    Stats::get_instance()->write_finished();
+            if (running_) {
+                if (is_write_)
+                    Stats::GetInstance()->write_finished();
                 else
-                    Stats::get_instance()->read_finished();
-                running = false;
+                    Stats::GetInstance()->read_finished();
+                running_ = false;
             }
 #endif
         }
     };
 
-    class scoped_write_timer
+    class ScopedWriteTimer
     {
         using size_type = size_t;
 
 #if THRILL_IO_STATS
-        bool running;
+        bool running_;
 #endif
 
     public:
-        explicit scoped_write_timer(size_type size)
+        explicit ScopedWriteTimer(size_type size)
 #if THRILL_IO_STATS
-            : running(false)
+            : running_(false)
 #endif
         {
-            start(size);
+            Start(size);
         }
 
-        ~scoped_write_timer() {
-            stop();
+        ~ScopedWriteTimer() {
+            Stop();
         }
 
-        void start(size_type size) {
+        void Start(size_type size) {
 #if THRILL_IO_STATS
-            if (!running) {
-                running = true;
-                Stats::get_instance()->write_started(size);
+            if (!running_) {
+                running_ = true;
+                Stats::GetInstance()->write_started(size);
             }
 #else
             common::THRILL_UNUSED(size);
 #endif
         }
 
-        void stop() {
+        void Stop() {
 #if THRILL_IO_STATS
-            if (running) {
-                Stats::get_instance()->write_finished();
-                running = false;
+            if (running_) {
+                Stats::GetInstance()->write_finished();
+                running_ = false;
             }
 #endif
         }
     };
 
-    class scoped_read_timer
+    class ScopedReadTimer
     {
         using size_type = size_t;
 
 #if THRILL_IO_STATS
-        bool running;
+        bool running_;
 #endif
 
     public:
-        explicit scoped_read_timer(size_type size)
+        explicit ScopedReadTimer(size_type size)
 #if THRILL_IO_STATS
-            : running(false)
+            : running_(false)
 #endif
         {
-            start(size);
+            Start(size);
         }
 
-        ~scoped_read_timer() {
-            stop();
+        ~ScopedReadTimer() {
+            Stop();
         }
 
-        void start(size_type size) {
+        void Start(size_type size) {
 #if THRILL_IO_STATS
-            if (!running) {
-                running = true;
-                Stats::get_instance()->read_started(size);
+            if (!running_) {
+                running_ = true;
+                Stats::GetInstance()->read_started(size);
             }
 #else
             common::THRILL_UNUSED(size);
 #endif
         }
 
-        void stop() {
+        void Stop() {
 #if THRILL_IO_STATS
-            if (running) {
-                Stats::get_instance()->read_finished();
-                running = false;
+            if (running_) {
+                Stats::GetInstance()->read_finished();
+                running_ = false;
             }
 #endif
         }
     };
 
-    class scoped_wait_timer
+    class ScopedWaitTimer
     {
 #ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
-        bool running;
-        wait_op_type wait_op;
+        bool running_;
+        WaitOp wait_op_;
 #endif
 
     public:
-        explicit scoped_wait_timer(wait_op_type wait_op, bool measure_time = true)
+        explicit ScopedWaitTimer(WaitOp wait_op, bool measure_time = true)
 #ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
-            : running(false), wait_op(wait_op)
+            : running_(false), wait_op_(wait_op)
 #endif
         {
             if (measure_time)
-                start();
+                Start();
         }
 
-        ~scoped_wait_timer() {
-            stop();
+        ~ScopedWaitTimer() {
+            Stop();
         }
 
-        void start() {
+        void Start() {
 #ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
-            if (!running) {
-                running = true;
-                Stats::get_instance()->wait_started(wait_op);
+            if (!running_) {
+                running_ = true;
+                Stats::GetInstance()->wait_started(wait_op_);
             }
 #endif
         }
 
-        void stop() {
+        void Stop() {
 #ifndef THRILL_DO_NOT_COUNT_WAIT_TIME
-            if (running) {
-                Stats::get_instance()->wait_finished(wait_op);
-                running = false;
+            if (running_) {
+                Stats::GetInstance()->wait_finished(wait_op_);
+                running_ = false;
             }
 #endif
         }
     };
 
 public:
-    //! Returns total number of reads.
-    //! \return total number of reads
-    size_t get_reads() const {
-        return reads;
-    }
+    //! Returns total number of read_ops.
+    size_t read_ops() const { return read_ops_; }
 
-    //! Returns total number of writes.
-    //! \return total number of writes
-    size_t get_writes() const {
-        return writes;
-    }
+    //! Returns total number of write_ops.
+    size_t write_ops() const { return write_ops_; }
 
     //! Returns number of bytes read from disks.
-    //! \return number of bytes read
-    int64_t get_read_volume() const {
-        return volume_read;
-    }
+    int64_t read_volume() const { return read_volume_; }
 
     //! Returns number of bytes written to the disks.
-    //! \return number of bytes written
-    int64_t get_written_volume() const {
-        return volume_written;
-    }
+    int64_t write_volume() const { return write_volume_; }
 
     //! Returns total number of reads served from cache.
-    //! \return total number of cached reads
-    size_t get_cached_reads() const {
-        return c_reads;
-    }
+    size_t cached_read_ops() const { return cached_read_ops_; }
 
-    //! Returns total number of cached writes.
-    //! \return total number of cached writes
-    size_t get_cached_writes() const {
-        return c_writes;
-    }
+    //! Returns total number of cached write_ops.
+    size_t cached_write_ops() const { return cached_write_ops_; }
 
     //! Returns number of bytes read from cache.
-    //! \return number of bytes read from cache
-    int64_t get_cached_read_volume() const {
-        return c_volume_read;
-    }
+    int64_t cached_read_volume() const { return cached_read_volume_; }
 
     //! Returns number of bytes written to the cache.
-    //! \return number of bytes written to cache
-    int64_t get_cached_written_volume() const {
-        return c_volume_written;
-    }
+    int64_t cached_write_volume() const { return cached_write_volume_; }
 
-    //! Time that would be spent in read syscalls if all parallel reads were serialized.
-    //! \return seconds spent in reading
-    double get_read_time() const {
-        return t_reads;
-    }
+    //! Time that would be spent in read syscalls if all parallel read_ops were
+    //! serialized.
+    double read_time() const { return read_time_; }
 
-    //! Time that would be spent in write syscalls if all parallel writes were serialized.
-    //! \return seconds spent in writing
-    double get_write_time() const {
-        return t_writes;
-    }
+    //! Time that would be spent in write syscalls if all parallel write_ops were
+    //! serialized.
+    double write_time() const { return write_time_; }
 
     //! Period of time when at least one I/O thread was executing a read.
-    //! \return seconds spent in reading
-    double get_pread_time() const {
-        return p_reads;
-    }
+    double parallel_read_time() const { return parallel_read_time_; }
 
     //! Period of time when at least one I/O thread was executing a write.
-    //! \return seconds spent in writing
-    double get_pwrite_time() const {
-        return p_writes;
-    }
+    double parallel_write_time() const { return parallel_write_time_; }
 
-    //! Period of time when at least one I/O thread was executing a read or a write.
-    //! \return seconds spent in I/O
-    double get_pio_time() const {
-        return p_ios;
-    }
+    //! Period of time when at least one I/O thread was executing a read or a
+    //! write.
+    double parallel_io_time() const { return parallel_io_time_; }
 
     //! I/O wait time counter.
-    //! \return number of seconds spent in I/O waiting functions \link
-    //! Request::wait request::wait \endlink, \c wait_any and \c wait_all
-    double get_io_wait_time() const {
-        return t_waits;
-    }
+    double io_wait_time() const { return io_wait_time_; }
 
-    double get_wait_read_time() const {
-        return t_wait_read;
-    }
+    double read_wait_time() const { return read_wait_time_; }
 
-    double get_wait_write_time() const {
-        return t_wait_write;
-    }
+    double write_wait_time() const { return write_wait_time_; }
 
     //! Return time of the last reset.
-    //! \return seconds passed from the last reset()
-    double get_last_reset_time() const {
-        return last_reset;
-    }
+    double last_reset_time() const { return last_reset_time_; }
 
     // for library use
-    void write_started(size_t size_, double now = 0.0);
-    void write_canceled(size_t size_);
+    void write_started(size_t size, double now = 0.0);
+    void write_canceled(size_t size);
     void write_finished();
-    void write_cached(size_t size_);
-    void read_started(size_t size_, double now = 0.0);
-    void read_canceled(size_t size_);
+    void write_cached(size_t size);
+    void read_started(size_t size, double now = 0.0);
+    void read_canceled(size_t size);
     void read_finished();
-    void read_cached(size_t size_);
-    void wait_started(wait_op_type wait_op);
-    void wait_finished(wait_op_type wait_op);
+    void read_cached(size_t size);
+    void wait_started(WaitOp wait_op);
+    void wait_finished(WaitOp wait_op);
 };
 
 #if !THRILL_IO_STATS
-inline void Stats::write_started(size_t size_, double now) {
-    common::THRILL_UNUSED(size_);
+inline void Stats::write_started(size_t size, double now) {
+    common::THRILL_UNUSED(size);
     common::THRILL_UNUSED(now);
 }
-inline void Stats::write_cached(size_t size_) {
-    common::THRILL_UNUSED(size_);
+inline void Stats::write_cached(size_t size) {
+    common::THRILL_UNUSED(size);
 }
 inline void Stats::write_finished() { }
-inline void Stats::read_started(size_t size_, double now) {
-    common::THRILL_UNUSED(size_);
+inline void Stats::read_started(size_t size, double now) {
+    common::THRILL_UNUSED(size);
     common::THRILL_UNUSED(now);
 }
-inline void Stats::read_cached(size_t size_) {
-    common::THRILL_UNUSED(size_);
+inline void Stats::read_cached(size_t size) {
+    common::THRILL_UNUSED(size);
 }
 inline void Stats::read_finished() { }
 #endif
+
 #ifdef THRILL_DO_NOT_COUNT_WAIT_TIME
-inline void Stats::wait_started(wait_op_type) { }
-inline void Stats::wait_finished(wait_op_type) { }
+inline void Stats::wait_started(WaitOp) { }
+inline void Stats::wait_finished(WaitOp) { }
 #endif
 
 class StatsData
 {
     //! number of operations
-    size_t reads, writes;
+    size_t read_ops_ = 0, write_ops_ = 0;
     //! number of bytes read/written
-    int64_t volume_read, volume_written;
+    int64_t read_volume_ = 0, write_volume_ = 0;
     //! number of cached operations
-    size_t c_reads, c_writes;
+    size_t cached_read_ops_ = 0, cached_write_ops_ = 0;
     //! number of bytes read/written from/to cache
-    int64_t c_volume_read, c_volume_written;
+    int64_t cached_read_volume_ = 0, cached_write_volume_ = 0;
     //! seconds spent in operations
-    double t_reads, t_writes;
+    double read_time_ = 0.0, write_time_ = 0.0;
     //! seconds spent in parallel operations
-    double p_reads, p_writes;
+    double parallel_read_time_ = 0.0, parallel_write_time_ = 0.0;
     //! seconds spent in all parallel I/O operations (read and write)
-    double p_ios;
+    double parallel_io_time_ = 0.0;
     //! seconds spent waiting for completion of I/O operations
-    double t_wait;
-    double t_wait_read, t_wait_write;
-    double elapsed;
+    double io_wait_time_ = 0.0;
+    double read_wait_time_ = 0.0, write_wait_time_ = 0.0;
+    double elapsed_time_ = 0.0;
 
 public:
-    StatsData()
-        : reads(0),
-          writes(0),
-          volume_read(0),
-          volume_written(0),
-          c_reads(0),
-          c_writes(0),
-          c_volume_read(0),
-          c_volume_written(0),
-          t_reads(0.0),
-          t_writes(0.0),
-          p_reads(0.0),
-          p_writes(0.0),
-          p_ios(0.0),
-          t_wait(0.0),
-          t_wait_read(0.0),
-          t_wait_write(0.0),
-          elapsed(0.0)
-    { }
+    StatsData() = default;
 
     explicit StatsData(const Stats& s)
-        : reads(s.get_reads()),
-          writes(s.get_writes()),
-          volume_read(s.get_read_volume()),
-          volume_written(s.get_written_volume()),
-          c_reads(s.get_cached_reads()),
-          c_writes(s.get_cached_writes()),
-          c_volume_read(s.get_cached_read_volume()),
-          c_volume_written(s.get_cached_written_volume()),
-          t_reads(s.get_read_time()),
-          t_writes(s.get_write_time()),
-          p_reads(s.get_pread_time()),
-          p_writes(s.get_pwrite_time()),
-          p_ios(s.get_pio_time()),
-          t_wait(s.get_io_wait_time()),
-          t_wait_read(s.get_wait_read_time()),
-          t_wait_write(s.get_wait_write_time()),
-          elapsed(timestamp() - s.get_last_reset_time())
+        : read_ops_(s.read_ops()),
+          write_ops_(s.write_ops()),
+          read_volume_(s.read_volume()),
+          write_volume_(s.write_volume()),
+          cached_read_ops_(s.cached_read_ops()),
+          cached_write_ops_(s.cached_write_ops()),
+          cached_read_volume_(s.cached_read_volume()),
+          cached_write_volume_(s.cached_write_volume()),
+          read_time_(s.read_time()),
+          write_time_(s.write_time()),
+          parallel_read_time_(s.parallel_read_time()),
+          parallel_write_time_(s.parallel_write_time()),
+          parallel_io_time_(s.parallel_io_time()),
+          io_wait_time_(s.io_wait_time()),
+          read_wait_time_(s.read_wait_time()),
+          write_wait_time_(s.write_wait_time()),
+          elapsed_time_(timestamp() - s.last_reset_time())
     { }
 
     StatsData operator + (const StatsData& a) const {
         StatsData s;
-        s.reads = reads + a.reads;
-        s.writes = writes + a.writes;
-        s.volume_read = volume_read + a.volume_read;
-        s.volume_written = volume_written + a.volume_written;
-        s.c_reads = c_reads + a.c_reads;
-        s.c_writes = c_writes + a.c_writes;
-        s.c_volume_read = c_volume_read + a.c_volume_read;
-        s.c_volume_written = c_volume_written + a.c_volume_written;
-        s.t_reads = t_reads + a.t_reads;
-        s.t_writes = t_writes + a.t_writes;
-        s.p_reads = p_reads + a.p_reads;
-        s.p_writes = p_writes + a.p_writes;
-        s.p_ios = p_ios + a.p_ios;
-        s.t_wait = t_wait + a.t_wait;
-        s.t_wait_read = t_wait_read + a.t_wait_read;
-        s.t_wait_write = t_wait_write + a.t_wait_write;
-        s.elapsed = elapsed + a.elapsed;
+        s.read_ops_ = read_ops_ + a.read_ops_;
+        s.write_ops_ = write_ops_ + a.write_ops_;
+        s.read_volume_ = read_volume_ + a.read_volume_;
+        s.write_volume_ = write_volume_ + a.write_volume_;
+        s.cached_read_ops_ = cached_read_ops_ + a.cached_read_ops_;
+        s.cached_write_ops_ = cached_write_ops_ + a.cached_write_ops_;
+        s.cached_read_volume_ = cached_read_volume_ + a.cached_read_volume_;
+        s.cached_write_volume_ = cached_write_volume_ + a.cached_write_volume_;
+        s.read_time_ = read_time_ + a.read_time_;
+        s.write_time_ = write_time_ + a.write_time_;
+        s.parallel_read_time_ = parallel_read_time_ + a.parallel_read_time_;
+        s.parallel_write_time_ = parallel_write_time_ + a.parallel_write_time_;
+        s.parallel_io_time_ = parallel_io_time_ + a.parallel_io_time_;
+        s.io_wait_time_ = io_wait_time_ + a.io_wait_time_;
+        s.read_wait_time_ = read_wait_time_ + a.read_wait_time_;
+        s.write_wait_time_ = write_wait_time_ + a.write_wait_time_;
+        s.elapsed_time_ = elapsed_time_ + a.elapsed_time_;
         return s;
     }
 
     StatsData operator - (const StatsData& a) const {
         StatsData s;
-        s.reads = reads - a.reads;
-        s.writes = writes - a.writes;
-        s.volume_read = volume_read - a.volume_read;
-        s.volume_written = volume_written - a.volume_written;
-        s.c_reads = c_reads - a.c_reads;
-        s.c_writes = c_writes - a.c_writes;
-        s.c_volume_read = c_volume_read - a.c_volume_read;
-        s.c_volume_written = c_volume_written - a.c_volume_written;
-        s.t_reads = t_reads - a.t_reads;
-        s.t_writes = t_writes - a.t_writes;
-        s.p_reads = p_reads - a.p_reads;
-        s.p_writes = p_writes - a.p_writes;
-        s.p_ios = p_ios - a.p_ios;
-        s.t_wait = t_wait - a.t_wait;
-        s.t_wait_read = t_wait_read - a.t_wait_read;
-        s.t_wait_write = t_wait_write - a.t_wait_write;
-        s.elapsed = elapsed - a.elapsed;
+        s.read_ops_ = read_ops_ - a.read_ops_;
+        s.write_ops_ = write_ops_ - a.write_ops_;
+        s.read_volume_ = read_volume_ - a.read_volume_;
+        s.write_volume_ = write_volume_ - a.write_volume_;
+        s.cached_read_ops_ = cached_read_ops_ - a.cached_read_ops_;
+        s.cached_write_ops_ = cached_write_ops_ - a.cached_write_ops_;
+        s.cached_read_volume_ = cached_read_volume_ - a.cached_read_volume_;
+        s.cached_write_volume_ = cached_write_volume_ - a.cached_write_volume_;
+        s.read_time_ = read_time_ - a.read_time_;
+        s.write_time_ = write_time_ - a.write_time_;
+        s.parallel_read_time_ = parallel_read_time_ - a.parallel_read_time_;
+        s.parallel_write_time_ = parallel_write_time_ - a.parallel_write_time_;
+        s.parallel_io_time_ = parallel_io_time_ - a.parallel_io_time_;
+        s.io_wait_time_ = io_wait_time_ - a.io_wait_time_;
+        s.read_wait_time_ = read_wait_time_ - a.read_wait_time_;
+        s.write_wait_time_ = write_wait_time_ - a.write_wait_time_;
+        s.elapsed_time_ = elapsed_time_ - a.elapsed_time_;
         return s;
     }
 
-    size_t get_reads() const {
-        return reads;
+    size_t read_ops() const {
+        return read_ops_;
     }
 
-    size_t get_writes() const {
-        return writes;
+    size_t write_ops() const {
+        return write_ops_;
     }
 
-    int64_t get_read_volume() const {
-        return volume_read;
+    int64_t read_volume() const {
+        return read_volume_;
     }
 
-    int64_t get_written_volume() const {
-        return volume_written;
+    int64_t write_volume() const {
+        return write_volume_;
     }
 
-    size_t get_cached_reads() const {
-        return c_reads;
+    size_t cached_read_ops() const {
+        return cached_read_ops_;
     }
 
-    size_t get_cached_writes() const {
-        return c_writes;
+    size_t cached_write_ops() const {
+        return cached_write_ops_;
     }
 
-    int64_t get_cached_read_volume() const {
-        return c_volume_read;
+    int64_t cached_read_volume() const {
+        return cached_read_volume_;
     }
 
-    int64_t get_cached_written_volume() const {
-        return c_volume_written;
+    int64_t cached_write_volume() const {
+        return cached_write_volume_;
     }
 
-    double get_read_time() const {
-        return t_reads;
+    double read_time() const {
+        return read_time_;
     }
 
-    double get_write_time() const {
-        return t_writes;
+    double write_time() const {
+        return write_time_;
     }
 
-    double get_pread_time() const {
-        return p_reads;
+    double parallel_read_time() const {
+        return parallel_read_time_;
     }
 
-    double get_pwrite_time() const {
-        return p_writes;
+    double parallel_write_time() const {
+        return parallel_write_time_;
     }
 
-    double get_pio_time() const {
-        return p_ios;
+    double parallel_io_time() const {
+        return parallel_io_time_;
     }
 
-    double get_elapsed_time() const {
-        return elapsed;
+    double elapsed_time() const {
+        return elapsed_time_;
     }
 
-    double get_io_wait_time() const {
-        return t_wait;
+    double io_wait_time() const {
+        return io_wait_time_;
     }
 
-    double get_wait_read_time() const {
-        return t_wait_read;
+    double read_wait_time() const {
+        return read_wait_time_;
     }
 
-    double get_wait_write_time() const {
-        return t_wait_write;
+    double write_wait_time() const {
+        return write_wait_time_;
     }
 };
 
@@ -580,13 +518,16 @@ inline std::ostream& operator << (std::ostream& o, const Stats& s) {
     return o;
 }
 
-std::string format_with_SI_IEC_unit_multiplier(uint64_t number, const char* unit = "", int multiplier = 1000);
+std::string format_with_SI_IEC_unit_multiplier(
+    uint64_t number, const char* unit = "", int multiplier = 1000);
 
-inline std::string add_IEC_binary_multiplier(uint64_t number, const char* unit = "") {
+static inline
+std::string add_IEC_binary_multiplier(uint64_t number, const char* unit = "") {
     return format_with_SI_IEC_unit_multiplier(number, unit, 1024);
 }
 
-inline std::string add_SI_multiplier(uint64_t number, const char* unit = "") {
+static inline
+std::string add_SI_multiplier(uint64_t number, const char* unit = "") {
     return format_with_SI_IEC_unit_multiplier(number, unit, 1000);
 }
 

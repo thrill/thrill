@@ -32,16 +32,16 @@ void LinuxaioRequest::completed(bool posted, bool canceled) {
     if (!canceled)
     {
         if (type_ == READ)
-            Stats::get_instance()->read_finished();
+            Stats::GetInstance()->read_finished();
         else
-            Stats::get_instance()->write_finished();
+            Stats::GetInstance()->write_finished();
     }
     else if (posted)
     {
         if (type_ == READ)
-            Stats::get_instance()->read_canceled(bytes_);
+            Stats::GetInstance()->read_canceled(bytes_);
         else
-            Stats::get_instance()->write_canceled(bytes_);
+            Stats::GetInstance()->write_canceled(bytes_);
     }
     Request::completed(canceled);
 }
@@ -71,14 +71,14 @@ bool LinuxaioRequest::post() {
     // time before the call.
     double now = timestamp();
     LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
-        DiskQueues::get_instance()->get_queue(file_->get_queue_id()));
+        DiskQueues::GetInstance()->get_queue(file_->get_queue_id()));
     long success = syscall(SYS_io_submit, queue->io_context(), 1, &cb_pointer);
     if (success == 1)
     {
         if (type_ == READ)
-            Stats::get_instance()->read_started(bytes_, now);
+            Stats::GetInstance()->read_started(bytes_, now);
         else
-            Stats::get_instance()->write_started(bytes_, now);
+            Stats::GetInstance()->write_started(bytes_, now);
     }
     else if (success == -1 && errno != EAGAIN)
         THRILL_THROW_ERRNO(IoError, "LinuxaioRequest::post"
@@ -97,7 +97,7 @@ bool LinuxaioRequest::cancel() {
 
     RequestPtr req(this);
     LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
-        DiskQueues::get_instance()->get_queue(file_->get_queue_id()));
+        DiskQueues::GetInstance()->get_queue(file_->get_queue_id()));
     return queue->cancel_request(req);
 }
 
@@ -109,7 +109,7 @@ bool LinuxaioRequest::cancel_aio() {
 
     io_event event;
     LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
-        DiskQueues::get_instance()->get_queue(file_->get_queue_id()));
+        DiskQueues::GetInstance()->get_queue(file_->get_queue_id()));
     long result = syscall(SYS_io_cancel, queue->io_context(), &cb_, &event);
     if (result == 0)    //successfully canceled
         queue->handle_events(&event, 1, true);

@@ -51,7 +51,7 @@ public:
     { }
 
     Striping() : begin_(0) {
-        diff_ = Config::get_instance()->disks_number();
+        diff_ = Config::GetInstance()->disks_number();
     }
 
     size_t operator () (size_t i) const {
@@ -153,8 +153,8 @@ struct RCDisk : public RandomCyclic
     RCDisk(size_t b, size_t e) : RandomCyclic(b, e)
     { }
 
-    RCDisk() : RandomCyclic(Config::get_instance()->regular_disk_range().first,
-                            Config::get_instance()->regular_disk_range().second)
+    RCDisk() : RandomCyclic(Config::GetInstance()->regular_disk_range().first,
+                            Config::GetInstance()->regular_disk_range().second)
     { }
 
     static const char * name() {
@@ -167,8 +167,8 @@ struct RCFlash : public RandomCyclic
     RCFlash(size_t b, size_t e) : RandomCyclic(b, e)
     { }
 
-    RCFlash() : RandomCyclic(Config::get_instance()->flash_range().first,
-                             Config::get_instance()->flash_range().second)
+    RCFlash() : RandomCyclic(Config::GetInstance()->flash_range().first,
+                             Config::GetInstance()->flash_range().second)
     { }
 
     static const char * name() {

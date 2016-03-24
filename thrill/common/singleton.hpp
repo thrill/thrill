@@ -32,8 +32,8 @@ class Singleton
 
     static volatile_instance_pointer instance_;
 
-    static instance_pointer create_instance();
-    static void destroy_instance();
+    static instance_pointer CreateInstance();
+    static void DestroyInstance();
 
 public:
     Singleton() = default;
@@ -47,9 +47,9 @@ public:
     //! move-assignment operator: default
     Singleton& operator = (Singleton&&) = default;
 
-    inline static instance_pointer get_instance() {
+    inline static instance_pointer GetInstance() {
         if (!instance_)
-            return create_instance();
+            return CreateInstance();
 
         return instance_;
     }
@@ -57,19 +57,19 @@ public:
 
 template <typename Instance, bool destroy_on_exit>
 typename Singleton<Instance, destroy_on_exit>::instance_pointer
-Singleton<Instance, destroy_on_exit>::create_instance() {
+Singleton<Instance, destroy_on_exit>::CreateInstance() {
     static std::mutex create_mutex;
     std::unique_lock<std::mutex> lock(create_mutex);
     if (!instance_) {
         instance_ = new instance_type();
         if (destroy_on_exit)
-            atexit(destroy_instance);
+            atexit(DestroyInstance);
     }
     return instance_;
 }
 
 template <typename Instance, bool destroy_on_exit>
-void Singleton<Instance, destroy_on_exit>::destroy_instance() {
+void Singleton<Instance, destroy_on_exit>::DestroyInstance() {
     instance_pointer inst = instance_;
     // instance = nullptr;
     instance_ = reinterpret_cast<instance_pointer>(size_t(-1));     // bomb if used again

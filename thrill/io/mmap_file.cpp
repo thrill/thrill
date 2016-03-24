@@ -31,7 +31,7 @@ void MmapFile::serve(void* buffer, offset_type offset, size_type bytes,
 
     // assert(offset + bytes <= _size());
 
-    Stats::scoped_read_write_timer read_write_timer(bytes, type == Request::WRITE);
+    Stats::ScopedReadWriteTimer read_write_timer(bytes, type == Request::WRITE);
 
     int prot = (type == Request::READ) ? PROT_READ : PROT_WRITE;
     void* mem = mmap(nullptr, bytes, prot, MAP_SHARED, file_des_, offset);
