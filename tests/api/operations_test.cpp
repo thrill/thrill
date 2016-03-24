@@ -26,6 +26,7 @@
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
+#include <thrill/api/sample.hpp>
 
 #include <gtest/gtest.h>
 
@@ -36,6 +37,8 @@
 #include <vector>
 
 using namespace thrill; // NOLINT
+
+static constexpr bool debug = false;
 
 class Integer
 {
@@ -346,6 +349,27 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
             static_assert(
                 std::is_same<decltype(doubled)::StackInput, size_t>::value,
                 "Node must be size_t");
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, SampleCompileAndExecute) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+            size_t n = 1024;
+
+            auto sizets = Generate(ctx, n);
+
+            // sample
+            auto reduced1 = sizets.Sample(0.25);
+            auto reduced2 = sizets.Sample(0.05);
+            auto out_vec1 = reduced1.AllGather();
+            auto out_vec2 = reduced2.AllGather();
+
+            LOG << "result size 0.25: " << out_vec1.size() << " / " << sizets.Size();
+            LOG << "result size 0.05: " << out_vec2.size() << " / " << sizets.Size();
         };
 
     api::RunLocalTests(start_func);
