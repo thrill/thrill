@@ -126,7 +126,7 @@ private:
 
         double p_sum = 0.0;
         for (size_t k = 1; k < N + 1; ++k) {
-            double prob = 1.0 / std::pow(static_cast<double>(k + q), s);
+            double prob = 1.0 / std::pow(static_cast<double>(k) + q, s);
             p_sum += prob;
             probs[k - 1] = prob;
         }

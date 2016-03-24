@@ -137,7 +137,7 @@ int main() {
         int acc = 0;
         std::default_random_engine prng(std::random_device { } ());
         for (int i = 0; i < s; ++i) {
-            int x = prng();
+            int x = static_cast<int>(prng());
             acc += BenchmarkSerialization(x, 1);
         }
         PrintSQLPlotTool("int", s, iterations, acc);

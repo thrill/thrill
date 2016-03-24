@@ -152,7 +152,7 @@ public:
     explicit ComponentSum(const Operation& op = Operation()) : op_(op) { }
     ArrayType operator () (const ArrayType& a, const ArrayType& b) const {
         ArrayType out;
-        for (size_t i = 0; i < a.size(); ++i) out[i] = op_(a[i], b[i]);
+        for (size_t i = 0; i < N; ++i) out[i] = op_(a[i], b[i]);
         return out;
     }
 

@@ -94,7 +94,7 @@ TEST(MemPool, SetRandom) {
         size_t op = rng() % 2;
         if (op == 0 && limit > i + check_set.size())
         {
-            int v = rng();
+            int v = static_cast<int>(rng());
             my_set.insert(v);
             check_set.insert(
                 std::lower_bound(check_set.begin(), check_set.end(), v), v);

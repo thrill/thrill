@@ -179,8 +179,8 @@ public:
                  << " avg_element_size="
                  << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " reader=" << reader_type_
-                 << " write_time=" << write_timer.Microseconds()
-                 << " read_time=" << read_timer.Microseconds()
+                 << " write_time=" << write_timer.SecondsDouble()
+                 << " read_time=" << read_timer.SecondsDouble()
                  << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
                  << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
         }
@@ -288,7 +288,7 @@ public:
                  << " avg_element_size="
                  << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " reader=" << reader_type_
-                 << " write_time=" << write_timer.Microseconds()
+                 << " write_time=" << write_timer.SecondsDouble()
                  << " read_time=" << read_time
                  << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
                  << " read_speed_MiBs=" << CalcMiBs(bytes_, read_time)
@@ -381,8 +381,7 @@ public:
              << "inner_repeat" << inner_repeat
              << bw << "MiB/s"
              << "total_bytes" << data.TotalBytes()
-             << "time"
-             << (static_cast<double>(write_timer.Microseconds()) * 1e-6);
+             << "time" << write_timer;
 
         bandwidth_write_(ctx.my_rank(), peer_id).Add(bw);
     }
@@ -417,8 +416,7 @@ public:
              << "inner_repeat" << inner_repeat
              << bw << "MiB/s"
              << "total_bytes" << data.TotalBytes()
-             << "time"
-             << (static_cast<double>(read_timer.Microseconds()) * 1e-6);
+             << "time" << read_timer;
 
         bandwidth_read_(ctx.my_rank(), peer_id).Add(bw);
     }
@@ -503,7 +501,7 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
              << " block_size=" << block_size_
              << " avg_element_size="
              << static_cast<double>(min_size_ + max_size_) / 2.0
-             << " total_time=" << timer.Microseconds();
+             << " total_time=" << timer;
     }
 
     ctx.net.Barrier();
@@ -619,9 +617,9 @@ public:
                  << " block_size=" << block_size_
                  << " avg_element_size="
                  << static_cast<double>(min_size_ + max_size_) / 2.0
-                 << " total_time=" << total_timer.Microseconds()
+                 << " total_time=" << total_timer
                  << " write_time=" << write_time
-                 << " read_time=" << read_timer.Microseconds()
+                 << " read_time=" << read_timer
                  << " total_speed_MiBs=" << CalcMiBs(bytes_, total_timer)
                  << " write_speed_MiBs=" << CalcMiBs(bytes_, write_time)
                  << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
@@ -749,9 +747,9 @@ public:
                  << " block_size=" << block_size_
                  << " avg_element_size="
                  << static_cast<double>(min_size_ + max_size_) / 2.0
-                 << " total_time=" << total_timer.Microseconds()
+                 << " total_time=" << total_timer
                  << " write_time=" << write_time
-                 << " read_time=" << read_timer.Microseconds()
+                 << " read_time=" << read_timer
                  << " total_speed_MiBs=" << CalcMiBs(bytes_, total_timer)
                  << " write_speed_MiBs=" << CalcMiBs(bytes_, write_time)
                  << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);

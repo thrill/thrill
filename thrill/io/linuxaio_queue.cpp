@@ -143,7 +143,7 @@ void LinuxaioQueue::post_requests() {
     for ( ; ; ) // as long as thread is running
     {
         // might block until next request or message comes in
-        int num_currently_waiting_requests = num_waiting_requests_.wait();
+        size_t num_currently_waiting_requests = num_waiting_requests_.wait();
 
         // terminate if termination has been requested
         if (post_thread_state_() == TERMINATING && num_currently_waiting_requests == 0)
@@ -215,7 +215,7 @@ void LinuxaioQueue::wait_requests() {
     for ( ; ; ) // as long as thread is running
     {
         // might block until next request is posted or message comes in
-        int num_currently_posted_requests = num_posted_requests_.wait();
+        size_t num_currently_posted_requests = num_posted_requests_.wait();
 
         // terminate if termination has been requested
         if (wait_thread_state_() == TERMINATING && num_currently_posted_requests == 0)

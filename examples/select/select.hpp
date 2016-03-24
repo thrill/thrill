@@ -25,10 +25,10 @@
 #include <utility>
 #include <vector>
 
-using namespace thrill; // NOLINT
-
 namespace examples {
 namespace select {
+
+using namespace thrill;              // NOLINT
 
 static constexpr bool debug = false;
 
@@ -40,8 +40,9 @@ static constexpr size_t base_case_size = 1024;
 
 template <typename ValueType, typename InStack,
           typename Compare = std::less<ValueType> >
-auto PickPivots(const DIA<ValueType, InStack>&data, size_t size, size_t rank,
-                const Compare& compare = Compare()) {
+std::pair<ValueType, ValueType>
+PickPivots(const DIA<ValueType, InStack>& data, size_t size, size_t rank,
+           const Compare& compare = Compare()) {
     api::Context& ctx = data.context();
 
     const size_t num_workers(ctx.num_workers());

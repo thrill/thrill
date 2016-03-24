@@ -165,7 +165,7 @@ public:
 
         max_blocks_per_partition_ = std::max<size_t>(
             1,
-            (size_t)(limit_memory_bytes_
+            (size_t)(static_cast<double>(limit_memory_bytes_)
                      / static_cast<double>(num_partitions_)
                      / static_cast<double>(sizeof(BucketBlock))));
 
@@ -183,8 +183,7 @@ public:
         max_items_per_partition_ = max_blocks_per_partition_ * block_size_;
 
         limit_items_per_partition_ = (size_t)(
-            static_cast<double>(max_items_per_partition_)
-            * limit_fill_rate);
+            static_cast<double>(max_items_per_partition_) * limit_fill_rate);
 
         assert(max_items_per_partition_ > 0);
         assert(limit_items_per_partition_ >= 0);

@@ -100,7 +100,7 @@ TEST(Meta, VariadicMapIndex) {
     auto res = common::VariadicMapIndex(
         [](auto index, auto a) {
             Functor().Run(a);
-            return a + index;
+            return a + decltype(a)(index);
         },
         // some argument to map.
         static_cast<int>(42), static_cast<double>(5), 'h');

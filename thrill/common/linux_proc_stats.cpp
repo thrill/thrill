@@ -65,7 +65,8 @@ public:
         if (curr < prev)
             return 0.0;
         else
-            return static_cast<double>(curr - prev) / base * 100.0;
+            return static_cast<double>(curr - prev)
+                   / static_cast<double>(base) * 100.0;
     }
 
     //! method to prepare JsonLine
@@ -480,9 +481,9 @@ void LinuxProcStats::read_net_dev(
     file_net_dev_.seekg(0);
     if (!file_net_dev_.good()) return;
 
-    unsigned long long elapsed
-        = std::chrono::duration_cast<std::chrono::microseconds>(
-        tp - tp_last_).count();
+    double elapsed = static_cast<double>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            tp - tp_last_).count()) / 1e6;
 
     NetDevStat sum;
     bool sum_output = false;
@@ -517,9 +518,9 @@ void LinuxProcStats::read_net_dev(
              << "rx_pkts" << curr.rx_pkts - prev.rx_pkts
              << "tx_pkts" << curr.tx_pkts - prev.tx_pkts
              << "rx_speed"
-             << static_cast<double>(curr.rx_bytes - prev.rx_bytes) / elapsed * 1e6
+             << static_cast<double>(curr.rx_bytes - prev.rx_bytes) / elapsed
              << "tx_speed"
-             << static_cast<double>(curr.tx_bytes - prev.tx_bytes) / elapsed * 1e6;
+             << static_cast<double>(curr.tx_bytes - prev.tx_bytes) / elapsed;
 
         sum.rx_bytes += curr.rx_bytes - prev.rx_bytes;
         sum.tx_bytes += curr.tx_bytes - prev.tx_bytes;
@@ -538,16 +539,16 @@ void LinuxProcStats::read_net_dev(
              << "tx_bytes" << sum.tx_bytes
              << "rx_pkts" << sum.rx_pkts
              << "tx_pkts" << sum.tx_pkts
-             << "rx_speed" << static_cast<double>(sum.rx_bytes) / elapsed * 1e6
-             << "tx_speed" << static_cast<double>(sum.tx_bytes) / elapsed * 1e6;
+             << "rx_speed" << static_cast<double>(sum.rx_bytes) / elapsed
+             << "tx_speed" << static_cast<double>(sum.tx_bytes) / elapsed;
 
         prepare_out(out)
             << "net_rx_bytes" << sum.rx_bytes
             << "net_tx_bytes" << sum.tx_bytes
             << "net_rx_pkts" << sum.rx_pkts
             << "net_tx_pkts" << sum.tx_pkts
-            << "net_rx_speed" << static_cast<double>(sum.rx_bytes) / elapsed * 1e6
-            << "net_tx_speed" << static_cast<double>(sum.tx_bytes) / elapsed * 1e6;
+            << "net_rx_speed" << static_cast<double>(sum.rx_bytes) / elapsed
+            << "net_tx_speed" << static_cast<double>(sum.tx_bytes) / elapsed;
     }
 }
 
@@ -578,9 +579,9 @@ void LinuxProcStats::read_pid_io(const steady_clock::time_point& tp, JsonLine& o
         return;
     }
 
-    unsigned long long elapsed
-        = std::chrono::duration_cast<std::chrono::microseconds>(
-        tp - tp_last_).count();
+    double elapsed = static_cast<double>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            tp - tp_last_).count()) / 1e6;
 
     PidIoStat& prev = pid_io_prev_;
 
@@ -588,17 +589,17 @@ void LinuxProcStats::read_pid_io(const steady_clock::time_point& tp, JsonLine& o
          << "read_bytes" << curr.read_bytes - prev.read_bytes
          << "write_bytes" << curr.write_bytes - prev.write_bytes
          << "read_speed"
-         << static_cast<double>(curr.read_bytes - prev.read_bytes) / elapsed * 1e6
+         << static_cast<double>(curr.read_bytes - prev.read_bytes) / elapsed
          << "write_speed"
-         << static_cast<double>(curr.write_bytes - prev.write_bytes) / elapsed * 1e6;
+         << static_cast<double>(curr.write_bytes - prev.write_bytes) / elapsed;
 
     prepare_out(out)
         << "pr_io_read_bytes" << curr.read_bytes - prev.read_bytes
         << "pr_io_write_bytes" << curr.read_bytes - prev.read_bytes
         << "pr_io_read_speed"
-        << static_cast<double>(curr.read_bytes - prev.read_bytes) / elapsed * 1e6
+        << static_cast<double>(curr.read_bytes - prev.read_bytes) / elapsed
         << "pr_io_write_speed"
-        << static_cast<double>(curr.write_bytes - prev.write_bytes) / elapsed * 1e6;
+        << static_cast<double>(curr.write_bytes - prev.write_bytes) / elapsed;
 
     prev = curr;
 }
@@ -668,27 +669,27 @@ void LinuxProcStats::read_diskstats(JsonLine& out) {
              << "rd_ios" << curr.rd_ios - prev.rd_ios
              << "rd_merged" << curr.rd_merged - prev.rd_merged
              << "rd_bytes" << (curr.rd_sectors - prev.rd_sectors) * 512
-             << "rd_time" << (curr.rd_time - prev.rd_time) / 1e3
+             << "rd_time" << double(curr.rd_time - prev.rd_time) / 1e3
              << "wr_ios" << curr.wr_ios - prev.wr_ios
              << "wr_merged" << curr.wr_merged - prev.wr_merged
              << "wr_bytes" << (curr.wr_sectors - prev.wr_sectors) * 512
-             << "wr_time" << (curr.wr_time - prev.wr_time) / 1e3
+             << "wr_time" << double(curr.wr_time - prev.wr_time) / 1e3
              << "ios_progr" << curr.ios_progr
-             << "total_time" << (curr.total_time - prev.total_time) / 1e3
-             << "rq_time" << (curr.rq_time - prev.rq_time) / 1e3;
+             << "total_time" << double(curr.total_time - prev.total_time) / 1e3
+             << "rq_time" << double(curr.rq_time - prev.rq_time) / 1e3;
 
         disks.sub(dev_name)
             << "rd_ios" << curr.rd_ios - prev.rd_ios
             << "rd_merged" << curr.rd_merged - prev.rd_merged
             << "rd_bytes" << (curr.rd_sectors - prev.rd_sectors) * 512
-            << "rd_time" << (curr.rd_time - prev.rd_time) / 1e3
+            << "rd_time" << double(curr.rd_time - prev.rd_time) / 1e3
             << "wr_ios" << curr.wr_ios - prev.wr_ios
             << "wr_merged" << curr.wr_merged - prev.wr_merged
             << "wr_bytes" << (curr.wr_sectors - prev.wr_sectors) * 512
-            << "wr_time" << (curr.wr_time - prev.wr_time) / 1e3
+            << "wr_time" << double(curr.wr_time - prev.wr_time) / 1e3
             << "ios_progr" << curr.ios_progr
-            << "total_time" << (curr.total_time - prev.total_time) / 1e3
-            << "rq_time" << (curr.rq_time - prev.rq_time) / 1e3;
+            << "total_time" << double(curr.total_time - prev.total_time) / 1e3
+            << "rq_time" << double(curr.rq_time - prev.rq_time) / 1e3;
 
         sum.rd_ios += curr.rd_ios - prev.rd_ios;
         sum.rd_merged += curr.rd_merged - prev.rd_merged;
@@ -713,14 +714,14 @@ void LinuxProcStats::read_diskstats(JsonLine& out) {
             << "rd_ios" << sum.rd_ios
             << "rd_merged" << sum.rd_merged
             << "rd_bytes" << sum.rd_sectors * 512
-            << "rd_time" << sum.rd_time / 1e3
+            << "rd_time" << double(sum.rd_time) / 1e3
             << "wr_ios" << sum.wr_ios
             << "wr_merged" << sum.wr_merged
             << "wr_bytes" << sum.wr_sectors * 512
-            << "wr_time" << sum.wr_time / 1e3
+            << "wr_time" << double(sum.wr_time) / 1e3
             << "ios_progr" << sum.ios_progr
-            << "total_time" << sum.total_time / 1e3
-            << "rq_time" << sum.rq_time / 1e3;
+            << "total_time" << double(sum.total_time) / 1e3
+            << "rq_time" << double(sum.rq_time) / 1e3;
     }
 }
 

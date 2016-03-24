@@ -38,7 +38,7 @@ ProfileThread::~ProfileThread() {
 
 bool ProfileThread::Remove(ProfileTask* task) {
     std::unique_lock<std::timed_mutex> lock(mutex_);
-    return tasks_.erase([task](const Timer& t) { return t.task == task; });
+    return tasks_.erase([task](const Timer& t) { return t.task == task; }) != 0;
 }
 
 void ProfileThread::Worker() {

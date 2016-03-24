@@ -60,7 +60,8 @@ TEST(PageRank, RandomZipfGraph) {
             for (size_t p = 0; p < num_pages; ++p) {
                 OutgoingLinks& links = outlinks[p];
                 for (size_t t = 0; t < links.size(); ++t) {
-                    contrib[links[t]] += ranks[p] / links.size();
+                    contrib[links[t]] +=
+                        ranks[p] / static_cast<double>(links.size());
                 }
             }
             // calculate new ranks from contributions

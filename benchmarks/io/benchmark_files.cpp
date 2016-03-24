@@ -269,7 +269,7 @@ int main(int argc, char* argv[]) {
                 wait_all(reqs, nfiles * current_num_blocks);
  #endif
 
-                elapsed = t_run.Microseconds() / 1e6;
+                elapsed = t_run.SecondsDouble();
                 totalsizewrite += current_step_size;
                 totaltimewrite += elapsed;
             }
@@ -314,7 +314,7 @@ int main(int argc, char* argv[]) {
                 wait_all(reqs, nfiles * current_num_blocks);
  #endif
 
-                elapsed = t_run.Microseconds() / 1e6;
+                elapsed = t_run.SecondsDouble();
                 totalsizeread += current_step_size;
                 totaltimeread += elapsed;
             }
@@ -411,14 +411,14 @@ int main(int argc, char* argv[]) {
         std::cout << "# Read time    " << std::setw(8) << std::setprecision(3) << totaltimeread << " s" << std::endl;
 
     std::cout << "# Non-I/O time " << std::setw(8) << std::setprecision(3)
-              << (t_total.Seconds() - totaltimewrite - totaltimeread) << " s, average throughput "
+              << (t_total.SecondsDouble() - totaltimewrite - totaltimeread) << " s, average throughput "
               << std::setw(8) << std::setprecision(3)
-              << (throughput(totalsizewrite + totalsizeread, t_total.Seconds() - totaltimewrite - totaltimeread) * static_cast<double>(nfiles)) << " MiB/s"
+              << (throughput(totalsizewrite + totalsizeread, t_total.SecondsDouble() - totaltimewrite - totaltimeread) * static_cast<double>(nfiles)) << " MiB/s"
               << std::endl;
 
-    std::cout << "# Total time   " << std::setw(8) << std::setprecision(3) << t_total.Seconds() << " s, average throughput "
+    std::cout << "# Total time   " << std::setw(8) << std::setprecision(3) << t_total.SecondsDouble() << " s, average throughput "
               << std::setw(8) << std::setprecision(3)
-              << (throughput(totalsizewrite + totalsizeread, t_total.Seconds()) * static_cast<double>(nfiles)) << " MiB/s"
+              << (throughput(totalsizewrite + totalsizeread, t_total.SecondsDouble()) * static_cast<double>(nfiles)) << " MiB/s"
               << std::endl;
 
     if (do_verify)

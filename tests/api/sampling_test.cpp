@@ -8,10 +8,11 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/api/sample.hpp>
+
 #include <gtest/gtest.h>
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/sample.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>

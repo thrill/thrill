@@ -124,7 +124,7 @@ public:
 
         num_buckets_per_partition_ = std::max<size_t>(
             1,
-            (size_t)(limit_memory_bytes_
+            (size_t)(static_cast<double>(limit_memory_bytes_)
                      / static_cast<double>(sizeof(KeyValuePair))
                      / static_cast<double>(num_partitions_)));
 
@@ -142,8 +142,8 @@ public:
                && "limit_partition_fill_rate must be between 0.0 and 1.0. "
                "with a fill rate of 0.0, items are immediately flushed.");
 
-        limit_items_per_partition_ =
-            (size_t)(num_buckets_per_partition_ * limit_fill_rate);
+        limit_items_per_partition_ = (size_t)(
+            static_cast<double>(num_buckets_per_partition_) * limit_fill_rate);
 
         assert(limit_items_per_partition_ >= 0);
 

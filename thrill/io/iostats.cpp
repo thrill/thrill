@@ -292,7 +292,7 @@ std::ostream& operator << (std::ostream& o, const StatsData& s) {
       << " @ " << (static_cast<double>(s.get_written_volume()) / 1048576.0 / s.get_pwrite_time()) << " MiB/s"
       << std::endl;
     o << " time spent in I/O (parallel I/O time)      : " << s.get_pio_time() << " s"
-      << " @ " << ((static_cast<double>(s.get_read_volume()) + s.get_written_volume()) / 1048576.0 / s.get_pio_time()) << " MiB/s"
+      << " @ " << ((static_cast<double>(s.get_read_volume() + s.get_written_volume())) / 1048576.0 / s.get_pio_time()) << " MiB/s"
       << std::endl;
 #else
     o << " n/a" << std::endl;

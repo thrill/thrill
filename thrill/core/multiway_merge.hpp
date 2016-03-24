@@ -35,10 +35,10 @@ public:
         : readers_(readers_begin),
           num_inputs_(static_cast<unsigned>(readers_end - readers_begin)),
           remaining_inputs_(num_inputs_),
-          lt_(num_inputs_, comp),
+          lt_(static_cast<unsigned>(num_inputs_), comp),
           current_(num_inputs_) {
 
-        for (size_t t = 0; t < num_inputs_; ++t)
+        for (unsigned t = 0; t < num_inputs_; ++t)
         {
             if (THRILL_LIKELY(readers_[t].HasNext())) {
                 current_[t].first = true;
@@ -63,7 +63,7 @@ public:
     ValueType Next() {
 
         // take next smallest element out
-        size_t top = lt_.get_min_source();
+        unsigned top = lt_.get_min_source();
         ValueType res = std::move(current_[top].second);
 
         if (THRILL_LIKELY(readers_[top].HasNext())) {
@@ -83,7 +83,7 @@ public:
 
 private:
     ReaderIterator readers_;
-    size_t num_inputs_;
+    unsigned num_inputs_;
     size_t remaining_inputs_;
 
     LoserTreeType lt_;

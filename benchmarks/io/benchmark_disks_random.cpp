@@ -95,7 +95,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
             for (unsigned j = 0; j < num_blocks_in_span; j++)
                 reqs[j] = buffer->write(blocks[j]);
             wait_all(reqs, num_blocks_in_span);
-            elapsed = t_run.Microseconds() / 1e6;
+            elapsed = t_run.SecondsDouble();
             std::cout << "Written "
                       << std::setw(12) << num_blocks_in_span << " blocks in " << std::fixed << std::setw(9) << std::setprecision(2) << elapsed << " seconds: "
                       << std::setw(9) << std::setprecision(1) << (static_cast<double>(num_blocks_in_span) / elapsed) << " blocks/s "
@@ -115,7 +115,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
                 reqs[j] = buffer->read(blocks[j], print_number(j));
             wait_all(reqs, num_blocks);
 
-            elapsed = t_run.Microseconds() / 1e6;
+            elapsed = t_run.SecondsDouble();
 
             std::cout << "Read    " << num_blocks << " blocks in " << std::fixed << std::setw(5) << std::setprecision(2) << elapsed << " seconds: "
                       << std::setw(5) << std::setprecision(1) << (static_cast<double>(num_blocks) / elapsed) << " blocks/s "
@@ -132,7 +132,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
                 reqs[j] = buffer->write(blocks[j], print_number(j));
             wait_all(reqs, num_blocks);
 
-            elapsed = t_run.Microseconds() / 1e6;
+            elapsed = t_run.SecondsDouble();
 
             std::cout << "Written " << num_blocks << " blocks in " << std::fixed << std::setw(5) << std::setprecision(2) << elapsed << " seconds: "
                       << std::setw(5) << std::setprecision(1) << (static_cast<double>(num_blocks) / elapsed) << " blocks/s "

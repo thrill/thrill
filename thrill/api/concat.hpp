@@ -238,14 +238,16 @@ public:
          * send. Otherwise, one can send only that PE part to the PE. -tb
          */
         const size_t num_workers = context_.num_workers();
-        const double pre_pe = static_cast<double>(total_items) / num_workers;
+        const double pre_pe =
+            static_cast<double>(total_items) / static_cast<double>(num_workers);
 
         for (size_t in = 0; in < num_inputs_; ++in) {
 
             // calculate offset vector
             std::vector<size_t> offsets(num_workers + 1, 0);
             for (size_t p = 0; p < num_workers; ++p) {
-                size_t limit = static_cast<size_t>(p * pre_pe);
+                size_t limit =
+                    static_cast<size_t>(static_cast<double>(p) * pre_pe);
                 if (limit < local_ranks[in]) continue;
 
                 offsets[p] = std::min(limit - local_ranks[in],

@@ -68,8 +68,10 @@ int main(int argc, char* argv[]) {
 
     while (written_bytes < totalbytes)
     {
-        unsigned num_words_key = min_words_key + prng() % range_words_key;
-        unsigned num_words_value = min_words_value + prng() % range_words_value;
+        unsigned num_words_key =
+            min_words_key + static_cast<unsigned>(prng()) % range_words_key;
+        unsigned num_words_value =
+            min_words_value + static_cast<unsigned>(prng()) % range_words_value;
 
         std::string key_words = RandomTextWriterGenerate(num_words_key, prng);
         std::string value_words = RandomTextWriterGenerate(num_words_value, prng);

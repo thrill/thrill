@@ -317,7 +317,7 @@ void Pool::deallocate(void* ptr, size_t bytes) {
     ptr_slot->next = prev_slot->next;
     ptr_slot->size = n;
 
-    prev_slot->next = ptr_slot - root_arena_->begin();
+    prev_slot->next = static_cast<uint32_t>(ptr_slot - root_arena_->begin());
 
     // defragment free slots, but exempt the head_slot
     if (prev_slot == &root_arena_->head_slot)

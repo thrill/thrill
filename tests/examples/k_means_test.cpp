@@ -37,19 +37,19 @@ TEST(KMeans, RandomPoints) {
     std::vector<Point2D> points, centroids;
 
     std::default_random_engine rng(123456);
-    std::uniform_real_distribution<float> dist(0.0, 100000.0);
+    std::uniform_real_distribution<float> coord_dist(0.0, 100000.0);
 
     points.reserve(num_points);
     for (size_t i = 0; i < num_points; ++i) {
         points.emplace_back(Point2D {
-                                { dist(rng), dist(rng) }
+                                { coord_dist(rng), coord_dist(rng) }
                             });
     }
 
     centroids.reserve(num_clusters);
     for (size_t i = 0; i < num_clusters; ++i) {
         centroids.emplace_back(Point2D {
-                                   { dist(rng), dist(rng) }
+                                   { coord_dist(rng), coord_dist(rng) }
                                });
     }
 
@@ -89,7 +89,7 @@ TEST(KMeans, RandomPoints) {
                 point_count[closest[i]]++;
             }
             for (size_t c = 0; c < num_clusters; ++c) {
-                centroids[c] /= point_count[c];
+                centroids[c] /= static_cast<double>(point_count[c]);
             }
         }
 

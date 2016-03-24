@@ -142,6 +142,12 @@ public:
             Accumulated()).count();
     }
 
+    //! return currently accumulated time in seconds as double with microseconds
+    //! precision
+    double SecondsDouble() const {
+        return static_cast<double>(Microseconds()) / 1e6;
+    }
+
     //! accumulate elapsed time from another timer
     StatsTimerBase& operator += (const StatsTimerBase& tm) {
         accumulated_ += tm.accumulated_;
@@ -150,7 +156,7 @@ public:
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
     friend std::ostream& operator << (std::ostream& os, const StatsTimerBase& t) {
-        return os << t.Microseconds() / 1e6;
+        return os << static_cast<double>(t.Microseconds()) / 1e6;
     }
 
     friend JsonLine& Put(JsonLine& line, const StatsTimerBase& t) {

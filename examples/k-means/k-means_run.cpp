@@ -35,9 +35,9 @@ public:
 
     friend std::ostream& operator << (std::ostream& os, const SVGColor& c) {
         return os << "#" << std::hex << std::setfill('0') << std::setw(2)
-                  << unsigned((3 * (c.cluster_ + 1) % 11) / 11.0 * 256.0)
-                  << unsigned((7 * (c.cluster_ + 1) % 11) / 11.0 * 256.0)
-                  << unsigned((9 * (c.cluster_ + 1) % 11) / 11.0 * 256.0);
+                  << unsigned(static_cast<double>(3 * (c.cluster_ + 1) % 11) / 11.0 * 256.0)
+                  << unsigned(static_cast<double>(7 * (c.cluster_ + 1) % 11) / 11.0 * 256.0)
+                  << unsigned(static_cast<double>(9 * (c.cluster_ + 1) % 11) / 11.0 * 256.0);
     }
     size_t cluster_;
 };

@@ -231,7 +231,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
 // make weird test strings of different lengths
 std::string test_string(size_t index) {
     return std::string((index * index) % 20,
-                       '0' + static_cast<char>(index % 100));
+                       static_cast<char>('0' + static_cast<char>(index % 100)));
 }
 
 TEST(IO, GenerateStringWriteBinary) {

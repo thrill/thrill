@@ -64,7 +64,7 @@ public:
 
         // generate random key record
         for (size_t i = 0; i < 10; ++i)
-            r.key[i] = rng_();
+            r.key[i] = static_cast<unsigned char>(rng_());
 
         uint8_t* v = r.value;
 

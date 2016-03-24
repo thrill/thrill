@@ -45,9 +45,9 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
     common::JsonLine line = logger_.line();
     line << "class" << "NetManager";
 
-    unsigned long long elapsed
-        = std::chrono::duration_cast<std::chrono::microseconds>(
-        tp - tp_last_).count();
+    double elapsed = static_cast<double>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            tp - tp_last_).count()) / 1e6;
 
     size_t total_tx = 0, total_rx = 0;
     size_t prev_total_tx = 0, prev_total_rx = 0;
@@ -86,9 +86,9 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
             << "tx_bytes" << group_tx
             << "rx_bytes" << group_rx
             << "tx_speed"
-            << static_cast<double>(group_tx - prev_group_tx) / elapsed * 1e6
+            << static_cast<double>(group_tx - prev_group_tx) / elapsed
             << "rx_speed"
-            << static_cast<double>(group_rx - prev_group_rx) / elapsed * 1e6
+            << static_cast<double>(group_rx - prev_group_rx) / elapsed
             << "tx_per_host" << tx_per_host
             << "rx_per_host" << rx_per_host;
 
@@ -105,9 +105,9 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
         << "tx_bytes" << total_tx
         << "rx_bytes" << total_rx
         << "tx_speed"
-        << static_cast<double>(total_tx - prev_total_tx) / elapsed * 1e6
+        << static_cast<double>(total_tx - prev_total_tx) / elapsed
         << "rx_speed"
-        << static_cast<double>(total_rx - prev_total_rx) / elapsed * 1e6;
+        << static_cast<double>(total_rx - prev_total_rx) / elapsed;
 }
 
 } // namespace net

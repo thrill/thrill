@@ -142,7 +142,7 @@ auto KMeans(const DIA<Point<D>, InStack>&input_points, DIA<Point<D> >&centroids,
                 },
                 num_centroids)
             .Map([](const ClosestCentroid& cc) {
-                     return cc.center.p / cc.center.count;
+                     return cc.center.p / static_cast<double>(cc.center.count);
                  })
             .Collapse();
     }

@@ -40,8 +40,9 @@ namespace io {
 //! Returns number of seconds since the epoch, high resolution.
 static inline double
 timestamp() {
-    return std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count() / 1e6;
+    return static_cast<double>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count()) / 1e6;
 // #if THRILL_WINDOWS
 //     return GetTickCount() / 1000.0;
 // #else

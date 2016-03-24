@@ -76,7 +76,8 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
     // calculate total bytes processed in a batch
     batch_size = raw_block_size * batch_size;
 
-    size_t num_blocks_per_batch = (size_t)common::IntegerDivRoundUp<uint32_t>(batch_size, raw_block_size);
+    size_t num_blocks_per_batch = (size_t)common::IntegerDivRoundUp<uint64_t>(
+        batch_size, raw_block_size);
     batch_size = num_blocks_per_batch * raw_block_size;
 
     block_type* buffer = new block_type[num_blocks_per_batch];
@@ -129,7 +130,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
 
                 io::wait_all(reqs, current_num_blocks_per_batch);
 
-                elapsed = t_run.Microseconds() / 1e6;
+                elapsed = t_run.SecondsDouble();
                 totalsizewrite += current_batch_size;
                 totaltimewrite += elapsed;
             }
@@ -148,7 +149,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
 
                 wait_all(reqs, current_num_blocks_per_batch);
 
-                elapsed = t_run.Microseconds() / 1e6;
+                elapsed = t_run.SecondsDouble();
                 totalsizeread += current_batch_size;
                 totaltimeread += elapsed;
             }

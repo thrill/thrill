@@ -162,11 +162,13 @@ public:
     DIA(const DIA<ValueType, AnyStack>& rhs)
 #if __GNUC__ && !__clang__
     // the attribute warning does not work with gcc?
-    __attribute__ ((warning(         // NOLINT
+    __attribute__ ((warning(      // NOLINT
                         "Casting to DIA creates LOpNode instead of inline chaining.\n"
                         "Consider whether you can use auto instead of DIA.")));
 #elif __GNUC__ && __clang__
-    __attribute__ ((deprecated));    // NOLINT
+    __attribute__ ((deprecated)); // NOLINT
+#else
+    ;                             // NOLINT
 #endif
 #endif  // THRILL_DOXYGEN_IGNORE
 

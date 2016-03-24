@@ -64,13 +64,14 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
               size_t num_pages, size_t iterations) {
 
     api::Context& ctx = links.context();
+    double num_pages_d = static_cast<double>(num_pages);
 
     // initialize all ranks to 1.0 / n: (url, rank)
 
     DIA<Rank> ranks =
         Generate(
             ctx,
-            [num_pages](const size_t&) { return Rank(1.0) / num_pages; },
+            [num_pages_d](size_t) { return Rank(1.0) / num_pages_d; },
             num_pages)
         .Collapse();
 
@@ -104,7 +105,7 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
         auto contribs = outs_rank.template FlatMap<PageRankPair>(
             [](const OutgoingLinksRank& p, auto emit) {
                 if (p.first.size() > 0) {
-                    Rank rank_contrib = p.second / p.first.size();
+                    Rank rank_contrib = p.second / static_cast<double>(p.first.size());
                     for (const PageId& tgt : p.first)
                         emit(PageRankPair { tgt, rank_contrib });
                 }
@@ -120,8 +121,8 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
                 [](const PageRankPair& p1, const PageRankPair& p2) {
                     return PageRankPair { p1.page, p1.rank + p2.rank };
                 }, num_pages)
-            .Map([num_pages](const PageRankPair& p) {
-                     return dampening * p.rank + (1 - dampening) / num_pages;
+            .Map([num_pages_d](const PageRankPair& p) {
+                     return dampening * p.rank + (1 - dampening) / num_pages_d;
                  })
             .Collapse();
     }

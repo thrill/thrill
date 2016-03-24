@@ -55,7 +55,7 @@ TEST(CountingPtr, RunTest) {
 
             ASSERT_EQ(42, i2->i);
             ASSERT_TRUE(!i1->unique());
-            ASSERT_EQ(i2, i1);
+            ASSERT_TRUE(i2 == i1);
             ASSERT_EQ(2, i1->reference_count());
 
             // make another pointer sharing the same object
@@ -66,7 +66,7 @@ TEST(CountingPtr, RunTest) {
 
             // replace object in i3 with new integer
             i3 = new MyInteger(5);
-            ASSERT_NE(i3, i1);
+            ASSERT_TRUE(i3 != i1);
             ASSERT_EQ(2, i1->reference_count());
         }
 
