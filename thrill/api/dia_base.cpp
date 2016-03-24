@@ -223,7 +223,8 @@ public:
         }
         catch (std::exception& e) {
             LOG1 << "StageBuilder: caught exception from PushData()"
-                 << " of stage " << *node_ << " - what(): " << e.what();
+                 << " of stage " << *node_ << " targets " << TargetsString()
+                 << " - what(): " << e.what();
             throw;
         }
         node_->RemoveAllChildren();

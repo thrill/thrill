@@ -109,7 +109,8 @@ public:
 
         size_t pick_items = std::min(local_items_, wanted_sample_size());
 
-        sLOG << "Pick" << pick_items << "samples by random access.";
+        sLOG << "Pick" << pick_items << "samples by random access"
+             << " from File containing " << local_items_ << " items.";
         for (size_t i = 0; i < pick_items; ++i) {
             size_t index = rng_() % local_items_;
             sLOG << "got index[" << i << "] = " << index;
