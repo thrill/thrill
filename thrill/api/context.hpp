@@ -39,6 +39,9 @@ namespace api {
 //! \ingroup api_layer
 //! \{
 
+// forward declarations
+class DIABase;
+
 class MemoryConfig
 {
 public:
@@ -162,6 +165,11 @@ private:
         &logger_, &mem_manager_, workers_per_host_
     };
 
+    //! register BlockPool's profiling method
+    common::ProfileTaskRegistration block_pool_profiler_ {
+        std::chrono::milliseconds(500), *profiler_, &block_pool_
+    };
+
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer data_multiplexer_ {
         mem_manager_, block_pool_, workers_per_host_,
@@ -268,34 +276,52 @@ public:
     //! \{
 
     //! Returns a new File object containing a sequence of local Blocks.
-    data::File GetFile() {
-        return data::File(block_pool_, local_worker_id_);
+    data::File GetFile(size_t dia_id) {
+        return data::File(block_pool_, local_worker_id_, dia_id);
+    }
+
+    //! Returns a new File object containing a sequence of local Blocks.
+    data::File GetFile(DIABase* dia);
+
+    //! Returns a new File, wrapped in a shared_ptr, containing a
+    //! sequence of local Blocks.
+    data::FilePtr GetFilePtr(size_t dia_id) {
+        return std::make_shared<data::File>(
+            block_pool_, local_worker_id_, dia_id);
     }
 
     //! Returns a new File, wrapped in a shared_ptr, containing a
     //! sequence of local Blocks.
-    data::FilePtr GetFilePtr() {
-        return std::make_shared<data::File>(block_pool_, local_worker_id_);
+    data::FilePtr GetFilePtr(DIABase* dia);
+
+    //! Returns a reference to a new CatStream. This method alters the state of
+    //! the context and must be called on all Workers to ensure correct
+    //! communication coordination.
+    data::CatStreamPtr GetNewCatStream(size_t dia_id) {
+        return multiplexer_.GetNewCatStream(local_worker_id_, dia_id);
     }
 
     //! Returns a reference to a new CatStream. This method alters the state of
     //! the context and must be called on all Workers to ensure correct
     //! communication coordination.
-    data::CatStreamPtr GetNewCatStream() {
-        return multiplexer_.GetNewCatStream(local_worker_id_);
+    data::CatStreamPtr GetNewCatStream(DIABase* dia);
+
+    //! Returns a reference to a new MixStream. This method alters the state
+    //! of the context and must be called on all Workers to ensure correct
+    //! communication coordination.
+    data::MixStreamPtr GetNewMixStream(size_t dia_id) {
+        return multiplexer_.GetNewMixStream(local_worker_id_, dia_id);
     }
 
     //! Returns a reference to a new MixStream. This method alters the state
     //! of the context and must be called on all Workers to ensure correct
     //! communication coordination.
-    data::MixStreamPtr GetNewMixStream() {
-        return multiplexer_.GetNewMixStream(local_worker_id_);
-    }
+    data::MixStreamPtr GetNewMixStream(DIABase* dia);
 
     //! Returns a reference to a new CatStream or MixStream, selectable via
     //! template parameter.
     template <typename Stream>
-    std::shared_ptr<Stream> GetNewStream();
+    std::shared_ptr<Stream> GetNewStream(size_t dia_id);
 
     //! the block manager keeps all data blocks moving through the system.
     data::BlockPool& block_pool() { return block_pool_; }

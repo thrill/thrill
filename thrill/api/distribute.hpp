@@ -88,7 +88,7 @@ private:
     //! source worker id, which sends vector
     size_t source_id_;
 
-    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+    data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
 };
 
 /*!

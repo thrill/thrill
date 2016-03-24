@@ -63,11 +63,11 @@ FileBasePtr CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
 
     if (cfg.device_id == FileBase::DEFAULT_DEVICE_ID)
     {
-        cfg.device_id = Config::get_instance()->get_next_device_id();
+        cfg.device_id = Config::GetInstance()->get_next_device_id();
     }
     else
     {
-        Config::get_instance()->update_max_device_id(cfg.device_id);
+        Config::GetInstance()->update_max_device_id(cfg.device_id);
     }
 
     // *** Select fileio Implementation

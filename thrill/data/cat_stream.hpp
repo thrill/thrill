@@ -71,8 +71,8 @@ public:
 
     //! Creates a new stream instance
     CatStream(Multiplexer& multiplexer, const StreamId& id,
-              size_t local_worker_id)
-        : Stream(multiplexer, id, local_worker_id) {
+              size_t local_worker_id, size_t dia_id)
+        : Stream(multiplexer, id, local_worker_id, dia_id) {
 
         sinks_.reserve(num_workers());
         queues_.reserve(num_workers());
@@ -97,7 +97,7 @@ public:
                         << "loopback" << true;
 
                     queues_.emplace_back(
-                        multiplexer_.block_pool_, local_worker_id,
+                        multiplexer_.block_pool_, local_worker_id, dia_id,
                         // OnClose callback to BlockQueue to deliver stats
                         [this, host, worker](BlockQueue& queue) {
 
@@ -113,8 +113,8 @@ public:
                             << "blocks" << queue.block_counter()
                             << "timespan" << queue.timespan();
 
-                            outgoing_bytes_ += queue.byte_counter();
-                            outgoing_blocks_ += queue.block_counter();
+                            tx_bytes_ += queue.byte_counter();
+                            tx_blocks_ += queue.block_counter();
                         });
                 }
                 else {
@@ -131,7 +131,7 @@ public:
 
                     // construct inbound BlockQueue
                     queues_.emplace_back(
-                        multiplexer_.block_pool_, local_worker_id);
+                        multiplexer_.block_pool_, local_worker_id, dia_id);
                 }
             }
         }
@@ -146,6 +146,15 @@ public:
 
     ~CatStream() final {
         Close();
+    }
+
+    //! change dia_id after construction (needed because it may be unknown at
+    //! construction)
+    void set_dia_id(size_t dia_id) {
+        dia_id_ = dia_id;
+        for (size_t i = 0; i < queues_.size(); ++i) {
+            queues_[i].set_dia_id(dia_id);
+        }
     }
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
@@ -284,8 +293,8 @@ private:
         assert(from < queues_.size());
         rx_timespan_.StartEventually();
 
-        incoming_bytes_ += b.size();
-        incoming_blocks_++;
+        rx_bytes_ += b.size();
+        rx_blocks_++;
 
         sLOG << "OnCatStreamBlock" << b;
 
@@ -303,7 +312,7 @@ private:
         assert(from < queues_.size());
         queues_[from].Close();
 
-        incoming_blocks_++;
+        rx_blocks_++;
 
         sLOG << "OnCatCloseStream from=" << from;
 

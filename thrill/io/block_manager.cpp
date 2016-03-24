@@ -30,7 +30,7 @@ namespace io {
 class IoError;
 
 BlockManager::BlockManager() {
-    Config* config = Config::get_instance();
+    Config* config = Config::GetInstance();
 
     // initialize config (may read config files now)
     config->check_initialized();
@@ -70,7 +70,7 @@ BlockManager::BlockManager() {
         total_size += cfg.size;
 
         // create queue for the file.
-        DiskQueues::get_instance()->make_queue(disk_files_[i]);
+        DiskQueues::GetInstance()->make_queue(disk_files_[i]);
 
         disk_allocators_[i] = new DiskAllocator(disk_files_[i], cfg);
     }

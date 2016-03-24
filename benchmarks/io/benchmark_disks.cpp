@@ -60,7 +60,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
     bool do_write = (optrw.find('w') != std::string::npos);
 
     // initialize disk configuration
-    io::BlockManager::get_instance();
+    io::BlockManager::GetInstance();
 
     // construct block type
 
@@ -71,7 +71,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
     using BID_type = io::BID<raw_block_size>;
 
     if (batch_size == 0)
-        batch_size = io::Config::get_instance()->disks_number();
+        batch_size = io::Config::GetInstance()->disks_number();
 
     // calculate total bytes processed in a batch
     batch_size = raw_block_size * batch_size;
@@ -87,9 +87,9 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
     uint64_t totalsizeread = 0, totalsizewrite = 0;
 
     std::cout << "# Batch size: "
-              << io::add_IEC_binary_multiplier(batch_size, "B") << " ("
+              << common::FormatIecUnits(batch_size) << " ("
               << num_blocks_per_batch << " blocks of "
-              << io::add_IEC_binary_multiplier(raw_block_size, "B") << ")"
+              << common::FormatIecUnits(raw_block_size) << ")"
               << " using " << AllocStrategy().name()
               << std::endl;
 
@@ -113,7 +113,7 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
 
             size_t num_total_blocks = blocks.size();
             blocks.resize(num_total_blocks + current_num_blocks_per_batch);
-            io::BlockManager::get_instance()->new_blocks(alloc, blocks.begin() + num_total_blocks, blocks.end());
+            io::BlockManager::GetInstance()->new_blocks(alloc, blocks.begin() + num_total_blocks, blocks.end());
 
             if (offset < start_offset)
                 continue;

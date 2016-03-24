@@ -186,9 +186,9 @@ public:
         }
 
         if (const_mem > mem_limit) {
-            sLOG1 << "StageBuilder: constant memory usage of DIANodes in Stage: "
-                  << const_mem
-                  << ", already exceeds Context's mem_limit: " << mem_limit;
+            LOG1 << "StageBuilder: constant memory usage of DIANodes in Stage: "
+                 << const_mem
+                 << ", already exceeds Context's mem_limit: " << mem_limit;
             abort();
         }
 
@@ -223,7 +223,8 @@ public:
         }
         catch (std::exception& e) {
             LOG1 << "StageBuilder: caught exception from PushData()"
-                 << " of stage " << *node_ << " - what(): " << e.what();
+                 << " of stage " << *node_ << " targets " << TargetsString()
+                 << " - what(): " << e.what();
             throw;
         }
         node_->RemoveAllChildren();

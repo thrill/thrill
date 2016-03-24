@@ -103,7 +103,7 @@ public:
     using ReduceConfig = ReduceConfig_;
 
     ReduceTable(
-        Context& ctx,
+        Context& ctx, size_t dia_id,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         Emitter& emitter,
@@ -112,7 +112,7 @@ public:
         bool immediate_flush,
         const IndexFunction& index_function,
         const EqualToFunction& equal_to_function)
-        : ctx_(ctx),
+        : ctx_(ctx), dia_id_(dia_id),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emitter_(emitter),
@@ -130,7 +130,7 @@ public:
 
         if (!immediate_flush_) {
             for (size_t i = 0; i < num_partitions_; i++) {
-                partition_files_.push_back(ctx.GetFile());
+                partition_files_.push_back(ctx.GetFile(dia_id_));
             }
         }
     }
@@ -151,6 +151,9 @@ public:
 
     //! Returns the context
     Context& ctx() const { return ctx_; }
+
+    //! Returns dia_id_
+    size_t dia_id() const { return dia_id_; }
 
     //! Returns the key_extractor
     const KeyExtractor& key_extractor() const { return key_extractor_; }
@@ -231,6 +234,9 @@ public:
 protected:
     //! Context
     Context& ctx_;
+
+    //! Associated DIA id
+    size_t dia_id_;
 
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;

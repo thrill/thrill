@@ -54,15 +54,15 @@ int main(int argc, char** argv) {
 
     // without cancelation
     LOG << "Posting " << num_blocks << " requests.";
-    io::StatsData stats1(*io::Stats::get_instance());
+    io::StatsData stats1(*io::Stats::GetInstance());
     for (unsigned i = 0; i < num_blocks; i++)
         req[i] = file->awrite(buffer, i * size, size, print_completion());
     wait_all(req.begin(), req.end());
-    LOG << io::StatsData(*io::Stats::get_instance()) - stats1;
+    LOG << io::StatsData(*io::Stats::GetInstance()) - stats1;
 
     // with cancelation
     LOG << "Posting " << num_blocks << " requests.";
-    io::StatsData stats2(*io::Stats::get_instance());
+    io::StatsData stats2(*io::Stats::GetInstance());
     for (unsigned i = 0; i < num_blocks; i++)
         req[i] = file->awrite(buffer, i * size, size, print_completion());
     // cancel first half
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
             LOG << "Request not canceled: " << &(*(req[i]));
     }
     wait_all(req.begin(), req.end());
-    LOG << io::StatsData(*io::Stats::get_instance()) - stats2;
+    LOG << io::StatsData(*io::Stats::GetInstance()) - stats2;
 
     mem::aligned_dealloc(buffer, size);
 

@@ -10,8 +10,8 @@
 
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/group_by_index.hpp>
 #include <thrill/api/group_by_key.hpp>
+#include <thrill/api/group_to_index.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/common/logger.hpp>
 
@@ -129,7 +129,7 @@ TEST(GroupByNode, Median) {
     api::RunLocalTests(start_func);
 }
 
-TEST(GroupByNode, GroupByIndexCorrectResults) {
+TEST(GroupByNode, GroupToIndexCorrectResults) {
 
     auto start_func =
         [](Context& ctx) {
@@ -154,7 +154,7 @@ TEST(GroupByNode, GroupByIndexCorrectResults) {
                     return res;
                 };
 
-            auto reduced = integers.GroupByIndex<size_t>(key, add_function, m);
+            auto reduced = integers.GroupToIndex<size_t>(key, add_function, m);
 
             std::vector<size_t> out_vec = reduced.AllGather();
 

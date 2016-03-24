@@ -134,7 +134,7 @@ public:
 
 public:
     ReduceBucketHashTable(
-        Context& ctx,
+        Context& ctx, size_t dia_id,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         Emitter& emitter,
@@ -143,7 +143,7 @@ public:
         bool immediate_flush = false,
         const IndexFunction& index_function = IndexFunction(),
         const EqualToFunction& equal_to_function = EqualToFunction())
-        : Super(ctx,
+        : Super(ctx, dia_id,
                 key_extractor, reduce_function, emitter,
                 num_partitions, config, immediate_flush,
                 index_function, equal_to_function) {

@@ -53,7 +53,7 @@ void WincallFile::serve(void* buffer, offset_type offset, size_type bytes,
     }
     else
     {
-        Stats::scoped_read_write_timer read_write_timer(bytes, type == Request::WRITE);
+        Stats::ScopedReadWriteTimer read_write_timer(bytes, type == Request::WRITE);
 
         if (type == Request::READ)
         {

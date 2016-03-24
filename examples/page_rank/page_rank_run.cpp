@@ -12,7 +12,7 @@
 #include <examples/page_rank/zipf_graph_gen.hpp>
 
 #include <thrill/api/cache.hpp>
-#include <thrill/api/group_by_index.hpp>
+#include <thrill/api/group_to_index.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/sum.hpp>
@@ -67,7 +67,7 @@ static void RunPageRankEdgePerLine(
 
     // group outgoing links from input file
 
-    auto links = input.template GroupByIndex<OutgoingLinks>(
+    auto links = input.template GroupToIndex<OutgoingLinks>(
         [](const PagePageLink& p) { return p.src; },
         [num_pages,
          all = std::vector < PageId > ()](auto& r, const PageId&) mutable {

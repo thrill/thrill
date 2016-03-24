@@ -74,17 +74,17 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
         AllocStrategy alloc;
 
         blocks.resize(num_blocks_in_span);
-        io::BlockManager::get_instance()->new_blocks(alloc, blocks.begin(), blocks.end());
+        io::BlockManager::GetInstance()->new_blocks(alloc, blocks.begin(), blocks.end());
 
         std::cout << "# Span size: "
-                  << io::add_IEC_binary_multiplier(span, "B") << " ("
+                  << common::FormatIecUnits(span) << " ("
                   << num_blocks_in_span << " blocks of "
-                  << io::add_IEC_binary_multiplier(raw_block_size, "B") << ")" << std::endl;
+                  << common::FormatIecUnits(raw_block_size) << ")" << std::endl;
 
         std::cout << "# Work size: "
-                  << io::add_IEC_binary_multiplier(worksize, "B") << " ("
+                  << common::FormatIecUnits(worksize) << " ("
                   << num_blocks << " blocks of "
-                  << io::add_IEC_binary_multiplier(raw_block_size, "B") << ")" << std::endl;
+                  << common::FormatIecUnits(raw_block_size) << ")" << std::endl;
 
         double elapsed = 0;
 
@@ -148,7 +148,7 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
     delete[] reqs;
     delete buffer;
 
-    io::BlockManager::get_instance()->delete_blocks(blocks.begin(), blocks.end());
+    io::BlockManager::GetInstance()->delete_blocks(blocks.begin(), blocks.end());
 }
 
 template <typename AllocStrategy>

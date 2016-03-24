@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 
     mem::aligned_dealloc(buffer, size);
 
-    LOG0 << *(io::Stats::get_instance());
+    LOG0 << *(io::Stats::GetInstance());
 
 #if THRILL_HAVE_MMAP_FILE
     file1->close_remove();

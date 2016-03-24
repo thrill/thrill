@@ -92,7 +92,7 @@ public:
      * based on the key into some slot.
      */
     ReduceByHashPostStage(
-        Context& ctx,
+        Context& ctx, size_t dia_id,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         const Emitter& emit,
@@ -101,7 +101,7 @@ public:
         const EqualToFunction& equal_to_function = EqualToFunction())
         : config_(config),
           emitter_(emit),
-          table_(ctx,
+          table_(ctx, dia_id,
                  key_extractor, reduce_function, emitter_,
                  /* num_partitions */ 32, /* TODO(tb): parameterize */
                  config, /* immediate_flush */ false,
@@ -193,7 +193,7 @@ public:
             std::vector<data::File> next_remaining_files;
 
             Table subtable(
-                table_.ctx(),
+                table_.ctx(), table_.dia_id(),
                 table_.key_extractor(), table_.reduce_function(), emitter_,
                 /* num_partitions */ 32, config_, /* immediate_flush */ false,
                 IndexFunction(iteration, table_.index_function()),
@@ -269,7 +269,7 @@ public:
             else {
                 // items were spilled, hence the reduce table must be emptied
                 // and we have to cache the output stream.
-                cache_ = table_.ctx().GetFilePtr();
+                cache_ = table_.ctx().GetFilePtr(table_.dia_id());
                 data::File::Writer writer = cache_->GetWriter();
                 Flush</* DoCache */ true>(true, &writer);
             }

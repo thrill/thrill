@@ -106,18 +106,19 @@ public:
                       const ReduceConfig& config)
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           mix_stream_(use_mix_stream_ ?
-                      parent.ctx().GetNewMixStream() : nullptr),
+                      parent.ctx().GetNewMixStream(this) : nullptr),
           cat_stream_(use_mix_stream_ ?
-                      nullptr : parent.ctx().GetNewCatStream()),
+                      nullptr : parent.ctx().GetNewCatStream(this)),
           emitters_(use_mix_stream_ ?
                     mix_stream_->GetWriters() : cat_stream_->GetWriters()),
           result_size_(result_size),
           pre_stage_(
-              context_, context_.num_workers(),
+              context_, Super::id(), context_.num_workers(),
               key_extractor, reduce_function, emitters_,
               config, core::ReduceByIndex<Key>(0, result_size)),
           post_stage_(
-              context_, key_extractor, reduce_function, Emitter(this),
+              context_, Super::id(),
+              key_extractor, reduce_function, Emitter(this),
               config, core::ReduceByIndex<Key>(), neutral_element)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and

@@ -50,10 +50,10 @@ public:
 
     //! Creates a new stream instance
     MixStream(Multiplexer& multiplexer, const StreamId& id,
-              size_t local_worker_id)
-        : Stream(multiplexer, id, local_worker_id),
+              size_t local_worker_id, size_t dia_id)
+        : Stream(multiplexer, id, local_worker_id, dia_id),
           queue_(multiplexer_.block_pool_, num_workers(),
-                 local_worker_id) {
+                 local_worker_id, dia_id) {
 
         sinks_.reserve(num_workers());
         loopback_.reserve(num_workers());
@@ -95,6 +95,13 @@ public:
     //! move-constructor: default
     MixStream(MixStream&&) = default;
 
+    //! change dia_id after construction (needed because it may be unknown at
+    //! construction)
+    void set_dia_id(size_t dia_id) {
+        dia_id_ = dia_id;
+        queue_.set_dia_id(dia_id);
+    }
+
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<Writer>
@@ -135,6 +142,9 @@ public:
 
     //! shuts the stream down.
     void Close() final {
+        if (is_closed_) return;
+        is_closed_ = true;
+
         // close all sinks, this should emit sentinel to all other worker.
         for (size_t i = 0; i != sinks_.size(); ++i) {
             if (sinks_[i].closed()) continue;
@@ -161,9 +171,10 @@ public:
         OnAllClosed();
     }
 
-    //! Indicates if the stream is closed - meaning all remaining streams have
-    //! been closed.
+    //! Indicates if the stream is closed - meaning all remaining outbound
+    //! queues have been closed.
     bool closed() const final {
+        if (is_closed_) return true;
         bool closed = true;
         closed = closed && queue_.write_closed();
         return closed;
@@ -171,6 +182,9 @@ public:
 
 private:
     static constexpr bool debug = false;
+
+    //! flag if Close() was completed
+    bool is_closed_ = false;
 
     //! StreamSink objects are receivers of Blocks outbound for other worker.
     std::vector<StreamSink> sinks_;
@@ -190,8 +204,8 @@ private:
         assert(from < num_workers());
         rx_timespan_.StartEventually();
 
-        incoming_bytes_ += b.size();
-        incoming_blocks_++;
+        rx_bytes_ += b.size();
+        rx_blocks_++;
 
         sLOG << "OnMixStreamBlock" << b;
 
@@ -207,7 +221,7 @@ private:
         assert(from < num_workers());
         queue_.Close(from);
 
-        incoming_blocks_++;
+        rx_blocks_++;
 
         sLOG << "OnMixCloseStream from=" << from;
 

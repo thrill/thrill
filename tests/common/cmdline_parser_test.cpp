@@ -8,8 +8,10 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
 #include <thrill/common/cmdline_parser.hpp>
+
+#include <gtest/gtest.h>
+#include <thrill/common/string.hpp>
 
 #include <sstream>
 #include <string>

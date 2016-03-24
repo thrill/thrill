@@ -102,7 +102,7 @@ public:
         // allocate files.
         files_.reserve(kNumInputs);
         for (size_t i = 0; i < kNumInputs; ++i)
-            files_.emplace_back(context_.GetFile());
+            files_.emplace_back(context_.GetFile(this));
 
         // Hook PreOp(s)
         common::VariadicCallForeachIndex(
@@ -126,7 +126,7 @@ public:
 
         // accept file
         assert(files_[parent_index].num_items() == 0);
-        files_[parent_index] = file;
+        files_[parent_index] = file.Copy();
         return true;
     }
 
@@ -274,7 +274,7 @@ private:
         LOG << "offsets[" << Index << "] = " << common::VecToStr(offsets);
 
         //! target stream id
-        streams_[Index] = context_.GetNewCatStream();
+        streams_[Index] = context_.GetNewCatStream(this);
 
         //! scatter elements to other workers, if necessary
         using ZipArg = ZipArgN<Index>;

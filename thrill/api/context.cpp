@@ -11,6 +11,7 @@
 
 #include <thrill/api/context.hpp>
 
+#include <thrill/api/dia_base.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/linux_proc_stats.hpp>
 #include <thrill/common/logger.hpp>
@@ -800,14 +801,32 @@ HostContext::HostContext(
 /******************************************************************************/
 // Context methods
 
-template <>
-std::shared_ptr<data::CatStream> Context::GetNewStream<data::CatStream>() {
-    return GetNewCatStream();
+data::File Context::GetFile(DIABase* dia) {
+    return GetFile(dia ? dia->id() : 0);
+}
+
+data::FilePtr Context::GetFilePtr(DIABase* dia) {
+    return GetFilePtr(dia ? dia->id() : 0);
+}
+
+data::CatStreamPtr Context::GetNewCatStream(DIABase* dia) {
+    return GetNewCatStream(dia ? dia->id() : 0);
+}
+
+data::MixStreamPtr Context::GetNewMixStream(DIABase* dia) {
+    return GetNewMixStream(dia ? dia->id() : 0);
 }
 
 template <>
-std::shared_ptr<data::MixStream> Context::GetNewStream<data::MixStream>() {
-    return GetNewMixStream();
+std::shared_ptr<data::CatStream>
+Context::GetNewStream<data::CatStream>(size_t dia_id) {
+    return GetNewCatStream(dia_id);
+}
+
+template <>
+std::shared_ptr<data::MixStream>
+Context::GetNewStream<data::MixStream>(size_t dia_id) {
+    return GetNewMixStream(dia_id);
 }
 
 void Context::Launch(const std::function<void(Context&)>& job_startpoint) {

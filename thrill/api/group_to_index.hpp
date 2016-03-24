@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/group_by_index.hpp
+ * thrill/api/group_to_index.hpp
  *
  * DIANode for a groupby to indx operation. Performs the actual groupby
  * operation
@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_API_GROUP_BY_INDEX_HEADER
-#define THRILL_API_GROUP_BY_INDEX_HEADER
+#ifndef THRILL_API_GROUP_TO_INDEX_HEADER
+#define THRILL_API_GROUP_TO_INDEX_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
@@ -37,7 +37,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction>
-class GroupByIndexNode final : public DOpNode<ValueType>
+class GroupToIndexNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
 
@@ -52,27 +52,27 @@ class GroupByIndexNode final : public DOpNode<ValueType>
     class ValueComparator
     {
     public:
-        explicit ValueComparator(const GroupByIndexNode& node) : node_(node) { }
+        explicit ValueComparator(const GroupToIndexNode& node) : node_(node) { }
 
         bool operator () (const ValueIn& a, const ValueIn& b) const {
             return node_.key_extractor_(a) < node_.key_extractor_(b);
         }
 
     private:
-        const GroupByIndexNode& node_;
+        const GroupToIndexNode& node_;
     };
 
 public:
     /*!
-     * Constructor for a GroupByIndexNode. Sets the DataManager, parent, stack,
+     * Constructor for a GroupToIndexNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      */
-    GroupByIndexNode(const ParentDIA& parent,
+    GroupToIndexNode(const ParentDIA& parent,
                      const KeyExtractor& key_extractor,
                      const GroupFunction& groupby_function,
                      size_t result_size,
                      const ValueOut& neutral_element)
-        : Super(parent.ctx(), "GroupByIndex",
+        : Super(parent.ctx(), "GroupToIndex",
                 { parent.id() }, { parent.node() }),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
@@ -112,7 +112,7 @@ public:
     }
 
     void PushData(bool consume) final {
-        sLOG1 << "GroupByIndexNode::PushData()";
+        sLOG1 << "GroupToIndexNode::PushData()";
 
         const size_t num_runs = files_.size();
         if (num_runs == 0) {
@@ -173,7 +173,7 @@ private:
     ValueOut neutral_element_;
     size_t totalsize_ = 0;
 
-    data::CatStreamPtr stream_ { context_.GetNewCatStream() };
+    data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::CatStream::Writer> emitter_ { stream_->GetWriters() };
     std::vector<data::File> files_;
 
@@ -212,7 +212,7 @@ private:
         std::sort(v.begin(), v.end(), ValueComparator(*this));
         totalsize_ += v.size();
 
-        data::File f = context_.GetFile();
+        data::File f = context_.GetFile(this);
         data::File::Writer w = f.GetWriter();
         for (const ValueIn& e : v) {
             w.Put(e);
@@ -250,7 +250,7 @@ template <typename ValueType, typename Stack>
 template <typename ValueOut,
           typename KeyExtractor,
           typename GroupFunction>
-auto DIA<ValueType, Stack>::GroupByIndex(
+auto DIA<ValueType, Stack>::GroupToIndex(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function,
     const size_t result_size,
@@ -267,7 +267,7 @@ auto DIA<ValueType, Stack>::GroupByIndex(
         "KeyExtractor has the wrong input type");
 
     using GroupByNode
-              = GroupByIndexNode<DOpResult, DIA, KeyExtractor, GroupFunction>;
+              = GroupToIndexNode<DOpResult, DIA, KeyExtractor, GroupFunction>;
     auto shared_node
         = std::make_shared<GroupByNode>(
         *this, key_extractor, groupby_function, result_size, neutral_element);
@@ -278,6 +278,6 @@ auto DIA<ValueType, Stack>::GroupByIndex(
 } // namespace api
 } // namespace thrill
 
-#endif // !THRILL_API_GROUP_BY_INDEX_HEADER
+#endif // !THRILL_API_GROUP_TO_INDEX_HEADER
 
 /******************************************************************************/

@@ -53,7 +53,7 @@ static void TestAddMyStructByHash(Context& ctx) {
 
     std::vector<data::File> files;
     for (size_t i = 0; i < num_partitions; ++i)
-        files.emplace_back(ctx.GetFile());
+        files.emplace_back(ctx.GetFile(nullptr));
 
     std::vector<data::DynBlockWriter> emitters;
     for (size_t i = 0; i < num_partitions; ++i)
@@ -66,7 +66,7 @@ static void TestAddMyStructByHash(Context& ctx) {
               /* VolatileKey */ false,
               core::DefaultReduceConfigSelect<table_impl> >;
 
-    Stage stage(ctx, num_partitions, key_ex, red_fn, emitters);
+    Stage stage(ctx, 0, num_partitions, key_ex, red_fn, emitters);
 
     stage.Initialize(/* limit_memory_bytes */ 1024 * 1024);
 
@@ -133,7 +133,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
 
     std::vector<data::File> files;
     for (size_t i = 0; i < num_partitions; ++i)
-        files.emplace_back(ctx.GetFile());
+        files.emplace_back(ctx.GetFile(nullptr));
 
     std::vector<data::DynBlockWriter> emitters;
     for (size_t i = 0; i < num_partitions; ++i)
@@ -147,7 +147,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
               core::DefaultReduceConfigSelect<table_impl>,
               core::ReduceByIndex<size_t> >;
 
-    Stage stage(ctx,
+    Stage stage(ctx, 0,
                 num_partitions,
                 key_ex, red_fn, emitters,
                 typename Stage::ReduceConfig(),

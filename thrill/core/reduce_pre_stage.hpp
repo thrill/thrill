@@ -127,7 +127,7 @@ public:
      * a key extractor function from that value. Afterwards, the value is hashed
      * based on the key into some slot.
      */
-    ReducePreStage(Context& ctx,
+    ReducePreStage(Context& ctx, size_t dia_id,
                    size_t num_partitions,
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
@@ -136,7 +136,7 @@ public:
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
-          table_(ctx,
+          table_(ctx, dia_id,
                  key_extractor, reduce_function, emit_,
                  num_partitions, config, /* immediate_flush */ true,
                  index_function, equal_to_function) {

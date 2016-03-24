@@ -43,9 +43,10 @@ public:
     using Writer = DynBlockWriter;
 
     Stream(Multiplexer& multiplexer, const StreamId& id,
-           size_t local_worker_id)
+           size_t local_worker_id, size_t dia_id)
         : id_(id),
           local_worker_id_(local_worker_id),
+          dia_id_(dia_id),
           multiplexer_(multiplexer),
           remaining_closing_blocks_((num_hosts() - 1) * workers_per_host())
     { }
@@ -74,14 +75,15 @@ public:
         multiplexer_.logger()
             << "class" << "Stream"
             << "event" << "close"
-            << "stream" << id_
+            << "id" << id_
+            << "dia_id" << dia_id_
             << "worker_rank"
             << (my_host_rank() * multiplexer_.workers_per_host())
             + local_worker_id_
-            << "incoming_bytes" << incoming_bytes_
-            << "incoming_blocks" << incoming_blocks_
-            << "outgoing_bytes" << outgoing_bytes_
-            << "outgoing_blocks" << outgoing_blocks_;
+            << "rx_bytes" << rx_bytes_
+            << "rx_blocks" << rx_blocks_
+            << "tx_bytes" << tx_bytes_
+            << "tx_blocks" << tx_blocks_;
     }
 
     //! shuts the stream down.
@@ -166,11 +168,11 @@ public:
 
     //! StatsCounter for incoming data transfer.  Does not include loopback data
     //! transfer
-    size_t incoming_bytes_ = 0, incoming_blocks_ = 0;
+    size_t rx_bytes_ = 0, rx_blocks_ = 0;
 
     //! StatsCounters for outgoing data transfer - shared by all sinks.  Does
     //! not include loopback data transfer
-    std::atomic<size_t> outgoing_bytes_ { 0 }, outgoing_blocks_ { 0 };
+    std::atomic<size_t> tx_bytes_ { 0 }, tx_blocks_ { 0 };
 
     //! Timers from creation of stream until rx / tx direction is closed.
     common::StatsTimerStart tx_lifetime_, rx_lifetime_;
@@ -185,6 +187,9 @@ protected:
     StreamId id_;
 
     size_t local_worker_id_;
+
+    //! Associated DIANode id.
+    size_t dia_id_;
 
     //! reference to multiplexer
     Multiplexer& multiplexer_;
@@ -227,9 +232,10 @@ public:
     //! Creates a StreamSet with the given number of streams (num workers per
     //! host).
     StreamSet(data::Multiplexer& multiplexer, StreamId id,
-              size_t workers_per_host) {
+              size_t workers_per_host, size_t dia_id) {
         for (size_t i = 0; i < workers_per_host; i++)
-            streams_.push_back(std::make_shared<Stream>(multiplexer, id, i));
+            streams_.emplace_back(
+                std::make_shared<Stream>(multiplexer, id, i, dia_id));
     }
 
     //! Returns the stream that will be consumed by the worker with the given

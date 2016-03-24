@@ -113,7 +113,7 @@ private:
     ValueType initial_element_;
 
     //! Local data file
-    data::File file_ { context_.GetFile() };
+    data::File file_ { context_.GetFile(this) };
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ { file_.GetWriter() };
 };

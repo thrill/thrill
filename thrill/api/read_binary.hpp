@@ -223,7 +223,7 @@ private:
     std::vector<FileInfo> my_files_;
 
     bool use_ext_file_ = false;
-    data::File ext_file_ { context_.GetFile() };
+    data::File ext_file_ { context_.GetFile(this) };
 
     size_t stats_total_bytes = 0;
     size_t stats_total_reads = 0;

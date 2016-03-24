@@ -87,7 +87,7 @@ public:
         }
     }
 
-    //! \name Methods by ProfileTask
+    //! \name Methods for ProfileTask
     //! \{
 
     void RunTask(const std::chrono::steady_clock::time_point& tp) final;

@@ -21,12 +21,12 @@
 #include <thrill/api/generate_from_file.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/read_lines.hpp>
+#include <thrill/api/sample.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
-#include <thrill/api/sample.hpp>
 
 #include <gtest/gtest.h>
 

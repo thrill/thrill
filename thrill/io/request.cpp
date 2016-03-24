@@ -115,8 +115,8 @@ void RequestDeleter(Request* req) {
 void Request::wait(bool measure_time) {
     LOG << "Request::wait()";
 
-    Stats::scoped_wait_timer wait_timer(
-        type_ == READ ? Stats::WAIT_OP_READ : Stats::WAIT_OP_WRITE,
+    Stats::ScopedWaitTimer wait_timer(
+        type_ == READ ? Stats::WaitOp::READ : Stats::WaitOp::WRITE,
         measure_time);
 
     state_.wait_for(READY2DIE);
@@ -129,7 +129,7 @@ bool Request::cancel() {
 
     if (!file_) return false;
 
-    if (DiskQueues::get_instance()->cancel_request(this, file_->get_queue_id()))
+    if (DiskQueues::GetInstance()->cancel_request(this, file_->get_queue_id()))
     {
         state_.set_to(DONE);
         // user callback

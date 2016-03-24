@@ -47,7 +47,7 @@ class DiskQueues : public common::Singleton<DiskQueues>
 protected:
     RequestQueueMap queues;
     DiskQueues() {
-        Stats::get_instance(); // initialize stats before ourselves
+        Stats::GetInstance(); // initialize stats before ourselves
     }
 
 public:

@@ -154,7 +154,7 @@ public:
         bool consume = reader_type_ == "consume";
 
         for (unsigned i = 0; i < iterations_; i++) {
-            auto file = ctx.GetFile();
+            auto file = ctx.GetFile(nullptr);
             auto writer = file.GetWriter(block_size_);
             auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
@@ -248,7 +248,7 @@ public:
 
         common::ThreadPool threads(num_threads_ + 1);
         for (unsigned i = 0; i < iterations_; i++) {
-            auto queue = data::BlockQueue(ctx.block_pool(), 0);
+            auto queue = data::BlockQueue(ctx.block_pool(), 0, /* dia_id */ 0);
             auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
             StatsTimerStopped write_timer;
@@ -362,7 +362,7 @@ public:
     template <typename Type>
     void Sender(api::Context& ctx, size_t peer_id, size_t inner_repeat) {
 
-        auto stream = ctx.GetNewStream<Stream>();
+        auto stream = ctx.GetNewStream<Stream>(/* dia_id */ 0);
         auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
         StatsTimerStart write_timer;
@@ -389,7 +389,7 @@ public:
     template <typename Type>
     void Receiver(api::Context& ctx, size_t peer_id, size_t inner_repeat) {
 
-        auto stream = ctx.GetNewStream<Stream>();
+        auto stream = ctx.GetNewStream<Stream>(/* dia_id */ 0);
 
         // just to determine TotalBytes()
         auto data = Generator<Type>(bytes_, min_size_, max_size_);
@@ -481,10 +481,10 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
                     // not participating in this round, but still have to
                     // allocate and close Streams.
                     ctx.net.Barrier();
-                    auto stream1 = ctx.GetNewStream<Stream>();
+                    auto stream1 = ctx.GetNewStream<Stream>(/* dia_id */ 0);
                     stream1->Close();
                     ctx.net.Barrier();
-                    auto stream2 = ctx.GetNewStream<Stream>();
+                    auto stream2 = ctx.GetNewStream<Stream>(/* dia_id */ 0);
                     stream2->Close();
                 }
             }
@@ -572,7 +572,7 @@ public:
 
             StatsTimerStart total_timer;
             StatsTimerStopped read_timer;
-            auto stream = ctx.GetNewStream<Stream>();
+            auto stream = ctx.GetNewStream<Stream>(/* dia_id */ 0);
 
             // start reader thread
             common::ThreadPool threads(ctx.num_workers() + 1);
@@ -685,8 +685,8 @@ public:
         for (unsigned i = 0; i < iterations_; i++) {
 
             StatsTimerStart total_timer;
-            auto stream = ctx.GetNewStream<data::CatStream>();
-            data::File file(ctx.block_pool(), 0);
+            auto stream = ctx.GetNewStream<data::CatStream>(/* dia_id */ 0);
+            data::File file(ctx.block_pool(), 0, /* dia_id */ 0);
             auto writer = file.GetWriter();
             if (ctx.my_rank() == 0) {
                 Generator<Type> data = Generator<Type>(bytes_, min_size_, max_size_);

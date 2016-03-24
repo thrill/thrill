@@ -54,7 +54,7 @@ TEST(BlockManager, Test1) {
     io::BIDArray<BLOCK_SIZE> bids(nblocks);
     std::vector<int> disks(nblocks, 2);
     io::RequestPtr* reqs = new io::RequestPtr[nblocks];
-    io::BlockManager* bm = io::BlockManager::get_instance();
+    io::BlockManager* bm = io::BlockManager::GetInstance();
     bm->new_blocks(io::Striping(), bids.begin(), bids.end());
 
     std::vector<block_type, mem::AlignedAllocator<block_type> > block(2);
@@ -111,7 +111,7 @@ TEST(BlockManager, Test2) {
     using block_type = io::TypedBlock<128* 1024, double>;
     std::vector<block_type::bid_type> bids(32);
     std::vector<io::RequestPtr> requests;
-    io::BlockManager* bm = io::BlockManager::get_instance();
+    io::BlockManager* bm = io::BlockManager::GetInstance();
     bm->new_blocks(io::Striping(), bids.begin(), bids.end());
     std::vector<block_type, mem::AlignedAllocator<block_type> > blocks(32);
     for (size_t vIndex = 0; vIndex < 32; ++vIndex) {
@@ -132,7 +132,7 @@ TEST(BlockManager, Test3) {
     using block_type = io::TypedBlock<BLOCK_SIZE, int>;
 
     int64_t totalsize = 0;
-    io::Config* config = io::Config::get_instance();
+    io::Config* config = io::Config::GetInstance();
 
     for (size_t i = 0; i < config->disks_number(); ++i)
         totalsize += config->disk_size(i);
@@ -147,7 +147,7 @@ TEST(BlockManager, Test3) {
     io::BIDArray<BLOCK_SIZE> b5d(totalblocks / 5);
     io::BIDArray<BLOCK_SIZE> b2(totalblocks / 2);
 
-    io::BlockManager* bm = io::BlockManager::get_instance();
+    io::BlockManager* bm = io::BlockManager::GetInstance();
 
     LOG << "get 4 x " << totalblocks / 5;
     bm->new_blocks(io::Striping(), b5a.begin(), b5a.end());

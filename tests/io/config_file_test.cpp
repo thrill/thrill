@@ -58,7 +58,7 @@ TEST(IO_ConfigFile, Test1) {
 TEST(IO_ConfigFile, Test2) {
     // test user-supplied configuration
 
-    io::Config* config = io::Config::get_instance();
+    io::Config* config = io::Config::GetInstance();
 
     {
         io::DiskConfig disk1("/tmp/thrill-1.tmp", 100 * 1024 * 1024,
@@ -92,7 +92,7 @@ TEST(IO_ConfigFile, Test2) {
 
     // construct block_manager with user-supplied config
 
-    io::BlockManager* bm = io::BlockManager::get_instance();
+    io::BlockManager* bm = io::BlockManager::GetInstance();
 
     die_unequal(bm->get_total_bytes(), 300 * 1024 * 1024);
     die_unequal(bm->get_free_bytes(), 300 * 1024 * 1024);

@@ -73,13 +73,13 @@ public:
 
     //! Constructor from BlockPool
     explicit MixBlockQueue(BlockPool& block_pool, size_t num_workers,
-                           size_t local_worker_id)
+                           size_t local_worker_id, size_t dia_id)
         : block_pool_(block_pool),
           num_workers_(num_workers),
           write_closed_(num_workers) {
         queues_.reserve(num_workers);
         for (size_t w = 0; w < num_workers; ++w) {
-            queues_.emplace_back(block_pool_, local_worker_id);
+            queues_.emplace_back(block_pool_, local_worker_id, dia_id);
         }
     }
 
@@ -91,6 +91,14 @@ public:
     MixBlockQueue(MixBlockQueue&&) = default;
     //! move-assignment operator: default
     MixBlockQueue& operator = (MixBlockQueue&&) = default;
+
+    //! change dia_id after construction (needed because it may be unknown at
+    //! construction)
+    void set_dia_id(size_t dia_id) {
+        for (size_t i = 0; i < queues_.size(); ++i) {
+            queues_[i].set_dia_id(dia_id);
+        }
+    }
 
     //! return block pool
     BlockPool& block_pool() { return block_pool_; }

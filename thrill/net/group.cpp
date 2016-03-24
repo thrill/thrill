@@ -43,7 +43,8 @@ void RunLoopbackGroupTest(
 void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
 
     common::JsonLine line = logger_.line();
-    line << "class" << "NetManager";
+    line << "class" << "NetManager"
+         << "event" << "profile";
 
     double elapsed = static_cast<double>(
         std::chrono::duration_cast<std::chrono::microseconds>(

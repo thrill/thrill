@@ -19,22 +19,6 @@
 namespace thrill {
 namespace common {
 
-//! Parse a string like "343KB" or "44 GiB" into the corresponding size in
-//! bytes. Returns the number of bytes and sets ok = true if the string could
-//! be parsed correctly. If no units indicator is given, use def_unit in
-//! k/m/g/t/p (powers of ten) or in K/M/G/T/P (power of two).
-bool ParseSiIecUnits(const char* str, uint64_t& size, char default_unit = 0);
-
-//! Format a byte size using SI (K, M, G, T) suffixes (powers of ten). Returns
-//! "123 M" or similar.
-std::string FormatSiUnits(uint64_t number);
-
-//! Format a byte size using IEC (Ki, Mi, Gi, Ti) suffixes (powers of
-//! two). Returns "123 Ki" or similar.
-std::string FormatIecUnits(uint64_t number);
-
-/******************************************************************************/
-
 /**
 
 Command line parser which automatically fills variables and prints nice usage

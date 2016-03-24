@@ -80,7 +80,7 @@ void TestAddMyStructModulo(Context& ctx) {
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), Collector, false>;
 
-    Table table(ctx, key_ex, red_fn, collector,
+    Table table(ctx, 0, key_ex, red_fn, collector,
                 /* num_partitions */ 13,
                 typename Table::ReduceConfig(),
                 /* immediate_flush */ true);

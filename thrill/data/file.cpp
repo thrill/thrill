@@ -19,6 +19,33 @@ namespace data {
 /******************************************************************************/
 // File
 
+File::~File() {
+    // assert(dia_id_ != 0);
+    logger()
+        << "class" << "File"
+        << "event" << "close"
+        << "id" << id_
+        << "dia_id" << dia_id_
+        << "items" << stats_items_
+        << "bytes" << stats_bytes_;
+}
+
+File File::Copy() const {
+    File f(*block_pool(), local_worker_id(), dia_id_);
+    f.disable_self_verify = disable_self_verify;
+    f.blocks_ = blocks_;
+    f.num_items_sum_ = num_items_sum_;
+    f.size_bytes_ = size_bytes_;
+    f.stats_bytes_ = stats_bytes_;
+    f.stats_items_ = stats_items_;
+    return f;
+}
+
+void File::Close() {
+    // 2016-02-04: Files are never closed, one can always append. This is
+    // current used by the ReduceTables -tb.
+}
+
 void File::Clear() {
     std::deque<Block>().swap(blocks_);
     std::deque<size_t>().swap(num_items_sum_);

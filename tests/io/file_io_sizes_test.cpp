@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
         file->set_size(max_size);
 
         io::RequestPtr req;
-        io::StatsData stats1(*io::Stats::get_instance());
+        io::StatsData stats1(*io::Stats::GetInstance());
         for (size_t size = 4096; size < max_size; size *= 2)
         {
             // generate data
@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
             if (wrong)
                 break;
         }
-        std::cout << io::StatsData(*io::Stats::get_instance()) - stats1;
+        std::cout << io::StatsData(*io::Stats::GetInstance()) - stats1;
 
         file->close_remove();
     }
