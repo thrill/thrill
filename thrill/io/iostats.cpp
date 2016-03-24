@@ -15,6 +15,8 @@
 
 #include <thrill/io/iostats.hpp>
 
+#include <thrill/common/string.hpp>
+
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -204,39 +206,16 @@ void Stats::wait_finished(WaitOp wait_op) {
 }
 #endif
 
-std::string format_with_SI_IEC_unit_multiplier(uint64_t number, const char* unit, int multiplier) {
-    // may not overflow, std::numeric_limits<uint64>::max() == 16 EB
-    static const char* endings[] = { "", "k", "M", "G", "T", "P", "E" };
-    static const char* binary_endings[] = { "", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei" };
-    std::ostringstream out;
-    out << number << ' ';
-    int scale = 0;
-    double number_d = static_cast<double>(number);
-    double multiplier_d = multiplier;
-    while (number_d >= multiplier_d)
-    {
-        number_d /= multiplier_d;
-        ++scale;
-    }
-    if (scale > 0)
-        out << '(' << std::fixed << std::setprecision(3) << number_d << ' '
-            << (multiplier == 1024 ? binary_endings[scale] : endings[scale])
-            << (unit ? unit : "") << ") ";
-    else if (unit && *unit)
-        out << unit << ' ';
-    return out.str();
-}
-
 std::ostream& operator << (std::ostream& o, const StatsData& s) {
-#define hr add_IEC_binary_multiplier
+#define hr common::FormatIecUnits
     o << "Thrill I/O statistics" << std::endl;
 #if THRILL_IO_STATS
     o << " total number of reads                      : "
       << hr(s.read_ops()) << std::endl;
     o << " average block size (read)                  : "
-      << hr(s.read_ops() ? s.read_volume() / s.read_ops() : 0, "B") << std::endl;
+      << hr(s.read_ops() ? s.read_volume() / s.read_ops() : 0) << std::endl;
     o << " number of bytes read from disks            : "
-      << hr(s.read_volume(), "B") << std::endl;
+      << hr(s.read_volume()) << std::endl;
     o << " time spent in serving all read requests    : "
       << s.read_time() << " s"
       << " @ " << (static_cast<double>(s.read_volume()) / 1048576.0 / s.read_time()) << " MiB/s"
@@ -249,24 +228,24 @@ std::ostream& operator << (std::ostream& o, const StatsData& s) {
         o << " total number of cached reads               : "
           << hr(s.cached_read_ops()) << std::endl;
         o << " average block size (cached read)           : "
-          << hr(s.cached_read_volume() / s.cached_read_ops(), "B") << std::endl;
+          << hr(s.cached_read_volume() / s.cached_read_ops()) << std::endl;
         o << " number of bytes read from cache            : "
-          << hr(s.cached_read_volume(), "B") << std::endl;
+          << hr(s.cached_read_volume()) << std::endl;
     }
     if (s.cached_write_ops()) {
         o << " total number of cached writes              : "
           << hr(s.cached_write_ops()) << std::endl;
         o << " average block size (cached write)          : "
-          << hr(s.cached_write_volume() / s.cached_write_ops(), "B") << std::endl;
+          << hr(s.cached_write_volume() / s.cached_write_ops()) << std::endl;
         o << " number of bytes written to cache           : "
-          << hr(s.cached_write_volume(), "B") << std::endl;
+          << hr(s.cached_write_volume()) << std::endl;
     }
     o << " total number of writes                     : "
       << hr(s.write_ops()) << std::endl;
     o << " average block size (write)                 : "
-      << hr(s.write_ops() ? s.write_volume() / s.write_ops() : 0, "B") << std::endl;
+      << hr(s.write_ops() ? s.write_volume() / s.write_ops() : 0) << std::endl;
     o << " number of bytes written to disks           : "
-      << hr(s.write_volume(), "B") << std::endl;
+      << hr(s.write_volume()) << std::endl;
     o << " time spent in serving all write requests   : "
       << s.write_time() << " s"
       << " @ " << (static_cast<double>(s.write_volume()) / 1048576.0 / s.write_time()) << " MiB/s"

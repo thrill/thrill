@@ -87,9 +87,9 @@ int benchmark_disks_blocksize_alloc(uint64_t length, uint64_t start_offset, uint
     uint64_t totalsizeread = 0, totalsizewrite = 0;
 
     std::cout << "# Batch size: "
-              << io::add_IEC_binary_multiplier(batch_size, "B") << " ("
+              << common::FormatIecUnits(batch_size) << " ("
               << num_blocks_per_batch << " blocks of "
-              << io::add_IEC_binary_multiplier(raw_block_size, "B") << ")"
+              << common::FormatIecUnits(raw_block_size) << ")"
               << " using " << AllocStrategy().name()
               << std::endl;
 

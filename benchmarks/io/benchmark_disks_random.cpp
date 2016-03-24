@@ -77,14 +77,14 @@ void run_test(int64_t span, int64_t worksize, bool do_init, bool do_read, bool d
         io::BlockManager::GetInstance()->new_blocks(alloc, blocks.begin(), blocks.end());
 
         std::cout << "# Span size: "
-                  << io::add_IEC_binary_multiplier(span, "B") << " ("
+                  << common::FormatIecUnits(span) << " ("
                   << num_blocks_in_span << " blocks of "
-                  << io::add_IEC_binary_multiplier(raw_block_size, "B") << ")" << std::endl;
+                  << common::FormatIecUnits(raw_block_size) << ")" << std::endl;
 
         std::cout << "# Work size: "
-                  << io::add_IEC_binary_multiplier(worksize, "B") << " ("
+                  << common::FormatIecUnits(worksize) << " ("
                   << num_blocks << " blocks of "
-                  << io::add_IEC_binary_multiplier(raw_block_size, "B") << ")" << std::endl;
+                  << common::FormatIecUnits(raw_block_size) << ")" << std::endl;
 
         double elapsed = 0;
 
