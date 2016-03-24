@@ -54,12 +54,12 @@ public:
     // also there were race conditions possible
     // and actually an old value was never restored once a new one was set ...
     // so just disable it and all it's nice implications
-    void set_priority_op(PriorityOp op) final {
+    void SetPriorityOp(PriorityOp op) final {
         // _priority_op = op;
         common::THRILL_UNUSED(op);
     }
-    void add_request(RequestPtr& req) final;
-    bool cancel_request(Request* req) final;
+    void AddRequest(RequestPtr& req) final;
+    bool CancelRequest(Request* req) final;
     ~RequestQueueImpl1Q();
 };
 

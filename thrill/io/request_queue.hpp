@@ -43,10 +43,10 @@ public:
     RequestQueue& operator = (RequestQueue&&) = default;
 
 public:
-    virtual void add_request(RequestPtr& req) = 0;
-    virtual bool cancel_request(Request* req) = 0;
+    virtual void AddRequest(RequestPtr& req) = 0;
+    virtual bool CancelRequest(Request* req) = 0;
     virtual ~RequestQueue() { }
-    virtual void set_priority_op(PriorityOp p) { common::THRILL_UNUSED(p); }
+    virtual void SetPriorityOp(PriorityOp p) { common::THRILL_UNUSED(p); }
 };
 
 //! \}

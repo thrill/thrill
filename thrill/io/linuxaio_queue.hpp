@@ -71,12 +71,12 @@ private:
 
     static constexpr PriorityOp priority_op_ = WRITE;
 
-    static void * post_async(void* arg);   // thread start callback
-    static void * wait_async(void* arg);   // thread start callback
-    void post_requests();
-    void handle_events(io_event* events, long num_events, bool canceled);
-    void wait_requests();
-    void suspend();
+    static void * PostAsync(void* arg);   // thread start callback
+    static void * WaitAsync(void* arg);   // thread start callback
+    void PostRequests();
+    void HandleEvents(io_event* events, long num_events, bool canceled);
+    void WaitRequests();
+    void Suspend();
 
     // needed by linuxaio_request
     aio_context_t io_context() { return context_; }
@@ -86,9 +86,9 @@ public:
     //! submitted to disk, 0 means as many as possible
     explicit LinuxaioQueue(int desired_queue_length = 0);
 
-    void add_request(RequestPtr& req) final;
-    bool cancel_request(Request* req) final;
-    void complete_request(RequestPtr& req);
+    void AddRequest(RequestPtr& req) final;
+    bool CancelRequest(Request* req) final;
+    void CompleteRequest(RequestPtr& req);
     ~LinuxaioQueue();
 };
 

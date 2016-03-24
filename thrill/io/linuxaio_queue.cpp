@@ -59,8 +59,8 @@ LinuxaioQueue::LinuxaioQueue(int desired_queue_length)
 
     LOG1 << "Set up an linuxaio queue with " << max_events_ << " entries.";
 
-    StartThread(post_async, static_cast<void*>(this), post_thread_, post_thread_state_);
-    StartThread(wait_async, static_cast<void*>(this), wait_thread_, wait_thread_state_);
+    StartThread(PostAsync, static_cast<void*>(this), post_thread_, post_thread_state_);
+    StartThread(WaitAsync, static_cast<void*>(this), wait_thread_, wait_thread_state_);
 }
 
 LinuxaioQueue::~LinuxaioQueue() {
@@ -69,7 +69,7 @@ LinuxaioQueue::~LinuxaioQueue() {
     syscall(SYS_io_destroy, context_);
 }
 
-void LinuxaioQueue::add_request(RequestPtr& req) {
+void LinuxaioQueue::AddRequest(RequestPtr& req) {
     if (req.empty())
         THRILL_THROW_INVALID_ARGUMENT("Empty request submitted to disk_queue.");
     if (post_thread_state_() != RUNNING)
@@ -83,7 +83,7 @@ void LinuxaioQueue::add_request(RequestPtr& req) {
     num_waiting_requests_.signal();
 }
 
-bool LinuxaioQueue::cancel_request(Request* req) {
+bool LinuxaioQueue::CancelRequest(Request* req) {
     if (!req)
         THRILL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
     if (post_thread_state_() != RUNNING)
@@ -136,7 +136,7 @@ bool LinuxaioQueue::cancel_request(Request* req) {
 }
 
 // internal routines, run by the posting thread
-void LinuxaioQueue::post_requests() {
+void LinuxaioQueue::PostRequests() {
     RequestPtr req;
     io_event* events = new io_event[max_events_];
 
@@ -172,7 +172,7 @@ void LinuxaioQueue::post_requests() {
                                        " io_getevents() nr_events=" << num_events);
                 }
 
-                handle_events(events, num_events, false);
+                HandleEvents(events, num_events, false);
             }
 
             // request is finally posted
@@ -195,7 +195,7 @@ void LinuxaioQueue::post_requests() {
     delete[] events;
 }
 
-void LinuxaioQueue::handle_events(io_event* events, long num_events, bool canceled) {
+void LinuxaioQueue::HandleEvents(io_event* events, long num_events, bool canceled) {
     for (int e = 0; e < num_events; ++e)
     {
         // size_t is as long as a pointer, and like this, we avoid an icpc warning
@@ -208,7 +208,7 @@ void LinuxaioQueue::handle_events(io_event* events, long num_events, bool cancel
 }
 
 // internal routines, run by the waiting thread
-void LinuxaioQueue::wait_requests() {
+void LinuxaioQueue::WaitRequests() {
     RequestPtr req;
     io_event* events = new io_event[max_events_];
 
@@ -231,14 +231,14 @@ void LinuxaioQueue::wait_requests() {
         // compensate for the one eaten prematurely above
         num_posted_requests_.signal();
 
-        handle_events(events, num_events, false);
+        HandleEvents(events, num_events, false);
     }
 
     delete[] events;
 }
 
-void* LinuxaioQueue::post_async(void* arg) {
-    (static_cast<LinuxaioQueue*>(arg))->post_requests();
+void* LinuxaioQueue::PostAsync(void* arg) {
+    (static_cast<LinuxaioQueue*>(arg))->PostRequests();
 
     self_type* pthis = static_cast<self_type*>(arg);
     pthis->post_thread_state_.set_to(TERMINATED);
@@ -252,8 +252,8 @@ void* LinuxaioQueue::post_async(void* arg) {
 #endif
 }
 
-void* LinuxaioQueue::wait_async(void* arg) {
-    (static_cast<LinuxaioQueue*>(arg))->wait_requests();
+void* LinuxaioQueue::WaitAsync(void* arg) {
+    (static_cast<LinuxaioQueue*>(arg))->WaitRequests();
 
     self_type* pthis = static_cast<self_type*>(arg);
     pthis->wait_thread_state_.set_to(TERMINATED);

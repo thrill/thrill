@@ -13,9 +13,9 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/io/config_file.hpp>
 #include <thrill/io/disk_allocator.hpp>
 #include <thrill/io/error_handling.hpp>
-#include <thrill/io/config_file.hpp>
 
 #include <algorithm>
 #include <cassert>

@@ -18,6 +18,7 @@
 
 #include <thrill/io/disk_queues.hpp>
 #include <thrill/io/error_handling.hpp>
+#include <thrill/io/iostats.hpp>
 
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -71,7 +72,7 @@ bool LinuxaioRequest::post() {
     // time before the call.
     double now = timestamp();
     LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
-        DiskQueues::GetInstance()->get_queue(file_->get_queue_id()));
+        DiskQueues::GetInstance()->GetQueue(file_->get_queue_id()));
     long success = syscall(SYS_io_submit, queue->io_context(), 1, &cb_pointer);
     if (success == 1)
     {
@@ -97,8 +98,8 @@ bool LinuxaioRequest::cancel() {
 
     RequestPtr req(this);
     LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
-        DiskQueues::GetInstance()->get_queue(file_->get_queue_id()));
-    return queue->cancel_request(req);
+        DiskQueues::GetInstance()->GetQueue(file_->get_queue_id()));
+    return queue->CancelRequest(req);
 }
 
 //! Cancel already posted request
@@ -109,10 +110,10 @@ bool LinuxaioRequest::cancel_aio() {
 
     io_event event;
     LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
-        DiskQueues::GetInstance()->get_queue(file_->get_queue_id()));
+        DiskQueues::GetInstance()->GetQueue(file_->get_queue_id()));
     long result = syscall(SYS_io_cancel, queue->io_context(), &cb_, &event);
     if (result == 0)    //successfully canceled
-        queue->handle_events(&event, 1, true);
+        queue->HandleEvents(&event, 1, true);
     return result == 0;
 }
 

@@ -15,7 +15,9 @@
 #include <thrill/io/disk_queues.hpp>
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/iostats.hpp>
+#include <thrill/io/linuxaio_request.hpp>
 #include <thrill/io/request.hpp>
+#include <thrill/io/serving_request.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 #include <thrill/mem/pool.hpp>
 
@@ -129,7 +131,7 @@ bool Request::cancel() {
 
     if (!file_) return false;
 
-    if (DiskQueues::GetInstance()->cancel_request(this, file_->get_queue_id()))
+    if (DiskQueues::GetInstance()->CancelRequest(this, file_->get_queue_id()))
     {
         state_.set_to(DONE);
         // user callback

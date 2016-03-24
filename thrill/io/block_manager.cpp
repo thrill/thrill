@@ -70,7 +70,7 @@ BlockManager::BlockManager() {
         total_size += cfg.size;
 
         // create queue for the file.
-        DiskQueues::GetInstance()->make_queue(disk_files_[i]);
+        DiskQueues::GetInstance()->MakeQueue(disk_files_[i]);
 
         disk_allocators_[i] = new DiskAllocator(disk_files_[i], cfg);
     }

@@ -30,7 +30,7 @@ RequestPtr LinuxaioFile::aread(
                        on_cmpl, FileBasePtr(this),
                        buffer, offset, bytes, Request::READ));
 
-    DiskQueues::GetInstance()->add_request(req, get_queue_id());
+    DiskQueues::GetInstance()->AddRequest(req, get_queue_id());
 
     return req;
 }
@@ -43,7 +43,7 @@ RequestPtr LinuxaioFile::awrite(
                        on_cmpl, FileBasePtr(this),
                        buffer, offset, bytes, Request::WRITE));
 
-    DiskQueues::GetInstance()->add_request(req, get_queue_id());
+    DiskQueues::GetInstance()->AddRequest(req, get_queue_id());
 
     return req;
 }

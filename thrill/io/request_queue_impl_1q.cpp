@@ -40,7 +40,7 @@ RequestQueueImpl1Q::RequestQueueImpl1Q(int n)
     StartThread(worker, static_cast<void*>(this), thread_, thread_state_);
 }
 
-void RequestQueueImpl1Q::add_request(RequestPtr& req) {
+void RequestQueueImpl1Q::AddRequest(RequestPtr& req) {
     if (req.empty())
         THRILL_THROW_INVALID_ARGUMENT("Empty request submitted to disk_queue.");
     if (thread_state_() != RUNNING)
@@ -65,7 +65,7 @@ void RequestQueueImpl1Q::add_request(RequestPtr& req) {
     sem_.signal();
 }
 
-bool RequestQueueImpl1Q::cancel_request(Request* req) {
+bool RequestQueueImpl1Q::CancelRequest(Request* req) {
     if (!req)
         THRILL_THROW_INVALID_ARGUMENT("Empty request canceled disk_queue.");
     if (thread_state_() != RUNNING)
