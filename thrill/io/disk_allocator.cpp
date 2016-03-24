@@ -15,9 +15,11 @@
 
 #include <thrill/io/disk_allocator.hpp>
 #include <thrill/io/error_handling.hpp>
+#include <thrill/io/config_file.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <functional>
 #include <map>
 #include <ostream>
 #include <utility>
@@ -26,11 +28,46 @@
 namespace thrill {
 namespace io {
 
-void DiskAllocator::dump() const {
+using Place = std::pair<int64_t, int64_t>;
+
+struct FirstFit : public std::binary_function<Place, int64_t, bool>
+{
+    bool operator () (
+        const Place& entry,
+        const int64_t size) const {
+        return (entry.second >= size);
+    }
+};
+
+using SortSeq = std::map<
+          int64_t, int64_t, std::less<int64_t>,
+          mem::GPoolAllocator<std::pair<const int64_t, int64_t> > >;
+
+struct DiskAllocator::Data
+{
+    //! map of free space
+    SortSeq free_space_;
+};
+
+DiskAllocator::DiskAllocator(FileBase* storage, const DiskConfig& cfg)
+    : data_(std::make_unique<Data>()),
+      free_bytes_(0), disk_bytes_(0), cfg_bytes_(cfg.size),
+      storage_(storage), autogrow_(cfg.autogrow) {
+    // initial growth to configured file size
+    GrowFile(cfg.size);
+}
+
+DiskAllocator::~DiskAllocator() {
+    if (disk_bytes_ > cfg_bytes_) { // reduce to original size
+        storage_->set_size(cfg_bytes_);
+    }
+}
+
+void DiskAllocator::Dump() const {
     int64_t total = 0;
-    SortSeq::const_iterator cur = free_space_.begin();
+    SortSeq::const_iterator cur = data_->free_space_.begin();
     LOG1 << "Free regions dump:";
-    for ( ; cur != free_space_.end(); ++cur)
+    for ( ; cur != data_->free_space_.end(); ++cur)
     {
         LOG1 << "Free chunk: begin: " << cur->first << " size: " << cur->second;
         total += cur->second;
@@ -39,7 +76,7 @@ void DiskAllocator::dump() const {
 }
 
 template <typename BidIterator>
-void DiskAllocator::new_blocks(BidIterator begin, BidIterator end) {
+void DiskAllocator::NewBlocks(BidIterator begin, BidIterator end) {
     uint64_t requested_size = 0;
     static constexpr bool debug = false;
 
@@ -74,41 +111,45 @@ void DiskAllocator::new_blocks(BidIterator begin, BidIterator end) {
             " bytes requested, " << free_bytes_ <<
             " bytes free. Trying to extend the external memory space...";
 
-        grow_file(requested_size);
+        GrowFile(requested_size);
     }
 
     // dump();
 
     SortSeq::iterator space;
-    space = std::find_if(free_space_.begin(), free_space_.end(),
+    space = std::find_if(data_->free_space_.begin(), data_->free_space_.end(),
                          bind2nd(FirstFit(), requested_size));
 
-    if (space == free_space_.end() && requested_size == block_size)
+    if (space == data_->free_space_.end() && requested_size == block_size)
     {
         assert(end - begin == 1);
 
         if (!autogrow_) {
             LOG1 << "Warning: Severe external memory space fragmentation!";
-            dump();
+            Dump();
 
             LOG1 << "External memory block allocation error: " << requested_size
                  << " bytes requested, " << free_bytes_
                  << " bytes free. Trying to extend the external memory space...";
         }
 
-        grow_file(block_size);
+        GrowFile(block_size);
 
-        space = std::find_if(free_space_.begin(), free_space_.end(),
-                             bind2nd(FirstFit(), requested_size));
+        space = std::find_if(
+            data_->free_space_.begin(), data_->free_space_.end(),
+            bind2nd(FirstFit(), requested_size));
     }
 
-    if (space != free_space_.end())
+    if (space != data_->free_space_.end())
     {
         int64_t region_pos = (*space).first;
         int64_t region_size = (*space).second;
-        free_space_.erase(space);
-        if (region_size > (int64_t)requested_size)
-            free_space_[region_pos + requested_size] = region_size - requested_size;
+        data_->free_space_.erase(space);
+
+        if (region_size > (int64_t)requested_size) {
+            data_->free_space_[region_pos + requested_size] =
+                region_size - requested_size;
+        }
 
         for (int64_t pos = region_pos; begin != end; ++begin)
         {
@@ -131,75 +172,80 @@ void DiskAllocator::new_blocks(BidIterator begin, BidIterator end) {
     lock.unlock();
 
     BidIterator middle = begin + ((end - begin) / 2);
-    new_blocks(begin, middle);
-    new_blocks(middle, end);
+    NewBlocks(begin, middle);
+    NewBlocks(middle, end);
 }
 
 // template function instantiations
-template void DiskAllocator::new_blocks(BID<0>* begin, BID<0>* end);
-template void DiskAllocator::new_blocks(
+template void DiskAllocator::NewBlocks(BID<0>* begin, BID<0>* end);
+template void DiskAllocator::NewBlocks(
     std::vector<BID<0> >::iterator begin, std::vector<BID<0> >::iterator end);
 
-template void DiskAllocator::new_blocks(
+template void DiskAllocator::NewBlocks(
     std::vector<BID<131072> >::iterator begin,
     std::vector<BID<131072> >::iterator end);
-template void DiskAllocator::new_blocks(
+template void DiskAllocator::NewBlocks(
     std::vector<BID<524288> >::iterator begin,
     std::vector<BID<524288> >::iterator end);
 
 template <size_t BlockSize>
-void DiskAllocator::delete_block(const BID<BlockSize>& bid) {
+void DiskAllocator::DeleteBlock(const BID<BlockSize>& bid) {
     std::unique_lock<std::mutex> lock(mutex_);
 
     LOG << "disk_allocator::delete_block<" << BlockSize
         << ">(pos=" << bid.offset << ", size=" << bid.size
         << "), free:" << free_bytes_ << " total:" << disk_bytes_;
 
-    add_free_region(bid.offset, bid.size);
+    AddFreeRegion(bid.offset, bid.size);
 }
 
 // template function instantiations
-template void DiskAllocator::delete_block(const BID<0>& bid);
-template void DiskAllocator::delete_block(const BID<131072>& bid);
-template void DiskAllocator::delete_block(const BID<524288>& bid);
+template void DiskAllocator::DeleteBlock(const BID<0>& bid);
+template void DiskAllocator::DeleteBlock(const BID<131072>& bid);
+template void DiskAllocator::DeleteBlock(const BID<524288>& bid);
 
-void DiskAllocator::deallocation_error(
+template <typename SortSeqIterator>
+void DiskAllocator::DeallocationError(
     int64_t block_pos, int64_t block_size,
-    const SortSeq::iterator& pred, const SortSeq::iterator& succ) const {
+    const SortSeqIterator& pred, const SortSeqIterator& succ) const {
     LOG1 << "Error deallocating block at " << block_pos << " size " << block_size;
     LOG1 << ((pred == succ) ? "pred==succ" : "pred!=succ");
-    if (pred == free_space_.end()) {
-        LOG1 << "pred==free_space.end()";
+
+    SortSeq& free_space = data_->free_space_;
+
+    if (pred == free_space.end()) {
+        LOG1 << "pred == free_space.end()";
     }
     else {
-        if (pred == free_space_.begin())
-            LOG1 << "pred==free_space.begin()";
+        if (pred == free_space.begin())
+            LOG1 << "pred == free_space.begin()";
         LOG1 << "pred: begin=" << pred->first << " size=" << pred->second;
     }
-    if (succ == free_space_.end()) {
-        LOG1 << "succ==free_space.end()";
+    if (succ == free_space.end()) {
+        LOG1 << "succ == free_space.end()";
     }
     else {
-        if (succ == free_space_.begin())
-            LOG1 << "succ==free_space.begin()";
+        if (succ == free_space.begin())
+            LOG1 << "succ == free_space.begin()";
         LOG1 << "succ: begin=" << succ->first << " size=" << succ->second;
     }
-    dump();
+    Dump();
 }
 
-void DiskAllocator::add_free_region(int64_t block_pos, int64_t block_size) {
+void DiskAllocator::AddFreeRegion(int64_t block_pos, int64_t block_size) {
     // assert(block_size);
     // dump();
     LOG << "Deallocating a block with size: " << block_size << " position: " << block_pos;
     int64_t region_pos = block_pos;
     int64_t region_size = block_size;
-    if (!free_space_.empty())
+    SortSeq& free_space = data_->free_space_;
+    if (!free_space.empty())
     {
-        SortSeq::iterator succ = free_space_.upper_bound(region_pos);
+        SortSeq::iterator succ = free_space.upper_bound(region_pos);
         SortSeq::iterator pred = succ;
-        if (pred != free_space_.begin())
+        if (pred != free_space.begin())
             pred--;
-        if (pred != free_space_.end())
+        if (pred != free_space.end())
         {
             if (pred->first <= region_pos && pred->first + pred->second > region_pos)
             {
@@ -207,61 +253,61 @@ void DiskAllocator::add_free_region(int64_t block_pos, int64_t block_size) {
                               "disk_allocator::check_corruption", "Error: double deallocation of external memory, trying to deallocate region " << region_pos << " + " << region_size << "  in empty space [" << pred->first << " + " << pred->second << "]");
             }
         }
-        if (succ != free_space_.end())
+        if (succ != free_space.end())
         {
             if (region_pos <= succ->first && region_pos + region_size > succ->first)
             {
                 THRILL_THROW2(BadExternalAlloc, "disk_allocator::check_corruption", "Error: double deallocation of external memory, trying to deallocate region " << region_pos << " + " << region_size << "  which overlaps empty space [" << succ->first << " + " << succ->second << "]");
             }
         }
-        if (succ == free_space_.end())
+        if (succ == free_space.end())
         {
-            if (pred == free_space_.end())
+            if (pred == free_space.end())
             {
-                deallocation_error(block_pos, block_size, pred, succ);
-                assert(pred != free_space_.end());
+                DeallocationError(block_pos, block_size, pred, succ);
+                assert(pred != free_space.end());
             }
             if ((*pred).first + (*pred).second == region_pos)
             {
                 // coalesce with predecessor
                 region_size += (*pred).second;
                 region_pos = (*pred).first;
-                free_space_.erase(pred);
+                free_space.erase(pred);
             }
         }
         else
         {
-            if (free_space_.size() > 1)
+            if (free_space.size() > 1)
             {
 #if 0
                 if (pred == succ)
                 {
-                    deallocation_error(block_pos, block_size, pred, succ);
+                    DeallocationError(block_pos, block_size, pred, succ);
                     assert(pred != succ);
                 }
 #endif
-                bool succ_is_not_the_first = (succ != free_space_.begin());
+                bool succ_is_not_the_first = (succ != free_space.begin());
                 if ((*succ).first == region_pos + region_size)
                 {
                     // coalesce with successor
                     region_size += (*succ).second;
-                    free_space_.erase(succ);
+                    free_space.erase(succ);
                     //-tb: set succ to pred afterwards due to iterator invalidation
                     succ = pred;
                 }
                 if (succ_is_not_the_first)
                 {
-                    if (pred == free_space_.end())
+                    if (pred == free_space.end())
                     {
-                        deallocation_error(block_pos, block_size, pred, succ);
-                        assert(pred != free_space_.end());
+                        DeallocationError(block_pos, block_size, pred, succ);
+                        assert(pred != free_space.end());
                     }
                     if ((*pred).first + (*pred).second == region_pos)
                     {
                         // coalesce with predecessor
                         region_size += (*pred).second;
                         region_pos = (*pred).first;
-                        free_space_.erase(pred);
+                        free_space.erase(pred);
                     }
                 }
             }
@@ -271,13 +317,13 @@ void DiskAllocator::add_free_region(int64_t block_pos, int64_t block_size) {
                 {
                     // coalesce with successor
                     region_size += (*succ).second;
-                    free_space_.erase(succ);
+                    free_space.erase(succ);
                 }
             }
         }
     }
 
-    free_space_[region_pos] = region_size;
+    free_space[region_pos] = region_size;
     free_bytes_ += block_size;
 
     // dump();

@@ -32,11 +32,11 @@ using namespace thrill; // NOLINT
 #define KiB (1024)
 #define MiB (1024 * 1024)
 
-struct print_number
+struct PrintNumber
 {
     int n;
 
-    explicit print_number(int n) : n(n) { }
+    explicit PrintNumber(int n) : n(n) { }
 
     void operator () (io::Request*, bool /* success */) {
         // std::cout << n << " " << std::flush;
@@ -46,8 +46,8 @@ struct print_number
 using Timer = common::StatsTimerStart;
 
 template <unsigned BlockSize, typename AllocStrategy>
-void run_test(int64_t span, int64_t worksize,
-              bool do_init, bool do_read, bool do_write) {
+void RunTest(int64_t span, int64_t worksize,
+             bool do_init, bool do_read, bool do_write) {
 
     const unsigned raw_block_size = BlockSize;
 
@@ -115,7 +115,7 @@ void run_test(int64_t span, int64_t worksize,
             Timer t_run;
 
             for (unsigned j = 0; j < num_blocks; j++)
-                reqs[j] = buffer->read(bids[j], print_number(j));
+                reqs[j] = buffer->read(bids[j], PrintNumber(j));
             wait_all(reqs, num_blocks);
 
             elapsed = t_run.SecondsDouble();
@@ -132,7 +132,7 @@ void run_test(int64_t span, int64_t worksize,
             Timer t_run;
 
             for (unsigned j = 0; j < num_blocks; j++)
-                reqs[j] = buffer->write(bids[j], print_number(j));
+                reqs[j] = buffer->write(bids[j], PrintNumber(j));
             wait_all(reqs, num_blocks);
 
             elapsed = t_run.SecondsDouble();
@@ -155,49 +155,51 @@ void run_test(int64_t span, int64_t worksize,
 }
 
 template <typename AllocStrategy>
-int benchmark_disks_random_alloc(uint64_t span, uint64_t block_size, uint64_t worksize,
-                                 const std::string& optirw) {
+int BenchmarkDisksRandomAlloc(uint64_t span, uint64_t block_size, uint64_t worksize,
+                              const std::string& optirw) {
     bool do_init = (optirw.find('i') != std::string::npos);
     bool do_read = (optirw.find('r') != std::string::npos);
     bool do_write = (optirw.find('w') != std::string::npos);
 
-#define run(bs) run_test<bs, AllocStrategy>(span, worksize, do_init, do_read, do_write)
+#define Run(bs) RunTest<bs, AllocStrategy>( \
+        span, worksize, do_init, do_read, do_write)
+
     if (block_size == 4 * KiB)
-        run(4 * KiB);
+        Run(4 * KiB);
     else if (block_size == 8 * KiB)
-        run(8 * KiB);
+        Run(8 * KiB);
     else if (block_size == 16 * KiB)
-        run(16 * KiB);
+        Run(16 * KiB);
     else if (block_size == 32 * KiB)
-        run(32 * KiB);
+        Run(32 * KiB);
     else if (block_size == 64 * KiB)
-        run(64 * KiB);
+        Run(64 * KiB);
     else if (block_size == 128 * KiB)
-        run(128 * KiB);
+        Run(128 * KiB);
     else if (block_size == 256 * KiB)
-        run(256 * KiB);
+        Run(256 * KiB);
     else if (block_size == 512 * KiB)
-        run(512 * KiB);
+        Run(512 * KiB);
     else if (block_size == 1 * MiB)
-        run(1 * MiB);
+        Run(1 * MiB);
     else if (block_size == 2 * MiB)
-        run(2 * MiB);
+        Run(2 * MiB);
     else if (block_size == 4 * MiB)
-        run(4 * MiB);
+        Run(4 * MiB);
     else if (block_size == 8 * MiB)
-        run(8 * MiB);
+        Run(8 * MiB);
     else if (block_size == 16 * MiB)
-        run(16 * MiB);
+        Run(16 * MiB);
     else if (block_size == 32 * MiB)
-        run(32 * MiB);
+        Run(32 * MiB);
     else if (block_size == 64 * MiB)
-        run(64 * MiB);
+        Run(64 * MiB);
     else if (block_size == 128 * MiB)
-        run(128 * MiB);
+        Run(128 * MiB);
     else
         std::cerr << "Unsupported block_size " << block_size << "." << std::endl
                   << "Available are only powers of two from 4 KiB to 128 MiB. You must use 'ki' instead of 'k'." << std::endl;
-#undef run
+#undef Run
 
     return 0;
 }
@@ -236,25 +238,27 @@ int main(int argc, char* argv[]) {
     if (!cp.Process(argc, argv))
         return -1;
 
-#define run_alloc(alloc) benchmark_disks_random_alloc<alloc>(span, block_size, worksize, optirw)
+#define RunAlloc(Alloc) BenchmarkDisksRandomAlloc<Alloc>( \
+        span, block_size, worksize, optirw)
+
     if (allocstr.size())
     {
         if (allocstr == "RC")
-            return run_alloc(io::RandomCyclic);
+            return RunAlloc(io::RandomCyclic);
         if (allocstr == "SR")
-            return run_alloc(io::SimpleRandom);
+            return RunAlloc(io::SimpleRandom);
         if (allocstr == "FR")
-            return run_alloc(io::FullyRandom);
+            return RunAlloc(io::FullyRandom);
         if (allocstr == "S")
-            return run_alloc(io::Striping);
+            return RunAlloc(io::Striping);
 
         std::cout << "Unknown allocation strategy '" << allocstr << "'" << std::endl;
         cp.PrintUsage();
         return -1;
     }
 
-    return run_alloc(THRILL_DEFAULT_ALLOC_STRATEGY);
-#undef run_alloc
+    return RunAlloc(THRILL_DEFAULT_ALLOC_STRATEGY);
+#undef RunAlloc
 }
 
 /******************************************************************************/

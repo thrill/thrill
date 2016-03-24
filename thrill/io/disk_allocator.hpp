@@ -19,7 +19,6 @@
 #define THRILL_IO_DISK_ALLOCATOR_HEADER
 
 #include <thrill/io/bid.hpp>
-#include <thrill/io/config_file.hpp>
 #include <thrill/io/error_handling.hpp>
 #include <thrill/io/file_base.hpp>
 #include <thrill/mem/pool.hpp>
@@ -27,13 +26,14 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
-#include <map>
 #include <mutex>
 #include <ostream>
 #include <utility>
 
 namespace thrill {
 namespace io {
+
+class DiskConfig;
 
 //! \ingroup io_layer
 //! \{
@@ -42,92 +42,69 @@ class DiskAllocator
 {
     static constexpr bool debug = false;
 
-    using Place = std::pair<int64_t, int64_t>;
-
-    struct FirstFit : public std::binary_function<Place, int64_t, bool>
-    {
-        bool operator () (
-            const Place& entry,
-            const int64_t size) const {
-            return (entry.second >= size);
-        }
-    };
-
-    using SortSeq = std::map<
-              int64_t, int64_t, std::less<int64_t>,
-              mem::GPoolAllocator<std::pair<const int64_t, int64_t> > >;
+    //! pimpl data struct containing std::map
+    struct Data;
 
     std::mutex mutex_;
-    SortSeq free_space_;
+    std::unique_ptr<Data> data_;
     int64_t free_bytes_;
     int64_t disk_bytes_;
     int64_t cfg_bytes_;
     FileBase* storage_;
     bool autogrow_;
 
-    void dump() const;
+    void Dump() const;
 
-    void deallocation_error(
+    template <typename SortSeqIterator>
+    void DeallocationError(
         int64_t block_pos, int64_t block_size,
-        const SortSeq::iterator& pred, const SortSeq::iterator& succ) const;
+        const SortSeqIterator& pred, const SortSeqIterator& succ) const;
 
     // expects the mutex to be locked to prevent concurrent access
-    void add_free_region(int64_t block_pos, int64_t block_size);
+    void AddFreeRegion(int64_t block_pos, int64_t block_size);
 
     // expects the mutex to be locked to prevent concurrent access
-    void grow_file(int64_t extend_bytes) {
+    void GrowFile(int64_t extend_bytes) {
         if (!extend_bytes)
             return;
 
         storage_->set_size(disk_bytes_ + extend_bytes);
-        add_free_region(disk_bytes_, extend_bytes);
+        AddFreeRegion(disk_bytes_, extend_bytes);
         disk_bytes_ += extend_bytes;
     }
 
 public:
-    DiskAllocator(FileBase* storage, const DiskConfig& cfg)
-        : free_bytes_(0),
-          disk_bytes_(0),
-          cfg_bytes_(cfg.size),
-          storage_(storage),
-          autogrow_(cfg.autogrow) {
-        // initial growth to configured file size
-        grow_file(cfg.size);
-    }
+    DiskAllocator(FileBase* storage, const DiskConfig& cfg);
 
     //! non-copyable: delete copy-constructor
     DiskAllocator(const DiskAllocator&) = delete;
     //! non-copyable: delete assignment operator
     DiskAllocator& operator = (const DiskAllocator&) = delete;
 
-    ~DiskAllocator() {
-        if (disk_bytes_ > cfg_bytes_) { // reduce to original size
-            storage_->set_size(cfg_bytes_);
-        }
-    }
+    ~DiskAllocator();
 
-    int64_t get_free_bytes() const {
+    int64_t free_bytes() const {
         return free_bytes_;
     }
 
-    int64_t get_used_bytes() const {
+    int64_t used_bytes() const {
         return disk_bytes_ - free_bytes_;
     }
 
-    int64_t get_total_bytes() const {
+    int64_t total_bytes() const {
         return disk_bytes_;
     }
 
     template <size_t BlockSize>
-    void new_blocks(BIDArray<BlockSize>& bids) {
-        new_blocks<BlockSize>(bids.begin(), bids.end());
+    void NewBlocks(BIDArray<BlockSize>& bids) {
+        NewBlocks<BlockSize>(bids.begin(), bids.end());
     }
 
     template <typename BidIterator>
-    void new_blocks(BidIterator begin, BidIterator end);
+    void NewBlocks(BidIterator begin, BidIterator end);
 
     template <size_t BlockSize>
-    void delete_block(const BID<BlockSize>& bid);
+    void DeleteBlock(const BID<BlockSize>& bid);
 };
 
 //! \}

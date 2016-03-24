@@ -102,7 +102,7 @@ uint64_t BlockManager::get_total_bytes() const {
     uint64_t total = 0;
 
     for (size_t i = 0; i < ndisks_; ++i)
-        total += disk_allocators_[i]->get_total_bytes();
+        total += disk_allocators_[i]->total_bytes();
 
     return total;
 }
@@ -111,7 +111,7 @@ uint64_t BlockManager::get_free_bytes() const {
     uint64_t total = 0;
 
     for (size_t i = 0; i < ndisks_; ++i)
-        total += disk_allocators_[i]->get_free_bytes();
+        total += disk_allocators_[i]->free_bytes();
 
     return total;
 }

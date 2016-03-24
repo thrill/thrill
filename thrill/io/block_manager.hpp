@@ -188,14 +188,14 @@ void BlockManager::new_blocks_int(
             disk_alloc = disk_allocators_[disk_file->get_allocator_id()];
 
             // check if disk has enough free space
-            if (disk_alloc->get_free_bytes() >= static_cast<int64_t>(it->size))
+            if (disk_alloc->free_bytes() >= static_cast<int64_t>(it->size))
                 break;
         }
 
         // if no disk has free space, pick an arbitrary one after 100 rounds.
 
         it->storage = disk_file;
-        disk_alloc->new_blocks(it, it + 1);
+        disk_alloc->NewBlocks(it, it + 1);
         LOG0 << "BLC:new    " << *it;
 
         total_allocation_ += it->size;
@@ -215,7 +215,7 @@ void BlockManager::delete_block(const BID<BlockSize>& bid) {
         return;  // self managed disk
     LOG0 << "BLC:delete " << bid;
     assert(bid.storage->get_allocator_id() >= 0);
-    disk_allocators_[bid.storage->get_allocator_id()]->delete_block(bid);
+    disk_allocators_[bid.storage->get_allocator_id()]->DeleteBlock(bid);
     disk_files_[bid.storage->get_allocator_id()]->discard(bid.offset, bid.size);
 
     current_allocation_ -= BlockSize;

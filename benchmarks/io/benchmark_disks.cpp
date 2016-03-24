@@ -49,7 +49,7 @@ using namespace thrill; // NOLINT
 using Timer = common::StatsTimerStart;
 
 template <size_t RawBlockSize, typename AllocStrategy>
-int benchmark_disks_blocksize_alloc(
+int BenchmarkDisksBlocksizeAlloc(
     uint64_t length, uint64_t start_offset, uint64_t batch_size,
     std::string optrw) {
 
@@ -201,46 +201,47 @@ int benchmark_disks_blocksize_alloc(
 }
 
 template <typename AllocStrategy>
-int benchmark_disks_alloc(uint64_t length, uint64_t offset, uint64_t batch_size,
-                          uint64_t block_size, std::string optrw) {
-#define run(bs) benchmark_disks_blocksize_alloc<bs, AllocStrategy>(length, offset, batch_size, optrw)
+int BenchmarkDisksAlloc(uint64_t length, uint64_t offset, uint64_t batch_size,
+                        uint64_t block_size, std::string optrw) {
+#define Run(bs) BenchmarkDisksBlocksizeAlloc<bs, AllocStrategy>( \
+        length, offset, batch_size, optrw)
     if (block_size == 4 * KiB)
-        run(4 * KiB);
+        Run(4 * KiB);
     else if (block_size == 8 * KiB)
-        run(8 * KiB);
+        Run(8 * KiB);
     else if (block_size == 16 * KiB)
-        run(16 * KiB);
+        Run(16 * KiB);
     else if (block_size == 32 * KiB)
-        run(32 * KiB);
+        Run(32 * KiB);
     else if (block_size == 64 * KiB)
-        run(64 * KiB);
+        Run(64 * KiB);
     else if (block_size == 128 * KiB)
-        run(128 * KiB);
+        Run(128 * KiB);
     else if (block_size == 256 * KiB)
-        run(256 * KiB);
+        Run(256 * KiB);
     else if (block_size == 512 * KiB)
-        run(512 * KiB);
+        Run(512 * KiB);
     else if (block_size == 1 * MiB)
-        run(1 * MiB);
+        Run(1 * MiB);
     else if (block_size == 2 * MiB)
-        run(2 * MiB);
+        Run(2 * MiB);
     else if (block_size == 4 * MiB)
-        run(4 * MiB);
+        Run(4 * MiB);
     else if (block_size == 8 * MiB)
-        run(8 * MiB);
+        Run(8 * MiB);
     else if (block_size == 16 * MiB)
-        run(16 * MiB);
+        Run(16 * MiB);
     else if (block_size == 32 * MiB)
-        run(32 * MiB);
+        Run(32 * MiB);
     else if (block_size == 64 * MiB)
-        run(64 * MiB);
+        Run(64 * MiB);
     else if (block_size == 128 * MiB)
-        run(128 * MiB);
+        Run(128 * MiB);
     else
         std::cerr << "Unsupported block_size " << block_size << "." << std::endl
                   << "Available are only powers of two from 4 KiB to 128 MiB. "
                   << "You must use 'ki' instead of 'k'." << std::endl;
-#undef run
+#undef Run
 
     return 0;
 }
@@ -286,16 +287,16 @@ int main(int argc, char* argv[]) {
     if (allocstr.size())
     {
         if (allocstr == "RC")
-            return benchmark_disks_alloc<io::RandomCyclic>(
+            return BenchmarkDisksAlloc<io::RandomCyclic>(
                 length, offset, batch_size, block_size, optrw);
         if (allocstr == "SR")
-            return benchmark_disks_alloc<io::SimpleRandom>(
+            return BenchmarkDisksAlloc<io::SimpleRandom>(
                 length, offset, batch_size, block_size, optrw);
         if (allocstr == "FR")
-            return benchmark_disks_alloc<io::FullyRandom>(
+            return BenchmarkDisksAlloc<io::FullyRandom>(
                 length, offset, batch_size, block_size, optrw);
         if (allocstr == "S")
-            return benchmark_disks_alloc<io::Striping>(
+            return BenchmarkDisksAlloc<io::Striping>(
                 length, offset, batch_size, block_size, optrw);
 
         std::cout << "Unknown allocation strategy '" << allocstr << "'" << std::endl;
@@ -303,7 +304,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    return benchmark_disks_alloc<THRILL_DEFAULT_ALLOC_STRATEGY>(
+    return BenchmarkDisksAlloc<THRILL_DEFAULT_ALLOC_STRATEGY>(
         length, offset, batch_size, block_size, optrw);
 }
 
