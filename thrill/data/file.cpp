@@ -19,6 +19,10 @@ namespace data {
 /******************************************************************************/
 // File
 
+File::File(BlockPool& block_pool, size_t local_worker_id, size_t dia_id)
+    : BlockSink(block_pool, local_worker_id),
+      id_(block_pool.next_file_id()), dia_id_(dia_id) { }
+
 File::~File() {
     // assert(dia_id_ != 0);
     logger()

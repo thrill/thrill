@@ -64,9 +64,7 @@ public:
     static constexpr size_t default_prefetch = 2;
 
     //! Constructor from BlockPool
-    File(BlockPool& block_pool, size_t local_worker_id, size_t dia_id)
-        : BlockSink(block_pool, local_worker_id),
-          id_(block_pool.next_file_id()), dia_id_(dia_id) { }
+    File(BlockPool& block_pool, size_t local_worker_id, size_t dia_id);
 
     //! non-copyable: delete copy-constructor
     File(const File&) = delete;
@@ -254,11 +252,6 @@ public:
 
     //! Output the Block objects contained in this File.
     friend std::ostream& operator << (std::ostream& os, const File& f);
-
-    // returns a string that identifies this string instance
-    std::string ToString() {
-        return "File." + std::to_string(id_);
-    }
 
     //! change dia_id after construction (needed because it may be unknown at
     //! construction)

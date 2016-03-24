@@ -19,7 +19,6 @@
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
-#include <thrill/data/multiplexer_header.hpp>
 
 #include <mutex>
 #include <vector>
@@ -32,6 +31,10 @@ namespace data {
 
 using StreamId = size_t;
 
+enum class MagicByte : uint8_t {
+    Invalid, CatStreamBlock, MixStreamBlock, PartitionBlock
+};
+
 /*!
  * Base class for common structures for ConcatStream and MixedStream. This is
  * also a virtual base class use by Multiplexer to pass blocks to streams!
@@ -43,19 +46,11 @@ public:
     using Writer = DynBlockWriter;
 
     Stream(Multiplexer& multiplexer, const StreamId& id,
-           size_t local_worker_id, size_t dia_id)
-        : id_(id),
-          local_worker_id_(local_worker_id),
-          dia_id_(dia_id),
-          multiplexer_(multiplexer),
-          remaining_closing_blocks_((num_hosts() - 1) * workers_per_host())
-    { }
+           size_t local_worker_id, size_t dia_id);
 
-    virtual ~Stream() { }
+    virtual ~Stream();
 
-    const StreamId& id() const {
-        return id_;
-    }
+    const StreamId& id() const { return id_; }
 
     //! Returns my_host_rank
     size_t my_host_rank() const { return multiplexer_.my_host_rank(); }
@@ -71,20 +66,7 @@ public:
         return my_host_rank() * workers_per_host() + local_worker_id_;
     }
 
-    void OnAllClosed() {
-        multiplexer_.logger()
-            << "class" << "Stream"
-            << "event" << "close"
-            << "id" << id_
-            << "dia_id" << dia_id_
-            << "worker_rank"
-            << (my_host_rank() * multiplexer_.workers_per_host())
-            + local_worker_id_
-            << "rx_bytes" << rx_bytes_
-            << "rx_blocks" << rx_blocks_
-            << "tx_bytes" << tx_bytes_
-            << "tx_blocks" << tx_blocks_;
-    }
+    void OnAllClosed();
 
     //! shuts the stream down.
     virtual void Close() = 0;

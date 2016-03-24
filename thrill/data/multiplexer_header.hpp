@@ -14,6 +14,7 @@
 #define THRILL_DATA_MULTIPLEXER_HEADER_HEADER
 
 #include <thrill/data/block.hpp>
+#include <thrill/data/stream.hpp>
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>
 #include <thrill/net/connection.hpp>
@@ -27,10 +28,6 @@ namespace data {
 
 //! \addtogroup data_layer
 //! \{
-
-enum class MagicByte : uint8_t {
-    Invalid, CatStreamBlock, MixStreamBlock, PartitionBlock
-};
 
 struct BlockHeader {
 public:

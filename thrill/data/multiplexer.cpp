@@ -13,6 +13,7 @@
 
 #include <thrill/data/cat_stream.hpp>
 #include <thrill/data/mix_stream.hpp>
+#include <thrill/data/multiplexer_header.hpp>
 #include <thrill/data/stream.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 

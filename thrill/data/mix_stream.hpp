@@ -14,8 +14,6 @@
 #define THRILL_DATA_MIX_STREAM_HEADER
 
 #include <thrill/data/mix_block_queue.hpp>
-#include <thrill/data/multiplexer.hpp>
-#include <thrill/data/multiplexer_header.hpp>
 #include <thrill/data/stream.hpp>
 #include <thrill/data/stream_sink.hpp>
 
@@ -50,43 +48,7 @@ public:
 
     //! Creates a new stream instance
     MixStream(Multiplexer& multiplexer, const StreamId& id,
-              size_t local_worker_id, size_t dia_id)
-        : Stream(multiplexer, id, local_worker_id, dia_id),
-          queue_(multiplexer_.block_pool_, num_workers(),
-                 local_worker_id, dia_id) {
-
-        sinks_.reserve(num_workers());
-        loopback_.reserve(num_workers());
-
-        // construct StreamSink array
-        for (size_t host = 0; host < num_hosts(); ++host) {
-            for (size_t worker = 0; worker < workers_per_host(); worker++) {
-                if (host == my_host_rank()) {
-                    // dummy entries
-                    sinks_.emplace_back(*this, multiplexer_.block_pool_, worker);
-                }
-                else {
-                    // StreamSink which transmits MIX_STREAM_BLOCKs
-                    sinks_.emplace_back(
-                        *this,
-                        multiplexer_.block_pool_,
-                        &multiplexer_.group_.connection(host),
-                        MagicByte::MixStreamBlock,
-                        id,
-                        my_host_rank(), local_worker_id,
-                        host, worker);
-                }
-            }
-        }
-
-        // construct MixBlockQueueSink for loopback writers
-        for (size_t worker = 0; worker < workers_per_host(); worker++) {
-            loopback_.emplace_back(
-                queue_,
-                my_host_rank() * multiplexer_.workers_per_host() + worker,
-                worker);
-        }
-    }
+              size_t local_worker_id, size_t dia_id);
 
     //! non-copyable: delete copy-constructor
     MixStream(const MixStream&) = delete;
@@ -95,94 +57,29 @@ public:
     //! move-constructor: default
     MixStream(MixStream&&) = default;
 
-    ~MixStream() final {
-        Close();
-    }
+    ~MixStream() final;
 
     //! change dia_id after construction (needed because it may be unknown at
     //! construction)
-    void set_dia_id(size_t dia_id) {
-        dia_id_ = dia_id;
-        queue_.set_dia_id(dia_id);
-    }
+    void set_dia_id(size_t dia_id);
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<Writer>
-    GetWriters(size_t block_size = default_block_size) final {
-        tx_timespan_.StartEventually();
-
-        std::vector<Writer> result;
-        result.reserve(num_workers());
-
-        for (size_t host = 0; host < num_hosts(); ++host) {
-            for (size_t worker = 0; worker < workers_per_host(); ++worker) {
-                if (host == my_host_rank()) {
-                    auto target_queue_ptr =
-                        multiplexer_.MixLoopback(id_, local_worker_id_, worker);
-                    result.emplace_back(target_queue_ptr, block_size);
-                }
-                else {
-                    size_t worker_id = host * workers_per_host() + worker;
-                    result.emplace_back(&sinks_[worker_id], block_size);
-                }
-            }
-        }
-
-        assert(result.size() == num_workers());
-        return result;
-    }
+    GetWriters(size_t block_size = default_block_size) final;
 
     //! Creates a BlockReader which mixes items from all workers.
-    MixReader GetMixReader(bool consume) {
-        rx_timespan_.StartEventually();
-        return MixReader(queue_, consume, local_worker_id_);
-    }
+    MixReader GetMixReader(bool consume);
 
     //! Open a MixReader (function name matches a method in File and CatStream).
-    MixReader GetReader(bool consume) {
-        return GetMixReader(consume);
-    }
+    MixReader GetReader(bool consume);
 
     //! shuts the stream down.
-    void Close() final {
-        if (is_closed_) return;
-        is_closed_ = true;
-
-        // close all sinks, this should emit sentinel to all other worker.
-        for (size_t i = 0; i != sinks_.size(); ++i) {
-            if (sinks_[i].closed()) continue;
-            sinks_[i].Close();
-        }
-
-        // close loop-back queue from this worker to all others on this host.
-        for (size_t worker = 0;
-             worker < multiplexer_.workers_per_host(); ++worker)
-        {
-            auto queue_ptr = multiplexer_.MixLoopback(
-                id_, local_worker_id_, worker);
-
-            if (!queue_ptr->write_closed())
-                queue_ptr->Close();
-        }
-
-        // wait for close packets to arrive.
-        while (!queue_.write_closed())
-            sem_closing_blocks_.wait();
-
-        tx_lifetime_.StopEventually();
-        tx_timespan_.StopEventually();
-        OnAllClosed();
-    }
+    void Close() final;
 
     //! Indicates if the stream is closed - meaning all remaining outbound
     //! queues have been closed.
-    bool closed() const final {
-        if (is_closed_) return true;
-        bool closed = true;
-        closed = closed && queue_.write_closed();
-        return closed;
-    }
+    bool closed() const final;
 
 private:
     static constexpr bool debug = false;
@@ -204,46 +101,14 @@ private:
     friend class Multiplexer;
 
     //! called from Multiplexer when there is a new Block for this Stream.
-    void OnStreamBlock(size_t from, PinnedBlock&& b) {
-        assert(from < num_workers());
-        rx_timespan_.StartEventually();
-
-        rx_bytes_ += b.size();
-        rx_blocks_++;
-
-        sLOG << "OnMixStreamBlock" << b;
-
-        sLOG << "stream" << id_ << "receive from" << from << ":"
-             << common::Hexdump(b.ToString());
-
-        queue_.AppendBlock(from, std::move(b).MoveToBlock());
-    }
+    void OnStreamBlock(size_t from, PinnedBlock&& b);
 
     //! called from Multiplexer when a MixStream closed notification was
     //! received.
-    void OnCloseStream(size_t from) {
-        assert(from < num_workers());
-        queue_.Close(from);
-
-        rx_blocks_++;
-
-        sLOG << "OnMixCloseStream from=" << from;
-
-        if (--remaining_closing_blocks_ == 0) {
-            rx_lifetime_.StopEventually();
-            rx_timespan_.StopEventually();
-        }
-
-        sem_closing_blocks_.signal();
-    }
+    void OnCloseStream(size_t from);
 
     //! Returns the loopback queue for the worker of this stream.
-    MixBlockQueueSink * loopback_queue(size_t from_worker_id) {
-        assert(from_worker_id < workers_per_host());
-        assert(from_worker_id < loopback_.size());
-        sLOG0 << "expose loopback queue for" << from_worker_id;
-        return &(loopback_[from_worker_id]);
-    }
+    MixBlockQueueSink * loopback_queue(size_t from_worker_id);
 };
 
 using MixStreamPtr = std::shared_ptr<MixStream>;

@@ -18,7 +18,7 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_sink.hpp>
-#include <thrill/data/multiplexer_header.hpp>
+#include <thrill/data/stream.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 

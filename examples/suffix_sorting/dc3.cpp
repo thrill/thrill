@@ -29,6 +29,7 @@
 #include <thrill/common/cmdline_parser.hpp>
 
 #include <algorithm>
+#include <iomanip>
 #include <limits>
 #include <random>
 #include <stdexcept>

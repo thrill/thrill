@@ -10,6 +10,7 @@
 
 #include <thrill/data/stream_sink.hpp>
 
+#include <thrill/data/multiplexer_header.hpp>
 #include <thrill/data/stream.hpp>
 
 namespace thrill {
