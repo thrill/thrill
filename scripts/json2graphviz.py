@@ -50,11 +50,11 @@ for ni, n in nodes.items():
         sys.stdout.write("colorscheme=accent5, style=filled, color=1, shape=invhouse")
 
     if label == "PrefixSum" or \
-       label == "ReduceBy" or \
+       label == "ReduceByKey" or \
        label == "ReducePair" or \
        label == "ReduceToIndex" or \
-       label == "GroupBy" or \
-       label == "GroupByIndex" or \
+       label == "GroupByKey" or \
+       label == "GroupToIndex" or \
        label == "Merge" or \
        label == "Sort" or \
        label == "Window" or \
@@ -64,6 +64,7 @@ for ni, n in nodes.items():
     if label == "AllGather" or \
        label == "Gather" or \
        label == "Size" or \
+       label == "AllReduce" or \
        label == "Sum" or \
        label == "Min" or \
        label == "Max" or \

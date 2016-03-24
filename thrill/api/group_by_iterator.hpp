@@ -39,7 +39,7 @@ class GroupByNode;
 
 template <typename ValueType, typename ParentDIA,
           typename KeyExtractor, typename GroupFunction>
-class GroupByIndexNode;
+class GroupToIndexNode;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -57,7 +57,7 @@ class GroupByIterator
               typename T2,
               typename T3,
               typename T4>
-    friend class GroupByIndexNode;
+    friend class GroupToIndexNode;
 
 public:
     static constexpr bool debug = false;
@@ -141,7 +141,7 @@ class GroupByMultiwayMergeIterator
               typename T2,
               typename T3,
               typename T4>
-    friend class GroupByIndexNode;
+    friend class GroupToIndexNode;
 
 public:
     static constexpr bool debug = false;

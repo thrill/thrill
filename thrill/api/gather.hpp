@@ -102,7 +102,7 @@ DIA<ValueType, Stack>::Gather(size_t target_id) const {
 
     node->RunScope();
 
-    return std::move(output);
+    return output;
 }
 
 template <typename ValueType, typename Stack>

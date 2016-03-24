@@ -766,7 +766,7 @@ public:
      * reason, the communication overhead is also higher. If possible, usage of
      * Reduce is therefore recommended.
      *
-     * In contrast to GroupBy, GroupByIndex returns a DIA in a defined order,
+     * In contrast to GroupBy, GroupToIndex returns a DIA in a defined order,
      * which has the reduced element with key i in position i.
      * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
      * Reduce links to this newly created DIANode. The stack_ of the returned
@@ -796,7 +796,7 @@ public:
      */
     template <typename ValueOut, typename KeyExtractor,
               typename GroupByFunction>
-    auto GroupByIndex(const KeyExtractor &key_extractor,
+    auto GroupToIndex(const KeyExtractor &key_extractor,
                       const GroupByFunction &groupby_function,
                       const size_t size,
                       const ValueOut& neutral_element = ValueOut()) const;
