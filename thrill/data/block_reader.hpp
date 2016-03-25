@@ -45,8 +45,7 @@ public:
 
     //! Start reading a BlockSource
     explicit BlockReader(BlockSource&& source)
-        : source_(std::move(source)),
-          disable_self_verify_(source_.disable_self_verify()) { }
+        : source_(std::move(source)) { }
 
     //! default constructor
     BlockReader() = default;
@@ -70,11 +69,14 @@ public:
         return PinnedBlock(
             block_.CopyPinnedByteBlock(),
             current_ - block_.data_begin(), end_ - block_.data_begin(),
-            block_.first_item_absolute(), num_items_);
+            block_.first_item_absolute(), num_items_, typecode_verify_);
     }
 
     //! return current ByteBlock
     ByteBlockPtr byte_block() const { return block_.byte_block(); }
+
+    //! Returns typecode_verify_
+    size_t typecode_verify() const { return typecode_verify_; }
 
     //! \name Reading (Generic) Items
     //! \{
@@ -86,7 +88,7 @@ public:
         assert(num_items_ > 0);
         --num_items_;
 
-        if (self_verify && !disable_self_verify_) {
+        if (self_verify && typecode_verify_) {
             // for self-verification, T is prefixed with its hash code
             size_t code = GetRaw<size_t>();
             if (code != typeid(T).hash_code()) {
@@ -158,7 +160,9 @@ public:
                     // first item is at begin_ (we may have dropped some)
                     current_ - byte_block()->begin(),
                     // remaining items in this block
-                    num_items_);
+                    num_items_,
+                    // typecode verify flag
+                    typecode_verify_);
 
                 sLOG << "partial first:" << out.back();
 
@@ -181,7 +185,9 @@ public:
                     // full range is valid.
                     current_ - byte_block()->begin(),
                     end_ - byte_block()->begin(),
-                    block_.first_item_absolute(), num_items_);
+                    block_.first_item_absolute(), num_items_,
+                    // typecode verify flag
+                    typecode_verify_);
 
                 sLOG << "middle:" << out.back();
 
@@ -210,7 +216,9 @@ public:
             byte_block(),
             // full range is valid.
             begin_output - byte_block()->begin(), end_ - byte_block()->begin(),
-            first_output, n);
+            first_output, n,
+            // typecode verify flag
+            typecode_verify_);
 
         // skip over remaining items in this block, there while collect all
         // blocks needed for those items via block_collect_. There can be more
@@ -220,7 +228,7 @@ public:
 
         block_collect_ = &out_pinned;
         if (Serialization<BlockReader, ItemType>::is_fixed_size) {
-            Skip(n, n * ((self_verify && !disable_self_verify_ ? sizeof(size_t) : 0) +
+            Skip(n, n * ((self_verify && typecode_verify_ ? sizeof(size_t) : 0) +
                          Serialization<BlockReader, ItemType>::fixed_size));
         }
         else {
@@ -352,9 +360,9 @@ private:
     //! pointer to vector to collect blocks in GetItemRange.
     std::vector<PinnedBlock>* block_collect_ = nullptr;
 
-    //! disable self_verify, used to skip verify size_t when reading blocks from
-    //! external files.
-    bool disable_self_verify_;
+    //! flag whether the underlying data contains self verify type codes from
+    //! BlockReader, this is false to needed to read external files.
+    bool typecode_verify_;
 
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
@@ -372,7 +380,7 @@ private:
         current_ = block_.data_begin();
         end_ = block_.data_end();
         num_items_ = block_.num_items();
-        disable_self_verify_ = block_.byte_block()->has_ext_file();
+        typecode_verify_ = block_.typecode_verify();
         return true;
     }
 };

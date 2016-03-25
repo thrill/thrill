@@ -245,7 +245,7 @@ private:
     PinCount pin_count_;
 
     //! pimpl data structure
-    class Data;
+    struct Data;
 
     //! pimpl data structure
     std::unique_ptr<Data> d_;

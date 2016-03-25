@@ -149,7 +149,8 @@ public:
                         (bsize - item_off + fixed_size_ - 1) / fixed_size_;
 
                     data::Block block(
-                        std::move(bbp), 0, bsize, item_off, item_num);
+                        std::move(bbp), 0, bsize, item_off, item_num,
+                        /* typecode_verify */ false);
 
                     item_off += item_num * fixed_size_ - bsize;
 
@@ -157,7 +158,6 @@ public:
                     ext_file_.AppendBlock(std::move(block));
                 }
 
-                ext_file_.disable_self_verify = true;
                 use_ext_file_ = true;
 #endif
             }
@@ -269,7 +269,8 @@ private:
                     assert(remain_size_ >= rb);
                     remain_size_ -= rb;
                 }
-                return data::PinnedBlock(std::move(bytes), 0, size, 0, 0);
+                return data::PinnedBlock(std::move(bytes), 0, size, 0, 0,
+                                         /* typecode_verify */ false);
             }
             else if (size < 0) {
                 throw common::ErrnoException("File reading error");
@@ -281,8 +282,6 @@ private:
                 return data::PinnedBlock();
             }
         }
-
-        bool disable_self_verify() const { return true; }
 
     private:
         Context& context_;

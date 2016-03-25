@@ -61,10 +61,12 @@ public:
     //! Creates a block that points to the given data::ByteBlock with the given
     //! offsets The block can be initialized as pinned or not.
     Block(ByteBlockPtr&& byte_block,
-          size_t begin, size_t end, size_t first_item, size_t num_items)
+          size_t begin, size_t end, size_t first_item, size_t num_items,
+          bool typecode_verify)
         : byte_block_(std::move(byte_block)),
           begin_(begin), end_(end),
-          first_item_(first_item), num_items_(num_items) { }
+          first_item_(first_item), num_items_(num_items),
+          typecode_verify_(typecode_verify) { }
 
     //! Return whether the enclosed ByteBlock is valid.
     bool IsValid() const {
@@ -101,6 +103,9 @@ public:
     //! return the first_item_offset relative to data_begin().
     size_t first_item_relative() const { return first_item_ - begin_; }
 
+    //! Returns typecode_verify_
+    bool typecode_verify() const { return typecode_verify_; }
+
     friend std::ostream& operator << (std::ostream& os, const Block& b);
 
     //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
@@ -131,6 +136,10 @@ protected:
     //! number of valid items that _start_ in this block (includes cut-off
     //! element at the end)
     size_t num_items_ = 0;
+
+    //! flag whether the underlying data contains self verify type codes from
+    //! BlockReader, this is false to needed to read external files.
+    bool typecode_verify_ = false;
 };
 
 /*!
@@ -152,8 +161,10 @@ public:
     //! Creates a block that points to the given data::PinnedByteBlock with the
     //! given offsets. The returned block is also pinned, the pin is transfered!
     PinnedBlock(PinnedByteBlockPtr&& byte_block,
-                size_t begin, size_t end, size_t first_item, size_t num_items)
-        : Block(std::move(byte_block), begin, end, first_item, num_items),
+                size_t begin, size_t end, size_t first_item, size_t num_items,
+                bool typecode_verify)
+        : Block(std::move(byte_block),
+                begin, end, first_item, num_items, typecode_verify),
           local_worker_id_(byte_block.local_worker_id()) {
         LOG << "PinnedBlock::Acquire() from new PinnedByteBlock"
             << " for local_worker_id=" << local_worker_id_;
@@ -236,6 +247,9 @@ public:
 
     //! return the first_item_offset relative to data_begin().
     size_t first_item_relative() const { return Block::first_item_relative(); }
+
+    //! return typecode_verify from Block
+    size_t typecode_verify() const { return Block::typecode_verify(); }
 
     //! \}
 

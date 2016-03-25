@@ -139,13 +139,15 @@ public:
             sLOG << "Flush(): queue" << bytes_.get();
             sink_queue_.emplace_back(
                 std::move(bytes_), 0, current_ - bytes_->begin(),
-                first_offset_, nitems_);
+                first_offset_, nitems_,
+                static_cast<bool>(/* typecode_verify */ self_verify));
         }
         else {
             sLOG << "Flush(): flush" << bytes_.get();
             sink_->AppendPinnedBlock(
                 PinnedBlock(std::move(bytes_), 0, current_ - bytes_->begin(),
-                            first_offset_, nitems_));
+                            first_offset_, nitems_,
+                            static_cast<bool>(/* typecode_verify */ self_verify)));
         }
 
         // reset

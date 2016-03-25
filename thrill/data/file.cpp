@@ -36,7 +36,6 @@ File::~File() {
 
 File File::Copy() const {
     File f(*block_pool(), local_worker_id(), dia_id_);
-    f.disable_self_verify = disable_self_verify;
     f.blocks_ = blocks_;
     f.num_items_sum_ = num_items_sum_;
     f.size_bytes_ = size_bytes_;
