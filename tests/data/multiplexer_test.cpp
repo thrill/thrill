@@ -35,7 +35,7 @@ struct MultiplexerHeaderTest : public::testing::Test {
         candidate.stream_id = 2;
         candidate.size = 4;
         candidate.num_items = 5;
-        candidate.sender_rank = 6;
+        candidate.sender_worker = 6;
     }
 
     data::StreamMultiplexerHeader candidate;
@@ -53,7 +53,7 @@ TEST_F(MultiplexerHeaderTest, ParsesAndSerializesHeader) {
     ASSERT_EQ(candidate.stream_id, result.stream_id);
     ASSERT_EQ(candidate.size, result.size);
     ASSERT_EQ(candidate.num_items, result.num_items);
-    ASSERT_EQ(candidate.sender_rank, result.sender_rank);
+    ASSERT_EQ(candidate.sender_worker, result.sender_worker);
 }
 
 TEST_F(MultiplexerHeaderTest, HeaderIsEnd) {

@@ -50,8 +50,8 @@ public:
     StreamSink(Stream& stream, BlockPool& block_pool,
                net::Connection* connection,
                MagicByte magic, StreamId stream_id,
-               size_t host_rank, size_t local_worker_id,
-               size_t peer_rank, size_t peer_local_worker_id);
+               size_t host_rank, size_t host_local_worker,
+               size_t peer_rank, size_t peer_local_worker);
 
     StreamSink(StreamSink&&) = default;
     StreamSink& operator = (StreamSink&&) = default;
@@ -90,7 +90,7 @@ private:
     size_t host_rank_ = size_t(-1);
     using BlockSink::local_worker_id_;
     size_t peer_rank_ = size_t(-1);
-    size_t peer_local_worker_id_ = size_t(-1);
+    size_t peer_local_worker_ = size_t(-1);
     bool closed_ = false;
 
     //! number of PinnedBlocks to queue in the network layer

@@ -48,7 +48,7 @@ public:
 
     static constexpr size_t header_size = sizeof(MagicByte) + 3 * sizeof(size_t);
 
-    static constexpr size_t total_size = header_size + 4 * sizeof(size_t);
+    static constexpr size_t total_size = header_size + 3 * sizeof(size_t);
 
     void SerializeMultiplexerHeader(net::BufferBuilder& bb) const {
         bb.Put<MagicByte>(magic);
@@ -65,18 +65,20 @@ public:
     }
 };
 
-//! Block header is sent before a sequence of blocks it indicates the number of
-//! elements and their boundaries
-//!
-//! Provides a serializer and two partial deserializers
-//! A StreamMultiplexerHeader with num_elements = 0 marks the end of a stream
+/*!
+ * Block header is sent before a sequence of blocks it indicates the number of
+ * elements and their boundaries
+ *
+ * Provides a serializer and two partial deserializers. A
+ * StreamMultiplexerHeader with size = 0 marks the end of a stream.
+ */
 class StreamMultiplexerHeader : public MultiplexerHeader
 {
 public:
     size_t stream_id = 0;
-    size_t sender_rank = 0;
-    size_t receiver_local_worker_id = 0;
-    size_t sender_local_worker_id = 0;
+    size_t receiver_local_worker = 0;
+    //! global worker rank of sender
+    size_t sender_worker = 0;
 
     StreamMultiplexerHeader() = default;
 
@@ -88,23 +90,26 @@ public:
     void Serialize(net::BufferBuilder& bb) const {
         SerializeMultiplexerHeader(bb);
         bb.Put<size_t>(stream_id);
-        bb.Put<size_t>(sender_rank);
-        bb.Put<size_t>(receiver_local_worker_id);
-        bb.Put<size_t>(sender_local_worker_id);
+        bb.Put<size_t>(receiver_local_worker);
+        bb.Put<size_t>(sender_worker);
     }
 
     //! Reads the stream id and the number of elements in this block
     void ParseHeader(net::BufferReader& br) {
         ParseMultiplexerHeader(br);
         stream_id = br.Get<size_t>();
-        sender_rank = br.Get<size_t>();
-        receiver_local_worker_id = br.Get<size_t>();
-        sender_local_worker_id = br.Get<size_t>();
+        receiver_local_worker = br.Get<size_t>();
+        sender_worker = br.Get<size_t>();
     }
 
     //! Indicates if this is the end-of-line block header
     bool IsEnd() const {
         return size == 0;
+    }
+
+    //! Calculate the sender host_rank from sender_worker and workers_per_host.
+    size_t CalcHostRank(size_t workers_per_host) const {
+        return sender_worker / workers_per_host;
     }
 };
 
@@ -113,9 +118,8 @@ class PartitionMultiplexerHeader : public MultiplexerHeader
 public:
     size_t partition_set_id = 0;
     size_t partition_index = 0;
-    size_t sender_rank = 0;
-    size_t receiver_local_worker_id = 0;
-    size_t sender_local_worker_id = 0;
+    size_t receiver_local_worker = 0;
+    size_t sender_worker = 0;
 
     PartitionMultiplexerHeader() = default;
 
@@ -128,9 +132,8 @@ public:
         SerializeMultiplexerHeader(bb);
         bb.Put<size_t>(partition_set_id);
         bb.Put<size_t>(partition_index);
-        bb.Put<size_t>(sender_rank);
-        bb.Put<size_t>(receiver_local_worker_id);
-        bb.Put<size_t>(sender_local_worker_id);
+        bb.Put<size_t>(receiver_local_worker);
+        bb.Put<size_t>(sender_worker);
     }
 
     //! Reads the stream id and the number of elements in this block
@@ -138,9 +141,8 @@ public:
         ParseMultiplexerHeader(br);
         partition_set_id = br.Get<size_t>();
         partition_index = br.Get<size_t>();
-        sender_rank = br.Get<size_t>();
-        receiver_local_worker_id = br.Get<size_t>();
-        sender_local_worker_id = br.Get<size_t>();
+        receiver_local_worker = br.Get<size_t>();
+        sender_worker = br.Get<size_t>();
     }
 
     //! Indicates if this is the end-of-line block header
