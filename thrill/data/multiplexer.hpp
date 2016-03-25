@@ -45,7 +45,7 @@ using MixStreamSetPtr = std::shared_ptr<MixStreamSet>;
 class BlockQueue;
 class MixBlockQueueSink;
 
-struct StreamBlockHeader;
+class StreamMultiplexerHeader;
 
 /*!
  * Multiplexes virtual Connections on Dispatcher.
@@ -53,7 +53,7 @@ struct StreamBlockHeader;
  * A worker as a TCP conneciton to each other worker to exchange large amounts
  * of data. Since multiple exchanges can occur at the same time on this single
  * connection we use multiplexing. The slices are called Blocks and are
- * indicated by a \ref StreamBlockHeader. Multiple Blocks form a Stream on a
+ * indicated by a \ref MultiplexerHeader. Multiple Blocks form a Stream on a
  * single TCP connection. The multiplexer multiplexes all streams on all
  * sockets.
  *
@@ -184,20 +184,22 @@ private:
 
     using Connection = net::Connection;
 
-    //! expects the next BlockHeader from a socket and passes to OnBlockHeader
-    void AsyncReadBlockHeader(Connection& s);
+    //! expects the next MultiplexerHeader from a socket and passes to
+    //! OnMultiplexerHeader
+    void AsyncReadMultiplexerHeader(Connection& s);
 
-    //! parses BlockHeader and decides whether to receive Block or close Stream
-    void OnBlockHeader(Connection& s, net::Buffer&& buffer);
+    //! parses MultiplexerHeader and decides whether to receive Block or close
+    //! Stream
+    void OnMultiplexerHeader(Connection& s, net::Buffer&& buffer);
 
     //! Receives and dispatches a Block to a CatStream
     void OnCatStreamBlock(
-        Connection& s, const StreamBlockHeader& header,
+        Connection& s, const StreamMultiplexerHeader& header,
         const CatStreamPtr& stream, PinnedByteBlockPtr&& bytes);
 
     //! Receives and dispatches a Block to a MixStream
     void OnMixStreamBlock(
-        Connection& s, const StreamBlockHeader& header,
+        Connection& s, const StreamMultiplexerHeader& header,
         const MixStreamPtr& stream, PinnedByteBlockPtr&& bytes);
 };
 

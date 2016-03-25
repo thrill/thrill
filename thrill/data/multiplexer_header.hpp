@@ -29,16 +29,17 @@ namespace data {
 //! \addtogroup data_layer
 //! \{
 
-struct BlockHeader {
+class MultiplexerHeader
+{
 public:
-    MagicByte               magic = MagicByte::Invalid;
-    size_t                  size = 0;
-    size_t                  first_item = 0;
-    size_t                  num_items = 0;
+    MagicByte magic = MagicByte::Invalid;
+    size_t size = 0;
+    size_t first_item = 0;
+    size_t num_items = 0;
 
-    BlockHeader() = default;
+    MultiplexerHeader() = default;
 
-    explicit BlockHeader(MagicByte m, const PinnedBlock& b)
+    explicit MultiplexerHeader(MagicByte m, const PinnedBlock& b)
         : magic(m),
           size(b.size()),
           first_item(b.first_item_relative()),
@@ -49,14 +50,14 @@ public:
 
     static constexpr size_t total_size = header_size + 4 * sizeof(size_t);
 
-    void                    SerializeBlockHeader(net::BufferBuilder& bb) const {
+    void SerializeMultiplexerHeader(net::BufferBuilder& bb) const {
         bb.Put<MagicByte>(magic);
         bb.Put<size_t>(size);
         bb.Put<size_t>(first_item);
         bb.Put<size_t>(num_items);
     }
 
-    void                    ParseBlockHeader(net::BufferReader& br) {
+    void ParseMultiplexerHeader(net::BufferReader& br) {
         magic = br.Get<MagicByte>();
         size = br.Get<size_t>();
         first_item = br.Get<size_t>();
@@ -64,27 +65,28 @@ public:
     }
 };
 
-//! Block header is sent before a sequence of blocks
-//! it indicates the number of elements and their
-//! boundaries
+//! Block header is sent before a sequence of blocks it indicates the number of
+//! elements and their boundaries
 //!
 //! Provides a serializer and two partial deserializers
-//! A StreamBlockHeader with num_elements = 0 marks the end of a stream
-struct StreamBlockHeader : public BlockHeader {
+//! A StreamMultiplexerHeader with num_elements = 0 marks the end of a stream
+class StreamMultiplexerHeader : public MultiplexerHeader
+{
+public:
     size_t stream_id = 0;
     size_t sender_rank = 0;
     size_t receiver_local_worker_id = 0;
     size_t sender_local_worker_id = 0;
 
-    StreamBlockHeader() = default;
+    StreamMultiplexerHeader() = default;
 
-    explicit StreamBlockHeader(MagicByte m, const PinnedBlock& b)
-        : BlockHeader(m, b)
+    explicit StreamMultiplexerHeader(MagicByte m, const PinnedBlock& b)
+        : MultiplexerHeader(m, b)
     { }
 
     //! Serializes the whole block struct into a buffer
     void Serialize(net::BufferBuilder& bb) const {
-        SerializeBlockHeader(bb);
+        SerializeMultiplexerHeader(bb);
         bb.Put<size_t>(stream_id);
         bb.Put<size_t>(sender_rank);
         bb.Put<size_t>(receiver_local_worker_id);
@@ -93,7 +95,7 @@ struct StreamBlockHeader : public BlockHeader {
 
     //! Reads the stream id and the number of elements in this block
     void ParseHeader(net::BufferReader& br) {
-        ParseBlockHeader(br);
+        ParseMultiplexerHeader(br);
         stream_id = br.Get<size_t>();
         sender_rank = br.Get<size_t>();
         receiver_local_worker_id = br.Get<size_t>();
@@ -106,22 +108,24 @@ struct StreamBlockHeader : public BlockHeader {
     }
 };
 
-struct PartitionBlockHeader : public BlockHeader {
+class PartitionMultiplexerHeader : public MultiplexerHeader
+{
+public:
     size_t partition_set_id = 0;
     size_t partition_index = 0;
     size_t sender_rank = 0;
     size_t receiver_local_worker_id = 0;
     size_t sender_local_worker_id = 0;
 
-    PartitionBlockHeader() = default;
+    PartitionMultiplexerHeader() = default;
 
-    explicit PartitionBlockHeader(const PinnedBlock& b)
-        : BlockHeader(MagicByte::PartitionBlock, b)
+    explicit PartitionMultiplexerHeader(const PinnedBlock& b)
+        : MultiplexerHeader(MagicByte::PartitionBlock, b)
     { }
 
     //! Serializes the whole block struct into a buffer
     void Serialize(net::BufferBuilder& bb) const {
-        SerializeBlockHeader(bb);
+        SerializeMultiplexerHeader(bb);
         bb.Put<size_t>(partition_set_id);
         bb.Put<size_t>(partition_index);
         bb.Put<size_t>(sender_rank);
@@ -131,7 +135,7 @@ struct PartitionBlockHeader : public BlockHeader {
 
     //! Reads the stream id and the number of elements in this block
     void ParseHeader(net::BufferReader& br) {
-        ParseBlockHeader(br);
+        ParseMultiplexerHeader(br);
         partition_set_id = br.Get<size_t>();
         partition_index = br.Get<size_t>();
         sender_rank = br.Get<size_t>();

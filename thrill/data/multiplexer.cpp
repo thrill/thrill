@@ -120,7 +120,7 @@ Multiplexer::Multiplexer(mem::Manager& mem_manager,
       d_(std::make_unique<Data>(workers_per_host)) {
     for (size_t id = 0; id < group_.num_hosts(); id++) {
         if (id == group_.my_host_rank()) continue;
-        AsyncReadBlockHeader(group_.connection(id));
+        AsyncReadMultiplexerHeader(group_.connection(id));
     }
     (void)mem_manager_;     // silence unused variable warning.
 }
@@ -202,21 +202,21 @@ common::JsonLogger& Multiplexer::logger() {
 
 /******************************************************************************/
 
-//! expects the next StreamBlockHeader from a socket and passes to
-//! OnStreamBlockHeader
-void Multiplexer::AsyncReadBlockHeader(Connection& s) {
+//! expects the next MultiplexerHeader from a socket and passes to
+//! OnMultiplexerHeader
+void Multiplexer::AsyncReadMultiplexerHeader(Connection& s) {
     dispatcher_.AsyncRead(
-        s, BlockHeader::total_size,
+        s, MultiplexerHeader::total_size,
         net::AsyncReadCallback::from<
-            Multiplexer, & Multiplexer::OnBlockHeader>(this));
+            Multiplexer, & Multiplexer::OnMultiplexerHeader>(this));
 }
 
-void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
+void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
 
     // received invalid Buffer: the connection has closed?
     if (!buffer.IsValid()) return;
 
-    StreamBlockHeader header;
+    StreamMultiplexerHeader header;
     net::BufferReader br(buffer);
     header.ParseHeader(br);
 
@@ -243,7 +243,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
 
             stream->OnCloseStream(sender_worker_rank);
 
-            AsyncReadBlockHeader(s);
+            AsyncReadMultiplexerHeader(s);
         }
         else {
             sLOG << "stream header from" << s << "on CatStream" << id
@@ -272,7 +272,7 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
 
             stream->OnCloseStream(sender_worker_rank);
 
-            AsyncReadBlockHeader(s);
+            AsyncReadMultiplexerHeader(s);
         }
         else {
             sLOG << "stream header from" << s << "on MixStream" << id
@@ -290,12 +290,12 @@ void Multiplexer::OnBlockHeader(Connection& s, net::Buffer&& buffer) {
         }
     }
     else {
-        die("Invalid magic byte in BlockHeader");
+        die("Invalid magic byte in MultiplexerHeader");
     }
 }
 
 void Multiplexer::OnCatStreamBlock(
-    Connection& s, const StreamBlockHeader& header,
+    Connection& s, const StreamMultiplexerHeader& header,
     const CatStreamPtr& stream, PinnedByteBlockPtr&& bytes) {
 
     size_t sender_worker_rank =
@@ -311,11 +311,11 @@ void Multiplexer::OnCatStreamBlock(
         PinnedBlock(std::move(bytes), 0, header.size,
                     header.first_item, header.num_items));
 
-    AsyncReadBlockHeader(s);
+    AsyncReadMultiplexerHeader(s);
 }
 
 void Multiplexer::OnMixStreamBlock(
-    Connection& s, const StreamBlockHeader& header,
+    Connection& s, const StreamMultiplexerHeader& header,
     const MixStreamPtr& stream, PinnedByteBlockPtr&& bytes) {
 
     size_t sender_worker_rank =
@@ -331,7 +331,7 @@ void Multiplexer::OnMixStreamBlock(
         PinnedBlock(std::move(bytes), 0, header.size,
                     header.first_item, header.num_items));
 
-    AsyncReadBlockHeader(s);
+    AsyncReadMultiplexerHeader(s);
 }
 
 BlockQueue* Multiplexer::CatLoopback(

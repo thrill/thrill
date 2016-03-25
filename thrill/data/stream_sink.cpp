@@ -56,7 +56,7 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block) {
 
     sLOG << "StreamSink::AppendBlock" << block;
 
-    StreamBlockHeader header(magic_, block);
+    StreamMultiplexerHeader header(magic_, block);
     header.stream_id = id_;
     header.sender_rank = host_rank_;
     header.sender_local_worker_id = local_worker_id_;
@@ -68,7 +68,7 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block) {
     header.Serialize(bb);
 
     net::Buffer buffer = bb.ToBuffer();
-    assert(buffer.size() == BlockHeader::total_size);
+    assert(buffer.size() == MultiplexerHeader::total_size);
 
     byte_counter_ += buffer.size() + block.size();
     ++block_counter_;
@@ -98,7 +98,7 @@ void StreamSink::Close() {
          << "worker" << peer_local_worker_id_
          << "stream" << id_;
 
-    StreamBlockHeader header;
+    StreamMultiplexerHeader header;
     header.magic = magic_;
     header.stream_id = id_;
     header.sender_rank = host_rank_;
@@ -109,7 +109,7 @@ void StreamSink::Close() {
     header.Serialize(bb);
 
     net::Buffer buffer = bb.ToBuffer();
-    assert(buffer.size() == BlockHeader::total_size);
+    assert(buffer.size() == MultiplexerHeader::total_size);
 
     byte_counter_ += buffer.size();
     ++block_counter_;
