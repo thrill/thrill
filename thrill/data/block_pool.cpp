@@ -9,7 +9,6 @@
  ******************************************************************************/
 
 #include <thrill/common/die.hpp>
-#include <thrill/common/future.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/lru_cache.hpp>
 #include <thrill/common/math.hpp>

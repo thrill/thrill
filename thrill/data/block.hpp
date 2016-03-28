@@ -13,7 +13,6 @@
 #define THRILL_DATA_BLOCK_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
-#include <thrill/common/future.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/byte_block.hpp>
 #include <thrill/mem/manager.hpp>
@@ -308,7 +307,7 @@ public:
     std::string ToString() const;
 
     //! not available in PinnedBlock
-    common::shared_future<PinnedBlock> Pin() const = delete;
+    PinRequestPtr Pin() const = delete;
 
     //! not available in PinnedBlock
     PinnedBlock PinWait() const = delete;

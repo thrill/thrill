@@ -14,7 +14,6 @@
 
 #include <thrill/common/die.hpp>
 #include <thrill/common/function_traits.hpp>
-#include <thrill/common/future.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
