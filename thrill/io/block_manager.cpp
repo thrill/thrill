@@ -80,12 +80,6 @@ BlockManager::BlockManager() {
         LOG1 << "In total " << ndisks_ << " disks are allocated, space: "
              << (total_size / (1024 * 1024)) << " MiB";
     }
-
-#if THRILL_MNG_COUNT_ALLOCATION
-    current_allocation_ = 0;
-    total_allocation_ = 0;
-    maximum_allocation_ = 0;
-#endif      // THRILL_MNG_COUNT_ALLOCATION
 }
 
 BlockManager::~BlockManager() {
@@ -99,6 +93,8 @@ BlockManager::~BlockManager() {
 }
 
 uint64_t BlockManager::get_total_bytes() const {
+    std::unique_lock<std::mutex> lock(mutex_);
+
     uint64_t total = 0;
 
     for (size_t i = 0; i < ndisks_; ++i)
@@ -108,6 +104,8 @@ uint64_t BlockManager::get_total_bytes() const {
 }
 
 uint64_t BlockManager::get_free_bytes() const {
+    std::unique_lock<std::mutex> lock(mutex_);
+
     uint64_t total = 0;
 
     for (size_t i = 0; i < ndisks_; ++i)
