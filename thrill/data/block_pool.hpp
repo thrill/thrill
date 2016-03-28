@@ -12,6 +12,7 @@
 #ifndef THRILL_DATA_BLOCK_POOL_HEADER
 #define THRILL_DATA_BLOCK_POOL_HEADER
 
+#include <thrill/common/future.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/profile_task.hpp>
 #include <thrill/common/thread_pool.hpp>
@@ -125,7 +126,7 @@ public:
         const io::FileBasePtr& file, int64_t offset, size_t size);
 
     //! Pins a block by swapping it in if required.
-    std::future<PinnedBlock> PinBlock(const Block& block, size_t local_worker_id);
+    common::future<PinnedBlock> PinBlock(const Block& block, size_t local_worker_id);
 
     //! Increment a ByteBlock's pin count, requires the pin count to be > 0.
     void IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);

@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <thrill/common/die.hpp>
+#include <thrill/common/future.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/lru_cache.hpp>
 #include <thrill/common/math.hpp>
@@ -115,7 +116,7 @@ public:
     BlockPool* block_pool;
     Block block;
     size_t local_worker_id;
-    std::promise<PinnedBlock> result;
+    common::promise<PinnedBlock> result;
     Byte* data;
     io::RequestPtr req;
 
@@ -324,7 +325,8 @@ ByteBlockPtr BlockPool::MapExternalBlock(
 }
 
 //! Pins a block by swapping it in if required.
-std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
+common::future<PinnedBlock>
+BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
     std::unique_lock<std::mutex> lock(mutex_);
 
@@ -343,7 +345,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
 
         IntIncBlockPinCount(block_ptr, local_worker_id);
 
-        std::promise<PinnedBlock> result(
+        common::promise<PinnedBlock> result(
             std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
@@ -363,7 +365,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
         IntIncBlockPinCount(block_ptr, local_worker_id);
         pin_count_.Increment(local_worker_id, block_ptr->size());
 
-        std::promise<PinnedBlock> result(
+        common::promise<PinnedBlock> result(
             std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
@@ -445,7 +447,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
             << " pinned from internal memory"
             << pin_count_;
 
-        std::promise<PinnedBlock> result(
+        common::promise<PinnedBlock> result(
             std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
@@ -498,7 +500,7 @@ std::future<PinnedBlock> BlockPool::PinBlock(const Block& block, size_t local_wo
             io::CompletionHandler::from<
                 ReadRequest, & ReadRequest::OnComplete>(*read));
 
-    std::future<PinnedBlock> result = read->result.get_future();
+    common::future<PinnedBlock> result = read->result.get_future();
     d_->reading_[block_ptr] = std::move(read);
     reading_bytes_ += block_ptr->size();
 

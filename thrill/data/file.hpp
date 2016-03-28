@@ -14,6 +14,7 @@
 
 #include <thrill/common/die.hpp>
 #include <thrill/common/function_traits.hpp>
+#include <thrill/common/future.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
@@ -328,7 +329,7 @@ private:
     size_t num_prefetch_;
 
     //! current prefetch operations
-    std::deque<std::future<PinnedBlock> > fetching_blocks_;
+    std::deque<common::future<PinnedBlock> > fetching_blocks_;
 
     //! number of the first block
     size_t first_block_;
@@ -382,7 +383,7 @@ private:
     size_t num_prefetch_;
 
     //! current prefetch operations
-    std::deque<std::future<PinnedBlock> > fetching_blocks_;
+    std::deque<common::future<PinnedBlock> > fetching_blocks_;
 };
 
 //! Get BlockReader seeked to the corresponding item index
