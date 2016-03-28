@@ -62,11 +62,12 @@ public:
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
         if (!ParentDIA::stack_empty) return false;
         // copy complete Block references to writer_
-        writer_.AppendBlocks(file.blocks());
+        file_ = file.Copy();
         // read File for prefix sum.
-        auto reader = file.GetKeepReader();
+        auto reader = file_.GetKeepReader();
         while (reader.HasNext()) {
-            local_sum_ = sum_function_(local_sum_, reader.Next<ValueType>());
+            local_sum_ = sum_function_(
+                local_sum_, reader.template Next<ValueType>());
         }
         return true;
     }

@@ -30,6 +30,9 @@ namespace data {
 //! \{
 
 class PinnedBlock;
+class PinRequest;
+using PinRequestPtr =
+          common::CountingPtr<PinRequest, mem::GPoolDeleterFunc<PinRequest> >;
 
 /**
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
@@ -61,10 +64,12 @@ public:
     //! Creates a block that points to the given data::ByteBlock with the given
     //! offsets The block can be initialized as pinned or not.
     Block(ByteBlockPtr&& byte_block,
-          size_t begin, size_t end, size_t first_item, size_t num_items)
+          size_t begin, size_t end, size_t first_item, size_t num_items,
+          bool typecode_verify)
         : byte_block_(std::move(byte_block)),
           begin_(begin), end_(end),
-          first_item_(first_item), num_items_(num_items) { }
+          first_item_(first_item), num_items_(num_items),
+          typecode_verify_(typecode_verify) { }
 
     //! Return whether the enclosed ByteBlock is valid.
     bool IsValid() const {
@@ -101,12 +106,15 @@ public:
     //! return the first_item_offset relative to data_begin().
     size_t first_item_relative() const { return first_item_ - begin_; }
 
+    //! Returns typecode_verify_
+    bool typecode_verify() const { return typecode_verify_; }
+
     friend std::ostream& operator << (std::ostream& os, const Block& b);
 
     //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
     //! is already pinned, the Future is directly filled with a copy if this
     //! block.  Otherwise an async pin call will be issued.
-    std::future<PinnedBlock> Pin(size_t local_worker_id) const;
+    PinRequestPtr Pin(size_t local_worker_id) const;
 
     //! Convenience function to call Pin() and wait for the future.
     PinnedBlock PinWait(size_t local_worker_id) const;
@@ -131,6 +139,10 @@ protected:
     //! number of valid items that _start_ in this block (includes cut-off
     //! element at the end)
     size_t num_items_ = 0;
+
+    //! flag whether the underlying data contains self verify type codes from
+    //! BlockReader, this is false to needed to read external files.
+    bool typecode_verify_ = false;
 };
 
 /*!
@@ -152,8 +164,10 @@ public:
     //! Creates a block that points to the given data::PinnedByteBlock with the
     //! given offsets. The returned block is also pinned, the pin is transfered!
     PinnedBlock(PinnedByteBlockPtr&& byte_block,
-                size_t begin, size_t end, size_t first_item, size_t num_items)
-        : Block(std::move(byte_block), begin, end, first_item, num_items),
+                size_t begin, size_t end, size_t first_item, size_t num_items,
+                bool typecode_verify)
+        : Block(std::move(byte_block),
+                begin, end, first_item, num_items, typecode_verify),
           local_worker_id_(byte_block.local_worker_id()) {
         LOG << "PinnedBlock::Acquire() from new PinnedByteBlock"
             << " for local_worker_id=" << local_worker_id_;
@@ -237,6 +251,9 @@ public:
     //! return the first_item_offset relative to data_begin().
     size_t first_item_relative() const { return Block::first_item_relative(); }
 
+    //! return typecode_verify from Block
+    size_t typecode_verify() const { return Block::typecode_verify(); }
+
     //! \}
 
     //! return pointer to beginning of valid data
@@ -290,7 +307,7 @@ public:
     std::string ToString() const;
 
     //! not available in PinnedBlock
-    std::future<PinnedBlock> Pin() const = delete;
+    PinRequestPtr Pin() const = delete;
 
     //! not available in PinnedBlock
     PinnedBlock PinWait() const = delete;
@@ -310,6 +327,40 @@ private:
     //! friend for creating PinnedBlock from unpinned Block in PinBlock() using
     //! protected constructor.
     friend class BlockPool;
+};
+
+class PinRequest : public common::ReferenceCount
+{
+public:
+    //! wait and get the PinnedBlock. this may block until the read is complete.
+    PinnedBlock Wait();
+
+    //! whether the read is completed, cannot block.
+    bool ready() const { return ready_; }
+
+    ByteBlockPtr& byte_block() { return block_.byte_block(); }
+
+private:
+    //! calls BlockPool::OnReadComplete used to common::delegate
+    void OnComplete(io::Request* req, bool success);
+
+    PinRequest(BlockPool* block_pool, PinnedBlock&& block, bool ready = true)
+        : block_pool_(block_pool), block_(std::move(block)), ready_(ready) { }
+
+    //! reference back to BlockPool
+    BlockPool* block_pool_;
+    //! pinned block which will be returned, this PinnedBlock may already be
+    //! partially initialized for the read!
+    PinnedBlock block_;
+    //! running read request
+    io::RequestPtr req_;
+
+    //! indication that the PinnedBlocks ready
+    std::atomic<bool> ready_;
+
+    //! for access to protected data
+    friend class BlockPool;
+    friend class mem::Pool;
 };
 
 //! \}

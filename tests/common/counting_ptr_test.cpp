@@ -40,6 +40,7 @@ IntegerPtr MakeIntegerPtr() {
 }
 
 TEST(CountingPtr, RunTest) {
+    count_deletes = 0;
     {
         {
             // create object and pointer to it

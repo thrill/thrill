@@ -36,7 +36,6 @@ File::~File() {
 
 File File::Copy() const {
     File f(*block_pool(), local_worker_id(), dia_id_);
-    f.disable_self_verify = disable_self_verify;
     f.blocks_ = blocks_;
     f.num_items_sum_ = num_items_sum_;
     f.size_bytes_ = size_bytes_;
@@ -136,9 +135,7 @@ PinnedBlock KeepFileBlockSource::NextBlock() {
         }
 
         // this might block if the prefetching is not finished
-        fetching_blocks_.front().wait();
-
-        PinnedBlock b = fetching_blocks_.front().get();
+        PinnedBlock b = fetching_blocks_.front()->Wait();
         fetching_blocks_.pop_front();
         return b;
     }
@@ -180,11 +177,9 @@ PinnedBlock ConsumeFileBlockSource::NextBlock() {
 
     // operate without prefetching
     if (num_prefetch_ == 0) {
-        std::future<PinnedBlock> f =
-            file_->blocks_.front().Pin(local_worker_id_);
+        data::PinRequestPtr f = file_->blocks_.front().Pin(local_worker_id_);
         file_->blocks_.pop_front();
-        f.wait();
-        return f.get();
+        return f->Wait();
     }
 
     // prefetch #desired blocks
@@ -195,9 +190,7 @@ PinnedBlock ConsumeFileBlockSource::NextBlock() {
     }
 
     // this might block if the prefetching is not finished
-    fetching_blocks_.front().wait();
-
-    PinnedBlock b = fetching_blocks_.front().get();
+    PinnedBlock b = fetching_blocks_.front()->Wait();
     fetching_blocks_.pop_front();
     return b;
 }

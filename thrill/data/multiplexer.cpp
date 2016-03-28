@@ -304,7 +304,8 @@ void Multiplexer::OnCatStreamBlock(
     stream->OnStreamBlock(
         header.sender_worker,
         PinnedBlock(std::move(bytes), 0, header.size,
-                    header.first_item, header.num_items));
+                    header.first_item, header.num_items,
+                    header.typecode_verify));
 
     AsyncReadMultiplexerHeader(s);
 }
@@ -321,7 +322,8 @@ void Multiplexer::OnMixStreamBlock(
     stream->OnStreamBlock(
         header.sender_worker,
         PinnedBlock(std::move(bytes), 0, header.size,
-                    header.first_item, header.num_items));
+                    header.first_item, header.num_items,
+                    header.typecode_verify));
 
     AsyncReadMultiplexerHeader(s);
 }

@@ -259,10 +259,6 @@ public:
         dia_id_ = dia_id;
     }
 
-    //! flag to disable reading self_verify size_ts from File's with external
-    //! blocks.
-    bool disable_self_verify = false;
-
 private:
     //! unique file id
     size_t id_;
@@ -314,8 +310,6 @@ public:
     //! BlockReader
     PinnedBlock NextBlock();
 
-    bool disable_self_verify() const { return file_.disable_self_verify; }
-
 protected:
     //! Determine current unpinned Block to deliver via NextBlock()
     Block NextUnpinnedBlock();
@@ -334,7 +328,7 @@ private:
     size_t num_prefetch_;
 
     //! current prefetch operations
-    std::deque<std::future<PinnedBlock> > fetching_blocks_;
+    std::deque<data::PinRequestPtr> fetching_blocks_;
 
     //! number of the first block
     size_t first_block_;
@@ -377,8 +371,6 @@ public:
     //! Consume unread blocks and reset File to zero items.
     ~ConsumeFileBlockSource();
 
-    bool disable_self_verify() const { return file_->disable_self_verify; }
-
 private:
     //! file to consume blocks from (ptr to make moving easier)
     File* file_;
@@ -390,7 +382,7 @@ private:
     size_t num_prefetch_;
 
     //! current prefetch operations
-    std::deque<std::future<PinnedBlock> > fetching_blocks_;
+    std::deque<data::PinRequestPtr> fetching_blocks_;
 };
 
 //! Get BlockReader seeked to the corresponding item index
@@ -431,9 +423,12 @@ File::GetReaderAt(size_t index, size_t prefetch) const {
     // use fixed_size information to accelerate jump.
     if (Serialization<KeepReader, ItemType>::is_fixed_size)
     {
+        // fetch a Block to get typecode_verify flag
+        fr.HasNext();
+
         const size_t skip_items = index - items_before;
         const size_t bytes_per_item =
-            (KeepReader::self_verify && !disable_self_verify ? sizeof(size_t) : 0)
+            (fr.typecode_verify() ? sizeof(size_t) : 0)
             + Serialization<KeepReader, ItemType>::fixed_size;
 
         fr.Skip(skip_items, skip_items * bytes_per_item);

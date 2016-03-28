@@ -33,12 +33,10 @@ std::ostream& operator << (std::ostream& os, const Block& b) {
 }
 
 PinnedBlock Block::PinWait(size_t local_worker_id) const {
-    std::future<PinnedBlock> pin = Pin(local_worker_id);
-    pin.wait();
-    return pin.get();
+    return Pin(local_worker_id)->Wait();
 }
 
-std::future<PinnedBlock> Block::Pin(size_t local_worker_id) const {
+PinRequestPtr Block::Pin(size_t local_worker_id) const {
     assert(IsValid());
     return byte_block()->block_pool_->PinBlock(*this, local_worker_id);
 }
@@ -58,6 +56,19 @@ std::ostream& operator << (std::ostream& os, const PinnedBlock& b) {
     if (b.byte_block_)
         os << " pin_count_=" << b.byte_block_->pin_count_str();
     return os << "]";
+}
+
+/******************************************************************************/
+// PinRequest
+
+PinnedBlock PinRequest::Wait() {
+    if (ready_) return block_;
+
+    std::unique_lock<std::mutex> lock(block_pool_->mutex_);
+    block_pool_->cv_read_complete_.wait(
+        lock, [this]() { return ready_.load(); });
+    lock.unlock();
+    return block_;
 }
 
 } // namespace data

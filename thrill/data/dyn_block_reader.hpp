@@ -31,7 +31,6 @@ class DynBlockSourceInterface
 {
 public:
     virtual PinnedBlock NextBlock() = 0;
-    virtual bool disable_self_verify() const = 0;
 };
 
 /*!
@@ -52,10 +51,6 @@ public:
 
     PinnedBlock NextBlock() {
         return block_source_ptr_->NextBlock();
-    }
-
-    bool disable_self_verify() const {
-        return block_source_ptr_->disable_self_verify();
     }
 
 private:
@@ -88,10 +83,6 @@ public:
 
     PinnedBlock NextBlock() final {
         return block_source_.NextBlock();
-    }
-
-    bool disable_self_verify() const final {
-        return block_source_.disable_self_verify();
     }
 
 private:

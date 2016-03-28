@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -133,13 +134,22 @@ public:
     ~BlockManager();
 
     //! return total requested allocation in bytes
-    uint64_t total_allocation() const { return total_allocation_; }
+    uint64_t total_allocation() const {
+        std::unique_lock<std::mutex> lock(mutex_);
+        return total_allocation_;
+    }
 
     //! return currently allocated bytes
-    uint64_t current_allocation() const { return current_allocation_; }
+    uint64_t current_allocation() const {
+        std::unique_lock<std::mutex> lock(mutex_);
+        return current_allocation_;
+    }
 
     //! return maximum number of bytes allocated during program run.
-    uint64_t maximum_allocation() const { return maximum_allocation_; }
+    uint64_t maximum_allocation() const {
+        std::unique_lock<std::mutex> lock(mutex_);
+        return maximum_allocation_;
+    }
 
 protected:
     template <typename BIDType, typename DiskAssignFunctor, typename BIDIteratorClass>
@@ -156,6 +166,8 @@ private:
     size_t ndisks_;
     BlockManager();
 
+    mutable std::mutex mutex_;
+
     //! total requested allocation in bytes
     uint64_t total_allocation_ = 0;
 
@@ -168,10 +180,10 @@ private:
 
 template <typename BIDType, typename DiskAssignFunctor, typename OutputIterator>
 void BlockManager::new_blocks_int(
-    const size_t nblocks,
-    const DiskAssignFunctor& functor,
-    size_t offset,
-    OutputIterator out) {
+    const size_t nblocks, const DiskAssignFunctor& functor,
+    size_t offset, OutputIterator out) {
+
+    std::unique_lock<std::mutex> lock(mutex_);
 
     OutputIterator it = out;
     for (size_t i = 0; i != nblocks; ++i, ++it)
@@ -213,6 +225,9 @@ void BlockManager::delete_block(const BID<BlockSize>& bid) {
     }
     if (!bid.is_managed())
         return;  // self managed disk
+
+    std::unique_lock<std::mutex> lock(mutex_);
+
     LOG0 << "BLC:delete " << bid;
     assert(bid.storage->get_allocator_id() >= 0);
     disk_allocators_[bid.storage->get_allocator_id()]->DeleteBlock(bid);
