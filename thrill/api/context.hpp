@@ -149,10 +149,12 @@ private:
     //! net manager constructs communication groups to other hosts.
     net::Manager net_manager_;
 
+#if !THRILL_HAVE_THREAD_SANITIZER
     //! register net_manager_'s profiling method
     common::ProfileTaskRegistration net_manager_profiler_ {
         std::chrono::milliseconds(500), *profiler_, &net_manager_
     };
+#endif
 
     //! the flow control group is used for collective communication.
     net::FlowControlChannelManager flow_manager_ {
@@ -165,10 +167,12 @@ private:
         &logger_, &mem_manager_, workers_per_host_
     };
 
+#if !THRILL_HAVE_THREAD_SANITIZER
     //! register BlockPool's profiling method
     common::ProfileTaskRegistration block_pool_profiler_ {
         std::chrono::milliseconds(500), *profiler_, &block_pool_
     };
+#endif
 
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer data_multiplexer_ {
