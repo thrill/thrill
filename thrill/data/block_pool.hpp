@@ -38,10 +38,6 @@ namespace data {
 //! \addtogroup data_layer
 //! \{
 
-// forward declarations
-class Block;
-class PinnedBlock;
-
 /*!
  * Pool to allocate, keep, swap out/in, and free all ByteBlocks on the host.
  * Starts a backgroud thread which is responsible for disk I/O
@@ -125,10 +121,6 @@ public:
     ByteBlockPtr MapExternalBlock(
         const io::FileBasePtr& file, int64_t offset, size_t size);
 
-    //! Pins a block by swapping it in if required.
-    common::shared_future<PinnedBlock> PinBlock(
-        const Block& block, size_t local_worker_id);
-
     //! Increment a ByteBlock's pin count, requires the pin count to be > 0.
     void IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);
 
@@ -175,7 +167,8 @@ public:
 
     //! \}
 
-    class ReadRequest;
+    //! Pins a block by swapping it in if required.
+    PinRequestPtr PinBlock(const Block& block, size_t local_worker_id);
 
 private:
     //! locked before internal state is changed
@@ -183,6 +176,10 @@ private:
 
     //! For waiting on hard memory limit
     std::condition_variable cv_memory_change_;
+
+    //! For waiting on read/pin requests to finish (we use only one
+    //! condition_variable for all read requests).
+    std::condition_variable cv_read_complete_;
 
     //! reference to HostContext's logger or a null sink
     common::JsonLogger logger_;
@@ -309,7 +306,7 @@ private:
     void OnWriteComplete(ByteBlock* block_ptr, io::Request* req, bool success);
 
     //! callback for async read of blocks for pin requests
-    void OnReadComplete(ReadRequest* read, io::Request* req, bool success);
+    void OnReadComplete(PinRequest* read, io::Request* req, bool success);
 
     //! Evict a block from the lru list into external memory
     io::RequestPtr IntEvictBlockLRU();
@@ -323,6 +320,9 @@ private:
 
     //! for calling OnWriteComplete
     friend class ByteBlock;
+
+    //! for calling OnReadComplete and access to mutex and cvs
+    friend class PinRequest;
 
     //! \name Block Statistics
     //! \{

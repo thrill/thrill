@@ -31,6 +31,9 @@ namespace data {
 //! \{
 
 class PinnedBlock;
+class PinRequest;
+using PinRequestPtr =
+          common::CountingPtr<PinRequest, mem::GPoolDeleterFunc<PinRequest> >;
 
 /**
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
@@ -112,7 +115,7 @@ public:
     //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
     //! is already pinned, the Future is directly filled with a copy if this
     //! block.  Otherwise an async pin call will be issued.
-    common::shared_future<PinnedBlock> Pin(size_t local_worker_id) const;
+    PinRequestPtr Pin(size_t local_worker_id) const;
 
     //! Convenience function to call Pin() and wait for the future.
     PinnedBlock PinWait(size_t local_worker_id) const;
@@ -325,6 +328,40 @@ private:
     //! friend for creating PinnedBlock from unpinned Block in PinBlock() using
     //! protected constructor.
     friend class BlockPool;
+};
+
+class PinRequest : public common::ReferenceCount
+{
+public:
+    //! wait and get the PinnedBlock. this may block until the read is complete.
+    PinnedBlock Wait();
+
+    //! whether the read is completed, cannot block.
+    bool ready() const { return ready_; }
+
+    ByteBlockPtr& byte_block() { return block_.byte_block(); }
+
+private:
+    //! calls BlockPool::OnReadComplete used to common::delegate
+    void OnComplete(io::Request* req, bool success);
+
+    PinRequest(BlockPool* block_pool, PinnedBlock&& block, bool ready = true)
+        : block_pool_(block_pool), block_(std::move(block)), ready_(ready) { }
+
+    //! reference back to BlockPool
+    BlockPool* block_pool_;
+    //! pinned block which will be returned, this PinnedBlock may already be
+    //! partially initialized for the read!
+    PinnedBlock block_;
+    //! running read request
+    io::RequestPtr req_;
+
+    //! indication that the PinnedBlocks ready
+    std::atomic<bool> ready_;
+
+    //! for access to protected data
+    friend class BlockPool;
+    friend class mem::Pool;
 };
 
 //! \}

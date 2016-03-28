@@ -135,9 +135,7 @@ PinnedBlock KeepFileBlockSource::NextBlock() {
         }
 
         // this might block if the prefetching is not finished
-        fetching_blocks_.front().wait();
-
-        PinnedBlock b = fetching_blocks_.front().get();
+        PinnedBlock b = fetching_blocks_.front()->Wait();
         fetching_blocks_.pop_front();
         return b;
     }
@@ -179,11 +177,9 @@ PinnedBlock ConsumeFileBlockSource::NextBlock() {
 
     // operate without prefetching
     if (num_prefetch_ == 0) {
-        common::shared_future<PinnedBlock> f =
-            file_->blocks_.front().Pin(local_worker_id_);
+        data::PinRequestPtr f = file_->blocks_.front().Pin(local_worker_id_);
         file_->blocks_.pop_front();
-        f.wait();
-        return f.get();
+        return f->Wait();
     }
 
     // prefetch #desired blocks
@@ -194,9 +190,7 @@ PinnedBlock ConsumeFileBlockSource::NextBlock() {
     }
 
     // this might block if the prefetching is not finished
-    fetching_blocks_.front().wait();
-
-    PinnedBlock b = fetching_blocks_.front().get();
+    PinnedBlock b = fetching_blocks_.front()->Wait();
     fetching_blocks_.pop_front();
     return b;
 }

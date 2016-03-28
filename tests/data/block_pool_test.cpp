@@ -73,9 +73,10 @@ TEST_F(BlockPoolTest, PinnedBlock) {
     ASSERT_EQ(0u, bbp->pin_count(0));
     {
         // refetch Pin on the ByteBlock
-        common::future<data::PinnedBlock> pin = unpinned_block.Pin(0);
-        pin.wait();
-        data::PinnedBlock pinned_block = pin.get();
+        data::PinRequestPtr pin = unpinned_block.Pin(0);
+        data::PinnedBlock pinned_block = pin->Wait();
+        ASSERT_EQ(2u, bbp->pin_count(0));
+        pin.reset();
         ASSERT_EQ(1u, bbp->pin_count(0));
     }
     ASSERT_EQ(0u, bbp->pin_count(0));
