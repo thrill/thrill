@@ -329,7 +329,7 @@ private:
     size_t num_prefetch_;
 
     //! current prefetch operations
-    std::deque<common::future<PinnedBlock> > fetching_blocks_;
+    std::deque<common::shared_future<PinnedBlock> > fetching_blocks_;
 
     //! number of the first block
     size_t first_block_;
@@ -383,7 +383,7 @@ private:
     size_t num_prefetch_;
 
     //! current prefetch operations
-    std::deque<common::future<PinnedBlock> > fetching_blocks_;
+    std::deque<common::shared_future<PinnedBlock> > fetching_blocks_;
 };
 
 //! Get BlockReader seeked to the corresponding item index

@@ -116,12 +116,14 @@ public:
     BlockPool* block_pool;
     Block block;
     size_t local_worker_id;
-    common::promise<PinnedBlock> result;
+    common::promise<PinnedBlock> block_promise;
+    common::shared_future<PinnedBlock> block_future;
     Byte* data;
     io::RequestPtr req;
 
     ReadRequest()
-        : result(std::allocator_arg, mem::GPoolAllocator<PinnedBlock>()) { }
+        : block_promise(std::allocator_arg, mem::GPoolAllocator<PinnedBlock>())
+    { }
 
     void OnComplete(io::Request* req, bool success);
 };
@@ -325,7 +327,7 @@ ByteBlockPtr BlockPool::MapExternalBlock(
 }
 
 //! Pins a block by swapping it in if required.
-common::future<PinnedBlock>
+common::shared_future<PinnedBlock>
 BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
     std::unique_lock<std::mutex> lock(mutex_);
@@ -348,7 +350,7 @@ BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
         common::promise<PinnedBlock> result(
             std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
-        return result.get_future();
+        return result.get_future().share();
     }
 
     if (block_ptr->total_pins_ > 0) {
@@ -370,6 +372,12 @@ BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
         result.set_value(PinnedBlock(block, local_worker_id));
         return result.get_future();
     }
+
+    // check if block is being loaded. in this case, just deliver the
+    // shared_future.
+    ReadingMap::iterator read_it = d_->reading_.find(block_ptr);
+    if (read_it != d_->reading_.end())
+        return read_it->second->block_future;
 
     do {
         // check that not writing the block.
@@ -409,24 +417,6 @@ BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
             // the unlocked time.
             continue;
         }
-
-        // check if block is being loaded. in this case, just wait for the I/O
-        // to complete, Alternatively we could figure out how to used _shared_
-        // future results, which deliver the result of the running read.
-        ReadingMap::iterator read_it = d_->reading_.find(block_ptr);
-        while (read_it != d_->reading_.end()) {
-            // get reference count to request, since complete handler removes it
-            // from the map.
-            io::RequestPtr req = read_it->second->req;
-            lock.unlock();
-            // wait for I/O request for completion and the I/O handler.
-            req->wait();
-            lock.lock();
-
-            // recheck whether block is being read, it may have been evicting
-            // again in the unlocked time.
-            continue;
-        }
     }
     while (0); // NOLINT
 
@@ -450,7 +440,7 @@ BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
         common::promise<PinnedBlock> result(
             std::allocator_arg, mem::GPoolAllocator<PinnedBlock>());
         result.set_value(PinnedBlock(block, local_worker_id));
-        return result.get_future();
+        return result.get_future().share();
     }
 
     die_unless(d_->reading_.find(block_ptr) == d_->reading_.end());
@@ -500,7 +490,10 @@ BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
             io::CompletionHandler::from<
                 ReadRequest, & ReadRequest::OnComplete>(*read));
 
-    common::future<PinnedBlock> result = read->result.get_future();
+    // get and store shared_future.
+    common::shared_future<PinnedBlock> result =
+        read->block_future = read->block_promise.get_future().share();
+
     d_->reading_[block_ptr] = std::move(read);
     reading_bytes_ += block_ptr->size();
 
@@ -544,7 +537,7 @@ void BlockPool::OnReadComplete(
         pin_count_.Decrement(read->local_worker_id, block_size);
 
         // deliver future
-        read->result.set_value(PinnedBlock());
+        read->block_promise.set_value(PinnedBlock());
     }
     else    // success
     {
@@ -560,7 +553,7 @@ void BlockPool::OnReadComplete(
         }
 
         // deliver future
-        read->result.set_value(
+        read->block_promise.set_value(
             PinnedBlock(std::move(read->block), read->local_worker_id));
     }
 

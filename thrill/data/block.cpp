@@ -33,12 +33,12 @@ std::ostream& operator << (std::ostream& os, const Block& b) {
 }
 
 PinnedBlock Block::PinWait(size_t local_worker_id) const {
-    common::future<PinnedBlock> pin = Pin(local_worker_id);
+    common::shared_future<PinnedBlock> pin = Pin(local_worker_id);
     pin.wait();
     return pin.get();
 }
 
-common::future<PinnedBlock> Block::Pin(size_t local_worker_id) const {
+common::shared_future<PinnedBlock> Block::Pin(size_t local_worker_id) const {
     assert(IsValid());
     return byte_block()->block_pool_->PinBlock(*this, local_worker_id);
 }

@@ -112,7 +112,7 @@ public:
     //! Creates a pinned copy of this Block. If the underlying data::ByteBlock
     //! is already pinned, the Future is directly filled with a copy if this
     //! block.  Otherwise an async pin call will be issued.
-    common::future<PinnedBlock> Pin(size_t local_worker_id) const;
+    common::shared_future<PinnedBlock> Pin(size_t local_worker_id) const;
 
     //! Convenience function to call Pin() and wait for the future.
     PinnedBlock PinWait(size_t local_worker_id) const;
@@ -305,7 +305,7 @@ public:
     std::string ToString() const;
 
     //! not available in PinnedBlock
-    common::future<PinnedBlock> Pin() const = delete;
+    common::shared_future<PinnedBlock> Pin() const = delete;
 
     //! not available in PinnedBlock
     PinnedBlock PinWait() const = delete;

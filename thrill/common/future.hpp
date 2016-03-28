@@ -2,11 +2,12 @@
  * thrill/common/future.hpp
  *
  * std::promise and std::future implementations borrowed from libc++ under the
- * MIT license.
+ * MIT license. Modified due to data race conditions detected by
+ * ThreadSanitizer.
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -150,7 +151,7 @@ protected:
     mutable std::mutex mutex_;
     mutable std::condition_variable cv_;
 
-    unsigned state_;
+    std::atomic<unsigned> state_;
 
     virtual void on_zero_shared() noexcept {
         delete this;
@@ -174,7 +175,8 @@ public:
     assoc_sub_state() : state_(0) { }
 
     bool has_value() const {
-        return (state_ & constructed) || (exception_ != nullptr);
+        return (state_.load(std::memory_order_acquire) & constructed) ||
+               (exception_ != nullptr);
     }
 
     void set_future_attached() {
@@ -182,7 +184,9 @@ public:
         state_ |= future_attached;
     }
 
-    bool has_future_attached() const { return (state_ & future_attached) != 0; }
+    bool has_future_attached() const {
+        return (state_.load(std::memory_order_acquire) & future_attached) != 0;
+    }
 
     void make_ready() {
         std::unique_lock<std::mutex> lock(mutex_);
@@ -190,7 +194,9 @@ public:
         cv_.notify_all();
     }
 
-    bool is_ready() const { return (state_ & ready) != 0; }
+    bool is_ready() const {
+        return (state_.load(std::memory_order_acquire) & ready) != 0;
+    }
 
     void set_value() {
         std::unique_lock<std::mutex> lock(mutex_);
@@ -336,8 +342,10 @@ class assoc_state_alloc : public assoc_state<Type>
     Alloc alloc_;
 
     virtual void on_zero_shared() noexcept {
-        if (this->state_ & base::constructed)
+        if (this->state_ & base::constructed) {
+            std::unique_lock<std::mutex> lock(this->mutex_);
             reinterpret_cast<Type*>(std::addressof(this->value_))->~Type();
+        }
         using Al = typename Alloc::template rebind<assoc_state_alloc>::other;
         using ATraits = std::allocator_traits<Al>;
         using PTraits = std::pointer_traits<typename ATraits::pointer>;

@@ -2,7 +2,8 @@
  * thrill/common/future.cpp
  *
  * std::promise and std::future implementations borrowed from libc++ under the
- * MIT license.
+ * MIT license. Modified due to data race conditions detected by
+ * ThreadSanitizer.
  *
  * Part of Project Thrill - http://project-thrill.org
  *

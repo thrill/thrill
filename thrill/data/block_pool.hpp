@@ -126,7 +126,8 @@ public:
         const io::FileBasePtr& file, int64_t offset, size_t size);
 
     //! Pins a block by swapping it in if required.
-    common::future<PinnedBlock> PinBlock(const Block& block, size_t local_worker_id);
+    common::shared_future<PinnedBlock> PinBlock(
+        const Block& block, size_t local_worker_id);
 
     //! Increment a ByteBlock's pin count, requires the pin count to be > 0.
     void IncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id);

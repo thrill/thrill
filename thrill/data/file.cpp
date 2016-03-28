@@ -179,7 +179,7 @@ PinnedBlock ConsumeFileBlockSource::NextBlock() {
 
     // operate without prefetching
     if (num_prefetch_ == 0) {
-        common::future<PinnedBlock> f =
+        common::shared_future<PinnedBlock> f =
             file_->blocks_.front().Pin(local_worker_id_);
         file_->blocks_.pop_front();
         f.wait();
