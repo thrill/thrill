@@ -181,6 +181,8 @@ DIA<size_t> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t i
 
 template <typename InputDIA>
 DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size) {
+    // enable online consume of DIA contents if not debugging.
+    input_dia.context().enable_consume(!debug_print);
 
     LOG1 << "Running PrefixDoublingDementiev";
 
@@ -205,7 +207,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
         .Sort();
 
     auto renamed_ranks =
-        chars_sorted
+        chars_sorted.Keep()
         .template FlatWindow<size_t>(
             2,
             [&](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
@@ -220,7 +222,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
         .PrefixSum(common::maximum<size_t>());
 
     size_t non_singletons =
-        renamed_ranks
+        renamed_ranks.Keep()
         .Window(
             2,
             [](size_t /* index */, const RingBuffer<size_t>& rb) {
@@ -240,11 +242,10 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
 
     DIA<IndexRank> names =
         chars_sorted
-        .Zip(
-            renamed_ranks,
-            [](const CharCharIndex& cci, const size_t r) {
-                return IndexRank { cci.index, r };
-            });
+        .Zip(renamed_ranks,
+             [](const CharCharIndex& cci, const size_t r) {
+                 return IndexRank { cci.index, r };
+             });
 
     size_t shift_by = 1;
     while (true) {
@@ -281,7 +282,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
             .Sort();
 
         renamed_ranks =
-            triple_sorted
+            triple_sorted.Keep()
             .template FlatWindow<size_t>(
                 2,
                 [&](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
@@ -296,7 +297,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
             .PrefixSum(common::maximum<size_t>());
 
         non_singletons =
-            renamed_ranks
+            renamed_ranks.Keep()
             .Window(
                 2,
                 [](size_t /* index */, const RingBuffer<size_t>& rb) {
@@ -331,6 +332,8 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
 
 template <typename InputDIA>
 auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
+    // enable online consume of DIA contents if not debugging.
+    input_dia.context().enable_consume(!debug_print);
 
     using Char = typename InputDIA::ValueType;
     using IndexKMer = suffix_sorting::IndexKMer<size_t>;
@@ -363,7 +366,7 @@ auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
         one_mers_sorted.Print("one_mers_sorted");
 
     auto rebucket =
-        one_mers_sorted
+        one_mers_sorted.Keep()
         .template FlatWindow<size_t>(
             2,
             [&](size_t index, const RingBuffer<IndexKMer>& rb, auto emit) {
@@ -407,7 +410,8 @@ auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
             isa.Print("isa");
 
         size_t shift_by = (1 << shifted_exp++) + 1;
-        LOG << "Shift the ISA by " << shift_by - 1 << " positions. Hence the window has size " << shift_by;
+        LOG << "Shift the ISA by " << shift_by - 1
+            << " positions. Hence the window has size " << shift_by;
 
         DIA<IndexRankRank> triple_sorted =
             isa
@@ -430,7 +434,7 @@ auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
         // If we don't care about the number of singletons, it's sufficient to
         // test two.
         size_t non_singletons =
-            triple_sorted
+            triple_sorted.Keep()
             .Window(
                 2,
                 [&](size_t /* index */, const RingBuffer<IndexRankRank>& rb) {
