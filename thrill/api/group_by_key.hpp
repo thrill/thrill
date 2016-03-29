@@ -70,7 +70,7 @@ public:
                 const KeyExtractor& key_extractor,
                 const GroupFunction& groupby_function,
                 const HashFunction& hash_function = HashFunction())
-        : Super(parent.ctx(), "GroupBy", { parent.id() }, { parent.node() }),
+        : Super(parent.ctx(), "GroupByKey", { parent.id() }, { parent.node() }),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           hash_function_(hash_function)

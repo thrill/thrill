@@ -354,7 +354,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
 
     auto shared_node
         = std::make_shared<ReduceNode>(
-        *this, "ReduceToIndexByKey", key_extractor, reduce_function,
+        *this, "ReduceToIndex", key_extractor, reduce_function,
         size, neutral_element, reduce_config);
 
     return DIA<DOpResult>(shared_node);

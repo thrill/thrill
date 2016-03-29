@@ -266,7 +266,7 @@ auto DIA<ValueType, Stack>::ReduceByKey(
               DOpResult, DIA, KeyExtractor, ReduceFunction,
               ReduceConfig, /* VolatileKey */ false, false>;
     auto shared_node = std::make_shared<ReduceNode>(
-        *this, "ReduceBy", key_extractor, reduce_function, reduce_config);
+        *this, "ReduceByKey", key_extractor, reduce_function, reduce_config);
 
     return DIA<DOpResult>(shared_node);
 }
