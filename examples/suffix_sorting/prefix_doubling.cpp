@@ -8,11 +8,12 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <examples/suffix_sorting/sa_checker.hpp>
+
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/equal_to_dia.hpp>
-#include <thrill/api/generate.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_binary.hpp>
@@ -33,6 +34,9 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+
+namespace examples {
+namespace suffix_sorting {
 
 bool debug_print = false;
 bool debug = false;
@@ -110,117 +114,6 @@ struct IndexRankRank {
 } THRILL_ATTRIBUTE_PACKED;
 
 template <typename Char>
-struct Index3 {
-    size_t index;
-    size_t next;
-    Char   ch;
-
-    friend std::ostream& operator << (std::ostream& os, const Index3& i) {
-        return os << "(index=" << i.index << " next=" << i.next << " ch=" << i.ch << ")";
-    }
-} THRILL_ATTRIBUTE_PACKED;
-
-template <typename InputDIA, typename SuffixArrayDIA>
-bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
-
-    Context& ctx = input.ctx();
-
-    using Char = typename InputDIA::ValueType;
-    using Index3 = ::Index3<Char>;
-
-    size_t input_size = input.Size();
-
-    auto isa_pair =
-        suffix_array
-        // build tuples with index: (SA[i]) -> (i, SA[i]),
-        .Zip(Generate(ctx, input_size),
-             [](size_t sa, size_t i) {
-                 return IndexRank { sa, i };
-             })
-        // take (i, SA[i]) and sort to (ISA[i], i)
-        .Sort([](const IndexRank& a, const IndexRank& b) {
-                  return a.index < b.index;
-              });
-
-    // Zip (ISA[i], i) with [0,n) and check that the second component was a
-    // permutation of [0,n)
-    size_t perm_check =
-        isa_pair
-        .Zip(Generate(ctx, input_size),
-             [](const IndexRank& ir, size_t index) -> size_t {
-                 return ir.index == index ? 0 : 1;
-             })
-        // sum over all boolean values.
-        .Sum();
-
-    if (perm_check != 0) {
-        LOG1 << "Error: suffix array is not a permutation of 0..n-1.";
-        return false;
-    }
-
-    using IndexPair = std::pair<size_t, size_t>;
-
-    auto order_check =
-        isa_pair
-        // extract ISA[i]
-        .Map([](const IndexRank& ir) { return ir.rank; })
-        // build (ISA[i], ISA[i+1], T[i])
-        .template FlatWindow<IndexPair>(
-            2, [input_size](size_t index, const RingBuffer<size_t>& rb, auto emit) {
-                emit(IndexPair { rb[0], rb[1] });
-                if (index == input_size - 2) {
-                    // emit sentinel at end
-                    emit(IndexPair { rb[1], input_size });
-                }
-            })
-        .Zip(input,
-             [](const std::pair<size_t, size_t>& isa_pair, const Char& ch) {
-                 return Index3 { isa_pair.first, isa_pair.second, ch };
-             })
-        // and sort to (i, ISA[SA[i]+1], T[SA[i]])
-        .Sort([](const Index3& a, const Index3& b) {
-                  return a.index < b.index;
-              });
-
-    // order_check.Print("order_check");
-
-    size_t order_check_sum =
-        order_check
-        // check that no pair violates the order
-        .Window(2, [input_size](size_t index, const RingBuffer<Index3>& rb) -> size_t {
-
-                    if (rb[0].ch > rb[1].ch) {
-                        // simple check of first character of suffix failed.
-                        LOG1 << "Error: suffix array position "
-                             << index << " ordered incorrectly.";
-                        return 1;
-                    }
-                    else if (rb[0].ch == rb[1].ch) {
-                        if (rb[1].next == input_size) {
-                            // last suffix of string must be first among those with
-                            // same first character
-                            LOG1 << "Error: suffix array position "
-                                 << index << " ordered incorrectly.";
-                            return 1;
-                        }
-                        if (rb[0].next != input_size && rb[0].next > rb[1].next) {
-                            // positions SA[i] and SA[i-1] has same first character
-                            // but their suffixes are ordered incorrectly: the
-                            // suffix position of SA[i] is given by ISA[SA[i]]
-                            LOG1 << "Error: suffix array position "
-                                 << index << " ordered incorrectly.";
-                            return 1;
-                        }
-                    }
-                    // else (rb[0].ch < rb[1].ch) -> okay.
-                    return 0;
-                })
-        .Sum();
-
-    return (order_check_sum == 0);
-}
-
-template <typename Char>
 struct CharCharIndex {
     Char   ch[2];
     size_t index;
@@ -243,7 +136,7 @@ struct CharCharIndex {
 template <typename InputDIA>
 DIA<size_t> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t input_size) {
     using Char = typename InputDIA::ValueType;
-    using CharCharIndex = ::CharCharIndex<Char>;
+    using CharCharIndex = suffix_sorting::CharCharIndex<Char>;
 
     auto chars_sorted =
         input_dia
@@ -288,8 +181,13 @@ DIA<size_t> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t i
 
 template <typename InputDIA>
 DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size) {
+    // enable online consume of DIA contents if not debugging.
+    input_dia.context().enable_consume(!debug_print);
+
+    LOG1 << "Running PrefixDoublingDementiev";
+
     using Char = typename InputDIA::ValueType;
-    using CharCharIndex = ::CharCharIndex<Char>;
+    using CharCharIndex = suffix_sorting::CharCharIndex<Char>;
 
     auto chars_sorted =
         input_dia
@@ -299,18 +197,17 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                 emit(CharCharIndex {
                          { rb[0], rb[1] }, index
                      });
-                if (index == input_size - 2)
+                if (index == input_size - 2) {
                     emit(CharCharIndex {
                              { rb[1], std::numeric_limits<Char>::lowest() },
                              index + 1
                          });
+                }
             })
-        .Sort([](const CharCharIndex& a, const CharCharIndex& b) {
-                  return a < b;
-              });
+        .Sort();
 
-    DIA<size_t> renamed_ranks =
-        chars_sorted
+    auto renamed_ranks =
+        chars_sorted.Keep()
         .template FlatWindow<size_t>(
             2,
             [&](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
@@ -322,15 +219,13 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                     else emit(index + 3);
                 }
             })
-        .PrefixSum([](const size_t a, const size_t b) {
-                       return a > b ? a : b;
-                   });
+        .PrefixSum(common::maximum<size_t>());
 
     size_t non_singletons =
-        renamed_ranks
+        renamed_ranks.Keep()
         .Window(
             2,
-            [&](size_t /*index*/, const RingBuffer<size_t>& rb) {
+            [](size_t /* index */, const RingBuffer<size_t>& rb) {
                 return rb[0] == rb[1];
             })
         .Sum();
@@ -342,23 +237,21 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                      return cci.index;
                  });
 
-        die_unless(CheckSA(input_dia, sa));
         return sa.Collapse();
     }
 
     DIA<IndexRank> names =
         chars_sorted
-        .Zip(
-            renamed_ranks,
-            [](const CharCharIndex& cci, const size_t r) {
-                return IndexRank { cci.index, r };
-            });
+        .Zip(renamed_ranks,
+             [](const CharCharIndex& cci, const size_t r) {
+                 return IndexRank { cci.index, r };
+             });
 
     size_t shift_by = 1;
     while (true) {
-        DIA<IndexRank> names_sorted =
+        auto names_sorted =
             names
-            .Sort([&](const IndexRank& a, const IndexRank& b) {
+            .Sort([shift_by](const IndexRank& a, const IndexRank& b) {
                       size_t mod_mask = (1 << shift_by) - 1;
                       size_t div_mask = ~mod_mask;
 
@@ -367,12 +260,6 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                       else
                           return (a.index & mod_mask) < (b.index & mod_mask);
                   });
-
-        // This is needed, as names_sorted is NOT collapsed otherwise.
-        size_t workaround =
-            names_sorted
-            .Size();
-        (void)workaround; // This shuts up the compiler regarding an unused variable.
 
         if (debug_print)  // If we have debug_print = true everything works fine.
             names_sorted.Print("names_sorted");
@@ -392,12 +279,10 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                     if (index == input_size - 2)
                         emit(IndexRankRank { rb[1].index, rb[1].rank, size_t(0) });
                 })
-            .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
-                      return a < b;
-                  });
+            .Sort();
 
         renamed_ranks =
-            triple_sorted
+            triple_sorted.Keep()
             .template FlatWindow<size_t>(
                 2,
                 [&](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
@@ -409,15 +294,13 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                         else emit(index + 3);
                     }
                 })
-            .PrefixSum([](const size_t a, const size_t b) {
-                           return a > b ? a : b;
-                       });
+            .PrefixSum(common::maximum<size_t>());
 
         non_singletons =
-            renamed_ranks
+            renamed_ranks.Keep()
             .Window(
                 2,
-                [](size_t /*index*/, const RingBuffer<size_t>& rb) {
+                [](size_t /* index */, const RingBuffer<size_t>& rb) {
                     return rb[0] == rb[1];
                 })
             .Sum();
@@ -429,13 +312,11 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
                 triple_sorted
                 .Map([](const IndexRankRank& irr) {
                          return irr.index;
-                     })
-                .Cache();
+                     });
 
             if (debug_print)
                 sa.Print("sa");
 
-            die_unless(CheckSA(input_dia, sa));
             return sa.Collapse();
         }
 
@@ -450,19 +331,21 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
 }
 
 template <typename InputDIA>
-DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t input_size, size_t /*computation_rounds*/) {
+auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
+    // enable online consume of DIA contents if not debugging.
+    input_dia.context().enable_consume(!debug_print);
 
     using Char = typename InputDIA::ValueType;
-    using IndexKMer = ::IndexKMer<size_t>;
+    using IndexKMer = suffix_sorting::IndexKMer<size_t>;
 
-    size_t input_bit_size = sizeof(Char) << 3;
-    size_t k_fitting = (sizeof(size_t) << 3) / input_bit_size;
+    static constexpr size_t input_bit_size = sizeof(Char) << 3;
+    static constexpr size_t k_fitting = (sizeof(size_t) << 3) / input_bit_size;
 
     auto one_mers_sorted =
         input_dia
         .template FlatWindow<IndexKMer>(
             k_fitting,
-            [&](size_t index, const RingBuffer<Char>& rb, auto emit) {
+            [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 size_t result = rb[0];
                 for (size_t i = 1; i < k_fitting; ++i)
                     result = (result << input_bit_size) | rb[i];
@@ -477,15 +360,13 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
                     }
                 }
             })
-        .Sort([](const IndexKMer& a, const IndexKMer& b) {
-                  return a < b;
-              });
+        .Sort();
 
     if (debug_print)
         one_mers_sorted.Print("one_mers_sorted");
 
-    DIA<size_t> rebucket =
-        one_mers_sorted
+    auto rebucket =
+        one_mers_sorted.Keep()
         .template FlatWindow<size_t>(
             2,
             [&](size_t index, const RingBuffer<IndexKMer>& rb, auto emit) {
@@ -497,9 +378,7 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
                     else emit(index + 2);
                 }
             })
-        .PrefixSum([](const size_t a, const size_t b) {
-                       return a > b ? a : b;
-                   });
+        .PrefixSum(common::maximum<size_t>());
 
     if (debug_print)
         rebucket.Print("rebucket");
@@ -508,7 +387,8 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
         one_mers_sorted
         .Map([](const IndexKMer& iom) {
                  return iom.index;
-             });
+             })
+        .Collapse();
 
     if (debug_print)
         sa.Print("sa");
@@ -530,7 +410,8 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
             isa.Print("isa");
 
         size_t shift_by = (1 << shifted_exp++) + 1;
-        LOG << "Shift the ISA by " << shift_by - 1 << " positions. Hence the window has size " << shift_by;
+        LOG << "Shift the ISA by " << shift_by - 1
+            << " positions. Hence the window has size " << shift_by;
 
         DIA<IndexRankRank> triple_sorted =
             isa
@@ -550,9 +431,10 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
         if (debug_print)
             triple_sorted.Print("triple_sorted");
 
-        // If we don't care about the number of singletons, it's sufficient to test two.
+        // If we don't care about the number of singletons, it's sufficient to
+        // test two.
         size_t non_singletons =
-            triple_sorted
+            triple_sorted.Keep()
             .Window(
                 2,
                 [&](size_t /* index */, const RingBuffer<IndexRankRank>& rb) {
@@ -562,7 +444,8 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
 
         sa =
             triple_sorted
-            .Map([](const IndexRankRank& rri) { return rri.index; });
+            .Map([](const IndexRankRank& rri) { return rri.index; })
+            .Collapse();
 
         if (debug_print)
             sa.Print("sa");
@@ -570,8 +453,7 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
         // If each suffix is unique regarding their 2h-prefix, we have computed
         // the suffix array and can return it.
         if (non_singletons == 0) {
-            die_unless(CheckSA(input_dia, sa));
-            return sa.Collapse();
+            return sa;
         }
 
         rebucket =
@@ -588,9 +470,7 @@ DIA<size_t> PrefixDoubling(Context& /*ctx*/, const InputDIA& input_dia, size_t i
                         else emit(index + 2);
                     }
                 })
-            .PrefixSum([](const size_t a, const size_t b) {
-                           return a > b ? a : b;
-                       });
+            .PrefixSum(common::maximum<size_t>());
 
         if (debug_print)
             rebucket.Print("rebucket");
@@ -606,11 +486,13 @@ public:
     StartPrefixDoubling(
         Context& ctx,
         const std::string& input_path, const std::string& output_path,
+        const std::string& pd_algorithm,
         bool text_output_flag,
         bool check_flag,
         bool input_verbatim)
         : ctx_(ctx),
           input_path_(input_path), output_path_(output_path),
+          pd_algorithm_(pd_algorithm),
           text_output_flag_(text_output_flag),
           check_flag_(check_flag),
           input_verbatim_(input_verbatim) { }
@@ -619,28 +501,40 @@ public:
         if (input_verbatim_) {
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
-            auto input_dia = EqualToDIA<uint8_t>(ctx_, input_vec);
-            StartPrefixDoublingInput(input_dia, input_vec.size(), input_vec.size());
+            auto input_dia = EqualToDIA(ctx_, input_vec);
+            StartPrefixDoublingInput(input_dia, input_vec.size());
         }
         else {
             auto input_dia = ReadBinary<uint8_t>(ctx_, input_path_);
             size_t input_size = input_dia.Size();
-            StartPrefixDoublingInput(input_dia, input_size, input_size);
+            StartPrefixDoublingInput(input_dia, input_size);
         }
     }
 
     template <typename InputDIA>
     void StartPrefixDoublingInput(
-        const InputDIA& input_dia,
-        uint64_t input_size, size_t /* computation_rounds */) {
+        const InputDIA& input_dia, uint64_t input_size) {
 
-        auto suffix_array = PrefixDoublingDementiev(input_dia, input_size);
-        if (output_path_.size()) {
-            suffix_array.WriteBinary(output_path_);
+        DIA<size_t> suffix_array;
+        if (pd_algorithm_ == "de") {
+            suffix_array = PrefixDoublingDementiev(input_dia, input_size);
+        }
+        else {
+            suffix_array = PrefixDoubling(input_dia, input_size);
         }
 
         if (check_flag_) {
             LOG1 << "checking suffix array...";
+            die_unless(CheckSA(input_dia, suffix_array));
+        }
+
+        if (text_output_flag_) {
+            suffix_array.Print("suffix_array");
+        }
+
+        if (output_path_.size()) {
+            LOG1 << "writing suffix array to " << output_path_;
+            suffix_array.WriteBinary(output_path_);
         }
     }
 
@@ -649,19 +543,27 @@ protected:
 
     std::string input_path_;
     std::string output_path_;
+    std::string pd_algorithm_;
 
     bool text_output_flag_;
     bool check_flag_;
     bool input_verbatim_;
 };
 
+} // namespace suffix_sorting
+} // namespace examples
+
 int main(int argc, char* argv[]) {
+
+    using namespace thrill; // NOLINT
+
     common::CmdlineParser cp;
 
-    cp.SetDescription("A prefix doubling suffix array construction algorithm.");
+    cp.SetDescription("A collection of prefix doubling suffix array construction algorithms.");
     cp.SetAuthor("Florian Kurpicz <florian.kurpicz@tu-dortmund.de>");
 
     std::string input_path, output_path;
+    std::string pd_algorithm;
     bool text_output_flag = false;
     bool check_flag = false;
     bool input_verbatim = false;
@@ -679,8 +581,12 @@ int main(int argc, char* argv[]) {
     cp.AddFlag('v', "verbatim", input_verbatim,
                "Consider \"input\" as verbatim text to construct "
                "suffix array on.");
-    cp.AddFlag('d', "debug", debug_print,
+    cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
                "Print debug info.");
+    cp.AddString('a', "algorithm", pd_algorithm,
+                 "The prefix doubling algorithm which is used to construct the "
+                 "suffix array. [fl]ick (default) and [de]mentiev are "
+                 "available.");
     // debug = debug_print;
     // process command line
     if (!cp.Process(argc, argv))
@@ -688,11 +594,13 @@ int main(int argc, char* argv[]) {
 
     return Run(
         [&](Context& ctx) {
-            return StartPrefixDoubling(ctx,
-                                       input_path, output_path,
-                                       text_output_flag,
-                                       check_flag,
-                                       input_verbatim).Run();
+            return examples::suffix_sorting::StartPrefixDoubling(
+                ctx,
+                input_path, output_path,
+                pd_algorithm,
+                text_output_flag,
+                check_flag,
+                input_verbatim).Run();
         });
 }
 

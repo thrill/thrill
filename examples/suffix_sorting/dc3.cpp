@@ -8,6 +8,8 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <examples/suffix_sorting/sa_checker.hpp>
+
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
@@ -37,6 +39,9 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+
+namespace examples {
+namespace suffix_sorting {
 
 bool debug_print = false;
 
@@ -176,17 +181,6 @@ struct StringFragment
 } THRILL_ATTRIBUTE_PACKED;
 
 template <typename Char>
-struct Index3 {
-    size_t index;
-    size_t next;
-    Char   ch;
-
-    friend std::ostream& operator << (std::ostream& os, const Index3& i) {
-        return os << "(index=" << i.index << " next=" << i.next << " ch=" << i.ch << ")";
-    }
-} THRILL_ATTRIBUTE_PACKED;
-
-template <typename Char>
 struct CharsRanks12 {
     Chars<Char> chars;
     size_t      rank1;
@@ -204,112 +198,12 @@ struct IndexCR12Pair {
     CharsRanks12<Char> cr1;
 } THRILL_ATTRIBUTE_PACKED;
 
-template <typename InputDIA, typename SuffixArrayDIA>
-bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
-
-    Context& ctx = input.ctx();
-
-    using Char = typename InputDIA::ValueType;
-    using Index3 = ::Index3<Char>;
-
-    size_t input_size = input.Size();
-
-    auto isa_pair =
-        suffix_array
-        // build tuples with index: (SA[i]) -> (i, SA[i]),
-        .Zip(Generate(ctx, input_size),
-             [](size_t sa, size_t i) {
-                 return IndexRank { sa, i };
-             })
-        // take (i, SA[i]) and sort to (ISA[i], i)
-        .Sort([](const IndexRank& a, const IndexRank& b) {
-                  return a.index < b.index;
-              });
-
-    // Zip (ISA[i], i) with [0,n) and check that the second component was a
-    // permutation of [0,n)
-    size_t perm_check =
-        isa_pair
-        .Zip(Generate(ctx, input_size),
-             [](const IndexRank& ir, size_t index) -> size_t {
-                 return ir.index == index ? 0 : 1;
-             })
-        // sum over all boolean values.
-        .Sum();
-
-    if (perm_check != 0) {
-        LOG1 << "Error: suffix array is not a permutation of 0..n-1.";
-        return false;
-    }
-
-    using IndexPair = std::pair<size_t, size_t>;
-
-    auto order_check =
-        isa_pair
-        // extract ISA[i]
-        .Map([](const IndexRank& ir) { return ir.rank; })
-        // build (ISA[i], ISA[i+1], T[i])
-        .template FlatWindow<IndexPair>(
-            2, [input_size](size_t index, const RingBuffer<size_t>& rb, auto emit) {
-                emit(IndexPair { rb[0], rb[1] });
-                if (index == input_size - 2) {
-                    // emit sentinel at end
-                    emit(IndexPair { rb[1], input_size });
-                }
-            })
-        .Zip(input,
-             [](const std::pair<size_t, size_t>& isa_pair, const Char& ch) {
-                 return Index3 { isa_pair.first, isa_pair.second, ch };
-             })
-        // and sort to (i, ISA[SA[i]+1], T[SA[i]])
-        .Sort([](const Index3& a, const Index3& b) {
-                  return a.index < b.index;
-              });
-
-    // order_check.Print("order_check");
-
-    size_t order_check_sum =
-        order_check
-        // check that no pair violates the order
-        .Window(2, [input_size](size_t index, const RingBuffer<Index3>& rb) -> size_t {
-
-                    if (rb[0].ch > rb[1].ch) {
-                        // simple check of first character of suffix failed.
-                        LOG1 << "Error: suffix array position "
-                             << index << " ordered incorrectly.";
-                        return 1;
-                    }
-                    else if (rb[0].ch == rb[1].ch) {
-                        if (rb[1].next == input_size) {
-                            // last suffix of string must be first among those with
-                            // same first character
-                            LOG1 << "Error: suffix array position "
-                                 << index << " ordered incorrectly.";
-                            return 1;
-                        }
-                        if (rb[0].next != input_size && rb[0].next > rb[1].next) {
-                            // positions SA[i] and SA[i-1] has same first character
-                            // but their suffixes are ordered incorrectly: the
-                            // suffix position of SA[i] is given by ISA[SA[i]]
-                            LOG1 << "Error: suffix array position "
-                                 << index << " ordered incorrectly.";
-                            return 1;
-                        }
-                    }
-                    // else (rb[0].ch < rb[1].ch) -> okay.
-                    return 0;
-                })
-        .Sum();
-
-    return (order_check_sum == 0);
-}
-
 template <typename InputDIA>
 DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
 
     using Char = typename InputDIA::ValueType;
-    using IndexChars = ::IndexChars<Char>;
-    using Chars = ::Chars<Char>;
+    using IndexChars = suffix_sorting::IndexChars<Char>;
+    using Chars = suffix_sorting::Chars<Char>;
 
     auto triple_sorted =
         input_dia
@@ -540,12 +434,12 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.
 
-    using StringFragmentMod0 = ::StringFragmentMod0<Char>;
-    using StringFragmentMod1 = ::StringFragmentMod1<Char>;
-    using StringFragmentMod2 = ::StringFragmentMod2<Char>;
+    using StringFragmentMod0 = suffix_sorting::StringFragmentMod0<Char>;
+    using StringFragmentMod1 = suffix_sorting::StringFragmentMod1<Char>;
+    using StringFragmentMod2 = suffix_sorting::StringFragmentMod2<Char>;
 
-    using CharsRanks12 = ::CharsRanks12<Char>;
-    using IndexCR12Pair = ::IndexCR12Pair<Char>;
+    using CharsRanks12 = suffix_sorting::CharsRanks12<Char>;
+    using IndexCR12Pair = suffix_sorting::IndexCR12Pair<Char>;
 
     auto zip_triple_pairs1 =
         ZipPadding(
@@ -642,7 +536,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
         sorted_fragments_mod2.Print("sorted_fragments_mod2");
     }
 
-    using StringFragment = ::StringFragment<Char>;
+    using StringFragment = suffix_sorting::StringFragment<Char>;
 
     auto string_fragments_mod0 =
         sorted_fragments_mod0
@@ -737,7 +631,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
 
     // check result
 
-    die_unless(CheckSA(input_dia, suffix_array));
+    die_unless(CheckSA(input_dia, suffix_array.Collapse()));
 
     return suffix_array.Collapse();
 }
@@ -841,7 +735,12 @@ protected:
     bool input_verbatim_;
 };
 
+} // namespace suffix_sorting
+} // namespace examples
+
 int main(int argc, char* argv[]) {
+
+    using namespace thrill; // NOLINT
 
     common::CmdlineParser cp;
 
@@ -869,7 +768,7 @@ int main(int argc, char* argv[]) {
                "suffix array on.");
     cp.AddBytes('s', "size", sizelimit,
                 "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
-    cp.AddFlag('d', "debug", debug_print,
+    cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
                "Print debug info.");
 
     // process command line
@@ -878,12 +777,12 @@ int main(int argc, char* argv[]) {
 
     return Run(
         [&](Context& ctx) {
-            return StartDC3(ctx,
-                            input_path, output_path,
-                            sizelimit,
-                            text_output_flag,
-                            check_flag,
-                            input_verbatim).Run();
+            return examples::suffix_sorting::StartDC3(
+                ctx, input_path, output_path,
+                sizelimit,
+                text_output_flag,
+                check_flag,
+                input_verbatim).Run();
         });
 }
 

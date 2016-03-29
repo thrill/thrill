@@ -9,7 +9,7 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-thrill_build_prog(prefix_doubling)
+thrill_build_prog(prefix_doubling sa_checker.cpp)
 thrill_build_prog(wavelet_tree)
 
 if(MSVC)
@@ -18,7 +18,7 @@ if(MSVC)
 endif()
 
 if(THRILL_FULL_BUILD)
-  thrill_build_prog(dc3)
+  thrill_build_prog(dc3 sa_checker.cpp)
 
   if(MSVC)
     # requires /bigobj flag to build

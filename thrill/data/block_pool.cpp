@@ -509,8 +509,8 @@ void BlockPool::OnReadComplete(
 
         if (!block_ptr->ext_file_) {
             bm_->delete_block(block_ptr->em_bid_);
-            block_ptr->em_bid_ = io::BID<0>();
         }
+        block_ptr->em_bid_ = io::BID<0>();
     }
 
     read->ready_ = true;
