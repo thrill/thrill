@@ -47,6 +47,9 @@ option(THRILL_USE_VALGRIND
 option(THRILL_USE_IWYU
   "Compile with include-what-you-use (iwyu) tool." OFF)
 
+option(THRILL_USE_LTO
+  "Compile with -flto (link-time optimization)." OFF)
+
 option(THRILL_FULL_BUILD
   "Disable large compilation units for faster development." OFF)
 
@@ -170,6 +173,35 @@ if(THRILL_USE_IWYU)
       COMMAND "${PYTHON_EXECUTABLE}" "${iwyu_tool_path}" -p "${CMAKE_BINARY_DIR}"
       COMMENT "Running include-what-you-use tool"
       VERBATIM)
+  endif()
+endif()
+
+if(THRILL_USE_LTO)
+  # build with link-time optimization
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(-flto CXX_HAS_LTO_FLAG)
+
+  if(CMAKE_BUILD_TYPE MATCHES Release AND CXX_HAS_LTO_FLAG)
+    find_program(CMAKE_GCC_AR
+      NAMES ${_CMAKE_TOOLCHAIN_PREFIX}gcc-ar${_CMAKE_TOOLCHAIN_SUFFIX}
+      HINTS ${_CMAKE_TOOLCHAIN_LOCATION})
+
+    find_program(CMAKE_GCC_NM
+      NAMES ${_CMAKE_TOOLCHAIN_PREFIX}gcc-nm
+      HINTS ${_CMAKE_TOOLCHAIN_LOCATION})
+
+    find_program(CMAKE_GCC_RANLIB
+      NAMES ${_CMAKE_TOOLCHAIN_PREFIX}gcc-ranlib
+      HINTS ${_CMAKE_TOOLCHAIN_LOCATION})
+
+    if(CMAKE_GCC_AR AND CMAKE_GCC_NM AND CMAKE_GCC_RANLIB)
+      set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -flto")
+      set(CMAKE_AR "${CMAKE_GCC_AR}")
+      set(CMAKE_NM "${CMAKE_GCC_NM}")
+      set(CMAKE_RANLIB "${CMAKE_GCC_RANLIB}")
+    else()
+      message(WARNING "GCC indicates LTO support, but binutils wrappers could not be found. Disabling LTO.")
+    endif()
   endif()
 endif()
 
