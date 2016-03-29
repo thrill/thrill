@@ -29,8 +29,8 @@ namespace net {
 //! \addtogroup net_layer
 //! \{
 
-/**
- * \brief Initializes communication channels, manages communication channels and
+/*!
+ * Initializes communication channels, manages communication channels and
  * handles errors.
  *
  * \details This class is responsible for initializing the three net::Groups for

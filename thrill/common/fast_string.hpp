@@ -123,7 +123,7 @@ public:
         }
     }
 
-    /**
+    /*!
      * Creates a new copied FastString, given a const iterator to a std::string
      * and the size of the FastString.
      * \param data Pointer to start of data
@@ -141,9 +141,8 @@ public:
         }
     }
 
-    /**
-
-     * Creates a new FastString and copies it's data.
+    /*!
+     * Creates a new FastString and copies its data.
      * \param input Input string, which the new FastString is a copy of
      * \return New FastString object.
      */

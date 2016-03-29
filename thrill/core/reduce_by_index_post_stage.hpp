@@ -82,7 +82,7 @@ public:
               KeyExtractor, ReduceFunction, StageEmitter,
               !SendPair, ReduceConfig, IndexFunction, EqualToFunction>::type;
 
-    /**
+    /*!
      * A data structure which takes an arbitrary value and extracts a key using
      * a key extractor function from that value. Afterwards, the value is hashed
      * based on the key into some slot.

@@ -19,7 +19,7 @@
 namespace thrill {
 namespace common {
 
-/**
+/*!
 
 Command line parser which automatically fills variables and prints nice usage
 messages.

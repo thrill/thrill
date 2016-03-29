@@ -38,10 +38,9 @@ public:
           group_count_(group_count)
     { }
 
-    /**
-     * \brief Initializes this Manager and initializes all Groups.
-     * \details Initializes this Manager and initializes all Groups.
-     * When this method returns, the network system is ready to use.
+    /*!
+     * Initializes this Manager and initializes all Groups.  When this method
+     * returns, the network system is ready to use.
      *
      * \param my_rank_ The rank of the worker that owns this Manager.
      * \param endpoints The ordered list of all endpoints, including the local worker,
@@ -129,24 +128,16 @@ private:
     //! number of groups to initialize
     size_t group_count_;
 
-    /**
-     * The rank associated with the local worker.
-     */
+    //! The rank associated with the local worker.
     size_t my_rank_ = size_t(-1);
 
-    /**
-     * The Connections responsible
-     * for listening to incoming connections.
-     */
+    //! The Connections responsible for listening to incoming connections.
     Connection listener_;
 
-    /**
-     * The dispatcher instance used by this Manager
-     * to perform async operations.
-     */
+    //! Dispatcher instance used by this Manager to perform async operations.
     SelectDispatcher dispatcher_ { mem_manager_ };
 
-    // Some definitions for convenience
+    //! Some definitions for convenience
     using GroupNodeIdPair = std::pair<size_t, size_t>;
 
     //! Array of opened connections that are not assigned to any (group,id)
@@ -179,13 +170,11 @@ private:
         size_t   id;
     };
 
-    /**
-     * The Thrill signature flag - introduced by Master Timo.
-     */
+    //! The Thrill signature flag - introduced by Master Timo.
     static constexpr uint64_t thrill_sign = 0x0C7A0C7A0C7A0C7A;
 
-    /**
-     * \brief Converts a Thrill endpoint list into a list of socket address.
+    /*!
+     * Converts a Thrill endpoint list into a list of socket address.
      *
      * \param endpoints The endpoint list to convert.
      * \return The socket addresses to use internally.
@@ -207,11 +196,10 @@ private:
         return addressList;
     }
 
-    /**
-     * \brief Returns wether the initialization is completed.
-     *
-     * \details Checkts the Groups associated with this Manager and returns true
-     * or false wether the initialization is finished.
+    /*!
+     * Returns wether the initialization is completed.  Checks the Groups
+     * associated with this Manager and returns true or false wether the
+     * initialization is finished.
      *
      * \return True if initialization is finished, else false.
      */
@@ -233,10 +221,10 @@ private:
         return true;
     }
 
-    /**
-     * \brief Starts connecting to the net connection specified.
-     * \details Starts connecting to the endpoint specified by the parameters.
-     * This method executes asynchronously.
+    /*!
+     * Starts connecting to the net connection specified. Starts connecting to
+     * the endpoint specified by the parameters.  This method executes
+     * asynchronously.
      *
      * \param nc The connection to connect.
      * \param address The address of the endpoint to connect to.
@@ -278,10 +266,9 @@ private:
         }
     }
 
-    /**
-     * \brief Starts connecting to the endpoint specified by the parameters.
-     * \details Starts connecting to the endpoint specified by the parameters.
-     * This method executes asynchronously.
+    /*!
+     * Starts connecting to the endpoint specified by the parameters.  This
+     * method executes asynchronously.
      *
      * \param group The id of the Group to connect to.
      * \param id The id of the worker to connect to.
@@ -301,10 +288,9 @@ private:
         AsyncConnect(nc, address);
     }
 
-    /**
-     * \brief Is called whenever a hello is sent.
-     * \details Is called whenever a hello is sent.
-     * For outgoing connections, this is the final step in the state machine.
+    /*!
+     * Is called whenever a hello is sent. For outgoing connections, this is
+     * the final step in the state machine.
      *
      * \param conn The connection for which the hello is sent.
      */
@@ -344,9 +330,8 @@ private:
         return it->second;
     }
 
-    /**
-     * \brief Called when a connection initiated by us succeeds.
-     * \details Called when a connection initiated by us succeeds on a betwork level.
+    /*!
+     * Called when a connection initiated by us succeeds on a network level.
      * The Thrill welcome messages still have to be exchanged.
      *
      * \param conn The connection that was connected successfully.
@@ -434,9 +419,8 @@ private:
         return false;
     }
 
-    /**
-     * \brief Receives and handels a hello message without sending a reply.
-     * \details Receives and handels a hello message without sending a reply.
+    /*!
+     * Receives and handels a hello message without sending a reply.
      *
      * \param conn The connection the hello was received for.
      * \param buffer The buffer containing the welcome message.
@@ -470,9 +454,8 @@ private:
         tcp.set_state(ConnectionState::Connected);
     }
 
-    /**
-     * \brief Receives and handles a welcome message. Also sends a reply.
-     * \details Receives and handles a welcome message. Also sends a reply.
+    /*!
+     * Receives and handles a welcome message. Also sends a reply.
      *
      * \param conn The connection that received the welcome message.
      * \param buffer The buffer containing the welcome message.
@@ -520,9 +503,8 @@ private:
             << " sent passive hello to client " << msg_in->id;
     }
 
-    /**
-     * \brief Handles incoming connections.
-     * \details Handles incoming connections.
+    /*!
+     * Handles incoming connections.
      *
      * \param conn The listener connection.
      * \return A boolean indicating wether this handler should stay attached.

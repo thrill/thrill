@@ -56,11 +56,11 @@ using AsyncReadByteBlockCallback = common::delegate<
 using AsyncWriteCallback = common::delegate<
           void(Connection&), mem::GPoolAllocator<char> >;
 
-/**
- * Dispatcher is a high level wrapper for asynchronous callback
- * processing.. One can register Connection objects for readability and
- * writability checks, buffered reads and writes with completion callbacks, and
- * also timer functions.
+/*!
+ * Dispatcher is a high level wrapper for asynchronous callback processing.. One
+ * can register Connection objects for readability and writability checks,
+ * buffered reads and writes with completion callbacks, and also timer
+ * functions.
  */
 class Dispatcher
 {

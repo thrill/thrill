@@ -176,6 +176,7 @@ void DiskAllocator::NewBlocks(BidIterator begin, BidIterator end) {
     NewBlocks(middle, end);
 }
 
+#ifndef THRILL_DOXYGEN_IGNORE
 // template function instantiations
 template void DiskAllocator::NewBlocks(BID<0>* begin, BID<0>* end);
 template void DiskAllocator::NewBlocks(
@@ -187,6 +188,7 @@ template void DiskAllocator::NewBlocks(
 template void DiskAllocator::NewBlocks(
     std::vector<BID<524288> >::iterator begin,
     std::vector<BID<524288> >::iterator end);
+#endif
 
 template <size_t BlockSize>
 void DiskAllocator::DeleteBlock(const BID<BlockSize>& bid) {

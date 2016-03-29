@@ -50,7 +50,7 @@ using AsyncReadByteBlockCallback = common::delegate<
 using AsyncWriteCallback = common::delegate<
           void(Connection&), mem::GPoolAllocator<char> >;
 
-/**
+/*!
  * DispatcherThread contains a net::Dispatcher object and an associated thread
  * that runs in the dispatching loop.
  */

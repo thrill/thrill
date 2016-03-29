@@ -25,7 +25,7 @@
 
 using namespace thrill; // NOLINT
 
-/**
+/*!
  * Calculates a prefix sum over all worker ids.
  */
 static void TestSingleThreadPrefixSum(net::Group* net) {
@@ -89,7 +89,7 @@ static void TestSingleThreadVectorPrefixSum(net::Group* net) {
     }
 }
 
-/**
+/*!
  * Broadcasts the ID of the master, which is 0.
  */
 static void TestSingleThreadBroadcast(net::Group* net) {
@@ -123,7 +123,7 @@ static void ExecuteMultiThreads(
     }
 }
 
-/**
+/*!
  * Broadcasts the ID of the master, which is 0.
  */
 static void TestMultiThreadBroadcast(net::Group* net) {
@@ -143,7 +143,7 @@ static void TestMultiThreadBroadcast(net::Group* net) {
         });
 }
 
-/**
+/*!
  * Calculates a sum over all worker and thread ids.
  */
 static void TestMultiThreadReduce(net::Group* net) {
@@ -168,7 +168,7 @@ static void TestMultiThreadReduce(net::Group* net) {
         });
 }
 
-/**
+/*!
  * Calculates a sum over all worker ids.
  */
 static void TestSingleThreadAllReduce(net::Group* net) {
@@ -187,7 +187,7 @@ static void TestSingleThreadAllReduce(net::Group* net) {
     ASSERT_EQ(res, expected);
 }
 
-/**
+/*!
  * Calculates a sum over all worker and thread ids.
  */
 static void TestMultiThreadAllReduce(net::Group* net) {
@@ -208,7 +208,7 @@ static void TestMultiThreadAllReduce(net::Group* net) {
         });
 }
 
-/**
+/*!
  * Calculates a sum over all worker and thread ids.
  */
 static void TestMultiThreadPrefixSum(net::Group* net) {
@@ -340,7 +340,7 @@ static void TestPredecessorOneItem(net::Group* net) {
         });
 }
 
-/**
+/*!
  * Does a lot of operations to provoke race conditions.
  */
 static void TestHardcoreRaceConditionTest(net::Group* net) {

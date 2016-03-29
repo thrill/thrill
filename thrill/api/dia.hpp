@@ -238,10 +238,12 @@ public:
     //! \{
 
     /*!
-     * Map is a LOp, which maps this DIA according to the map_fn given by the
-     * user.  The map_fn maps each element to another
-     * element of a possibly different type. The function chain of the returned
-     * DIA is this DIA's stack_ chained with map_fn.
+     * Map applies `map_function` : \f$ A \to B \f$ to each item of a DIA and
+     * delivers a new DIA contains the returned values, which may be of a
+     * different type.
+     *
+     * The function chain of the returned DIA is this DIA's stack_ chained with
+     * map_fn.
      *
      * \param map_function Map function of type MapFunction, which maps each
      * element to an element of a possibly different type.
@@ -281,10 +283,12 @@ public:
     }
 
     /*!
-     * Filter is a LOp, which filters elements from this DIA according to the
-     * filter_function given by the user. The filter_function maps each element
-     * to a boolean.  The function chain of the returned DIA is this DIA's
-     * stack_ chained with filter_function.
+     * Each item of a DIA is tested using `filter_function` : \f$ A \to
+     * \textrm{bool} \f$ to determine whether it is copied into the output DIA
+     * or excluded.
+     *
+     * The function chain of the returned DIA is this DIA's stack_ chained with
+     * filter_function.
      *
      * \param filter_function Filter function of type FilterFunction, which maps
      * each element to a boolean.
@@ -322,12 +326,17 @@ public:
     }
 
     /*!
-     * FlatMap is a LOp, which maps this DIA according to the
-     * flatmap_function given by the user. The flatmap_function maps each
-     * element to elements of a possibly different type. The flatmap_function
-     * has an emitter function as it's second parameter. This emitter is called
-     * once for each element to be emitted. The function chain of the returned
-     * DIA is this DIA's stack_ chained with flatmap_function.
+     * \brief Each item of a DIA is expanded by the `flatmap_function` : \f$ A
+     * \to \textrm{array}(B) \f$ to zero or more items of different type, which
+     * are concatenated in the resulting DIA. The return type of
+     * `flatmap_function` must be specified as template parameter.
+     *
+     * FlatMap is a LOp, which maps this DIA according to the flatmap_function
+     * given by the user. The flatmap_function maps each element to elements of
+     * a possibly different type. The flatmap_function has an emitter function
+     * as it's second parameter. This emitter is called once for each element to
+     * be emitted. The function chain of the returned DIA is this DIA's stack_
+     * chained with flatmap_function.
 
      * \tparam ResultType ResultType of the FlatmapFunction, if different from
      * item type of DIA.
@@ -357,7 +366,8 @@ public:
     }
 
     /*!
-     * Bernoulli sampling (local operation) with success probability p
+     * Each item of a DIA is copied into the output DIA with success probability
+     * p (a Bernoulli trial).
      *
      * \ingroup dia_lops
      */
@@ -369,21 +379,28 @@ public:
     //! \{
 
     /*!
-     * Size is an Action, which computes the total size of all elements across
-     * all workers.
+     * Computes the total size of all elements across all workers.
      *
      * \ingroup dia_actions
      */
     size_t Size() const;
 
     /*!
-     * AllGather is an Action, which returns the whole DIA in an std::vector on
-     * each worker. This is only for testing purposes and should not be used on
-     * large datasets. Variant that returns the vector.
+     * Returns the whole DIA in an std::vector on each worker. This is only for
+     * testing purposes and should not be used on large datasets.
      *
      * \ingroup dia_actions
      */
     std::vector<ValueType> AllGather() const;
+
+    /**
+     * \brief AllGather is an Action, which returns the whole DIA in an
+     * std::vector on each worker. This is only for testing purposes and should
+     * not be used on large datasets.
+     *
+     * \ingroup dia_actions
+     */
+    void AllGather(std::vector<ValueType>* out_vector) const;
 
     /*!
      * Print is an Action, which collects all data of the DIA at the worker 0
@@ -400,15 +417,6 @@ public:
      * \ingroup dia_actions
      */
     void Print(const std::string& name, std::ostream& out) const;
-
-    /*!
-     * AllGather is an Action, which returns the whole DIA in an std::vector on
-     * each worker. This is only for testing purposes and should not be used on
-     * large datasets.
-     *
-     * \ingroup dia_actions
-     */
-    void AllGather(std::vector<ValueType>* out_vector) const;
 
     /*!
      * Gather is an Action, which collects all data of the DIA into a vector at

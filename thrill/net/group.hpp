@@ -95,7 +95,7 @@ public:
     //! \name Convenience Functions
     //! \{
 
-    /**
+    /*!
      * Sends a serializable type to the given peer.
      *
      * \param dest The peer to send the data to.
@@ -106,7 +106,7 @@ public:
         connection(dest).Send(data);
     }
 
-    /**
+    /*!
      * Receives a serializable type from the given peer.
      *
      * \param src The peer to receive the fixed length type from.

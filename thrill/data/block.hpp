@@ -34,7 +34,7 @@ class PinRequest;
 using PinRequestPtr =
           common::CountingPtr<PinRequest, mem::GPoolDeleterFunc<PinRequest> >;
 
-/**
+/*!
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
  * information. The book-keeping meta-information currently is the start of the
  * first item, the ends of the item range, and the number of items in the range.

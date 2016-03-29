@@ -27,7 +27,7 @@ namespace tcp {
 //! \addtogroup net_tcp TCP Socket API
 //! \{
 
-/**
+/*!
  * Select is an object-oriented wrapper for select(). It takes care of the
  * bit-fields, etc.
  */

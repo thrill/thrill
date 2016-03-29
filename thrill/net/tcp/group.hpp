@@ -102,10 +102,10 @@ public:
     std::unique_ptr<Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const final;
 
-    /**
-     * \brief Assigns a connection to this net group.
-     * \details This method swaps the net connection to memory managed by this group.
-     *          The reference given to that method will be invalid afterwards.
+    /*!
+     * Assigns a connection to this net group.  This method swaps the net
+     * connection to memory managed by this group.  The reference given to that
+     * method will be invalid afterwards.
      *
      * \param connection The connection to assign.
      *

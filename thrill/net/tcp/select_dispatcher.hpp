@@ -43,7 +43,7 @@ namespace tcp {
 //! \addtogroup net_tcp TCP Socket API
 //! \{
 
-/**
+/*!
  * SelectDispatcher is a higher level wrapper for select(). One can register
  * Socket objects for readability and writability checks, buffered reads and
  * writes with completion callbacks, and also timer functions.
