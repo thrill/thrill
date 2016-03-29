@@ -20,6 +20,9 @@
 #include <ostream>
 #include <utility>
 
+namespace examples {
+namespace suffix_sorting {
+
 using namespace thrill; // NOLINT
 using thrill::common::RingBuffer;
 
@@ -53,7 +56,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     Context& ctx = input.ctx();
 
     using Char = typename InputDIA::ValueType;
-    using Index3 = ::Index3<Char>;
+    using Index3 = suffix_sorting::Index3<Char>;
 
     size_t input_size = input.Size();
 
@@ -154,5 +157,8 @@ template bool CheckSA(
     const DIA<uint8_t>& input, const DIA<uint64_t>& suffix_array);
 template bool CheckSA(
     const DIA<uint64_t>& input, const DIA<uint64_t>& suffix_array);
+
+} // namespace suffix_sorting
+} // namespace examples
 
 /******************************************************************************/

@@ -40,6 +40,9 @@
 #include <utility>
 #include <vector>
 
+namespace examples {
+namespace suffix_sorting {
+
 bool debug_print = false;
 
 using namespace thrill; // NOLINT
@@ -199,8 +202,8 @@ template <typename InputDIA>
 DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
 
     using Char = typename InputDIA::ValueType;
-    using IndexChars = ::IndexChars<Char>;
-    using Chars = ::Chars<Char>;
+    using IndexChars = suffix_sorting::IndexChars<Char>;
+    using Chars = suffix_sorting::Chars<Char>;
 
     auto triple_sorted =
         input_dia
@@ -431,12 +434,12 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.
 
-    using StringFragmentMod0 = ::StringFragmentMod0<Char>;
-    using StringFragmentMod1 = ::StringFragmentMod1<Char>;
-    using StringFragmentMod2 = ::StringFragmentMod2<Char>;
+    using StringFragmentMod0 = suffix_sorting::StringFragmentMod0<Char>;
+    using StringFragmentMod1 = suffix_sorting::StringFragmentMod1<Char>;
+    using StringFragmentMod2 = suffix_sorting::StringFragmentMod2<Char>;
 
-    using CharsRanks12 = ::CharsRanks12<Char>;
-    using IndexCR12Pair = ::IndexCR12Pair<Char>;
+    using CharsRanks12 = suffix_sorting::CharsRanks12<Char>;
+    using IndexCR12Pair = suffix_sorting::IndexCR12Pair<Char>;
 
     auto zip_triple_pairs1 =
         ZipPadding(
@@ -533,7 +536,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
         sorted_fragments_mod2.Print("sorted_fragments_mod2");
     }
 
-    using StringFragment = ::StringFragment<Char>;
+    using StringFragment = suffix_sorting::StringFragment<Char>;
 
     auto string_fragments_mod0 =
         sorted_fragments_mod0
@@ -732,7 +735,12 @@ protected:
     bool input_verbatim_;
 };
 
+} // namespace suffix_sorting
+} // namespace examples
+
 int main(int argc, char* argv[]) {
+
+    using namespace thrill; // NOLINT
 
     common::CmdlineParser cp;
 
@@ -760,7 +768,7 @@ int main(int argc, char* argv[]) {
                "suffix array on.");
     cp.AddBytes('s', "size", sizelimit,
                 "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
-    cp.AddFlag('d', "debug", debug_print,
+    cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
                "Print debug info.");
 
     // process command line
@@ -769,12 +777,12 @@ int main(int argc, char* argv[]) {
 
     return Run(
         [&](Context& ctx) {
-            return StartDC3(ctx,
-                            input_path, output_path,
-                            sizelimit,
-                            text_output_flag,
-                            check_flag,
-                            input_verbatim).Run();
+            return examples::suffix_sorting::StartDC3(
+                ctx, input_path, output_path,
+                sizelimit,
+                text_output_flag,
+                check_flag,
+                input_verbatim).Run();
         });
 }
 

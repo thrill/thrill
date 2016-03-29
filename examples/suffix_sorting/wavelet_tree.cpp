@@ -28,6 +28,9 @@
 #include <utility>
 #include <vector>
 
+namespace examples {
+namespace suffix_sorting {
+
 static constexpr bool debug = false;
 
 using namespace thrill; // NOLINT
@@ -69,7 +72,14 @@ auto ConstructWaveletTree(const InputDIA &input_dia) {
     }
 }
 
+} // namespace suffix_sorting
+} // namespace examples
+
 int main(int argc, char* argv[]) {
+
+    using namespace thrill; // NOLINT
+    using namespace examples::suffix_sorting;
+
     common::CmdlineParser cp;
 
     cp.SetAuthor("Timo Bingmann <tb@panthema.net>");

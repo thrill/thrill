@@ -35,6 +35,9 @@
 #include <utility>
 #include <vector>
 
+namespace examples {
+namespace suffix_sorting {
+
 bool debug_print = false;
 bool debug = false;
 
@@ -133,7 +136,7 @@ struct CharCharIndex {
 template <typename InputDIA>
 DIA<size_t> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t input_size) {
     using Char = typename InputDIA::ValueType;
-    using CharCharIndex = ::CharCharIndex<Char>;
+    using CharCharIndex = suffix_sorting::CharCharIndex<Char>;
 
     auto chars_sorted =
         input_dia
@@ -182,7 +185,7 @@ DIA<size_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size
     LOG1 << "Running PrefixDoublingDementiev";
 
     using Char = typename InputDIA::ValueType;
-    using CharCharIndex = ::CharCharIndex<Char>;
+    using CharCharIndex = suffix_sorting::CharCharIndex<Char>;
 
     auto chars_sorted =
         input_dia
@@ -330,7 +333,7 @@ template <typename InputDIA>
 auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
 
     using Char = typename InputDIA::ValueType;
-    using IndexKMer = ::IndexKMer<size_t>;
+    using IndexKMer = suffix_sorting::IndexKMer<size_t>;
 
     static constexpr size_t input_bit_size = sizeof(Char) << 3;
     static constexpr size_t k_fitting = (sizeof(size_t) << 3) / input_bit_size;
@@ -543,7 +546,13 @@ protected:
     bool input_verbatim_;
 };
 
+} // namespace suffix_sorting
+} // namespace examples
+
 int main(int argc, char* argv[]) {
+
+    using namespace thrill; // NOLINT
+
     common::CmdlineParser cp;
 
     cp.SetDescription("A collection of prefix doubling suffix array construction algorithms.");
@@ -568,7 +577,7 @@ int main(int argc, char* argv[]) {
     cp.AddFlag('v', "verbatim", input_verbatim,
                "Consider \"input\" as verbatim text to construct "
                "suffix array on.");
-    cp.AddFlag('d', "debug", debug_print,
+    cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
                "Print debug info.");
     cp.AddString('a', "algorithm", pd_algorithm,
                  "The prefix doubling algorithm which is used to construct the "
@@ -581,12 +590,13 @@ int main(int argc, char* argv[]) {
 
     return Run(
         [&](Context& ctx) {
-            return StartPrefixDoubling(ctx,
-                                       input_path, output_path,
-                                       pd_algorithm,
-                                       text_output_flag,
-                                       check_flag,
-                                       input_verbatim).Run();
+            return examples::suffix_sorting::StartPrefixDoubling(
+                ctx,
+                input_path, output_path,
+                pd_algorithm,
+                text_output_flag,
+                check_flag,
+                input_verbatim).Run();
         });
 }
 
