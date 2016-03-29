@@ -338,8 +338,10 @@ auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
     using Char = typename InputDIA::ValueType;
     using IndexKMer = suffix_sorting::IndexKMer<size_t>;
 
-    static constexpr size_t input_bit_size = sizeof(Char) << 3;
-    static constexpr size_t k_fitting = (sizeof(size_t) << 3) / input_bit_size;
+    enum {
+        input_bit_size = sizeof(Char) << 3,
+        k_fitting = sizeof(size_t) / sizeof(Char)
+    };
 
     auto one_mers_sorted =
         input_dia
