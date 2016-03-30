@@ -16,7 +16,6 @@
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
 
-#include <string>
 #include <vector>
 
 namespace thrill {

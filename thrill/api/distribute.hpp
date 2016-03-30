@@ -16,7 +16,6 @@
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
 
-#include <string>
 #include <vector>
 
 namespace thrill {

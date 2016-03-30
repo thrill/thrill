@@ -51,7 +51,7 @@ public:
      */
     GenerateFileNode(Context& ctx,
                      GeneratorFunction generator_function,
-                     std::string path_in,
+                     const std::string& path_in,
                      size_t size)
         : SourceNode<ValueType>(ctx, "GenerateFile"),
           generator_function_(generator_function),
@@ -128,7 +128,7 @@ private:
  * \ingroup dia_sources
  */
 template <typename GeneratorFunction>
-auto GenerateFromFile(Context & ctx, std::string filepath,
+auto GenerateFromFile(Context & ctx, const std::string & filepath,
                       const GeneratorFunction &generator_function,
                       size_t size) {
 

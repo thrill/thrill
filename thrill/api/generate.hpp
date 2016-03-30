@@ -19,7 +19,6 @@
 #include <thrill/common/logger.hpp>
 
 #include <random>
-#include <string>
 #include <type_traits>
 
 namespace thrill {

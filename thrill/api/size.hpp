@@ -17,8 +17,6 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/net/group.hpp>
 
-#include <string>
-
 namespace thrill {
 namespace api {
 

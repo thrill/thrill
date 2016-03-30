@@ -23,7 +23,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <string>
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
