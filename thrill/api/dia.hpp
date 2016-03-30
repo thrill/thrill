@@ -367,11 +367,11 @@ public:
 
     /*!
      * Each item of a DIA is copied into the output DIA with success probability
-     * p (a Bernoulli trial).
+     * p (an independent Bernoulli trial).
      *
      * \ingroup dia_lops
      */
-    auto Sample(double p) const;
+    auto BernoulliSample(double p) const;
 
     //! \}
 

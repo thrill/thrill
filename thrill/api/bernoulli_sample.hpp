@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/sample.hpp
+ * thrill/api/bernoulli_sample.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_API_SAMPLE_HEADER
-#define THRILL_API_SAMPLE_HEADER
+#ifndef THRILL_API_BERNOULLI_SAMPLE_HEADER
+#define THRILL_API_BERNOULLI_SAMPLE_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/common/functional.hpp>
@@ -24,14 +24,14 @@ namespace api {
  * \ingroup api_layer
  */
 template <typename ValueType>
-class SampleNode
+class BernoulliSampleNode
 {
     static const bool debug = false;
 
     using SkipDistValueType = int;
 
 public:
-    explicit SampleNode(double p)
+    explicit BernoulliSampleNode(double p)
         : p_(p), use_skip_(p < 0.1) { // use skip values if p < 0.1
         assert(p >= 0.0 && p <= 1.0);
 
@@ -87,20 +87,20 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-auto DIA<ValueType, Stack>::Sample(const double p) const {
+auto DIA<ValueType, Stack>::BernoulliSample(const double p) const {
     assert(IsValid());
 
     size_t new_id = context().next_dia_id();
 
     node_->context().logger_
         << "node_id" << new_id
-        << "node_label" << "Sampling"
+        << "node_label" << "BernoulliSample"
         << "class" << "DIA"
         << "event" << "create"
         << "type" << "LOp"
         << "parents" << (common::Array<size_t>{ id_ });
 
-    auto new_stack = stack_.push(SampleNode<ValueType>(p));
+    auto new_stack = stack_.push(BernoulliSampleNode<ValueType>(p));
     return DIA<ValueType, decltype(new_stack)>(
         node_, new_stack, new_id, "Sample");
 }
@@ -108,6 +108,6 @@ auto DIA<ValueType, Stack>::Sample(const double p) const {
 } // namespace api
 } // namespace thrill
 
-#endif // !THRILL_API_SAMPLE_HEADER
+#endif // !THRILL_API_BERNOULLI_SAMPLE_HEADER
 
 /******************************************************************************/

@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include <thrill/api/all_gather.hpp>
+#include <thrill/api/bernoulli_sample.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/concat.hpp>
@@ -21,7 +22,6 @@
 #include <thrill/api/generate_from_file.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/read_lines.hpp>
-#include <thrill/api/sample.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/window.hpp>
@@ -354,7 +354,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, SampleCompileAndExecute) {
+TEST(Operations, BernoulliSampleCompileAndExecute) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -363,8 +363,8 @@ TEST(Operations, SampleCompileAndExecute) {
             auto sizets = Generate(ctx, n);
 
             // sample
-            auto reduced1 = sizets.Sample(0.25);
-            auto reduced2 = sizets.Sample(0.05);
+            auto reduced1 = sizets.BernoulliSample(0.25);
+            auto reduced2 = sizets.BernoulliSample(0.05);
             auto out_vec1 = reduced1.AllGather();
             auto out_vec2 = reduced2.AllGather();
 

@@ -19,6 +19,7 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/all_reduce.hpp>
+#include <thrill/api/bernoulli_sample.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/concat.hpp>
@@ -46,7 +47,6 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/reduce_to_index.hpp>
-#include <thrill/api/sample.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/source_node.hpp>
