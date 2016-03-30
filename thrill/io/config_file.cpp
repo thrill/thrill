@@ -281,17 +281,17 @@ void DiskConfig::parse_line(const std::string& line) {
 
     // path:
     path = cmfield[0];
-    // replace ### -> pid in path
+    // replace $$ -> pid in path
     {
         std::string::size_type pos;
-        if ((pos = path.find("###")) != std::string::npos)
+        if ((pos = path.find("$$")) != std::string::npos)
         {
 #if !THRILL_WINDOWS
             int pid = getpid();
 #else
             DWORD pid = GetCurrentProcessId();
 #endif
-            path.replace(pos, 3, std::to_string(pid));
+            path.replace(pos, 2, std::to_string(pid));
         }
     }
 
