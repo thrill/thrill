@@ -107,7 +107,7 @@ TEST(KMeans, RandomPoints) {
             auto means = KMeans(input_points, centroids_dia, iterations);
 
             // compare results
-            std::vector<PointClusterId<2> > result = means.AllGather();
+            std::vector<PointClusterId<Point2D> > result = means.AllGather();
             std::vector<Point2D> centroids = centroids_dia.AllGather();
 
             ASSERT_EQ(correct_closest.size(), result.size());

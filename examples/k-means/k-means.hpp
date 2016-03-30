@@ -18,6 +18,9 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 
+#include <cereal/types/vector.hpp>
+#include <thrill/data/serialization_cereal.hpp>
+
 #include <limits>
 #include <string>
 #include <utility>
@@ -26,19 +29,31 @@
 namespace examples {
 namespace k_means {
 
-using namespace thrill; // NOLINT
+using thrill::DIA;
+
+/******************************************************************************/
+// Compile-Time Fixed-Dimensional Points
 
 //! A D-dimensional point with double precision
 template <size_t D>
 struct Point {
-    double       x[D];
+    double        x[D];
 
-    static Point Origin() {
+    static size_t dim() { return D; }
+
+    static Point  Origin() {
         Point p;
         std::fill(p.x, p.x + D, 0.0);
         return p;
     }
-    double       distance(const Point& b) const {
+    template <typename Distribution, typename Generator>
+    static Point Random(size_t dim, Distribution& dist, Generator& gen) {
+        assert(dim == D);
+        Point p;
+        for (size_t i = 0; i < D; ++i) p.x[i] = dist(gen);
+        return p;
+    }
+    double        distance(const Point& b) const {
         double sum = 0.0;
         for (size_t i = 0; i < D; ++i) sum += (x[i] - b.x[i]) * (x[i] - b.x[i]);
         return std::sqrt(sum);
@@ -68,34 +83,110 @@ struct Point {
     }
 };
 
-template <size_t D>
-using PointClusterId = std::pair<Point<D>, size_t>;
+/******************************************************************************/
+// Variable-Dimensional Points
+
+//! A D-dimensional point with double precision
+struct VPoint {
+
+    using Vector = std::vector<double>;
+    Vector        v_;
+
+    explicit VPoint(size_t D = 0) : v_(D) { }
+    explicit VPoint(Vector&& v) : v_(std::move(v)) { }
+
+    size_t        dim() const { return v_.size(); }
+
+    static VPoint Origin(size_t D) {
+        VPoint p(D);
+        std::fill(p.v_.begin(), p.v_.end(), 0.0);
+        return p;
+    }
+    template <typename Distribution, typename Generator>
+    static VPoint Random(size_t D, Distribution& dist, Generator& gen) {
+        VPoint p(D);
+        for (size_t i = 0; i < D; ++i) p.v_[i] = dist(gen);
+        return p;
+    }
+    double        distance(const VPoint& b) const {
+        assert(v_.size() == b.v_.size());
+        double sum = 0.0;
+        for (size_t i = 0; i < v_.size(); ++i)
+            sum += (v_[i] - b.v_[i]) * (v_[i] - b.v_[i]);
+        return std::sqrt(sum);
+    }
+    VPoint operator + (const VPoint& b) const {
+        assert(v_.size() == b.v_.size());
+        VPoint p(v_.size());
+        for (size_t i = 0; i < v_.size(); ++i) p.v_[i] = v_[i] + b.v_[i];
+        return p;
+    }
+    VPoint& operator += (const VPoint& b) {
+        assert(v_.size() == b.v_.size());
+        for (size_t i = 0; i < v_.size(); ++i) v_[i] += b.v_[i];
+        return *this;
+    }
+    VPoint operator / (double s) const {
+        VPoint p(v_.size());
+        for (size_t i = 0; i < v_.size(); ++i) p.v_[i] = v_[i] / s;
+        return p;
+    }
+    VPoint& operator /= (double s) {
+        for (size_t i = 0; i < v_.size(); ++i) v_[i] /= s;
+        return *this;
+    }
+    friend std::ostream& operator << (std::ostream& os, const VPoint& a) {
+        os << '(' << a.v_[0];
+        for (size_t i = 1; i != a.v_.size(); ++i) os << ',' << a.v_[i];
+        return os << ')';
+    }
+
+    template <typename Archive>
+    void serialize(Archive& archive) {
+        archive(v_);
+    }
+};
+
+/******************************************************************************/
+
+template <typename Point>
+using PointClusterId = std::pair<Point, size_t>;
 
 //! A point which contains "count" accumulated vectors.
-template <size_t D>
+template <typename Point>
 struct CentroidAccumulated {
-    Point<D> p;
-    size_t   count;
+    Point  p;
+    size_t count;
+
+    template <typename Archive>
+    void serialize(Archive& archive) {
+        archive(p, count);
+    }
 };
 
 //! Assignment of a point to a cluster, which is the input to
-template <size_t D>
+template <typename Point>
 struct ClosestCentroid {
-    size_t                 cluster_id;
-    CentroidAccumulated<D> center;
+    size_t                     cluster_id;
+    CentroidAccumulated<Point> center;
+
+    template <typename Archive>
+    void serialize(Archive& archive) {
+        archive(cluster_id, center);
+    }
 };
 
 //! Calculate k-Means using Lloyd's Algorithm. The DIA centroids is both an
 //! input and an output parameter. The method returns a std::pair<Point2D,
 //! size_t> = Point2DClusterId into the centroids for each input point.
-template <size_t D, typename InStack>
-auto KMeans(const DIA<Point<D>, InStack>&input_points, DIA<Point<D> >&centroids,
+template <typename Point, typename InStack>
+auto KMeans(const DIA<Point, InStack>&input_points, DIA<Point>&centroids,
             size_t iterations) {
 
     auto points = input_points.Cache();
 
-    using ClosestCentroid = ClosestCentroid<D>;
-    using CentroidAccumulated = CentroidAccumulated<D>;
+    using ClosestCentroid = ClosestCentroid<Point>;
+    using CentroidAccumulated = CentroidAccumulated<Point>;
 
     DIA<ClosestCentroid> closest;
 
@@ -104,12 +195,12 @@ auto KMeans(const DIA<Point<D>, InStack>&input_points, DIA<Point<D> >&centroids,
         // handling this local variable is difficult: it is calculated as an
         // Action here, but must exist later when the Map() is
         // processed. Hhence, we move it into the closure.
-        std::vector<Point<D> > local_centroids = centroids.AllGather();
+        std::vector<Point> local_centroids = centroids.AllGather();
         size_t num_centroids = local_centroids.size();
 
         // calculate the closest centroid for each point
         closest = points.Map(
-            [local_centroids = std::move(local_centroids)](const Point<D>& p) {
+            [local_centroids = std::move(local_centroids)](const Point& p) {
                 assert(local_centroids.size());
                 double min_dist = p.distance(local_centroids[0]);
                 size_t closest_id = 0;
@@ -148,9 +239,10 @@ auto KMeans(const DIA<Point<D>, InStack>&input_points, DIA<Point<D> >&centroids,
     }
 
     // map to only the index.
-    return closest.Map([](const ClosestCentroid& cc) {
-                           return PointClusterId<D>(cc.center.p, cc.cluster_id);
-                       });
+    return closest.Map(
+        [](const ClosestCentroid& cc) {
+            return PointClusterId<Point>(cc.center.p, cc.cluster_id);
+        });
 }
 
 } // namespace k_means

@@ -15,6 +15,7 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/string.hpp>
 
 #include <algorithm>
 #include <iomanip>
@@ -23,34 +24,45 @@
 #include <utility>
 #include <vector>
 
-using namespace thrill;            // NOLINT
 using namespace examples::k_means; // NOLINT
-
-using Point2D = Point<2>;
 
 //! Output a #rrggbb color for each cluster index
 class SVGColor
 {
 public:
     explicit SVGColor(size_t cluster) : cluster_(cluster) { }
-
-    friend std::ostream& operator << (std::ostream& os, const SVGColor& c) {
-        return os << "#" << std::hex << std::setfill('0') << std::setw(2)
-                  << unsigned(static_cast<double>(3 * (c.cluster_ + 1) % 11) / 11.0 * 256.0)
-                  << unsigned(static_cast<double>(7 * (c.cluster_ + 1) % 11) / 11.0 * 256.0)
-                  << unsigned(static_cast<double>(9 * (c.cluster_ + 1) % 11) / 11.0 * 256.0);
-    }
     size_t cluster_;
 };
 
-//! Output the points and centroids as a SVG drawing
+std::ostream& operator << (std::ostream& os, const SVGColor& c) {
+    os << "#" << std::hex << std::setfill('0') << std::setw(2)
+       << unsigned(static_cast<double>(3 * (c.cluster_ + 1) % 11) / 11.0 * 256)
+       << unsigned(static_cast<double>(7 * (c.cluster_ + 1) % 11) / 11.0 * 256)
+       << unsigned(static_cast<double>(9 * (c.cluster_ + 1) % 11) / 11.0 * 256);
+    return os;
+}
+
+//! Output the points and centroids as a SVG drawing.
+template <typename Point>
 void OutputSVG(std::ostream& os,
-               const std::vector<PointClusterId<2> >& list,
-               const std::vector<Point2D>& centroids) {
+               const std::vector<PointClusterId<Point> >& list,
+               const std::vector<Point>& centroids) {
+    thrill::common::THRILL_UNUSED(os);
+    thrill::common::THRILL_UNUSED(list);
+    thrill::common::THRILL_UNUSED(centroids);
+}
+
+//! Output the points and centroids as a 2-D SVG drawing
+template <>
+void OutputSVG(std::ostream& os,
+               const std::vector<PointClusterId<Point<2> > >& list,
+               const std::vector<Point<2> >& centroids) {
     double width = 0, height = 0;
     double shrink = 200;
 
-    for (const PointClusterId<2>& p : list) {
+    using Point2D = Point<2>;
+
+    for (const PointClusterId<Point2D>& p : list) {
         width = std::max(width, p.first.x[0]);
         height = std::max(height, p.first.x[1]);
     }
@@ -66,7 +78,7 @@ void OutputSVG(std::ostream& os,
        << "\" height=\"" << height / shrink << "\">\n";
     os << "  <g id=\"layer1\">\n";
 
-    for (const PointClusterId<2>& p : list) {
+    for (const PointClusterId<Point2D>& p : list) {
         os << "    <circle r=\"1\" cx=\"" << p.first.x[0] / shrink
            << "\" cy=\"" << p.first.x[1] / shrink
            << "\" style=\"stroke:none;stroke-opacity:1;fill:"
@@ -83,25 +95,68 @@ void OutputSVG(std::ostream& os,
     os << "</svg>\n";
 }
 
+template <typename Point>
+static void RunKMeansGenerated(
+    thrill::Context& ctx,
+    size_t dimensions,
+    size_t num_clusters, size_t iterations, const std::string& svg_path,
+    const std::vector<std::string>& input_paths) {
+
+    std::default_random_engine rng(std::random_device { } ());
+    std::uniform_real_distribution<float> dist(0.0, 100000.0);
+
+    size_t num_points;
+    if (input_paths.size() != 1 ||
+        !thrill::common::from_str<size_t>(input_paths[0], num_points))
+        die("For generated data, set input_path to the number of points.");
+
+    auto points = Generate(
+        ctx, [&](const size_t& /* index */) {
+            return Point::Random(dimensions, dist, rng);
+        }, num_points);
+
+    DIA<Point> centroids_dia = Generate(
+        ctx, [&](const size_t& /* index */) {
+            return Point::Random(dimensions, dist, rng);
+        }, num_clusters);
+
+    auto result = KMeans(points, centroids_dia, iterations);
+
+    std::vector<PointClusterId<Point> > plist = result.Gather();
+    std::vector<Point> centroids = centroids_dia.Gather();
+
+    if (ctx.my_rank() == 0 && svg_path.size() && dimensions == 2) {
+        std::ofstream os(svg_path);
+        OutputSVG(os, plist, centroids);
+    }
+}
+
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    thrill::common::CmdlineParser clp;
 
     bool generate = false;
     clp.AddFlag('g', "generate", generate,
                 "generate random data, set input = #points");
 
-    size_t iter = 10;
-    clp.AddSizeT('n', "iterations", iter, "PageRank iterations, default: 10");
+    size_t iterations = 10;
+    clp.AddSizeT('n', "iterations", iterations,
+                 "iterations, default: 10");
 
-    int num_points;
-    clp.AddParamInt("points", num_points, "number of points");
+    size_t dimensions = 2;
+    clp.AddParamSizeT("dim", dimensions,
+                      "dimensions of points 2-10, default: 2");
 
-    int num_clusters;
-    clp.AddParamInt("clusters", num_clusters, "Number of clusters");
+    size_t num_clusters;
+    clp.AddParamSizeT("clusters", num_clusters, "Number of clusters");
 
     std::string svg_path;
-    clp.AddString('s', "svg", svg_path, "output svg drawing");
+    clp.AddString('s', "svg", svg_path,
+                  "output path for svg drawing (only for dim = 2)");
+
+    std::vector<std::string> input_paths;
+    clp.AddParamStringlist("input", input_paths,
+                           "input file pattern(s)");
 
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -110,38 +165,30 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func =
-        [&](api::Context& ctx) {
+        [&](thrill::Context& ctx) {
             ctx.enable_consume();
 
-            std::default_random_engine rng(std::random_device { } ());
-            std::uniform_real_distribution<float> dist(0.0, 100000.0);
-
-            auto points = Generate(
-                ctx, [&](const size_t& /* index */) {
-                    return Point2D {
-                        { dist(rng), dist(rng) }
-                    };
-                }, num_points);
-
-            DIA<Point2D> centroids_dia = Generate(
-                ctx, [&](const size_t& /* index */) {
-                    return Point2D {
-                        { dist(rng), dist(rng) }
-                    };
-                }, num_clusters);
-
-            auto result = KMeans(points, centroids_dia, iter);
-
-            std::vector<PointClusterId<2> > plist = result.Gather();
-            std::vector<Point2D> centroids = centroids_dia.Gather();
-
-            if (ctx.my_rank() == 0 && svg_path.size()) {
-                std::ofstream os(svg_path);
-                OutputSVG(os, plist, centroids);
+            if (generate) {
+#define RunKMeans(D, P)                                                    \
+case D:                                                                    \
+    RunKMeansGenerated<P>(                                                 \
+        ctx, dimensions, num_clusters, iterations, svg_path, input_paths); \
+    break;
+                switch (dimensions) {
+                    RunKMeans(2, Point<2>);
+                    RunKMeans(3, Point<3>);
+                    RunKMeans(4, Point<4>);
+                case 0:
+                default:
+                    RunKMeansGenerated<VPoint>(
+                        ctx, dimensions, num_clusters,
+                        iterations, svg_path, input_paths);
+                }
             }
+            else { }
         };
 
-    return api::Run(start_func);
+    return thrill::Run(start_func);
 }
 
 /******************************************************************************/
