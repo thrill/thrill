@@ -80,7 +80,6 @@ void Connection::SyncSend(const void* data, size_t size, Flags /* flags */) {
 
 ssize_t Connection::SendOne(const void* data, size_t size, Flags flags) {
     SyncSend(data, size, flags);
-    tx_bytes_ += size;
     return size;
 }
 

@@ -44,8 +44,6 @@ namespace tcp {
  *
  * Not all functions in this class follow the normal naming conventions, because
  * they are wrappers around the equally named functions of the socket API.
- *
- * Sockets are currently copyable! One may want to add move semantics later.
  */
 class Socket
 {

@@ -98,16 +98,16 @@ public:
         watch_active_--;
     }
 
-    MPI_Request ISend(int peer_, const void* data, size_t size) {
+    MPI_Request ISend(Connection& c, const void* data, size_t size) {
         MPI_Request request;
         int r = MPI_Isend(const_cast<void*>(data), static_cast<int>(size), MPI_BYTE,
-                          peer_, group_tag_, MPI_COMM_WORLD, &request);
+                          c.peer(), group_tag_, MPI_COMM_WORLD, &request);
 
         if (r != MPI_SUCCESS)
             throw Exception("Error during ISend", r);
 
         sLOG0 << "Isend size" << size;
-        tx_bytes_ += size;
+        c.tx_bytes_ += size;
 
         return request;
     }
@@ -126,7 +126,7 @@ public:
         Connection* mpic = static_cast<Connection*>(&c);
 
         // perform Isend.
-        MPI_Request req = ISend(mpic->peer(), buffer.data(), buffer.size());
+        MPI_Request req = ISend(*mpic, buffer.data(), buffer.size());
 
         // store request and associated buffer (Isend needs memory).
         mpi_async_requests_.emplace_back(req);
@@ -149,7 +149,7 @@ public:
         Connection* mpic = static_cast<Connection*>(&c);
 
         // perform Isend.
-        MPI_Request req = ISend(mpic->peer(), block.data_begin(), block.size());
+        MPI_Request req = ISend(*mpic, block.data_begin(), block.size());
 
         // store request and associated data::Block (Isend needs memory).
         mpi_async_requests_.emplace_back(req);
@@ -158,16 +158,16 @@ public:
         mpi_async_status_.emplace_back();
     }
 
-    MPI_Request IRecv(int peer_, void* data, size_t size) {
+    MPI_Request IRecv(Connection& c, void* data, size_t size) {
         MPI_Request request;
         int r = MPI_Irecv(data, static_cast<int>(size), MPI_BYTE,
-                          peer_, group_tag_, MPI_COMM_WORLD, &request);
+                          c.peer(), group_tag_, MPI_COMM_WORLD, &request);
 
         if (r != MPI_SUCCESS)
             throw Exception("Error during IRecv", r);
 
         sLOG0 << "Irecv size" << size;
-        rx_bytes_ += size;
+        c.rx_bytes_ += size;
 
         return request;
     }
@@ -192,7 +192,7 @@ public:
         Buffer& buffer = mpi_async_.back().read_buffer_.buffer();
 
         // perform Irecv.
-        MPI_Request req = IRecv(mpic->peer(), buffer.data(), buffer.size());
+        MPI_Request req = IRecv(*mpic, buffer.data(), buffer.size());
         mpi_async_requests_.emplace_back(req);
     }
 
@@ -213,7 +213,7 @@ public:
         // associated Block's memory (Irecv needs memory).
 
         // perform Irecv.
-        MPI_Request req = IRecv(mpic->peer(), block->data(), n);
+        MPI_Request req = IRecv(*mpic, block->data(), n);
         mpi_async_.emplace_back(c, n, std::move(block), done_cb);
         mpi_async_out_.emplace_back();
         mpi_async_requests_.emplace_back(req);

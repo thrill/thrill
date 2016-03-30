@@ -209,10 +209,10 @@ public:
     //! {
 
     //! sent bytes
-    size_t tx_bytes_ = 0;
+    std::atomic<size_t> tx_bytes_ { 0 };
 
     //! received bytes
-    size_t rx_bytes_ = 0;
+    std::atomic<size_t> rx_bytes_ = { 0 };
 
     //! previous read of sent bytes
     size_t prev_tx_bytes_ = 0;
