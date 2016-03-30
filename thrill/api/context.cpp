@@ -895,7 +895,14 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
             << "event" << "job-done"
             << "elapsed" << overall_timer;
 
-    multiplexer_.Close();
+    // wait for all local workers to finish, prior to closing multiplexer's
+    // streams.
+    net.LocalBarrier();
+
+    if (my_rank() == 0)
+        multiplexer_.Close();
+
+    net.LocalBarrier();
 
     overall_timer.Stop();
 

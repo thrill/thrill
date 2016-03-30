@@ -545,13 +545,15 @@ public:
         return res;
     }
 
-    /*!
-     * \brief A trivial global barrier.
-     * Use for debugging only.
-     */
+    //! A trivial global barrier.
     void Barrier() {
         size_t i = 0;
         i = AllReduce(i);
+    }
+
+    //! A trivial local thread barrier
+    void LocalBarrier() {
+        barrier_.Await();
     }
 };
 

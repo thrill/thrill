@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
                 die_unless(!use_signed_char);
 
                 Generate(ctx, GenerateRecord(), size / sizeof(Record))
-                    .WriteBinary(output);
+                .WriteBinary(output);
             }
             else if (generate) {
                 die_unequal(input.size(), 1);

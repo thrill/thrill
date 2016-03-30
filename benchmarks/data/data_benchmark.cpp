@@ -462,8 +462,8 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
                 size_t peer =
                     common::CalcOneFactorPeer(round, ctx.my_rank(), ctx.num_workers());
 
-                sLOG << "round" << round
-                     << "me" << ctx.my_rank() << "peer_id" << peer;
+                sLOG0 << "round" << round
+                      << "me" << ctx.my_rank() << "peer_id" << peer;
 
                 if (ctx.my_rank() < peer) {
                     ctx.net.Barrier();
