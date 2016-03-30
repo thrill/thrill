@@ -18,7 +18,9 @@
 #include <thrill/common/math.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/profile_thread.hpp>
+#include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
+#include <thrill/io/iostats.hpp>
 
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>

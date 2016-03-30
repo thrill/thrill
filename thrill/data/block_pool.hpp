@@ -277,12 +277,6 @@ private:
     //! is reached. 0 for no limit.
     size_t hard_ram_limit_;
 
-    //! I/O layer stats when BlockPool was created.
-    io::StatsData io_stats_first_;
-
-    //! I/O layer stats of previous profile tick
-    io::StatsData io_stats_prev_;
-
     //! last time statistics where outputted
     std::chrono::steady_clock::time_point tp_last_;
 

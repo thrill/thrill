@@ -17,7 +17,7 @@
 #ifndef THRILL_IO_CONFIG_FILE_HEADER
 #define THRILL_IO_CONFIG_FILE_HEADER
 
-#include <thrill/io/iostats.hpp>
+#include <thrill/common/singleton.hpp>
 
 #include <cassert>
 #include <cstdlib>

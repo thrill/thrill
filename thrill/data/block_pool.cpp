@@ -15,6 +15,7 @@
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/io/file_base.hpp>
+#include <thrill/io/iostats.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -132,6 +133,12 @@ struct BlockPool::Data
     std::unordered_set<
         ByteBlock*, std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
         mem::GPoolAllocator<ByteBlock*> >             swapped_;
+
+    //! I/O layer stats when BlockPool was created.
+    io::StatsData                                     io_stats_first_;
+
+    //! I/O layer stats of previous profile tick
+    io::StatsData                                     io_stats_prev_;
 };
 
 /******************************************************************************/
@@ -151,8 +158,6 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
       d_(std::make_unique<Data>()),
       soft_ram_limit_(soft_ram_limit),
       hard_ram_limit_(hard_ram_limit),
-      io_stats_first_(*io::Stats::GetInstance()),
-      io_stats_prev_(io_stats_first_),
       tp_last_(std::chrono::steady_clock::now()) {
 
     die_unless(hard_ram_limit >= soft_ram_limit);
@@ -164,6 +169,9 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
 
         std::set_new_handler(OurNewHandler);
     }
+
+    d_->io_stats_first_ = d_->io_stats_prev_ =
+                              io::StatsData(*io::Stats::GetInstance());
 
     logger_ << "class" << "BlockPool"
             << "event" << "create"
@@ -1025,9 +1033,9 @@ void BlockPool::RunTask(const std::chrono::steady_clock::time_point& tp) {
     std::unique_lock<std::mutex> lock(mutex_);
 
     io::StatsData stnow(*io::Stats::GetInstance());
-    io::StatsData stf = stnow - io_stats_first_;
-    io::StatsData stp = stnow - io_stats_prev_;
-    io_stats_prev_ = stnow;
+    io::StatsData stf = stnow - d_->io_stats_first_;
+    io::StatsData stp = stnow - d_->io_stats_prev_;
+    d_->io_stats_prev_ = stnow;
 
     double elapsed = static_cast<double>(
         std::chrono::duration_cast<std::chrono::microseconds>(
