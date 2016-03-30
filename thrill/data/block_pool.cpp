@@ -517,8 +517,8 @@ void BlockPool::OnReadComplete(
 
         if (!block_ptr->ext_file_) {
             bm_->delete_block(block_ptr->em_bid_);
+            block_ptr->em_bid_ = io::BID<0>();
         }
-        block_ptr->em_bid_ = io::BID<0>();
     }
 
     read->ready_ = true;
@@ -953,7 +953,6 @@ io::RequestPtr BlockPool::IntEvictBlockLRU() {
 io::RequestPtr BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
 
     die_unless(block_ptr->block_pool_ == this);
-    die_unless(block_ptr->em_bid_.storage == nullptr);
 
     if (block_ptr->ext_file_) {
         // if in external file -> free memory without writing
@@ -969,6 +968,8 @@ io::RequestPtr BlockPool::IntEvictBlock(ByteBlock* block_ptr) {
         IntReleaseInternalMemory(block_ptr->size());
         return io::RequestPtr();
     }
+
+    die_unless(block_ptr->em_bid_.storage == nullptr);
 
     // allocate EM block
     block_ptr->em_bid_.size = block_ptr->size();

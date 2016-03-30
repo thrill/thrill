@@ -146,8 +146,7 @@ private:
 
     //! Constructor to initialize ByteBlock as a mapping to an external
     //! io::FileBase area.
-    ByteBlock(BlockPool* block_pool,
-              const io::FileBasePtr& ext_file,
+    ByteBlock(BlockPool* block_pool, const io::FileBasePtr& ext_file,
               int64_t offset, size_t size);
 
     friend std::ostream& operator << (std::ostream& os, const ByteBlock& b);
