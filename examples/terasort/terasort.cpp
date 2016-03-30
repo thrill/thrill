@@ -127,6 +127,10 @@ int main(int argc, char* argv[]) {
                 "generate binary record on-the-fly for testing."
                 " size: first input pattern, default: false");
 
+    bool generate_only = false;
+    clp.AddFlag('G', "generate-only", generate_only,
+                "write unsorted generated binary records to output.");
+
     std::string output;
     clp.AddString('o', "output", output,
                   "output file pattern");
@@ -144,7 +148,17 @@ int main(int argc, char* argv[]) {
     return api::Run(
         [&](api::Context& ctx) {
             ctx.enable_consume();
-            if (generate) {
+            if (generate_only) {
+                die_unequal(input.size(), 1);
+                // parse first argument like "100mib" size
+                uint64_t size;
+                die_unless(common::ParseSiIecUnits(input[0].c_str(), size));
+                die_unless(!use_signed_char);
+
+                Generate(ctx, GenerateRecord(), size / sizeof(Record))
+                    .WriteBinary(output);
+            }
+            else if (generate) {
                 die_unequal(input.size(), 1);
                 // parse first argument like "100mib" size
                 uint64_t size;
