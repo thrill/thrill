@@ -21,6 +21,7 @@
 #include <thrill/io/file_base.hpp>
 
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -48,7 +49,7 @@ Config::~Config() {
     {
         if (it->delete_on_exit)
         {
-            LOG1 << "Removing disk file: " << it->path;
+            std::cerr << "Thrill: removing disk file: " << it->path << std::endl;
             unlink(it->path.c_str());
         }
     }
@@ -69,8 +70,8 @@ void Config::initialize() {
 void Config::find_config() {
     // check several locations for disk configuration files
 
-    // check THRILLCFG environment path
-    const char* thrill_cfg = getenv("THRILLCFG");
+    // check THRILL_CONFIG environment path
+    const char* thrill_cfg = getenv("THRILL_CONFIG");
     if (thrill_cfg && exist_file(thrill_cfg))
         return load_config_file(thrill_cfg);
 
@@ -114,8 +115,8 @@ void Config::find_config() {
 }
 
 void Config::load_default_config() {
-    LOG1 << "Warning: no config file found.";
-    LOG1 << "Using default disk configuration.";
+    std::cerr << "Thrill: no config file ~/.thrill found, "
+              << "using default disk configuration." << std::endl;
 #if !THRILL_WINDOWS
     DiskConfig entry1("/tmp/thrill.tmp", 1000 * 1024 * 1024, "syscall");
     entry1.unlink_on_open = true;

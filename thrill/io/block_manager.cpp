@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <fstream>
+#include <iostream>
 #include <string>
 
 namespace thrill {
@@ -55,15 +56,18 @@ BlockManager::BlockManager() {
             disk_files_[i] = CreateFile(
                 cfg, FileBase::CREAT | FileBase::RDWR, static_cast<int>(i));
 
-            LOG1 << "Disk '" << cfg.path << "' is allocated, space: "
-                 << (cfg.size) / (1024 * 1024)
-                 << " MiB, I/O implementation: " << cfg.fileio_string();
+            std::cerr
+                << "Thrill: disk '" << cfg.path << "' is allocated, space: "
+                << (cfg.size) / (1024 * 1024)
+                << " MiB, I/O implementation: " << cfg.fileio_string()
+                << std::endl;
         }
         catch (IoError&)
         {
-            LOG1 << "Error allocating disk '" << cfg.path << "', space: "
-                 << (cfg.size) / (1024 * 1024)
-                 << " MiB, I/O implementation: " << cfg.fileio_string();
+            std::cerr
+                << "Thrill: ERROR allocating disk '" << cfg.path << "', space: "
+                << (cfg.size) / (1024 * 1024)
+                << " MiB, I/O implementation: " << cfg.fileio_string();
             throw;
         }
 
@@ -77,8 +81,10 @@ BlockManager::BlockManager() {
 
     if (ndisks_ > 1)
     {
-        LOG1 << "In total " << ndisks_ << " disks are allocated, space: "
-             << (total_size / (1024 * 1024)) << " MiB";
+        std::cerr
+            << "Thrill: in total " << ndisks_ << " disks are allocated, space: "
+            << (total_size / (1024 * 1024)) << " MiB"
+            << std::endl;
     }
 }
 
