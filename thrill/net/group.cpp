@@ -16,6 +16,7 @@
 #include <thrill/net/tcp/group.hpp>
 #endif
 
+#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -39,6 +40,23 @@ void RunLoopbackGroupTest(
 
 /******************************************************************************/
 // Manager
+
+std::pair<size_t, size_t> Manager::Traffic() const {
+    size_t total_tx = 0, total_rx = 0;
+
+    for (size_t g = 0; g < kGroupCount; ++g) {
+        Group& group = *groups_[g];
+
+        for (size_t h = 0; h < group.num_hosts(); ++h) {
+            if (h == group.my_host_rank()) continue;
+
+            total_tx += group.connection(h).tx_bytes_;
+            total_rx += group.connection(h).rx_bytes_;
+        }
+    }
+
+    return std::make_pair(total_tx, total_rx);
+}
 
 void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
 
@@ -64,12 +82,12 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
         for (size_t h = 0; h < group.num_hosts(); ++h) {
             if (h == group.my_host_rank()) continue;
 
-            // this is a benign data race with the send methods -- we don't need
-            // the up-to-date value. -tb
-            size_t tx = group.connection(h).tx_bytes_;
-            size_t rx = group.connection(h).rx_bytes_;
-            size_t prev_tx = group.connection(h).prev_tx_bytes_;
-            size_t prev_rx = group.connection(h).prev_rx_bytes_;
+            Connection& conn = group.connection(h);
+
+            size_t tx = conn.tx_bytes_.load(std::memory_order_relaxed);
+            size_t rx = conn.rx_bytes_.load(std::memory_order_relaxed);
+            size_t prev_tx = conn.prev_tx_bytes_;
+            size_t prev_rx = conn.prev_rx_bytes_;
 
             group_tx += tx;
             prev_group_tx += prev_tx;

@@ -80,7 +80,7 @@ class HostContext
 public:
 #ifndef SWIG
     //! constructor from existing net Groups. Used by the construction methods.
-    HostContext(size_t local_host_num, const MemoryConfig& mem_config,
+    HostContext(size_t local_host_id, const MemoryConfig& mem_config,
                 std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host);
 
@@ -91,6 +91,9 @@ public:
 
     //! create host log
     static std::string MakeHostLogPath(size_t worker_rank);
+
+    //! Returns local_host_id_
+    size_t local_host_id() const { return local_host_id_; }
 
     //! number of workers per host (all have the same).
     size_t workers_per_host() const { return workers_per_host_; }
@@ -139,6 +142,9 @@ public:
 private:
     //! memory configuration
     MemoryConfig mem_config_;
+
+    //! id among all _local_ hosts (in test program runs)
+    size_t local_host_id_;
 
     //! number of workers per host (all have the same).
     size_t workers_per_host_;
@@ -192,14 +198,16 @@ private:
 class Context
 {
 public:
+#if THIS_IS_UNUSED_UNKNOWN_WHY
     Context(mem::Manager& mem_manager,
             net::Manager& net_manager,
             net::FlowControlChannelManager& flow_manager,
             data::BlockPool& block_pool,
             data::Multiplexer& multiplexer,
-            size_t workers_per_host, size_t local_worker_id,
-            size_t mem_limit)
-        : local_worker_id_(local_worker_id),
+            size_t local_host_id, size_t local_worker_id,
+            size_t workers_per_host, size_t mem_limit)
+        : local_host_id_(local_host_id),
+          local_worker_id_(local_worker_id),
           workers_per_host_(workers_per_host),
           mem_limit_(mem_limit),
           mem_manager_(mem_manager),
@@ -210,9 +218,10 @@ public:
           base_logger_(MakeWorkerLogPath(my_rank())) {
         assert(local_worker_id < workers_per_host);
     }
-
+#endif
     Context(HostContext& host_context, size_t local_worker_id)
-        : local_worker_id_(local_worker_id),
+        : local_host_id_(host_context.local_host_id()),
+          local_worker_id_(local_worker_id),
           workers_per_host_(host_context.workers_per_host()),
           mem_limit_(host_context.worker_mem_limit()),
           mem_manager_(host_context.mem_manager()),
@@ -267,6 +276,9 @@ public:
     size_t local_worker_id() const {
         return local_worker_id_;
     }
+
+    //! id among all _local_ hosts (in test program runs)
+    size_t local_host_id() const { return local_host_id_; }
 
 #ifndef SWIG
     //! Outputs the context as [host id]:[local worker id] to an std::ostream
@@ -360,6 +372,9 @@ public:
     size_t next_dia_id() { return ++last_dia_id_; }
 
 private:
+    //! id among all _local_ hosts (in test program runs)
+    size_t local_host_id_;
+
     //! number of this host context, 0..p-1, within this host
     size_t local_worker_id_;
 

@@ -21,6 +21,7 @@
 #include <array>
 #include <chrono>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -87,6 +88,9 @@ public:
         }
     }
 
+    //! calculate overall traffic for final stats
+    std::pair<size_t, size_t> Traffic() const;
+
     //! \name Methods for ProfileTask
     //! \{
 
@@ -98,7 +102,7 @@ private:
     //! The Groups initialized and managed by this Manager.
     std::array<GroupPtr, kGroupCount> groups_;
 
-    //! JsonLogger for statists output
+    //! JsonLogger for statistics output
     common::JsonLogger& logger_;
 
     //! last time statistics where outputted

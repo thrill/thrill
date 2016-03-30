@@ -78,6 +78,9 @@ public:
     //! Closes all client connections
     ~Multiplexer();
 
+    //! Closes all client connections
+    void Close();
+
     //! total number of hosts.
     size_t num_hosts() const {
         return group_.num_hosts();
@@ -153,6 +156,9 @@ private:
 
     //! protects critical sections
     std::mutex mutex_;
+
+    //! closed
+    bool closed_ = false;
 
     //! friends for access to network components
     friend class CatStream;

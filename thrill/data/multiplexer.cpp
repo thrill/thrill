@@ -125,13 +125,20 @@ Multiplexer::Multiplexer(mem::Manager& mem_manager,
     (void)mem_manager_;     // silence unused variable warning.
 }
 
-Multiplexer::~Multiplexer() {
+void Multiplexer::Close() {
     // close all still open Streams
     for (auto& ch : d_->stream_sets_.map())
         ch.second->Close();
 
     // terminate dispatcher, this waits for unfinished AsyncWrites.
     dispatcher_.Terminate();
+
+    closed_ = true;
+}
+
+Multiplexer::~Multiplexer() {
+    if (!closed_)
+        Close();
 
     group_.Close();
 }

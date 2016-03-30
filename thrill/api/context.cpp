@@ -59,11 +59,13 @@
 
 #endif
 
+#include <algorithm>
 #include <csignal>
 #include <memory>
 #include <string>
 #include <thread>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -783,20 +785,23 @@ void MemoryConfig::print(size_t workers_per_host) const {
 // HostContext methods
 
 HostContext::HostContext(
-    size_t local_host_num,
+    size_t local_host_id,
     const MemoryConfig& mem_config,
     std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
+
     size_t workers_per_host)
+
     : base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
       logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
       profiler_(std::make_unique<common::ProfileThread>()),
       mem_config_(mem_config),
+      local_host_id_(local_host_id),
       workers_per_host_(workers_per_host),
       net_manager_(std::move(groups), logger_) {
     StartLinuxProcStatsProfiler(*profiler_, logger_);
 
     // run memory profiler only on local host 0 (especially for test runs)
-    if (local_host_num == 0)
+    if (local_host_id == 0)
         mem::StartMemProfiler(*profiler_, logger_);
 }
 
@@ -831,6 +836,41 @@ Context::GetNewStream<data::MixStream>(size_t dia_id) {
     return GetNewMixStream(dia_id);
 }
 
+struct OverallStats {
+
+    //! overall run time
+    double runtime;
+
+    //! network traffic performed by net layer
+    size_t net_traffic_tx, net_traffic_rx;
+
+    //! I/O volume performed by io layer
+    size_t io_volume;
+
+    //! maximum external memory allocation
+    size_t io_max_allocation;
+
+    friend std::ostream& operator << (std::ostream& os, const OverallStats& c) {
+        return os << "[OverallStats"
+                  << " runtime=" << c.runtime
+                  << " net_traffic_tx=" << c.net_traffic_tx
+                  << " net_traffic_rx=" << c.net_traffic_rx
+                  << " io_volume=" << c.io_volume
+                  << " io_max_allocation=" << c.io_max_allocation
+                  << "]";
+    }
+
+    OverallStats operator + (const OverallStats& b) const {
+        OverallStats r;
+        r.runtime = std::max(runtime, b.runtime);
+        r.net_traffic_tx = net_traffic_tx + b.net_traffic_tx;
+        r.net_traffic_rx = net_traffic_rx + b.net_traffic_rx;
+        r.io_volume = io_volume + b.io_volume;
+        r.io_max_allocation = std::max(io_max_allocation, b.io_max_allocation);
+        return r;
+    }
+};
+
 void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     logger_ << "class" << "Context"
             << "event" << "job-start";
@@ -855,7 +895,54 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
             << "event" << "job-done"
             << "elapsed" << overall_timer;
 
-    net.Barrier();
+    multiplexer_.Close();
+
+    overall_timer.Stop();
+
+    // collect overall statistics
+    OverallStats stats;
+    stats.runtime = overall_timer.SecondsDouble();
+    std::tie(stats.net_traffic_tx, stats.net_traffic_rx)
+        = local_worker_id_ == 0 ? net_manager_.Traffic()
+          : std::pair<size_t, size_t>(0, 0);
+
+    if (local_host_id_ == 0 && local_worker_id_ == 0) {
+        io::StatsData io_stats(*io::Stats::GetInstance());
+        stats.io_volume = io_stats.read_volume() + io_stats.write_volume();
+        stats.io_max_allocation =
+            io::BlockManager::GetInstance()->maximum_allocation();
+    }
+    else {
+        stats.io_volume = 0;
+        stats.io_max_allocation = 0;
+    }
+
+    LOG0 << stats;
+
+    stats = net.Reduce(stats);
+
+    if (my_rank() == 0) {
+        using common::FormatIecUnits;
+
+        if (stats.net_traffic_rx != stats.net_traffic_tx)
+            LOG1 << "Manager::Traffic() tx/rx asymmetry = "
+                 << common::abs_diff(stats.net_traffic_tx, stats.net_traffic_rx);
+
+        std::cerr
+            << "Thrill:"
+            << " ran " << stats.runtime << "s with "
+            << FormatIecUnits(stats.net_traffic_tx) << "B network traffic, "
+            << FormatIecUnits(stats.io_volume) << "B disk I/O, and "
+            << FormatIecUnits(stats.io_max_allocation) << "B max disk use."
+            << std::endl;
+
+        logger_ << "class" << "Context"
+                << "event" << "summary"
+                << "runtime" << stats.runtime
+                << "net_traffic" << stats.net_traffic_tx
+                << "io_volume" << stats.io_volume
+                << "io_max_allocation" << stats.io_max_allocation;
+    }
 }
 
 /******************************************************************************/
