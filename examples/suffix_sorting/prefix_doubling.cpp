@@ -213,7 +213,7 @@ DIA<uint64_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_si
         renamed_ranks.Keep()
         .Window(
             2,
-            [](size_t /* index */, const RingBuffer<Index>& rb) {
+            [](size_t /* index */, const RingBuffer<Index>& rb) -> Index {
                 return rb[0] == rb[1];
             })
         .Sum();
@@ -252,7 +252,7 @@ DIA<uint64_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_si
         if (debug_print)  // If we have debug_print = true everything works fine.
             names_sorted.Print("names_sorted");
 
-        size_t next_index = 1 << shift_by++;
+        size_t next_index = size_t(1) << shift_by++;
 
         auto triple_sorted =
             names_sorted
@@ -288,7 +288,7 @@ DIA<uint64_t> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_si
             renamed_ranks.Keep()
             .Window(
                 2,
-                [](size_t /* index */, const RingBuffer<Index>& rb) {
+                [](size_t /* index */, const RingBuffer<Index>& rb) -> Index {
                     return rb[0] == rb[1];
                 })
             .Sum();
@@ -429,7 +429,7 @@ auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
             triple_sorted.Keep()
             .Window(
                 2,
-                [&](size_t /* index */, const RingBuffer<IndexRankRank>& rb) {
+                [&](size_t /* index */, const RingBuffer<IndexRankRank>& rb) -> Index {
                     return rb[0] == rb[1];
                 })
             .Sum();

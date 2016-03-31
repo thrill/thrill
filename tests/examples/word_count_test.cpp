@@ -118,7 +118,7 @@ TEST(WordCount, RandomTextWriterTest) {
         std::map<std::string, size_t> count_map;
 
         for (size_t i = 0; i < size; ++i) {
-            std::minstd_rand rng(i);
+            std::minstd_rand rng(static_cast<unsigned>(i));
             std::string text = RandomTextWriterGenerate(10, rng);
             common::SplitView(
                 text, ' ', [&](const common::StringView& sv) {
@@ -136,7 +136,7 @@ TEST(WordCount, RandomTextWriterTest) {
             auto lines = Generate(
                 ctx,
                 [](const size_t& index) -> std::string {
-                    std::minstd_rand rng(index);
+                    std::minstd_rand rng(static_cast<unsigned>(index));
                     return RandomTextWriterGenerate(10, rng);
                 },
                 size);

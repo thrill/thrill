@@ -537,7 +537,7 @@ private:
 
         // Get the ceiling of log(num_total_workers), as SSSS needs 2^n buckets.
         size_t ceil_log = common::IntegerLog2Ceil(num_total_workers);
-        size_t workers_algo = 1 << ceil_log;
+        size_t workers_algo = size_t(1) << ceil_log;
         size_t splitter_count_algo = workers_algo - 1;
 
         std::vector<ValueType> splitters;

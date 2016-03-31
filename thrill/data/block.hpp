@@ -252,7 +252,7 @@ public:
     size_t first_item_relative() const { return Block::first_item_relative(); }
 
     //! return typecode_verify from Block
-    size_t typecode_verify() const { return Block::typecode_verify(); }
+    bool typecode_verify() const { return Block::typecode_verify(); }
 
     //! \}
 

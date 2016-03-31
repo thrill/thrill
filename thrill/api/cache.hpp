@@ -12,6 +12,7 @@
 #ifndef THRILL_API_CACHE_HEADER
 #define THRILL_API_CACHE_HEADER
 
+#include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dia_node.hpp>
 #include <thrill/data/file.hpp>
@@ -91,12 +92,13 @@ template <typename ValueType, typename Stack>
 DIA<ValueType> DIA<ValueType, Stack>::Cache() const {
     assert(IsValid());
 
-    // skip if this is already a CacheNode.
+#if !defined(_MSC_VER)
+    // skip if this is already a CacheNode. MSVC messes this up.
     if (stack_empty &&
         dynamic_cast<CacheNodeBase<ValueType>*>(node_.get()) != nullptr) {
         return *this;
     }
-
+#endif
     return DIA<ValueType>(
         std::make_shared<api::CacheNode<ValueType, DIA> >(*this));
 }

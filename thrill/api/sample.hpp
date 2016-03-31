@@ -74,7 +74,7 @@ public:
         // synchronize global random generator
         size_t seed = context_.my_rank() == 0 ? rng_() : 0;
         seed = context_.net.Broadcast(seed);
-        rng_.seed(seed);
+        rng_.seed(static_cast<unsigned>(seed));
 
         // globally select random samples among samples_
         typename std::vector<ValueType>::iterator it = samples_.begin();
