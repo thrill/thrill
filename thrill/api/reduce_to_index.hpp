@@ -26,7 +26,6 @@
 #include <thrill/core/reduce_pre_stage.hpp>
 
 #include <functional>
-#include <string>
 #include <thread>
 #include <type_traits>
 #include <utility>

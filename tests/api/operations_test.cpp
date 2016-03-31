@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include <thrill/api/all_gather.hpp>
+#include <thrill/api/bernoulli_sample.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/concat.hpp>
@@ -354,7 +355,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, SampleCompileAndExecute) {
+TEST(Operations, BernoulliSampleCompileAndExecute) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -363,8 +364,8 @@ TEST(Operations, SampleCompileAndExecute) {
             auto sizets = Generate(ctx, n);
 
             // sample
-            auto reduced1 = sizets.Sample(0.25);
-            auto reduced2 = sizets.Sample(0.05);
+            auto reduced1 = sizets.BernoulliSample(0.25);
+            auto reduced2 = sizets.BernoulliSample(0.05);
             auto out_vec1 = reduced1.AllGather();
             auto out_vec2 = reduced2.AllGather();
 
@@ -654,6 +655,49 @@ TEST(Operations, DIACasting) {
             }
 
             ASSERT_EQ(8u, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, Sample) {
+
+    auto start_func =
+        [](Context& ctx) {
+            size_t n = 9999;
+
+            // test with sample smaller than the input
+            {
+                auto int_sampled = Generate(ctx, n).Sample(100);
+
+                ASSERT_EQ(100u, int_sampled.Size());
+
+                std::vector<size_t> int_vec = int_sampled.AllGather();
+                ASSERT_EQ(100u, int_vec.size());
+            }
+
+            // test with sample larger than the input
+            {
+                auto int_sampled = Generate(ctx, n).Sample(20000);
+
+                ASSERT_EQ(9999u, int_sampled.Size());
+
+                std::vector<size_t> int_vec = int_sampled.AllGather();
+                ASSERT_EQ(9999u, int_vec.size());
+            }
+
+            // test with disbalanced input
+            {
+                auto int_sampled =
+                    Generate(ctx, 1000)
+                    .Filter([](size_t i) { return i < 80 || i % 10 == 1; })
+                    .Sample(100);
+
+                ASSERT_EQ(100u, int_sampled.Size());
+
+                std::vector<size_t> int_vec = int_sampled.AllGather();
+                ASSERT_EQ(100u, int_vec.size());
+            }
         };
 
     api::RunLocalTests(start_func);

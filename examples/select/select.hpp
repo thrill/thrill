@@ -12,9 +12,9 @@
 #ifndef THRILL_EXAMPLES_SELECT_SELECT_HEADER
 #define THRILL_EXAMPLES_SELECT_SELECT_HEADER
 
+#include <thrill/api/bernoulli_sample.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/gather.hpp>
-#include <thrill/api/sample.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/common/logger.hpp>
@@ -50,7 +50,8 @@ PickPivots(const DIA<ValueType, InStack>& data, size_t size, size_t rank,
 
     const double p = 20 * sqrt(static_cast<double>(num_workers)) / size_d;
 
-    auto sample = data.Sample(p).Gather(); // materialize at a master node
+    // materialized at worker 0
+    auto sample = data.BernoulliSample(p).Gather();
 
     std::pair<ValueType, ValueType> pivots;
     if (ctx.my_rank() == 0) {

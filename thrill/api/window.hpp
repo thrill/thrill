@@ -19,7 +19,6 @@
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
-#include <string>
 #include <vector>
 
 namespace thrill {

@@ -18,8 +18,6 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>
 
-#include <string>
-
 namespace thrill {
 namespace api {
 
@@ -125,8 +123,8 @@ auto DIA<ValueType, Stack>::PrefixSum(
     const SumFunction &sum_function, const ValueType &initial_element) const {
     assert(IsValid());
 
-    using SumResultNode
-              = PrefixSumNode<ValueType, DIA, SumFunction>;
+    using PrefixSumNode
+              = api::PrefixSumNode<ValueType, DIA, SumFunction>;
 
     static_assert(
         std::is_convertible<
@@ -148,7 +146,7 @@ auto DIA<ValueType, Stack>::PrefixSum(
         "SumFunction has the wrong input type");
 
     auto shared_node
-        = std::make_shared<SumResultNode>(*this, sum_function, initial_element);
+        = std::make_shared<PrefixSumNode>(*this, sum_function, initial_element);
 
     return DIA<ValueType>(shared_node);
 }

@@ -34,10 +34,7 @@ TEST(GroupByNode, CompileAndSum) {
             size_t n = 8;
             static constexpr size_t m = 4;
 
-            auto sizets = Generate(
-                ctx,
-                [](const size_t& index) { return index; },
-                n);
+            auto sizets = Generate(ctx, n);
 
             auto modulo_keyfn = [](size_t in) { return (in % m); };
 
@@ -81,10 +78,7 @@ TEST(GroupByNode, Median) {
             size_t n = 9999;
             static constexpr size_t m = 4;
 
-            auto sizets = Generate(
-                ctx,
-                [](const size_t& index) { return index; },
-                n);
+            auto sizets = Generate(ctx, n);
 
             auto modulo_keyfn = [](size_t in) { return (in % m); };
 
@@ -136,10 +130,7 @@ TEST(GroupByNode, GroupToIndexCorrectResults) {
             size_t n = 9999;
             static constexpr size_t m = 31;
 
-            auto integers = Generate(
-                ctx,
-                [](const size_t& index) { return index; },
-                n);
+            auto integers = Generate(ctx, n);
 
             auto key = [](size_t in) {
                            return in % m;

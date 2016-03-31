@@ -367,11 +367,11 @@ public:
 
     /*!
      * Each item of a DIA is copied into the output DIA with success probability
-     * p (a Bernoulli trial).
+     * p (an independent Bernoulli trial).
      *
      * \ingroup dia_lops
      */
-    auto Sample(double p) const;
+    auto BernoulliSample(double p) const;
 
     //! \}
 
@@ -435,6 +435,12 @@ public:
      * \ingroup dia_actions
      */
     void Gather(size_t target_id, std::vector<ValueType>* out_vector)  const;
+
+    /*!
+     * Select up to sample_size items uniformly at random and return a new
+     * DIA<T>.
+     */
+    auto Sample(size_t sample_size) const;
 
     /*!
      * AllReduce is an Action, which computes the reduction sum of all elements

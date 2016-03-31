@@ -3,7 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2016 Lorenz Hübschle-Schneider <lorenz@4z2.de>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -13,9 +13,11 @@
 #define THRILL_API_SAMPLE_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/common/functional.hpp>
+#include <thrill/api/dop_node.hpp>
+#include <thrill/common/logger.hpp>
 
-#include <random>
+#include <algorithm>
+#include <vector>
 
 namespace thrill {
 namespace api {
@@ -23,86 +25,113 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType>
-class SampleNode
+template <typename ValueType, typename ParentDIA>
+class SampleNode final : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static constexpr bool debug = false;
 
-    using SkipDistValueType = int;
+    using Super = DOpNode<ValueType>;
+    using Super::context_;
 
 public:
-    explicit SampleNode(double p)
-        : p_(p), use_skip_(p < 0.1) { // use skip values if p < 0.1
-        assert(p >= 0.0 && p <= 1.0);
+    SampleNode(const ParentDIA& parent, size_t sample_size)
+        : Super(parent.ctx(), "Sample", { parent.id() }, { parent.node() }),
+          sample_size_(sample_size)
+    {
+        samples_.reserve(sample_size);
 
-        if (use_skip_) {
-            skip_dist_ = std::geometric_distribution<SkipDistValueType>(p);
-            skip_remaining_ = skip_dist_(engine_);
+        // Hook PreOp(s)
+        auto pre_op_fn = [this](const ValueType& input) {
+                             PreOp(input);
+                         };
 
-            LOG << "Skip value initialised with " << skip_remaining_;
+        auto lop_chain = parent.stack().push(pre_op_fn).fold();
+        parent.node()->AddChild(this, lop_chain);
+    }
+
+    DIAMemUse PreOpMemUse() final {
+        return sample_size_ * sizeof(ValueType);
+    }
+
+    void PreOp(const ValueType& input) {
+        if (samples_.size() < sample_size_) {
+            samples_.emplace_back(input);
         }
         else {
-            simple_dist_ = std::bernoulli_distribution(p);
+            samples_[rng_() % samples_.size()] = input;
         }
     }
 
-    template <typename Emitter>
-    inline void operator () (const ValueType& item, Emitter&& emit) {
-        if (use_skip_) {
-            // use geometric distribution and skip values
-            if (skip_remaining_ == 0) {
-                // sample element
-                LOG << "sampled item " << item;
-                emit(item);
-                skip_remaining_ = skip_dist_(engine_);
-            }
-            else {
-                --skip_remaining_;
-            }
+    void Execute() final {
+
+        size_t global_size = context_.net.AllReduce(samples_.size());
+
+        // not enough items to discard some, done.
+        if (global_size < sample_size_) return;
+
+        size_t local_rank = context_.net.ExPrefixSum(samples_.size());
+
+        // synchronize global random generator
+        size_t seed = context_.my_rank() == 0 ? rng_() : 0;
+        seed = context_.net.Broadcast(seed);
+        rng_.seed(seed);
+
+        // globally select random samples among samples_
+        typename std::vector<ValueType>::iterator it = samples_.begin();
+
+        for (size_t i = 0; i < sample_size_; ++i) {
+            size_t r = rng_() % sample_size_;
+            if (r < local_rank || r >= local_rank + samples_.size()) continue;
+
+            // swap selected item to front.
+            using std::swap;
+            swap(*it, samples_[r - local_rank]);
+            ++it;
         }
-        else {
-            // use bernoulli distribution
-            if (simple_dist_(engine_)) {
-                LOG << "sampled item " << item;
-                emit(item);
-            }
-        }
+
+        samples_.erase(it, samples_.end());
+
+        sLOG << "SampleNode::Execute"
+             << "global_size" << global_size
+             << "local_rank" << local_rank
+             << "AllReduce" << context_.net.AllReduce(samples_.size());
+
+        assert(sample_size_ == context_.net.AllReduce(samples_.size()));
     }
 
-    bool use_skip() const {
-        return use_skip_;
+    void PushData(bool consume) final {
+        for (const ValueType& v : samples_) {
+            this->PushItem(v);
+        }
+        if (consume)
+            std::vector<ValueType>().swap(samples_);
+    }
+
+    void Dispose() final {
+        std::vector<ValueType>().swap(samples_);
     }
 
 private:
-    // Sampling rate
-    const double p_;
-    // Whether to generate skip values with a geometric distribution or to use
-    // the naive method
-    const bool use_skip_;
-    // Random generator
-    std::default_random_engine engine_ { std::random_device { } () };
-    std::bernoulli_distribution simple_dist_;
-    std::geometric_distribution<SkipDistValueType> skip_dist_;
-    SkipDistValueType skip_remaining_ = -1;
+    size_t sample_size_;
+
+    //! local samples
+    std::vector<ValueType> samples_;
+
+    //! Random generator for eviction
+    std::default_random_engine rng_ { std::random_device { } () };
 };
 
 template <typename ValueType, typename Stack>
-auto DIA<ValueType, Stack>::Sample(const double p) const {
+auto DIA<ValueType, Stack>::Sample(size_t sample_size) const {
     assert(IsValid());
 
-    size_t new_id = context().next_dia_id();
+    using SampleNode
+              = api::SampleNode<ValueType, DIA>;
 
-    node_->context().logger_
-        << "id" << new_id
-        << "label" << "Sample"
-        << "class" << "DIA"
-        << "event" << "create"
-        << "type" << "LOp"
-        << "parents" << (common::Array<size_t>{ id_ });
+    auto shared_node
+        = std::make_shared<SampleNode>(*this, sample_size);
 
-    auto new_stack = stack_.push(SampleNode<ValueType>(p));
-    return DIA<ValueType, decltype(new_stack)>(
-        node_, new_stack, new_id, "Sample");
+    return DIA<ValueType>(shared_node);
 }
 
 } // namespace api
