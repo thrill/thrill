@@ -1051,6 +1051,9 @@ void BlockPool::RunTask(const std::chrono::steady_clock::time_point& tp) {
             << "total_blocks" << int_total_blocks()
             << "total_bytes" << int_total_bytes()
             << "total_ram_bytes" << total_ram_bytes_
+            << "ram_bytes"
+            << (unpinned_bytes_ + pin_count_.total_pinned_bytes_
+                + writing_bytes_ + reading_bytes_)
             << "pinned_blocks" << pin_count_.total_pins_
             << "pinned_bytes" << pin_count_.total_pinned_bytes_
             << "unpinned_blocks" << d_->unpinned_blocks_.size()

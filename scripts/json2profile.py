@@ -205,7 +205,7 @@ def index(chartID = 'chart_ID'):
         { 'data': xy_aggregated(ProcSeries('diskstats_wr_bytes')), 'name': 'I/O write', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
         { 'data': xy_aggregated(ProcSeriesSum('diskstats_rd_bytes', 'diskstats_wr_bytes')), 'name': 'I/O', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
         { 'data': xy_aggregated(BlockPoolSeries('total_bytes')), 'name': 'Data bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
-        { 'data': xy_aggregated(BlockPoolSeries('total_ram_bytes')), 'name': 'RAM bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
+        { 'data': xy_aggregated(BlockPoolSeries('ram_bytes')), 'name': 'RAM bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
         { 'data': xy_aggregated(BlockPoolSeries('reading_bytes')), 'name': 'Reading bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
         { 'data': xy_aggregated(BlockPoolSeries('writing_bytes')), 'name': 'Writing bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
         { 'data': xy_aggregated(BlockPoolSeries('pinned_bytes')), 'name': 'Pinned bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
