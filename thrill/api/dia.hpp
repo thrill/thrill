@@ -437,6 +437,12 @@ public:
     void Gather(size_t target_id, std::vector<ValueType>* out_vector)  const;
 
     /*!
+     * Select up to sample_size items uniformly at random and return a new
+     * DIA<T>.
+     */
+    auto Sample(size_t sample_size) const;
+
+    /*!
      * AllReduce is an Action, which computes the reduction sum of all elements
      * globally and delivers the same value on all workers.
      *
