@@ -38,29 +38,36 @@ using thrill::DIA;
 
 //! A D-dimensional point with double precision
 template <size_t D>
-struct Point {
-    double        x[D];
+class Point
+{
+public:
+    //! coordinates array
+    double x[D];
 
     static size_t dim() { return D; }
 
-    static Point  Origin() {
+    static Point Make(size_t D_) {
+        die_unless(D_ == D);
+        return Point();
+    }
+    static Point Origin() {
         Point p;
         std::fill(p.x, p.x + D, 0.0);
         return p;
     }
     template <typename Distribution, typename Generator>
     static Point Random(size_t dim, Distribution& dist, Generator& gen) {
-        assert(dim == D);
+        die_unless(dim == D);
         Point p;
         for (size_t i = 0; i < D; ++i) p.x[i] = dist(gen);
         return p;
     }
-    double        DistanceSquare(const Point& b) const {
+    double DistanceSquare(const Point& b) const {
         double sum = 0.0;
         for (size_t i = 0; i < D; ++i) sum += (x[i] - b.x[i]) * (x[i] - b.x[i]);
         return sum;
     }
-    double        Distance(const Point& b) const {
+    double Distance(const Point& b) const {
         return std::sqrt(DistanceSquare(b));
     }
     Point operator + (const Point& b) const {
@@ -92,66 +99,67 @@ struct Point {
 // Variable-Dimensional Points
 
 //! A D-dimensional point with double precision
-struct VPoint {
-
+class VPoint
+{
+public:
     using Vector = std::vector<double>;
-    Vector        v_;
 
-    explicit VPoint(size_t D = 0) : v_(D) { }
-    explicit VPoint(Vector&& v) : v_(std::move(v)) { }
+    //! coordinates array
+    Vector x;
 
-    size_t        dim() const { return v_.size(); }
+    explicit VPoint(size_t D = 0) : x(D) { }
+    explicit VPoint(Vector&& v) : x(std::move(v)) { }
 
-    static VPoint Origin(size_t D) {
-        VPoint p(D);
-        std::fill(p.v_.begin(), p.v_.end(), 0.0);
-        return p;
+    size_t dim() const { return x.size(); }
+
+    static VPoint Make(size_t D) {
+        return VPoint(D);
     }
     template <typename Distribution, typename Generator>
     static VPoint Random(size_t D, Distribution& dist, Generator& gen) {
         VPoint p(D);
-        for (size_t i = 0; i < D; ++i) p.v_[i] = dist(gen);
+        for (size_t i = 0; i < D; ++i) p.x[i] = dist(gen);
         return p;
     }
-    double        DistanceSquare(const VPoint& b) const {
-        assert(v_.size() == b.v_.size());
+    double DistanceSquare(const VPoint& b) const {
+        assert(x.size() == b.x.size());
         double sum = 0.0;
-        for (size_t i = 0; i < v_.size(); ++i)
-            sum += (v_[i] - b.v_[i]) * (v_[i] - b.v_[i]);
+        for (size_t i = 0; i < x.size(); ++i)
+            sum += (x[i] - b.x[i]) * (x[i] - b.x[i]);
         return sum;
     }
-    double        Distance(const VPoint& b) const {
+    double Distance(const VPoint& b) const {
         return std::sqrt(DistanceSquare(b));
     }
     VPoint operator + (const VPoint& b) const {
-        assert(v_.size() == b.v_.size());
-        VPoint p(v_.size());
-        for (size_t i = 0; i < v_.size(); ++i) p.v_[i] = v_[i] + b.v_[i];
+        assert(x.size() == b.x.size());
+        VPoint p(x.size());
+        for (size_t i = 0; i < x.size(); ++i) p.x[i] = x[i] + b.x[i];
         return p;
     }
     VPoint& operator += (const VPoint& b) {
-        assert(v_.size() == b.v_.size());
-        for (size_t i = 0; i < v_.size(); ++i) v_[i] += b.v_[i];
+        assert(x.size() == b.x.size());
+        for (size_t i = 0; i < x.size(); ++i) x[i] += b.x[i];
         return *this;
     }
     VPoint operator / (double s) const {
-        VPoint p(v_.size());
-        for (size_t i = 0; i < v_.size(); ++i) p.v_[i] = v_[i] / s;
+        VPoint p(x.size());
+        for (size_t i = 0; i < x.size(); ++i) p.x[i] = x[i] / s;
         return p;
     }
     VPoint& operator /= (double s) {
-        for (size_t i = 0; i < v_.size(); ++i) v_[i] /= s;
+        for (size_t i = 0; i < x.size(); ++i) x[i] /= s;
         return *this;
     }
     friend std::ostream& operator << (std::ostream& os, const VPoint& a) {
-        os << '(' << a.v_[0];
-        for (size_t i = 1; i != a.v_.size(); ++i) os << ',' << a.v_[i];
+        os << '(' << a.x[0];
+        for (size_t i = 1; i != a.x.size(); ++i) os << ',' << a.x[i];
         return os << ')';
     }
 
     template <typename Archive>
     void serialize(Archive& archive) {
-        archive(v_);
+        archive(x);
     }
 };
 

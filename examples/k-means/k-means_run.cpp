@@ -13,6 +13,7 @@
 
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
+#include <thrill/api/read_lines.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
@@ -44,21 +45,21 @@ std::ostream& operator << (std::ostream& os, const SVGColor& c) {
 
 //! Output the points and centroids as a SVG drawing.
 template <typename Point>
-void OutputSVG(const std::string& svg_path,
+void OutputSVG(const std::string& svg_path, double svg_scale,
                const DIA<Point>& list,
                const KMeansModel<Point>& model) {
     thrill::common::THRILL_UNUSED(svg_path);
+    thrill::common::THRILL_UNUSED(svg_scale);
     thrill::common::THRILL_UNUSED(list);
     thrill::common::THRILL_UNUSED(model);
 }
 
 //! Output the points and centroids as a 2-D SVG drawing
 template <>
-void OutputSVG(const std::string& svg_path,
+void OutputSVG(const std::string& svg_path, double svg_scale,
                const DIA<Point<2> >& point_dia,
                const KMeansModel<Point<2> >& model) {
     double width = 0, height = 0;
-    double shrink = 200;
 
     using Point2D = Point<2>;
 
@@ -82,20 +83,20 @@ void OutputSVG(const std::string& svg_path,
     os << "   xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"\n";
     os << "   xmlns:svg=\"http://www.w3.org/2000/svg\"\n";
     os << "   xmlns=\"http://www.w3.org/2000/svg\"\n";
-    os << "   version=\"1.1\" id=\"svg2\" width=\"" << width / shrink
-       << "\" height=\"" << height / shrink << "\">\n";
+    os << "   version=\"1.1\" id=\"svg2\" width=\"" << width * svg_scale
+       << "\" height=\"" << height * svg_scale << "\">\n";
     os << "  <g id=\"layer1\">\n";
 
     for (const PointClusterId<Point2D>& p : list) {
-        os << "    <circle r=\"1\" cx=\"" << p.first.x[0] / shrink
-           << "\" cy=\"" << p.first.x[1] / shrink
+        os << "    <circle r=\"1\" cx=\"" << p.first.x[0] * svg_scale
+           << "\" cy=\"" << p.first.x[1] * svg_scale
            << "\" style=\"stroke:none;stroke-opacity:1;fill:"
            << SVGColor(p.second) << ";fill-opacity:1\" />\n";
     }
     for (size_t i = 0; i < centroids.size(); ++i) {
         const Point2D& p = centroids[i];
-        os << "    <circle r=\"4\" cx=\"" << p.x[0] / shrink
-           << "\" cy=\"" << p.x[1] / shrink
+        os << "    <circle r=\"4\" cx=\"" << p.x[0] * svg_scale
+           << "\" cy=\"" << p.x[1] * svg_scale
            << "\" style=\"stroke:black;stroke-opacity:1;fill:"
            << SVGColor(i) << ";fill-opacity:1\" />\n";
     }
@@ -106,12 +107,12 @@ void OutputSVG(const std::string& svg_path,
 template <typename Point>
 static void RunKMeansGenerated(
     thrill::Context& ctx,
-    size_t dimensions,
-    size_t num_clusters, size_t iterations, const std::string& svg_path,
+    size_t dimensions, size_t num_clusters, size_t iterations,
+    const std::string& svg_path, double svg_scale,
     const std::vector<std::string>& input_paths) {
 
     std::default_random_engine rng(std::random_device { } ());
-    std::uniform_real_distribution<float> dist(0.0, 100000.0);
+    std::uniform_real_distribution<float> dist(0.0, 1000.0);
 
     size_t num_points;
     if (input_paths.size() != 1 ||
@@ -130,7 +131,45 @@ static void RunKMeansGenerated(
         LOG1 << "k-means cost: " << cost;
 
     if (svg_path.size() && dimensions == 2) {
-        OutputSVG(svg_path, points, result);
+        OutputSVG(svg_path, svg_scale, points, result);
+    }
+}
+
+template <typename Point>
+static void RunKMeansFile(
+    thrill::Context& ctx,
+    size_t dimensions, size_t num_clusters, size_t iterations,
+    const std::string& svg_path, double svg_scale,
+    const std::vector<std::string>& input_paths) {
+
+    auto points =
+        ReadLines(ctx, input_paths).Map(
+            [dimensions](const std::string& input) {
+                // parse "<pt> <pt> <pt> ..." lines
+                Point p = Point::Make(dimensions);
+                char* endptr = const_cast<char*>(input.c_str());
+                for (size_t i = 0; i < dimensions; ++i) {
+                    while (*endptr == ' ') ++endptr;
+                    p.x[i] = std::strtod(endptr, &endptr);
+                    if (!endptr || (*endptr != ' ' && i != dimensions - 1)) {
+                        die("Could not parse point coordinates: " << input);
+                    }
+                }
+                while (*endptr == ' ') ++endptr;
+                if (!endptr || *endptr != 0) {
+                    die("Could not parse point coordinates: " << input);
+                }
+                return p;
+            });
+
+    auto result = KMeans(points, dimensions, num_clusters, iterations);
+
+    double cost = result.ComputeCost(points);
+    if (ctx.my_rank() == 0)
+        LOG1 << "k-means cost: " << cost;
+
+    if (svg_path.size() && dimensions == 2) {
+        OutputSVG(svg_path, svg_scale, points.Collapse(), result);
     }
 }
 
@@ -157,6 +196,10 @@ int main(int argc, char* argv[]) {
     clp.AddString('s', "svg", svg_path,
                   "output path for svg drawing (only for dim = 2)");
 
+    double svg_scale = 1;
+    clp.AddDouble('S', "svg-scale", svg_scale,
+                  "scale coordinates for svg output, default: 1");
+
     std::vector<std::string> input_paths;
     clp.AddParamStringlist("input", input_paths,
                            "input file pattern(s)");
@@ -172,23 +215,45 @@ int main(int argc, char* argv[]) {
             ctx.enable_consume();
 
             if (generate) {
-#define RunKMeans(D, P)                                                    \
-case D:                                                                    \
-    RunKMeansGenerated<P>(                                                 \
-        ctx, dimensions, num_clusters, iterations, svg_path, input_paths); \
-    break;
                 switch (dimensions) {
-                    RunKMeans(2, Point<2>);
-                    RunKMeans(3, Point<3>);
-                    RunKMeans(4, Point<4>);
                 case 0:
+                    die("Zero dimensional clustering is easy.");
+                case 2:
+                    RunKMeansGenerated<Point<2> >(
+                        ctx, dimensions, num_clusters, iterations,
+                        svg_path, svg_scale, input_paths);
+                    break;
+                case 3:
+                    RunKMeansGenerated<Point<3> >(
+                        ctx, dimensions, num_clusters, iterations,
+                        svg_path, svg_scale, input_paths);
+                    break;
                 default:
                     RunKMeansGenerated<VPoint>(
-                        ctx, dimensions, num_clusters,
-                        iterations, svg_path, input_paths);
+                        ctx, dimensions, num_clusters, iterations,
+                        svg_path, svg_scale, input_paths);
                 }
             }
-            else { }
+            else {
+                switch (dimensions) {
+                case 0:
+                    die("Zero dimensional clustering is easy.");
+                case 2:
+                    RunKMeansFile<Point<2> >(
+                        ctx, dimensions, num_clusters, iterations,
+                        svg_path, svg_scale, input_paths);
+                    break;
+                case 3:
+                    RunKMeansFile<Point<3> >(
+                        ctx, dimensions, num_clusters, iterations,
+                        svg_path, svg_scale, input_paths);
+                    break;
+                default:
+                    RunKMeansFile<VPoint>(
+                        ctx, dimensions, num_clusters, iterations,
+                        svg_path, svg_scale, input_paths);
+                }
+            }
         };
 
     return thrill::Run(start_func);
