@@ -66,6 +66,7 @@ public:
         std::ostringstream oss;
         std::vector<DIABase*> children = node_->children();
         std::reverse(children.begin(), children.end());
+        bool first = true;
 
         oss << '[';
         while (children.size())
@@ -81,10 +82,21 @@ public:
                 std::vector<DIABase*> sub = child->children();
                 children.push_back(nullptr);
                 children.insert(children.end(), sub.begin(), sub.end());
+                if (first)
+                    first = false;
+                else
+                    oss << ' ';
+
                 oss << *child << ' ' << '[';
+                first = true;
             }
             else {
-                oss << *child << ' ';
+                if (first)
+                    first = false;
+                else
+                    oss << ' ';
+
+                oss << *child;
             }
         }
         oss << ']';
@@ -105,6 +117,10 @@ public:
 
     void Execute() {
         sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << TargetsString();
+
+        if (context_.my_rank() == 0) {
+            sLOG1 << "Execute()  stage" << *node_;
+        }
 
         std::vector<size_t> target_ids = TargetIds();
 
@@ -146,6 +162,11 @@ public:
         }
 
         sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << TargetsString();
+
+        if (context_.my_rank() == 0) {
+            sLOG1 << "PushData() stage" << *node_
+                  << "with targets" << TargetsString();
+        }
 
         std::vector<size_t> target_ids = TargetIds();
 
@@ -199,9 +220,9 @@ public:
             remaining_mem /= max_mem_nodes.size();
 
             if (context_.my_rank() == 0) {
-                LOG1 << "StageBuilder: distribute remaining worker memory "
-                     << remaining_mem << " to "
-                     << max_mem_nodes.size() << " DIANodes";
+                LOG << "StageBuilder: distribute remaining worker memory "
+                    << remaining_mem << " to "
+                    << max_mem_nodes.size() << " DIANodes";
             }
 
             for (DIABase* target : max_mem_nodes) {
