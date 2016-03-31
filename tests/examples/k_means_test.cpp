@@ -72,7 +72,7 @@ TEST(KMeans, RandomPoints) {
                 double min_dist = std::numeric_limits<double>::max();
 
                 for (size_t c = 0; c < num_clusters; ++c) {
-                    double dist = p.distance(centroids[c]);
+                    double dist = p.DistanceSquare(centroids[c]);
                     if (dist < min_dist) {
                         min_dist = dist;
                         closest[i] = c;
@@ -118,9 +118,9 @@ TEST(KMeans, RandomPoints) {
                 if (correct_closest[i] != result[i].second) {
                     // if cluster center indexes do not match, check that the
                     // distance to the centers are about the same
-                    double d1 = points[i].distance(
+                    double d1 = points[i].Distance(
                         correct_centroids[correct_closest[i]]);
-                    double d2 = points[i].distance(
+                    double d2 = points[i].Distance(
                         centroids[result[i].second]);
                     ASSERT_DOUBLE_EQ(d1, d2);
                 }
@@ -129,7 +129,7 @@ TEST(KMeans, RandomPoints) {
                 }
             }
             for (size_t i = 0; i < centroids.size(); ++i) {
-                ASSERT_TRUE(correct_centroids[i].distance(centroids[i]) < 0.0001);
+                ASSERT_TRUE(correct_centroids[i].Distance(centroids[i]) < 0.0001);
             }
         };
 

@@ -13,6 +13,7 @@
 
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
+#include <thrill/api/sample.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
@@ -115,10 +116,7 @@ static void RunKMeansGenerated(
             return Point::Random(dimensions, dist, rng);
         }, num_points);
 
-    DIA<Point> centroids_dia = Generate(
-        ctx, [&](const size_t& /* index */) {
-            return Point::Random(dimensions, dist, rng);
-        }, num_clusters);
+    DIA<Point> centroids_dia = points.Sample(num_clusters);
 
     auto result = KMeans(points, centroids_dia, iterations);
 

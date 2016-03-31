@@ -53,10 +53,13 @@ struct Point {
         for (size_t i = 0; i < D; ++i) p.x[i] = dist(gen);
         return p;
     }
-    double        distance(const Point& b) const {
+    double        DistanceSquare(const Point& b) const {
         double sum = 0.0;
         for (size_t i = 0; i < D; ++i) sum += (x[i] - b.x[i]) * (x[i] - b.x[i]);
-        return std::sqrt(sum);
+        return sum;
+    }
+    double        Distance(const Point& b) const {
+        return std::sqrt(DistanceSquare(b));
     }
     Point operator + (const Point& b) const {
         Point p;
@@ -108,12 +111,15 @@ struct VPoint {
         for (size_t i = 0; i < D; ++i) p.v_[i] = dist(gen);
         return p;
     }
-    double        distance(const VPoint& b) const {
+    double        DistanceSquare(const VPoint& b) const {
         assert(v_.size() == b.v_.size());
         double sum = 0.0;
         for (size_t i = 0; i < v_.size(); ++i)
             sum += (v_[i] - b.v_[i]) * (v_[i] - b.v_[i]);
-        return std::sqrt(sum);
+        return sum;
+    }
+    double        Distance(const VPoint& b) const {
+        return std::sqrt(DistanceSquare(b));
     }
     VPoint operator + (const VPoint& b) const {
         assert(v_.size() == b.v_.size());
@@ -202,11 +208,11 @@ auto KMeans(const DIA<Point, InStack>&input_points, DIA<Point>&centroids,
         closest = points.Map(
             [local_centroids = std::move(local_centroids)](const Point& p) {
                 assert(local_centroids.size());
-                double min_dist = p.distance(local_centroids[0]);
+                double min_dist = p.DistanceSquare(local_centroids[0]);
                 size_t closest_id = 0;
 
                 for (size_t i = 1; i < local_centroids.size(); ++i) {
-                    double dist = p.distance(local_centroids[i]);
+                    double dist = p.DistanceSquare(local_centroids[i]);
                     if (dist < min_dist) {
                         min_dist = dist;
                         closest_id = i;
