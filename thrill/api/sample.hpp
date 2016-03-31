@@ -93,8 +93,8 @@ auto DIA<ValueType, Stack>::Sample(const double p) const {
     size_t new_id = context().next_dia_id();
 
     node_->context().logger_
-        << "node_id" << new_id
-        << "node_label" << "Sampling"
+        << "id" << new_id
+        << "label" << "Sample"
         << "class" << "DIA"
         << "event" << "create"
         << "type" << "LOp"

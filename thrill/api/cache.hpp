@@ -22,24 +22,36 @@
 namespace thrill {
 namespace api {
 
+//! Common super class for all CacheNodes, used for dynamic_cast type check in
+//! Cache().
+template <typename ValueType>
+class CacheNodeBase : public DIANode<ValueType>
+{
+public:
+    using Super = DIANode<ValueType>;
+
+    template <typename ParentDIA>
+    explicit CacheNodeBase(const ParentDIA& parent)
+        : Super(parent.ctx(), "Cache", { parent.id() }, { parent.node() }) { }
+};
+
 /*!
  * A DOpNode which caches all items in an external file.
  *
  * \ingroup api_layer
  */
 template <typename ValueType, typename ParentDIA>
-class CacheNode final : public DIANode<ValueType>
+class CacheNode final : public CacheNodeBase<ValueType>
 {
 public:
-    using Super = DIANode<ValueType>;
+    using Super = CacheNodeBase<ValueType>;
     using Super::context_;
 
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      */
     explicit CacheNode(const ParentDIA& parent)
-        : Super(parent.ctx(), "Cache", { parent.id() }, { parent.node() })
-    {
+        : Super(parent) {
         // CacheNodes are kept by default.
         Super::consume_counter_ = Super::never_consume_;
 
@@ -76,8 +88,15 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-auto DIA<ValueType, Stack>::Cache() const {
+DIA<ValueType> DIA<ValueType, Stack>::Cache() const {
     assert(IsValid());
+
+    // skip if this is already a CacheNode.
+    if (stack_empty &&
+        dynamic_cast<CacheNodeBase<ValueType>*>(node_.get()) != nullptr) {
+        return *this;
+    }
+
     return DIA<ValueType>(
         std::make_shared<api::CacheNode<ValueType, DIA> >(*this));
 }

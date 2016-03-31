@@ -28,12 +28,12 @@ with open(sys.argv[1], 'r') as json_file:
         if not "class" in data: continue
 
         if data["class"] == "DIABase" and data["event"] == "create":
-            id = data["node_id"]
-            nodes[id] = { "label": data["node_label"],
+            id = data["id"]
+            nodes[id] = { "label": data["label"],
                           "parents": data["parents"] }
         if data["class"] == "DIA" and data["event"] == "create":
-            id = data["node_id"]
-            nodes[id] = { "label": data["node_label"],
+            id = data["id"]
+            nodes[id] = { "label": data["label"],
                           "parents": data["parents"] }
 
 print("digraph {")

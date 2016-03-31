@@ -87,17 +87,35 @@ DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs)
 
 #endif  // THRILL_DOXYGEN_IGNORE
 
+//! Template switch to generate a CollapseNode if there is a non-empty Stack
 template <typename ValueType, typename Stack>
-auto DIA<ValueType, Stack>::Collapse() const {
-    assert(IsValid());
+struct CollapseSwitch
+{
+    static DIA<ValueType> MakeCollapse(const DIA<ValueType, Stack>& dia) {
+        assert(dia.IsValid());
 
-    // Create new CollapseNode. Transfer stack from rhs to CollapseNode. Build
-    // new DIA with empty stack and CollapseNode
-    using CollapseNode = api::CollapseNode<ValueType, DIA>;
+        // Create new CollapseNode. Transfer stack from rhs to
+        // CollapseNode. Build new DIA with empty stack and CollapseNode
+        using CollapseNode = api::CollapseNode<
+                  ValueType, DIA<ValueType, Stack> >;
 
-    auto shared_node = std::make_shared<CollapseNode>(*this);
+        return DIA<ValueType>(std::make_shared<CollapseNode>(dia));
+    }
+};
 
-    return DIA<ValueType>(shared_node);
+//! Template switch to NOT generate a CollapseNode if there is an empty Stack.
+template <typename ValueType>
+struct CollapseSwitch<ValueType, FunctionStack<ValueType> >
+{
+    static DIA<ValueType> MakeCollapse(
+        const DIA<ValueType, FunctionStack<ValueType> >& dia) {
+        return dia;
+    }
+};
+
+template <typename ValueType, typename Stack>
+DIA<ValueType> DIA<ValueType, Stack>::Collapse() const {
+    return CollapseSwitch<ValueType, Stack>::MakeCollapse(*this);
 }
 
 } // namespace api

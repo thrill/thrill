@@ -270,8 +270,8 @@ public:
         size_t new_id = context().next_dia_id();
 
         node_->context().logger_
-            << "node_id" << new_id
-            << "node_label" << "Map"
+            << "id" << new_id
+            << "label" << "Map"
             << "class" << "DIA"
             << "event" << "create"
             << "type" << "LOp"
@@ -313,8 +313,8 @@ public:
         size_t new_id = context().next_dia_id();
 
         node_->context().logger_
-            << "node_id" << new_id
-            << "node_label" << "Filter"
+            << "id" << new_id
+            << "label" << "Filter"
             << "class" << "DIA"
             << "event" << "create"
             << "type" << "LOp"
@@ -353,8 +353,8 @@ public:
         size_t new_id = context().next_dia_id();
 
         node_->context().logger_
-            << "node_id" << new_id
-            << "node_label" << "FlatMap"
+            << "id" << new_id
+            << "label" << "FlatMap"
             << "class" << "DIA"
             << "event" << "create"
             << "type" << "LOp"
@@ -956,7 +956,7 @@ public:
      *
      * \ingroup dia_dops
      */
-    auto Collapse() const;
+    DIA<ValueType> Collapse() const;
 
     /*!
      * Create a CacheNode which contains all items of a DIA in calculated plain
@@ -965,7 +965,7 @@ public:
      *
      * \ingroup dia_dops
      */
-    auto Cache() const;
+    DIA<ValueType> Cache() const;
 
     //! \}
 
