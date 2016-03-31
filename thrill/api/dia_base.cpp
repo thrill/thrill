@@ -331,7 +331,7 @@ static void TopoSortVisit(
     s.cycle_mark_ = true;
     // iterate over all children of s which are in the to-be-calculate stages
     for (DIABase* child : s.node_->children()) {
-        auto it = stages.find(Stage(child->shared_from_this()));
+        auto it = stages.find(Stage(DIABasePtr(child)));
 
         // child not in stage set
         if (it == stages.end()) continue;
@@ -373,7 +373,7 @@ void DIABase::RunScope() {
     mm_set<Stage> stages {
         mem::Allocator<Stage>(mem_manager())
     };
-    FindStages(shared_from_this(), stages);
+    FindStages(DIABasePtr(this), stages);
 
     mem::vector<Stage> toporder {
         mem::Allocator<Stage>(mem_manager())
@@ -409,7 +409,7 @@ void DIABase::RunScope() {
                 s.PushData();
         }
 
-        // remove from result stack, this may destroy the last shared_ptr
+        // remove from result stack, this may destroy the last CountingPtr
         // reference to a node.
         toporder.pop_back();
     }

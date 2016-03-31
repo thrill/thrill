@@ -412,10 +412,10 @@ auto Zip(const ZipFunction &zip_function,
     using ZipNode
               = api::ZipNode<ZipResult, ZipFunction, false, FirstDIA, DIAs ...>;
 
-    auto zip_node = std::make_shared<ZipNode>(
+    auto node = common::MakeCounting<ZipNode>(
         zip_function, ZipArgs(), first_dia, dias ...);
 
-    return DIA<ZipResult>(zip_node);
+    return DIA<ZipResult>(node);
 }
 
 /*!
@@ -475,10 +475,10 @@ auto ZipPad(const ZipFunction &zip_function,
     using ZipNode
               = api::ZipNode<ZipResult, ZipFunction, true, FirstDIA, DIAs ...>;
 
-    auto zip_node = std::make_shared<ZipNode>(
+    auto node = common::MakeCounting<ZipNode>(
         zip_function, ZipArgs(), first_dia, dias ...);
 
-    return DIA<ZipResult>(zip_node);
+    return DIA<ZipResult>(node);
 }
 
 /*!
@@ -530,10 +530,10 @@ auto ZipPadding(
     using ZipNode
               = api::ZipNode<ZipResult, ZipFunction, true, FirstDIA, DIAs ...>;
 
-    auto zip_node = std::make_shared<ZipNode>(
+    auto node = common::MakeCounting<ZipNode>(
         zip_function, padding, first_dia, dias ...);
 
-    return DIA<ZipResult>(zip_node);
+    return DIA<ZipResult>(node);
 }
 
 //! \}

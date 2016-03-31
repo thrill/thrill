@@ -264,10 +264,10 @@ auto DIA<ValueType, Stack>::ReduceByKey(
     using ReduceNode = api::ReduceNode<
               DOpResult, DIA, KeyExtractor, ReduceFunction,
               ReduceConfig, /* VolatileKey */ false, false>;
-    auto shared_node = std::make_shared<ReduceNode>(
+    auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceByKey", key_extractor, reduce_function, reduce_config);
 
-    return DIA<DOpResult>(shared_node);
+    return DIA<DOpResult>(node);
 }
 
 template <typename ValueType, typename Stack>
@@ -312,10 +312,11 @@ auto DIA<ValueType, Stack>::ReduceByKey(
     using ReduceNode = api::ReduceNode<
               DOpResult, DIA, KeyExtractor,
               ReduceFunction, ReduceConfig, /* VolatileKey */ true, false>;
-    auto shared_node = std::make_shared<ReduceNode>(
+
+    auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceByKey", key_extractor, reduce_function, reduce_config);
 
-    return DIA<DOpResult>(shared_node);
+    return DIA<DOpResult>(node);
 }
 
 template <typename ValueType, typename Stack>
@@ -357,7 +358,8 @@ auto DIA<ValueType, Stack>::ReducePair(
     using ReduceNode = api::ReduceNode<
               ValueType, DIA, std::function<Key(Value)>, ReduceFunction,
               ReduceConfig, /* VolatileKey */ true, true>;
-    auto shared_node = std::make_shared<ReduceNode>(
+
+    auto node = common::MakeCounting<ReduceNode>(
         *this, "ReducePair", [](Value value) {
             // This function should not be called, it is only here to give the
             // key type to the hashtables.
@@ -367,7 +369,7 @@ auto DIA<ValueType, Stack>::ReducePair(
         },
         reduce_function, reduce_config);
 
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(node);
 }
 
 } // namespace api

@@ -86,7 +86,7 @@ size_t DIA<ValueType, Stack>::Size() const {
 
     using SizeNode = api::SizeNode<DIA>;
 
-    auto node = std::make_shared<SizeNode>(*this);
+    auto node = common::MakeCounting<SizeNode>(*this);
 
     node->RunScope();
 

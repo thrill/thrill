@@ -44,7 +44,7 @@ auto DIA<ValueType, Stack>::Min(
             ValueType>::value,
         "MinFunction has the wrong input type");
 
-    auto node = std::make_shared<MinNode>(
+    auto node = common::MakeCounting<MinNode>(
         *this, "Min", min_function, initial_value);
 
     node->RunScope();

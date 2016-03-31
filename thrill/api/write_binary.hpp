@@ -202,7 +202,7 @@ void DIA<ValueType, Stack>::WriteBinary(
 
     using WriteBinaryNode = api::WriteBinaryNode<DIA>;
 
-    auto node = std::make_shared<WriteBinaryNode>(
+    auto node = common::MakeCounting<WriteBinaryNode>(
         *this, filepath, max_file_size);
 
     node->RunScope();

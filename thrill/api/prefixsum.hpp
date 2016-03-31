@@ -145,10 +145,10 @@ auto DIA<ValueType, Stack>::PrefixSum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    auto shared_node
-        = std::make_shared<PrefixSumNode>(*this, sum_function, initial_element);
+    auto node = common::MakeCounting<PrefixSumNode>(
+        *this, sum_function, initial_element);
 
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(node);
 }
 
 } // namespace api

@@ -96,7 +96,7 @@ DIA<ValueType, Stack>::Gather(size_t target_id) const {
 
     std::vector<ValueType> output;
 
-    auto node = std::make_shared<GatherNode>(
+    auto node = common::MakeCounting<GatherNode>(
         *this, "Gather", target_id, &output);
 
     node->RunScope();
@@ -111,7 +111,7 @@ void DIA<ValueType, Stack>::Gather(
 
     using GatherNode = api::GatherNode<DIA>;
 
-    auto node = std::make_shared<GatherNode>(
+    auto node = common::MakeCounting<GatherNode>(
         *this, "Gather", target_id, out_vector);
 
     node->RunScope();

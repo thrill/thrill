@@ -182,7 +182,7 @@ void DIA<ValueType, Stack>::WriteLinesMany(
 
     using WriteLinesManyNode = api::WriteLinesManyNode<DIA>;
 
-    auto node = std::make_shared<WriteLinesManyNode>(
+    auto node = common::MakeCounting<WriteLinesManyNode>(
         *this, filepath, target_file_size);
 
     node->RunScope();

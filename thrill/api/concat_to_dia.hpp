@@ -72,7 +72,7 @@ auto ConcatToDIA(Context & ctx,
 
     using ConcatToDIANode = api::ConcatToDIANode<ValueType>;
 
-    return DIA<ValueType>(std::make_shared<ConcatToDIANode>(ctx, in_vector));
+    return DIA<ValueType>(common::MakeCounting<ConcatToDIANode>(ctx, in_vector));
 }
 
 /*!
@@ -92,7 +92,7 @@ auto ConcatToDIA(Context & ctx,
     using ConcatToDIANode = api::ConcatToDIANode<ValueType>;
 
     return DIA<ValueType>(
-        std::make_shared<ConcatToDIANode>(ctx, std::move(in_vector)));
+        common::MakeCounting<ConcatToDIANode>(ctx, std::move(in_vector)));
 }
 
 } // namespace api

@@ -111,7 +111,7 @@ auto DIA<ValueType, Stack>::AllReduce(
             ValueType>::value,
         "ReduceFunction has the wrong input type");
 
-    auto node = std::make_shared<AllReduceNode>(
+    auto node = common::MakeCounting<AllReduceNode>(
         *this, "AllReduce", sum_function, initial_value);
 
     node->RunScope();

@@ -221,10 +221,10 @@ auto DIA<ValueType, Stack>::FlatWindow(
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
 
-    auto shared_node = std::make_shared<WindowNode>(
+    auto node = common::MakeCounting<WindowNode>(
         *this, "FlatWindow", window_size, window_function);
 
-    return DIA<ValueOut>(shared_node);
+    return DIA<ValueOut>(node);
 }
 
 template <typename ValueType, typename Stack>
@@ -261,10 +261,10 @@ auto DIA<ValueType, Stack>::Window(
     using WindowNode =
               api::OverlapWindowNode<Result, DIA, decltype(flatwindow_function)>;
 
-    auto shared_node = std::make_shared<WindowNode>(
+    auto node = common::MakeCounting<WindowNode>(
         *this, "Window", window_size, flatwindow_function);
 
-    return DIA<Result>(shared_node);
+    return DIA<Result>(node);
 }
 
 /******************************************************************************/
@@ -395,10 +395,10 @@ auto DIA<ValueType, Stack>::FlatWindow(
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
 
-    auto shared_node = std::make_shared<WindowNode>(
+    auto node = common::MakeCounting<WindowNode>(
         *this, "FlatWindow", window_size, window_function);
 
-    return DIA<ValueOut>(shared_node);
+    return DIA<ValueOut>(node);
 }
 
 template <typename ValueType, typename Stack>
@@ -436,10 +436,10 @@ auto DIA<ValueType, Stack>::Window(
     using WindowNode =
               api::DisjointWindowNode<Result, DIA, decltype(flatwindow_function)>;
 
-    auto shared_node = std::make_shared<WindowNode>(
+    auto node = common::MakeCounting<WindowNode>(
         *this, "Window", window_size, flatwindow_function);
 
-    return DIA<Result>(shared_node);
+    return DIA<Result>(node);
 }
 
 } // namespace api

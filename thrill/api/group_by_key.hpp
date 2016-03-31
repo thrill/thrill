@@ -253,10 +253,10 @@ auto DIA<ValueType, Stack>::GroupByKey(
     using GroupByNode = api::GroupByNode<
               DOpResult, DIA, KeyExtractor, GroupFunction, HashFunction>;
 
-    auto shared_node =
-        std::make_shared<GroupByNode>(*this, key_extractor, groupby_function);
+    auto node = common::MakeCounting<GroupByNode>(
+        *this, key_extractor, groupby_function);
 
-    return DIA<DOpResult>(shared_node);
+    return DIA<DOpResult>(node);
 }
 
 } // namespace api

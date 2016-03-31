@@ -99,10 +99,10 @@ auto Generate(Context & ctx,
             >::value,
         "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
 
-    auto shared_node = std::make_shared<GenerateNode>(
+    auto node = common::MakeCounting<GenerateNode>(
         ctx, generator_function, size);
 
-    return DIA<GeneratorResult>(shared_node);
+    return DIA<GeneratorResult>(node);
 }
 
 /*!

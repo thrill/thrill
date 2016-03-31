@@ -144,11 +144,10 @@ auto GenerateFromFile(Context & ctx, const std::string & filepath,
             const std::string&>::value,
         "GeneratorFunction needs a const std::string& as input");
 
-    auto shared_node =
-        std::make_shared<GenerateNode>(
-            ctx, generator_function, filepath, size);
+    auto node = common::MakeCounting<GenerateNode>(
+        ctx, generator_function, filepath, size);
 
-    return DIA<GeneratorResult>(shared_node);
+    return DIA<GeneratorResult>(node);
 }
 
 } // namespace api

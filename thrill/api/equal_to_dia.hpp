@@ -75,7 +75,7 @@ auto EqualToDIA(Context & ctx,
 
     using EqualToDIANode = api::EqualToDIANode<ValueType>;
 
-    return DIA<ValueType>(std::make_shared<EqualToDIANode>(ctx, in_vector));
+    return DIA<ValueType>(common::MakeCounting<EqualToDIANode>(ctx, in_vector));
 }
 
 /*!
@@ -98,7 +98,7 @@ auto EqualToDIA(Context & ctx,
     using EqualToDIANode = api::EqualToDIANode<ValueType>;
 
     return DIA<ValueType>(
-        std::make_shared<EqualToDIANode>(ctx, std::move(in_vector)));
+        common::MakeCounting<EqualToDIANode>(ctx, std::move(in_vector)));
 }
 
 } // namespace api

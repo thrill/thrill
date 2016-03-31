@@ -94,7 +94,7 @@ public:
     //! base item type StackInput which is transformed by the function stack
     //! lambdas further. But even pushing more lambdas does not change the stack
     //! input type.
-    using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
+    using DIANodePtr = common::CountingPtr<DIANode<StackInput> >;
 
     //! default-constructor: invalid DIA
     DIA() = default;
@@ -184,7 +184,7 @@ public:
     //! Returns the number of references to the according DIANode.
     size_t node_refcount() const {
         assert(IsValid());
-        return node_.use_count();
+        return node_->reference_count();
     }
 
     //! Returns the stored function chain.

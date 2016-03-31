@@ -267,11 +267,11 @@ auto DIA<ValueType, Stack>::GroupToIndex(
 
     using GroupByNode
               = GroupToIndexNode<DOpResult, DIA, KeyExtractor, GroupFunction>;
-    auto shared_node
-        = std::make_shared<GroupByNode>(
+
+    auto node = common::MakeCounting<GroupByNode>(
         *this, key_extractor, groupby_function, result_size, neutral_element);
 
-    return DIA<DOpResult>(shared_node);
+    return DIA<DOpResult>(node);
 }
 
 } // namespace api

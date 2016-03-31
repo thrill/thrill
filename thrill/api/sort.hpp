@@ -671,9 +671,9 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const 
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    auto shared_node = std::make_shared<SortNode>(*this, compare_function);
+    auto node = common::MakeCounting<SortNode>(*this, compare_function);
 
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(node);
 }
 
 } // namespace api

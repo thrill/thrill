@@ -100,7 +100,7 @@ DIA<ValueType> DIA<ValueType, Stack>::Cache() const {
     }
 #endif
     return DIA<ValueType>(
-        std::make_shared<api::CacheNode<ValueType, DIA> >(*this));
+        common::MakeCounting<api::CacheNode<ValueType, DIA> >(*this));
 }
 
 } // namespace api

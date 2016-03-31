@@ -128,10 +128,10 @@ auto DIA<ValueType, Stack>::Sample(size_t sample_size) const {
     using SampleNode
               = api::SampleNode<ValueType, DIA>;
 
-    auto shared_node
-        = std::make_shared<SampleNode>(*this, sample_size);
+    auto node = common::MakeCounting<SampleNode>(
+        *this, sample_size);
 
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(node);
 }
 
 } // namespace api

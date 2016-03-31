@@ -44,7 +44,7 @@ auto DIA<ValueType, Stack>::Sum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    auto node = std::make_shared<SumNode>(
+    auto node = common::MakeCounting<SumNode>(
         *this, "Sum", sum_function, initial_value);
 
     node->RunScope();

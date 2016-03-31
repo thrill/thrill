@@ -307,10 +307,10 @@ template <typename ValueType>
 DIA<ValueType> ReadBinary(
     Context& ctx, const std::vector<std::string>& filepath) {
 
-    auto shared_node =
-        std::make_shared<ReadBinaryNode<ValueType> >(ctx, filepath);
+    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+        ctx, filepath);
 
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(node);
 }
 
 /*!
@@ -325,10 +325,10 @@ DIA<ValueType> ReadBinary(
 template <typename ValueType>
 DIA<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
 
-    auto shared_node =
-        std::make_shared<ReadBinaryNode<ValueType> >(ctx, filepath);
+    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+        ctx, filepath);
 
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(node);
 }
 
 } // namespace api

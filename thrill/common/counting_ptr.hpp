@@ -93,18 +93,22 @@ public:
     { IncReference(); }
 
     //! copy-constructor: also initializes new reference to ptr.
-    CountingPtr(const CountingPtr& other_ptr) noexcept : ptr_(other_ptr.ptr_)
+    CountingPtr(const CountingPtr& other) noexcept : ptr_(other.ptr_)
+    { IncReference(); }
+
+    template <class Up>
+    CountingPtr(const CountingPtr<Up>& other) noexcept : ptr_(other.ptr_)
     { IncReference(); }
 
     //! move-constructor: just moves pointer, does not change reference counts.
-    CountingPtr(CountingPtr&& other_ptr) noexcept : ptr_(other_ptr.ptr_) {
-        other_ptr.ptr_ = nullptr;
+    CountingPtr(CountingPtr&& other) noexcept : ptr_(other.ptr_) {
+        other.ptr_ = nullptr;
     }
 
     //! copy-assignment operator: dereference current object and acquire
     //! reference on new one.
-    CountingPtr& operator = (const CountingPtr& other_ptr) noexcept
-    { return operator = (other_ptr.ptr_); }
+    CountingPtr& operator = (const CountingPtr& other) noexcept
+    { return operator = (other.ptr_); }
 
     //! copy-assignment to pointer: dereference current and acquire reference to
     //! new ptr.
@@ -117,10 +121,10 @@ public:
 
     //! move-assignment operator: dereference current object and acquire other
     //! one.
-    CountingPtr& operator = (CountingPtr&& other_ptr) noexcept {
+    CountingPtr& operator = (CountingPtr&& other) noexcept {
         DecReference();
-        ptr_ = other_ptr.ptr_;
-        other_ptr.ptr_ = nullptr;
+        ptr_ = other.ptr_;
+        other.ptr_ = nullptr;
         return *this;
     }
 
@@ -149,12 +153,12 @@ public:
     { return ptr_; }
 
     //! test equality of only the pointer values.
-    bool operator == (const CountingPtr& other_ptr) const noexcept
-    { return ptr_ == other_ptr.ptr_; }
+    bool operator == (const CountingPtr& other) const noexcept
+    { return ptr_ == other.ptr_; }
 
     //! test inequality of only the pointer values.
-    bool operator != (const CountingPtr& other_ptr) const noexcept
-    { return ptr_ != other_ptr.ptr_; }
+    bool operator != (const CountingPtr& other) const noexcept
+    { return ptr_ != other.ptr_; }
 
     //! test equality of only the address pointed to
     bool operator == (Type* other) const noexcept
@@ -198,6 +202,11 @@ public:
         std::swap(ptr_, b.ptr_);
     }
 };
+
+template <typename Type, typename ... Args>
+CountingPtr<Type> MakeCounting(Args&& ... args) {
+    return CountingPtr<Type>(new Type(std::forward<Args>(args) ...));
+}
 
 //! swap enclosed object with another counting pointer (no reference counts need
 //! change)

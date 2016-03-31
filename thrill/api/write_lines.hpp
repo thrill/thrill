@@ -119,7 +119,7 @@ void DIA<ValueType, Stack>::WriteLines(
 
     using WriteLinesNode = api::WriteLinesNode<DIA>;
 
-    auto node = std::make_shared<WriteLinesNode>(*this, filepath);
+    auto node = common::MakeCounting<WriteLinesNode>(*this, filepath);
 
     node->RunScope();
 }

@@ -84,10 +84,10 @@ private:
  * previously. Not all DIABases have children (ActionNodes do not), hence,
  * children are first introduced in DIANode.
  */
-class DIABase : public std::enable_shared_from_this<DIABase>
+class DIABase : public common::ReferenceCount
 {
 public:
-    using DIABasePtr = std::shared_ptr<DIABase>;
+    using DIABasePtr = common::CountingPtr<DIABase>;
 
     /*!
      * The constructor for a DIABase. Sets the parents for this node, but does
@@ -307,7 +307,7 @@ public:
     };
 };
 
-using DIABasePtr = std::shared_ptr<DIABase>;
+using DIABasePtr = common::CountingPtr<DIABase>;
 
 //! \}
 

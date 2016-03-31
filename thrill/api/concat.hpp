@@ -71,7 +71,7 @@ public:
                     parents, [](const ParentDIA0& d) { return d.id(); }),
                 common::MapVector(
                     parents, [](const ParentDIA0& d) {
-                        return std::static_pointer_cast<DIABase>(d.node());
+                        return DIABasePtr(d.node().get());
                     })),
           num_inputs_(parents.size())
     {
@@ -317,7 +317,7 @@ auto Concat(const FirstDIA &first_dia, const DIAs &... dias) {
 
     using ConcatNode = api::ConcatNode<ValueType, FirstDIA, DIAs ...>;
 
-    return DIA<ValueType>(std::make_shared<ConcatNode>(first_dia, dias ...));
+    return DIA<ValueType>(common::MakeCounting<ConcatNode>(first_dia, dias ...));
 }
 
 /*!
@@ -339,7 +339,7 @@ auto Concat(const std::initializer_list<DIA<ValueType> >&dias) {
 
     using ConcatNode = api::ConcatNode<ValueType, DIA<ValueType> >;
 
-    return DIA<ValueType>(std::make_shared<ConcatNode>(dias));
+    return DIA<ValueType>(common::MakeCounting<ConcatNode>(dias));
 }
 
 /*!
@@ -361,7 +361,7 @@ auto Concat(const std::vector<DIA<ValueType> >&dias) {
 
     using ConcatNode = api::ConcatNode<ValueType, DIA<ValueType> >;
 
-    return DIA<ValueType>(std::make_shared<ConcatNode>(dias));
+    return DIA<ValueType>(common::MakeCounting<ConcatNode>(dias));
 }
 
 template <typename ValueType, typename Stack>

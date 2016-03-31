@@ -44,7 +44,7 @@ auto DIA<ValueType, Stack>::Max(
             ValueType>::value,
         "MaxFunction has the wrong input type");
 
-    auto node = std::make_shared<MaxNode>(
+    auto node = common::MakeCounting<MaxNode>(
         *this, "Max", max_function, initial_value);
 
     node->RunScope();

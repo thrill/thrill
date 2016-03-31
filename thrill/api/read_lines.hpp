@@ -414,7 +414,7 @@ private:
  * \ingroup dia_sources
  */
 DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
-    return DIA<std::string>(std::make_shared<ReadLinesNode>(ctx, filepath));
+    return DIA<std::string>(common::MakeCounting<ReadLinesNode>(ctx, filepath));
 }
 
 /*!
@@ -428,7 +428,8 @@ DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
  */
 DIA<std::string> ReadLines(
     Context& ctx, const std::vector<std::string>& filepaths) {
-    return DIA<std::string>(std::make_shared<ReadLinesNode>(ctx, filepaths));
+    return DIA<std::string>(
+        common::MakeCounting<ReadLinesNode>(ctx, filepaths));
 }
 
 } // namespace api

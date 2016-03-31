@@ -293,11 +293,11 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
               DOpResult, DIA, KeyExtractor, ReduceFunction,
               ReduceConfig, /* VolatileKey */ false, false>;
 
-    auto shared_node = std::make_shared<ReduceNode>(
+    auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,
         size, neutral_element, reduce_config);
 
-    return DIA<DOpResult>(shared_node);
+    return DIA<DOpResult>(node);
 }
 
 template <typename ValueType, typename Stack>
@@ -351,12 +351,11 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
               DOpResult, DIA, KeyExtractor, ReduceFunction,
               ReduceConfig, /* VolatileKey */ true, false>;
 
-    auto shared_node
-        = std::make_shared<ReduceNode>(
+    auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,
         size, neutral_element, reduce_config);
 
-    return DIA<DOpResult>(shared_node);
+    return DIA<DOpResult>(node);
 }
 
 } // namespace api

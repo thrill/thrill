@@ -104,10 +104,10 @@ auto Distribute(
 
     using DistributeNode = api::DistributeNode<ValueType>;
 
-    auto shared_node =
-        std::make_shared<DistributeNode>(ctx, in_vector, source_id);
+    auto node = common::MakeCounting<DistributeNode>(
+        ctx, in_vector, source_id);
 
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(node);
 }
 
 /*!
@@ -124,10 +124,10 @@ auto Distribute(
 
     using DistributeNode = api::DistributeNode<ValueType>;
 
-    auto shared_node =
-        std::make_shared<DistributeNode>(ctx, std::move(in_vector), source_id);
+    auto node = common::MakeCounting<DistributeNode>(
+        ctx, std::move(in_vector), source_id);
 
-    return DIA<ValueType>(shared_node);
+    return DIA<ValueType>(node);
 }
 
 } // namespace api

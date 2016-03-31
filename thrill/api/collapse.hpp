@@ -79,7 +79,7 @@ template <typename AnyStack>
 DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs)
 // Create new CollapseNode. Transfer stack from rhs to CollapseNode. Build new
 // DIA with empty stack and CollapseNode
-    : DIA(std::make_shared<
+    : DIA(common::MakeCounting<
               api::CollapseNode<ValueType, DIA<ValueType, AnyStack> > >(rhs)) {
     LOG0 << "WARNING: cast to DIA creates CollapseNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIA.";
@@ -99,7 +99,7 @@ struct CollapseSwitch
         using CollapseNode = api::CollapseNode<
                   ValueType, DIA<ValueType, Stack> >;
 
-        return DIA<ValueType>(std::make_shared<CollapseNode>(dia));
+        return DIA<ValueType>(common::MakeCounting<CollapseNode>(dia));
     }
 };
 
