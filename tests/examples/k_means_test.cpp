@@ -48,15 +48,12 @@ TEST(KMeans, RandomPoints) {
 
     centroids.reserve(num_clusters);
     for (size_t i = 0; i < num_clusters; ++i) {
-        centroids.emplace_back(Point2D {
-                                   { coord_dist(rng), coord_dist(rng) }
-                               });
+        centroids.emplace_back(points[rng() % points.size()]);
     }
 
     const std::vector<Point2D> orig_centroids = centroids;
 
-    std::vector<size_t> correct_closest;
-    std::vector<Point2D> correct_centroids;
+    double correct_cost = 0.0;
 
     // calculate "correct" results with Lloyd's Algorithm
     {
@@ -67,7 +64,6 @@ TEST(KMeans, RandomPoints) {
 
             // for each point, find the closest centroid
             for (size_t i = 0; i < num_points; ++i) {
-
                 const Point2D& p = points[i];
                 double min_dist = std::numeric_limits<double>::max();
 
@@ -93,8 +89,19 @@ TEST(KMeans, RandomPoints) {
             }
         }
 
-        correct_closest = std::move(closest);
-        correct_centroids = std::move(centroids);
+        // calculate distance squared for each point to the closest centroid
+        for (size_t i = 0; i < num_points; ++i) {
+            const Point2D& p = points[i];
+            double min_dist = p.DistanceSquare(centroids[0]);
+
+            for (size_t c = 1; c < num_clusters; ++c) {
+                double dist = p.DistanceSquare(centroids[c]);
+                if (dist < min_dist) {
+                    min_dist = dist;
+                }
+            }
+            correct_cost += min_dist;
+        }
     }
 
     auto start_func =
@@ -104,33 +111,16 @@ TEST(KMeans, RandomPoints) {
             auto input_points = EqualToDIA(ctx, points);
             DIA<Point2D> centroids_dia = EqualToDIA(ctx, orig_centroids);
 
-            auto means = KMeans(input_points, centroids_dia, iterations);
+            auto means = KMeans(input_points, 2, num_clusters, iterations);
 
-            // compare results
-            std::vector<PointClusterId<Point2D> > result = means.AllGather();
-            std::vector<Point2D> centroids = centroids_dia.AllGather();
-
-            ASSERT_EQ(correct_closest.size(), result.size());
-            ASSERT_EQ(correct_centroids.size(), centroids.size());
-
-            // compare centroid indexes, even though they need not match
-            for (size_t i = 0; i < result.size(); ++i) {
-                if (correct_closest[i] != result[i].second) {
-                    // if cluster center indexes do not match, check that the
-                    // distance to the centers are about the same
-                    double d1 = points[i].Distance(
-                        correct_centroids[correct_closest[i]]);
-                    double d2 = points[i].Distance(
-                        centroids[result[i].second]);
-                    ASSERT_DOUBLE_EQ(d1, d2);
-                }
-                else {
-                    ASSERT_EQ(correct_closest[i], result[i].second);
-                }
+            double cost = means.ComputeCost(input_points);
+            if (ctx.my_rank() == 0) {
+                sLOG1 << "cost" << cost << "correct_cost" << correct_cost
+                      << "abs_diff_percent"
+                      << common::abs_diff(cost, correct_cost) / correct_cost;
             }
-            for (size_t i = 0; i < centroids.size(); ++i) {
-                ASSERT_TRUE(correct_centroids[i].Distance(centroids[i]) < 0.0001);
-            }
+
+            ASSERT_LE(common::abs_diff(cost, correct_cost) / correct_cost, 0.2);
         };
 
     api::RunLocalTests(start_func);

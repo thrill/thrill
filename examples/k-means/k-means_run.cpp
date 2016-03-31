@@ -13,7 +13,6 @@
 
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/sample.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
@@ -45,28 +44,36 @@ std::ostream& operator << (std::ostream& os, const SVGColor& c) {
 
 //! Output the points and centroids as a SVG drawing.
 template <typename Point>
-void OutputSVG(std::ostream& os,
-               const std::vector<PointClusterId<Point> >& list,
-               const std::vector<Point>& centroids) {
-    thrill::common::THRILL_UNUSED(os);
+void OutputSVG(const std::string& svg_path,
+               const DIA<Point>& list,
+               const KMeansModel<Point>& model) {
+    thrill::common::THRILL_UNUSED(svg_path);
     thrill::common::THRILL_UNUSED(list);
-    thrill::common::THRILL_UNUSED(centroids);
+    thrill::common::THRILL_UNUSED(model);
 }
 
 //! Output the points and centroids as a 2-D SVG drawing
 template <>
-void OutputSVG(std::ostream& os,
-               const std::vector<PointClusterId<Point<2> > >& list,
-               const std::vector<Point<2> >& centroids) {
+void OutputSVG(const std::string& svg_path,
+               const DIA<Point<2> >& point_dia,
+               const KMeansModel<Point<2> >& model) {
     double width = 0, height = 0;
     double shrink = 200;
 
     using Point2D = Point<2>;
 
+    const std::vector<Point2D>& centroids = model.centroids();
+    std::vector<PointClusterId<Point2D> > list =
+        model.ClassifyPairs(point_dia).Gather();
+
     for (const PointClusterId<Point2D>& p : list) {
         width = std::max(width, p.first.x[0]);
         height = std::max(height, p.first.x[1]);
     }
+
+    if (point_dia.context().my_rank() != 0) return;
+
+    std::ofstream os(svg_path);
 
     os << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
     os << "<svg\n";
@@ -116,16 +123,14 @@ static void RunKMeansGenerated(
             return Point::Random(dimensions, dist, rng);
         }, num_points);
 
-    DIA<Point> centroids_dia = points.Sample(num_clusters);
+    auto result = KMeans(points, dimensions, num_clusters, iterations);
 
-    auto result = KMeans(points, centroids_dia, iterations);
+    double cost = result.ComputeCost(points);
+    if (ctx.my_rank() == 0)
+        LOG1 << "k-means cost: " << cost;
 
-    std::vector<PointClusterId<Point> > plist = result.Gather();
-    std::vector<Point> centroids = centroids_dia.Gather();
-
-    if (ctx.my_rank() == 0 && svg_path.size() && dimensions == 2) {
-        std::ofstream os(svg_path);
-        OutputSVG(os, plist, centroids);
+    if (svg_path.size() && dimensions == 2) {
+        OutputSVG(svg_path, points, result);
     }
 }
 

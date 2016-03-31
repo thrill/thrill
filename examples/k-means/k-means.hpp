@@ -16,7 +16,9 @@
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
-#include <thrill/api/reduce_to_index.hpp>
+#include <thrill/api/reduce_by_key.hpp>
+#include <thrill/api/sample.hpp>
+#include <thrill/api/sum.hpp>
 
 #include <cereal/types/vector.hpp>
 #include <thrill/data/serialization_cereal.hpp>
@@ -182,19 +184,119 @@ struct ClosestCentroid {
     }
 };
 
+//! Model returned by KMeans algorithm containing results.
+template <typename Point>
+class KMeansModel
+{
+public:
+    KMeansModel(size_t dimensions, size_t num_clusters, size_t iterations,
+                const std::vector<Point>& centroids)
+        : dimensions_(dimensions), num_clusters_(num_clusters),
+          iterations_(iterations), centroids_(centroids)
+    { }
+
+    //! \name Accessors
+    //! \{
+
+    //! Returns dimensions_
+    size_t dimensions() const { return dimensions_; }
+
+    //! Returns number of clusters
+    size_t num_clusters() const { return num_clusters_; }
+
+    //! Returns iterations_
+    size_t iterations() const { return iterations_; }
+
+    //! Returns centroids_
+    const std::vector<Point>& centroids() const { return centroids_; }
+
+    //! \}
+
+    //! \name Classification
+    //! \{
+
+    //! Calculate closest cluster to point
+    size_t Classify(const Point& p) const {
+        double min_dist = p.DistanceSquare(centroids_[0]);
+        size_t closest_id = 0;
+        for (size_t i = 1; i < centroids_.size(); ++i) {
+            double dist = p.DistanceSquare(centroids_[i]);
+            if (dist < min_dist) {
+                min_dist = dist;
+                closest_id = i;
+            }
+        }
+        return closest_id;
+    }
+
+    //! Calculate closest cluster to all points, returns DIA containing only the
+    //! cluster ids.
+    template <typename PointDIA>
+    auto Classify(const PointDIA &points) const {
+        return points
+               .Map([this](const Point& p) { return Classify(p); });
+    }
+
+    //! Calculate closest cluster to all points, returns DIA contains pairs of
+    //! points and their cluster id.
+    template <typename PointDIA>
+    auto ClassifyPairs(const PointDIA &points) const {
+        return points
+               .Map([this](const Point& p) {
+                        return PointClusterId<Point>(p, Classify(p));
+                    });
+    }
+
+    //! Calculate the k-means cost: the squared distance to the nearest center.
+    double ComputeCost(const Point& p) const {
+        double min_dist = p.DistanceSquare(centroids_[0]);
+        for (size_t i = 1; i < centroids_.size(); ++i) {
+            double dist = p.DistanceSquare(centroids_[i]);
+            if (dist < min_dist) {
+                min_dist = dist;
+            }
+        }
+        return min_dist;
+    }
+
+    //! Calculate the overall k-means cost: the sum of squared distances to
+    //! their nearest center.
+    template <typename PointDIA>
+    double ComputeCost(const PointDIA& points) const {
+        return points
+               .Map([this](const Point& p) { return ComputeCost(p); })
+               .Sum();
+    }
+
+    //! \}
+
+private:
+    //! dimensions of space
+    size_t dimensions_;
+
+    //! number of clusters
+    size_t num_clusters_;
+
+    //! number of iterations
+    size_t iterations_;
+
+    //! computed centroids in cluster id order
+    std::vector<Point> centroids_;
+};
+
 //! Calculate k-Means using Lloyd's Algorithm. The DIA centroids is both an
 //! input and an output parameter. The method returns a std::pair<Point2D,
 //! size_t> = Point2DClusterId into the centroids for each input point.
 template <typename Point, typename InStack>
-auto KMeans(const DIA<Point, InStack>&input_points, DIA<Point>&centroids,
-            size_t iterations) {
+auto KMeans(const DIA<Point, InStack>&input_points,
+            size_t dimensions, size_t num_clusters, size_t iterations) {
 
     auto points = input_points.Cache();
 
     using ClosestCentroid = ClosestCentroid<Point>;
     using CentroidAccumulated = CentroidAccumulated<Point>;
 
-    DIA<ClosestCentroid> closest;
+    DIA<Point> centroids = points.Sample(num_clusters);
 
     for (size_t iter = 0; iter < iterations; ++iter) {
 
@@ -202,10 +304,9 @@ auto KMeans(const DIA<Point, InStack>&input_points, DIA<Point>&centroids,
         // Action here, but must exist later when the Map() is
         // processed. Hhence, we move it into the closure.
         std::vector<Point> local_centroids = centroids.AllGather();
-        size_t num_centroids = local_centroids.size();
 
         // calculate the closest centroid for each point
-        closest = points.Map(
+        auto closest = points.Map(
             [local_centroids = std::move(local_centroids)](const Point& p) {
                 assert(local_centroids.size());
                 double min_dist = p.DistanceSquare(local_centroids[0]);
@@ -221,14 +322,12 @@ auto KMeans(const DIA<Point, InStack>&input_points, DIA<Point>&centroids,
                 return ClosestCentroid {
                     closest_id, CentroidAccumulated { p, 1 }
                 };
-            }).Collapse();
+            });
 
-        // Calculate new centroids as the mean of all points associated with
-        // it. We use ReduceToIndex only because then the indices in the
-        // "closest" stay valid.
+        // Calculate new centroids as the mean of all points associated with it.
         centroids =
             closest
-            .ReduceToIndex(
+            .ReduceByKey(
                 [](const ClosestCentroid& cc) { return cc.cluster_id; },
                 [](const ClosestCentroid& a, const ClosestCentroid& b) {
                     return ClosestCentroid {
@@ -236,19 +335,16 @@ auto KMeans(const DIA<Point, InStack>&input_points, DIA<Point>&centroids,
                         CentroidAccumulated { a.center.p + b.center.p,
                                               a.center.count + b.center.count }
                     };
-                },
-                num_centroids)
+                })
             .Map([](const ClosestCentroid& cc) {
                      return cc.center.p / static_cast<double>(cc.center.count);
                  })
             .Collapse();
     }
 
-    // map to only the index.
-    return closest.Map(
-        [](const ClosestCentroid& cc) {
-            return PointClusterId<Point>(cc.center.p, cc.cluster_id);
-        });
+    return KMeansModel<Point>(
+        dimensions, num_clusters, iterations,
+        centroids.AllGather());
 }
 
 } // namespace k_means
