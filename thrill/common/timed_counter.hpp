@@ -13,7 +13,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <memory>
 #include <vector>
 
 namespace thrill {
@@ -79,8 +78,6 @@ private:
 
     std::vector<TimePoint> occurences_;
 };
-
-using TimedCounterPtr = std::shared_ptr<TimedCounter>;
 
 } // namespace common
 } // namespace thrill

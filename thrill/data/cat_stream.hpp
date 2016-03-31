@@ -136,10 +136,10 @@ private:
     BlockQueue * loopback_queue(size_t from_worker_id);
 };
 
-using CatStreamPtr = std::shared_ptr<CatStream>;
+using CatStreamPtr = common::CountingPtr<CatStream>;
 
 using CatStreamSet = StreamSet<CatStream>;
-using CatStreamSetPtr = std::shared_ptr<CatStreamSet>;
+using CatStreamSetPtr = common::CountingPtr<CatStreamSet>;
 
 //! \}
 

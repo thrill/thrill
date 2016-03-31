@@ -19,7 +19,6 @@
 
 #include <cassert>
 #include <future>
-#include <memory>
 #include <ostream>
 #include <string>
 

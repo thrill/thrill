@@ -21,6 +21,8 @@ endif(NOT CTEST_SITE)
 
 set(CTEST_BUILD_COMMAND "make -j4")
 
+set(CTEST_TEST_TIMEOUT 900)
+
 ctest_start(Continuous)
 ctest_build()
 ctest_test(RETURN_VALUE retval)

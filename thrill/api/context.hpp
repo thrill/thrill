@@ -299,15 +299,15 @@ public:
     //! Returns a new File object containing a sequence of local Blocks.
     data::File GetFile(DIABase* dia);
 
-    //! Returns a new File, wrapped in a shared_ptr, containing a
-    //! sequence of local Blocks.
+    //! Returns a new File, wrapped in a CountingPtr, containing a sequence of
+    //! local Blocks.
     data::FilePtr GetFilePtr(size_t dia_id) {
-        return std::make_shared<data::File>(
+        return common::MakeCounting<data::File>(
             block_pool_, local_worker_id_, dia_id);
     }
 
-    //! Returns a new File, wrapped in a shared_ptr, containing a
-    //! sequence of local Blocks.
+    //! Returns a new File, wrapped in a CountingPtr, containing a sequence of
+    //! local Blocks.
     data::FilePtr GetFilePtr(DIABase* dia);
 
     //! Returns a reference to a new CatStream. This method alters the state of
@@ -337,7 +337,7 @@ public:
     //! Returns a reference to a new CatStream or MixStream, selectable via
     //! template parameter.
     template <typename Stream>
-    std::shared_ptr<Stream> GetNewStream(size_t dia_id);
+    common::CountingPtr<Stream> GetNewStream(size_t dia_id);
 
     //! the block manager keeps all data blocks moving through the system.
     data::BlockPool& block_pool() { return block_pool_; }

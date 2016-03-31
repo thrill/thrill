@@ -88,6 +88,9 @@ public:
     //! default constructor: contains a nullptr pointer.
     CountingPtr() noexcept : ptr_(nullptr) { }
 
+    //! implicit construction from nullptr_t: contains a nullptr pointer.
+    CountingPtr(std::nullptr_t) noexcept : ptr_(nullptr) { } // NOLINT
+
     //! constructor with pointer: initializes new reference to ptr.
     explicit CountingPtr(Type* ptr) noexcept : ptr_(ptr)
     { IncReference(); }

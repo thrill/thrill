@@ -11,6 +11,7 @@
 
 #include <thrill/data/cat_stream.hpp>
 
+#include <thrill/data/mix_stream.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
 

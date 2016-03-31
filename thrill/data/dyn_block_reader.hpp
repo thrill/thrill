@@ -27,9 +27,11 @@ namespace data {
  * This is a pure virtual base which will be used to fetch Blocks for the
  * BlockReader from different sources.
  */
-class DynBlockSourceInterface
+class DynBlockSourceInterface : public common::ReferenceCount
 {
 public:
+    virtual ~DynBlockSourceInterface() { }
+
     virtual PinnedBlock NextBlock() = 0;
 };
 
@@ -45,7 +47,7 @@ class DynBlockSource
 {
 public:
     explicit DynBlockSource(
-        std::shared_ptr<DynBlockSourceInterface>&& block_source_ptr)
+        common::CountingPtr<DynBlockSourceInterface>&& block_source_ptr)
         : block_source_ptr_(std::move(block_source_ptr))
     { }
 
@@ -54,7 +56,7 @@ public:
     }
 
 private:
-    std::shared_ptr<DynBlockSourceInterface> block_source_ptr_;
+    common::CountingPtr<DynBlockSourceInterface> block_source_ptr_;
 };
 
 //! Instantiation of BlockReader for reading from the polymorphic source.
@@ -97,7 +99,7 @@ private:
 template <typename BlockSource, typename ... Params>
 DynBlockSource ConstructDynBlockSource(Params&& ... params) {
     return DynBlockSource(
-        std::move(std::make_shared<DynBlockSourceAdapter<BlockSource> >(
+        std::move(common::MakeCounting<DynBlockSourceAdapter<BlockSource> >(
                       BlockSource(std::forward<Params>(params) ...))));
 }
 

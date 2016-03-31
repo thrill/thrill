@@ -22,7 +22,6 @@
 
 #include <cassert>
 #include <chrono>
-#include <memory>
 #include <ostream>
 
 namespace thrill {

@@ -23,7 +23,6 @@
 #include <thrill/data/file.hpp>
 
 #include <atomic>
-#include <memory>
 
 namespace thrill {
 namespace data {

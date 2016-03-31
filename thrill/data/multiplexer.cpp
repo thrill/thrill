@@ -38,7 +38,7 @@ class Repository
 {
 public:
     using Id = size_t;
-    using ObjectPtr = std::shared_ptr<Object>;
+    using ObjectPtr = common::CountingPtr<Object>;
 
     //! construct with initial ids 0.
     explicit Repository(size_t num_workers_per_node)
@@ -56,17 +56,18 @@ public:
     //! \param object_id of the object
     //! \param construction parameters forwards to constructor
     template <typename Subclass = Object, typename ... Types>
-    std::shared_ptr<Subclass>
+    common::CountingPtr<Subclass>
     GetOrCreate(Id object_id, Types&& ... construction) {
         auto it = map_.find(object_id);
 
         if (it != map_.end()) {
             die_unless(dynamic_cast<Subclass*>(it->second.get()));
-            return std::dynamic_pointer_cast<Subclass>(it->second);
+            return common::CountingPtr<Subclass>(
+                dynamic_cast<Subclass*>(it->second.get()));
         }
 
         // construct new object
-        std::shared_ptr<Subclass> value = std::make_shared<Subclass>(
+        common::CountingPtr<Subclass> value = common::MakeCounting<Subclass>(
             std::forward<Types>(construction) ...);
 
         map_.insert(std::make_pair(object_id, value));
@@ -74,12 +75,13 @@ public:
     }
 
     template <typename Subclass = Object>
-    std::shared_ptr<Subclass> GetOrDie(Id object_id) {
+    common::CountingPtr<Subclass> GetOrDie(Id object_id) {
         auto it = map_.find(object_id);
 
         if (it != map_.end()) {
             die_unless(dynamic_cast<Subclass*>(it->second.get()));
-            return std::dynamic_pointer_cast<Subclass>(it->second);
+            return common::CountingPtr<Subclass>(
+                dynamic_cast<Subclass*>(it->second.get()));
         }
 
         die("object " + std::to_string(object_id) + " not in repository");

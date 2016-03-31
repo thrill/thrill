@@ -111,10 +111,10 @@ private:
     MixBlockQueueSink * loopback_queue(size_t from_worker_id);
 };
 
-using MixStreamPtr = std::shared_ptr<MixStream>;
+using MixStreamPtr = common::CountingPtr<MixStream>;
 
 using MixStreamSet = StreamSet<MixStream>;
-using MixStreamSetPtr = std::shared_ptr<MixStreamSet>;
+using MixStreamSetPtr = common::CountingPtr<MixStreamSet>;
 
 //! \}
 

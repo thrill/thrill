@@ -59,10 +59,6 @@ File::Writer File::GetWriter(size_t block_size) {
     return Writer(this, block_size);
 }
 
-std::shared_ptr<File::Writer> File::GetWriterPtr(size_t block_size) {
-    return std::make_shared<Writer>(this, block_size);
-}
-
 File::DynWriter File::GetDynWriter(size_t block_size) {
     return DynWriter(this, block_size);
 }

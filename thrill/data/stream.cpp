@@ -11,6 +11,9 @@
 
 #include <thrill/data/stream.hpp>
 
+#include <thrill/data/cat_stream.hpp>
+#include <thrill/data/mix_stream.hpp>
+
 namespace thrill {
 namespace data {
 

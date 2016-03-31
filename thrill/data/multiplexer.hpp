@@ -33,14 +33,14 @@ template <typename Stream>
 class StreamSet;
 
 class CatStream;
-using CatStreamPtr = std::shared_ptr<CatStream>;
+using CatStreamPtr = common::CountingPtr<CatStream>;
 using CatStreamSet = StreamSet<CatStream>;
-using CatStreamSetPtr = std::shared_ptr<CatStreamSet>;
+using CatStreamSetPtr = common::CountingPtr<CatStreamSet>;
 
 class MixStream;
-using MixStreamPtr = std::shared_ptr<MixStream>;
+using MixStreamPtr = common::CountingPtr<MixStream>;
 using MixStreamSet = StreamSet<MixStream>;
-using MixStreamSetPtr = std::shared_ptr<MixStreamSet>;
+using MixStreamSetPtr = common::CountingPtr<MixStreamSet>;
 
 class BlockQueue;
 class MixBlockQueueSink;

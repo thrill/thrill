@@ -29,7 +29,6 @@
 
 #include <algorithm>
 #include <cstdlib>
-#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>

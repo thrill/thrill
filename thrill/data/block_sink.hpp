@@ -15,8 +15,6 @@
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_pool.hpp>
 
-#include <memory>
-
 namespace thrill {
 namespace data {
 

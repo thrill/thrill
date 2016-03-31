@@ -20,7 +20,6 @@
 #include <cassert>
 #include <deque>
 #include <iosfwd>
-#include <memory>
 #include <new>
 #include <string>
 #include <type_traits>

@@ -75,7 +75,7 @@ TEST(StreamSet, TestLoopbacks) {
     data::Multiplexer multiplexer(mem_manager, block_pool, workers_per_host, *group);
 
     auto producer =
-        [workers_per_host](std::shared_ptr<data::CatStream> stream, size_t my_id) {
+        [workers_per_host](common::CountingPtr<data::CatStream> stream, size_t my_id) {
             common::NameThisThread("worker " + mem::to_string(my_id));
             // send data between workers
             auto writers = stream->GetWriters(test_block_size);
@@ -86,7 +86,7 @@ TEST(StreamSet, TestLoopbacks) {
             }
         };
     auto consumer =
-        [workers_per_host](std::shared_ptr<data::CatStream> stream, size_t my_id) {
+        [workers_per_host](common::CountingPtr<data::CatStream> stream, size_t my_id) {
             common::NameThisThread("worker " + mem::to_string(my_id));
             // check data on each worker
             auto readers = stream->GetReaders();

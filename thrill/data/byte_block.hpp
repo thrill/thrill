@@ -39,7 +39,7 @@ class BlockPool;
  * A ByteBlock is the basic storage units of containers like File, BlockQueue,
  * etc. It consists of a fixed number of bytes without any type and meta
  * information. Conceptually a ByteBlock is written _once_ and can then be
- * shared read-only between containers using shared_ptr<const ByteBlock>
+ * shared read-only between containers using CountingPtr<const ByteBlock>
  * reference counting inside a Block, which adds meta information.
  *
  * ByteBlocks can be swapped to disk, which decreases their size to 0.

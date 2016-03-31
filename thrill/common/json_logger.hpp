@@ -18,7 +18,6 @@
 #include <cassert>
 #include <fstream>
 #include <initializer_list>
-#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>

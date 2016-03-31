@@ -825,13 +825,13 @@ data::MixStreamPtr Context::GetNewMixStream(DIABase* dia) {
 }
 
 template <>
-std::shared_ptr<data::CatStream>
+common::CountingPtr<data::CatStream>
 Context::GetNewStream<data::CatStream>(size_t dia_id) {
     return GetNewCatStream(dia_id);
 }
 
 template <>
-std::shared_ptr<data::MixStream>
+common::CountingPtr<data::MixStream>
 Context::GetNewStream<data::MixStream>(size_t dia_id) {
     return GetNewMixStream(dia_id);
 }

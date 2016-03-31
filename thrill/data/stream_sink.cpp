@@ -10,6 +10,8 @@
 
 #include <thrill/data/stream_sink.hpp>
 
+#include <thrill/data/cat_stream.hpp>
+#include <thrill/data/mix_stream.hpp>
 #include <thrill/data/multiplexer_header.hpp>
 #include <thrill/data/stream.hpp>
 

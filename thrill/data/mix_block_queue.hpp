@@ -22,7 +22,6 @@
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>
 
-#include <memory>
 #include <vector>
 
 namespace thrill {

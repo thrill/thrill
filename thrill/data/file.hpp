@@ -25,7 +25,6 @@
 #include <deque>
 #include <functional>
 #include <limits>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -52,7 +51,7 @@ class ConsumeFileBlockSource;
  * block contained any item offset in log_2(Blocks) time, though seeking within
  * the Block goes sequentially.
  */
-class File : public virtual BlockSink
+class File : public virtual BlockSink, public common::ReferenceCount
 {
 public:
     using Writer = BlockWriter<File>;
@@ -135,9 +134,6 @@ public:
 
     //! Get BlockWriter.
     Writer GetWriter(size_t block_size = default_block_size);
-
-    //! Get BlockWriterPtr.
-    std::shared_ptr<Writer> GetWriterPtr(size_t block_size = default_block_size);
 
     //! Get BlockWriter.
     DynWriter GetDynWriter(size_t block_size = default_block_size);
@@ -290,7 +286,7 @@ private:
     friend class data::ConsumeFileBlockSource;
 };
 
-using FilePtr = std::shared_ptr<File>;
+using FilePtr = common::CountingPtr<File>;
 
 /*!
  * A BlockSource to read Blocks from a File. The KeepFileBlockSource mainly
