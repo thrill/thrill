@@ -23,7 +23,7 @@ The namespace common contains many common tools and helpers shared by higher lay
 - \subpage common_stats
 - \ref CmdlineParser "Command Line Parser"
 - \ref ThreadPool "A ThreadPool to run many queued jobs concurrently which queue new jobs."
-- \ref delegate "A fast delegate replacement for std::function which supports non-copyable objects in a lambda capture."
+- \ref Delegate "A fast delegate replacement for std::function which supports non-copyable objects in a lambda capture."
 
 See the \ref thrill::common "namespace common" for a full list of utilities.
 

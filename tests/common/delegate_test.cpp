@@ -13,9 +13,9 @@
 #include <thrill/mem/allocator_base.hpp>
 
 using namespace thrill;
-using common::delegate;
+using common::Delegate;
 
-using TestDelegate = delegate<int(int), mem::BypassAllocator<void> >;
+using TestDelegate = Delegate<int(int), mem::BypassAllocator<void> >;
 
 int func1(int a) {
     return a + 5;
@@ -28,7 +28,7 @@ int func2(int a) {
 TEST(Delegate, TestSimpleFunction) {
     {
         // construction from a immediate function with no object or pointer.
-        TestDelegate d = TestDelegate::from<func1>();
+        TestDelegate d = TestDelegate::make<func1>();
         ASSERT_EQ(42, d(37));
     }
     {
@@ -38,7 +38,7 @@ TEST(Delegate, TestSimpleFunction) {
     }
     {
         // construction from a plain function pointer.
-        TestDelegate d = TestDelegate::from(func1);
+        TestDelegate d = TestDelegate::make(func1);
         ASSERT_EQ(42, d(37));
     }
 }
@@ -65,24 +65,24 @@ TEST(Delegate, TestClassFunction) {
     A a = { 2 };
     {
         // construction for an immediate class::method with class object
-        TestDelegate d = TestDelegate::from<A, & A::func>(&a);
+        TestDelegate d = TestDelegate::make<A, & A::func>(&a);
         ASSERT_EQ(42, d(40));
     }
     {
         // construction for an immediate class::method with class object
-        TestDelegate d = TestDelegate::from<A, & A::const_func>(&a);
+        TestDelegate d = TestDelegate::make<A, & A::const_func>(&a);
         ASSERT_EQ(42, d(40));
     }
     {
         // construction for an immediate class::method with class object by
         // reference
-        TestDelegate d = TestDelegate::from<A, & A::func>(a);
+        TestDelegate d = TestDelegate::make<A, & A::func>(a);
         ASSERT_EQ(42, d(40));
     }
     {
         // construction for an immediate class::method with class object by
         // reference
-        TestDelegate d = TestDelegate::from<A, & A::const_func>(a);
+        TestDelegate d = TestDelegate::make<A, & A::const_func>(a);
         ASSERT_EQ(42, d(40));
     }
 
@@ -109,22 +109,22 @@ TEST(Delegate, TestClassFunction) {
 
     {
         // constructor from an indirect class::method with object pointer.
-        TestDelegate d = TestDelegate::from(&a, &A::func);
+        TestDelegate d = TestDelegate::make(&a, &A::func);
         ASSERT_EQ(42, d(40));
     }
     {
         // constructor from an indirect class::method with object pointer.
-        TestDelegate d = TestDelegate::from(&a, &A::const_func);
+        TestDelegate d = TestDelegate::make(&a, &A::const_func);
         ASSERT_EQ(42, d(40));
     }
     {
         // constructor from an indirect class::method with object reference.
-        TestDelegate d = TestDelegate::from(a, &A::func);
+        TestDelegate d = TestDelegate::make(a, &A::func);
         ASSERT_EQ(42, d(40));
     }
     {
         // constructor from an indirect class::method with object reference.
-        TestDelegate d = TestDelegate::from(a, &A::const_func);
+        TestDelegate d = TestDelegate::make(a, &A::const_func);
         ASSERT_EQ(42, d(40));
     }
 
@@ -170,7 +170,7 @@ TEST(Delegate, TestFunctorClass) {
     }
     {
         // calls general functor constructor
-        TestDelegate d = TestDelegate::from(f);
+        TestDelegate d = TestDelegate::make(f);
         ASSERT_EQ(42, d(30));
     }
 }
@@ -181,13 +181,13 @@ TEST(Delegate, TestLambda) {
         ASSERT_EQ(42, d(41));
     }
     {
-        TestDelegate d = TestDelegate::from([](int x) { return x + 1; });
+        TestDelegate d = TestDelegate::make([](int x) { return x + 1; });
         ASSERT_EQ(42, d(41));
     }
     {
         // test a lambda with capture
         int val = 10;
-        TestDelegate d = TestDelegate::from([&](int x) { return x + val; });
+        TestDelegate d = TestDelegate::make([&](int x) { return x + val; });
         ASSERT_EQ(42, d(32));
     }
     {

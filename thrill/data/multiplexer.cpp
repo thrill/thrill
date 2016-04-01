@@ -216,7 +216,7 @@ common::JsonLogger& Multiplexer::logger() {
 void Multiplexer::AsyncReadMultiplexerHeader(Connection& s) {
     dispatcher_.AsyncRead(
         s, MultiplexerHeader::total_size,
-        net::AsyncReadCallback::from<
+        net::AsyncReadCallback::make<
             Multiplexer, & Multiplexer::OnMultiplexerHeader>(this));
 }
 

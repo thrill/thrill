@@ -52,7 +52,7 @@ public:
     using Reader = DynBlockReader;
     using ConsumeReader = BlockReader<ConsumeBlockQueueSource>;
 
-    using CloseCallback = common::delegate<void(BlockQueue&)>;
+    using CloseCallback = common::Delegate<void(BlockQueue&)>;
 
     //! Constructor from BlockPool
     explicit BlockQueue(BlockPool& block_pool, size_t local_worker_id,

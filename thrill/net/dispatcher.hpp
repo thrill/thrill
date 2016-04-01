@@ -38,22 +38,22 @@ namespace net {
 //! \{
 
 //! Signature of timer callbacks.
-using TimerCallback = common::delegate<bool(), mem::GPoolAllocator<char> >;
+using TimerCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async connection readability/writability callbacks.
-using AsyncCallback = common::delegate<bool(), mem::GPoolAllocator<char> >;
+using AsyncCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read callbacks.
-using AsyncReadCallback = common::delegate<
+using AsyncReadCallback = common::Delegate<
           void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
-using AsyncReadByteBlockCallback = common::delegate<
+using AsyncReadByteBlockCallback = common::Delegate<
           void(Connection& c, data::PinnedByteBlockPtr&& bytes),
           mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
-using AsyncWriteCallback = common::delegate<
+using AsyncWriteCallback = common::Delegate<
           void(Connection&), mem::GPoolAllocator<char> >;
 
 /*!
@@ -135,7 +135,7 @@ public:
 
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
-        AddRead(c, AsyncCallback::from<
+        AddRead(c, AsyncCallback::make<
                     AsyncReadBuffer, & AsyncReadBuffer::operator ()>(&arb));
     }
 
@@ -156,7 +156,7 @@ public:
 
         // register read callback
         AsyncReadByteBlock& arbb = async_read_block_.back();
-        AddRead(c, AsyncCallback::from<
+        AddRead(c, AsyncCallback::make<
                     AsyncReadByteBlock, & AsyncReadByteBlock::operator ()>(&arbb));
     }
 
@@ -177,7 +177,7 @@ public:
 
         // register write callback
         AsyncWriteBuffer& awb = async_write_.back();
-        AddWrite(c, AsyncCallback::from<
+        AddWrite(c, AsyncCallback::make<
                      AsyncWriteBuffer, & AsyncWriteBuffer::operator ()>(&awb));
     }
 
@@ -198,7 +198,7 @@ public:
 
         // register write callback
         AsyncWriteBlock& awb = async_write_block_.back();
-        AddWrite(c, AsyncCallback::from<
+        AddWrite(c, AsyncCallback::make<
                      AsyncWriteBlock, & AsyncWriteBlock::operator ()>(&awb));
     }
 

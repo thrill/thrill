@@ -38,7 +38,7 @@ class Request;
 class FileBase;
 using FileBasePtr = common::CountingPtr<FileBase>;
 
-using CompletionHandler = common::delegate<void(Request*, bool)>;
+using CompletionHandler = common::Delegate<void(Request*, bool)>;
 
 //! Request object encapsulating basic properties like file and offset.
 class Request : public common::ReferenceCount

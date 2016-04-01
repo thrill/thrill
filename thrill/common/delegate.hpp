@@ -28,7 +28,7 @@ namespace thrill {
 namespace common {
 
 template <typename T, typename Allocator = std::allocator<void> >
-class delegate;
+class Delegate;
 
 /*!
  * This is a faster replacement than std::function. Besides being faster and
@@ -37,16 +37,16 @@ class delegate;
  * standard to be copy-constructible, and hence does not allow move-only
  * lambda captures.
  *
- * A delegate contains a reference to any of the following callable objects:
+ * A Delegate contains a reference to any of the following callable objects:
  * - an immediate function (called via one indirection)
- * - a mutable function pointer (copied into the delegate)
+ * - a mutable function pointer (copied into the Delegate)
  * - an immediate class::method call (called via one indirection)
- * - a functor object (the whole object is copied into the delegate)
+ * - a functor object (the whole object is copied into the Delegate)
  *
  * All callable objects must have the signature ReturnType(Arguments ...). If a
- * callable has this signature, it can be bound to the delegate.
+ * callable has this signature, it can be bound to the Delegate.
  *
- * To implement all this the delegate contains one pointer to a "caller stub"
+ * To implement all this the Delegate contains one pointer to a "caller stub"
  * function, which depends on the contained object and can be an immediate
  * function call, a pointer to the object associated with the callable, and a
  * memory pointer (managed by shared_ptr) for holding larger callables that need
@@ -58,10 +58,10 @@ class delegate;
  *
  * Delegates can be constructed similar to std::function.
 \code
-// in defining the delegate we decide the ReturnType(Arguments ...) signature
-using MyDelegate = delegate<int(double)>;
+// in defining the Delegate we decide the ReturnType(Arguments ...) signature
+using MyDelegate = Delegate<int(double)>;
 
-// this is a plain function bound to the delegate as a function pointer
+// this is a plain function bound to the Delegate as a function pointer
 int func(double a) { return a + 10; }
 MyDelegate d1 = MyDelegate(func);
 
@@ -72,18 +72,18 @@ public:
 
 AClass a;
 
-// this is class::method bound to the delegate via indirection, warning: this
+// this is class::method bound to the Delegate via indirection, warning: this
 // creates a needless allocation, because it is stored as pair<Class,Method>
 MyDelegate d2 = MyDelegate(a, &AClass::method);
 // same as above
-MyDelegate d3 = MyDelegate::from(a, &AClass::method);
+MyDelegate d3 = MyDelegate::make(a, &AClass::method);
 
-// class::method bound to the delegate via instantiation of an immediate caller
+// class::method bound to the Delegate via instantiation of an immediate caller
 // to the method AClass::method. this is preferred and does not require any
 // memory allocation!
-MyDelegate d4 = MyDelegate::from<AClass, &AClass::method>(a);
+MyDelegate d4 = MyDelegate::make<AClass, &AClass::method>(a);
 
-// a lambda with capture bound to the delegate, this always performs a memory
+// a lambda with capture bound to the Delegate, this always performs a memory
 // allocation to copy the capture closure.
 double offset = 42.0;
 MyDelegate d5 = [&](double a) { return a + offset; };
@@ -91,31 +91,31 @@ MyDelegate d5 = [&](double a) { return a + offset; };
  *
  */
 template <typename R, typename ... A, typename Allocator>
-class delegate<R(A ...), Allocator>
+class Delegate<R(A ...), Allocator>
 {
 public:
     //! default constructor
-    delegate() = default;
+    Delegate() = default;
 
     //! copy constructor
-    delegate(const delegate&) = default;
+    Delegate(const Delegate&) = default;
 
     //! move constructor
-    delegate(delegate&&) = default;
+    Delegate(Delegate&&) = default;
 
     //! copy assignment operator
-    delegate& operator = (const delegate&) = default;
+    Delegate& operator = (const Delegate&) = default;
 
     //! move assignment operator
-    delegate& operator = (delegate&&) = default;
+    Delegate& operator = (Delegate&&) = default;
 
     //! \name Immediate Function Calls
     //! \{
 
     //! construction from an immediate function with no object or pointer.
     template <R(* const Function)(A ...)>
-    static delegate from() noexcept {
-        return delegate(function_caller<Function>, nullptr);
+    static Delegate make() noexcept {
+        return Delegate(function_caller<Function>, nullptr);
     }
 
     //! \}
@@ -124,13 +124,13 @@ public:
     //! \{
 
     //! constructor from a plain function pointer with no object.
-    explicit delegate(R(*const function_ptr)(A ...)) noexcept
-        : delegate(function_ptr_caller,
+    explicit Delegate(R(*const function_ptr)(A ...)) noexcept
+        : Delegate(function_ptr_caller,
                    reinterpret_cast<void*>(function_ptr)) { }
 
     //! construction from a plain function pointer with no object.
-    static delegate from(R(*const function_ptr)(A ...)) noexcept {
-        return delegate(function_ptr);
+    static Delegate make(R(*const function_ptr)(A ...)) noexcept {
+        return Delegate(function_ptr);
     }
 
     //! \}
@@ -140,29 +140,29 @@ public:
 
     //! construction for an immediate class::method with class object
     template <class C, R(C::* const Method)(A ...)>
-    static delegate from(C* const object_ptr) noexcept {
-        return delegate(method_caller<C, Method>, object_ptr);
+    static Delegate make(C* const object_ptr) noexcept {
+        return Delegate(method_caller<C, Method>, object_ptr);
     }
 
     //! construction for an immediate class::method with class object
     template <class C, R(C::* const Method)(A ...) const>
-    static delegate from(C const* const object_ptr) noexcept {
-        return delegate(const_method_caller<C, Method>,
+    static Delegate make(C const* const object_ptr) noexcept {
+        return Delegate(const_method_caller<C, Method>,
                         const_cast<C*>(object_ptr));
     }
 
     //! construction for an immediate class::method with class object by
     //! reference
     template <class C, R(C::* const Method)(A ...)>
-    static delegate from(C& object) noexcept {
-        return delegate(method_caller<C, Method>, &object);
+    static Delegate make(C& object) noexcept {
+        return Delegate(method_caller<C, Method>, &object);
     }
 
     //! construction for an immediate class::method with class object by
     //! reference
     template <class C, R(C::* const Method)(A ...) const>
-    static delegate from(C const& object) noexcept {
-        return delegate(const_method_caller<C, Method>,
+    static Delegate make(C const& object) noexcept {
+        return Delegate(const_method_caller<C, Method>,
                         const_cast<C*>(&object));
     }
 
@@ -172,14 +172,14 @@ public:
     //! \{
 
     //! constructor from any functor object T, which may be a lambda with
-    //! capture or a member_pair or const_member_pair wrapper.
+    //! capture or a MemberPair or ConstMemberPair wrapper.
     template <
         typename T,
         typename = typename std::enable_if<
-            !std::is_same<delegate, typename std::decay<T>::type>::value
+            !std::is_same<Delegate, typename std::decay<T>::type>::value
             >::type
         >
-    delegate(T&& f)
+    Delegate(T&& f)
         : store_(
               // allocate memory for T in shared_ptr with appropriate deleter
               typename Allocator::template rebind<
@@ -199,57 +199,57 @@ public:
     }
 
     //! constructor from any functor object T, which may be a lambda with
-    //! capture or a member_pair or const_member_pair wrapper.
+    //! capture or a MemberPair or ConstMemberPair wrapper.
     template <typename T>
-    static delegate from(T&& f) {
+    static Delegate make(T&& f) {
         return std::forward<T>(f);
     }
 
     //! constructor for wrapping a class::method with object pointer.
     template <class C>
-    delegate(C* const object_ptr, R(C::* const method_ptr)(A ...))
-        : delegate(member_pair<C>(object_ptr, method_ptr)) { }
+    Delegate(C* const object_ptr, R(C::* const method_ptr)(A ...))
+        : Delegate(MemberPair<C>(object_ptr, method_ptr)) { }
 
     //! constructor for wrapping a const class::method with object pointer.
     template <class C>
-    delegate(C* const object_ptr, R(C::* const method_ptr)(A ...) const)
-        : delegate(const_member_pair<C>(object_ptr, method_ptr)) { }
+    Delegate(C* const object_ptr, R(C::* const method_ptr)(A ...) const)
+        : Delegate(ConstMemberPair<C>(object_ptr, method_ptr)) { }
 
     //! constructor for wrapping a class::method with object reference.
     template <class C>
-    delegate(C& object, R(C::* const method_ptr)(A ...))
-        : delegate(member_pair<C>(&object, method_ptr)) { }
+    Delegate(C& object, R(C::* const method_ptr)(A ...))
+        : Delegate(MemberPair<C>(&object, method_ptr)) { }
 
     //! constructor for wrapping a const class::method with object reference.
     template <class C>
-    delegate(C const& object, R(C::* const method_ptr)(A ...) const)
-        : delegate(const_member_pair<C>(&object, method_ptr)) { }
+    Delegate(C const& object, R(C::* const method_ptr)(A ...) const)
+        : Delegate(ConstMemberPair<C>(&object, method_ptr)) { }
 
     //! constructor for wrapping a class::method with object pointer.
     template <class C>
-    static delegate from(C* const object_ptr,
+    static Delegate make(C* const object_ptr,
                          R(C::* const method_ptr)(A ...)) {
-        return member_pair<C>(object_ptr, method_ptr);
+        return MemberPair<C>(object_ptr, method_ptr);
     }
 
     //! constructor for wrapping a const class::method with object pointer.
     template <class C>
-    static delegate from(C const* const object_ptr,
+    static Delegate make(C const* const object_ptr,
                          R(C::* const method_ptr)(A ...) const) {
-        return const_member_pair<C>(object_ptr, method_ptr);
+        return ConstMemberPair<C>(object_ptr, method_ptr);
     }
 
     //! constructor for wrapping a class::method with object reference.
     template <class C>
-    static delegate from(C& object, R(C::* const method_ptr)(A ...)) {
-        return member_pair<C>(&object, method_ptr);
+    static Delegate make(C& object, R(C::* const method_ptr)(A ...)) {
+        return MemberPair<C>(&object, method_ptr);
     }
 
     //! constructor for wrapping a const class::method with object reference.
     template <class C>
-    static delegate from(C const& object,
+    static Delegate make(C const& object,
                          R(C::* const method_ptr)(A ...) const) {
-        return const_member_pair<C>(&object, method_ptr);
+        return ConstMemberPair<C>(&object, method_ptr);
     }
 
     //! \}
@@ -263,20 +263,20 @@ public:
     void reset_caller() noexcept { caller_ = nullptr; }
 
     //! swap delegates
-    void swap(delegate& other) noexcept { std::swap(*this, other); }
+    void swap(Delegate& other) noexcept { std::swap(*this, other); }
 
     //! compare delegate with another
-    bool operator == (delegate const& rhs) const noexcept {
+    bool operator == (Delegate const& rhs) const noexcept {
         return (object_ptr_ == rhs.object_ptr_) && (caller_ == rhs.caller_);
     }
 
     //! compare delegate with another
-    bool operator != (delegate const& rhs) const noexcept {
+    bool operator != (Delegate const& rhs) const noexcept {
         return !operator == (rhs);
     }
 
     //! compare delegate with another
-    bool operator < (delegate const& rhs) const noexcept {
+    bool operator < (Delegate const& rhs) const noexcept {
         return (object_ptr_ < rhs.object_ptr_) ||
                ((object_ptr_ == rhs.object_ptr_) && (caller_ < rhs.caller_));
     }
@@ -326,7 +326,7 @@ private:
     std::shared_ptr<void> store_;
 
     //! private constructor for plain
-    delegate(const Caller& m, void* const obj) noexcept
+    Delegate(const Caller& m, void* const obj) noexcept
         : caller_(m), object_ptr_(obj) { }
 
     //! deleter for stored functor closures
@@ -374,35 +374,35 @@ private:
     //! wrappers for indirect class::method calls containing (object,
     //! method_ptr)
     template <class C>
-    using member_pair =
+    using MemberPair =
               std::pair<C* const, R(C::* const)(A ...)>;
 
     //! wrappers for indirect const class::method calls containing (object,
     //! const method_ptr)
     template <class C>
-    using const_member_pair =
+    using ConstMemberPair =
               std::pair<C const* const, R(C::* const)(A ...) const>;
 
     //! template for class::function selector
     template <typename>
-    struct is_member_pair : std::false_type { };
+    struct IsMemberPair : std::false_type { };
 
     //! specialization for class::function selector
     template <class C>
-    struct is_member_pair<member_pair<C> >: std::true_type { };
+    struct IsMemberPair<MemberPair<C> >: std::true_type { };
 
     //! template for const class::function selector
     template <typename>
-    struct is_const_member_pair : std::false_type { };
+    struct IsConstMemberPair : std::false_type { };
 
     //! specialization for const class::function selector
     template <class C>
-    struct is_const_member_pair<const_member_pair<C> >: std::true_type { };
+    struct IsConstMemberPair<ConstMemberPair<C> >: std::true_type { };
 
     //! function caller for functor class.
     template <typename T>
     static typename std::enable_if<
-        !(is_member_pair<T>::value || is_const_member_pair<T>::value), R
+        !(IsMemberPair<T>::value || IsConstMemberPair<T>::value), R
         >::type
     functor_caller(void* const object_ptr, A&& ... args) {
         return (*static_cast<T*>(object_ptr))(std::forward<A>(args) ...);
@@ -411,7 +411,7 @@ private:
     //! function caller for const functor class.
     template <typename T>
     static typename std::enable_if<
-        (is_member_pair<T>::value || is_const_member_pair<T>::value), R
+        (IsMemberPair<T>::value || IsConstMemberPair<T>::value), R
         >::type
     functor_caller(void* const object_ptr, A&& ... args) {
         return (static_cast<T*>(object_ptr)->first->*
@@ -423,34 +423,34 @@ private:
 
 //! constructor for wrapping a class::method with object pointer.
 template <class C, typename R, typename ... A>
-delegate<R(A ...)>
+Delegate<R(A ...)>
 make_delegate(
     C* const object_ptr, R(C::* const method_ptr)(A ...)) noexcept {
-    return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
+    return Delegate<R(A ...)>::template make<C>(object_ptr, method_ptr);
 }
 
 //! constructor for wrapping a const class::method with object pointer.
 template <class C, typename R, typename ... A>
-delegate<R(A ...)>
+Delegate<R(A ...)>
 make_delegate(
     C* const object_ptr, R(C::* const method_ptr)(A ...) const) noexcept {
-    return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
+    return Delegate<R(A ...)>::template make<C>(object_ptr, method_ptr);
 }
 
 //! constructor for wrapping a class::method with object reference.
 template <class C, typename R, typename ... A>
-delegate<R(A ...)>
+Delegate<R(A ...)>
 make_delegate(
     C& object_ptr, R(C::* const method_ptr)(A ...)) noexcept {
-    return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
+    return Delegate<R(A ...)>::template make<C>(object_ptr, method_ptr);
 }
 
 //! constructor for wrapping a const class::method with object reference.
 template <class C, typename R, typename ... A>
-delegate<R(A ...)>
+Delegate<R(A ...)>
 make_delegate(
     C const& object_ptr, R(C::* const method_ptr)(A ...) const) noexcept {
-    return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
+    return Delegate<R(A ...)>::template make<C>(object_ptr, method_ptr);
 }
 
 } // namespace common

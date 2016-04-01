@@ -69,7 +69,7 @@ public:
 
         // wait interrupts via self-pipe.
         AddRead(self_pipe_[0],
-                Callback::from<SelectDispatcher,
+                Callback::make<SelectDispatcher,
                                & SelectDispatcher::SelfPipeCallback>(this));
     }
 

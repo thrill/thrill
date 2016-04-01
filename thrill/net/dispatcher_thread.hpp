@@ -32,22 +32,22 @@ namespace net {
 //! \{
 
 //! Signature of timer callbacks.
-using TimerCallback = common::delegate<bool(), mem::GPoolAllocator<char> >;
+using TimerCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async connection readability/writability callbacks.
-using AsyncCallback = common::delegate<bool(), mem::GPoolAllocator<char> >;
+using AsyncCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read callbacks.
-using AsyncReadCallback = common::delegate<
+using AsyncReadCallback = common::Delegate<
           void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
-using AsyncReadByteBlockCallback = common::delegate<
+using AsyncReadByteBlockCallback = common::Delegate<
           void(Connection& c, data::PinnedByteBlockPtr&& block),
           mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
-using AsyncWriteCallback = common::delegate<
+using AsyncWriteCallback = common::Delegate<
           void(Connection&), mem::GPoolAllocator<char> >;
 
 /*!
@@ -60,7 +60,7 @@ class DispatcherThread
 
 public:
     //! Signature of async jobs to be run by the dispatcher thread.
-    using Job = common::delegate<void(), mem::GPoolAllocator<char> >;
+    using Job = common::Delegate<void(), mem::GPoolAllocator<char> >;
 
     DispatcherThread(
         mem::Manager& mem_manager,

@@ -83,7 +83,7 @@ pool.LoopUntilEmpty();
 class ThreadPool
 {
 public:
-    using Job = delegate<void()>;
+    using Job = Delegate<void()>;
 
 private:
     //! Deque of scheduled jobs.

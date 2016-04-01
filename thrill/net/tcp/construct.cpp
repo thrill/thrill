@@ -405,7 +405,7 @@ private:
 
         dispatcher_.AsyncWriteCopy(
             tcp, &hello, sizeof(hello),
-            AsyncWriteCallback::from<
+            AsyncWriteCallback::make<
                 Construction, & Construction::OnHelloSent>(this));
 
         LOG << "Client " << my_rank_ << " sent active hello to "
@@ -413,7 +413,7 @@ private:
 
         dispatcher_.AsyncRead(
             tcp, sizeof(hello),
-            AsyncReadCallback::from<
+            AsyncReadCallback::make<
                 Construction, & Construction::OnIncomingWelcome>(this));
 
         return false;
@@ -496,7 +496,7 @@ private:
 
         dispatcher_.AsyncWriteCopy(
             c, &msg_out, sizeof(msg_out),
-            AsyncWriteCallback::from<
+            AsyncWriteCallback::make<
                 Construction, & Construction::OnHelloSent>(this));
 
         LOG << "Client " << my_rank_
@@ -526,7 +526,7 @@ private:
         // wait for welcome message from other side
         dispatcher_.AsyncRead(
             connections_.back(), sizeof(WelcomeMsg),
-            AsyncReadCallback::from<
+            AsyncReadCallback::make<
                 Construction, & Construction::OnIncomingWelcomeAndReply>(this));
 
         // wait for more connections.

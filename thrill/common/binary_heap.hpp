@@ -25,6 +25,8 @@
 namespace thrill {
 namespace common {
 
+//! A simple binary heap priority queue, except that one can additionally find
+//! and delete arbitrary items in O(n).
 template <typename Type, typename Compare = std::less<Type> >
 class BinaryHeap
 {
