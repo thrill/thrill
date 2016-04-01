@@ -64,12 +64,13 @@ public:
 
     void Execute() final {
 
-        size_t global_size = context_.net.AllReduce(samples_.size());
+        size_t local_size = samples_.size();
+        size_t global_size = context_.net.AllReduce(local_size);
 
         // not enough items to discard some, done.
         if (global_size < sample_size_) return;
 
-        size_t local_rank = context_.net.ExPrefixSum(samples_.size());
+        size_t local_rank = context_.net.ExPrefixSum(local_size);
 
         // synchronize global random generator
         size_t seed = context_.my_rank() == 0 ? rng_() : 0;
@@ -81,11 +82,16 @@ public:
 
         for (size_t i = 0; i < sample_size_; ++i) {
             size_t r = rng_() % sample_size_;
-            if (r < local_rank || r >= local_rank + samples_.size()) continue;
+            if (r < local_rank || r >= local_rank + local_size) continue;
 
             // swap selected item to front.
             using std::swap;
-            swap(*it, samples_[r - local_rank]);
+            if (it < samples_.end()) {
+                swap(*it, samples_[r - local_rank]);
+            }
+            else {
+                it = samples_.insert(it, samples_[r - local_rank]);
+            }
             ++it;
         }
 

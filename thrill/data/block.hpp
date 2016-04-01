@@ -16,6 +16,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/byte_block.hpp>
 #include <thrill/mem/manager.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <cassert>
 #include <future>
@@ -31,7 +32,7 @@ namespace data {
 class PinnedBlock;
 class PinRequest;
 using PinRequestPtr =
-          common::CountingPtr<PinRequest, mem::GPoolDeleterFunc<PinRequest> >;
+          common::CountingPtr<PinRequest, mem::GPoolDeleter<PinRequest> >;
 
 /*!
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
@@ -296,7 +297,7 @@ public:
     //! increases the pin count. use StealPinnedByteBlock to move the underlying
     //! pin out (cheaper).
     PinnedByteBlockPtr CopyPinnedByteBlock() const {
-        PinnedByteBlockPtr pbb(byte_block_, local_worker_id_);
+        PinnedByteBlockPtr pbb(byte_block_.get(), local_worker_id_);
         if (pbb.valid()) pbb->IncPinCount(local_worker_id_);
         return pbb;
     }

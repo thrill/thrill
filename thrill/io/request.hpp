@@ -188,7 +188,11 @@ private:
 std::ostream& operator << (std::ostream& out, const Request& req);
 
 //! deleter for Requests which are allocated from mem::g_pool.
-void RequestDeleter(Request* req);
+class RequestDeleter
+{
+public:
+    void operator () (Request* req) const;
+};
 
 //! A reference counting pointer for \c request.
 using RequestPtr = common::CountingPtr<Request, RequestDeleter>;

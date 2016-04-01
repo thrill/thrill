@@ -83,7 +83,7 @@ const char* Request::io_type() const {
 }
 
 std::ostream& Request::print(std::ostream& out) const {
-    out << "File object address: " << static_cast<void*>(file_);
+    out << "File object address: " << file_;
     out << " Buffer address: " << static_cast<void*>(buffer_);
     out << " File offset: " << offset_;
     out << " Transfer size: " << bytes_ << " bytes";
@@ -95,7 +95,7 @@ std::ostream& operator << (std::ostream& out, const Request& req) {
     return req.print(out);
 }
 
-void RequestDeleter(Request* req) {
+void RequestDeleter::operator () (Request* req) const {
     // switch between virtual subclasses to make g_pool get the right size of
     // req's object.
     if (ServingRequest* r = dynamic_cast<ServingRequest*>(req)) {

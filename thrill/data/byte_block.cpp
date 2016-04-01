@@ -34,7 +34,7 @@ ByteBlock::ByteBlock(
       ext_file_(ext_file)
 { }
 
-void ByteBlock::deleter(ByteBlock* bb) {
+void ByteBlock::Deleter::operator () (ByteBlock* bb) const {
     sLOG << "ByteBlock[" << bb << "]::deleter()"
          << "pin_count_" << bb->pin_count_str();
     assert(bb->total_pins_ == 0);
@@ -48,8 +48,8 @@ void ByteBlock::deleter(ByteBlock* bb) {
     mem::GPool().destroy(bb);
 }
 
-void ByteBlock::deleter(const ByteBlock* bb) {
-    return deleter(const_cast<ByteBlock*>(bb));
+void ByteBlock::Deleter::operator () (const ByteBlock* bb) const {
+    return operator () (const_cast<ByteBlock*>(bb));
 }
 
 std::string ByteBlock::pin_count_str() const {

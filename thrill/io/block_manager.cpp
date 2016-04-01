@@ -76,7 +76,7 @@ BlockManager::BlockManager() {
         // create queue for the file.
         DiskQueues::GetInstance()->MakeQueue(disk_files_[i]);
 
-        disk_allocators_[i] = new DiskAllocator(disk_files_[i], cfg);
+        disk_allocators_[i] = new DiskAllocator(disk_files_[i].get(), cfg);
     }
 
     if (ndisks_ > 1)

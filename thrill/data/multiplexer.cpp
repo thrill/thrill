@@ -70,7 +70,7 @@ public:
         common::CountingPtr<Subclass> value = common::MakeCounting<Subclass>(
             std::forward<Types>(construction) ...);
 
-        map_.insert(std::make_pair(object_id, value));
+        map_.insert(std::make_pair(object_id, ObjectPtr(value)));
         return value;
     }
 

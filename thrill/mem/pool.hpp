@@ -318,12 +318,6 @@ public:
     }
 };
 
-//! deleter for unique_ptr with memory from mem::g_pool.
-template <typename T>
-inline void GPoolDeleterFunc(T* ptr) noexcept {
-    GPool().destroy(ptr);
-}
-
 //! unique_ptr with memory from mem::g_pool.
 template <typename T>
 using safe_unique_ptr = std::unique_ptr<T, GPoolDeleter<T> >;

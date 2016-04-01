@@ -94,7 +94,7 @@ TEST_F(BlockPoolTest, EvictBlock) {
     ASSERT_EQ(0u, block_pool_.pinned_blocks());
     ASSERT_EQ(1u, block_pool_.unpinned_blocks());
     // evict block
-    block_pool_.EvictBlock(unpinned_block.byte_block());
+    block_pool_.EvictBlock(unpinned_block.byte_block().get());
     ASSERT_EQ(1u, block_pool_.total_blocks());
     ASSERT_EQ(0u, block_pool_.pinned_blocks());
     ASSERT_EQ(0u, block_pool_.unpinned_blocks());

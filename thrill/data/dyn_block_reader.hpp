@@ -99,8 +99,8 @@ private:
 template <typename BlockSource, typename ... Params>
 DynBlockSource ConstructDynBlockSource(Params&& ... params) {
     return DynBlockSource(
-        std::move(common::MakeCounting<DynBlockSourceAdapter<BlockSource> >(
-                      BlockSource(std::forward<Params>(params) ...))));
+        common::MakeCounting<DynBlockSourceAdapter<BlockSource> >(
+            BlockSource(std::forward<Params>(params) ...)));
 }
 
 /*!

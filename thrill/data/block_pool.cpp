@@ -320,7 +320,7 @@ PinRequestPtr BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
     std::unique_lock<std::mutex> lock(mutex_);
 
-    ByteBlock* block_ptr = block.byte_block();
+    ByteBlock* block_ptr = block.byte_block().get();
 
     if (block_ptr->pin_count_[local_worker_id] > 0) {
         // We may get a Block who's underlying is already pinned, since
@@ -479,7 +479,7 @@ void BlockPool::OnReadComplete(
     PinRequest* read, io::Request* req, bool success) {
     std::unique_lock<std::mutex> lock(mutex_);
 
-    ByteBlock* block_ptr = read->block_.byte_block();
+    ByteBlock* block_ptr = read->block_.byte_block().get();
     size_t block_size = block_ptr->size();
 
     LOGC(debug_em)

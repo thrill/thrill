@@ -195,7 +195,7 @@ void BlockManager::new_blocks_int(
             // choose disk by calling DiskAssignFunctor
             disk_id = functor(offset + i);
 
-            disk_file = disk_files_[disk_id];
+            disk_file = disk_files_[disk_id].get();
             disk_alloc = disk_allocators_[disk_file->get_allocator_id()];
 
             // check if disk has enough free space

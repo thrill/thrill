@@ -99,7 +99,7 @@ bool LinuxaioRequest::cancel() {
     RequestPtr req(this);
     LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
         DiskQueues::GetInstance()->GetQueue(file_->get_queue_id()));
-    return queue->CancelRequest(req);
+    return queue->CancelRequest(req.get());
 }
 
 //! Cancel already posted request

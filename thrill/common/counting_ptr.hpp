@@ -22,19 +22,20 @@
 #include <atomic>
 #include <cassert>
 #include <cstdlib>
+#include <type_traits>
 
 namespace thrill {
 namespace common {
 
-//! function pointer type of deleter used with CountingPtr.
-template <typename Type>
-using CountingPtrDeleter = void (*)(Type*);
-
 //! default deleter for CountingPtr
-template <typename Type>
-void DefaultDeleter(Type* ptr) noexcept {
-    delete ptr;
-}
+class DefaultCountingPtrDeleter
+{
+public:
+    template <typename Type>
+    void operator () (Type* ptr) const noexcept {
+        delete ptr;
+    }
+};
 
 /*!
  * High-performance smart pointer used as a wrapping reference counting pointer.
@@ -57,7 +58,7 @@ void DefaultDeleter(Type* ptr) noexcept {
  * which are only related if constructed with std::make_shared.
  */
 template <typename Type,
-          CountingPtrDeleter<Type> deleter = DefaultDeleter<Type> >
+          typename Deleter = DefaultCountingPtrDeleter>
 class CountingPtr
 {
 public:
@@ -78,53 +79,86 @@ private:
 
     //! decrement reference count of current object and maybe delete it.
     void DecReference() noexcept
-    { if (ptr_ && ptr_->DecReference()) deleter(ptr_); }
+    { if (ptr_ && ptr_->DecReference()) Deleter()(ptr_); }
 
 public:
     //! all CountingPtr are friends such that they may steal pointers.
-    template <typename Other, CountingPtrDeleter<Other> >
+    template <typename Other, typename OtherDeleter>
     friend class CountingPtr;
 
     //! default constructor: contains a nullptr pointer.
-    CountingPtr() noexcept : ptr_(nullptr) { }
+    CountingPtr() noexcept
+        : ptr_(nullptr) { }
 
     //! implicit construction from nullptr_t: contains a nullptr pointer.
-    CountingPtr(std::nullptr_t) noexcept : ptr_(nullptr) { } // NOLINT
+    CountingPtr(std::nullptr_t) noexcept // NOLINT
+        : ptr_(nullptr) { }
 
-    //! constructor with pointer: initializes new reference to ptr.
-    explicit CountingPtr(Type* ptr) noexcept : ptr_(ptr)
-    { IncReference(); }
+    //! constructor from pointer: initializes new reference to ptr.
+    explicit CountingPtr(Type* ptr) noexcept
+        : ptr_(ptr) { IncReference(); }
 
     //! copy-constructor: also initializes new reference to ptr.
-    CountingPtr(const CountingPtr& other) noexcept : ptr_(other.ptr_)
-    { IncReference(); }
+    CountingPtr(const CountingPtr& other) noexcept
+        : ptr_(other.ptr_) { IncReference(); }
 
-    template <class Up>
-    CountingPtr(const CountingPtr<Up>& other) noexcept : ptr_(other.ptr_)
-    { IncReference(); }
+    //! copy-constructor: also initializes new reference to ptr.
+    template <typename Down,
+              typename = typename std::enable_if<
+                  std::is_convertible<Down*, Type*>::value, void>::type>
+    CountingPtr(const CountingPtr<Down, Deleter>& other) noexcept
+        : ptr_(other.ptr_) { IncReference(); }
 
     //! move-constructor: just moves pointer, does not change reference counts.
-    CountingPtr(CountingPtr&& other) noexcept : ptr_(other.ptr_) {
-        other.ptr_ = nullptr;
-    }
+    CountingPtr(CountingPtr&& other) noexcept
+        : ptr_(other.ptr_) { other.ptr_ = nullptr; }
 
-    //! copy-assignment operator: dereference current object and acquire
-    //! reference on new one.
-    CountingPtr& operator = (const CountingPtr& other) noexcept
-    { return operator = (other.ptr_); }
+    //! move-constructor: just moves pointer, does not change reference counts.
+    template <typename Down,
+              typename = typename std::enable_if<
+                  std::is_convertible<Down*, Type*>::value, void>::type>
+    CountingPtr(CountingPtr<Down, Deleter>&& other) noexcept
+        : ptr_(other.ptr_) { other.ptr_ = nullptr; }
 
-    //! copy-assignment to pointer: dereference current and acquire reference to
-    //! new ptr.
-    CountingPtr& operator = (Type* ptr) noexcept {
-        IncReference(ptr);
+    //! copy-assignment operator: acquire reference on new one and dereference
+    //! current object.
+    CountingPtr& operator = (const CountingPtr& other) noexcept {
+        if (&other == this) return *this;
+        IncReference(other.ptr_);
         DecReference();
-        ptr_ = ptr;
+        ptr_ = other.ptr_;
         return *this;
     }
 
-    //! move-assignment operator: dereference current object and acquire other
-    //! one.
+    //! copy-assignment operator: acquire reference on new one and dereference
+    //! current object.
+    template <typename Down,
+              typename = typename std::enable_if<
+                  std::is_convertible<Down*, Type*>::value, void>::type>
+    CountingPtr& operator = (
+        const CountingPtr<Down, Deleter>& other) noexcept {
+        if (&other == this) return *this;
+        IncReference(other.ptr_);
+        DecReference();
+        ptr_ = other.ptr_;
+        return *this;
+    }
+
+    //! move-assignment operator: move reference of other to current object.
     CountingPtr& operator = (CountingPtr&& other) noexcept {
+        if (&other == this) return *this;
+        DecReference();
+        ptr_ = other.ptr_;
+        other.ptr_ = nullptr;
+        return *this;
+    }
+
+    //! move-assignment operator: move reference of other to current object.
+    template <typename Down,
+              typename = typename std::enable_if<
+                  std::is_convertible<Down*, Type*>::value, void>::type>
+    CountingPtr& operator = (CountingPtr<Down, Deleter>&& other) noexcept {
+        if (&other == this) return *this;
         DecReference();
         ptr_ = other.ptr_;
         other.ptr_ = nullptr;
@@ -146,10 +180,6 @@ public:
         assert(ptr_);
         return ptr_;
     }
-
-    //! implicit cast to the enclosed pointer.
-    operator Type* () const noexcept
-    { return ptr_; }
 
     //! return the enclosed pointer.
     Type * get() const noexcept
@@ -201,9 +231,8 @@ public:
 
     //! swap enclosed object with another counting pointer (no reference counts
     //! need change)
-    void swap(CountingPtr& b) noexcept {
-        std::swap(ptr_, b.ptr_);
-    }
+    void swap(CountingPtr& b) noexcept
+    { std::swap(ptr_, b.ptr_); }
 };
 
 template <typename Type, typename ... Args>

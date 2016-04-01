@@ -50,11 +50,15 @@ class ByteBlock : public common::ReferenceCount
 
 public:
     //! deleter for CountingPtr<ByteBlock>
-    static void deleter(ByteBlock* bb);
-    static void deleter(const ByteBlock* bb);
+    class Deleter
+    {
+    public:
+        void operator () (ByteBlock* bb) const;
+        void operator () (const ByteBlock* bb) const;
+    };
 
-    using ByteBlockPtr = common::CountingPtr<ByteBlock, deleter>;
-    using ByteBlockCPtr = common::CountingPtr<const ByteBlock, deleter>;
+    using ByteBlockPtr = common::CountingPtr<ByteBlock, Deleter>;
+    using ByteBlockCPtr = common::CountingPtr<const ByteBlock, Deleter>;
 
 public:
     //! mutable data accessor to memory block

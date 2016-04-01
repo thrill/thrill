@@ -66,7 +66,7 @@ TEST(CountingPtr, RunTest) {
             ASSERT_EQ(3, i3->reference_count());
 
             // replace object in i3 with new integer
-            i3 = new MyInteger(5);
+            i3 = IntegerPtr(new MyInteger(5));
             ASSERT_TRUE(i3 != i1);
             ASSERT_EQ(2, i1->reference_count());
         }
