@@ -1119,7 +1119,7 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
 
     DiffType total_length = 0;
 
-    const value_type* arbitrary_element = nullptr;
+    value_type* arbitrary_element = nullptr;
 
     // find an arbitrary element to avoid default construction
     for (Source t = 0; t < k; ++t)
@@ -1133,9 +1133,9 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
     for (Source t = 0; t < k; ++t)
     {
         if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
-            lt.insert_start(*arbitrary_element, t, true);
+            lt.insert_start(arbitrary_element, t, true);
         else
-            lt.insert_start(*seqs_begin[t].first, t, false);
+            lt.insert_start(&*seqs_begin[t].first, t, false);
     }
 
     lt.init();
@@ -1153,10 +1153,10 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
 
         // feed
         if (seqs_begin[source].first == seqs_begin[source].second)
-            lt.delete_min_insert(*arbitrary_element, true);
+            lt.delete_min_insert(arbitrary_element, true);
         else
             // replace from same source
-            lt.delete_min_insert(*seqs_begin[source].first, false);
+            lt.delete_min_insert(&*seqs_begin[source].first, false);
     }
 
     return target;
@@ -1241,60 +1241,6 @@ multiway_merge_loser_tree_unguarded(
     return target;
 }
 
-template <bool Stable, typename ValueType, typename Comparator>
-struct loser_tree_traits
-{
-public:
-    using LT = LoserTreePointer<Stable, ValueType, Comparator>;
-};
-
-#define THRILL_NO_POINTER(T)                             \
-    template <bool Stable, typename Comparator>          \
-    struct loser_tree_traits<Stable, T, Comparator>      \
-    {                                                    \
-        typedef LoserTreeCopy<Stable, T, Comparator> LT; \
-    };
-
-THRILL_NO_POINTER(unsigned char)
-THRILL_NO_POINTER(char)
-THRILL_NO_POINTER(unsigned short)
-THRILL_NO_POINTER(short)
-THRILL_NO_POINTER(unsigned int)
-THRILL_NO_POINTER(int)
-THRILL_NO_POINTER(unsigned long)
-THRILL_NO_POINTER(long)
-THRILL_NO_POINTER(unsigned long long)
-THRILL_NO_POINTER(long long)
-
-#undef THRILL_NO_POINTER
-
-template <bool Stable, typename ValueType, typename Comparator>
-class loser_tree_traits_unguarded
-{
-public:
-    using LT = LoserTreePointerUnguarded<Stable, ValueType, Comparator>;
-};
-
-#define THRILL_NO_POINTER_UNGUARDED(T)                            \
-    template <bool Stable, typename Comparator>                   \
-    struct loser_tree_traits_unguarded<Stable, T, Comparator>     \
-    {                                                             \
-        typedef LoserTreeCopyUnguarded<Stable, T, Comparator> LT; \
-    };
-
-THRILL_NO_POINTER_UNGUARDED(unsigned char)
-THRILL_NO_POINTER_UNGUARDED(char)
-THRILL_NO_POINTER_UNGUARDED(unsigned short)
-THRILL_NO_POINTER_UNGUARDED(short)
-THRILL_NO_POINTER_UNGUARDED(unsigned int)
-THRILL_NO_POINTER_UNGUARDED(int)
-THRILL_NO_POINTER_UNGUARDED(unsigned long)
-THRILL_NO_POINTER_UNGUARDED(long)
-THRILL_NO_POINTER_UNGUARDED(unsigned long long)
-THRILL_NO_POINTER_UNGUARDED(long long)
-
-#undef THRILL_NO_POINTER_UNGUARDED
-
 template <bool Stable,
           typename RandomAccessIteratorIterator,
           typename RandomAccessIterator3,
@@ -1323,9 +1269,9 @@ multiway_merge_loser_tree_combined(
     if (overhang != (DiffType)(-1))
     {
         DiffType unguarded_length = std::min(length, total_length - overhang);
-        target_end = multiway_merge_loser_tree_unguarded
-                     <typename loser_tree_traits_unguarded<Stable, value_type, Comparator>::LT>
-                         (seqs_begin, seqs_end, target, unguarded_length, comp);
+        target_end = multiway_merge_loser_tree_unguarded<
+            typename LoserTreeTraitsUnguarded<Stable, value_type, Comparator>::Type>(
+            seqs_begin, seqs_end, target, unguarded_length, comp);
         overhang = length - unguarded_length;
     }
     else
@@ -1338,9 +1284,9 @@ multiway_merge_loser_tree_combined(
     // THRILL_DEBUG_ASSERT(target_end == target + length - overhang);
     // THRILL_DEBUG_ASSERT(stxxl::is_sorted(target, target_end, comp));
 
-    target_end = multiway_merge_loser_tree
-                 <typename loser_tree_traits<Stable, value_type, Comparator>::LT>
-                     (seqs_begin, seqs_end, target_end, overhang, comp);
+    target_end = multiway_merge_loser_tree<
+        typename LoserTreeTraits<Stable, value_type, Comparator>::Type>(
+        seqs_begin, seqs_end, target_end, overhang, comp);
 
     // THRILL_DEBUG_ASSERT(target_end == target + length);
     // THRILL_DEBUG_ASSERT(stxxl::is_sorted(target, target_end, comp));
@@ -1370,9 +1316,9 @@ multiway_merge_loser_tree_sentinel(
         ++(*s).second;
 
     RandomAccessIterator3 target_end
-        = multiway_merge_loser_tree_unguarded
-          <typename loser_tree_traits_unguarded<Stable, value_type, Comparator>::LT>
-              (seqs_begin, seqs_end, target, length, comp);
+        = multiway_merge_loser_tree_unguarded<
+        typename LoserTreeTraitsUnguarded<Stable, value_type, Comparator>::Type>(
+        seqs_begin, seqs_end, target, length, comp);
 
     // THRILL_DEBUG_ASSERT(target_end == target + length);
     // THRILL_DEBUG_ASSERT(stxxl::is_sorted(target, target_end, comp));
@@ -1433,7 +1379,7 @@ sequential_file_multiway_merge(RandomAccessIteratorIterator seqs_begin,
     default:
     {
         return_target = file_multiway_merge_loser_tree<
-            typename loser_tree_traits<Stable, value_type, Comparator>::LT>(
+            typename LoserTreeTraits<Stable, value_type, Comparator>::Type>(
             seqs_begin, seqs_end, target, length, comp);
         break;
     }
@@ -1550,7 +1496,7 @@ sequential_multiway_merge(RandomAccessIteratorIterator seqs_begin,
         //     break;
         // case SETTINGS::LOSER_TREE:
         return_target = multiway_merge_loser_tree<
-            typename loser_tree_traits<Stable, value_type, Comparator>::LT>(
+            typename LoserTreeTraits<Stable, value_type, Comparator>::Type>(
             seqs_begin, seqs_end, target, length, comp);
         break;
         // case SETTINGS::LOSER_TREE_COMBINED:
