@@ -36,6 +36,8 @@
 namespace thrill {
 namespace core {
 
+#ifndef THRILL_DOXYGEN_IGNORE
+
 using thread_index_t = int;
 static volatile unsigned int merge_oversampling = 10;
 
@@ -1028,13 +1030,13 @@ file_multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
                                RandomAccessIteratorIterator seqs_end,
                                RandomAccessIterator3 target, DiffType length,
                                Comparator comp) {
-    using source_type = typename LoserTreeType::source_type;
+    using Source = typename LoserTreeType::Source;
     typedef typename std::iterator_traits<RandomAccessIteratorIterator>
         ::value_type::first_type RandomAccessIterator;
     typedef typename std::iterator_traits<RandomAccessIterator>
         ::value_type value_type;
 
-    source_type k = static_cast<source_type>(seqs_end - seqs_begin);
+    Source k = static_cast<Source>(seqs_end - seqs_begin);
 
     LoserTreeType lt(k, comp);
 
@@ -1043,7 +1045,7 @@ file_multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
     const value_type* arbitrary_element = nullptr;
 
     // find an arbitrary element to avoid default construction
-    for (source_type t = 0; t < k; ++t)
+    for (Source t = 0; t < k; ++t)
     {
         if (!arbitrary_element && iterpair_size(seqs_begin[t]) > 0)
             arbitrary_element = &(*seqs_begin[t].first);
@@ -1051,7 +1053,7 @@ file_multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
         total_length += iterpair_size(seqs_begin[t]);
     }
 
-    for (source_type t = 0; t < k; ++t)
+    for (Source t = 0; t < k; ++t)
     {
         if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
             lt.insert_start(*arbitrary_element, t, true);
@@ -1066,7 +1068,7 @@ file_multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
     for (DiffType i = 0; i < total_length; ++i)
     {
         // take out
-        source_type source = lt.get_min_source();
+        Source source = lt.min_source();
 
         target(*seqs_begin[source].first);
         ++seqs_begin[source].first;
@@ -1105,13 +1107,13 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
                           Comparator comp) {
     // THRILL_PARALLEL_PCALL(length);
 
-    using source_type = typename LoserTreeType::source_type;
+    using Source = typename LoserTreeType::Source;
     typedef typename std::iterator_traits<RandomAccessIteratorIterator>
         ::value_type::first_type RandomAccessIterator;
     typedef typename std::iterator_traits<RandomAccessIterator>
         ::value_type value_type;
 
-    source_type k = static_cast<source_type>(seqs_end - seqs_begin);
+    Source k = static_cast<Source>(seqs_end - seqs_begin);
 
     LoserTreeType lt(k, comp);
 
@@ -1120,7 +1122,7 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
     const value_type* arbitrary_element = nullptr;
 
     // find an arbitrary element to avoid default construction
-    for (source_type t = 0; t < k; ++t)
+    for (Source t = 0; t < k; ++t)
     {
         if (!arbitrary_element && iterpair_size(seqs_begin[t]) > 0)
             arbitrary_element = &(*seqs_begin[t].first);
@@ -1128,7 +1130,7 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
         total_length += iterpair_size(seqs_begin[t]);
     }
 
-    for (source_type t = 0; t < k; ++t)
+    for (Source t = 0; t < k; ++t)
     {
         if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
             lt.insert_start(*arbitrary_element, t, true);
@@ -1143,7 +1145,7 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
     for (DiffType i = 0; i < total_length; ++i)
     {
         // take out
-        source_type source = lt.get_min_source();
+        Source source = lt.min_source();
 
         *target = *seqs_begin[source].first;
         ++target;
@@ -1217,7 +1219,7 @@ multiway_merge_loser_tree_unguarded(
     while (target < target_end)
     {
         // take out
-        source = lt.get_min_source();
+        source = lt.min_source();
 
 // #if THRILL_DEBUG_ASSERTIONS
 //         assert(i == 0 || !comp(*(seqs_begin[source].first), *(target - 1)));
@@ -2014,6 +2016,8 @@ multiway_merge_stable_sentinels(RandomAccessIteratorPairIterator seqs_begin,
 }
 
 #endif // THRILL_PARALLEL
+
+#endif // THRILL_DOXYGEN_IGNORE
 
 } // namespace core
 } // namespace thrill

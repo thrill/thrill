@@ -63,7 +63,7 @@ public:
     ValueType Next() {
 
         // take next smallest element out
-        unsigned top = lt_.get_min_source();
+        unsigned top = lt_.min_source();
         ValueType res = std::move(current_[top].second);
 
         if (THRILL_LIKELY(readers_[top].HasNext())) {
