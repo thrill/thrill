@@ -80,8 +80,8 @@ void MemoryFile::discard(offset_type offset, offset_type size) {
         memcpy(ptr_ + offset, uninitialized, (size_t)size);
     free(uninitialized);
 #else
-    common::THRILL_UNUSED(offset);
-    common::THRILL_UNUSED(size);
+    common::UNUSED(offset);
+    common::UNUSED(size);
 #endif
 }
 

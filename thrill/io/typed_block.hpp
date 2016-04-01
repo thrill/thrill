@@ -286,7 +286,7 @@ public:
         LOG << "[" << static_cast<void*>(this)
             << "] TypedBlock is copy constructed from "
             << "[" << static_cast<void*>(&tb) << "]";
-        THRILL_UNUSED(tb);
+        UNUSED(tb);
     }
 #endif
 

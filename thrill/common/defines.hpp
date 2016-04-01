@@ -70,10 +70,10 @@ namespace common {
 #endif
 
 /******************************************************************************/
-// THRILL_UNUSED(variable)
+// UNUSED(variable)
 
 template <typename U>
-void THRILL_UNUSED(U&&)
+void UNUSED(U&&)
 { }
 
 } // namespace common

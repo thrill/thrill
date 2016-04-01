@@ -48,10 +48,10 @@ template <typename Point>
 void OutputSVG(const std::string& svg_path, double svg_scale,
                const DIA<Point>& list,
                const KMeansModel<Point>& model) {
-    thrill::common::THRILL_UNUSED(svg_path);
-    thrill::common::THRILL_UNUSED(svg_scale);
-    thrill::common::THRILL_UNUSED(list);
-    thrill::common::THRILL_UNUSED(model);
+    thrill::common::UNUSED(svg_path);
+    thrill::common::UNUSED(svg_scale);
+    thrill::common::UNUSED(list);
+    thrill::common::UNUSED(model);
 }
 
 //! Output the points and centroids as a 2-D SVG drawing

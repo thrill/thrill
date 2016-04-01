@@ -151,15 +151,15 @@ public:
     //! Discard a region of the file (mark it unused).
     //! Some specialized file types may need to know freed regions
     virtual void discard(offset_type offset, offset_type size) {
-        common::THRILL_UNUSED(offset);
-        common::THRILL_UNUSED(size);
+        common::UNUSED(offset);
+        common::UNUSED(size);
     }
 
     virtual void export_files(offset_type offset, offset_type length,
                               std::string prefix) {
-        common::THRILL_UNUSED(offset);
-        common::THRILL_UNUSED(length);
-        common::THRILL_UNUSED(prefix);
+        common::UNUSED(offset);
+        common::UNUSED(length);
+        common::UNUSED(prefix);
     }
 
     //! close and remove file

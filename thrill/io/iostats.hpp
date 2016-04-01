@@ -208,7 +208,7 @@ public:
             if (measure_time)
                 Start();
 #if THRILL_DO_NOT_COUNT_WAIT_TIME
-            common::THRILL_UNUSED(wait_op);
+            common::UNUSED(wait_op);
 #endif
         }
 

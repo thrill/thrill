@@ -46,7 +46,7 @@ public:
     virtual void AddRequest(RequestPtr& req) = 0;
     virtual bool CancelRequest(Request* req) = 0;
     virtual ~RequestQueue() { }
-    virtual void SetPriorityOp(PriorityOp p) { common::THRILL_UNUSED(p); }
+    virtual void SetPriorityOp(PriorityOp p) { common::UNUSED(p); }
 };
 
 //! \}
