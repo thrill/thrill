@@ -209,8 +209,7 @@ public:
 
     explicit LoserTreeCopy(size_type k,
                            Comparator cmp = std::less<ValueType>())
-        : Super(k, cmp)
-    { }
+        : Super(k, cmp) { }
 
     // do not pass const reference since key will be used as local variable
     void delete_min_insert(const ValueType* keyp, bool sup) {
@@ -499,7 +498,7 @@ class LoserTreePointerBase
 protected:
     //! size of counters and array indexes
     using size_type = typename LoserTreeCopyBase<ValueType, Comparator>
-        ::size_type;
+                      ::size_type;
     //! type of the source field
     using Source = typename LoserTreeCopyBase<ValueType, Comparator>::Source;
 
@@ -1066,60 +1065,39 @@ public:
 };
 
 /******************************************************************************/
+// LoserTreeTraits selects loser tree by size of value type
 
-template <bool Stable, typename ValueType, typename Comparator>
+template <bool Stable, typename ValueType, typename Comparator,
+          typename Enable = void>
 struct LoserTreeTraits
 {
 public:
     using Type = LoserTreePointer<Stable, ValueType, Comparator>;
 };
 
-#define THRILL_NO_POINTER(ValueType)                               \
-    template <bool Stable, typename Comparator>                    \
-    struct LoserTreeTraits<Stable, ValueType, Comparator>          \
-    {                                                              \
-        using Type = LoserTreeCopy<Stable, ValueType, Comparator>; \
-    };
-
-THRILL_NO_POINTER(unsigned char)
-THRILL_NO_POINTER(char)
-THRILL_NO_POINTER(unsigned short)
-THRILL_NO_POINTER(short)
-THRILL_NO_POINTER(unsigned int)
-THRILL_NO_POINTER(int)
-THRILL_NO_POINTER(unsigned long)
-THRILL_NO_POINTER(long)
-THRILL_NO_POINTER(unsigned long long)
-THRILL_NO_POINTER(long long)
-
-#undef THRILL_NO_POINTER
-
 template <bool Stable, typename ValueType, typename Comparator>
+struct LoserTreeTraits<
+    Stable, ValueType, Comparator,
+    typename std::enable_if<sizeof(ValueType) <= 2* sizeof(size_t)>::type>
+{
+    using Type = LoserTreeCopy<Stable, ValueType, Comparator>;
+};
+
+template <bool Stable, typename ValueType, typename Comparator,
+          typename Enable = void>
 class LoserTreeTraitsUnguarded
 {
 public:
     using Type = LoserTreePointerUnguarded<Stable, ValueType, Comparator>;
 };
 
-#define THRILL_NO_POINTER_UNGUARDED(ValueType)                              \
-    template <bool Stable, typename Comparator>                             \
-    struct LoserTreeTraitsUnguarded<Stable, ValueType, Comparator>          \
-    {                                                                       \
-        using Type = LoserTreeCopyUnguarded<Stable, ValueType, Comparator>; \
-    };
-
-THRILL_NO_POINTER_UNGUARDED(unsigned char)
-THRILL_NO_POINTER_UNGUARDED(char)
-THRILL_NO_POINTER_UNGUARDED(unsigned short)
-THRILL_NO_POINTER_UNGUARDED(short)
-THRILL_NO_POINTER_UNGUARDED(unsigned int)
-THRILL_NO_POINTER_UNGUARDED(int)
-THRILL_NO_POINTER_UNGUARDED(unsigned long)
-THRILL_NO_POINTER_UNGUARDED(long)
-THRILL_NO_POINTER_UNGUARDED(unsigned long long)
-THRILL_NO_POINTER_UNGUARDED(long long)
-
-#undef THRILL_NO_POINTER_UNGUARDED
+template <bool Stable, typename ValueType, typename Comparator>
+struct LoserTreeTraitsUnguarded<
+    Stable, ValueType, Comparator,
+    typename std::enable_if<sizeof(ValueType) <= 2* sizeof(size_t)>::type>
+{
+    using Type = LoserTreeCopyUnguarded<Stable, ValueType, Comparator>;
+};
 
 } // namespace core
 } // namespace thrill
