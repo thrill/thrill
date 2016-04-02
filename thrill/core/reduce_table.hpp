@@ -27,7 +27,7 @@ namespace core {
 
 //! Enum class to select a hash table implementation.
 enum class ReduceTableImpl {
-    PROBING, BUCKET
+    PROBING, OLD_PROBING, BUCKET
 };
 
 /*!

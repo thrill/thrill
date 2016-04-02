@@ -96,6 +96,13 @@ TEST(ReduceHashStage, BucketAddMyStructByHash) {
         });
 }
 
+TEST(ReduceHashStage, OldProbingAddMyStructByHash) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByHash<core::ReduceTableImpl::OLD_PROBING>(ctx);
+        });
+}
+
 TEST(ReduceHashStage, ProbingAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
@@ -199,6 +206,13 @@ TEST(ReduceHashStage, BucketAddMyStructByIndex) {
         });
 }
 
+TEST(ReduceHashStage, OldProbingAddMyStructByIndex) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByIndex<core::ReduceTableImpl::OLD_PROBING>(ctx);
+        });
+}
+
 TEST(ReduceHashStage, ProbingAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
@@ -272,6 +286,13 @@ TEST(ReduceHashStage, BucketAddMyStructByIndexWithHoles) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndexWithHoles<core::ReduceTableImpl::BUCKET>(ctx);
+        });
+}
+
+TEST(ReduceHashStage, OldProbingAddMyStructByIndexWithHoles) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByIndexWithHoles<core::ReduceTableImpl::OLD_PROBING>(ctx);
         });
 }
 

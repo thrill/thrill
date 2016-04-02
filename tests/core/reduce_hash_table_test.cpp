@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include <thrill/core/reduce_bucket_hash_table.hpp>
+#include <thrill/core/reduce_old_probing_hash_table.hpp>
 #include <thrill/core/reduce_probing_hash_table.hpp>
 
 #include <thrill/core/reduce_pre_stage.hpp>

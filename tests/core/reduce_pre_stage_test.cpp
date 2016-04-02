@@ -104,6 +104,13 @@ TEST(ReducePreStage, BucketAddMyStructByHash) {
         });
 }
 
+TEST(ReducePreStage, OldProbingAddMyStructByHash) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByHash<core::ReduceTableImpl::OLD_PROBING>(ctx);
+        });
+}
+
 TEST(ReducePreStage, ProbingAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
@@ -184,6 +191,13 @@ TEST(ReducePreStage, BucketAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndex<core::ReduceTableImpl::BUCKET>(ctx);
+        });
+}
+
+TEST(ReducePreStage, OldProbingAddMyStructByIndex) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByIndex<core::ReduceTableImpl::OLD_PROBING>(ctx);
         });
 }
 
