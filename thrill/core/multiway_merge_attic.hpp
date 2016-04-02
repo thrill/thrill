@@ -1108,10 +1108,6 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
     // THRILL_PARALLEL_PCALL(length);
 
     using Source = typename LoserTreeType::Source;
-    typedef typename std::iterator_traits<RandomAccessIteratorIterator>
-        ::value_type::first_type RandomAccessIterator;
-    typedef typename std::iterator_traits<RandomAccessIterator>
-        ::value_type value_type;
 
     Source k = static_cast<Source>(seqs_end - seqs_begin);
 
@@ -1119,21 +1115,16 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
 
     DiffType total_length = 0;
 
-    value_type* arbitrary_element = nullptr;
-
     // find an arbitrary element to avoid default construction
     for (Source t = 0; t < k; ++t)
     {
-        if (!arbitrary_element && iterpair_size(seqs_begin[t]) > 0)
-            arbitrary_element = &(*seqs_begin[t].first);
-
         total_length += iterpair_size(seqs_begin[t]);
     }
 
     for (Source t = 0; t < k; ++t)
     {
         if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
-            lt.insert_start(arbitrary_element, t, true);
+            lt.insert_start(nullptr, t, true);
         else
             lt.insert_start(&*seqs_begin[t].first, t, false);
     }
@@ -1153,7 +1144,7 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
 
         // feed
         if (seqs_begin[source].first == seqs_begin[source].second)
-            lt.delete_min_insert(arbitrary_element, true);
+            lt.delete_min_insert(nullptr, true);
         else
             // replace from same source
             lt.delete_min_insert(&*seqs_begin[source].first, false);

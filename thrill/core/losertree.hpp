@@ -106,7 +106,9 @@ public:
 
     void print(std::ostream& os) {
         for (size_type i = 0; i < (k_ * 2); i++)
-            os << i << "    " << losers_[i].key << " from " << losers_[i].source << ",  " << losers_[i].sup << "\n";
+            os << i << "    " << losers_[i].key
+               << " from " << losers_[i].source << ",  " << losers_[i].sup
+               << "\n";
     }
 
     //! return the index of the player with the smallest element.
@@ -122,8 +124,9 @@ public:
      * \param sup flag that determines whether the value to insert is an
      *   explicit supremum sentinel.
      */
-    void insert_start(const ValueType* key, Source source, bool sup) {
+    void insert_start(const ValueType* keyp, Source source, bool sup) {
         size_type pos = k_ + source;
+        assert(sup == (keyp == nullptr));
 
         losers_[pos].sup = sup;
         losers_[pos].source = source;
@@ -131,12 +134,17 @@ public:
         if (THRILL_UNLIKELY(first_insert_))
         {
             // copy construct all keys from this first key
-            for (size_type i = 0; i < (2 * k_); ++i)
-                new (&(losers_[i].key))ValueType(*key);
+            for (size_type i = 0; i < 2 * k_; ++i) {
+                if (keyp)
+                    new (&(losers_[i].key))ValueType(*keyp);
+                else
+                    losers_[pos].key = ValueType();
+            }
             first_insert_ = false;
         }
-        else
-            losers_[pos].key = *key;
+        else {
+            losers_[pos].key = keyp ? *keyp : ValueType();
+        }
     }
 
     /*!
@@ -205,26 +213,28 @@ public:
     { }
 
     // do not pass const reference since key will be used as local variable
-    void delete_min_insert(ValueType* key, bool sup) {
+    void delete_min_insert(const ValueType* keyp, bool sup) {
         using std::swap;
+        assert(sup == (keyp == nullptr));
 
         Source source = losers_[0].source;
+        ValueType key = keyp ? *keyp : ValueType();
         for (size_type pos = (k_ + source) / 2; pos > 0; pos /= 2)
         {
             // the smaller one gets promoted
             if (sup ||
-                (!losers_[pos].sup && cmp_(losers_[pos].key, *key)))
+                (!losers_[pos].sup && cmp_(losers_[pos].key, key)))
             {
                 // the other one is smaller
                 swap(losers_[pos].sup, sup);
                 swap(losers_[pos].source, source);
-                swap(losers_[pos].key, *key);
+                swap(losers_[pos].key, key);
             }
         }
 
         losers_[0].sup = sup;
         losers_[0].source = source;
-        losers_[0].key = *key;
+        losers_[0].key = key;
     }
 };
 
@@ -260,27 +270,29 @@ public:
     { }
 
     // do not pass const reference since key will be used as local variable
-    void delete_min_insert(ValueType* key, bool sup) {
+    void delete_min_insert(const ValueType* keyp, bool sup) {
         using std::swap;
+        assert(sup == (keyp == nullptr));
 
         Source source = losers_[0].source;
+        ValueType key = keyp ? *keyp : ValueType();
         for (size_type pos = (k_ + source) / 2; pos > 0; pos /= 2)
         {
             if ((sup && (!losers_[pos].sup || losers_[pos].source < source)) ||
                 (!sup && !losers_[pos].sup &&
-                 ((cmp_(losers_[pos].key, *key)) ||
-                  (!cmp_(*key, losers_[pos].key) && losers_[pos].source < source))))
+                 ((cmp_(losers_[pos].key, key)) ||
+                  (!cmp_(key, losers_[pos].key) && losers_[pos].source < source))))
             {
                 // the other one is smaller
                 swap(losers_[pos].sup, sup);
                 swap(losers_[pos].source, source);
-                swap(losers_[pos].key, *key);
+                swap(losers_[pos].key, key);
             }
         }
 
         losers_[0].sup = sup;
         losers_[0].source = source;
-        losers_[0].key = *key;
+        losers_[0].key = key;
     }
 };
 
@@ -486,18 +498,15 @@ class LoserTreePointerBase
 {
 protected:
     //! size of counters and array indexes
-    typedef typename LoserTreeCopyBase<ValueType, Comparator>
-        ::size_type size_type;
+    using size_type = typename LoserTreeCopyBase<ValueType, Comparator>
+        ::size_type;
     //! type of the source field
-    typedef typename LoserTreeCopyBase<ValueType, Comparator>
-        ::Source Source;
+    using Source = typename LoserTreeCopyBase<ValueType, Comparator>::Source;
 
 protected:
     //! Internal representation of a loser tree player/node
     struct Loser
     {
-        //! flag, true iff is a virtual maximum sentinel
-        bool           sup;
         //! index of source
         Source         source;
         //! pointer to key value of the element in this node
@@ -522,7 +531,7 @@ public:
           cmp_(cmp) {
         for (size_type i = ik_ - 1; i < k_; i++)
         {
-            losers_[i + k_].sup = true;
+            losers_[i + k_].keyp = nullptr;
             losers_[i + k_].source = (Source)(-1);
         }
     }
@@ -543,7 +552,7 @@ public:
     void print(std::ostream& os) {
         for (size_type i = 0; i < (k_ * 2); i++)
             os << i << "    " << losers_[i].keyp
-               << " from " << losers_[i].source << ",  " << losers_[i].sup
+               << " from " << losers_[i].source << ",  " << losers_[i].keyp
                << "\n";
     }
 
@@ -557,15 +566,14 @@ public:
      *
      * \param key the element to insert
      * \param source index of the player
-     * \param sup flag that determines whether the value to insert is an
-     *   explicit supremum sentinel.
      */
-    void insert_start(const ValueType* key, Source source, bool sup) {
+    void insert_start(const ValueType* keyp, Source source, bool sup) {
         size_type pos = k_ + source;
 
-        losers_[pos].sup = sup;
+        assert(sup == (keyp == nullptr));
         losers_[pos].source = source;
-        losers_[pos].keyp = key;
+        losers_[pos].keyp = keyp;
+        common::UNUSED(sup);
     }
 
     /*!
@@ -583,14 +591,16 @@ public:
         {
             size_type left = init_winner(2 * root);
             size_type right = init_winner(2 * root + 1);
-            if (losers_[right].sup ||
-                (!losers_[left].sup && !cmp_(*losers_[right].keyp, *losers_[left].keyp)))
-            {                   //left one is less or equal
+            if (!losers_[right].keyp ||
+                (losers_[left].keyp && !cmp_(*losers_[right].keyp, *losers_[left].keyp)))
+            {
+                // left one is less or equal
                 losers_[root] = losers_[right];
                 return left;
             }
             else
-            {                   //right one is less
+            {
+                // right one is less
                 losers_[root] = losers_[left];
                 return right;
             }
@@ -630,26 +640,25 @@ public:
         : Super(k, cmp)
     { }
 
-    void delete_min_insert(const ValueType* key, bool sup) {
+    void delete_min_insert(const ValueType* keyp, bool sup) {
         using std::swap;
+        assert(sup == (keyp == nullptr));
 
-        const ValueType* keyp = key;
         Source source = losers_[0].source;
         for (size_type pos = (k_ + source) / 2; pos > 0; pos /= 2)
         {
             // the smaller one gets promoted
-            if (sup ||
-                (!losers_[pos].sup && cmp_(*losers_[pos].keyp, *keyp)))
+            if (!keyp ||
+                (losers_[pos].keyp && cmp_(*losers_[pos].keyp, *keyp)))
             {                   //the other one is smaller
-                swap(losers_[pos].sup, sup);
                 swap(losers_[pos].source, source);
                 swap(losers_[pos].keyp, keyp);
             }
         }
 
-        losers_[0].sup = sup;
         losers_[0].source = source;
         losers_[0].keyp = keyp;
+        common::UNUSED(sup);
     }
 };
 
@@ -681,28 +690,28 @@ public:
         : Super(k, cmp)
     { }
 
-    void delete_min_insert(const ValueType& key, bool sup) {
+    void delete_min_insert(const ValueType* keyp, bool sup) {
         using std::swap;
+        assert(sup == (keyp == nullptr));
 
-        const ValueType* keyp = &key;
         Source source = losers_[0].source;
         for (size_type pos = (k_ + source) / 2; pos > 0; pos /= 2)
         {
             // the smaller one gets promoted, ties are broken by source
-            if ((sup && (!losers_[pos].sup || losers_[pos].source < source)) ||
-                (!sup && !losers_[pos].sup &&
+            if ((!keyp && (losers_[pos].keyp || losers_[pos].source < source)) ||
+                (keyp && losers_[pos].keyp &&
                  ((cmp_(*losers_[pos].keyp, *keyp)) ||
                   (!cmp_(*keyp, *losers_[pos].keyp) && losers_[pos].source < source))))
-            {                   //the other one is smaller
-                swap(losers_[pos].sup, sup);
+            {
+                // the other one is smaller
                 swap(losers_[pos].source, source);
                 swap(losers_[pos].keyp, keyp);
             }
         }
 
-        losers_[0].sup = sup;
         losers_[0].source = source;
         losers_[0].keyp = keyp;
+        common::UNUSED(sup);
     }
 };
 
