@@ -97,6 +97,11 @@ public:
         }
     }
 
+    LoserTreeCopyBase(const LoserTreeCopyBase&) = delete;
+    LoserTreeCopyBase& operator = (const LoserTreeCopyBase&) = delete;
+    LoserTreeCopyBase(LoserTreeCopyBase&&) = default;
+    LoserTreeCopyBase& operator = (LoserTreeCopyBase&&) = default;
+
     ~LoserTreeCopyBase() {
         for (size_type i = 0; i < (2 * k_); ++i)
             losers_[i].~Loser();
@@ -296,193 +301,6 @@ public:
 };
 
 /*!
- * Guarded loser tree, either copying the whole element into the tree structure,
- * or looking up the element via the index.
- *
- * Guarding is done explicitly through one flag sup per element, inf is not
- * needed due to a better initialization routine.  This is a well-performing
- * variant.
- */
-template <typename T, typename Comparator = std::less<T> >
-class LoserTreeReference
-{
-#undef COPY
-#ifdef COPY
-        #define KEY(i) losers_[i].key
-        #define KEY_SOURCE(i) key
-#else
-        #define KEY(i) keys_[losers_[i].source]
-        #define KEY_SOURCE(i) keys_[i]
-#endif
-
-private:
-    struct Loser
-    {
-        bool sup;
-        int  source;
-#ifdef COPY
-        T    key;
-#endif
-    };
-
-    unsigned int ik_, k_;
-    Loser* losers_;
-#ifndef COPY
-    T* keys_;
-#endif
-    Comparator cmp_;
-
-public:
-    explicit LoserTreeReference(unsigned int k,
-                                Comparator cmp = std::less<T>()) : cmp_(cmp) {
-        ik_ = k;
-        k_ = common::RoundUpToPowerOfTwo(ik_);
-        losers_ = new Loser[k_ * 2];
-#ifndef COPY
-        keys_ = new T[ik_];
-#endif
-        for (unsigned int i = ik_ - 1; i < k_; i++)
-            losers_[i + k_].sup = true;
-    }
-
-    ~LoserTreeReference() {
-        delete[] losers_;
-#ifndef COPY
-        delete[] keys_;
-#endif
-    }
-
-    void print(std::ostream& os) {
-        for (unsigned int i = 0; i < (k_ * 2); i++)
-            os << i << "    " << KEY(i) << " from " << losers_[i].source << ",  " << losers_[i].sup << "\n";
-    }
-
-    int min_source() {
-        return losers_[0].source;
-    }
-
-    void insert_start(T key, int source, bool sup) {
-        unsigned int pos = k_ + source;
-
-        losers_[pos].sup = sup;
-        losers_[pos].source = source;
-        KEY(pos) = key;
-    }
-
-    unsigned int init_winner(unsigned int root) {
-        if (root >= k_)
-        {
-            return root;
-        }
-        else
-        {
-            unsigned int left = init_winner(2 * root);
-            unsigned int right = init_winner(2 * root + 1);
-            if (losers_[right].sup ||
-                (!losers_[left].sup && !cmp_(KEY(right), KEY(left))))
-            {                   //left one is less or equal
-                losers_[root] = losers_[right];
-                return left;
-            }
-            else
-            {                   //right one is less
-                losers_[root] = losers_[left];
-                return right;
-            }
-        }
-    }
-
-    void init() {
-        losers_[0] = losers_[init_winner(1)];
-    }
-
-    void delete_min_insert(T /* key */, bool sup) {
-        using std::swap;
-
-        int source = losers_[0].source;
-        for (unsigned int pos = (k_ + source) / 2; pos > 0; pos /= 2)
-        {
-            // the smaller one gets promoted
-            if (sup ||
-                (!losers_[pos].sup && cmp_(KEY(pos), KEY_SOURCE(source))))
-            {                   //the other one is smaller
-                swap(losers_[pos].sup, sup);
-                swap(losers_[pos].source, source);
-#ifdef COPY
-                swap(KEY(pos), KEY_SOURCE(source));
-#endif
-            }
-        }
-
-        losers_[0].sup = sup;
-        losers_[0].source = source;
-#ifdef COPY
-        KEY(0) = KEY_SOURCE(source);
-#endif
-    }
-
-    void insert_start_stable(T key, int source, bool sup) {
-        return insert_start(key, source, sup);
-    }
-
-    unsigned int init_winner_stable(unsigned int root) {
-        if (root >= k_)
-        {
-            return root;
-        }
-        else
-        {
-            unsigned int left = init_winner(2 * root);
-            unsigned int right = init_winner(2 * root + 1);
-            if (losers_[right].sup ||
-                (!losers_[left].sup && !cmp_(KEY(right), KEY(left))))
-            {                   //left one is less or equal
-                losers_[root] = losers_[right];
-                return left;
-            }
-            else
-            {                   //right one is less
-                losers_[root] = losers_[left];
-                return right;
-            }
-        }
-    }
-
-    void init_stable() {
-        losers_[0] = losers_[init_winner_stable(1)];
-    }
-
-    void delete_min_insert_stable(T /* key */, bool sup) {
-        using std::swap;
-
-        int source = losers_[0].source;
-        for (unsigned int pos = (k_ + source) / 2; pos > 0; pos /= 2)
-        {
-            // the smaller one gets promoted, ties are broken by source
-            if ((sup && (!losers_[pos].sup || losers_[pos].source < source)) ||
-                (!sup && !losers_[pos].sup &&
-                 ((cmp_(KEY(pos), KEY_SOURCE(source))) ||
-                  (!cmp_(KEY_SOURCE(source), KEY(pos)) && losers_[pos].source < source))))
-            {                   //the other one is smaller
-                swap(losers_[pos].sup, sup);
-                swap(losers_[pos].source, source);
-#ifdef COPY
-                swap(KEY(pos), KEY_SOURCE(source));
-#endif
-            }
-        }
-
-        losers_[0].sup = sup;
-        losers_[0].source = source;
-#ifdef COPY
-        KEY(0) = KEY_SOURCE(source);
-#endif
-    }
-};
-#undef KEY
-#undef KEY_SOURCE
-
-/*!
  * Guarded loser tree, using pointers to the elements instead of copying them
  * into the tree nodes.
  *
@@ -535,13 +353,9 @@ public:
         }
     }
 
-    //! non-copyable: delete copy-constructor
     LoserTreePointerBase(const LoserTreePointerBase&) = delete;
-    //! non-copyable: delete assignment operator
     LoserTreePointerBase& operator = (const LoserTreePointerBase&) = delete;
-    //! move-constructor: default
     LoserTreePointerBase(LoserTreePointerBase&&) = default;
-    //! move-assignment operator: default
     LoserTreePointerBase& operator = (LoserTreePointerBase&&) = default;
 
     ~LoserTreePointerBase() {
