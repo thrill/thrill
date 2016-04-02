@@ -52,6 +52,12 @@ struct MyStruct
     bool operator < (const MyStruct& b) const { return key < b.key; }
 };
 
+struct MyReduceConfig : public core::DefaultReduceConfig
+{
+    //! only for growing ProbingHashTable: items initially in a partition.
+    static constexpr size_t initial_items_per_partition_ = 160000;
+};
+
 template <
     template <
         typename ValueType, typename Key, typename Value,
@@ -79,7 +85,8 @@ void TestAddMyStructModulo(Context& ctx) {
 
     using Table = HashTable<
               MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), Collector, false>;
+              decltype(key_ex), decltype(red_fn), Collector,
+              /* VolatileKey */ false, MyReduceConfig>;
 
     Table table(ctx, 0, key_ex, red_fn, collector,
                 /* num_partitions */ 13,

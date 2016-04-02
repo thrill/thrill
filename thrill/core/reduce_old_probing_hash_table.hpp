@@ -179,12 +179,11 @@ public:
         while (mem::memory_exceeded && num_items_ != 0)
             SpillAnyPartition();
 
-        ReduceIndexResult h = index_function_(
+        typename IndexFunction::Result h = index_function_(
             kv.first, num_partitions_,
             num_buckets_per_partition_, num_buckets_);
 
         assert(h.partition_id < num_partitions_);
-        assert(h.global_index < num_buckets_);
 
         if (kv.first == Key()) {
             // handle pairs with sentinel key specially by reducing into last
@@ -207,10 +206,14 @@ public:
             return;
         }
 
-        KeyValueIterator begin = items_.begin() + h.global_index;
-        KeyValueIterator iter = begin;
-        KeyValueIterator end =
-            items_.begin() + (h.partition_id + 1) * num_buckets_per_partition_;
+        size_t local_index = h.local_index(num_buckets_per_partition_);
+
+        KeyValueIterator pbegin =
+            items_.begin() + h.partition_id * num_buckets_per_partition_;
+        KeyValueIterator pend = pbegin + num_buckets_per_partition_;
+
+        KeyValueIterator begin_iter = pbegin + local_index;
+        KeyValueIterator iter = begin_iter;
 
         while (!equal_to_function_(iter->first, Key()))
         {
@@ -228,11 +231,11 @@ public:
             ++iter;
 
             // wrap around if beyond the current partition
-            if (iter == end)
-                iter -= num_buckets_per_partition_;
+            if (iter == pend)
+                iter = pbegin;
 
             // flush partition, if all slots are reserved
-            if (iter == begin) {
+            if (iter == begin_iter) {
 
                 SpillPartition(h.partition_id);
 

@@ -123,12 +123,14 @@ TEST(ReduceHashStage, PostReduceByIndex) {
     size_t num_buckets_per_partition = num_buckets / num_partitions;
 
     for (size_t key = 0; key < 601; ++key) {
-        core::ReduceIndexResult b
+        typename IndexMap::Result b
             = imap(key,
                    num_partitions, num_buckets_per_partition, num_buckets);
 
         sLOG << "imap" << key << "->"
-             << b.global_index << "part" << b.partition_id;
+             << "part" << b.partition_id
+             << "global" << b.global_index
+             << "local" << b.local_index(num_buckets_per_partition);
 
         die_unless(b.partition_id < num_partitions);
         die_unless(b.global_index < num_buckets);
