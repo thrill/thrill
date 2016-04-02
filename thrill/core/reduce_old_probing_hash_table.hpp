@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_probing_hash_table.hpp
+ * thrill/core/reduce_old_probing_hash_table.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -10,13 +10,12 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_PROBING_HASH_TABLE_HEADER
-#define THRILL_CORE_REDUCE_PROBING_HASH_TABLE_HEADER
+#ifndef THRILL_CORE_REDUCE_OLD_PROBING_HASH_TABLE_HEADER
+#define THRILL_CORE_REDUCE_OLD_PROBING_HASH_TABLE_HEADER
 
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_table.hpp>
 
-#include <algorithm>
 #include <functional>
 #include <limits>
 #include <utility>
@@ -73,7 +72,7 @@ template <typename ValueType, typename Key, typename Value,
           typename ReduceConfig_,
           typename IndexFunction,
           typename EqualToFunction = std::equal_to<Key> >
-class ReduceProbingHashTable
+class ReduceOldProbingHashTable
     : public ReduceTable<ValueType, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
                          VolatileKey, ReduceConfig_,
@@ -90,7 +89,9 @@ public:
     using KeyValuePair = std::pair<Key, Value>;
     using ReduceConfig = ReduceConfig_;
 
-    ReduceProbingHashTable(
+    using KeyValueIterator = typename std::vector<KeyValuePair>::iterator;
+
+    ReduceOldProbingHashTable(
         Context& ctx, size_t dia_id,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
@@ -103,18 +104,19 @@ public:
         : Super(ctx, dia_id,
                 key_extractor, reduce_function, emitter,
                 num_partitions, config, immediate_flush,
-                index_function, equal_to_function)
-    { assert(num_partitions > 0); }
+                index_function, equal_to_function) {
+
+        assert(num_partitions > 0);
+    }
 
     //! Construct the hash table itself. fill it with sentinels. have one extra
     //! cell beyond the end for reducing the sentinel itself.
     void Initialize(size_t limit_memory_bytes) {
-        assert(!items_);
 
         limit_memory_bytes_ = limit_memory_bytes;
 
         // calculate num_buckets_per_partition_ from the memory limit and the
-        // number of partitions required, initialize partition_size_ array.
+        // number of partitions required
 
         assert(limit_memory_bytes_ >= 0 &&
                "limit_memory_bytes must be greater than or equal to 0. "
@@ -131,11 +133,6 @@ public:
         assert(num_buckets_per_partition_ > 0);
         assert(num_buckets_ > 0);
 
-        partition_size_.resize(
-            num_partitions_,
-            std::min(size_t(config_.initial_items_per_partition_),
-                     num_buckets_per_partition_));
-
         // calculate limit on the number of items in a partition before these
         // are spilled to disk or flushed to network.
 
@@ -150,23 +147,9 @@ public:
 
         assert(limit_items_per_partition_ >= 0);
 
-        // actually allocate the table and initialize the valid ranges, the + 1
-        // is for the sentinel's slot.
+        // actually allocate the table
 
-        items_ = static_cast<KeyValuePair*>(
-            operator new ((num_buckets_ + 1) * sizeof(KeyValuePair)));
-
-        for (size_t id = 0; id < num_partitions_; ++id) {
-            KeyValuePair* iter = items_ + id * num_buckets_per_partition_;
-            KeyValuePair* pend = iter + partition_size_[id];
-
-            for ( ; iter != pend; ++iter)
-                new (iter)KeyValuePair();
-        }
-    }
-
-    ~ReduceProbingHashTable() {
-        if (items_) Dispose();
+        items_.resize(num_buckets_ + 1);
     }
 
     /*!
@@ -208,7 +191,7 @@ public:
             KeyValuePair& sentinel = items_[num_buckets_];
             if (sentinel_partition_ == invalid_partition_) {
                 // first occurrence of sentinel key
-                new (&sentinel)KeyValuePair(kv);
+                sentinel = kv;
                 sentinel_partition_ = h.partition_id;
             }
             else {
@@ -223,14 +206,14 @@ public:
             return;
         }
 
-        // calculate local index depending on the current subtable's size
-        size_t local_index = h.local_index(partition_size_[h.partition_id]);
+        size_t local_index = h.local_index(num_buckets_per_partition_);
 
-        KeyValuePair* pbegin = items_ + h.partition_id * num_buckets_per_partition_;
-        KeyValuePair* pend = pbegin + partition_size_[h.partition_id];
+        KeyValueIterator pbegin =
+            items_.begin() + h.partition_id * num_buckets_per_partition_;
+        KeyValueIterator pend = pbegin + num_buckets_per_partition_;
 
-        KeyValuePair* begin_iter = pbegin + local_index;
-        KeyValuePair* iter = begin_iter;
+        KeyValueIterator begin_iter = pbegin + local_index;
+        KeyValueIterator iter = begin_iter;
 
         while (!equal_to_function_(iter->first, Key()))
         {
@@ -251,10 +234,18 @@ public:
             if (iter == pend)
                 iter = pbegin;
 
-            // flush partition and retry, if all slots are reserved
+            // flush partition, if all slots are reserved
             if (iter == begin_iter) {
+
                 SpillPartition(h.partition_id);
-                return Insert(kv);
+
+                *iter = kv;
+
+                // increase counter for partition
+                ++items_per_partition_[h.partition_id];
+                ++num_items_;
+
+                return;
             }
         }
 
@@ -269,52 +260,10 @@ public:
             SpillPartition(h.partition_id);
     }
 
-    //! Deallocate items and memory
+    //! Deallocate memory
     void Dispose() {
-        if (!items_) return;
-
-        // dispose the items by destructor
-
-        for (size_t id = 0; id < num_partitions_; ++id) {
-            KeyValuePair* iter = items_ + id * num_buckets_per_partition_;
-            KeyValuePair* pend = iter + partition_size_[id];
-
-            for ( ; iter != pend; ++iter)
-                iter->~KeyValuePair();
-        }
-
-        if (sentinel_partition_ != invalid_partition_)
-            items_[num_buckets_].~KeyValuePair();
-
-        operator delete (items_);
-        items_ = nullptr;
-
+        std::vector<KeyValuePair>().swap(items_);
         Super::Dispose();
-    }
-
-    //! Grow a partition after a spill or flush (if possible)
-    void GrowPartition(size_t partition_id) {
-
-        if (partition_size_[partition_id] == num_buckets_per_partition_)
-            return;
-
-        size_t new_size = std::min(
-            num_buckets_per_partition_, 2 * partition_size_[partition_id]);
-
-        sLOG << "Growing partition" << partition_id
-             << "from" << partition_size_[partition_id] << "to" << new_size;
-
-        // initialize new items
-
-        KeyValuePair* pbegin =
-            items_ + partition_id * num_buckets_per_partition_;
-        KeyValuePair* iter = pbegin + partition_size_[partition_id];
-        KeyValuePair* pend = pbegin + new_size;
-
-        for ( ; iter != pend; ++iter)
-            new (iter)KeyValuePair();
-
-        partition_size_[partition_id] = new_size;
     }
 
     //! \name Spilling Mechanisms to External Memory Files
@@ -336,15 +285,19 @@ public:
 
         if (sentinel_partition_ == partition_id) {
             writer.Put(items_[num_buckets_]);
-            items_[num_buckets_].~KeyValuePair();
+            items_[num_buckets_] = KeyValuePair();
             sentinel_partition_ = invalid_partition_;
         }
 
-        KeyValuePair* iter = items_ + partition_id * num_buckets_per_partition_;
-        KeyValuePair* pend = iter + partition_size_[partition_id];
+        KeyValueIterator iter =
+            items_.begin() + partition_id * num_buckets_per_partition_;
+        KeyValueIterator end =
+            items_.begin() + (partition_id + 1) * num_buckets_per_partition_;
 
-        for ( ; iter != pend; ++iter) {
-            if (iter->first != Key()) {
+        for ( ; iter != end; ++iter)
+        {
+            if (iter->first != Key())
+            {
                 writer.Put(*iter);
                 *iter = KeyValuePair();
             }
@@ -356,8 +309,6 @@ public:
         assert(num_items_ == this->num_items_calc());
 
         LOG << "Spilled items of partition with id: " << partition_id;
-
-        GrowPartition(partition_id);
     }
 
     //! Spill all items of an arbitrary partition into an external memory File.
@@ -401,15 +352,17 @@ public:
         if (sentinel_partition_ == partition_id) {
             emit(partition_id, items_[num_buckets_]);
             if (consume) {
-                items_[num_buckets_].~KeyValuePair();
+                items_[num_buckets_] = KeyValuePair();
                 sentinel_partition_ = invalid_partition_;
             }
         }
 
-        KeyValuePair* iter = items_ + partition_id * num_buckets_per_partition_;
-        KeyValuePair* pend = iter + partition_size_[partition_id];
+        KeyValueIterator iter =
+            items_.begin() + partition_id * num_buckets_per_partition_;
+        KeyValueIterator end =
+            items_.begin() + (partition_id + 1) * num_buckets_per_partition_;
 
-        for ( ; iter != pend; ++iter)
+        for ( ; iter != end; ++iter)
         {
             if (iter->first != Key()) {
                 emit(partition_id, *iter);
@@ -427,8 +380,6 @@ public:
         }
 
         LOG << "Done flushed items of partition: " << partition_id;
-
-        GrowPartition(partition_id);
     }
 
     void FlushPartition(size_t partition_id, bool consume) {
@@ -464,10 +415,7 @@ private:
     using Super::reduce_function_;
 
     //! Storing the actual hash table.
-    KeyValuePair* items_ = nullptr;
-
-    //! Current sizes of the partitions because the valid allocated areas grow
-    std::vector<size_t> partition_size_;
+    std::vector<KeyValuePair> items_;
 
     //! sentinel for invalid partition or no sentinel.
     static constexpr size_t invalid_partition_ = size_t(-1);
@@ -484,12 +432,12 @@ template <typename ValueType, typename Key, typename Value,
           typename ReduceConfig, typename IndexFunction,
           typename EqualToFunction>
 class ReduceTableSelect<
-        ReduceTableImpl::PROBING,
+        ReduceTableImpl::OLD_PROBING,
         ValueType, Key, Value, KeyExtractor, ReduceFunction,
         Emitter, VolatileKey, ReduceConfig, IndexFunction, EqualToFunction>
 {
 public:
-    using type = ReduceProbingHashTable<
+    using type = ReduceOldProbingHashTable<
               ValueType, Key, Value, KeyExtractor, ReduceFunction,
               Emitter, VolatileKey, ReduceConfig,
               IndexFunction, EqualToFunction>;
@@ -498,6 +446,6 @@ public:
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_PROBING_HASH_TABLE_HEADER
+#endif // !THRILL_CORE_REDUCE_OLD_PROBING_HASH_TABLE_HEADER
 
 /******************************************************************************/

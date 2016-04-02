@@ -100,7 +100,7 @@ class ReduceBucketHashTable
 
     //! target number of bytes in a BucketBlock.
     static constexpr size_t bucket_block_size
-        = ReduceConfig::bucket_block_size;
+        = ReduceConfig::bucket_block_size_;
 
 public:
     using KeyValuePair = std::pair<Key, Value>;
@@ -267,20 +267,21 @@ public:
         while (mem::memory_exceeded && num_items_ != 0)
             SpillAnyPartition();
 
-        ReduceIndexResult h = index_function_(
+        typename IndexFunction::Result h = index_function_(
             kv.first, num_partitions_,
             num_buckets_per_partition_, num_buckets_);
 
         // sLOG << "kv" << kv.first << "-" << kv.second
         //      << "to partition" << h.partition_id << "bucket" << h.global_index;
 
-        assert(h.partition_id < num_partitions_);
-        assert(h.global_index < num_buckets_);
-        assert(h.global_index >= h.partition_id * num_buckets_per_partition_ &&
-               h.global_index < (h.partition_id + 1) * num_buckets_per_partition_ &&
-               "global_index must be contained in matching partition_id");
+        size_t local_index = h.local_index(num_buckets_per_partition_);
 
-        BucketBlock* current = buckets_[h.global_index];
+        assert(h.partition_id < num_partitions_);
+        assert(local_index < num_buckets_per_partition_);
+
+        size_t global_index =
+            h.partition_id * num_buckets_per_partition_ + local_index;
+        BucketBlock* current = buckets_[global_index];
 
         while (current != nullptr)
         {
@@ -307,7 +308,7 @@ public:
         // have an item that needs to be added.
         //////
 
-        current = buckets_[h.global_index];
+        current = buckets_[global_index];
 
         if (current == nullptr || current->size == block_size_)
         {
@@ -321,8 +322,8 @@ public:
 
             // allocate a new block of uninitialized items, prepend to bucket
             current = block_pool_.GetBlock();
-            current->next = buckets_[h.global_index];
-            buckets_[h.global_index] = current;
+            current->next = buckets_[global_index];
+            buckets_[global_index] = current;
 
             // Total number of blocks
             ++num_blocks_;

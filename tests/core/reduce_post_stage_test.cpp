@@ -96,6 +96,13 @@ TEST(ReduceHashStage, BucketAddMyStructByHash) {
         });
 }
 
+TEST(ReduceHashStage, OldProbingAddMyStructByHash) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByHash<core::ReduceTableImpl::OLD_PROBING>(ctx);
+        });
+}
+
 TEST(ReduceHashStage, ProbingAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
@@ -116,12 +123,14 @@ TEST(ReduceHashStage, PostReduceByIndex) {
     size_t num_buckets_per_partition = num_buckets / num_partitions;
 
     for (size_t key = 0; key < 601; ++key) {
-        core::ReduceIndexResult b
+        typename IndexMap::Result b
             = imap(key,
                    num_partitions, num_buckets_per_partition, num_buckets);
 
         sLOG << "imap" << key << "->"
-             << b.global_index << "part" << b.partition_id;
+             << "part" << b.partition_id
+             << "global" << b.global_index
+             << "local" << b.local_index(num_buckets_per_partition);
 
         die_unless(b.partition_id < num_partitions);
         die_unless(b.global_index < num_buckets);
@@ -199,6 +208,13 @@ TEST(ReduceHashStage, BucketAddMyStructByIndex) {
         });
 }
 
+TEST(ReduceHashStage, OldProbingAddMyStructByIndex) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByIndex<core::ReduceTableImpl::OLD_PROBING>(ctx);
+        });
+}
+
 TEST(ReduceHashStage, ProbingAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
@@ -272,6 +288,13 @@ TEST(ReduceHashStage, BucketAddMyStructByIndexWithHoles) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndexWithHoles<core::ReduceTableImpl::BUCKET>(ctx);
+        });
+}
+
+TEST(ReduceHashStage, OldProbingAddMyStructByIndexWithHoles) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructByIndexWithHoles<core::ReduceTableImpl::OLD_PROBING>(ctx);
         });
 }
 

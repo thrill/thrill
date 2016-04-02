@@ -27,7 +27,7 @@ namespace core {
 
 //! Enum class to select a hash table implementation.
 enum class ReduceTableImpl {
-    PROBING, BUCKET
+    PROBING, OLD_PROBING, BUCKET
 };
 
 /*!
@@ -49,9 +49,12 @@ public:
     //! select the hash table in the reduce stage by enum
     static constexpr ReduceTableImpl table_impl_ = ReduceTableImpl::PROBING;
 
+    //! only for growing ProbingHashTable: items initially in a partition.
+    static constexpr size_t initial_items_per_partition_ = 16;
+
     //! only for BucketHashTable: size of a block in the bucket chain in bytes
     //! (must be a static constexpr)
-    static constexpr size_t bucket_block_size = 512;
+    static constexpr size_t bucket_block_size_ = 512;
 
     //! use MixStream instead of CatStream in ReduceNodes: this makes the order
     //! of items delivered in the ReduceFunction arbitrary.

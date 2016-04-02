@@ -16,6 +16,7 @@
 #ifndef THRILL_CORE_REDUCE_FUNCTIONAL_HEADER
 #define THRILL_CORE_REDUCE_FUNCTIONAL_HEADER
 
+#include <thrill/common/defines.hpp>
 #include <thrill/common/math.hpp>
 
 namespace thrill {
@@ -34,21 +35,27 @@ static inline uint64_t Hash128to64(const uint64_t upper, const uint64_t lower) {
     return b;
 }
 
-struct ReduceIndexResult {
-    //! which partition number the item belongs to.
-    size_t partition_id;
-    //! index within the whole hashtable
-    size_t global_index;
-};
-
 /*!
  * A reduce index function which returns a hash index and partition. It is used
- * by ReduceToHash.
+ * by ReduceByKey.
  */
 template <typename Key, typename HashFunction = std::hash<Key> >
 class ReduceByHash
 {
 public:
+    struct Result {
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! remaining hash bits for local index
+        size_t remaining_hash;
+
+        //! calculate local index into a partition containing a hash table of
+        //! smaller size
+        size_t local_index(size_t size) const {
+            return remaining_hash % size;
+        }
+    };
+
     explicit ReduceByHash(
         const uint64_t& salt = 0,
         const HashFunction& hash_function = HashFunction())
@@ -58,20 +65,18 @@ public:
         const uint64_t& salt, const ReduceByHash& other)
         : salt_(salt), hash_function_(other.hash_function_) { }
 
-    ReduceIndexResult operator () (
+    Result operator () (
         const Key& k,
         const size_t& num_partitions,
-        const size_t& num_buckets_per_partition,
-        const size_t& num_buckets_per_table) const {
-
-        (void)num_partitions;
+        const size_t& /* num_buckets_per_partition */,
+        const size_t& /* num_buckets_per_table */) const {
 
         uint64_t hash = Hash128to64(salt_, hash_function_(k));
 
-        size_t global_index = hash % num_buckets_per_table;
-        size_t partition_id = global_index / num_buckets_per_partition;
+        size_t partition_id = hash % num_partitions;
+        size_t remaining_hash = hash / num_partitions;
 
-        return ReduceIndexResult { partition_id, global_index };
+        return Result { partition_id, remaining_hash };
     }
 
 private:
@@ -87,6 +92,22 @@ template <typename Key>
 class ReduceByIndex
 {
 public:
+    struct Result {
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index of the item among all local partition
+        size_t global_index;
+        //! saved parameter
+        size_t num_buckets_per_partition;
+
+        //! calculate local index into a partition containing a hash table of
+        //! smaller size
+        size_t local_index(size_t size) const {
+            return global_index % num_buckets_per_partition
+                   * size / num_buckets_per_partition;
+        }
+    };
+
     explicit ReduceByIndex(const common::Range& range)
         : range_(range) { }
 
@@ -97,7 +118,7 @@ public:
 
     void set_range(const common::Range& range) { range_ = range; }
 
-    ReduceIndexResult operator () (
+    Result operator () (
         const Key& k,
         const size_t& /* num_partitions */,
         const size_t& num_buckets_per_partition,
@@ -108,8 +129,9 @@ public:
         // round bucket number down
         size_t global_index = (k - range_.begin) * num_buckets / range_.size();
 
-        return ReduceIndexResult {
-                   global_index / num_buckets_per_partition, global_index
+        return Result {
+                   global_index / num_buckets_per_partition,
+                   global_index, num_buckets_per_partition
         };
     }
 

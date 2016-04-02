@@ -20,6 +20,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
 #include <thrill/core/reduce_functional.hpp>
+#include <thrill/core/reduce_old_probing_hash_table.hpp>
 #include <thrill/core/reduce_probing_hash_table.hpp>
 #include <thrill/data/file.hpp>
 
