@@ -23,7 +23,7 @@ set_source_files_properties(thrill_python.i PROPERTIES
   SWIG_FLAGS "-Wall;-O;-threads")
 
 swig_add_module(thrill_python python thrill_python.i)
-swig_link_libraries(thrill_python thrill ${ALL_LIBRARIES} ${PYTHON_LIBRARIES})
+swig_link_libraries(thrill_python thrill ${PYTHON_LIBRARIES})
 
 # fixup target shared object name, such that multiple swig target can be made
 set_target_properties(_thrill_python PROPERTIES OUTPUT_NAME "_thrill")

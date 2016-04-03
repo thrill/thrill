@@ -329,11 +329,11 @@ include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 # find pthreads
 
 find_package(Threads REQUIRED)
-set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
+set(THRILL_DEP_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${THRILL_DEP_LIBRARIES})
 
 # use dl (dynamic linker library)
 
-set(ALL_LIBRARIES ${ALL_LIBRARIES} ${CMAKE_DL_LIBS})
+set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${CMAKE_DL_LIBS})
 
 # try to find jemalloc (optional)
 
@@ -345,7 +345,7 @@ if(THRILL_USE_JEMALLOC)
     message(STATUS "but consider installing it for systems with limited memory.")
   else()
     include_directories(SYSTEM ${JEMALLOC_INCLUDE_DIRS})
-    set(ALL_LIBRARIES ${JEMALLOC_LIBRARIES} ${ALL_LIBRARIES})
+    set(THRILL_DEP_LIBRARIES ${JEMALLOC_LIBRARIES} ${THRILL_DEP_LIBRARIES})
     add_definitions(-DTHRILL_HAVE_JEMALLOC=1)
   endif()
 endif()
@@ -366,7 +366,7 @@ elseif(TBB_INTERFACE_VERSION LESS 8000)
 else(NOT TBB_FOUND)
   include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
   link_directories(${TBB_LIBRARY_DIRS})
-  set(ALL_LIBRARIES ${TBB_LIBRARIES} ${ALL_LIBRARIES})
+  set(THRILL_DEP_LIBRARIES ${TBB_LIBRARIES} ${THRILL_DEP_LIBRARIES})
   add_definitions(-DTHRILL_HAVE_INTELTBB=1)
 endif()
 
@@ -379,7 +379,7 @@ if(THRILL_USE_MPI)
     message(STATUS "No MPI library found. No problem, it is optional.")
   else()
     include_directories(SYSTEM ${MPI_INCLUDE_PATH})
-    set(ALL_LIBRARIES ${MPI_LIBRARIES} ${ALL_LIBRARIES})
+    set(THRILL_DEP_LIBRARIES ${MPI_LIBRARIES} ${THRILL_DEP_LIBRARIES})
     add_definitions(-DTHRILL_HAVE_NET_MPI=1)
   endif()
 endif()
@@ -388,7 +388,7 @@ endif()
 
 #find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
 #include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-#set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
+#set(THRILL_DEP_LIBRARIES ${Boost_LIBRARIES} ${THRILL_DEP_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
 ################################################################################
@@ -398,7 +398,7 @@ endif()
 macro(thrill_build TARGETNAME)
 
   add_executable(${TARGETNAME} ${ARGN})
-  target_link_libraries(${TARGETNAME} thrill ${ALL_LIBRARIES})
+  target_link_libraries(${TARGETNAME} thrill)
 
 endmacro(thrill_build)
 
@@ -468,7 +468,7 @@ if(THRILL_TRY_COMPILE_HEADERS)
   set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
   set(CMAKE_REQUIRED_LIBRARIES
-    ${CMAKE_BINARY_DIR}/thrill/libthrill.a ${ALL_LIBRARIES})
+    ${CMAKE_BINARY_DIR}/thrill/libthrill.a ${THRILL_DEP_LIBRARIES})
 
   file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "thrill/*.hpp")
   list(SORT header_files)

@@ -43,5 +43,6 @@ if(MPI_FOUND)
 endif()
 
 add_library(thrill ${SRCS})
+target_link_libraries(thrill ${THRILL_DEP_LIBRARIES})
 
 ################################################################################

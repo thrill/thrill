@@ -12,7 +12,7 @@
 macro(thrill_build_target TARGETNAME)
 
   add_executable(${TARGETNAME} ${ARGN})
-  target_link_libraries(${TARGETNAME} thrill gtest gtest_main ${ALL_LIBRARIES})
+  target_link_libraries(${TARGETNAME} thrill gtest gtest_main)
 
 endmacro(thrill_build_target)
 
