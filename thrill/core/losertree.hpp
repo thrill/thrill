@@ -82,7 +82,7 @@ protected:
 
 public:
     LoserTreeCopyBase(size_type k,
-                      Comparator cmp = std::less<ValueType>())
+                      const Comparator& cmp = std::less<ValueType>())
         : ik_(k),
           k_(common::RoundUpToPowerOfTwo(ik_)),
           cmp_(cmp),
@@ -124,7 +124,7 @@ public:
     /*!
      * Initializes the player source with the element key.
      *
-     * \param key the element to insert
+     * \param keyp the element to insert
      * \param source index of the player
      * \param sup flag that determines whether the value to insert is an
      *   explicit supremum sentinel.
@@ -160,24 +160,22 @@ public:
      */
     size_type init_winner(size_type root) {
         if (root >= k_)
-        {
             return root;
+
+        size_type left = init_winner(2 * root);
+        size_type right = init_winner(2 * root + 1);
+        if (losers_[right].sup ||
+            (!losers_[left].sup && !cmp_(losers_[right].key, losers_[left].key)))
+        {
+            // left one is less or equal
+            losers_[root] = losers_[right];
+            return left;
         }
         else
         {
-            size_type left = init_winner(2 * root);
-            size_type right = init_winner(2 * root + 1);
-            if (losers_[right].sup ||
-                (!losers_[left].sup && !cmp_(losers_[right].key, losers_[left].key)))
-            {                   //left one is less or equal
-                losers_[root] = losers_[right];
-                return left;
-            }
-            else
-            {                   //right one is less
-                losers_[root] = losers_[left];
-                return right;
-            }
+            // right one is less
+            losers_[root] = losers_[left];
+            return right;
         }
     }
 
@@ -213,7 +211,7 @@ public:
     using Super::cmp_;
 
     explicit LoserTreeCopy(size_type k,
-                           Comparator cmp = std::less<ValueType>())
+                           const Comparator& cmp = std::less<ValueType>())
         : Super(k, cmp) { }
 
     // do not pass const reference since key will be used as local variable
@@ -269,7 +267,7 @@ public:
     using Super::cmp_;
 
     explicit LoserTreeCopy(size_type k,
-                           Comparator cmp = std::less<ValueType>())
+                           const Comparator& cmp = std::less<ValueType>())
         : Super(k, cmp)
     { }
 
@@ -341,7 +339,7 @@ protected:
 
 public:
     LoserTreePointerBase(size_type k,
-                         Comparator cmp = std::less<ValueType>())
+                         const Comparator& cmp = std::less<ValueType>())
         : ik_(k),
           k_(common::RoundUpToPowerOfTwo(ik_)),
           losers_(new Loser[k_ * 2]),
@@ -377,8 +375,10 @@ public:
     /*!
      * Initializes the player source with the element key.
      *
-     * \param key the element to insert
+     * \param keyp the element to insert
      * \param source index of the player
+     * \param sup flag that determines whether the value to insert is an
+     *   explicit supremum sentinel.
      */
     void insert_start(const ValueType* keyp, Source source, bool sup) {
         size_type pos = k_ + source;
@@ -397,26 +397,22 @@ public:
      */
     size_type init_winner(size_type root) {
         if (root >= k_)
-        {
             return root;
+
+        size_type left = init_winner(2 * root);
+        size_type right = init_winner(2 * root + 1);
+        if (!losers_[right].keyp ||
+            (losers_[left].keyp && !cmp_(*losers_[right].keyp, *losers_[left].keyp)))
+        {
+            // left one is less or equal
+            losers_[root] = losers_[right];
+            return left;
         }
         else
         {
-            size_type left = init_winner(2 * root);
-            size_type right = init_winner(2 * root + 1);
-            if (!losers_[right].keyp ||
-                (losers_[left].keyp && !cmp_(*losers_[right].keyp, *losers_[left].keyp)))
-            {
-                // left one is less or equal
-                losers_[root] = losers_[right];
-                return left;
-            }
-            else
-            {
-                // right one is less
-                losers_[root] = losers_[left];
-                return right;
-            }
+            // right one is less
+            losers_[root] = losers_[left];
+            return right;
         }
     }
 
@@ -449,7 +445,7 @@ public:
     using Super::cmp_;
 
     explicit LoserTreePointer(size_type k,
-                              Comparator cmp = std::less<ValueType>())
+                              const Comparator& cmp = std::less<ValueType>())
         : Super(k, cmp)
     { }
 
@@ -499,7 +495,7 @@ public:
     using Super::cmp_;
 
     explicit LoserTreePointer(size_type k,
-                              Comparator cmp = std::less<ValueType>())
+                              const Comparator& cmp = std::less<ValueType>())
         : Super(k, cmp)
     { }
 
@@ -561,7 +557,7 @@ protected:
 
 public:
     LoserTreeCopyUnguardedBase(unsigned int k, const ValueType& sentinel,
-                               Comparator cmp = std::less<ValueType>())
+                               const Comparator& cmp = std::less<ValueType>())
         : ik_(k),
           k_(common::RoundUpToPowerOfTwo(ik_)),
           losers_(new Loser[k_ * 2]),
@@ -602,23 +598,19 @@ public:
 
     unsigned int init_winner(unsigned int root) {
         if (root >= k_)
-        {
             return root;
+
+        unsigned int left = init_winner(2 * root);
+        unsigned int right = init_winner(2 * root + 1);
+        if (!cmp_(losers_[right].key, losers_[left].key))
+        {                       //left one is less or equal
+            losers_[root] = losers_[right];
+            return left;
         }
         else
-        {
-            unsigned int left = init_winner(2 * root);
-            unsigned int right = init_winner(2 * root + 1);
-            if (!cmp_(losers_[right].key, losers_[left].key))
-            {                   //left one is less or equal
-                losers_[root] = losers_[right];
-                return left;
-            }
-            else
-            {                   //right one is less
-                losers_[root] = losers_[left];
-                return right;
-            }
+        {                       //right one is less
+            losers_[root] = losers_[left];
+            return right;
         }
     }
 
@@ -640,7 +632,7 @@ private:
 
 public:
     LoserTreeCopyUnguarded(unsigned int k, const ValueType& sentinel,
-                           Comparator cmp = std::less<ValueType>())
+                           const Comparator& cmp = std::less<ValueType>())
         : Super(k, sentinel, cmp)
     { }
 
@@ -678,7 +670,7 @@ private:
 
 public:
     LoserTreeCopyUnguarded(unsigned int k, const ValueType& sentinel,
-                           Comparator comp = std::less<ValueType>())
+                           const Comparator& comp = std::less<ValueType>())
         : Super(k, sentinel, comp)
     { }
 
@@ -735,8 +727,9 @@ protected:
     Comparator cmp_;
 
 protected:
-    LoserTreePointerUnguardedBase(unsigned int k, const ValueType& sentinel,
-                                  Comparator cmp = std::less<ValueType>())
+    LoserTreePointerUnguardedBase(
+        unsigned int k, const ValueType& sentinel,
+        const Comparator& cmp = std::less<ValueType>())
         : ik_(k),
           k_(common::RoundUpToPowerOfTwo(ik_)),
           losers_(new Loser[k_ * 2]),
@@ -775,23 +768,21 @@ protected:
 
     unsigned int init_winner(unsigned int root) {
         if (root >= k_)
-        {
             return root;
+
+        unsigned int left = init_winner(2 * root);
+        unsigned int right = init_winner(2 * root + 1);
+        if (!cmp_(*losers_[right].keyp, *losers_[left].keyp))
+        {
+            // left one is less or equal
+            losers_[root] = losers_[right];
+            return left;
         }
         else
         {
-            unsigned int left = init_winner(2 * root);
-            unsigned int right = init_winner(2 * root + 1);
-            if (!cmp_(*losers_[right].keyp, *losers_[left].keyp))
-            {                   //left one is less or equal
-                losers_[root] = losers_[right];
-                return left;
-            }
-            else
-            {                   //right one is less
-                losers_[root] = losers_[left];
-                return right;
-            }
+            // right one is less
+            losers_[root] = losers_[left];
+            return right;
         }
     }
 
@@ -814,7 +805,7 @@ private:
 
 public:
     LoserTreePointerUnguarded(unsigned int k, const ValueType& sentinel,
-                              Comparator cmp = std::less<ValueType>())
+                              const Comparator& cmp = std::less<ValueType>())
         : Super(k, sentinel, cmp)
     { }
 
@@ -852,7 +843,7 @@ private:
 
 public:
     LoserTreePointerUnguarded(unsigned int k, const ValueType& sentinel,
-                              Comparator cmp = std::less<ValueType>())
+                              const Comparator& cmp = std::less<ValueType>())
         : Super(k, sentinel, cmp)
     { }
 

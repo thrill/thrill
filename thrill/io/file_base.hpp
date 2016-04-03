@@ -155,13 +155,6 @@ public:
         common::UNUSED(size);
     }
 
-    virtual void export_files(offset_type offset, offset_type length,
-                              std::string prefix) {
-        common::UNUSED(offset);
-        common::UNUSED(length);
-        common::UNUSED(prefix);
-    }
-
     //! close and remove file
     virtual void close_remove() { }
 
