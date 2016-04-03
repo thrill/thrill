@@ -458,6 +458,9 @@ add_subdirectory(examples)
 # build frontends
 add_subdirectory(frontends)
 
+# build some miscellaneous helpers and programs
+add_subdirectory(misc)
+
 ###############################################################################
 ### cmake script THRILL_TRY_COMPILE_HEADERS to copmile all Thrill header files
 

@@ -102,7 +102,7 @@ class JsonLine
 {
 public:
     //! ctor: bind output
-    explicit JsonLine(JsonLogger* logger, std::ostream& os)
+    JsonLine(JsonLogger* logger, std::ostream& os)
         : logger_(logger), os_(os) {
         if (logger)
             lock_ = std::unique_lock<std::mutex>(logger_->mutex_);
