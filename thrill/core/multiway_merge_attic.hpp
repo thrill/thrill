@@ -412,7 +412,7 @@ multiway_merge_3_variant(RandomAccessIteratorIterator seqs_begin,
     }
 
 #define THRILL_MERGE3CASE(a, b, c, c0, c1)           \
-    s ## a ## b ## c :                               \
+    s ## a ## b ## c:                                \
     *target = *seq ## a;                             \
     ++target;                                        \
     --length;                                        \
@@ -588,7 +588,7 @@ file_multiway_merge_4_variant(RandomAccessIteratorIterator seqs_begin,
     }
 
 #define THRILL_MERGE4CASE(a, b, c, d, c0, c1, c2)         \
-    s ## a ## b ## c ## d :                               \
+    s ## a ## b ## c ## d:                                \
     if (length == 0) goto finish;                         \
     target(*seq ## a);                                    \
     --length;                                             \
@@ -716,7 +716,7 @@ multiway_merge_4_variant(RandomAccessIteratorIterator seqs_begin,
     }
 
 #define THRILL_MERGE4CASE(a, b, c, d, c0, c1, c2)         \
-    s ## a ## b ## c ## d :                               \
+    s ## a ## b ## c ## d:                                \
     if (length == 0) goto finish;                         \
     *target = *seq ## a;                                  \
     ++target;                                             \

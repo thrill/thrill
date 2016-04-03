@@ -21,7 +21,7 @@
 
 using namespace thrill; // NOLINT
 
-struct Serialization : public::testing::Test {
+struct Serialization : public ::testing::Test {
     data::BlockPool block_pool_;
 };
 

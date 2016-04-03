@@ -26,7 +26,7 @@ using namespace thrill; // NOLINT
 
 static constexpr bool debug = false;
 
-struct SerializationCereal : public::testing::Test {
+struct SerializationCereal : public ::testing::Test {
     data::BlockPool block_pool_;
 };
 

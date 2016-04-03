@@ -21,7 +21,7 @@ using namespace thrill;
 using MyBlockSource = data::ConsumeBlockQueueSource;
 using CatBlockSource = data::CatBlockSource<MyBlockSource>;
 
-struct BlockQueue : public::testing::Test {
+struct BlockQueue : public ::testing::Test {
     data::BlockPool block_pool_;
 };
 

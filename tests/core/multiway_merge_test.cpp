@@ -27,7 +27,7 @@
 
 using namespace thrill; // NOLINT
 
-struct MultiwayMerge : public::testing::Test {
+struct MultiwayMerge : public ::testing::Test {
     data::BlockPool block_pool_;
 };
 

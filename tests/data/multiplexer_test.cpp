@@ -30,7 +30,7 @@ static constexpr size_t test_block_size = 1024;
 /******************************************************************************/
 // MultiplexerHeader tests
 
-struct MultiplexerHeaderTest : public::testing::Test {
+struct MultiplexerHeaderTest : public ::testing::Test {
     MultiplexerHeaderTest() {
         candidate.stream_id = 2;
         candidate.size = 4;
@@ -114,7 +114,7 @@ TEST(StreamSet, TestLoopbacks) {
 /******************************************************************************/
 // Multiplexer tests
 
-struct Multiplexer : public::testing::Test {
+struct Multiplexer : public ::testing::Test {
 
     using WorkerThread = std::function<void(data::Multiplexer&)>;
 

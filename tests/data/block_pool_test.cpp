@@ -16,7 +16,7 @@
 
 using namespace thrill;
 
-struct BlockPoolTest : public::testing::Test {
+struct BlockPoolTest : public ::testing::Test {
     data::BlockPool block_pool_;
 };
 
