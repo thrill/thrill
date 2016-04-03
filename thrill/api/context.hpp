@@ -45,8 +45,11 @@ class DIABase;
 class MemoryConfig
 {
 public:
+    //! detect memory configuration from environment
     int setup_detect();
-    void setup_test();
+
+    //! setup memory size
+    void setup(size_t ram);
 
     MemoryConfig divide(size_t hosts) const;
     void apply();
@@ -442,7 +445,8 @@ public:
  * Function to run a number of mock hosts as locally independent threads, which
  * communicate via internal stream sockets.
  */
-void RunLocalMock(size_t num_hosts, size_t workers_per_host,
+void RunLocalMock(const MemoryConfig& mem_config,
+                  size_t num_hosts, size_t workers_per_host,
                   const std::function<void(Context&)>& job_startpoint);
 
 /*!
@@ -451,6 +455,14 @@ void RunLocalMock(size_t num_hosts, size_t workers_per_host,
  * in one program. Use this function in most test cases.
  */
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint);
+
+/*!
+ * Helper Function to execute RunLocalMock() tests using mock networks in test
+ * suite for many different numbers of workers and hosts as independent threads
+ * in one program. Use this function in most test cases.
+ */
+void RunLocalTests(
+    size_t ram, const std::function<void(Context&)>& job_startpoint);
 
 /*!
  * Runs the given job_startpoint within the same thread with a test network -->

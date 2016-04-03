@@ -62,7 +62,11 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
 }
 
 //! Test sums of integers 0..n-1 for n=100 in 1000 buckets in the reduce table
-TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
+TEST(ReduceNode, ReduceModuloPairsCorrectResults) {
+
+    static constexpr size_t test_size = 1000000u;
+    static constexpr size_t mod_size = 1000u;
+    static constexpr size_t div_size = test_size / mod_size;
 
     auto start_func =
         [](Context& ctx) {
@@ -72,9 +76,9 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return IntPair((index % 1000) + 1, index / 1000);
+                    return IntPair(index % mod_size, index / mod_size);
                 },
-                100000u);
+                test_size);
 
             auto add_function = [](const size_t& in1, const size_t& in2) {
                                     return in1 + in2;
@@ -89,11 +93,10 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
                           return p1.first < p2.first;
                       });
 
+            ASSERT_EQ(mod_size, out_vec.size());
             for (const auto& element : out_vec) {
-                ASSERT_EQ(element.second, (100u * 99u) / 2u);
+                ASSERT_EQ(element.second, (div_size * (div_size - 1)) / 2u);
             }
-
-            ASSERT_EQ(1000u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);

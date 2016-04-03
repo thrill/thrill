@@ -160,7 +160,7 @@ public:
             // Files.
             return std::make_pair(
                 files_.size(),
-                std::max<size_t>(16u, (avail_blocks / files_.size()) - 1));
+                std::min<size_t>(16u, (avail_blocks / files_.size()) - 1));
         }
     }
 

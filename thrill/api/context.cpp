@@ -154,11 +154,9 @@ using TestGroup = net::mock::Group;
 using TestGroup = net::tcp::Group;
 #endif
 
-void RunLocalMock(size_t num_hosts, size_t workers_per_host,
+void RunLocalMock(const MemoryConfig& mem_config,
+                  size_t num_hosts, size_t workers_per_host,
                   const std::function<void(Context&)>& job_startpoint) {
-
-    MemoryConfig mem_config;
-    mem_config.setup_test();
 
     return RunLoopbackThreads<TestGroup>(
         mem_config, num_hosts, workers_per_host, job_startpoint);
@@ -167,8 +165,9 @@ void RunLocalMock(size_t num_hosts, size_t workers_per_host,
 std::vector<std::unique_ptr<HostContext> >
 HostContext::ConstructLoopback(size_t num_hosts, size_t workers_per_host) {
 
+    // set fixed amount of RAM for testing
     MemoryConfig mem_config;
-    mem_config.setup_test();
+    mem_config.setup(4 * 1024 * 1024 * 1024llu);
 
     return ConstructLoopbackHostContexts<TestGroup>(
         mem_config, num_hosts, workers_per_host);
@@ -191,16 +190,27 @@ int wrap_setenv(const char* name, const char* value, int overwrite) {
 #endif
 
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
+    // set fixed amount of RAM for testing
+    RunLocalTests(4 * 1024 * 1024 * 1024llu, job_startpoint);
+}
+
+void RunLocalTests(
+    size_t ram, const std::function<void(Context&)>& job_startpoint) {
 
     // discard json log
     wrap_setenv("THRILL_LOG", "", /* overwrite */ 1);
+
+    // set fixed amount of RAM for testing
+    MemoryConfig mem_config;
+    mem_config.setup(ram);
 
     static constexpr size_t num_hosts_list[] = { 1, 2, 5, 8 };
     static constexpr size_t num_workers_list[] = { 1, 3 };
 
     for (const size_t& num_hosts : num_hosts_list) {
         for (const size_t& workers_per_host : num_workers_list) {
-            RunLocalMock(num_hosts, workers_per_host, job_startpoint);
+            RunLocalMock(mem_config, num_hosts, workers_per_host,
+                         job_startpoint);
         }
     }
 }
@@ -212,8 +222,9 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
     size_t num_hosts = 1;
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
+    // set fixed amount of RAM for testing
     MemoryConfig mem_config;
-    mem_config.setup_test();
+    mem_config.setup(4 * 1024 * 1024 * 1024llu);
     mem_config.print(workers_per_host);
 
     // construct three full mesh connection cliques, deliver net::tcp::Groups.
@@ -679,11 +690,8 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
 /******************************************************************************/
 // MemoryConfig
 
-void MemoryConfig::setup_test() {
-
-    // set fixed amount of RAM for testing
-    ram_ = 4 * 1024 * 1024 * 1024llu;
-
+void MemoryConfig::setup(size_t ram) {
+    ram_ = ram;
     apply();
 }
 

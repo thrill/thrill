@@ -24,31 +24,33 @@ using namespace thrill; // NOLINT
 
 TEST(Sort, SortKnownIntegers) {
 
+    static constexpr size_t test_size = 6000000u;
+
     auto start_func =
         [](Context& ctx) {
-
-            std::default_random_engine generator(std::random_device { } ());
-            std::uniform_int_distribution<int> distribution(1, 10000);
 
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) -> size_t {
-                    return index;
+                    return test_size - index - 1;
                 },
-                10000);
+                test_size);
 
             auto sorted = integers.Sort();
 
             std::vector<size_t> out_vec = sorted.AllGather();
 
-            for (size_t i = 0; i < out_vec.size() - 1; i++) {
+            ASSERT_EQ(test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); i++) {
                 ASSERT_EQ(i, out_vec[i]);
             }
-
-            ASSERT_EQ(10000u, out_vec.size());
         };
 
-    api::RunLocalTests(start_func);
+    // set fixed amount of RAM for testing
+    api::MemoryConfig mem_config;
+    mem_config.setup(128 * 1024 * 1024llu);
+
+    api::RunLocalMock(mem_config, 2, 1, start_func);
 }
 
 TEST(Sort, SortRandomIntegers) {
