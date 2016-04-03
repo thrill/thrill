@@ -361,6 +361,9 @@ public:
     //! move-constructor: default
     ConsumeFileBlockSource(ConsumeFileBlockSource&& s);
 
+    //! Perform prefetch
+    void Prefetch(size_t prefetch);
+
     //! Get the next block of file.
     PinnedBlock NextBlock();
 
@@ -498,6 +501,15 @@ std::vector<Block> File::GetItemRange(size_t begin, size_t end) const {
     // deliver array of remaining blocks
     return GetReaderAt<ItemType>(begin)
            .template GetItemBatch<ItemType>(end - begin);
+}
+
+//! Take a vector of Readers and prefetch equally from them
+template <typename Reader>
+void StartPrefetch(std::vector<Reader>& readers, size_t prefetch) {
+    for (size_t p = 1; p <= prefetch; ++p) {
+        for (Reader& r : readers)
+            r.source().Prefetch(p);
+    }
 }
 
 //! \}

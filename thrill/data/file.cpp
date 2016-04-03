@@ -157,13 +157,28 @@ Block KeepFileBlockSource::NextUnpinnedBlock() {
 ConsumeFileBlockSource::ConsumeFileBlockSource(
     File* file, size_t local_worker_id, size_t num_prefetch)
     : file_(file), local_worker_id_(local_worker_id),
-      num_prefetch_(num_prefetch) { }
+      num_prefetch_(num_prefetch) { Prefetch(num_prefetch_); }
 
 ConsumeFileBlockSource::ConsumeFileBlockSource(ConsumeFileBlockSource&& s)
     : file_(s.file_), local_worker_id_(s.local_worker_id_),
       num_prefetch_(s.num_prefetch_),
       fetching_blocks_(std::move(s.fetching_blocks_)) {
     s.file_ = nullptr;
+}
+
+void ConsumeFileBlockSource::Prefetch(size_t prefetch) {
+    if (prefetch >= num_prefetch_) {
+        num_prefetch_ = prefetch;
+        while (fetching_blocks_.size() < num_prefetch_ && !file_->blocks_.empty()) {
+            fetching_blocks_.emplace_back(
+                file_->blocks_.front().Pin(local_worker_id_));
+            file_->blocks_.pop_front();
+        }
+    }
+    else if (prefetch < num_prefetch_) {
+        num_prefetch_ = prefetch;
+        // cannot discard prefetched Blocks
+    }
 }
 
 PinnedBlock ConsumeFileBlockSource::NextBlock() {

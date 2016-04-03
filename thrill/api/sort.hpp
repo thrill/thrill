@@ -187,7 +187,9 @@ public:
                 seq.reserve(merge_degree);
 
                 for (size_t t = 0; t < merge_degree; ++t)
-                    seq.emplace_back(files_[t].GetConsumeReader(prefetch));
+                    seq.emplace_back(files_[t].GetConsumeReader(0));
+
+                StartPrefetch(seq, prefetch);
 
                 auto puller = core::make_multiway_merge_tree<ValueType>(
                     seq.begin(), seq.end(), compare_function_);
@@ -218,7 +220,9 @@ public:
             seq.reserve(files_.size());
 
             for (size_t t = 0; t < files_.size(); ++t)
-                seq.emplace_back(files_[t].GetConsumeReader(prefetch));
+                seq.emplace_back(files_[t].GetConsumeReader(0));
+
+            StartPrefetch(seq, prefetch);
 
             auto puller = core::make_multiway_merge_tree<ValueType>(
                 seq.begin(), seq.end(), compare_function_);
