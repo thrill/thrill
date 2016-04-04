@@ -304,11 +304,20 @@ private:
         ArraySizeT dia_total_size = context_.net.Broadcast(
             dia_size_prefixsum_, context_.net.num_workers() - 1);
 
+        size_t max_dia_total_size =
+            *std::max_element(dia_total_size.begin(), dia_total_size.end());
+
         // return only the minimum size of all DIAs.
         result_size_ =
-            Pad
-            ? *std::max_element(dia_total_size.begin(), dia_total_size.end())
+            Pad ? max_dia_total_size
             : *std::min_element(dia_total_size.begin(), dia_total_size.end());
+
+        // warn if DIAs have unequal size
+        if (!Pad && context_.my_rank() == 0 &&
+            result_size_ != max_dia_total_size) {
+            LOG1 << "WARN: Zip(): input DIAs have unequal size: "
+                 << common::VecToStr(dia_total_size);
+        }
 
         if (result_size_ == 0) return;
 

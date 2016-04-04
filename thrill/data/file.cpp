@@ -157,7 +157,9 @@ Block KeepFileBlockSource::NextUnpinnedBlock() {
 ConsumeFileBlockSource::ConsumeFileBlockSource(
     File* file, size_t local_worker_id, size_t num_prefetch)
     : file_(file), local_worker_id_(local_worker_id),
-      num_prefetch_(num_prefetch) { Prefetch(num_prefetch_); }
+      num_prefetch_(num_prefetch) {
+    Prefetch(num_prefetch_);
+}
 
 ConsumeFileBlockSource::ConsumeFileBlockSource(ConsumeFileBlockSource&& s)
     : file_(s.file_), local_worker_id_(s.local_worker_id_),
