@@ -75,7 +75,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     // Zip (ISA[i], i) with [0,n) and check that the second component was a
     // permutation of [0,n)
     size_t perm_check =
-        isa_pair
+        isa_pair.Keep()
         .Zip(Generate(ctx, input_size),
              [](const IndexRank& ir, size_t index) -> size_t {
                  return ir.index == index ? 0 : 1;
