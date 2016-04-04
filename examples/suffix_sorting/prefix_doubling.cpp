@@ -14,6 +14,7 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/equal_to_dia.hpp>
+#include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
@@ -309,8 +310,6 @@ auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
     // enable online consume of DIA contents if not debugging.
     input_dia.context().enable_consume(!debug_print);
 
-    static constexpr bool debug = true;
-
     using Char = typename InputDIA::ValueType;
     using Index = uint64_t;
     using IndexRank = suffix_sorting::IndexRank<Index>;
@@ -385,8 +384,11 @@ auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
             isa.Print("isa");
 
         size_t shift_by = (1 << shift_exp++) + 1;
-        LOG << "iteration " << shift_exp << ": shift ISA by " << shift_by - 1
-            << " positions. hence the window has size " << shift_by;
+
+        if (input_dia.context().my_rank() == 0) {
+            LOG << "iteration " << shift_exp << ": shift ISA by " << shift_by - 1
+                << " positions. hence the window has size " << shift_by;
+        }
 
         DIA<IndexRankRank> triple_sorted =
             isa
@@ -422,7 +424,7 @@ auto PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
         if (debug_print)
             sa.Print("sa");
 
-        sLOG << "non_singletons" << non_singletons;
+        sLOG0 << "non_singletons" << non_singletons;
 
         // If each suffix is unique regarding their 2h-prefix, we have computed
         // the suffix array and can return it.
@@ -453,12 +455,14 @@ public:
     StartPrefixDoubling(
         Context& ctx,
         const std::string& input_path, const std::string& output_path,
+        size_t sizelimit,
         const std::string& pd_algorithm,
         bool text_output_flag,
         bool check_flag,
         bool input_verbatim)
         : ctx_(ctx),
           input_path_(input_path), output_path_(output_path),
+          sizelimit_(sizelimit),
           pd_algorithm_(pd_algorithm),
           text_output_flag_(text_output_flag),
           check_flag_(check_flag),
@@ -470,6 +474,37 @@ public:
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
             auto input_dia = EqualToDIA(ctx_, input_vec).Collapse();
             StartPrefixDoublingInput(input_dia, input_vec.size());
+        }
+        else if (input_path_ == "unary") {
+            if (sizelimit_ == std::numeric_limits<size_t>::max()) {
+                LOG1 << "You must provide -s <size> for generated inputs.";
+                return;
+            }
+
+            DIA<uint8_t> input_dia = Generate(
+                ctx_, [](size_t /* i */) { return uint8_t('a'); }, sizelimit_);
+            StartPrefixDoublingInput(input_dia, sizelimit_);
+        }
+        else if (input_path_ == "random") {
+            if (sizelimit_ == std::numeric_limits<size_t>::max()) {
+                LOG1 << "You must provide -s <size> for generated inputs.";
+                return;
+            }
+
+            // share prng in Generate (just random numbers anyway)
+            std::default_random_engine prng(std::random_device { } ());
+
+            DIA<uint8_t> input_dia =
+                Generate(
+                    ctx_,
+                    [&prng](size_t /* i */) {
+                        return static_cast<uint8_t>(prng());
+                    },
+                    sizelimit_)
+                // the random input _must_ be cached, otherwise it will be
+                // regenerated ... and contain new numbers.
+                .Cache();
+            StartPrefixDoublingInput(input_dia, sizelimit_);
         }
         else {
             auto input_dia = ReadBinary<uint8_t>(ctx_, input_path_).Collapse();
@@ -510,6 +545,8 @@ protected:
 
     std::string input_path_;
     std::string output_path_;
+    uint64_t sizelimit_;
+
     std::string pd_algorithm_;
 
     bool text_output_flag_;
@@ -531,6 +568,7 @@ int main(int argc, char* argv[]) {
 
     std::string input_path, output_path;
     std::string pd_algorithm;
+    uint64_t sizelimit = std::numeric_limits<uint64_t>::max();
     bool text_output_flag = false;
     bool check_flag = false;
     bool input_verbatim = false;
@@ -548,6 +586,8 @@ int main(int argc, char* argv[]) {
     cp.AddFlag('v', "verbatim", input_verbatim,
                "Consider \"input\" as verbatim text to construct "
                "suffix array on.");
+    cp.AddBytes('s', "size", sizelimit,
+                "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
     cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
                "Print debug info.");
     cp.AddString('a', "algorithm", pd_algorithm,
@@ -563,7 +603,7 @@ int main(int argc, char* argv[]) {
         [&](Context& ctx) {
             return examples::suffix_sorting::StartPrefixDoubling(
                 ctx,
-                input_path, output_path,
+                input_path, output_path, sizelimit,
                 pd_algorithm,
                 text_output_flag,
                 check_flag,
