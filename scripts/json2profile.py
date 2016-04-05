@@ -110,16 +110,18 @@ def dia_table():
 def stream_table():
     df = df_stats
     df = df[(df['class'] == 'Stream') & (df['event'] == 'close')]
-    df = df[['ts','id','dia_id','host_rank','worker_rank','rx_bytes','tx_bytes']].set_index('ts')
+    df = df[['ts','id','dia_id','host_rank','worker_rank','rx_items','tx_items','rx_bytes','tx_bytes']].set_index('ts')
     df['id'] = df['id'].astype(int)
     df['dia_id'] = df['dia_id'].astype(int)
     df['host_rank'] = df['host_rank'].astype(int)
     df['worker_rank'] = df['worker_rank'].astype(int)
+    df['rx_items'] = df['rx_items'].astype(int)
+    df['tx_items'] = df['tx_items'].astype(int)
     df['rx_bytes'] = df['rx_bytes'].astype(int)
     df['tx_bytes'] = df['tx_bytes'].astype(int)
     df = df.sort_values(by=['id','dia_id','host_rank','worker_rank'])
     df = df.merge(right=dia_table(), how='left', left_on='dia_id', right_index=True)
-    df = df[['id','label_id','host_rank','worker_rank','rx_bytes','tx_bytes']]
+    df = df[['id','label_id','host_rank','worker_rank','rx_items','tx_items','rx_bytes','tx_bytes']]
     return df
 
 def stream_html_table():
@@ -129,16 +131,18 @@ def stream_html_table():
 def stream_summary_table():
     df = df_stats
     df = df[(df['class'] == 'Stream') & (df['event'] == 'close')]
-    df = df[['ts','id','dia_id','host_rank','worker_rank','rx_bytes','tx_bytes']].set_index('ts')
+    df = df[['ts','id','dia_id','host_rank','worker_rank','rx_items','tx_items','rx_bytes','tx_bytes']].set_index('ts')
     df['id'] = df['id'].astype(int)
     df['dia_id'] = df['dia_id'].astype(int)
     df['host_rank'] = df['host_rank'].astype(int)
     df['worker_rank'] = df['worker_rank'].astype(int)
+    df['rx_items'] = df['rx_items'].astype(int)
+    df['tx_items'] = df['tx_items'].astype(int)
     df['rx_bytes'] = df['rx_bytes'].astype(int)
     df['tx_bytes'] = df['tx_bytes'].astype(int)
     df = df.sort_values(by=['id','dia_id','host_rank','worker_rank'])
     df = df.merge(right=dia_table(), how='left', left_on='dia_id', right_index=True)
-    df = df[['id','label_id','rx_bytes','tx_bytes']]
+    df = df[['id','label_id','rx_items','tx_items','rx_bytes','tx_bytes']]
     df = df.groupby(['id','label_id']).aggregate(np.sum)
     return df
 
@@ -165,7 +169,18 @@ def file_table():
 def file_html_table():
     return file_table().to_html()
 
-#print( file_table() )
+# generate list of StageBuilder lines
+def stage_lines():
+    df = df_stats
+    df = df[(df['class'] == 'StageBuilder') & (df['worker_rank'] == 0)]
+    df = df[(df['event'] == 'execute-start') | (df['event'] == 'pushdata-start')]
+    df = df[['ts','event','id','label']].set_index('ts')
+    df['id'] = df['id'].astype(int)
+    df['label'] = df['label'] + '.' + df['id'].map(str) + ' ' + df['event']
+    df = [{'color':'#888888', 'width':1, 'value': a[0], 'label': { 'text': a[1] }} for a in zip(df.index.tolist(), df['label'].values.tolist())]
+    return df
+
+#print( stage_lines() )
 #sys.exit(0)
 
 ##########################################################################
@@ -175,7 +190,7 @@ def file_html_table():
 def index(chartID = 'chart_ID'):
     title = {'text': 'My Title'}
     chart = {'renderTo': chartID, 'zoomType': 'x', 'panning': 'true', 'panKey': 'shift'}
-    xAxis = {'type': 'datetime', 'title': {'text': 'Execution Time'}}
+    xAxis = {'type': 'datetime', 'title': {'text': 'Execution Time'}, 'plotLines': stage_lines()}
     yAxis = [
         { 'title': { 'text': 'CPU Load (%)' } },
         { 'title': { 'text': 'Network/Disk (B/s)' }, 'opposite': 'true' },
