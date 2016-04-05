@@ -68,6 +68,7 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block) {
     net::Buffer buffer = bb.ToBuffer();
     assert(buffer.size() == MultiplexerHeader::total_size);
 
+    item_counter_ += block.num_items();
     byte_counter_ += buffer.size() + block.size();
     ++block_counter_;
 
@@ -125,6 +126,7 @@ void StreamSink::Close() {
         << "blocks" << block_counter_
         << "timespan" << timespan_;
 
+    stream_.tx_items_ += item_counter_;
     stream_.tx_bytes_ += byte_counter_;
     stream_.tx_blocks_ += block_counter_;
 }

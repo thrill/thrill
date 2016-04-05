@@ -59,10 +59,12 @@ CatStream::CatStream(Multiplexer& multiplexer, const StreamId& id,
                         << "src_worker" << my_worker_rank()
                         << "tgt_worker" << (host * workers_per_host() + worker)
                         << "loopback" << true
+                        << "items" << queue.item_counter()
                         << "bytes" << queue.byte_counter()
                         << "blocks" << queue.block_counter()
                         << "timespan" << queue.timespan();
 
+                        tx_items_ += queue.item_counter();
                         tx_bytes_ += queue.byte_counter();
                         tx_blocks_ += queue.block_counter();
                     });
@@ -207,6 +209,7 @@ void CatStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
     assert(from < queues_.size());
     rx_timespan_.StartEventually();
 
+    rx_items_ += b.num_items();
     rx_bytes_ += b.size();
     rx_blocks_++;
 

@@ -150,11 +150,11 @@ public:
 
     //! StatsCounter for incoming data transfer.  Does not include loopback data
     //! transfer
-    size_t rx_bytes_ = 0, rx_blocks_ = 0;
+    size_t rx_items_ = 0, rx_bytes_ = 0, rx_blocks_ = 0;
 
     //! StatsCounters for outgoing data transfer - shared by all sinks.  Does
     //! not include loopback data transfer
-    std::atomic<size_t> tx_bytes_ { 0 }, tx_blocks_ { 0 };
+    std::atomic<size_t> tx_items_ { 0 }, tx_bytes_ { 0 }, tx_blocks_ { 0 };
 
     //! Timers from creation of stream until rx / tx direction is closed.
     common::StatsTimerStart tx_lifetime_, rx_lifetime_;

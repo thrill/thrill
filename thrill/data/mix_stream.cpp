@@ -143,6 +143,7 @@ void MixStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
     assert(from < num_workers());
     rx_timespan_.StartEventually();
 
+    rx_items_ += b.num_items();
     rx_bytes_ += b.size();
     rx_blocks_++;
 

@@ -75,12 +75,14 @@ public:
 
     void AppendBlock(const Block& b) final {
         LOG << "BlockQueue::AppendBlock() " << b;
+        item_counter_ += b.num_items();
         byte_counter_ += b.size();
         block_counter_++;
         queue_.emplace(b);
     }
     void AppendBlock(Block&& b) final {
         LOG << "BlockQueue::AppendBlock() move " << b;
+        item_counter_ += b.num_items();
         byte_counter_ += b.size();
         block_counter_++;
         queue_.emplace(std::move(b));
@@ -126,6 +128,8 @@ public:
     //! return number of block in the queue. Use this ONLY for DEBUGGING!
     size_t size() { return queue_.size() - (write_closed() ? 1 : 0); }
 
+    //! Returns item_counter_
+    size_t item_counter() const { return item_counter_; }
     //! Returns byte_counter_
     size_t byte_counter() const { return byte_counter_; }
     //! Returns block_counter_
@@ -156,6 +160,8 @@ private:
     //! close message from the writer
     bool read_closed_ = false;
 
+    //! number of items transfered by the Queue
+    size_t item_counter_ = 0;
     //! number of bytes transfered by the Queue
     size_t byte_counter_ = 0;
     //! number of blocks transfered by the Queue

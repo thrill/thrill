@@ -100,6 +100,7 @@ private:
     //! layer for transmission.
     common::Semaphore sem_ { num_queue_ };
 
+    size_t item_counter_ = 0;
     size_t byte_counter_ = 0;
     size_t block_counter_ = 0;
     common::StatsTimerStart timespan_;

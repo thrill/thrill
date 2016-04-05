@@ -37,8 +37,10 @@ void Stream::OnAllClosed() {
         << "worker_rank"
         << (my_host_rank() * multiplexer_.workers_per_host())
         + local_worker_id_
+        << "rx_items" << rx_items_
         << "rx_bytes" << rx_bytes_
         << "rx_blocks" << rx_blocks_
+        << "tx_items" << tx_items_
         << "tx_bytes" << tx_bytes_
         << "tx_blocks" << tx_blocks_;
 }
