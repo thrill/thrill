@@ -49,7 +49,7 @@ public:
             DIABase* child = children.back();
             children.pop_back();
 
-            if (!child->CanExecute()) {
+            if (child->ForwardDataOnly()) {
                 // push children of Collapse onto stack
                 std::vector<DIABase*> sub = child->children();
                 children.insert(children.end(), sub.begin(), sub.end());
@@ -77,7 +77,7 @@ public:
             if (child == nullptr) {
                 oss << ']';
             }
-            else if (!child->CanExecute()) {
+            else if (child->ForwardDataOnly()) {
                 // push children of Collapse onto stack
                 std::vector<DIABase*> sub = child->children();
                 children.push_back(nullptr);
@@ -307,7 +307,7 @@ static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
             LOG << "  Stage: " << *p;
             stages.insert(Stage(p));
 
-            if (p->CanExecute()) {
+            if (!p->ForwardDataOnly()) {
                 // If parent was not executed push it to the BFS queue and
                 // continue upwards. if state is EXECUTED, then we only need to
                 // PushData(), which is already indicated by stages.insert().
@@ -363,7 +363,7 @@ void DIABase::RunScope() {
         return;
     }
 
-    if (!CanExecute()) {
+    if (ForwardDataOnly()) {
         // CollapseNodes cannot be executed: execute their parent(s)
         for (const DIABasePtr& p : parents_)
             p->RunScope();
@@ -391,7 +391,7 @@ void DIABase::RunScope() {
     {
         Stage& s = toporder.back();
 
-        if (!s.node_->CanExecute()) {
+        if (s.node_->ForwardDataOnly()) {
             toporder.pop_back();
             continue;
         }

@@ -96,7 +96,7 @@ public:
             std::remove_if(
                 children_.begin(), children_.end(),
                 [this](Child& child) {
-                    if (!child.node->CanExecute())
+                    if (child.node->ForwardDataOnly())
                         return false;
                     child.node->RemoveParent(this);
                     return true;

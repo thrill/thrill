@@ -48,7 +48,7 @@ public:
     }
 
     //! A CollapseNode cannot be executed, it never contains any data.
-    bool CanExecute() final { return false; }
+    bool ForwardDataOnly() final { return true; }
 
     void Execute() final { abort(); }
 

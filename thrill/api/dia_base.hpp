@@ -142,10 +142,10 @@ public:
             p->RemoveChild(this);
     }
 
-    //! Virtual method to determine whether a node can be Executed() = run such
-    //! that it self-contains its data. This is currently true for all Nodes
-    //! except Collapse().
-    virtual bool CanExecute() { return true; }
+    //! Virtual method to determine whether a node contains data or not, and
+    //! hence if it can be Executed() and PushData() or whether it is only a
+    //! forwarding node. This is currently true only for Collapse() and Union().
+    virtual bool ForwardDataOnly() { return false; }
 
     //! \name Pure Virtual Methods called by StageBuilder
     //! \{
