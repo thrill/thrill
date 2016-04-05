@@ -28,10 +28,9 @@ namespace api {
 /*!
  * A DIANode is a typed node representing and operation in Thrill. It is the
  * super class for all operation nodes and stores the state of the
- * operation. The type of a DIANode is the type, in which the DIA is after the
- * last global barrier in the operation (between MainOp and PostOp).
+ * operation.
  *
- * \tparam ValueType Type of the DIA between MainOp and PostOp
+ * \tparam ValueType The output type of the DIA delivered by this DIANode.
  */
 template <typename ValueType>
 class DIANode : public DIABase
@@ -73,14 +72,14 @@ public:
      * This way the parent can push all its result elements to each of the
      * children. This procedure enables the minimization of IO-accesses.
      */
-    void AddChild(DIABase* node, const Callback& callback,
-                  size_t parent_index = 0) {
+    virtual void AddChild(DIABase* node, const Callback& callback,
+                          size_t parent_index = 0) {
         children_.emplace_back(Child { node, callback, parent_index });
     }
 
     //! Remove a child from the vector of children. This method is called by the
     //! destructor of children.
-    void RemoveChild(DIABase* node) final {
+    void RemoveChild(DIABase* node) override {
         typename std::vector<Child>::iterator swap_end =
             std::remove_if(
                 children_.begin(), children_.end(),
@@ -90,8 +89,8 @@ public:
         children_.erase(swap_end, children_.end());
     }
 
-    void RemoveAllChildren() final {
-        // remove all children other than Collapse nodes
+    void RemoveAllChildren() override {
+        // remove all children other than Collapse and Union nodes
         children_.erase(
             std::remove_if(
                 children_.begin(), children_.end(),
@@ -109,7 +108,7 @@ public:
     }
 
     //! Returns the children of this DIABase.
-    std::vector<DIABase*> children() const final {
+    std::vector<DIABase*> children() const override {
         std::vector<DIABase*> out;
         out.reserve(children_.size());
         for (const Child& child : children_)
@@ -120,7 +119,7 @@ public:
     //! Performing push operation. Notifies children and calls actual push
     //! method. Then cleans up the DIA graph by freeing parent references of
     //! children.
-    void RunPushData() final {
+    void RunPushData() override {
         for (const Child& child : children_)
             child.node->StartPreOp(child.parent_index);
 

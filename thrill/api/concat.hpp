@@ -20,7 +20,7 @@
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
-#include <array>
+#include <initializer_list>
 #include <vector>
 
 namespace thrill {
@@ -32,16 +32,16 @@ namespace api {
 template <typename ValueType, typename ParentDIA0, typename ... ParentDIAs>
 class ConcatNode final : public DOpNode<ValueType>
 {
+public:
     static constexpr bool debug = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
-public:
     //! Constructor for variant with variadic parent parameter pack, which each
     //! parent may have a different FunctionStack.
-    ConcatNode(const ParentDIA0& parent0,
-               const ParentDIAs& ... parents)
+    explicit ConcatNode(const ParentDIA0& parent0,
+                        const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Concat",
                 { parent0.id(), parents.id() ... },
                 { parent0.node(), parents.node() ... }),

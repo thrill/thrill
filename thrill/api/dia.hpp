@@ -372,6 +372,20 @@ public:
      */
     auto BernoulliSample(double p) const;
 
+    /*!
+     * Union is a LOp, which creates the union of all items from any number of
+     * DIAs as a single DIA, where the items are in an arbitrary order.  All
+     * input DIAs must contain the same type, which is also the output DIA's
+     * type.
+     *
+     * The Union operation concatenates all _local_ pieces of a DIA, no
+     * rebalancing is performed, and no communication is needed.
+     *
+     * \ingroup dia_lops
+     */
+    template <typename SecondDIA>
+    auto Union(const SecondDIA &second_dia) const;
+
     //! \}
 
     //! \name Actions

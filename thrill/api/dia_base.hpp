@@ -145,7 +145,13 @@ public:
     //! Virtual method to determine whether a node contains data or not, and
     //! hence if it can be Executed() and PushData() or whether it is only a
     //! forwarding node. This is currently true only for Collapse() and Union().
-    virtual bool ForwardDataOnly() { return false; }
+    virtual bool ForwardDataOnly() const { return false; }
+
+    //! Virtual method used by StageBuilder to request information whether it
+    //! must call PushData on the parent of a CollapseNode or UnionNode to
+    //! correctly deliver data.
+    virtual bool RequireParentPushData(size_t /* parent_index */) const
+    { return false; }
 
     //! \name Pure Virtual Methods called by StageBuilder
     //! \{

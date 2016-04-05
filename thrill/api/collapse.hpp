@@ -15,9 +15,6 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dia_node.hpp>
 
-#include <string>
-#include <vector>
-
 namespace thrill {
 namespace api {
 
@@ -48,7 +45,10 @@ public:
     }
 
     //! A CollapseNode cannot be executed, it never contains any data.
-    bool ForwardDataOnly() final { return true; }
+    bool ForwardDataOnly() const final { return true; }
+
+    bool RequireParentPushData(size_t /* parent_index */) const final
+    { return true; }
 
     void Execute() final { abort(); }
 

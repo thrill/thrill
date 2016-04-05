@@ -25,7 +25,9 @@
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/sample.hpp>
 #include <thrill/api/size.hpp>
+#include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/api/write_lines.hpp>
@@ -274,6 +276,102 @@ TEST(Operations, GenerateAndConcatThree) {
                           i - 6 * test_size,
                           out_vec[i]);
             }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndUnionTwo) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache();
+            auto dia2 = Generate(ctx, 2 * test_size);
+
+            auto udia = dia1.Union(dia2);
+
+            // check udia
+            std::vector<size_t> out_vec = udia.AllGather();
+            std::sort(out_vec.begin(), out_vec.end());
+
+            ASSERT_EQ(3 * test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i < 2 * test_size ? i / 2 : i - test_size,
+                          out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndUnionThree) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache();
+            auto dia2 = Generate(ctx, 2 * test_size).Collapse();
+            auto dia3 = Generate(ctx, 3 * test_size).Collapse();
+            auto dia4 = Generate(ctx, 7).Collapse();
+
+            auto udia = Union({ dia1, dia2, dia3, dia4 });
+
+            std::vector<size_t> out_vec = udia.AllGather();
+            std::sort(out_vec.begin(), out_vec.end());
+
+            ASSERT_EQ(6 * test_size + 7, out_vec.size());
+
+            std::vector<size_t> correct_vec;
+            for (size_t i = 0; i < test_size; ++i)
+                correct_vec.push_back(i);
+            for (size_t i = 0; i < 2 * test_size; ++i)
+                correct_vec.push_back(i);
+            for (size_t i = 0; i < 3 * test_size; ++i)
+                correct_vec.push_back(i);
+            for (size_t i = 0; i < 7; ++i)
+                correct_vec.push_back(i);
+            std::sort(correct_vec.begin(), correct_vec.end());
+            ASSERT_EQ(correct_vec, out_vec);
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndUnionExecuteOrder) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Collapse();
+            auto dia2 = Generate(ctx, 2 * test_size).Collapse();
+
+            // create union of two, which will be sorted
+            auto udia = Union({ dia1, dia2 });
+
+            auto sorted_udia = udia.Sort();
+
+            // now execute the first input, this will also push the data from
+            // dia1 into udia, which forwards it to the Sort().
+            ASSERT_EQ(test_size, dia1.Size());
+
+            // check udia
+            std::vector<size_t> out_vec = sorted_udia.AllGather();
+
+            ASSERT_EQ(3 * test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i < 2 * test_size ? i / 2 : i - test_size,
+                          out_vec[i]);
+            }
+
+            // check size of udia again, which requires a full recalculation.
+            ASSERT_EQ(3 * test_size, udia.Size());
         };
 
     api::RunLocalTests(start_func);

@@ -300,14 +300,17 @@ static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
         DIABasePtr curr = bfs_stack.front();
         bfs_stack.pop_front();
 
-        for (const DIABasePtr& p : curr->parents()) {
-            // if parents where not already seen, push onto stages
+        const std::vector<DIABasePtr>& parents = curr->parents();
+
+        for (size_t i = 0; i < parents.size(); ++i) {
+            const DIABasePtr& p = parents[i];
+
+            // if parent was already seen, done.
             if (stages.count(Stage(p))) continue;
 
-            LOG << "  Stage: " << *p;
-            stages.insert(Stage(p));
-
-            if (!p->ForwardDataOnly()) {
+            if (!curr->ForwardDataOnly()) {
+                LOG << "  Stage: " << *p;
+                stages.insert(Stage(p));
                 // If parent was not executed push it to the BFS queue and
                 // continue upwards. if state is EXECUTED, then we only need to
                 // PushData(), which is already indicated by stages.insert().
@@ -315,8 +318,12 @@ static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
                     bfs_stack.push_back(p);
             }
             else {
-                // If parent cannot be executed (hold data) continue upward.
-                bfs_stack.push_back(p);
+                // If parent cannot hold data continue upward.
+                if (curr->RequireParentPushData(i)) {
+                    LOG << "  Stage: " << *p;
+                    stages.insert(Stage(p));
+                    bfs_stack.push_back(p);
+                }
             }
         }
     }
