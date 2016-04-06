@@ -22,6 +22,7 @@
 
 #include <thrill/common/config.hpp>
 #include <thrill/io/bid.hpp>
+#include <thrill/io/file_base.hpp>
 #include <thrill/io/request.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 
@@ -263,7 +264,7 @@ public:
     using const_pointer = const value_type *;
     using const_iterator = const_pointer;
 
-    enum constants
+    enum
     {
         raw_size = RawSize,                                        //!< size of block in bytes
         size = Base::size,                                         //!< number of elements in block

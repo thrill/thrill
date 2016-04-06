@@ -30,12 +30,12 @@ namespace thrill {
 namespace mem {
 
 template <typename MustBeInt>
-struct aligned_alloc_settings {
-    static bool may_use_realloc;
+struct AlignedAllocatorSettings {
+    static bool may_use_realloc_;
 };
 
 template <typename MustBeInt>
-bool aligned_alloc_settings<MustBeInt>::may_use_realloc = false;
+bool AlignedAllocatorSettings<MustBeInt>::may_use_realloc_ = false;
 
 template <typename Type = char,
           typename BaseAllocator = std::allocator<char>,
@@ -163,14 +163,14 @@ inline void* AlignedAllocator<Type, BaseAllocator, Alignment>::allocate_bytes(
     // free unused memory behind the data area
     // so access behind the requested size can be recognized
     size_t realloc_size = (result - buffer) + meta_info_size + size;
-    if (realloc_size < alloc_size && aligned_alloc_settings<int>::may_use_realloc) {
+    if (realloc_size < alloc_size && AlignedAllocatorSettings<int>::may_use_realloc_) {
         char* realloced = static_cast<char*>(std::realloc(buffer, realloc_size));
         if (buffer != realloced) {
             // hmm, realloc does move the memory block around while shrinking,
             // might run under valgrind, so disable realloc and retry
             LOG1 << "mem::aligned_alloc: disabling realloc()";
             std::free(realloced);
-            aligned_alloc_settings<int>::may_use_realloc = false;
+            AlignedAllocatorSettings<int>::may_use_realloc_ = false;
             return allocate(size, meta_info_size);
         }
         assert(result + size <= buffer + realloc_size);
