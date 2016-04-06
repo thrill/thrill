@@ -849,6 +849,9 @@ struct OverallStats {
     //! overall run time
     double runtime;
 
+    //! maximum ByteBlock allocation on all workers
+    size_t max_block_bytes;
+
     //! network traffic performed by net layer
     size_t net_traffic_tx, net_traffic_rx;
 
@@ -861,6 +864,7 @@ struct OverallStats {
     friend std::ostream& operator << (std::ostream& os, const OverallStats& c) {
         return os << "[OverallStats"
                   << " runtime=" << c.runtime
+                  << " max_block_bytes=" << c.max_block_bytes
                   << " net_traffic_tx=" << c.net_traffic_tx
                   << " net_traffic_rx=" << c.net_traffic_rx
                   << " io_volume=" << c.io_volume
@@ -871,6 +875,7 @@ struct OverallStats {
     OverallStats operator + (const OverallStats& b) const {
         OverallStats r;
         r.runtime = std::max(runtime, b.runtime);
+        r.max_block_bytes = max_block_bytes + b.max_block_bytes;
         r.net_traffic_tx = net_traffic_tx + b.net_traffic_tx;
         r.net_traffic_rx = net_traffic_rx + b.net_traffic_rx;
         r.io_volume = io_volume + b.io_volume;
@@ -917,6 +922,8 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     // collect overall statistics
     OverallStats stats;
     stats.runtime = overall_timer.SecondsDouble();
+    stats.max_block_bytes = block_pool().max_total_bytes();
+
     std::tie(stats.net_traffic_tx, stats.net_traffic_rx)
         = local_worker_id_ == 0 ? net_manager_.Traffic()
           : std::pair<size_t, size_t>(0, 0);
@@ -945,7 +952,8 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
 
         std::cerr
             << "Thrill:"
-            << " ran " << stats.runtime << "s with "
+            << " ran " << stats.runtime << "s with max "
+            << FormatIecUnits(stats.max_block_bytes) << "B in DIA Blocks, "
             << FormatIecUnits(stats.net_traffic_tx) << "B network traffic, "
             << FormatIecUnits(stats.io_volume) << "B disk I/O, and "
             << FormatIecUnits(stats.io_max_allocation) << "B max disk use."

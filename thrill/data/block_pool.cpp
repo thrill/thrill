@@ -240,6 +240,7 @@ BlockPool::~BlockPool() {
 
     pin_count_.AssertZero();
     die_unequal(total_ram_bytes_, 0);
+    die_unequal(total_bytes_, 0);
     die_unequal(d_->unpinned_blocks_.size(), 0);
 
     LOGC(debug_pin)
@@ -282,6 +283,8 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     PinnedByteBlockPtr block_ptr(
         mem::GPool().make<ByteBlock>(this, data, size), local_worker_id);
     ++total_byte_blocks_;
+    total_bytes_ += size;
+    max_total_bytes_ = std::max(max_total_bytes_, total_bytes_);
     IntIncBlockPinCount(block_ptr.get(), local_worker_id);
 
     pin_count_.Increment(local_worker_id, size);
@@ -305,6 +308,8 @@ ByteBlockPtr BlockPool::MapExternalBlock(
     ByteBlockPtr block_ptr(
         mem::GPool().make<ByteBlock>(this, file, offset, size));
     ++total_byte_blocks_;
+    max_total_bytes_ = std::max(max_total_bytes_, total_bytes_);
+    total_bytes_ += size;
 
     LOGC(debug_blc)
         << "BlockPool::MapExternalBlock()"
@@ -631,6 +636,11 @@ size_t BlockPool::total_bytes() noexcept {
     return int_total_bytes();
 }
 
+size_t BlockPool::max_total_bytes() noexcept {
+    std::unique_lock<std::mutex> lock(mutex_);
+    return max_total_bytes_;
+}
+
 size_t BlockPool::int_total_bytes() noexcept {
     LOG << "BlockPool::total_bytes()"
         << " pinned_bytes_=" << pin_count_.total_pinned_bytes_
@@ -785,7 +795,9 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
     }
 
     assert(total_byte_blocks_ > 0);
+    assert(total_bytes_ >= block_ptr->size());
     --total_byte_blocks_;
+    total_bytes_ -= block_ptr->size();
     cv_total_byte_blocks_.notify_all();
 }
 
@@ -1049,7 +1061,8 @@ void BlockPool::RunTask(const std::chrono::steady_clock::time_point& tp) {
     logger_ << "class" << "BlockPool"
             << "event" << "profile"
             << "total_blocks" << int_total_blocks()
-            << "total_bytes" << int_total_bytes()
+            << "total_bytes" << total_bytes_
+            << "max_total_bytes" << max_total_bytes_
             << "total_ram_bytes" << total_ram_bytes_
             << "ram_bytes"
             << (unpinned_bytes_ + pin_count_.total_pinned_bytes_

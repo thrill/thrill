@@ -137,25 +137,28 @@ public:
     //! \{
 
     //! Total number of allocated blocks of this block pool
-    size_t total_blocks()  noexcept;
+    size_t total_blocks() noexcept;
 
     //! Total number of bytes allocated in blocks of this block pool
-    size_t total_bytes()  noexcept;
+    size_t total_bytes() noexcept;
+
+    //! Maximum total number of bytes allocated in blocks of this block pool
+    size_t max_total_bytes() noexcept;
 
     //! Total number of pinned blocks of this block pool
-    size_t pinned_blocks()  noexcept;
+    size_t pinned_blocks() noexcept;
 
     //! Total number of unpinned blocks in memory of this block pool
-    size_t unpinned_blocks()  noexcept;
+    size_t unpinned_blocks() noexcept;
 
     //! Total number of blocks currently begin written.
-    size_t writing_blocks()  noexcept;
+    size_t writing_blocks() noexcept;
 
     //! Total number of swapped blocks
-    size_t swapped_blocks()  noexcept;
+    size_t swapped_blocks() noexcept;
 
     //! Total number of blocks currently begin read from EM.
-    size_t reading_blocks()  noexcept;
+    size_t reading_blocks() noexcept;
 
     //! \}
 
@@ -265,6 +268,12 @@ private:
 
     //! condition variable to wait on for ByteBlock deallocation
     std::condition_variable cv_total_byte_blocks_;
+
+    //! total number of bytes in all ByteBlocks (in memory or swapped)
+    size_t total_bytes_ = 0;
+
+    //! maximum number of bytes in all ByteBlocks (in memory or swapped)
+    size_t max_total_bytes_ = 0;
 
     //! total number of bytes used in RAM by pinned and unpinned blocks, and
     //! also additionally reserved memory via BlockPoolMemoryHolder.
