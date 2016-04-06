@@ -179,8 +179,8 @@ public:
                  << " avg_element_size="
                  << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " reader=" << reader_type_
-                 << " write_time=" << write_timer.SecondsDouble()
-                 << " read_time=" << read_timer.SecondsDouble()
+                 << " write_time=" << write_timer
+                 << " read_time=" << read_timer
                  << " write_speed_MiBs=" << CalcMiBs(bytes_, write_timer)
                  << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
         }

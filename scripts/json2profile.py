@@ -57,12 +57,16 @@ df_stats['ts'] = (df_stats['ts'] - min_ts) / 1e3
 # extract a plain profile series from sclass with key
 def Series(sclass,key):
     df = df_stats
+    if not key in df:
+        return pd.DataFrame(columns=['ts',key]).set_index('ts')
     df = df[(df['class'] == sclass) & (df['event'] == 'profile')][['ts',key]].set_index('ts')
     return df
 
 # extract sum of two profile series from sclass with key
 def SeriesSum(sclass,key1,key2):
     df = df_stats
+    if not key1 in df or not key2 in df:
+        return pd.DataFrame(columns=['ts',key1]).set_index('ts')
     df = df[(df['class'] == sclass) & (df['event'] == 'profile')][['ts',key1,key2]]
     df[key1] = df[key1] + df[key2]
     del df[key2]
@@ -100,6 +104,8 @@ def xy_aggregated(df):
 def dia_table():
     df = df_stats
     df = df[(df['class'] == 'DIABase') & (df['event'] == 'create') & (df['worker_rank'] == 0)]
+    if len(df) == 0:
+        return pd.DataFrame(columns=['id','label','label_id']).set_index('id')
     df = df[['id','label','type','parents']]
     df['id'] = df['id'].astype(int)
     df['label_id'] = df['label'] + "." + df['id'].map(str)
@@ -109,19 +115,27 @@ def dia_table():
 # generate table of Stream statistics
 def stream_table():
     df = df_stats
+    cols = ['host_rank','worker_rank','rx_net_items','tx_net_items','rx_net_bytes','tx_net_bytes']
+    cols = cols + ['rx_int_items','tx_int_items','rx_int_bytes','tx_int_bytes']
     df = df[(df['class'] == 'Stream') & (df['event'] == 'close')]
-    df = df[['ts','id','dia_id','host_rank','worker_rank','rx_items','tx_items','rx_bytes','tx_bytes']].set_index('ts')
+    if len(df) == 0:
+        return pd.DataFrame(columns=['ts']).set_index('ts')
+    df = df[['ts','id','dia_id'] + cols].set_index('ts')
     df['id'] = df['id'].astype(int)
     df['dia_id'] = df['dia_id'].astype(int)
     df['host_rank'] = df['host_rank'].astype(int)
     df['worker_rank'] = df['worker_rank'].astype(int)
-    df['rx_items'] = df['rx_items'].astype(int)
-    df['tx_items'] = df['tx_items'].astype(int)
-    df['rx_bytes'] = df['rx_bytes'].astype(int)
-    df['tx_bytes'] = df['tx_bytes'].astype(int)
+    df['rx_net_items'] = df['rx_net_items'].astype(int)
+    df['tx_net_items'] = df['tx_net_items'].astype(int)
+    df['rx_net_bytes'] = df['rx_net_bytes'].astype(int)
+    df['tx_net_bytes'] = df['tx_net_bytes'].astype(int)
+    df['rx_int_items'] = df['rx_int_items'].astype(int)
+    df['tx_int_items'] = df['tx_int_items'].astype(int)
+    df['rx_int_bytes'] = df['rx_int_bytes'].astype(int)
+    df['tx_int_bytes'] = df['tx_int_bytes'].astype(int)
     df = df.sort_values(by=['id','dia_id','host_rank','worker_rank'])
     df = df.merge(right=dia_table(), how='left', left_on='dia_id', right_index=True)
-    df = df[['id','label_id','host_rank','worker_rank','rx_items','tx_items','rx_bytes','tx_bytes']]
+    df = df[['id','label_id'] + cols]
     return df
 
 def stream_html_table():
@@ -130,19 +144,29 @@ def stream_html_table():
 # generate table of Stream summary statistics
 def stream_summary_table():
     df = df_stats
+    cols = ['rx_net_items','tx_net_items','rx_net_bytes','tx_net_bytes']
+    cols = cols + ['rx_int_items','tx_int_items','rx_int_bytes','tx_int_bytes']
     df = df[(df['class'] == 'Stream') & (df['event'] == 'close')]
-    df = df[['ts','id','dia_id','host_rank','worker_rank','rx_items','tx_items','rx_bytes','tx_bytes']].set_index('ts')
+    if len(df) == 0:
+        return pd.DataFrame(columns=['ts']).set_index('ts')
+    df = df[['ts','id','dia_id'] + cols].set_index('ts')
     df['id'] = df['id'].astype(int)
     df['dia_id'] = df['dia_id'].astype(int)
-    df['host_rank'] = df['host_rank'].astype(int)
-    df['worker_rank'] = df['worker_rank'].astype(int)
-    df['rx_items'] = df['rx_items'].astype(int)
-    df['tx_items'] = df['tx_items'].astype(int)
-    df['rx_bytes'] = df['rx_bytes'].astype(int)
-    df['tx_bytes'] = df['tx_bytes'].astype(int)
-    df = df.sort_values(by=['id','dia_id','host_rank','worker_rank'])
+    df['rx_net_items'] = df['rx_net_items'].astype(int)
+    df['tx_net_items'] = df['tx_net_items'].astype(int)
+    df['rx_net_bytes'] = df['rx_net_bytes'].astype(int)
+    df['tx_net_bytes'] = df['tx_net_bytes'].astype(int)
+    df['rx_int_items'] = df['rx_int_items'].astype(int)
+    df['tx_int_items'] = df['tx_int_items'].astype(int)
+    df['rx_int_bytes'] = df['rx_int_bytes'].astype(int)
+    df['tx_int_bytes'] = df['tx_int_bytes'].astype(int)
+    df['rx_items'] = df['rx_net_items'] + df['rx_int_items']
+    df['rx_bytes'] = df['rx_net_bytes'] + df['rx_int_bytes']
+    df['tx_items'] = df['tx_net_items'] + df['tx_int_items']
+    df['tx_bytes'] = df['tx_net_bytes'] + df['tx_int_bytes']
+    df = df.sort_values(by=['id','dia_id'])
     df = df.merge(right=dia_table(), how='left', left_on='dia_id', right_index=True)
-    df = df[['id','label_id','rx_items','tx_items','rx_bytes','tx_bytes']]
+    df = df[['id','label_id','rx_items','tx_items','rx_bytes','tx_bytes'] + cols]
     df = df.groupby(['id','label_id']).aggregate(np.sum)
     return df
 
@@ -153,6 +177,8 @@ def stream_summary_html_table():
 def file_table():
     df = df_stats
     df = df[(df['class'] == 'File') & (df['event'] == 'close')]
+    if len(df) == 0:
+        return pd.DataFrame(columns=['ts']).set_index('ts')
     df = df.set_index('ts')
     # Filter out all File which never contained items
     df = df[df['items'] > 0]
@@ -174,6 +200,8 @@ def stage_lines():
     df = df_stats
     df = df[(df['class'] == 'StageBuilder') & (df['worker_rank'] == 0)]
     df = df[(df['event'] == 'execute-start') | (df['event'] == 'pushdata-start')]
+    if len(df) == 0:
+        return []
     df = df[['ts','event','id','label']].set_index('ts')
     df['id'] = df['id'].astype(int)
     df['label'] = df['label'] + '.' + df['id'].map(str) + ' ' + df['event']

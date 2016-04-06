@@ -28,21 +28,28 @@ Stream::Stream(Multiplexer& multiplexer, const StreamId& id,
 
 Stream::~Stream() { }
 
-void Stream::OnAllClosed() {
+void Stream::OnAllClosed(const char* stream_type) {
     multiplexer_.logger()
         << "class" << "Stream"
         << "event" << "close"
         << "id" << id_
+        << "type" << stream_type
         << "dia_id" << dia_id_
         << "worker_rank"
         << (my_host_rank() * multiplexer_.workers_per_host())
         + local_worker_id_
-        << "rx_items" << rx_items_
-        << "rx_bytes" << rx_bytes_
-        << "rx_blocks" << rx_blocks_
-        << "tx_items" << tx_items_
-        << "tx_bytes" << tx_bytes_
-        << "tx_blocks" << tx_blocks_;
+        << "rx_net_items" << rx_net_items_
+        << "rx_net_bytes" << rx_net_bytes_
+        << "rx_net_blocks" << rx_net_blocks_
+        << "tx_net_items" << tx_net_items_
+        << "tx_net_bytes" << tx_net_bytes_
+        << "tx_net_blocks" << tx_net_blocks_
+        << "rx_int_items" << rx_int_items_
+        << "rx_int_bytes" << rx_int_bytes_
+        << "rx_int_blocks" << rx_int_blocks_
+        << "tx_int_items" << tx_int_items_
+        << "tx_int_bytes" << tx_int_bytes_
+        << "tx_int_blocks" << tx_int_blocks_;
 }
 
 } // namespace data

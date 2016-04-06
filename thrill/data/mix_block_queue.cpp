@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <thrill/data/mix_block_queue.hpp>
+#include <thrill/data/mix_stream.hpp>
 
 #include <vector>
 
@@ -58,7 +59,8 @@ void MixBlockQueue::Close(size_t src) {
 }
 
 MixBlockQueue::SrcBlockPair MixBlockQueue::Pop() {
-    if (read_open_ == 0) return SrcBlockPair {
+    if (read_open_ == 0)
+        return SrcBlockPair {
                    size_t(-1), Block()
         };
     SrcBlockPair b;
@@ -70,21 +72,28 @@ MixBlockQueue::SrcBlockPair MixBlockQueue::Pop() {
 /******************************************************************************/
 // MixBlockQueueSink
 
-MixBlockQueueSink::MixBlockQueueSink(MixBlockQueue& mix_queue,
-                                     size_t from_global, size_t from_local)
-    : BlockSink(mix_queue.block_pool(), from_local),
-      mix_queue_(mix_queue), from_global_(from_global)
+MixBlockQueueSink::MixBlockQueueSink(
+    MixStream& mix_stream, size_t from_global, size_t from_local)
+    : BlockSink(mix_stream.queue_.block_pool(), from_local),
+      mix_stream_(mix_stream), mix_queue_(mix_stream.queue_),
+      from_global_(from_global)
 { }
 
 void MixBlockQueueSink::AppendBlock(const Block& b) {
     LOG << "MixBlockQueueSink::AppendBlock()"
         << " from_global_=" << from_global_ << " b=" << b;
+    item_counter_ += b.num_items();
+    byte_counter_ += b.size();
+    ++block_counter_;
     mix_queue_.AppendBlock(from_global_, b);
 }
 
 void MixBlockQueueSink::AppendBlock(Block&& b) {
     LOG << "MixBlockQueueSink::AppendBlock()"
         << " from_global_=" << from_global_ << " b=" << b;
+    item_counter_ += b.num_items();
+    byte_counter_ += b.size();
+    ++block_counter_;
     mix_queue_.AppendBlock(from_global_, std::move(b));
 }
 
@@ -92,8 +101,36 @@ void MixBlockQueueSink::Close() {
     // enqueue a closing Block.
     LOG << "MixBlockQueueSink::Close()"
         << " from_global_=" << from_global_;
+    ++block_counter_;
     mix_queue_.Close(from_global_);
     write_closed_ = true;
+
+    logger()
+        << "class" << "StreamSink"
+        << "subclass" << "MixBlockQueueSink"
+        << "event" << "close"
+        << "id" << mix_stream_.id_
+        << "peer_host" << mix_stream_.my_host_rank()
+        << "src_worker" << from_global_
+        << "tgt_worker" << mix_stream_.my_worker_rank()
+        << "loopback" << true
+        << "items" << item_counter_
+        << "bytes" << byte_counter_
+        << "blocks" << block_counter_;
+
+    if (src_mix_stream_) {
+        src_mix_stream_->tx_int_items_ += item_counter_;
+        src_mix_stream_->tx_int_bytes_ += byte_counter_;
+        src_mix_stream_->tx_int_blocks_ += block_counter_;
+    }
+
+    mix_stream_.rx_int_items_ += item_counter_;
+    mix_stream_.rx_int_bytes_ += byte_counter_;
+    mix_stream_.rx_int_blocks_ += block_counter_;
+}
+
+void MixBlockQueueSink::set_src_mix_stream(MixStream* src_mix_stream) {
+    src_mix_stream_ = src_mix_stream;
 }
 
 /******************************************************************************/

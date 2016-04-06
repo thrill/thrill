@@ -55,9 +55,9 @@ public:
     using CloseCallback = common::Delegate<void(BlockQueue&)>;
 
     //! Constructor from BlockPool
-    explicit BlockQueue(BlockPool& block_pool, size_t local_worker_id,
-                        size_t dia_id,
-                        const CloseCallback& close_callback = CloseCallback())
+    BlockQueue(BlockPool& block_pool, size_t local_worker_id,
+               size_t dia_id,
+               const CloseCallback& close_callback = CloseCallback())
         : BlockSink(block_pool, local_worker_id),
           file_(block_pool, local_worker_id, dia_id),
           close_callback_(close_callback) {
@@ -117,6 +117,11 @@ public:
         file_.set_dia_id(dia_id);
     }
 
+    //! set the close callback
+    void set_close_callback(const CloseCallback& cb) {
+        close_callback_ = cb;
+    }
+
     //! check if writer side Close() was called.
     bool write_closed() const { return write_closed_; }
 
@@ -151,6 +156,12 @@ public:
     //! return polymorphic BlockReader variant
     Reader GetReader(bool consume, size_t local_worker_id);
 
+    //! Returns source_
+    void * source() const { return source_; }
+
+    //! set opaque source pointer
+    void set_source(void* source) { source_ = source; }
+
 private:
     common::ConcurrentBoundedQueue<Block> queue_;
 
@@ -169,11 +180,15 @@ private:
     //! timespan of existance
     common::StatsTimerStart timespan_;
 
-    //! File to cache blocks for implementing ConstBlockQueueSource.
+    //! File to cache blocks for implementing CacheBlockQueueSource.
     File file_;
 
-    //! callback to issue when the writer closes the Queue -- for delivering stats
+    //! callback to issue when the writer closes the Queue -- for delivering
+    //! stats
     CloseCallback close_callback_;
+
+    //! opaque pointer to the source (used by close_callback_ if needed).
+    void* source_ = nullptr;
 
     //! for access to file_
     friend class CacheBlockQueueSource;

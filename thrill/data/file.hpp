@@ -251,9 +251,7 @@ public:
 
     //! change dia_id after construction (needed because it may be unknown at
     //! construction)
-    void set_dia_id(size_t dia_id) {
-        dia_id_ = dia_id;
-    }
+    void set_dia_id(size_t dia_id) { dia_id_ = dia_id; }
 
 private:
     //! unique file id

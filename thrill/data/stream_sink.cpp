@@ -19,6 +19,11 @@ namespace thrill {
 namespace data {
 
 StreamSink::StreamSink(Stream& stream, BlockPool& block_pool,
+                       size_t local_worker_id)
+    : BlockSink(block_pool, local_worker_id),
+      stream_(stream), closed_(true) { }
+
+StreamSink::StreamSink(Stream& stream, BlockPool& block_pool,
                        net::Connection* connection,
                        MagicByte magic, StreamId stream_id,
                        size_t host_rank, size_t host_local_worker,
@@ -34,7 +39,7 @@ StreamSink::StreamSink(Stream& stream, BlockPool& block_pool,
     logger()
         << "class" << "StreamSink"
         << "event" << "open"
-        << "stream" << id_
+        << "id" << id_
         << "peer_host" << peer_rank_
         << "src_worker" << (host_rank_ * workers_per_host()) + local_worker_id_
         << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_;
@@ -95,7 +100,7 @@ void StreamSink::Close() {
          << "worker" << local_worker_id_
          << "to" << peer_rank_
          << "worker" << peer_local_worker_
-         << "stream" << id_;
+         << "id" << id_;
 
     StreamMultiplexerHeader header;
     header.magic = magic_;
@@ -118,17 +123,18 @@ void StreamSink::Close() {
     logger()
         << "class" << "StreamSink"
         << "event" << "close"
-        << "stream" << id_
+        << "id" << id_
         << "peer_host" << peer_rank_
         << "src_worker" << (host_rank_ * workers_per_host()) + local_worker_id_
         << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_
+        << "items" << item_counter_
         << "bytes" << byte_counter_
         << "blocks" << block_counter_
         << "timespan" << timespan_;
 
-    stream_.tx_items_ += item_counter_;
-    stream_.tx_bytes_ += byte_counter_;
-    stream_.tx_blocks_ += block_counter_;
+    stream_.tx_net_items_ += item_counter_;
+    stream_.tx_net_bytes_ += byte_counter_;
+    stream_.tx_net_blocks_ += block_counter_;
 }
 
 } // namespace data

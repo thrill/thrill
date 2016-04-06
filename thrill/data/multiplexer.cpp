@@ -242,7 +242,7 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
     {
         CatStreamPtr stream = GetOrCreateCatStream(
             id, local_worker, /* dia_id (unknown at this time) */ 0);
-        stream->rx_bytes_ += buffer.size();
+        stream->rx_net_bytes_ += buffer.size();
 
         if (header.IsEnd()) {
             sLOG << "end of stream on" << s << "in CatStream" << id
@@ -271,7 +271,7 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
     {
         MixStreamPtr stream = GetOrCreateMixStream(
             id, local_worker, /* dia_id (unknown at this time) */ 0);
-        stream->rx_bytes_ += buffer.size();
+        stream->rx_net_bytes_ += buffer.size();
 
         if (header.IsEnd()) {
             sLOG << "end of stream on" << s << "in MixStream" << id

@@ -99,6 +99,7 @@ private:
 
     //! for calling methods to deliver blocks
     friend class Multiplexer;
+    friend class MixBlockQueueSink;
 
     //! called from Multiplexer when there is a new Block for this Stream.
     void OnStreamBlock(size_t from, PinnedBlock&& b);

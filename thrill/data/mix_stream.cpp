@@ -53,7 +53,7 @@ MixStream::MixStream(Multiplexer& multiplexer, const StreamId& id,
     // construct MixBlockQueueSink for loopback writers
     for (size_t worker = 0; worker < workers_per_host(); worker++) {
         loopback_.emplace_back(
-            queue_,
+            *this,
             my_host_rank() * multiplexer_.workers_per_host() + worker,
             worker);
     }
@@ -78,9 +78,11 @@ MixStream::GetWriters(size_t block_size) {
     for (size_t host = 0; host < num_hosts(); ++host) {
         for (size_t worker = 0; worker < workers_per_host(); ++worker) {
             if (host == my_host_rank()) {
+                // construct loopback queue writer
                 auto target_queue_ptr =
                     multiplexer_.MixLoopback(id_, local_worker_id_, worker);
                 result.emplace_back(target_queue_ptr, block_size);
+                target_queue_ptr->set_src_mix_stream(this);
             }
             else {
                 size_t worker_id = host * workers_per_host() + worker;
@@ -129,7 +131,7 @@ void MixStream::Close() {
 
     tx_lifetime_.StopEventually();
     tx_timespan_.StopEventually();
-    OnAllClosed();
+    OnAllClosed("MixStream");
 }
 
 bool MixStream::closed() const {
@@ -143,9 +145,9 @@ void MixStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
     assert(from < num_workers());
     rx_timespan_.StartEventually();
 
-    rx_items_ += b.num_items();
-    rx_bytes_ += b.size();
-    rx_blocks_++;
+    rx_net_items_ += b.num_items();
+    rx_net_bytes_ += b.size();
+    rx_net_blocks_++;
 
     sLOG << "OnMixStreamBlock" << b;
 
@@ -159,7 +161,7 @@ void MixStream::OnCloseStream(size_t from) {
     assert(from < num_workers());
     queue_.Close(from);
 
-    rx_blocks_++;
+    rx_net_blocks_++;
 
     sLOG << "OnMixCloseStream from=" << from;
 
