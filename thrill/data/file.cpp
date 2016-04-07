@@ -110,6 +110,23 @@ KeepFileBlockSource::KeepFileBlockSource(
       first_block_(first_block), current_block_(first_block),
       first_item_(first_item) { }
 
+void KeepFileBlockSource::Prefetch(size_t prefetch) {
+    if (prefetch >= num_prefetch_) {
+        num_prefetch_ = prefetch;
+        // prefetch #desired blocks
+        while (fetching_blocks_.size() < num_prefetch_ &&
+               current_block_ < file_.num_blocks())
+        {
+            fetching_blocks_.emplace_back(
+                NextUnpinnedBlock().Pin(local_worker_id_));
+        }
+    }
+    else if (prefetch < num_prefetch_) {
+        num_prefetch_ = prefetch;
+        // cannot discard prefetched Blocks
+    }
+}
+
 PinnedBlock KeepFileBlockSource::NextBlock() {
 
     if (current_block_ >= file_.num_blocks() && fetching_blocks_.empty())

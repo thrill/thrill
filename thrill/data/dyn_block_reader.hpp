@@ -33,6 +33,9 @@ public:
     virtual ~DynBlockSourceInterface() { }
 
     virtual PinnedBlock NextBlock() = 0;
+
+    //! set number of blocks to prefetch
+    virtual void Prefetch(size_t size) = 0;
 };
 
 /*!
@@ -53,6 +56,10 @@ public:
 
     PinnedBlock NextBlock() {
         return block_source_ptr_->NextBlock();
+    }
+
+    void Prefetch(size_t size) {
+        return block_source_ptr_->Prefetch(size);
     }
 
 private:
@@ -85,6 +92,10 @@ public:
 
     PinnedBlock NextBlock() final {
         return block_source_.NextBlock();
+    }
+
+    void Prefetch(size_t size) final {
+        return block_source_.Prefetch(size);
     }
 
 private:

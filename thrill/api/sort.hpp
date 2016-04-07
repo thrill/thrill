@@ -216,11 +216,11 @@ public:
                   << "with prefetch" << prefetch;
 
             // construct output merger of remaining Files
-            std::vector<data::File::ConsumeReader> seq;
+            std::vector<data::File::Reader> seq;
             seq.reserve(files_.size());
 
             for (size_t t = 0; t < files_.size(); ++t)
-                seq.emplace_back(files_[t].GetConsumeReader(0));
+                seq.emplace_back(files_[t].GetReader(consume, 0));
 
             StartPrefetch(seq, prefetch);
 

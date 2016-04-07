@@ -304,6 +304,9 @@ public:
     //! BlockReader
     PinnedBlock NextBlock();
 
+    //! Perform prefetch
+    void Prefetch(size_t prefetch);
+
 protected:
     //! Determine current unpinned Block to deliver via NextBlock()
     Block NextUnpinnedBlock();

@@ -207,6 +207,10 @@ public:
     explicit ConsumeBlockQueueSource(BlockQueue& queue, size_t local_worker_id)
         : queue_(queue), local_worker_id_(local_worker_id) { }
 
+    void Prefetch(size_t /* prefetch */) {
+        // not supported yet. TODO(tb)
+    }
+
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
     PinnedBlock NextBlock() {
@@ -248,6 +252,10 @@ public:
     CacheBlockQueueSource(CacheBlockQueueSource&& s)
         : queue_(s.queue_), local_worker_id_(s.local_worker_id_)
     { s.queue_ = nullptr; }
+
+    void Prefetch(size_t /* prefetch */) {
+        // not supported yet. TODO(tb)
+    }
 
     //! Return next block for BlockQueue, store into caching File and return it.
     PinnedBlock NextBlock() {
