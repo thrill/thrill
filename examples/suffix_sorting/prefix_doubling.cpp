@@ -503,7 +503,7 @@ public:
                     sizelimit_)
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
-                .Cache();
+                .Cache().KeepForever();
             StartPrefixDoublingInput(input_dia, sizelimit_);
         }
         else {
