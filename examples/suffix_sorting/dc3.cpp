@@ -206,7 +206,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
     using Chars = suffix_sorting::Chars<Char>;
 
     auto triple_sorted =
-        input_dia
+        input_dia.Keep()
         // map (t_i) -> (i,t_i,t_{i+1},t_{i+2}) where i neq 0 mod 3
         .template FlatWindow<IndexChars>(
             3, [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
@@ -246,12 +246,13 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
               });
 
     if (debug_print)
-        triple_sorted.Print("triple_sorted");
+        triple_sorted.Keep().Print("triple_sorted");
 
     // save triple's indexes (sorted by triple content) -> less storage
     auto triple_index_sorted =
         triple_sorted
-        .Map([](const IndexChars& tc) { return tc.index; });
+        .Map([](const IndexChars& tc) { return tc.index; })
+        .Cache();
 
     auto triple_prerank_sums =
         triple_sorted
@@ -268,10 +269,10 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
         .PrefixSum();
 
     if (debug_print)
-        triple_prerank_sums.Print("triple_prerank_sums");
+        triple_prerank_sums.Keep().Print("triple_prerank_sums");
 
     // get the last element via an associative reduce.
-    size_t max_lexname = triple_prerank_sums.Max();
+    size_t max_lexname = triple_prerank_sums.Keep().Max();
 
     // compute the size of the 2/3 subproblem.
     size_t size_subp = (input_size / 3) * 2 + (input_size % 3 != 0);
@@ -301,7 +302,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
                  });
 
         if (debug_print)
-            triple_ranks.Print("triple_ranks");
+            triple_ranks.Keep().Print("triple_ranks");
 
         // construct recursion string with all ranks at mod 1 indices followed
         // by all ranks at mod 2 indices.
@@ -316,21 +317,20 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
             .Map([](const IndexRank& tr) {
                      return tr.rank;
                  })
-            .Collapse();
+            .Cache();
 
         if (debug_print)
-            string_mod12.Print("string_mod12");
+            string_mod12.Keep().Print("string_mod12");
 
-        // auto suffix_array_rec = Recursion(string_mod12);
         auto suffix_array_rec = DC3(ctx, string_mod12, size_subp);
 
         // reverse suffix array of recursion strings to find ranks for mod 1
         // and mod 2 positions.
 
         if (debug_print)
-            suffix_array_rec.Print("suffix_array_rec");
+            suffix_array_rec.Keep().Print("suffix_array_rec");
 
-        assert(suffix_array_rec.Size() == size_subp);
+        assert(suffix_array_rec.Keep().Size() == size_subp);
 
         ranks_rec =
             suffix_array_rec
@@ -344,11 +344,11 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
                   });
 
         if (debug_print)
-            ranks_rec.Print("ranks_rec");
+            ranks_rec.Keep().Print("ranks_rec");
     }
     else {
         if (debug_print)
-            triple_index_sorted.Print("triple_index_sorted");
+            triple_index_sorted.Keep().Print("triple_index_sorted");
 
         ranks_rec =
             triple_index_sorted
@@ -369,7 +369,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
             .Collapse();
 
         if (debug_print)
-            ranks_rec.Print("ranks_rec");
+            ranks_rec.Keep().Print("ranks_rec");
     }
 
     // *** construct StringFragments ***
@@ -399,7 +399,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
 
     auto ranks_mod1 =
         ranks_rec
-        .Filter([&](const IndexRank& a) {
+        .Filter([size_mod1](const IndexRank& a) {
                     return a.index < size_mod1;
                 })
         .Map([](const IndexRank& a) {
@@ -410,7 +410,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
 
     auto ranks_mod2 =
         ranks_rec
-        .Filter([&](const IndexRank& a) {
+        .Filter([size_mod1](const IndexRank& a) {
                     return a.index >= size_mod1;
                 })
         .Map([](const IndexRank& a) {
@@ -418,14 +418,14 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
              });
 
     if (debug_print) {
-        triple_chars.Print("triple_chars");
-        ranks_mod1.Print("ranks_mod1");
-        ranks_mod2.Print("ranks_mod2");
+        triple_chars.Keep().Print("triple_chars");
+        ranks_mod1.Keep().Print("ranks_mod1");
+        ranks_mod2.Keep().Print("ranks_mod2");
     }
 
-    assert(triple_chars.Size() == size_mod1);
-    die_unless(ranks_mod1.Size() == size_mod1);
-    assert(ranks_mod2.Size() == size_mod1 - (input_size % 3 ? 1 : 0));
+    assert(triple_chars.Keep().Size() == size_mod1);
+    assert(ranks_mod1.Keep().Size() == size_mod1);
+    assert(ranks_mod2.Keep().Size() == size_mod1 - (input_size % 3 ? 1 : 0));
 
     size_t zip_size = size_mod1;
     if (debug_print)
@@ -450,7 +450,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
             triple_chars, ranks_mod1, ranks_mod2);
 
     if (debug_print)
-        zip_triple_pairs1.Print("zip_triple_pairs1");
+        zip_triple_pairs1.Keep().Print("zip_triple_pairs1");
 
     auto zip_triple_pairs =
         zip_triple_pairs1
@@ -505,9 +505,9 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
                 });
 
     if (debug_print) {
-        fragments_mod0.Print("fragments_mod0");
-        fragments_mod1.Print("fragments_mod1");
-        fragments_mod2.Print("fragments_mod2");
+        fragments_mod0.Keep().Print("fragments_mod0");
+        fragments_mod1.Keep().Print("fragments_mod1");
+        fragments_mod2.Keep().Print("fragments_mod2");
     }
 
     // Sort the three string fragment sets
@@ -531,9 +531,9 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
               });
 
     if (debug_print) {
-        sorted_fragments_mod0.Print("sorted_fragments_mod0");
-        sorted_fragments_mod1.Print("sorted_fragments_mod1");
-        sorted_fragments_mod2.Print("sorted_fragments_mod2");
+        sorted_fragments_mod0.Keep().Print("sorted_fragments_mod0");
+        sorted_fragments_mod1.Keep().Print("sorted_fragments_mod1");
+        sorted_fragments_mod2.Keep().Print("sorted_fragments_mod2");
     }
 
     using StringFragment = suffix_sorting::StringFragment<Char>;
@@ -554,8 +554,7 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
              { return StringFragment(mod2); });
 
     auto fragment_comparator =
-        [](const StringFragment& a, const StringFragment& b)
-        {
+        [](const StringFragment& a, const StringFragment& b) {
             unsigned ai = a.index % 3, bi = b.index % 3;
 
             if (ai == 0 && bi == 0)
@@ -629,9 +628,8 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
         }
     }
 
-    // check result
-
-    die_unless(CheckSA(input_dia, suffix_array.Collapse()));
+    // check result: requires enable_consume(false)
+    // die_unless(CheckSA(input_dia, suffix_array.Collapse()));
 
     return suffix_array.Collapse();
 }
@@ -657,6 +655,7 @@ public:
           input_verbatim_(input_verbatim) { }
 
     void Run() {
+        ctx_.enable_consume();
         if (input_verbatim_) {
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
@@ -691,7 +690,7 @@ public:
                     sizelimit_)
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
-                .Cache();
+                .Cache().KeepForever();
             StartDC3Input(input_dia, sizelimit_);
         }
         else {
