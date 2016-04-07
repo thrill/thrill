@@ -338,9 +338,14 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
                  [](size_t sa, size_t i) {
                      return IndexRank { sa, i };
                  })
-            .Sort([](const IndexRank& a, const IndexRank& b) {
-                      // TODO(tb): change sort order for better locality later.
-                      return a.index < b.index;
+            .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
+                      // DONE(tb): changed sort order for better locality
+                      // later. ... but slower?
+
+                      // return a.index < b.index;
+                      return a.index / size_mod1 < b.index / size_mod1 || (
+                          a.index / size_mod1 == b.index / size_mod1 &&
+                          a.index < b.index);
                   });
 
         if (debug_print)
@@ -356,10 +361,16 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
                  [](size_t sa, size_t i) {
                      return IndexRank { sa, i };
                  })
-            .Sort([](const IndexRank& a, const IndexRank& b) {
-                      // TODO(tb): change sort order for better locality later.
-                      if (a.index % 3 == b.index % 3)
-                          return a.index < b.index;
+            .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
+                      if (a.index % 3 == b.index % 3) {
+                          // DONE(tb): changed sort order for better locality
+                          // later. ... but slower?
+
+                          // return a.index < b.index;
+                          return a.index / size_mod1 < b.index / size_mod1 || (
+                              a.index / size_mod1 == b.index / size_mod1 &&
+                              a.index < b.index);
+                      }
                       else
                           return a.index % 3 < b.index % 3;
                   })
@@ -608,7 +619,8 @@ DIA<size_t> DC3(Context& ctx, const InputDIA& input_dia, size_t input_size) {
               string_fragments_mod0,
               string_fragments_mod1,
               string_fragments_mod2)
-        .Map([](const StringFragment& a) { return a.index; });
+        .Map([](const StringFragment& a) { return a.index; })
+        .Execute();
 
     // debug output
 
