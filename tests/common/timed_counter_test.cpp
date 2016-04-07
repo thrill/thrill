@@ -7,8 +7,9 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
 #include <thrill/common/timed_counter.hpp>
+
+#include <gtest/gtest.h>
 
 #include <thread>
 
