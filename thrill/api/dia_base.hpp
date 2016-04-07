@@ -228,7 +228,14 @@ public:
     //! Virtual SetConsume flag which is called by the user via .Keep() or
     //! .Consume() to set consumption.
     virtual void IncConsumeCounter(size_t counter) {
+        if (consume_counter_ == kNeverConsume) return;
         consume_counter_ += counter;
+    }
+
+    //! Virtual SetConsume flag which is called by the user via .Keep() or
+    //! .Consume() to set consumption.
+    virtual void SetConsumeCounter(size_t counter) {
+        consume_counter_ = counter;
     }
 
     //! Returns the parents of this DIABase.
@@ -299,12 +306,12 @@ protected:
     //! consume = true
     size_t consume_counter_ = 1;
 
-    //! Never full consume
-    static constexpr size_t never_consume_ = static_cast<size_t>(-1);
-
     //! \}
 
 public:
+    //! Never full consume
+    static constexpr size_t kNeverConsume = static_cast<size_t>(-1);
+
     /**************************************************************************/
     // JsonLogger for this DIANode
 

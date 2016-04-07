@@ -54,6 +54,10 @@ public:
     void IncConsumeCounter(size_t /* counter */) final {
         die("Setting .Keep() on Actions does not make sense.");
     }
+
+    void SetConsumeCounter(size_t /* counter */) final {
+        die("Setting .Keep() on Actions does not make sense.");
+    }
 };
 
 //! \}

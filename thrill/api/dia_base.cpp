@@ -154,18 +154,18 @@ public:
     }
 
     void PushData() {
-        if (context_.consume() && node_->consume_counter() == 0) {
-            sLOG1 << "StageBuilder: attempt to PushData on"
-                  << "stage" << *node_
-                  << "failed, it was already consumed. Add .Keep()";
-            abort();
-        }
-
         sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << TargetsString();
 
         if (context_.my_rank() == 0) {
             sLOG1 << "PushData() stage" << *node_
                   << "with targets" << TargetsString();
+        }
+
+        if (context_.consume() && node_->consume_counter() == 0) {
+            sLOG1 << "StageBuilder: attempt to PushData on"
+                  << "stage" << *node_
+                  << "failed, it was already consumed. Add .Keep()";
+            abort();
         }
 
         std::vector<size_t> target_ids = TargetIds();
@@ -285,10 +285,12 @@ using mm_set = std::set<T, std::less<T>, mem::Allocator<T> >;
 
 //! Do a BFS on parents to find all DIANodes (Stages) needed to Execute or
 //! PushData to calculate this action node.
-static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
+static void FindStages(
+    Context& ctx, const DIABasePtr& action, mm_set<Stage>& stages) {
     static constexpr bool debug = Stage::debug;
 
-    LOG << "Finding Stages:";
+    if (ctx.my_rank() == 0)
+        LOG << "Finding Stages:";
 
     mem::deque<DIABasePtr> bfs_stack(
         mem::Allocator<DIABasePtr>(action->mem_manager()));
@@ -309,7 +311,8 @@ static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
             if (stages.count(Stage(p))) continue;
 
             if (!curr->ForwardDataOnly()) {
-                LOG << "  Stage: " << *p;
+                if (ctx.my_rank() == 0)
+                    LOG << "  Stage: " << *p;
                 stages.insert(Stage(p));
                 // If parent was not executed push it to the BFS queue and
                 // continue upwards. if state is EXECUTED, then we only need to
@@ -320,7 +323,8 @@ static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
             else {
                 // If parent cannot hold data continue upward.
                 if (curr->RequireParentPushData(i)) {
-                    LOG << "  Stage: " << *p;
+                    if (ctx.my_rank() == 0)
+                        LOG << "  Stage: " << *p;
                     stages.insert(Stage(p));
                     bfs_stack.push_back(p);
                 }
@@ -380,16 +384,18 @@ void DIABase::RunScope() {
     mm_set<Stage> stages {
         mem::Allocator<Stage>(mem_manager())
     };
-    FindStages(DIABasePtr(this), stages);
+    FindStages(context_, DIABasePtr(this), stages);
 
     mem::vector<Stage> toporder {
         mem::Allocator<Stage>(mem_manager())
     };
     TopoSortStages(stages, toporder);
 
-    LOG << "Topological order";
-    for (auto top = toporder.rbegin(); top != toporder.rend(); ++top) {
-        LOG << "  " << *top->node_;
+    if (context_.my_rank() == 0) {
+        LOG << "Topological order";
+        for (auto top = toporder.rbegin(); top != toporder.rend(); ++top) {
+            LOG << "  " << *top->node_;
+        }
     }
 
     assert(toporder.front().node_.get() == this);

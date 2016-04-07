@@ -89,9 +89,6 @@ public:
                 { parent0.node(), parents.node() ... }),
           num_inputs_(1 + sizeof ... (ParentDIAs))
     {
-        // UnionNodes are kept by default.
-        Super::consume_counter_ = Super::never_consume_;
-
         common::VariadicCallForeachIndex(
             RegisterParent(this), parent0, parents ...);
     }
@@ -262,6 +259,13 @@ public:
         // propagate consumption up to parents.
         for (auto& p : Super::parents_) {
             p->IncConsumeCounter(consume);
+        }
+    }
+
+    void SetConsumeCounter(size_t consume) final {
+        // propagate consumption up to parents.
+        for (auto& p : Super::parents_) {
+            p->SetConsumeCounter(consume);
         }
     }
 

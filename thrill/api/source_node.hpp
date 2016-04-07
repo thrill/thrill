@@ -30,7 +30,7 @@ public:
         : Super(ctx, label, { /* parent_ids */ }, { /* parents */ }) {
         // SourceNode are kept by default: they usually read files or databases
         // on PushData(), which should not be consumed.
-        Super::consume_counter_ = Super::never_consume_;
+        Super::consume_counter_ = Super::kNeverConsume;
     }
 
     //! SourceNodes generally do not Execute, they only PushData.
@@ -39,10 +39,11 @@ public:
     //! SourceNodes generally do not do anything on Dispose, they only PushData.
     void Dispose() override { }
 
-    //! Print error when trying to set consume to true.
-    void IncConsumeCounter(size_t /* counter */) final {
-        die("You cannot set a SourceNode to .Keep() or consume its data.");
-    }
+    //! Ignore consume settings.
+    void IncConsumeCounter(size_t /* counter */) final { }
+
+    //! Ignore consume settings.
+    void SetConsumeCounter(size_t /* counter */) final { }
 };
 
 //! \}

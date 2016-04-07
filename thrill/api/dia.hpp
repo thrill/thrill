@@ -217,9 +217,20 @@ public:
      * the data when executing. This does not create a new DIA, but returns the
      * existing one.
      */
-    DIA& Keep(size_t increase = 1) {
+    const DIA& Keep(size_t increase = 1) const {
         assert(IsValid());
         node_->IncConsumeCounter(increase);
+        return *this;
+    }
+
+    /*!
+     * Mark the referenced DIANode for keeping forever, which makes children not
+     * consume the data when executing. This does not create a new DIA, but
+     * returns the existing one.
+     */
+    const DIA& KeepForever() const {
+        assert(IsValid());
+        node_->SetConsumeCounter(DIABase::kNeverConsume);
         return *this;
     }
 

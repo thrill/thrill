@@ -47,7 +47,7 @@ public:
     GenerateNode(Context& ctx,
                  GeneratorFunction generator_function,
                  size_t size)
-        : SourceNode<ValueType>(ctx, "Generate"),
+        : Super(ctx, "Generate"),
           generator_function_(generator_function),
           size_(size)
     { }

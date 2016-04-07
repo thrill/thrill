@@ -34,9 +34,6 @@ public:
     explicit CollapseNode(const ParentDIA& parent)
         : Super(parent.ctx(), "Collapse", { parent.id() }, { parent.node() })
     {
-        // CollapseNodes are kept by default.
-        Super::consume_counter_ = Super::never_consume_;
-
         auto propagate_fn = [this](const ValueType& input) {
                                 this->PushItem(input);
                             };
@@ -68,6 +65,13 @@ public:
         // propagate consumption up to parents.
         for (auto& p : Super::parents_) {
             p->IncConsumeCounter(consume);
+        }
+    }
+
+    void SetConsumeCounter(size_t consume) final {
+        // propagate consumption up to parents.
+        for (auto& p : Super::parents_) {
+            p->SetConsumeCounter(consume);
         }
     }
 };

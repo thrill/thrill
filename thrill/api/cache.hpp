@@ -53,8 +53,6 @@ public:
      */
     explicit CacheNode(const ParentDIA& parent)
         : Super(parent) {
-        // CacheNodes are kept by default.
-        Super::consume_counter_ = Super::never_consume_;
 
         auto save_fn = [this](const ValueType& input) {
                            writer_.Put(input);
