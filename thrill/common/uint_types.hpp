@@ -42,9 +42,6 @@ namespace common {
  * the lower/higher part. Not all arithmetic operations are supported, patches
  * welcome if you really need the operations.
  */
-#if defined(_MSC_VER)
-#pragma pack(push, 1)
-#endif
 template <typename High_>
 class UIntPair
 {
@@ -225,13 +222,7 @@ public:
         return UIntPair(std::numeric_limits<Low>::max(),
                         std::numeric_limits<High>::max());
     }
-}
-#if defined(_MSC_VER)
-;                         // NOLINT
-#pragma pack(pop)
-#else
-__attribute__ ((packed)); // NOLINT
-#endif
+} THRILL_ATTRIBUTE_PACKED;
 
 //! Construct a 40-bit unsigned integer stored in five bytes.
 using uint40 = UIntPair<uint8_t>;
