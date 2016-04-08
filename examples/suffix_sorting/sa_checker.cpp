@@ -62,7 +62,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     using IndexRank = suffix_sorting::IndexRank<Index>;
     using Index3 = suffix_sorting::Index3<Index, Char>;
 
-    size_t input_size = input.Size();
+    uint64_t input_size = input.Size();
 
     auto isa_pair =
         suffix_array

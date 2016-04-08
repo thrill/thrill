@@ -154,7 +154,7 @@ struct StringFragment
         StringFragmentMod0<Index, AlphabetType> mod0;
         StringFragmentMod1<Index, AlphabetType> mod1;
         StringFragmentMod2<Index, AlphabetType> mod2;
-    };
+    } THRILL_ATTRIBUTE_PACKED;
 
     StringFragment() = default;
 
