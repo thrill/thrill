@@ -16,6 +16,7 @@
 #include <thrill/api/sort.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/common/uint_types.hpp>
 
 #include <ostream>
 #include <utility>
@@ -86,7 +87,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
         // sum over all boolean values.
         .Max();
 
-    if (perm_check != 0) {
+    if (perm_check != Index(0)) {
         LOG1 << "Error: suffix array is not a permutation of 0..n-1.";
         return false;
     }
@@ -117,12 +118,12 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 
     // order_check.Print("order_check");
 
-    Index order_check_sum =
+    char order_check_sum =
         order_check
         // check that no pair violates the order
         .Window(
             2,
-            [input_size](size_t index, const RingBuffer<Index3>& rb) -> Index {
+            [input_size](size_t index, const RingBuffer<Index3>& rb) -> char {
 
                 if (rb[0].ch > rb[1].ch) {
                     // simple check of first character of suffix failed.
@@ -131,14 +132,14 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
                     return 1;
                 }
                 else if (rb[0].ch == rb[1].ch) {
-                    if (rb[1].next == input_size) {
+                    if (rb[1].next == Index(input_size)) {
                         // last suffix of string must be first among those with
                         // same first character
                         LOG1 << "Error: suffix array position "
                              << index << " ordered incorrectly.";
                         return 1;
                     }
-                    if (rb[0].next != input_size && rb[0].next > rb[1].next) {
+                    if (rb[0].next != Index(input_size) && rb[0].next > rb[1].next) {
                         // positions SA[i] and SA[i-1] has same first character
                         // but their suffixes are ordered incorrectly: the
                         // suffix position of SA[i] is given by ISA[SA[i]]
@@ -158,6 +159,10 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 // instantiations
 template bool CheckSA(
     const DIA<uint8_t>& input, const DIA<uint32_t>& suffix_array);
+template bool CheckSA(
+    const DIA<uint8_t>& input, const DIA<common::uint40>& suffix_array);
+template bool CheckSA(
+    const DIA<uint8_t>& input, const DIA<common::uint48>& suffix_array);
 template bool CheckSA(
     const DIA<uint8_t>& input, const DIA<uint64_t>& suffix_array);
 template bool CheckSA(

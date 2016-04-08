@@ -3,7 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -29,6 +29,7 @@
 #include <thrill/api/write_binary.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/uint_types.hpp>
 
 #include <algorithm>
 #include <iomanip>
@@ -199,10 +200,9 @@ struct IndexCR12Pair {
     CharsRanks12<Index, Char> cr1;
 } THRILL_ATTRIBUTE_PACKED;
 
-template <typename InputDIA>
-DIA<uint32_t> DC3(const InputDIA& input_dia, size_t input_size) {
+template <typename Index, typename InputDIA>
+DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
 
-    using Index = uint32_t;
     using Char = typename InputDIA::ValueType;
     using IndexChars = suffix_sorting::IndexChars<Index, Char>;
     using IndexRank = suffix_sorting::IndexRank<Index>;
@@ -293,7 +293,7 @@ DIA<uint32_t> DC3(const InputDIA& input_dia, size_t input_size) {
 
     DIA<IndexRank> ranks_rec;
 
-    if (max_lexname + 1 != size_subp) {
+    if (max_lexname + Index(1) != size_subp) {
 
         // some lexical name is not unique -> perform recursion on two
         // substrings (mod 1 and mod 2)
@@ -327,7 +327,7 @@ DIA<uint32_t> DC3(const InputDIA& input_dia, size_t input_size) {
         if (debug_print)
             string_mod12.Keep().Print("string_mod12");
 
-        auto suffix_array_rec = DC3(string_mod12, size_subp);
+        auto suffix_array_rec = DC3<Index>(string_mod12, size_subp);
 
         // reverse suffix array of recursion strings to find ranks for mod 1
         // and mod 2 positions.
@@ -380,7 +380,9 @@ DIA<uint32_t> DC3(const InputDIA& input_dia, size_t input_size) {
                           return a.index % 3 < b.index % 3;
                   })
             .Map([size_mod1](const IndexRank& a) {
-                     return IndexRank { a.index % 3 == 1 ? 0 : size_mod1, a.rank };
+                     return IndexRank {
+                         a.index % 3 == 1 ? Index(0) : size_mod1, a.rank
+                     };
                  })
             .Collapse();
 
@@ -421,7 +423,7 @@ DIA<uint32_t> DC3(const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexRank& a) {
                  // add one to ranks such that zero can be used as sentinel
                  // for suffixes beyond the end of the string.
-                 return a.rank + 1;
+                 return a.rank + Index(1);
              });
 
     auto ranks_mod2 =
@@ -430,7 +432,7 @@ DIA<uint32_t> DC3(const InputDIA& input_dia, size_t input_size) {
                     return a.index >= size_mod1;
                 })
         .Map([](const IndexRank& a) {
-                 return a.rank + 1;
+                 return a.rank + Index(1);
              });
 
     if (debug_print) {
@@ -494,7 +496,7 @@ DIA<uint32_t> DC3(const InputDIA& input_dia, size_t input_size) {
         zip_triple_pairs
         .Map([](const IndexCR12Pair& ip) {
                  return StringFragmentMod1 {
-                     ip.index + 1,
+                     ip.index + Index(1),
                      ip.cr0.chars.ch[1],
                      ip.cr0.rank1, ip.cr0.rank2
                  };
@@ -507,7 +509,7 @@ DIA<uint32_t> DC3(const InputDIA& input_dia, size_t input_size) {
         zip_triple_pairs
         .Map([](const IndexCR12Pair& ip) {
                  return StringFragmentMod2 {
-                     ip.index + 2,
+                     ip.index + Index(2),
                      ip.cr0.chars.ch[2], ip.cr1.chars.ch[0],
                      ip.cr0.rank2, ip.cr1.rank1
                  };
@@ -633,7 +635,7 @@ DIA<uint32_t> DC3(const InputDIA& input_dia, size_t input_size) {
             for (const Index& index : vec)
             {
                 std::cout << std::setw(5) << index << " =";
-                for (Index i = index; i < index + 64 && i < input_size; ++i) {
+                for (Index i = index; i < index + Index(64) && i < input_size; ++i) {
                     std::cout << ' ' << input_vec[i];
                 }
                 std::cout << '\n';
@@ -659,13 +661,15 @@ public:
         uint64_t sizelimit,
         bool text_output_flag,
         bool check_flag,
-        bool input_verbatim)
+        bool input_verbatim,
+        size_t sa_index_bytes)
         : ctx_(ctx),
           input_path_(input_path), output_path_(output_path),
           sizelimit_(sizelimit),
           text_output_flag_(text_output_flag),
           check_flag_(check_flag),
-          input_verbatim_(input_verbatim) { }
+          input_verbatim_(input_verbatim),
+          sa_index_bytes_(sa_index_bytes) { }
 
     void Run() {
         ctx_.enable_consume();
@@ -673,7 +677,7 @@ public:
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
             DIA<uint8_t> input_dia = EqualToDIA<uint8_t>(ctx_, input_vec);
-            StartDC3Input(input_dia, input_vec.size());
+            SwitchDC3IndexType(input_dia, input_vec.size());
         }
         else if (input_path_ == "unary") {
             if (sizelimit_ == std::numeric_limits<size_t>::max()) {
@@ -683,7 +687,7 @@ public:
 
             DIA<uint8_t> input_dia = Generate(
                 ctx_, [](size_t /* i */) { return uint8_t('a'); }, sizelimit_);
-            StartDC3Input(input_dia, sizelimit_);
+            SwitchDC3IndexType(input_dia, sizelimit_);
         }
         else if (input_path_ == "random") {
             if (sizelimit_ == std::numeric_limits<size_t>::max()) {
@@ -704,20 +708,20 @@ public:
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
                 .Cache().KeepForever();
-            StartDC3Input(input_dia, sizelimit_);
+            SwitchDC3IndexType(input_dia, sizelimit_);
         }
         else {
             DIA<uint8_t> input_dia = ReadBinary<uint8_t>(ctx_, input_path_);
             size_t input_size = input_dia.Size();
-            StartDC3Input(input_dia, input_size);
+            SwitchDC3IndexType(input_dia, input_size);
         }
     }
 
-    template <typename InputDIA>
+    template <typename Index, typename InputDIA>
     void StartDC3Input(const InputDIA& input_dia, uint64_t input_size) {
 
         // run DC3
-        auto suffix_array = DC3(input_dia, input_size);
+        auto suffix_array = DC3<Index>(input_dia, input_size);
 
         if (output_path_.size()) {
             suffix_array.WriteBinary(output_path_);
@@ -735,6 +739,22 @@ public:
         }
     }
 
+    template <typename InputDIA>
+    void SwitchDC3IndexType(const InputDIA& input_dia, uint64_t input_size) {
+        if (sa_index_bytes_ == 4)
+            return StartDC3Input<uint32_t>(input_dia, input_size);
+#ifndef NDEBUG
+        else if (sa_index_bytes_ == 5)
+            return StartDC3Input<common::uint40>(input_dia, input_size);
+        else if (sa_index_bytes_ == 6)
+            return StartDC3Input<common::uint48>(input_dia, input_size);
+        else if (sa_index_bytes_ == 8)
+            return StartDC3Input<uint64_t>(input_dia, input_size);
+#endif
+        else
+            die("Unsupported index byte size: " << sa_index_bytes_);
+    }
+
 protected:
     Context& ctx_;
 
@@ -745,6 +765,7 @@ protected:
     bool text_output_flag_;
     bool check_flag_;
     bool input_verbatim_;
+    size_t sa_index_bytes_;
 };
 
 } // namespace suffix_sorting
@@ -764,6 +785,7 @@ int main(int argc, char* argv[]) {
     bool text_output_flag = false;
     bool check_flag = false;
     bool input_verbatim = false;
+    size_t sa_index_bytes = 4;
 
     cp.AddParamString("input", input_path,
                       "Path to input file (or verbatim text).\n"
@@ -782,6 +804,9 @@ int main(int argc, char* argv[]) {
                 "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
     cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
                "Print debug info.");
+    cp.AddSizeT('b', "bytes", sa_index_bytes,
+                "suffix array bytes per index: "
+                "4 (32-bit), 5 (40-bit), 6 (48-bit), 8 (64-bit)");
 
     // process command line
     if (!cp.Process(argc, argv))
@@ -794,7 +819,7 @@ int main(int argc, char* argv[]) {
                 sizelimit,
                 text_output_flag,
                 check_flag,
-                input_verbatim).Run();
+                input_verbatim, sa_index_bytes).Run();
         });
 }
 

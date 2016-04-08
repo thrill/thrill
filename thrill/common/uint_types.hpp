@@ -166,6 +166,14 @@ public:
         return *this;
     }
 
+    //! addition operator (uses 64-bit arithmetic)
+    UIntPair operator + (const UIntPair& b) const {
+        uint64_t add = low_ + b.low_;
+        return UIntPair(
+            (Low)(add & low_max()),
+            (High)(high_ + b.high_ + ((add >> low_bits) & high_max())));
+    }
+
     //! equality checking operator
     bool operator == (const UIntPair& b) const {
         return (low_ == b.low_) && (high_ == b.high_);
@@ -179,6 +187,11 @@ public:
     //! less-than comparison operator
     bool operator < (const UIntPair& b) const {
         return (high_ < b.high_) || (high_ == b.high_ && low_ < b.low_);
+    }
+
+    //! less-than comparison operator
+    bool operator < (const uint64_t& b) const {
+        return ull() < b;
     }
 
     //! less-or-equal comparison operator
