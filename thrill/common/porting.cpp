@@ -9,10 +9,17 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/common/json_logger.hpp>
 #include <thrill/common/porting.hpp>
+#include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 
 #include <fcntl.h>
+
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #if !defined(_MSC_VER)
 
@@ -50,6 +57,47 @@ void MakePipe(int out_pipefds[2]) {
 
     PortSetCloseOnExec(out_pipefds[0]);
     PortSetCloseOnExec(out_pipefds[1]);
+#endif
+}
+
+void LogCmdlineParams(JsonLogger& logger) {
+#if __linux__
+    // read cmdline from /proc/<pid>/cmdline
+    pid_t mypid = getpid();
+
+    std::ifstream proc("/proc/" + std::to_string(mypid) + "/cmdline");
+    if (!proc.good()) return;
+
+    std::vector<std::string> args;
+    std::string arg;
+    while (std::getline(proc, arg, '\0'))
+        args.emplace_back(arg);
+
+    std::string prog;
+    if (args.size() > 0) {
+        prog = args[0];
+        std::string::size_type slashpos = prog.rfind('/');
+        if (slashpos != std::string::npos)
+            prog = prog.substr(slashpos + 1);
+    }
+
+    std::ostringstream cmdline;
+    for (size_t i = 0; i < args.size(); ++i) {
+        if (i != 0)
+            cmdline << ' ';
+
+        arg = args[i];
+        // escape " -> \"
+        if (arg.find('"') != std::string::npos)
+            common::ReplaceAll(arg, "\"", "\\\"");
+        cmdline << arg;
+    }
+
+    logger << "class" << "Cmdline"
+           << "event" << "start"
+           << "program" << prog
+           << "argv" << args
+           << "cmdline" << cmdline.str();
 #endif
 }
 

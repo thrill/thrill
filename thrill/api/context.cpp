@@ -806,6 +806,10 @@ HostContext::HostContext(
       local_host_id_(local_host_id),
       workers_per_host_(workers_per_host),
       net_manager_(std::move(groups), logger_) {
+
+    // write command line parameters to json log
+    common::LogCmdlineParams(logger_);
+
     StartLinuxProcStatsProfiler(*profiler_, logger_);
 
     // run memory profiler only on local host 0 (especially for test runs)

@@ -21,6 +21,7 @@
 #include <thrill/common/string.hpp>
 
 #include <cstring>
+#include <fstream>
 #include <string>
 #include <vector>
 
