@@ -46,6 +46,8 @@ class LinuxProcStats final : public ProfileTask
 public:
     explicit LinuxProcStats(JsonLogger& logger) : logger_(logger) {
 
+        sc_pagesize_ = sysconf(_SC_PAGESIZE);
+
         file_stat_.open("/proc/stat");
         file_net_dev_.open("/proc/net/dev");
         file_diskstats_.open("/proc/diskstats");
@@ -119,6 +121,9 @@ private:
 
     //! last time point called
     steady_clock::time_point tp_last_;
+
+    //! sysconf(_SC_PAGESIZE)
+    size_t sc_pagesize_;
 
     struct CpuStat {
         unsigned long long user = 0;
@@ -420,7 +425,7 @@ void LinuxProcStats::read_pid_stat(JsonLine& out) {
     /*  it_real_value (obsolete, always 0) */
     /*  start_time    time the process started after system boot */
     /*  vsize         virtual memory size */
-    /*  rss           resident set memory size */
+    /*  rss           resident set memory size in _SC_PAGESIZE units */
     /*  rsslim        current limit in bytes on the rss */
     int ret = sscanf(
         line.data(),
@@ -453,14 +458,14 @@ void LinuxProcStats::read_pid_stat(JsonLine& out) {
          << "cstime" << perc(pid_stat_prev_.cstime, curr.cstime, base)
          << "num_threads" << curr.num_threads
          << "vsize" << curr.vsize
-         << "rss" << curr.rss;
+         << "rss" << curr.rss * sc_pagesize_;
 
     prepare_out(out)
         << "pr_user" << perc(pid_stat_prev_.utime, curr.utime, base)
         << "pr_sys" << perc(pid_stat_prev_.stime, curr.stime, base)
         << "pr_nthreads" << curr.num_threads
         << "pr_vsize" << curr.vsize
-        << "pr_rss" << curr.rss;
+        << "pr_rss" << curr.rss * sc_pagesize_;
 
     pid_stat_prev_ = curr;
 }
