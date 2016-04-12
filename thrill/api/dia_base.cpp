@@ -151,6 +151,8 @@ public:
 
         logger_ << "class" << "StageBuilder" << "event" << "execute-done"
                 << "targets" << target_ids << "elapsed" << timer;
+
+        LOG << "DIA bytes: " << node_->context().block_pool().total_bytes();
     }
 
     void PushData() {
@@ -256,6 +258,8 @@ public:
 
         logger_ << "class" << "StageBuilder" << "event" << "pushdata-done"
                 << "targets" << target_ids << "elapsed" << timer;
+
+        LOG << "DIA bytes: " << node_->context().block_pool().total_bytes();
     }
 
     //! order for std::set in FindStages() - this must be deterministic such

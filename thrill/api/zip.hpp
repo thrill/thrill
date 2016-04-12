@@ -160,9 +160,7 @@ public:
     }
 
     void Dispose() final {
-        for (size_t i = 0; i < kNumInputs; ++i) {
-            files_[i].Clear();
-        }
+        files_.clear();
     }
 
 private:
