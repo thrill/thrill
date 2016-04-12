@@ -166,31 +166,31 @@ std::string& Trim(std::string& str, const std::string& drop) {
 bool ParseSiIecUnits(const char* str, uint64_t& size, char default_unit) {
     char* endptr;
     size = strtoul(str, &endptr, 10);
-    if (!endptr) return false;                    // parse failed, no number
+    if (!endptr) return false;                  // parse failed, no number
 
-    while (endptr[0] == ' ') ++endptr;            // skip over spaces
+    while (*endptr == ' ') ++endptr;            // skip over spaces
 
     // multiply with base ^ power
     unsigned int base = 1000;
     unsigned int power = 0;
 
-    if (endptr[0] == 'k' || endptr[0] == 'K')
+    if (*endptr == 'k' || *endptr == 'K')
         power = 1, ++endptr;
-    else if (endptr[0] == 'm' || endptr[0] == 'M')
+    else if (*endptr == 'm' || *endptr == 'M')
         power = 2, ++endptr;
-    else if (endptr[0] == 'g' || endptr[0] == 'G')
+    else if (*endptr == 'g' || *endptr == 'G')
         power = 3, ++endptr;
-    else if (endptr[0] == 't' || endptr[0] == 'T')
+    else if (*endptr == 't' || *endptr == 'T')
         power = 4, ++endptr;
-    else if (endptr[0] == 'p' || endptr[0] == 'P')
+    else if (*endptr == 'p' || *endptr == 'P')
         power = 5, ++endptr;
 
     // switch to power of two (only if power was set above)
-    if ((endptr[0] == 'i' || endptr[0] == 'I') && power != 0)
+    if ((*endptr == 'i' || *endptr == 'I') && power != 0)
         base = 1024, ++endptr;
 
     // byte indicator
-    if (endptr[0] == 'b' || endptr[0] == 'B') {
+    if (*endptr == 'b' || *endptr == 'B') {
         ++endptr;
     }
     else if (power == 0)
@@ -223,13 +223,13 @@ bool ParseSiIecUnits(const char* str, uint64_t& size, char default_unit) {
     }
 
     // skip over spaces
-    while (endptr[0] == ' ') ++endptr;
+    while (*endptr == ' ') ++endptr;
 
     // multiply size
     for (unsigned int p = 0; p < power; ++p)
         size *= base;
 
-    return (endptr[0] == 0);
+    return (*endptr == 0);
 }
 
 //! Format number as something like 1 TB
