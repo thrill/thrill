@@ -38,7 +38,7 @@ if(MSVC)
 endif()
 
 if(THRILL_FULL_BUILD)
-  thrill_build_prog(dc3 sa_checker.cpp)
+  thrill_build_prog(dc3 sa_checker.cpp bwt_generator.cpp)
 
   if(MSVC)
     # requires /bigobj flag to build

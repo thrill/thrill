@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <examples/suffix_sorting/sa_checker.hpp>
+#include <examples/suffix_sorting/bwt_generator.hpp>
 
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
@@ -45,6 +46,7 @@ namespace examples {
 namespace suffix_sorting {
 
 bool debug_print = false;
+bool generate_bwt = false;
 
 using namespace thrill; // NOLINT
 using thrill::common::RingBuffer;
@@ -202,6 +204,7 @@ struct IndexCR12Pair {
 
 template <typename Index, typename InputDIA>
 DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
+    input_dia.context().enable_consume(!generate_bwt);
 
     using Char = typename InputDIA::ValueType;
     using IndexChars = suffix_sorting::IndexChars<Index, Char>;
@@ -722,7 +725,7 @@ public:
 
         // run DC3
         auto suffix_array = DC3<Index>(input_dia, input_size);
-
+        InputDIA bw_transform;
         if (output_path_.size()) {
             suffix_array.WriteBinary(output_path_);
         }
@@ -735,6 +738,17 @@ public:
             }
             else {
                 LOG1 << "okay.";
+            }
+        }
+        if (generate_bwt) {
+            bw_transform = GenerateBWT(input_dia, suffix_array);
+
+            if (text_output_flag_) {
+                bw_transform.Print("bw_transform");
+            }
+            if (output_path_.size()) {
+                LOG1 << "writing Burrows–Wheeler transform to " << output_path_;
+                bw_transform.WriteBinary(output_path_ + "bwt");
             }
         }
     }
@@ -807,6 +821,9 @@ int main(int argc, char* argv[]) {
     cp.AddSizeT('b', "bytes", sa_index_bytes,
                 "suffix array bytes per index: "
                 "4 (32-bit), 5 (40-bit), 6 (48-bit), 8 (64-bit)");
+    cp.AddFlag('w', "bwt", examples::suffix_sorting::generate_bwt,
+               "Compute the Burrows–Wheeler transform in addition to the "
+               "suffix array.");
 
     // process command line
     if (!cp.Process(argc, argv))
