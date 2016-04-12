@@ -5,12 +5,14 @@
 #
 # Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
 # Copyright (C) 2016 Florian Kurpicz <florian.kurpicz@tu-dortmund.de>
+# Copyright (C) 2016 Simon Gog <gog@kit.edu>
 #
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
 thrill_build_prog(prefix_doubling sa_checker.cpp bwt_generator.cpp)
 thrill_build_prog(wavelet_tree)
+thrill_build_prog(wavelet_tree2)
 
 thrill_test_single(prefix_doubling1_aaa3 "THRILL_LOCAL=3"
   prefix_doubling -c -s 10000 -a fl unary)
