@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <examples/suffix_sorting/sa_checker.hpp>
+#include <examples/suffix_sorting/bwt_generator.hpp>
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
@@ -16,12 +17,14 @@
 #include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
+#include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/api/zip.hpp>
@@ -43,6 +46,7 @@ namespace suffix_sorting {
 
 bool debug_print = false;
 bool debug = false;
+bool generate_bwt = false;
 
 using namespace thrill; // NOLINT
 using thrill::common::RingBuffer;
@@ -65,7 +69,7 @@ struct IndexKMer {
     }
 } THRILL_ATTRIBUTE_PACKED;
 
-//! A pair (rank, index)
+//! A pair (index, rank)
 template <typename Index>
 struct IndexRank {
     Index index;
@@ -76,7 +80,7 @@ struct IndexRank {
     }
 } THRILL_ATTRIBUTE_PACKED;
 
-//! A triple (rank_1, rank_2, index)
+//! A triple (index, rank_1, rank_2)
 template <typename Index>
 struct IndexRankRank {
     Index index;
@@ -172,8 +176,9 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size) {
-    // enable online consume of DIA contents if not debugging.
-    input_dia.context().enable_consume(!debug_print);
+    // enable online consume of DIA contents if not debugging and not computing
+    // the BWT.
+    input_dia.context().enable_consume(!debug_print and !generate_bwt);
 
     LOG1 << "Running PrefixDoublingDementiev";
 
@@ -306,8 +311,9 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
-    // enable online consume of DIA contents if not debugging.
-    input_dia.context().enable_consume(!debug_print);
+    // enable online consume of DIA contents if not debugging and not computing
+    // the BWT.
+    input_dia.context().enable_consume(!debug_print and !generate_bwt);
 
     using Char = typename InputDIA::ValueType;
     using IndexRank = suffix_sorting::IndexRank<Index>;
@@ -459,7 +465,7 @@ public:
         bool check_flag,
         bool input_verbatim,
         size_t sa_index_bytes)
-        : ctx_(ctx),
+        :   ctx_(ctx),
             input_path_(input_path), output_path_(output_path),
             sizelimit_(sizelimit),
             pd_algorithm_(pd_algorithm),
@@ -518,6 +524,7 @@ public:
         const InputDIA& input_dia, uint64_t input_size) {
 
         DIA<Index> suffix_array;
+        InputDIA   bw_transform;
         if (pd_algorithm_ == "de") {
             suffix_array = PrefixDoublingDementiev<Index>(input_dia, input_size);
         }
@@ -538,6 +545,17 @@ public:
             LOG1 << "writing suffix array to " << output_path_;
             suffix_array.WriteBinary(output_path_);
         }
+        if (generate_bwt) {
+            bw_transform = GenerateBWT(input_dia, suffix_array);
+            
+            if (text_output_flag_) {
+                bw_transform.Print("bw_transform");
+            }
+            if (output_path_.size()) {
+                LOG1 << "writing Burrows–Wheeler transform to " << output_path_;
+                bw_transform.WriteBinary(output_path_ + "bwt");
+            }
+        }
     }
 
     template <typename InputDIA>
@@ -555,7 +573,7 @@ public:
 #endif
         else
             die("Unsupported index byte size: " << sa_index_bytes_ <<
-                ". Has to be 4,5,6 or 8");
+                ". Byte size has to be 4,5,6 or 8");
     }
 
 protected:
@@ -596,14 +614,16 @@ int main(int argc, char* argv[]) {
 
     cp.AddParamString("input", input_path,
                       "Path to input file (or verbatim text).\n"
-                      "    The special inputs 'random' and 'unary' generate "
+                      "The special inputs 'random' and 'unary' generate "
                       "such text on-the-fly.");
     cp.AddFlag('c', "check", check_flag,
                "Check suffix array for correctness.");
     cp.AddFlag('t', "text", text_output_flag,
-               "Print out suffix array in readable text.");
+               "Print out suffix array [and if constructred Burrows–Wheeler "
+                "transform] in readable text.");
     cp.AddString('o', "output", output_path,
-                 "Output suffix array to given path.");
+                 "Output suffix array [and if constructred Burrows–Wheeler "
+                 "transform] to given path.");
     cp.AddFlag('v', "verbatim", input_verbatim,
                "Consider \"input\" as verbatim text to construct "
                "suffix array on.");
@@ -617,7 +637,11 @@ int main(int argc, char* argv[]) {
                  "available.");
     cp.AddSizeT('b', "bytes", sa_index_bytes,
                 "Suffix array bytes per index: "
-                "4 (32-bit), 5 (40-bit), 6 (48-bit), 8 (64-bit)");
+                "4 (32-bit) (default), 5 (40-bit), 6 (48-bit), 8 (64-bit)");
+    cp.AddFlag('w', "bwt", examples::suffix_sorting::generate_bwt,
+               "Compute the Burrows–Wheeler transform in addition to the "
+               "suffix array.");
+
     if (!cp.Process(argc, argv))
         return -1;
 
