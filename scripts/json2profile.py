@@ -85,6 +85,9 @@ def NetManagerSeries(key):
 def NetManagerSeriesSum(key1,key2):
     return SeriesSum('NetManager', key1, key2)
 
+def MemProfileSeries(key):
+    return Series('MemProfile', key)
+
 def BlockPoolSeries(key):
     return Series('BlockPool', key)
 
@@ -97,8 +100,19 @@ def series_to_xy(df):
 def xy_aggregated(df):
     # set index to ts and group all entries in a second.
     df = df.dropna()
-    df = df.groupby(lambda r : int(r / 1e3) * 1e3).aggregate(np.average)
+    df = df.groupby(lambda r : int(r / 1e3 * 10) * 1e3 / 10).aggregate(np.average)
     return series_to_xy(df)
+
+# extract program name and cmdline
+def progname():
+    df = df_stats
+    try:
+        df = df[(df['class'] == 'Cmdline') & (df['event'] == 'start') & (df['host_rank'] == 0)]
+        if len(df) == 0:
+            return "unknown"
+        return df['program'].values.tolist()[0]
+    except KeyError:
+        return "unknown"
 
 # generate table of DIAs
 def dia_table():
@@ -198,15 +212,16 @@ def file_html_table():
 # generate list of StageBuilder lines
 def stage_lines():
     df = df_stats
-    df = df[(df['class'] == 'StageBuilder') & (df['worker_rank'] == 0)]
-    df = df[(df['event'] == 'execute-start') | (df['event'] == 'pushdata-start')]
-    if len(df) == 0:
+    try:
+        df = df[(df['class'] == 'StageBuilder') & (df['worker_rank'] == 0)]
+        df = df[(df['event'] == 'execute-start') | (df['event'] == 'pushdata-start')]
+        df = df[['ts','event','id','label']].set_index('ts')
+        df['id'] = df['id'].astype(int)
+        df['label'] = df['label'] + '.' + df['id'].map(str) + ' ' + df['event']
+        df = [{'color':'#888888', 'width':1, 'value': a[0], 'label': { 'text': a[1] }} for a in zip(df.index.tolist(), df['label'].values.tolist())]
+        return df
+    except KeyError:
         return []
-    df = df[['ts','event','id','label']].set_index('ts')
-    df['id'] = df['id'].astype(int)
-    df['label'] = df['label'] + '.' + df['id'].map(str) + ' ' + df['event']
-    df = [{'color':'#888888', 'width':1, 'value': a[0], 'label': { 'text': a[1] }} for a in zip(df.index.tolist(), df['label'].values.tolist())]
-    return df
 
 #print( stage_lines() )
 #sys.exit(0)
@@ -216,7 +231,7 @@ def stage_lines():
 @app.route('/')
 @app.route('/index')
 def index(chartID = 'chart_ID'):
-    title = {'text': 'My Title'}
+    title = {'text': progname()}
     chart = {'renderTo': chartID, 'zoomType': 'x', 'panning': 'true', 'panKey': 'shift'}
     xAxis = {'type': 'datetime', 'title': {'text': 'Execution Time'}, 'plotLines': stage_lines()}
     yAxis = [
@@ -234,34 +249,38 @@ def index(chartID = 'chart_ID'):
         'series': { 'animation': 0, 'marker': { 'radius': 2.5 } }
     }
     series = [
-        { 'data': xy_aggregated(ProcSeries('cpu_user')), 'name': 'CPU User', 'tooltip': { 'valueSuffix': ' %' } },
-        { 'data': xy_aggregated(ProcSeries('cpu_sys')), 'name': 'CPU Sys', 'tooltip': { 'valueSuffix': ' %' } },
         { 'data': xy_aggregated(ProcSeriesSum('cpu_user','cpu_sys')), 'name': 'CPU', 'tooltip': { 'valueSuffix': ' %' } },
-        #{ 'data': xy_aggregated(ProcSeries('pr_rss')), 'name': 'Mem RSS', 'tooltip': { 'valueSuffix': ' B' } },
-        { 'data': xy_aggregated(NetManagerSeries('tx_speed')), 'name': 'TX net', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
-        { 'data': xy_aggregated(NetManagerSeries('rx_speed')), 'name': 'RX net', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
+        { 'data': xy_aggregated(ProcSeries('cpu_user')), 'name': 'CPU User', 'visible': False, 'tooltip': { 'valueSuffix': ' %' } },
+        { 'data': xy_aggregated(ProcSeries('cpu_sys')), 'name': 'CPU Sys', 'visible': False, 'tooltip': { 'valueSuffix': ' %' } },
+        { 'data': xy_aggregated(ProcSeries('pr_rss')), 'name': 'Mem RSS', 'yAxis': 2, 'visible': False, 'tooltip': { 'valueSuffix': ' B' } },
         { 'data': xy_aggregated(NetManagerSeriesSum('tx_speed', 'rx_speed')), 'name': 'TX+RX net', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
-        { 'data': xy_aggregated(ProcSeries('net_tx_bytes')), 'name': 'TX', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
-        { 'data': xy_aggregated(ProcSeries('net_rx_bytes')), 'name': 'RX', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
-        { 'data': xy_aggregated(ProcSeriesSum('net_tx_bytes', 'net_rx_bytes')), 'name': 'TX+RX', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
-        { 'data': xy_aggregated(ProcSeries('diskstats_rd_bytes')), 'name': 'I/O read', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
-        { 'data': xy_aggregated(ProcSeries('diskstats_wr_bytes')), 'name': 'I/O write', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
-        { 'data': xy_aggregated(ProcSeriesSum('diskstats_rd_bytes', 'diskstats_wr_bytes')), 'name': 'I/O', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
+        { 'data': xy_aggregated(NetManagerSeries('tx_speed')), 'name': 'TX net', 'yAxis': 1, 'visible': False, 'tooltip': { 'valueSuffix': ' B/s' } },
+        { 'data': xy_aggregated(NetManagerSeries('rx_speed')), 'name': 'RX net', 'yAxis': 1, 'visible': False, 'tooltip': { 'valueSuffix': ' B/s' } },
+        { 'data': xy_aggregated(ProcSeriesSum('net_tx_bytes', 'net_rx_bytes')), 'name': 'TX+RX sys net', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
+        { 'data': xy_aggregated(ProcSeries('net_tx_bytes')), 'name': 'TX sys net', 'yAxis': 1, 'visible': False, 'tooltip': { 'valueSuffix': ' B/s' } },
+        { 'data': xy_aggregated(ProcSeries('net_rx_bytes')), 'name': 'RX sys net', 'yAxis': 1, 'visible': False, 'tooltip': { 'valueSuffix': ' B/s' } },
+        { 'data': xy_aggregated(ProcSeriesSum('diskstats_rd_bytes', 'diskstats_wr_bytes')), 'name': 'I/O sys', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
+        { 'data': xy_aggregated(ProcSeries('diskstats_rd_bytes')), 'name': 'I/O sys read', 'yAxis': 1, 'visible': False, 'tooltip': { 'valueSuffix': ' B/s' } },
+        { 'data': xy_aggregated(ProcSeries('diskstats_wr_bytes')), 'name': 'I/O sys write', 'yAxis': 1, 'visible': False, 'tooltip': { 'valueSuffix': ' B/s' } },
         { 'data': xy_aggregated(BlockPoolSeries('total_bytes')), 'name': 'Data bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
         { 'data': xy_aggregated(BlockPoolSeries('ram_bytes')), 'name': 'RAM bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
-        { 'data': xy_aggregated(BlockPoolSeries('reading_bytes')), 'name': 'Reading bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
-        { 'data': xy_aggregated(BlockPoolSeries('writing_bytes')), 'name': 'Writing bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
-        { 'data': xy_aggregated(BlockPoolSeries('pinned_bytes')), 'name': 'Pinned bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
-        { 'data': xy_aggregated(BlockPoolSeries('unpinned_bytes')), 'name': 'Unpinned bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
+        { 'data': xy_aggregated(BlockPoolSeries('reading_bytes')), 'name': 'Reading bytes', 'yAxis': 2, 'visible': False, 'tooltip': { 'valueSuffix': ' B' } },
+        { 'data': xy_aggregated(BlockPoolSeries('writing_bytes')), 'name': 'Writing bytes', 'yAxis': 2, 'visible': False, 'tooltip': { 'valueSuffix': ' B' } },
+        { 'data': xy_aggregated(BlockPoolSeries('pinned_bytes')), 'name': 'Pinned bytes', 'yAxis': 2, 'visible': False, 'tooltip': { 'valueSuffix': ' B' } },
+        { 'data': xy_aggregated(BlockPoolSeries('unpinned_bytes')), 'name': 'Unpinned bytes', 'yAxis': 2, 'visible': False, 'tooltip': { 'valueSuffix': ' B' } },
         { 'data': xy_aggregated(BlockPoolSeries('swapped_bytes')), 'name': 'Swapped bytes', 'yAxis': 2, 'tooltip': { 'valueSuffix': ' B' } },
         { 'data': xy_aggregated(BlockPoolSeries('rd_speed')), 'name': 'I/O read', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
         { 'data': xy_aggregated(BlockPoolSeries('wr_speed')), 'name': 'I/O write', 'yAxis': 1, 'tooltip': { 'valueSuffix': ' B/s' } },
+        { 'data': xy_aggregated(MemProfileSeries('total')), 'name': 'Mem Total', 'yAxis': 2, 'visible': False, 'tooltip': { 'valueSuffix': ' B' } },
+        { 'data': xy_aggregated(MemProfileSeries('float')), 'name': 'Mem Float', 'yAxis': 2, 'visible': False, 'tooltip': { 'valueSuffix': ' B' } },
+        { 'data': xy_aggregated(MemProfileSeries('base')), 'name': 'Mem Base', 'yAxis': 2, 'visible': False, 'tooltip': { 'valueSuffix': ' B' } },
     ]
     return render_template(
-        'index.html', chartID=chartID, chart=chart,
+        'index.html', page_title=progname(),
+        chartID=chartID, chart=chart,
         title=title, xAxis=xAxis, yAxis=yAxis,
         legend=legend, plotOptions=plotOptions,
-        series=series,
+        series=json.dumps(series),
         stream_summary_table=stream_summary_html_table(),
         stream_table=stream_html_table(),
         file_table=file_html_table()

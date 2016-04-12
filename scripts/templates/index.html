@@ -17,7 +17,7 @@
 
     <!-- <link rel="shortcut icon" href="{{ url_for('static', filename='ico/favicon.ico') }}"> -->
     {% block head %}
-    <title>{% block title %} Title!{% endblock %}</title>
+    <title>{{ page_title|safe }}</title>
     {% endblock %}
   </head>
 
