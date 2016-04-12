@@ -66,14 +66,16 @@ auto ConstructWaveletTree(const InputDIA &input_dia) {
             return std::to_string(x.first)+" "+std::to_string(x.second);    
         }).Print("wt");
 
-    auto binary_wt = wt2.Window(DisjointTag, 64, [maskbit](size_t, const std::vector<PairBI> v){
-        uint64_t x = 0;
-        for(size_t i=0; i<v.size(); ++i){
-            uint64_t b = (v[i].second & ((maskbit) >> v[i].first)) != 0;
-            x |= (b << i);
-        }
-        return x;
-    });
+    auto binary_wt = wt2.Window(
+        DisjointTag, 64,
+        [maskbit](size_t, const std::vector<PairBI>& v){
+            uint64_t x = 0;
+            for(size_t i=0; i<v.size(); ++i){
+                uint64_t b = (v[i].second & ((maskbit) >> v[i].first)) != 0;
+                x |= (b << i);
+            }
+            return x;
+        });
 
     if (debug)
         binary_wt.Print("BINARY_WT");
