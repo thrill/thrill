@@ -21,7 +21,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA>
+template <typename ValueType>
 class CollapseNode final : public DIANode<ValueType>
 {
 public:
@@ -31,6 +31,7 @@ public:
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      */
+    template <typename ParentDIA>
     explicit CollapseNode(const ParentDIA& parent)
         : Super(parent.ctx(), "Collapse", { parent.id() }, { parent.node() })
     {
@@ -83,8 +84,7 @@ template <typename AnyStack>
 DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs)
 // Create new CollapseNode. Transfer stack from rhs to CollapseNode. Build new
 // DIA with empty stack and CollapseNode
-    : DIA(common::MakeCounting<
-              api::CollapseNode<ValueType, DIA<ValueType, AnyStack> > >(rhs)) {
+    : DIA(common::MakeCounting<api::CollapseNode<ValueType> >(rhs)) {
     LOG0 << "WARNING: cast to DIA creates CollapseNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIA.";
 }
@@ -99,8 +99,7 @@ struct CollapseSwitch {
 
         // Create new CollapseNode. Transfer stack from rhs to
         // CollapseNode. Build new DIA with empty stack and CollapseNode
-        using CollapseNode = api::CollapseNode<
-                  ValueType, DIA<ValueType, Stack> >;
+        using CollapseNode = api::CollapseNode<ValueType>;
 
         return DIA<ValueType>(common::MakeCounting<CollapseNode>(dia));
     }

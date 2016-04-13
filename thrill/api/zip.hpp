@@ -68,8 +68,7 @@ namespace api {
  *
  * \ingroup api_layer
  */
-template <typename ValueType, typename ZipFunction, bool Pad,
-          typename ParentDIA0, typename ... ParentDIAs>
+template <typename ValueType, typename ZipFunction, bool Pad, size_t kNumInputs>
 class ZipNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -83,20 +82,20 @@ class ZipNode final : public DOpNode<ValueType>
     using ZipArgs =
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
-    //! Number of storage DIAs backing
-    static constexpr size_t kNumInputs = 1 + sizeof ... (ParentDIAs);
-
 public:
     /*!
      * Constructor for a ZipNode.
      */
+    template <typename ParentDIA0, typename ... ParentDIAs>
     ZipNode(const ZipFunction& zip_function, const ZipArgs& padding,
             const ParentDIA0& parent0, const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Zip",
                 { parent0.id(), parents.id() ... },
                 { parent0.node(), parents.node() ... }),
           zip_function_(zip_function),
-          padding_(padding)
+          padding_(padding),
+          // parenthesis are due to a MSVC2015 parser bug
+          parent_stack_empty_ { ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... }
     {
         // allocate files.
         files_.reserve(kNumInputs);
@@ -115,13 +114,7 @@ public:
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t parent_index) final {
         assert(parent_index < kNumInputs);
-
-        //! indication whether the parent stack is empty
-        static constexpr bool parent_stack_empty[kNumInputs] = {
-            // parenthesis are due to a MSVC2015 parser bug
-            ParentDIA0::stack_empty, (ParentDIAs::stack_empty)...
-        };
-        if (!parent_stack_empty[parent_index]) return false;
+        if (!parent_stack_empty_[parent_index]) return false;
 
         // accept file
         assert(files_[parent_index].num_items() == 0);
@@ -168,7 +161,10 @@ private:
     ZipFunction zip_function_;
 
     //! padding for shorter DIAs
-    ZipArgs padding_;
+    const ZipArgs padding_;
+
+    //! Whether the parent stack is empty
+    const bool parent_stack_empty_[kNumInputs];
 
     //! Files for intermediate storage
     std::vector<data::File> files_;
@@ -416,8 +412,8 @@ auto Zip(const ZipFunction &zip_function,
     using ZipArgs =
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
-    using ZipNode
-              = api::ZipNode<ZipResult, ZipFunction, false, FirstDIA, DIAs ...>;
+    using ZipNode = api::ZipNode<
+              ZipResult, ZipFunction, /* Pad */ false, 1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
         zip_function, ZipArgs(), first_dia, dias ...);
@@ -479,8 +475,8 @@ auto ZipPad(const ZipFunction &zip_function,
     using ZipArgs =
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
-    using ZipNode
-              = api::ZipNode<ZipResult, ZipFunction, true, FirstDIA, DIAs ...>;
+    using ZipNode = api::ZipNode<
+              ZipResult, ZipFunction, /* Pad */ true, 1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
         zip_function, ZipArgs(), first_dia, dias ...);
@@ -534,8 +530,8 @@ auto ZipPadding(
     using ZipResult =
               typename common::FunctionTraits<ZipFunction>::result_type;
 
-    using ZipNode
-              = api::ZipNode<ZipResult, ZipFunction, true, FirstDIA, DIAs ...>;
+    using ZipNode = api::ZipNode<
+              ZipResult, ZipFunction, /* Pad */ true, 1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
         zip_function, padding, first_dia, dias ...);

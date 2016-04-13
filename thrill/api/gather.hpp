@@ -24,16 +24,14 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ParentDIA>
+template <typename ValueType>
 class GatherNode final : public ActionNode
 {
 public:
     using Super = ActionNode;
     using Super::context_;
 
-    //! input and output type is the parent's output value type.
-    using ValueType = typename ParentDIA::ValueType;
-
+    template <typename ParentDIA>
     GatherNode(const ParentDIA& parent, const char* label,
                size_t target_id,
                std::vector<ValueType>* out_vector)
@@ -92,7 +90,7 @@ std::vector<ValueType>
 DIA<ValueType, Stack>::Gather(size_t target_id) const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<DIA>;
+    using GatherNode = api::GatherNode<ValueType>;
 
     std::vector<ValueType> output;
 
@@ -109,7 +107,7 @@ void DIA<ValueType, Stack>::Gather(
     size_t target_id, std::vector<ValueType>* out_vector) const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<DIA>;
+    using GatherNode = api::GatherNode<ValueType>;
 
     auto node = common::MakeCounting<GatherNode>(
         *this, "Gather", target_id, out_vector);

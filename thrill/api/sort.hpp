@@ -48,7 +48,7 @@ namespace api {
  *
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA, typename CompareFunction>
+template <typename ValueType, typename CompareFunction>
 class SortNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -60,10 +60,12 @@ public:
     /*!
      * Constructor for a sort node.
      */
+    template <typename ParentDIA>
     SortNode(const ParentDIA& parent,
              CompareFunction compare_function)
         : Super(parent.ctx(), "Sort", { parent.id() }, { parent.node() }),
-          compare_function_(compare_function)
+          compare_function_(compare_function),
+          parent_stack_empty_(ParentDIA::stack_empty)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const ValueType& input) {
@@ -100,7 +102,7 @@ public:
 
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!ParentDIA::stack_empty) return false;
+        if (!parent_stack_empty_) return false;
 
         // accept file
         unsorted_file_ = file.Copy();
@@ -240,6 +242,9 @@ public:
 private:
     //! The comparison function which is applied to two elements.
     CompareFunction compare_function_;
+
+    //! Whether the parent stack is empty
+    const bool parent_stack_empty_;
 
     //! \name PreOp Phase
     //! \{
@@ -656,7 +661,7 @@ template <typename CompareFunction>
 auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
     assert(IsValid());
 
-    using SortNode = api::SortNode<ValueType, DIA, CompareFunction>;
+    using SortNode = api::SortNode<ValueType, CompareFunction>;
 
     static_assert(
         std::is_convertible<

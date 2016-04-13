@@ -27,7 +27,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA, typename WindowFunction>
+template <typename ValueType, typename Input, typename WindowFunction>
 class BaseWindowNode : public DOpNode<ValueType>
 {
 protected:
@@ -36,16 +36,16 @@ protected:
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
-    using Input = typename ParentDIA::ValueType;
-
     //! RingBuffer used and passed to user-defined function.
     using RingBuffer = common::RingBuffer<Input>;
 
 public:
+    template <typename ParentDIA>
     BaseWindowNode(const ParentDIA& parent,
                    const char* label, size_t window_size,
                    const WindowFunction& window_function)
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
+          parent_stack_empty_(ParentDIA::stack_empty),
           window_size_(window_size),
           window_function_(window_function)
     {
@@ -67,7 +67,7 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!ParentDIA::stack_empty) return false;
+        if (!parent_stack_empty_) return false;
         // accept file
         assert(file_.num_items() == 0);
         file_ = file.Copy();
@@ -104,6 +104,8 @@ public:
     }
 
 protected:
+    //! Whether the parent stack is empty
+    const bool parent_stack_empty_;
     //! Size of the window
     size_t window_size_;
     //! The window function which is applied to two elements.
@@ -124,18 +126,18 @@ protected:
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA, typename WindowFunction>
+template <typename ValueType, typename Input, typename WindowFunction>
 class OverlapWindowNode final
-    : public BaseWindowNode<ValueType, ParentDIA, WindowFunction>
+    : public BaseWindowNode<ValueType, Input, WindowFunction>
 {
-    using Super = BaseWindowNode<ValueType, ParentDIA, WindowFunction>;
+    using Super = BaseWindowNode<ValueType, Input, WindowFunction>;
     using Super::debug;
     using Super::context_;
 
-    using typename Super::Input;
     using typename Super::RingBuffer;
 
 public:
+    template <typename ParentDIA>
     OverlapWindowNode(const ParentDIA& parent,
                       const char* label, size_t window_size,
                       const WindowFunction& window_function)
@@ -216,7 +218,8 @@ auto DIA<ValueType, Stack>::FlatWindow(
     size_t window_size, const WindowFunction &window_function) const {
     assert(IsValid());
 
-    using WindowNode = api::OverlapWindowNode<ValueOut, DIA, WindowFunction>;
+    using WindowNode = api::OverlapWindowNode<
+              ValueOut, ValueType, WindowFunction>;
 
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
@@ -258,8 +261,8 @@ auto DIA<ValueType, Stack>::Window(
             emit(window_function(index, window));
         };
 
-    using WindowNode =
-              api::OverlapWindowNode<Result, DIA, decltype(flatwindow_function)>;
+    using WindowNode = api::OverlapWindowNode<
+              Result, ValueType, decltype(flatwindow_function)>;
 
     auto node = common::MakeCounting<WindowNode>(
         *this, "Window", window_size, flatwindow_function);
@@ -272,18 +275,18 @@ auto DIA<ValueType, Stack>::Window(
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA, typename WindowFunction>
+template <typename ValueType, typename Input, typename WindowFunction>
 class DisjointWindowNode final
-    : public BaseWindowNode<ValueType, ParentDIA, WindowFunction>
+    : public BaseWindowNode<ValueType, Input, WindowFunction>
 {
-    using Super = BaseWindowNode<ValueType, ParentDIA, WindowFunction>;
+    using Super = BaseWindowNode<ValueType, Input, WindowFunction>;
     using Super::debug;
     using Super::context_;
 
-    using typename Super::Input;
     using typename Super::RingBuffer;
 
 public:
+    template <typename ParentDIA>
     DisjointWindowNode(const ParentDIA& parent,
                        const char* label, size_t window_size,
                        const WindowFunction& window_function)
@@ -390,7 +393,8 @@ auto DIA<ValueType, Stack>::FlatWindow(
     const WindowFunction &window_function) const {
     assert(IsValid());
 
-    using WindowNode = api::DisjointWindowNode<ValueOut, DIA, WindowFunction>;
+    using WindowNode = api::DisjointWindowNode<
+              ValueOut, ValueType, WindowFunction>;
 
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
@@ -433,8 +437,8 @@ auto DIA<ValueType, Stack>::Window(
             emit(window_function(index, window));
         };
 
-    using WindowNode =
-              api::DisjointWindowNode<Result, DIA, decltype(flatwindow_function)>;
+    using WindowNode = api::DisjointWindowNode<
+              Result, ValueType, decltype(flatwindow_function)>;
 
     auto node = common::MakeCounting<WindowNode>(
         *this, "Window", window_size, flatwindow_function);

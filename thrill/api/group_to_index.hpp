@@ -34,7 +34,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA,
+template <typename ValueType,
           typename KeyExtractor, typename GroupFunction>
 class GroupToIndexNode final : public DOpNode<ValueType>
 {
@@ -66,6 +66,7 @@ public:
      * Constructor for a GroupToIndexNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      */
+    template <typename ParentDIA>
     GroupToIndexNode(const ParentDIA& parent,
                      const KeyExtractor& key_extractor,
                      const GroupFunction& groupby_function,
@@ -265,10 +266,10 @@ auto DIA<ValueType, Stack>::GroupToIndex(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    using GroupByNode
-              = GroupToIndexNode<DOpResult, DIA, KeyExtractor, GroupFunction>;
+    using GroupToIndexNode
+              = GroupToIndexNode<DOpResult, KeyExtractor, GroupFunction>;
 
-    auto node = common::MakeCounting<GroupByNode>(
+    auto node = common::MakeCounting<GroupToIndexNode>(
         *this, key_extractor, groupby_function, result_size, neutral_element);
 
     return DIA<DOpResult>(node);

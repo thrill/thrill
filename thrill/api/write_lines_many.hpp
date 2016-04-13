@@ -29,7 +29,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ParentDIA>
+template <typename ValueType>
 class WriteLinesManyNode final : public ActionNode
 {
     static constexpr bool debug = false;
@@ -39,8 +39,9 @@ public:
     using Super::context_;
 
     //! input type is the parent's output value type.
-    using Input = typename ParentDIA::ValueType;
+    using ValueType_ = ValueType;
 
+    template <typename ParentDIA>
     WriteLinesManyNode(const ParentDIA& parent,
                        const std::string& path_out,
                        size_t target_file_size)
@@ -180,7 +181,7 @@ void DIA<ValueType, Stack>::WriteLinesMany(
     static_assert(std::is_same<ValueType, std::string>::value,
                   "WriteLinesMany needs an std::string as input parameter");
 
-    using WriteLinesManyNode = api::WriteLinesManyNode<DIA>;
+    using WriteLinesManyNode = api::WriteLinesManyNode<ValueType>;
 
     auto node = common::MakeCounting<WriteLinesManyNode>(
         *this, filepath, target_file_size);

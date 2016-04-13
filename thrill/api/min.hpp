@@ -24,7 +24,7 @@ auto DIA<ValueType, Stack>::Min(
     const MinFunction &min_function, const ValueType &initial_value) const {
     assert(IsValid());
 
-    using MinNode = api::AllReduceNode<DIA, MinFunction>;
+    using MinNode = api::AllReduceNode<ValueType, MinFunction>;
 
     static_assert(
         std::is_convertible<
