@@ -19,6 +19,7 @@
 #include <thrill/api/zip.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/sort.hpp>
+#include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
@@ -32,7 +33,7 @@
 #include <utility>
 #include <vector>
 
-static constexpr bool debug = true;
+static constexpr bool debug = false;
 
 using namespace thrill; // NOLINT
 
@@ -60,11 +61,18 @@ auto ConstructRLBWT(const InputDIA &input_dia) {
    
     size_t input_size = input_dia.Size();
 
+    if ( input_size < 2 ) { // handle special case
+        std::vector<size_t> length(input_size, 1);
+        DIA<size_t> rl = EqualToDIA(ctx, length);
+        return input_dia.Zip(rl,
+                [](const ValueType&c, const size_t& i){
+                    return PairIC{i, c};
+                });
+    }
+
     DIA<size_t> indices = Generate(ctx,
         [](size_t index) { return index; },
         input_size);
-
-    indices.Print("indices");
 
     auto indices_chars = input_dia.Zip(
             indices,
@@ -72,25 +80,37 @@ auto ConstructRLBWT(const InputDIA &input_dia) {
                 return PairIC{i, c};
             });
 
-    indices_chars.Print("indices_chars");
+    if ( debug )
+        indices_chars.Print("indices_chars");
 
     auto rl_bwt = indices_chars.template FlatWindow<PairIC>(2, [input_size](size_t index, const common::RingBuffer<PairIC>& rb, auto emit){
-                if ( index == input_size-1 or rb[0].c != rb[1].c ) {
+                if ( index + 2 == input_size ) {
+                    if ( rb[0].c != rb[1].c ) {
+                        emit(PairIC(rb[0]));
+                    }
+                    emit(PairIC(rb[1]));
+                } else if ( rb[0].c != rb[1].c ) {
                     emit(PairIC(rb[0]));
                 }
             });
-    rl_bwt.Print("rl_bwt");
+
+    if ( debug )
+        rl_bwt.Print("rl_bwt");
 
     auto rl_bwt_size = rl_bwt.Size();
     auto rl_bwt2 = rl_bwt.template FlatWindow<PairIC>(2, [rl_bwt_size](size_t index, const common::RingBuffer<PairIC>& rb, auto emit){
                 if (index == 0 ){
                     emit(PairIC{rb[0].index+1,rb[0].c});
+                    if ( rl_bwt_size > 1 ) {
+                        emit(PairIC{rb[1].index-rb[0].index, rb[1].c});
+                    }
                 } else if (index < rl_bwt_size) {
                     emit(PairIC{rb[1].index-rb[0].index, rb[1].c});
                 }
             });
 
-    rl_bwt2.Print("rl_bwt2");
+
+    return rl_bwt2;
 }
 
 int main(int argc, char* argv[]) {
@@ -99,9 +119,14 @@ int main(int argc, char* argv[]) {
     cp.SetAuthor("Simon Gog <gog@kit.edu>");
 
     std::string input_path;
+    size_t output_result = 0;
 
     cp.AddOptParamString("input", input_path,
                          "Path to input file.");
+    cp.AddOptParamSizeT("output_result", output_result,
+                         "Output result.");
+
+
 
     if (!cp.Process(argc, argv))
         return -1;
@@ -110,7 +135,9 @@ int main(int argc, char* argv[]) {
         [&](Context& ctx) {
             if (input_path.size()) {
                 auto input_dia = ReadBinary<uint8_t>(ctx, input_path);
-                ConstructRLBWT(input_dia);
+                auto output_dia = ConstructRLBWT(input_dia);
+                if ( output_result )
+                    output_dia.Print("rl_bwt");
             }
             else {
                 std::string bwt = "aaaaaaaaaaabbbbaaaaaaaccccdddaacacaffatttttttttttyyyyaaaaa";
@@ -118,7 +145,9 @@ int main(int argc, char* argv[]) {
                     Generate(ctx,
                              [&](size_t i) { return (uint8_t)bwt[i]; },
                              bwt.size());
-                ConstructRLBWT(input_dia);
+                auto output_dia = ConstructRLBWT(input_dia);
+                if ( output_result )
+                    output_dia.Print("rl_bwt");
             }
         });
 }
