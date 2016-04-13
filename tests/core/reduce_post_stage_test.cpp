@@ -20,8 +20,7 @@
 
 using namespace thrill;
 
-struct MyStruct
-{
+struct MyStruct {
     size_t key, value;
 
     bool operator < (const MyStruct& b) const { return key < b.key; }

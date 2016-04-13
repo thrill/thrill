@@ -158,8 +158,7 @@ private:
 
     //! Represents a welcome message that is exchanged by Connections during
     //! network initialization.
-    struct WelcomeMsg
-    {
+    struct WelcomeMsg {
         //! the Thrill signature flag.
         uint64_t thrill_sign;
 

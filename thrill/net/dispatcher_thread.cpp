@@ -125,7 +125,7 @@ void DispatcherThread::AsyncWrite(
     assert(block.IsValid());
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c,
-              b1 = std::move(buffer), b2 = block]() mutable {
+             b1 = std::move(buffer), b2 = block]() mutable {
                 dispatcher_->AsyncWrite(c, std::move(b1));
                 dispatcher_->AsyncWrite(c, b2, done_cb);
             });

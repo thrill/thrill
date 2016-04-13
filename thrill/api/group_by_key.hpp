@@ -47,8 +47,7 @@ class GroupByNode final : public DOpNode<ValueType>
     using ValueIn =
               typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
 
-    struct ValueComparator
-    {
+    struct ValueComparator {
     public:
         explicit ValueComparator(const GroupByNode& node) : node_(node) { }
 

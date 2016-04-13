@@ -63,35 +63,35 @@ InputDIA GenerateBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array) 
     uint64_t input_size = input.Size();
 
     DIA<Index> indices = Generate(ctx,
-        [](size_t index) { return Index(index); },
-        input_size);
+                                  [](size_t index) { return Index(index); },
+                                  input_size);
 
     auto bwt =
         suffix_array
         .Map([input_size](const Index& i) {
-                if (i == Index(0))
-                    return Index(input_size - 1);
-                return Index(i - 1);
-            })
+                 if (i == Index(0))
+                     return Index(input_size - 1);
+                 return Index(i - 1);
+             })
         .Zip(
             indices,
             [](const Index& text_pos, const Index& idx) {
-                return IndexRank { text_pos, idx};
+                return IndexRank { text_pos, idx };
             })
         .Sort([](const IndexRank& a, const IndexRank& b) {
-                return a.index < b.index;
-            })
+                  return a.index < b.index;
+              })
         .Zip(
             input,
             [](const IndexRank& text_order, const Char& ch) {
-                return IndexChar {text_order.rank, ch};
+                return IndexChar { text_order.rank, ch };
             })
         .Sort([](const IndexChar& a, const IndexChar& b) {
-                return a.index < b.index;
-            })
+                  return a.index < b.index;
+              })
         .Map([](const IndexChar& ic) {
-                return ic.ch;
-            });
+                 return ic.ch;
+             });
 
     return bwt.Collapse();
 }

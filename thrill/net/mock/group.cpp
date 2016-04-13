@@ -182,8 +182,7 @@ void Group::Send(size_t tgt, net::Buffer&& msg) {
 
 /******************************************************************************/
 
-struct Dispatcher::Data
-{
+struct Dispatcher::Data {
     //! Mutex to lock access to watch lists
     std::mutex                                     mutex_;
 
@@ -196,8 +195,7 @@ struct Dispatcher::Data
     Map                                            map_;
 };
 
-struct Dispatcher::Watch
-{
+struct Dispatcher::Watch {
     //! boolean check whether Watch is registered at Connection
     bool                 active = false;
     //! queue of callbacks for fd.

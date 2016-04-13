@@ -8,8 +8,8 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/suffix_sorting/sa_checker.hpp>
 #include <examples/suffix_sorting/bwt_generator.hpp>
+#include <examples/suffix_sorting/sa_checker.hpp>
 
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
@@ -105,8 +105,7 @@ struct IndexRank {
 
 //! Fragments at String Positions i = 0 Mod 3.
 template <typename Index, typename AlphabetType>
-struct StringFragmentMod0
-{
+struct StringFragmentMod0 {
     Index        index;
     AlphabetType t0, t1;
     Index        r1, r2;
@@ -120,8 +119,7 @@ struct StringFragmentMod0
 
 //! Fragments at String Positions i = 1 Mod 3.
 template <typename Index, typename AlphabetType>
-struct StringFragmentMod1
-{
+struct StringFragmentMod1 {
     Index        index;
     AlphabetType t0;
     Index        r0, r1;
@@ -134,8 +132,7 @@ struct StringFragmentMod1
 
 //! Fragments at String Positions i = 2 Mod 3.
 template <typename Index, typename AlphabetType>
-struct StringFragmentMod2
-{
+struct StringFragmentMod2 {
     Index        index;
     AlphabetType t0, t1;
     Index        r0, r2;
@@ -149,8 +146,7 @@ struct StringFragmentMod2
 
 //! Union of String Fragments with Index
 template <typename Index, typename AlphabetType>
-struct StringFragment
-{
+struct StringFragment {
     union {
         Index                                   index;
         StringFragmentMod0<Index, AlphabetType> mod0;

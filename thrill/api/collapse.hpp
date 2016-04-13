@@ -93,8 +93,7 @@ DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs)
 
 //! Template switch to generate a CollapseNode if there is a non-empty Stack
 template <typename ValueType, typename Stack>
-struct CollapseSwitch
-{
+struct CollapseSwitch {
     static DIA<ValueType> MakeCollapse(const DIA<ValueType, Stack>& dia) {
         assert(dia.IsValid());
 
@@ -109,8 +108,7 @@ struct CollapseSwitch
 
 //! Template switch to NOT generate a CollapseNode if there is an empty Stack.
 template <typename ValueType>
-struct CollapseSwitch<ValueType, FunctionStack<ValueType> >
-{
+struct CollapseSwitch<ValueType, FunctionStack<ValueType> >{
     static DIA<ValueType> MakeCollapse(
         const DIA<ValueType, FunctionStack<ValueType> >& dia) {
         return dia;

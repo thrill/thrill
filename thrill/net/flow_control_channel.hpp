@@ -72,8 +72,7 @@ private:
 
     //! Thread local data structure: aligned such that no cache line is
     //! shared. The actual vector is in the FlowControlChannelManager.
-    struct LocalData
-    {
+    struct LocalData {
         //! pointer to some thread-owned data type
         alignas(common::g_cache_line_size)
         std::atomic<void*> ptr { nullptr };

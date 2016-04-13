@@ -231,8 +231,7 @@ private:
     int group_tag_;
 
     //! callback vectors per peer
-    struct Watch
-    {
+    struct Watch {
         //! boolean check whether any callbacks are registered
         bool                 active = false;
         //! queue of callbacks for peer.

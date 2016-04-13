@@ -32,8 +32,7 @@ using namespace thrill; // NOLINT
 #define KiB (1024)
 #define MiB (1024 * 1024)
 
-struct PrintNumber
-{
+struct PrintNumber {
     int n;
 
     explicit PrintNumber(int n) : n(n) { }

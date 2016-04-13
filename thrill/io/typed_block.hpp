@@ -78,8 +78,7 @@ public:
     using iterator = pointer;
     using const_iterator = const type *;
 
-    enum
-    {
+    enum {
         size = Size //!< number of elements in the block
     };
 
@@ -131,8 +130,7 @@ template <typename Type, size_t Size, size_t RawSize, size_t NBids = 0>
 class BlockWithBids : public ElementBlock<Type, Size>
 {
 public:
-    enum
-    {
+    enum {
         raw_size = RawSize,
         nbids = NBids
     };
@@ -157,8 +155,7 @@ class BlockWithBids<Type, Size, RawSize, 0>
     : public ElementBlock<Type, Size>
 {
 public:
-    enum
-    {
+    enum {
         raw_size = RawSize,
         nbids = 0
     };
@@ -264,8 +261,7 @@ public:
     using const_pointer = const value_type *;
     using const_iterator = const_pointer;
 
-    enum
-    {
+    enum {
         raw_size = RawSize,                                        //!< size of block in bytes
         size = Base::size,                                         //!< number of elements in block
         has_only_data = (raw_size == (size * sizeof(value_type)))  //!< no meta info, bids or (non-empty) fillers included in the block, allows value_type array addressing across block boundaries

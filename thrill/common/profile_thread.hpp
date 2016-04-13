@@ -71,8 +71,7 @@ private:
     std::condition_variable_any cv_;
 
     //! struct for timer callbacks
-    struct Timer
-    {
+    struct Timer {
         //! timepoint of next run
         steady_clock::time_point next_timeout;
         //! interval period for rescheduling

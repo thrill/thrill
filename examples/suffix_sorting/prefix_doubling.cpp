@@ -8,8 +8,8 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/suffix_sorting/sa_checker.hpp>
 #include <examples/suffix_sorting/bwt_generator.hpp>
+#include <examples/suffix_sorting/sa_checker.hpp>
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
@@ -143,8 +143,8 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                     emit(CharCharIndex { rb[1], std::numeric_limits<Char>::lowest(), Index(index + 1) });
             })
         .Sort([](const CharCharIndex& a, const CharCharIndex& b) {
-                return a < b;
-            });
+                  return a < b;
+              });
 
     DIA<Index> renamed_ranks =
         chars_sorted
@@ -160,8 +160,8 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 }
             })
         .PrefixSum([](const Index a, const Index b) {
-                         return a > b ? a : b;
-                     });
+                       return a > b ? a : b;
+                   });
 
     DIA<IndexRank> names =
         chars_sorted
@@ -239,14 +239,14 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
         auto names_sorted =
             names
             .Sort([iteration](const IndexRank& a, const IndexRank& b) {
-                Index mod_mask = (Index(1) << iteration) - 1;
-                Index div_mask = ~mod_mask;
+                      Index mod_mask = (Index(1) << iteration) - 1;
+                      Index div_mask = ~mod_mask;
 
-                if ((a.index & mod_mask) == (b.index & mod_mask))
-                    return (a.index & div_mask) < (b.index & div_mask);
-                else
-                    return (a.index & mod_mask) < (b.index & mod_mask);
-            });
+                      if ((a.index & mod_mask) == (b.index & mod_mask))
+                          return (a.index & div_mask) < (b.index & div_mask);
+                      else
+                          return (a.index & mod_mask) < (b.index & mod_mask);
+                  });
 
         if (debug_print)
             names_sorted.Print("names_sorted");
@@ -285,9 +285,9 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
 
         size_t max_rank = renamed_ranks.Keep().Max();
         if (input_dia.context().my_rank() == 0) {
-            sLOG << "iteration"    << iteration
-                     << "max_rank"     << max_rank
-                     << "duplicates" << input_size - max_rank;
+            sLOG << "iteration" << iteration
+                 << "max_rank" << max_rank
+                 << "duplicates" << input_size - max_rank;
         }
 
         if (max_rank == input_size) {
@@ -310,7 +310,7 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
 }
 
 template <typename Index, typename InputDIA>
-DIA<Index> PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
+DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
     // enable online consume of DIA contents if not debugging and not computing
     // the BWT.
     input_dia.context().enable_consume(!debug_print and !generate_bwt);
@@ -377,12 +377,12 @@ DIA<Index> PrefixDoubling(const InputDIA &input_dia, size_t input_size) {
         DIA<IndexRank> isa =
             sa
             .Zip(rebucket,
-                [](Index s, Index r) {
-                    return IndexRank { r, s };
-                })
+                 [](Index s, Index r) {
+                     return IndexRank { r, s };
+                 })
             .Sort([](const IndexRank& a, const IndexRank& b) {
-                return a.rank < b.rank;
-                });
+                      return a.rank < b.rank;
+                  });
 
         if (debug_print)
             isa.Print("isa");
@@ -466,15 +466,15 @@ public:
         bool check_flag,
         bool input_verbatim,
         size_t sa_index_bytes)
-        :   ctx_(ctx),
-            input_path_(input_path), input_copy_path_(input_copy_path),
-            output_path_(output_path),
-            sizelimit_(sizelimit),
-            pd_algorithm_(pd_algorithm),
-            text_output_flag_(text_output_flag),
-            check_flag_(check_flag),
-            input_verbatim_(input_verbatim),
-            sa_index_bytes_(sa_index_bytes) { }
+        : ctx_(ctx),
+          input_path_(input_path), input_copy_path_(input_copy_path),
+          output_path_(output_path),
+          sizelimit_(sizelimit),
+          pd_algorithm_(pd_algorithm),
+          text_output_flag_(text_output_flag),
+          check_flag_(check_flag),
+          input_verbatim_(input_verbatim),
+          sa_index_bytes_(sa_index_bytes) { }
 
     void Run() {
         if (input_verbatim_) {
@@ -526,7 +526,7 @@ public:
         const InputDIA& input_dia, uint64_t input_size) {
 
         DIA<Index> suffix_array;
-        InputDIA   bw_transform;
+        InputDIA bw_transform;
         if (pd_algorithm_ == "de") {
             suffix_array = PrefixDoublingDementiev<Index>(input_dia, input_size);
         }
@@ -549,7 +549,7 @@ public:
         }
         if (generate_bwt) {
             bw_transform = GenerateBWT(input_dia, suffix_array);
-            
+
             if (text_output_flag_) {
                 bw_transform.Print("bw_transform");
             }
@@ -627,7 +627,7 @@ int main(int argc, char* argv[]) {
                "Check suffix array for correctness.");
     cp.AddFlag('t', "text", text_output_flag,
                "Print out suffix array [and if constructred Burrows–Wheeler "
-                "transform] in readable text.");
+               "transform] in readable text.");
     cp.AddString('i', "input-copy", input_copy_path,
                  "Write input text to given path.");
     cp.AddString('o', "output", output_path,

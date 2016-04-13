@@ -23,6 +23,7 @@
 #include <thrill/mem/manager.hpp>
 #include <thrill/mem/pool.hpp>
 
+#include <algorithm>
 #include <deque>
 #include <functional>
 #include <future>
@@ -205,8 +206,7 @@ private:
     std::atomic<size_t> next_file_id_ { 0 };
 
     //! a counter pair where one value is held as the max until written to stats
-    struct Counter
-    {
+    struct Counter {
         //! current counter value
         size_t value = 0;
         //! maximum counter value since last stats read
@@ -232,8 +232,7 @@ private:
         }
     };
 
-    struct PinCount
-    {
+    struct PinCount {
         //! current total number of pins, where each thread pin counts
         //! individually.
         size_t              total_pins_ = 0;

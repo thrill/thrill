@@ -59,8 +59,7 @@ public:
 
 protected:
     //! Internal representation of a loser tree player/node
-    struct Loser
-    {
+    struct Loser {
         //! flag, true iff is a virtual maximum sentinel
         bool      sup;
         //! index of source
@@ -320,8 +319,7 @@ protected:
 
 protected:
     //! Internal representation of a loser tree player/node
-    struct Loser
-    {
+    struct Loser {
         //! index of source
         Source         source;
         //! pointer to key value of the element in this node
@@ -538,8 +536,7 @@ class LoserTreeCopyUnguardedBase
 {
 protected:
     //! Internal representation of a loser tree player/node
-    struct Loser
-    {
+    struct Loser {
         //! index of source
         int       source;
         //! copy of key value of the element in this node
@@ -709,8 +706,7 @@ class LoserTreePointerUnguardedBase
 {
 protected:
     //! Internal representation of a loser tree player/node
-    struct Loser
-    {
+    struct Loser {
         //! index of source
         int            source;
         //! copy of key value of the element in this node
@@ -874,8 +870,7 @@ public:
 
 template <bool Stable, typename ValueType, typename Comparator,
           typename Enable = void>
-struct LoserTreeTraits
-{
+struct LoserTreeTraits {
 public:
     using Type = LoserTreePointer<Stable, ValueType, Comparator>;
 };
@@ -883,8 +878,7 @@ public:
 template <bool Stable, typename ValueType, typename Comparator>
 struct LoserTreeTraits<
     Stable, ValueType, Comparator,
-    typename std::enable_if<sizeof(ValueType) <= 2* sizeof(size_t)>::type>
-{
+    typename std::enable_if<sizeof(ValueType) <= 2* sizeof(size_t)>::type>{
     using Type = LoserTreeCopy<Stable, ValueType, Comparator>;
 };
 
@@ -899,8 +893,7 @@ public:
 template <bool Stable, typename ValueType, typename Comparator>
 struct LoserTreeTraitsUnguarded<
     Stable, ValueType, Comparator,
-    typename std::enable_if<sizeof(ValueType) <= 2* sizeof(size_t)>::type>
-{
+    typename std::enable_if<sizeof(ValueType) <= 2* sizeof(size_t)>::type>{
     using Type = LoserTreeCopyUnguarded<Stable, ValueType, Comparator>;
 };
 

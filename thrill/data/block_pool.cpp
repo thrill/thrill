@@ -117,8 +117,7 @@ using ReadingMap = std::unordered_map<
           mem::GPoolAllocator<
               std::pair<ByteBlock* const, PinRequestPtr> > >;
 
-struct BlockPool::Data
-{
+struct BlockPool::Data {
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
     common::LruCacheSet<
         ByteBlock*, mem::GPoolAllocator<ByteBlock*> > unpinned_blocks_;

@@ -308,8 +308,7 @@ protected:
     mem::Manager& mem_manager_;
 
     //! struct for timer callbacks
-    struct Timer
-    {
+    struct Timer {
         //! timepoint of next timeout
         steady_clock::time_point next_timeout;
         //! relative timeout for restarting
