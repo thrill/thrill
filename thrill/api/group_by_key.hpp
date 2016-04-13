@@ -145,10 +145,10 @@ public:
             }
         }
         timer.Stop();
-        LOG1 << "RESULT"
-             << " name=multiwaymerge"
-             << " time=" << timer.Milliseconds()
-             << " multiwaymerge=" << (num_runs > 1);
+        LOG << "RESULT"
+            << " name=multiwaymerge"
+            << " time=" << timer.Milliseconds()
+            << " multiwaymerge=" << (num_runs > 1);
     }
 
     void Dispose() override { }
@@ -224,10 +224,10 @@ private:
 
         timer.Stop();
 
-        LOG1 << "RESULT"
-             << " name=mainop"
-             << " time=" << timer
-             << " number_files=" << files_.size();
+        LOG << "RESULT"
+            << " name=mainop"
+            << " time=" << timer
+            << " number_files=" << files_.size();
     }
 };
 

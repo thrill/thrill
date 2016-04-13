@@ -111,7 +111,7 @@ public:
     }
 
     void PushData(bool consume) final {
-        sLOG1 << "GroupToIndexNode::PushData()";
+        sLOG << "GroupToIndexNode::PushData()";
 
         const size_t num_runs = files_.size();
         if (num_runs == 0) {

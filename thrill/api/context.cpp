@@ -168,6 +168,7 @@ HostContext::ConstructLoopback(size_t num_hosts, size_t workers_per_host) {
     // set fixed amount of RAM for testing
     MemoryConfig mem_config;
     mem_config.setup(4 * 1024 * 1024 * 1024llu);
+    mem_config.verbose_ = false;
 
     return ConstructLoopbackHostContexts<TestGroup>(
         mem_config, num_hosts, workers_per_host);
@@ -202,6 +203,7 @@ void RunLocalTests(
 
     // set fixed amount of RAM for testing
     MemoryConfig mem_config;
+    mem_config.verbose_ = false;
     mem_config.setup(ram);
 
     static constexpr size_t num_hosts_list[] = { 1, 2, 5, 8 };
@@ -224,6 +226,7 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
 
     // set fixed amount of RAM for testing
     MemoryConfig mem_config;
+    mem_config.verbose_ = false;
     mem_config.setup(4 * 1024 * 1024 * 1024llu);
     mem_config.print(workers_per_host);
 
@@ -779,6 +782,8 @@ MemoryConfig MemoryConfig::divide(size_t hosts) const {
 }
 
 void MemoryConfig::print(size_t workers_per_host) const {
+    if (!verbose_) return;
+
     std::cerr
         << "Thrill: using "
         << common::FormatIecUnits(ram_) << "B RAM total,"
@@ -815,6 +820,28 @@ HostContext::HostContext(
     // run memory profiler only on local host 0 (especially for test runs)
     if (local_host_id == 0)
         mem::StartMemProfiler(*profiler_, logger_);
+}
+
+std::string HostContext::MakeHostLogPath(size_t host_rank) {
+    const char* env_log = getenv("THRILL_LOG");
+    if (!env_log) {
+        if (host_rank == 0 && mem_config().verbose_) {
+            std::cerr << "Thrill: no THRILL_LOG was found, "
+                      << "so no json log is written."
+                      << std::endl;
+        }
+        return std::string();
+    }
+
+    std::string output = env_log;
+    if (output == "" || output == "-")
+        return std::string();
+    if (output == "/dev/stdout")
+        return output;
+    if (output == "stdout")
+        return "/dev/stdout";
+
+    return output + "-host-" + std::to_string(host_rank) + ".json";
 }
 
 /******************************************************************************/
@@ -956,14 +983,16 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
             LOG1 << "Manager::Traffic() tx/rx asymmetry = "
                  << common::abs_diff(stats.net_traffic_tx, stats.net_traffic_rx);
 
-        std::cerr
-            << "Thrill:"
-            << " ran " << stats.runtime << "s with max "
-            << FormatIecUnits(stats.max_block_bytes) << "B in DIA Blocks, "
-            << FormatIecUnits(stats.net_traffic_tx) << "B network traffic, "
-            << FormatIecUnits(stats.io_volume) << "B disk I/O, and "
-            << FormatIecUnits(stats.io_max_allocation) << "B max disk use."
-            << std::endl;
+        if (mem_config().verbose_) {
+            std::cerr
+                << "Thrill:"
+                << " ran " << stats.runtime << "s with max "
+                << FormatIecUnits(stats.max_block_bytes) << "B in DIA Blocks, "
+                << FormatIecUnits(stats.net_traffic_tx) << "B network traffic, "
+                << FormatIecUnits(stats.io_volume) << "B disk I/O, and "
+                << FormatIecUnits(stats.io_max_allocation) << "B max disk use."
+                << std::endl;
+        }
 
         logger_ << "class" << "Context"
                 << "event" << "summary"
@@ -972,49 +1001,6 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
                 << "io_volume" << stats.io_volume
                 << "io_max_allocation" << stats.io_max_allocation;
     }
-}
-
-/******************************************************************************/
-// Log path creator
-
-std::string HostContext::MakeHostLogPath(size_t host_rank) {
-    const char* env_log = getenv("THRILL_LOG");
-    if (!env_log) {
-        if (host_rank == 0) {
-            std::cerr << "Thrill: no THRILL_LOG was found, "
-                      << "so no json log is written."
-                      << std::endl;
-        }
-        return std::string();
-    }
-
-    std::string output = env_log;
-    if (output == "" || output == "-")
-        return std::string();
-    if (output == "/dev/stdout")
-        return output;
-    if (output == "stdout")
-        return "/dev/stdout";
-
-    return output + "-host-" + std::to_string(host_rank) + ".json";
-}
-
-std::string Context::MakeWorkerLogPath(size_t worker_rank) {
-    const char* env_log = getenv("THRILL_LOG");
-    if (!env_log) {
-        // warning was already outputted for HostContext
-        return std::string();
-    }
-
-    std::string output = env_log;
-    if (output == "" || output == "-")
-        return std::string();
-    if (output == "/dev/stdout")
-        return output;
-    if (output == "stdout")
-        return "/dev/stdout";
-
-    return output + "-worker-" + std::to_string(worker_rank) + ".json";
 }
 
 } // namespace api
