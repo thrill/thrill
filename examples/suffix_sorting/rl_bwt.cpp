@@ -56,51 +56,31 @@ auto ConstructRLBWT(const InputDIA &input_dia) {
     Context& ctx = input_dia.ctx();
 
     using ValueType = typename InputDIA::ValueType;
-    using PairIC    = IndexChar<size_t, ValueType>;
+    using PairIC    = IndexChar<uint8_t, ValueType>;
    
     size_t input_size = input_dia.Size();
 
     if ( input_size < 2 ) { // handle special case
-        std::vector<size_t> length(input_size, 1);
-        DIA<size_t> rl = EqualToDIA(ctx, length);
+        std::vector<uint8_t> length(input_size, 1);
+        DIA<uint8_t> rl = EqualToDIA(ctx, length);
         return input_dia.Zip(rl,
-                [](const ValueType&c, const size_t& i){
+                [](const ValueType&c, const uint8_t& i){
                     return PairIC{i, c};
                 });
     }
 
-    DIA<size_t> indices = Generate(ctx,
-        [](size_t index) { return index; },
-        input_size);
-
-    auto rl_bwt = input_dia.template FlatWindow<PairIC>(2, [input_size](size_t index, const common::RingBuffer<ValueType>& rb, auto emit){
-                if ( index + 2 == input_size ) {
-                    if ( rb[0] != rb[1] ) {
-                        emit(PairIC{index,rb[0]});
+    auto rl_bwt = input_dia.template FlatWindow<PairIC>(DisjointTag, 256, [input_size](size_t, const std::vector<ValueType>& v, auto emit){
+                size_t i=0;
+                size_t run_start=0;
+                while ( ++i < v.size() ){
+                    if ( v[i-1] != v[i] ) {
+                        emit(PairIC{static_cast<uint8_t>(i-run_start-1), v[i-1]});
+                        run_start = i;
                     }
-                    emit(PairIC{index+1,rb[1]});
-                } else if ( rb[0] != rb[1] ) {
-                    emit(PairIC{index,rb[0]});
                 }
+                emit(PairIC{static_cast<uint8_t>(i-run_start-1), v[i-1]});
             });
-
-    if ( debug )
-        rl_bwt.Print("rl_bwt");
-
-    auto rl_bwt_size = rl_bwt.Size();
-    auto rl_bwt2 = rl_bwt.template FlatWindow<PairIC>(2, [rl_bwt_size](size_t index, const common::RingBuffer<PairIC>& rb, auto emit){
-                if (index == 0 ){
-                    emit(PairIC{rb[0].index+1,rb[0].c});
-                    if ( rl_bwt_size > 1 ) {
-                        emit(PairIC{rb[1].index-rb[0].index, rb[1].c});
-                    }
-                } else if (index < rl_bwt_size) {
-                    emit(PairIC{rb[1].index-rb[0].index, rb[1].c});
-                }
-            });
-
-
-    return rl_bwt2;
+    return rl_bwt;
 }
 
 int main(int argc, char* argv[]) {
@@ -128,6 +108,7 @@ int main(int argc, char* argv[]) {
                 auto output_dia = ConstructRLBWT(input_dia);
                 if ( output_result )
                     output_dia.Print("rl_bwt");
+                sLOG1 << "RLE size = " << output_dia.Size();
             }
             else {
                 std::string bwt = "aaaaaaaaaaabbbbaaaaaaaccccdddaacacaffatttttttttttyyyyaaaaa";
