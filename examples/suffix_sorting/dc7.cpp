@@ -748,7 +748,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
 
         ranks_rec =
             tuple_index_sorted
-            .Zip(Generate(ctx, size_subp + 1),
+            .Zip(Generate(ctx, size_subp + Index(1)),
                  [](const Index& sa, const Index& i) {
                      return IndexRank { sa, i };
                  })
@@ -1123,10 +1123,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
             for (const Index& index : vec) {
                 std::cout << std::setw(5) << p << std::setw(5) << index << " =";
                 for (Index i = index; i < index + Index(64) && i < input_size; ++i) {
-                    if (input_vec[i] == '\n')
-                        std::cout << ' ' << ' ';
-                    else
-                        std::cout << ' ' << input_vec[i];
+                    std::cout << ' ' << uint64_t(input_vec[i]);
                 }
                 std::cout << '\n';
                 ++p;

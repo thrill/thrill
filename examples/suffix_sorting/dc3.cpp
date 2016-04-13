@@ -399,7 +399,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
 
         ranks_rec =
             triple_index_sorted
-            .Zip(Generate(ctx, size_subp),
+            .Zip(Generate(ctx, size_subp + Index(1)),
                  [](const Index& sa, const Index& i) {
                      return IndexRank { sa, i };
                  })
