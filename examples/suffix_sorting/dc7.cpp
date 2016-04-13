@@ -661,20 +661,20 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
     }
 
     if (debug_print) {
-        assert(tuple_sorted.Filter([](const IndexChars& a) {
-                                       return a.index % 7 == 0;
-                                   }).Size() == size_mod0);
+        assert_equal(tuple_sorted.Filter([](const IndexChars& a) {
+                                             return a.index % 7 == 0;
+                                         }).Size(), size_mod0);
 
-        assert(tuple_sorted.Filter([](const IndexChars& a) {
-                                       return a.index % 7 == 1;
-                                   }).Size() == size_mod1);
+        assert_equal(tuple_sorted.Filter([](const IndexChars& a) {
+                                             return a.index % 7 == 1;
+                                         }).Size(), size_mod1);
 
-        assert(tuple_sorted.Filter([](const IndexChars& a) {
-                                       return a.index % 7 == 3;
-                                   }).Size() == size_mod3);
+        assert_equal(tuple_sorted.Filter([](const IndexChars& a) {
+                                             return a.index % 7 == 3;
+                                         }).Size(), size_mod3);
     }
 
-    assert(tuple_index_sorted.Keep().Size() == size_subp);
+    assert_equal(tuple_index_sorted.Keep().Size(), size_subp);
 
     DIA<IndexRank> ranks_rec;
 
@@ -711,7 +711,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         if (debug_print)
             string_mod013.Keep().Print("string_mod013");
 
-        assert(string_mod013.Keep().Size() == size_subp);
+        assert_equal(string_mod013.Keep().Size(), size_subp);
 
         auto suffix_array_rec = DC7<Index>(string_mod013, size_subp);
 
@@ -721,7 +721,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         if (debug_print)
             suffix_array_rec.Keep().Print("suffix_array_rec");
 
-        assert(suffix_array_rec.Keep().Size() == size_subp);
+        assert_equal(suffix_array_rec.Keep().Size(), size_subp);
 
         ranks_rec =
             suffix_array_rec
@@ -854,9 +854,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         ranks_mod3.Keep().Print("ranks_mod3");
     }
 
-    assert(ranks_mod0.Keep().Size() == size_mod0);
-    assert(ranks_mod1.Keep().Size() == size_mod1);
-    assert(ranks_mod3.Keep().Size() == size_mod3);
+    assert_equal(ranks_mod0.Keep().Size(), size_mod0);
+    assert_equal(ranks_mod1.Keep().Size(), size_mod1);
+    assert_equal(ranks_mod3.Keep().Size(), size_mod3);
 
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.

@@ -238,9 +238,9 @@ BlockPool::~BlockPool() {
         lock, [this]() { return total_byte_blocks_ == 0; });
 
     pin_count_.AssertZero();
-    die_unequal(total_ram_bytes_, 0);
-    die_unequal(total_bytes_, 0);
-    die_unequal(d_->unpinned_blocks_.size(), 0);
+    die_unequal(total_ram_bytes_, 0u);
+    die_unequal(total_bytes_, 0u);
+    die_unequal(d_->unpinned_blocks_.size(), 0u);
 
     LOGC(debug_pin)
         << "~BlockPool()"
@@ -1013,7 +1013,7 @@ void BlockPool::OnWriteComplete(
     req->check_error();
 
     die_unless(!block_ptr->ext_file_);
-    die_unequal(d_->writing_.erase(block_ptr), 1);
+    die_unequal(d_->writing_.erase(block_ptr), 1u);
     writing_bytes_ -= block_ptr->size();
 
     if (!success)

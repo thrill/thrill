@@ -478,9 +478,9 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         ranks_mod2.Keep().Print("ranks_mod2");
     }
 
-    assert(triple_chars.Keep().Size() == size_mod1);
-    assert(ranks_mod1.Keep().Size() == size_mod1);
-    assert(ranks_mod2.Keep().Size() == size_mod1 - (input_size % 3 ? 1 : 0));
+    assert_equal(triple_chars.Keep().Size(), size_mod1);
+    assert_equal(ranks_mod1.Keep().Size(), size_mod1);
+    assert_equal(ranks_mod2.Keep().Size(), size_mod1 - (input_size % 3 ? 1 : 0));
 
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.
