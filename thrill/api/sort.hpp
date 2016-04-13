@@ -233,6 +233,10 @@ public:
         }
     }
 
+    void Dispose() final {
+        files_.clear();
+    }
+
 private:
     //! The comparison function which is applied to two elements.
     CompareFunction compare_function_;

@@ -926,11 +926,13 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     // collect overall statistics
     OverallStats stats;
     stats.runtime = overall_timer.SecondsDouble();
-    stats.max_block_bytes = block_pool().max_total_bytes();
 
-    std::tie(stats.net_traffic_tx, stats.net_traffic_rx)
-        = local_worker_id_ == 0 ? net_manager_.Traffic()
-          : std::pair<size_t, size_t>(0, 0);
+    stats.max_block_bytes =
+        local_worker_id_ == 0 ? block_pool().max_total_bytes() : 0;
+
+    std::tie(stats.net_traffic_tx, stats.net_traffic_rx) =
+        local_worker_id_ == 0 ? net_manager_.Traffic()
+        : std::pair<size_t, size_t>(0, 0);
 
     if (local_host_id_ == 0 && local_worker_id_ == 0) {
         io::StatsData io_stats(*io::Stats::GetInstance());

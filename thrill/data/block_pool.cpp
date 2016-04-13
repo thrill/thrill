@@ -284,7 +284,7 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
         mem::GPool().make<ByteBlock>(this, data, size), local_worker_id);
     ++total_byte_blocks_;
     total_bytes_ += size;
-    max_total_bytes_ = std::max(max_total_bytes_, total_bytes_);
+    max_total_bytes_ = std::max(max_total_bytes_, total_bytes_.value);
     IntIncBlockPinCount(block_ptr.get(), local_worker_id);
 
     pin_count_.Increment(local_worker_id, size);
@@ -308,7 +308,7 @@ ByteBlockPtr BlockPool::MapExternalBlock(
     ByteBlockPtr block_ptr(
         mem::GPool().make<ByteBlock>(this, file, offset, size));
     ++total_byte_blocks_;
-    max_total_bytes_ = std::max(max_total_bytes_, total_bytes_);
+    max_total_bytes_ = std::max(max_total_bytes_, total_bytes_.value);
     total_bytes_ += size;
 
     LOGC(debug_blc)
@@ -1058,27 +1058,31 @@ void BlockPool::RunTask(const std::chrono::steady_clock::time_point& tp) {
     // LOG0 << stp;
     // LOG0 << stf;
 
+    size_t unpinned_bytes = unpinned_bytes_.hmax_update();
+    size_t writing_bytes = writing_bytes_.hmax_update();
+    size_t reading_bytes = reading_bytes_.hmax_update();
+    size_t pinned_bytes = pin_count_.total_pinned_bytes_.hmax_update();
+
     logger_ << "class" << "BlockPool"
             << "event" << "profile"
             << "total_blocks" << int_total_blocks()
-            << "total_bytes" << total_bytes_
+            << "total_bytes" << total_bytes_.hmax_update()
             << "max_total_bytes" << max_total_bytes_
-            << "total_ram_bytes" << total_ram_bytes_
+            << "total_ram_bytes" << total_ram_bytes_.hmax_update()
             << "ram_bytes"
-            << (unpinned_bytes_ + pin_count_.total_pinned_bytes_
-        + writing_bytes_ + reading_bytes_)
+            << (unpinned_bytes + pinned_bytes + writing_bytes + reading_bytes)
             << "pinned_blocks" << pin_count_.total_pins_
-            << "pinned_bytes" << pin_count_.total_pinned_bytes_
+            << "pinned_bytes" << pinned_bytes
             << "unpinned_blocks" << d_->unpinned_blocks_.size()
-            << "unpinned_bytes" << unpinned_bytes_
+            << "unpinned_bytes" << unpinned_bytes
             << "swapped_blocks" << d_->swapped_.size()
-            << "swapped_bytes" << swapped_bytes_
+            << "swapped_bytes" << swapped_bytes_.hmax_update()
             << "max_pinned_blocks" << pin_count_.max_pins
             << "max_pinned_bytes" << pin_count_.max_pinned_bytes
             << "writing_blocks" << d_->writing_.size()
-            << "writing_bytes" << writing_bytes_
+            << "writing_bytes" << writing_bytes
             << "reading_blocks" << d_->reading_.size()
-            << "reading_bytes" << reading_bytes_
+            << "reading_bytes" << reading_bytes
             << "rd_ops_total" << stf.read_ops()
             << "rd_bytes_total" << stf.read_volume()
             << "wr_ops_total" << stf.write_ops()
@@ -1105,7 +1109,7 @@ void BlockPool::PinCount::Increment(size_t local_worker_id, size_t size) {
     ++total_pins_;
     total_pinned_bytes_ += size;
     max_pins = std::max(max_pins, total_pins_);
-    max_pinned_bytes = std::max(max_pinned_bytes, total_pinned_bytes_);
+    max_pinned_bytes = std::max(max_pinned_bytes, total_pinned_bytes_.value);
 }
 
 void BlockPool::PinCount::Decrement(size_t local_worker_id, size_t size) {

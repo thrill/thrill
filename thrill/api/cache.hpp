@@ -79,6 +79,10 @@ public:
         this->PushFile(file_, consume);
     }
 
+    void Dispose() final {
+        file_.Clear();
+    }
+
 private:
     //! Local data file
     data::File file_ { context_.GetFile(this) };

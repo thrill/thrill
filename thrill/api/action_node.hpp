@@ -42,9 +42,6 @@ public:
     std::vector<DIABase*> children() const final
     { return std::vector<DIABase*>(); }
 
-    //! ActionNodes are so short-lived they need not be Disposed.
-    void Dispose() final { }
-
     //! ActionNodes do not push data, they only Execute.
     void PushData(bool /* consume */) final { abort(); }
 

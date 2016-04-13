@@ -277,7 +277,11 @@ public:
         LOG << "total = " << total;
     }
 
-    void Dispose() final { }
+    void Dispose() final {
+        files_.clear();
+        writers_.clear();
+        streams_.clear();
+    }
 
 private:
     size_t num_inputs_;

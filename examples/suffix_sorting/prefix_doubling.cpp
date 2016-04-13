@@ -458,7 +458,8 @@ class StartPrefixDoubling
 public:
     StartPrefixDoubling(
         Context& ctx,
-        const std::string& input_path, const std::string& output_path,
+        const std::string& input_path, const std::string& input_copy_path,
+        const std::string& output_path,
         size_t sizelimit,
         const std::string& pd_algorithm,
         bool text_output_flag,
@@ -466,7 +467,8 @@ public:
         bool input_verbatim,
         size_t sa_index_bytes)
         :   ctx_(ctx),
-            input_path_(input_path), output_path_(output_path),
+            input_path_(input_path), input_copy_path_(input_copy_path),
+            output_path_(output_path),
             sizelimit_(sizelimit),
             pd_algorithm_(pd_algorithm),
             text_output_flag_(text_output_flag),
@@ -560,7 +562,11 @@ public:
 
     template <typename InputDIA>
     void SwitchSuffixSortingIndexType(const InputDIA& input_dia,
-        uint64_t input_size) {
+                                      uint64_t input_size) {
+
+        if (input_copy_path_.size())
+            input_dia.WriteBinary(input_copy_path_);
+
         if (sa_index_bytes_ == 4)
             return StartPrefixDoublingInput<uint32_t>(input_dia, input_size);
 #ifndef NDEBUG
@@ -580,6 +586,7 @@ protected:
     Context& ctx_;
 
     std::string input_path_;
+    std::string input_copy_path_;
     std::string output_path_;
     uint64_t sizelimit_;
 
@@ -604,7 +611,7 @@ int main(int argc, char* argv[]) {
     cp.SetDescription("A collection of prefix doubling suffix array construction algorithms.");
     cp.SetAuthor("Florian Kurpicz <florian.kurpicz@tu-dortmund.de>");
 
-    std::string input_path, output_path;
+    std::string input_path, input_copy_path, output_path;
     std::string pd_algorithm;
     uint64_t sizelimit = std::numeric_limits<uint64_t>::max();
     bool text_output_flag = false;
@@ -621,6 +628,8 @@ int main(int argc, char* argv[]) {
     cp.AddFlag('t', "text", text_output_flag,
                "Print out suffix array [and if constructred Burrows–Wheeler "
                 "transform] in readable text.");
+    cp.AddString('i', "input-copy", input_copy_path,
+                 "Write input text to given path.");
     cp.AddString('o', "output", output_path,
                  "Output suffix array [and if constructred Burrows–Wheeler "
                  "transform] to given path.");
@@ -649,7 +658,7 @@ int main(int argc, char* argv[]) {
         [&](Context& ctx) {
             return examples::suffix_sorting::StartPrefixDoubling(
                 ctx,
-                input_path, output_path, sizelimit,
+                input_path, input_copy_path, output_path, sizelimit,
                 pd_algorithm,
                 text_output_flag,
                 check_flag,
