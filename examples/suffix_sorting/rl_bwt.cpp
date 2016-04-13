@@ -13,7 +13,6 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/size.hpp>
-//#include <thrill/api/max.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/common/ring_buffer.hpp>
 #include <thrill/api/zip.hpp>
@@ -74,23 +73,14 @@ auto ConstructRLBWT(const InputDIA &input_dia) {
         [](size_t index) { return index; },
         input_size);
 
-    auto indices_chars = input_dia.Zip(
-            indices,
-            [](const ValueType& c, const size_t& i){
-                return PairIC{i, c};
-            });
-
-    if ( debug )
-        indices_chars.Print("indices_chars");
-
-    auto rl_bwt = indices_chars.template FlatWindow<PairIC>(2, [input_size](size_t index, const common::RingBuffer<PairIC>& rb, auto emit){
+    auto rl_bwt = input_dia.template FlatWindow<PairIC>(2, [input_size](size_t index, const common::RingBuffer<ValueType>& rb, auto emit){
                 if ( index + 2 == input_size ) {
-                    if ( rb[0].c != rb[1].c ) {
-                        emit(PairIC(rb[0]));
+                    if ( rb[0] != rb[1] ) {
+                        emit(PairIC{index,rb[0]});
                     }
-                    emit(PairIC(rb[1]));
-                } else if ( rb[0].c != rb[1].c ) {
-                    emit(PairIC(rb[0]));
+                    emit(PairIC{index+1,rb[1]});
+                } else if ( rb[0] != rb[1] ) {
+                    emit(PairIC{index,rb[0]});
                 }
             });
 
