@@ -180,6 +180,47 @@ struct StringFragment {
     }
 } THRILL_ATTRIBUTE_PACKED;
 
+template <typename StringFragment>
+struct FragmentComparator {
+    bool operator () (const StringFragment& a, const StringFragment& b) const {
+        unsigned ai = a.index % 3, bi = b.index % 3;
+
+        if (ai == 0 && bi == 0)
+            return std::tie(a.mod0.t0, a.mod0.r1)
+                   < std::tie(b.mod0.t0, b.mod0.r1);
+
+        else if (ai == 0 && bi == 1)
+            return std::tie(a.mod0.t0, a.mod0.r1)
+                   < std::tie(b.mod1.t0, b.mod1.r1);
+
+        else if (ai == 0 && bi == 2)
+            return std::tie(a.mod0.t0, a.mod0.t1, a.mod0.r2)
+                   < std::tie(b.mod2.t0, b.mod2.t1, b.mod2.r2);
+
+        else if (ai == 1 && bi == 0)
+            return std::tie(a.mod1.t0, a.mod1.r1)
+                   < std::tie(b.mod0.t0, b.mod0.r1);
+
+        else if (ai == 1 && bi == 1)
+            return a.mod1.r0 < b.mod1.r0;
+
+        else if (ai == 1 && bi == 2)
+            return a.mod1.r0 < b.mod2.r0;
+
+        else if (ai == 2 && bi == 0)
+            return std::tie(a.mod2.t0, a.mod2.t1, a.mod2.r2)
+                   < std::tie(b.mod0.t0, b.mod0.t1, b.mod0.r2);
+
+        else if (ai == 2 && bi == 1)
+            return a.mod2.r0 < b.mod1.r0;
+
+        else if (ai == 2 && bi == 2)
+            return a.mod2.r0 < b.mod2.r0;
+
+        abort();
+    }
+};
+
 template <typename Index, typename Char>
 struct CharsRanks12 {
     Chars<Char> chars;
@@ -220,7 +261,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
                                       }
                          });
 
-                if (index == input_size - 3) {
+                if (index + 3 == input_size) {
                     // emit last sentinel items.
                     if ((index + 1) % 3 != 0)
                         emit(IndexChars { Index(index + 1), {
@@ -237,10 +278,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
                         // emit a sentinel tuple for inputs n % 3 == 1 to
                         // separate mod1 and mod2 strings in recursive
                         // subproblem. example which needs this: aaaaaaaaaa.
-                        emit(IndexChars { Index(index + 3), {
-                                              { Char(), Char(), Char() }
-                                          }
-                             });
+                        emit(IndexChars { Index(index + 3), Chars::EndSentinel() });
                     }
                 }
             })
@@ -401,7 +439,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
                              { rb[0], rb[1], rb[2] }
                          });
 
-                if (index == input_size - 3) {
+                if (index + 3 == input_size) {
                     // emit sentinel
                     if ((index + 1) % 3 == 0)
                         emit(Chars {
@@ -470,7 +508,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         .template FlatWindow<IndexCR12Pair>(
             2, [size_mod1](size_t index, const RingBuffer<CharsRanks12>& rb, auto emit) {
                 emit(IndexCR12Pair { Index(3 * index), rb[0], rb[1] });
-                if (index == size_mod1 - 2) {
+                if (index + 2 == size_mod1) {
                     // emit last sentinel
                     emit(IndexCR12Pair { Index(3 * (index + 1)), rb[1],
                                          CharsRanks12 { Chars::EndSentinel(), 0, 0 }
@@ -566,58 +604,10 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         .Map([](const StringFragmentMod2& mod2)
              { return StringFragment(mod2); });
 
-    auto fragment_comparator =
-        [](const StringFragment& a, const StringFragment& b) {
-            unsigned ai = a.index % 3, bi = b.index % 3;
-
-            if (ai == 0 && bi == 0)
-                return a.mod0.t0 == b.mod0.t0 ?
-                       a.mod0.r1 < b.mod0.r1 :
-                       a.mod0.t0 < b.mod0.t0;
-
-            else if (ai == 0 && bi == 1)
-                return a.mod0.t0 == b.mod1.t0 ?
-                       a.mod0.r1 < b.mod1.r1 :
-                       a.mod0.t0 < b.mod1.t0;
-
-            else if (ai == 0 && bi == 2)
-                return a.mod0.t0 == b.mod2.t0 ? (
-                    a.mod0.t1 == b.mod2.t1 ?
-                    a.mod0.r2 < b.mod2.r2 :
-                    a.mod0.t1 < b.mod2.t1)
-                       : a.mod0.t0 < b.mod2.t0;
-
-            else if (ai == 1 && bi == 0)
-                return a.mod1.t0 == b.mod0.t0 ?
-                       a.mod1.r1 < b.mod0.r1 :
-                       a.mod1.t0 < b.mod0.t0;
-
-            else if (ai == 1 && bi == 1)
-                return a.mod1.r0 < b.mod1.r0;
-
-            else if (ai == 1 && bi == 2)
-                return a.mod1.r0 < b.mod2.r0;
-
-            else if (ai == 2 && bi == 0)
-                return a.mod2.t0 == b.mod0.t0 ? (
-                    a.mod2.t1 == b.mod0.t1 ?
-                    a.mod2.r2 < b.mod0.r2 :
-                    a.mod2.t1 < b.mod0.t1)
-                       : a.mod2.t0 < b.mod0.t0;
-
-            else if (ai == 2 && bi == 1)
-                return a.mod2.r0 < b.mod1.r0;
-
-            else if (ai == 2 && bi == 2)
-                return a.mod2.r0 < b.mod2.r0;
-
-            abort();
-        };
-
     // merge and map to only suffix array
 
     auto suffix_array =
-        Merge(fragment_comparator,
+        Merge(FragmentComparator<StringFragment>(),
               string_fragments_mod0,
               string_fragments_mod1,
               string_fragments_mod2)
@@ -753,7 +743,7 @@ public:
     void SwitchDC3IndexType(const InputDIA& input_dia, uint64_t input_size) {
         if (sa_index_bytes_ == 4)
             return StartDC3Input<uint32_t>(input_dia, input_size);
-#ifndef NDEBUG
+#ifdef NDEBUG
         else if (sa_index_bytes_ == 5)
             return StartDC3Input<common::uint40>(input_dia, input_size);
         else if (sa_index_bytes_ == 6)

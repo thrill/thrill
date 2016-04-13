@@ -42,10 +42,15 @@ endif()
 
 if(THRILL_FULL_BUILD)
   thrill_build_prog(dc3 sa_checker.cpp bwt_generator.cpp)
+  thrill_build_prog(dc7 sa_checker.cpp bwt_generator.cpp)
 
   if(MSVC)
     # requires /bigobj flag to build
     set_target_properties(dc3 PROPERTIES COMPILE_FLAGS /bigobj)
+    set_target_properties(dc7 PROPERTIES COMPILE_FLAGS /bigobj)
+  else()
+    set_target_properties(dc3 PROPERTIES COMPILE_FLAGS "-g0 -O1")
+    set_target_properties(dc7 PROPERTIES COMPILE_FLAGS "-g0 -O1")
   endif()
 
   thrill_test_single(dc3_aaa3 "THRILL_LOCAL=3" dc3 -c -s 10000 unary)
@@ -53,6 +58,12 @@ if(THRILL_FULL_BUILD)
 
   thrill_test_single(dc3_random3 "THRILL_LOCAL=3" dc3 -c -s 100000 random)
   thrill_test_single(dc3_random4 "THRILL_LOCAL=4" dc3 -c -s 100000 random)
+
+  thrill_test_single(dc7_aaa3 "THRILL_LOCAL=3" dc7 -c -s 10000 unary)
+  thrill_test_single(dc7_aaa4 "THRILL_LOCAL=4" dc7 -c -s 10000 unary)
+
+  thrill_test_single(dc7_random3 "THRILL_LOCAL=3" dc7 -c -s 100000 random)
+  thrill_test_single(dc7_random4 "THRILL_LOCAL=4" dc7 -c -s 100000 random)
 endif()
 
 ################################################################################

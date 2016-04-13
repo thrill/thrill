@@ -166,7 +166,7 @@ template bool CheckSA(
 template bool CheckSA(
     const DIA<uint8_t>& input, const DIA<uint64_t>& suffix_array);
 template bool CheckSA(
-    const DIA<uint64_t>& input, const DIA<uint64_t>& suffix_array);
+    const DIA<uint32_t>& input, const DIA<uint32_t>& suffix_array);
 
 } // namespace suffix_sorting
 } // namespace examples
