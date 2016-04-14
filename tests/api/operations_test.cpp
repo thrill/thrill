@@ -23,6 +23,7 @@
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_lines.hpp>
+#include <thrill/api/rebalance.hpp>
 #include <thrill/api/sample.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
@@ -372,6 +373,29 @@ TEST(Operations, GenerateAndUnionExecuteOrder) {
 
             // check size of udia again, which requires a full recalculation.
             ASSERT_EQ(3 * test_size, udia.Size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateFilterRebalance) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache().Execute();
+            auto dia2 = dia1.Filter([](size_t index) { return index < test_size / 2; });
+
+            auto rdia = dia2.Rebalance();
+
+            std::vector<size_t> out_vec = rdia.AllGather();
+
+            ASSERT_EQ(test_size / 2, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i, out_vec[i]);
+            }
         };
 
     api::RunLocalTests(start_func);

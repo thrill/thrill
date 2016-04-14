@@ -27,6 +27,8 @@ namespace api {
 template <typename ValueType>
 class AllGatherNode final : public ActionNode
 {
+    static constexpr bool debug = false;
+
 public:
     using Super = ActionNode;
     using Super::context_;
@@ -76,10 +78,7 @@ public:
 
     //! Closes the output file
     void Execute() final {
-
-        bool consume = false;
-        auto reader = stream_->GetCatReader(consume);
-
+        auto reader = stream_->GetCatReader(/* consume */ true);
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
@@ -94,8 +93,6 @@ private:
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::CatStream::Writer> emitters_;
-
-    static constexpr bool debug = false;
 };
 
 template <typename ValueType, typename Stack>

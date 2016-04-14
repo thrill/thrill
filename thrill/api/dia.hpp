@@ -983,6 +983,15 @@ public:
     auto Concat(const SecondDIA &second_dia) const;
 
     /*!
+     * Rebalance is a DOp, which rebalances a single DIA among all workers; in
+     * general, this operation is needed only if previous steps are known to
+     * create heavy imbalance (e.g. like Filter()s which cut DIAs to ranges).
+     *
+     * \ingroup dia_dops
+     */
+    auto Rebalance() const;
+
+    /*!
      * Create a CollapseNode which is mainly used to collapse the LOp chain into
      * a DIA<T> with an empty stack. This is most often necessary for iterative
      * algorithms, where a DIA<T> reference variable is updated in each
