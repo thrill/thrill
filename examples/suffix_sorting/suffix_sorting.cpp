@@ -10,15 +10,17 @@
  ******************************************************************************/
 
 #include <examples/suffix_sorting/bwt_generator.hpp>
+#include <examples/suffix_sorting/dc3.hpp>
+#include <examples/suffix_sorting/dc7.hpp>
 #include <examples/suffix_sorting/prefix_doubling.hpp>
 #include <examples/suffix_sorting/sa_checker.hpp>
 
+#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
 #include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/read_binary.hpp>
 #include <thrill/api/print.hpp>
-#include <thrill/api/collapse.hpp>
-#include <thrill/api/cache.hpp>
+#include <thrill/api/read_binary.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
@@ -36,20 +38,28 @@
 using namespace thrill;
 using namespace examples::suffix_sorting;
 
+namespace examples {
+namespace suffix_sorting {
+
+bool debug_print = false;
+
+} // namespace suffix_sorting
+} // namespace examples
+
 bool generate_bwt = false;
 
 /*!
  * Class to encapsulate all suffix sorting algorithms
  */
-class StartPrefixDoubling
+class StartSuffixSorting
 {
 public:
-    StartPrefixDoubling(
+    StartSuffixSorting(
         Context& ctx,
         const std::string& input_path, const std::string& input_copy_path,
         const std::string& output_path,
         size_t sizelimit,
-        const std::string& pd_algorithm,
+        const std::string& algorithm,
         bool text_output_flag,
         bool check_flag,
         bool input_verbatim,
@@ -58,7 +68,7 @@ public:
           input_path_(input_path), input_copy_path_(input_copy_path),
           output_path_(output_path),
           sizelimit_(sizelimit),
-          pd_algorithm_(pd_algorithm),
+          algorithm_(algorithm),
           text_output_flag_(text_output_flag),
           check_flag_(check_flag),
           input_verbatim_(input_verbatim),
@@ -69,7 +79,7 @@ public:
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
             auto input_dia = EqualToDIA(ctx_, input_vec).Collapse();
-            SwitchSuffixSortingIndexType(input_dia, input_vec.size());
+            SwitchIndexType(input_dia, input_vec.size());
         }
         else if (input_path_ == "unary") {
             if (sizelimit_ == std::numeric_limits<size_t>::max()) {
@@ -79,7 +89,7 @@ public:
 
             DIA<uint8_t> input_dia = Generate(
                 ctx_, [](size_t /* i */) { return uint8_t('a'); }, sizelimit_);
-            SwitchSuffixSortingIndexType(input_dia, sizelimit_);
+            SwitchIndexType(input_dia, sizelimit_);
         }
         else if (input_path_ == "random") {
             if (sizelimit_ == std::numeric_limits<size_t>::max()) {
@@ -100,21 +110,39 @@ public:
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
                 .Cache();
-            SwitchSuffixSortingIndexType(input_dia, sizelimit_);
+            SwitchIndexType(input_dia, sizelimit_);
         }
         else {
             auto input_dia = ReadBinary<uint8_t>(ctx_, input_path_).Collapse();
             size_t input_size = input_dia.Size();
-            SwitchSuffixSortingIndexType(input_dia, input_size);
+            SwitchIndexType(input_dia, input_size);
         }
     }
 
+    template <typename InputDIA>
+    void SwitchIndexType(const InputDIA& input_dia, uint64_t input_size) {
+
+        if (input_copy_path_.size())
+            input_dia.Keep().WriteBinary(input_copy_path_);
+
+        if (sa_index_bytes_ == 4)
+            return StartInput<uint32_t>(input_dia, input_size);
+        else
+            die("Unsupported index byte size: " << sa_index_bytes_ <<
+                ". Byte size has to be 4,5,6 or 8");
+    }
+
     template <typename Index, typename InputDIA>
-    void StartPrefixDoublingInput(
-        const InputDIA& input_dia, uint64_t input_size) {
+    void StartInput(const InputDIA& input_dia, uint64_t input_size) {
 
         DIA<Index> suffix_array;
-        if (pd_algorithm_ == "de") {
+        if (algorithm_ == "dc3") {
+            suffix_array = DC3<Index>(input_dia.Keep(), input_size);
+        }
+        else if (algorithm_ == "dc7") {
+            suffix_array = DC7<Index>(input_dia.Keep(), input_size);
+        }
+        else if (algorithm_ == "de") {
             suffix_array = PrefixDoublingDementiev<Index>(input_dia.Keep(), input_size);
         }
         else {
@@ -147,28 +175,6 @@ public:
         }
     }
 
-    template <typename InputDIA>
-    void SwitchSuffixSortingIndexType(const InputDIA& input_dia,
-                                      uint64_t input_size) {
-
-        if (input_copy_path_.size())
-            input_dia.Keep().WriteBinary(input_copy_path_);
-
-        if (sa_index_bytes_ == 4)
-            return StartPrefixDoublingInput<uint32_t>(input_dia, input_size);
-#ifndef NDEBUG
-        else if (sa_index_bytes_ == 5)
-            return StartPrefixDoublingInput<common::uint40>(input_dia, input_size);
-        else if (sa_index_bytes_ == 6)
-            return StartPrefixDoublingInput<common::uint48>(input_dia, input_size);
-        else if (sa_index_bytes_ == 8)
-            return StartPrefixDoublingInput<uint64_t>(input_dia, input_size);
-#endif
-        else
-            die("Unsupported index byte size: " << sa_index_bytes_ <<
-                ". Byte size has to be 4,5,6 or 8");
-    }
-
 protected:
     Context& ctx_;
 
@@ -177,7 +183,7 @@ protected:
     std::string output_path_;
     uint64_t sizelimit_;
 
-    std::string pd_algorithm_;
+    std::string algorithm_;
 
     bool text_output_flag_;
     bool check_flag_;
@@ -192,11 +198,12 @@ int main(int argc, char* argv[]) {
 
     common::CmdlineParser cp;
 
-    cp.SetDescription("A collection of prefix doubling suffix array construction algorithms.");
+    cp.SetDescription("A collection of suffix array construction algorithms.");
     cp.SetAuthor("Florian Kurpicz <florian.kurpicz@tu-dortmund.de>");
+    cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
 
     std::string input_path, input_copy_path, output_path;
-    std::string pd_algorithm;
+    std::string algorithm;
     uint64_t sizelimit = std::numeric_limits<uint64_t>::max();
     bool text_output_flag = false;
     bool check_flag = false;
@@ -222,11 +229,9 @@ int main(int argc, char* argv[]) {
                "suffix array on.");
     cp.AddBytes('s', "size", sizelimit,
                 "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
-#if 0
     cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
                "Print debug info.");
-#endif
-    cp.AddString('a', "algorithm", pd_algorithm,
+    cp.AddString('a', "algorithm", algorithm,
                  "The prefix doubling algorithm which is used to construct the "
                  "suffix array. [fl]ick (default) and [de]mentiev are "
                  "available.");
@@ -242,10 +247,10 @@ int main(int argc, char* argv[]) {
 
     return Run(
         [&](Context& ctx) {
-            return StartPrefixDoubling(
+            return StartSuffixSorting(
                 ctx,
                 input_path, input_copy_path, output_path, sizelimit,
-                pd_algorithm,
+                algorithm,
                 text_output_flag,
                 check_flag,
                 input_verbatim,

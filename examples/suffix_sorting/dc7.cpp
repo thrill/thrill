@@ -8,26 +8,23 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/suffix_sorting/bwt_generator.hpp>
 #include <examples/suffix_sorting/sa_checker.hpp>
+#include <examples/suffix_sorting/suffix_sorting.hpp>
 
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
-#include <thrill/api/read_binary.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/window.hpp>
-#include <thrill/api/write_binary.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/uint_types.hpp>
@@ -44,9 +41,6 @@
 
 namespace examples {
 namespace suffix_sorting {
-
-bool debug_print = false;
-bool generate_bwt = false;
 
 using namespace thrill; // NOLINT
 using thrill::common::RingBuffer;
@@ -523,7 +517,7 @@ bool IsDiffCover(size_t i) {
 
 template <typename Index, typename InputDIA>
 DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
-    input_dia.context().enable_consume(!debug_print && !generate_bwt);
+    input_dia.context().enable_consume(!debug_print);
 
     using Char = typename InputDIA::ValueType;
     using IndexChars = suffix_sorting::IndexChars<Index, Char>;
@@ -1137,187 +1131,10 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
     return suffix_array.Collapse();
 }
 
-/*!
- * Class to encapsulate all
- */
-class StartDC7
-{
-public:
-    StartDC7(
-        Context& ctx,
-        const std::string& input_path, const std::string& output_path,
-        uint64_t sizelimit,
-        bool text_output_flag,
-        bool check_flag,
-        bool input_verbatim,
-        size_t sa_index_bytes)
-        : ctx_(ctx),
-          input_path_(input_path), output_path_(output_path),
-          sizelimit_(sizelimit),
-          text_output_flag_(text_output_flag),
-          check_flag_(check_flag),
-          input_verbatim_(input_verbatim),
-          sa_index_bytes_(sa_index_bytes) { }
-
-    void Run() {
-        ctx_.enable_consume();
-        if (input_verbatim_) {
-            // take path as verbatim text
-            std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
-            DIA<uint8_t> input_dia = EqualToDIA<uint8_t>(ctx_, input_vec);
-            SwitchDC7IndexType(input_dia, input_vec.size());
-        }
-        else if (input_path_ == "unary") {
-            if (sizelimit_ == std::numeric_limits<size_t>::max()) {
-                LOG1 << "You must provide -s <size> for generated inputs.";
-                return;
-            }
-
-            DIA<uint8_t> input_dia = Generate(
-                ctx_, [](size_t /* i */) { return uint8_t('a'); }, sizelimit_);
-            SwitchDC7IndexType(input_dia, sizelimit_);
-        }
-        else if (input_path_ == "random") {
-            if (sizelimit_ == std::numeric_limits<size_t>::max()) {
-                LOG1 << "You must provide -s <size> for generated inputs.";
-                return;
-            }
-
-            // share prng in Generate (just random numbers anyway)
-            std::default_random_engine prng(std::random_device { } ());
-
-            DIA<uint8_t> input_dia =
-                Generate(
-                    ctx_,
-                    [&prng](size_t /* i */) {
-                        return static_cast<uint8_t>(prng());
-                    },
-                    sizelimit_)
-                // the random input _must_ be cached, otherwise it will be
-                // regenerated ... and contain new numbers.
-                .Cache();
-            SwitchDC7IndexType(input_dia, sizelimit_);
-        }
-        else {
-            DIA<uint8_t> input_dia = ReadBinary<uint8_t>(ctx_, input_path_);
-            size_t input_size = input_dia.Size();
-            SwitchDC7IndexType(input_dia, input_size);
-        }
-    }
-
-    template <typename Index, typename InputDIA>
-    void StartDC7Input(const InputDIA& input_dia, uint64_t input_size) {
-
-        // run DC7
-        auto suffix_array = DC7<Index>(input_dia.Keep(), input_size);
-        if (output_path_.size()) {
-            suffix_array.Keep().WriteBinary(output_path_);
-        }
-
-        if (check_flag_) {
-            LOG1 << "checking suffix array...";
-
-            if (!CheckSA(input_dia.Keep(), suffix_array.Keep())) {
-                throw std::runtime_error("Suffix array is invalid!");
-            }
-            else {
-                LOG1 << "okay.";
-            }
-        }
-        if (generate_bwt) {
-            InputDIA bw_transform = GenerateBWT(input_dia, suffix_array);
-
-            if (text_output_flag_) {
-                bw_transform.Keep().Print("bw_transform");
-            }
-            if (output_path_.size()) {
-                LOG1 << "writing Burrows–Wheeler transform to " << output_path_;
-                bw_transform.WriteBinary(output_path_ + "bwt");
-            }
-        }
-    }
-
-    template <typename InputDIA>
-    void SwitchDC7IndexType(const InputDIA& input_dia, uint64_t input_size) {
-        if (sa_index_bytes_ == 4)
-            return StartDC7Input<uint32_t>(input_dia, input_size);
-#ifdef NDEBUG
-        else if (sa_index_bytes_ == 5)
-            return StartDC7Input<common::uint40>(input_dia, input_size);
-#endif
-        else
-            die("Unsupported index byte size: " << sa_index_bytes_);
-    }
-
-protected:
-    Context& ctx_;
-
-    std::string input_path_;
-    std::string output_path_;
-
-    uint64_t sizelimit_;
-    bool text_output_flag_;
-    bool check_flag_;
-    bool input_verbatim_;
-    size_t sa_index_bytes_;
-};
+template DIA<uint32_t> DC7<uint32_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size);
 
 } // namespace suffix_sorting
 } // namespace examples
-
-int main(int argc, char* argv[]) {
-
-    using namespace thrill; // NOLINT
-
-    common::CmdlineParser cp;
-
-    cp.SetDescription("DC7 aka skew7 algorithm for suffix array construction.");
-    cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
-
-    std::string input_path, output_path;
-    uint64_t sizelimit = std::numeric_limits<uint64_t>::max();
-    bool text_output_flag = false;
-    bool check_flag = false;
-    bool input_verbatim = false;
-    size_t sa_index_bytes = 4;
-
-    cp.AddParamString("input", input_path,
-                      "Path to input file (or verbatim text).\n"
-                      "  The special inputs 'random' and 'unary' generate "
-                      "such text on-the-fly.");
-    cp.AddFlag('c', "check", check_flag,
-               "Check suffix array for correctness.");
-    cp.AddFlag('t', "text", text_output_flag,
-               "Print out suffix array in readable text.");
-    cp.AddString('o', "output", output_path,
-                 "Output suffix array to given path.");
-    cp.AddFlag('v', "verbatim", input_verbatim,
-               "Consider \"input\" as verbatim text to construct "
-               "suffix array on.");
-    cp.AddBytes('s', "size", sizelimit,
-                "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
-    cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
-               "Print debug info.");
-    cp.AddSizeT('b', "bytes", sa_index_bytes,
-                "suffix array bytes per index: "
-                "4 (32-bit), 5 (40-bit), 6 (48-bit), 8 (64-bit)");
-    cp.AddFlag('w', "bwt", examples::suffix_sorting::generate_bwt,
-               "Compute the Burrows–Wheeler transform in addition to the "
-               "suffix array.");
-
-    // process command line
-    if (!cp.Process(argc, argv))
-        return -1;
-
-    return Run(
-        [&](Context& ctx) {
-            return examples::suffix_sorting::StartDC7(
-                ctx, input_path, output_path,
-                sizelimit,
-                text_output_flag,
-                check_flag,
-                input_verbatim, sa_index_bytes).Run();
-        });
-}
 
 /******************************************************************************/

@@ -73,19 +73,17 @@ InputDIA GenerateBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array) 
                      return Index(input_size - 1);
                  return Index(i - 1);
              })
-        .Zip(
-            indices,
-            [](const Index& text_pos, const Index& idx) {
-                return IndexRank { text_pos, idx };
-            })
+        .Zip(indices,
+             [](const Index& text_pos, const Index& idx) {
+                 return IndexRank { text_pos, idx };
+             })
         .Sort([](const IndexRank& a, const IndexRank& b) {
                   return a.index < b.index;
               })
-        .Zip(
-            input,
-            [](const IndexRank& text_order, const Char& ch) {
-                return IndexChar { text_order.rank, ch };
-            })
+        .Zip(input,
+             [](const IndexRank& text_order, const Char& ch) {
+                 return IndexChar { text_order.rank, ch };
+             })
         .Sort([](const IndexChar& a, const IndexChar& b) {
                   return a.index < b.index;
               })
@@ -105,8 +103,6 @@ template DIA<uint8_t> GenerateBWT(
     const DIA<uint8_t>& input, const DIA<common::uint48>& suffix_array);
 template DIA<uint8_t> GenerateBWT(
     const DIA<uint8_t>& input, const DIA<uint64_t>& suffix_array);
-template DIA<uint64_t> GenerateBWT(
-    const DIA<uint64_t>& input, const DIA<uint64_t>& suffix_array);
 
 } // namespace suffix_sorting
 } // namespace examples

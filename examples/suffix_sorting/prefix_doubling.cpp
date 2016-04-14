@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <examples/suffix_sorting/sa_checker.hpp>
+#include <examples/suffix_sorting/suffix_sorting.hpp>
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
@@ -36,9 +37,6 @@
 
 namespace examples {
 namespace suffix_sorting {
-
-bool debug_print = false;
-bool debug = false;
 
 using namespace thrill; // NOLINT
 using thrill::common::RingBuffer;
@@ -277,9 +275,9 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
 
         size_t max_rank = renamed_ranks.Keep().Max();
         if (input_dia.context().my_rank() == 0) {
-            sLOG << "iteration" << iteration
-                 << "max_rank" << max_rank
-                 << "duplicates" << input_size - max_rank;
+            sLOG1 << "iteration" << iteration
+                  << "max_rank" << max_rank
+                  << "duplicates" << input_size - max_rank;
         }
 
         if (max_rank == input_size) {
@@ -382,8 +380,8 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
         size_t shift_by = (1 << shift_exp++) + 1;
 
         if (input_dia.context().my_rank() == 0) {
-            LOG << "iteration " << shift_exp << ": shift ISA by " << shift_by - 1
-                << " positions. hence the window has size " << shift_by;
+            LOG1 << "iteration " << shift_exp << ": shift ISA by " << shift_by - 1
+                 << " positions. hence the window has size " << shift_by;
         }
 
         DIA<IndexRankRank> triple_sorted =
