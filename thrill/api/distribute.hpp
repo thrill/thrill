@@ -81,6 +81,10 @@ public:
         stream_->Close();
     }
 
+    void Dispose() final {
+        std::vector<ValueType>().swap(in_vector_);
+    }
+
 private:
     //! Vector pointer to read elements from.
     std::vector<ValueType> in_vector_;

@@ -219,6 +219,10 @@ public:
      */
     const DIA& Keep(size_t increase = 1) const {
         assert(IsValid());
+        if (node_->consume_counter() == 0) {
+            die("Keep() called on "
+                << *node_ << " which was already consumed.");
+        }
         node_->IncConsumeCounter(increase);
         return *this;
     }

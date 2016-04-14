@@ -38,8 +38,7 @@ using namespace thrill; // NOLINT
 
 template <typename InputDIA>
 auto ConstructWaveletTree(const InputDIA &input_dia) {
-    input_dia.context().enable_consume();
-    uint64_t max_value = input_dia.Max();
+    uint64_t max_value = input_dia.Keep().Max();
     sLOG << "max_value" << max_value;
 
     uint64_t level = common::IntegerLog2Ceil(max_value);
@@ -101,6 +100,8 @@ int main(int argc, char* argv[]) {
 
     return Run(
         [&](Context& ctx) {
+            ctx.enable_consume();
+
             if (input_path.size()) {
                 auto input_dia = ReadBinary<uint8_t>(ctx, input_path);
                 ConstructWaveletTree(input_dia);

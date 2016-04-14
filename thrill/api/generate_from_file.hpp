@@ -98,6 +98,10 @@ public:
             << "event" << "done";
     }
 
+    void Dispose() final {
+        std::vector<ValueType>().swap(elements_);
+    }
+
 private:
     //! The read function which is applied on every line read.
     GeneratorFunction generator_function_;

@@ -51,7 +51,7 @@ PickPivots(const DIA<ValueType, InStack>& data, size_t size, size_t rank,
     const double p = 20 * sqrt(static_cast<double>(num_workers)) / size_d;
 
     // materialized at worker 0
-    auto sample = data.BernoulliSample(p).Gather();
+    auto sample = data.Keep().BernoulliSample(p).Gather();
 
     std::pair<ValueType, ValueType> pivots;
     if (ctx.my_rank() == 0) {
@@ -91,7 +91,7 @@ template <typename ValueType, typename InStack,
 ValueType Select(const DIA<ValueType, InStack>& data, size_t rank,
                  const Compare& compare = Compare()) {
     api::Context& ctx = data.context();
-    const size_t size = data.Size();
+    const size_t size = data.Keep().Size();
 
     assert(0 <= rank && rank < size);
 
@@ -122,7 +122,7 @@ ValueType Select(const DIA<ValueType, InStack>& data, size_t rank,
 
     using PartSizes = std::pair<size_t, size_t>;
     std::tie(left_size, middle_size) =
-        data.Map(
+        data.Keep().Map(
             [&](const ValueType& elem) -> PartSizes {
                 if (compare(elem, left_pivot))
                     return PartSizes { 1, 0 };
@@ -158,7 +158,7 @@ ValueType Select(const DIA<ValueType, InStack>& data, size_t rank,
         LOGM << "Recursing left, " << left_size
              << " elements remaining (rank = " << rank << ")\n";
 
-        auto left = data.Filter(
+        auto left = data.Keep().Filter(
             [&](const ValueType& elem) -> bool {
                 return compare(elem, left_pivot);
             }).Collapse();
@@ -172,7 +172,7 @@ ValueType Select(const DIA<ValueType, InStack>& data, size_t rank,
              << " elements remaining (rank = " << rank - left_size - middle_size
              << ")\n";
 
-        auto right = data.Filter(
+        auto right = data.Keep().Filter(
             [&](const ValueType& elem) -> bool {
                 return compare(right_pivot, elem);
             }).Collapse();
@@ -185,7 +185,7 @@ ValueType Select(const DIA<ValueType, InStack>& data, size_t rank,
         LOGM << "Recursing middle, " << middle_size
              << " elements remaining (rank = " << rank - left_size << ")\n";
 
-        auto middle = data.Filter(
+        auto middle = data.Keep().Filter(
             [&](const ValueType& elem) -> bool {
                 return !compare(elem, left_pivot) &&
                 !compare(right_pivot, elem);

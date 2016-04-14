@@ -192,12 +192,13 @@ public:
         : ReadBinaryNode(ctx, std::vector<std::string>{ glob }) { }
 
     void PushData(bool consume) final {
+        LOG << "ReadBinaryNode::PushData() start " << *this
+            << " consume " << consume;
+
         if (use_ext_file_) {
             this->PushFile(ext_file_, consume);
             return;
         }
-
-        LOG << "ReadBinaryNode::PushData() start id " << this->id();
 
         // Hook Read
         for (const FileInfo& file : my_files_) {
@@ -217,6 +218,11 @@ public:
             << "event" << "done"
             << "total_bytes" << stats_total_bytes
             << "total_reads" << stats_total_reads;
+    }
+
+    void Dispose() final {
+        std::vector<FileInfo>().swap(my_files_);
+        ext_file_.Clear();
     }
 
 private:

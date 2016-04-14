@@ -27,23 +27,11 @@ public:
     using Super = DIANode<ValueType>;
 
     SourceNode(Context& ctx, const char* label)
-        : Super(ctx, label, { /* parent_ids */ }, { /* parents */ }) {
-        // SourceNode are kept by default: they usually read files or databases
-        // on PushData(), which should not be consumed.
-        Super::consume_counter_ = Super::kNeverConsume;
-    }
+        : Super(ctx, label, { /* parent_ids */ }, { /* parents */ })
+    { }
 
     //! SourceNodes generally do not Execute, they only PushData.
     void Execute() override { }
-
-    //! SourceNodes generally do not do anything on Dispose, they only PushData.
-    void Dispose() override { }
-
-    //! Ignore consume settings.
-    void IncConsumeCounter(size_t /* counter */) final { }
-
-    //! Ignore consume settings.
-    void SetConsumeCounter(size_t /* counter */) final { }
 };
 
 //! \}

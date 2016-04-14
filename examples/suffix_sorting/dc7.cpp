@@ -1195,7 +1195,7 @@ public:
                     sizelimit_)
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
-                .Cache().KeepForever();
+                .Cache();
             SwitchDC7IndexType(input_dia, sizelimit_);
         }
         else {
@@ -1209,16 +1209,15 @@ public:
     void StartDC7Input(const InputDIA& input_dia, uint64_t input_size) {
 
         // run DC7
-        auto suffix_array = DC7<Index>(input_dia, input_size);
-        InputDIA bw_transform;
+        auto suffix_array = DC7<Index>(input_dia.Keep(), input_size);
         if (output_path_.size()) {
-            suffix_array.WriteBinary(output_path_);
+            suffix_array.Keep().WriteBinary(output_path_);
         }
 
         if (check_flag_) {
             LOG1 << "checking suffix array...";
 
-            if (!CheckSA(input_dia, suffix_array)) {
+            if (!CheckSA(input_dia.Keep(), suffix_array.Keep())) {
                 throw std::runtime_error("Suffix array is invalid!");
             }
             else {
@@ -1226,10 +1225,10 @@ public:
             }
         }
         if (generate_bwt) {
-            bw_transform = GenerateBWT(input_dia, suffix_array);
+            InputDIA bw_transform = GenerateBWT(input_dia, suffix_array);
 
             if (text_output_flag_) {
-                bw_transform.Print("bw_transform");
+                bw_transform.Keep().Print("bw_transform");
             }
             if (output_path_.size()) {
                 LOG1 << "writing Burrows–Wheeler transform to " << output_path_;

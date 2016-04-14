@@ -511,7 +511,7 @@ public:
                     sizelimit_)
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
-                .Cache().KeepForever();
+                .Cache();
             SwitchSuffixSortingIndexType(input_dia, sizelimit_);
         }
         else {
@@ -526,32 +526,31 @@ public:
         const InputDIA& input_dia, uint64_t input_size) {
 
         DIA<Index> suffix_array;
-        InputDIA bw_transform;
         if (pd_algorithm_ == "de") {
-            suffix_array = PrefixDoublingDementiev<Index>(input_dia, input_size);
+            suffix_array = PrefixDoublingDementiev<Index>(input_dia.Keep(), input_size);
         }
         else {
-            suffix_array = PrefixDoubling<Index>(input_dia, input_size);
+            suffix_array = PrefixDoubling<Index>(input_dia.Keep(), input_size);
         }
 
         if (check_flag_) {
             LOG1 << "checking suffix array...";
-            die_unless(CheckSA(input_dia, suffix_array));
+            die_unless(CheckSA(input_dia.Keep(), suffix_array));
         }
 
         if (text_output_flag_) {
-            suffix_array.Print("suffix_array");
+            suffix_array.Keep().Print("suffix_array");
         }
 
         if (output_path_.size()) {
             LOG1 << "writing suffix array to " << output_path_;
-            suffix_array.WriteBinary(output_path_);
+            suffix_array.Keep().WriteBinary(output_path_);
         }
         if (generate_bwt) {
-            bw_transform = GenerateBWT(input_dia, suffix_array);
+            InputDIA bw_transform = GenerateBWT(input_dia, suffix_array);
 
             if (text_output_flag_) {
-                bw_transform.Print("bw_transform");
+                bw_transform.Keep().Print("bw_transform");
             }
             if (output_path_.size()) {
                 LOG1 << "writing Burrows–Wheeler transform to " << output_path_;
@@ -565,7 +564,7 @@ public:
                                       uint64_t input_size) {
 
         if (input_copy_path_.size())
-            input_dia.WriteBinary(input_copy_path_);
+            input_dia.Keep().WriteBinary(input_copy_path_);
 
         if (sa_index_bytes_ == 4)
             return StartPrefixDoublingInput<uint32_t>(input_dia, input_size);

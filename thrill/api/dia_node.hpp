@@ -123,10 +123,10 @@ public:
         for (const Child& child : children_)
             child.node->StartPreOp(child.parent_index);
 
-        if (consume_counter_ > 0 && consume_counter_ != kNeverConsume)
-            --consume_counter_;
+        if (consume_counter() > 0 && consume_counter() != kNeverConsume)
+            DecConsumeCounter(1);
 
-        bool consume = context().consume() && consume_counter_ == 0;
+        bool consume = context().consume() && consume_counter() == 0;
         PushData(consume);
         if (consume) Dispose();
 
