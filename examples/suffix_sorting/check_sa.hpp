@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/suffix_sorting/sa_checker.hpp
+ * examples/suffix_sorting/check_sa.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_EXAMPLES_SUFFIX_SORTING_SA_CHECKER_HEADER
-#define THRILL_EXAMPLES_SUFFIX_SORTING_SA_CHECKER_HEADER
+#ifndef THRILL_EXAMPLES_SUFFIX_SORTING_CHECK_SA_HEADER
+#define THRILL_EXAMPLES_SUFFIX_SORTING_CHECK_SA_HEADER
 
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
@@ -142,6 +142,6 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 } // namespace suffix_sorting
 } // namespace examples
 
-#endif // !THRILL_EXAMPLES_SUFFIX_SORTING_SA_CHECKER_HEADER
+#endif // !THRILL_EXAMPLES_SUFFIX_SORTING_CHECK_SA_HEADER
 
 /******************************************************************************/

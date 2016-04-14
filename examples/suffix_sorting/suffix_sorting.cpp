@@ -9,11 +9,11 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/suffix_sorting/bwt_generator.hpp>
+#include <examples/suffix_sorting/check_sa.hpp>
+#include <examples/suffix_sorting/construct_bwt.hpp>
 #include <examples/suffix_sorting/dc3.hpp>
 #include <examples/suffix_sorting/dc7.hpp>
 #include <examples/suffix_sorting/prefix_doubling.hpp>
-#include <examples/suffix_sorting/sa_checker.hpp>
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
@@ -163,7 +163,7 @@ public:
             suffix_array.Keep().WriteBinary(output_path_);
         }
         if (generate_bwt) {
-            InputDIA bw_transform = GenerateBWT(input_dia, suffix_array);
+            InputDIA bw_transform = ConstructBWT(input_dia, suffix_array);
 
             if (text_output_flag_) {
                 bw_transform.Keep().Print("bw_transform");

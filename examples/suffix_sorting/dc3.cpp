@@ -8,7 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/suffix_sorting/sa_checker.hpp>
+#include <examples/suffix_sorting/check_sa.hpp>
 #include <examples/suffix_sorting/suffix_sorting.hpp>
 
 #include <thrill/api/all_gather.hpp>

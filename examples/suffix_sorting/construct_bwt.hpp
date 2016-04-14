@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/suffix_sorting/bwt_generator.hpp
+ * examples/suffix_sorting/construct_bwt.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_EXAMPLES_SUFFIX_SORTING_BWT_GENERATOR_HEADER
-#define THRILL_EXAMPLES_SUFFIX_SORTING_BWT_GENERATOR_HEADER
+#ifndef THRILL_EXAMPLES_SUFFIX_SORTING_CONSTRUCT_BWT_HEADER
+#define THRILL_EXAMPLES_SUFFIX_SORTING_CONSTRUCT_BWT_HEADER
 
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/generate.hpp>
@@ -24,7 +24,7 @@ namespace examples {
 namespace suffix_sorting {
 
 template <typename InputDIA, typename SuffixArrayDIA>
-InputDIA GenerateBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
+InputDIA ConstructBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 
     using namespace thrill; // NOLINT
 
@@ -45,9 +45,8 @@ InputDIA GenerateBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array) 
 
     uint64_t input_size = input.Size();
 
-    DIA<Index> indices = Generate(ctx,
-                                  [](size_t index) { return Index(index); },
-                                  input_size);
+    DIA<Index> indices = Generate(
+        ctx, [](size_t index) { return Index(index); }, input_size);
 
     auto bwt =
         suffix_array
@@ -80,6 +79,6 @@ InputDIA GenerateBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array) 
 } // namespace suffix_sorting
 } // namespace examples
 
-#endif // !THRILL_EXAMPLES_SUFFIX_SORTING_BWT_GENERATOR_HEADER
+#endif // !THRILL_EXAMPLES_SUFFIX_SORTING_CONSTRUCT_BWT_HEADER
 
 /******************************************************************************/
