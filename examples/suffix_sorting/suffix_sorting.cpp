@@ -46,39 +46,31 @@ bool debug_print = false;
 } // namespace suffix_sorting
 } // namespace examples
 
-bool generate_bwt = false;
-
 /*!
  * Class to encapsulate all suffix sorting algorithms
  */
-class StartSuffixSorting
+class SuffixSorting
 {
 public:
-    StartSuffixSorting(
-        Context& ctx,
-        const std::string& input_path, const std::string& input_copy_path,
-        const std::string& output_path,
-        size_t sizelimit,
-        const std::string& algorithm,
-        bool text_output_flag,
-        bool check_flag,
-        bool input_verbatim,
-        size_t sa_index_bytes)
-        : ctx_(ctx),
-          input_path_(input_path), input_copy_path_(input_copy_path),
-          output_path_(output_path),
-          sizelimit_(sizelimit),
-          algorithm_(algorithm),
-          text_output_flag_(text_output_flag),
-          check_flag_(check_flag),
-          input_verbatim_(input_verbatim),
-          sa_index_bytes_(sa_index_bytes) { }
+    std::string input_path_;
+    std::string input_copy_path_;
+    std::string output_path_;
+    uint64_t sizelimit_ = std::numeric_limits<uint64_t>::max();
 
-    void Run() {
+    std::string algorithm_;
+
+    bool text_output_flag_ = false;
+    bool check_flag_ = false;
+    bool input_verbatim_ = false;
+    bool construct_bwt_ = false;
+
+    size_t sa_index_bytes_ = 4;
+
+    void Run(Context& ctx) const {
         if (input_verbatim_) {
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
-            auto input_dia = EqualToDIA(ctx_, input_vec).Collapse();
+            auto input_dia = EqualToDIA(ctx, input_vec).Collapse();
             SwitchIndexType(input_dia, input_vec.size());
         }
         else if (input_path_ == "unary") {
@@ -88,7 +80,7 @@ public:
             }
 
             DIA<uint8_t> input_dia = Generate(
-                ctx_, [](size_t /* i */) { return uint8_t('a'); }, sizelimit_);
+                ctx, [](size_t /* i */) { return uint8_t('a'); }, sizelimit_);
             SwitchIndexType(input_dia, sizelimit_);
         }
         else if (input_path_ == "random") {
@@ -102,7 +94,7 @@ public:
 
             DIA<uint8_t> input_dia =
                 Generate(
-                    ctx_,
+                    ctx,
                     [&prng](size_t /* i */) {
                         return static_cast<uint8_t>(prng());
                     },
@@ -113,14 +105,14 @@ public:
             SwitchIndexType(input_dia, sizelimit_);
         }
         else {
-            auto input_dia = ReadBinary<uint8_t>(ctx_, input_path_).Collapse();
+            auto input_dia = ReadBinary<uint8_t>(ctx, input_path_).Collapse();
             size_t input_size = input_dia.Size();
             SwitchIndexType(input_dia, input_size);
         }
     }
 
     template <typename InputDIA>
-    void SwitchIndexType(const InputDIA& input_dia, uint64_t input_size) {
+    void SwitchIndexType(const InputDIA& input_dia, uint64_t input_size) const {
 
         if (input_copy_path_.size())
             input_dia.Keep().WriteBinary(input_copy_path_);
@@ -133,7 +125,7 @@ public:
     }
 
     template <typename Index, typename InputDIA>
-    void StartInput(const InputDIA& input_dia, uint64_t input_size) {
+    void StartInput(const InputDIA& input_dia, uint64_t input_size) const {
 
         DIA<Index> suffix_array;
         if (algorithm_ == "dc3") {
@@ -162,7 +154,8 @@ public:
             LOG1 << "writing suffix array to " << output_path_;
             suffix_array.Keep().WriteBinary(output_path_);
         }
-        if (generate_bwt) {
+
+        if (construct_bwt_) {
             InputDIA bw_transform = ConstructBWT(input_dia, suffix_array);
 
             if (text_output_flag_) {
@@ -174,22 +167,6 @@ public:
             }
         }
     }
-
-protected:
-    Context& ctx_;
-
-    std::string input_path_;
-    std::string input_copy_path_;
-    std::string output_path_;
-    uint64_t sizelimit_;
-
-    std::string algorithm_;
-
-    bool text_output_flag_;
-    bool check_flag_;
-    bool input_verbatim_;
-
-    size_t sa_index_bytes_;
 };
 
 int main(int argc, char* argv[]) {
@@ -202,60 +179,54 @@ int main(int argc, char* argv[]) {
     cp.SetAuthor("Florian Kurpicz <florian.kurpicz@tu-dortmund.de>");
     cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
 
-    std::string input_path, input_copy_path, output_path;
-    std::string algorithm;
-    uint64_t sizelimit = std::numeric_limits<uint64_t>::max();
-    bool text_output_flag = false;
-    bool check_flag = false;
-    bool input_verbatim = false;
-    size_t sa_index_bytes = 4;
+    SuffixSorting ss;
 
-    cp.AddParamString("input", input_path,
+    cp.AddParamString("input", ss.input_path_,
                       "Path to input file (or verbatim text).\n"
                       "The special inputs 'random' and 'unary' generate "
                       "such text on-the-fly.");
-    cp.AddFlag('c', "check", check_flag,
-               "Check suffix array for correctness.");
-    cp.AddFlag('t', "text", text_output_flag,
-               "Print out suffix array [and if constructred Burrows–Wheeler "
-               "transform] in readable text.");
-    cp.AddString('i', "input-copy", input_copy_path,
-                 "Write input text to given path.");
-    cp.AddString('o', "output", output_path,
-                 "Output suffix array [and if constructred Burrows–Wheeler "
-                 "transform] to given path.");
-    cp.AddFlag('v', "verbatim", input_verbatim,
-               "Consider \"input\" as verbatim text to construct "
-               "suffix array on.");
-    cp.AddBytes('s', "size", sizelimit,
-                "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
-    cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
-               "Print debug info.");
-    cp.AddString('a', "algorithm", algorithm,
+
+    cp.AddString('a', "algorithm", ss.algorithm_,
                  "The prefix doubling algorithm which is used to construct the "
-                 "suffix array. [fl]ick (default) and [de]mentiev are "
-                 "available.");
-    cp.AddSizeT('b', "bytes", sa_index_bytes,
+                 "suffix array. Available: "
+                 "[fl]ick (default), [de]mentiev, [dc3], and [dc7]");
+
+    cp.AddSizeT('b', "bytes", ss.sa_index_bytes_,
                 "Suffix array bytes per index: "
                 "4 (32-bit) (default), 5 (40-bit), 6 (48-bit), 8 (64-bit)");
-    cp.AddFlag('w', "bwt", generate_bwt,
+
+    cp.AddFlag('c', "check", ss.check_flag_,
+               "Check suffix array for correctness.");
+
+    cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
+               "Print debug info.");
+
+    cp.AddString('i', "input-copy", ss.input_copy_path_,
+                 "Write input text to given path.");
+
+    cp.AddString('o', "output", ss.output_path_,
+                 "Output suffix array [and if constructed Burrows–Wheeler "
+                 "transform] to given path.");
+
+    cp.AddBytes('s', "size", ss.sizelimit_,
+                "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
+
+    cp.AddFlag('t', "text", ss.text_output_flag_,
+               "Print out suffix array [and if constructed Burrows–Wheeler "
+               "transform] in readable text.");
+
+    cp.AddFlag('v', "verbatim", ss.input_verbatim_,
+               "Consider \"input\" as verbatim text to construct "
+               "suffix array on.");
+
+    cp.AddFlag('w', "bwt", ss.construct_bwt_,
                "Compute the Burrows–Wheeler transform in addition to the "
                "suffix array.");
 
     if (!cp.Process(argc, argv))
         return -1;
 
-    return Run(
-        [&](Context& ctx) {
-            return StartSuffixSorting(
-                ctx,
-                input_path, input_copy_path, output_path, sizelimit,
-                algorithm,
-                text_output_flag,
-                check_flag,
-                input_verbatim,
-                sa_index_bytes).Run();
-        });
+    return Run([&](Context& ctx) { return ss.Run(ctx); });
 }
 
 /******************************************************************************/
