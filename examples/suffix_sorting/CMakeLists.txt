@@ -10,7 +10,7 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-thrill_build_prog(prefix_doubling sa_checker.cpp bwt_generator.cpp)
+thrill_build_prog(suffix_sorting prefix_doubling.cpp sa_checker.cpp bwt_generator.cpp)
 thrill_build_prog(wavelet_tree)
 thrill_build_prog(wavelet_tree2)
 thrill_build_prog(wavelet_tree3)
