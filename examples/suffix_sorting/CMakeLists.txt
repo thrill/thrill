@@ -14,8 +14,8 @@ thrill_build_prog(suffix_sorting
   prefix_doubling.cpp dc3.cpp dc7.cpp)
 
 # disable debug symbols on large files
-set_source_files_properties(
-  prefix_doubling.cpp dc3.cpp dc7.cpp PROPERTIES COMPILE_FLAGS "-g0")
+# set_source_files_properties(
+#   prefix_doubling.cpp dc3.cpp dc7.cpp PROPERTIES COMPILE_FLAGS "-g0")
 
 thrill_build_prog(wavelet_tree)
 thrill_build_prog(wavelet_tree2)

@@ -11,6 +11,7 @@
 
 #include <examples/suffix_sorting/check_sa.hpp>
 #include <examples/suffix_sorting/construct_bwt.hpp>
+#include <examples/suffix_sorting/construct_wt.hpp>
 #include <examples/suffix_sorting/dc3.hpp>
 #include <examples/suffix_sorting/dc7.hpp>
 #include <examples/suffix_sorting/prefix_doubling.hpp>
@@ -62,7 +63,9 @@ public:
     bool text_output_flag_ = false;
     bool check_flag_ = false;
     bool input_verbatim_ = false;
-    bool construct_bwt_ = false;
+
+    std::string output_bwt_;
+    std::string output_wavelet_tree_;
 
     size_t sa_index_bytes_ = 4;
 
@@ -159,20 +162,27 @@ public:
             suffix_array.Keep().WriteBinary(output_path_);
         }
 
-        if (construct_bwt_) {
+        if (output_bwt_.size()) {
             InputDIA bw_transform =
-                ConstructBWT(input_dia.Keep(), suffix_array.Keep(), input_size);
+                ConstructBWT(input_dia, suffix_array, input_size);
 
             if (text_output_flag_) {
                 bw_transform.Keep().Print("bw_transform");
             }
-            if (output_path_.size()) {
-                if (input_dia.context().my_rank() == 0) {
-                    LOG1 << "writing Burrows–Wheeler transform to "
-                         << output_path_ << "-bwt-";
-                }
-                bw_transform.WriteBinary(output_path_ + "-bwt-");
+            if (input_dia.context().my_rank() == 0) {
+                LOG1 << "writing Burrows–Wheeler transform to "
+                     << output_bwt_;
             }
+            if (output_wavelet_tree_.size()) bw_transform.Keep();
+            bw_transform.WriteBinary(output_bwt_);
+
+            if (output_wavelet_tree_.size())
+                ConstructWaveletTree(bw_transform, output_wavelet_tree_);
+        }
+        else if (output_wavelet_tree_.size()) {
+            ConstructWaveletTree(
+                ConstructBWT(input_dia, suffix_array, input_size),
+                output_wavelet_tree_);
         }
     }
 };
@@ -203,6 +213,10 @@ int main(int argc, char* argv[]) {
                 "Suffix array bytes per index: "
                 "4 (32-bit) (default), 5 (40-bit), 6 (48-bit), 8 (64-bit)");
 
+    cp.AddString('B', "bwt", ss.output_bwt_,
+                 "Compute the Burrows–Wheeler transform in addition to the "
+                 "suffix array, and write to file.");
+
     cp.AddFlag('c', "check", ss.check_flag_,
                "Check suffix array for correctness.");
 
@@ -220,16 +234,16 @@ int main(int argc, char* argv[]) {
                 "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
 
     cp.AddFlag('t', "text", ss.text_output_flag_,
-               "Print out suffix array [and if constructed Burrows–Wheeler "
+               "Print out suffix array [and if constructed Burrows-Wheeler "
                "transform] in readable text.");
 
     cp.AddFlag('v', "verbatim", ss.input_verbatim_,
                "Consider \"input\" as verbatim text to construct "
                "suffix array on.");
 
-    cp.AddFlag('w', "bwt", ss.construct_bwt_,
-               "Compute the Burrows–Wheeler transform in addition to the "
-               "suffix array.");
+    cp.AddString('w', "wavelet", ss.output_wavelet_tree_,
+                 "Compute the Wavelet Tree of the Burrows-Wheeler transform, "
+                 "and write to file.");
 
     if (!cp.Process(argc, argv))
         return -1;
