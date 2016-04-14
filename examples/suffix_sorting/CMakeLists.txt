@@ -22,44 +22,28 @@ thrill_build_prog(wavelet_tree2)
 thrill_build_prog(wavelet_tree3)
 thrill_build_prog(rl_bwt)
 
-thrill_test_single(prefix_doubling1_aaa3 "THRILL_LOCAL=3"
-  suffix_sorting -c -s 10000 -a fl unary)
-thrill_test_single(prefix_doubling1_aaa4 "THRILL_LOCAL=4"
+thrill_test_multiple(prefix_doubling1_aaa
   suffix_sorting -c -s 10000 -a fl unary)
 
-thrill_test_single(prefix_doubling1_random3 "THRILL_LOCAL=3"
-  suffix_sorting -c -s 100000 -a fl random)
-thrill_test_single(prefix_doubling1_random4 "THRILL_LOCAL=4"
+thrill_test_multiple(prefix_doubling1_random
   suffix_sorting -c -s 100000 -a fl random)
 
-thrill_test_single(prefix_doubling2_aaa3 "THRILL_LOCAL=3"
-  suffix_sorting -c -s 10000 -a de unary)
-thrill_test_single(prefix_doubling2_aaa4 "THRILL_LOCAL=4"
+thrill_test_multiple(prefix_doubling2_aaa
   suffix_sorting -c -s 10000 -a de unary)
 
-thrill_test_single(prefix_doubling2_random3 "THRILL_LOCAL=3"
-  suffix_sorting -c -s 100000 -a de random)
-thrill_test_single(prefix_doubling2_random4 "THRILL_LOCAL=4"
+thrill_test_multiple(prefix_doubling2_random
   suffix_sorting -c -s 100000 -a de random)
 
-thrill_test_single(dc3_aaa3 "THRILL_LOCAL=3"
-  suffix_sorting -a dc3 -c -s 10000 unary)
-thrill_test_single(dc3_aaa4 "THRILL_LOCAL=4"
+thrill_test_multiple(dc3_aaa
   suffix_sorting -a dc3 -c -s 10000 unary)
 
-thrill_test_single(dc3_random3 "THRILL_LOCAL=3"
-  suffix_sorting -a dc3 -c -s 100000 random)
-thrill_test_single(dc3_random4 "THRILL_LOCAL=4"
+thrill_test_multiple(dc3_random
   suffix_sorting -a dc3 -c -s 100000 random)
 
-thrill_test_single(dc7_aaa3 "THRILL_LOCAL=3"
-  suffix_sorting -a dc7 -c -s 10000 unary)
-thrill_test_single(dc7_aaa4 "THRILL_LOCAL=4"
+thrill_test_multiple(dc7_aaa
   suffix_sorting -a dc7 -c -s 10000 unary)
 
-thrill_test_single(dc7_random3 "THRILL_LOCAL=3"
-  suffix_sorting -a dc7 -c -s 100000 random)
-thrill_test_single(dc7_random4 "THRILL_LOCAL=4"
+thrill_test_multiple(dc7_random
   suffix_sorting -a dc7 -c -s 100000 random)
 
 if(MSVC)

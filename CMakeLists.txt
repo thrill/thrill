@@ -438,6 +438,15 @@ macro(thrill_test_single TESTNAME ENVIRON PROG)
 
 endmacro(thrill_test_single)
 
+# macro for registering test programs: prepends environment variables
+# Usage: thrill_test_multiple(testname program args)
+macro(thrill_test_multiple TESTNAME)
+
+  thrill_test_single("${TESTNAME}3" "THRILL_LOCAL=3" ${ARGN})
+  thrill_test_single("${TESTNAME}4" "THRILL_LOCAL=4" ${ARGN})
+
+endmacro(thrill_test_multiple)
+
 ################################################################################
 ### Descend into Subdirectories
 
