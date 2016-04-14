@@ -40,11 +40,7 @@
 
 namespace examples {
 namespace suffix_sorting {
-
-bool generate_bwt = false;
-
-using namespace thrill; // NOLINT
-using thrill::common::RingBuffer;
+namespace dc3_local {
 
 //! A triple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename AlphabetType>
@@ -234,14 +230,18 @@ struct IndexCR12Pair {
     CharsRanks12<Index, Char> cr1;
 } THRILL_ATTRIBUTE_PACKED;
 
+} // namespace dc3_local
+
+using namespace thrill; // NOLINT
+using thrill::common::RingBuffer;
+
 template <typename Index, typename InputDIA>
 DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
-    input_dia.context().enable_consume(!generate_bwt);
 
     using Char = typename InputDIA::ValueType;
-    using IndexChars = suffix_sorting::IndexChars<Index, Char>;
-    using IndexRank = suffix_sorting::IndexRank<Index>;
-    using Chars = suffix_sorting::Chars<Char>;
+    using IndexChars = dc3_local::IndexChars<Index, Char>;
+    using IndexRank = dc3_local::IndexRank<Index>;
+    using Chars = dc3_local::Chars<Char>;
 
     Context& ctx = input_dia.context();
 
@@ -480,12 +480,12 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.
 
-    using StringFragmentMod0 = suffix_sorting::StringFragmentMod0<Index, Char>;
-    using StringFragmentMod1 = suffix_sorting::StringFragmentMod1<Index, Char>;
-    using StringFragmentMod2 = suffix_sorting::StringFragmentMod2<Index, Char>;
+    using StringFragmentMod0 = dc3_local::StringFragmentMod0<Index, Char>;
+    using StringFragmentMod1 = dc3_local::StringFragmentMod1<Index, Char>;
+    using StringFragmentMod2 = dc3_local::StringFragmentMod2<Index, Char>;
 
-    using CharsRanks12 = suffix_sorting::CharsRanks12<Index, Char>;
-    using IndexCR12Pair = suffix_sorting::IndexCR12Pair<Index, Char>;
+    using CharsRanks12 = dc3_local::CharsRanks12<Index, Char>;
+    using IndexCR12Pair = dc3_local::IndexCR12Pair<Index, Char>;
 
     auto zip_triple_pairs1 =
         ZipPadding(
@@ -582,7 +582,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         sorted_fragments_mod2.Keep().Print("sorted_fragments_mod2");
     }
 
-    using StringFragment = suffix_sorting::StringFragment<Index, Char>;
+    using StringFragment = dc3_local::StringFragment<Index, Char>;
 
     auto string_fragments_mod0 =
         sorted_fragments_mod0
@@ -602,7 +602,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
     // merge and map to only suffix array
 
     auto suffix_array =
-        Merge(FragmentComparator<StringFragment>(),
+        Merge(dc3_local::FragmentComparator<StringFragment>(),
               string_fragments_mod0,
               string_fragments_mod1,
               string_fragments_mod2)

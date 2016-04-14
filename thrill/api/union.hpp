@@ -15,6 +15,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dia_node.hpp>
 
+#include <algorithm>
 #include <initializer_list>
 #include <vector>
 

@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -14,6 +15,8 @@
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dia_node.hpp>
+
+#include <algorithm>
 
 namespace thrill {
 namespace api {

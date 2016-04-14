@@ -11,10 +11,11 @@
 ################################################################################
 
 thrill_build_prog(suffix_sorting
-  prefix_doubling.cpp dc3.cpp dc7.cpp sa_checker.cpp bwt_generator.cpp)
+  prefix_doubling.cpp dc3.cpp dc7.cpp)
 
+# disable debug symbols on large files
 set_source_files_properties(
-  prefix_doubling.cpp dc3.cpp dc7.cpp PROPERTIES COMPILE_FLAGS "-g0 -O1")
+  prefix_doubling.cpp dc3.cpp dc7.cpp PROPERTIES COMPILE_FLAGS "-g0")
 
 thrill_build_prog(wavelet_tree)
 thrill_build_prog(wavelet_tree2)
@@ -41,33 +42,29 @@ thrill_test_single(prefix_doubling2_random3 "THRILL_LOCAL=3"
 thrill_test_single(prefix_doubling2_random4 "THRILL_LOCAL=4"
   suffix_sorting -c -s 100000 -a de random)
 
+thrill_test_single(dc3_aaa3 "THRILL_LOCAL=3"
+  suffix_sorting -a dc3 -c -s 10000 unary)
+thrill_test_single(dc3_aaa4 "THRILL_LOCAL=4"
+  suffix_sorting -a dc3 -c -s 10000 unary)
+
+thrill_test_single(dc3_random3 "THRILL_LOCAL=3"
+  suffix_sorting -a dc3 -c -s 100000 random)
+thrill_test_single(dc3_random4 "THRILL_LOCAL=4"
+  suffix_sorting -a dc3 -c -s 100000 random)
+
+thrill_test_single(dc7_aaa3 "THRILL_LOCAL=3"
+  suffix_sorting -a dc7 -c -s 10000 unary)
+thrill_test_single(dc7_aaa4 "THRILL_LOCAL=4"
+  suffix_sorting -a dc7 -c -s 10000 unary)
+
+thrill_test_single(dc7_random3 "THRILL_LOCAL=3"
+  suffix_sorting -a dc7 -c -s 100000 random)
+thrill_test_single(dc7_random4 "THRILL_LOCAL=4"
+  suffix_sorting -a dc7 -c -s 100000 random)
+
 if(MSVC)
   # requires /bigobj flag to build
   set_target_properties(suffix_sorting PROPERTIES COMPILE_FLAGS /bigobj)
-endif()
-
-if(THRILL_FULL_BUILD)
-
-  if(MSVC)
-    # requires /bigobj flag to build
-    #set_target_properties(dc3 PROPERTIES COMPILE_FLAGS /bigobj)
-    #set_target_properties(dc7 PROPERTIES COMPILE_FLAGS /bigobj)
-  else()
-    #set_target_properties(dc3 PROPERTIES COMPILE_FLAGS "-g0 -O1")
-    #set_target_properties(dc7 PROPERTIES COMPILE_FLAGS "-g0 -O1")
-  endif()
-
-  # thrill_test_single(dc3_aaa3 "THRILL_LOCAL=3" dc3 -c -s 10000 unary)
-  # thrill_test_single(dc3_aaa4 "THRILL_LOCAL=4" dc3 -c -s 10000 unary)
-
-  # thrill_test_single(dc3_random3 "THRILL_LOCAL=3" dc3 -c -s 100000 random)
-  # thrill_test_single(dc3_random4 "THRILL_LOCAL=4" dc3 -c -s 100000 random)
-
-  # thrill_test_single(dc7_aaa3 "THRILL_LOCAL=3" dc7 -c -s 10000 unary)
-  # thrill_test_single(dc7_aaa4 "THRILL_LOCAL=4" dc7 -c -s 10000 unary)
-
-  # thrill_test_single(dc7_random3 "THRILL_LOCAL=3" dc7 -c -s 100000 random)
-  # thrill_test_single(dc7_random4 "THRILL_LOCAL=4" dc7 -c -s 100000 random)
 endif()
 
 ################################################################################

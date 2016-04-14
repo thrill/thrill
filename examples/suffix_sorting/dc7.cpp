@@ -41,9 +41,7 @@
 
 namespace examples {
 namespace suffix_sorting {
-
-using namespace thrill; // NOLINT
-using thrill::common::RingBuffer;
+namespace dc7_local {
 
 //! A tuple with index (i,t_i,t_{i+1},t_{i+2},...,t_{i+6}).
 template <typename AlphabetType>
@@ -510,19 +508,23 @@ struct IndexCR013Pair {
     CharsRanks013<Index, Char> cr1;
 } THRILL_ATTRIBUTE_PACKED;
 
-bool IsDiffCover(size_t i) {
+} // namespace dc7_local
+
+using namespace thrill; // NOLINT
+using thrill::common::RingBuffer;
+
+static inline bool IsDiffCover7(size_t i) {
     size_t m = i % 7;
     return m == 0 || m == 1 || m == 3;
 }
 
 template <typename Index, typename InputDIA>
 DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
-    input_dia.context().enable_consume(!debug_print);
 
     using Char = typename InputDIA::ValueType;
-    using IndexChars = suffix_sorting::IndexChars<Index, Char>;
-    using IndexRank = suffix_sorting::IndexRank<Index>;
-    using Chars = suffix_sorting::Chars<Char>;
+    using IndexChars = dc7_local::IndexChars<Index, Char>;
+    using IndexRank = dc7_local::IndexRank<Index>;
+    using Chars = dc7_local::Chars<Char>;
 
     Context& ctx = input_dia.context();
 
@@ -531,7 +533,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         // map (t_i) -> (i,t_i,t_{i+1},...,t_{i+6}) where i = 0,1,3 mod 7
         .template FlatWindow<IndexChars>(
             7, [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
-                if (IsDiffCover(index))
+                if (IsDiffCover7(index))
                     emit(IndexChars {
                              Index(index), {
                                  { r[0], r[1], r[2], r[3], r[4], r[5], r[6] }
@@ -540,42 +542,42 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
 
                 if (index + 7 == input_size) {
                     // emit last sentinel items.
-                    if (IsDiffCover(index + 1))
+                    if (IsDiffCover7(index + 1))
                         emit(IndexChars {
                                  Index(index + 1), {
                                      { r[1], r[2], r[3], r[4],
                                        r[5], r[6], Char() }
                                  }
                              });
-                    if (IsDiffCover(index + 2))
+                    if (IsDiffCover7(index + 2))
                         emit(IndexChars {
                                  Index(index + 2), {
                                      { r[2], r[3], r[4], r[5],
                                        r[6], Char(), Char() }
                                  }
                              });
-                    if (IsDiffCover(index + 3))
+                    if (IsDiffCover7(index + 3))
                         emit(IndexChars {
                                  Index(index + 3), {
                                      { r[3], r[4], r[5], r[6],
                                        Char(), Char(), Char() }
                                  }
                              });
-                    if (IsDiffCover(index + 4))
+                    if (IsDiffCover7(index + 4))
                         emit(IndexChars {
                                  Index(index + 4), {
                                      { r[4], r[5], r[6], Char(),
                                        Char(), Char(), Char() }
                                  }
                              });
-                    if (IsDiffCover(index + 5))
+                    if (IsDiffCover7(index + 5))
                         emit(IndexChars {
                                  Index(index + 5), {
                                      { r[5], r[6], Char(), Char(),
                                        Char(), Char(), Char() }
                                  }
                              });
-                    if (IsDiffCover(index + 6))
+                    if (IsDiffCover7(index + 6))
                         emit(IndexChars {
                                  Index(index + 6), {
                                      { r[6], Char(), Char(), Char(),
@@ -855,16 +857,16 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.
 
-    using StringFragmentMod0 = suffix_sorting::StringFragmentMod0<Index, Char>;
-    using StringFragmentMod1 = suffix_sorting::StringFragmentMod1<Index, Char>;
-    using StringFragmentMod2 = suffix_sorting::StringFragmentMod2<Index, Char>;
-    using StringFragmentMod3 = suffix_sorting::StringFragmentMod3<Index, Char>;
-    using StringFragmentMod4 = suffix_sorting::StringFragmentMod4<Index, Char>;
-    using StringFragmentMod5 = suffix_sorting::StringFragmentMod5<Index, Char>;
-    using StringFragmentMod6 = suffix_sorting::StringFragmentMod6<Index, Char>;
+    using StringFragmentMod0 = dc7_local::StringFragmentMod0<Index, Char>;
+    using StringFragmentMod1 = dc7_local::StringFragmentMod1<Index, Char>;
+    using StringFragmentMod2 = dc7_local::StringFragmentMod2<Index, Char>;
+    using StringFragmentMod3 = dc7_local::StringFragmentMod3<Index, Char>;
+    using StringFragmentMod4 = dc7_local::StringFragmentMod4<Index, Char>;
+    using StringFragmentMod5 = dc7_local::StringFragmentMod5<Index, Char>;
+    using StringFragmentMod6 = dc7_local::StringFragmentMod6<Index, Char>;
 
-    using CharsRanks013 = suffix_sorting::CharsRanks013<Index, Char>;
-    using IndexCR013Pair = suffix_sorting::IndexCR013Pair<Index, Char>;
+    using CharsRanks013 = dc7_local::CharsRanks013<Index, Char>;
+    using IndexCR013Pair = dc7_local::IndexCR013Pair<Index, Char>;
 
     auto zip_tuple_pairs1 =
         ZipPadding(
@@ -1055,7 +1057,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         sorted_fragments_mod6.Keep().Print("sorted_fragments_mod6");
     }
 
-    using StringFragment = suffix_sorting::StringFragment<Index, Char>;
+    using StringFragment = dc7_local::StringFragment<Index, Char>;
 
     auto string_fragments_mod0 =
         sorted_fragments_mod0
@@ -1095,7 +1097,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
     // merge and map to only suffix array
 
     auto suffix_array =
-        Merge(FragmentComparator<StringFragment>(),
+        Merge(dc7_local::FragmentComparator<StringFragment>(),
               string_fragments_mod0,
               string_fragments_mod1,
               string_fragments_mod2,
