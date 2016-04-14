@@ -35,8 +35,8 @@
 #include <utility>
 #include <vector>
 
-using namespace thrill;
-using namespace examples::suffix_sorting;
+using namespace thrill;                   // NOLINT
+using namespace examples::suffix_sorting; // NOLINT
 
 namespace examples {
 namespace suffix_sorting {
@@ -67,6 +67,8 @@ public:
     size_t sa_index_bytes_ = 4;
 
     void Run(Context& ctx) const {
+        ctx.enable_consume();
+
         if (input_verbatim_) {
             // take path as verbatim text
             std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
@@ -106,7 +108,7 @@ public:
         }
         else {
             auto input_dia = ReadBinary<uint8_t>(ctx, input_path_).Collapse();
-            size_t input_size = input_dia.Size();
+            size_t input_size = input_dia.Keep().Size();
             SwitchIndexType(input_dia, input_size);
         }
     }
@@ -142,8 +144,9 @@ public:
         }
 
         if (check_flag_) {
-            LOG1 << "checking suffix array...";
-            die_unless(CheckSA(input_dia.Keep(), suffix_array));
+            if (input_dia.context().my_rank() == 0)
+                LOG1 << "checking suffix array...";
+            die_unless(CheckSA(input_dia.Keep(), suffix_array.Keep()));
         }
 
         if (text_output_flag_) {
@@ -151,19 +154,24 @@ public:
         }
 
         if (output_path_.size()) {
-            LOG1 << "writing suffix array to " << output_path_;
+            if (input_dia.context().my_rank() == 0)
+                LOG1 << "writing suffix array to " << output_path_;
             suffix_array.Keep().WriteBinary(output_path_);
         }
 
         if (construct_bwt_) {
-            InputDIA bw_transform = ConstructBWT(input_dia, suffix_array);
+            InputDIA bw_transform =
+                ConstructBWT(input_dia.Keep(), suffix_array.Keep(), input_size);
 
             if (text_output_flag_) {
                 bw_transform.Keep().Print("bw_transform");
             }
             if (output_path_.size()) {
-                LOG1 << "writing Burrows–Wheeler transform to " << output_path_;
-                bw_transform.WriteBinary(output_path_ + "bwt");
+                if (input_dia.context().my_rank() == 0) {
+                    LOG1 << "writing Burrows–Wheeler transform to "
+                         << output_path_ << "-bwt-";
+                }
+                bw_transform.WriteBinary(output_path_ + "-bwt-");
             }
         }
     }

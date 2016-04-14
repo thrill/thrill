@@ -47,7 +47,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
         Char  ch;
     } THRILL_ATTRIBUTE_PACKED;
 
-    uint64_t input_size = input.Size();
+    uint64_t input_size = input.Keep().Size();
 
     auto isa_pair =
         suffix_array

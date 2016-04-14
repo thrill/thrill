@@ -657,17 +657,20 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
     }
 
     if (debug_print) {
-        assert_equal(tuple_sorted.Filter([](const IndexChars& a) {
-                                             return a.index % 7 == 0;
-                                         }).Size(), size_mod0);
+        assert_equal(
+            tuple_sorted.Keep().Filter([](const IndexChars& a) {
+                                           return a.index % 7 == 0;
+                                       }).Size(), size_mod0);
 
-        assert_equal(tuple_sorted.Filter([](const IndexChars& a) {
-                                             return a.index % 7 == 1;
-                                         }).Size(), size_mod1);
+        assert_equal(
+            tuple_sorted.Keep().Filter([](const IndexChars& a) {
+                                           return a.index % 7 == 1;
+                                       }).Size(), size_mod1);
 
-        assert_equal(tuple_sorted.Filter([](const IndexChars& a) {
-                                             return a.index % 7 == 3;
-                                         }).Size(), size_mod3);
+        assert_equal(
+            tuple_sorted.Keep().Filter([](const IndexChars& a) {
+                                           return a.index % 7 == 3;
+                                       }).Size(), size_mod3);
     }
 
     assert_equal(tuple_index_sorted.Keep().Size(), size_subp);
@@ -1127,8 +1130,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         }
     }
 
-    // check result: requires enable_consume(false)
-    // die_unless(CheckSA(input_dia, suffix_array.Collapse()));
+    // check intermediate result, requires an input_dia.Keep() above!
+    // die_unless(CheckSA(input_dia, suffix_array.Keep()));
 
     return suffix_array.Collapse();
 }

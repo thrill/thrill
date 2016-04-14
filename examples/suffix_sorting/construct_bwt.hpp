@@ -24,11 +24,10 @@ namespace examples {
 namespace suffix_sorting {
 
 template <typename InputDIA, typename SuffixArrayDIA>
-InputDIA ConstructBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
+InputDIA ConstructBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array,
+                      uint64_t input_size) {
 
-    using namespace thrill; // NOLINT
-
-    Context& ctx = input.ctx();
+    thrill::Context& ctx = input.ctx();
 
     using Char = typename InputDIA::ValueType;
     using Index = typename SuffixArrayDIA::ValueType;
@@ -43,37 +42,30 @@ InputDIA ConstructBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array)
         Char  ch;
     } THRILL_ATTRIBUTE_PACKED;
 
-    uint64_t input_size = input.Size();
-
-    DIA<Index> indices = Generate(
-        ctx, [](size_t index) { return Index(index); }, input_size);
-
-    auto bwt =
-        suffix_array
-        .Map([input_size](const Index& i) {
-                 if (i == Index(0))
-                     return Index(input_size - 1);
-                 return Index(i - 1);
-             })
-        .Zip(indices,
-             [](const Index& text_pos, const Index& idx) {
-                 return IndexRank { text_pos, idx };
-             })
-        .Sort([](const IndexRank& a, const IndexRank& b) {
-                  return a.index < b.index;
-              })
-        .Zip(input,
-             [](const IndexRank& text_order, const Char& ch) {
-                 return IndexChar { text_order.rank, ch };
-             })
-        .Sort([](const IndexChar& a, const IndexChar& b) {
-                  return a.index < b.index;
-              })
-        .Map([](const IndexChar& ic) {
-                 return ic.ch;
-             });
-
-    return bwt.Collapse();
+    return suffix_array
+           .Map([input_size](const Index& i) {
+                    if (i == Index(0))
+                        return Index(input_size - 1);
+                    return Index(i - 1);
+                })
+           .Zip(Generate(ctx, input_size),
+                [](const size_t& text_pos, const Index& idx) {
+                    return IndexRank { Index(text_pos), idx };
+                })
+           .Sort([](const IndexRank& a, const IndexRank& b) {
+                     return a.index < b.index;
+                 })
+           .Zip(input,
+                [](const IndexRank& text_order, const Char& ch) {
+                    return IndexChar { text_order.rank, ch };
+                })
+           .Sort([](const IndexChar& a, const IndexChar& b) {
+                     return a.index < b.index;
+                 })
+           .Map([](const IndexChar& ic) {
+                    return ic.ch;
+                })
+           .Collapse();
 }
 
 } // namespace suffix_sorting

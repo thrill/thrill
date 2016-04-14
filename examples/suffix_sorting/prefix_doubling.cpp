@@ -166,10 +166,6 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size) {
-    // enable online consume of DIA contents if not debugging and not computing
-    // the BWT.
-    input_dia.context().enable_consume(!debug_print);
-
     LOG1 << "Running PrefixDoublingDementiev";
 
     using Char = typename InputDIA::ValueType;
@@ -239,7 +235,7 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                   });
 
         if (debug_print)
-            names_sorted.Print("names_sorted");
+            names_sorted.Keep().Print("names_sorted");
 
         size_t next_index = size_t(1) << iteration++;
 
@@ -301,9 +297,6 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
-    // enable online consume of DIA contents if not debugging and not computing
-    // the BWT.
-    input_dia.context().enable_consume(!debug_print);
 
     using Char = typename InputDIA::ValueType;
     using IndexRank = suffix_sorting::IndexRank<Index>;
@@ -337,7 +330,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
         .Sort();
 
     if (debug_print)
-        one_mers_sorted.Print("one_mers_sorted");
+        one_mers_sorted.Keep().Print("one_mers_sorted");
 
     auto rebucket =
         one_mers_sorted.Keep()
@@ -350,7 +343,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
         .PrefixSum(common::maximum<Index>());
 
     if (debug_print)
-        rebucket.Print("rebucket");
+        rebucket.Keep().Print("rebucket");
 
     DIA<Index> sa =
         one_mers_sorted
@@ -360,7 +353,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
         .Collapse();
 
     if (debug_print)
-        sa.Print("sa");
+        sa.Keep().Print("sa");
 
     size_t shift_exp = 0;
     while (true) {
@@ -375,7 +368,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
                   });
 
         if (debug_print)
-            isa.Print("isa");
+            isa.Keep().Print("isa");
 
         size_t shift_by = (1 << shift_exp++) + 1;
 
@@ -397,7 +390,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
             .Sort();
 
         if (debug_print)
-            triple_sorted.Print("triple_sorted");
+            triple_sorted.Keep().Print("triple_sorted");
 
         // If we don't care about the number of singletons, it's sufficient to
         // test two.
@@ -416,7 +409,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
             .Collapse();
 
         if (debug_print)
-            sa.Print("sa");
+            sa.Keep().Print("sa");
 
         sLOG0 << "non_singletons" << non_singletons;
 
@@ -436,7 +429,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
             .PrefixSum(common::maximum<Index>());
 
         if (debug_print)
-            rebucket.Print("rebucket");
+            rebucket.Keep().Print("rebucket");
     }
 }
 

@@ -612,8 +612,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
     // debug output
 
     if (debug_print) {
-        std::vector<Char> input_vec = input_dia.AllGather();
-        std::vector<Index> vec = suffix_array.AllGather();
+        std::vector<Char> input_vec = input_dia.Keep().AllGather();
+        std::vector<Index> vec = suffix_array.Keep().AllGather();
 
         if (ctx.my_rank() == 0) {
             for (const Index& index : vec)
@@ -627,8 +627,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         }
     }
 
-    // check result: requires enable_consume(false)
-    // die_unless(CheckSA(input_dia, suffix_array.Collapse()));
+    // check intermediate result, requires an input_dia.Keep() above!
+    // die_unless(CheckSA(input_dia, suffix_array.Keep()));
 
     return suffix_array.Collapse();
 }
