@@ -24,7 +24,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA, typename SumFunction>
+template <typename ValueType, typename SumFunction>
 class PrefixSumNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -33,13 +33,15 @@ class PrefixSumNode final : public DOpNode<ValueType>
     using Super::context_;
 
 public:
+    template <typename ParentDIA>
     PrefixSumNode(const ParentDIA& parent,
                   const SumFunction& sum_function,
                   const ValueType& initial_element)
         : Super(parent.ctx(), "PrefixSum", { parent.id() }, { parent.node() }),
           sum_function_(sum_function),
           local_sum_(initial_element),
-          initial_element_(initial_element)
+          initial_element_(initial_element),
+          parent_stack_empty_(ParentDIA::stack_empty)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const ValueType& input) {
@@ -58,7 +60,7 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!ParentDIA::stack_empty) return false;
+        if (!parent_stack_empty_) return false;
         // copy complete Block references to writer_
         file_ = file.Copy();
         // read File for prefix sum.
@@ -110,6 +112,8 @@ private:
     ValueType local_sum_;
     //! Initial element.
     ValueType initial_element_;
+    //! Whether the parent stack is empty
+    const bool parent_stack_empty_;
 
     //! Local data file
     data::File file_ { context_.GetFile(this) };
@@ -123,8 +127,7 @@ auto DIA<ValueType, Stack>::PrefixSum(
     const SumFunction &sum_function, const ValueType &initial_element) const {
     assert(IsValid());
 
-    using PrefixSumNode
-              = api::PrefixSumNode<ValueType, DIA, SumFunction>;
+    using PrefixSumNode = api::PrefixSumNode<ValueType, SumFunction>;
 
     static_assert(
         std::is_convertible<

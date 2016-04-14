@@ -399,7 +399,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
 
         ranks_rec =
             triple_index_sorted
-            .Zip(Generate(ctx, size_subp),
+            .Zip(Generate(ctx, size_subp + Index(1)),
                  [](const Index& sa, const Index& i) {
                      return IndexRank { sa, i };
                  })
@@ -746,10 +746,6 @@ public:
 #ifdef NDEBUG
         else if (sa_index_bytes_ == 5)
             return StartDC3Input<common::uint40>(input_dia, input_size);
-        else if (sa_index_bytes_ == 6)
-            return StartDC3Input<common::uint48>(input_dia, input_size);
-        else if (sa_index_bytes_ == 8)
-            return StartDC3Input<uint64_t>(input_dia, input_size);
 #endif
         else
             die("Unsupported index byte size: " << sa_index_bytes_);

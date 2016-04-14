@@ -24,7 +24,7 @@ auto DIA<ValueType, Stack>::Max(
     const MaxFunction &max_function, const ValueType &initial_value) const {
     assert(IsValid());
 
-    using MaxNode = api::AllReduceNode<DIA, MaxFunction>;
+    using MaxNode = api::AllReduceNode<ValueType, MaxFunction>;
 
     static_assert(
         std::is_convertible<

@@ -24,7 +24,7 @@ auto DIA<ValueType, Stack>::Sum(
     const SumFunction &sum_function, const ValueType &initial_value) const {
     assert(IsValid());
 
-    using SumNode = api::AllReduceNode<DIA, SumFunction>;
+    using SumNode = api::AllReduceNode<ValueType, SumFunction>;
 
     static_assert(
         std::is_convertible<

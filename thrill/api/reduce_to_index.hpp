@@ -54,7 +54,7 @@ class DefaultReduceToIndexConfig : public core::DefaultReduceConfig
  *
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA,
+template <typename ValueType,
           typename KeyExtractor, typename ReduceFunction,
           typename ReduceConfig,
           bool VolatileKey, bool SendPair>
@@ -96,6 +96,7 @@ public:
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
      * key_extractor and reduce_function.
      */
+    template <typename ParentDIA>
     ReduceToIndexNode(const ParentDIA& parent,
                       const char* label,
                       const KeyExtractor& key_extractor,
@@ -290,7 +291,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
         "The key has to be an unsigned long int (aka. size_t).");
 
     using ReduceNode = ReduceToIndexNode<
-              DOpResult, DIA, KeyExtractor, ReduceFunction,
+              DOpResult, KeyExtractor, ReduceFunction,
               ReduceConfig, /* VolatileKey */ false, false>;
 
     auto node = common::MakeCounting<ReduceNode>(
@@ -348,7 +349,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
         "The key has to be an unsigned long int (aka. size_t).");
 
     using ReduceNode = ReduceToIndexNode<
-              DOpResult, DIA, KeyExtractor, ReduceFunction,
+              DOpResult, KeyExtractor, ReduceFunction,
               ReduceConfig, /* VolatileKey */ true, false>;
 
     auto node = common::MakeCounting<ReduceNode>(

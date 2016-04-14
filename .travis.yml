@@ -32,7 +32,7 @@ matrix:
             - openmpi-bin
             - libopenmpi-dev
 
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS="" USE_SWIG="1" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS="" USE_SWIG="1"
       os: linux
       addons: *gcc5
 
