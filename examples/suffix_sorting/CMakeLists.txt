@@ -13,6 +13,7 @@
 thrill_build_prog(prefix_doubling sa_checker.cpp bwt_generator.cpp)
 thrill_build_prog(wavelet_tree)
 thrill_build_prog(wavelet_tree2)
+thrill_build_prog(wavelet_tree3)
 thrill_build_prog(rl_bwt)
 
 thrill_test_single(prefix_doubling1_aaa3 "THRILL_LOCAL=3"
