@@ -71,12 +71,14 @@ public:
         // accept file
         assert(file_.num_items() == 0);
         file_ = file.Copy();
-        // read last k - 1 items from File
-        size_t pos = file_.num_items() > window_size_ - 1 ?
-                     file_.num_items() - window_size_ + 1 : 0;
-        auto reader = file_.GetReaderAt<Input>(pos);
-        while (reader.HasNext())
-            window_.push_back(reader.template Next<Input>());
+        if (file_.num_items() != 0) {
+            // read last k - 1 items from File
+            size_t pos = file_.num_items() > window_size_ - 1 ?
+                         file_.num_items() - window_size_ + 1 : 0;
+            auto reader = file_.GetReaderAt<Input>(pos);
+            while (reader.HasNext())
+                window_.push_back(reader.template Next<Input>());
+        }
         return true;
     }
 
