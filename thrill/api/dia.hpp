@@ -53,12 +53,20 @@ struct DisjointTag {
 const struct DisjointTag DisjointTag;
 
 //! tag structure for Zip()
-struct UnequalTag {
-    UnequalTag() { }
+struct CutTag {
+    CutTag() { }
 };
 
-//! global const UnequalTag instance
-const struct UnequalTag UnequalTag;
+//! global const CutTag instance
+const struct CutTag CutTag;
+
+//! tag structure for Zip()
+struct PadTag {
+    PadTag() { }
+};
+
+//! global const PadTag instance
+const struct PadTag PadTag;
 
 /*!
  * DIA is the interface between the user and the Thrill framework. A DIA can be
@@ -858,7 +866,7 @@ public:
      * inferred from the zip_function.
      *
      * The two input DIAs are required to be of equal size, otherwise use the
-     * UnequalTag variant.
+     * CutTag variant.
      *
      * \tparam ZipFunction Type of the zip_function. This is a function with two
      * input elements, both of the local type, and one output element, which is
@@ -882,7 +890,7 @@ public:
      * zip_function.
      *
      * If the two input DIAs are of unequal size, the result is the shorter of
-     * both. Otherwise use ZipPad().
+     * both. Otherwise use PadTag().
      *
      * \tparam ZipFunction Type of the zip_function. This is a function with two
      * input elements, both of the local type, and one output element, which is
@@ -896,7 +904,31 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(struct UnequalTag, const SecondDIA &second_dia,
+    auto Zip(struct CutTag, const SecondDIA &second_dia,
+             const ZipFunction &zip_function) const;
+
+    /*!
+     * Zips two DIAs in style of functional programming by applying zip_function
+     * to the i-th elements of both input DIAs to form the i-th element of the
+     * output DIA. The type of the output DIA can be inferred from the
+     * zip_function.
+     *
+     * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs
+     * are padded with default-constructed items.
+     *
+     * \tparam ZipFunction Type of the zip_function. This is a function with two
+     * input elements, both of the local type, and one output element, which is
+     * the type of the Zip node.
+     *
+     * \param zip_function Zip function, which zips two elements together
+     *
+     * \param second_dia DIA, which is zipped together with the original
+     * DIA.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename ZipFunction, typename SecondDIA>
+    auto Zip(struct PadTag, const SecondDIA &second_dia,
              const ZipFunction &zip_function) const;
 
     /*!
@@ -1081,7 +1113,10 @@ using api::DisjointTag;
 using api::VolatileKeyTag;
 
 //! imported from api namespace
-using api::UnequalTag;
+using api::CutTag;
+
+//! imported from api namespace
+using api::PadTag;
 
 } // namespace thrill
 

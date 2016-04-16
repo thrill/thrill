@@ -375,7 +375,7 @@ private:
  * zip_function.
  *
  * The two input DIAs are required to be of equal size, otherwise use the
- * UnequalTag variant.
+ * CutTag variant.
  *
  * \tparam ZipFunction Type of the zip_function. This is a function with two
  * input elements, both of the local type, and one output element, which is
@@ -426,13 +426,13 @@ auto Zip(const ZipFunction &zip_function,
 }
 
 /*!
- * Zips two DIAs of equal size in style of functional programming by applying
- * zip_function to the i-th elements of both input DIAs to form the i-th element
- * of the output DIA. The type of the output DIA can be inferred from the
- * zip_function.
+ * Zips any number of DIAs of equal size in style of functional programming by
+ * applying zip_function to the i-th elements of both input DIAs to form the
+ * i-th element of the output DIA. The type of the output DIA can be inferred
+ * from the zip_function.
  *
  * If the two input DIAs are of unequal size, the result is the shorter of
- * both. Otherwise use ZipPad().
+ * both. Otherwise use the PadTag variant.
  *
  * \tparam ZipFunction Type of the zip_function. This is a function with two
  * input elements, both of the local type, and one output element, which is the
@@ -448,7 +448,7 @@ auto Zip(const ZipFunction &zip_function,
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
-auto Zip(struct UnequalTag,
+auto Zip(struct CutTag,
          const ZipFunction &zip_function,
          const DIA<FirstDIAType, FirstDIAStack>&first_dia,
          const DIAs &... dias) {
@@ -483,28 +483,14 @@ auto Zip(struct UnequalTag,
     return DIA<ZipResult>(node);
 }
 
-template <typename ValueType, typename Stack>
-template <typename ZipFunction, typename SecondDIA>
-auto DIA<ValueType, Stack>::Zip(
-    const SecondDIA &second_dia, const ZipFunction &zip_function) const {
-    return api::Zip(zip_function, *this, second_dia);
-}
-
-template <typename ValueType, typename Stack>
-template <typename ZipFunction, typename SecondDIA>
-auto DIA<ValueType, Stack>::Zip(
-    struct UnequalTag, const SecondDIA &second_dia,
-    const ZipFunction &zip_function) const {
-    return api::Zip(UnequalTag, zip_function, *this, second_dia);
-}
-
 /*!
- * ZipPad is a DOp, which Zips any number of DIAs in style of functional
- * programming. The zip_function is used to zip the i-th elements of all input
- * DIAs together to form the i-th element of the output DIA. The type of the
- * output DIA can be inferred from the zip_function. The output DIA's length is
- * the *maximum* of all input DIAs, shorter DIAs are padded with
- * default-constructed items.
+ * Zips any number of DIAs in style of functional programming by applying
+ * zip_function to the i-th elements of both input DIAs to form the i-th element
+ * of the output DIA. The type of the output DIA can be inferred from the
+ * zip_function.
+ *
+ * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs are
+ * padded with default-constructed items.
  *
  * \tparam ZipFunction Type of the zip_function. This is a function with two
  * input elements, both of the local type, and one output element, which is
@@ -520,9 +506,10 @@ auto DIA<ValueType, Stack>::Zip(
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
-auto ZipPad(const ZipFunction &zip_function,
-            const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-            const DIAs &... dias) {
+auto Zip(struct PadTag,
+         const ZipFunction &zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
+         const DIAs &... dias) {
 
     using VarForeachExpander = int[];
 
@@ -555,12 +542,13 @@ auto ZipPad(const ZipFunction &zip_function,
 }
 
 /*!
- * ZipPad is a DOp, which Zips any number of DIAs in style of functional
- * programming. The zip_function is used to zip the i-th elements of all input
- * DIAs together to form the i-th element of the output DIA. The type of the
- * output DIA can be inferred from the zip_function. The output DIA's length is
- * the *maximum* of all input DIAs, shorter DIAs are padded with items given by
- * the padding parameter.
+ * Zips any number of DIAs in style of functional programming by applying
+ * zip_function to the i-th elements of both input DIAs to form the i-th element
+ * of the output DIA. The type of the output DIA can be inferred from the
+ * zip_function.
+ *
+ * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs are
+ * padded with items given by the padding parameter.
  *
  * \tparam ZipFunction Type of the zip_function. This is a function with two
  * input elements, both of the local type, and one output element, which is
@@ -579,7 +567,8 @@ auto ZipPad(const ZipFunction &zip_function,
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
-auto ZipPad(
+auto Zip(
+    struct PadTag,
     const ZipFunction &zip_function,
     const typename common::FunctionTraits<ZipFunction>::args_plain & padding,
     const DIA<FirstDIAType, FirstDIAStack>&first_dia,
@@ -612,15 +601,35 @@ auto ZipPad(
     return DIA<ZipResult>(node);
 }
 
+template <typename ValueType, typename Stack>
+template <typename ZipFunction, typename SecondDIA>
+auto DIA<ValueType, Stack>::Zip(
+    const SecondDIA &second_dia, const ZipFunction &zip_function) const {
+    return api::Zip(zip_function, *this, second_dia);
+}
+
+template <typename ValueType, typename Stack>
+template <typename ZipFunction, typename SecondDIA>
+auto DIA<ValueType, Stack>::Zip(
+    struct CutTag, const SecondDIA &second_dia,
+    const ZipFunction &zip_function) const {
+    return api::Zip(CutTag, zip_function, *this, second_dia);
+}
+
+template <typename ValueType, typename Stack>
+template <typename ZipFunction, typename SecondDIA>
+auto DIA<ValueType, Stack>::Zip(
+    struct PadTag, const SecondDIA &second_dia,
+    const ZipFunction &zip_function) const {
+    return api::Zip(PadTag, zip_function, *this, second_dia);
+}
+
 //! \}
 
 } // namespace api
 
 //! imported from api namespace
 using api::Zip;
-
-//! imported from api namespace
-using api::ZipPad;
 
 } // namespace thrill
 
