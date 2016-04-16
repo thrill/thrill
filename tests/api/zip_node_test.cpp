@@ -304,7 +304,7 @@ TEST(ZipNode, ThreeIntegerArraysPadded) {
                 test_size);
 
             // zip
-            auto zip_result = ZipPadding(
+            auto zip_result = ZipPad(
                 [](short a, size_t b, double c) {
                     return std::make_tuple(a, b, c);
                 },

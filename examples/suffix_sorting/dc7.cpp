@@ -872,7 +872,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
     using IndexCR013Pair = dc7_local::IndexCR013Pair<Index, Char>;
 
     auto zip_tuple_pairs1 =
-        ZipPadding(
+        ZipPad(
             [](const Chars& ch,
                const Index& mod0, const Index& mod1, const Index& mod3) {
                 return CharsRanks013 { ch, mod0, mod1, mod3 };

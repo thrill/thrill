@@ -388,9 +388,11 @@ private:
  *
  * \ingroup dia_dops
  */
-template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
+template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
+          typename ... DIAs>
 auto Zip(const ZipFunction &zip_function,
-         const FirstDIA &first_dia, const DIAs &... dias) {
+         const DIA<FirstDIAType, FirstDIAStack> &first_dia,
+         const DIAs &... dias) {
 
     using VarForeachExpander = int[];
 
@@ -401,7 +403,7 @@ auto Zip(const ZipFunction &zip_function,
 
     static_assert(
         std::is_convertible<
-            typename FirstDIA::ValueType,
+            FirstDIAType,
             typename common::FunctionTraits<ZipFunction>::template arg<0>
             >::value,
         "ZipFunction has the wrong input type in DIA 0");
@@ -451,9 +453,11 @@ auto DIA<ValueType, Stack>::Zip(
  *
  * \ingroup dia_dops
  */
-template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
+template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
+          typename ... DIAs>
 auto ZipPad(const ZipFunction &zip_function,
-            const FirstDIA &first_dia, const DIAs &... dias) {
+            const DIA<FirstDIAType, FirstDIAStack> &first_dia,
+            const DIAs &... dias) {
 
     using VarForeachExpander = int[];
 
@@ -464,7 +468,7 @@ auto ZipPad(const ZipFunction &zip_function,
 
     static_assert(
         std::is_convertible<
-            typename FirstDIA::ValueType,
+             FirstDIAType,
             typename common::FunctionTraits<ZipFunction>::template arg<0>
             >::value,
         "ZipFunction has the wrong input type in DIA 0");
@@ -485,7 +489,7 @@ auto ZipPad(const ZipFunction &zip_function,
 }
 
 /*!
- * ZipPadding is a DOp, which Zips any number of DIAs in style of functional
+ * ZipPad is a DOp, which Zips any number of DIAs in style of functional
  * programming. The zip_function is used to zip the i-th elements of all input
  * DIAs together to form the i-th element of the output DIA. The type of the
  * output DIA can be inferred from the zip_function. The output DIA's length is
@@ -507,11 +511,13 @@ auto ZipPad(const ZipFunction &zip_function,
  *
  * \ingroup dia_dops
  */
-template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
-auto ZipPadding(
+template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
+          typename ... DIAs>
+auto ZipPad(
     const ZipFunction &zip_function,
     const typename common::FunctionTraits<ZipFunction>::args_plain & padding,
-    const FirstDIA &first_dia, const DIAs &... dias) {
+    const DIA<FirstDIAType, FirstDIAStack> &first_dia,
+    const DIAs &... dias) {
 
     using VarForeachExpander = int[];
 
@@ -522,7 +528,7 @@ auto ZipPadding(
 
     static_assert(
         std::is_convertible<
-            typename FirstDIA::ValueType,
+            FirstDIAType,
             typename common::FunctionTraits<ZipFunction>::template arg<0>
             >::value,
         "ZipFunction has the wrong input type in DIA 0");
@@ -548,9 +554,6 @@ using api::Zip;
 
 //! imported from api namespace
 using api::ZipPad;
-
-//! imported from api namespace
-using api::ZipPadding;
 
 } // namespace thrill
 

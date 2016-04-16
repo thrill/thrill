@@ -488,7 +488,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
     using IndexCR12Pair = dc3_local::IndexCR12Pair<Index, Char>;
 
     auto zip_triple_pairs1 =
-        ZipPadding(
+        ZipPad(
             [](const Chars& ch, const Index& mod1, const Index& mod2) {
                 return CharsRanks12 { ch, mod1, mod2 };
             },
