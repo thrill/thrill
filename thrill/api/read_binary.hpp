@@ -67,9 +67,14 @@ public:
         bool        is_compressed;
     };
 
+    //! sentinel to disable size limit
+    static constexpr uint64_t no_size_limit_ =
+        std::numeric_limits<uint64_t>::max();
+
     using SysFileInfo = core::SysFileInfo;
 
-    ReadBinaryNode(Context& ctx, const std::vector<std::string>& globlist)
+    ReadBinaryNode(Context& ctx, const std::vector<std::string>& globlist,
+                   uint64_t size_limit)
         : Super(ctx, "ReadBinary") {
 
         core::SysFileList files = core::GlobFileSizePrefixSum(
@@ -80,6 +85,9 @@ public:
                       "No files found in globs: "
                       + common::Join(" ", globlist));
         }
+
+        if (size_limit != no_size_limit_)
+            files.total_size = std::min(files.total_size, size_limit);
 
         if (is_fixed_size_ && !files.contains_compressed)
         {
@@ -188,8 +196,8 @@ public:
         }
     }
 
-    ReadBinaryNode(Context& ctx, const std::string& glob)
-        : ReadBinaryNode(ctx, std::vector<std::string>{ glob }) { }
+    ReadBinaryNode(Context& ctx, const std::string& glob, uint64_t size_limit)
+        : ReadBinaryNode(ctx, std::vector<std::string>{ glob }, size_limit) { }
 
     void PushData(bool consume) final {
         LOG << "ReadBinaryNode::PushData() start " << *this
@@ -226,8 +234,10 @@ public:
     }
 
 private:
+    //! list of files for non-mapped File push
     std::vector<FileInfo> my_files_;
 
+    //! File containing Blocks mapped directly to a io fileimpl.
     bool use_ext_file_ = false;
     data::File ext_file_ { context_.GetFile(this) };
 
@@ -306,15 +316,18 @@ private:
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
+ * \param size_limit Optional limit to the total file size (e.g. for testing
+ * algorithms on prefixes)
  *
  * \ingroup dia_sources
  */
 template <typename ValueType>
 DIA<ValueType> ReadBinary(
-    Context& ctx, const std::vector<std::string>& filepath) {
+    Context& ctx, const std::vector<std::string>& filepath,
+    uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
     auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
-        ctx, filepath);
+        ctx, filepath, size_limit);
 
     return DIA<ValueType>(node);
 }
@@ -325,14 +338,18 @@ DIA<ValueType> ReadBinary(
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
+ * \param size_limit Optional limit to the total file size (e.g. for testing
+ * algorithms on prefixes)
  *
  * \ingroup dia_sources
  */
 template <typename ValueType>
-DIA<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
+DIA<ValueType> ReadBinary(
+    Context& ctx, const std::string& filepath,
+    uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
     auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
-        ctx, filepath);
+        ctx, filepath, size_limit);
 
     return DIA<ValueType>(node);
 }

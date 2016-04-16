@@ -110,7 +110,8 @@ public:
             SwitchIndexType(input_dia, sizelimit_);
         }
         else {
-            auto input_dia = ReadBinary<uint8_t>(ctx, input_path_).Collapse();
+            auto input_dia =
+                ReadBinary<uint8_t>(ctx, input_path_, sizelimit_).Collapse();
             size_t input_size = input_dia.Keep().Size();
             SwitchIndexType(input_dia, input_size);
         }
@@ -235,7 +236,7 @@ int main(int argc, char* argv[]) {
                  "transform] to given path.");
 
     cp.AddBytes('s', "size", ss.sizelimit_,
-                "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
+                "Cut input text to given size, e.g. 2 GiB.");
 
     cp.AddFlag('t', "text", ss.text_output_flag_,
                "Print out suffix array [and if constructed Burrows-Wheeler "
