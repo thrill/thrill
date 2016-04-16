@@ -634,13 +634,13 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
     Index max_lexname = tuple_prerank_sums.Keep().Max();
 
     // size of the mod0 part of the recursive subproblem
-    const Index size_mod0 = input_size / 7 + 1;
+    const Index size_mod0 = Index(input_size / 7 + 1);
 
     // size of the mod1 part of the recursive subproblem
-    const Index size_mod1 = input_size / 7 + (input_size % 7 >= 1);
+    const Index size_mod1 = Index(input_size / 7 + (input_size % 7 >= 1));
 
     // size of the mod3 part of the recursive subproblem
-    const Index size_mod3 = input_size / 7 + (input_size % 7 >= 4);
+    const Index size_mod3 = Index(input_size / 7 + (input_size % 7 >= 4));
 
     // size of both the mod0 and mod1 parts
     const Index size_mod01 = size_mod0 + size_mod1;
@@ -725,8 +725,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         ranks_rec =
             suffix_array_rec
             .Zip(Generate(ctx, size_subp),
-                 [](const Index& sa, const Index& i) {
-                     return IndexRank { sa, i };
+                 [](const Index& sa, const size_t& i) {
+                     return IndexRank { sa, Index(i) };
                  })
             .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
                       // DONE(tb): changed sort order for better locality
@@ -748,8 +748,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         ranks_rec =
             tuple_index_sorted
             .Zip(Generate(ctx, size_subp + Index(1)),
-                 [](const Index& sa, const Index& i) {
-                     return IndexRank { sa, i };
+                 [](const Index& sa, const size_t& i) {
+                     return IndexRank { sa, Index(i) };
                  })
             .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
                       if (a.index % 7 == b.index % 7) {

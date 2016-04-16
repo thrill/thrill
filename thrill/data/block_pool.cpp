@@ -1088,10 +1088,10 @@ void BlockPool::RunTask(const std::chrono::steady_clock::time_point& tp) {
             << "wr_bytes_total" << stf.write_volume()
             << "rd_ops" << stp.read_ops()
             << "rd_bytes" << stp.read_volume()
-            << "rd_speed" << stp.read_volume() / elapsed
+            << "rd_speed" << static_cast<double>(stp.read_volume()) / elapsed
             << "wr_ops" << stp.write_ops()
             << "wr_bytes" << stp.write_volume()
-            << "wr_speed" << stp.write_volume() / elapsed
+            << "wr_speed" << static_cast<double>(stp.write_volume()) / elapsed
             << "disk_allocation" << bm_->current_allocation();
 }
 

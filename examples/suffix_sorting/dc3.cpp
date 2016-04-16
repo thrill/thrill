@@ -312,10 +312,10 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
     Index max_lexname = triple_prerank_sums.Keep().Max();
 
     // compute the size of the 2/3 subproblem.
-    const Index size_subp = (input_size / 3) * 2 + (input_size % 3 != 0);
+    const Index size_subp = Index((input_size / 3) * 2 + (input_size % 3 != 0));
 
     // size of the mod1 part of the recursive subproblem
-    const Index size_mod1 = input_size / 3 + (input_size % 3 != 0);
+    const Index size_mod1 = Index(input_size / 3 + (input_size % 3 != 0));
 
     if (debug_print) {
         sLOG1 << "max_lexname=" << max_lexname
@@ -372,8 +372,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         ranks_rec =
             suffix_array_rec
             .Zip(Generate(ctx, size_subp),
-                 [](const Index& sa, const Index& i) {
-                     return IndexRank { sa, i };
+                 [](const Index& sa, const size_t& i) {
+                     return IndexRank { sa, Index(i) };
                  })
             .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
                       // DONE(tb): changed sort order for better locality
@@ -395,8 +395,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         ranks_rec =
             triple_index_sorted
             .Zip(Generate(ctx, size_subp + Index(1)),
-                 [](const Index& sa, const Index& i) {
-                     return IndexRank { sa, i };
+                 [](const Index& sa, const size_t& i) {
+                     return IndexRank { sa, Index(i) };
                  })
             .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
                       if (a.index % 3 == b.index % 3) {

@@ -53,8 +53,8 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
         suffix_array
         // build tuples with index: (SA[i]) -> (i, SA[i]),
         .Zip(Generate(ctx, input_size),
-             [](const Index& sa, const Index& i) {
-                 return IndexRank { sa, i };
+             [](const Index& sa, const size_t& i) {
+                 return IndexRank { sa, Index(i) };
              })
         // take (i, SA[i]) and sort to (ISA[i], i)
         .Sort([](const IndexRank& a, const IndexRank& b) {
@@ -66,8 +66,8 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     Index perm_check =
         isa_pair.Keep()
         .Zip(Generate(ctx, input_size),
-             [](const IndexRank& ir, const Index& index) -> Index {
-                 return ir.index == index ? 0 : 1;
+             [](const IndexRank& ir, const size_t& index) -> Index {
+                 return ir.index == Index(index) ? 0 : 1;
              })
         // sum over all boolean values.
         .Max();

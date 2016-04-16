@@ -49,8 +49,8 @@ InputDIA ConstructBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array,
                     return Index(i - 1);
                 })
            .Zip(Generate(ctx, input_size),
-                [](const size_t& text_pos, const Index& idx) {
-                    return IndexRank { Index(text_pos), idx };
+                [](const Index& text_pos, const size_t& idx) {
+                    return IndexRank { text_pos, Index(idx) };
                 })
            .Sort([](const IndexRank& a, const IndexRank& b) {
                      return a.index < b.index;

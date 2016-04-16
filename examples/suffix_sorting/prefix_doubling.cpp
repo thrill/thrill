@@ -245,7 +245,8 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
         })
         .Map([](const IndexRankStatus& /*a*/) {
             return IndexRank { Index(0), Index(0) };
-        });
+        })
+        .Collapse();
 
     while (true) {
         ++iteration;
@@ -272,7 +273,8 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                     })
                     .Map([](const IndexRankStatus& a) {
                         return IndexRank { a.index, a.rank };
-                    });
+                    })
+                    .Collapse();
 
             partial_discarded =
                 names_unique_sorted.Keep()
@@ -305,7 +307,8 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 })
                 .Map([](const IndexRankStatus& irs) {
                     return IndexRank { irs.index, irs.rank };
-                });
+                })
+                .Collapse();
 
             undiscarded =
                 names_unique_sorted.Keep()
