@@ -720,8 +720,6 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         if (debug_print)
             suffix_array_rec.Keep().Print("suffix_array_rec");
 
-        assert_equal(suffix_array_rec.Keep().Size(), size_subp);
-
         ranks_rec =
             suffix_array_rec
             .Zip(Generate(ctx, size_subp),
@@ -747,7 +745,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
 
         ranks_rec =
             tuple_index_sorted
-            .Zip(Generate(ctx, size_subp + Index(1)),
+            .Zip(Generate(ctx, size_subp),
                  [](const Index& sa, const size_t& i) {
                      return IndexRank { sa, Index(i) };
                  })

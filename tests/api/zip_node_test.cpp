@@ -140,7 +140,7 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
 
             // zip
             auto zip_result = input1.Zip(
-                input2_short, [](size_t a, short b) -> long {
+                UnequalTag, input2_short, [](size_t a, short b) -> long {
                     return static_cast<long>(a) + b;
                 });
 
@@ -189,6 +189,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
 
             // zip
             auto zip_result = input1.Zip(
+                UnequalTag,
                 input2, [](const std::string& a, const std::string& b) {
                     return a + b;
                 });
@@ -255,6 +256,7 @@ TEST(ZipNode, ThreeIntegerArrays) {
 
             // zip
             auto zip_result = Zip(
+                UnequalTag,
                 [](short a, size_t b, double c) {
                     return std::make_tuple(a, b, c);
                 },
