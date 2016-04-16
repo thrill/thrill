@@ -142,6 +142,9 @@ public:
         else if (algorithm_ == "de") {
             suffix_array = PrefixDoublingDementiev<Index>(input_dia.Keep(), input_size);
         }
+        else if (algorithm_ == "dis") {
+            suffix_array = PrefixDoublinDiscardingDementiev<Index>(input_dia.Keep(), input_size);
+        }
         else {
             suffix_array = PrefixDoubling<Index>(input_dia.Keep(), input_size);
         }
@@ -207,7 +210,8 @@ int main(int argc, char* argv[]) {
     cp.AddString('a', "algorithm", ss.algorithm_,
                  "The prefix doubling algorithm which is used to construct the "
                  "suffix array. Available: "
-                 "[fl]ick (default), [de]mentiev, [dc3], and [dc7]");
+                 "[fl]ick (default), [de]mentiev, dementiev with [dis]carding, "
+                 "[dc3], and [dc7]");
 
     cp.AddSizeT('b', "bytes", ss.sa_index_bytes_,
                 "Suffix array bytes per index: "

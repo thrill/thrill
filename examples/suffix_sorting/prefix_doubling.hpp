@@ -25,6 +25,10 @@ template <typename Index, typename InputDIA>
 thrill::DIA<Index>
 PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size);
 
+template <typename Index, typename InputDIA>
+thrill::DIA<Index>
+PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t input_size);
+
 } // namespace suffix_sorting
 } // namespace examples
 
