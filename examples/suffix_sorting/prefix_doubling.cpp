@@ -171,17 +171,21 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
         .template FlatWindow<Index>(
             2,
             [&](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
-                if (index == 0) emit(Index(1));
-                if (rb[0] == rb[1]) emit(Index(0));
-                else emit(Index(index + 2));
-                if (index == input_size - 2) {
-                    if (rb[0] == rb[1]) emit(Index(0));
-                    else emit(Index(index + 3));
-                }
+                if (index == 0)
+                    emit(Index(1));
+                if (rb[0] == rb[1])
+                    emit(Index(0));
+                else
+                    emit(Index(index + 2));
             })
         .PrefixSum([](const Index a, const Index b) {
                          return a > b ? a : b;
                      });
+
+    if (debug_print) {
+        chars_sorted.Keep().Print("chars_sorted");
+        renamed_ranks.Keep().Print("renamed_ranks");
+    }
 
     DIA<IndexRank> names =
         chars_sorted
@@ -222,7 +226,6 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 }
             });
 
-
     size_t iteration = 2;
     DIA<IndexRankStatus> names_unique_sorted =
         names_unique
@@ -235,6 +238,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
             else
                 return (a.index & mod_mask) < (b.index & mod_mask);
         });
+
     if (debug_print)
         names_unique_sorted.Keep().Print("names_unique_sorted");
 
@@ -245,8 +249,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
         })
         .Map([](const IndexRankStatus& /*a*/) {
             return IndexRank { Index(0), Index(0) };
-        })
-        .Collapse();
+        });
 
     while (true) {
         ++iteration;
@@ -273,8 +276,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                     })
                     .Map([](const IndexRankStatus& a) {
                         return IndexRank { a.index, a.rank };
-                    })
-                    .Collapse();
+                    });
 
             partial_discarded =
                 names_unique_sorted.Keep()
@@ -307,8 +309,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 })
                 .Map([](const IndexRankStatus& irs) {
                     return IndexRank { irs.index, irs.rank };
-                })
-                .Collapse();
+                });
 
             undiscarded =
                 names_unique_sorted.Keep()
