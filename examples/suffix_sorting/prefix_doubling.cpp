@@ -351,8 +351,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
         if (debug_print)
             fully_discarded.Keep().Print("fully_discarded b");
 
-        auto discarded = fully_discarded.Union(new_decided);
-        fully_discarded = discarded;
+        fully_discarded = fully_discarded.Union(new_decided);
 
         if (debug_print)
             fully_discarded.Keep().Print("fully_discarded a");
@@ -370,48 +369,30 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
             return sa.Collapse();
         }
 
-        auto name_helper =
-            undiscarded.Keep()
-            .template FlatWindow<Index>(
-                2,
-                [=](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
-                    if (index == 0) {
-                        emit(Index(0));
-                    }
-                    emit(rb[0].rank1 == rb[1].rank1 ? Index(0) : Index(1));
-                });
-
-        auto adder =
-            undiscarded.Keep()
-            .template FlatWindow<Index>(
-                2,
-                [=](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
-                    if (index == 0) {
-                        emit(Index(0));
-                    }
-                    if (rb[0].rank1 != rb[1].rank1)
-                        emit(index + 1);
-                    else
-                        emit(rb[0].rank2 == rb[1].rank2 ? Index(0) : Index(index + 1));
-                })
-            .PrefixSum(common::maximum<Index>());
-
-        auto max_helper =
-            name_helper
-            .Zip(
-                adder.Keep(),
-                [](const Index& h, const Index& a) {
-                    return h == Index(0) ? h : a;
-                })
-            .PrefixSum(common::maximum<Index>());
-
-
         auto rank_addition =
-            adder
-            .Zip(
-                max_helper,
-                [](const Index& a, const Index& h) {
-                    return Index(a - h);
+            undiscarded.Keep()
+            .template FlatWindow<IndexRank>(
+                2,
+                [=](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+                    if (index == 0) {
+                        emit(IndexRank { Index(0), Index(0) });
+                    }
+                    Index i = rb[0].rank1 == rb[1].rank1 ? Index(0) : Index(index + 1);
+                    Index r;
+                    if (rb[0].rank1 != rb[1].rank1)
+                        r = Index(index + 1);
+                    else
+                        r = (rb[0].rank2 == rb[1].rank2) ? Index(0) : Index(index + 1);
+                    emit(IndexRank { i, r });
+                })
+            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
+                return IndexRank { 
+                    std::max<Index>(a.index, b.index),
+                    std::max<Index>(a.rank, b.rank)
+                    };
+                })
+            .Map([](const IndexRank& ir) {
+                    return Index(ir.rank - ir.index);
                 });
 
         auto new_ranks =
