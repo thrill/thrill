@@ -124,7 +124,7 @@ template <typename Index>
 struct IndexRankStatus {
     Index index;
     Index rank;
-    size_t status; //TODO(FK): Make this smaller
+    uint8_t status;
 
     //! Two IndexRandStatuses are equal iff their ranks are equal.
     bool operator == (const IndexRankStatus& b) const {
@@ -213,7 +213,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
             3,
             [&](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                 if (index == 0) {
-                    size_t status = rb[0].rank != rb[1].rank ? size_t(1) : size_t(0);
+                    uint8_t status = rb[0].rank != rb[1].rank ? 1 : 0;
                     emit(IndexRankStatus { rb[0].index, rb[0].rank, status });
                 }
                 if (rb[0].rank != rb[1].rank && rb[1].rank != rb[2].rank)
@@ -221,7 +221,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 else
                     emit(IndexRankStatus { rb[1].index, rb[1].rank, 0 });
                 if (index == input_size - 3) {
-                    size_t status = rb[1].rank != rb[2].rank ? size_t(1) : size_t(0);
+                    uint8_t status = rb[1].rank != rb[2].rank ? 1 : 0;
                     emit(IndexRankStatus { rb[2].index, rb[2].rank, status });
                 }
             });
@@ -271,12 +271,12 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                             // Discarded names (we need to change the status since we remove it one step later)
                             if (index == 0) {
                                 if (rb[0].status == 1) 
-                                    emit(IndexRankStatus { rb[0].index, rb[0].rank, Index(2) });
+                                    emit(IndexRankStatus { rb[0].index, rb[0].rank, 2 });
                                 if (rb[1].status == 1) 
-                                    emit(IndexRankStatus { rb[1].index, rb[1].rank, Index(2) }); // Since there is just one preceding entry it's either undiscarded or unique
+                                    emit(IndexRankStatus { rb[1].index, rb[1].rank, 2 }); // Since there is just one preceding entry it's either undiscarded or unique
                             }
                             if (rb[2].status == 1 and (rb[0].status == 1 or rb[1].status == 1))
-                                emit(IndexRankStatus { rb[2].index, rb[2].rank, Index(2) });
+                                emit(IndexRankStatus { rb[2].index, rb[2].rank, 2 });
                             // Partially discarded names 
                             if (rb[2].status == 1 and rb[0].status == 0 and rb[1].status == 0)
                                 emit(rb[2]);
@@ -405,7 +405,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                     3,
                     [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                         if (index == 0) {
-                            auto status = rb[0].rank != rb[1].rank ? Index(1) : Index(0);
+                            auto status = rb[0].rank != rb[1].rank ? uint8_t(1) : uint8_t(0);
                             emit(IndexRankStatus { rb[0].index, rb[0].rank, status });
                         }
                         if (rb[0].rank != rb[1].rank && rb[1].rank != rb[2].rank)
@@ -413,7 +413,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                         else
                             emit(IndexRankStatus { rb[1].index, rb[1].rank, 0 });
                         if (index == number_new_ranks - 3) {
-                            auto status = rb[1].rank != rb[2].rank ? Index(1) : Index(0);
+                            auto status = rb[1].rank != rb[2].rank ? uint8_t(1) : uint8_t(0);
                             emit(IndexRankStatus { rb[2].index, rb[2].rank, status });
                         }
                     });
