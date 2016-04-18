@@ -122,6 +122,8 @@ rank=0
 export THRILL_HOSTLIST="${hostlist[@]}"
 SSH_PIDS=()
 
+trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
+
 for hostport in $THRILL_SSHLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   if [ $verbose -ne 0 ]; then
