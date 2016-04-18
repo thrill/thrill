@@ -52,6 +52,9 @@ std::thread CreateThread(Args&& ... args) {
     }
 }
 
+//! set cpu/core affinity of a thread
+void SetCpuAffinity(std::thread& thread, size_t cpu_id);
+
 } // namespace common
 } // namespace thrill
 
