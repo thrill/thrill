@@ -256,7 +256,6 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
 
         DIA<IndexRank> new_decided;
         DIA<IndexRankStatus> partial_discarded;
-        DIA<IndexRankRank> undiscarded;
 
         size_t names_size = names_unique_sorted.Keep().Size();
 
@@ -297,25 +296,6 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 .Filter([](const IndexRankStatus& irs) {
                         return irs.status == 1;
                     });
-
-            undiscarded =
-                names_unique_sorted
-                .template FlatWindow<IndexRankRank>(
-                    2,
-                    [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
-                        if (rb[0].status == Index(0)) {
-                            if (rb[0].index + (Index(1) << (iteration - 1)) == rb[1].index)
-                                emit(IndexRankRank { rb[0].index, rb[0].rank, rb[1].rank });
-                            else
-                                emit(IndexRankRank { rb[0].index, rb[0].rank, Index(0) });
-                        }
-                        if ((index == names_size - 2) && (rb[1].status == Index(0)))
-                            emit(IndexRankRank { rb[1].index, rb[1].rank, Index(0) });
-                    })
-                .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
-                        return a < b;
-                    });
-
         } else {
             new_decided =
                 names_unique_sorted.Keep()
@@ -325,21 +305,25 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 .Map([](const IndexRankStatus& irs) {
                     return IndexRank { irs.index, irs.rank };
                 });
-
-            undiscarded =
-                names_unique_sorted
-                .template FlatWindow<IndexRankRank>(
-                    2,
-                    [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
-                        if (rb[0].status == Index(0))
-                            emit(IndexRankRank { rb[0].index, rb[0].rank, rb[1].rank });
-                        if ((index == names_size - 2) && (rb[1].status == Index(0)))
-                            emit(IndexRankRank { rb[1].index, rb[1].rank, Index(0) });
-                    })
-                .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
-                        return a < b;
-                    });
         }
+
+        auto undiscarded =
+            names_unique_sorted
+            .template FlatWindow<IndexRankRank>(
+                2,
+                [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
+                    if (rb[0].status == Index(0)) {
+                        if (rb[0].index + (Index(1) << (iteration - 1)) == rb[1].index)
+                            emit(IndexRankRank { rb[0].index, rb[0].rank, rb[1].rank });
+                        else
+                            emit(IndexRankRank { rb[0].index, rb[0].rank, Index(0) });
+                    }
+                    if ((index == names_size - 2) && (rb[1].status == Index(0)))
+                        emit(IndexRankRank { rb[1].index, rb[1].rank, Index(0) });
+                })
+            .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
+                    return a < b;
+                });
 
 
         if (debug_print) {
@@ -401,6 +385,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 [](const IndexRankRank& irr, const Index& add) {
                     return IndexRank({ irr.index, irr.rank1 + add });
                 });
+
         if (debug_print)
             new_ranks.Keep().Print("new_ranks");
 
@@ -438,33 +423,19 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
         }
 
 
-        if (partial_discarded.Keep().Size() > 0) {
-            names_unique_sorted =
-                names_unique
-                .Union(partial_discarded)
-                .Sort([iteration](const IndexRankStatus& a, const IndexRankStatus& b) {
-                        Index mod_mask = (Index(1) << iteration) - 1;
-                        Index div_mask = ~mod_mask;
+        names_unique_sorted =
+            names_unique
+            .Union(partial_discarded)
+            .Sort([iteration](const IndexRankStatus& a, const IndexRankStatus& b) {
+                    Index mod_mask = (Index(1) << iteration) - 1;
+                    Index div_mask = ~mod_mask;
 
-                        if ((a.index & mod_mask) == (b.index & mod_mask))
-                            return (a.index & div_mask) < (b.index & div_mask);
-                        else
-                            return (a.index & mod_mask) < (b.index & mod_mask);
-                    });
-        }
-        else {
-            names_unique_sorted = 
-                names_unique
-                .Sort([iteration](const IndexRankStatus& a, const IndexRankStatus& b) {
-                        Index mod_mask = (Index(1) << iteration) - 1;
-                        Index div_mask = ~mod_mask;
+                    if ((a.index & mod_mask) == (b.index & mod_mask))
+                        return (a.index & div_mask) < (b.index & div_mask);
+                    else
+                        return (a.index & mod_mask) < (b.index & mod_mask);
+                });
 
-                        if ((a.index & mod_mask) == (b.index & mod_mask))
-                            return (a.index & div_mask) < (b.index & div_mask);
-                        else
-                            return (a.index & mod_mask) < (b.index & mod_mask);
-                    });
-        }
 
         if(debug_print) {
             names_unique_sorted.Keep().Print("names_unique_sorted end of loop");
