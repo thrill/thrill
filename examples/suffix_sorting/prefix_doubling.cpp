@@ -153,9 +153,6 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
     using IndexRankStatus = suffix_sorting::IndexRankStatus<Index>;
     using IndexRankRank = suffix_sorting::IndexRankRank<Index>;
 
-    // Context& ctx = input_dia.context();
-    // ctx.enable_consume(false);
-
     auto chars_sorted =
         input_dia
         .template FlatWindow<CharCharIndex>(
@@ -293,15 +290,6 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                         if (rb[2].status == 1 and rb[0].status == 0 and rb[1].status == 0)
                             emit(rb[2]);
                     });
-                    // .Sort([iteration](const IndexRankStatus& a, const IndexRankStatus& b) {
-                    //         Index mod_mask = (Index(1) << iteration) - 1;
-                    //         Index div_mask = ~mod_mask;
-
-                    //         if ((a.index & mod_mask) == (b.index & mod_mask))
-                    //             return (a.index & div_mask) < (b.index & div_mask);
-                    //         else
-                    //             return (a.index & mod_mask) < (b.index & mod_mask);
-                    //     });
 
             undiscarded =
                 names_unique_sorted
@@ -363,7 +351,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
             fully_discarded.Keep().Print("fully_discarded a");
 
 
-        if (undiscarded.Keep().Size() == 0) {
+        if (undiscarded .Keep().Size() == 0) {
             auto sa =
                 fully_discarded
                 .Sort([](const IndexRank& a, const IndexRank& b) {
@@ -372,7 +360,6 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 .Map([](const IndexRank& ir) {
                          return ir.index;
                      });
-            // sa.Print("SA!!!!");
             return sa.Collapse();
         }
 
