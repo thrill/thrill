@@ -264,7 +264,7 @@ private:
     std::default_random_engine rng_ { std::random_device { } () };
 
     //! epsilon
-    static constexpr double desired_imbalance_ = 0.3;
+    static constexpr double desired_imbalance_ = 0.2;
 
     //! calculate currently desired number of samples
     size_t wanted_sample_size() const {
@@ -594,6 +594,7 @@ private:
             [this, &data_stream]() {
                 return ReceiveItems(data_stream);
             });
+        common::SetCpuAffinity(thread, context_.local_worker_id());
 
         TransmitItems(
             splitter_tree.data(), // Tree. sizeof |splitter|

@@ -101,6 +101,20 @@ void LogCmdlineParams(JsonLogger& logger) {
 #endif
 }
 
+void SetCpuAffinity(std::thread& thread, size_t cpu_id) {
+#if __linux__
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(cpu_id % std::thread::hardware_concurrency(), &cpuset);
+    int rc = pthread_setaffinity_np(
+        thread.native_handle(), sizeof(cpu_set_t), &cpuset);
+    if (rc != 0) {
+        LOG1 << "Error calling pthread_setaffinity_np(): "
+             << rc << ": " << strerror(errno);
+    }
+#endif
+}
+
 } // namespace common
 } // namespace thrill
 
