@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <deque>
 #include <functional>
+#include <numeric>
 #include <random>
 #include <utility>
 #include <vector>

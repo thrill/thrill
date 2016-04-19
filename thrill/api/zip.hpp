@@ -95,8 +95,11 @@ public:
                 { parent0.node(), parents.node() ... }),
           zip_function_(zip_function),
           padding_(padding),
-          // parenthesis are due to a MSVC2015 parser bug
-          parent_stack_empty_ { ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... }
+          // this weirdness is due to a MSVC2015 parser bug
+          parent_stack_empty_(
+              std::array<bool, kNumInputs>{
+                  ParentDIA0::stack_empty, (ParentDIAs::stack_empty)...
+              })
     {
         // allocate files.
         files_.reserve(kNumInputs);
@@ -165,7 +168,7 @@ private:
     const ZipArgs padding_;
 
     //! Whether the parent stack is empty
-    const bool parent_stack_empty_[kNumInputs];
+    const std::array<bool, kNumInputs> parent_stack_empty_;
 
     //! Files for intermediate storage
     std::vector<data::File> files_;

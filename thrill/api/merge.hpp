@@ -90,8 +90,11 @@ public:
                 { parent0.id(), parents.id() ... },
                 { parent0.node(), parents.node() ... }),
           comparator_(comparator),
-          // parenthesis are due to a MSVC2015 parser bug
-          parent_stack_empty_ { ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... }
+          // this weirdness is due to a MSVC2015 parser bug
+          parent_stack_empty_(
+              std::array<bool, kNumInputs>{
+                  ParentDIA0::stack_empty, (ParentDIAs::stack_empty)...
+              })
     {
         // allocate files.
         for (size_t i = 0; i < kNumInputs; ++i)
@@ -185,7 +188,7 @@ private:
     Comparator comparator_;
 
     //! Whether the parent stack is empty
-    const bool parent_stack_empty_[kNumInputs];
+    const std::array<bool, kNumInputs> parent_stack_empty_;
 
     //! Random generator for pivot selection.
     std::default_random_engine rng_ { std::random_device { } () };

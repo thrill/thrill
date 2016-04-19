@@ -275,10 +275,10 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                                 if (rb[1].status == 1) 
                                     emit(IndexRankStatus { rb[1].index, rb[1].rank, 2 }); // Since there is just one preceding entry it's either undiscarded or unique
                             }
-                            if (rb[2].status == 1 and (rb[0].status == 1 or rb[1].status == 1))
+                            if (rb[2].status == 1 && (rb[0].status == 1 || rb[1].status == 1))
                                 emit(IndexRankStatus { rb[2].index, rb[2].rank, 2 });
                             // Partially discarded names 
-                            if (rb[2].status == 1 and rb[0].status == 0 and rb[1].status == 0)
+                            if (rb[2].status == 1 && rb[0].status == 0 && rb[1].status == 0)
                                 emit(rb[2]);
                         });
 

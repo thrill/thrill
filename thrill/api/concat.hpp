@@ -48,7 +48,7 @@ public:
                 { parent0.node(), parents.node() ... }),
           num_inputs_(1 + sizeof ... (ParentDIAs)),
           // parenthesis are due to a MSVC2015 parser bug
-          parent_stack_empty_ { ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... }
+          parent_stack_empty_({ ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... })
     {
         PrintWarning();
 
@@ -78,7 +78,7 @@ public:
                         return DIABasePtr(d.node().get());
                     })),
           num_inputs_(parents.size()),
-          parent_stack_empty_ { ParentDIA::stack_empty }
+          parent_stack_empty_({ ParentDIA::stack_empty })
     {
         PrintWarning();
 
