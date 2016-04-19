@@ -122,7 +122,7 @@ public:
         else {
             // spin lock awaiting the last thread to increment the step counter.
             while (step_.load(std::memory_order_relaxed) == this_step) {
-                std::this_thread::yield();
+                // std::this_thread::yield();
             }
         }
     }

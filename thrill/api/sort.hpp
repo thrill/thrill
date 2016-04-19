@@ -167,10 +167,12 @@ public:
     }
 
     void PushData(bool consume) final {
+        size_t local_size = 0;
         if (files_.size() == 0) {
             // nothing to push
         }
         else if (files_.size() == 1) {
+            local_size = files_[0].num_items();
             this->PushFile(files_[0], consume);
         }
         else {
@@ -231,6 +233,25 @@ public:
 
             while (puller.HasNext()) {
                 this->PushItem(puller.Next());
+                local_size++;
+            }
+        }
+
+        if (0)
+        {
+            std::vector<size_t> svec = { local_size };
+            svec = context_.net.Reduce(svec, 0, common::VectorConcat<size_t>());
+            if (context_.my_rank() == 0) {
+                double sum = std::accumulate(svec.begin(), svec.end(), 0.0);
+                double mean = sum / svec.size();
+
+                double sq_sum = std::inner_product(
+                    svec.begin(), svec.end(), svec.begin(), 0.0);
+                double stdev = std::sqrt(sq_sum / svec.size() - mean * mean);
+
+                LOG1 << "Sort() mean=" << mean << ", stdev=" << stdev
+                     << " = " << (stdev / mean * 100.0) << "%,"
+                     << " svec=" << common::VecToStr(svec);
             }
         }
     }
@@ -264,7 +285,7 @@ private:
     std::default_random_engine rng_ { std::random_device { } () };
 
     //! epsilon
-    static constexpr double desired_imbalance_ = 0.2;
+    static constexpr double desired_imbalance_ = 0.1;
 
     //! calculate currently desired number of samples
     size_t wanted_sample_size() const {
@@ -484,8 +505,8 @@ private:
     void SortAndWriteToFile(
         std::vector<ValueType>& vec, std::deque<data::File>& files) {
 
-        LOG1 << "SortAndWriteToFile() " << vec.size()
-             << " items into file #" << files.size();
+        LOG << "SortAndWriteToFile() " << vec.size()
+            << " items into file #" << files.size();
 
         size_t vec_size = vec.size();
         local_out_size_ += vec.size();

@@ -271,7 +271,7 @@ public:
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
-                // global prefix
+                    // global prefix
                 T** locals = reinterpret_cast<T**>(alloca(thread_count_ * sizeof(T*)));
 
                 for (size_t i = 0; i < thread_count_; i++) {
@@ -420,7 +420,7 @@ public:
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
-                // local reduce
+                    // local reduce
                 T local_sum = *GetLocalShared<T>(step, 0);
                 for (size_t i = 1; i < thread_count_; i++) {
                     local_sum = sum_op(local_sum, *GetLocalShared<T>(step, i));
@@ -445,8 +445,8 @@ public:
      * sum. The operation is assumed to be associative.
      *
      * \param value The value to use for the reduce operation.
-     * \param sum_op The operation to use for
-     * calculating the reduced value. The default operation is a normal addition.
+     * \param sum_op The operation to use for calculating the reduced value. The
+     * default operation is a normal addition.
      * \return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
@@ -465,7 +465,7 @@ public:
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
-                // local reduce
+                    // local reduce
                 T local_sum = *GetLocalShared<T>(step, 0);
                 for (size_t i = 1; i < thread_count_; i++) {
                     local_sum = sum_op(local_sum, *GetLocalShared<T>(step, i));
@@ -623,7 +623,7 @@ public:
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
-                // Global all reduce
+                    // Global all reduce
                 size_t i = 0;
                 group_.AllReduce(i);
             });
