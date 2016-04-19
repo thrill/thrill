@@ -15,6 +15,7 @@
 
 #include <thrill/common/defines.hpp>
 #include <thrill/common/functional.hpp>
+#include <thrill/common/stats_timer.hpp>
 #include <thrill/common/thread_barrier.hpp>
 #include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
@@ -42,14 +43,11 @@ namespace net {
  * methods of two different instances of FlowControlChannel simultaniously by
  * different threads, since the internal synchronization state (the barrier) is
  * shared globally.
- *
- * The implementations will be replaced by better/decentral versions.
- *
- * This class is probably the worst thing I've ever coded (ej).
  */
 class FlowControlChannel
 {
 private:
+    static constexpr bool enable_stats = false;
     static constexpr bool self_verify = false;
 
     //! The group associated with this channel.
@@ -67,25 +65,48 @@ private:
     //! The count of all workers connected to this group.
     size_t thread_count_;
 
-    //! The shared barrier used to synchronize between worker threads on this node.
+    //! RIAA class for running the timer
+    using Timer = common::StatsTimerBaseStopped<enable_stats>;
+    using RunTimer = common::RunTimer<Timer>;
+
+    //! Synchronization timer
+    Timer timer_prefixsum_;
+    Timer timer_broadcast_;
+    Timer timer_reduce_;
+    Timer timer_allreduce_;
+    Timer timer_predecessor_;
+    Timer timer_barrier_;
+
+    //! Synchronization counters
+    common::AtomicMovable<size_t> count_prefixsum_ { 0 };
+    common::AtomicMovable<size_t> count_broadcast_ { 0 };
+    common::AtomicMovable<size_t> count_reduce_ { 0 };
+    common::AtomicMovable<size_t> count_allreduce_ { 0 };
+    common::AtomicMovable<size_t> count_predecessor_ { 0 };
+    common::AtomicMovable<size_t> count_barrier_ { 0 };
+
+    //! The shared barrier used to synchronize between worker threads on this
+    //! node.
     common::ThreadBarrier& barrier_;
 
     //! Thread local data structure: aligned such that no cache line is
     //! shared. The actual vector is in the FlowControlChannelManager.
-    struct LocalData {
+    class LocalData
+    {
+    public:
         //! pointer to some thread-owned data type
         alignas(common::g_cache_line_size)
-        std::atomic<void*> ptr { nullptr };
+        std::atomic<void*> ptr[2] = { { nullptr }, { nullptr } };
 
         //! atomic generation counter, compare this to generation_.
-        std::atomic<size_t>     counter { 0 };
+        std::atomic<size_t> counter { 0 };
 
 #if THRILL_HAVE_THREAD_SANITIZER
         // workarounds because ThreadSanitizer has false-positives work with
         // generation counters.
 
         //! mutex for locking condition variable
-        std::mutex              mutex;
+        std::mutex mutex;
 
         //! condition variable for signaling incrementing of conunter.
         std::condition_variable cv;
@@ -104,7 +125,7 @@ private:
 #endif
         }
 
-        void                    IncCounter() {
+        void IncCounter() {
             ++counter;
 #if THRILL_HAVE_THREAD_SANITIZER
             std::unique_lock<std::mutex> lock(mutex);
@@ -130,25 +151,29 @@ private:
     //! \name Pointer Casting
     //! \{
 
+    size_t GetNextStep() {
+        return (barrier_.step() + 1) % 2;
+    }
+
     template <typename T>
-    void SetLocalShared(const T* value) {
+    void SetLocalShared(size_t step, const T* value) {
         // We are only allowed to set our own memory location.
         size_t idx = local_id_;
-        shmem_[idx].ptr.store(
+        shmem_[idx].ptr[step].store(
             const_cast<void*>(reinterpret_cast<const void*>(value)),
             std::memory_order_release);
     }
 
     template <typename T>
-    T * GetLocalShared(size_t idx) {
+    T * GetLocalShared(size_t step, size_t idx) {
         assert(idx < thread_count_);
         return reinterpret_cast<T*>(
-            shmem_[idx].ptr.load(std::memory_order_acquire));
+            shmem_[idx].ptr[step].load(std::memory_order_acquire));
     }
 
     template <typename T>
-    T * GetLocalShared() {
-        GetLocalShared<T>(local_id_);
+    T * GetLocalShared(size_t step) {
+        GetLocalShared<T>(step, local_id_);
     }
 
     //! \}
@@ -179,6 +204,30 @@ public:
         return group_.num_hosts() * thread_count_;
     }
 
+    //! non-copyable: delete copy-constructor
+    FlowControlChannel(const FlowControlChannel&) = delete;
+    //! non-copyable: delete assignment operator
+    FlowControlChannel& operator = (const FlowControlChannel&) = delete;
+    //! move-constructor: default
+    FlowControlChannel(FlowControlChannel&&) = default;
+
+    ~FlowControlChannel() {
+        sLOGC(enable_stats)
+            << "FCC worker" << my_rank() << ":"
+            << "prefixsum"
+            << count_prefixsum_ << "in" << timer_prefixsum_
+            << "broadcast"
+            << count_broadcast_ << "in" << timer_broadcast_
+            << "reduce"
+            << count_reduce_ << "in" << timer_reduce_
+            << "allreduce"
+            << count_allreduce_ << "in" << timer_allreduce_
+            << "predecessor"
+            << count_predecessor_ << "in" << timer_predecessor_
+            << "barrier"
+            << count_barrier_ << "in" << timer_barrier_;
+    }
+
 #ifdef SWIG
 #define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
 #endif
@@ -205,62 +254,63 @@ public:
               bool inclusive = true) {
 
         static constexpr bool debug = false;
+        RunTimer run_timer(timer_prefixsum_);
+        if (enable_stats) ++count_prefixsum_;
 
         T local_value = value;
 
-        SetLocalShared(&local_value);
+        size_t step = GetNextStep();
 
-        barrier_.Await();
+        SetLocalShared(step, &local_value);
 
-        // Local Reduce
-        if (local_id_ == 0) {
+        barrier_.Await(
+            [&]() {
+                    // global prefix
+                T** locals = reinterpret_cast<T**>(alloca(thread_count_ * sizeof(T*)));
 
-            // Global Prefix
-            T** locals = reinterpret_cast<T**>(alloca(thread_count_ * sizeof(T*)));
-
-            for (size_t i = 0; i < thread_count_; i++) {
-                locals[i] = GetLocalShared<T>(i);
-            }
-
-            for (size_t i = 1; i < thread_count_; i++) {
-                *(locals[i]) = sum_op(*(locals[i - 1]), *(locals[i]));
-            }
-
-            if (debug) {
                 for (size_t i = 0; i < thread_count_; i++) {
-                    // LOG << id_ << ", " << i << ", " << inclusive << ": me: " << *(locals[i]);
+                    locals[i] = GetLocalShared<T>(step, i);
                 }
-            }
 
-            T base_sum = *(locals[thread_count_ - 1]);
-            group_.PrefixSum(base_sum, sum_op, false);
-
-            if (host_rank_ == 0) {
-                base_sum = initial;
-            }
-
-            // LOG << id_ << ", m, " << inclusive << ": base: " << base_sum;
-
-            if (inclusive) {
-                for (size_t i = 0; i < thread_count_; i++) {
-                    *(locals[i]) = sum_op(base_sum, *(locals[i]));
+                for (size_t i = 1; i < thread_count_; i++) {
+                    *(locals[i]) = sum_op(*(locals[i - 1]), *(locals[i]));
                 }
-            }
-            else {
-                for (size_t i = thread_count_ - 1; i > 0; i--) {
-                    *(locals[i]) = sum_op(base_sum, *(locals[i - 1]));
-                }
-                *(locals[0]) = base_sum;
-            }
 
-            if (debug) {
-                for (size_t i = 0; i < thread_count_; i++) {
-                    // LOG << id_ << ", " << i << ", " << inclusive << ": res: " << *(locals[i]);
+                if (debug) {
+                    for (size_t i = 0; i < thread_count_; i++) {
+                        // LOG << id_ << ", " << i << ", "
+                        //     << inclusive << ": me: " << *(locals[i]);
+                    }
                 }
-            }
-        }
 
-        barrier_.Await();
+                T base_sum = *(locals[thread_count_ - 1]);
+                group_.PrefixSum(base_sum, sum_op, false);
+
+                if (host_rank_ == 0) {
+                    base_sum = initial;
+                }
+
+                    // LOG << id_ << ", m, " << inclusive << ": base: " << base_sum;
+
+                if (inclusive) {
+                    for (size_t i = 0; i < thread_count_; i++) {
+                        *(locals[i]) = sum_op(base_sum, *(locals[i]));
+                    }
+                }
+                else {
+                    for (size_t i = thread_count_ - 1; i > 0; i--) {
+                        *(locals[i]) = sum_op(base_sum, *(locals[i - 1]));
+                    }
+                    *(locals[0]) = base_sum;
+                }
+
+                if (debug) {
+                    for (size_t i = 0; i < thread_count_; i++) {
+                        // LOG << id_ << ", " << i << ", "
+                        //     << inclusive << ": res: " << *(locals[i]);
+                    }
+                }
+            });
 
         return local_value;
     }
@@ -304,28 +354,31 @@ public:
     T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
     Broadcast(const T& value, size_t origin = 0) {
 
-        T res = value;
+        RunTimer run_timer(timer_broadcast_);
+        if (enable_stats) ++count_broadcast_;
 
-        // Select primary thread of each node to handle IO (assumes all hosts
+        T local = value;
+
+        size_t step = GetNextStep();
+        SetLocalShared(step, &local);
+
+        // Select primary thread of each node to handle I/O (assumes all hosts
         // has the same number of threads).
-        size_t local_pe = origin % thread_count_;
+        size_t primary_pe = origin % thread_count_;
 
-        if (local_id_ == local_pe) {
-            SetLocalShared(&res);
+        if (local_id_ == primary_pe)
+            group_.Broadcast(local, origin / thread_count_);
 
-            group_.Broadcast(res, origin / thread_count_);
-        }
+        barrier_.Await(
+            [&]() {
+                    // copy from primary PE to all others
+                T res = *GetLocalShared<T>(step, primary_pe);
+                for (size_t i = 0; i < thread_count_; i++) {
+                    *GetLocalShared<T>(step, i) = res;
+                }
+            });
 
-        barrier_.Await();
-
-        // other threads: read value from thread 0.
-        if (local_id_ != local_pe) {
-            res = *GetLocalShared<T>(local_pe);
-        }
-
-        barrier_.Await();
-
-        return res;
+        return local;
     }
 
     /*!
@@ -347,27 +400,29 @@ public:
            const BinarySumOp& sum_op = BinarySumOp()) {
         assert(root < num_workers());
 
+        RunTimer run_timer(timer_reduce_);
+        if (enable_stats) ++count_reduce_;
+
         T local = value;
 
-        SetLocalShared(&local);
-        barrier_.Await();
+        size_t step = GetNextStep();
+        SetLocalShared(step, &local);
 
-        if (local_id_ == 0) {
+        barrier_.Await(
+            [&]() {
+                    // local reduce
+                T local_sum = *GetLocalShared<T>(step, 0);
+                for (size_t i = 1; i < thread_count_; i++) {
+                    local_sum = sum_op(local_sum, *GetLocalShared<T>(step, i));
+                }
 
-            // Local Reduce
-            for (size_t i = 1; i < thread_count_; i++) {
-                local = sum_op(local, *GetLocalShared<T>(i));
-            }
+                // global reduce
+                group_.Reduce(local_sum, root / thread_count_, sum_op);
 
-            // Global reduce
-            group_.Reduce(local, root / thread_count_, sum_op);
-
-            // set the local value only at the root
-            if (root / thread_count_ == group_.my_host_rank())
-                *GetLocalShared<T>(root % thread_count_) = local;
-        }
-
-        barrier_.Await();
+                    // set the local value only at the root
+                if (root / thread_count_ == group_.my_host_rank())
+                    *GetLocalShared<T>(step, root % thread_count_) = local_sum;
+            });
 
         return local;
     }
@@ -387,32 +442,31 @@ public:
     template <typename T, typename BinarySumOp = std::plus<T> >
     T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
     AllReduce(const T& value, const BinarySumOp& sum_op = BinarySumOp()) {
+
+        RunTimer run_timer(timer_allreduce_);
+        if (enable_stats) ++count_allreduce_;
+
         T local = value;
 
-        SetLocalShared(&local);
+        size_t step = GetNextStep();
+        SetLocalShared(step, &local);
 
-        barrier_.Await();
+        barrier_.Await(
+            [&]() {
+                    // local reduce
+                T local_sum = *GetLocalShared<T>(step, 0);
+                for (size_t i = 1; i < thread_count_; i++) {
+                    local_sum = sum_op(local_sum, *GetLocalShared<T>(step, i));
+                }
 
-        if (local_id_ == 0) {
+                // global reduce
+                group_.AllReduce(local_sum, sum_op);
 
-            // Local Reduce
-            for (size_t i = 1; i < thread_count_; i++) {
-                local = sum_op(local, *GetLocalShared<T>(i));
-            }
-
-            // Global reduce
-            group_.AllReduce(local, sum_op);
-
-            // We have the choice: One more barrier so each slave can read from
-            // master's shared memory, or p writes to write to each slaves
-            // mem. I choose the latter since the cost of a barrier is very
-            // high.
-            for (size_t i = 1; i < thread_count_; i++) {
-                *GetLocalShared<T>(i) = local;
-            }
-        }
-
-        barrier_.Await();
+                    // distribute back to local workers
+                for (size_t i = 0; i < thread_count_; i++) {
+                    *GetLocalShared<T>(step, i) = local_sum;
+                }
+            });
 
         return local;
     }
@@ -432,18 +486,22 @@ public:
     template <typename T>
     std::vector<T> Predecessor(size_t k, const std::vector<T>& my_values) {
 
-        std::vector<T> res;
+        RunTimer run_timer(timer_predecessor_);
+        if (enable_stats) ++count_predecessor_;
+
+        std::vector<T> result;
+        size_t step = GetNextStep();
 
         // this vector must live beyond the ThreadBarrier.
         std::vector<T> send_values;
 
         // get generation counter
-        size_t this_step = generation_.load(std::memory_order_acquire) + 1;
+        size_t this_gen = generation_.load(std::memory_order_acquire) + 1;
 
         if (my_values.size() >= k) {
             // if we already have k items, then "transmit" them to our successor
             if (local_id_ + 1 != thread_count_) {
-                SetLocalShared(&my_values);
+                SetLocalShared(step, &my_values);
                 // release memory inside vector
                 std::atomic_thread_fence(std::memory_order_release);
                 // increment generation counter to match this_step.
@@ -468,52 +526,52 @@ public:
             // and wait for the predecessor to deliver its batch
             if (local_id_ != 0) {
                 // wait on generation counter of predecessor
-                shmem_[local_id_ - 1].WaitCounter(this_step);
+                shmem_[local_id_ - 1].WaitCounter(this_gen);
 
                 // acquire memory inside vector
                 std::atomic_thread_fence(std::memory_order_acquire);
 
                 std::vector<T>* pre =
-                    GetLocalShared<std::vector<T> >(local_id_ - 1);
+                    GetLocalShared<std::vector<T> >(step, local_id_ - 1);
 
                 // copy over only k elements (there may be more or less)
-                res = std::vector<T>(
+                result = std::vector<T>(
                     pre->size() <= k ? pre->begin() : pre->end() - k, pre->end());
             }
             else if (host_rank_ != 0) {
-                group_.ReceiveFrom(host_rank_ - 1, &res);
+                group_.ReceiveFrom(host_rank_ - 1, &result);
             }
         }
         else {
             // we don't have k items, wait for our predecessor to send some.
             if (local_id_ != 0) {
                 // wait on generation counter of predecessor
-                shmem_[local_id_ - 1].WaitCounter(this_step);
+                shmem_[local_id_ - 1].WaitCounter(this_gen);
 
                 // acquire memory inside vector
                 std::atomic_thread_fence(std::memory_order_acquire);
 
                 std::vector<T>* pre =
-                    GetLocalShared<std::vector<T> >(local_id_ - 1);
+                    GetLocalShared<std::vector<T> >(step, local_id_ - 1);
 
                 // copy over only k elements (there may be more)
-                res = std::vector<T>(
+                result = std::vector<T>(
                     pre->size() <= k ? pre->begin() : pre->end() - k, pre->end());
             }
             else if (host_rank_ != 0) {
-                group_.ReceiveFrom(host_rank_ - 1, &res);
+                group_.ReceiveFrom(host_rank_ - 1, &result);
             }
 
             // prepend values we got from our predecessor with local ones, such
             // that they will fill up send_values together with all local items
             size_t fill_size = k - my_values.size();
-            send_values.reserve(std::min(k, fill_size + res.size()));
+            send_values.reserve(std::min(k, fill_size + result.size()));
             send_values.insert(
                 send_values.end(),
                 // copy last fill_size items from res. don't do end - fill_size,
                 // because that may result in unsigned wrap-around.
-                res.size() <= fill_size ? res.begin() : res.end() - fill_size,
-                res.end());
+                result.size() <= fill_size ? result.begin() : result.end() - fill_size,
+                result.end());
             send_values.insert(send_values.end(),
                                my_values.begin(), my_values.end());
             assert(send_values.size() <= k);
@@ -521,7 +579,7 @@ public:
             // now we have k items or at many as we can get, hence, "transmit"
             // them to our successor
             if (local_id_ + 1 != thread_count_) {
-                SetLocalShared(&send_values);
+                SetLocalShared(step, &send_values);
                 // release memory inside vector
                 std::atomic_thread_fence(std::memory_order_release);
                 // increment generation counter to match this_step.
@@ -541,13 +599,20 @@ public:
         // await until all threads have retrieved their value.
         barrier_.Await([this]() { generation_++; });
 
-        return res;
+        return result;
     }
 
     //! A trivial global barrier.
     void Barrier() {
-        size_t i = 0;
-        i = AllReduce(i);
+        RunTimer run_timer(timer_barrier_);
+        if (enable_stats) ++count_barrier_;
+
+        barrier_.Await(
+            [&]() {
+                    // Global all reduce
+                size_t i = 0;
+                group_.AllReduce(i);
+            });
     }
 
     //! A trivial local thread barrier

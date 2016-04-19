@@ -64,6 +64,11 @@ public:
         if (start_immediately) Start();
     }
 
+    //! move-constructor: default
+    StatsTimerBase(StatsTimerBase&&) = default;
+    //! move-assignment operator: default
+    StatsTimerBase& operator = (StatsTimerBase&&) = default;
+
     //! Whether the timer is real
     bool Real() const { return true; }
 
@@ -175,6 +180,11 @@ public:
     //! Initialize and optionally immediately start the timer
     explicit StatsTimerBase(bool /* autostart */) { }
 
+    //! move-constructor: default
+    StatsTimerBase(StatsTimerBase&&) = default;
+    //! move-assignment operator: default
+    StatsTimerBase& operator = (StatsTimerBase&&) = default;
+
     //! Whether the timer is real
     bool Real() const { return false; }
 
@@ -260,6 +270,28 @@ public:
 using StatsTimer = StatsTimerBase<true>;
 using StatsTimerStart = StatsTimerBaseStarted<true>;
 using StatsTimerStopped = StatsTimerBaseStopped<true>;
+
+using FakeStatsTimer = StatsTimerBase<false>;
+using FakeStatsTimerStart = StatsTimerBaseStarted<false>;
+using FakeStatsTimerStopped = StatsTimerBaseStopped<false>;
+
+//! RIAA class for running the timer until destruction
+template <typename Timer>
+class RunTimer
+{
+public:
+    explicit RunTimer(Timer& timer) : timer_(timer) { timer.Start(); }
+
+    //! non-copyable: delete copy-constructor
+    RunTimer(const RunTimer&) = delete;
+    //! non-copyable: delete assignment operator
+    RunTimer& operator = (const RunTimer&) = delete;
+
+    ~RunTimer() { timer_.Stop(); }
+
+private:
+    Timer& timer_;
+};
 
 } // namespace common
 } // namespace thrill
