@@ -238,14 +238,15 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
     if (debug_print)
         names_unique_sorted.Keep().Print("names_unique_sorted");
 
+    Context& ctx = input_dia.context();
+
     DIA<IndexRank> fully_discarded = 
-        names_unique_sorted.Keep()
-        .Filter([](const IndexRankStatus& /*a*/) {
-            return false;
-        })
-        .Map([](const IndexRankStatus& /*a*/) {
-            return IndexRank { Index(0), Index(0) };
-        });
+        Generate(
+            ctx,
+            [](size_t /*index*/) {
+                return IndexRank { Index(0), Index(0) };
+            },
+            0);
 
     while (true) {
         ++iteration;
