@@ -77,6 +77,8 @@ private:
     Timer timer_predecessor_;
     Timer timer_barrier_;
 
+    Timer timer_communication_;
+
     //! Synchronization counters
     common::AtomicMovable<size_t> count_prefixsum_ { 0 };
     common::AtomicMovable<size_t> count_broadcast_ { 0 };
@@ -225,7 +227,9 @@ public:
             << "predecessor"
             << count_predecessor_ << "in" << timer_predecessor_
             << "barrier"
-            << count_barrier_ << "in" << timer_barrier_;
+            << count_barrier_ << "in" << timer_barrier_
+            << "communication"
+            << timer_communication_;
     }
 
 #ifdef SWIG
@@ -265,7 +269,9 @@ public:
 
         barrier_.Await(
             [&]() {
-                    // global prefix
+                RunTimer net_timer(timer_communication_);
+
+                // global prefix
                 T** locals = reinterpret_cast<T**>(alloca(thread_count_ * sizeof(T*)));
 
                 for (size_t i = 0; i < thread_count_; i++) {
@@ -366,8 +372,10 @@ public:
         // has the same number of threads).
         size_t primary_pe = origin % thread_count_;
 
-        if (local_id_ == primary_pe)
+        if (local_id_ == primary_pe) {
+            RunTimer net_timer(timer_communication_);
             group_.Broadcast(local, origin / thread_count_);
+        }
 
         barrier_.Await(
             [&]() {
@@ -410,7 +418,9 @@ public:
 
         barrier_.Await(
             [&]() {
-                    // local reduce
+                RunTimer net_timer(timer_communication_);
+
+                // local reduce
                 T local_sum = *GetLocalShared<T>(step, 0);
                 for (size_t i = 1; i < thread_count_; i++) {
                     local_sum = sum_op(local_sum, *GetLocalShared<T>(step, i));
@@ -453,7 +463,9 @@ public:
 
         barrier_.Await(
             [&]() {
-                    // local reduce
+                RunTimer net_timer(timer_communication_);
+
+                // local reduce
                 T local_sum = *GetLocalShared<T>(step, 0);
                 for (size_t i = 1; i < thread_count_; i++) {
                     local_sum = sum_op(local_sum, *GetLocalShared<T>(step, i));
@@ -609,7 +621,9 @@ public:
 
         barrier_.Await(
             [&]() {
-                    // Global all reduce
+                RunTimer net_timer(timer_communication_);
+
+                // Global all reduce
                 size_t i = 0;
                 group_.AllReduce(i);
             });
