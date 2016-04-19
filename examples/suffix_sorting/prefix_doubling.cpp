@@ -99,6 +99,20 @@ struct IndexRankRank {
     }
 } THRILL_ATTRIBUTE_PACKED;
 
+//! A triple with index (index, rank_1, rank_2, rank_3)
+template <typename Index>
+struct Index3Rank {
+    Index index;
+    Index rank1;
+    Index rank2;
+    Index rank3;
+
+    friend std::ostream& operator << (std::ostream& os, const Index3Rank& irrr) {
+        return os << "( i: " << irrr.index << "| r1: " << irrr.rank1
+                  << "| r2: " << irrr.rank2 << "| r3: " << irrr.rank3 << ")";
+    }
+} THRILL_ATTRIBUTE_PACKED;
+
 template <typename Char, typename Index>
 struct CharCharIndex {
     Char  ch[2];
@@ -153,6 +167,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
     using CharCharIndex = suffix_sorting::CharCharIndex<Char, Index>;
     using IndexRankStatus = suffix_sorting::IndexRankStatus<Index>;
     using IndexRankRank = suffix_sorting::IndexRankRank<Index>;
+    using Index3Rank = suffix_sorting::Index3Rank<Index>;
 
     auto chars_sorted =
         input_dia
@@ -228,7 +243,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
 
     Context& ctx = input_dia.context();
 
-    DIA<IndexRank> fully_discarded = 
+    auto fully_discarded =
         Generate(
             ctx,
             [](size_t /*index*/) {
@@ -334,13 +349,13 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
             return sa.Collapse();
         }
 
-        auto rank_addition =
-            undiscarded.Keep()
-            .template FlatWindow<IndexRank>(
+        auto new_ranks =
+            undiscarded
+            .template FlatWindow<Index3Rank>(
                 2,
                 [=](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (index == 0) {
-                        emit(IndexRank { Index(0), Index(0) });
+                        emit(Index3Rank { rb[0].index, Index(0), Index(0), rb[0].rank1 });
                     }
                     Index i = rb[0].rank1 == rb[1].rank1 ? Index(0) : Index(index + 1);
                     Index r;
@@ -348,23 +363,18 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                         r = Index(index + 1);
                     else
                         r = (rb[0].rank2 == rb[1].rank2) ? Index(0) : Index(index + 1);
-                    emit(IndexRank { i, r });
+                    emit(Index3Rank { rb[1].index, i, r, rb[1].rank1 });
                 })
-            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                return IndexRank { 
-                    std::max<Index>(a.index, b.index),
-                    std::max<Index>(a.rank, b.rank)
+            .PrefixSum([](const Index3Rank& a, const Index3Rank& b) {
+                return Index3Rank { 
+                    b.index,
+                    std::max<Index>(a.rank1, b.rank1),
+                    std::max<Index>(a.rank2, b.rank2),
+                    b.rank3
                     };
                 })
-            .Map([](const IndexRank& ir) {
-                    return Index(ir.rank - ir.index);
-                });
-
-        auto new_ranks =
-            undiscarded
-            .Zip(rank_addition,
-                [](const IndexRankRank& irr, const Index& add) {
-                    return IndexRank({ irr.index, irr.rank1 + add });
+            .Map([](const Index3Rank& ir) {
+                    return IndexRank { ir.index, ir.rank3 + (ir.rank2 - ir.rank1) };
                 });
 
         size_t number_new_ranks = new_ranks.Keep().Size();
