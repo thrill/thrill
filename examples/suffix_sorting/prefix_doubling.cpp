@@ -191,18 +191,6 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 return IndexRank { cci.index, r };
             });
 
-    size_t max_rank = renamed_ranks.Max();
-
-    if (max_rank == input_size) {
-        auto sa =
-            chars_sorted
-            .Map([](const CharCharIndex& cci) {
-                     return cci.index;
-                 });
-
-        return sa.Collapse();
-    }
-
     DIA<IndexRankStatus> names_unique =
         names
         .template FlatWindow<IndexRankStatus>(
