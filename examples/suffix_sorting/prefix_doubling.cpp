@@ -133,12 +133,18 @@ struct CharCharIndex {
     }
 } THRILL_ATTRIBUTE_PACKED;
 
+enum class Status : uint8_t { 
+    UNDECIDED = 0,
+    UNIQUE = 1,
+    FULLY_DISCARDED = 2
+};
+
 //! A triple (index, rank, status)
 template <typename Index>
 struct IndexRankStatus {
     Index index;
     Index rank;
-    uint8_t status;
+    Status status;
 
     //! Two IndexRandStatuses are equal iff their ranks are equal.
     bool operator == (const IndexRankStatus& b) const {
@@ -154,9 +160,11 @@ struct IndexRankStatus {
     }
 
     friend std::ostream& operator << (std::ostream& os, const IndexRankStatus& irs) {
-        return os << "(i: " << irs.index << "| r: " << irs.rank << "| s: " << irs.status << ")";
+        return os << "(i: " << irs.index << "| r: " << irs.rank << "| s: " 
+                  << static_cast<uint8_t>(irs.status) << ")";
     }
 } THRILL_ATTRIBUTE_PACKED;
+
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t input_size) {
@@ -212,15 +220,15 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
             3,
             [&](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                 if (index == 0) {
-                    uint8_t status = rb[0].rank != rb[1].rank ? 1 : 0;
+                    Status status = rb[0].rank != rb[1].rank ? Status::UNIQUE : Status::UNDECIDED;
                     emit(IndexRankStatus { rb[0].index, rb[0].rank, status });
                 }
                 if (rb[0].rank != rb[1].rank && rb[1].rank != rb[2].rank)
-                    emit(IndexRankStatus { rb[1].index, rb[1].rank, 1 });
+                    emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNIQUE });
                 else
-                    emit(IndexRankStatus { rb[1].index, rb[1].rank, 0 });
+                    emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNDECIDED });
                 if (index == input_size - 3) {
-                    uint8_t status = rb[1].rank != rb[2].rank ? 1 : 0;
+                    Status status = rb[1].rank != rb[2].rank ? Status::UNIQUE : Status::UNDECIDED;
                     emit(IndexRankStatus { rb[2].index, rb[2].rank, status });
                 }
             });
@@ -240,16 +248,6 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
 
     if (debug_print)
         names_unique_sorted.Keep().Print("names_unique_sorted");
-
-    Context& ctx = input_dia.context();
-
-    // auto fully_discarded =
-    //     Generate(
-    //         ctx,
-    //         [](size_t /*index*/) {
-    //             return IndexRank { Index(0), Index(0) };
-    //         },
-    //         0);
 
     std::vector<DIA<IndexRank>> fully_discarded;
 
@@ -272,22 +270,22 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                         [](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
                             // Discarded names (we need to change the status since we remove it one step later)
                             if (index == 0) {
-                                if (rb[0].status == 1) 
-                                    emit(IndexRankStatus { rb[0].index, rb[0].rank, 2 });
-                                if (rb[1].status == 1) 
-                                    emit(IndexRankStatus { rb[1].index, rb[1].rank, 2 }); // Since there is just one preceding entry it's either undiscarded or unique
+                                if (rb[0].status == Status::UNIQUE) 
+                                    emit(IndexRankStatus { rb[0].index, rb[0].rank, Status::FULLY_DISCARDED });
+                                if (rb[1].status == Status::UNIQUE) 
+                                    emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::FULLY_DISCARDED }); // Since there is just one preceding entry it's either undiscarded or unique
                             }
-                            if (rb[2].status == 1 && (rb[0].status == 1 || rb[1].status == 1))
-                                emit(IndexRankStatus { rb[2].index, rb[2].rank, 2 });
+                            if (rb[2].status == Status::UNIQUE && (rb[0].status == Status::UNIQUE || rb[1].status == Status::UNIQUE))
+                                emit(IndexRankStatus { rb[2].index, rb[2].rank, Status::FULLY_DISCARDED });
                             // Partially discarded names 
-                            if (rb[2].status == 1 && rb[0].status == 0 && rb[1].status == 0)
+                            if (rb[2].status == Status::UNIQUE && rb[0].status == Status::UNDECIDED && rb[1].status == Status::UNDECIDED)
                                 emit(rb[2]);
                         });
 
             new_decided =
                 discarded_names.Keep()
                 .Filter([](const IndexRankStatus& irs) {
-                        return irs.status == 2;
+                        return irs.status == Status::FULLY_DISCARDED;
                     })
                 .Map([](const IndexRankStatus& irs) {
                         return IndexRank { irs.index, irs.rank };
@@ -296,13 +294,13 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
             partial_discarded =
                 discarded_names
                 .Filter([](const IndexRankStatus& irs) {
-                        return irs.status == 1;
+                        return irs.status == Status::UNIQUE;
                     });
         } else {
             new_decided =
                 names_unique_sorted.Keep()
                 .Filter([](const IndexRankStatus& irs) {
-                    return irs.status == 1;
+                    return irs.status == Status::UNIQUE;
                 })
                 .Map([](const IndexRankStatus& irs) {
                     return IndexRank { irs.index, irs.rank };
@@ -314,13 +312,13 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
             .template FlatWindow<IndexRankRank>(
                 2,
                 [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
-                    if (rb[0].status == Index(0)) {
+                    if (rb[0].status == Status::UNDECIDED) {
                         if (rb[0].index + (Index(1) << (iteration - 1)) == rb[1].index)
                             emit(IndexRankRank { rb[0].index, rb[0].rank, rb[1].rank });
                         else
                             emit(IndexRankRank { rb[0].index, rb[0].rank, Index(0) });
                     }
-                    if ((index == names_size - 2) && (rb[1].status == Index(0)))
+                    if ((index == names_size - 2) && (rb[1].status == Status::UNDECIDED))
                         emit(IndexRankRank { rb[1].index, rb[1].rank, Index(0) });
                 })
             .Sort([](const IndexRankRank& a, const IndexRankRank& b) {
@@ -384,7 +382,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 new_ranks
                 .Map(
                     [](const IndexRank& name) {
-                        return IndexRankStatus { name.index, name.rank, Index(1) };
+                        return IndexRankStatus { name.index, name.rank, Status::UNIQUE };
                     });
         } else {
             names_unique =
@@ -393,15 +391,15 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                     3,
                     [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                         if (index == 0) {
-                            uint8_t status = rb[0].rank != rb[1].rank ? 1 : 0;
+                            Status status = rb[0].rank != rb[1].rank ? Status::UNIQUE : Status::UNDECIDED;
                             emit(IndexRankStatus { rb[0].index, rb[0].rank, status });
                         }
                         if (rb[0].rank != rb[1].rank && rb[1].rank != rb[2].rank)
-                            emit(IndexRankStatus { rb[1].index, rb[1].rank, 1 });
+                            emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNIQUE });
                         else
-                            emit(IndexRankStatus { rb[1].index, rb[1].rank, 0 });
+                            emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNDECIDED });
                         if (index == number_new_ranks - 3) {
-                            uint8_t status = rb[1].rank != rb[2].rank ? 1 : 0;
+                            Status status = rb[1].rank != rb[2].rank ? Status::UNIQUE : Status::UNDECIDED;
                             emit(IndexRankStatus { rb[2].index, rb[2].rank, status });
                         }
                     });
