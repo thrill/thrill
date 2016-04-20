@@ -166,15 +166,6 @@ MixBlockQueueReader::~MixBlockQueueReader() {
     // TODO(tb)
 }
 
-bool MixBlockQueueReader::HasNext() {
-    if (reread_) return cat_reader_.HasNext();
-
-    if (available_) return true;
-    if (open_ == 0) return false;
-
-    return PullBlock();
-}
-
 bool MixBlockQueueReader::PullBlock() {
     // no full item available: get next block from mix queue
     while (available_ == 0) {
