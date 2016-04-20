@@ -978,6 +978,12 @@ public:
     template <typename SecondDIA>
     auto Concat(const SecondDIA &second_dia) const;
 
+
+
+	template <typename SimilarityFunction, typename SecondDIA>
+	auto TrivialSimJoin(const SecondDIA &second_dia,
+						const SimilarityFunction& comparator) const;
+
     /*!
      * Create a CollapseNode which is mainly used to collapse the LOp chain into
      * a DIA<T> with an empty stack. This is most often necessary for iterative
