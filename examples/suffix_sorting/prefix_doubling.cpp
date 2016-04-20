@@ -243,13 +243,15 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
 
     Context& ctx = input_dia.context();
 
-    auto fully_discarded =
-        Generate(
-            ctx,
-            [](size_t /*index*/) {
-                return IndexRank { Index(0), Index(0) };
-            },
-            0);
+    // auto fully_discarded =
+    //     Generate(
+    //         ctx,
+    //         [](size_t /*index*/) {
+    //             return IndexRank { Index(0), Index(0) };
+    //         },
+    //         0);
+
+    std::vector<DIA<IndexRank>> fully_discarded;
 
     while (true) {
         ++iteration;
@@ -325,10 +327,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                     return a < b;
                 });
 
-        fully_discarded = fully_discarded.Union(new_decided);
-
-        if (debug_print)
-            fully_discarded.Keep().Print("fully_discarded");
+        fully_discarded.emplace_back(new_decided.Collapse());
 
         size_t duplicates = undiscarded.Keep().Size();
 
@@ -338,8 +337,9 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
         }
 
         if (duplicates == 0) {
+            auto res = Union(fully_discarded);
             auto sa =
-                fully_discarded
+                res
                 .Sort([](const IndexRank& a, const IndexRank& b) {
                     return a.rank < b.rank;
                     })
