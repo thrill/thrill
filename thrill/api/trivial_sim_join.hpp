@@ -38,26 +38,62 @@ class TrivialSimJoinNode : public DOpNode<ValueType>
     //! Set this variable to true to enable generation and output of merge stats
     static constexpr bool stats_enabled = false;
 
+    using InputType = typename common::FunctionTraits<DistanceFunction>::template arg<0>;
+
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
 public:
     TrivialSimJoinNode(const DistanceFunction& distance_function,
-              const ParentDIA0& parent0,
-              const ParentDIA1& parent1)
-        : Super(parent0.ctx(), "TrivialSimJoin",
-                { parent0.id(), parent1.id()},
-                { parent0.node(), parent1.node()}),
+              const ParentDIA0& parentR,
+              const ParentDIA1& parentS)
+        : Super(parentR.ctx(), "TrivialSimJoin",
+                { parentR.id(), parentS.id()},
+                { parentR.node(), parentS.node()}),
           distance_function_(distance_function)
-    {	    
+    {
+        
+        auto pre_op_fn_R = [this](const InputType& input) {
+            elements_R_.push_back(input);
+        };
+        auto lop_chain_R = parentR.stack().push(pre_op_fn_R).fold();
+        parentR.node()->AddChild(this, lop_chain_R, 0);
 
+        elements_S_ = context_.GetNewMixStream(this);
+
+        element_S_writers_ = elements_S_->GetWriters();
+
+        auto pre_op_fn_S = [this](const InputType& input) {
+            for (auto &writer : element_S_writers_) {
+                writer.Put(input);
+            }
+        };
+
+        auto lop_chain_S = parentS.stack().push(pre_op_fn_S).fold();
+
+        parentS.node()->AddChild(this, lop_chain_S, 1);
+
+        
+        
     }
 
     void Execute() final {
-        MainOp();
+        for (auto &writer : element_S_writers_) {
+            writer.Close();
+        }
+        //MainOp();
     }
 
     void PushData(bool consume) final {
+        data::MixStream::MixReader reader = elements_S_->GetMixReader(consume);
+        while (reader.HasNext()) {            
+            InputType elementS = reader.template Next<InputType>();
+            for (InputType elementR : elements_R_) {
+                if (distance_function_(elementS, elementR) < 10000) {
+                    this->PushItem(std::make_pair(elementS, elementR));
+                }
+            }
+        }
     }
 
     void Dispose() final { }
@@ -66,14 +102,19 @@ private:
     //! Merge comparator
     DistanceFunction distance_function_;
 
+    std::vector<InputType> elements_R_;
+    
+    data::MixStreamPtr elements_S_;
+    std::vector<data::MixStream::Writer> element_S_writers_;
+
    
     /*!
      * Receives elements from other workers and re-balance them, so each worker
      * has the same amount after merging.
      */
-    void MainOp() {
-       
-    }
+    /* void MainOp() {
+        
+       }*/
 };
 
 template <typename ValueType, typename Stack>
