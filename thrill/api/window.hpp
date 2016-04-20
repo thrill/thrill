@@ -261,6 +261,21 @@ auto DIA<ValueType, Stack>::FlatWindow(
 }
 
 template <typename ValueType, typename Stack>
+template <typename ValueOut, typename WindowFunction>
+auto DIA<ValueType, Stack>::FlatWindow(
+    size_t window_size, const WindowFunction &window_function) const {
+    assert(IsValid());
+
+    auto no_operation_function =
+        [](size_t /* index */,
+           const common::RingBuffer<ValueType>& /* window */,
+           auto /* emit */) { };
+
+    return FlatWindow<ValueOut>(
+        window_size, window_function, no_operation_function);
+}
+
+template <typename ValueType, typename Stack>
 template <typename WindowFunction>
 auto DIA<ValueType, Stack>::Window(
     size_t window_size, const WindowFunction &window_function) const {
@@ -291,13 +306,18 @@ auto DIA<ValueType, Stack>::Window(
             emit(window_function(index, window));
         };
 
+    auto no_operation_function =
+        [](size_t /* index */,
+           const common::RingBuffer<ValueType>& /* window */,
+           auto /* emit */) { };
+
     using WindowNode = api::OverlapWindowNode<
               Result, ValueType,
-              decltype(flatwindow_function), common::NoOperation<ValueType> >;
+              decltype(flatwindow_function), decltype(no_operation_function)>;
 
     auto node = common::MakeCounting<WindowNode>(
         *this, "Window", window_size,
-        flatwindow_function, common::NoOperation<ValueType>());
+        flatwindow_function, no_operation_function);
 
     return DIA<Result>(node);
 }

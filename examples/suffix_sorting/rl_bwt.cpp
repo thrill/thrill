@@ -32,8 +32,6 @@
 #include <utility>
 #include <vector>
 
-static constexpr bool debug = false;
-
 using namespace thrill; // NOLINT
 
 //! A pair (rank, index)

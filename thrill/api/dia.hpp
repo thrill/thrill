@@ -1035,17 +1035,32 @@ public:
      *
      * \param window_function Window function applied to each k item.
      *
+     * \ingroup dia_dops
+     */
+    template <typename ValueOut, typename WindowFunction>
+    auto FlatWindow(
+        size_t window_size,
+        const WindowFunction& window_function = WindowFunction()) const;
+
+    /*!
+     * FlatWindow is a DOp, which applies a window function to every k
+     * consecutive items in a DIA. The window function is also given the index
+     * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \param window_size the size of the delivered window. Signature: TODO(tb).
+     *
+     * \param window_function Window function applied to each k item.
+     *
      * \param partial_window_function Window function applied to less than k
      * items.
      *
      * \ingroup dia_dops
      */
     template <typename ValueOut, typename WindowFunction,
-              typename PartialWindowFunction = common::NoOperation<ValueType> >
+              typename PartialWindowFunction>
     auto FlatWindow(size_t window_size,
-                    const WindowFunction& window_function = WindowFunction(),
-                    const PartialWindowFunction& partial_window_function
-                        = PartialWindowFunction()) const;
+                    const WindowFunction &window_function,
+                    const PartialWindowFunction &partial_window_function) const;
 
     /*!
      * FlatWindow is a DOp, which applies a window function to every k

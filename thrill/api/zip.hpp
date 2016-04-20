@@ -98,7 +98,7 @@ public:
           // this weirdness is due to a MSVC2015 parser bug
           parent_stack_empty_(
               std::array<bool, kNumInputs>{
-                  ParentDIA0::stack_empty, (ParentDIAs::stack_empty)...
+                  { ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... }
               })
     {
         // allocate files.
