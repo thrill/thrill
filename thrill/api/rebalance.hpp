@@ -67,11 +67,12 @@ public:
         local_size = file_.num_items();
         sLOG << "local_size" << local_size;
 
-        size_t global_size = context_.net.AllReduce(local_size);
-        sLOG << "global_size" << global_size;
-
         size_t local_rank = context_.net.ExPrefixSum(local_size);
         sLOG << "local_rank" << local_rank;
+
+        size_t global_size = context_.net.Broadcast(
+            local_rank + local_size, context_.net.num_workers() - 1);
+        sLOG << "global_size" << global_size;
 
         const size_t num_workers = context_.num_workers();
         const double pre_pe =
