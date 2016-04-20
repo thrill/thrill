@@ -12,4 +12,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   thrill_build_prog(proc_profiler)
 endif()
 
+thrill_build_prog(json2profile)
+
 ################################################################################
