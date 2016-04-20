@@ -24,6 +24,7 @@
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/uint_types.hpp>
@@ -255,26 +256,21 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
                                           { rb[0], rb[1], rb[2] }
                                       }
                          });
-
-                if (index + 3 == input_size) {
-                    // emit last sentinel items.
-                    if ((index + 1) % 3 != 0)
-                        emit(IndexChars { Index(index + 1), {
-                                              { rb[1], rb[2], Char() }
-                                          }
-                             });
-                    if ((index + 2) % 3 != 0)
-                        emit(IndexChars { Index(index + 2), {
-                                              { rb[2], Char(), Char() }
-                                          }
-                             });
-
-                    if (input_size % 3 == 1) {
-                        // emit a sentinel tuple for inputs n % 3 == 1 to
-                        // separate mod1 and mod2 strings in recursive
-                        // subproblem. example which needs this: aaaaaaaaaa.
-                        emit(IndexChars { Index(index + 3), Chars::EndSentinel() });
-                    }
+            }, [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                // emit last sentinel items.
+                if (index % 3 != 0) {
+                    emit(IndexChars {
+                             Index(index), {
+                                 { rb.size() >= 1 ? rb[0] : Char(),
+                                   rb.size() >= 2 ? rb[1] : Char(), Char() }
+                             }
+                         });
+                }
+                if (index + 1 == input_size && input_size % 3 == 1) {
+                    // emit a sentinel tuple for inputs n % 3 == 1 to separate
+                    // mod1 and mod2 strings in recursive subproblem. example
+                    // which needs this: aaaaaaaaaa.
+                    emit(IndexChars { Index(input_size), Chars::EndSentinel() });
                 }
             })
         // sort triples by contained letters
@@ -431,18 +427,14 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
                     emit(Chars {
                              { rb[0], rb[1], rb[2] }
                          });
-
-                if (index + 3 == input_size) {
-                    // emit sentinel
-                    if ((index + 1) % 3 == 0)
-                        emit(Chars {
-                                 { rb[1], rb[2], Char() }
-                             });
-                    if ((index + 2) % 3 == 0)
-                        emit(Chars {
-                                 { rb[2], Char(), Char() }
-                             });
-                }
+            }, [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                // emit sentinels
+                if (index % 3 == 0)
+                    emit(Chars {
+                             { rb.size() >= 1 ? rb[0] : Char(),
+                               rb.size() >= 2 ? rb[1] : Char(),
+                               Char() }
+                         });
             });
 
     auto ranks_mod1 =
@@ -600,10 +592,10 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
     // merge and map to only suffix array
 
     auto suffix_array =
-        Merge(dc3_local::FragmentComparator<StringFragment>(),
-              string_fragments_mod0,
+        Union(string_fragments_mod0,
               string_fragments_mod1,
               string_fragments_mod2)
+        .Sort(dc3_local::FragmentComparator<StringFragment>())
         .Map([](const StringFragment& a) { return a.index; })
         .Execute();
 

@@ -24,6 +24,7 @@
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
@@ -539,64 +540,33 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
                                  { r[0], r[1], r[2], r[3], r[4], r[5], r[6] }
                              }
                          });
+            }, [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
+                // emit last sentinel items.
+                if (IsDiffCover7(index)) {
+                    emit(IndexChars {
+                             Index(index), {
+                                 { r.size() >= 1 ? r[0] : Char(),
+                                   r.size() >= 2 ? r[1] : Char(),
+                                   r.size() >= 3 ? r[2] : Char(),
+                                   r.size() >= 4 ? r[3] : Char(),
+                                   r.size() >= 5 ? r[4] : Char(),
+                                   r.size() >= 6 ? r[5] : Char(),
+                                   Char() }
+                             }
+                         });
+                }
 
-                if (index + 7 == input_size) {
-                    // emit last sentinel items.
-                    if (IsDiffCover7(index + 1))
-                        emit(IndexChars {
-                                 Index(index + 1), {
-                                     { r[1], r[2], r[3], r[4],
-                                       r[5], r[6], Char() }
-                                 }
-                             });
-                    if (IsDiffCover7(index + 2))
-                        emit(IndexChars {
-                                 Index(index + 2), {
-                                     { r[2], r[3], r[4], r[5],
-                                       r[6], Char(), Char() }
-                                 }
-                             });
-                    if (IsDiffCover7(index + 3))
-                        emit(IndexChars {
-                                 Index(index + 3), {
-                                     { r[3], r[4], r[5], r[6],
-                                       Char(), Char(), Char() }
-                                 }
-                             });
-                    if (IsDiffCover7(index + 4))
-                        emit(IndexChars {
-                                 Index(index + 4), {
-                                     { r[4], r[5], r[6], Char(),
-                                       Char(), Char(), Char() }
-                                 }
-                             });
-                    if (IsDiffCover7(index + 5))
-                        emit(IndexChars {
-                                 Index(index + 5), {
-                                     { r[5], r[6], Char(), Char(),
-                                       Char(), Char(), Char() }
-                                 }
-                             });
-                    if (IsDiffCover7(index + 6))
-                        emit(IndexChars {
-                                 Index(index + 6), {
-                                     { r[6], Char(), Char(), Char(),
-                                       Char(), Char(), Char() }
-                                 }
-                             });
-
-                    if (input_size % 7 == 0) {
-                        // emit a sentinel tuple for inputs n % 7 == 0 to
-                        // separate mod0 and mod1 strings in recursive
-                        // subproblem. example which needs this: aaaaaaaaaa.
-                        emit(IndexChars { Index(input_size), Chars::EndSentinel() });
-                    }
-                    if (input_size % 7 == 1) {
-                        // emit a sentinel tuple for inputs n % 7 == 1 to
-                        // separate mod1 and mod3 strings in recursive
-                        // subproblem. example which needs this: aaaaaaaaaa.
-                        emit(IndexChars { Index(input_size), Chars::EndSentinel() });
-                    }
+                if (index + 1 == input_size && input_size % 7 == 0) {
+                    // emit a sentinel tuple for inputs n % 7 == 0 to
+                    // separate mod0 and mod1 strings in recursive
+                    // subproblem. example which needs this: aaaaaaaaaa.
+                    emit(IndexChars { Index(input_size), Chars::EndSentinel() });
+                }
+                if (index + 1 == input_size && input_size % 7 == 1) {
+                    // emit a sentinel tuple for inputs n % 7 == 1 to
+                    // separate mod1 and mod3 strings in recursive
+                    // subproblem. example which needs this: aaaaaaaaaa.
+                    emit(IndexChars { Index(input_size), Chars::EndSentinel() });
                 }
             })
         // sort tuples by contained letters
@@ -781,37 +751,23 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         // map (t_i) -> (i,t_i,t_{i+1},...,t_{i+6}) where i != 0,1,3 mod 7
         .template FlatWindow<Chars>(
             7, [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
-                if (index % 7 == 0)
+                if (index % 7 == 0) {
                     emit(Chars {
                              { r[0], r[1], r[2], r[3], r[4], r[5], r[6] }
                          });
-
-                if (index + 7 == input_size) {
-                    // emit last sentinel items.
-                    if ((index + 1) % 7 == 0)
-                        emit(Chars {
-                                 { r[1], r[2], r[3], r[4], r[5], r[6], Char() }
-                             });
-                    if ((index + 2) % 7 == 0)
-                        emit(Chars {
-                                 { r[2], r[3], r[4], r[5], r[6], Char(), Char() }
-                             });
-                    if ((index + 3) % 7 == 0)
-                        emit(Chars {
-                                 { r[3], r[4], r[5], r[6], Char(), Char(), Char() }
-                             });
-                    if ((index + 4) % 7 == 0)
-                        emit(Chars {
-                                 { r[4], r[5], r[6], Char(), Char(), Char(), Char() }
-                             });
-                    if ((index + 5) % 7 == 0)
-                        emit(Chars {
-                                 { r[5], r[6], Char(), Char(), Char(), Char(), Char() }
-                             });
-                    if ((index + 6) % 7 == 0)
-                        emit(Chars {
-                                 { r[6], Char(), Char(), Char(), Char(), Char(), Char() }
-                             });
+                }
+            }, [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
+                // emit last sentinel items.
+                if (index % 7 == 0) {
+                    emit(Chars {
+                             { r.size() >= 1 ? r[0] : Char(),
+                               r.size() >= 2 ? r[1] : Char(),
+                               r.size() >= 3 ? r[2] : Char(),
+                               r.size() >= 4 ? r[3] : Char(),
+                               r.size() >= 5 ? r[4] : Char(),
+                               r.size() >= 6 ? r[5] : Char(),
+                               Char() }
+                         });
                 }
             });
 
@@ -1098,14 +1054,14 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
     // merge and map to only suffix array
 
     auto suffix_array =
-        Merge(dc7_local::FragmentComparator<StringFragment>(),
-              string_fragments_mod0,
+        Union(string_fragments_mod0,
               string_fragments_mod1,
               string_fragments_mod2,
               string_fragments_mod3,
               string_fragments_mod4,
               string_fragments_mod5,
               string_fragments_mod6)
+        .Sort(dc7_local::FragmentComparator<StringFragment>())
         .Map([](const StringFragment& a) { return a.index; })
         .Execute();
 
