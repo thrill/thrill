@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 ################################################################################
-# misc/analyze-source.pl
+# misc/format/analyze-source.pl
 #
 # Part of Project Thrill - http://project-thrill.org
 #
@@ -347,7 +347,7 @@ sub process_cpp {
     if (filter_uncrustify($path))
     {
         my $data = join("", @data);
-        @data = filter_program($data, "uncrustify", "-q", "-c", "misc/uncrustify.cfg", "-l", "CPP");
+        @data = filter_program($data, "uncrustify", "-q", "-c", "misc/format/uncrustify.cfg", "-l", "CPP");
 
         # manually add blank line after "namespace xyz {" and before "} // namespace xyz"
         my @namespace;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * misc/proc_profiler.cpp
+ * misc/standalone_profiler.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
