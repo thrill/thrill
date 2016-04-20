@@ -222,7 +222,7 @@ public:
     ~MixBlockQueueReader();
 
     //! HasNext() returns true if at least one more item is available.
-    bool HasNext()  {
+    bool HasNext() {
         if (reread_) return cat_reader_.HasNext();
 
         if (available_) return true;
