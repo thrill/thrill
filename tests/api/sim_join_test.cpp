@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/sort_node_test.cpp
+ * tests/api/sim_join_test.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -22,10 +22,9 @@
 
 using namespace thrill; // NOLINT
 
-
 TEST(TrivialSimJoin, SimJoinIntegers1) {
 
-	  auto start_func =
+    auto start_func =
         [](Context& ctx) {
 
             std::default_random_engine generator(std::random_device { } ());
@@ -38,30 +37,29 @@ TEST(TrivialSimJoin, SimJoinIntegers1) {
                 },
                 10);
 
-			auto integers2 = Generate(
-				ctx,
-				[&distribution, &generator](const size_t&) -> int {
-					return distribution(generator);
-				},
-				10);
+            auto integers2 = Generate(
+                ctx,
+                [&distribution, &generator](const size_t&) -> int {
+                    return distribution(generator);
+                },
+                10);
 
-			auto dist_fn = [] (int i1, int i2) -> int {
-				return std::abs(i1 - i2);
-			};
+            auto dist_fn = [](int i1, int i2) -> int {
+                               return std::abs(i1 - i2);
+                           };
 
-			auto join_pairs = integers1.TrivialSimJoin(integers2, dist_fn);
+            auto join_pairs = integers1.TrivialSimJoin(integers2, dist_fn);
 
-            std::vector<std::pair<int, int>> out_vec = join_pairs.AllGather();
+            std::vector<std::pair<int, int> > out_vec = join_pairs.AllGather();
 
-			/* for (size_t i = 0; i < out_vec.size() - 1; i++) {
-                ASSERT_FALSE(out_vec[i + 1] < out_vec[i]);
-            }
-
-            ASSERT_EQ(10000u, out_vec.size());*/
-	  };
-
-	  api::RunLocalTests(start_func);
+            /* for (size_t i = 0; i < out_vec.size() - 1; i++) {
+    ASSERT_FALSE(out_vec[i + 1] < out_vec[i]);
 }
 
+ASSERT_EQ(10000u, out_vec.size());*/
+        };
+
+    api::RunLocalTests(start_func);
+}
 
 /******************************************************************************/

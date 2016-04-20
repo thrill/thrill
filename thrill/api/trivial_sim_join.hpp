@@ -28,8 +28,8 @@
 namespace thrill {
 namespace api {
 
-template <typename ValueType, typename DistanceFunction, 
-		  typename ParentDIA0, typename ParentDIA1>
+template <typename ValueType, typename DistanceFunction,
+          typename ParentDIA0, typename ParentDIA1>
 class TrivialSimJoinNode : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -45,17 +45,17 @@ class TrivialSimJoinNode : public DOpNode<ValueType>
 
 public:
     TrivialSimJoinNode(const DistanceFunction& distance_function,
-              const ParentDIA0& parentR,
-              const ParentDIA1& parentS)
+                       const ParentDIA0& parentR,
+                       const ParentDIA1& parentS)
         : Super(parentR.ctx(), "TrivialSimJoin",
-                { parentR.id(), parentS.id()},
-                { parentR.node(), parentS.node()}),
+                { parentR.id(), parentS.id() },
+                { parentR.node(), parentS.node() }),
           distance_function_(distance_function)
     {
-        
+
         auto pre_op_fn_R = [this](const InputType& input) {
-            elements_R_.push_back(input);
-        };
+                               elements_R_.push_back(input);
+                           };
         auto lop_chain_R = parentR.stack().push(pre_op_fn_R).fold();
         parentR.node()->AddChild(this, lop_chain_R, 0);
 
@@ -64,29 +64,26 @@ public:
         element_S_writers_ = elements_S_->GetWriters();
 
         auto pre_op_fn_S = [this](const InputType& input) {
-            for (auto &writer : element_S_writers_) {
-                writer.Put(input);
-            }
-        };
+                               for (auto& writer : element_S_writers_) {
+                                   writer.Put(input);
+                               }
+                           };
 
         auto lop_chain_S = parentS.stack().push(pre_op_fn_S).fold();
 
         parentS.node()->AddChild(this, lop_chain_S, 1);
-
-        
-        
     }
 
     void Execute() final {
-        for (auto &writer : element_S_writers_) {
+        for (auto& writer : element_S_writers_) {
             writer.Close();
         }
-        //MainOp();
+        // MainOp();
     }
 
     void PushData(bool consume) final {
         data::MixStream::MixReader reader = elements_S_->GetMixReader(consume);
-        while (reader.HasNext()) {            
+        while (reader.HasNext()) {
             InputType elementS = reader.template Next<InputType>();
             for (InputType elementR : elements_R_) {
                 if (distance_function_(elementS, elementR) < 10000) {
@@ -103,29 +100,28 @@ private:
     DistanceFunction distance_function_;
 
     std::vector<InputType> elements_R_;
-    
+
     data::MixStreamPtr elements_S_;
     std::vector<data::MixStream::Writer> element_S_writers_;
 
-   
     /*!
      * Receives elements from other workers and re-balance them, so each worker
      * has the same amount after merging.
      */
     /* void MainOp() {
-        
+
        }*/
 };
 
 template <typename ValueType, typename Stack>
 template <typename DistanceFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::TrivialSimJoin(const SecondDIA &second_dia,
-					const DistanceFunction &distance_function) const {
+                                           const DistanceFunction &distance_function) const {
 
-	using OutputPair = std::pair<ValueType, ValueType>;
+    using OutputPair = std::pair<ValueType, ValueType>;
 
     using TrivialSimJoinNode =
-		api::TrivialSimJoinNode<OutputPair, DistanceFunction, DIA, SecondDIA>;
+              api::TrivialSimJoinNode<OutputPair, DistanceFunction, DIA, SecondDIA>;
 
     // Assert function types.
     static_assert(
@@ -145,10 +141,10 @@ auto DIA<ValueType, Stack>::TrivialSimJoin(const SecondDIA &second_dia,
     // Assert meaningful return type of comperator.
     static_assert(
         std::is_convertible<
-		typename FunctionTraits<DistanceFunction>::result_type,
+            typename FunctionTraits<DistanceFunction>::result_type,
             float
             >::value,
-			"Distance Function must return a numeral.");
+        "Distance Function must return a numeral.");
 
     auto trivial_sim_join_node =
         common::MakeCounting<TrivialSimJoinNode>(distance_function, *this, second_dia);
@@ -157,7 +153,6 @@ auto DIA<ValueType, Stack>::TrivialSimJoin(const SecondDIA &second_dia,
 }
 
 } // namespace api
-
 } // namespace thrill
 
 #endif // !THRILL_API_TRIVIAL_SIM_JOIN_HEADER
