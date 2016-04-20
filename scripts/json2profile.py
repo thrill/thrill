@@ -21,7 +21,9 @@ import pandas as pd
 import numpy as np
 
 # parse Json in all input files
-stats = []
+stats = {}
+min_ts = 2145916800000000
+num_events = 0
 
 # flatten nested dictionary by replacing them with d1_d2_key entries
 def flatten_dicts(d, parent_key='', sep='_'):
@@ -39,60 +41,81 @@ for input_file in sys.argv[1:]:
         for line in json_file:
             try:
                 r = json.loads(line)
-                if 'class' in r:
-                    stats.append(flatten_dicts(r))
+                if not 'class' in r: continue
+                if not r['class'] in stats:
+                    stats[r['class']] = []
+                stats[r['class']].append(flatten_dicts(r))
+                if r['ts'] < min_ts:
+                    min_ts = r['ts']
+                ++num_events
             except ValueError:
                 print("JSON line invalid: " + line)
                 pass
 
-print("Read " + str(len(stats)) + " json events from " + str(len(sys.argv) - 1) + " files")
+print("Read " + str(num_events) + " json events from " + str(len(sys.argv) - 1) + " files")
 
 # transform Json into a pandas DataFrame
-df_stats = pd.DataFrame(stats).sort_values(by='ts')
+df_Cmdline = pd.DataFrame(stats['Cmdline']).sort_values(by='ts')
+df_DIABase = pd.DataFrame(stats['DIABase']).sort_values(by='ts')
+df_Stream = pd.DataFrame(stats['Stream']).sort_values(by='ts')
+df_File = pd.DataFrame(stats['File']).sort_values(by='ts')
+df_StageBuilder = pd.DataFrame(stats['StageBuilder']).sort_values(by='ts')
+df_LinuxProcStats = pd.DataFrame(stats['LinuxProcStats']).sort_values(by='ts')
+df_NetManager = pd.DataFrame(stats['NetManager']).sort_values(by='ts')
+df_MemProfile = pd.DataFrame(stats['MemProfile']).sort_values(by='ts')
+df_BlockPool = pd.DataFrame(stats['BlockPool']).sort_values(by='ts')
+del stats
 
 # find start of program, subtract from all timestamps
-min_ts = df_stats['ts'].min()
-df_stats['ts'] = (df_stats['ts'] - min_ts) / 1e3
+df_Cmdline['ts'] = (df_Cmdline['ts'] - min_ts) / 1e3
+df_DIABase['ts'] = (df_DIABase['ts'] - min_ts) / 1e3
+df_Stream['ts'] = (df_Stream['ts'] - min_ts) / 1e3
+df_File['ts'] = (df_File['ts'] - min_ts) / 1e3
+df_StageBuilder['ts'] = (df_StageBuilder['ts'] - min_ts) / 1e3
+df_LinuxProcStats['ts'] = (df_LinuxProcStats['ts'] - min_ts) / 1e3
+df_NetManager['ts'] = (df_NetManager['ts'] - min_ts) / 1e3
+df_MemProfile['ts'] = (df_MemProfile['ts'] - min_ts) / 1e3
+df_BlockPool['ts'] = (df_BlockPool['ts'] - min_ts) / 1e3
+
+print("Read " + str(num_events) + " json events from " + str(len(sys.argv) - 1) + " files")
 
 # extract a plain profile series from sclass with key
-def Series(sclass,key):
-    df = df_stats
+def Series(df,key):
     if not key in df:
         return pd.DataFrame(columns=['ts',key]).set_index('ts')
-    df = df[(df['class'] == sclass) & (df['event'] == 'profile')][['ts',key]].set_index('ts')
+    df = df[(df['event'] == 'profile')][['ts',key]].set_index('ts')
     return df
 
 # extract sum of two profile series from sclass with key
-def SeriesSum(sclass,key1,key2):
-    df = df_stats
+def SeriesSum(df,key1,key2):
     if not key1 in df or not key2 in df:
         return pd.DataFrame(columns=['ts',key1]).set_index('ts')
-    df = df[(df['class'] == sclass) & (df['event'] == 'profile')][['ts',key1,key2]]
+    df = df[(df['event'] == 'profile')][['ts',key1,key2]]
     df[key1] = df[key1] + df[key2]
     del df[key2]
     df = df.set_index('ts')
     return df
 
 def ProcSeries(key):
-    return Series('LinuxProcStats', key)
+    return Series(df_LinuxProcStats, key)
 
 def ProcSeriesSum(key1,key2):
-    return SeriesSum('LinuxProcStats', key1, key2)
+    return SeriesSum(df_LinuxProcStats, key1, key2)
 
 def NetManagerSeries(key):
-    return Series('NetManager', key)
+    return Series(df_NetManager, key)
 
 def NetManagerSeriesSum(key1,key2):
-    return SeriesSum('NetManager', key1, key2)
+    return SeriesSum(df_NetManager, key1, key2)
 
 def MemProfileSeries(key):
-    return Series('MemProfile', key)
+    return Series(df_MemProfile, key)
 
 def BlockPoolSeries(key):
-    return Series('BlockPool', key)
+    return Series(df_BlockPool, key)
 
 def BlockPoolSeriesSum(key1,key2):
-    return SeriesSum('BlockPool', key1, key2)
+    return SeriesSum(df_BlockPool, key1, key2)
 
 def series_to_xy(df):
     return [list(a) for a in zip(df.index.tolist(), df.iloc[:,0].values.tolist())]
@@ -105,9 +128,9 @@ def xy_aggregated(df):
 
 # extract program name and cmdline
 def progname():
-    df = df_stats
+    df = df_Cmdline
     try:
-        df = df[(df['class'] == 'Cmdline') & (df['event'] == 'start') & (df['host_rank'] == 0)]
+        df = df[(df['event'] == 'start') & (df['host_rank'] == 0)]
         if len(df) == 0:
             return "unknown"
         return df['program'].values.tolist()[0]
@@ -116,8 +139,8 @@ def progname():
 
 # generate table of DIAs
 def dia_table():
-    df = df_stats
-    df = df[(df['class'] == 'DIABase') & (df['event'] == 'create') & (df['worker_rank'] == 0)]
+    df = df_DIABase
+    df = df[(df['event'] == 'create') & (df['worker_rank'] == 0)]
     if len(df) == 0:
         return pd.DataFrame(columns=['id','label','label_id']).set_index('id')
     df = df[['id','label','type','parents']]
@@ -128,10 +151,10 @@ def dia_table():
 
 # generate table of Stream statistics
 def stream_table():
-    df = df_stats
+    df = df_Stream
     cols = ['host_rank','worker_rank','rx_net_items','tx_net_items','rx_net_bytes','tx_net_bytes']
     cols = cols + ['rx_int_items','tx_int_items','rx_int_bytes','tx_int_bytes']
-    df = df[(df['class'] == 'Stream') & (df['event'] == 'close')]
+    df = df[(df['event'] == 'close')]
     if len(df) == 0:
         return pd.DataFrame(columns=['ts']).set_index('ts')
     df = df[['ts','id','dia_id'] + cols].set_index('ts')
@@ -157,10 +180,10 @@ def stream_html_table():
 
 # generate table of Stream summary statistics
 def stream_summary_table():
-    df = df_stats
+    df = df_Stream
     cols = ['rx_net_items','tx_net_items','rx_net_bytes','tx_net_bytes']
     cols = cols + ['rx_int_items','tx_int_items','rx_int_bytes','tx_int_bytes']
-    df = df[(df['class'] == 'Stream') & (df['event'] == 'close')]
+    df = df[(df['event'] == 'close')]
     if len(df) == 0:
         return pd.DataFrame(columns=['ts']).set_index('ts')
     df = df[['ts','id','dia_id'] + cols].set_index('ts')
@@ -189,8 +212,8 @@ def stream_summary_html_table():
 
 # generate table of File statistics
 def file_table():
-    df = df_stats
-    df = df[(df['class'] == 'File') & (df['event'] == 'close')]
+    df = df_File
+    df = df[(df['event'] == 'close')]
     if len(df) == 0:
         return pd.DataFrame(columns=['ts']).set_index('ts')
     df = df.set_index('ts')
@@ -211,9 +234,9 @@ def file_html_table():
 
 # generate list of StageBuilder lines
 def stage_lines():
-    df = df_stats
+    df = df_StageBuilder
     try:
-        df = df[(df['class'] == 'StageBuilder') & (df['worker_rank'] == 0)]
+        df = df[(df['worker_rank'] == 0)]
         df = df[(df['event'] == 'execute-start') | (df['event'] == 'pushdata-start')]
         df = df[['ts','event','id','label']].set_index('ts')
         df['id'] = df['id'].astype(int)
