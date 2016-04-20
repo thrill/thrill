@@ -24,6 +24,7 @@
 #include <vector>
 
 using namespace thrill; // NOLINT
+using common::EscapeHtml;
 
 static inline uint32_t GetUint32(const rapidjson::Document& d, const char* key) {
     if (!d[key].IsUint()) return 0;
@@ -55,10 +56,11 @@ static inline double GetDouble(const rapidjson::Document& d,
 /******************************************************************************/
 
 //! common base class for all json events
-struct CEvent {
-
+class CEvent
+{
+public:
     uint64_t ts = 0;
-    size_t   host_rank = 0;
+    size_t host_rank = 0;
 
     CEvent() = default;
 
@@ -68,10 +70,40 @@ struct CEvent {
     { }
 };
 
+// {"ts":1461143811707721,"host_rank":0,"class":"Cmdline","event":"start","program":"suffix_sorting","argv":["\/home\/kit\/iti\/re9207\/thrill\/build\/examples\/suffix_sorting\/suffix_sorting","-a","dc3","\/work\/kit\/iti\/re9207\/pizza-chili\/english.200MB"],"cmdline":"\/home\/kit\/iti\/re9207\/thrill\/build\/examples\/suffix_sorting\/suffix_sorting -a dc3 \/work\/kit\/iti\/re9207\/pizza-chili\/english.200MB"}
+
+class CCmdline : public CEvent
+{
+public:
+    std::string event;
+    std::string program;
+
+    explicit CCmdline(const rapidjson::Document& d)
+        : CEvent(d),
+          event(GetString(d, "event")),
+          program(GetString(d, "program"))
+    { }
+
+    bool operator < (const CCmdline& o) const {
+        return ts < o.ts;
+    }
+};
+
+std::vector<CCmdline> c_Cmdline;
+
+static inline
+std::string GetProgramName() {
+    if (c_Cmdline.size() == 0)
+        return "<unknown>";
+    else
+        return c_Cmdline.front().program;
+}
+
 // {"ts":1460574124046450,"host_rank":0,"class":"NetManager","event":"profile","flow":{"tx_bytes":243,"rx_bytes":128,"tx_speed":159.995,"rx_speed":79.9973,"tx_per_host":[0,123,96,24],"rx_per_host":[0,44,44,40]},"data":{"tx_bytes":13658972,"rx_bytes":207441,"tx_speed":2.72665e+07,"rx_speed":277389,"tx_per_host":[0,20208,13618556,20208],"rx_per_host":[0,105042,51168,51231]},"tx_bytes":13659215,"rx_bytes":207569,"tx_speed":2.72666e+07,"rx_speed":277469}
 
-struct CNetManager : public CEvent {
-
+class CNetManager : public CEvent
+{
+public:
     double tx_speed;
     double rx_speed;
 
@@ -90,8 +122,9 @@ std::vector<CNetManager> c_NetManager;
 
 // {"ts":1460574124050859,"host_rank":0,"class":"MemProfile","event":"profile","total":268315062,"float":134157531,"base":134157531,"float_hlc":{"high":201075379,"low":134157531,"close":134157531},"base_hlc":{"high":201075379,"low":134157531,"close":134157531}}
 
-struct CMemProfile : public CEvent {
-
+class CMemProfile : public CEvent
+{
+public:
     double total;
     double float_;
     double base;
@@ -112,8 +145,9 @@ std::vector<CMemProfile> c_MemProfile;
 
 // {"ts":1460574124049310,"host_rank":0,"class":"BlockPool","event":"profile","total_blocks":108,"total_bytes":232718336,"max_total_bytes":232718336,"total_ram_bytes":5904098640,"ram_bytes":328040448,"pinned_blocks":105,"pinned_bytes":134643712,"unpinned_blocks":3,"unpinned_bytes":193396736,"swapped_blocks":0,"swapped_bytes":0,"max_pinned_blocks":133,"max_pinned_bytes":134643712,"writing_blocks":0,"writing_bytes":0,"reading_blocks":0,"reading_bytes":0,"rd_ops_total":0,"rd_bytes_total":0,"wr_ops_total":0,"wr_bytes_total":0,"rd_ops":0,"rd_bytes":0,"rd_speed":0,"wr_ops":0,"wr_bytes":0,"wr_speed":0,"disk_allocation":0}
 
-struct CBlockPool : public CEvent {
-
+class CBlockPool : public CEvent
+{
+public:
     uint64_t total_bytes;
     uint64_t ram_bytes;
     uint64_t reading_bytes;
@@ -122,8 +156,8 @@ struct CBlockPool : public CEvent {
     uint64_t unpinned_bytes;
     uint64_t swapped_bytes;
 
-    double   rd_speed;
-    double   wr_speed;
+    double rd_speed;
+    double wr_speed;
 
     explicit CBlockPool(const rapidjson::Document& d)
         : CEvent(d),
@@ -147,8 +181,9 @@ std::vector<CBlockPool> c_BlockPool;
 
 // {"ts":1460574124550846,"host_rank":0,"class":"LinuxProcStats","event":"profile","cpu_user":38.0531,"cpu_nice":0,"cpu_sys":9.35525,"cpu_idle":52.2124,"cpu_iowait":0.126422,"cpu_hardirq":0,"cpu_softirq":0.252845,"cpu_steal":0,"cpu_guest":0,"cpu_guest_nice":0,"cores_user":[39,43,38.6139,36.7347,31.3131,44.6809,35.6436,35.4167],"cores_nice":[0,0,0,0,0,0,0,0],"cores_sys":[8,6,9.90099,6.12245,8.08081,11.7021,8.91089,17.7083],"cores_idle":[53,51,51.4851,57.1429,60.6061,42.5532,55.4455,46.875],"cores_iowait":[0,0,0,0,0,0,0,0],"cores_hardirq":[0,0,0,0,0,0,0,0],"cores_softirq":[0,0,0,0,0,1.06383,0,0],"cores_steal":[0,0,0,0,0,0,0,0],"cores_guest":[0,0,0,0,0,0,0,0],"cores_guest_nice":[0,0,0,0,0,0,0,0],"pr_user":314.583,"pr_sys":79.1667,"pr_nthreads":21,"pr_vsize":4163137536,"pr_rss":207618048,"net_rx_bytes":35270346,"net_tx_bytes":70409212,"net_rx_pkts":19137,"net_tx_pkts":13483,"net_rx_speed":3.52696e+07,"net_tx_speed":7.04077e+07,"disks":{"sda":{"rd_ios":0,"rd_merged":0,"rd_bytes":0,"rd_time":0,"wr_ios":0,"wr_merged":0,"wr_bytes":0,"wr_time":0,"ios_progr":0,"total_time":0,"rq_time":0},"sdb":{"rd_ios":0,"rd_merged":0,"rd_bytes":0,"rd_time":0,"wr_ios":0,"wr_merged":0,"wr_bytes":0,"wr_time":0,"ios_progr":0,"total_time":0,"rq_time":0},"sdc":{"rd_ios":0,"rd_merged":0,"rd_bytes":0,"rd_time":0,"wr_ios":0,"wr_merged":0,"wr_bytes":0,"wr_time":0,"ios_progr":0,"total_time":0,"rq_time":0},"sdd":{"rd_ios":0,"rd_merged":0,"rd_bytes":0,"rd_time":0,"wr_ios":0,"wr_merged":0,"wr_bytes":0,"wr_time":0,"ios_progr":0,"total_time":0,"rq_time":0}},"diskstats":{"rd_ios":0,"rd_merged":0,"rd_bytes":0,"rd_time":0,"wr_ios":0,"wr_merged":0,"wr_bytes":0,"wr_time":0,"ios_progr":0,"total_time":0,"rq_time":0},"meminfo":{"total":25282797568,"free":9041248256,"buffers":224858112,"cached":15018115072,"swap_total":19918848,"swap_free":12840960,"swap_used":7077888,"mapped":14721024,"shmem":53248}}
 
-struct CLinuxProcStats : public CEvent {
-
+class CLinuxProcStats : public CEvent
+{
+public:
     double cpu_user;
     double cpu_sys;
     double pr_rss;
@@ -179,9 +214,10 @@ std::vector<CLinuxProcStats> c_LinuxProcStats;
 
 // {"ts":1461082911913689,"host_rank":0,"worker_rank":18,"id":452,"label":"Zip","class":"DIABase","event":"create","type":"DOp","parents":[447,449,451]}
 
-struct CDIABase : public CEvent {
-
-    uint32_t    id = 0;
+class CDIABase : public CEvent
+{
+public:
+    uint32_t id = 0;
     std::string label;
     std::string event;
     std::string type;
@@ -201,7 +237,7 @@ struct CDIABase : public CEvent {
     }
 
     friend std::ostream& operator << (std::ostream& os, const CDIABase& c) {
-        return os << c.label << '.' << c.id;
+        return os << EscapeHtml(c.label) << '.' << c.id;
     }
 };
 
@@ -210,22 +246,23 @@ std::map<uint32_t, CDIABase> m_DIABase;
 
 // {"ts":1461082940825906,"host_rank":0,"class":"Stream","event":"close","id":255,"type":"CatStream","dia_id":427,"worker_rank":16,"rx_net_items":0,"rx_net_bytes":1568,"rx_net_blocks":32,"tx_net_items":1333959,"tx_net_bytes":5337698,"tx_net_blocks":38,"rx_int_items":728178,"rx_int_bytes":2912712,"rx_int_blocks":36,"tx_int_items":119826,"tx_int_bytes":479304,"tx_int_blocks":39}
 
-struct CStream : public CEvent {
-
+class CStream : public CEvent
+{
+public:
     std::string event;
-    uint32_t    id;
-    uint32_t    dia_id;
-    uint32_t    worker_rank;
+    uint32_t id;
+    uint32_t dia_id;
+    uint32_t worker_rank;
 
-    uint64_t    rx_net_items;
-    uint64_t    tx_net_items;
-    uint64_t    rx_net_bytes;
-    uint64_t    tx_net_bytes;
+    uint64_t rx_net_items;
+    uint64_t tx_net_items;
+    uint64_t rx_net_bytes;
+    uint64_t tx_net_bytes;
 
-    uint64_t    rx_int_items;
-    uint64_t    tx_int_items;
-    uint64_t    rx_int_bytes;
-    uint64_t    tx_int_bytes;
+    uint64_t rx_int_items;
+    uint64_t tx_int_items;
+    uint64_t rx_int_bytes;
+    uint64_t tx_int_bytes;
 
     explicit CStream(const rapidjson::Document& d)
         : CEvent(d),
@@ -293,16 +330,101 @@ struct CStream : public CEvent {
 
 std::vector<CStream> c_Stream;
 
+class CStreamSummary
+{
+public:
+    uint32_t id = 0;
+    uint32_t dia_id = 0;
+
+    uint64_t rx_net_items = 0;
+    uint64_t tx_net_items = 0;
+    uint64_t rx_net_bytes = 0;
+    uint64_t tx_net_bytes = 0;
+
+    uint64_t rx_int_items = 0;
+    uint64_t tx_int_items = 0;
+    uint64_t rx_int_bytes = 0;
+    uint64_t tx_int_bytes = 0;
+
+    void Initialize(const CStream& s) {
+        id = s.id;
+        dia_id = s.dia_id;
+        rx_net_items = s.rx_net_items;
+        tx_net_items = s.tx_net_items;
+        rx_net_bytes = s.rx_net_bytes;
+        tx_net_bytes = s.tx_net_bytes;
+
+        rx_int_items = s.rx_int_items;
+        tx_int_items = s.tx_int_items;
+        rx_int_bytes = s.rx_int_bytes;
+        tx_int_bytes = s.tx_int_bytes;
+    }
+
+    void Add(const CStream& s) {
+        assert(id == s.id);
+        assert(dia_id == s.dia_id);
+
+        rx_net_items += s.rx_net_items;
+        tx_net_items += s.tx_net_items;
+        rx_net_bytes += s.rx_net_bytes;
+        tx_net_bytes += s.tx_net_bytes;
+
+        rx_int_items += s.rx_int_items;
+        tx_int_items += s.tx_int_items;
+        rx_int_bytes += s.rx_int_bytes;
+        tx_int_bytes += s.tx_int_bytes;
+    }
+
+    static void DetailHtmlHeader(std::ostream& os) {
+        os << "<tr>";
+        os << "<th>id</th>";
+        os << "<th>dia_id</th>";
+        os << "<th>rx_items</th>";
+        os << "<th>tx_items</th>";
+        os << "<th>rx_bytes</th>";
+        os << "<th>tx_bytes</th>";
+        os << "<th>rx_net_items</th>";
+        os << "<th>tx_net_items</th>";
+        os << "<th>rx_net_bytes</th>";
+        os << "<th>tx_net_bytes</th>";
+        os << "<th>rx_int_items</th>";
+        os << "<th>tx_int_items</th>";
+        os << "<th>rx_int_bytes</th>";
+        os << "<th>tx_int_bytes</th>";
+        os << "</tr>";
+    }
+
+    void DetailHtmlRow(std::ostream& os) const {
+        os << "<tr>";
+        os << "<td>" << id << "</td>";
+        os << "<td>" << m_DIABase[dia_id] << "</td>";
+        os << "<td>" << rx_net_items + rx_int_items << "</td>";
+        os << "<td>" << tx_net_items + tx_int_items << "</td>";
+        os << "<td>" << rx_net_bytes + rx_int_bytes << "</td>";
+        os << "<td>" << tx_net_bytes + tx_int_bytes << "</td>";
+        os << "<td>" << rx_net_items << "</td>";
+        os << "<td>" << tx_net_items << "</td>";
+        os << "<td>" << rx_net_bytes << "</td>";
+        os << "<td>" << tx_net_bytes << "</td>";
+        os << "<td>" << rx_int_items << "</td>";
+        os << "<td>" << tx_int_items << "</td>";
+        os << "<td>" << rx_int_bytes << "</td>";
+        os << "<td>" << tx_int_bytes << "</td>";
+        os << "</tr>";
+    }
+};
+
 // {"ts":1461082954074899,"host_rank":0,"class":"File","event":"close","id":2261,"dia_id":4,"items":0,"bytes":0}
 
-struct CFile : public CEvent {
-
+class CFile : public CEvent
+{
+public:
     std::string event;
-    uint32_t    id;
-    uint32_t    dia_id;
+    uint32_t id;
+    uint32_t dia_id;
 
-    uint64_t    items;
-    uint64_t    bytes;
+    uint64_t items;
+    uint64_t bytes;
 
     explicit CFile(const rapidjson::Document& d)
         : CEvent(d),
@@ -342,6 +464,32 @@ struct CFile : public CEvent {
 
 std::vector<CFile> c_File;
 
+// {"ts":1461144110172911,"host_rank":0,"worker_rank":27,"id":472,"label":"Sort","class":"StageBuilder","event":"pushdata-start","targets":[478,479]}
+
+class CStageBuilder : public CEvent
+{
+public:
+    uint32_t worker_rank;
+    uint32_t id;
+    std::string label;
+    std::string event;
+
+    explicit CStageBuilder(const rapidjson::Document& d)
+        : CEvent(d),
+          worker_rank(GetUint32(d, "worker_rank")),
+          id(GetUint32(d, "id")),
+          label(GetString(d, "label")),
+          event(GetString(d, "event"))
+    { }
+
+    bool operator < (const CStageBuilder& o) const {
+        return std::tie(ts, worker_rank, id)
+               < std::tie(o.ts, o.worker_rank, o.id);
+    }
+};
+
+std::vector<CStageBuilder> c_StageBuilder;
+
 /******************************************************************************/
 
 void LoadJsonProfile(std::istream& in) {
@@ -354,7 +502,10 @@ void LoadJsonProfile(std::istream& in) {
 
         std::string class_str = d["class"].GetString();
 
-        if (class_str == "NetManager") {
+        if (class_str == "Cmdline") {
+            c_Cmdline.emplace_back(d);
+        }
+        else if (class_str == "NetManager") {
             c_NetManager.emplace_back(d);
         }
         else if (class_str == "MemProfile") {
@@ -379,6 +530,9 @@ void LoadJsonProfile(std::istream& in) {
             if (m_DIABase.count(db.id) == 0)
                 m_DIABase.insert(std::make_pair(db.id, db));
         }
+        else if (class_str == "StageBuilder") {
+            c_StageBuilder.emplace_back(d);
+        }
     }
 }
 
@@ -386,6 +540,7 @@ void ProcessJsonProfile() {
 
     // sort
 
+    std::sort(c_Cmdline.begin(), c_Cmdline.end());
     std::sort(c_LinuxProcStats.begin(), c_LinuxProcStats.end());
     std::sort(c_NetManager.begin(), c_NetManager.end());
     std::sort(c_MemProfile.begin(), c_MemProfile.end());
@@ -393,6 +548,7 @@ void ProcessJsonProfile() {
     std::sort(c_Stream.begin(), c_Stream.end());
     std::sort(c_File.begin(), c_File.end());
     std::sort(c_DIABase.begin(), c_DIABase.end());
+    std::sort(c_StageBuilder.begin(), c_StageBuilder.end());
 
     // subtract overall minimum timestamp
 
@@ -400,7 +556,9 @@ void ProcessJsonProfile() {
         std::min(c_LinuxProcStats.front().ts, c_NetManager.front().ts);
     min_ts = std::min(min_ts, c_MemProfile.front().ts);
     min_ts = std::min(min_ts, c_BlockPool.front().ts);
+    min_ts = std::min(min_ts, c_StageBuilder.front().ts);
 
+    for (auto& c : c_Cmdline) c.ts -= min_ts;
     for (auto& c : c_LinuxProcStats) c.ts -= min_ts;
     for (auto& c : c_NetManager) c.ts -= min_ts;
     for (auto& c : c_MemProfile) c.ts -= min_ts;
@@ -408,13 +566,14 @@ void ProcessJsonProfile() {
     for (auto& c : c_Stream) c.ts -= min_ts;
     for (auto& c : c_File) c.ts -= min_ts;
     for (auto& c : c_DIABase) c.ts -= min_ts;
+    for (auto& c : c_StageBuilder) c.ts -= min_ts;
 }
 
 /******************************************************************************/
 
 template <typename Stats, typename Select>
 common::JsonVerbatim
-Series(const std::vector<Stats>& c_Stats, const Select& select) {
+MakeSeries(const std::vector<Stats>& c_Stats, const Select& select) {
 
     auto where = [](const Stats&) { return true; };
 
@@ -454,6 +613,21 @@ Series(const std::vector<Stats>& c_Stats, const Select& select) {
 
 /******************************************************************************/
 
+void AddStageLines(common::JsonLine& xAxis) {
+    common::JsonLine plotLines = xAxis.arr("plotLines");
+    for (const CStageBuilder& c : c_StageBuilder) {
+        if (c.worker_rank != 0) continue;
+        common::JsonLine o = plotLines.obj();
+        o << "width" << 1
+          << "value" << c.ts
+          << "color" << "#888888";
+        o.sub("label")
+            << "text" << (c.label + "." + std::to_string(c.id) + " " + c.event);
+    }
+}
+
+/******************************************************************************/
+
 std::string PageMain() {
     std::ostringstream oss;
 
@@ -476,7 +650,7 @@ std::string PageMain() {
     oss << "    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js\"></script>\n";
     oss << "    <![endif]-->\n";
     oss << "    \n";
-    oss << "    <title>{{ page_title|safe }}</title>\n";
+    oss << "    <title>" << EscapeHtml(GetProgramName()) << "</title>\n";
     oss << "  </head>\n";
     oss << "\n";
     oss << "<body>\n";
@@ -491,7 +665,7 @@ std::string PageMain() {
     using EObj = common::JsonEndObj;
 
     j.sub("title")
-        << "text" << "progname";
+        << "text" << GetProgramName();
 
     j.sub("chart")
         << "renderTo" << "chart"
@@ -503,6 +677,7 @@ std::string PageMain() {
         common::JsonLine x1 = xAxis.obj();
         x1 << "type" << "datetime"
            << BObj("title") << "text" << "Execution Time" << EObj();
+        AddStageLines(x1);
     }
     {
         common::JsonLine yAxis = j.arr("yAxis");
@@ -542,31 +717,31 @@ std::string PageMain() {
             << "name" << "CPU"
             << BObj("tooltip") << "valueSuffix" << " %" << EObj()
             << "data"
-            << Series(c_LinuxProcStats,
-                  [](const CLinuxProcStats& c) {
-                      return c.cpu_user + c.cpu_sys;
-                  });
+            << MakeSeries(c_LinuxProcStats,
+                      [](const CLinuxProcStats& c) {
+                          return c.cpu_user + c.cpu_sys;
+                      });
 
         s.obj()
             << "name" << "CPU User" << "visible" << false
             << BObj("tooltip") << "valueSuffix" << " %" << EObj()
             << "data"
-            << Series(c_LinuxProcStats,
-                  [](const CLinuxProcStats& c) { return c.cpu_user; });
+            << MakeSeries(c_LinuxProcStats,
+                      [](const CLinuxProcStats& c) { return c.cpu_user; });
 
         s.obj()
             << "name" << "CPU Sys" << "visible" << false
             << BObj("tooltip") << "valueSuffix" << " %" << EObj()
             << "data"
-            << Series(c_LinuxProcStats,
-                  [](const CLinuxProcStats& c) { return c.cpu_sys; });
+            << MakeSeries(c_LinuxProcStats,
+                      [](const CLinuxProcStats& c) { return c.cpu_sys; });
 
         s.obj()
             << "name" << "Mem RSS" << "visible" << false << "yAxis" << 2
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_LinuxProcStats,
-                  [](const CLinuxProcStats& c) { return c.pr_rss; });
+            << MakeSeries(c_LinuxProcStats,
+                      [](const CLinuxProcStats& c) { return c.pr_rss; });
 
         // Network
 
@@ -574,44 +749,44 @@ std::string PageMain() {
             << "name" << "TX+RX net" << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_NetManager,
-                  [](const CNetManager& c) { return c.tx_speed + c.rx_speed; });
+            << MakeSeries(c_NetManager,
+                      [](const CNetManager& c) { return c.tx_speed + c.rx_speed; });
 
         s.obj()
             << "name" << "TX net" << "visible" << false << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_NetManager,
-                  [](const CNetManager& c) { return c.tx_speed; });
+            << MakeSeries(c_NetManager,
+                      [](const CNetManager& c) { return c.tx_speed; });
 
         s.obj()
             << "name" << "RX net" << "visible" << false << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_NetManager,
-                  [](const CNetManager& c) { return c.rx_speed; });
+            << MakeSeries(c_NetManager,
+                      [](const CNetManager& c) { return c.rx_speed; });
 
         s.obj()
             << "name" << "TX+RX sys net" << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_LinuxProcStats, [](const CLinuxProcStats& c) {
-                      return c.net_tx_speed + c.net_rx_speed;
-                  });
+            << MakeSeries(c_LinuxProcStats, [](const CLinuxProcStats& c) {
+                          return c.net_tx_speed + c.net_rx_speed;
+                      });
 
         s.obj()
             << "name" << "TX sys net" << "visible" << false << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_LinuxProcStats,
-                  [](const CLinuxProcStats& c) { return c.net_tx_speed; });
+            << MakeSeries(c_LinuxProcStats,
+                      [](const CLinuxProcStats& c) { return c.net_tx_speed; });
 
         s.obj()
             << "name" << "RX sys net" << "visible" << false << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_LinuxProcStats,
-                  [](const CLinuxProcStats& c) { return c.net_rx_speed; });
+            << MakeSeries(c_LinuxProcStats,
+                      [](const CLinuxProcStats& c) { return c.net_rx_speed; });
 
         // Disk
 
@@ -619,24 +794,24 @@ std::string PageMain() {
             << "name" << "I/O sys" << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_LinuxProcStats,
-                  [](const CLinuxProcStats& c) {
-                      return c.diskstats_rd_bytes + c.diskstats_wr_bytes;
-                  });
+            << MakeSeries(c_LinuxProcStats,
+                      [](const CLinuxProcStats& c) {
+                          return c.diskstats_rd_bytes + c.diskstats_wr_bytes;
+                      });
 
         s.obj()
             << "name" << "I/O sys read" << "visible" << false << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_LinuxProcStats,
-                  [](const CLinuxProcStats& c) { return c.diskstats_rd_bytes; });
+            << MakeSeries(c_LinuxProcStats,
+                      [](const CLinuxProcStats& c) { return c.diskstats_rd_bytes; });
 
         s.obj()
             << "name" << "I/O sys write" << "visible" << false << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_LinuxProcStats,
-                  [](const CLinuxProcStats& c) { return c.diskstats_wr_bytes; });
+            << MakeSeries(c_LinuxProcStats,
+                      [](const CLinuxProcStats& c) { return c.diskstats_wr_bytes; });
 
         // BlockPool
 
@@ -644,64 +819,64 @@ std::string PageMain() {
             << "name" << "Data bytes" << "yAxis" << 2
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_BlockPool,
-                  [](const CBlockPool& c) { return c.total_bytes; });
+            << MakeSeries(c_BlockPool,
+                      [](const CBlockPool& c) { return c.total_bytes; });
 
         s.obj()
             << "name" << "RAM bytes" << "yAxis" << 2
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_BlockPool,
-                  [](const CBlockPool& c) { return c.ram_bytes; });
+            << MakeSeries(c_BlockPool,
+                      [](const CBlockPool& c) { return c.ram_bytes; });
 
         s.obj()
             << "name" << "Reading bytes" << "visible" << false << "yAxis" << 2
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_BlockPool,
-                  [](const CBlockPool& c) { return c.reading_bytes; });
+            << MakeSeries(c_BlockPool,
+                      [](const CBlockPool& c) { return c.reading_bytes; });
 
         s.obj()
             << "name" << "Writing bytes" << "visible" << false << "yAxis" << 2
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_BlockPool,
-                  [](const CBlockPool& c) { return c.writing_bytes; });
+            << MakeSeries(c_BlockPool,
+                      [](const CBlockPool& c) { return c.writing_bytes; });
 
         s.obj()
             << "name" << "Pinned bytes" << "visible" << false << "yAxis" << 2
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_BlockPool,
-                  [](const CBlockPool& c) { return c.pinned_bytes; });
+            << MakeSeries(c_BlockPool,
+                      [](const CBlockPool& c) { return c.pinned_bytes; });
 
         s.obj()
             << "name" << "Unpinned bytes" << "visible" << false << "yAxis" << 2
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_BlockPool,
-                  [](const CBlockPool& c) { return c.unpinned_bytes; });
+            << MakeSeries(c_BlockPool,
+                      [](const CBlockPool& c) { return c.unpinned_bytes; });
 
         s.obj()
             << "name" << "Swapped bytes" << "yAxis" << 2
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_BlockPool,
-                  [](const CBlockPool& c) { return c.swapped_bytes; });
+            << MakeSeries(c_BlockPool,
+                      [](const CBlockPool& c) { return c.swapped_bytes; });
 
         s.obj()
             << "name" << "I/O read" << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_BlockPool,
-                  [](const CBlockPool& c) { return c.rd_speed; });
+            << MakeSeries(c_BlockPool,
+                      [](const CBlockPool& c) { return c.rd_speed; });
 
         s.obj()
             << "name" << "I/O write" << "yAxis" << 1
             << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
             << "data"
-            << Series(c_BlockPool,
-                  [](const CBlockPool& c) { return c.wr_speed; });
+            << MakeSeries(c_BlockPool,
+                      [](const CBlockPool& c) { return c.wr_speed; });
 
         // MemProfile
 
@@ -709,22 +884,22 @@ std::string PageMain() {
             << "name" << "Mem Total" << "yAxis" << 2 << "visible" << false
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_MemProfile,
-                  [](const CMemProfile& c) { return c.total; });
+            << MakeSeries(c_MemProfile,
+                      [](const CMemProfile& c) { return c.total; });
 
         s.obj()
             << "name" << "Mem Float" << "yAxis" << 2 << "visible" << false
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_MemProfile,
-                  [](const CMemProfile& c) { return c.float_; });
+            << MakeSeries(c_MemProfile,
+                      [](const CMemProfile& c) { return c.float_; });
 
         s.obj()
             << "name" << "Mem Base" << "yAxis" << 2 << "visible" << false
             << BObj("tooltip") << "valueSuffix" << " B" << EObj()
             << "data"
-            << Series(c_MemProfile,
-                  [](const CMemProfile& c) { return c.base; });
+            << MakeSeries(c_MemProfile,
+                      [](const CMemProfile& c) { return c.base; });
     }
 
     oss << "      });\n";
@@ -732,9 +907,35 @@ std::string PageMain() {
     oss << "  </script>\n";
     oss << "\n";
 
+    /**************************************************************************/
+
     oss << "<h2>Stream Summary</h2>\n";
 
-    oss << "{{ stream_summary_table|safe }}\n";
+    oss << "<table border=\"1\" class=\"dataframe\">";
+    oss << "<thead>";
+    CStreamSummary::DetailHtmlHeader(oss);
+    oss << "</thead>";
+    oss << "<tbody>";
+    {
+        CStreamSummary ss;
+        for (const CStream& c : c_Stream) {
+            if (c.event != "close") continue;
+            if (ss.id != c.id || ss.dia_id != c.dia_id) {
+                if (ss.id != 0) {
+                    ss.DetailHtmlRow(oss);
+                }
+                ss.Initialize(c);
+            }
+            else {
+                ss.Add(c);
+            }
+        }
+    }
+    oss << "</tbody>";
+    oss << "</table>";
+    oss << "\n";
+
+    /**************************************************************************/
 
     oss << "<h2>Stream Details</h2>\n";
 
@@ -749,6 +950,9 @@ std::string PageMain() {
     }
     oss << "</tbody>";
     oss << "</table>";
+    oss << "\n";
+
+    /**************************************************************************/
 
     oss << "<h2>File Details</h2>\n";
 
@@ -764,6 +968,9 @@ std::string PageMain() {
     }
     oss << "</tbody>";
     oss << "</table>";
+    oss << "\n";
+
+    /**************************************************************************/
 
     oss << "</body>\n";
     oss << "</html>\n";

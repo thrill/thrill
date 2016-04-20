@@ -161,6 +161,24 @@ std::string& Trim(std::string& str, const std::string& drop) {
 
 /******************************************************************************/
 
+std::string EscapeHtml(const std::string& str) {
+    std::string os;
+    os.reserve(str.size());
+
+    for (std::string::const_iterator si = str.begin(); si != str.end(); ++si)
+    {
+        if (*si == '&') os += "&amp;";
+        else if (*si == '<') os += "&lt;";
+        else if (*si == '>') os += "&gt;";
+        else if (*si == '"') os += "&quot;";
+        else os += *si;
+    }
+
+    return os;
+}
+
+/******************************************************************************/
+
 //! Parse a string like "343KB" or " 44 GiB " into the corresponding size in
 //! bytes.
 bool ParseSiIecUnits(const char* str, uint64_t& size, char default_unit) {
