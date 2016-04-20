@@ -308,6 +308,9 @@ RandomString(std::string::size_type size, RandomEngine rng,
     return out;
 }
 
+//! Escape string using HTML entities
+std::string EscapeHtml(const std::string& str);
+
 //! Parse a string like "343KB" or "44 GiB" into the corresponding size in
 //! bytes. Returns the number of bytes and sets ok = true if the string could
 //! be parsed correctly. If no units indicator is given, use def_unit in
