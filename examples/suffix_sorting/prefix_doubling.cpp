@@ -190,29 +190,23 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 return a < b;
             });
 
-    DIA<Index> renamed_ranks =
-        chars_sorted.Keep()
-        .template FlatWindow<Index>(
+    DIA<IndexRank> names =
+        chars_sorted
+        .template FlatWindow<IndexRank>(
             2,
             [&](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
                 if (index == 0)
-                    emit(Index(1));
+                    emit(IndexRank { rb[0].index, Index(1) });
                 if (rb[0] == rb[1])
-                    emit(Index(0));
+                    emit(IndexRank { rb[1].index, Index(0) });
                 else
-                    emit(Index(index + 2));
+                    emit(IndexRank { rb[1].index, Index(index + 2) });
             })
-        .PrefixSum([](const Index a, const Index b) {
-                         return a > b ? a : b;
+        .PrefixSum([](const IndexRank a, const IndexRank b) {
+                        return IndexRank {
+                            b.index,
+                            (a.rank > b.rank ? a.rank : b.rank)};
                      });
-
-    DIA<IndexRank> names =
-        chars_sorted.Keep()
-        .Zip(
-            renamed_ranks,
-            [](const CharCharIndex& cci, const Index r) {
-                return IndexRank { cci.index, r };
-            });
 
     DIA<IndexRankStatus> names_unique =
         names
