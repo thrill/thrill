@@ -29,7 +29,7 @@ namespace thrill {
 namespace api {
 
 template <typename ValueType, typename DistanceFunction,
-          typename ParentDIA0, typename ParentDIA1>
+          typename ParentDIA0, typename ParentDIA1, typename Threshhold>
 class TrivialSimJoinNode : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -46,11 +46,13 @@ class TrivialSimJoinNode : public DOpNode<ValueType>
 public:
     TrivialSimJoinNode(const DistanceFunction& distance_function,
                        const ParentDIA0& parentR,
-                       const ParentDIA1& parentS)
+                       const ParentDIA1& parentS,
+		               const Threshhold& threshhold)
         : Super(parentR.ctx(), "TrivialSimJoin",
                 { parentR.id(), parentS.id() },
                 { parentR.node(), parentS.node() }),
-          distance_function_(distance_function)
+          distance_function_(distance_function),
+		  threshhold_(threshhold)
     {
 
         auto pre_op_fn_R = [this](const InputType& input) {
@@ -86,7 +88,7 @@ public:
         while (reader.HasNext()) {
             InputType elementS = reader.template Next<InputType>();
             for (InputType elementR : elements_R_) {
-                if (distance_function_(elementS, elementR) < 10000) {
+                if (distance_function_(elementS, elementR) < threshhold_) {
                     this->PushItem(std::make_pair(elementS, elementR));
                 }
             }
@@ -98,6 +100,8 @@ public:
 private:
     //! Merge comparator
     DistanceFunction distance_function_;
+
+	Threshhold threshhold_;
 
     std::vector<InputType> elements_R_;
 
@@ -114,14 +118,16 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-template <typename DistanceFunction, typename SecondDIA>
+template <typename DistanceFunction, typename SecondDIA, typename Threshhold>
 auto DIA<ValueType, Stack>::TrivialSimJoin(const SecondDIA &second_dia,
-                                           const DistanceFunction &distance_function) const {
+                                           const DistanceFunction &distance_function,
+	                                       const Threshhold &threshhold) const {
+	assert(IsValid());
 
-    using OutputPair = std::pair<ValueType, ValueType>;
-
-    using TrivialSimJoinNode =
-              api::TrivialSimJoinNode<OutputPair, DistanceFunction, DIA, SecondDIA>;
+    using OutputPair = std::pair<ValueType, ValueType>;					
+																		
+    using TrivialSimJoinNode =											
+		api::TrivialSimJoinNode<OutputPair, DistanceFunction, DIA, SecondDIA, Threshhold>;
 
     // Assert function types.
     static_assert(
@@ -146,10 +152,16 @@ auto DIA<ValueType, Stack>::TrivialSimJoin(const SecondDIA &second_dia,
             >::value,
         "Distance Function must return a numeral.");
 
-    auto trivial_sim_join_node =
-        common::MakeCounting<TrivialSimJoinNode>(distance_function, *this, second_dia);
+	static_assert(
+		std::is_same<
+		typename FunctionTraits<DistanceFunction>::result_type,
+		Threshhold>::value,
+		"Distance Function must return the type of the distance threshhold");
 
-    return DIA<OutputPair>(trivial_sim_join_node);
+    auto node =
+        common::MakeCounting<TrivialSimJoinNode>(distance_function, *this, second_dia, threshhold);
+
+    return DIA<OutputPair>(node);
 }
 
 } // namespace api
