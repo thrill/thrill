@@ -205,7 +205,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                 return a < b;
             });
 
-    DIA<IndexRank> names =
+    auto names =
         chars_sorted
         .template FlatWindow<IndexRank>(
             2,
@@ -223,7 +223,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                             (a.rank > b.rank ? a.rank : b.rank)};
                      });
 
-    DIA<IndexRankStatus> names_unique =
+    auto names_unique =
         names
         .template FlatWindow<IndexRankStatus>(
             3,
@@ -243,7 +243,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
             });
 
     size_t iteration = 1;
-    DIA<IndexRankStatus> names_unique_sorted =
+    auto names_unique_sorted =
         names_unique
         .Sort([iteration](const IndexRankStatus& a, const IndexRankStatus& b) {
             Index mod_mask = (Index(1) << iteration) - 1;
@@ -458,34 +458,23 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
             })
         .Sort();
 
-    auto renamed_ranks =
-        chars_sorted.Keep()
-        .template FlatWindow<Index>(
-            2,
-            [](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
-                if (index == 0) emit(Index(1));
-                emit(rb[0] == rb[1] ? Index(0) : Index(1));
-            })
-        .PrefixSum();
-
-    size_t max_rank = renamed_ranks.Keep().Max();
-
-    if (max_rank == input_size) {
-        auto sa =
-            chars_sorted
-            .Map([](const CharCharIndex& cci) {
-                     return cci.index;
-                 });
-
-        return sa.Collapse();
-    }
-
-    DIA<IndexRank> names =
+    auto names =
         chars_sorted
-        .Zip(renamed_ranks,
-             [](const CharCharIndex& cci, const Index r) {
-                 return IndexRank { cci.index, r };
-             });
+        .template FlatWindow<IndexRank>(
+            2,
+            [&](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
+                if (index == 0)
+                    emit(IndexRank { rb[0].index, Index(1) });
+                if (rb[0] == rb[1])
+                    emit(IndexRank { rb[1].index, Index(0) });
+                else
+                    emit(IndexRank { rb[1].index, Index(index + 2) });
+            })
+        .PrefixSum([](const IndexRank a, const IndexRank b) {
+                        return IndexRank {
+                            b.index,
+                            (a.rank > b.rank ? a.rank : b.rank)};
+                     });
 
     size_t iteration = 1;
     while (true) {
@@ -526,17 +515,29 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                 })
             .Sort();
 
-        renamed_ranks =
-            triple_sorted.Keep()
-            .template FlatWindow<Index>(
+        names =
+            triple_sorted
+            .template FlatWindow<IndexRank>(
                 2,
                 [](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
-                    if (index == 0) emit(1);
-                    emit(rb[0] == rb[1] && rb[0].rank2 != Index(0) ? Index(0) : Index(1));
-                })
-            .PrefixSum();
+                    if (index == 0) emit(IndexRank { rb[0].index, Index(1) });
 
-        size_t max_rank = renamed_ranks.Keep().Max();
+                    if (rb[0] == rb[1] && rb[0].rank2 != Index(0))
+                        emit(IndexRank { rb[1].index, Index(0) });
+                    else
+                        emit(IndexRank { rb[1].index, Index(1) });
+                })
+            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
+                return IndexRank { b.index, a.rank + b.rank };
+            });
+
+        auto max_rank =
+            names.Keep()
+            .Map([](const IndexRank& ir) {
+                    return ir.rank;
+                })
+            .Max();
+
         if (input_dia.context().my_rank() == 0) {
             sLOG1 << "iteration" << iteration
                   << "max_rank" << max_rank
@@ -545,25 +546,19 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
 
         if (max_rank == input_size) {
             auto sa =
-                triple_sorted
-                .Map([](const IndexRankRank& irr) {
-                         return irr.index;
+                names
+                .Map([](const IndexRank& ir) {
+                         return ir.index;
                      });
 
             return sa.Collapse();
         }
-
-        names =
-            triple_sorted.Zip(
-                renamed_ranks,
-                [](const IndexRankRank& irr, const Index r) {
-                    return IndexRank { irr.index, r };
-                });
     }
 }
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
+    LOG1 << "Running PrefixDoubling";
 
     using Char = typename InputDIA::ValueType;
     using IndexRank = suffix_sorting::IndexRank<Index>;
