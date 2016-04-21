@@ -301,11 +301,11 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                             if (rb[1].status == Status::UNDECIDED)
                                 emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::UNDECIDED });
                         }
-                        if (index == names_size - 3) {
+                        if (index == names_size - 2) {
+                            if (rb[0].status == Status::UNDECIDED)
+                                emit(IndexRankRankStatus { rb[0].index, rb[0].rank, rb[1].rank, Status::UNDECIDED });
                             if (rb[1].status == Status::UNDECIDED)
-                                emit(IndexRankRankStatus { rb[1].index, rb[1].rank, rb[2].rank, Status::UNDECIDED });
-                            if (rb[2].status == Status::UNDECIDED)
-                                emit(IndexRankRankStatus { rb[2].index, rb[2].rank, Index(0), Status::UNDECIDED });
+                                emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::UNDECIDED });
                         }
                     });
 
