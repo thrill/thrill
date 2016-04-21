@@ -212,7 +212,7 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
         names
         .template FlatWindow<IndexRankStatus>(
             3,
-            [&](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+            [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                 if (index == 0) {
                     Status status = rb[0].rank != rb[1].rank ? Status::UNIQUE : Status::UNDECIDED;
                     emit(IndexRankStatus { rb[0].index, rb[0].rank, status });
@@ -248,58 +248,52 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
     while (true) {
         ++iteration;
 
-        DIA<IndexRank> new_decided;
-        DIA<IndexRankStatus> partial_discarded;
-
         size_t names_size = names_unique_sorted.Keep().Size();
 
         if (debug_print)
             names_unique_sorted.Keep().Print("names_unique_sorted begin of loop");
 
-        if (names_size > 2) {
-            auto discarded_names =
-                names_unique_sorted.Keep()
-                    .template FlatWindow<IndexRankStatus>(
-                        3,
-                        [](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
-                            // Discarded names (we need to change the status since we remove it one step later)
-                            if (index == 0) {
-                                if (rb[0].status == Status::UNIQUE) 
-                                    emit(IndexRankStatus { rb[0].index, rb[0].rank, Status::FULLY_DISCARDED });
-                                if (rb[1].status == Status::UNIQUE) 
-                                    emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::FULLY_DISCARDED }); // Since there is just one preceding entry it's either undiscarded or unique
-                            }
-                            if (rb[2].status == Status::UNIQUE && (rb[0].status == Status::UNIQUE || rb[1].status == Status::UNIQUE))
-                                emit(IndexRankStatus { rb[2].index, rb[2].rank, Status::FULLY_DISCARDED });
-                            // Partially discarded names 
-                            if (rb[2].status == Status::UNIQUE && rb[0].status == Status::UNDECIDED && rb[1].status == Status::UNDECIDED)
-                                emit(rb[2]);
-                        });
-
-            new_decided =
-                discarded_names.Keep()
-                .Filter([](const IndexRankStatus& irs) {
-                        return irs.status == Status::FULLY_DISCARDED;
-                    })
-                .Map([](const IndexRankStatus& irs) {
-                        return IndexRank { irs.index, irs.rank };
+        auto discarded_names =
+            names_unique_sorted.Keep()
+                .template FlatWindow<IndexRankStatus>(
+                    3,
+                    [](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
+                        // Discarded names (we need to change the status since we remove it one step later)
+                        if (index == 0) {
+                            if (rb[0].status == Status::UNIQUE) 
+                                emit(IndexRankStatus { rb[0].index, rb[0].rank, Status::FULLY_DISCARDED });
+                            if (rb[1].status == Status::UNIQUE) 
+                                emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::FULLY_DISCARDED }); // Since there is just one preceding entry it's either undiscarded or unique
+                        }
+                        if (rb[2].status == Status::UNIQUE && (rb[0].status == Status::UNIQUE || rb[1].status == Status::UNIQUE))
+                            emit(IndexRankStatus { rb[2].index, rb[2].rank, Status::FULLY_DISCARDED });
+                        // Partially discarded names 
+                        if (rb[2].status == Status::UNIQUE && rb[0].status == Status::UNDECIDED && rb[1].status == Status::UNDECIDED)
+                            emit(rb[2]);
+                    },
+                    [](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) { 
+                        if (index == 0) {
+                            if (rb[0].status == Status::UNIQUE) 
+                                emit(IndexRankStatus { rb[0].index, rb[0].rank, Status::FULLY_DISCARDED });
+                            if (rb[1].status == Status::UNIQUE) 
+                                emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::FULLY_DISCARDED });
+                        }
                     });
 
-            partial_discarded =
-                discarded_names
-                .Filter([](const IndexRankStatus& irs) {
-                        return irs.status == Status::UNIQUE;
-                    });
-        } else {
-            new_decided =
-                names_unique_sorted.Keep()
-                .Filter([](const IndexRankStatus& irs) {
-                    return irs.status == Status::UNIQUE;
+        auto new_decided =
+            discarded_names.Keep()
+            .Filter([](const IndexRankStatus& irs) {
+                    return irs.status == Status::FULLY_DISCARDED;
                 })
-                .Map([](const IndexRankStatus& irs) {
+            .Map([](const IndexRankStatus& irs) {
                     return IndexRank { irs.index, irs.rank };
                 });
-        }
+
+        auto partial_discarded =
+            discarded_names
+            .Filter([](const IndexRankStatus& irs) {
+                    return irs.status == Status::UNIQUE;
+                });
 
         auto undiscarded =
             names_unique_sorted
@@ -356,6 +350,10 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                     else
                         r = (rb[0].rank2 == rb[1].rank2) ? Index(0) : Index(index + 1);
                     emit(Index3Rank { rb[1].index, i, r, rb[1].rank1 });
+                },
+                [](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+                    if (index == 0)
+                        emit(Index3Rank { rb[0].index, Index(0), Index(0), rb[0].rank1 });
                 })
             .PrefixSum([](const Index3Rank& a, const Index3Rank& b) {
                 return Index3Rank { 
@@ -369,35 +367,30 @@ DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t in
                     return IndexRank { ir.index, ir.rank3 + (ir.rank2 - ir.rank1) };
                 });
 
-        size_t number_new_ranks = new_ranks.Keep().Size();
-
-        if (number_new_ranks <= 2) {
-            names_unique =
-                new_ranks
-                .Map(
-                    [](const IndexRank& name) {
-                        return IndexRankStatus { name.index, name.rank, Status::UNIQUE };
-                    });
-        } else {
-            names_unique =
-                new_ranks
-                .template FlatWindow<IndexRankStatus>(
-                    3,
-                    [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
-                        if (index == 0) {
-                            Status status = rb[0].rank != rb[1].rank ? Status::UNIQUE : Status::UNDECIDED;
-                            emit(IndexRankStatus { rb[0].index, rb[0].rank, status });
-                        }
-                        if (rb[0].rank != rb[1].rank && rb[1].rank != rb[2].rank)
-                            emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNIQUE });
-                        else
-                            emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNDECIDED });
-                        if (index == number_new_ranks - 3) {
-                            Status status = rb[1].rank != rb[2].rank ? Status::UNIQUE : Status::UNDECIDED;
-                            emit(IndexRankStatus { rb[2].index, rb[2].rank, status });
-                        }
-                    });
-        }
+        names_unique =
+            new_ranks
+            .template FlatWindow<IndexRankStatus>(
+                3,
+                [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                    if (index == 0) {
+                        Status status = rb[0].rank != rb[1].rank ? Status::UNIQUE : Status::UNDECIDED;
+                        emit(IndexRankStatus { rb[0].index, rb[0].rank, status });
+                    }
+                    if (rb[0].rank != rb[1].rank && rb[1].rank != rb[2].rank)
+                        emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNIQUE });
+                    else
+                        emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNDECIDED });
+                    if (index == duplicates - 3) {
+                        Status status = rb[1].rank != rb[2].rank ? Status::UNIQUE : Status::UNDECIDED;
+                        emit(IndexRankStatus { rb[2].index, rb[2].rank, status });
+                    }
+                },
+                [](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                    if (index == 0) { // We know that there are exactly 2 names
+                        emit(IndexRankStatus { rb[0].index, rb[0].rank, Status::UNIQUE });
+                        emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNIQUE });
+                    }
+                });
 
         names_unique_sorted =
             names_unique
