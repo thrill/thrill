@@ -238,6 +238,12 @@ public:
         return 0;
     }
 
+    //! return currently accumulated time in seconds as double with microseconds
+    //! precision
+    double SecondsDouble() const {
+        return 0;
+    }
+
     //! accumulate elapsed time from another timer
     StatsTimerBase& operator += (const StatsTimerBase&) {
         return *this;

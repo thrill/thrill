@@ -54,8 +54,16 @@ class SortNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
 
+    //! Set this variable to true to enable generation and output of stats
+    static constexpr bool stats_enabled = false;
+
     using Super = DOpNode<ValueType>;
     using Super::context_;
+
+    //! Timer or FakeTimer
+    using Timer = common::StatsTimerBaseStopped<stats_enabled>;
+    //! RIAA class for running the timer
+    using RunTimer = common::RunTimer<Timer>;
 
 public:
     /*!
@@ -78,6 +86,7 @@ public:
     }
 
     void StartPreOp(size_t /* id */) final {
+        timer_preop_.Start();
         unsorted_writer_ = unsorted_file_.GetWriter();
     }
 
@@ -127,6 +136,11 @@ public:
 
         LOG << "wanted_sample_size()=" << wanted_sample_size()
             << " samples.size()= " << samples_.size();
+
+        timer_preop_.Stop();
+        CollectiveMeanSddev(
+            "Sort() timer_preop_", timer_preop_.SecondsDouble());
+        CollectiveMeanSddev("Sort() preop local_items_", local_items_);
     }
 
     DIAMemUse ExecuteMemUse() final {
@@ -136,6 +150,8 @@ public:
     //! Executes the sum operation.
     void Execute() final {
         MainOp();
+        CollectiveMeanSddev(
+            "Sort() timer_execute", timer_execute_.SecondsDouble());
     }
 
     DIAMemUse PushDataMemUse() final {
@@ -168,6 +184,9 @@ public:
     }
 
     void PushData(bool consume) final {
+        Timer timer_pushdata;
+        timer_pushdata.Start();
+
         size_t local_size = 0;
         if (files_.size() == 0) {
             // nothing to push
@@ -238,23 +257,12 @@ public:
             }
         }
 
-        if (0)
-        {
-            std::vector<size_t> svec = { local_size };
-            svec = context_.net.Reduce(svec, 0, common::VectorConcat<size_t>());
-            if (context_.my_rank() == 0) {
-                double sum = std::accumulate(svec.begin(), svec.end(), 0.0);
-                double mean = sum / svec.size();
+        timer_pushdata.Stop();
 
-                double sq_sum = std::inner_product(
-                    svec.begin(), svec.end(), svec.begin(), 0.0);
-                double stdev = std::sqrt(sq_sum / svec.size() - mean * mean);
+        CollectiveMeanSddev(
+            "Sort() timer_pushdata", timer_pushdata.SecondsDouble());
 
-                LOG1 << "Sort() mean=" << mean << ", stdev=" << stdev
-                     << " = " << (stdev / mean * 100.0) << "%,"
-                     << " svec=" << common::VecToStr(svec);
-            }
-        }
+        CollectiveMeanSddev("Sort() local_size", local_size);
     }
 
     void Dispose() final {
@@ -298,10 +306,51 @@ private:
 
     //! \}
 
+    //! \name MainOp and PushData
+    //! \{
+
     //! Local data files
     std::deque<data::File> files_;
     //! Total number of local elements after communication
     size_t local_out_size_ = 0;
+
+    //! \}
+
+    //! \name Statistics
+    //! \{
+
+    //! time spent in PreOp (including preceding Node's computation)
+    Timer timer_preop_;
+
+    //! time spent in Execute
+    Timer timer_execute_;
+
+    //! \}
+
+    template <typename Type>
+    void CollectiveMeanSddev(const char* text, const Type& local) {
+        if (!stats_enabled) return;
+
+        std::vector<Type> svec = { local };
+        svec = context_.net.Reduce(svec, 0, common::VectorConcat<Type>());
+        if (context_.my_rank() == 0) {
+            double sum = std::accumulate(svec.begin(), svec.end(), 0.0);
+            double mean = sum / svec.size();
+
+            double sq_sum = std::inner_product(
+                svec.begin(), svec.end(), svec.begin(), 0.0);
+            double stdev = std::sqrt(sq_sum / svec.size() - mean * mean);
+
+            double min = *std::min_element(svec.begin(), svec.end());
+            double max = *std::max_element(svec.begin(), svec.end());
+
+            LOG1 << text << " mean " << mean << " stdev " << stdev
+                 << " = " << (stdev / mean * 100.0) << "%"
+                 << " max-min " << max - min
+                 << " = " << ((max - min) / min * 100.0) << "% "
+                 << " svec " << common::VecToStr(svec);
+        }
+    }
 
     void FindAndSendSplitters(
         std::vector<ValueType>& splitters, size_t sample_size,
@@ -519,6 +568,8 @@ private:
         std::sort(vec.begin(), vec.end(), compare_function_);
         sort_time.Stop();
 
+        CollectiveMeanSddev("Sort() sort_time", sort_time.SecondsDouble());
+
         LOG << "SortAndWriteToFile() sort took " << time;
 
         common::StatsTimerStart write_time;
@@ -548,6 +599,8 @@ private:
     }
 
     void MainOp() {
+        RunTimer timer(timer_execute_);
+
         size_t prefix_items = context_.net.ExPrefixSum(local_items_);
 
         size_t total_items = context_.net.Broadcast(

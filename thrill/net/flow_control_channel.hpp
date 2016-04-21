@@ -65,8 +65,9 @@ private:
     //! The count of all workers connected to this group.
     size_t thread_count_;
 
-    //! RIAA class for running the timer
+    //! Timer or FakeTimer
     using Timer = common::StatsTimerBaseStopped<enable_stats>;
+    //! RIAA class for running the timer
     using RunTimer = common::RunTimer<Timer>;
 
     //! Synchronization timer

@@ -56,7 +56,7 @@ void PrintMatrix(const AggMatrix& m) {
         std::ostringstream os;
         for (size_t j = 0; j < m.columns(); ++j) {
             os << common::str_sprintf(
-                "%8.1f/%8.3f", m(i, j).Avg(), m(i, j).StdDev());
+                "%8.1f/%8.3f", m(i, j).Avg(), m(i, j).StDev());
         }
         LOG1 << os.str();
     }
