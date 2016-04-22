@@ -144,7 +144,7 @@ public:
             suffix_array = PrefixDoublingDementiev<Index>(input_dia.Keep(), input_size);
         }
         else if (algorithm_ == "dis") {
-            suffix_array = PrefixDoublinDiscardingDementiev<Index>(input_dia.Keep(), input_size);
+            suffix_array = PrefixDoublingDiscardingDementiev<Index>(input_dia.Keep(), input_size);
         }
         else {
             suffix_array = PrefixDoubling<Index>(input_dia.Keep(), input_size);

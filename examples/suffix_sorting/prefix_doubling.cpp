@@ -181,8 +181,8 @@ struct IndexRankRankStatus {
 
 
 template <typename Index, typename InputDIA>
-DIA<Index> PrefixDoublinDiscardingDementiev(const InputDIA& input_dia, size_t input_size) {
-    LOG1 << "Running PrefixDoublinDiscardingDementiev";
+DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t input_size) {
+    LOG1 << "Running PrefixDoublingDiscardingDementiev";
 
     using Char = typename InputDIA::ValueType;
     using IndexRank = suffix_sorting::IndexRank<Index>;
@@ -499,20 +499,18 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
             names_sorted
             .template FlatWindow<IndexRankRank>(
                 2,
-                [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                [=](size_t /*index*/, const RingBuffer<IndexRank>& rb, auto emit) {
                     if (rb[0].index + Index(next_index) == rb[1].index) {
                         emit(IndexRankRank { rb[0].index, rb[0].rank, rb[1].rank });
                     }
                     else {
-                        assert(rb[0].index + Index(next_index) >= Index(input_size));
                         emit(IndexRankRank { rb[0].index, rb[0].rank, Index(0) });
                     }
-
-                    if (index == input_size - 2) {
-                        assert(rb[1].index + Index(next_index) >= Index(input_size));
-                        emit(IndexRankRank { rb[1].index, rb[1].rank, Index(0) });
-                    }
-                })
+                },
+                [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                    if (index == input_size - 1)
+                        emit(IndexRankRank { rb[0].index, rb[0].rank, Index(0) });
+                    })
             .Sort();
 
         names =
@@ -701,7 +699,7 @@ template DIA<uint32_t> PrefixDoubling<uint32_t>(
 template DIA<uint32_t> PrefixDoublingDementiev<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size);
 
-template DIA<uint32_t> PrefixDoublinDiscardingDementiev<uint32_t>(
+template DIA<uint32_t> PrefixDoublingDiscardingDementiev<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size);
 
 } // namespace suffix_sorting
