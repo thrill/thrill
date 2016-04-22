@@ -448,13 +448,15 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                 emit(CharCharIndex {
                          { rb[0], rb[1] }, Index(index)
                      });
-                if (index == input_size - 2) {
-                    // emit CharCharIndex for last suffix
-                    emit(CharCharIndex {
-                             { rb[1], std::numeric_limits<Char>::lowest() },
-                             Index(index + 1)
-                         });
-                }
+            },
+            [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                if (index == input_size - 1) {
+                        // emit CharCharIndex for last suffix
+                        emit(CharCharIndex {
+                                { rb[0], std::numeric_limits<Char>::lowest() },
+                                Index(index + 1)
+                            });
+                    }
             })
         .Sort();
 
