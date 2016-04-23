@@ -296,6 +296,10 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                     },
                     [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) { 
                         if (index == 0) {
+                            //if (rb[0].status == Status::UNIQUE) 
+                            //    emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::FULLY_DISCARDED });
+                            //if (rb[1].status == Status::UNIQUE) 
+                            //    emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED });
                             if (rb[0].status == Status::UNDECIDED)
                                 emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::UNDECIDED });
                             if (rb[1].status == Status::UNDECIDED)
@@ -472,7 +476,7 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                 else
                     emit(IndexRank { rb[1].index, Index(index + 2) });
             })
-        .PrefixSum([](const IndexRank a, const IndexRank b) {
+        .PrefixSum([](const IndexRank& a, const IndexRank& b) {
                         return IndexRank {
                             b.index,
                             (a.rank > b.rank ? a.rank : b.rank)};

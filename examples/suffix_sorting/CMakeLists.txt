@@ -11,7 +11,7 @@
 ################################################################################
 
 thrill_build_prog(suffix_sorting
-  prefix_doubling.cpp dc3.cpp dc7.cpp)
+  prefix_doubling.cpp prefix_quadrupling.cpp dc3.cpp dc7.cpp)
 
 # disable debug symbols on large files
 # set_source_files_properties(

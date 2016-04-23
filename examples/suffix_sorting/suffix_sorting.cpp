@@ -15,6 +15,7 @@
 #include <examples/suffix_sorting/dc3.hpp>
 #include <examples/suffix_sorting/dc7.hpp>
 #include <examples/suffix_sorting/prefix_doubling.hpp>
+#include <examples/suffix_sorting/prefix_quadrupling.hpp>
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
@@ -146,6 +147,12 @@ public:
         else if (algorithm_ == "dis") {
             suffix_array = PrefixDoublingDiscardingDementiev<Index>(input_dia.Keep(), input_size);
         }
+        else if (algorithm_ == "q") {
+            suffix_array = PrefixQuadrupling<Index>(input_dia.Keep(), input_size);
+        }
+        else if (algorithm_ == "qd") {
+            suffix_array = PrefixQuadruplingDiscarding<Index>(input_dia.Keep(), input_size);
+        }
         else {
             suffix_array = PrefixDoubling<Index>(input_dia.Keep(), input_size);
         }
@@ -209,9 +216,10 @@ int main(int argc, char* argv[]) {
                       "such text on-the-fly.");
 
     cp.AddString('a', "algorithm", ss.algorithm_,
-                 "The prefix doubling algorithm which is used to construct the "
-                 "suffix array. Available: "
+                 "The algorithm which is used to construct the suffix array. "
+                 "Available are: "
                  "[fl]ick (default), [de]mentiev, dementiev with [dis]carding, "
+                 "[q]uadrupling, [qd] quadrupling with carding, "
                  "[dc3], and [dc7]");
 
     cp.AddSizeT('b', "bytes", ss.sa_index_bytes_,
