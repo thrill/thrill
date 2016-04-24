@@ -34,6 +34,24 @@ thrill_test_multiple(prefix_doubling2_aaa
 thrill_test_multiple(prefix_doubling2_random
   suffix_sorting -c -s 100000 -a de random)
 
+thrill_test_multiple(prefix_doubling3_aaa
+  suffix_sorting -c -s 10000 -a dis unary)
+
+thrill_test_multiple(prefix_doubling3_random
+  suffix_sorting -c -s 100000 -a dis random)
+
+thrill_test_multiple(prefix_quadrupling1_aaa
+  suffix_sorting -c -s 10000 -a q unary)
+
+thrill_test_multiple(prefix_quadrupling1_random
+  suffix_sorting -c -s 100000 -a q random)
+
+thrill_test_multiple(prefix_quadrupling2_aaa
+  suffix_sorting -c -s 10000 -a qd unary)
+
+thrill_test_multiple(prefix_quadrupling2_random
+  suffix_sorting -c -s 100000 -a qd random)
+
 thrill_test_multiple(dc3_aaa
   suffix_sorting -a dc3 -c -s 10000 unary)
 

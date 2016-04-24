@@ -193,17 +193,24 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
     using IndexRankRankStatus = suffix_sorting::IndexRankRankStatus<Index>;
 
     auto chars_sorted =
-        input_dia
-        .template FlatWindow<CharCharIndex>(
-            2,
-            [&](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                emit(CharCharIndex { rb[0], rb[1], Index(index) });
-                if (index == input_size - 2)
-                    emit(CharCharIndex { rb[1], std::numeric_limits<Char>::lowest(), Index(index + 1) });
-            })
-        .Sort([](const CharCharIndex& a, const CharCharIndex& b) {
-                return a < b;
-            });
+    input_dia
+    .template FlatWindow<CharCharIndex>(
+        2,
+        [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+            emit(CharCharIndex {
+                     { rb[0], rb[1] }, Index(index)
+                 });
+        },
+        [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+            if (index == input_size - 1) {
+                    // emit CharCharIndex for last suffix
+                    emit(CharCharIndex {
+                            { rb[0], std::numeric_limits<Char>::lowest() },
+                            Index(index)
+                        });
+                }
+        })
+    .Sort();
 
     auto names =
         chars_sorted
@@ -296,13 +303,13 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                     },
                     [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) { 
                         if (index == 0) {
-                            // if (rb[0].status == Status::UNIQUE) 
-                            //     emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::FULLY_DISCARDED });
-                            // if (rb[1].status == Status::UNIQUE) 
-                            //     emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED });
-                            if (rb[0].status == Status::UNDECIDED)
+                            if (rb[0].status == Status::UNIQUE) 
+                                emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::FULLY_DISCARDED });
+                            else // (rb[0].status == Status::UNDECIDED)
                                 emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::UNDECIDED });
-                            if (rb[1].status == Status::UNDECIDED)
+                            if (rb[1].status == Status::UNIQUE) 
+                                emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED });
+                            else // (rb[1].status == Status::UNDECIDED)
                                 emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::UNDECIDED });
                         }
                         if (index == names_size - 2) {
