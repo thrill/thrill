@@ -296,10 +296,10 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                     },
                     [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) { 
                         if (index == 0) {
-                            //if (rb[0].status == Status::UNIQUE) 
-                            //    emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::FULLY_DISCARDED });
-                            //if (rb[1].status == Status::UNIQUE) 
-                            //    emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED });
+                            // if (rb[0].status == Status::UNIQUE) 
+                            //     emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::FULLY_DISCARDED });
+                            // if (rb[1].status == Status::UNIQUE) 
+                            //     emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED });
                             if (rb[0].status == Status::UNDECIDED)
                                 emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::UNDECIDED });
                             if (rb[1].status == Status::UNDECIDED)
@@ -458,7 +458,7 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                         // emit CharCharIndex for last suffix
                         emit(CharCharIndex {
                                 { rb[0], std::numeric_limits<Char>::lowest() },
-                                Index(index + 1)
+                                Index(index)
                             });
                     }
             })
@@ -481,6 +481,9 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                             b.index,
                             (a.rank > b.rank ? a.rank : b.rank)};
                      });
+
+    if (debug_print)
+        names.Keep().Print("names before loop");
 
     size_t iteration = 1;
     while (true) {
@@ -534,6 +537,9 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
             .PrefixSum([](const IndexRank& a, const IndexRank& b) {
                 return IndexRank { b.index, a.rank + b.rank };
             });
+
+        if (debug_print)
+            names.Keep().Print("names");
 
         auto max_rank =
             names.Keep()
