@@ -110,6 +110,48 @@ public:
                 .Cache();
             SwitchIndexType(input_dia, sizelimit_);
         }
+        else if (input_path_ == "random10") {
+            if (sizelimit_ == std::numeric_limits<size_t>::max()) {
+                LOG1 << "You must provide -s <size> for generated inputs.";
+                return;
+            }
+
+            // share prng in Generate (just random digits anyway)
+            std::default_random_engine prng(std::random_device { } ());
+
+            DIA<uint8_t> input_dia =
+                Generate(
+                    ctx,
+                    [&prng](size_t /* i */) {
+                        return static_cast<uint8_t>('0' + prng() % 10);
+                    },
+                    sizelimit_)
+                // the random input _must_ be cached, otherwise it will be
+                // regenerated ... and contain new numbers.
+                .Cache();
+            SwitchIndexType(input_dia, sizelimit_);
+        }
+        else if (input_path_ == "random2") {
+            if (sizelimit_ == std::numeric_limits<size_t>::max()) {
+                LOG1 << "You must provide -s <size> for generated inputs.";
+                return;
+            }
+
+            // share prng in Generate (just random digits anyway)
+            std::default_random_engine prng(std::random_device { } ());
+
+            DIA<uint8_t> input_dia =
+                Generate(
+                    ctx,
+                    [&prng](size_t /* i */) {
+                        return static_cast<uint8_t>('0' + prng() % 2);
+                    },
+                    sizelimit_)
+                // the random input _must_ be cached, otherwise it will be
+                // regenerated ... and contain new numbers.
+                .Cache();
+            SwitchIndexType(input_dia, sizelimit_);
+        }
         else {
             auto input_dia =
                 ReadBinary<uint8_t>(ctx, input_path_, sizelimit_).Collapse();
@@ -212,8 +254,9 @@ int main(int argc, char* argv[]) {
 
     cp.AddParamString("input", ss.input_path_,
                       "Path to input file (or verbatim text).\n"
-                      "The special inputs 'random' and 'unary' generate "
-                      "such text on-the-fly.");
+                      "The special inputs "
+                      "'random', 'random10', 'random2' and 'unary' "
+                      "generate such text on-the-fly.");
 
     cp.AddString('a', "algorithm", ss.algorithm_,
                  "The algorithm which is used to construct the suffix array. "
