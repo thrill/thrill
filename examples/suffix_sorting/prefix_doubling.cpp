@@ -132,7 +132,7 @@ struct CharCharIndex {
     }
 } THRILL_ATTRIBUTE_PACKED;
 
-enum class Status : uint8_t { 
+enum class Status : uint8_t {
     UNDECIDED = 0,
     UNIQUE = 1,
     FULLY_DISCARDED = 2
@@ -141,8 +141,8 @@ enum class Status : uint8_t {
 //! A triple (index, rank, status)
 template <typename Index>
 struct IndexRankStatus {
-    Index index;
-    Index rank;
+    Index  index;
+    Index  rank;
     Status status;
 
     //! Two IndexRandStatuses are equal iff their ranks are equal.
@@ -151,7 +151,7 @@ struct IndexRankStatus {
     }
 
     //! A IndexRankStatus is smaller than another iff either its fist rank is
-    //! smaller or if both ranks are equal and the first index is _larger_ than 
+    //! smaller or if both ranks are equal and the first index is _larger_ than
     //! the second. The _larger_ is due to suffixes with larger index being
     //! smaller.
     bool operator < (const IndexRankStatus& b) const {
@@ -159,7 +159,7 @@ struct IndexRankStatus {
     }
 
     friend std::ostream& operator << (std::ostream& os, const IndexRankStatus& irs) {
-        return os << "(i: " << irs.index << "| r: " << irs.rank << "| s: " 
+        return os << "(i: " << irs.index << "| r: " << irs.rank << "| s: "
                   << static_cast<uint8_t>(irs.status) << ")";
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -167,9 +167,9 @@ struct IndexRankStatus {
 //! A triple (index, rank, status)
 template <typename Index>
 struct IndexRankRankStatus {
-    Index index;
-    Index rank1;
-    Index rank2;
+    Index  index;
+    Index  rank1;
+    Index  rank2;
     Status status;
 
     friend std::ostream& operator << (std::ostream& os, const IndexRankRankStatus& irrs) {
@@ -177,7 +177,6 @@ struct IndexRankRankStatus {
                   << irrs.rank2 << "| s: " << static_cast<uint8_t>(irrs.status) << ")";
     }
 } THRILL_ATTRIBUTE_PACKED;
-
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t input_size) {
@@ -192,24 +191,24 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
     using IndexRankRankStatus = suffix_sorting::IndexRankRankStatus<Index>;
 
     auto chars_sorted =
-    input_dia
-    .template FlatWindow<CharCharIndex>(
-        2,
-        [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
-            emit(CharCharIndex {
-                     { rb[0], rb[1] }, Index(index)
-                 });
-        },
-        [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
-            if (index == input_size - 1) {
+        input_dia
+        .template FlatWindow<CharCharIndex>(
+            2,
+            [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                emit(CharCharIndex {
+                         { rb[0], rb[1] }, Index(index)
+                     });
+            },
+            [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                if (index == input_size - 1) {
                     // emit CharCharIndex for last suffix
                     emit(CharCharIndex {
-                            { rb[0], std::numeric_limits<Char>::lowest() },
-                            Index(index)
-                        });
+                             { rb[0], std::numeric_limits<Char>::lowest() },
+                             Index(index)
+                         });
                 }
-        })
-    .Sort();
+            })
+        .Sort();
 
     auto names =
         chars_sorted
@@ -224,10 +223,11 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                     emit(IndexRank { rb[1].index, Index(index + 2) });
             })
         .PrefixSum([](const IndexRank a, const IndexRank b) {
-                        return IndexRank {
-                            b.index,
-                            (a.rank > b.rank ? a.rank : b.rank)};
-                     });
+                       return IndexRank {
+                           b.index,
+                           (a.rank > b.rank ? a.rank : b.rank)
+                       };
+                   });
 
     auto names_unique =
         names
@@ -252,19 +252,19 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
     auto names_unique_sorted =
         names_unique
         .Sort([iteration](const IndexRankStatus& a, const IndexRankStatus& b) {
-            Index mod_mask = (Index(1) << iteration) - 1;
-            Index div_mask = ~mod_mask;
+                  Index mod_mask = (Index(1) << iteration) - 1;
+                  Index div_mask = ~mod_mask;
 
-            if ((a.index & mod_mask) == (b.index & mod_mask))
-                return (a.index & div_mask) < (b.index & div_mask);
-            else
-                return (a.index & mod_mask) < (b.index & mod_mask);
-        });
+                  if ((a.index & mod_mask) == (b.index & mod_mask))
+                      return (a.index & div_mask) < (b.index & div_mask);
+                  else
+                      return (a.index & mod_mask) < (b.index & mod_mask);
+              });
 
     if (debug_print)
         names_unique_sorted.Keep().Print("names_unique_sorted");
 
-    std::vector<DIA<IndexRank>> fully_discarded;
+    std::vector<DIA<IndexRank> > fully_discarded;
 
     while (true) {
         ++iteration;
@@ -276,75 +276,74 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
 
         auto discarded_names =
             names_unique_sorted.Keep()
-                .template FlatWindow<IndexRankRankStatus>(
-                    3,
-                    [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
-                        // Discarded names (we need to change the status since we remove it one step later)
-                        if (index == 0) {
-                            if (rb[0].status == Status::UNIQUE) 
-                                emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::FULLY_DISCARDED });
-                            if (rb[1].status == Status::UNIQUE) 
-                                emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED }); // Since there is just one preceding entry it's either undiscarded or unique
-                        }
-                        if (rb[2].status == Status::UNIQUE) {
-                            if (rb[0].status == Status::UNIQUE || rb[1].status == Status::UNIQUE)
-                                emit(IndexRankRankStatus { rb[2].index, rb[2].rank, Index(0), Status::FULLY_DISCARDED });
-                            else
-                                emit(IndexRankRankStatus { rb[2].index, rb[2].rank, Index(0), Status::UNIQUE });
-
-                        }
-                        if (rb[0].status == Status::UNDECIDED) {
-                            if (rb[0].index + (Index(1) << (iteration - 1)) == rb[1].index)
-                                emit(IndexRankRankStatus { rb[0].index, rb[0].rank, rb[1].rank, Status::UNDECIDED });
-                            else
-                                emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::UNDECIDED });
-                        }
-                    },
-                    [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) { 
-                        if (index == 0) {
-                            if (rb[0].status == Status::UNIQUE) 
-                                emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::FULLY_DISCARDED });
-                            else // (rb[0].status == Status::UNDECIDED)
-                                emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::UNDECIDED });
-                            if (rb[1].status == Status::UNIQUE) 
-                                emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED });
-                            else // (rb[1].status == Status::UNDECIDED)
-                                emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::UNDECIDED });
-                        }
-                        if (index == names_size - 2) {
-                            if (rb[0].status == Status::UNDECIDED)
-                                emit(IndexRankRankStatus { rb[0].index, rb[0].rank, rb[1].rank, Status::UNDECIDED });
-                            if (rb[1].status == Status::UNDECIDED)
-                                emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::UNDECIDED });
-                        }
-                    });
+            .template FlatWindow<IndexRankRankStatus>(
+                3,
+                [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
+                    // Discarded names (we need to change the status since we remove it one step later)
+                    if (index == 0) {
+                        if (rb[0].status == Status::UNIQUE)
+                            emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::FULLY_DISCARDED });
+                        if (rb[1].status == Status::UNIQUE)
+                            emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED });     // Since there is just one preceding entry it's either undiscarded or unique
+                    }
+                    if (rb[2].status == Status::UNIQUE) {
+                        if (rb[0].status == Status::UNIQUE || rb[1].status == Status::UNIQUE)
+                            emit(IndexRankRankStatus { rb[2].index, rb[2].rank, Index(0), Status::FULLY_DISCARDED });
+                        else
+                            emit(IndexRankRankStatus { rb[2].index, rb[2].rank, Index(0), Status::UNIQUE });
+                    }
+                    if (rb[0].status == Status::UNDECIDED) {
+                        if (rb[0].index + (Index(1) << (iteration - 1)) == rb[1].index)
+                            emit(IndexRankRankStatus { rb[0].index, rb[0].rank, rb[1].rank, Status::UNDECIDED });
+                        else
+                            emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::UNDECIDED });
+                    }
+                },
+                [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
+                    if (index == 0) {
+                        if (rb[0].status == Status::UNIQUE)
+                            emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::FULLY_DISCARDED });
+                        else     // (rb[0].status == Status::UNDECIDED)
+                            emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::UNDECIDED });
+                        if (rb[1].status == Status::UNIQUE)
+                            emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED });
+                        else     // (rb[1].status == Status::UNDECIDED)
+                            emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::UNDECIDED });
+                    }
+                    if (index == names_size - 2) {
+                        if (rb[0].status == Status::UNDECIDED)
+                            emit(IndexRankRankStatus { rb[0].index, rb[0].rank, rb[1].rank, Status::UNDECIDED });
+                        if (rb[1].status == Status::UNDECIDED)
+                            emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::UNDECIDED });
+                    }
+                });
 
         auto new_decided =
             discarded_names.Keep()
             .Filter([](const IndexRankRankStatus& irs) {
-                    return irs.status == Status::FULLY_DISCARDED;
-                })
+                        return irs.status == Status::FULLY_DISCARDED;
+                    })
             .Map([](const IndexRankRankStatus& irs) {
-                    return IndexRank { irs.index, irs.rank1 };
-                });
+                     return IndexRank { irs.index, irs.rank1 };
+                 });
 
         auto partial_discarded =
             discarded_names.Keep()
             .Filter([](const IndexRankRankStatus& irs) {
-                    return irs.status == Status::UNIQUE;
-                })
+                        return irs.status == Status::UNIQUE;
+                    })
             .Map([](const IndexRankRankStatus& irs) {
-                    return IndexRankStatus { irs.index, irs.rank1, Status::UNIQUE };
-                });
+                     return IndexRankStatus { irs.index, irs.rank1, Status::UNIQUE };
+                 });
 
         auto undiscarded =
             discarded_names
             .Filter([](const IndexRankRankStatus& irs) {
-                    return irs.status == Status::UNDECIDED;
-                })
+                        return irs.status == Status::UNDECIDED;
+                    })
             .Map([](const IndexRankRankStatus& irs) {
-                    return IndexRankRank { irs.index, irs.rank1, irs.rank2 };
-                })
+                     return IndexRankRank { irs.index, irs.rank1, irs.rank2 };
+                 })
             .Sort();
 
         fully_discarded.emplace_back(new_decided.Cache());
@@ -361,11 +360,11 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
             auto sa =
                 res
                 .Sort([](const IndexRank& a, const IndexRank& b) {
-                    return a.rank < b.rank;
-                    })
+                          return a.rank < b.rank;
+                      })
                 .Map([](const IndexRank& ir) {
                          return ir.index;
-                    });
+                     });
             return sa.Collapse();
         }
 
@@ -390,16 +389,16 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                         emit(Index3Rank { rb[0].index, Index(0), Index(0), rb[0].rank1 });
                 })
             .PrefixSum([](const Index3Rank& a, const Index3Rank& b) {
-                return Index3Rank { 
-                    b.index,
-                    std::max<Index>(a.rank1, b.rank1),
-                    std::max<Index>(a.rank2, b.rank2),
-                    b.rank3
-                    };
-                })
+                           return Index3Rank {
+                               b.index,
+                               std::max<Index>(a.rank1, b.rank1),
+                               std::max<Index>(a.rank2, b.rank2),
+                               b.rank3
+                           };
+                       })
             .Map([](const Index3Rank& ir) {
-                    return IndexRank { ir.index, ir.rank3 + (ir.rank2 - ir.rank1) };
-                });
+                     return IndexRank { ir.index, ir.rank3 + (ir.rank2 - ir.rank1) };
+                 });
 
         names_unique =
             new_ranks
@@ -430,14 +429,14 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
             names_unique
             .Union(partial_discarded)
             .Sort([iteration](const IndexRankStatus& a, const IndexRankStatus& b) {
-                    Index mod_mask = (Index(1) << iteration) - 1;
-                    Index div_mask = ~mod_mask;
+                      Index mod_mask = (Index(1) << iteration) - 1;
+                      Index div_mask = ~mod_mask;
 
-                    if ((a.index & mod_mask) == (b.index & mod_mask))
-                        return (a.index & div_mask) < (b.index & div_mask);
-                    else
-                        return (a.index & mod_mask) < (b.index & mod_mask);
-                });
+                      if ((a.index & mod_mask) == (b.index & mod_mask))
+                          return (a.index & div_mask) < (b.index & div_mask);
+                      else
+                          return (a.index & mod_mask) < (b.index & mod_mask);
+                  });
     }
 }
 
@@ -461,12 +460,12 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
             },
             [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 if (index == input_size - 1) {
-                        // emit CharCharIndex for last suffix
-                        emit(CharCharIndex {
-                                { rb[0], std::numeric_limits<Char>::lowest() },
-                                Index(index)
-                            });
-                    }
+                    // emit CharCharIndex for last suffix
+                    emit(CharCharIndex {
+                             { rb[0], std::numeric_limits<Char>::lowest() },
+                             Index(index)
+                         });
+                }
             })
         .Sort();
 
@@ -483,10 +482,11 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                     emit(IndexRank { rb[1].index, Index(index + 2) });
             })
         .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                        return IndexRank {
-                            b.index,
-                            (a.rank > b.rank ? a.rank : b.rank)};
-                     });
+                       return IndexRank {
+                           b.index,
+                           (a.rank > b.rank ? a.rank : b.rank)
+                       };
+                   });
 
     if (debug_print)
         names.Keep().Print("names before loop");
@@ -525,7 +525,7 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                 [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                     if (index == input_size - 1)
                         emit(IndexRankRank { rb[0].index, rb[0].rank, Index(0) });
-                    })
+                })
             .Sort();
 
         names =
@@ -541,8 +541,8 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                         emit(IndexRank { rb[1].index, Index(1) });
                 })
             .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                return IndexRank { b.index, a.rank + b.rank };
-            });
+                           return IndexRank { b.index, a.rank + b.rank };
+                       });
 
         if (debug_print)
             names.Keep().Print("names");
@@ -550,8 +550,8 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
         auto max_rank =
             names.Keep()
             .Map([](const IndexRank& ir) {
-                    return ir.rank;
-                })
+                     return ir.rank;
+                 })
             .Max();
 
         if (input_dia.context().my_rank() == 0) {

@@ -62,18 +62,18 @@ struct IndexQuadRank {
 
     bool operator == (const IndexQuadRank& b) const {
         return std::tie(rank[0], rank[1], rank[2], rank[3])
-            == std::tie(b.rank[0], b.rank[1], b.rank[2], b.rank[3]);
+               == std::tie(b.rank[0], b.rank[1], b.rank[2], b.rank[3]);
     }
 
     bool operator < (const IndexQuadRank& b) const {
         return rank[0] < b.rank[0] ||
-            (rank[0] == b.rank[0] && rank[1] < b.rank[1]) ||
-            (rank[0] == b.rank[0] && rank[1] == b.rank[1] 
+               (rank[0] == b.rank[0] && rank[1] < b.rank[1]) ||
+               (rank[0] == b.rank[0] && rank[1] == b.rank[1]
                 && rank[2] < b.rank[2]) ||
-            (rank[0] == b.rank[0] && rank[1] == b.rank[1] 
+               (rank[0] == b.rank[0] && rank[1] == b.rank[1]
                 && rank[2] == b.rank[2] && rank[3] < b.rank[3]) ||
-            (rank[0] == b.rank[0] && rank[1] == b.rank[1] 
-                && rank[2] == b.rank[2] && rank[3] == b.rank[3] 
+               (rank[0] == b.rank[0] && rank[1] == b.rank[1]
+                && rank[2] == b.rank[2] && rank[3] == b.rank[3]
                 && index > b.index);
     }
 
@@ -86,26 +86,25 @@ struct IndexQuadRank {
 template <typename AlphabetType, typename Index>
 struct QuadCharIndex {
     AlphabetType ch[4];
-    Index index;
+    Index        index;
 
     bool operator == (const QuadCharIndex& b) const {
         return std::tie(ch[0], ch[1], ch[2], ch[3])
-            == std::tie(b.ch[0], b.ch[1], b.ch[2], b.ch[3]);
+               == std::tie(b.ch[0], b.ch[1], b.ch[2], b.ch[3]);
     }
 
     bool operator < (const QuadCharIndex& b) const {
         return std::tie(ch[0], ch[1], ch[2], ch[3])
-            < std::tie(b.ch[0], b.ch[1], b.ch[2], b.ch[3]);
+               < std::tie(b.ch[0], b.ch[1], b.ch[2], b.ch[3]);
     }
 
     friend std::ostream& operator << (std::ostream& os, const QuadCharIndex& chars) {
         return os << '[' << chars.index << ": " << chars.ch[0] << ',' << chars.ch[1]
                   << ',' << chars.ch[2] << ',' << chars.ch[3] << ']';
     }
-
 } THRILL_ATTRIBUTE_PACKED;
 
-enum class Status : uint8_t { 
+enum class Status : uint8_t {
     UNDECIDED = 0,
     UNIQUE = 1,
     FULLY_DISCARDED = 2
@@ -114,8 +113,8 @@ enum class Status : uint8_t {
 //! A triple (index, rank, status)
 template <typename Index>
 struct IndexRankStatus {
-    Index index;
-    Index rank;
+    Index  index;
+    Index  rank;
     Status status;
 
     //! Two IndexRandStatuses are equal iff their ranks are equal.
@@ -124,7 +123,7 @@ struct IndexRankStatus {
     }
 
     //! A IndexRankStatus is smaller than another iff either its fist rank is
-    //! smaller or if both ranks are equal and the first index is _larger_ than 
+    //! smaller or if both ranks are equal and the first index is _larger_ than
     //! the second. The _larger_ is due to suffixes with larger index being
     //! smaller.
     bool operator < (const IndexRankStatus& b) const {
@@ -132,7 +131,7 @@ struct IndexRankStatus {
     }
 
     friend std::ostream& operator << (std::ostream& os, const IndexRankStatus& irs) {
-        return os << "(i: " << irs.index << "| r: " << irs.rank << "| s: " 
+        return os << "(i: " << irs.index << "| r: " << irs.rank << "| s: "
                   << static_cast<uint8_t>(irs.status) << ")";
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -140,13 +139,13 @@ struct IndexRankStatus {
 //! A triple (index, rank [4], status)
 template <typename Index>
 struct IndexQuadRankStatus {
-    Index index;
-    Index rank[4];
+    Index  index;
+    Index  rank[4];
     Status status;
 
     friend std::ostream& operator << (std::ostream& os, const IndexQuadRankStatus& iqrs) {
         return os << "(i: " << iqrs.index << "| r1: " << iqrs.rank[0] << "| r2: "
-                  << iqrs.rank[1] << "| r3: " << iqrs.rank[2] << "| r4: " 
+                  << iqrs.rank[1] << "| r3: " << iqrs.rank[2] << "| r4: "
                   << iqrs.rank[3] << "| s: " << static_cast<uint8_t>(iqrs.status) << ")";
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -183,29 +182,29 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
             4,
             [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 emit(QuadCharIndex {
-                        {rb[0], rb[1], rb[2], rb[3]}, Index(index)
-                    });
+                         { rb[0], rb[1], rb[2], rb[3] }, Index(index)
+                     });
             },
             [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 if (index == input_size - 3) {
                     emit(QuadCharIndex {
-                            { rb[0], rb[1], rb[2],
-                              std::numeric_limits<Char>::lowest() }, 
-                              Index(index)
-                        });
+                             { rb[0], rb[1], rb[2],
+                               std::numeric_limits<Char>::lowest() },
+                             Index(index)
+                         });
                     emit(QuadCharIndex {
-                            {   rb[1], rb[2],
-                                std::numeric_limits<Char>::lowest(),
-                                std::numeric_limits<Char>::lowest() }, 
-                                Index(index + 1)
-                        });
+                             { rb[1], rb[2],
+                               std::numeric_limits<Char>::lowest(),
+                               std::numeric_limits<Char>::lowest() },
+                             Index(index + 1)
+                         });
                     emit(QuadCharIndex {
-                            {   rb[2],
-                                std::numeric_limits<Char>::lowest(),
-                                std::numeric_limits<Char>::lowest(),
-                                std::numeric_limits<Char>::lowest() }, 
-                                Index(index + 2)
-                        });
+                             { rb[2],
+                               std::numeric_limits<Char>::lowest(),
+                               std::numeric_limits<Char>::lowest(),
+                               std::numeric_limits<Char>::lowest() },
+                             Index(index + 2)
+                         });
                 }
             })
         .Sort();
@@ -223,13 +222,14 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
                 if (rb[0] == rb[1])
                     emit(IndexRank { rb[1].index, Index(0) });
                 else
-                    emit(IndexRank { rb[1].index, Index(index + 2)} );
+                    emit(IndexRank { rb[1].index, Index(index + 2) });
             })
         .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                return IndexRank {
-                    b.index,
-                    (a.rank > b.rank ? a.rank : b.rank) };
-            });
+                       return IndexRank {
+                           b.index,
+                           (a.rank > b.rank ? a.rank : b.rank)
+                       };
+                   });
 
     if (debug_print)
         names.Keep().Print("names");
@@ -258,19 +258,19 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
     auto names_unique_sorted =
         names_unique.Keep()
         .Sort([iteration](const IndexRankStatus& a, const IndexRankStatus& b) {
-            Index mod_mask = (Index(1) << (iteration << 1)) - 1;
-            Index div_mask = ~mod_mask;
+                  Index mod_mask = (Index(1) << (iteration << 1)) - 1;
+                  Index div_mask = ~mod_mask;
 
-            if ((a.index & mod_mask) == (b.index & mod_mask))
-                return (a.index & div_mask) < (b.index & div_mask);
-            else
-                return (a.index & mod_mask) < (b.index & mod_mask);
-        });
+                  if ((a.index & mod_mask) == (b.index & mod_mask))
+                      return (a.index & div_mask) < (b.index & div_mask);
+                  else
+                      return (a.index & mod_mask) < (b.index & mod_mask);
+              });
 
     if (debug_print)
         names_unique_sorted.Keep().Print("Names unique sorted");
 
-    std::vector<DIA<IndexQuadRank>> fully_discarded;
+    std::vector<DIA<IndexQuadRank> > fully_discarded;
 
     while (true) {
         size_t next_index = size_t(1) << (iteration << 1);
@@ -280,171 +280,185 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
 
         auto discarded_names =
             names_unique_sorted.Keep()
-                .template FlatWindow<IndexQuadRankStatus>(
-                    5,
-                    [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
-                        // Discarded names (we need to change the status since we remove it one step later)
-                        if (index == 0) {
-                            if (rb[0].status == Status::UNIQUE) 
-                                emit(IndexQuadRankStatus { 
-                                    rb[0].index,
-                                    { rb[0].rank, Index(0), Index(0), Index(0) },
-                                    Status::FULLY_DISCARDED });
-                            if (rb[1].status == Status::UNIQUE) 
-                                emit(IndexQuadRankStatus {
-                                    rb[1].index,
-                                    { rb[1].rank, Index(0), Index(0), Index(0) },
-                                    Status::FULLY_DISCARDED });
-                            if (rb[2].status == Status::UNIQUE) 
-                                emit(IndexQuadRankStatus {
-                                    rb[2].index,
-                                    { rb[2].rank, Index(0), Index(0), Index(0) },
-                                    Status::FULLY_DISCARDED });
-                            if (rb[3].status == Status::UNIQUE) 
-                                emit(IndexQuadRankStatus {
-                                    rb[3].index,
-                                    { rb[3].rank, Index(0), Index(0), Index(0) },
-                                    Status::FULLY_DISCARDED });
-                        }
-                        if (rb[4].status == Status::UNIQUE) {
-                            if (rb[0].status == Status::UNIQUE || rb[1].status == Status::UNIQUE ||
-                                rb[2].status == Status::UNIQUE || rb[3].status == Status::UNIQUE)
-                                emit(IndexQuadRankStatus {
-                                    rb[4].index,
-                                    { rb[4].rank, Index(0), Index(0), Index(0) },
-                                    Status::FULLY_DISCARDED });
-                            else
-                                emit(IndexQuadRankStatus {
-                                    rb[4].index,
-                                    { rb[4].rank, Index(0), Index(0), Index(0) },
-                                    Status::UNIQUE });
-                        }
+            .template FlatWindow<IndexQuadRankStatus>(
+                5,
+                [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
+                    // Discarded names (we need to change the status since we remove it one step later)
+                    if (index == 0) {
+                        if (rb[0].status == Status::UNIQUE)
+                            emit(IndexQuadRankStatus {
+                                     rb[0].index,
+                                     { rb[0].rank, Index(0), Index(0), Index(0) },
+                                     Status::FULLY_DISCARDED
+                                 });
+                        if (rb[1].status == Status::UNIQUE)
+                            emit(IndexQuadRankStatus {
+                                     rb[1].index,
+                                     { rb[1].rank, Index(0), Index(0), Index(0) },
+                                     Status::FULLY_DISCARDED
+                                 });
+                        if (rb[2].status == Status::UNIQUE)
+                            emit(IndexQuadRankStatus {
+                                     rb[2].index,
+                                     { rb[2].rank, Index(0), Index(0), Index(0) },
+                                     Status::FULLY_DISCARDED
+                                 });
+                        if (rb[3].status == Status::UNIQUE)
+                            emit(IndexQuadRankStatus {
+                                     rb[3].index,
+                                     { rb[3].rank, Index(0), Index(0), Index(0) },
+                                     Status::FULLY_DISCARDED
+                                 });
+                    }
+                    if (rb[4].status == Status::UNIQUE) {
+                        if (rb[0].status == Status::UNIQUE || rb[1].status == Status::UNIQUE ||
+                            rb[2].status == Status::UNIQUE || rb[3].status == Status::UNIQUE)
+                            emit(IndexQuadRankStatus {
+                                     rb[4].index,
+                                     { rb[4].rank, Index(0), Index(0), Index(0) },
+                                     Status::FULLY_DISCARDED
+                                 });
+                        else
+                            emit(IndexQuadRankStatus {
+                                     rb[4].index,
+                                     { rb[4].rank, Index(0), Index(0), Index(0) },
+                                     Status::UNIQUE
+                                 });
+                    }
+                    if (rb[0].status == Status::UNDECIDED) {
+                        Index rank1 = (rb[0].index + Index(next_index) == rb[1].index) ? rb[1].rank : Index(0);
+                        Index rank2 = (rb[0].index + 2 * Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
+                        Index rank3 = (rb[0].index + 3 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
+                        emit(IndexQuadRankStatus { rb[0].index, { rb[0].rank, rank1, rank2, rank3 }, Status::UNDECIDED });
+                    }
+                },
+                [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) {
+                    if (index == 0) {
+                        if (rb[0].status == Status::UNIQUE)
+                            emit(IndexQuadRankStatus {
+                                     rb[0].index,
+                                     { rb[0].rank, Index(0), Index(0), Index(0) },
+                                     Status::FULLY_DISCARDED
+                                 });
+                        else     //(rb[0].status == Status::UNDECIDED)
+                            emit(IndexQuadRankStatus {
+                                     rb[0].index,
+                                     { rb[0].rank, Index(0), Index(0), Index(0) },
+                                     Status::UNDECIDED
+                                 });
+
+                        if (rb.size() > 1 && rb[1].status == Status::UNIQUE)
+                            emit(IndexQuadRankStatus {
+                                     rb[1].index,
+                                     { rb[1].rank, Index(0), Index(0), Index(0) },
+                                     Status::FULLY_DISCARDED
+                                 });
+                        else if (rb.size() > 1)     // && rb[1].status == Status::UNDECIDED)
+                            emit(IndexQuadRankStatus {
+                                     rb[1].index,
+                                     { rb[1].rank, Index(0), Index(0), Index(0) },
+                                     Status::UNDECIDED
+                                 });
+
+                        if (rb.size() > 2 && rb[2].status == Status::UNIQUE)
+                            emit(IndexQuadRankStatus {
+                                     rb[2].index,
+                                     { rb[2].rank, Index(0), Index(0), Index(0) },
+                                     Status::FULLY_DISCARDED
+                                 });
+                        else if (rb.size() > 2)     // && rb[2].status == Status::UNDECIDED)
+                            emit(IndexQuadRankStatus {
+                                     rb[2].index,
+                                     { rb[2].rank, Index(0), Index(0), Index(0) },
+                                     Status::UNDECIDED
+                                 });
+
+                        if (rb.size() > 3 && rb[3].status == Status::UNIQUE)
+                            emit(IndexQuadRankStatus {
+                                     rb[3].index,
+                                     { rb[3].rank, Index(0), Index(0), Index(0) },
+                                     Status::FULLY_DISCARDED
+                                 });
+                        else if (rb.size() > 3)     // && rb[3].status == Status::UNDECIDED)
+                            emit(IndexQuadRankStatus {
+                                     rb[3].index,
+                                     { rb[3].rank, Index(0), Index(0), Index(0) },
+                                     Status::UNDECIDED
+                                 });
+                    }
+                    if (index == names_size - 4) {
+                        Index rank1;
+                        Index rank2;
+                        Index rank3;
+
                         if (rb[0].status == Status::UNDECIDED) {
-                            Index rank1 = (rb[0].index + Index(next_index) == rb[1].index) ? rb[1].rank : Index(0);
-                            Index rank2 = (rb[0].index + 2 * Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
-                            Index rank3 = (rb[0].index + 3 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
+                            rank1 = (rb[0].index + Index(next_index) == rb[1].index) ? rb[1].rank : Index(0);
+                            rank2 = (rb[0].index + 2 * Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
+                            rank3 = (rb[0].index + 3 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
                             emit(IndexQuadRankStatus { rb[0].index, { rb[0].rank, rank1, rank2, rank3 }, Status::UNDECIDED });
                         }
-                    },
-                    [=](size_t index, const RingBuffer<IndexRankStatus>& rb, auto emit) { 
-                        if (index == 0) {
-                            if (rb[0].status == Status::UNIQUE) 
-                                emit(IndexQuadRankStatus { 
-                                    rb[0].index,
-                                    { rb[0].rank, Index(0), Index(0), Index(0) },
-                                    Status::FULLY_DISCARDED });
-                            else //(rb[0].status == Status::UNDECIDED)
-                                emit(IndexQuadRankStatus { 
-                                    rb[0].index,
-                                    { rb[0].rank, Index(0), Index(0), Index(0) },
-                                    Status::UNDECIDED });
-
-                            if (rb.size() > 1 && rb[1].status == Status::UNIQUE) 
-                                emit(IndexQuadRankStatus {
-                                    rb[1].index,
-                                    { rb[1].rank, Index(0), Index(0), Index(0) },
-                                    Status::FULLY_DISCARDED });
-                            else if (rb.size() > 1) // && rb[1].status == Status::UNDECIDED)
-                                emit(IndexQuadRankStatus { 
-                                    rb[1].index,
-                                    { rb[1].rank, Index(0), Index(0), Index(0) },
-                                    Status::UNDECIDED });
-
-                            if (rb.size() > 2 && rb[2].status == Status::UNIQUE) 
-                                emit(IndexQuadRankStatus {
-                                    rb[2].index,
-                                    { rb[2].rank, Index(0), Index(0), Index(0) },
-                                    Status::FULLY_DISCARDED });
-                            else if (rb.size() > 2) // && rb[2].status == Status::UNDECIDED)
-                                emit(IndexQuadRankStatus { 
-                                    rb[2].index,
-                                    { rb[2].rank, Index(0), Index(0), Index(0) },
-                                    Status::UNDECIDED });
-
-                            if (rb.size() > 3 && rb[3].status == Status::UNIQUE) 
-                                emit(IndexQuadRankStatus {
-                                    rb[3].index,
-                                    { rb[3].rank, Index(0), Index(0), Index(0) },
-                                    Status::FULLY_DISCARDED });
-                            else if (rb.size() > 3) // && rb[3].status == Status::UNDECIDED)
-                                emit(IndexQuadRankStatus { 
-                                    rb[3].index,
-                                    { rb[3].rank, Index(0), Index(0), Index(0) },
-                                    Status::UNDECIDED });
+                        if (rb[1].status == Status::UNDECIDED) {
+                            rank1 = (rb[1].index + Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
+                            rank2 = (rb[1].index + 2 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
+                            emit(IndexQuadRankStatus { rb[1].index, { rb[1].rank, rank1, rank2, Index(0) }, Status::UNDECIDED });
                         }
-                        if (index == names_size - 4) {
-                            Index rank1;
-                            Index rank2;
-                            Index rank3;
-
-                            if (rb[0].status == Status::UNDECIDED) {
-                                rank1 = (rb[0].index + Index(next_index) == rb[1].index) ? rb[1].rank : Index(0);
-                                rank2 = (rb[0].index + 2 * Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
-                                rank3 = (rb[0].index + 3 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
-                                emit(IndexQuadRankStatus { rb[0].index, { rb[0].rank, rank1, rank2, rank3 }, Status::UNDECIDED });
-                            }
-                            if (rb[1].status == Status::UNDECIDED) {
-                                rank1 = (rb[1].index + Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
-                                rank2 = (rb[1].index + 2 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
-                                emit(IndexQuadRankStatus { rb[1].index, { rb[1].rank, rank1, rank2, Index(0) }, Status::UNDECIDED });
-                            }
-                            if (rb[2].status == Status::UNDECIDED) {
-                                rank1 = (rb[2].index + Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
-                                emit(IndexQuadRankStatus { rb[2].index, { rb[2].rank, rank1, Index(0), Index(0) }, Status::UNDECIDED });
-                            }
-                            if (rb[3].status == Status::UNDECIDED) 
-                                emit(IndexQuadRankStatus { rb[3].index, { rb[3].rank, Index(0), Index(0), Index(0) }, Status::UNDECIDED });
+                        if (rb[2].status == Status::UNDECIDED) {
+                            rank1 = (rb[2].index + Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
+                            emit(IndexQuadRankStatus { rb[2].index, { rb[2].rank, rank1, Index(0), Index(0) }, Status::UNDECIDED });
                         }
-                    });
+                        if (rb[3].status == Status::UNDECIDED)
+                            emit(IndexQuadRankStatus { rb[3].index, { rb[3].rank, Index(0), Index(0), Index(0) }, Status::UNDECIDED });
+                    }
+                });
 
         auto new_decided =
             discarded_names.Keep()
             .Filter([](const IndexQuadRankStatus& iqrs) {
-                    return iqrs.status == Status::FULLY_DISCARDED;
-                })
+                        return iqrs.status == Status::FULLY_DISCARDED;
+                    })
             .Map([](const IndexQuadRankStatus& iqrs) {
-                    return IndexQuadRank {
-                        iqrs.index,
-                        { iqrs.rank[0], iqrs.rank[1], iqrs.rank[2], iqrs.rank[3] } };
-                });
+                     return IndexQuadRank {
+                         iqrs.index,
+                         { iqrs.rank[0], iqrs.rank[1], iqrs.rank[2], iqrs.rank[3] }
+                     };
+                 });
 
         if (debug_print)
             new_decided.Keep().Print("new_decided");
 
-
         auto partial_discarded =
             discarded_names.Keep()
             .Filter([](const IndexQuadRankStatus& iqrs) {
-                    return iqrs.status == Status::UNIQUE;
-                })
+                        return iqrs.status == Status::UNIQUE;
+                    })
             .Map([](const IndexQuadRankStatus& iqrs) {
-                    return IndexRankStatus {
-                        iqrs.index,
-                        iqrs.rank[0],
-                        Status::UNIQUE };
-                });
+                     return IndexRankStatus {
+                         iqrs.index,
+                         iqrs.rank[0],
+                         Status::UNIQUE
+                     };
+                 });
 
         if (debug_print)
             partial_discarded.Keep().Print("partial_discarded");
 
-
         auto undiscarded =
             discarded_names
             .Filter([](const IndexQuadRankStatus& iqrs) {
-                    return iqrs.status == Status::UNDECIDED;
-                })
+                        return iqrs.status == Status::UNDECIDED;
+                    })
             .Map([](const IndexQuadRankStatus& iqrs) {
-                    return IndexQuadRank {
-                        iqrs.index,
-                        { iqrs.rank[0], iqrs.rank[1], iqrs.rank[2], iqrs.rank[3] } };
-                })
+                     return IndexQuadRank {
+                         iqrs.index,
+                         { iqrs.rank[0], iqrs.rank[1], iqrs.rank[2], iqrs.rank[3] }
+                     };
+                 })
             .Sort([](const IndexQuadRank& a, const IndexQuadRank& b) {
-                    return a < b;
-                });
+                      return a < b;
+                  });
 
         if (debug_print)
             undiscarded.Keep().Print("undiscarded");
-
 
         fully_discarded.emplace_back(new_decided.Cache());
 
@@ -462,7 +476,7 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
                 .Sort()
                 .Map([](const IndexQuadRank& iqr) {
                          return iqr.index;
-                    });
+                     });
             return sa.Collapse();
         }
 
@@ -480,8 +494,8 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
                         r = Index(index + 1);
                     else
                         r = (rb[0].rank[1] == rb[1].rank[1] &&
-                                rb[0].rank[2] == rb[1].rank[2] &&
-                                rb[0].rank[3] == rb[1].rank[3]) ? Index(0) : Index(index + 1);
+                             rb[0].rank[2] == rb[1].rank[2] &&
+                             rb[0].rank[3] == rb[1].rank[3]) ? Index(0) : Index(index + 1);
                     emit(Index3Rank { rb[1].index, i, r, rb[1].rank[0] });
                 },
                 [](size_t index, const RingBuffer<IndexQuadRank>& rb, auto emit) {
@@ -489,18 +503,18 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
                         emit(Index3Rank { rb[0].index, Index(0), Index(0), rb[0].rank[0] });
                 })
             .PrefixSum([](const Index3Rank& a, const Index3Rank& b) {
-                return Index3Rank { 
-                    b.index,
-                    std::max<Index>(a.rank1, b.rank1),
-                    std::max<Index>(a.rank2, b.rank2),
-                    b.rank3
-                    };
-                })
+                           return Index3Rank {
+                               b.index,
+                               std::max<Index>(a.rank1, b.rank1),
+                               std::max<Index>(a.rank2, b.rank2),
+                               b.rank3
+                           };
+                       })
             .Map([](const Index3Rank& ir) {
-                    return IndexRank { ir.index, ir.rank3 + (ir.rank2 - ir.rank1) };
-                });
+                     return IndexRank { ir.index, ir.rank3 + (ir.rank2 - ir.rank1) };
+                 });
 
-        //new_ranks.Keep().Print("new_ranks");
+        // new_ranks.Keep().Print("new_ranks");
 
         names_unique =
             new_ranks
@@ -534,14 +548,14 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
             names_unique
             .Union(partial_discarded)
             .Sort([iteration](const IndexRankStatus& a, const IndexRankStatus& b) {
-                    Index mod_mask = (Index(1) << (iteration << 1)) - 1;
-                    Index div_mask = ~mod_mask;
+                      Index mod_mask = (Index(1) << (iteration << 1)) - 1;
+                      Index div_mask = ~mod_mask;
 
-                    if ((a.index & mod_mask) == (b.index & mod_mask))
-                        return (a.index & div_mask) < (b.index & div_mask);
-                    else
-                        return (a.index & mod_mask) < (b.index & mod_mask);
-                });
+                      if ((a.index & mod_mask) == (b.index & mod_mask))
+                          return (a.index & div_mask) < (b.index & div_mask);
+                      else
+                          return (a.index & mod_mask) < (b.index & mod_mask);
+                  });
 
         if (debug_print)
             names_unique_sorted.Keep().Print("names_unique_sorted");
@@ -563,34 +577,34 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size) {
             4,
             [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 emit(QuadCharIndex {
-                        {rb[0], rb[1], rb[2], rb[3]}, Index(index)
-                    });
+                         { rb[0], rb[1], rb[2], rb[3] }, Index(index)
+                     });
             },
             [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 if (index == input_size - 3) {
                     emit(QuadCharIndex {
-                            { rb[0], rb[1], rb[2],
-                              std::numeric_limits<Char>::lowest() }, 
-                              Index(index)
-                        });
+                             { rb[0], rb[1], rb[2],
+                               std::numeric_limits<Char>::lowest() },
+                             Index(index)
+                         });
                     emit(QuadCharIndex {
-                            {   rb[1], rb[2],
-                                std::numeric_limits<Char>::lowest(),
-                                std::numeric_limits<Char>::lowest() }, 
-                                Index(index + 1)
-                        });
+                             { rb[1], rb[2],
+                               std::numeric_limits<Char>::lowest(),
+                               std::numeric_limits<Char>::lowest() },
+                             Index(index + 1)
+                         });
                     emit(QuadCharIndex {
-                            {   rb[2],
-                                std::numeric_limits<Char>::lowest(),
-                                std::numeric_limits<Char>::lowest(),
-                                std::numeric_limits<Char>::lowest() }, 
-                                Index(index + 2)
-                        });
+                             { rb[2],
+                               std::numeric_limits<Char>::lowest(),
+                               std::numeric_limits<Char>::lowest(),
+                               std::numeric_limits<Char>::lowest() },
+                             Index(index + 2)
+                         });
                 }
             })
         .Sort();
 
-    // chars_sorted.Keep().Print("Test");    
+    // chars_sorted.Keep().Print("Test");
 
     auto names =
         chars_sorted
@@ -602,27 +616,28 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size) {
                 if (rb[0] == rb[1])
                     emit(IndexRank { rb[1].index, Index(0) });
                 else
-                    emit(IndexRank { rb[1].index, Index(index + 2)} );
+                    emit(IndexRank { rb[1].index, Index(index + 2) });
             })
         .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                return IndexRank {
-                    b.index,
-                    (a.rank > b.rank ? a.rank : b.rank) };
-            });
+                       return IndexRank {
+                           b.index,
+                           (a.rank > b.rank ? a.rank : b.rank)
+                       };
+                   });
 
     size_t iteration = 1;
     while (true) {
         auto names_sorted =
             names
             .Sort([iteration](const IndexRank& a, const IndexRank& b) {
-                    Index mod_mask = (Index(1) << (iteration << 1)) - 1;
-                    Index div_mask = ~mod_mask;
+                      Index mod_mask = (Index(1) << (iteration << 1)) - 1;
+                      Index div_mask = ~mod_mask;
 
-                    if ((a.index & mod_mask) == (b.index & mod_mask))
-                        return (a.index & div_mask) < (b.index & div_mask);
-                    else
-                        return (a.index & mod_mask) < (b.index & mod_mask);
-                });
+                      if ((a.index & mod_mask) == (b.index & mod_mask))
+                          return (a.index & div_mask) < (b.index & div_mask);
+                      else
+                          return (a.index & mod_mask) < (b.index & mod_mask);
+                  });
 
         size_t next_index = size_t(1) << (iteration << 1);
         ++iteration;
@@ -635,17 +650,21 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size) {
                     Index rank1 = (rb[0].index + Index(next_index) == rb[1].index) ? rb[1].rank : Index(0);
                     Index rank2 = (rb[0].index + 2 * Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
                     Index rank3 = (rb[0].index + 3 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
-                    emit(IndexQuadRank { rb[0].index, { rb[0].rank, rank1, rank2, rank3 } });
+                    emit(IndexQuadRank { rb[0].index, { rb[0].rank, rank1, rank2, rank3 }
+                         });
                 },
                 [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                     if (index == input_size - 3) {
                         Index rank1 = (rb[0].index + Index(next_index) == rb[1].index) ? rb[1].rank : Index(0);
                         Index rank2 = (rb[0].index + 2 * Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
-                        emit(IndexQuadRank { rb[0].index, { rb[0].rank, rank1, rank2, Index(0) } });
+                        emit(IndexQuadRank { rb[0].index, { rb[0].rank, rank1, rank2, Index(0) }
+                             });
 
                         rank1 = (rb[1].index + Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
-                        emit(IndexQuadRank { rb[1].index, { rb[1].rank, rank1, Index(0), Index(0) } });
-                        emit(IndexQuadRank { rb[2].index, { rb[2].rank, Index(0), Index(0), Index(0) } });
+                        emit(IndexQuadRank { rb[1].index, { rb[1].rank, rank1, Index(0), Index(0) }
+                             });
+                        emit(IndexQuadRank { rb[2].index, { rb[2].rank, Index(0), Index(0), Index(0) }
+                             });
                     }
                 })
             .Sort();
@@ -663,14 +682,14 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size) {
                         emit(IndexRank { rb[1].index, Index(1) });
                 })
             .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                return IndexRank { b.index, a.rank + b.rank };
-            });
+                           return IndexRank { b.index, a.rank + b.rank };
+                       });
 
         auto max_rank =
             names.Keep()
             .Map([](const IndexRank& ir) {
-                    return ir.rank;
-                })
+                     return ir.rank;
+                 })
             .Max();
 
         if (input_dia.context().my_rank() == 0) {

@@ -50,7 +50,7 @@ struct Chars {
 
     bool operator == (const Chars& b) const {
         return std::tie(ch[0], ch[1], ch[2])
-            == std::tie(b.ch[0], b.ch[1], b.ch[2]);
+               == std::tie(b.ch[0], b.ch[1], b.ch[2]);
     }
 
     bool operator < (const Chars& b) const {
