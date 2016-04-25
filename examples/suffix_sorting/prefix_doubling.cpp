@@ -194,13 +194,13 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
         input_dia
         .template FlatWindow<CharCharIndex>(
             2,
-            [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+            [](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 emit(CharCharIndex {
                          { rb[0], rb[1] }, Index(index)
                      });
             },
             [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                if (index == input_size - 1) {
+                if (index + 1 == input_size) {
                     // emit CharCharIndex for last suffix
                     emit(CharCharIndex {
                              { rb[0], std::numeric_limits<Char>::lowest() },
@@ -214,19 +214,15 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
         chars_sorted
         .template FlatWindow<IndexRank>(
             2,
-            [&](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
+            [](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
                 if (index == 0)
                     emit(IndexRank { rb[0].index, Index(1) });
-                if (rb[0] == rb[1])
-                    emit(IndexRank { rb[1].index, Index(0) });
-                else
-                    emit(IndexRank { rb[1].index, Index(index + 2) });
+                emit(IndexRank {
+                         rb[1].index, Index(rb[0] == rb[1] ? 0 : index + 2)
+                     });
             })
         .PrefixSum([](const IndexRank a, const IndexRank b) {
-                       return IndexRank {
-                           b.index,
-                           (a.rank > b.rank ? a.rank : b.rank)
-                       };
+                       return IndexRank { b.index, std::max(a.rank, b.rank) };
                    });
 
     auto names_unique =
@@ -238,10 +234,12 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                     Status status = rb[0].rank != rb[1].rank ? Status::UNIQUE : Status::UNDECIDED;
                     emit(IndexRankStatus { rb[0].index, rb[0].rank, status });
                 }
-                if (rb[0].rank != rb[1].rank && rb[1].rank != rb[2].rank)
-                    emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNIQUE });
-                else
-                    emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNDECIDED });
+                {
+                    Status status = rb[0].rank != rb[1].rank && rb[1].rank != rb[2].rank
+                                    ? Status::UNIQUE : Status::UNDECIDED;
+
+                    emit(IndexRankStatus { rb[1].index, rb[1].rank, status });
+                }
                 if (index == input_size - 3) {
                     Status status = rb[1].rank != rb[2].rank ? Status::UNIQUE : Status::UNDECIDED;
                     emit(IndexRankStatus { rb[2].index, rb[2].rank, status });
@@ -284,7 +282,8 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                         if (rb[0].status == Status::UNIQUE)
                             emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::FULLY_DISCARDED });
                         if (rb[1].status == Status::UNIQUE)
-                            emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED });     // Since there is just one preceding entry it's either undiscarded or unique
+                            // Since there is just one preceding entry it's either undiscarded or unique
+                            emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::FULLY_DISCARDED });
                     }
                     if (rb[2].status == Status::UNIQUE) {
                         if (rb[0].status == Status::UNIQUE || rb[1].status == Status::UNIQUE)
@@ -356,9 +355,8 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
         }
 
         if (duplicates == 0) {
-            auto res = Union(fully_discarded);
             auto sa =
-                res
+                Union(fully_discarded)
                 .Sort([](const IndexRank& a, const IndexRank& b) {
                           return a.rank < b.rank;
                       })
@@ -372,7 +370,7 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
             undiscarded
             .template FlatWindow<Index3Rank>(
                 2,
-                [=](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
+                [](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (index == 0) {
                         emit(Index3Rank { rb[0].index, Index(0), Index(0), rb[0].rank1 });
                     }
@@ -413,7 +411,7 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                         emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNIQUE });
                     else
                         emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNDECIDED });
-                    if (index == duplicates - 3) {
+                    if (index + 3 == duplicates) {
                         Status status = rb[1].rank != rb[2].rank ? Status::UNIQUE : Status::UNDECIDED;
                         emit(IndexRankStatus { rb[2].index, rb[2].rank, status });
                     }
@@ -453,14 +451,14 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
         input_dia
         .template FlatWindow<CharCharIndex>(
             2,
-            [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+            [](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 emit(CharCharIndex {
                          { rb[0], rb[1] }, Index(index)
                      });
             },
             [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                if (index == input_size - 1) {
-                    // emit CharCharIndex for last suffix
+                if (index + 1 == input_size) {
+                    // emit CharCharIndex for last suffix position
                     emit(CharCharIndex {
                              { rb[0], std::numeric_limits<Char>::lowest() },
                              Index(index)
@@ -473,20 +471,17 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
         chars_sorted
         .template FlatWindow<IndexRank>(
             2,
-            [&](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
+            [](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
                 if (index == 0)
                     emit(IndexRank { rb[0].index, Index(1) });
-                if (rb[0] == rb[1])
-                    emit(IndexRank { rb[1].index, Index(0) });
-                else
-                    emit(IndexRank { rb[1].index, Index(index + 2) });
+                emit(IndexRank {
+                         rb[1].index, Index(rb[0] == rb[1] ? 0 : index + 2)
+                     });
             })
-        .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                       return IndexRank {
-                           b.index,
-                           (a.rank > b.rank ? a.rank : b.rank)
-                       };
-                   });
+        .PrefixSum(
+            [](const IndexRank& a, const IndexRank& b) {
+                return IndexRank { b.index, std::max(a.rank, b.rank) };
+            });
 
     if (debug_print)
         names.Keep().Print("names before loop");
@@ -514,16 +509,15 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
             names_sorted
             .template FlatWindow<IndexRankRank>(
                 2,
-                [=](size_t /*index*/, const RingBuffer<IndexRank>& rb, auto emit) {
-                    if (rb[0].index + Index(next_index) == rb[1].index) {
-                        emit(IndexRankRank { rb[0].index, rb[0].rank, rb[1].rank });
-                    }
-                    else {
-                        emit(IndexRankRank { rb[0].index, rb[0].rank, Index(0) });
-                    }
+                [=](size_t /* index */, const RingBuffer<IndexRank>& rb, auto emit) {
+                    emit(IndexRankRank {
+                             rb[0].index, rb[0].rank,
+                             (rb[0].index + Index(next_index) == rb[1].index)
+                             ? rb[1].rank : Index(0)
+                         });
                 },
                 [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
-                    if (index == input_size - 1)
+                    if (index + 1 == input_size)
                         emit(IndexRankRank { rb[0].index, rb[0].rank, Index(0) });
                 })
             .Sort();
@@ -535,10 +529,11 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                 [](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (index == 0) emit(IndexRank { rb[0].index, Index(1) });
 
-                    if (rb[0] == rb[1] && rb[0].rank2 != Index(0))
-                        emit(IndexRank { rb[1].index, Index(0) });
-                    else
-                        emit(IndexRank { rb[1].index, Index(1) });
+                    emit(IndexRank {
+                             rb[1].index,
+                             (rb[0] == rb[1] && rb[0].rank2 != Index(0))
+                             ? Index(0) : Index(1)
+                         });
                 })
             .PrefixSum([](const IndexRank& a, const IndexRank& b) {
                            return IndexRank { b.index, a.rank + b.rank };
@@ -549,9 +544,7 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
 
         auto max_rank =
             names.Keep()
-            .Map([](const IndexRank& ir) {
-                     return ir.rank;
-                 })
+            .Map([](const IndexRank& ir) { return ir.rank; })
             .Max();
 
         if (input_dia.context().my_rank() == 0) {
@@ -616,7 +609,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
             2,
             [](size_t index, const RingBuffer<IndexKMer>& rb, auto emit) {
                 if (index == 0) emit(Index(0));
-                emit(rb[0] == rb[1] ? Index(0) : Index(index + 1));
+                emit(Index(rb[0] == rb[1] ? 0 : index + 1));
             })
         .PrefixSum(common::maximum<Index>());
 
@@ -702,7 +695,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
                 2,
                 [](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (index == 0) emit(Index(0));
-                    emit(rb[0] == rb[1] ? Index(0) : Index(index + 1));
+                    emit(Index(rb[0] == rb[1] ? 0 : index + 1));
                 })
             .PrefixSum(common::maximum<Index>());
 
