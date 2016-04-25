@@ -50,12 +50,15 @@ struct Chars {
     AlphabetType ch[7];
 
     bool operator == (const Chars& b) const {
-        return std::equal(ch + 0, ch + 7, b.ch + 0);
+        return std::tie(ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6])
+            == std::tie(b.ch[0], b.ch[1], b.ch[2], b.ch[3],
+                          b.ch[4], b.ch[5], b.ch[6]);
     }
 
     bool operator < (const Chars& b) const {
-        return std::lexicographical_compare(
-            ch + 0, ch + 7, b.ch + 0, b.ch + 7);
+        return std::tie(ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6])
+               < std::tie(b.ch[0], b.ch[1], b.ch[2], b.ch[3],
+                          b.ch[4], b.ch[5], b.ch[6]);
     }
 
     friend std::ostream& operator << (std::ostream& os, const Chars& chars) {

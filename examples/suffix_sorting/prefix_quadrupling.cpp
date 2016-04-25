@@ -61,7 +61,8 @@ struct IndexQuadRank {
     Index rank[4];
 
     bool operator == (const IndexQuadRank& b) const {
-        return std::equal(rank, rank + 4, b.rank);
+        return std::tie(rank[0], rank[1], rank[2], rank[3])
+            == std::tie(b.rank[0], b.rank[1], b.rank[2], b.rank[3]);
     }
 
     bool operator < (const IndexQuadRank& b) const {
@@ -88,12 +89,13 @@ struct QuadCharIndex {
     Index index;
 
     bool operator == (const QuadCharIndex& b) const {
-        return std::equal(ch, ch + 4, b.ch);
+        return std::tie(ch[0], ch[1], ch[2], ch[3])
+            == std::tie(b.ch[0], b.ch[1], b.ch[2], b.ch[3]);
     }
 
     bool operator < (const QuadCharIndex& b) const {
-        return std::lexicographical_compare(
-            ch, ch + 4, b.ch, b.ch + 4);
+        return std::tie(ch[0], ch[1], ch[2], ch[3])
+            < std::tie(b.ch[0], b.ch[1], b.ch[2], b.ch[3]);
     }
 
     friend std::ostream& operator << (std::ostream& os, const QuadCharIndex& chars) {

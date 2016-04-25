@@ -49,12 +49,13 @@ struct Chars {
     AlphabetType ch[3];
 
     bool operator == (const Chars& b) const {
-        return std::equal(ch + 0, ch + 3, b.ch + 0);
+        return std::tie(ch[0], ch[1], ch[2])
+            == std::tie(b.ch[0], b.ch[1], b.ch[2]);
     }
 
     bool operator < (const Chars& b) const {
-        return std::lexicographical_compare(
-            ch + 0, ch + 3, b.ch + 0, b.ch + 3);
+        return std::tie(ch[0], ch[1], ch[2])
+               < std::tie(b.ch[0], b.ch[1], b.ch[2]);
     }
 
     friend std::ostream& operator << (std::ostream& os, const Chars& chars) {

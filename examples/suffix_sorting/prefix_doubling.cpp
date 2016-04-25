@@ -119,12 +119,11 @@ struct CharCharIndex {
     Index index;
 
     bool operator == (const CharCharIndex& b) const {
-        return std::equal(ch + 0, ch + 2, b.ch + 0);
+        return std::tie(ch[0], ch[1]) == std::tie(b.ch[0], b.ch[1]);
     }
 
     bool operator < (const CharCharIndex& b) const {
-        return std::lexicographical_compare(
-            ch + 0, ch + 2, b.ch + 0, b.ch + 2);
+        return std::tie(ch[0], ch[1]) < std::tie(b.ch[0], b.ch[1]);
     }
 
     friend std::ostream& operator << (std::ostream& os, const CharCharIndex& cci) {
