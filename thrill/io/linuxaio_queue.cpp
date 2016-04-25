@@ -222,10 +222,19 @@ void LinuxaioQueue::WaitRequests() {
             break;
 
         // wait for at least one of them to finish
-        long num_events = syscall(SYS_io_getevents, context_, 1, max_events_, events, nullptr);
-        if (num_events < 0) {
-            THRILL_THROW_ERRNO(IoError, "linuxaio_queue::wait_requests"
-                               " io_getevents() nr_events=" << max_events_);
+        long num_events;
+        for ( ; ; ) {
+            num_events = syscall(SYS_io_getevents, context_, 1, max_events_, events, nullptr);
+            if (num_events < 0) {
+                if (errno == EINTR) {
+                    // premature return, e.g. due to signal. Just try again
+                    continue;
+                }
+
+                THRILL_THROW_ERRNO(IoError, "linuxaio_queue::wait_requests"
+                                   " io_getevents() nr_events=" << max_events_);
+            }
+            break;
         }
 
         // compensate for the one eaten prematurely above
