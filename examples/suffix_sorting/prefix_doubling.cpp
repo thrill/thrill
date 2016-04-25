@@ -477,7 +477,30 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                 emit(IndexRank {
                          rb[1].index, Index(rb[0] == rb[1] ? 0 : index + 2)
                      });
+            });
+
+    auto number_duplicates =
+        names.Keep()
+        .Filter([](const IndexRank& ir) {
+                return ir.rank == Index(0);
             })
+        .Size();
+
+    if (number_duplicates == 0) {
+        if (input_dia.context().my_rank() == 0)
+            sLOG1 << "Finished before doubling in loop";
+
+        auto sa =
+            names
+            .Map([](const IndexRank& ir) {
+                     return ir.index;
+                 });
+
+        return sa.Collapse();
+    }
+
+    names =
+        names
         .PrefixSum(
             [](const IndexRank& a, const IndexRank& b) {
                 return IndexRank { b.index, std::max(a.rank, b.rank) };
@@ -534,26 +557,21 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
                              (rb[0] == rb[1] && rb[0].rank2 != Index(0))
                              ? Index(0) : Index(1)
                          });
-                })
-            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                           return IndexRank { b.index, a.rank + b.rank };
-                       });
+                });
 
-        if (debug_print)
-            names.Keep().Print("names");
-
-        auto max_rank =
+        number_duplicates =
             names.Keep()
-            .Map([](const IndexRank& ir) { return ir.rank; })
-            .Max();
+            .Filter([](const IndexRank& ir) {
+                    return ir.rank == Index(0);
+                })
+            .Size();
 
         if (input_dia.context().my_rank() == 0) {
-            sLOG1 << "iteration" << iteration
-                  << "max_rank" << max_rank
-                  << "duplicates" << input_size - max_rank;
+            sLOG1 << "iteration" << iteration - 1
+                  << "duplicates" << number_duplicates;
         }
 
-        if (max_rank == input_size) {
+        if (number_duplicates == 0) {
             auto sa =
                 names
                 .Map([](const IndexRank& ir) {
@@ -562,6 +580,15 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
 
             return sa.Collapse();
         }
+
+        names =
+            names
+            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
+                           return IndexRank { b.index, a.rank + b.rank };
+                       });
+
+        if (debug_print)
+            names.Keep().Print("names");
     }
 }
 
