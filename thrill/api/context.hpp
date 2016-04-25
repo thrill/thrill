@@ -27,6 +27,7 @@
 #include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/manager.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <functional>
 #include <string>

@@ -19,8 +19,9 @@
 #ifndef THRILL_COMMON_QSORT_HEADER
 #define THRILL_COMMON_QSORT_HEADER
 
-#include <algorithm>
 #include <thrill/common/logger.hpp>
+
+#include <algorithm>
 
 namespace thrill {
 namespace common {

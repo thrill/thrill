@@ -21,6 +21,7 @@ thrill_build_prog(wavelet_tree)
 thrill_build_prog(wavelet_tree2)
 thrill_build_prog(wavelet_tree3)
 thrill_build_prog(rl_bwt)
+thrill_build_prog(just_sort)
 
 thrill_test_multiple(prefix_doubling1_aaa
   suffix_sorting -c -s 10000 -a fl unary)
