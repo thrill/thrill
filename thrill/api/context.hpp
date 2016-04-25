@@ -344,6 +344,34 @@ public:
             global_size, num_workers(), my_rank());
     }
 
+    //! Perform collectives and print min, max, mean, stdev, and all local
+    //! values.
+    template <typename Type>
+    void PrintCollectiveMeanStdev(const char* text, const Type& local) {
+        std::vector<Type> svec = { local };
+        svec = net.Reduce(svec, 0, common::VectorConcat<Type>());
+        if (my_rank() == 0) {
+            double sum = std::accumulate(svec.begin(), svec.end(), 0.0);
+            double mean = sum / svec.size();
+
+            double sq_sum = std::inner_product(
+                svec.begin(), svec.end(), svec.begin(), 0.0);
+            double stdev = std::sqrt(sq_sum / svec.size() - mean * mean);
+
+            double min = *std::min_element(svec.begin(), svec.end());
+            double max = *std::max_element(svec.begin(), svec.end());
+
+            LOG1 << text << " mean " << mean
+                 << " max " << max << " stdev " << stdev
+                 << " = " << (stdev / mean * 100.0) << "%"
+                 << " max-min " << max - min
+                 << " = " << ((max - min) / min * 100.0) << "%"
+                 << " max-mean " << max - mean
+                 << " = " << ((max - mean) / mean * 100.0) << "%"
+                 << " svec " << common::VecToStr(svec);
+        }
+    }
+
     //! return value of consume flag.
     bool consume() const { return consume_; }
 
