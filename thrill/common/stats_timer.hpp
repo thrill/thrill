@@ -253,6 +253,10 @@ public:
     friend std::ostream& operator << (std::ostream& os, const StatsTimerBase&) {
         return os << "<invalid>";
     }
+
+    friend JsonLine& Put(JsonLine& line, const StatsTimerBase& t) {
+        return Put(line, t.SecondsDouble());
+    }
 };
 
 template <bool Active>

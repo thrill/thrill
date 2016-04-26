@@ -333,6 +333,9 @@ private:
     //! time spent in Execute
     Timer timer_execute_;
 
+    //! time spent in sort()
+    Timer timer_sort_;
+
     //! \}
 
     void FindAndSendSplitters(
@@ -547,18 +550,16 @@ private:
         // advice block pool to write out data if necessary
         context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
 
-        common::StatsTimerStart sort_time;
+        timer_sort_.Start();
         std::sort(vec.begin(), vec.end(), compare_function_);
-        sort_time.Stop();
-
-        if (stats_enabled) {
-            context_.PrintCollectiveMeanStdev(
-                "Sort() sort_time", sort_time.SecondsDouble());
-        }
+        // common::qsort_two_pivots_yaroslavskiy(vec.begin(), vec.end(), compare_function_);
+        // common::qsort_three_pivots(vec.begin(), vec.end(), compare_function_);
+        timer_sort_.Stop();
 
         LOG << "SortAndWriteToFile() sort took " << time;
 
-        common::StatsTimerStart write_time;
+        Timer write_time;
+        write_time.Start();
 
         files.emplace_back(context_.GetFile(this));
         auto writer = files.back().GetWriter();
@@ -580,7 +581,7 @@ private:
             << "event" << "write_file"
             << "file_num" << (files.size() - 1)
             << "items" << vec_size
-            << "sort_time" << sort_time
+            << "timer_sort_" << timer_sort_
             << "write_time" << write_time;
     }
 
@@ -594,9 +595,11 @@ private:
 
         size_t num_total_workers = context_.num_workers();
 
-        LOG << "Local sample size on worker " << context_.my_rank() <<
-            ": " << samples_.size();
-        LOG << "Number of local items: " << local_items_;
+        LOG << "Local sample size on worker " << context_.my_rank()
+            << ": " << samples_.size();
+        sLOG1 << "local_items_" << local_items_
+              << "prefix_items" << prefix_items
+              << "total_items" << total_items;
 
         // stream to send samples to process 0 and receive them back
         data::MixStreamPtr sample_stream = context_.GetNewMixStream(this);
@@ -703,20 +706,25 @@ private:
 
         // M/2 such that the other half is used to prepare the next bulk
         size_t capacity = DIABase::mem_limit_ / sizeof(ValueType) / 2;
-        std::vector<ValueType> temp_data;
-        temp_data.reserve(capacity);
+        std::vector<ValueType> vec;
+        vec.reserve(capacity);
 
         while (reader.HasNext()) {
-            if (!mem::memory_exceeded && temp_data.size() < capacity) {
-                temp_data.push_back(reader.template Next<ValueType>());
+            if (!mem::memory_exceeded && vec.size() < capacity) {
+                vec.push_back(reader.template Next<ValueType>());
             }
             else {
-                SortAndWriteToFile(temp_data, files_);
+                SortAndWriteToFile(vec, files_);
             }
         }
 
-        if (temp_data.size())
-            SortAndWriteToFile(temp_data, files_);
+        if (vec.size())
+            SortAndWriteToFile(vec, files_);
+
+        if (stats_enabled) {
+            context_.PrintCollectiveMeanStdev(
+                "Sort() timer_sort_", timer_sort_.SecondsDouble());
+        }
     }
 };
 
@@ -730,16 +738,13 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const 
     static_assert(
         std::is_convertible<
             ValueType,
-            typename FunctionTraits<CompareFunction>::template arg<0>
-            >::value ||
-        std::is_same<CompareFunction, std::less<ValueType> >::value,
+            typename FunctionTraits<CompareFunction>::template arg<0> >::value,
         "CompareFunction has the wrong input type");
 
     static_assert(
         std::is_convertible<
             ValueType,
-            typename FunctionTraits<CompareFunction>::template arg<1> >::value ||
-        std::is_same<CompareFunction, std::less<ValueType> >::value,
+            typename FunctionTraits<CompareFunction>::template arg<1> >::value,
         "CompareFunction has the wrong input type");
 
     static_assert(
