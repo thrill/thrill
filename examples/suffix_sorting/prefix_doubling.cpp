@@ -599,42 +599,41 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
     using Char = typename InputDIA::ValueType;
     using IndexRank = suffix_sorting::IndexRank<Index>;
     using IndexRankRank = suffix_sorting::IndexRankRank<Index>;
-    using IndexKMer = suffix_sorting::IndexKMer<Index, Index>;
+    using CharCharIndex = suffix_sorting::CharCharIndex<Char, Index>;
 
     enum {
         input_bit_size = sizeof(Char) << 3,
         k_fitting = sizeof(Index) / sizeof(Char)
     };
 
-    auto one_mers_sorted =
+    auto chars_sorted =
         input_dia
-        .template FlatWindow<IndexKMer>(
-            k_fitting,
-            [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                size_t result = rb[0];
-                for (size_t i = 1; i < k_fitting; ++i)
-                    result = (result << input_bit_size) | rb[i];
-                emit(IndexKMer { Index(index), Index(result) });
-                if (index == input_size - k_fitting) {
-                    for (size_t i = 1; i < k_fitting; ++i) {
-                        result = rb[i];
-                        for (size_t j = i + 1; j < k_fitting; ++j)
-                            result = (result << input_bit_size) | rb[j];
-                        result <<= i * input_bit_size;
-                        emit(IndexKMer { Index(index + i), Index(result) });
-                    }
+        .template FlatWindow<CharCharIndex>(
+            2,
+            [](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                emit(CharCharIndex {
+                         { rb[0], rb[1] }, Index(index)
+                     });
+            },
+            [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                if (index + 1 == input_size) {
+                    // emit CharCharIndex for last suffix position
+                    emit(CharCharIndex {
+                             { rb[0], std::numeric_limits<Char>::lowest() },
+                             Index(index)
+                         });
                 }
             })
         .Sort();
 
     if (debug_print)
-        one_mers_sorted.Keep().Print("one_mers_sorted");
+        chars_sorted.Keep().Print("chars_sorted");
 
     auto rebucket =
-        one_mers_sorted.Keep()
+        chars_sorted.Keep()
         .template FlatWindow<Index>(
             2,
-            [](size_t index, const RingBuffer<IndexKMer>& rb, auto emit) {
+            [](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
                 if (index == 0) emit(Index(0));
                 emit(Index(rb[0] == rb[1] ? 0 : index + 1));
             })
@@ -644,8 +643,8 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
         rebucket.Keep().Print("rebucket");
 
     DIA<Index> sa =
-        one_mers_sorted
-        .Map([](const IndexKMer& iom) {
+        chars_sorted
+        .Map([](const CharCharIndex& iom) {
                  return iom.index;
              })
         .Collapse();
