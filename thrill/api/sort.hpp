@@ -597,9 +597,9 @@ private:
 
         LOG << "Local sample size on worker " << context_.my_rank()
             << ": " << samples_.size();
-        sLOG1 << "local_items_" << local_items_
-              << "prefix_items" << prefix_items
-              << "total_items" << total_items;
+        sLOG << "local_items_" << local_items_
+             << "prefix_items" << prefix_items
+             << "total_items" << total_items;
 
         // stream to send samples to process 0 and receive them back
         data::MixStreamPtr sample_stream = context_.GetNewMixStream(this);

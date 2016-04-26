@@ -96,13 +96,14 @@ public:
             }
 
             // share prng in Generate (just random numbers anyway)
-            std::default_random_engine prng(std::random_device { } ());
+            std::default_random_engine prng(
+                std::random_device { } () + ctx.my_rank());
 
             DIA<uint8_t> input_dia =
                 Generate(
                     ctx,
-                    [&prng](size_t /* i */) {
-                        return static_cast<uint8_t>(prng());
+                    [&prng](size_t index) {
+                        return static_cast<uint8_t>(prng() + index);
                     },
                     sizelimit_)
                 // the random input _must_ be cached, otherwise it will be
@@ -117,13 +118,14 @@ public:
             }
 
             // share prng in Generate (just random digits anyway)
-            std::default_random_engine prng(std::random_device { } ());
+            std::default_random_engine prng(
+                std::random_device { } () + ctx.my_rank());
 
             DIA<uint8_t> input_dia =
                 Generate(
                     ctx,
-                    [&prng](size_t /* i */) {
-                        return static_cast<uint8_t>('0' + prng() % 10);
+                    [&prng](size_t index) {
+                        return static_cast<uint8_t>('0' + (prng() + index) % 10);
                     },
                     sizelimit_)
                 // the random input _must_ be cached, otherwise it will be
@@ -138,13 +140,14 @@ public:
             }
 
             // share prng in Generate (just random digits anyway)
-            std::default_random_engine prng(std::random_device { } ());
+            std::default_random_engine prng(
+                std::random_device { } () + ctx.my_rank());
 
             DIA<uint8_t> input_dia =
                 Generate(
                     ctx,
-                    [&prng](size_t /* i */) {
-                        return static_cast<uint8_t>('0' + prng() % 2);
+                    [&prng](size_t index) {
+                        return static_cast<uint8_t>('0' + (prng() + index) % 2);
                     },
                     sizelimit_)
                 // the random input _must_ be cached, otherwise it will be

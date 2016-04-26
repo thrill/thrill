@@ -180,7 +180,8 @@ struct IndexRankRankStatus {
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t input_size) {
-    LOG1 << "Running PrefixDoublingDiscardingDementiev";
+    if (input_dia.ctx().my_rank() == 0)
+        LOG1 << "Running PrefixDoublingDiscardingDementiev";
 
     using Char = typename InputDIA::ValueType;
     using IndexRank = suffix_sorting::IndexRank<Index>;
@@ -440,7 +441,8 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size) {
-    LOG1 << "Running PrefixDoublingDementiev";
+    if (input_dia.ctx().my_rank() == 0)
+        LOG1 << "Running PrefixDoublingDementiev";
 
     using Char = typename InputDIA::ValueType;
     using IndexRank = suffix_sorting::IndexRank<Index>;
@@ -594,7 +596,8 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size)
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
-    LOG1 << "Running PrefixDoubling";
+    if (input_dia.ctx().my_rank() == 0)
+        LOG1 << "Running PrefixDoubling";
 
     using Char = typename InputDIA::ValueType;
     using IndexRank = suffix_sorting::IndexRank<Index>;
