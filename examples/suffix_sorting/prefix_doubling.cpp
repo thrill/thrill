@@ -601,11 +601,6 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
     using IndexRankRank = suffix_sorting::IndexRankRank<Index>;
     using CharCharIndex = suffix_sorting::CharCharIndex<Char, Index>;
 
-    enum {
-        input_bit_size = sizeof(Char) << 3,
-        k_fitting = sizeof(Index) / sizeof(Char)
-    };
-
     auto chars_sorted =
         input_dia
         .template FlatWindow<CharCharIndex>(
@@ -631,37 +626,50 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
 
     auto rebucket =
         chars_sorted.Keep()
-        .template FlatWindow<Index>(
+        .template FlatWindow<IndexRank>(
             2,
             [](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
-                if (index == 0) emit(Index(0));
-                emit(Index(rb[0] == rb[1] ? 0 : index + 1));
+                if (index == 0) emit(IndexRank { rb[0].index, Index(0) });
+                emit(IndexRank { rb[1].index, 
+                    Index(rb[0] == rb[1] ? 0 : index + 1) });
+            });
+
+    auto number_duplicates =
+        rebucket.Keep()
+        .Filter([](const IndexRank& ir) {
+                return ir.rank == Index(0);
             })
-        .PrefixSum(common::maximum<Index>());
+        .Size();
+
+    // The first rank is always 0 and all other duplicates have "rank" 0
+    // before we compute the correct new rank.
+    if (number_duplicates == 1) {
+        if (input_dia.context().my_rank() == 0)
+            sLOG1 << "Finished before doubling in loop.";
+
+        auto sa =
+            rebucket
+            .Map([](const IndexRank& ir) {
+                    return ir.index;
+                });
+        return sa.Collapse();
+    }
+
+    rebucket =
+        rebucket
+        .PrefixSum([](const IndexRank& a, const IndexRank& b) {
+                return IndexRank { b.index, std::max<Index>(a.rank, b.rank) };
+            });
 
     if (debug_print)
         rebucket.Keep().Print("rebucket");
 
-    DIA<Index> sa =
-        chars_sorted
-        .Map([](const CharCharIndex& iom) {
-                 return iom.index;
-             })
-        .Collapse();
-
-    if (debug_print)
-        sa.Keep().Print("sa");
-
     size_t shift_exp = 0;
     while (true) {
-        DIA<IndexRank> isa =
-            sa
-            .Zip(rebucket,
-                 [](Index s, Index r) {
-                     return IndexRank { r, s };
-                 })
+        auto isa =
+            rebucket
             .Sort([](const IndexRank& a, const IndexRank& b) {
-                      return a.rank < b.rank;
+                      return a.index < b.index;
                   });
 
         if (debug_print)
@@ -669,61 +677,60 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size) {
 
         size_t shift_by = (1 << shift_exp++) + 1;
 
-        if (input_dia.context().my_rank() == 0) {
-            LOG1 << "iteration " << shift_exp << ": shift ISA by " << shift_by - 1
-                 << " positions. hence the window has size " << shift_by;
-        }
-
-        DIA<IndexRankRank> triple_sorted =
+        auto triple_sorted =
             isa
             .template FlatWindow<IndexRankRank>(
                 shift_by,
-                [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
-                    emit(IndexRankRank { rb[0].rank, rb.front().index, rb.back().index });
-                    if (index == input_size - shift_by)
-                        for (size_t i = 1; i < input_size - index; ++i)
-                            emit(IndexRankRank { rb[i].rank, rb[i].index, 0 });
+                [](size_t /*index*/, const RingBuffer<IndexRank>& rb, auto emit) {
+                    emit(IndexRankRank { rb[0].index, rb.front().rank, rb.back().rank });
+                },
+                [](size_t /*index*/, const RingBuffer<IndexRank>& rb, auto emit) {
+                    emit(IndexRankRank { rb[0].index, rb[0].rank, Index(0) });
                 })
             .Sort();
 
         if (debug_print)
             triple_sorted.Keep().Print("triple_sorted");
 
-        // If we don't care about the number of singletons, it's sufficient to
-        // test two.
-        Index non_singletons =
-            triple_sorted.Keep()
-            .Window(
-                2,
-                [](size_t /* index */, const RingBuffer<IndexRankRank>& rb) -> Index {
-                    return rb[0] == rb[1] && rb[0].rank2 != Index(0);
-                })
-            .Sum();
-
-        sa =
-            triple_sorted
-            .Map([](const IndexRankRank& rri) { return rri.index; })
-            .Collapse();
-
-        if (debug_print)
-            sa.Keep().Print("sa");
-
-        sLOG0 << "non_singletons" << non_singletons;
-
-        // If each suffix is unique regarding their 2h-prefix, we have computed
-        // the suffix array and can return it.
-        if (non_singletons == Index(0))
-            return sa;
-
         rebucket =
             triple_sorted
-            .template FlatWindow<Index>(
+            .template FlatWindow<IndexRank>(
                 2,
                 [](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
-                    if (index == 0) emit(Index(0));
-                    emit(Index(rb[0] == rb[1] ? 0 : index + 1));
+                    if (index == 0) emit(IndexRank { rb[0].index, Index(0) });
+                    emit(IndexRank { rb[1].index,
+                        Index(rb[0] == rb[1] ? 0 : index + 1) });
+                });
+
+        if (debug_print)
+            rebucket.Keep().Print("rebucket");
+
+        number_duplicates =
+            rebucket.Keep()
+            .Filter([](const IndexRank& ir) {
+                    return ir.rank == Index(0);
                 })
-            .PrefixSum(common::maximum<Index>());
+            .Size();
+
+        if (input_dia.context().my_rank() == 0) {
+            sLOG1 << "iteration" << shift_exp
+                  << "duplicates" << number_duplicates - 1;
+        }
+
+        if (number_duplicates == 1) {
+            auto sa =
+                rebucket
+                .Map([](const IndexRank& ir) {
+                        return ir.index;
+                    });
+            return sa.Collapse();
+        }
+
+        rebucket =
+            rebucket
+            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
+                    return IndexRank { b.index, std::max<Index>(a.rank, b.rank) };
+                });
 
         if (debug_print)
             rebucket.Keep().Print("rebucket");
