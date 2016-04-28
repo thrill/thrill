@@ -68,6 +68,8 @@ class SortNode final : public DOpNode<ValueType>
 
     using SampleIndexPair = std::pair<ValueType, size_t>;
 
+    static const bool use_background_thread_ = false;
+
 public:
     /*!
      * Constructor for a sort node.
@@ -670,12 +672,15 @@ private:
 
         data::MixStreamPtr data_stream = context_.GetNewMixStream(this);
 
-        // launch receiver thread.
-        std::thread thread = common::CreateThread(
-            [this, &data_stream]() {
-                return ReceiveItems(data_stream);
-            });
-        common::SetCpuAffinity(thread, context_.local_worker_id());
+        std::thread thread;
+        if (use_background_thread_) {
+            // launch receiver thread.
+            thread = common::CreateThread(
+                [this, &data_stream]() {
+                    return ReceiveItems(data_stream);
+                });
+            common::SetCpuAffinity(thread, context_.local_worker_id());
+        }
 
         TransmitItems(
             splitter_tree.data(), // Tree. sizeof |splitter|
@@ -688,7 +693,10 @@ private:
 
         std::vector<ValueType>().swap(splitter_tree);
 
-        thread.join();
+        if (use_background_thread_)
+            thread.join();
+        else
+            ReceiveItems(data_stream);
 
         data_stream->Close();
 
