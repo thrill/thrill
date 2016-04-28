@@ -500,17 +500,9 @@ private:
                 //      << " rhs.second = " << i;
             }
 
-            if (b0 + 1 >= actual_k) {
-                b0 = k - 1;
-            }
-
             while (b1 && EqualSampleGreaterIndex(
                        sorted_splitters[b1 - 1], SampleIndexPair(el1, i + 1))) {
                 b1--;
-            }
-
-            if (b1 + 1 >= actual_k) {
-                b1 = k - 1;
             }
 
             assert(data_writers[b0].IsValid());
@@ -537,10 +529,6 @@ private:
             while (b0 && EqualSampleGreaterIndex(
                        sorted_splitters[b0 - 1], SampleIndexPair(el0, i))) {
                 b0--;
-            }
-
-            if (b0 + 1 >= actual_k) {
-                b0 = k - 1;
             }
 
             assert(data_writers[b0].IsValid());
