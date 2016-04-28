@@ -66,6 +66,8 @@ class SortNode final : public DOpNode<ValueType>
     //! RIAA class for running the timer
     using RunTimer = common::RunTimer<Timer>;
 
+    using SampleIndexPair = std::pair<ValueType, size_t>;
+
 public:
     /*!
      * Constructor for a sort node.
@@ -93,22 +95,23 @@ public:
 
     void PreOp(const ValueType& input) {
         unsorted_writer_.Put(input);
-        local_items_++;
         // In this stage we do not know how many elements are there in total.
         // Therefore we draw samples based on current number of elements and
         // randomly replace older samples when we have too many.
         if (--sample_interval_ == 0) {
             if (samples_.size() < wanted_sample_size()) {
                 while (samples_.size() < wanted_sample_size())
-                    samples_.push_back(input);
+                    samples_.emplace_back(SampleIndexPair(input, local_items_));
             }
             else {
-                samples_[rng_() % samples_.size()] = input;
+                samples_[rng_() % samples_.size()] =
+                    SampleIndexPair(input, local_items_);
             }
             sample_interval_ = std::max(
-                size_t(1), local_items_ / wanted_sample_size());
+                size_t(1), (local_items_ + 1) / wanted_sample_size());
             LOG << "SortNode::PreOp() sample_interval_=" << sample_interval_;
         }
+        local_items_++;
     }
 
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
@@ -126,7 +129,8 @@ public:
         for (size_t i = 0; i < pick_items; ++i) {
             size_t index = rng_() % local_items_;
             sLOG << "got index[" << i << "] = " << index;
-            samples_.emplace_back(unsorted_file_.GetItemAt<ValueType>(index));
+            samples_.emplace_back(
+                unsorted_file_.GetItemAt<ValueType>(index), index);
         }
 
         return true;
@@ -294,8 +298,8 @@ private:
     //! Number of items on this worker
     size_t local_items_ = 0;
 
-    //! Sample vector
-    std::vector<ValueType> samples_;
+    //! Sample vector: pairs of (sample,local index)
+    std::vector<SampleIndexPair> samples_;
     //! Number of items to process before the next sample was drawn
     size_t sample_interval_ = 1;
     //! Random generator
@@ -307,7 +311,7 @@ private:
     //! calculate currently desired number of samples
     size_t wanted_sample_size() const {
         size_t s = static_cast<size_t>(
-            std::log2(local_items_ * context_.num_workers())
+            std::log2((local_items_ + 1) * context_.num_workers())
             * (1.0 / (desired_imbalance_ * desired_imbalance_)));
         return std::max(s, size_t(1));
     }
@@ -339,46 +343,49 @@ private:
     //! \}
 
     void FindAndSendSplitters(
-        std::vector<ValueType>& splitters, size_t sample_size,
+        std::vector<SampleIndexPair>& splitters, size_t sample_size,
         data::MixStreamPtr& sample_stream,
         std::vector<data::MixStream::Writer>& sample_writers) {
 
         // Get samples from other workers
         size_t num_total_workers = context_.num_workers();
 
-        std::vector<ValueType> samples;
+        std::vector<SampleIndexPair> samples;
         samples.reserve(sample_size * num_total_workers);
 
         auto reader = sample_stream->GetMixReader(/* consume */ true);
 
         while (reader.HasNext()) {
-            samples.push_back(reader.template Next<ValueType>());
+            samples.push_back(reader.template Next<SampleIndexPair>());
         }
         if (samples.size() == 0) return;
 
         // Find splitters
-        std::sort(samples.begin(), samples.end(), compare_function_);
+        std::sort(samples.begin(), samples.end(),
+                  [this](
+                      const SampleIndexPair& a, const SampleIndexPair& b) {
+                      return LessSampleIndex(a, b);
+                  });
 
         size_t splitting_size = samples.size() / num_total_workers;
 
         // Send splitters to other workers
-        for (size_t i = 1; i < num_total_workers; i++) {
+        for (size_t i = 1; i < num_total_workers; ++i) {
             splitters.push_back(samples[i * splitting_size]);
             for (size_t j = 1; j < num_total_workers; j++) {
-                sample_writers[j].Put(samples[i * splitting_size]);
+                sample_writers[j].Put(splitters.back());
             }
         }
 
-        for (size_t j = 1; j < num_total_workers; j++) {
+        for (size_t j = 1; j < num_total_workers; ++j)
             sample_writers[j].Close();
-        }
     }
 
     class TreeBuilder
     {
     public:
         ValueType* tree_;
-        ValueType* samples_;
+        const SampleIndexPair* samples_;
         size_t index_ = 0;
         size_t ssplitter_;
 
@@ -388,7 +395,7 @@ private:
          * Number of splitter
          */
         TreeBuilder(ValueType* splitter_tree,
-                    ValueType* samples,
+                    const SampleIndexPair* samples,
                     size_t ssplitter)
             : tree_(splitter_tree),
               samples_(samples),
@@ -397,24 +404,29 @@ private:
                 recurse(samples, samples + ssplitter, 1);
         }
 
-        void recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
+        void recurse(const SampleIndexPair* lo, const SampleIndexPair* hi,
+                     unsigned int treeidx) {
             // pick middle element as splitter
-            ValueType* mid = lo + (ssize_t)(hi - lo) / 2;
+            const SampleIndexPair* mid = lo + (ssize_t)(hi - lo) / 2;
             assert(mid < samples_ + ssplitter_);
-            tree_[treeidx] = *mid;
-
-            ValueType* midlo = mid, * midhi = mid + 1;
+            tree_[treeidx] = mid->first;
 
             if (2 * treeidx < ssplitter_)
             {
+                const SampleIndexPair* midlo = mid, * midhi = mid + 1;
                 recurse(lo, midlo, 2 * treeidx + 0);
                 recurse(midhi, hi, 2 * treeidx + 1);
             }
         }
     };
 
-    bool Equal(const ValueType& ele1, const ValueType& ele2) {
-        return !(compare_function_(ele1, ele2) || compare_function_(ele2, ele1));
+    bool LessSampleIndex(const SampleIndexPair& a, const SampleIndexPair& b) {
+        return compare_function_(a.first, b.first) || (
+            !compare_function_(b.first, a.first) && a.second < b.second);
+    }
+
+    bool EqualSampleGreaterIndex(const SampleIndexPair& a, const SampleIndexPair& b) {
+        return !compare_function_(a.first, b.first) && a.second >= b.second;
     }
 
     //! round n down by k where k is a power of two.
@@ -431,9 +443,8 @@ private:
         size_t log_k,
         // Number of actual workers to send to
         size_t actual_k,
-        const ValueType* const sorted_splitters,
+        const SampleIndexPair* const sorted_splitters,
         size_t prefix_items,
-        size_t total_items,
         data::MixStreamPtr& data_stream) {
 
         data::File::ConsumeReader unsorted_reader =
@@ -457,8 +468,8 @@ private:
 
         const size_t stepsize = 2;
 
-        size_t i = 0;
-        for ( ; i < RoundDown(local_items_, stepsize); i += stepsize)
+        size_t i = prefix_items;
+        for ( ; i < prefix_items + RoundDown(local_items_, stepsize); i += stepsize)
         {
             // take two items
             size_t j0 = 1;
@@ -477,26 +488,29 @@ private:
             size_t b0 = j0 - k;
             size_t b1 = j1 - k;
 
-            if (b0 && Equal(el0, sorted_splitters[b0 - 1])) {
-                while (b0 && Equal(el0, sorted_splitters[b0 - 1]) &&
-                       (prefix_items + i) * actual_k < b0 * total_items) {
-                    b0--;
-                }
+            while (b0 && EqualSampleGreaterIndex(
+                       sorted_splitters[b0 - 1], SampleIndexPair(el0, i + 0))) {
+                b0--;
 
-                if (b0 + 1 >= actual_k) {
-                    b0 = k - 1;
-                }
+                // LOG0 << "el0 equal match b0 " << b0
+                //      << " prefix_items " << prefix_items
+                //      << " lhs.first = " << sorted_splitters[b0 - 1].first
+                //      << " lhs.second = " << sorted_splitters[b0 - 1].second
+                //      << " rhs.first = " << el0
+                //      << " rhs.second = " << i;
             }
 
-            if (b1 && Equal(el1, sorted_splitters[b1 - 1])) {
-                while (b1 && Equal(el1, sorted_splitters[b1 - 1]) &&
-                       (prefix_items + i + 1) * actual_k < b1 * total_items) {
-                    b1--;
-                }
+            if (b0 + 1 >= actual_k) {
+                b0 = k - 1;
+            }
 
-                if (b1 + 1 >= actual_k) {
-                    b1 = k - 1;
-                }
+            while (b1 && EqualSampleGreaterIndex(
+                       sorted_splitters[b1 - 1], SampleIndexPair(el1, i + 1))) {
+                b1--;
+            }
+
+            if (b1 + 1 >= actual_k) {
+                b1 = k - 1;
             }
 
             assert(data_writers[b0].IsValid());
@@ -507,7 +521,7 @@ private:
         }
 
         // last iteration of loop if we have an odd number of items.
-        for ( ; i < local_items_; i++)
+        for ( ; i < prefix_items + local_items_; i++)
         {
             size_t j0 = 1;
             ValueType el0 = unsorted_reader.Next<ValueType>();
@@ -520,8 +534,8 @@ private:
 
             size_t b0 = j0 - k;
 
-            while (b0 && Equal(el0, sorted_splitters[b0 - 1])
-                   && (prefix_items + i) * actual_k < b0 * total_items) {
+            while (b0 && EqualSampleGreaterIndex(
+                       sorted_splitters[b0 - 1], SampleIndexPair(el0, i))) {
                 b0--;
             }
 
@@ -595,11 +609,11 @@ private:
 
         size_t num_total_workers = context_.num_workers();
 
-        LOG << "Local sample size on worker " << context_.my_rank()
-            << ": " << samples_.size();
-        sLOG << "local_items_" << local_items_
+        sLOG << "worker " << context_.my_rank()
+             << "local_items_" << local_items_
              << "prefix_items" << prefix_items
-             << "total_items" << total_items;
+             << "total_items" << total_items
+             << "local sample_.size()" << samples_.size();
 
         if (total_items == 0) {
             Super::logger_
@@ -619,18 +633,20 @@ private:
         std::vector<data::MixStream::Writer> sample_writers =
             sample_stream->GetWriters();
 
-        for (const ValueType& sample : samples_) {
-            sample_writers[0].Put(sample);
+        for (const SampleIndexPair& sample : samples_) {
+            // send samples but add the local prefix to index ranks
+            sample_writers[0].Put(
+                SampleIndexPair(sample.first, prefix_items + sample.second));
         }
         sample_writers[0].Close();
-        std::vector<ValueType>().swap(samples_);
+        std::vector<SampleIndexPair>().swap(samples_);
 
         // Get the ceiling of log(num_total_workers), as SSSS needs 2^n buckets.
         size_t ceil_log = common::IntegerLog2Ceil(num_total_workers);
         size_t workers_algo = size_t(1) << ceil_log;
         size_t splitter_count_algo = workers_algo - 1;
 
-        std::vector<ValueType> splitters;
+        std::vector<SampleIndexPair> splitters;
         splitters.reserve(workers_algo);
 
         if (context_.my_rank() == 0) {
@@ -645,7 +661,7 @@ private:
             data::MixStream::MixReader reader =
                 sample_stream->GetMixReader(/* consume */ true);
             while (reader.HasNext()) {
-                splitters.push_back(reader.template Next<ValueType>());
+                splitters.push_back(reader.template Next<SampleIndexPair>());
             }
         }
         sample_writers.clear();
@@ -680,7 +696,6 @@ private:
             num_total_workers,
             splitters.data(),
             prefix_items,
-            total_items,
             data_stream);
 
         std::vector<ValueType>().swap(splitter_tree);
