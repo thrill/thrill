@@ -492,6 +492,8 @@ std::vector<CStageBuilder> c_StageBuilder;
 
 /******************************************************************************/
 
+size_t s_num_events = 0;
+
 void LoadJsonProfile(std::istream& in) {
     std::string line;
 
@@ -501,6 +503,8 @@ void LoadJsonProfile(std::istream& in) {
         if (!d["class"].IsString()) continue;
 
         std::string class_str = d["class"].GetString();
+
+        ++s_num_events;
 
         if (class_str == "Cmdline") {
             c_Cmdline.emplace_back(d);
@@ -532,6 +536,9 @@ void LoadJsonProfile(std::istream& in) {
         }
         else if (class_str == "StageBuilder") {
             c_StageBuilder.emplace_back(d);
+        }
+        else {
+            --s_num_events;
         }
     }
 }
@@ -619,7 +626,7 @@ void AddStageLines(common::JsonLine& xAxis) {
         if (c.worker_rank != 0) continue;
         common::JsonLine o = plotLines.obj();
         o << "width" << 1
-          << "value" << c.ts
+          << "value" << c.ts / 1000.0
           << "color" << "#888888";
         o.sub("label")
             << "text" << (c.label + "." + std::to_string(c.id) + " " + c.event);
@@ -997,8 +1004,8 @@ int main(int argc, char* argv[]) {
 
     ProcessJsonProfile();
 
-    std::cerr << "Parsed " << 1 << " events from " << inputs.size() << " files"
-              << std::endl;
+    std::cerr << "Parsed " << s_num_events << " events "
+              << "from " << inputs.size() << " files" << std::endl;
 
     std::cout << PageMain();
 
