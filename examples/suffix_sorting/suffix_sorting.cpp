@@ -64,6 +64,7 @@ public:
     bool text_output_flag_ = false;
     bool check_flag_ = false;
     bool input_verbatim_ = false;
+    bool pack_input_ = false;
 
     std::string output_bwt_;
     std::string output_wavelet_tree_;
@@ -171,6 +172,8 @@ public:
 
         if (sa_index_bytes_ == 4)
             return StartInput<uint32_t>(input_dia, input_size);
+        else if (sa_index_bytes_ == 8)
+            return StartInput<uint64_t>(input_dia, input_size);
         else
             die("Unsupported index byte size: " << sa_index_bytes_ <<
                 ". Byte size has to be 4,5,6 or 8");
@@ -187,10 +190,10 @@ public:
             suffix_array = DC7<Index>(input_dia.Keep(), input_size);
         }
         else if (algorithm_ == "de") {
-            suffix_array = PrefixDoublingDementiev<Index>(input_dia.Keep(), input_size);
+            suffix_array = PrefixDoublingDementiev<Index>(input_dia.Keep(), input_size, pack_input_);
         }
         else if (algorithm_ == "dis") {
-            suffix_array = PrefixDoublingDiscardingDementiev<Index>(input_dia.Keep(), input_size);
+            suffix_array = PrefixDoublingDiscardingDementiev<Index>(input_dia.Keep(), input_size, pack_input_);
         }
         else if (algorithm_ == "q") {
             suffix_array = PrefixQuadrupling<Index>(input_dia.Keep(), input_size);
@@ -199,7 +202,7 @@ public:
             suffix_array = PrefixQuadruplingDiscarding<Index>(input_dia.Keep(), input_size);
         }
         else {
-            suffix_array = PrefixDoubling<Index>(input_dia.Keep(), input_size);
+            suffix_array = PrefixDoubling<Index>(input_dia.Keep(), input_size, pack_input_);
         }
 
         if (check_flag_) {
@@ -303,6 +306,10 @@ int main(int argc, char* argv[]) {
     cp.AddString('w', "wavelet", ss.output_wavelet_tree_,
                  "Compute the Wavelet Tree of the Burrows-Wheeler transform, "
                  "and write to file.");
+
+    cp.AddFlag('p', "packed", ss.pack_input_,
+               "Fit as many characters of the input in the bytes used per index"
+               " in the suffix array.");
 
     if (!cp.Process(argc, argv))
         return -1;

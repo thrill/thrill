@@ -740,7 +740,13 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size) {
 template DIA<uint32_t> PrefixQuadrupling<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size);
 
+template DIA<uint64_t> PrefixQuadrupling<uint64_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size);
+
 template DIA<uint32_t> PrefixQuadruplingDiscarding<uint32_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size);
+
+template DIA<uint64_t> PrefixQuadruplingDiscarding<uint64_t>(
     const DIA<uint8_t>& input_dia, size_t input_size);
 
 } // namespace suffix_sorting
