@@ -601,6 +601,17 @@ private:
              << "prefix_items" << prefix_items
              << "total_items" << total_items;
 
+        if (total_items == 0) {
+            Super::logger_
+                << "class" << "SortNode"
+                << "event" << "done"
+                << "workers" << num_total_workers
+                << "local_out_size" << local_out_size_
+                << "balance" << 0
+                << "sample_size" << samples_.size();
+            return;
+        }
+
         // stream to send samples to process 0 and receive them back
         data::MixStreamPtr sample_stream = context_.GetNewMixStream(this);
 

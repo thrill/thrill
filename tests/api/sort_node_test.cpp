@@ -233,4 +233,22 @@ TEST(Sort, SortOneInteger) {
     api::RunLocalTests(start_func);
 }
 
+TEST(Sort, SortZeroIntegers) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(ctx, 0);
+
+            auto sorted = integers.Sort();
+
+            std::vector<size_t> out_vec;
+            sorted.AllGather(&out_vec);
+
+            ASSERT_EQ(0u, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 /******************************************************************************/
