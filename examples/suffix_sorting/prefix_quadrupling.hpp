@@ -19,11 +19,11 @@ namespace suffix_sorting {
 
 template <typename Index, typename InputDIA>
 thrill::DIA<Index>
-PrefixQuadrupling(const InputDIA& input_dia, size_t input_size);
+PrefixQuadrupling(const InputDIA& input_dia, size_t input_size, bool packed);
 
 template <typename Index, typename InputDIA>
 thrill::DIA<Index>
-PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_size);
+PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_size, bool packed);
 
 } // namespace suffix_sorting
 } // namespace examples

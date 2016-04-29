@@ -165,7 +165,7 @@ struct Index3Rank {
 } THRILL_ATTRIBUTE_PACKED;
 
 template <typename Index, typename InputDIA>
-DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_size) {
+DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_size, bool packed) {
     LOG1 << "Running PrefixQuadruplingDiscarding";
 
     using Char = typename InputDIA::ValueType;
@@ -176,60 +176,132 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
     using IndexRankStatus = suffix_sorting::IndexRankStatus<Index>;
     using Index3Rank = suffix_sorting::Index3Rank<Index>;
 
-    auto chars_sorted =
-        input_dia
-        .template FlatWindow<QuadCharIndex>(
-            4,
-            [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                emit(QuadCharIndex {
-                         { rb[0], rb[1], rb[2], rb[3] }, Index(index)
-                     });
-            },
-            [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                if (index == input_size - 3) {
-                    emit(QuadCharIndex {
-                             { rb[0], rb[1], rb[2],
-                               std::numeric_limits<Char>::lowest() },
-                             Index(index)
-                         });
-                    emit(QuadCharIndex {
-                             { rb[1], rb[2],
-                               std::numeric_limits<Char>::lowest(),
-                               std::numeric_limits<Char>::lowest() },
-                             Index(index + 1)
-                         });
-                    emit(QuadCharIndex {
-                             { rb[2],
-                               std::numeric_limits<Char>::lowest(),
-                               std::numeric_limits<Char>::lowest(),
-                               std::numeric_limits<Char>::lowest() },
-                             Index(index + 2)
-                         });
-                }
-            })
-        .Sort();
+        size_t input_bit_size = sizeof(Char) << 3;
+    size_t k_fitting = sizeof(Index) / sizeof(Char);
 
-    if (debug_print)
-        chars_sorted.Keep().Print("chars_sorted");
+    if (packed && k_fitting <= 4) {
+        LOG1 << "Ignoring packing, as it would have no effect."
+             << " More than 4 characters must be packed to make a difference."
+             << " Currently " << k_fitting << " characters are packed.";
+        packed = false;
+    }
+    if (packed && k_fitting < 16) {
+        LOG1 << k_fitting << " bytes can be packed into the space used by one suffix array index.";
+        LOG1 << "This is not enough to skip quadrupling steps. We can decide more suffixes initially, though.";
+    }
 
-    auto names =
-        chars_sorted
-        .template FlatWindow<IndexRank>(
-            2,
-            [](size_t index, const RingBuffer<QuadCharIndex>& rb, auto emit) {
-                if (index == 0)
-                    emit(IndexRank { rb[0].index, Index(1) });
-                if (rb[0] == rb[1])
-                    emit(IndexRank { rb[1].index, Index(0) });
-                else
-                    emit(IndexRank { rb[1].index, Index(index + 2) });
-            })
-        .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                       return IndexRank {
-                           b.index,
-                           (a.rank > b.rank ? a.rank : b.rank)
-                       };
-                   });
+    size_t iteration = 1;
+
+    if (packed && k_fitting >= 16) {
+        iteration = 0;
+        size_t tmp = k_fitting;
+        while (tmp >>= 1) ++iteration;
+        iteration >>= 1; // Compute log_4(k_fitting)
+    }
+
+    DIA<IndexRank> names;
+
+    if (packed) {
+        auto chars_sorted =
+            input_dia
+            .template FlatWindow<IndexRank>(
+                k_fitting,
+                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                    size_t result = rb[0];
+                    for (size_t i = 1; i < k_fitting; ++i)
+                        result = (result << input_bit_size) | rb[i];
+                    emit(IndexRank { Index(index), Index(result) });
+                    if (index + k_fitting == input_size) {
+                        for (size_t i = 1; i < k_fitting; ++i) {
+                            result = rb[i];
+                            for (size_t j = i + 1; j < k_fitting; ++j)
+                                result = (result << input_bit_size) | rb[j];
+                            result <<= i * input_bit_size;
+                            emit(IndexRank { Index(index + i), Index(result) });
+                        }
+                    }
+                })
+            .Sort([](const IndexRank& a, const IndexRank& b) {
+                    return a.rank < b.rank;
+                });
+
+            if (debug_print)
+                chars_sorted.Keep().Print("chars_sorted packed");
+
+        names =
+            chars_sorted
+            .template FlatWindow<IndexRank>(
+                2,
+                [](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                    if (index == 0)
+                        emit(IndexRank { rb[0].index, Index(1) });
+                    emit(IndexRank {
+                             rb[1].index, Index(rb[0].rank == rb[1].rank ? 0 : index + 2)
+                         });
+                })
+            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
+                           return IndexRank {
+                               b.index,
+                               (a.rank > b.rank ? a.rank : b.rank)
+                           };
+                       });
+    }
+    else {
+        auto chars_sorted =
+            input_dia
+            .template FlatWindow<QuadCharIndex>(
+                4,
+                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                    emit(QuadCharIndex {
+                             { rb[0], rb[1], rb[2], rb[3] }, Index(index)
+                         });
+                },
+                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                    if (index == input_size - 3) {
+                        emit(QuadCharIndex {
+                                 { rb[0], rb[1], rb[2],
+                                   std::numeric_limits<Char>::lowest() },
+                                 Index(index)
+                             });
+                        emit(QuadCharIndex {
+                                 { rb[1], rb[2],
+                                   std::numeric_limits<Char>::lowest(),
+                                   std::numeric_limits<Char>::lowest() },
+                                 Index(index + 1)
+                             });
+                        emit(QuadCharIndex {
+                                 { rb[2],
+                                   std::numeric_limits<Char>::lowest(),
+                                   std::numeric_limits<Char>::lowest(),
+                                   std::numeric_limits<Char>::lowest() },
+                                 Index(index + 2)
+                             });
+                    }
+                })
+            .Sort();
+
+        if (debug_print)
+            chars_sorted.Keep().Print("chars_sorted");
+
+        names =
+            chars_sorted
+            .template FlatWindow<IndexRank>(
+                2,
+                [](size_t index, const RingBuffer<QuadCharIndex>& rb, auto emit) {
+                    if (index == 0)
+                        emit(IndexRank { rb[0].index, Index(1) });
+                    if (rb[0] == rb[1])
+                        emit(IndexRank { rb[1].index, Index(0) });
+                    else
+                        emit(IndexRank { rb[1].index, Index(index + 2) });
+                })
+            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
+                           return IndexRank {
+                               b.index,
+                               (a.rank > b.rank ? a.rank : b.rank)
+                           };
+                       });
+    }
 
     if (debug_print)
         names.Keep().Print("names");
@@ -252,8 +324,6 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
                     emit(IndexRankStatus { rb[2].index, rb[2].rank, status });
                 }
             });
-
-    size_t iteration = 1;
 
     auto names_unique_sorted =
         names_unique.Keep()
@@ -563,7 +633,7 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
 }
 
 template <typename Index, typename InputDIA>
-DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size) {
+DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size, bool packed) {
     LOG1 << "Running PrefixQuadrupling";
 
     using Char = typename InputDIA::ValueType;
@@ -571,51 +641,117 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size) {
     using IndexQuadRank = suffix_sorting::IndexQuadRank<Index>;
     using QuadCharIndex = suffix_sorting::QuadCharIndex<Char, Index>;
 
-    auto chars_sorted =
-        input_dia
-        .template FlatWindow<QuadCharIndex>(
-            4,
-            [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                emit(QuadCharIndex {
-                         { rb[0], rb[1], rb[2], rb[3] }, Index(index)
-                     });
-            },
-            [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                if (index == input_size - 3) {
-                    emit(QuadCharIndex {
-                             { rb[0], rb[1], rb[2],
-                               std::numeric_limits<Char>::lowest() },
-                             Index(index)
-                         });
-                    emit(QuadCharIndex {
-                             { rb[1], rb[2],
-                               std::numeric_limits<Char>::lowest(),
-                               std::numeric_limits<Char>::lowest() },
-                             Index(index + 1)
-                         });
-                    emit(QuadCharIndex {
-                             { rb[2],
-                               std::numeric_limits<Char>::lowest(),
-                               std::numeric_limits<Char>::lowest(),
-                               std::numeric_limits<Char>::lowest() },
-                             Index(index + 2)
-                         });
-                }
-            })
-        .Sort();
+    size_t input_bit_size = sizeof(Char) << 3;
+    size_t k_fitting = sizeof(Index) / sizeof(Char);
 
-    auto names =
-        chars_sorted
-        .template FlatWindow<IndexRank>(
-            2,
-            [](size_t index, const RingBuffer<QuadCharIndex>& rb, auto emit) {
-                if (index == 0)
-                    emit(IndexRank { rb[0].index, Index(1) });
-                if (rb[0] == rb[1])
-                    emit(IndexRank { rb[1].index, Index(0) });
-                else
-                    emit(IndexRank { rb[1].index, Index(index + 2) });
-            });
+    if (packed && k_fitting <= 4) {
+        LOG1 << "Ignoring packing, as it would have no effect."
+             << " More than 4 characters must be packed to make a difference."
+             << " Currently " << k_fitting << " characters are packed.";
+        packed = false;
+    }
+    if (packed && k_fitting < 16) {
+        LOG1 << k_fitting << " bytes can be packed into the space used by one suffix array index.";
+        LOG1 << "This is not enough to skip quadrupling steps. We can decide more suffixes initially, though.";
+    }
+
+    size_t iteration = 1;
+
+    if (packed && k_fitting >= 16) {
+        iteration = 0;
+        size_t tmp = k_fitting;
+        while (tmp >>= 1) ++iteration;
+        iteration >>= 1; // Compute log_4(k_fitting)
+    }
+
+    DIA<IndexRank> names;
+
+    if (packed) {
+        auto chars_sorted =
+            input_dia
+            .template FlatWindow<IndexRank>(
+                k_fitting,
+                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                    size_t result = rb[0];
+                    for (size_t i = 1; i < k_fitting; ++i)
+                        result = (result << input_bit_size) | rb[i];
+                    emit(IndexRank { Index(index), Index(result) });
+                    if (index + k_fitting == input_size) {
+                        for (size_t i = 1; i < k_fitting; ++i) {
+                            result = rb[i];
+                            for (size_t j = i + 1; j < k_fitting; ++j)
+                                result = (result << input_bit_size) | rb[j];
+                            result <<= i * input_bit_size;
+                            emit(IndexRank { Index(index + i), Index(result) });
+                        }
+                    }
+                })
+            .Sort([](const IndexRank& a, const IndexRank& b) {
+                    return a.rank < b.rank;
+                });
+
+            if (debug_print)
+                chars_sorted.Keep().Print("chars_sorted packed");
+
+        names =
+            chars_sorted
+            .template FlatWindow<IndexRank>(
+                2,
+                [](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                    if (index == 0)
+                        emit(IndexRank { rb[0].index, Index(1) });
+                    emit(IndexRank {
+                             rb[1].index, Index(rb[0].rank == rb[1].rank ? 0 : index + 2)
+                         });
+                });
+    }
+    else {
+        auto chars_sorted =
+            input_dia
+            .template FlatWindow<QuadCharIndex>(
+                4,
+                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                    emit(QuadCharIndex {
+                             { rb[0], rb[1], rb[2], rb[3] }, Index(index)
+                         });
+                },
+                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                    if (index == input_size - 3) {
+                        emit(QuadCharIndex {
+                                 { rb[0], rb[1], rb[2],
+                                   std::numeric_limits<Char>::lowest() },
+                                 Index(index)
+                             });
+                        emit(QuadCharIndex {
+                                 { rb[1], rb[2],
+                                   std::numeric_limits<Char>::lowest(),
+                                   std::numeric_limits<Char>::lowest() },
+                                 Index(index + 1)
+                             });
+                        emit(QuadCharIndex {
+                                 { rb[2],
+                                   std::numeric_limits<Char>::lowest(),
+                                   std::numeric_limits<Char>::lowest(),
+                                   std::numeric_limits<Char>::lowest() },
+                                 Index(index + 2)
+                             });
+                    }
+                })
+            .Sort();
+
+        names =
+            chars_sorted
+            .template FlatWindow<IndexRank>(
+                2,
+                [](size_t index, const RingBuffer<QuadCharIndex>& rb, auto emit) {
+                    if (index == 0)
+                        emit(IndexRank { rb[0].index, Index(1) });
+                    if (rb[0] == rb[1])
+                        emit(IndexRank { rb[1].index, Index(0) });
+                    else
+                        emit(IndexRank { rb[1].index, Index(index + 2) });
+                });
+    }
 
     auto number_duplicates =
         names.Keep()
@@ -647,7 +783,6 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size) {
     if (debug_print)
         names.Keep().Print("names before loop");
 
-    size_t iteration = 1;
     while (true) {
         auto names_sorted =
             names
@@ -738,16 +873,16 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size) {
 }
 
 template DIA<uint32_t> PrefixQuadrupling<uint32_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size);
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 template DIA<uint64_t> PrefixQuadrupling<uint64_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size);
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 template DIA<uint32_t> PrefixQuadruplingDiscarding<uint32_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size);
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 template DIA<uint64_t> PrefixQuadruplingDiscarding<uint64_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size);
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 } // namespace suffix_sorting
 } // namespace examples

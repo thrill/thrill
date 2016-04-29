@@ -196,10 +196,10 @@ public:
             suffix_array = PrefixDoublingDiscardingDementiev<Index>(input_dia.Keep(), input_size, pack_input_);
         }
         else if (algorithm_ == "q") {
-            suffix_array = PrefixQuadrupling<Index>(input_dia.Keep(), input_size);
+            suffix_array = PrefixQuadrupling<Index>(input_dia.Keep(), input_size, pack_input_);
         }
         else if (algorithm_ == "qd") {
-            suffix_array = PrefixQuadruplingDiscarding<Index>(input_dia.Keep(), input_size);
+            suffix_array = PrefixQuadruplingDiscarding<Index>(input_dia.Keep(), input_size, pack_input_);
         }
         else {
             suffix_array = PrefixDoubling<Index>(input_dia.Keep(), input_size, pack_input_);
