@@ -224,11 +224,11 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                     }
                 })
             .Sort([](const IndexRank& a, const IndexRank& b) {
-                    return a.rank < b.rank;
-                });
+                      return a.rank < b.rank;
+                  });
 
-            if (debug_print)
-                chars_sorted.Keep().Print("chars_sorted packed");
+        if (debug_print)
+            chars_sorted.Keep().Print("chars_sorted packed");
 
         names =
             chars_sorted
@@ -242,8 +242,8 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                          });
                 })
             .PrefixSum([](const IndexRank a, const IndexRank b) {
-                    return IndexRank { b.index, std::max(a.rank, b.rank) };
-                });
+                           return IndexRank { b.index, std::max(a.rank, b.rank) };
+                       });
     }
     else {
         auto chars_sorted =
@@ -278,8 +278,8 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                          });
                 })
             .PrefixSum([](const IndexRank a, const IndexRank b) {
-                    return IndexRank { b.index, std::max(a.rank, b.rank) };
-                });
+                           return IndexRank { b.index, std::max(a.rank, b.rank) };
+                       });
     }
 
     auto names_unique =
@@ -536,11 +536,11 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
                     }
                 })
             .Sort([](const IndexRank& a, const IndexRank& b) {
-                    return a.rank < b.rank;
-                });
+                      return a.rank < b.rank;
+                  });
 
-            if (debug_print)
-                chars_sorted.Keep().Print("chars_sorted packed");
+        if (debug_print)
+            chars_sorted.Keep().Print("chars_sorted packed");
 
         names =
             chars_sorted
@@ -586,14 +586,13 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
                              rb[1].index, Index(rb[0] == rb[1] ? 0 : index + 2)
                          });
                 });
-
     }
 
     auto number_duplicates =
         names.Keep()
         .Filter([](const IndexRank& ir) {
-                return ir.rank == Index(0);
-            })
+                    return ir.rank == Index(0);
+                })
         .Size();
 
     if (number_duplicates == 0) {
@@ -671,8 +670,8 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
         number_duplicates =
             names.Keep()
             .Filter([](const IndexRank& ir) {
-                    return ir.rank == Index(0);
-                })
+                        return ir.rank == Index(0);
+                    })
             .Size();
 
         if (input_dia.context().my_rank() == 0) {
@@ -711,7 +710,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
     using IndexRankRank = suffix_sorting::IndexRankRank<Index>;
     using CharCharIndex = suffix_sorting::CharCharIndex<Char, Index>;
 
-        size_t input_bit_size = sizeof(Char) << 3;
+    size_t input_bit_size = sizeof(Char) << 3;
     size_t k_fitting = sizeof(Index) / sizeof(Char);
 
     size_t iteration = 0;
@@ -745,11 +744,11 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
                     }
                 })
             .Sort([](const IndexRank& a, const IndexRank& b) {
-                    return a.rank < b.rank;
-                });
+                      return a.rank < b.rank;
+                  });
 
-            if (debug_print)
-                chars_sorted.Keep().Print("chars_sorted packed");
+        if (debug_print)
+            chars_sorted.Keep().Print("chars_sorted packed");
 
         rebucket =
             chars_sorted
@@ -758,8 +757,8 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
                 [](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                     if (index == 0)
                         emit(IndexRank { rb[0].index, Index(0) });
-                    emit(IndexRank { rb[1].index, 
-                        Index(rb[0].rank == rb[1].rank ? 0 : index + 1) });
+                    emit(IndexRank { rb[1].index,
+                                     Index(rb[0].rank == rb[1].rank ? 0 : index + 1) });
                 });
     }
     else {
@@ -792,16 +791,16 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
                 2,
                 [](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
                     if (index == 0) emit(IndexRank { rb[0].index, Index(0) });
-                    emit(IndexRank { rb[1].index, 
-                        Index(rb[0] == rb[1] ? 0 : index + 1) });
+                    emit(IndexRank { rb[1].index,
+                                     Index(rb[0] == rb[1] ? 0 : index + 1) });
                 });
     }
 
     auto number_duplicates =
         rebucket.Keep()
         .Filter([](const IndexRank& ir) {
-                return ir.rank == Index(0);
-            })
+                    return ir.rank == Index(0);
+                })
         .Size();
 
     // The first rank is always 0 and all other duplicates have "rank" 0
@@ -813,16 +812,16 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
         auto sa =
             rebucket
             .Map([](const IndexRank& ir) {
-                    return ir.index;
-                });
+                     return ir.index;
+                 });
         return sa.Collapse();
     }
 
     rebucket =
         rebucket
         .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                return IndexRank { b.index, std::max<Index>(a.rank, b.rank) };
-            });
+                       return IndexRank { b.index, std::max<Index>(a.rank, b.rank) };
+                   });
 
     if (debug_print)
         rebucket.Keep().Print("rebucket");
@@ -862,7 +861,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
                 [](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
                     if (index == 0) emit(IndexRank { rb[0].index, Index(0) });
                     emit(IndexRank { rb[1].index,
-                        Index(rb[0] == rb[1] ? 0 : index + 1) });
+                                     Index(rb[0] == rb[1] ? 0 : index + 1) });
                 });
 
         if (debug_print)
@@ -871,8 +870,8 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
         number_duplicates =
             rebucket.Keep()
             .Filter([](const IndexRank& ir) {
-                    return ir.rank == Index(0);
-                })
+                        return ir.rank == Index(0);
+                    })
             .Size();
 
         if (input_dia.context().my_rank() == 0) {
@@ -884,16 +883,16 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
             auto sa =
                 rebucket
                 .Map([](const IndexRank& ir) {
-                        return ir.index;
-                    });
+                         return ir.index;
+                     });
             return sa.Collapse();
         }
 
         rebucket =
             rebucket
             .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                    return IndexRank { b.index, std::max<Index>(a.rank, b.rank) };
-                });
+                           return IndexRank { b.index, std::max<Index>(a.rank, b.rank) };
+                       });
 
         if (debug_print)
             rebucket.Keep().Print("rebucket");
@@ -917,6 +916,7 @@ template DIA<uint32_t> PrefixDoublingDiscardingDementiev<uint32_t>(
 
 template DIA<uint64_t> PrefixDoublingDiscardingDementiev<uint64_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
+
 } // namespace suffix_sorting
 } // namespace examples
 

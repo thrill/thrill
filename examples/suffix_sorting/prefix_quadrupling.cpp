@@ -176,7 +176,7 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
     using IndexRankStatus = suffix_sorting::IndexRankStatus<Index>;
     using Index3Rank = suffix_sorting::Index3Rank<Index>;
 
-        size_t input_bit_size = sizeof(Char) << 3;
+    size_t input_bit_size = sizeof(Char) << 3;
     size_t k_fitting = sizeof(Index) / sizeof(Char);
 
     if (packed && k_fitting <= 4) {
@@ -222,11 +222,11 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
                     }
                 })
             .Sort([](const IndexRank& a, const IndexRank& b) {
-                    return a.rank < b.rank;
-                });
+                      return a.rank < b.rank;
+                  });
 
-            if (debug_print)
-                chars_sorted.Keep().Print("chars_sorted packed");
+        if (debug_print)
+            chars_sorted.Keep().Print("chars_sorted packed");
 
         names =
             chars_sorted
@@ -687,11 +687,11 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size, bool 
                     }
                 })
             .Sort([](const IndexRank& a, const IndexRank& b) {
-                    return a.rank < b.rank;
-                });
+                      return a.rank < b.rank;
+                  });
 
-            if (debug_print)
-                chars_sorted.Keep().Print("chars_sorted packed");
+        if (debug_print)
+            chars_sorted.Keep().Print("chars_sorted packed");
 
         names =
             chars_sorted
@@ -756,8 +756,8 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size, bool 
     auto number_duplicates =
         names.Keep()
         .Filter([](const IndexRank& ir) {
-                return ir.rank == Index(0);
-            })
+                    return ir.rank == Index(0);
+                })
         .Size();
 
     if (number_duplicates == 0) {
@@ -842,8 +842,8 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size, bool 
         number_duplicates =
             names.Keep()
             .Filter([](const IndexRank& ir) {
-                    return ir.rank == Index(0);
-                })
+                        return ir.rank == Index(0);
+                    })
             .Size();
 
         if (input_dia.context().my_rank() == 0) {
