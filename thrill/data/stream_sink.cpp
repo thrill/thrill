@@ -80,7 +80,7 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block) {
     stream_.multiplexer_.dispatcher_.AsyncWrite(
         *connection_,
         // send out Buffer and Block, guaranteed to be successive
-        std::move(buffer), block,
+        std::move(buffer), PinnedBlock(block),
         [this](net::Connection&) { sem_.signal(); });
 }
 

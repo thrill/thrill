@@ -184,7 +184,7 @@ public:
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     virtual void AsyncWrite(
-        Connection& c, const data::PinnedBlock& block,
+        Connection& c, data::PinnedBlock&& block,
         const AsyncWriteCallback& done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
@@ -194,7 +194,7 @@ public:
         }
 
         // add new async writer object
-        async_write_block_.emplace_back(c, block, done_cb);
+        async_write_block_.emplace_back(c, std::move(block), done_cb);
 
         // register write callback
         AsyncWriteBlock& awb = async_write_block_.back();
@@ -561,10 +561,10 @@ protected:
     public:
         //! Construct block writer with callback
         AsyncWriteBlock(Connection& conn,
-                        const data::PinnedBlock& block,
+                        data::PinnedBlock&& block,
                         const AsyncWriteCallback& callback)
             : conn_(&conn),
-              block_(block),
+              block_(std::move(block)),
               callback_(callback)
         { }
 

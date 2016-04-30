@@ -136,7 +136,7 @@ public:
     }
 
     void AsyncWrite(
-        net::Connection& c, const data::PinnedBlock& block,
+        net::Connection& c, data::PinnedBlock&& block,
         const AsyncWriteCallback& done_cb = AsyncWriteCallback()) final {
         assert(c.IsValid());
 
@@ -153,7 +153,7 @@ public:
 
         // store request and associated data::Block (Isend needs memory).
         mpi_async_requests_.emplace_back(req);
-        mpi_async_.emplace_back(c, block, done_cb);
+        mpi_async_.emplace_back(c, std::move(block), done_cb);
         mpi_async_out_.emplace_back();
         mpi_async_status_.emplace_back();
     }
@@ -289,10 +289,10 @@ private:
 
         //! Construct AsyncWrite with Block
         MpiAsync(net::Connection& conn,
-                 const data::PinnedBlock& block,
+                 data::PinnedBlock&& block,
                  const AsyncWriteCallback& callback)
             : type_(WRITE_BLOCK),
-              write_block_(conn, block, callback) { }
+              write_block_(conn, std::move(block), callback) { }
 
         //! Construct AsyncRead with ByteBuffer
         MpiAsync(net::Connection& conn,

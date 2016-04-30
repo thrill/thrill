@@ -120,14 +120,14 @@ void DispatcherThread::AsyncWrite(
 //! asynchronously write buffer and callback when delivered. The buffer is
 //! MOVED into the async writer.
 void DispatcherThread::AsyncWrite(
-    Connection& c, Buffer&& buffer, const data::PinnedBlock& block,
+    Connection& c, Buffer&& buffer, data::PinnedBlock&& block,
     AsyncWriteCallback done_cb) {
     assert(block.IsValid());
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c,
-             b1 = std::move(buffer), b2 = block]() mutable {
+             b1 = std::move(buffer), b2 = std::move(block)]() mutable {
                 dispatcher_->AsyncWrite(c, std::move(b1));
-                dispatcher_->AsyncWrite(c, b2, done_cb);
+                dispatcher_->AsyncWrite(c, std::move(b2), done_cb);
             });
     WakeUpThread();
 }

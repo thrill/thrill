@@ -126,7 +126,7 @@ public:
     //! header and a payload Buffers that are hereby guaranteed to be written in
     //! order.
     void AsyncWrite(Connection& c,
-                    Buffer&& buffer, const data::PinnedBlock& block,
+                    Buffer&& buffer, data::PinnedBlock&& block,
                     AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
