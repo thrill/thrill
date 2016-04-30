@@ -58,25 +58,6 @@ void Connection::SyncSend(
     tx_bytes_ += size;
 }
 
-ssize_t Connection::SendOne(
-    const void* data, size_t size, Flags /* flags */) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-
-    assert(size <= std::numeric_limits<int>::max());
-
-    MPI_Request request;
-    int r = MPI_Isend(const_cast<void*>(data), static_cast<int>(size), MPI_BYTE,
-                      peer_, group_tag_, MPI_COMM_WORLD, &request);
-
-    if (r != MPI_SUCCESS)
-        throw Exception("Error during SyncOne", r);
-
-    MPI_Request_free(&request);
-    tx_bytes_ += size;
-
-    return size;
-}
-
 void Connection::SyncRecv(void* out_data, size_t size) {
     std::unique_lock<std::mutex> lock(g_mutex);
 
