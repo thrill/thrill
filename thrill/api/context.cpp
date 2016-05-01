@@ -33,6 +33,10 @@
 #include <thrill/net/mpi/group.hpp>
 #endif
 
+#if THRILL_HAVE_NET_IB
+#include <thrill/net/ib/group.hpp>
+#endif
+
 #if __linux__
 
 // linux-specific process control
@@ -545,6 +549,88 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 }
 #endif
 
+#if THRILL_HAVE_NET_IB
+static inline
+int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
+
+    char* endptr;
+
+    // determine number of local worker threads per IB/MPI process
+
+    size_t workers_per_host = 1;
+
+    const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
+
+    if (env_workers_per_host && *env_workers_per_host) {
+        workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
+        if (!endptr || *endptr != 0 || workers_per_host == 0) {
+            std::cerr << "Thrill: environment variable"
+                      << " THRILL_WORKERS_PER_HOST=" << env_workers_per_host
+                      << " is not a valid number of workers per host."
+                      << std::endl;
+            return -1;
+        }
+    }
+    else {
+        workers_per_host = std::thread::hardware_concurrency();
+    }
+
+    // detect memory config
+
+    MemoryConfig mem_config;
+    if (mem_config.setup_detect() < 0) return -1;
+    mem_config.print(workers_per_host);
+
+    // okay, configuration is good.
+
+    size_t num_hosts = net::ib::NumMpiProcesses();
+    size_t mpi_rank = net::ib::MpiRank();
+
+    std::cerr << "Thrill: running in IB/MPI network with " << num_hosts
+              << " hosts and " << workers_per_host << " workers per host"
+              << " as rank " << mpi_rank << "."
+              << std::endl;
+
+    static constexpr size_t kGroupCount = net::Manager::kGroupCount;
+
+    // construct two MPI network groups
+    std::array<std::unique_ptr<net::ib::Group>, kGroupCount> groups;
+    net::ib::Construct(num_hosts, groups.data(), kGroupCount);
+
+    std::array<net::GroupPtr, kGroupCount> host_groups = {
+        { std::move(groups[0]), std::move(groups[1]) }
+    };
+
+    // construct HostContext
+    HostContext host_context(
+        0, mem_config, std::move(host_groups), workers_per_host);
+
+    // launch worker threads
+    std::vector<std::thread> threads(workers_per_host);
+
+    for (size_t worker = 0; worker < workers_per_host; worker++) {
+        threads[worker] = common::CreateThread(
+            [&host_context, &job_startpoint, worker] {
+                Context ctx(host_context, worker);
+                common::NameThisThread("host " + mem::to_string(ctx.host_rank())
+                                       + " worker " + mem::to_string(worker));
+
+                ctx.Launch(job_startpoint);
+            });
+        common::SetCpuAffinity(threads[worker], worker);
+    }
+
+    // join worker threads
+    int global_result = 0;
+
+    for (size_t i = 0; i < workers_per_host; i++) {
+        threads[i].join();
+    }
+
+    return global_result;
+}
+#endif
+
 static inline
 int RunNotSupported(const char* env_net) {
     std::cerr << "Thrill: network backend " << env_net
@@ -556,7 +642,9 @@ static inline
 const char * DetectNetBackend() {
     // detect openmpi run, add others as well.
     if (getenv("OMPI_COMM_WORLD_SIZE") != nullptr) {
-#if THRILL_HAVE_NET_MPI
+#if THRILL_HAVE_NET_IB
+        return "ib";
+#elif THRILL_HAVE_NET_MPI
         return "mpi";
 #else
         std::cerr << "Thrill: MPI environment detected, but network backend mpi"
@@ -684,6 +772,15 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
 #if THRILL_HAVE_NET_MPI
         // mpi network backend
         return RunBackendMpi(job_startpoint);
+#else
+        return RunNotSupported(env_net);
+#endif
+    }
+
+    if (strcmp(env_net, "ib") == 0) {
+#if THRILL_HAVE_NET_IB
+        // ib/mpi network backend
+        return RunBackendIb(job_startpoint);
 #else
         return RunNotSupported(env_net);
 #endif
