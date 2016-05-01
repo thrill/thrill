@@ -38,9 +38,17 @@ if(MPI_FOUND)
   file(GLOB NET_MPI_SRCS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/net/mpi/*.[ch]pp
-    ${CMAKE_CURRENT_SOURCE_DIR}/net/ib/*.[ch]pp
     )
   list(APPEND SRCS ${NET_MPI_SRCS})
+endif()
+
+# add net/ib if IB/MPI is wanted
+if(THRILL_USE_IB)
+  file(GLOB NET_IB_SRCS
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/net/ib/*.[ch]pp
+    )
+  list(APPEND SRCS ${NET_IB_SRCS})
 endif()
 
 add_library(thrill ${SRCS})
