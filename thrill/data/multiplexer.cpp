@@ -229,6 +229,14 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
     net::BufferReader br(buffer);
     header.ParseHeader(br);
 
+    LOG << "OnMultiplexerHeader() header"
+        << " magic=" << unsigned(header.magic)
+        << " size=" << header.size
+        << " num_items=" << header.num_items
+        << " first_item=" << header.first_item
+        << " typecode_verify=" << header.typecode_verify
+        << " stream_id=" << header.stream_id;
+
     // received stream id
     StreamId id = header.stream_id;
     size_t local_worker = header.receiver_local_worker;

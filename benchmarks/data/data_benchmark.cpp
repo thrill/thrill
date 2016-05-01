@@ -403,8 +403,10 @@ public:
         StatsTimerStart read_timer;
         {
             auto reader = stream->GetReader(consume_);
-            while (reader.HasNext())
-                reader.template Next<Type>();
+            while (reader.HasNext()) {
+                Type t = reader.template Next<Type>();
+                die_unless(data.Next() == t);
+            }
         }
         read_timer.Stop();
 
