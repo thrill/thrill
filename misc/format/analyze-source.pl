@@ -263,8 +263,12 @@ sub process_cpp {
     }
 
     # otherwise check license
+    my $license = "Published under the BSD-2 license in the LICENSE file.";
+    if ($path =~ m!^thrill/net/ib/!) {
+        $license = "Modifications NOT published as BSD-2.";
+    }
     expect($path, $i, @data, " *\n"); ++$i;
-    expectr($path, $i, @data, " * All rights reserved. Published under the BSD-2 license in the LICENSE file.\n", qr/^ \*/); ++$i;
+    expectr($path, $i, @data, " * All rights reserved. $license\n", qr/^ \*/); ++$i;
     expect($path, $i, @data, " ".('*'x78)."/\n"); ++$i;
 
     # check include guard name
@@ -762,7 +766,7 @@ foreach my $file (@filelist)
     elsif ($file =~ /^doc\/images\/.*\.svg$/) {
     }
     # recognize further files
-    elsif ($file =~ m!^\.git/!) {
+    elsif ($file =~ m!(^|/)\.git/!) {
     }
     elsif ($file =~ m!^misc/!) {
     }

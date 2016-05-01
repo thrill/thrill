@@ -38,6 +38,7 @@ if(MPI_FOUND)
   file(GLOB NET_MPI_SRCS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/net/mpi/*.[ch]pp
+    ${CMAKE_CURRENT_SOURCE_DIR}/net/ib/*.[ch]pp
     )
   list(APPEND SRCS ${NET_MPI_SRCS})
 endif()

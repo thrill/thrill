@@ -471,7 +471,7 @@ add_subdirectory(frontends)
 add_subdirectory(misc)
 
 ###############################################################################
-### cmake script THRILL_TRY_COMPILE_HEADERS to copmile all Thrill header files
+### cmake script THRILL_TRY_COMPILE_HEADERS to compile all Thrill header files
 
 if(THRILL_TRY_COMPILE_HEADERS)
 
