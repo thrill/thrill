@@ -259,6 +259,113 @@ public:
 
     //! \}
 
+    //! \name Paired SendReceive Methods
+    //! \{
+
+    //! Synchronous blocking sending and receive a message of given size. The
+    //! size must match the SyncSendRecv size for some network layers may only
+    //! support matching messages (read: RDMA!, but also true for the mock
+    //! net). Throws a net::Exception on errors.
+    virtual void SyncSendRecv(const void* send_data, size_t send_size,
+                              void* recv_data, size_t recv_size) = 0;
+
+    //! SendReceive any serializable POD item T.
+    template <typename T>
+    typename std::enable_if<std::is_pod<T>::value, void>::type
+    SendReceive(const T& value, T* out_value) {
+        if (self_verify_ && is_loopback_) {
+            // for communication verification, send/receive hash_code.
+            size_t send_hash_code = typeid(T).hash_code(), recv_hash_code;
+            SyncSendRecv(&send_hash_code, sizeof(send_hash_code),
+                         &recv_hash_code, sizeof(recv_hash_code));
+            if (recv_hash_code != typeid(T).hash_code()) {
+                throw std::runtime_error(
+                          "Connection::SendReceive() attempted to receive item "
+                          "with different typeid!");
+            }
+        }
+        // receive PODs directly into memory.
+        SyncSendRecv(&value, sizeof(value), out_value, sizeof(*out_value));
+    }
+
+    //! SendReceive any serializable non-POD fixed-length item T.
+    template <typename T>
+    typename std::enable_if<
+        !std::is_pod<T>::value&&
+        data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
+    SendReceive(const T& value, T* out_value) {
+        if (self_verify_ && is_loopback_) {
+            // for communication verification, send/receive hash_code.
+            size_t send_hash_code = typeid(T).hash_code(), recv_hash_code;
+            SyncSendRecv(&send_hash_code, sizeof(send_hash_code),
+                         &recv_hash_code, sizeof(recv_hash_code));
+            if (recv_hash_code != typeid(T).hash_code()) {
+                throw std::runtime_error(
+                          "Connection::SendReceive() attempted to receive item "
+                          "with different typeid!");
+            }
+        }
+
+        // fixed_size items can be sent/recv without size header
+        static constexpr size_t fixed_size
+            = data::Serialization<BufferBuilder, T>::fixed_size;
+        if (fixed_size < 2 * 1024 * 1024) {
+            // allocate buffer on stack (no allocation)
+            using FixedBuilder = FixedBufferBuilder<fixed_size>;
+            FixedBuilder sendb;
+            data::Serialization<FixedBuilder, T>::Serialize(value, sendb);
+            assert(sendb.size() == fixed_size);
+            std::array<uint8_t, fixed_size> recvb;
+            SyncSendRecv(sendb.data(), sendb.size(),
+                         recvb.data(), recvb.size());
+            BufferReader br(recvb.data(), recvb.size());
+            *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+        }
+        else {
+            // too big, use heap allocation
+            BufferBuilder sendb;
+            data::Serialization<BufferBuilder, T>::Serialize(value, sendb);
+            Buffer recvb(data::Serialization<BufferBuilder, T>::fixed_size);
+            SyncSendRecv(sendb.data(), sendb.size(),
+                         recvb.data(), recvb.size());
+            BufferReader br(recvb);
+            *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+        }
+    }
+
+    //! SendReceive any serializable non-POD fixed-length item T.
+    template <typename T>
+    typename std::enable_if<
+        !std::is_pod<T>::value&&
+        !data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
+    SendReceive(const T& value, T* out_value) {
+        if (self_verify_ && is_loopback_) {
+            // for communication verification, send/receive hash_code.
+            size_t send_hash_code = typeid(T).hash_code(), recv_hash_code;
+            SyncSendRecv(&send_hash_code, sizeof(send_hash_code),
+                         &recv_hash_code, sizeof(recv_hash_code));
+            if (recv_hash_code != typeid(T).hash_code()) {
+                throw std::runtime_error(
+                          "Connection::SendReceive() attempted to receive item "
+                          "with different typeid!");
+            }
+        }
+        // variable length items must be prefixed with size header
+        BufferBuilder sendb;
+        data::Serialization<BufferBuilder, T>::Serialize(value, sendb);
+        size_t send_size = sendb.size(), recv_size;
+        SyncSendRecv(&send_size, sizeof(send_size),
+                     &recv_size, sizeof(recv_size));
+        // receives message
+        Buffer recvb(recv_size);
+        SyncSendRecv(sendb.data(), sendb.size(),
+                     recvb.data(), recv_size);
+        BufferReader br(recvb);
+        *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+    }
+
+    //! \}
+
     //! \name Statistics
     //! {
 

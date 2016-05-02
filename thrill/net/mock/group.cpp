@@ -108,6 +108,12 @@ ssize_t Connection::RecvOne(void* out_data, size_t size) {
     return size;
 }
 
+void Connection::SyncSendRecv(const void* send_data, size_t send_size,
+                              void* recv_data, size_t recv_size) {
+    SyncSend(send_data, send_size, NoFlags);
+    SyncRecv(recv_data, recv_size);
+}
+
 /******************************************************************************/
 // mock::Group
 

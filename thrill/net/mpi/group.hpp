@@ -119,6 +119,14 @@ public:
 
     //! \}
 
+    //! \name Paired SendReceive Methods
+    //! \{
+
+    void SyncSendRecv(const void* send_data, size_t send_size,
+                      void* recv_data, size_t recv_size) final;
+
+    //! \}
+
 private:
     //! Group number used as MPI tag.
     int group_tag_;

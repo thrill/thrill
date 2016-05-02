@@ -182,7 +182,7 @@ void ExecuteGroupThreads(
     }
 }
 
-//! Construct a mock or tcp-lookback Group network and run a thread for each
+//! Construct a mock or tcp-loopback Group network and run a thread for each
 //! client. The selected network implementation is platform dependent and must
 //! run without further configuration.
 void RunLoopbackGroupTest(

@@ -358,17 +358,13 @@ void AllReduceHypercube(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()
         // communication peer for this round (hypercube dimension)
         size_t peer = net.my_host_rank() ^ d;
 
-        // Send value to worker with id id ^ d
+        // SendReceive value to worker with id id ^ d
         if (peer < net.num_hosts()) {
-            net.connection(peer).Send(value);
             // sLOG << "ALL_REDUCE_HYPERCUBE: Host" << net.my_host_rank()
             //      << ": Sending" << value << "to worker" << peer;
-        }
 
-        // Receive value from worker with id id ^ d
-        T recv_data;
-        if (peer < net.num_hosts()) {
-            net.connection(peer).Receive(&recv_data);
+            T recv_data;
+            net.connection(peer).SendReceive(value, &recv_data);
 
             // The order of addition is important. The total sum of the smaller
             // hypercube always comes first.
