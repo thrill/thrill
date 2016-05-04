@@ -578,7 +578,7 @@ public:
 
             t.Start();
             for (size_t inner = 0; inner < inner_repeats_; ++inner) {
-                // prefixsum a different value in each iteration
+                // allreduce a different value in each iteration
                 size_t value = inner + ctx.my_rank();
                 value = ctx.net.AllReduce(value);
                 size_t expected = (n + inner) * ((n + inner) - 1) / 2 - inner * (inner - 1) / 2;

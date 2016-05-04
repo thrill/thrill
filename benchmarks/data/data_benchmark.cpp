@@ -457,7 +457,7 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
 
         for (size_t inner_repeat = 0;
              inner_repeat < inner_repeats_; inner_repeat++) {
-            // perform 1-factor ping pongs (without barriers)
+            // perform 1-factor bandwidth stream
             for (size_t round = 0;
                  round < common::CalcOneFactorSize(ctx.num_workers()); ++round) {
 
@@ -506,7 +506,12 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
              << " total_time=" << timer;
     }
 
+    sLOG1 << "Worker" << ctx.my_rank() << "finished.";
+
     ctx.net.Barrier();
+
+    if (ctx.my_rank() == 0)
+        LOG1 << "All workers finished.";
 
     // reduce (add) matrix to root.
     bandwidth_write_ = ctx.net.AllReduce(bandwidth_write_);
