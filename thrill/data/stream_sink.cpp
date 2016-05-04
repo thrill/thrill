@@ -41,8 +41,16 @@ StreamSink::StreamSink(Stream& stream, BlockPool& block_pool,
         << "event" << "open"
         << "id" << id_
         << "peer_host" << peer_rank_
-        << "src_worker" << (host_rank_ * workers_per_host()) + local_worker_id_
-        << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_;
+        << "src_worker" << my_worker_rank()
+        << "tgt_worker" << peer_worker_rank();
+}
+
+size_t StreamSink::my_worker_rank() const {
+    return host_rank_ * workers_per_host() + local_worker_id_;
+}
+
+size_t StreamSink::peer_worker_rank() const {
+    return peer_rank_ * workers_per_host() + peer_local_worker_;
 }
 
 void StreamSink::AppendBlock(const Block& block) {
@@ -96,11 +104,11 @@ void StreamSink::Close() {
     for (size_t i = 0; i < num_queue_; ++i)
         sem_.wait();
 
-    sLOG << "sending 'close stream' from host_rank" << host_rank_
-         << "worker" << local_worker_id_
-         << "to" << peer_rank_
-         << "worker" << peer_local_worker_
-         << "id" << id_;
+    LOG << "sending 'close stream' id " << id_
+        << " from " << my_worker_rank()
+        << " (host " << host_rank_ << ")"
+        << " to " << peer_worker_rank()
+        << " (host " << peer_rank_ << ")";
 
     StreamMultiplexerHeader header;
     header.magic = magic_;
@@ -125,8 +133,8 @@ void StreamSink::Close() {
         << "event" << "close"
         << "id" << id_
         << "peer_host" << peer_rank_
-        << "src_worker" << (host_rank_ * workers_per_host()) + local_worker_id_
-        << "tgt_worker" << (peer_rank_ * workers_per_host()) + peer_local_worker_
+        << "src_worker" << my_worker_rank()
+        << "tgt_worker" << peer_worker_rank()
         << "items" << item_counter_
         << "bytes" << byte_counter_
         << "blocks" << block_counter_

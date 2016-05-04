@@ -77,6 +77,12 @@ public:
     //! nullptr).
     static constexpr bool allocate_can_fail_ = false;
 
+    //! return local worker rank
+    size_t my_worker_rank() const;
+
+    //! return remote worker rank
+    size_t peer_worker_rank() const;
+
 private:
     static constexpr bool debug = false;
 
