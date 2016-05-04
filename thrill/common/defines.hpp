@@ -70,6 +70,15 @@ namespace common {
 #endif
 
 /******************************************************************************/
+// __attribute__ ((always_inline))
+
+#if defined(__GNUC__) || defined(__clang__)
+#define THRILL_ATTRIBUTE_ALWAYS_INLINE __attribute__ ((always_inline))
+#else
+#define THRILL_ATTRIBUTE_ALWAYS_INLINE
+#endif
+
+/******************************************************************************/
 // UNUSED(variable)
 
 template <typename U>

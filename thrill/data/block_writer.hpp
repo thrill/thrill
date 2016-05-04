@@ -176,6 +176,7 @@ public:
     //! \{
 
     //! Mark beginning of an item.
+    THRILL_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& MarkItem() {
         if (current_ == end_)
             Flush(), AllocateBlock();
@@ -190,6 +191,7 @@ public:
 
     //! Put appends a complete item, or fails with a FullException.
     template <typename T>
+    THRILL_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& Put(const T& x) {
         assert(!closed_);
 
@@ -202,6 +204,7 @@ public:
     //! PutNoSelfVerify appends a complete item without any self
     //! verification information, or fails with a FullException.
     template <typename T>
+    THRILL_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& PutNoSelfVerify(const T& x) {
         assert(!closed_);
 
@@ -213,6 +216,7 @@ public:
 
     //! appends a complete item, or fails safely with a FullException.
     template <typename T, bool NoSelfVerify = false>
+    THRILL_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& PutSafe(const T& x) {
         assert(!closed_);
 
@@ -283,6 +287,7 @@ public:
 
     //! appends a complete item, or aborts with a FullException.
     template <typename T, bool NoSelfVerify = false>
+    THRILL_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& PutUnsafe(const T& x) {
         assert(!closed_);
 
