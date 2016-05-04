@@ -11,7 +11,7 @@
 ################################################################################
 
 # glob general sources
-file(GLOB SRCS
+file(GLOB THRILL_SRCS
   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/common/*.[ch]pp
@@ -26,32 +26,23 @@ file(GLOB SRCS
 
 # add net/tcp on all platforms except Windows
 if(NOT MSVC)
-  file(GLOB NET_TCP_SRCS
+  file(GLOB THRILL_NET_TCP_SRCS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/net/tcp/*.[ch]pp
-    )
-  list(APPEND SRCS ${NET_TCP_SRCS})
+    ${CMAKE_CURRENT_SOURCE_DIR}/net/tcp/*.[ch]pp)
+
+  list(APPEND THRILL_SRCS ${THRILL_NET_TCP_SRCS})
 endif()
 
 # add net/mpi if MPI is wanted
 if(MPI_FOUND)
-  file(GLOB NET_MPI_SRCS
+  file(GLOB THRILL_NET_MPI_SRCS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/net/mpi/*.[ch]pp
-    )
-  list(APPEND SRCS ${NET_MPI_SRCS})
+    ${CMAKE_CURRENT_SOURCE_DIR}/net/mpi/*.[ch]pp)
+
+  list(APPEND THRILL_SRCS ${THRILL_NET_MPI_SRCS})
 endif()
 
-# add net/ib if IB/MPI is wanted
-if(THRILL_USE_IB)
-  file(GLOB NET_IB_SRCS
-    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/net/ib/*.[ch]pp
-    )
-  list(APPEND SRCS ${NET_IB_SRCS})
-endif()
-
-add_library(thrill ${SRCS})
+add_library(thrill ${THRILL_SRCS})
 target_link_libraries(thrill ${THRILL_DEP_LIBRARIES})
 
 ################################################################################

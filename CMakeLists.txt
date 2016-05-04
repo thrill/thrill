@@ -384,28 +384,10 @@ if(THRILL_USE_MPI)
   endif()
 endif()
 
-# detect Infiniband/MPI net backend (optional)
+# build Infiniband/MPI net backend (optional)
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thrill/net/ib/group.cpp")
-  option(THRILL_USE_IB
-    "Use (optional) IB/MPI net backend." ON)
-
-  if(THRILL_USE_IB)
-    # compile with Infiniband/MPI net backend
-    if(NOT MPI_FOUND)
-      find_package(MPI REQUIRED)
-
-      include_directories(SYSTEM ${MPI_INCLUDE_PATH})
-      set(THRILL_DEP_LIBRARIES ${MPI_LIBRARIES} ${THRILL_DEP_LIBRARIES})
-      add_definitions(-DTHRILL_HAVE_NET_MPI=1)
-    endif()
-
-    find_package(IbVerbs REQUIRED)
-    include_directories(${IbVerbs_INCLUDE_DIRS})
-    set(THRILL_DEP_LIBRARIES ${IbVerbs_LIBRARIES} ${THRILL_DEP_LIBRARIES})
-
-    add_definitions(-DTHRILL_HAVE_NET_IB=1)
-  endif()
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thrill/net/ib/CMakeLists.txt")
+  include("${CMAKE_CURRENT_SOURCE_DIR}/thrill/net/ib/CMakeLists.txt")
 endif()
 
 # example: use Boost libraries:
