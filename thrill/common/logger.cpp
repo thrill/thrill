@@ -87,36 +87,47 @@ std::string GetNameForThisThread() {
 //! mutex for log output
 static std::mutex s_logger_mutex;
 
-//! constructor: if real = false the output is suppressed.
+void Logger::Output(const char* str) {
+    // lock the global mutex of logger for serialized output in
+    // multi-threaded programs.
+    std::unique_lock<std::mutex> lock(s_logger_mutex);
+    std::cout << str;
+}
+
+void Logger::Output(const std::string& str) {
+    // lock the global mutex of logger for serialized output in
+    // multi-threaded programs.
+    std::unique_lock<std::mutex> lock(s_logger_mutex);
+    std::cout << str;
+}
+
+void Logger::Output(const mem::safe_string& str) {
+    // lock the global mutex of logger for serialized output in
+    // multi-threaded programs.
+    std::unique_lock<std::mutex> lock(s_logger_mutex);
+    std::cout << str;
+}
+
 Logger::Logger() {
     oss_ << '[';
     FormatNameForThisThread(oss_);
     oss_ << "] ";
 }
 
-//! destructor: output a newline
 Logger::~Logger() {
     oss_ << '\n';
-    // lock the global mutex of logger for serialized output in
-    // multi-threaded programs.
-    std::unique_lock<std::mutex> lock(s_logger_mutex);
-    std::cout << oss_.str();
+    Output(oss_.str());
 }
 
-//! constructor: if real = false the output is suppressed.
 SpacingLogger::SpacingLogger() {
     oss_ << '[';
     FormatNameForThisThread(oss_);
     oss_ << "] ";
 }
 
-//! destructor: output a newline
 SpacingLogger::~SpacingLogger() {
     oss_ << '\n';
-    // lock the global mutex of logger for serialized output in
-    // multi-threaded programs.
-    std::unique_lock<std::mutex> lock(s_logger_mutex);
-    std::cout << oss_.str();
+    Logger::Output(oss_.str());
 }
 
 } // namespace common
