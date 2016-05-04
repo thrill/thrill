@@ -75,7 +75,7 @@ private:
     ssize_t remain_;
 
     // init randomness
-    std::default_random_engine randomness_ { std::random_device { } () };
+    std::default_random_engine randomness_ { 123456 };
     std::uniform_int_distribution<size_t> uniform_dist_;
 };
 

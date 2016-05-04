@@ -33,7 +33,7 @@ using common::StatsTimerStart;
 using common::StatsTimerStopped;
 
 using pair_type = std::tuple<std::string, size_t>;
-using triple_type = std::tuple<std::string, size_t, std::string>;
+using triple_type = std::tuple<size_t, size_t, size_t>;
 
 //! calculate MiB/s given byte size and microsecond time.
 double CalcMiBs(size_t bytes, const std::chrono::microseconds::rep& microsec) {
