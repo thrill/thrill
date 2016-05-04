@@ -99,7 +99,8 @@ void Connection::SyncSendRecv(const void* send_data, size_t send_size,
     assert(recv_size <= std::numeric_limits<int>::max());
 
     MPI_Status status;
-    int r = MPI_Sendrecv(send_data, static_cast<int>(send_size), MPI_BYTE,
+    int r = MPI_Sendrecv(const_cast<void*>(send_data),
+                         static_cast<int>(send_size), MPI_BYTE,
                          peer_, group_tag_,
                          recv_data, static_cast<int>(recv_size), MPI_BYTE,
                          peer_, group_tag_, MPI_COMM_WORLD, &status);
