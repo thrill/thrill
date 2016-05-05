@@ -258,7 +258,7 @@ public:
      * Execute DIA's scope and parents such that this (Action)Node is
      * Executed. This does not create a new DIA, but returns the existing one.
      */
-    DIA& Execute() {
+    const DIA& Execute() const {
         assert(IsValid());
         node_->RunScope();
         return *this;
