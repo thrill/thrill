@@ -381,7 +381,7 @@ void DIABase::RunScope() {
     LOG << "DIABase::Execute() this=" << *this;
 
     if (state_ == DIAState::EXECUTED) {
-        LOG1 << "DIA node " << *this << " was already executed.";
+        LOG << "DIA node " << *this << " was already executed.";
         return;
     }
 
