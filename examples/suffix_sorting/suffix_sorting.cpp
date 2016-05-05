@@ -182,6 +182,11 @@ public:
     template <typename Index, typename InputDIA>
     void StartInput(const InputDIA& input_dia, uint64_t input_size) const {
 
+        // generate or load input prior to starting timer
+        input_dia.Execute();
+
+        common::StatsTimerStart timer;
+
         DIA<Index> suffix_array;
         if (algorithm_ == "dc3") {
             suffix_array = DC3<Index>(input_dia.Keep(), input_size);
@@ -203,6 +208,17 @@ public:
         }
         else {
             suffix_array = PrefixDoubling<Index>(input_dia.Keep(), input_size, pack_input_);
+        }
+
+        suffix_array.Execute();
+        timer.Stop();
+
+        if (input_dia.context().my_rank() == 0) {
+            std::cerr << "RESULT"
+                      << " algo=" << algorithm_
+                      << " time=" << timer
+                      << (getenv("RESULT") ? getenv("RESULT") : "")
+                      << std::endl;
         }
 
         if (check_flag_) {
