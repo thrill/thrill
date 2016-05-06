@@ -79,6 +79,16 @@ namespace common {
 #endif
 
 /******************************************************************************/
+// __attribute__ ((format(printf, #, #))
+
+#if defined(__GNUC__) || defined(__clang__)
+#define THRILL_ATTRIBUTE_FORMAT_PRINTF(X, Y) \
+    __attribute__ ((format(printf, X, Y)))
+#else
+#define THRILL_ATTRIBUTE_FORMAT_PRINTF
+#endif
+
+/******************************************************************************/
 // UNUSED(variable)
 
 template <typename U>
