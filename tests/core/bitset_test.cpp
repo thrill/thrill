@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <thrill/common/logger.hpp>
 #include <thrill/core/distributed_bitset.hpp>
 
 TEST(DistributedBitset, Construct) {
@@ -20,7 +21,6 @@ TEST(DistributedBitset, Construct) {
 	size_t last_end;
 
 	for (size_t i = 0; i < cluster_size; ++i) {
-
 		thrill::core::DistributedBitset<bitset_size / cluster_size, cluster_size>
 			dbs_i(i, bitset_size);
 		if (i == 0) {
@@ -33,4 +33,23 @@ TEST(DistributedBitset, Construct) {
 		}
 		last_end = dbs_i.MyEnd();
 	}
+}
+
+TEST(DistributedBitset, AddManyElements) {
+
+	const size_t cluster_size = 32;
+	const size_t bitset_size = (1024 * 1024);
+	const size_t num_elements = 1024 * 64;
+
+	std::default_random_engine generator(std::random_device { } ());
+	std::uniform_int_distribution<size_t> distribution(0, 1024 * 1024 * 1024);
+
+	thrill::core::DistributedBitset<bitset_size / cluster_size, cluster_size>
+			dbs(0, bitset_size);
+	for (size_t i = 0; i < num_elements; ++i) {		
+		dbs.Add(distribution(generator));
+	}
+
+	ASSERT_LT(0, dbs.BitsSet());
+	ASSERT_LT(dbs.BitsSet(), num_elements + 1);
 }
