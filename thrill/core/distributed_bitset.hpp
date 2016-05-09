@@ -14,6 +14,7 @@
 #define THRILL_CORE_DISTRIBUTED_BITSET_HEADER
 
 #include <thrill/common/logger.hpp>
+#include <thrill/core/dynamic_bitset.hpp>
 
 #include <array>
 #include <bitset>
@@ -38,7 +39,8 @@ public:
 		: my_rank_(my_rank),
 		  bitset_size_(bitset_size),
 		  my_start_((bitset_size / NumParts) * my_rank),
-		  my_end_(((bitset_size / NumParts) * (my_rank + 1)) - 1) {
+		  my_end_(((bitset_size / NumParts) * (my_rank + 1)) - 1),
+		  golomb_bitset_(bitset_size * NumParts / sizeof (size_t), false, 8) {
 		assert(bitset_size % NumParts == 0);
 		assert(LocalBitsetSize == (my_end_ - my_start_ + 1));
 	}
@@ -73,6 +75,8 @@ private:
 	const size_t my_start_;
 	const size_t my_end_;
 	std::array<std::bitset<LocalBitsetSize>, NumParts> bitsets_;
+	DynamicBitset<size_t> golomb_bitset_;
+	
 };
 
 } // namespace core
