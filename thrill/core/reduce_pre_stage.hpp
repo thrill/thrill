@@ -155,11 +155,11 @@ public:
         table_.Initialize(limit_memory_bytes);
     }
 
-    void Insert(const Value& p) {
+    bool Insert(const Value& p) {
         return table_.Insert(p);
     }
 
-    void Insert(const KeyValuePair& kv) {
+    bool Insert(const KeyValuePair& kv) {
         return table_.Insert(kv);
     }
 

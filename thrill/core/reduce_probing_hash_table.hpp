@@ -172,9 +172,11 @@ public:
     /*!
      * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
      * inserts the pair via the Insert() function.
+	 *
+	 * \return true if a new key was inserted to the table
      */
-    void Insert(const Value& p) {
-        Insert(std::make_pair(key_extractor_(p), p));
+    bool Insert(const Value& p) {
+        return Insert(std::make_pair(key_extractor_(p), p));
     }
 
     /*!
@@ -190,8 +192,10 @@ public:
      * fill ratio per partition is reached.
      *
      * \param kv Value to be inserted into the table.
+	 *
+	 * \return true if a new key was inserted to the table
      */
-    void Insert(const KeyValuePair& kv) {
+    bool Insert(const KeyValuePair& kv) {
 
         while (mem::memory_exceeded && num_items_ != 0)
             SpillAnyPartition();
@@ -220,7 +224,7 @@ public:
             while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
                 SpillPartition(h.partition_id);
 
-            return;
+            return false;
         }
 
         // calculate local index depending on the current subtable's size
@@ -242,7 +246,7 @@ public:
 
                 iter->second = reduce_function_(iter->second, kv.second);
 
-                return;
+                return false;
             }
 
             ++iter;
@@ -267,6 +271,8 @@ public:
 
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
+
+		return true;
     }
 
     //! Deallocate items and memory
