@@ -12,6 +12,7 @@
 
 #include <thrill/common/logger.hpp>
 #include <thrill/core/distributed_bitset.hpp>
+#include <thrill/core/dynamic_bitset.hpp>
 
 TEST(DistributedBitset, Construct) {
 
@@ -52,4 +53,31 @@ TEST(DistributedBitset, AddManyElements) {
 
 	ASSERT_LT(0, dbs.BitsSet());
 	ASSERT_LT(dbs.BitsSet(), num_elements + 1);
+}
+
+TEST(DistributedBitset, GolombCoding) {
+
+	const size_t cluster_size = 1;
+	const size_t bitset_size = 1024 * 1024;
+	const size_t num_elements = 1024 * 64;
+
+	std::default_random_engine generator(std::random_device { } ());
+	std::uniform_int_distribution<size_t> distribution(0, 1024 * 1024 * 1024);
+
+	thrill::core::DistributedBitset<bitset_size / cluster_size, cluster_size>
+			dbs(0, bitset_size);
+	for (size_t i = 0; i < num_elements; ++i) {		
+		dbs.Add(distribution(generator));
+	}
+
+	thrill::core::DynamicBitset<size_t> bitset = dbs.Golombify(0);
+
+	std::bitset<bitset_size> degolombed = dbs.Degolombify(bitset);
+
+	std::bitset<bitset_size> non_golombed = dbs.Get(0);
+
+	for (size_t i = 0; i < bitset_size; ++i) {
+		ASSERT_EQ(degolombed[i], non_golombed[i]);
+	}
+	
 }

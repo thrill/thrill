@@ -25,7 +25,7 @@ private:
 	static const base mask = (((base)1) << logbase) - 1, all_set = ~((base)0), msb_set = ((base)1) << (bit_length - 1);
 
 	//TODO: set this.
-	static const size_t alignment = 0;
+    const int alignment = 64;
 
 	using index_type = size_t;
 	using byte = uint8_t;
@@ -66,7 +66,7 @@ public:
 
         ~DynamicBitset() {
             if (memory1 != NULL) {
-                delete[] memory1;
+				//   delete[] memory1;
             }
         }
         /* -------------------------------------------------------------------------------*/

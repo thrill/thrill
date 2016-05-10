@@ -68,6 +68,49 @@ public:
 		return bit_sum;
 	}
 
+    DynamicBitset<size_t> Golombify(const size_t& table_id) {
+		size_t fpr_parameter = 8;
+		size_t m = BitsSet();
+		size_t b = 8;//(size_t)(std::log10(2) * fpr_parameter);
+		size_t upper_space_bound = m * (2 + std::log2(fpr_parameter));
+
+		
+		DynamicBitset<size_t> golomb_code(upper_space_bound, false, b);
+
+		size_t num_hashes = 0;
+
+		golomb_bitset_.clear();
+		golomb_bitset_.seek(0);
+		size_t delta = 0;
+		for (size_t i = 0; i < bitsets_[table_id].size(); ++i) {
+			if (bitsets_[table_id][i] == 1) {
+				golomb_code.golomb_in(i - delta);
+				delta = i;
+				num_hashes++;
+			}
+		}
+
+		return golomb_code;
+	}
+
+	std::bitset<LocalBitsetSize> Degolombify(DynamicBitset<size_t> golomb_code) {
+		size_t num_hashes = BitsSet();
+		golomb_code.seek(0);
+		std::bitset<LocalBitsetSize> to_return;
+		size_t bit_used = 0;
+		size_t delta = 0;
+		for (size_t i = 0; i < num_hashes; ++i) {
+			delta = golomb_code.golomb_out();	
+			bit_used += delta;
+			to_return.set(bit_used);
+		}
+		return to_return;
+	}
+
+	std::bitset<LocalBitsetSize> Get(const size_t& table_id) {
+		return bitsets_[table_id];
+	}
+
 private:
 	
 	const worker_id my_rank_;
