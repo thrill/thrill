@@ -12,6 +12,7 @@
 #ifndef THRILL_CORE_DYNAMIC_BITSET_HEADER
 #define THRILL_CORE_DYNAMIC_BITSET_HEADER
 
+#include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <cmath>
 
@@ -46,18 +47,20 @@ public:
 		max_little_value((((base)1) << p) - b) {
 		n = _n;
 		m = n / (sizeof(base) * 8) + 1;
+		LOG1 << "ALLOCATING " << sizeof(base) * m + alignment << " BYTES OF MEMORY";
 		memory1 = new byte[sizeof(base) * m + alignment];
 		
 		v = new((void *)((((ptrdiff_t)memory1) & ~((ptrdiff_t)alignment - 1)) + alignment)) base[m];
 
-//             if (init)
-// #pragma vector always aligned
-//                 for (index_type i = 0; i < m; i++)
-//                     v[i] = all_set; //all bits set
-//             else
-// #pragma vector always aligned
-//                 for (index_type i = 0; i < m; i++)
-//                     v[i] = 0;
+		if (init){
+			for (index_type i = 0; i < m; i++) {
+				v[i] = all_set; //all bits set
+			}
+		} else {
+			for (index_type i = 0; i < m; i++) {
+				v[i] = 0;
+			}
+		} 
 
             pos = maxpos = 0;
             bits = 0;
@@ -65,8 +68,10 @@ public:
         }
 
         ~DynamicBitset() {
+			LOG1 << "do i delete too often?";
+			LOG1 << "mem: " << Getm();
             if (memory1 != NULL) {
-				//   delete[] memory1;
+				 delete[] memory1;
             }
         }
         /* -------------------------------------------------------------------------------*/
@@ -100,6 +105,10 @@ public:
         inline base *GetGolombData() const {
             return v;
         }
+
+	inline index_type ByteSize() const {
+		return byte_size();
+	}
 
 
         inline index_type size() const {
