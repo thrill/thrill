@@ -17,6 +17,8 @@
 #define THRILL_CORE_REDUCE_PRE_STAGE_HEADER
 
 #include <thrill/common/logger.hpp>
+#include <thrill/common/math.hpp>
+#include <thrill/core/dynamic_bitset.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_old_probing_hash_table.hpp>
@@ -137,6 +139,7 @@ public:
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
+		  key_extractor_(key_extractor),
           table_(ctx, dia_id,
                  key_extractor, reduce_function, emit_,
                  num_partitions, config, /* immediate_flush */ false,
@@ -155,16 +158,62 @@ public:
         table_.Initialize(limit_memory_bytes);
     }
 
-    bool Insert(const Value& p) {
-        return table_.Insert(p);
+	
+
+    void Insert(const Value& p) {
+		total_elements_++;
+		if (table_.Insert(p)) {
+			unique_elements_++;
+		    hashes_.push_back(std::hash<Key>()(key_extractor_(p)));
+		}
     }
 
-    bool Insert(const KeyValuePair& kv) {
-        return table_.Insert(kv);
+    void Insert(const KeyValuePair& kv) {
+		total_elements_++;
+        if(table_.Insert(kv)) {
+			unique_elements_++;
+			hashes_.push_back(std::hash<Key>()(kv.first));
+		}
     }
 
     //! Flush all partitions
     void FlushAll() {
+		
+		size_t upper_bound_uniques = table_.ctx().net.AllReduce(unique_elements_);
+
+		double fpr_parameter = 8;
+		size_t b = (size_t)(std::log(2) * fpr_parameter);
+		size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
+
+		size_t max_hash = upper_bound_uniques * fpr_parameter;
+
+		for (size_t i = 0; i < hashes_.size(); ++i) {
+			hashes_[i] = hashes_[i] % max_hash;
+		}
+		
+		std::sort(hashes_.begin(), hashes_.end());
+
+		size_t num_workers = table_.ctx().num_workers();
+
+		for (size_t i = 0; i < num_workers; ++i) {
+			common::Range range_i = common::CalculateLocalRange(max_hash, num_workers, i);
+
+			core::DynamicBitset<size_t>
+				golomb_code(upper_space_bound / num_workers, false, b);
+
+			golomb_code.clear();
+			golomb_code.seek(0);
+
+			size_t delta = 0;
+			for (size_t j = 0; j < hashes_.size() && hashes_[j] < range_i.end; ++j) {
+				if (hashes_[j] != delta) {
+					assert(hashes_[j] > delta);
+					golomb_code.golomb_in(hashes_[j] - delta);
+					delta = hashes_[j];
+				}
+			}
+		}
+		
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
             FlushPartition(id, /* consume */ true);
         }
@@ -200,6 +249,8 @@ public:
     //! Returns the total num of items in the table.
     size_t num_items() const { return table_.num_items(); }
 
+	std::vector<size_t> hashes_;
+
     //! calculate key range for the given output partition
     common::Range key_range(size_t partition_id)
     { return table_.key_range(partition_id); }
@@ -210,8 +261,14 @@ private:
     //! Emitters used to parameterize hash table for output to network.
     Emitter emit_;
 
+	//! extractor function which maps a value to it's key
+	KeyExtractor key_extractor_;
+
     //! the first-level hash table implementation
     Table table_;
+
+	size_t unique_elements_ = 0;
+	size_t total_elements_ = 0;
 };
 
 } // namespace core

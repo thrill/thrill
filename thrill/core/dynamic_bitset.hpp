@@ -46,7 +46,6 @@ public:
 		max_little_value((((base)1) << p) - b) {
 		n = _n;
 		m = n / (sizeof(base) * 8) + 1;
-		LOG1 << "ALLOCATING " << sizeof(base) * m + alignment << " BYTES OF MEMORY";
 		memory1 = new byte[sizeof(base) * m + alignment];
 		
 		v = new((void *)((((ptrdiff_t)memory1) & ~((ptrdiff_t)alignment - 1)) + alignment)) base[m];
