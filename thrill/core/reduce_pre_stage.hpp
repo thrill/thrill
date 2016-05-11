@@ -139,7 +139,7 @@ public:
         : emit_(emit),
           table_(ctx, dia_id,
                  key_extractor, reduce_function, emit_,
-                 num_partitions, config, /* immediate_flush */ true,
+                 num_partitions, config, /* immediate_flush */ false,
                  index_function, equal_to_function) {
         sLOG << "creating ReducePreStage with" << emit.size() << "output emitters";
 
@@ -174,6 +174,15 @@ public:
     void FlushPartition(size_t partition_id, bool consume) {
 
         table_.FlushPartition(partition_id, consume);
+
+		
+		if (table_.has_spilled_data_on_partition(partition_id)) {
+			data::File::Reader reader = 
+				table_.partition_files()[partition_id].GetReader(/* consume */ true);
+			while (reader.HasNext()) {
+				emit_.Emit(partition_id, reader.Next<KeyValuePair>());
+			}
+		}
 
         // flush elements pushed into emitter
         emit_.Flush(partition_id);
