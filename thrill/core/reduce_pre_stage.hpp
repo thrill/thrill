@@ -23,7 +23,9 @@
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_old_probing_hash_table.hpp>
 #include <thrill/core/reduce_probing_hash_table.hpp>
+#include <thrill/data/block_reader.hpp>
 #include <thrill/data/block_writer.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -194,6 +196,11 @@ public:
 		std::sort(hashes_.begin(), hashes_.end());
 
 		size_t num_workers = table_.ctx().num_workers();
+	
+		data::CatStreamPtr golomb_data_stream = table_.ctx().GetNewCatStream(table_.dia_id());
+
+		std::vector<data::CatStream::Writer> golomb_writers = 
+			golomb_data_stream->GetWriters();
 
 		for (size_t i = 0; i < num_workers; ++i) {
 			common::Range range_i = common::CalculateLocalRange(max_hash, num_workers, i);
@@ -214,11 +221,33 @@ public:
 					delta = hashes_[j];
 				}
 			}
+			golomb_code.flush();
+
+			golomb_writers[i].Put(golomb_code.byte_size());
+			golomb_writers[i].Append(golomb_code.GetGolombData(),
+									 golomb_code.byte_size());
+			golomb_writers[i].Close();
+		}
+
+		auto golomb_reader = golomb_data_stream->GetCatReader(/* consume */ true);
+
+		std::vector<size_t> hashes_out;
+		while (golomb_reader.HasNext()) {
+			size_t data_size = golomb_reader.template Next<size_t>();
+			//	LOG1 << data_size << " size";
+		    size_t* raw_data = new size_t[data_size / sizeof(size_t)];
+			golomb_reader.Read(raw_data, data_size);
+			//LOG1 << raw_data[0] << " data";
+			
+			core::DynamicBitset<size_t> golomb_code(raw_data, data_size, b);
+			golomb_code.seek(0);
+			hashes_out.push_back(golomb_code.golomb_out());
+			//LOG1 << hashes_out.back();
 		}
 		
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
             FlushPartition(id, /* consume */ true);
-        }
+		}
     }
 
     //! Flushes all items of a partition.

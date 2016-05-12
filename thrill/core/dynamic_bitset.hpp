@@ -220,6 +220,10 @@ public:
 		return (pos << logbase) + bits;
 	}
 
+	inline void flush() {
+		v[pos] = buffer;
+	}
+
 	inline void stream_in(short length, base value) {
 		assert(pos * 8 < n);
 		if (bits + length > bit_length) {
@@ -336,14 +340,15 @@ public:
 		return ((q * b) + r) + 1;
 	}
 
-	inline unsigned long long byte_size() const {
+	inline size_t byte_size() const {
 		if (maxpos > 0) {
 			return (maxpos * bit_length / 8) + common::IntegerDivRoundUp(bits, 8);
 		} else {
 			return common::IntegerDivRoundUp(bits, 8);
 		}
-
 	}
+
+	
 };
 
 } //namespace core
