@@ -221,6 +221,7 @@ public:
 	}
 
 	inline void stream_in(short length, base value) {
+		assert(pos * 8 < n);
 		if (bits + length > bit_length) {
 			int length_first = bit_length - bits, length_second = length - length_first;
 

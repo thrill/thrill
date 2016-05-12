@@ -198,13 +198,15 @@ public:
 		for (size_t i = 0; i < num_workers; ++i) {
 			common::Range range_i = common::CalculateLocalRange(max_hash, num_workers, i);
 
+			//TODO: Lower bound.
 			core::DynamicBitset<size_t>
-				golomb_code(upper_space_bound / num_workers, false, b);
+				golomb_code(upper_space_bound, false, b);
 
 			golomb_code.clear();
 			golomb_code.seek(0);
 
 			size_t delta = 0;
+
 			for (size_t j = 0; j < hashes_.size() && hashes_[j] < range_i.end; ++j) {
 				if (hashes_[j] != delta) {
 					assert(hashes_[j] > delta);
