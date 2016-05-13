@@ -202,6 +202,7 @@ public:
 		std::vector<data::CatStream::Writer> golomb_writers = 
 			golomb_data_stream->GetWriters();
 
+		size_t j = 0;
 		for (size_t i = 0; i < num_workers; ++i) {
 			common::Range range_i = common::CalculateLocalRange(max_hash, num_workers, i);
 
@@ -213,17 +214,21 @@ public:
 			golomb_code.seek(0);
 
 			size_t delta = 0;
+			size_t num_elements = 0;
 
-			for (size_t j = 0; j < hashes_.size() && hashes_[j] < range_i.end; ++j) {
-				if (hashes_[j] != delta) {
+			for (/*j is already set from previous workers*/
+				; j < hashes_.size() && hashes_[j] < range_i.end; ++j) {
+				if (hashes_[j] != delta || delta == 0) {
+					++num_elements;
 					assert(hashes_[j] > delta);
 					golomb_code.golomb_in(hashes_[j] - delta);
 					delta = hashes_[j];
 				}
 			}
-			golomb_code.flush();
+			golomb_code.seek();
 
 			golomb_writers[i].Put(golomb_code.byte_size());
+			golomb_writers[i].Put(num_elements);
 			golomb_writers[i].Append(golomb_code.GetGolombData(),
 									 golomb_code.byte_size());
 			golomb_writers[i].Close();
@@ -232,18 +237,87 @@ public:
 		auto golomb_reader = golomb_data_stream->GetCatReader(/* consume */ true);
 
 		std::vector<size_t> hashes_out;
-		while (golomb_reader.HasNext()) {
+	    while (golomb_reader.HasNext()) {
+
 			size_t data_size = golomb_reader.template Next<size_t>();
-			//	LOG1 << data_size << " size";
-		    size_t* raw_data = new size_t[data_size / sizeof(size_t)];
+			size_t num_elements = golomb_reader.template Next<size_t>();
+		    size_t* raw_data = new size_t[data_size / sizeof(size_t) + 1];
 			golomb_reader.Read(raw_data, data_size);
-			//LOG1 << raw_data[0] << " data";
 			
 			core::DynamicBitset<size_t> golomb_code(raw_data, data_size, b);
 			golomb_code.seek(0);
-			hashes_out.push_back(golomb_code.golomb_out());
-			//LOG1 << hashes_out.back();
+			size_t last = 0;
+			for (size_t i = 0; i < num_elements; ++i) {
+			    size_t new_elem = golomb_code.golomb_out() + last;
+				hashes_out.push_back(new_elem);
+				last = new_elem;
+			}
+			delete[] raw_data;
 		}
+
+		std::sort(hashes_out.begin(), hashes_out.end());
+
+		core::DynamicBitset<size_t>
+			golomb_code2(upper_space_bound, false, b);
+
+		golomb_code2.clear();
+		golomb_code2.seek(0);
+
+		size_t delta = 0;
+	    size_t num_elements = 0;
+
+		if (hashes_out.size()) {
+			for (size_t j = 0; j < hashes_out.size() - 1; ++j) {
+				if ((hashes_out[j] == hashes_out[j+1]) && (hashes_out[j] != delta || delta == 0)) {
+					assert(!(hashes_out[j] < delta));
+					golomb_code2.golomb_in(hashes_out[j] - delta);
+					delta = hashes_out[j];
+					++num_elements;
+				}
+			}
+		}
+
+		golomb_code2.seek();
+
+		
+		data::CatStreamPtr duplicates_stream = table_.ctx().GetNewCatStream(table_.dia_id());
+
+		std::vector<data::CatStream::Writer> duplicate_writers = 
+		    duplicates_stream->GetWriters();
+
+		for (size_t i = 0; i < duplicate_writers.size(); ++i) {
+			
+			duplicate_writers[i].Put(golomb_code2.byte_size());
+		    duplicate_writers[i].Put(num_elements);
+		    duplicate_writers[i].Append(golomb_code2.GetGolombData(),
+						  golomb_code2.byte_size());
+		    duplicate_writers[i].Close();
+		}
+
+		auto duplicate_reader = duplicates_stream->GetCatReader(/* consume */ true);
+
+		std::vector<size_t> duplicates;
+	    while (duplicate_reader.HasNext()) {
+
+			size_t data_size = duplicate_reader.template Next<size_t>();
+			size_t num_elements = duplicate_reader.template Next<size_t>();
+		    size_t* raw_data = new size_t[data_size / sizeof(size_t) + 1];
+		    duplicate_reader.Read(raw_data, data_size);
+			
+			core::DynamicBitset<size_t> duplicates_code(raw_data, data_size, b);
+		    duplicates_code.seek(0);
+			size_t last = 0;
+			for (size_t i = 0; i < num_elements; ++i) {
+			    size_t new_elem = duplicates_code.golomb_out() + last;
+			    duplicates.push_back(new_elem);
+				last = new_elem;
+			}
+			delete[] raw_data;
+		}
+
+		LOG1 << duplicates.size();
+		
+		
 		
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
             FlushPartition(id, /* consume */ true);
