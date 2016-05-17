@@ -196,8 +196,7 @@ public:
 			core::DynamicBitset<size_t>
 				golomb_code(space_bound, false, b);
 
-			golomb_code.clear();
-			golomb_code.seek(0);
+			golomb_code.seek();
 
 			size_t delta = 0;
 			size_t num_elements = 0;
@@ -211,17 +210,46 @@ public:
 				; j < hashes_.size() && hashes_[j] < range_i.end; ++j) {
 				if (hashes_[j] != delta) {
 					++num_elements;
+					LOG1 << "encoding" << hashes_[j];
 					golomb_code.golomb_in(hashes_[j] - delta);
 					delta = hashes_[j];
 				}
 			}
 			golomb_code.seek();
+			LOG1 << "out: " << golomb_code.GetGolombData()[0];
 
 		    writers[i].Put(golomb_code.byte_size());
 			writers[i].Put(num_elements);
 			writers[i].Append(golomb_code.GetGolombData(),
-									 golomb_code.byte_size());
-			writers[i].Close();
+							  golomb_code.byte_size()).Close();
+		}
+	}
+
+	void ReadEncodedHashesToVector(data::CatStreamPtr stream_pointer,
+								   std::vector<size_t>& target_vec,
+								   size_t b) {
+
+		auto reader = stream_pointer->GetCatReader(/* consume */ true);
+
+	    while (reader.HasNext()) {
+
+			size_t data_size = reader.template Next<size_t>();
+			size_t num_elements = reader.template Next<size_t>();
+		    size_t* raw_data = new size_t[data_size];
+		    reader.Read(raw_data, data_size);
+			
+			core::DynamicBitset<size_t> golomb_code(raw_data, data_size, b);
+			golomb_code.seek();
+			LOG1 << "raw: " << raw_data[0];
+			LOG1 << "in: " << golomb_code.GetGolombData()[0];
+			size_t last = 0;
+			for (size_t i = 0; i < num_elements; ++i) {
+			    size_t new_elem = golomb_code.golomb_out() + last;
+			    target_vec.push_back(new_elem);
+				last = new_elem;
+				LOG1 << "pushing " << new_elem;
+			}
+			delete[] raw_data;
 		}
 	}
 
@@ -241,61 +269,41 @@ public:
 		}
 		
 		std::sort(hashes_.begin(), hashes_.end());
-
-		size_t num_workers = table_.ctx().num_workers();
 	
 		data::CatStreamPtr golomb_data_stream = table_.ctx().GetNewCatStream(table_.dia_id());
 
 		WriteEncodedHashes(golomb_data_stream, b, max_hash, upper_space_bound);
 
-		auto golomb_reader = golomb_data_stream->GetCatReader(/* consume */ true);
+		std::vector<size_t> hashes_dups;
 
-		std::vector<size_t> hashes_out;
-	    while (golomb_reader.HasNext()) {
+		ReadEncodedHashesToVector(golomb_data_stream, hashes_dups, b);
 
-			size_t data_size = golomb_reader.template Next<size_t>();
-			size_t num_elements = golomb_reader.template Next<size_t>();
-		    size_t* raw_data = new size_t[data_size / sizeof(size_t) + 1];
-			golomb_reader.Read(raw_data, data_size);
-			
-			core::DynamicBitset<size_t> golomb_code(raw_data, data_size, b);
-			golomb_code.seek(0);
-			size_t last = 0;
-			for (size_t i = 0; i < num_elements; ++i) {
-			    size_t new_elem = golomb_code.golomb_out() + last;
-				hashes_out.push_back(new_elem);
-				last = new_elem;
-			}
-			delete[] raw_data;
-		}
-
-		std::sort(hashes_out.begin(), hashes_out.end());
+		std::sort(hashes_dups.begin(), hashes_dups.end());
 
 		core::DynamicBitset<size_t>
-			golomb_code2(upper_space_bound, false, b);
+		    duplicate_code(upper_space_bound, false, b);
 
-		golomb_code2.clear();
-		golomb_code2.seek(0);
+	    duplicate_code.seek(0);
 
 		size_t delta = 0;
 	    size_t num_elements = 0;
 
-		if (hashes_out.size()) {
-			if (hashes_out[0] == 0 && hashes_out[1] == 0) {
+		if (hashes_dups.size()) {
+			if (hashes_dups.size() >= 2 && hashes_dups[0] == 0 && hashes_dups[1] == 0) {
 				//case for duplicated 0, needs to be a special case as delta is 0 in the beginning
-				golomb_code2.golomb_in(0);
+				duplicate_code.golomb_in(0);
 				++num_elements;
 			}
-			for (size_t j = 0; j < hashes_out.size() - 1; ++j) {
-				if ((hashes_out[j] == hashes_out[j+1]) && (hashes_out[j] != delta)) {
-					golomb_code2.golomb_in(hashes_out[j] - delta);
-					delta = hashes_out[j];
+			for (size_t j = 0; j < hashes_dups.size() - 1; ++j) {
+				if ((hashes_dups[j] == hashes_dups[j+1]) && (hashes_dups[j] != delta)) {
+				    duplicate_code.golomb_in(hashes_dups[j] - delta);
+					delta = hashes_dups[j];
 					++num_elements;
 				}
 			}
 		}
 
-		golomb_code2.seek();
+	    duplicate_code.seek();
 
 		
 		data::CatStreamPtr duplicates_stream = table_.ctx().GetNewCatStream(table_.dia_id());
@@ -305,35 +313,22 @@ public:
 
 		for (size_t i = 0; i < duplicate_writers.size(); ++i) {
 			
-			duplicate_writers[i].Put(golomb_code2.byte_size());
+			duplicate_writers[i].Put(duplicate_code.byte_size());
 		    duplicate_writers[i].Put(num_elements);
-		    duplicate_writers[i].Append(golomb_code2.GetGolombData(),
-						  golomb_code2.byte_size());
+		    duplicate_writers[i].Append(duplicate_code.GetGolombData(),
+										duplicate_code.byte_size());
 		    duplicate_writers[i].Close();
 		}
 
-		auto duplicate_reader = duplicates_stream->GetCatReader(/* consume */ true);
-
 		std::vector<size_t> duplicates;
-	    while (duplicate_reader.HasNext()) {
 
-			size_t data_size = duplicate_reader.template Next<size_t>();
-			size_t num_elements = duplicate_reader.template Next<size_t>();
-		    size_t* raw_data = new size_t[data_size / sizeof(size_t) + 1];
-		    duplicate_reader.Read(raw_data, data_size);
-			
-			core::DynamicBitset<size_t> duplicates_code(raw_data, data_size, b);
-		    duplicates_code.seek(0);
-			size_t last = 0;
-			for (size_t i = 0; i < num_elements; ++i) {
-			    size_t new_elem = duplicates_code.golomb_out() + last;
-			    duplicates.push_back(new_elem);
-				last = new_elem;
-			}
-			delete[] raw_data;
-		}
+		ReadEncodedHashesToVector(duplicates_stream,
+								  duplicates,
+								  b);
 		
-		
+		/*if (duplicates.size()) {
+			LOG1 << duplicates.size() << " - first is " << duplicates[0];
+		}*/
 		
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
             FlushPartition(id, /* consume */ true);
