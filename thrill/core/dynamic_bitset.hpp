@@ -12,6 +12,7 @@
 #ifndef THRILL_CORE_DYNAMIC_BITSET_HEADER
 #define THRILL_CORE_DYNAMIC_BITSET_HEADER
 
+#include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <cmath>
@@ -35,6 +36,9 @@ private:
 	base *v;
 	byte *memory1;
 
+	bool in_called_already;
+	bool out_called_already;
+
 	const base b;
 	const int p;
 	const base max_little_value;
@@ -47,6 +51,8 @@ public:
 		n = _n;
 		m = n / (sizeof(base) * 8) + 1;
 		memory1 = new byte[sizeof(base) * m + alignment];
+		in_called_already = false;
+		out_called_already = false;
 		
 		v = new((void *)((((ptrdiff_t)memory1) & ~((ptrdiff_t)alignment - 1)) + alignment)) base[m];
 
@@ -82,6 +88,8 @@ public:
 		pos = maxpos = 0;
 		bits = 0;
 		buffer = 0;
+		in_called_already = false;
+		out_called_already = false;
 	}
 
 	inline index_type Getm() {
@@ -220,9 +228,9 @@ public:
 		return (pos << logbase) + bits;
 	}
 
-	inline void flush() {
+	/*inline void flush() {
 		v[pos] = buffer;
-	}
+		}*/
 
 	inline void stream_in(short length, base value) {
 		assert(pos * 8 < n);
@@ -307,7 +315,11 @@ public:
 	}
 
 	inline void golomb_in(base value) {
-		value--;
+		if (THRILL_LIKELY(in_called_already)) {
+			value--;
+		}
+		in_called_already = true;
+		
 		base q = value / b;
 		base r = value - q * b;
 
@@ -337,8 +349,13 @@ public:
 		if (r >= max_little_value)
 			r = ((r << 1) + stream_out(1)) - max_little_value;
 
-		return ((q * b) + r) + 1;
-	}
+		if (THRILL_LIKELY(out_called_already)) {
+			return ((q * b) + r) + 1;
+		} else {
+			out_called_already = true;
+			return ((q * b) + r);
+		}
+	} 
 
 	inline size_t byte_size() const {
 		if (maxpos > 0) {

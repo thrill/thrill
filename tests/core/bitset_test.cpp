@@ -14,48 +14,9 @@
 #include <thrill/core/distributed_bitset.hpp>
 #include <thrill/core/dynamic_bitset.hpp>
 
-TEST(DistributedBitset, Construct) {
+#include <cmath>
 
-	const size_t cluster_size = 32;
-	const size_t bitset_size = (1024 * 1024);
-
-	size_t last_end;
-
-	for (size_t i = 0; i < cluster_size; ++i) {
-		thrill::core::DistributedBitset<bitset_size / cluster_size, cluster_size>
-			dbs_i(i, bitset_size);
-		if (i == 0) {
-			ASSERT_EQ(dbs_i.MyStart(), (size_t) 0);
-		} else {
-			ASSERT_EQ(dbs_i.MyStart(), last_end + 1);
-		}
-		if (i == cluster_size - 1) {
-			ASSERT_EQ(dbs_i.MyEnd(), bitset_size - 1);
-		}
-		last_end = dbs_i.MyEnd();
-	}
-}
-
-TEST(DistributedBitset, AddManyElements) {
-
-	const size_t cluster_size = 32;
-	const size_t bitset_size = (1024 * 1024);
-	const size_t num_elements = 1024 * 64;
-
-	std::default_random_engine generator(std::random_device { } ());
-	std::uniform_int_distribution<size_t> distribution(0, 1024 * 1024 * 1024);
-
-	thrill::core::DistributedBitset<bitset_size / cluster_size, cluster_size>
-			dbs(0, bitset_size);
-	for (size_t i = 0; i < num_elements; ++i) {		
-		dbs.Add(distribution(generator));
-	}
-
-	ASSERT_LT(0, dbs.BitsSet());
-	ASSERT_LT(dbs.BitsSet(), num_elements + 1);
-}
-
-TEST(DistributedBitset, GolombCoding) {
+TEST(DynamicBitset, GolombCoding) {
 
 	const size_t cluster_size = 1;
 	const size_t bitset_size = 1024 * 1024;
@@ -66,7 +27,8 @@ TEST(DistributedBitset, GolombCoding) {
 
 	thrill::core::DistributedBitset<bitset_size / cluster_size, cluster_size>
 			dbs(0, bitset_size);
-	for (size_t i = 0; i < num_elements; ++i) {		
+	dbs.Add(0);
+	for (size_t i = 1; i < num_elements; ++i) {		
 		dbs.Add(distribution(generator));
 	}
 
@@ -80,4 +42,25 @@ TEST(DistributedBitset, GolombCoding) {
 		ASSERT_EQ(degolombed[i], non_golombed[i]);
 	}
 	
+}
+
+TEST(DynamicBitset, KnownData) {
+	size_t elements = 1000;
+	double fpr_parameter = 8;
+	size_t space_bound = elements * (2 + std::log2(fpr_parameter));
+	size_t b = (size_t)(std::log(2) * fpr_parameter);
+
+	thrill::core::DynamicBitset<size_t> golomb_coder(space_bound, false, b);
+
+	golomb_coder.golomb_in(0);
+	for (size_t i = 0; i < elements; ++i) {
+		golomb_coder.golomb_in((i % 20) + 1);
+	}
+
+	golomb_coder.seek();
+
+	ASSERT_EQ(0, golomb_coder.golomb_out());
+	for (size_t i = 0; i < elements; ++i) {
+		ASSERT_EQ((i % 20) + 1, golomb_coder.golomb_out());
+	}
 }
