@@ -178,6 +178,53 @@ public:
 		}
     }
 
+	void WriteEncodedHashes(data::CatStreamPtr stream_pointer,
+							size_t b,
+							size_t max_hash,
+							size_t space_bound) {
+
+		size_t num_workers = table_.ctx().num_workers();
+
+		std::vector<data::CatStream::Writer> writers = 
+			stream_pointer->GetWriters();
+
+		size_t j = 0;
+		for (size_t i = 0; i < num_workers; ++i) {
+			common::Range range_i = common::CalculateLocalRange(max_hash, num_workers, i);
+
+			//TODO: Lower bound.
+			core::DynamicBitset<size_t>
+				golomb_code(space_bound, false, b);
+
+			golomb_code.clear();
+			golomb_code.seek(0);
+
+			size_t delta = 0;
+			size_t num_elements = 0;
+
+			if (j < hashes_.size() && hashes_[j] == 0) {
+				golomb_code.golomb_in(0);
+				++num_elements;
+				++j;
+			}
+			for (/*j is already set from previous workers*/
+				; j < hashes_.size() && hashes_[j] < range_i.end; ++j) {
+				if (hashes_[j] != delta) {
+					++num_elements;
+					golomb_code.golomb_in(hashes_[j] - delta);
+					delta = hashes_[j];
+				}
+			}
+			golomb_code.seek();
+
+		    writers[i].Put(golomb_code.byte_size());
+			writers[i].Put(num_elements);
+			writers[i].Append(golomb_code.GetGolombData(),
+									 golomb_code.byte_size());
+			writers[i].Close();
+		}
+	}
+
     //! Flush all partitions
     void FlushAll() {
 		
@@ -199,40 +246,7 @@ public:
 	
 		data::CatStreamPtr golomb_data_stream = table_.ctx().GetNewCatStream(table_.dia_id());
 
-		std::vector<data::CatStream::Writer> golomb_writers = 
-			golomb_data_stream->GetWriters();
-
-		size_t j = 0;
-		for (size_t i = 0; i < num_workers; ++i) {
-			common::Range range_i = common::CalculateLocalRange(max_hash, num_workers, i);
-
-			//TODO: Lower bound.
-			core::DynamicBitset<size_t>
-				golomb_code(upper_space_bound, false, b);
-
-			golomb_code.clear();
-			golomb_code.seek(0);
-
-			size_t delta = 0;
-			size_t num_elements = 0;
-
-			for (/*j is already set from previous workers*/
-				; j < hashes_.size() && hashes_[j] < range_i.end; ++j) {
-				if (hashes_[j] != delta || delta == 0) {
-					++num_elements;
-					assert(hashes_[j] > delta);
-					golomb_code.golomb_in(hashes_[j] - delta);
-					delta = hashes_[j];
-				}
-			}
-			golomb_code.seek();
-
-			golomb_writers[i].Put(golomb_code.byte_size());
-			golomb_writers[i].Put(num_elements);
-			golomb_writers[i].Append(golomb_code.GetGolombData(),
-									 golomb_code.byte_size());
-			golomb_writers[i].Close();
-		}
+		WriteEncodedHashes(golomb_data_stream, b, max_hash, upper_space_bound);
 
 		auto golomb_reader = golomb_data_stream->GetCatReader(/* consume */ true);
 
@@ -267,9 +281,13 @@ public:
 	    size_t num_elements = 0;
 
 		if (hashes_out.size()) {
+			if (hashes_out[0] == 0 && hashes_out[1] == 0) {
+				//case for duplicated 0, needs to be a special case as delta is 0 in the beginning
+				golomb_code2.golomb_in(0);
+				++num_elements;
+			}
 			for (size_t j = 0; j < hashes_out.size() - 1; ++j) {
-				if ((hashes_out[j] == hashes_out[j+1]) && (hashes_out[j] != delta || delta == 0)) {
-					assert(!(hashes_out[j] < delta));
+				if ((hashes_out[j] == hashes_out[j+1]) && (hashes_out[j] != delta)) {
 					golomb_code2.golomb_in(hashes_out[j] - delta);
 					delta = hashes_out[j];
 					++num_elements;
@@ -314,8 +332,6 @@ public:
 			}
 			delete[] raw_data;
 		}
-
-		LOG1 << duplicates.size();
 		
 		
 		

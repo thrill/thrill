@@ -207,6 +207,7 @@ public:
         assert(h.partition_id < num_partitions_);
 
         if (kv.first == Key()) {
+			bool new_unique = false;
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
             KeyValuePair& sentinel = items_[num_buckets_];
@@ -214,6 +215,7 @@ public:
                 // first occurrence of sentinel key
                 new (&sentinel)KeyValuePair(kv);
                 sentinel_partition_ = h.partition_id;
+				new_unique = true;
             }
             else {
                 sentinel.second = reduce_function_(sentinel.second, kv.second);
@@ -224,7 +226,7 @@ public:
             while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
                 SpillPartition(h.partition_id);
 
-            return false;
+            return new_unique;
         }
 
         // calculate local index depending on the current subtable's size

@@ -15,6 +15,8 @@
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 
+#include <thrill/common/logger.hpp>
+
 #include <algorithm>
 #include <string>
 #include <utility>
@@ -24,7 +26,7 @@ using namespace thrill; // NOLINT
 
 TEST(ReduceNode, ReduceModulo2CorrectResults) {
 
-    auto start_func =
+	auto start_func =
         [](Context& ctx) {
 
             auto integers = Generate(
@@ -58,7 +60,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
             ASSERT_EQ((size_t)2, out_vec.size());
         };
 
-    api::RunLocalTests(start_func);
+	api::RunLocalTests(start_func);
 }
 
 //! Test sums of integers 0..n-1 for n=100 in 1000 buckets in the reduce table
