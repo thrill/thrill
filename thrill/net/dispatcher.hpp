@@ -43,7 +43,7 @@ using TimerCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
 //! Signature of async connection readability/writability callbacks.
 using AsyncCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
 
-//! Signature of async read callbacks.
+//! Signature of async read Buffer callbacks.
 using AsyncReadBufferCallback = common::Delegate<
           void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
@@ -55,6 +55,309 @@ using AsyncReadByteBlockCallback = common::Delegate<
 //! Signature of async write callbacks.
 using AsyncWriteCallback = common::Delegate<
           void(Connection&), mem::GPoolAllocator<char> >;
+
+/******************************************************************************/
+
+class AsyncReadBuffer
+{
+public:
+    //! Construct buffered reader with callback
+    AsyncReadBuffer(Connection& conn,
+                    size_t buffer_size, const AsyncReadBufferCallback& callback)
+        : conn_(&conn),
+          buffer_(buffer_size),
+          callback_(callback)
+    { }
+
+    //! Should be called when the socket is readable
+    bool operator () () {
+        ssize_t r = conn_->RecvOne(
+            buffer_.data() + read_size_, buffer_.size() - read_size_);
+
+        if (r <= 0) {
+            // these errors are acceptable: just redo the recv later.
+            if (errno == EINTR || errno == EAGAIN) return true;
+
+            // signal artificial IsDone, for clean up.
+            read_size_ = buffer_.size();
+
+            // these errors are end-of-file indications (both good and bad)
+            if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
+                if (callback_) callback_(*conn_, Buffer());
+                return false;
+            }
+            throw Exception("AsyncReadBuffer() error in recv() on "
+                            "connection " + conn_->ToString(), errno);
+        }
+
+        read_size_ += r;
+
+        if (read_size_ == buffer_.size()) {
+            DoCallback();
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    bool IsDone() const { return read_size_ == buffer_.size(); }
+
+    //! reference to Buffer
+    Buffer& buffer() { return buffer_; }
+
+    void DoCallback() {
+        if (callback_) callback_(*conn_, std::move(buffer_));
+    }
+
+    //! underlying buffer pointer
+    uint8_t * data() { return buffer_.data(); }
+
+    //! underlying buffer pointer
+    const uint8_t * data() const { return buffer_.data(); }
+
+    //! underlying buffer size
+    size_t size() const { return buffer_.size(); }
+
+private:
+    //! Connection reference
+    Connection* conn_;
+
+    //! Receive buffer (allocates memory)
+    Buffer buffer_;
+
+    //! total size currently read
+    size_t read_size_ = 0;
+
+    //! functional object to call once data is complete
+    AsyncReadBufferCallback callback_;
+};
+
+/******************************************************************************/
+
+class AsyncWriteBuffer
+{
+public:
+    //! Construct buffered writer with callback
+    AsyncWriteBuffer(Connection& conn,
+                     Buffer&& buffer,
+                     const AsyncWriteCallback& callback)
+        : conn_(&conn),
+          buffer_(std::move(buffer)),
+          callback_(callback)
+    { }
+
+    //! Should be called when the socket is writable
+    bool operator () () {
+        ssize_t r = conn_->SendOne(
+            buffer_.data() + write_size_, buffer_.size() - write_size_);
+
+        if (r <= 0) {
+            if (errno == EINTR || errno == EAGAIN) return true;
+
+            // signal artificial IsDone, for clean up.
+            write_size_ = buffer_.size();
+
+            if (errno == EPIPE) {
+                LOG1 << "AsyncWriteBuffer() got SIGPIPE";
+                DoCallback();
+                return false;
+            }
+            throw Exception("AsyncWriteBuffer() error in send", errno);
+        }
+
+        write_size_ += r;
+
+        if (write_size_ == buffer_.size()) {
+            DoCallback();
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    bool IsDone() const { return write_size_ == buffer_.size(); }
+
+    void DoCallback() {
+        if (callback_) callback_(*conn_);
+    }
+
+    //! underlying buffer pointer
+    const uint8_t * data() const { return buffer_.data(); }
+
+    //! underlying buffer size
+    size_t size() const { return buffer_.size(); }
+
+private:
+    //! Connection reference
+    Connection* conn_;
+
+    //! Send buffer (owned by this writer)
+    Buffer buffer_;
+
+    //! total size currently written
+    size_t write_size_ = 0;
+
+    //! functional object to call once data is complete
+    AsyncWriteCallback callback_;
+};
+
+/******************************************************************************/
+
+class AsyncReadByteBlock
+{
+public:
+    //! Construct block reader with callback
+    AsyncReadByteBlock(Connection& conn, size_t size,
+                       data::PinnedByteBlockPtr&& block,
+                       const AsyncReadByteBlockCallback& callback)
+        : conn_(&conn),
+          block_(std::move(block)),
+          size_(size),
+          callback_(callback)
+    { }
+
+    //! Should be called when the socket is readable
+    bool operator () () {
+        ssize_t r = conn_->RecvOne(
+            block_->data() + pos_, size_ - pos_);
+
+        if (r <= 0) {
+            // these errors are acceptable: just redo the recv later.
+            if (errno == EINTR || errno == EAGAIN) return true;
+
+            // signal artificial IsDone, for clean up.
+            pos_ = size_;
+
+            // these errors are end-of-file indications (both good and bad)
+            if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
+                DoCallback();
+                return false;
+            }
+            throw Exception("AsyncReadBlock() error in recv", errno);
+        }
+
+        pos_ += r;
+
+        if (pos_ == size_) {
+            DoCallback();
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    bool IsDone() const {
+        // done if block is already delivered to callback or size matches
+        return !block_ || pos_ == size_;
+    }
+
+    data::PinnedByteBlockPtr& byte_block() { return block_; }
+
+    void DoCallback() {
+        if (callback_) callback_(*conn_, std::move(block_));
+    }
+
+    //! underlying buffer pointer
+    uint8_t * data() { return block_->data(); }
+
+    //! underlying buffer pointer
+    const uint8_t * data() const { return block_->data(); }
+
+    //! underlying buffer size
+    size_t size() const { return size_; }
+
+private:
+    //! Connection reference
+    Connection* conn_;
+
+    //! Receive block, holds a pin on the memory.
+    data::PinnedByteBlockPtr block_;
+
+    //! size currently read
+    size_t pos_ = 0;
+
+    //! total size to read
+    size_t size_;
+
+    //! functional object to call once data is complete
+    AsyncReadByteBlockCallback callback_;
+};
+
+/******************************************************************************/
+
+class AsyncWriteBlock
+{
+public:
+    //! Construct block writer with callback
+    AsyncWriteBlock(Connection& conn,
+                    data::PinnedBlock&& block,
+                    const AsyncWriteCallback& callback)
+        : conn_(&conn),
+          block_(std::move(block)),
+          callback_(callback)
+    { }
+
+    //! Should be called when the socket is writable
+    bool operator () () {
+        ssize_t r = conn_->SendOne(
+            block_.data_begin() + written_size_,
+            block_.size() - written_size_);
+
+        if (r <= 0) {
+            if (errno == EINTR || errno == EAGAIN) return true;
+
+            // signal artificial IsDone, for clean up.
+            written_size_ = block_.size();
+
+            if (errno == EPIPE) {
+                LOG1 << "AsyncWriteBlock() got SIGPIPE";
+                DoCallback();
+                return false;
+            }
+            throw Exception("AsyncWriteBlock() error in send", errno);
+        }
+
+        written_size_ += r;
+
+        if (written_size_ == block_.size()) {
+            DoCallback();
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    bool IsDone() const { return written_size_ == block_.size(); }
+
+    void DoCallback() {
+        if (callback_) callback_(*conn_);
+    }
+
+    //! underlying buffer pointer
+    const uint8_t * data() const { return block_.data_begin(); }
+
+    //! underlying buffer size
+    size_t size() const { return block_.size(); }
+
+private:
+    //! Connection reference
+    Connection* conn_;
+
+    //! Send block (holds a pin on the underlying ByteBlock)
+    data::PinnedBlock block_;
+
+    //! total size currently written
+    size_t written_size_ = 0;
+
+    //! functional object to call once data is complete
+    AsyncWriteCallback callback_;
+};
+
+/******************************************************************************/
 
 /*!
  * Dispatcher is a high level wrapper for asynchronous callback processing.. One
@@ -120,18 +423,18 @@ public:
     //! \{
 
     //! asynchronously read n bytes and deliver them to the callback
-    virtual void AsyncRead(Connection& c, size_t n,
+    virtual void AsyncRead(Connection& c, size_t size,
                            const AsyncReadBufferCallback& done_cb) {
         assert(c.IsValid());
 
         LOG << "async read on read dispatcher";
-        if (n == 0) {
+        if (size == 0) {
             if (done_cb) done_cb(c, Buffer());
             return;
         }
 
         // add new async reader object
-        async_read_.emplace_back(c, n, done_cb);
+        async_read_.emplace_back(c, size, done_cb);
 
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
@@ -140,7 +443,7 @@ public:
     }
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
-    virtual void AsyncRead(Connection& c, size_t n,
+    virtual void AsyncRead(Connection& c, size_t size,
                            data::PinnedByteBlockPtr&& block,
                            const AsyncReadByteBlockCallback& done_cb) {
         assert(c.IsValid());
@@ -152,7 +455,7 @@ public:
         }
 
         // add new async reader object
-        async_read_block_.emplace_back(c, n, std::move(block), done_cb);
+        async_read_block_.emplace_back(c, size, std::move(block), done_cb);
 
         // register read callback
         AsyncReadByteBlock& arbb = async_read_block_.back();
@@ -408,221 +711,17 @@ protected:
     std::deque<AsyncReadBuffer,
                mem::GPoolAllocator<AsyncReadBuffer> > async_read_;
 
-    /**************************************************************************/
-
-    class AsyncWriteBuffer
-    {
-    public:
-        //! Construct buffered writer with callback
-        AsyncWriteBuffer(Connection& conn,
-                         Buffer&& buffer,
-                         const AsyncWriteCallback& callback)
-            : conn_(&conn),
-              buffer_(std::move(buffer)),
-              callback_(callback)
-        { }
-
-        //! Should be called when the socket is writable
-        bool operator () () {
-            ssize_t r = conn_->SendOne(
-                buffer_.data() + size_, buffer_.size() - size_);
-
-            if (r <= 0) {
-                if (errno == EINTR || errno == EAGAIN) return true;
-
-                // signal artificial IsDone, for clean up.
-                size_ = buffer_.size();
-
-                if (errno == EPIPE) {
-                    LOG1 << "AsyncWriteBuffer() got SIGPIPE";
-                    DoCallback();
-                    return false;
-                }
-                throw Exception("AsyncWriteBuffer() error in send", errno);
-            }
-
-            size_ += r;
-
-            if (size_ == buffer_.size()) {
-                DoCallback();
-                return false;
-            }
-            else {
-                return true;
-            }
-        }
-
-        bool IsDone() const { return size_ == buffer_.size(); }
-
-        void DoCallback() {
-            if (callback_) callback_(*conn_);
-        }
-
-    private:
-        //! Connection reference
-        Connection* conn_;
-
-        //! Send buffer (owned by this writer)
-        Buffer buffer_;
-
-        //! total size currently written
-        size_t size_ = 0;
-
-        //! functional object to call once data is complete
-        AsyncWriteCallback callback_;
-    };
-
     //! deque of asynchronous writers
     std::deque<AsyncWriteBuffer,
                mem::GPoolAllocator<AsyncWriteBuffer> > async_write_;
-
-    /**************************************************************************/
-
-    class AsyncReadByteBlock
-    {
-    public:
-        //! Construct block reader with callback
-        AsyncReadByteBlock(Connection& conn, size_t size,
-                           data::PinnedByteBlockPtr&& block,
-                           const AsyncReadByteBlockCallback& callback)
-            : conn_(&conn),
-              block_(std::move(block)),
-              size_(size),
-              callback_(callback)
-        { }
-
-        //! Should be called when the socket is readable
-        bool operator () () {
-            ssize_t r = conn_->RecvOne(
-                block_->data() + pos_, size_ - pos_);
-
-            if (r <= 0) {
-                // these errors are acceptable: just redo the recv later.
-                if (errno == EINTR || errno == EAGAIN) return true;
-
-                // signal artificial IsDone, for clean up.
-                pos_ = size_;
-
-                // these errors are end-of-file indications (both good and bad)
-                if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
-                    DoCallback();
-                    return false;
-                }
-                throw Exception("AsyncReadBlock() error in recv", errno);
-            }
-
-            pos_ += r;
-
-            if (pos_ == size_) {
-                DoCallback();
-                return false;
-            }
-            else {
-                return true;
-            }
-        }
-
-        bool IsDone() const {
-            // done if block is already delivered to callback or size matches
-            return !block_ || pos_ == size_;
-        }
-
-        data::PinnedByteBlockPtr& byte_block() { return block_; }
-
-        void DoCallback() {
-            if (callback_) callback_(*conn_, std::move(block_));
-        }
-
-    private:
-        //! Connection reference
-        Connection* conn_;
-
-        //! Receive block, holds a pin on the memory.
-        data::PinnedByteBlockPtr block_;
-
-        //! size currently read
-        size_t pos_ = 0;
-
-        //! total size to read
-        size_t size_;
-
-        //! functional object to call once data is complete
-        AsyncReadByteBlockCallback callback_;
-    };
 
     //! deque of asynchronous readers
     std::deque<AsyncReadByteBlock,
                mem::GPoolAllocator<AsyncReadByteBlock> > async_read_block_;
 
-    /**************************************************************************/
-
-    class AsyncWriteBlock
-    {
-    public:
-        //! Construct block writer with callback
-        AsyncWriteBlock(Connection& conn,
-                        data::PinnedBlock&& block,
-                        const AsyncWriteCallback& callback)
-            : conn_(&conn),
-              block_(std::move(block)),
-              callback_(callback)
-        { }
-
-        //! Should be called when the socket is writable
-        bool operator () () {
-            ssize_t r = conn_->SendOne(
-                block_.data_begin() + size_, block_.size() - size_);
-
-            if (r <= 0) {
-                if (errno == EINTR || errno == EAGAIN) return true;
-
-                // signal artificial IsDone, for clean up.
-                size_ = block_.size();
-
-                if (errno == EPIPE) {
-                    LOG1 << "AsyncWriteBlock() got SIGPIPE";
-                    DoCallback();
-                    return false;
-                }
-                throw Exception("AsyncWriteBlock() error in send", errno);
-            }
-
-            size_ += r;
-
-            if (size_ == block_.size()) {
-                DoCallback();
-                return false;
-            }
-            else {
-                return true;
-            }
-        }
-
-        bool IsDone() const { return size_ == block_.size(); }
-
-        void DoCallback() {
-            if (callback_) callback_(*conn_);
-        }
-
-    private:
-        //! Connection reference
-        Connection* conn_;
-
-        //! Send block (holds a pin on the underlying ByteBlock)
-        data::PinnedBlock block_;
-
-        //! total size currently written
-        size_t size_ = 0;
-
-        //! functional object to call once data is complete
-        AsyncWriteCallback callback_;
-    };
-
     //! deque of asynchronous writers
     std::deque<AsyncWriteBlock,
                mem::GPoolAllocator<AsyncWriteBlock> > async_write_block_;
-
-    /**************************************************************************/
 
     //! Default exception handler
     static bool ExceptionCallback(Connection& c) {
