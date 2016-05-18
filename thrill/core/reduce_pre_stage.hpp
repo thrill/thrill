@@ -189,7 +189,7 @@ public:
     void FlushAll() {
 		
 		if (UseDuplicateDetection) {
-			DuplicateDetection<KeyValuePair> dup_detect;
+			DuplicateDetection dup_detect;
 			max_hash_ = dup_detect.FindDuplicates(duplicates_,
 												  hashes_,
 												  table_.ctx(),

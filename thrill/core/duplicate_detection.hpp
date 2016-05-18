@@ -22,7 +22,7 @@
 
 namespace thrill {
 namespace core {
-template <typename KeyValuePair>
+
 class DuplicateDetection {
 
 private: 
