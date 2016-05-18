@@ -234,7 +234,7 @@ private:
 
     core::ReducePreStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig, core::ReduceByIndex<Key> > pre_stage_;
+        ReduceConfig, false, core::ReduceByIndex<Key> > pre_stage_;
 
     core::ReduceByIndexPostStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
