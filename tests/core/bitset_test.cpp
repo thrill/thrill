@@ -16,34 +16,6 @@
 
 #include <cmath>
 
-TEST(DynamicBitset, GolombCoding) {
-
-	const size_t cluster_size = 1;
-	const size_t bitset_size = 1024 * 1024;
-	const size_t num_elements = 1024 * 64;
-
-	std::default_random_engine generator(std::random_device { } ());
-	std::uniform_int_distribution<size_t> distribution(0, 1024 * 1024 * 1024);
-
-	thrill::core::DistributedBitset<bitset_size / cluster_size, cluster_size>
-			dbs(0, bitset_size);
-	dbs.Add(0);
-	for (size_t i = 1; i < num_elements; ++i) {		
-		dbs.Add(distribution(generator));
-	}
-
-	thrill::core::DynamicBitset<size_t> bitset = dbs.Golombify(0);
-
-	std::bitset<bitset_size> degolombed = dbs.Degolombify(bitset);
-
-	std::bitset<bitset_size> non_golombed = dbs.Get(0);
-
-	for (size_t i = 0; i < bitset_size; ++i) {
-		ASSERT_EQ(degolombed[i], non_golombed[i]);
-	}
-	
-}
-
 TEST(DynamicBitset, KnownData) {
 	size_t elements = 1000;
 	double fpr_parameter = 8;
