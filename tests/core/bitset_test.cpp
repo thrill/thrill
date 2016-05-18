@@ -11,7 +11,6 @@
 #include <gtest/gtest.h>
 
 #include <thrill/common/logger.hpp>
-#include <thrill/core/distributed_bitset.hpp>
 #include <thrill/core/dynamic_bitset.hpp>
 
 #include <cmath>
