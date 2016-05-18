@@ -124,7 +124,7 @@ public:
         const size_t& num_buckets_per_partition,
         const size_t& num_buckets) const {
 
-        assert(k >= range_.begin && k < range_.end && "Item out of range.");
+		//assert(k >= range_.begin && k < range_.end && "Item out of range.");
 
         // round bucket number down
         size_t global_index = (k - range_.begin) * num_buckets / range_.size();

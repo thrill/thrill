@@ -180,7 +180,6 @@ public:
 
 	void WriteEncodedHashes(data::CatStreamPtr stream_pointer,
 							size_t b,
-							size_t max_hash,
 							size_t space_bound) {
 
 		size_t num_workers = table_.ctx().num_workers();
@@ -190,7 +189,7 @@ public:
 
 		size_t j = 0;
 		for (size_t i = 0; i < num_workers; ++i) {
-			common::Range range_i = common::CalculateLocalRange(max_hash, num_workers, i);
+			common::Range range_i = common::CalculateLocalRange(max_hash_, num_workers, i);
 
 			//TODO: Lower bound.
 			core::DynamicBitset<size_t>
@@ -210,18 +209,16 @@ public:
 				; j < hashes_.size() && hashes_[j] < range_i.end; ++j) {
 				if (hashes_[j] != delta) {
 					++num_elements;
-					LOG1 << "encoding" << hashes_[j];
 					golomb_code.golomb_in(hashes_[j] - delta);
 					delta = hashes_[j];
 				}
 			}
-			golomb_code.seek();
-			LOG1 << "out: " << golomb_code.GetGolombData()[0];
 
-		    writers[i].Put(golomb_code.byte_size());
+		    writers[i].Put(golomb_code.size() * sizeof(size_t));
 			writers[i].Put(num_elements);
 			writers[i].Append(golomb_code.GetGolombData(),
-							  golomb_code.byte_size()).Close();
+							  golomb_code.size() * sizeof(size_t));
+			writers[i].Close();
 		}
 	}
 
@@ -240,14 +237,12 @@ public:
 			
 			core::DynamicBitset<size_t> golomb_code(raw_data, data_size, b);
 			golomb_code.seek();
-			LOG1 << "raw: " << raw_data[0];
-			LOG1 << "in: " << golomb_code.GetGolombData()[0];
+
 			size_t last = 0;
 			for (size_t i = 0; i < num_elements; ++i) {
 			    size_t new_elem = golomb_code.golomb_out() + last;
 			    target_vec.push_back(new_elem);
 				last = new_elem;
-				LOG1 << "pushing " << new_elem;
 			}
 			delete[] raw_data;
 		}
@@ -262,17 +257,17 @@ public:
 		size_t b = (size_t)(std::log(2) * fpr_parameter);
 		size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
 
-		size_t max_hash = upper_bound_uniques * fpr_parameter;
+	    max_hash_ = upper_bound_uniques * fpr_parameter;
 
 		for (size_t i = 0; i < hashes_.size(); ++i) {
-			hashes_[i] = hashes_[i] % max_hash;
+			hashes_[i] = hashes_[i] % max_hash_;
 		}
 		
 		std::sort(hashes_.begin(), hashes_.end());
 	
 		data::CatStreamPtr golomb_data_stream = table_.ctx().GetNewCatStream(table_.dia_id());
 
-		WriteEncodedHashes(golomb_data_stream, b, max_hash, upper_space_bound);
+		WriteEncodedHashes(golomb_data_stream, b, upper_space_bound);
 
 		std::vector<size_t> hashes_dups;
 
@@ -294,6 +289,7 @@ public:
 				duplicate_code.golomb_in(0);
 				++num_elements;
 			}
+
 			for (size_t j = 0; j < hashes_dups.size() - 1; ++j) {
 				if ((hashes_dups[j] == hashes_dups[j+1]) && (hashes_dups[j] != delta)) {
 				    duplicate_code.golomb_in(hashes_dups[j] - delta);
@@ -302,9 +298,6 @@ public:
 				}
 			}
 		}
-
-	    duplicate_code.seek();
-
 		
 		data::CatStreamPtr duplicates_stream = table_.ctx().GetNewCatStream(table_.dia_id());
 
@@ -313,22 +306,22 @@ public:
 
 		for (size_t i = 0; i < duplicate_writers.size(); ++i) {
 			
-			duplicate_writers[i].Put(duplicate_code.byte_size());
+			duplicate_writers[i].Put(duplicate_code.size() * sizeof(size_t));
 		    duplicate_writers[i].Put(num_elements);
 		    duplicate_writers[i].Append(duplicate_code.GetGolombData(),
-										duplicate_code.byte_size());
+										duplicate_code.size() * sizeof(size_t));
 		    duplicate_writers[i].Close();
 		}
-
-		std::vector<size_t> duplicates;
 
 		ReadEncodedHashesToVector(duplicates_stream,
 								  duplicates,
 								  b);
+
+		std::sort(duplicates.begin(), duplicates.end());
+
+		LOG1 << "num_dups: " << duplicates.size();
 		
-		/*if (duplicates.size()) {
-			LOG1 << duplicates.size() << " - first is " << duplicates[0];
-		}*/
+		assert(std::is_sorted(duplicates.begin(), duplicates.end()));
 		
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
             FlushPartition(id, /* consume */ true);
@@ -338,19 +331,35 @@ public:
     //! Flushes all items of a partition.
     void FlushPartition(size_t partition_id, bool consume) {
 
-        table_.FlushPartition(partition_id, consume);
+        table_.FlushPartitionEmit(
+			partition_id, consume,
+			[this](const size_t& partition_id, const KeyValuePair& p) {
+				if (std::binary_search(duplicates.begin(), duplicates.end(),
+									   (std::hash<Key>()(p.first) % max_hash_))) {
+					emit_.Emit(partition_id, p);
+				} else {
+					emit_.Emit(table_.ctx().my_rank(), p);
+				}
+            });
 
 		
 		if (table_.has_spilled_data_on_partition(partition_id)) {
 			data::File::Reader reader = 
 				table_.partition_files()[partition_id].GetReader(/* consume */ true);
 			while (reader.HasNext()) {
-				emit_.Emit(partition_id, reader.Next<KeyValuePair>());
+				KeyValuePair kv = reader.Next<KeyValuePair>();
+				if (std::binary_search(duplicates.begin(), duplicates.end(), 
+							  (std::hash<Key>()(kv.first) % max_hash_))) {
+					emit_.Emit(partition_id, kv);
+				} else {
+					emit_.Emit(table_.ctx().my_rank(), kv);
+				}
 			}
 		}
 
         // flush elements pushed into emitter
         emit_.Flush(partition_id);
+		emit_.Flush(table_.ctx().my_rank());
     }
 
     //! Closes all emitter
@@ -366,6 +375,7 @@ public:
     size_t num_items() const { return table_.num_items(); }
 
 	std::vector<size_t> hashes_;
+	std::vector<size_t> duplicates;
 
     //! calculate key range for the given output partition
     common::Range key_range(size_t partition_id)
@@ -385,6 +395,7 @@ private:
 
 	size_t unique_elements_ = 0;
 	size_t total_elements_ = 0;
+	size_t max_hash_;
 };
 
 } // namespace core

@@ -88,7 +88,7 @@ public:
 		pos = maxpos = 0;
 		bits = 0;
 		buffer = 0;
-		in_called_already = false;
+		in_called_already = (_m > 0);
 		out_called_already = false;
 	}
 
@@ -112,6 +112,10 @@ public:
 
 	inline index_type ByteSize() const {
 		return byte_size();
+	}
+
+	inline base GetBuffer() const {
+		return buffer;
 	}
 
 
@@ -217,7 +221,8 @@ private:
 
 public:
 	inline void seek(size_t bit_pos = 0) {
-		//v[pos] = buffer;  //write back last result
+		//	v[pos] = buffer;  //write back last result
+		
 
 		pos = bit_pos >> logbase;
 		bits = bit_pos & mask;
@@ -228,9 +233,6 @@ public:
 		return (pos << logbase) + bits;
 	}
 
-	/*inline void flush() {
-		v[pos] = buffer;
-		}*/
 
 	inline void stream_in(short length, base value) {
 		assert(pos * 8 < n);
