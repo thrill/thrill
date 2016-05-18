@@ -68,13 +68,13 @@ public:
     }
 
     //! Return the number of bytes still available at the cursor.
-    bool available(size_t n) const {
-        return (cursor_ + n <= size_);
+    bool available(size_t size) const {
+        return cursor_ + size <= size_;
     }
 
     //! Return true if the cursor is at the end of the buffer.
     bool empty() const {
-        return (cursor_ == size_);
+        return cursor_ == size_;
     }
 
     size_t Size() const {

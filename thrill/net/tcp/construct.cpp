@@ -412,7 +412,7 @@ private:
 
         dispatcher_.AsyncRead(
             tcp, sizeof(hello),
-            AsyncReadCallback::make<
+            AsyncReadBufferCallback::make<
                 Construction, & Construction::OnIncomingWelcome>(this));
 
         return false;
@@ -525,7 +525,7 @@ private:
         // wait for welcome message from other side
         dispatcher_.AsyncRead(
             connections_.back(), sizeof(WelcomeMsg),
-            AsyncReadCallback::make<
+            AsyncReadBufferCallback::make<
                 Construction, & Construction::OnIncomingWelcomeAndReply>(this));
 
         // wait for more connections.

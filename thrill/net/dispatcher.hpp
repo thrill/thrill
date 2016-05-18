@@ -44,7 +44,7 @@ using TimerCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
 using AsyncCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read callbacks.
-using AsyncReadCallback = common::Delegate<
+using AsyncReadBufferCallback = common::Delegate<
           void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
@@ -121,7 +121,7 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     virtual void AsyncRead(Connection& c, size_t n,
-                           const AsyncReadCallback& done_cb) {
+                           const AsyncReadBufferCallback& done_cb) {
         assert(c.IsValid());
 
         LOG << "async read on read dispatcher";
@@ -343,7 +343,7 @@ protected:
     public:
         //! Construct buffered reader with callback
         AsyncReadBuffer(Connection& conn,
-                        size_t buffer_size, const AsyncReadCallback& callback)
+                        size_t buffer_size, const AsyncReadBufferCallback& callback)
             : conn_(&conn),
               buffer_(buffer_size),
               callback_(callback)
@@ -401,7 +401,7 @@ protected:
         size_t size_ = 0;
 
         //! functional object to call once data is complete
-        AsyncReadCallback callback_;
+        AsyncReadBufferCallback callback_;
     };
 
     //! deque of asynchronous readers

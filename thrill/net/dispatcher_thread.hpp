@@ -110,10 +110,10 @@ public:
     //! \{
 
     //! asynchronously read n bytes and deliver them to the callback
-    void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb);
+    void AsyncRead(Connection& c, size_t size, AsyncReadCallback done_cb);
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
-    void AsyncRead(Connection& c, size_t n, data::PinnedByteBlockPtr&& block,
+    void AsyncRead(Connection& c, size_t size, data::PinnedByteBlockPtr&& block,
                    AsyncReadByteBlockCallback done_cb);
 
     //! asynchronously write byte and block and callback when delivered. The

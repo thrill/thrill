@@ -172,11 +172,12 @@ public:
         return request;
     }
 
-    void AsyncRead(net::Connection& c, size_t n,
-                   const AsyncReadCallback& done_cb = AsyncReadCallback()) final {
+    void AsyncRead(net::Connection& c, size_t size,
+                   const AsyncReadBufferCallback& done_cb
+                       = AsyncReadBufferCallback()) final {
         assert(c.IsValid());
 
-        if (n == 0) {
+        if (size == 0) {
             if (done_cb) done_cb(c, Buffer());
             return;
         }
@@ -185,7 +186,7 @@ public:
         Connection* mpic = static_cast<Connection*>(&c);
 
         // allocate associated buffer (Irecv needs memory).
-        mpi_async_.emplace_back(c, n, done_cb);
+        mpi_async_.emplace_back(c, size, done_cb);
         mpi_async_out_.emplace_back();
         mpi_async_status_.emplace_back();
 
@@ -196,7 +197,7 @@ public:
         mpi_async_requests_.emplace_back(req);
     }
 
-    void AsyncRead(net::Connection& c, size_t n,
+    void AsyncRead(net::Connection& c, size_t size,
                    data::PinnedByteBlockPtr&& block,
                    const AsyncReadByteBlockCallback& done_cb) final {
         assert(c.IsValid());
@@ -213,15 +214,15 @@ public:
         // associated Block's memory (Irecv needs memory).
 
         // perform Irecv.
-        MPI_Request req = IRecv(*mpic, block->data(), n);
-        mpi_async_.emplace_back(c, n, std::move(block), done_cb);
+        MPI_Request req = IRecv(*mpic, block->data(), size);
+        mpi_async_.emplace_back(c, size, std::move(block), done_cb);
         mpi_async_out_.emplace_back();
         mpi_async_requests_.emplace_back(req);
         mpi_async_status_.emplace_back();
     }
 
     //! Run one iteration of dispatching using MPI_Iprobe().
-    void DispatchOne(const std::chrono::milliseconds& /* timeout */) final;
+    void DispatchOne(const std::chrono::milliseconds& timeout) final;
 
     //! Interrupt does nothing.
     void Interrupt() final { }
@@ -283,7 +284,7 @@ private:
 
         //! Construct AsyncRead with Buffer
         MpiAsync(net::Connection& conn,
-                 size_t buffer_size, const AsyncReadCallback& callback)
+                 size_t buffer_size, const AsyncReadBufferCallback& callback)
             : type_(READ_BUFFER),
               read_buffer_(conn, buffer_size, callback) { }
 
@@ -296,11 +297,11 @@ private:
 
         //! Construct AsyncRead with ByteBuffer
         MpiAsync(net::Connection& conn,
-                 size_t n,
+                 size_t size,
                  data::PinnedByteBlockPtr&& block,
                  const AsyncReadByteBlockCallback& callback)
             : type_(READ_BYTE_BLOCK),
-              read_byte_block_(conn, n, std::move(block), callback) { }
+              read_byte_block_(conn, size, std::move(block), callback) { }
 
         //! copy-constructor: default (work as long as union members are default
         //! copyable)
