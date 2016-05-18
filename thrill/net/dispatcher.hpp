@@ -43,6 +43,11 @@ using TimerCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
 //! Signature of async connection readability/writability callbacks.
 using AsyncCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
 
+//! Signature of async read direct memory callbacks.
+using AsyncReadMemoryCallback = common::Delegate<
+          void(Connection& c, uint8_t* data, size_t size),
+          mem::GPoolAllocator<char> >;
+
 //! Signature of async read Buffer callbacks.
 using AsyncReadBufferCallback = common::Delegate<
           void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
@@ -55,6 +60,155 @@ using AsyncReadByteBlockCallback = common::Delegate<
 //! Signature of async write callbacks.
 using AsyncWriteCallback = common::Delegate<
           void(Connection&), mem::GPoolAllocator<char> >;
+
+/******************************************************************************/
+
+class AsyncReadMemory
+{
+public:
+    //! Construct direct memory reader with callback
+    AsyncReadMemory(Connection& conn,
+                    void* data, size_t size,
+                    const AsyncReadMemoryCallback& callback)
+        : conn_(&conn),
+          data_(reinterpret_cast<uint8_t*>(data)), size_(size),
+          callback_(callback)
+    { }
+
+    //! Should be called when the socket is readable
+    bool operator () () {
+        ssize_t r = conn_->RecvOne(data_ + read_size_, size_ - read_size_);
+
+        if (r <= 0) {
+            // these errors are acceptable: just redo the recv later.
+            if (errno == EINTR || errno == EAGAIN) return true;
+
+            // signal artificial IsDone, for clean up.
+            read_size_ = size_;
+
+            // these errors are end-of-file indications (both good and bad)
+            if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
+                if (callback_) callback_(*conn_, data_, size_);
+                return false;
+            }
+            throw Exception("AsyncReadMemory() error in recv() on "
+                            "connection " + conn_->ToString(), errno);
+        }
+
+        read_size_ += r;
+
+        if (read_size_ == size_) {
+            DoCallback();
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    bool IsDone() const { return read_size_ == size_; }
+
+    void DoCallback() {
+        if (callback_) callback_(*conn_, data_, size_);
+    }
+
+    //! underlying buffer pointer
+    uint8_t * data() { return data_; }
+
+    //! underlying buffer pointer
+    const uint8_t * data() const { return data_; }
+
+    //! underlying buffer size
+    size_t size() const { return size_; }
+
+private:
+    //! Connection reference
+    Connection* conn_;
+
+    //! Receive memory area
+    uint8_t* data_;
+
+    //! size of received data
+    size_t size_;
+
+    //! total size currently read
+    size_t read_size_ = 0;
+
+    //! functional object to call once data is complete
+    AsyncReadMemoryCallback callback_;
+};
+
+/******************************************************************************/
+
+class AsyncWriteMemory
+{
+public:
+    //! Construct direct memory writer with callback
+    AsyncWriteMemory(Connection& conn,
+                     const void* data, size_t size,
+                     const AsyncWriteCallback& callback)
+        : conn_(&conn),
+          data_(reinterpret_cast<const uint8_t*>(data)), size_(size),
+          callback_(callback)
+    { }
+
+    //! Should be called when the socket is writable
+    bool operator () () {
+        ssize_t r = conn_->SendOne(data_ + write_size_, size_ - write_size_);
+
+        if (r <= 0) {
+            if (errno == EINTR || errno == EAGAIN) return true;
+
+            // signal artificial IsDone, for clean up.
+            write_size_ = size_;
+
+            if (errno == EPIPE) {
+                LOG1 << "AsyncWriteMemory() got SIGPIPE";
+                DoCallback();
+                return false;
+            }
+            throw Exception("AsyncWriteMemory() error in send", errno);
+        }
+
+        write_size_ += r;
+
+        if (write_size_ == size_) {
+            DoCallback();
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    bool IsDone() const { return write_size_ == size_; }
+
+    void DoCallback() {
+        if (callback_) callback_(*conn_);
+    }
+
+    //! underlying buffer pointer
+    const uint8_t * data() const { return data_; }
+
+    //! underlying buffer size
+    size_t size() const { return size_; }
+
+private:
+    //! Connection reference
+    Connection* conn_;
+
+    //! memory area to send
+    const uint8_t* data_;
+
+    //! size of memory area
+    size_t size_;
+
+    //! total size currently written
+    size_t write_size_ = 0;
+
+    //! functional object to call once data is complete
+    AsyncWriteCallback callback_;
+};
 
 /******************************************************************************/
 
