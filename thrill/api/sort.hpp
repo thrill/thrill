@@ -488,7 +488,7 @@ private:
         std::sort(vec.begin(), vec.end(), compare_function_);
         sort_time.Stop();
 
-        LOG << "SortAndWriteToFile() sort took " << time;
+        LOG << "SortAndWriteToFile() sort took " << sort_time;
 
         common::StatsTimerStart write_time;
 
