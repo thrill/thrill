@@ -65,6 +65,7 @@ private:
 				}
 			}
 
+
 		    writers[i].Put(golomb_code.size() * sizeof(size_t));
 			writers[i].Put(num_elements);
 			writers[i].Append(golomb_code.GetGolombData(),
@@ -79,14 +80,18 @@ private:
 
 		auto reader = stream_pointer->GetCatReader(/* consume */ true);
 
+		size_t readindex = 0;
 	    while (reader.HasNext()) {
 
 			size_t data_size = reader.template Next<size_t>();
 			size_t num_elements = reader.template Next<size_t>();
 		    size_t* raw_data = new size_t[data_size];
 		    reader.Read(raw_data, data_size);
-			
-			core::DynamicBitset<size_t> golomb_code(raw_data, data_size, b);
+
+			core::DynamicBitset<size_t> golomb_code(raw_data,
+													common::IntegerDivRoundUp(
+														data_size, sizeof(size_t)),
+													b);
 			golomb_code.seek();
 
 			size_t last = 0;
@@ -94,8 +99,10 @@ private:
 			    size_t new_elem = golomb_code.golomb_out() + last;
 			    target_vec.push_back(new_elem);
 				last = new_elem;
+			    
 			}
 			delete[] raw_data;
+			readindex++;
 		}
 	}
 
@@ -114,6 +121,8 @@ public:
 		size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
 
 	    size_t max_hash = upper_bound_uniques * fpr_parameter;
+
+	
 
 		for (size_t i = 0; i < hashes.size(); ++i) {
 			hashes[i] = hashes[i] % max_hash;
@@ -178,7 +187,7 @@ public:
 								  duplicates,
 								  b);
 
-		//	std::sort(duplicates.begin(), duplicates.end());
+		std::sort(duplicates.begin(), duplicates.end());
 		
 		assert(std::is_sorted(duplicates.begin(), duplicates.end()));
 		return max_hash;

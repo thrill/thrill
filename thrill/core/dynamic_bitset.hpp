@@ -328,7 +328,7 @@ public:
 		//d049672: golomb_in might fail on pathological sequences that push the golomb code to its maximum size.
 		//         In these cases, it is possible that the unary sequence of 1s is greater than bit_length, which is not
 		//         supported by the original implementation! See microbench_golomb_coding_pathological_case.cpp for an example.
-		while (static_cast<int>(q) > bit_length) {
+		while (static_cast<int>(q) >= bit_length) {
 			q -= bit_length;
 			stream_in(bit_length, all_set);
 		}
