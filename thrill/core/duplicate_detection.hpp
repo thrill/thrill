@@ -58,6 +58,7 @@ private:
 			}
 			for (/*j is already set from previous workers*/
 				; j < hashes.size() && hashes[j] < range_i.end; ++j) {
+			    
 				if (hashes[j] != delta) {
 					++num_elements;
 					golomb_code.golomb_in(hashes[j] - delta);
@@ -96,6 +97,7 @@ private:
 
 			size_t last = 0;
 			for (size_t i = 0; i < num_elements; ++i) {
+									
 			    size_t new_elem = golomb_code.golomb_out() + last;
 			    target_vec.push_back(new_elem);
 				last = new_elem;
@@ -187,7 +189,7 @@ public:
 								  duplicates,
 								  b);
 
-		std::sort(duplicates.begin(), duplicates.end());
+		//std::sort(duplicates.begin(), duplicates.end());
 		
 		assert(std::is_sorted(duplicates.begin(), duplicates.end()));
 		return max_hash;

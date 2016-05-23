@@ -14,7 +14,7 @@
 
 using namespace thrill; //NOLINT
 
-/*TEST(DuplicateDetection, AllDuplicatedList) {
+TEST(DuplicateDetection, AllDuplicatedList) {
 
 	auto start_func = [](Context& ctx) {
 		size_t elements = 10000;
@@ -44,7 +44,7 @@ using namespace thrill; //NOLINT
 
 	api::RunLocalTests(start_func);
 
-}*/
+}
 
 TEST(DuplicateDetection, SomeDuplicatedElements) {
 
@@ -60,8 +60,6 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
 		// test will remain pretty much the same
 		assert(elements > delta * ctx.num_workers());
 
-		LOG1 << "NUM WORKERS: " << ctx.num_workers() << "FROM " << ctx.num_hosts() << " hosts " << " MY_ID: " << ctx.my_rank();
-
 		std::vector<size_t> splitters;
 
 	    for (size_t i = 0; i < ctx.num_workers() - 1; ++i) {
@@ -76,8 +74,6 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
 		common::Range my_range = common::CalculateLocalRange(
 			elements, ctx.num_workers(), ctx.my_rank());
 
-		LOG1 << "MY RANGE: " << my_range.begin << " TO " << my_range.end;
-
 		for (size_t i = my_range.begin; i < my_range.end + delta; ++i) {
 			hashes.push_back(i);
 		}
@@ -87,15 +83,14 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
 
 		size_t unique_per = elements / ctx.num_workers() + delta;
 
-		size_t max_hash = duplicate_detection.FindDuplicates(duplicates, 
-															 hashes,
-															 ctx,
-															 unique_per,
-															 0);
+		duplicate_detection.FindDuplicates(duplicates, 
+										   hashes,
+										   ctx,
+										   unique_per,
+										   0);
 
 		for (size_t i = 0; i < splitters.size(); ++i) {
 			for (size_t j = 0; j < delta; ++j) {
-				assert(duplicates[i * delta + j] == splitters[i] + j);
 				ASSERT_EQ(duplicates[i * delta + j], splitters[i] + j);
 			}
 		}

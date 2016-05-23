@@ -223,7 +223,6 @@ public:
 	inline void seek(size_t bit_pos = 0) {
 		//	v[pos] = buffer;  //write back last result
 		
-
 		pos = bit_pos >> logbase;
 		bits = bit_pos & mask;
 		buffer = v[pos] << bits;
@@ -319,43 +318,58 @@ public:
 	inline void golomb_in(base value) {
 		if (THRILL_LIKELY(in_called_already)) {
 			value--;
-		}
-		in_called_already = true;
-		
-		base q = value / b;
-		base r = value - q * b;
+			
+			base q = value / b;
+			base r = value - q * b;
 
-		//d049672: golomb_in might fail on pathological sequences that push the golomb code to its maximum size.
-		//         In these cases, it is possible that the unary sequence of 1s is greater than bit_length, which is not
-		//         supported by the original implementation! See microbench_golomb_coding_pathological_case.cpp for an example.
-		while (static_cast<int>(q) >= bit_length) {
-			q -= bit_length;
-			stream_in(bit_length, all_set);
-		}
+			//d049672: golomb_in might fail on pathological sequences
+            // that push the golomb code to its maximum size.
+			// In these cases, it is possible that the unary sequence
+			// of 1s is greater than bit_length, which is not
+			// supported by the original implementation! 
+			// See microbench_golomb_coding_pathological_case.cpp for an example.
+			while (static_cast<int>(q) > bit_length) {
+				q -= bit_length;
+				stream_in(bit_length, all_set);
+			}
 
-		base res = (all_set >> (bit_length - q - 1)) - 1;
+			base res = (all_set >> (bit_length - q - 1)) - 1;
 
-		if (r >= max_little_value) {
-			res = (res << p) | (r + max_little_value);
-			stream_in(q + 1 + p, res);
+			if (r >= max_little_value) {
+				res = (res << p) | (r + max_little_value);
+				stream_in(q + 1 + p, res);
+			} else {
+				res = (res << (p - 1)) | r;
+				stream_in(q + 1 + p - 1, res);
+			}
 		} else {
-			res = (res << (p - 1)) | r;
-			stream_in(q + 1 + p - 1, res);
+			assert(pos == 0);
+			assert(maxpos == 0);
+			v[0] = value;
+			pos++;
+			maxpos++;
+			in_called_already = true;
 		}
+		
 	}
 
 	inline base golomb_out() {
-		base q = number_of_ones();
-		base r = stream_out(p - 1);
-
-		if (r >= max_little_value)
-			r = ((r << 1) + stream_out(1)) - max_little_value;
 
 		if (THRILL_LIKELY(out_called_already)) {
+			base q = number_of_ones();
+			base r = stream_out(p - 1);
+
+			if (r >= max_little_value)
+				r = ((r << 1) + stream_out(1)) - max_little_value;
+
 			return ((q * b) + r) + 1;
 		} else {
 			out_called_already = true;
-			return ((q * b) + r);
+			
+			pos = 1;
+			bits = 0;
+			buffer = v[1];
+			return v[0];
 		}
 	} 
 
