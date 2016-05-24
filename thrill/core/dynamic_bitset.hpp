@@ -85,7 +85,8 @@ public:
 		p(common::IntegerLog2Ceil(b)),
 		max_little_value((((base)1) << p) - b) {
 		memory1 = NULL;
-		pos = maxpos = 0;
+		pos = 0;
+		maxpos = _m;
 		bits = 0;
 		buffer = 0;
 		in_called_already = (_m > 0);
@@ -318,6 +319,7 @@ public:
 	inline void golomb_in(base value) {
 		if (THRILL_LIKELY(in_called_already)) {
 			value--;
+			assert(pos > 0);
 			
 			base q = value / b;
 			base r = value - q * b;
@@ -328,19 +330,31 @@ public:
 			// of 1s is greater than bit_length, which is not
 			// supported by the original implementation! 
 			// See microbench_golomb_coding_pathological_case.cpp for an example.
-			while (static_cast<int>(q) > bit_length) {
+			while (static_cast<int>(q) >= bit_length) {
 				q -= bit_length;
 				stream_in(bit_length, all_set);
 			}
 
-			base res = (all_set >> (bit_length - q - 1)) - 1;
-
-			if (r >= max_little_value) {
-				res = (res << p) | (r + max_little_value);
-				stream_in(q + 1 + p, res);
+			if (THRILL_UNLIKELY(q + 1 + p > bit_length)) {
+				assert(q + 1 <= bit_length);
+				base res = (all_set >> (bit_length - q - 1)) - 1;
+				stream_in(q + 1, res);
+				if (r >= max_little_value) {
+					stream_in(p, r + max_little_value);
+				} else {
+					stream_in(p - 1, r);
+				}
 			} else {
-				res = (res << (p - 1)) | r;
-				stream_in(q + 1 + p - 1, res);
+
+				base res = (all_set >> (bit_length - q - 1)) - 1;
+
+				if (r >= max_little_value) {
+					res = (res << p) | (r + max_little_value);
+					stream_in(q + 1 + p, res);
+				} else {
+					res = (res << (p - 1)) | r;
+					stream_in(q + 1 + p - 1, res);
+				}
 			}
 		} else {
 			assert(pos == 0);
@@ -348,14 +362,15 @@ public:
 			v[0] = value;
 			pos++;
 			maxpos++;
+			bits = 0;
 			in_called_already = true;
 		}
 		
 	}
 
 	inline base golomb_out() {
-
 		if (THRILL_LIKELY(out_called_already)) {
+			assert(pos > 0);
 			base q = number_of_ones();
 			base r = stream_out(p - 1);
 
@@ -365,7 +380,11 @@ public:
 			return ((q * b) + r) + 1;
 		} else {
 			out_called_already = true;
-			
+			assert(pos == 0);
+					
+			if (maxpos == 0) {
+				maxpos = 1;
+			}
 			pos = 1;
 			bits = 0;
 			buffer = v[1];
