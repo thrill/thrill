@@ -937,13 +937,31 @@ public:
      * \tparam CompareFunction Type of the compare_function.
      *  Should be (ValueType,ValueType)->bool
      *
-     * \param compare_function Function, which compares two elements. Returns true, if
-     * first element is smaller than second. False otherwise.
+     * \param compare_function Function, which compares two elements. Returns
+     * true, if first element is smaller than second. False otherwise.
      *
      * \ingroup dia_dops
      */
     template <typename CompareFunction = std::less<ValueType> >
     auto Sort(const CompareFunction& compare_function = CompareFunction()) const;
+
+    /*!
+     * Sort is a DOp, which sorts a given DIA according to the given compare_function.
+     *
+     * \tparam CompareFunction Type of the compare_function.
+     *  Should be (ValueType,ValueType)->bool
+     *
+     * \param compare_function Function, which compares two elements. Returns
+     * true, if first element is smaller than second. False otherwise.
+     *
+     * \param sort_algorithm Algorithm class used to sort items. Merging is
+     * always done using a tournament tree with compare_function.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename CompareFunction, typename SortFunction>
+    auto Sort(const CompareFunction &compare_function,
+              const SortFunction &sort_algorithm) const;
 
     /*!
      * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.

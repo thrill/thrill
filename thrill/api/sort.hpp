@@ -50,7 +50,7 @@ namespace api {
  *
  * \ingroup api_layer
  */
-template <typename ValueType, typename CompareFunction>
+template <typename ValueType, typename CompareFunction, typename SortAlgorithm>
 class SortNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -76,9 +76,11 @@ public:
      */
     template <typename ParentDIA>
     SortNode(const ParentDIA& parent,
-             CompareFunction compare_function)
+             const CompareFunction& compare_function,
+             const SortAlgorithm& sort_algorithm = SortAlgorithm())
         : Super(parent.ctx(), "Sort", { parent.id() }, { parent.node() }),
           compare_function_(compare_function),
+          sort_algorithm_(sort_algorithm),
           parent_stack_empty_(ParentDIA::stack_empty)
     {
         // Hook PreOp(s)
@@ -286,6 +288,9 @@ public:
 private:
     //! The comparison function which is applied to two elements.
     CompareFunction compare_function_;
+
+    //! Sort function class
+    SortAlgorithm sort_algorithm_;
 
     //! Whether the parent stack is empty
     const bool parent_stack_empty_;
@@ -555,7 +560,7 @@ private:
         context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
 
         timer_sort_.Start();
-        std::sort(vec.begin(), vec.end(), compare_function_);
+        sort_algorithm_(vec.begin(), vec.end(), compare_function_);
         // common::qsort_two_pivots_yaroslavskiy(vec.begin(), vec.end(), compare_function_);
         // common::qsort_three_pivots(vec.begin(), vec.end(), compare_function_);
         timer_sort_.Stop();
@@ -750,12 +755,22 @@ private:
     }
 };
 
+class DefaultSortAlgorithm
+{
+public:
+    template <typename Iterator, typename CompareFunction>
+    void operator () (Iterator begin, Iterator end, CompareFunction cmp) const {
+        return std::sort(begin, end, cmp);
+    }
+};
+
 template <typename ValueType, typename Stack>
 template <typename CompareFunction>
 auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
     assert(IsValid());
 
-    using SortNode = api::SortNode<ValueType, CompareFunction>;
+    using SortNode = api::SortNode<
+              ValueType, CompareFunction, DefaultSortAlgorithm>;
 
     static_assert(
         std::is_convertible<
@@ -776,6 +791,39 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const 
         "CompareFunction has the wrong output type (should be bool)");
 
     auto node = common::MakeCounting<SortNode>(*this, compare_function);
+
+    return DIA<ValueType>(node);
+}
+
+template <typename ValueType, typename Stack>
+template <typename CompareFunction, typename SortAlgorithm>
+auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function,
+                                 const SortAlgorithm &sort_algorithm) const {
+    assert(IsValid());
+
+    using SortNode = api::SortNode<
+              ValueType, CompareFunction, SortAlgorithm>;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<CompareFunction>::template arg<0> >::value,
+        "CompareFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<CompareFunction>::template arg<1> >::value,
+        "CompareFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename FunctionTraits<CompareFunction>::result_type,
+            bool>::value,
+        "CompareFunction has the wrong output type (should be bool)");
+
+    auto node = common::MakeCounting<SortNode>(
+        *this, compare_function, sort_algorithm);
 
     return DIA<ValueType>(node);
 }

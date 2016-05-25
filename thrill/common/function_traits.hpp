@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <tuple>
+#include <type_traits>
 
 namespace thrill {
 namespace common {
