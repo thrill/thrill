@@ -56,7 +56,8 @@ TEST(DynamicBitset, KnownRawData) {
 
 	thrill::core::DynamicBitset<size_t> out_coder(golomb_coder.GetGolombData(),
 												  golomb_coder.size(),
-												  b);
+												  b,
+												  elements);
 
 	for (size_t i = 0; i < golomb_coder.size(); i++) {
 		ASSERT_EQ(golomb_coder.GetGolombData()[i], out_coder.GetGolombData()[i]);
@@ -94,8 +95,10 @@ TEST(DynamicBitset, RandomData) {
 	std::sort(elements_vec.begin(), elements_vec.end());
 
 	size_t last = 0;
+	size_t uniques = 0;
 	for (size_t i = 0; i < elements; ++i) {
 		if (elements_vec[i] > last) {
+			uniques++;
 			golomb_coder.golomb_in(elements_vec[i] - last);
 			last = elements_vec[i];
 		}
@@ -105,7 +108,8 @@ TEST(DynamicBitset, RandomData) {
 
 	thrill::core::DynamicBitset<size_t> out_coder(golomb_coder.GetGolombData(),
 												  golomb_coder.size(),
-												  b);
+												  b,
+												  uniques);
 
 	out_coder.seek();
 
