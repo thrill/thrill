@@ -18,7 +18,7 @@ namespace examples {
 namespace suffix_sorting {
 
 template <typename Index, typename InputDIA>
-thrill::DIA<Index> DC3(const InputDIA& input_dia, size_t input_size);
+thrill::DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K);
 
 } // namespace suffix_sorting
 } // namespace examples

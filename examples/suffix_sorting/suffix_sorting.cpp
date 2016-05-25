@@ -189,10 +189,10 @@ public:
 
         DIA<Index> suffix_array;
         if (algorithm_ == "dc3") {
-            suffix_array = DC3<Index>(input_dia.Keep(), input_size);
+            suffix_array = DC3<Index>(input_dia.Keep(), input_size, 256);
         }
         else if (algorithm_ == "dc7") {
-            suffix_array = DC7<Index>(input_dia.Keep(), input_size);
+            suffix_array = DC7<Index>(input_dia.Keep(), input_size, 256);
         }
         else if (algorithm_ == "de") {
             suffix_array = PrefixDoublingDementiev<Index>(input_dia.Keep(), input_size, pack_input_);

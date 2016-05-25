@@ -27,6 +27,7 @@
 #include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/common/radix_sort.hpp>
 #include <thrill/common/uint_types.hpp>
 
 #include <algorithm>
@@ -80,6 +81,8 @@ struct IndexChars {
     Index               index;
     Chars<AlphabetType> chars;
 
+    const AlphabetType& at_radix(size_t depth) const { return chars.ch[depth]; }
+
     friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
     }
@@ -103,6 +106,9 @@ struct StringFragmentMod0 {
     AlphabetType t0, t1;
     Index        r1, r2;
 
+    AlphabetType at_radix(size_t /* depth */) const { return t0; }
+    Index        sort_rank() const { return r1; }
+
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod0& sf) {
         return os << "i=" << sf.index
                   << " t0=" << sf.t0 << " t1=" << sf.t1
@@ -117,6 +123,9 @@ struct StringFragmentMod1 {
     AlphabetType t0;
     Index        r0, r1;
 
+    AlphabetType at_radix(size_t /* depth */) const { return t0; }
+    Index        sort_rank() const { return r0; }
+
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod1& sf) {
         return os << "i=" << sf.index
                   << " r0=" << sf.r0 << " t0=" << sf.t0 << " r1=" << sf.r1;
@@ -129,6 +138,9 @@ struct StringFragmentMod2 {
     Index        index;
     AlphabetType t0, t1;
     Index        r0, r2;
+
+    AlphabetType at_radix(size_t /* depth */) const { return t0; }
+    Index        sort_rank() const { return r0; }
 
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod2& sf) {
         return os << "i=" << sf.index
@@ -175,6 +187,7 @@ struct StringFragment {
 
 template <typename StringFragment>
 struct FragmentComparator {
+    THRILL_ATTRIBUTE_ALWAYS_INLINE
     bool operator () (const StringFragment& a, const StringFragment& b) const {
         unsigned ai = a.index % 3, bi = b.index % 3;
 
@@ -232,13 +245,41 @@ struct IndexCR12Pair {
     CharsRanks12<Index, Char> cr1;
 } THRILL_ATTRIBUTE_PACKED;
 
+template <typename Type, size_t MaxDepth>
+class RadixSortFragment
+{
+public:
+    explicit RadixSortFragment(size_t K) : K_(K) { }
+    template <typename CompareFunction>
+    void operator () (
+        typename std::vector<Type>::iterator begin,
+        typename std::vector<Type>::iterator end,
+        const CompareFunction& cmp) const {
+        if (K_ < 4096) {
+            thrill::common::radix_sort_CI<MaxDepth>(
+                begin, end, K_, cmp, [](auto begin, auto end, auto) {
+                            // sub sorter: sort StringFragments by rank
+                    std::sort(begin, end, [](const Type& a, const Type& b) {
+                                  return a.sort_rank() < b.sort_rank();
+                              });
+                });
+        }
+        else {
+            std::sort(begin, end, cmp);
+        }
+    }
+
+private:
+    const size_t K_;
+};
+
 } // namespace dc3_local
 
 using namespace thrill; // NOLINT
 using thrill::common::RingBuffer;
 
 template <typename Index, typename InputDIA>
-DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
+DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
 
     using Char = typename InputDIA::ValueType;
     using IndexChars = dc3_local::IndexChars<Index, Char>;
@@ -277,7 +318,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         // sort triples by contained letters
         .Sort([](const IndexChars& a, const IndexChars& b) {
                   return a.chars < b.chars;
-              });
+              }, common::RadixSort<IndexChars, 3>(K));
 
     if (debug_print)
         triple_sorted.Keep().Print("triple_sorted");
@@ -356,7 +397,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         if (debug_print)
             string_mod12.Keep().Print("string_mod12");
 
-        auto suffix_array_rec = DC3<Index>(string_mod12, size_subp);
+        auto suffix_array_rec = DC3<Index>(string_mod12, size_subp, max_lexname);
 
         // reverse suffix array of recursion strings to find ranks for mod 1
         // and mod 2 positions.
@@ -552,20 +593,20 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
     auto sorted_fragments_mod0 =
         fragments_mod0
         .Sort([](const StringFragmentMod0& a, const StringFragmentMod0& b) {
-                  return a.t0 == b.t0 ? a.r1 < b.r1 : a.t0 < b.t0;
-              });
+                  return std::tie(a.t0, a.r1) < std::tie(b.t0, b.r1);
+              }, dc3_local::RadixSortFragment<StringFragmentMod0, 1>(K));
 
     auto sorted_fragments_mod1 =
         fragments_mod1
         .Sort([](const StringFragmentMod1& a, const StringFragmentMod1& b) {
                   return a.r0 < b.r0;
-              });
+              }, dc3_local::RadixSortFragment<StringFragmentMod1, 0>(K));
 
     auto sorted_fragments_mod2 =
         fragments_mod2
         .Sort([](const StringFragmentMod2& a, const StringFragmentMod2& b) {
                   return a.r0 < b.r0;
-              });
+              }, dc3_local::RadixSortFragment<StringFragmentMod2, 0>(K));
 
     if (debug_print) {
         sorted_fragments_mod0.Keep().Print("sorted_fragments_mod0");
@@ -625,10 +666,10 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
 }
 
 template DIA<uint32_t> DC3<uint32_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size);
+    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
 template DIA<uint64_t> DC3<uint64_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size);
+    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
 } // namespace suffix_sorting
 } // namespace examples

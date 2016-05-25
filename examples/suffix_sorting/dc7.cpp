@@ -28,6 +28,7 @@
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/radix_sort.hpp>
 #include <thrill/common/uint_types.hpp>
 
 #include <algorithm>
@@ -89,6 +90,8 @@ struct IndexChars {
     Index               index;
     Chars<AlphabetType> chars;
 
+    const AlphabetType& at_radix(size_t depth) const { return chars.ch[depth]; }
+
     friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
     }
@@ -109,13 +112,16 @@ struct IndexRank {
 template <typename Index, typename AlphabetType>
 struct StringFragmentMod0 {
     Index        index;
-    AlphabetType t0, t1, t2;
+    AlphabetType t[3];
     Index        r0, r1, r3;
+
+    AlphabetType at_radix(size_t depth) const { return t[depth]; }
+    Index        sort_rank() const { return r0; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod0& sf) {
         return os << "i=" << sf.index
-                  << " t0=" << sf.t0 << " t1=" << sf.t1 << " t2=" << sf.t2
+                  << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
                   << " r0=" << sf.r0 << " r1=" << sf.r1 << " r3=" << sf.r3;
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -124,14 +130,17 @@ struct StringFragmentMod0 {
 template <typename Index, typename AlphabetType>
 struct StringFragmentMod1 {
     Index        index;
-    AlphabetType t0, t1, t2, t3, t4, t5;
+    AlphabetType t[6];
     Index        r0, r2, r6;
+
+    AlphabetType at_radix(size_t depth) const { return t[depth]; }
+    Index        sort_rank() const { return r0; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod1& sf) {
         return os << "i=" << sf.index
-                  << " t0=" << sf.t0 << " t1=" << sf.t1 << " t2=" << sf.t2
-                  << " t3=" << sf.t3 << " t4=" << sf.t4 << " t5=" << sf.t5
+                  << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
+                  << " t3=" << sf.t[3] << " t4=" << sf.t[4] << " t5=" << sf.t[5]
                   << " r0=" << sf.r0 << " r2=" << sf.r2 << " r6=" << sf.r6;
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -140,14 +149,17 @@ struct StringFragmentMod1 {
 template <typename Index, typename AlphabetType>
 struct StringFragmentMod2 {
     Index        index;
-    AlphabetType t0, t1, t2, t3, t4, t5;
+    AlphabetType t[6];
     Index        r1, r5, r6;
+
+    AlphabetType at_radix(size_t depth) const { return t[depth]; }
+    Index        sort_rank() const { return r1; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod2& sf) {
         return os << "i=" << sf.index
-                  << " t0=" << sf.t0 << " t1=" << sf.t1 << " t2=" << sf.t2
-                  << " t3=" << sf.t3 << " t4=" << sf.t4 << " t5=" << sf.t5
+                  << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
+                  << " t3=" << sf.t[3] << " t4=" << sf.t[4] << " t5=" << sf.t[5]
                   << " r1=" << sf.r1 << " r5=" << sf.r5 << " r6=" << sf.r6;
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -157,14 +169,17 @@ template <typename Index, typename AlphabetType>
 struct StringFragmentMod3 {
 
     Index        index;
-    AlphabetType t0, t1, t2, t3, t4;
+    AlphabetType t[5];
     Index        r0, r4, r5;
+
+    AlphabetType at_radix(size_t depth) const { return t[depth]; }
+    Index        sort_rank() const { return r0; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod3& sf) {
         return os << "i=" << sf.index
-                  << " t0=" << sf.t0 << " t1=" << sf.t1 << " t2=" << sf.t2
-                  << " t3=" << sf.t3 << " t4=" << sf.t4
+                  << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
+                  << " t3=" << sf.t[3] << " t4=" << sf.t[4]
                   << " r0=" << sf.r0 << " r4=" << sf.r4 << " r5=" << sf.r5;
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -173,14 +188,17 @@ struct StringFragmentMod3 {
 template <typename Index, typename AlphabetType>
 struct StringFragmentMod4 {
     Index        index;
-    AlphabetType t0, t1, t2, t3, t4, t5;
+    AlphabetType t[6];
     Index        r3, r4, r6;
+
+    AlphabetType at_radix(size_t depth) const { return t[depth]; }
+    Index        sort_rank() const { return r3; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod4& sf) {
         return os << "i=" << sf.index
-                  << " t0=" << sf.t0 << " t1=" << sf.t1 << " t2=" << sf.t2
-                  << " t3=" << sf.t3 << " t4=" << sf.t4 << " t5=" << sf.t5
+                  << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
+                  << " t3=" << sf.t[3] << " t4=" << sf.t[4] << " t5=" << sf.t[5]
                   << " r3=" << sf.r3 << " r4=" << sf.r4 << " r6=" << sf.r6;
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -189,14 +207,17 @@ struct StringFragmentMod4 {
 template <typename Index, typename AlphabetType>
 struct StringFragmentMod5 {
     Index        index;
-    AlphabetType t0, t1, t2, t3, t4;
+    AlphabetType t[5];
     Index        r2, r3, r5;
+
+    AlphabetType at_radix(size_t depth) const { return t[depth]; }
+    Index        sort_rank() const { return r2; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod5& sf) {
         return os << "i=" << sf.index
-                  << " t0=" << sf.t0 << " t1=" << sf.t1 << " t2=" << sf.t2
-                  << " t3=" << sf.t3 << " t4=" << sf.t4
+                  << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
+                  << " t3=" << sf.t[3] << " t4=" << sf.t[4]
                   << " r2=" << sf.r2 << " r3=" << sf.r3 << " r5=" << sf.r5;
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -205,14 +226,17 @@ struct StringFragmentMod5 {
 template <typename Index, typename AlphabetType>
 struct StringFragmentMod6 {
     Index        index;
-    AlphabetType t0, t1, t2, t3;
+    AlphabetType t[4];
     Index        r1, r2, r4;
+
+    AlphabetType at_radix(size_t depth) const { return t[depth]; }
+    Index        sort_rank() const { return r1; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod6& sf) {
         return os << "i=" << sf.index
-                  << " t0=" << sf.t0 << " t1=" << sf.t1 << " t2=" << sf.t2
-                  << " t3=" << sf.t3
+                  << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
+                  << " t3=" << sf.t[3]
                   << " r1=" << sf.r1 << " r2=" << sf.r2 << " r4=" << sf.r4;
     }
 } THRILL_ATTRIBUTE_PACKED;
@@ -220,6 +244,7 @@ struct StringFragmentMod6 {
 //! Union of String Fragments with Index
 template <typename Index, typename AlphabetType>
 struct StringFragment {
+
     union {
         Index                                   index;
         StringFragmentMod0<Index, AlphabetType> mod0;
@@ -292,36 +317,36 @@ struct FragmentComparator {
 
     template <typename FragmentA, typename FragmentB>
     bool cmp1(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t0, a.r1) < std::tie(b.t0, b.r1);
+        return std::tie(a.t[0], a.r1) < std::tie(b.t[0], b.r1);
     }
 
     template <typename FragmentA, typename FragmentB>
     bool cmp2(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t0, a.t1, a.r2) < std::tie(b.t0, b.t1, b.r2);
+        return std::tie(a.t[0], a.t[1], a.r2) < std::tie(b.t[0], b.t[1], b.r2);
     }
 
     template <typename FragmentA, typename FragmentB>
     bool cmp3(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t0, a.t1, a.t2, a.r3)
-               < std::tie(b.t0, b.t1, b.t2, b.r3);
+        return std::tie(a.t[0], a.t[1], a.t[2], a.r3)
+               < std::tie(b.t[0], b.t[1], b.t[2], b.r3);
     }
 
     template <typename FragmentA, typename FragmentB>
     bool cmp4(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t0, a.t1, a.t2, a.t3, a.r4)
-               < std::tie(b.t0, b.t1, b.t2, b.t3, b.r4);
+        return std::tie(a.t[0], a.t[1], a.t[2], a.t[3], a.r4)
+               < std::tie(b.t[0], b.t[1], b.t[2], b.t[3], b.r4);
     }
 
     template <typename FragmentA, typename FragmentB>
     bool cmp5(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t0, a.t1, a.t2, a.t3, a.t4, a.r5)
-               < std::tie(b.t0, b.t1, b.t2, b.t3, b.t4, b.r5);
+        return std::tie(a.t[0], a.t[1], a.t[2], a.t[3], a.t[4], a.r5)
+               < std::tie(b.t[0], b.t[1], b.t[2], b.t[3], b.t[4], b.r5);
     }
 
     template <typename FragmentA, typename FragmentB>
     bool cmp6(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t0, a.t1, a.t2, a.t3, a.t4, a.t5, a.r6)
-               < std::tie(b.t0, b.t1, b.t2, b.t3, b.t4, b.t5, b.r6);
+        return std::tie(a.t[0], a.t[1], a.t[2], a.t[3], a.t[4], a.t[5], a.r6)
+               < std::tie(b.t[0], b.t[1], b.t[2], b.t[3], b.t[4], b.t[5], b.r6);
     }
 
     bool operator () (const StringFragment& a, const StringFragment& b) const {
@@ -512,6 +537,34 @@ struct IndexCR013Pair {
     CharsRanks013<Index, Char> cr1;
 } THRILL_ATTRIBUTE_PACKED;
 
+template <typename Type, size_t MaxDepth>
+class RadixSortFragment
+{
+public:
+    explicit RadixSortFragment(size_t K) : K_(K) { }
+    template <typename CompareFunction>
+    void operator () (
+        typename std::vector<Type>::iterator begin,
+        typename std::vector<Type>::iterator end,
+        const CompareFunction& cmp) const {
+        if (K_ < 4096) {
+            thrill::common::radix_sort_CI<MaxDepth>(
+                begin, end, K_, cmp, [](auto begin, auto end, auto) {
+                            // sub sorter: sort StringFragments by rank
+                    std::sort(begin, end, [](const Type& a, const Type& b) {
+                                  return a.sort_rank() < b.sort_rank();
+                              });
+                });
+        }
+        else {
+            std::sort(begin, end, cmp);
+        }
+    }
+
+private:
+    const size_t K_;
+};
+
 } // namespace dc7_local
 
 using namespace thrill; // NOLINT
@@ -523,7 +576,7 @@ static inline bool IsDiffCover7(size_t i) {
 }
 
 template <typename Index, typename InputDIA>
-DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
+DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
 
     using Char = typename InputDIA::ValueType;
     using IndexChars = dc7_local::IndexChars<Index, Char>;
@@ -575,7 +628,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         // sort tuples by contained letters
         .Sort([](const IndexChars& a, const IndexChars& b) {
                   return a.chars < b.chars;
-              });
+              }, common::RadixSort<IndexChars, 7>(K));
 
     if (debug_print)
         tuple_sorted.Keep().Print("tuple_sorted");
@@ -685,7 +738,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
 
         assert_equal(string_mod013.Keep().Size(), size_subp);
 
-        auto suffix_array_rec = DC7<Index>(string_mod013, size_subp);
+        auto suffix_array_rec = DC7<Index>(string_mod013, size_subp, max_lexname);
 
         // reverse suffix array of recursion strings to find ranks for mod 0,
         // mod 1, and mod 3 positions.
@@ -860,7 +913,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod0 {
                      ip.index,
-                     ip.cr0.chars.ch[0], ip.cr0.chars.ch[1], ip.cr0.chars.ch[2],
+                     { ip.cr0.chars.ch[0], ip.cr0.chars.ch[1], ip.cr0.chars.ch[2] },
                      ip.cr0.rank0, ip.cr0.rank1, ip.cr0.rank3
                  };
              })
@@ -873,8 +926,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod1 {
                      ip.index + Index(1),
-                     ip.cr0.chars.ch[1], ip.cr0.chars.ch[2], ip.cr0.chars.ch[3],
-                     ip.cr0.chars.ch[4], ip.cr0.chars.ch[5], ip.cr0.chars.ch[6],
+                     { ip.cr0.chars.ch[1], ip.cr0.chars.ch[2], ip.cr0.chars.ch[3],
+                       ip.cr0.chars.ch[4], ip.cr0.chars.ch[5], ip.cr0.chars.ch[6] },
                      ip.cr0.rank1, ip.cr0.rank3, ip.cr1.rank0
                  };
              })
@@ -887,8 +940,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod2 {
                      ip.index + Index(2),
-                     ip.cr0.chars.ch[2], ip.cr0.chars.ch[3], ip.cr0.chars.ch[4],
-                     ip.cr0.chars.ch[5], ip.cr0.chars.ch[6], ip.cr1.chars.ch[0],
+                     { ip.cr0.chars.ch[2], ip.cr0.chars.ch[3], ip.cr0.chars.ch[4],
+                       ip.cr0.chars.ch[5], ip.cr0.chars.ch[6], ip.cr1.chars.ch[0] },
                      ip.cr0.rank3, ip.cr1.rank0, ip.cr1.rank1
                  };
              })
@@ -901,8 +954,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod3 {
                      ip.index + Index(3),
-                     ip.cr0.chars.ch[3], ip.cr0.chars.ch[4], ip.cr0.chars.ch[5],
-                     ip.cr0.chars.ch[6], ip.cr1.chars.ch[0],
+                     { ip.cr0.chars.ch[3], ip.cr0.chars.ch[4], ip.cr0.chars.ch[5],
+                       ip.cr0.chars.ch[6], ip.cr1.chars.ch[0] },
                      ip.cr0.rank3, ip.cr1.rank0, ip.cr1.rank1
                  };
              })
@@ -915,8 +968,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod4 {
                      ip.index + Index(4),
-                     ip.cr0.chars.ch[4], ip.cr0.chars.ch[5], ip.cr0.chars.ch[6],
-                     ip.cr1.chars.ch[0], ip.cr1.chars.ch[1], ip.cr1.chars.ch[2],
+                     { ip.cr0.chars.ch[4], ip.cr0.chars.ch[5], ip.cr0.chars.ch[6],
+                       ip.cr1.chars.ch[0], ip.cr1.chars.ch[1], ip.cr1.chars.ch[2] },
                      ip.cr1.rank0, ip.cr1.rank1, ip.cr1.rank3
                  };
              })
@@ -929,8 +982,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod5 {
                      ip.index + Index(5),
-                     ip.cr0.chars.ch[5], ip.cr0.chars.ch[6], ip.cr1.chars.ch[0],
-                     ip.cr1.chars.ch[1], ip.cr1.chars.ch[2],
+                     { ip.cr0.chars.ch[5], ip.cr0.chars.ch[6], ip.cr1.chars.ch[0],
+                       ip.cr1.chars.ch[1], ip.cr1.chars.ch[2] },
                      ip.cr1.rank0, ip.cr1.rank1, ip.cr1.rank3
                  };
              })
@@ -943,8 +996,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod6 {
                      ip.index + Index(6),
-                     ip.cr0.chars.ch[6], ip.cr1.chars.ch[0], ip.cr1.chars.ch[1],
-                     ip.cr1.chars.ch[2],
+                     { ip.cr0.chars.ch[6], ip.cr1.chars.ch[0], ip.cr1.chars.ch[1],
+                       ip.cr1.chars.ch[2] },
                      ip.cr1.rank0, ip.cr1.rank1, ip.cr1.rank3
                  };
              })
@@ -968,44 +1021,45 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
         fragments_mod0
         .Sort([](const StringFragmentMod0& a, const StringFragmentMod0& b) {
                   return a.r0 < b.r0;
-              });
+              }, dc7_local::RadixSortFragment<StringFragmentMod0, 0>(K));
 
     auto sorted_fragments_mod1 =
         fragments_mod1
         .Sort([](const StringFragmentMod1& a, const StringFragmentMod1& b) {
                   return a.r0 < b.r0;
-              });
+              }, dc7_local::RadixSortFragment<StringFragmentMod1, 0>(K));
 
     auto sorted_fragments_mod2 =
         fragments_mod2
         .Sort([](const StringFragmentMod2& a, const StringFragmentMod2& b) {
-                  return std::tie(a.t0, a.r1) < std::tie(b.t0, b.r1);
-              });
+                  return std::tie(a.t[0], a.r1) < std::tie(b.t[0], b.r1);
+              }, dc7_local::RadixSortFragment<StringFragmentMod2, 1>(K));
 
     auto sorted_fragments_mod3 =
         fragments_mod3
         .Sort([](const StringFragmentMod3& a, const StringFragmentMod3& b) {
                   return a.r0 < b.r0;
-              });
+              }, dc7_local::RadixSortFragment<StringFragmentMod3, 0>(K));
 
     auto sorted_fragments_mod4 =
         fragments_mod4
         .Sort([](const StringFragmentMod4& a, const StringFragmentMod4& b) {
-                  return std::tie(a.t0, a.t1, a.t2, a.r3)
-                  < std::tie(b.t0, b.t1, b.t2, b.r3);
-              });
+                  return std::tie(a.t[0], a.t[1], a.t[2], a.r3)
+                  < std::tie(b.t[0], b.t[1], b.t[2], b.r3);
+              }, dc7_local::RadixSortFragment<StringFragmentMod4, 3>(K));
 
     auto sorted_fragments_mod5 =
         fragments_mod5
         .Sort([](const StringFragmentMod5& a, const StringFragmentMod5& b) {
-                  return std::tie(a.t0, a.t1, a.r2) < std::tie(b.t0, b.t1, b.r2);
-              });
+                  return std::tie(a.t[0], a.t[1], a.r2)
+                  < std::tie(b.t[0], b.t[1], b.r2);
+              }, dc7_local::RadixSortFragment<StringFragmentMod5, 2>(K));
 
     auto sorted_fragments_mod6 =
         fragments_mod6
         .Sort([](const StringFragmentMod6& a, const StringFragmentMod6& b) {
-                  return std::tie(a.t0, a.r1) < std::tie(b.t0, b.r1);
-              });
+                  return std::tie(a.t[0], a.r1) < std::tie(b.t[0], b.r1);
+              }, dc7_local::RadixSortFragment<StringFragmentMod6, 1>(K));
 
     if (debug_print) {
         sorted_fragments_mod0.Keep().Print("sorted_fragments_mod0");
@@ -1094,10 +1148,10 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size) {
 }
 
 template DIA<uint32_t> DC7<uint32_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size);
+    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
 template DIA<uint64_t> DC7<uint64_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size);
+    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
 } // namespace suffix_sorting
 } // namespace examples
