@@ -98,7 +98,7 @@ private:
 			core::DynamicBitset<size_t> golomb_code(raw_data,
 													common::IntegerDivRoundUp(data_size,
 																			  sizeof(size_t)),
-													b);
+													b, num_elements);
 			golomb_code.seek();
 
 			size_t last = 0;
@@ -120,8 +120,12 @@ public:
 						  Context& context,
 						  size_t unique_elements,
 						  size_t dia_id) {
+
+		auto max_func = [](size_t i1, size_t i2) {
+			return std::max(i1, i2);
+		};
 		
-		size_t upper_bound_uniques = context.net.AllReduce(unique_elements);
+		size_t upper_bound_uniques = context.net.AllReduce(unique_elements, max_func);
 
 		double fpr_parameter = 8;
 		size_t b = (size_t)(std::log(2) * fpr_parameter);

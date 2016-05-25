@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * TODO: Copyright from Sebastian Schlag
+ * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -15,7 +16,9 @@
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
+
 #include <cmath>
+#include <algorithm>
 
 namespace thrill {
 namespace core {
@@ -25,6 +28,9 @@ class DynamicBitset {
 private:
 	static const int bit_length = sizeof(base) * 8, bit_length_doubled = 2 * bit_length, logbase = std::log2(bit_length);
 	static const base mask = (((base)1) << logbase) - 1, all_set = ~((base)0), msb_set = ((base)1) << (bit_length - 1);
+
+	static const bool debug = false;
+	std::vector<size_t> inserted_elements;
 
     const int alignment = 64;
 
@@ -53,6 +59,7 @@ public:
 		memory1 = new byte[sizeof(base) * m + alignment];
 		in_called_already = false;
 		out_called_already = false;
+		num_elements = 0;
 		
 		v = new((void *)((((ptrdiff_t)memory1) & ~((ptrdiff_t)alignment - 1)) + alignment)) base[m];
 
@@ -72,18 +79,48 @@ public:
 	}
 
 	~DynamicBitset() {
+		if (debug && num_elements) {
+			std::sort(inserted_elements.begin(), inserted_elements.end());
+			double entropy_total = 0;
+			size_t last = 0;
+			double total_prob = 0;
+			for (size_t i = 1; i < inserted_elements.size(); ++i) {
+				if (inserted_elements[i] > inserted_elements[i-1]) {
+					size_t equal_elements = i - last;
+					double probability = (double) equal_elements / (double) num_elements;
+					total_prob += probability;
+					double entropy_i = probability * std::log2(probability);
+					assert(entropy_i < 0);
+					entropy_total -= entropy_i;
+					last = i;
+				}
+			}
+			double last_prob = (double) (num_elements - last) / (double) num_elements;
+			entropy_total -= last_prob * std::log2(last_prob);
+			total_prob += last_prob;
+
+			assert(std::fabs(total_prob - 1.0) <= 0.00001);
+
+			size_t total_inform = std::ceil(entropy_total * (double) num_elements);
+			
+			sLOG << "Bitset: items:" << num_elements 
+				 << "size(b):" << bit_size()
+				 << "total_inform" << total_inform
+				 << "size_factor" << (double) bit_size() / (double) total_inform; 
+		}
 		if (memory1 != NULL) {
 			delete[] memory1;
 		}
 	}
 	/* -------------------------------------------------------------------------------*/
-	DynamicBitset(base *_data, index_type _m, base _b) :
+	DynamicBitset(base *_data, index_type _m, base _b, size_t _num_elements) :
 		n(0),
 		m(_m),
 		v(_data),
 		b(_b),
 		p(common::IntegerLog2Ceil(b)),
-		max_little_value((((base)1) << p) - b) {
+		max_little_value((((base)1) << p) - b),
+		num_elements(_num_elements) {
 		memory1 = NULL;
 		pos = 0;
 		maxpos = _m;
@@ -219,6 +256,7 @@ private:
 	base buffer;
 	index_type pos, maxpos;
 	int bits;
+	size_t num_elements;
 
 public:
 	inline void seek(size_t bit_pos = 0) {
@@ -317,6 +355,10 @@ public:
 	}
 
 	inline void golomb_in(base value) {
+		++num_elements;
+		if (debug) {
+			inserted_elements.push_back(value);
+		}
 		if (THRILL_LIKELY(in_called_already)) {
 			value--;
 			assert(pos > 0);
@@ -377,6 +419,10 @@ public:
 			if (r >= max_little_value)
 				r = ((r << 1) + stream_out(1)) - max_little_value;
 
+			if (debug && !n) {
+				inserted_elements.push_back(((q * b) + r) + 1);
+			}
+
 			return ((q * b) + r) + 1;
 		} else {
 			out_called_already = true;
@@ -388,6 +434,9 @@ public:
 			pos = 1;
 			bits = 0;
 			buffer = v[1];
+			if (debug && !n) {
+				inserted_elements.push_back(v[0]);
+			}
 			return v[0];
 		}
 	} 
@@ -398,6 +447,10 @@ public:
 		} else {
 			return common::IntegerDivRoundUp(bits, 8);
 		}
+	}
+
+	inline size_t bit_size() const {
+		return maxpos * bit_length + bits;
 	}
 
 	
