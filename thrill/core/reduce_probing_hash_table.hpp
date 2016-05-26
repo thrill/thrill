@@ -172,8 +172,8 @@ public:
     /*!
      * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
      * inserts the pair via the Insert() function.
-	 *
-	 * \return true if a new key was inserted to the table
+         *
+         * \return true if a new key was inserted to the table
      */
     bool Insert(const Value& p) {
         return Insert(std::make_pair(key_extractor_(p), p));
@@ -192,8 +192,8 @@ public:
      * fill ratio per partition is reached.
      *
      * \param kv Value to be inserted into the table.
-	 *
-	 * \return true if a new key was inserted to the table
+         *
+         * \return true if a new key was inserted to the table
      */
     bool Insert(const KeyValuePair& kv) {
 
@@ -207,7 +207,7 @@ public:
         assert(h.partition_id < num_partitions_);
 
         if (kv.first == Key()) {
-			bool new_unique = false;
+            bool new_unique = false;
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
             KeyValuePair& sentinel = items_[num_buckets_];
@@ -215,7 +215,7 @@ public:
                 // first occurrence of sentinel key
                 new (&sentinel)KeyValuePair(kv);
                 sentinel_partition_ = h.partition_id;
-				new_unique = true;
+                new_unique = true;
             }
             else {
                 sentinel.second = reduce_function_(sentinel.second, kv.second);
@@ -274,7 +274,7 @@ public:
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
 
-		return true;
+        return true;
     }
 
     //! Deallocate items and memory

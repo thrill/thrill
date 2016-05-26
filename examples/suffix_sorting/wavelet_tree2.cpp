@@ -10,13 +10,13 @@
  ******************************************************************************/
 
 #include <thrill/api/collapse.hpp>
-#include <thrill/api/window.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/sort.hpp>
+#include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
@@ -44,42 +44,41 @@ auto ConstructWaveletTree(const InputDIA &input_dia) {
     uint64_t mask = (~uint64_t(0)) << level;
     uint64_t maskbit = uint64_t(1) << level;
 
-    typedef std::pair<uint8_t,uint64_t> PairBI;
-
+    using PairBI = std::pair<uint8_t, uint64_t>;
 
     auto wt = input_dia.template FlatMap<PairBI>(
-            [level](const uint64_t& x, auto emit){
-                for(size_t i=0; i<=level; ++i){
-                    emit(std::make_pair(i, x));
-                }
-            });
-    auto wt2 = wt.Sort([mask](const PairBI& a, const PairBI& b){
-        if ( a.first != b.first ) {
-            return a.first < b.first;
-        } else {
-            return (a.second & (mask>>a.first)) < (b.second & (mask>>a.first));
-        }
-    });
+        [level](const uint64_t& x, auto emit) {
+            for (size_t i = 0; i <= level; ++i) {
+                emit(std::make_pair(i, x));
+            }
+        });
+    auto wt2 = wt.Sort([mask](const PairBI& a, const PairBI& b) {
+                           if (a.first != b.first) {
+                               return a.first < b.first;
+                           }
+                           else {
+                               return (a.second & (mask >> a.first)) < (b.second & (mask >> a.first));
+                           }
+                       });
 
-    if (debug) 
-        wt2.Map([](const PairBI &x){
-            return std::to_string(x.first)+" "+std::to_string(x.second);    
-        }).Print("wt");
+    if (debug)
+        wt2.Map([](const PairBI& x) {
+                    return std::to_string(x.first) + " " + std::to_string(x.second);
+                }).Print("wt");
 
-    auto binary_wt = wt2.Window(DisjointTag, 64, [maskbit](size_t, const std::vector<PairBI> v){
-        uint64_t x = 0;
-        for(size_t i=0; i<v.size(); ++i){
-            uint64_t b = (v[i].second & ((maskbit) >> v[i].first)) != 0;
-            x |= (b << i);
-        }
-        return x;
-    });
+    auto binary_wt = wt2.Window(DisjointTag, 64, [maskbit](size_t, const std::vector<PairBI> v) {
+                                    uint64_t x = 0;
+                                    for (size_t i = 0; i < v.size(); ++i) {
+                                        uint64_t b = (v[i].second & ((maskbit) >> v[i].first)) != 0;
+                                        x |= (b << i);
+                                    }
+                                    return x;
+                                });
 
     if (debug)
         binary_wt.Print("BINARY_WT");
-    
-    binary_wt.WriteBinary("BINARY_WT");
 
+    binary_wt.WriteBinary("BINARY_WT");
 }
 
 int main(int argc, char* argv[]) {

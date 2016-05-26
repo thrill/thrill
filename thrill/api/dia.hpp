@@ -981,7 +981,7 @@ public:
     template <typename SimilarityFunction, typename SecondDIA, typename Threshhold>
     auto TrivialSimJoin(const SecondDIA &second_dia,
                         const SimilarityFunction &comparator,
-		                const Threshhold &threshhold) const;
+                        const Threshhold &threshhold) const;
 
     /*!
      * Create a CollapseNode which is mainly used to collapse the LOp chain into

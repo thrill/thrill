@@ -47,12 +47,12 @@ public:
     TrivialSimJoinNode(const DistanceFunction& distance_function,
                        const ParentDIA0& parentR,
                        const ParentDIA1& parentS,
-		               const Threshhold& threshhold)
+                       const Threshhold& threshhold)
         : Super(parentR.ctx(), "TrivialSimJoin",
                 { parentR.id(), parentS.id() },
                 { parentR.node(), parentS.node() }),
           distance_function_(distance_function),
-		  threshhold_(threshhold)
+          threshhold_(threshhold)
     {
 
         auto pre_op_fn_R = [this](const InputType& input) {
@@ -101,7 +101,7 @@ private:
     //! Merge comparator
     DistanceFunction distance_function_;
 
-	Threshhold threshhold_;
+    Threshhold threshhold_;
 
     std::vector<InputType> elements_R_;
 
@@ -121,13 +121,13 @@ template <typename ValueType, typename Stack>
 template <typename DistanceFunction, typename SecondDIA, typename Threshhold>
 auto DIA<ValueType, Stack>::TrivialSimJoin(const SecondDIA &second_dia,
                                            const DistanceFunction &distance_function,
-	                                       const Threshhold &threshhold) const {
-	assert(IsValid());
+                                           const Threshhold &threshhold) const {
+    assert(IsValid());
 
-    using OutputPair = std::pair<ValueType, ValueType>;					
-																		
-    using TrivialSimJoinNode =											
-		api::TrivialSimJoinNode<OutputPair, DistanceFunction, DIA, SecondDIA, Threshhold>;
+    using OutputPair = std::pair<ValueType, ValueType>;
+
+    using TrivialSimJoinNode =
+              api::TrivialSimJoinNode<OutputPair, DistanceFunction, DIA, SecondDIA, Threshhold>;
 
     // Assert function types.
     static_assert(
@@ -152,11 +152,11 @@ auto DIA<ValueType, Stack>::TrivialSimJoin(const SecondDIA &second_dia,
             >::value,
         "Distance Function must return a numeral.");
 
-	static_assert(
-		std::is_same<
-		typename FunctionTraits<DistanceFunction>::result_type,
-		Threshhold>::value,
-		"Distance Function must return the type of the distance threshhold");
+    static_assert(
+        std::is_same<
+            typename FunctionTraits<DistanceFunction>::result_type,
+            Threshhold>::value,
+        "Distance Function must return the type of the distance threshhold");
 
     auto node =
         common::MakeCounting<TrivialSimJoinNode>(distance_function, *this, second_dia, threshhold);

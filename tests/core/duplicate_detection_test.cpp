@@ -16,176 +16,169 @@ using namespace thrill; //NOLINT
 
 TEST(DuplicateDetection, AllDuplicatedList) {
 
-	auto start_func = [](Context& ctx) {
-		size_t elements = 10000;
-		
-		
-		std::vector<size_t> duplicates;
-		std::vector<size_t> hashes;
-		
-		for (size_t i = 0; i < elements; ++i) {
-			hashes.push_back(i);
-		}
+    auto start_func = [](Context& ctx) {
+                          size_t elements = 10000;
 
-		core::DuplicateDetection duplicate_detection;
+                          std::vector<size_t> duplicates;
+                          std::vector<size_t> hashes;
 
-		duplicate_detection.FindDuplicates(duplicates, 
-										   hashes,
-										   ctx,
-										   elements,
-										   0);
+                          for (size_t i = 0; i < elements; ++i) {
+                              hashes.push_back(i);
+                          }
 
-		if (ctx.num_workers() > 1) {
-			ASSERT_EQ(hashes, duplicates);
-		} else {
-			ASSERT_EQ(duplicates, std::vector<size_t>());
-		}
-	};
+                          core::DuplicateDetection duplicate_detection;
 
-	api::RunLocalTests(start_func);
+                          duplicate_detection.FindDuplicates(duplicates,
+                                                             hashes,
+                                                             ctx,
+                                                             elements,
+                                                             0);
 
+                          if (ctx.num_workers() > 1) {
+                              ASSERT_EQ(hashes, duplicates);
+                          }
+                          else {
+                              ASSERT_EQ(duplicates, std::vector<size_t>());
+                          }
+                      };
+
+    api::RunLocalTests(start_func);
 }
 
 TEST(DuplicateDetection, SomeDuplicatedElements) {
 
-	auto start_func = [](Context& ctx) {
+    auto start_func = [](Context& ctx) {
 
-		// Local elements are [myrange.begin, myrange.end + delta)
-		// delta elements are duplicates with next worker
-		
-		size_t elements = 10000;
-		size_t delta = 50;
+                          // Local elements are [myrange.begin, myrange.end + delta)
+                          // delta elements are duplicates with next worker
 
-		// save unneeded test complexity, lower delta if this fails
-		// test will remain pretty much the same
-		assert(elements > delta * ctx.num_workers());
+                          size_t elements = 10000;
+                          size_t delta = 50;
 
-		std::vector<size_t> splitters;
+                          // save unneeded test complexity, lower delta if this fails
+                          // test will remain pretty much the same
+                          assert(elements > delta * ctx.num_workers());
 
-	    for (size_t i = 0; i < ctx.num_workers() - 1; ++i) {
-			double per_pe = static_cast<double>(elements) / static_cast<double>(ctx.num_workers());
-			splitters.push_back(
-				static_cast<size_t>(std::ceil(static_cast<double>(i + 1) * per_pe)));
-		}
+                          std::vector<size_t> splitters;
 
-		std::vector<size_t> duplicates;
-		std::vector<size_t> hashes;
+                          for (size_t i = 0; i < ctx.num_workers() - 1; ++i) {
+                              double per_pe = static_cast<double>(elements) / static_cast<double>(ctx.num_workers());
+                              splitters.push_back(
+                                  static_cast<size_t>(std::ceil(static_cast<double>(i + 1) * per_pe)));
+                          }
 
-		common::Range my_range = common::CalculateLocalRange(
-			elements, ctx.num_workers(), ctx.my_rank());
+                          std::vector<size_t> duplicates;
+                          std::vector<size_t> hashes;
 
-		for (size_t i = my_range.begin; i < my_range.end + delta; ++i) {
-			hashes.push_back(i);
-		}
+                          common::Range my_range = common::CalculateLocalRange(
+                              elements, ctx.num_workers(), ctx.my_rank());
 
+                          for (size_t i = my_range.begin; i < my_range.end + delta; ++i) {
+                              hashes.push_back(i);
+                          }
 
-		core::DuplicateDetection duplicate_detection;
+                          core::DuplicateDetection duplicate_detection;
 
-		size_t unique_per = elements / ctx.num_workers() + delta;
+                          size_t unique_per = elements / ctx.num_workers() + delta;
 
-		duplicate_detection.FindDuplicates(duplicates, 
-										   hashes,
-										   ctx,
-										   unique_per,
-										   0);
+                          duplicate_detection.FindDuplicates(duplicates,
+                                                             hashes,
+                                                             ctx,
+                                                             unique_per,
+                                                             0);
 
-		for (size_t i = 0; i < splitters.size(); ++i) {
-			for (size_t j = 0; j < delta; ++j) {
-				ASSERT_EQ(duplicates[i * delta + j], splitters[i] + j);
-			}
-		}
+                          for (size_t i = 0; i < splitters.size(); ++i) {
+                              for (size_t j = 0; j < delta; ++j) {
+                                  ASSERT_EQ(duplicates[i * delta + j], splitters[i] + j);
+                              }
+                          }
+                      };
 
-	};
-
-	api::RunLocalTests(start_func);
-
+    api::RunLocalTests(start_func);
 }
 
 TEST(DuplicateDetection, SomeDuplicatedElementsNonConsec) {
 
-	auto start_func = [](Context& ctx) {
+    auto start_func = [](Context& ctx) {
 
-		// Local elements are [myrange.begin, myrange.end + delta)
-		// delta elements are duplicates with next worker
-		
-		size_t elements = 10000;
-		size_t delta = 50;
-		size_t multiplier = 7;
+                          // Local elements are [myrange.begin, myrange.end + delta)
+                          // delta elements are duplicates with next worker
 
-		// save unneeded test complexity, lower delta if this fails
-		// test will remain pretty much the same
-		assert(elements > delta * ctx.num_workers());
+                          size_t elements = 10000;
+                          size_t delta = 50;
+                          size_t multiplier = 7;
 
-		std::vector<size_t> splitters;
+                          // save unneeded test complexity, lower delta if this fails
+                          // test will remain pretty much the same
+                          assert(elements > delta * ctx.num_workers());
 
-	    for (size_t i = 0; i < ctx.num_workers() - 1; ++i) {
-			double per_pe = static_cast<double>(elements) / static_cast<double>(ctx.num_workers());
-			splitters.push_back(
-				static_cast<size_t>(std::ceil(static_cast<double>((i + 1) * per_pe))));
-		}
+                          std::vector<size_t> splitters;
 
-		std::vector<size_t> duplicates;
-		std::vector<size_t> hashes;
+                          for (size_t i = 0; i < ctx.num_workers() - 1; ++i) {
+                              double per_pe = static_cast<double>(elements) / static_cast<double>(ctx.num_workers());
+                              splitters.push_back(
+                                  static_cast<size_t>(std::ceil(static_cast<double>((i + 1) * per_pe))));
+                          }
 
-		common::Range my_range = common::CalculateLocalRange(
-			elements, ctx.num_workers(), ctx.my_rank());
+                          std::vector<size_t> duplicates;
+                          std::vector<size_t> hashes;
 
-		for (size_t i = my_range.begin; i < my_range.end + delta; ++i) {
-			hashes.push_back(i * multiplier);
-		}
+                          common::Range my_range = common::CalculateLocalRange(
+                              elements, ctx.num_workers(), ctx.my_rank());
 
+                          for (size_t i = my_range.begin; i < my_range.end + delta; ++i) {
+                              hashes.push_back(i * multiplier);
+                          }
 
-		core::DuplicateDetection duplicate_detection;
+                          core::DuplicateDetection duplicate_detection;
 
-		size_t unique_per = elements / ctx.num_workers() + delta;
+                          size_t unique_per = elements / ctx.num_workers() + delta;
 
-		duplicate_detection.FindDuplicates(duplicates, 
-										   hashes,
-										   ctx,
-										   unique_per,
-										   0);
+                          duplicate_detection.FindDuplicates(duplicates,
+                                                             hashes,
+                                                             ctx,
+                                                             unique_per,
+                                                             0);
 
-		for (size_t i = 0; i < splitters.size(); ++i) {
-			for (size_t j = 0; j < delta; ++j) {
-				ASSERT_EQ(duplicates[i * delta + j], (splitters[i] + j) * multiplier);
-			}
-		}
+                          for (size_t i = 0; i < splitters.size(); ++i) {
+                              for (size_t j = 0; j < delta; ++j) {
+                                  ASSERT_EQ(duplicates[i * delta + j], (splitters[i] + j) * multiplier);
+                              }
+                          }
+                      };
 
-	};
-
-	api::RunLocalTests(start_func);
-
+    api::RunLocalTests(start_func);
 }
 
 TEST(DuplicateDetection, AllDuplicatedHash) {
 
-	auto start_func = [](Context& ctx) {
-		size_t elements = 2000;
-		
-		
-		std::vector<size_t> duplicates;
-		std::vector<size_t> hashes;
-		
-		for (size_t i = 0; i < elements; ++i) {
-			hashes.push_back((i * 317) % 9721);
-		}
+    auto start_func = [](Context& ctx) {
+                          size_t elements = 2000;
 
-		core::DuplicateDetection duplicate_detection;
+                          std::vector<size_t> duplicates;
+                          std::vector<size_t> hashes;
 
-		duplicate_detection.FindDuplicates(duplicates, 
-										   hashes,
-										   ctx,
-										   elements,
-										   0);
+                          for (size_t i = 0; i < elements; ++i) {
+                              hashes.push_back((i * 317) % 9721);
+                          }
 
-		if (ctx.num_workers() > 1) {
-			ASSERT_EQ(hashes, duplicates);
-		} else {
-			ASSERT_EQ(duplicates, std::vector<size_t>());
-		}
-	};
+                          core::DuplicateDetection duplicate_detection;
 
-	api::RunLocalTests(start_func);
+                          duplicate_detection.FindDuplicates(duplicates,
+                                                             hashes,
+                                                             ctx,
+                                                             elements,
+                                                             0);
 
+                          if (ctx.num_workers() > 1) {
+                              ASSERT_EQ(hashes, duplicates);
+                          }
+                          else {
+                              ASSERT_EQ(duplicates, std::vector<size_t>());
+                          }
+                      };
+
+    api::RunLocalTests(start_func);
 }
 
+/******************************************************************************/

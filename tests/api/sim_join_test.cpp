@@ -28,7 +28,7 @@ TEST(TrivialSimJoin, SimJoinIntegers1) {
     auto start_func =
         [](Context& ctx) {
 
-		    using IntPair = std::pair<int, int>;
+            using IntPair = std::pair<int, int>;
 
             auto integers1 = Generate(
                 ctx,
@@ -45,44 +45,41 @@ TEST(TrivialSimJoin, SimJoinIntegers1) {
                 1000);
 
             auto arithmetic_distance = [](int i1, int i2) -> int {
-                               return std::abs(i1 - i2);
-                           };
+                                           return std::abs(i1 - i2);
+                                       };
 
-			auto sort_pairs = [](IntPair ip1, IntPair ip2) {
-				if (ip1.first == ip2.first) {
-					return ip1.second < ip2.second;
-				} else {
-					return ip1.first < ip2.first;
-				}			
-			};
+            auto sort_pairs = [](IntPair ip1, IntPair ip2) {
+                                  if (ip1.first == ip2.first) {
+                                      return ip1.second < ip2.second;
+                                  }
+                                  else {
+                                      return ip1.first < ip2.first;
+                                  }
+                              };
 
-			int similarity_threshhold = 2;
+            int similarity_threshhold = 2;
 
             auto joined_pairs = integers1.TrivialSimJoin(integers2,
-														 arithmetic_distance, 
-														 similarity_threshhold);
+                                                         arithmetic_distance,
+                                                         similarity_threshhold);
 
+            auto sorted_joined_pairs = joined_pairs.Sort(sort_pairs);
 
-			auto sorted_joined_pairs = joined_pairs.Sort(sort_pairs);
-
-			//If everythign worked out correctly, this vector contains all pairs of integers
-			// between 0 and 999, in which the first and second integer differ by less than 2
-			// [0,0], [0,1], [1,0], [1,1], [1,2] ...
+            // If everythign worked out correctly, this vector contains all pairs of integers
+            // between 0 and 999, in which the first and second integer differ by less than 2
+            // [0,0], [0,1], [1,0], [1,1], [1,2] ...
             std::vector<std::pair<int, int> > out_vec = sorted_joined_pairs.AllGather();
-			
-			ASSERT_EQ(2998u, out_vec.size());
 
-			for (unsigned int i = 0; i < out_vec.size(); i++) {
+            ASSERT_EQ(2998u, out_vec.size());
 
-				int expected_first = (i + 1) / 3;
-				ASSERT_EQ(expected_first, out_vec[i].first);
+            for (unsigned int i = 0; i < out_vec.size(); i++) {
 
-				int expected_second = (((i + 1) % 3) - 1) + expected_first;
-			    ASSERT_EQ(expected_second, out_vec[i].second);
-				
-			}
+                int expected_first = (i + 1) / 3;
+                ASSERT_EQ(expected_first, out_vec[i].first);
 
-
+                int expected_second = (((i + 1) % 3) - 1) + expected_first;
+                ASSERT_EQ(expected_second, out_vec[i].second);
+            }
         };
 
     api::RunLocalTests(start_func);

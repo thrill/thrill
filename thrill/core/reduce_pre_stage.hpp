@@ -109,9 +109,9 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool VolatileKey,
           typename ReduceConfig_ = DefaultReduceConfig,
-		  bool UseDuplicateDetection = false,
+          bool UseDuplicateDetection = false,
           typename IndexFunction = ReduceByHash<Key>,
-          typename EqualToFunction = std::equal_to<Key>>
+          typename EqualToFunction = std::equal_to<Key> >
 class ReducePreStage
 {
     static constexpr bool debug = false;
@@ -142,7 +142,7 @@ public:
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
-		  key_extractor_(key_extractor),
+          key_extractor_(key_extractor),
           table_(ctx, dia_id,
                  key_extractor, reduce_function, emit_,
                  num_partitions, config, /* immediate_flush */ !UseDuplicateDetection,
@@ -161,84 +161,81 @@ public:
         table_.Initialize(limit_memory_bytes);
     }
 
-	
-
     void Insert(const Value& p) {
-		total_elements_++;
-		if (table_.Insert(p)) {
-			unique_elements_++;
-			if (UseDuplicateDetection) {
-				hashes_.push_back(std::hash<Key>()(key_extractor_(p)));
-			}
-		}
+        total_elements_++;
+        if (table_.Insert(p)) {
+            unique_elements_++;
+            if (UseDuplicateDetection) {
+                hashes_.push_back(std::hash<Key>()(key_extractor_(p)));
+            }
+        }
     }
 
     void Insert(const KeyValuePair& kv) {
-		total_elements_++;
-        if(table_.Insert(kv)) {
-			unique_elements_++;
-			if (UseDuplicateDetection) {
-				hashes_.push_back(std::hash<Key>()(kv.first));
-			}
-		}
+        total_elements_++;
+        if (table_.Insert(kv)) {
+            unique_elements_++;
+            if (UseDuplicateDetection) {
+                hashes_.push_back(std::hash<Key>()(kv.first));
+            }
+        }
     }
-
-	
 
     //! Flush all partitions
     void FlushAll() {
-		
-		if (UseDuplicateDetection) {
-			DuplicateDetection dup_detect;
-			max_hash_ = dup_detect.FindDuplicates(duplicates_,
-												  hashes_,
-												  table_.ctx(),
-												  unique_elements_,
-												  table_.dia_id());
-		}
-		
+
+        if (UseDuplicateDetection) {
+            DuplicateDetection dup_detect;
+            max_hash_ = dup_detect.FindDuplicates(duplicates_,
+                                                  hashes_,
+                                                  table_.ctx(),
+                                                  unique_elements_,
+                                                  table_.dia_id());
+        }
+
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
             FlushPartition(id, /* consume */ true);
-		}
+        }
     }
 
     //! Flushes all items of a partition.
     void FlushPartition(size_t partition_id, bool consume) {
-	    if (UseDuplicateDetection) {
-			table_.FlushPartitionEmit(
-				partition_id, consume,
-				[this](const size_t& partition_id, const KeyValuePair& p) {
-					if (std::binary_search(duplicates_.begin(), duplicates_.end(),
-										   (std::hash<Key>()(p.first) % max_hash_))) {
-						emit_.Emit(partition_id, p);
-					} else {
-						emit_.Emit(table_.ctx().my_rank(), p);
-					}
-				});
+        if (UseDuplicateDetection) {
+            table_.FlushPartitionEmit(
+                partition_id, consume,
+                [this](const size_t& partition_id, const KeyValuePair& p) {
+                    if (std::binary_search(duplicates_.begin(), duplicates_.end(),
+                                           (std::hash<Key>()(p.first) % max_hash_))) {
+                        emit_.Emit(partition_id, p);
+                    }
+                    else {
+                        emit_.Emit(table_.ctx().my_rank(), p);
+                    }
+                });
 
-		
-			if (table_.has_spilled_data_on_partition(partition_id)) {
-				data::File::Reader reader = 
-					table_.partition_files()[partition_id].GetReader(/* consume */ true);
-				while (reader.HasNext()) {
-					KeyValuePair kv = reader.Next<KeyValuePair>();
-					if (std::binary_search(duplicates_.begin(), duplicates_.end(), 
-										   (std::hash<Key>()(kv.first) % max_hash_))) {
-						emit_.Emit(partition_id, kv);
-					} else {
-						emit_.Emit(table_.ctx().my_rank(), kv);
-					}
-				}
-			}
-    
-		
-			// flush elements pushed into emitter
-			emit_.Flush(partition_id);
-			emit_.Flush(table_.ctx().my_rank());
-		} else {
-			table_.FlushPartition(partition_id, consume);
-			//data is flushed immediately, there is no spilled data
-		}
+            if (table_.has_spilled_data_on_partition(partition_id)) {
+                data::File::Reader reader =
+                    table_.partition_files()[partition_id].GetReader(/* consume */ true);
+                while (reader.HasNext()) {
+                    KeyValuePair kv = reader.Next<KeyValuePair>();
+                    if (std::binary_search(duplicates_.begin(), duplicates_.end(),
+                                           (std::hash<Key>()(kv.first) % max_hash_))) {
+                        emit_.Emit(partition_id, kv);
+                    }
+                    else {
+                        emit_.Emit(table_.ctx().my_rank(), kv);
+                    }
+                }
+            }
+
+            // flush elements pushed into emitter
+            emit_.Flush(partition_id);
+            emit_.Flush(table_.ctx().my_rank());
+        }
+        else {
+            table_.FlushPartition(partition_id, consume);
+            // data is flushed immediately, there is no spilled data
+        }
     }
 
     //! Closes all emitter
@@ -253,8 +250,8 @@ public:
     //! Returns the total num of items in the table.
     size_t num_items() const { return table_.num_items(); }
 
-	std::vector<size_t> hashes_;
-	std::vector<size_t> duplicates_;
+    std::vector<size_t> hashes_;
+    std::vector<size_t> duplicates_;
 
     //! calculate key range for the given output partition
     common::Range key_range(size_t partition_id)
@@ -266,15 +263,15 @@ private:
     //! Emitters used to parameterize hash table for output to network.
     Emitter emit_;
 
-	//! extractor function which maps a value to it's key
-	KeyExtractor key_extractor_;
+    //! extractor function which maps a value to it's key
+    KeyExtractor key_extractor_;
 
     //! the first-level hash table implementation
     Table table_;
 
-	size_t unique_elements_ = 0;
-	size_t total_elements_ = 0;
-	size_t max_hash_;
+    size_t unique_elements_ = 0;
+    size_t total_elements_ = 0;
+    size_t max_hash_;
 };
 
 } // namespace core

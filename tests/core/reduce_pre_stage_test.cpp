@@ -157,13 +157,13 @@ static void TestAddMyStructByIndex(Context& ctx) {
         emitters.emplace_back(files[i].GetDynWriter());
 
     // process items with stage
-    using Stage = 
-		core::ReducePreStage<MyStruct, size_t, MyStruct,
-							 decltype(key_ex), decltype(red_fn),
-							 /* VolatileKey */ false,
-							 MyReduceConfig<table_impl>,
-							 false,
-							 core::ReduceByIndex<size_t>>;
+    using Stage =
+              core::ReducePreStage<MyStruct, size_t, MyStruct,
+                                   decltype(key_ex), decltype(red_fn),
+                                   /* VolatileKey */ false,
+                                   MyReduceConfig<table_impl>,
+                                   false,
+                                   core::ReduceByIndex<size_t> >;
 
     Stage stage(ctx, 0,
                 num_partitions,

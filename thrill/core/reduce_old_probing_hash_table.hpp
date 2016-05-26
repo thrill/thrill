@@ -155,8 +155,8 @@ public:
     /*!
      * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
      * inserts the pair via the Insert() function.
-	 *
-	 * \return true if a new key was inserted to the table
+         *
+         * \return true if a new key was inserted to the table
      */
     bool Insert(const Value& p) {
         return Insert(std::make_pair(key_extractor_(p), p));
@@ -175,8 +175,8 @@ public:
      * fill ratio per partition is reached.
      *
      * \param kv Value to be inserted into the table.
-	 *
-	 * \return true if a new key was inserted to the table
+         *
+         * \return true if a new key was inserted to the table
      */
     bool Insert(const KeyValuePair& kv) {
 
@@ -263,7 +263,7 @@ public:
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
 
-		return true;
+        return true;
     }
 
     //! Deallocate memory
