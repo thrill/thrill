@@ -30,7 +30,7 @@ private:
     static const int bit_length = sizeof(base) * 8, bit_length_doubled = 2 * bit_length, logbase = std::log2(bit_length);
     static const base mask = (((base)1) << logbase) - 1, all_set = ~((base)0), msb_set = ((base)1) << (bit_length - 1);
 
-    static const bool debug = false;
+    static constexpr bool debug = false;
     std::vector<size_t> inserted_elements;
 
     const int alignment = 64;
@@ -81,7 +81,7 @@ public:
     }
 
     ~DynamicBitset() {
-        if (debug && num_elements) {
+		if (debug && num_elements) {
             std::sort(inserted_elements.begin(), inserted_elements.end());
             double entropy_total = 0;
             size_t last = 0;
@@ -109,7 +109,7 @@ public:
                  << "size(b):" << bit_size()
                  << "total_inform" << total_inform
                  << "size_factor" << (double)bit_size() / (double)total_inform;
-        }
+		}
         if (memory1 != nullptr) {
             delete[] memory1;
         }
@@ -303,7 +303,10 @@ public:
 
         v[pos] = buffer;
 
-        maxpos = std::max(pos, maxpos);
+		maxpos = std::max(pos, maxpos);
+		/*	if (pos > maxpos) {
+			maxpos = pos;
+			}*/
     }
 
     inline base stream_out(short length) {
@@ -360,17 +363,16 @@ public:
         return no1;
     }
 
-    inline void golomb_in(base value) {
+    inline void golomb_in(const base& value) {
         ++num_elements;
         if (debug) {
-            inserted_elements.push_back(value);
+			inserted_elements.push_back(value);
         }
         if (THRILL_LIKELY(in_called_already)) {
-            value--;
             assert(pos > 0);
 
-            base q = value / b;
-            base r = value - q * b;
+            base q = (value - 1) / b;
+            base r = (value - 1) - (q * b);
 
             // d049672: golomb_in might fail on pathological sequences
             // that push the golomb code to its maximum size.

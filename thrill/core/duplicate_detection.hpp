@@ -115,14 +115,10 @@ public:
                           size_t unique_elements,
                           size_t dia_id) {
 
-        auto max_func = [](size_t i1, size_t i2) {
-                            return std::max(i1, i2);
-                        };
-
-        size_t upper_bound_uniques = context.net.AllReduce(unique_elements, max_func);
+        size_t upper_bound_uniques = context.net.AllReduce(unique_elements);
 
         double fpr_parameter = 8;
-        size_t b = (size_t)(std::log(2) * fpr_parameter);
+        size_t b = (size_t) fpr_parameter; //(size_t)(std::log(2) * fpr_parameter);
         size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
         size_t max_hash = upper_bound_uniques * fpr_parameter;
 
