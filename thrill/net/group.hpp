@@ -145,6 +145,33 @@ public:
 
     //! \}
 
+    //! \name Additional Synchronous Collective Communication Functions
+    //! \{
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void PrefixSumDoubling(T& value, BinarySumOp sum_op = BinarySumOp(),
+                           bool inclusive = true);
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void PrefixSumHypercube(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    template <typename T>
+    void BroadcastTrivial(T& value, size_t origin = 0);
+
+    template <typename T>
+    void BroadcastBinomialTree(T& value, size_t origin = 0);
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void AllReduceSimple(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void AllReduceAtRoot(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void AllReduceHypercube(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    //! \}
+
 protected:
     //! our rank in the network group
     size_t my_rank_;

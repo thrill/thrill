@@ -48,7 +48,6 @@ class FlowControlChannel
 {
 private:
     static constexpr bool enable_stats = false;
-    static constexpr bool self_verify = false;
 
     //! The group associated with this channel.
     Group& group_;
