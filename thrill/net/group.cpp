@@ -16,6 +16,7 @@
 #include <thrill/net/tcp/group.hpp>
 #endif
 
+#include <functional>
 #include <utility>
 #include <vector>
 

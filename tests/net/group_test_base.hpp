@@ -13,7 +13,6 @@
 #define THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
 
 #include <thrill/common/math.hpp>
-#include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
 
 #include <functional>

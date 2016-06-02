@@ -17,7 +17,6 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/thread_barrier.hpp>
-#include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
 
 #include <algorithm>
