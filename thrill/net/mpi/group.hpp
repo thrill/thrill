@@ -191,20 +191,57 @@ private:
     //! \name Virtual Synchronous Collectives to Override Implementations
     //! \{
 
-    void PrefixSumPlusUInt32(uint32_t& value) final;
-    void PrefixSumPlusUInt64(uint64_t& value) final;
-
-    void ExPrefixSumPlusUInt32(uint32_t& value) final;
-    void ExPrefixSumPlusUInt64(uint64_t& value) final;
-
-    void BroadcastUInt32(uint32_t& value, size_t origin) final;
-    void BroadcastUInt64(uint64_t& value, size_t origin) final;
-
-    void AllReducePlusUInt32(uint32_t& value) final;
-    void AllReducePlusUInt64(uint64_t& value) final;
-
-    void AllReduceMaxUInt32(uint32_t& value) final;
-    void AllReduceMaxUInt64(uint64_t& value) final;
+/*[[[perl
+  for my $e (
+    ["int", "Int"], ["unsigned int", "UnsignedInt"],
+    ["long", "Long"], ["unsigned long", "UnsignedLong"],
+    ["long long", "LongLong"], ["unsigned long long", "UnsignedLongLong"])
+  {
+    print "void PrefixSumPlus$$e[1]($$e[0]& value) final;\n";
+    print "void ExPrefixSumPlus$$e[1]($$e[0]& value) final;\n";
+    print "void Broadcast$$e[1]($$e[0]& value, size_t origin) final;\n";
+    print "void AllReducePlus$$e[1]($$e[0]& value) final;\n";
+    print "void AllReduceMinimum$$e[1]($$e[0]& value) final;\n";
+    print "void AllReduceMaximum$$e[1]($$e[0]& value) final;\n";
+  }
+]]]*/
+    void PrefixSumPlusInt(int& value) final;
+    void ExPrefixSumPlusInt(int& value) final;
+    void BroadcastInt(int& value, size_t origin) final;
+    void AllReducePlusInt(int& value) final;
+    void AllReduceMinimumInt(int& value) final;
+    void AllReduceMaximumInt(int& value) final;
+    void PrefixSumPlusUnsignedInt(unsigned int& value) final;
+    void ExPrefixSumPlusUnsignedInt(unsigned int& value) final;
+    void BroadcastUnsignedInt(unsigned int& value, size_t origin) final;
+    void AllReducePlusUnsignedInt(unsigned int& value) final;
+    void AllReduceMinimumUnsignedInt(unsigned int& value) final;
+    void AllReduceMaximumUnsignedInt(unsigned int& value) final;
+    void PrefixSumPlusLong(long& value) final;
+    void ExPrefixSumPlusLong(long& value) final;
+    void BroadcastLong(long& value, size_t origin) final;
+    void AllReducePlusLong(long& value) final;
+    void AllReduceMinimumLong(long& value) final;
+    void AllReduceMaximumLong(long& value) final;
+    void PrefixSumPlusUnsignedLong(unsigned long& value) final;
+    void ExPrefixSumPlusUnsignedLong(unsigned long& value) final;
+    void BroadcastUnsignedLong(unsigned long& value, size_t origin) final;
+    void AllReducePlusUnsignedLong(unsigned long& value) final;
+    void AllReduceMinimumUnsignedLong(unsigned long& value) final;
+    void AllReduceMaximumUnsignedLong(unsigned long& value) final;
+    void PrefixSumPlusLongLong(long long& value) final;
+    void ExPrefixSumPlusLongLong(long long& value) final;
+    void BroadcastLongLong(long long& value, size_t origin) final;
+    void AllReducePlusLongLong(long long& value) final;
+    void AllReduceMinimumLongLong(long long& value) final;
+    void AllReduceMaximumLongLong(long long& value) final;
+    void PrefixSumPlusUnsignedLongLong(unsigned long long& value) final;
+    void ExPrefixSumPlusUnsignedLongLong(unsigned long long& value) final;
+    void BroadcastUnsignedLongLong(unsigned long long& value, size_t origin) final;
+    void AllReducePlusUnsignedLongLong(unsigned long long& value) final;
+    void AllReduceMinimumUnsignedLongLong(unsigned long long& value) final;
+    void AllReduceMaximumUnsignedLongLong(unsigned long long& value) final;
+// [[[end]]]
 
     //! \}
 };

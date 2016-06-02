@@ -137,55 +137,189 @@ void Group::Barrier() {
 /******************************************************************************/
 // mpi::Group Collective Overrides
 
-void Group::PrefixSumPlusUInt32(uint32_t& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
-}
+/*[[[perl
+  for my $e (
+    ["int", "Int", "INT"], ["unsigned int", "UnsignedInt", "UNSIGNED"],
+    ["long", "Long", "LONG"], ["unsigned long", "UnsignedLong", "UNSIGNED_LONG"],
+    ["long long", "LongLong", "LONG_LONG"],
+    ["unsigned long long", "UnsignedLongLong", "UNSIGNED_LONG_LONG"])
+  {
+    print "void Group::PrefixSumPlus$$e[1]($$e[0]& value) {\n";
+    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
+    print "    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_$$e[2], MPI_SUM, MPI_COMM_WORLD);\n";
+    print "}\n";
 
-void Group::PrefixSumPlusUInt64(uint64_t& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
-}
+    print "void Group::ExPrefixSumPlus$$e[1]($$e[0]& value) {\n";
+    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
+    print "    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_$$e[2], MPI_SUM, MPI_COMM_WORLD);\n";
+    print "}\n";
 
-void Group::ExPrefixSumPlusUInt32(uint32_t& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
-}
+    print "void Group::Broadcast$$e[1]($$e[0]& value, size_t origin) {\n";
+    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
+    print "    MPI_Bcast(&value, 1, MPI_$$e[2], origin, MPI_COMM_WORLD);\n";
+    print "}\n";
 
-void Group::ExPrefixSumPlusUInt64(uint64_t& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
-}
+    print "void Group::AllReducePlus$$e[1]($$e[0]& value) {\n";
+    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
+    print "    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_$$e[2], MPI_SUM, MPI_COMM_WORLD);\n";
+    print "}\n";
 
-void Group::BroadcastUInt32(uint32_t& value, size_t origin) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Bcast(&value, 1, MPI_UINT32_T, origin, MPI_COMM_WORLD);
-}
+    print "void Group::AllReduceMinimum$$e[1]($$e[0]& value) {\n";
+    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
+    print "    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_$$e[2], MPI_MIN, MPI_COMM_WORLD);\n";
+    print "}\n";
 
-void Group::BroadcastUInt64(uint64_t& value, size_t origin) {
+    print "void Group::AllReduceMaximum$$e[1]($$e[0]& value) {\n";
+    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
+    print "    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_$$e[2], MPI_MAX, MPI_COMM_WORLD);\n";
+    print "}\n";
+  }
+]]]*/
+void Group::PrefixSumPlusInt(int& value) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Bcast(&value, 1, MPI_UINT64_T, origin, MPI_COMM_WORLD);
+    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 }
-
-void Group::AllReducePlusUInt32(uint32_t& value) {
+void Group::ExPrefixSumPlusInt(int& value) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 }
-
-void Group::AllReducePlusUInt64(uint64_t& value) {
+void Group::BroadcastInt(int& value, size_t origin) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Bcast(&value, 1, MPI_INT, origin, MPI_COMM_WORLD);
 }
-
-void Group::AllReduceMaxUInt32(uint32_t& value) {
+void Group::AllReducePlusInt(int& value) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UINT32_T, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 }
-
-void Group::AllReduceMaxUInt64(uint64_t& value) {
+void Group::AllReduceMinimumInt(int& value) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
 }
+void Group::AllReduceMaximumInt(int& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+}
+void Group::PrefixSumPlusUnsignedInt(unsigned int& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::ExPrefixSumPlusUnsignedInt(unsigned int& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::BroadcastUnsignedInt(unsigned int& value, size_t origin) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Bcast(&value, 1, MPI_UNSIGNED, origin, MPI_COMM_WORLD);
+}
+void Group::AllReducePlusUnsignedInt(unsigned int& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::AllReduceMinimumUnsignedInt(unsigned int& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED, MPI_MIN, MPI_COMM_WORLD);
+}
+void Group::AllReduceMaximumUnsignedInt(unsigned int& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED, MPI_MAX, MPI_COMM_WORLD);
+}
+void Group::PrefixSumPlusLong(long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::ExPrefixSumPlusLong(long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::BroadcastLong(long& value, size_t origin) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Bcast(&value, 1, MPI_LONG, origin, MPI_COMM_WORLD);
+}
+void Group::AllReducePlusLong(long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::AllReduceMinimumLong(long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG, MPI_MIN, MPI_COMM_WORLD);
+}
+void Group::AllReduceMaximumLong(long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);
+}
+void Group::PrefixSumPlusUnsignedLong(unsigned long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::ExPrefixSumPlusUnsignedLong(unsigned long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::BroadcastUnsignedLong(unsigned long& value, size_t origin) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Bcast(&value, 1, MPI_UNSIGNED_LONG, origin, MPI_COMM_WORLD);
+}
+void Group::AllReducePlusUnsignedLong(unsigned long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::AllReduceMinimumUnsignedLong(unsigned long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG, MPI_MIN, MPI_COMM_WORLD);
+}
+void Group::AllReduceMaximumUnsignedLong(unsigned long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG, MPI_MAX, MPI_COMM_WORLD);
+}
+void Group::PrefixSumPlusLongLong(long long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::ExPrefixSumPlusLongLong(long long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::BroadcastLongLong(long long& value, size_t origin) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Bcast(&value, 1, MPI_LONG_LONG, origin, MPI_COMM_WORLD);
+}
+void Group::AllReducePlusLongLong(long long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::AllReduceMinimumLongLong(long long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG, MPI_MIN, MPI_COMM_WORLD);
+}
+void Group::AllReduceMaximumLongLong(long long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
+}
+void Group::PrefixSumPlusUnsignedLongLong(unsigned long long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::ExPrefixSumPlusUnsignedLongLong(unsigned long long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::BroadcastUnsignedLongLong(unsigned long long& value, size_t origin) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Bcast(&value, 1, MPI_UNSIGNED_LONG_LONG, origin, MPI_COMM_WORLD);
+}
+void Group::AllReducePlusUnsignedLongLong(unsigned long long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+}
+void Group::AllReduceMinimumUnsignedLongLong(unsigned long long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, MPI_COMM_WORLD);
+}
+void Group::AllReduceMaximumUnsignedLongLong(unsigned long long& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
+}
+// [[[end]]]
 
 /******************************************************************************/
 // mpi::Construct
