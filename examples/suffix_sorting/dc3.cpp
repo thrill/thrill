@@ -255,7 +255,7 @@ public:
         typename std::vector<Type>::iterator begin,
         typename std::vector<Type>::iterator end,
         const CompareFunction& cmp) const {
-        if (K_ < 4096) {
+        if (K_ <= 4096) {
             thrill::common::radix_sort_CI<MaxDepth>(
                 begin, end, K_, cmp, [](auto begin, auto end, auto) {
                             // sub sorter: sort StringFragments by rank
@@ -397,7 +397,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
         if (debug_print)
             string_mod12.Keep().Print("string_mod12");
 
-        auto suffix_array_rec = DC3<Index>(string_mod12, size_subp, max_lexname);
+        auto suffix_array_rec = DC3<Index>(
+            string_mod12, size_subp, max_lexname + Index(1));
 
         // reverse suffix array of recursion strings to find ranks for mod 1
         // and mod 2 positions.
