@@ -20,6 +20,7 @@
 #include <thrill/net/group.hpp>
 
 #include <algorithm>
+#include <array>
 #include <condition_variable>
 #include <functional>
 #include <mutex>
@@ -633,6 +634,28 @@ public:
         barrier_.Await();
     }
 };
+
+/******************************************************************************/
+// extern templates
+
+extern template size_t FlowControlChannel::PrefixSum(
+    const size_t&, const size_t&, const std::plus<size_t>&, bool);
+
+extern template std::array<size_t, 2> FlowControlChannel::PrefixSum(
+    const std::array<size_t, 2>&, const std::array<size_t, 2>&,
+    const common::ComponentSum<std::array<size_t, 2> >&, bool);
+
+extern template size_t FlowControlChannel::Broadcast(const size_t&, size_t);
+
+extern template std::array<size_t, 2> FlowControlChannel::Broadcast(
+    const std::array<size_t, 2>&, size_t);
+extern template std::array<size_t, 3> FlowControlChannel::Broadcast(
+    const std::array<size_t, 3>&, size_t);
+extern template std::array<size_t, 4> FlowControlChannel::Broadcast(
+    const std::array<size_t, 4>&, size_t);
+
+extern template size_t FlowControlChannel::AllReduce(
+    const size_t&, const std::plus<size_t>&);
 
 //! \}
 
