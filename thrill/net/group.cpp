@@ -165,6 +165,14 @@ void Group::AllReducePlusUInt64(uint64_t& value) {
     return AllReduceSelect(value, std::plus<uint64_t>());
 }
 
+void Group::AllReduceMaxUInt32(uint32_t& value) {
+    return AllReduceSelect(value, common::maximum<uint32_t>());
+}
+
+void Group::AllReduceMaxUInt64(uint64_t& value) {
+    return AllReduceSelect(value, common::maximum<uint64_t>());
+}
+
 } // namespace net
 } // namespace thrill
 

@@ -177,6 +177,16 @@ void Group::AllReducePlusUInt64(uint64_t& value) {
     MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
 }
 
+void Group::AllReduceMaxUInt32(uint32_t& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UINT32_T, MPI_MAX, MPI_COMM_WORLD);
+}
+
+void Group::AllReduceMaxUInt64(uint64_t& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
+}
+
 /******************************************************************************/
 // mpi::Construct
 

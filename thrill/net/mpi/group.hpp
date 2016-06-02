@@ -203,6 +203,9 @@ private:
     void AllReducePlusUInt32(uint32_t& value) final;
     void AllReducePlusUInt64(uint64_t& value) final;
 
+    void AllReduceMaxUInt32(uint32_t& value) final;
+    void AllReduceMaxUInt64(uint64_t& value) final;
+
     //! \}
 };
 
