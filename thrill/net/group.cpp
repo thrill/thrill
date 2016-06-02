@@ -16,6 +16,7 @@
 #include <thrill/net/tcp/group.hpp>
 #endif
 
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -127,6 +128,41 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
         << static_cast<double>(total_tx - prev_total_tx) / elapsed
         << "rx_speed"
         << static_cast<double>(total_rx - prev_total_rx) / elapsed;
+}
+
+/******************************************************************************/
+// Group
+
+void Group::PrefixSumPlusUInt32(uint32_t& value) {
+    return PrefixSumSelect(value, std::plus<uint32_t>(), true);
+}
+
+void Group::PrefixSumPlusUInt64(uint64_t& value) {
+    return PrefixSumSelect(value, std::plus<uint64_t>(), true);
+}
+
+void Group::ExPrefixSumPlusUInt32(uint32_t& value) {
+    return PrefixSumSelect(value, std::plus<uint32_t>(), false);
+}
+
+void Group::ExPrefixSumPlusUInt64(uint64_t& value) {
+    return PrefixSumSelect(value, std::plus<uint64_t>(), false);
+}
+
+void Group::BroadcastUInt32(uint32_t& value, size_t origin) {
+    return BroadcastSelect(value, origin);
+}
+
+void Group::BroadcastUInt64(uint64_t& value, size_t origin) {
+    return BroadcastSelect(value, origin);
+}
+
+void Group::AllReducePlusUInt32(uint32_t& value) {
+    return AllReduceSelect(value, std::plus<uint32_t>());
+}
+
+void Group::AllReducePlusUInt64(uint64_t& value) {
+    return AllReduceSelect(value, std::plus<uint64_t>());
 }
 
 } // namespace net

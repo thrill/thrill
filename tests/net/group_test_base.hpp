@@ -13,7 +13,6 @@
 #define THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
 
 #include <thrill/common/math.hpp>
-#include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
 
 #include <functional>
@@ -103,7 +102,7 @@ static void TestPrefixSumHypercube(net::Group* net) {
 //    return;
 
     size_t local_value = 10 + net->my_host_rank();
-    net::collective::PrefixSumHypercube(*net, local_value);
+    net->PrefixSumHypercube(local_value);
     ASSERT_EQ(
         (net->my_host_rank() + 1) * 10 +
         net->my_host_rank() * (net->my_host_rank() + 1) / 2, local_value);
@@ -121,7 +120,7 @@ static void TestPrefixSumHypercubeString(net::Group* net) {
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
 
     std::string local_value = result.substr(net->my_host_rank(), 1);
-    net::collective::PrefixSumHypercube(*net, local_value);
+    net->PrefixSumHypercube(local_value);
     sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
          << "value" << local_value;
     ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
@@ -135,14 +134,14 @@ static void TestPrefixSum(net::Group* net) {
 
     {
         std::string local_value = result.substr(net->my_host_rank(), 1);
-        net::collective::PrefixSum(*net, local_value, std::plus<std::string>(), true);
+        net->PrefixSum(local_value, std::plus<std::string>());
         sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
              << "value" << local_value;
         ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
     }
     {
         std::string local_value = result.substr(net->my_host_rank(), 1);
-        net::collective::PrefixSum(*net, local_value, std::plus<std::string>(), false);
+        net->ExPrefixSum(local_value, std::plus<std::string>());
         sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
              << "value" << local_value;
         ASSERT_EQ(result.substr(0, net->my_host_rank()), local_value);
@@ -153,15 +152,15 @@ static void TestPrefixSum(net::Group* net) {
 static void TestBroadcast(net::Group* net) {
     for (size_t origin = 0; origin < net->num_hosts(); ++origin) {
         size_t local_value = net->my_host_rank() == origin ? 42 : 0;
-        net::collective::Broadcast(*net, local_value, origin);
+        net->Broadcast(local_value, origin);
         ASSERT_EQ(42u, local_value);
         // repeat with a different value.
         local_value = net->my_host_rank() == origin ? 6 * 9 : 0;
-        net::collective::BroadcastBinomialTree(*net, local_value, origin);
+        net->BroadcastBinomialTree(local_value, origin);
         ASSERT_EQ(6 * 9u, local_value);
         // check trivial broadcast
         local_value = net->my_host_rank() == origin ? 5 : 0;
-        net::collective::BroadcastTrivial(*net, local_value, origin);
+        net->BroadcastTrivial(local_value, origin);
         ASSERT_EQ(5u, local_value);
     }
 }
@@ -169,7 +168,7 @@ static void TestBroadcast(net::Group* net) {
 // let group of p hosts perform an Reduce collective
 static void TestReduce(net::Group* net) {
     size_t local_value = net->my_host_rank();
-    net::collective::Reduce(*net, local_value);
+    net->Reduce(local_value);
     if (net->my_host_rank() == 0)
         ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
 }
@@ -178,7 +177,7 @@ static void TestReduce(net::Group* net) {
 static void TestReduceString(net::Group* net) {
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
     std::string local_value = result.substr(net->my_host_rank(), 1);
-    net::collective::Reduce(*net, local_value);
+    net->Reduce(local_value);
     if (net->my_host_rank() == 0)
         ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
 }
@@ -187,7 +186,7 @@ static void TestReduceString(net::Group* net) {
 static void TestAllReduceString(net::Group* net) {
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
     std::string local_value = result.substr(net->my_host_rank(), 1);
-    net::collective::AllReduceAtRoot(*net, local_value);
+    net->AllReduceAtRoot(local_value);
     ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
 }
 
@@ -198,7 +197,7 @@ static void TestAllReduceHypercubeString(net::Group* net) {
 
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
     std::string local_value = result.substr(net->my_host_rank(), 1);
-    net::collective::AllReduceHypercube(*net, local_value);
+    net->AllReduceHypercube(local_value);
     ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
 }
 

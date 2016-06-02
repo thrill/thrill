@@ -17,7 +17,6 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/thread_barrier.hpp>
-#include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
 
 #include <algorithm>
@@ -48,7 +47,6 @@ class FlowControlChannel
 {
 private:
     static constexpr bool enable_stats = false;
-    static constexpr bool self_verify = false;
 
     //! The group associated with this channel.
     Group& group_;
@@ -291,7 +289,7 @@ public:
                 }
 
                 T base_sum = *(locals[thread_count_ - 1]);
-                group_.PrefixSum(base_sum, sum_op, false);
+                group_.ExPrefixSum(base_sum, sum_op);
 
                 if (host_rank_ == 0) {
                     base_sum = initial;
