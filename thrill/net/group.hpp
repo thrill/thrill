@@ -148,7 +148,12 @@ public:
     //! \}
 
     //! \name Additional Synchronous Collective Communication Functions
+    //! Do not use these directly in user code.
     //! \{
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void PrefixSumSelect(T& value, BinarySumOp sum_op = BinarySumOp(),
+                         bool inclusive = true);
 
     template <typename T, typename BinarySumOp = std::plus<T> >
     void PrefixSumDoubling(T& value, BinarySumOp sum_op = BinarySumOp(),
@@ -157,11 +162,21 @@ public:
     template <typename T, typename BinarySumOp = std::plus<T> >
     void PrefixSumHypercube(T& value, BinarySumOp sum_op = BinarySumOp());
 
+    /**************************************************************************/
+
+    template <typename T>
+    void BroadcastSelect(T& value, size_t origin = 0);
+
     template <typename T>
     void BroadcastTrivial(T& value, size_t origin = 0);
 
     template <typename T>
     void BroadcastBinomialTree(T& value, size_t origin = 0);
+
+    /**************************************************************************/
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void AllReduceSelect(T& value, BinarySumOp sum_op = BinarySumOp());
 
     template <typename T, typename BinarySumOp = std::plus<T> >
     void AllReduceSimple(T& value, BinarySumOp sum_op = BinarySumOp());
@@ -184,8 +199,14 @@ protected:
     virtual void PrefixSumPlusUInt32(uint32_t& value);
     virtual void PrefixSumPlusUInt64(uint64_t& value);
 
+    virtual void ExPrefixSumPlusUInt32(uint32_t& value);
+    virtual void ExPrefixSumPlusUInt64(uint64_t& value);
+
     virtual void BroadcastUInt32(uint32_t& value, size_t origin);
     virtual void BroadcastUInt64(uint64_t& value, size_t origin);
+
+    virtual void AllReducePlusUInt32(uint32_t& value);
+    virtual void AllReducePlusUInt64(uint64_t& value);
 
     //! \}
 };
@@ -342,9 +363,15 @@ void Group::PrefixSumHypercube(T& value, BinarySumOp sum_op) {
     sLOG << "PREFIX_SUM: host" << my_host_rank() << ": done";
 }
 
+//! select prefixsum implementation (often due to total number of processors)
+template <typename T, typename BinarySumOp>
+void Group::PrefixSumSelect(T& value, BinarySumOp sum_op, bool inclusive) {
+    return PrefixSumDoubling(value, sum_op, inclusive);
+}
+
 template <typename T, typename BinarySumOp>
 void Group::PrefixSum(T& value, BinarySumOp sum_op) {
-    return PrefixSumDoubling(value, sum_op, true);
+    return PrefixSumSelect(value, sum_op, true);
 }
 
 //! specialization template for plus-prefixsum of uint32_t values.
@@ -361,7 +388,19 @@ inline void Group::PrefixSum(uint64_t& value, std::plus<uint64_t>) {
 
 template <typename T, typename BinarySumOp>
 void Group::ExPrefixSum(T& value, BinarySumOp sum_op) {
-    return PrefixSumDoubling(value, sum_op, false);
+    return PrefixSumSelect(value, sum_op, false);
+}
+
+//! specialization template for plus-prefixsum of uint32_t values.
+template <>
+inline void Group::ExPrefixSum(uint32_t& value, std::plus<uint32_t>) {
+    return ExPrefixSumPlusUInt32(value);
+}
+
+//! specialization template for plus-prefixsum of uint64_t values.
+template <>
+inline void Group::ExPrefixSum(uint64_t& value, std::plus<uint64_t>) {
+    return ExPrefixSumPlusUInt64(value);
 }
 
 /******************************************************************************/
@@ -436,6 +475,12 @@ void Group::BroadcastBinomialTree(T& value, size_t origin) {
     }
 }
 
+//! select broadcast implementation (often due to total number of processors)
+template <typename T>
+void Group::BroadcastSelect(T& value, size_t origin) {
+    return BroadcastBinomialTree(value, origin);
+}
+
 /*!
  * Broadcasts the value of the worker with index 0 to all the others. This is a
  * binomial tree broadcast method.
@@ -448,7 +493,7 @@ void Group::BroadcastBinomialTree(T& value, size_t origin) {
  */
 template <typename T>
 void Group::Broadcast(T& value, size_t origin) {
-    return BroadcastBinomialTree(value, origin);
+    return BroadcastSelect(value, origin);
 }
 
 //! specialization template for broadcast of uint32_t values.
@@ -602,6 +647,15 @@ void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
     // sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value;
 }
 
+//! select allreduce implementation (often due to total number of processors)
+template <typename T, typename BinarySumOp>
+void Group::AllReduceSelect(T& value, BinarySumOp sum_op) {
+    if (common::IsPowerOfTwo(num_hosts()))
+        AllReduceHypercube(value, sum_op);
+    else
+        AllReduceAtRoot(value, sum_op);
+}
+
 /*!
  * Perform an All-Reduce on the workers.  This is done by aggregating all values
  * according to a summation operator and sending them backto all workers.
@@ -612,10 +666,19 @@ void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
  */
 template <typename T, typename BinarySumOp>
 void Group::AllReduce(T& value, BinarySumOp sum_op) {
-    if (common::IsPowerOfTwo(num_hosts()))
-        AllReduceHypercube(value, sum_op);
-    else
-        AllReduceAtRoot(value, sum_op);
+    return AllReduceSelect(value, sum_op);
+}
+
+//! specialization template for plus-allreduce of uint32_t values.
+template <>
+inline void Group::AllReduce(uint32_t& value, std::plus<uint32_t>) {
+    return AllReducePlusUInt32(value);
+}
+
+//! specialization template for plus-allreduce of uint64_t values.
+template <>
+inline void Group::AllReduce(uint64_t& value, std::plus<uint64_t>) {
+    return AllReducePlusUInt64(value);
 }
 
 //! \}

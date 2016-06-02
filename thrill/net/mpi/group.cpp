@@ -147,6 +147,16 @@ void Group::PrefixSumPlusUInt64(uint64_t& value) {
     MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
 }
 
+void Group::ExPrefixSumPlusUInt32(uint32_t& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
+}
+
+void Group::ExPrefixSumPlusUInt64(uint64_t& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+}
+
 void Group::BroadcastUInt32(uint32_t& value, size_t origin) {
     std::unique_lock<std::mutex> lock(g_mutex);
     MPI_Bcast(&value, 1, MPI_UINT32_T, origin, MPI_COMM_WORLD);
@@ -155,6 +165,16 @@ void Group::BroadcastUInt32(uint32_t& value, size_t origin) {
 void Group::BroadcastUInt64(uint64_t& value, size_t origin) {
     std::unique_lock<std::mutex> lock(g_mutex);
     MPI_Bcast(&value, 1, MPI_UINT64_T, origin, MPI_COMM_WORLD);
+}
+
+void Group::AllReducePlusUInt32(uint32_t& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
+}
+
+void Group::AllReducePlusUInt64(uint64_t& value) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
 }
 
 /******************************************************************************/

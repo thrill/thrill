@@ -194,8 +194,14 @@ private:
     void PrefixSumPlusUInt32(uint32_t& value) final;
     void PrefixSumPlusUInt64(uint64_t& value) final;
 
+    void ExPrefixSumPlusUInt32(uint32_t& value) final;
+    void ExPrefixSumPlusUInt64(uint64_t& value) final;
+
     void BroadcastUInt32(uint32_t& value, size_t origin) final;
     void BroadcastUInt64(uint64_t& value, size_t origin) final;
+
+    void AllReducePlusUInt32(uint32_t& value) final;
+    void AllReducePlusUInt64(uint64_t& value) final;
 
     //! \}
 };
