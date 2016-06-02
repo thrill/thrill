@@ -182,6 +182,23 @@ private:
     Operation op_;
 };
 
+//! Compute the concatenation of two std::vector<T>s.
+template <typename Type>
+class VectorConcat
+    : public std::binary_function<
+          std::vector<Type>, std::vector<Type>, std::vector<Type> >
+{
+public:
+    using VectorType = std::vector<Type>;
+    VectorType operator () (const VectorType& a, const VectorType& b) const {
+        VectorType out;
+        out.reserve(a.size() + b.size());
+        out.insert(out.end(), a.begin(), a.end());
+        out.insert(out.end(), b.begin(), b.end());
+        return out;
+    }
+};
+
 /******************************************************************************/
 
 // Compile-time integer sequences, an implementation of std::index_sequence and

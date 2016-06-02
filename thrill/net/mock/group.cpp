@@ -108,6 +108,12 @@ ssize_t Connection::RecvOne(void* out_data, size_t size) {
     return size;
 }
 
+void Connection::SyncSendRecv(const void* send_data, size_t send_size,
+                              void* recv_data, size_t recv_size) {
+    SyncSend(send_data, send_size, NoFlags);
+    SyncRecv(recv_data, recv_size);
+}
+
 /******************************************************************************/
 // mock::Group
 
@@ -182,8 +188,7 @@ void Group::Send(size_t tgt, net::Buffer&& msg) {
 
 /******************************************************************************/
 
-struct Dispatcher::Data
-{
+struct Dispatcher::Data {
     //! Mutex to lock access to watch lists
     std::mutex                                     mutex_;
 
@@ -196,8 +201,7 @@ struct Dispatcher::Data
     Map                                            map_;
 };
 
-struct Dispatcher::Watch
-{
+struct Dispatcher::Watch {
     //! boolean check whether Watch is registered at Connection
     bool                 active = false;
     //! queue of callbacks for fd.

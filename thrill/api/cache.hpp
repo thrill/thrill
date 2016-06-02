@@ -23,36 +23,25 @@
 namespace thrill {
 namespace api {
 
-//! Common super class for all CacheNodes, used for dynamic_cast type check in
-//! Cache().
-template <typename ValueType>
-class CacheNodeBase : public DIANode<ValueType>
-{
-public:
-    using Super = DIANode<ValueType>;
-
-    template <typename ParentDIA>
-    explicit CacheNodeBase(const ParentDIA& parent)
-        : Super(parent.ctx(), "Cache", { parent.id() }, { parent.node() }) { }
-};
-
 /*!
  * A DOpNode which caches all items in an external file.
  *
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA>
-class CacheNode final : public CacheNodeBase<ValueType>
+template <typename ValueType>
+class CacheNode final : public DIANode<ValueType>
 {
 public:
-    using Super = CacheNodeBase<ValueType>;
+    using Super = DIANode<ValueType>;
     using Super::context_;
 
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      */
+    template <typename ParentDIA>
     explicit CacheNode(const ParentDIA& parent)
-        : Super(parent) {
+        : Super(parent.ctx(), "Cache", { parent.id() }, { parent.node() }),
+          parent_stack_empty_(ParentDIA::stack_empty) {
 
         auto save_fn = [this](const ValueType& input) {
                            writer_.Put(input);
@@ -62,7 +51,7 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!ParentDIA::stack_empty) return false;
+        if (!parent_stack_empty_) return false;
         assert(file_.num_items() == 0);
         file_ = file.Copy();
         return true;
@@ -79,11 +68,17 @@ public:
         this->PushFile(file_, consume);
     }
 
+    void Dispose() final {
+        file_.Clear();
+    }
+
 private:
     //! Local data file
     data::File file_ { context_.GetFile(this) };
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ { file_.GetWriter() };
+    //! Whether the parent stack is empty
+    const bool parent_stack_empty_;
 };
 
 template <typename ValueType, typename Stack>
@@ -93,12 +88,12 @@ DIA<ValueType> DIA<ValueType, Stack>::Cache() const {
 #if !defined(_MSC_VER)
     // skip if this is already a CacheNode. MSVC messes this up.
     if (stack_empty &&
-        dynamic_cast<CacheNodeBase<ValueType>*>(node_.get()) != nullptr) {
+        dynamic_cast<CacheNode<ValueType>*>(node_.get()) != nullptr) {
         return *this;
     }
 #endif
     return DIA<ValueType>(
-        common::MakeCounting<api::CacheNode<ValueType, DIA> >(*this));
+        common::MakeCounting<api::CacheNode<ValueType> >(*this));
 }
 
 } // namespace api

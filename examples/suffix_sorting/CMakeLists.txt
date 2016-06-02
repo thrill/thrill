@@ -10,48 +10,64 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-thrill_build_prog(prefix_doubling sa_checker.cpp)
+thrill_build_prog(suffix_sorting
+  prefix_doubling.cpp prefix_quadrupling.cpp dc3.cpp dc7.cpp)
+
+# disable debug symbols on large files
+# set_source_files_properties(
+#   prefix_doubling.cpp dc3.cpp dc7.cpp PROPERTIES COMPILE_FLAGS "-g0")
+
 thrill_build_prog(wavelet_tree)
 thrill_build_prog(wavelet_tree2)
+thrill_build_prog(wavelet_tree3)
+thrill_build_prog(rl_bwt)
+thrill_build_prog(just_sort)
 
-thrill_test_single(prefix_doubling1_aaa3 "THRILL_LOCAL=3"
-  prefix_doubling -c -s 10000 -a fl unary)
-thrill_test_single(prefix_doubling1_aaa4 "THRILL_LOCAL=4"
-  prefix_doubling -c -s 10000 -a fl unary)
+thrill_test_multiple(prefix_doubling1_aaa
+  suffix_sorting -c -s 10000 -a fl unary)
 
-thrill_test_single(prefix_doubling1_random3 "THRILL_LOCAL=3"
-  prefix_doubling -c -s 100000 -a fl random)
-thrill_test_single(prefix_doubling1_random4 "THRILL_LOCAL=4"
-  prefix_doubling -c -s 100000 -a fl random)
+thrill_test_multiple(prefix_doubling1_random
+  suffix_sorting -c -s 100000 -a fl random)
 
-thrill_test_single(prefix_doubling2_aaa3 "THRILL_LOCAL=3"
-  prefix_doubling -c -s 10000 -a de unary)
-thrill_test_single(prefix_doubling2_aaa4 "THRILL_LOCAL=4"
-  prefix_doubling -c -s 10000 -a de unary)
+thrill_test_multiple(prefix_doubling2_aaa
+  suffix_sorting -c -s 10000 -a de unary)
 
-thrill_test_single(prefix_doubling2_random3 "THRILL_LOCAL=3"
-  prefix_doubling -c -s 100000 -a de random)
-thrill_test_single(prefix_doubling2_random4 "THRILL_LOCAL=4"
-  prefix_doubling -c -s 100000 -a de random)
+thrill_test_multiple(prefix_doubling2_random
+  suffix_sorting -c -s 100000 -a de random)
+
+thrill_test_multiple(prefix_doubling3_aaa
+  suffix_sorting -c -s 10000 -a dis unary)
+
+thrill_test_multiple(prefix_doubling3_random
+  suffix_sorting -c -s 100000 -a dis random)
+
+thrill_test_multiple(prefix_quadrupling1_aaa
+  suffix_sorting -c -s 10000 -a q unary)
+
+thrill_test_multiple(prefix_quadrupling1_random
+  suffix_sorting -c -s 100000 -a q random)
+
+thrill_test_multiple(prefix_quadrupling2_aaa
+  suffix_sorting -c -s 10000 -a qd unary)
+
+thrill_test_multiple(prefix_quadrupling2_random
+  suffix_sorting -c -s 100000 -a qd random)
+
+thrill_test_multiple(dc3_aaa
+  suffix_sorting -a dc3 -c -s 10000 unary)
+
+thrill_test_multiple(dc3_random
+  suffix_sorting -a dc3 -c -s 100000 random)
+
+thrill_test_multiple(dc7_aaa
+  suffix_sorting -a dc7 -c -s 10000 unary)
+
+thrill_test_multiple(dc7_random
+  suffix_sorting -a dc7 -c -s 100000 random)
 
 if(MSVC)
   # requires /bigobj flag to build
-  set_target_properties(prefix_doubling PROPERTIES COMPILE_FLAGS /bigobj)
-endif()
-
-if(THRILL_FULL_BUILD)
-  thrill_build_prog(dc3 sa_checker.cpp)
-
-  if(MSVC)
-    # requires /bigobj flag to build
-    set_target_properties(dc3 PROPERTIES COMPILE_FLAGS /bigobj)
-  endif()
-
-  thrill_test_single(dc3_aaa3 "THRILL_LOCAL=3" dc3 -c -s 10000 unary)
-  thrill_test_single(dc3_aaa4 "THRILL_LOCAL=4" dc3 -c -s 10000 unary)
-
-  thrill_test_single(dc3_random3 "THRILL_LOCAL=3" dc3 -c -s 100000 random)
-  thrill_test_single(dc3_random4 "THRILL_LOCAL=4" dc3 -c -s 100000 random)
+  set_target_properties(suffix_sorting PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
 ################################################################################

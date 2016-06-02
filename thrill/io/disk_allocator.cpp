@@ -30,8 +30,7 @@ namespace io {
 
 using Place = std::pair<int64_t, int64_t>;
 
-struct FirstFit : public std::binary_function<Place, int64_t, bool>
-{
+struct FirstFit : public std::binary_function<Place, int64_t, bool>{
     bool operator () (
         const Place& entry,
         const int64_t size) const {
@@ -43,8 +42,7 @@ using SortSeq = std::map<
           int64_t, int64_t, std::less<int64_t>,
           mem::GPoolAllocator<std::pair<const int64_t, int64_t> > >;
 
-struct DiskAllocator::Data
-{
+struct DiskAllocator::Data {
     //! map of free space
     SortSeq free_space_;
 };

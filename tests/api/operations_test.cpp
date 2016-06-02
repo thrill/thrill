@@ -23,6 +23,7 @@
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_lines.hpp>
+#include <thrill/api/rebalance.hpp>
 #include <thrill/api/sample.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
@@ -377,6 +378,29 @@ TEST(Operations, GenerateAndUnionExecuteOrder) {
     api::RunLocalTests(start_func);
 }
 
+TEST(Operations, GenerateFilterRebalance) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache().Execute();
+            auto dia2 = dia1.Filter([](size_t index) { return index < test_size / 2; });
+
+            auto rdia = dia2.Rebalance();
+
+            std::vector<size_t> out_vec = rdia.AllGather();
+
+            ASSERT_EQ(test_size / 2, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(Operations, MapResultsCorrectChangingType) {
 
     auto start_func =
@@ -596,11 +620,9 @@ TEST(Operations, GenerateAndSumHaveEqualAmount2) {
 TEST(Operations, WindowCorrectResults) {
 
     static constexpr bool debug = false;
-    static constexpr size_t test_size = 144;
-    static constexpr size_t window_size = 10;
 
-    auto start_func =
-        [](Context& ctx) {
+    auto test_func =
+        [](Context& ctx, size_t test_size, size_t window_size) {
 
             sLOG << ctx.num_hosts();
 
@@ -610,8 +632,8 @@ TEST(Operations, WindowCorrectResults) {
                 test_size);
 
             auto window = integers.Window(
-                window_size, [](size_t rank,
-                                const common::RingBuffer<size_t>& window) {
+                window_size, [=](size_t rank,
+                                 const common::RingBuffer<size_t>& window) {
 
                     // check received window
                     die_unequal(window_size, window.size());
@@ -637,6 +659,84 @@ TEST(Operations, WindowCorrectResults) {
             }
 
             ASSERT_EQ(test_size - window_size + 1, out_vec.size());
+        };
+
+    auto start_func =
+        [&](Context& ctx) {
+            sLOG << ctx.num_hosts();
+            // window smaller than input
+            test_func(ctx, 144, 10);
+            // window matches input
+            test_func(ctx, 144, 144);
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, WindowCorrectResultsPartialWindows) {
+
+    static constexpr bool debug = false;
+
+    auto test_func =
+        [](Context& ctx, size_t test_size, size_t window_size) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& input) { return input * input; },
+                test_size);
+
+            auto window = integers.Window(
+                window_size,
+                [=](size_t rank,
+                    const common::RingBuffer<size_t>& window) {
+                    // check received window
+                    die_unequal(window_size, window.size());
+
+                    for (size_t i = 0; i < window.size(); ++i) {
+                        sLOG << rank + i << window[i];
+                        die_unequal((rank + i) * (rank + i), window[i]);
+                    }
+
+                    // return rank to check completeness
+                    return Integer(rank);
+                },
+                [=](size_t rank,
+                    const common::RingBuffer<size_t>& window) {
+                    // check received window
+                    die_unless(window.size() < window_size);
+
+                    for (size_t i = 0; i < window.size(); ++i) {
+                        sLOG << rank + i << window[i];
+                        die_unequal((rank + i) * (rank + i), window[i]);
+                    }
+
+                    // return rank to check completeness
+                    return Integer(rank);
+                });
+
+            // check rank completeness
+
+            std::vector<Integer> out_vec = window.AllGather();
+
+            if (ctx.my_rank() == 0)
+                sLOG << common::Join(" - ", out_vec);
+
+            for (size_t i = 0; i < out_vec.size(); i++) {
+                ASSERT_EQ(i, out_vec[i].value());
+            }
+
+            ASSERT_EQ(test_size, out_vec.size());
+        };
+
+    auto start_func =
+        [&](Context& ctx) {
+            sLOG << ctx.num_hosts();
+            // window smaller than input
+            test_func(ctx, 144, 10);
+            // window larger than input
+            test_func(ctx, 144, 288);
+            // window matches input
+            test_func(ctx, 144, 144);
         };
 
     api::RunLocalTests(start_func);

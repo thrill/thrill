@@ -41,8 +41,7 @@ struct Serialization<Archive, T,
                          // a POD, but not a pointer
                          std::is_pod<T>::value
                          && !std::is_pointer<T>::value
-                         >::type>
-{
+                         >::type>{
     static void Serialize(const T& x, Archive& ar) {
         ar.template PutRaw<T>(x);
     }
@@ -56,8 +55,7 @@ struct Serialization<Archive, T,
 /********************** Serialization of strings ******************************/
 
 template <typename Archive>
-struct Serialization<Archive, std::string>
-{
+struct Serialization<Archive, std::string>{
     static void Serialize(const std::string& x, Archive& ar) {
         ar.PutString(x);
     }
@@ -71,8 +69,7 @@ struct Serialization<Archive, std::string>
 /*********************** Serialization of pairs *******************************/
 
 template <typename Archive, typename U, typename V>
-struct Serialization<Archive, std::pair<U, V> >
-{
+struct Serialization<Archive, std::pair<U, V> >{
     static void Serialize(const std::pair<U, V>& x, Archive& ar) {
         Serialization<Archive, U>::Serialize(x.first, ar);
         Serialization<Archive, V>::Serialize(x.second, ar);
@@ -169,8 +166,7 @@ struct TupleDeserializer<Archive, 0, std::tuple<> >{
 
 //--------------------- tuple de-/serializer interface -----------------------//
 template <typename Archive, typename ... Args>
-struct Serialization<Archive, std::tuple<Args ...> >
-{
+struct Serialization<Archive, std::tuple<Args ...> >{
     static void Serialize(const std::tuple<Args ...>& x, Archive& ar) {
         detail::TupleSerialization<
             Archive, sizeof ... (Args), Args ...>::Serialize(x, ar);
@@ -189,8 +185,7 @@ struct Serialization<Archive, std::tuple<Args ...> >
 /*********************** Serialization of vector ******************************/
 
 template <typename Archive, typename T>
-struct Serialization<Archive, std::vector<T> >
-{
+struct Serialization<Archive, std::vector<T> >{
     static void Serialize(const std::vector<T>& x, Archive& ar) {
         ar.PutVarint(x.size());
         for (typename std::vector<T>::const_iterator it = x.begin();
@@ -217,8 +212,7 @@ struct Serialization<Archive, std::array<T, N>,
                          // sometimes std::array<T> is a POD, if T is a POD
                          !std::is_pod<std::array<T, N> >::value
                          >::type
-                     >
-{
+                     >{
     static void Serialize(const std::array<T, N>& x, Archive& ar) {
         for (typename std::array<T, N>::const_iterator it = x.begin();
              it != x.end(); ++it)
@@ -243,8 +237,7 @@ struct Serialization<Archive, T,
                      typename std::enable_if<
                          has_method_thrill_is_fixed_size<T>::value
                          >::type
-                     >
-{
+                     >{
     static void Serialize(const T& x, Archive& ar) {
         x.ThrillSerialize(ar);
     }

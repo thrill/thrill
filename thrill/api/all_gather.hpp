@@ -24,20 +24,21 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ParentDIA>
+template <typename ValueType>
 class AllGatherNode final : public ActionNode
 {
+    static constexpr bool debug = false;
+
 public:
     using Super = ActionNode;
     using Super::context_;
 
-    //! input and output type is the parent's output value type.
-    using ValueType = typename ParentDIA::ValueType;
-
+    template <typename ParentDIA>
     AllGatherNode(const ParentDIA& parent,
                   std::vector<ValueType>* out_vector)
         : ActionNode(parent.ctx(), "AllGather",
                      { parent.id() }, { parent.node() }),
+          parent_stack_empty_(ParentDIA::stack_empty),
           out_vector_(out_vector)
     {
         auto pre_op_function = [this](const ValueType& input) {
@@ -61,7 +62,7 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!ParentDIA::stack_empty) return false;
+        if (!parent_stack_empty_) return false;
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].AppendBlocks(file.blocks());
         }
@@ -77,30 +78,28 @@ public:
 
     //! Closes the output file
     void Execute() final {
-
-        bool consume = false;
-        auto reader = stream_->GetCatReader(consume);
-
+        auto reader = stream_->GetCatReader(/* consume */ true);
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
     }
 
 private:
+    //! Whether the parent stack is empty
+    const bool parent_stack_empty_;
+
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::CatStream::Writer> emitters_;
-
-    static constexpr bool debug = false;
 };
 
 template <typename ValueType, typename Stack>
 std::vector<ValueType> DIA<ValueType, Stack>::AllGather() const {
     assert(IsValid());
 
-    using AllGatherNode = api::AllGatherNode<DIA>;
+    using AllGatherNode = api::AllGatherNode<ValueType>;
 
     std::vector<ValueType> output;
 
@@ -115,7 +114,7 @@ template <typename ValueType, typename Stack>
 void DIA<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) const {
     assert(IsValid());
 
-    using AllGatherNode = api::AllGatherNode<DIA>;
+    using AllGatherNode = api::AllGatherNode<ValueType>;
 
     auto node = common::MakeCounting<AllGatherNode>(*this, out_vector);
 

@@ -26,8 +26,7 @@
 
 using namespace thrill;
 
-struct my_handler
-{
+struct my_handler {
     void operator () (io::Request* ptr, bool /* success */) {
         LOG0 << "Request completed: " << ptr;
     }

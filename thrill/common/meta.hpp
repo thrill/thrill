@@ -81,14 +81,12 @@ auto ApplyTuple(Functor && f, Tuple && t) {
 //! If Flag is true then If<>::type is of type TypeTrue otherwise of If<>::type
 //! is of type TypeFalse.
 template <bool Flag, typename TypeTrue, typename TypeFalse>
-struct If
-{
+struct If {
     using type = TypeTrue;
 };
 
 template <typename TypeTrue, typename TypeFalse>
-struct If<false, TypeTrue, TypeFalse>
-{
+struct If<false, TypeTrue, TypeFalse>{
     using type = TypeFalse;
 };
 

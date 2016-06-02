@@ -26,15 +26,13 @@ using namespace thrill;
 
 #define BLOCK_SIZE (1024 * 512)
 
-struct MyType
-{
+struct MyType {
     int integer;
     // char chars[4];
     ~MyType() { }
 };
 
-struct my_handler
-{
+struct my_handler {
     void operator () (io::Request* req, bool /* success */) {
         LOG0 << req << " done, type=" << req->io_type();
     }

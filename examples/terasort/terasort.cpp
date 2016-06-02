@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
         [&](api::Context& ctx) {
             ctx.enable_consume();
             if (generate_only) {
-                die_unequal(input.size(), 1);
+                die_unequal(input.size(), 1u);
                 // parse first argument like "100mib" size
                 uint64_t size;
                 die_unless(common::ParseSiIecUnits(input[0].c_str(), size));
@@ -159,7 +159,7 @@ int main(int argc, char* argv[]) {
                 .WriteBinary(output);
             }
             else if (generate) {
-                die_unequal(input.size(), 1);
+                die_unequal(input.size(), 1u);
                 // parse first argument like "100mib" size
                 uint64_t size;
                 die_unless(common::ParseSiIecUnits(input[0].c_str(), size));

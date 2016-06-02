@@ -58,25 +58,6 @@ void Connection::SyncSend(
     tx_bytes_ += size;
 }
 
-ssize_t Connection::SendOne(
-    const void* data, size_t size, Flags /* flags */) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-
-    assert(size <= std::numeric_limits<int>::max());
-
-    MPI_Request request;
-    int r = MPI_Isend(const_cast<void*>(data), static_cast<int>(size), MPI_BYTE,
-                      peer_, group_tag_, MPI_COMM_WORLD, &request);
-
-    if (r != MPI_SUCCESS)
-        throw Exception("Error during SyncOne", r);
-
-    MPI_Request_free(&request);
-    tx_bytes_ += size;
-
-    return size;
-}
-
 void Connection::SyncRecv(void* out_data, size_t size) {
     std::unique_lock<std::mutex> lock(g_mutex);
 
@@ -102,6 +83,40 @@ void Connection::SyncRecv(void* out_data, size_t size) {
         throw Exception("Error during SyncRecv: message truncated?");
 
     rx_bytes_ += size;
+}
+
+void Connection::SyncSendRecv(const void* send_data, size_t send_size,
+                              void* recv_data, size_t recv_size) {
+    std::unique_lock<std::mutex> lock(g_mutex);
+
+    LOG << "MPI_Sendrecv()"
+        << " send_size=" << send_size
+        << " recv_size=" << recv_size
+        << " peer_=" << peer_
+        << " group_tag_=" << group_tag_;
+
+    assert(send_size <= std::numeric_limits<int>::max());
+    assert(recv_size <= std::numeric_limits<int>::max());
+
+    MPI_Status status;
+    int r = MPI_Sendrecv(const_cast<void*>(send_data),
+                         static_cast<int>(send_size), MPI_BYTE,
+                         peer_, group_tag_,
+                         recv_data, static_cast<int>(recv_size), MPI_BYTE,
+                         peer_, group_tag_, MPI_COMM_WORLD, &status);
+    if (r != MPI_SUCCESS)
+        throw Exception("Error during MPI_Sendrecv()", r);
+
+    int count;
+    r = MPI_Get_count(&status, MPI_BYTE, &count);
+    if (r != MPI_SUCCESS)
+        throw Exception("Error during MPI_Get_count()", r);
+
+    if (static_cast<size_t>(count) != recv_size)
+        throw Exception("Error during SyncSendRecv: message truncated?");
+
+    tx_bytes_ += send_size;
+    rx_bytes_ += recv_size;
 }
 
 /******************************************************************************/

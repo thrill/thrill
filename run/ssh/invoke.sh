@@ -19,15 +19,14 @@ copy=0
 verbose=1
 dir=
 user=$(whoami)
+with_perf=0
 
-while getopts "u:h:H:cvCw:" opt; do
+while getopts "u:h:H:cvCw:p" opt; do
     case "$opt" in
-    h)
-        # this overrides the user environment variable
+    h)  # this overrides the user environment variable
         THRILL_SSHLIST=$OPTARG
         ;;
-    H)
-        # this overrides the user environment variable
+    H)  # this overrides the user environment variable
         THRILL_HOSTLIST=$OPTARG
         ;;
     v)  verbose=1
@@ -40,12 +39,12 @@ while getopts "u:h:H:cvCw:" opt; do
         ;;
     C)  dir=$OPTARG
         ;;
-    w)
-        # this overrides the user environment variable
+    p)  with_perf=1
+        ;;
+    w)  # this overrides the user environment variable
         THRILL_WORKERS_PER_HOST=$OPTARG
         ;;
-    :)
-        echo "Option -$OPTARG requires an argument." >&2
+    :)  echo "Option -$OPTARG requires an argument." >&2
         exit 1
         ;;
     esac
@@ -123,6 +122,8 @@ rank=0
 export THRILL_HOSTLIST="${hostlist[@]}"
 SSH_PIDS=()
 
+trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
+
 for hostport in $THRILL_SSHLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   if [ $verbose -ne 0 ]; then
@@ -131,7 +132,11 @@ for hostport in $THRILL_SSHLIST; do
   THRILL_EXPORTS=$(env | awk -F= '/^THRILL_/ { printf("%s", $1 "=\"" $2 "\" ") }')
   THRILL_EXPORTS="${THRILL_EXPORTS}THRILL_RANK=\"$rank\" THRILL_DIE_WITH_PARENT=1"
   REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
-  echo $*
+  RUN_PREFIX="exec"
+  if [ "$with_perf" == "1" ]; then
+      # run with perf
+      RUN_PREFIX="exec perf record -g -o perf-$rank.data"
+  fi
   if [ "$copy" == "1" ]; then
       REMOTENAME="/tmp/$cmdbase.$hostport.$$"
       THRILL_EXPORTS="$THRILL_EXPORTS THRILL_UNLINK_BINARY=\"$REMOTENAME\""
@@ -140,7 +145,7 @@ for hostport in $THRILL_SSHLIST; do
             "$cmd" "$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
             $host \
-            "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && exec \"$REMOTENAME\" $*" &&
+            "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && $RUN_PREFIX \"$REMOTENAME\" $*" &&
         if [ -n "$THRILL_LOG" ]; then
             scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
                 "$host:/tmp/$THRILL_LOG-*" "."
@@ -150,7 +155,7 @@ for hostport in $THRILL_SSHLIST; do
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
           $host \
-          "export $THRILL_EXPORTS && cd $dir && exec $cmd $*" &
+          "export $THRILL_EXPORTS && cd $dir && $RUN_PREFIX $cmd $*" &
   fi
   # save PID of ssh child for later
   SSHPIDS[$rank]=$!

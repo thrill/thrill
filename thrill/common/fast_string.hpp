@@ -268,8 +268,7 @@ private:
 namespace data {
 
 template <typename Archive>
-struct Serialization<Archive, common::FastString>
-{
+struct Serialization<Archive, common::FastString>{
     static void Serialize(const common::FastString& fs, Archive& ar) {
         ar.PutVarint(fs.Size()).Append(fs.Data(), fs.Size());
     }
@@ -290,8 +289,7 @@ struct Serialization<Archive, common::FastString>
 
 namespace std {
 template <>
-struct hash<thrill::common::FastString>
-{
+struct hash<thrill::common::FastString>{
     size_t operator () (const thrill::common::FastString& fs) const {
         // simple string hash taken from: http://www.cse.yorku.ca/~oz/hash.html
         size_t hash = 5381;

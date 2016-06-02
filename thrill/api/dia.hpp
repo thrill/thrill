@@ -52,6 +52,22 @@ struct DisjointTag {
 //! global const DisjointTag instance
 const struct DisjointTag DisjointTag;
 
+//! tag structure for Zip()
+struct CutTag {
+    CutTag() { }
+};
+
+//! global const CutTag instance
+const struct CutTag CutTag;
+
+//! tag structure for Zip()
+struct PadTag {
+    PadTag() { }
+};
+
+//! global const PadTag instance
+const struct PadTag PadTag;
+
 /*!
  * DIA is the interface between the user and the Thrill framework. A DIA can be
  * imagined as an immutable array, even though the data does not need to be
@@ -219,6 +235,10 @@ public:
      */
     const DIA& Keep(size_t increase = 1) const {
         assert(IsValid());
+        if (node_->context().consume() && node_->consume_counter() == 0) {
+            die("Keep() called on "
+                << *node_ << " which was already consumed.");
+        }
         node_->IncConsumeCounter(increase);
         return *this;
     }
@@ -238,7 +258,7 @@ public:
      * Execute DIA's scope and parents such that this (Action)Node is
      * Executed. This does not create a new DIA, but returns the existing one.
      */
-    DIA& Execute() {
+    const DIA& Execute() const {
         assert(IsValid());
         node_->RunScope();
         return *this;
@@ -840,10 +860,13 @@ public:
                       const ValueOut& neutral_element = ValueOut()) const;
 
     /*!
-     * Zip is a DOp, which Zips two DIAs in style of functional programming. The
-     * zip_function is used to zip the i-th elements of both input DIAs together
-     * to form the i-th element of the output DIA. The type of the output
-     * DIA can be inferred from the zip_function.
+     * Zips two DIAs of equal size in style of functional programming by
+     * applying zip_function to the i-th elements of both input DIAs to form the
+     * i-th element of the output DIA. The type of the output DIA can be
+     * inferred from the zip_function.
+     *
+     * The two input DIAs are required to be of equal size, otherwise use the
+     * CutTag variant.
      *
      * \tparam ZipFunction Type of the zip_function. This is a function with two
      * input elements, both of the local type, and one output element, which is
@@ -857,7 +880,56 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(const SecondDIA &second_dia, const ZipFunction &zip_function) const;
+    auto Zip(const SecondDIA &second_dia,
+             const ZipFunction &zip_function) const;
+
+    /*!
+     * Zips two DIAs in style of functional programming by applying zip_function
+     * to the i-th elements of both input DIAs to form the i-th element of the
+     * output DIA. The type of the output DIA can be inferred from the
+     * zip_function.
+     *
+     * If the two input DIAs are of unequal size, the result is the shorter of
+     * both. Otherwise use PadTag().
+     *
+     * \tparam ZipFunction Type of the zip_function. This is a function with two
+     * input elements, both of the local type, and one output element, which is
+     * the type of the Zip node.
+     *
+     * \param zip_function Zip function, which zips two elements together
+     *
+     * \param second_dia DIA, which is zipped together with the original
+     * DIA.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename ZipFunction, typename SecondDIA>
+    auto Zip(struct CutTag, const SecondDIA &second_dia,
+             const ZipFunction &zip_function) const;
+
+    /*!
+     * Zips two DIAs in style of functional programming by applying zip_function
+     * to the i-th elements of both input DIAs to form the i-th element of the
+     * output DIA. The type of the output DIA can be inferred from the
+     * zip_function.
+     *
+     * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs
+     * are padded with default-constructed items.
+     *
+     * \tparam ZipFunction Type of the zip_function. This is a function with two
+     * input elements, both of the local type, and one output element, which is
+     * the type of the Zip node.
+     *
+     * \param zip_function Zip function, which zips two elements together
+     *
+     * \param second_dia DIA, which is zipped together with the original
+     * DIA.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename ZipFunction, typename SecondDIA>
+    auto Zip(struct PadTag, const SecondDIA &second_dia,
+             const ZipFunction &zip_function) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
@@ -865,13 +937,31 @@ public:
      * \tparam CompareFunction Type of the compare_function.
      *  Should be (ValueType,ValueType)->bool
      *
-     * \param compare_function Function, which compares two elements. Returns true, if
-     * first element is smaller than second. False otherwise.
+     * \param compare_function Function, which compares two elements. Returns
+     * true, if first element is smaller than second. False otherwise.
      *
      * \ingroup dia_dops
      */
     template <typename CompareFunction = std::less<ValueType> >
     auto Sort(const CompareFunction& compare_function = CompareFunction()) const;
+
+    /*!
+     * Sort is a DOp, which sorts a given DIA according to the given compare_function.
+     *
+     * \tparam CompareFunction Type of the compare_function.
+     *  Should be (ValueType,ValueType)->bool
+     *
+     * \param compare_function Function, which compares two elements. Returns
+     * true, if first element is smaller than second. False otherwise.
+     *
+     * \param sort_algorithm Algorithm class used to sort items. Merging is
+     * always done using a tournament tree with compare_function.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename CompareFunction, typename SortFunction>
+    auto Sort(const CompareFunction &compare_function,
+              const SortFunction &sort_algorithm) const;
 
     /*!
      * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.
@@ -925,6 +1015,25 @@ public:
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
      *
+     * \param window_size the size of the delivered window. Signature: TODO(tb).
+     *
+     * \param window_function Window function applied to each k item.
+     *
+     * \param partial_window_function Window function applied to less than k
+     * items.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename WindowFunction, typename PartialWindowFunction>
+    auto Window(size_t window_size,
+                const WindowFunction &window_function,
+                const PartialWindowFunction &partial_window_function) const;
+
+    /*!
+     * Window is a DOp, which applies a window function to every k
+     * consecutive items in a DIA. The window function is also given the index
+     * of the first item, and can output zero or more items via an Emitter.
+     *
      * \param window_size the size of the delivered window.
      *
      * \param window_function Window function applied to each k item.
@@ -947,8 +1056,29 @@ public:
      * \ingroup dia_dops
      */
     template <typename ValueOut, typename WindowFunction>
+    auto FlatWindow(
+        size_t window_size,
+        const WindowFunction& window_function = WindowFunction()) const;
+
+    /*!
+     * FlatWindow is a DOp, which applies a window function to every k
+     * consecutive items in a DIA. The window function is also given the index
+     * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \param window_size the size of the delivered window. Signature: TODO(tb).
+     *
+     * \param window_function Window function applied to each k item.
+     *
+     * \param partial_window_function Window function applied to less than k
+     * items.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename ValueOut, typename WindowFunction,
+              typename PartialWindowFunction>
     auto FlatWindow(size_t window_size,
-                    const WindowFunction& window_function = WindowFunction()) const;
+                    const WindowFunction &window_function,
+                    const PartialWindowFunction &partial_window_function) const;
 
     /*!
      * FlatWindow is a DOp, which applies a window function to every k
@@ -982,6 +1112,15 @@ public:
     auto TrivialSimJoin(const SecondDIA &second_dia,
                         const SimilarityFunction &comparator,
                         const Threshhold &threshhold) const;
+
+    /*!
+     * Rebalance is a DOp, which rebalances a single DIA among all workers; in
+     * general, this operation is needed only if previous steps are known to
+     * create heavy imbalance (e.g. like Filter()s which cut DIAs to ranges).
+     *
+     * \ingroup dia_dops
+     */
+    auto Rebalance() const;
 
     /*!
      * Create a CollapseNode which is mainly used to collapse the LOp chain into
@@ -1035,6 +1174,12 @@ using api::DisjointTag;
 
 //! imported from api namespace
 using api::VolatileKeyTag;
+
+//! imported from api namespace
+using api::CutTag;
+
+//! imported from api namespace
+using api::PadTag;
 
 } // namespace thrill
 

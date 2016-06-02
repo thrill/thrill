@@ -56,7 +56,7 @@ class DefaultReduceConfig : public core::DefaultReduceConfig
  *
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA,
+template <typename ValueType,
           typename KeyExtractor, typename ReduceFunction,
           typename ReduceConfig,
           const bool VolatileKey, const bool SendPair>
@@ -95,6 +95,7 @@ public:
      * Constructor for a ReduceNode. Sets the parent, stack, key_extractor and
      * reduce_function.
      */
+    template <typename ParentDIA>
     ReduceNode(const ParentDIA& parent,
                const char* label,
                const KeyExtractor& key_extractor,
@@ -262,7 +263,7 @@ auto DIA<ValueType, Stack>::ReduceByKey(
         "KeyExtractor has the wrong input type");
 
     using ReduceNode = api::ReduceNode<
-              DOpResult, DIA, KeyExtractor, ReduceFunction,
+              DOpResult, KeyExtractor, ReduceFunction,
               ReduceConfig, /* VolatileKey */ false, false>;
     auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceByKey", key_extractor, reduce_function, reduce_config);
@@ -310,7 +311,7 @@ auto DIA<ValueType, Stack>::ReduceByKey(
         "KeyExtractor has the wrong input type");
 
     using ReduceNode = api::ReduceNode<
-              DOpResult, DIA, KeyExtractor,
+              DOpResult, KeyExtractor,
               ReduceFunction, ReduceConfig, /* VolatileKey */ true, false>;
 
     auto node = common::MakeCounting<ReduceNode>(
@@ -356,7 +357,7 @@ auto DIA<ValueType, Stack>::ReducePair(
     using Value = typename ValueType::second_type;
 
     using ReduceNode = api::ReduceNode<
-              ValueType, DIA, std::function<Key(Value)>, ReduceFunction,
+              ValueType, std::function<Key(Value)>, ReduceFunction,
               ReduceConfig, /* VolatileKey */ true, true>;
 
     auto node = common::MakeCounting<ReduceNode>(

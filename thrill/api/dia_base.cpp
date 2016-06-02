@@ -37,7 +37,9 @@ public:
     static constexpr bool debug = false;
 
     explicit Stage(const DIABasePtr& node)
-        : node_(node), context_(node->context()) { }
+        : node_(node), context_(node->context()),
+          verbose_(context_.mem_config().verbose_)
+    { }
 
     //! iterate over all target nodes into which this Stage pushes
     template <typename Lambda>
@@ -119,7 +121,8 @@ public:
         sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << TargetsString();
 
         if (context_.my_rank() == 0) {
-            sLOG1 << "Execute()  stage" << *node_;
+            sLOGC(verbose_)
+                << "Execute()  stage" << *node_;
         }
 
         std::vector<size_t> target_ids = TargetIds();
@@ -151,14 +154,17 @@ public:
 
         logger_ << "class" << "StageBuilder" << "event" << "execute-done"
                 << "targets" << target_ids << "elapsed" << timer;
+
+        LOG << "DIA bytes: " << node_->context().block_pool().total_bytes();
     }
 
     void PushData() {
         sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << TargetsString();
 
         if (context_.my_rank() == 0) {
-            sLOG1 << "PushData() stage" << *node_
-                  << "with targets" << TargetsString();
+            sLOGC(verbose_)
+                << "PushData() stage" << *node_
+                << "with targets" << TargetsString();
         }
 
         if (context_.consume() && node_->consume_counter() == 0) {
@@ -256,6 +262,8 @@ public:
 
         logger_ << "class" << "StageBuilder" << "event" << "pushdata-done"
                 << "targets" << target_ids << "elapsed" << timer;
+
+        LOG << "DIA bytes: " << node_->context().block_pool().total_bytes();
     }
 
     //! order for std::set in FindStages() - this must be deterministic such
@@ -272,6 +280,9 @@ public:
 
     //! reference to node's Logger.
     common::JsonLogger& logger_ { node_->logger_ };
+
+    //! StageBuilder verbosity flag from MemoryConfig
+    bool verbose_;
 
     //! temporary marker for toposort to detect cycles
     mutable bool cycle_mark_ = false;
@@ -370,7 +381,7 @@ void DIABase::RunScope() {
     LOG << "DIABase::Execute() this=" << *this;
 
     if (state_ == DIAState::EXECUTED) {
-        LOG1 << "DIA node " << *this << " was already executed.";
+        LOG << "DIA node " << *this << " was already executed.";
         return;
     }
 

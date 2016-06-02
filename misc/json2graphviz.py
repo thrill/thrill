@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 ##########################################################################
-# scripts/json2graphviz.py
+# misc/json2graphviz.py
 #
 # Python script to parse the JSON output log of a Thrill worker and emit a
 # graphviz (dot) graph describing the DIA graph executed by the program.

@@ -42,9 +42,6 @@ public:
     std::vector<DIABase*> children() const final
     { return std::vector<DIABase*>(); }
 
-    //! ActionNodes are so short-lived they need not be Disposed.
-    void Dispose() final { }
-
     //! ActionNodes do not push data, they only Execute.
     void PushData(bool /* consume */) final { abort(); }
 
@@ -52,6 +49,10 @@ public:
     void RunPushData() final { abort(); }
 
     void IncConsumeCounter(size_t /* counter */) final {
+        die("Setting .Keep() on Actions does not make sense.");
+    }
+
+    void DecConsumeCounter(size_t /* counter */) final {
         die("Setting .Keep() on Actions does not make sense.");
     }
 

@@ -125,13 +125,20 @@ void MixStream::Close() {
             queue_ptr->Close();
     }
 
-    // wait for close packets to arrive.
-    while (!queue_.write_closed())
+    // wait for all close packets to arrive.
+    for (size_t i = 0; i < (num_hosts() - 1) * workers_per_host(); ++i) {
+        LOG << "MixStream wait for closing block"
+            << " local_worker_id_=" << local_worker_id_;
         sem_closing_blocks_.wait();
+    }
 
     tx_lifetime_.StopEventually();
     tx_timespan_.StopEventually();
     OnAllClosed("MixStream");
+
+    LOG << "MixStream::Close() finished"
+        << " id_=" << id_
+        << " local_worker_id_=" << local_worker_id_;
 }
 
 bool MixStream::closed() const {
@@ -151,8 +158,8 @@ void MixStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
 
     sLOG << "OnMixStreamBlock" << b;
 
-    sLOG << "stream" << id_ << "receive from" << from << ":"
-         << common::Hexdump(b.ToString());
+    sLOG0 << "stream" << id_ << "receive from" << from << ":"
+          << common::Hexdump(b.ToString());
 
     queue_.AppendBlock(from, std::move(b).MoveToBlock());
 }
@@ -163,7 +170,9 @@ void MixStream::OnCloseStream(size_t from) {
 
     rx_net_blocks_++;
 
-    sLOG << "OnMixCloseStream from=" << from;
+    sLOG << "OnMixCloseStream stream" << id_
+         << "from" << from
+         << "for worker" << my_worker_rank();
 
     if (--remaining_closing_blocks_ == 0) {
         rx_lifetime_.StopEventually();

@@ -46,8 +46,7 @@ protected:
     //! Enclosed IPv4, IPv6 or other socket address structure. Used as a struct
     //! sockaddr_in or a struct sockaddr_in6. sizeof(sockaddr_in6) is
     //! (currently) 28.
-    union SockAddrUnion
-    {
+    union SockAddrUnion {
         struct sockaddr     generic;
         struct sockaddr_in  in;
         struct sockaddr_in6 in6;

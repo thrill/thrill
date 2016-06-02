@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <tuple>
+#include <type_traits>
 
 namespace thrill {
 namespace common {
@@ -63,8 +64,7 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
 //! specialize for pointers to mutable member function
 template <typename ClassType, typename ReturnType, typename ... Args>
 struct FunctionTraits<ReturnType (ClassType::*)(Args ...)>
-    : public FunctionTraits<ReturnType (ClassType::*)(Args ...) const>
-{
+    : public FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
     using is_const = std::false_type;
 };
 

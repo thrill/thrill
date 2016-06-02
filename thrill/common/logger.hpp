@@ -100,6 +100,13 @@ private:
     mem::safe_ostringstream oss_;
 
 public:
+    //! mutex synchronized output to std::cout
+    static void Output(const char* str);
+    //! mutex synchronized output to std::cout
+    static void Output(const std::string& str);
+    //! mutex synchronized output to std::cout
+    static void Output(const mem::safe_string& str);
+
     Logger();
 
     //! output any type, including io manipulators

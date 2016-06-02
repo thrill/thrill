@@ -100,7 +100,10 @@ public:
         const void* data, size_t size, Flags /* flags */ = NoFlags) final;
 
     ssize_t SendOne(
-        const void* data, size_t size, Flags /* flags */ = NoFlags) final;
+        const void* data, size_t size, Flags flags = NoFlags) final {
+        SyncSend(data, size, flags);
+        return size;
+    }
 
     //! \}
 
@@ -113,6 +116,14 @@ public:
         SyncRecv(out_data, size);
         return size;
     }
+
+    //! \}
+
+    //! \name Paired SendReceive Methods
+    //! \{
+
+    void SyncSendRecv(const void* send_data, size_t send_size,
+                      void* recv_data, size_t recv_size) final;
 
     //! \}
 

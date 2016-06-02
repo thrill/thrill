@@ -32,18 +32,16 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ParentDIA>
+template <typename ValueType>
 class WriteBinaryNode final : public ActionNode
 {
     static constexpr bool debug = false;
-
-    //! input type is the parent's output value type.
-    using Input = typename ParentDIA::ValueType;
 
 public:
     using Super = ActionNode;
     using Super::context_;
 
+    template <typename ParentDIA>
     WriteBinaryNode(const ParentDIA& parent,
                     const std::string& path_out,
                     size_t max_file_size)
@@ -58,7 +56,7 @@ public:
                                common::RoundUpToPowerOfTwo(max_file_size));
         sLOG << "block_size_" << block_size_;
 
-        auto pre_op_fn = [=](const Input& input) {
+        auto pre_op_fn = [=](const ValueType& input) {
                              return PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -72,7 +70,7 @@ public:
     }
 
     //! writer preop: put item into file, create files as needed.
-    void PreOp(const Input& input) {
+    void PreOp(const ValueType& input) {
         stats_total_elements_++;
 
         if (!sink_) OpenNextFile();
@@ -200,7 +198,7 @@ template <typename ValueType, typename Stack>
 void DIA<ValueType, Stack>::WriteBinary(
     const std::string& filepath, size_t max_file_size) const {
 
-    using WriteBinaryNode = api::WriteBinaryNode<DIA>;
+    using WriteBinaryNode = api::WriteBinaryNode<ValueType>;
 
     auto node = common::MakeCounting<WriteBinaryNode>(
         *this, filepath, max_file_size);

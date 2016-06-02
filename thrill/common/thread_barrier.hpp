@@ -19,6 +19,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 
 namespace thrill {
 namespace common {
@@ -46,7 +47,7 @@ public:
     void Await(Lambda lambda = Lambda()) {
         std::unique_lock<std::mutex> lock(mutex_);
 
-        size_t local_ = current_;
+        size_t local_ = step_;
         counts_[local_]++;
 
         if (counts_[local_] < thread_count_) {
@@ -55,11 +56,16 @@ public:
             }
         }
         else {
-            current_ = current_ ? 0 : 1;
-            counts_[current_] = 0;
+            step_ = step_ ? 0 : 1;
+            counts_[step_] = 0;
             lambda();
             cv_.notify_all();
         }
+    }
+
+    //! Return generation step counter
+    size_t step() const {
+        return step_;
     }
 
 protected:
@@ -69,11 +75,11 @@ protected:
     //! number of threads
     const size_t thread_count_;
 
-    //! two counters: switch between then every run.
+    //! two counters: switch between them every run.
     size_t counts_[2] = { 0, 0 };
 
     //! current counter used.
-    size_t current_ = 0;
+    size_t step_ = 0;
 };
 
 /*!
@@ -93,7 +99,9 @@ public:
         : thread_count_(thread_count) { }
 
     /*!
-     * Waits for n threads to arrive.
+     * Waits for n threads to arrive. When they have arrive, execute lambda on
+     * the one thread, which arrived last. After lambda, step the generation
+     * counter.
      *
      * This method blocks and returns as soon as n threads are waiting inside
      * the method.
@@ -113,8 +121,15 @@ public:
         }
         else {
             // spin lock awaiting the last thread to increment the step counter.
-            while (step_.load(std::memory_order_relaxed) == this_step) { }
+            while (step_.load(std::memory_order_relaxed) == this_step) {
+                std::this_thread::yield();
+            }
         }
+    }
+
+    //! Return generation step counter
+    size_t step() const {
+        return step_.load(std::memory_order_acquire);
     }
 
 protected:

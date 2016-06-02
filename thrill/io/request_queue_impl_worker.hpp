@@ -41,8 +41,7 @@ protected:
     enum ThreadState { NOT_RUNNING, RUNNING, TERMINATING, TERMINATED };
 
     struct FileOffsetMatch
-        : public std::binary_function<RequestPtr, RequestPtr, bool>
-    {
+        : public std::binary_function<RequestPtr, RequestPtr, bool>{
         bool operator () (const RequestPtr& a, const RequestPtr& b) const {
             // matching file and offset are enough to cause problems
             return (a->offset() == b->offset()) &&

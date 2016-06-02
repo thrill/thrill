@@ -223,13 +223,24 @@ public:
     friend std::ostream& operator << (std::ostream& os, const DIABase& d);
 
     //! Returns consume_counter_
-    size_t consume_counter() const { return consume_counter_; }
+    virtual size_t consume_counter() const { return consume_counter_; }
 
     //! Virtual SetConsume flag which is called by the user via .Keep() or
     //! .Consume() to set consumption.
     virtual void IncConsumeCounter(size_t counter) {
         if (consume_counter_ == kNeverConsume) return;
         consume_counter_ += counter;
+    }
+
+    //! Virtual SetConsume flag which is called by the user via .Keep() or
+    //! .Consume() to set consumption.
+    virtual void DecConsumeCounter(size_t counter) {
+        assert(consume_counter_ > 0);
+        if (consume_counter_ <= counter) {
+            consume_counter_ = 0;
+            return;
+        }
+        consume_counter_ -= counter;
     }
 
     //! Virtual SetConsume flag which is called by the user via .Keep() or

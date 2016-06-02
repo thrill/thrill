@@ -68,8 +68,8 @@ namespace api {
  *
  * \ingroup api_layer
  */
-template <typename ValueType, typename ZipFunction, bool Pad,
-          typename ParentDIA0, typename ... ParentDIAs>
+template <typename ValueType, typename ZipFunction,
+          bool Pad, bool UnequalCheck, size_t kNumInputs>
 class ZipNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -83,20 +83,23 @@ class ZipNode final : public DOpNode<ValueType>
     using ZipArgs =
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
-    //! Number of storage DIAs backing
-    static constexpr size_t kNumInputs = 1 + sizeof ... (ParentDIAs);
-
 public:
     /*!
      * Constructor for a ZipNode.
      */
+    template <typename ParentDIA0, typename ... ParentDIAs>
     ZipNode(const ZipFunction& zip_function, const ZipArgs& padding,
             const ParentDIA0& parent0, const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Zip",
                 { parent0.id(), parents.id() ... },
                 { parent0.node(), parents.node() ... }),
           zip_function_(zip_function),
-          padding_(padding)
+          padding_(padding),
+          // this weirdness is due to a MSVC2015 parser bug
+          parent_stack_empty_(
+              std::array<bool, kNumInputs>{
+                  { ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... }
+              })
     {
         // allocate files.
         files_.reserve(kNumInputs);
@@ -115,13 +118,7 @@ public:
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t parent_index) final {
         assert(parent_index < kNumInputs);
-
-        //! indication whether the parent stack is empty
-        static constexpr bool parent_stack_empty[kNumInputs] = {
-            // parenthesis are due to a MSVC2015 parser bug
-            ParentDIA0::stack_empty, (ParentDIAs::stack_empty)...
-        };
-        if (!parent_stack_empty[parent_index]) return false;
+        if (!parent_stack_empty_[parent_index]) return false;
 
         // accept file
         assert(files_[parent_index].num_items() == 0);
@@ -160,9 +157,7 @@ public:
     }
 
     void Dispose() final {
-        for (size_t i = 0; i < kNumInputs; ++i) {
-            files_[i].Clear();
-        }
+        files_.clear();
     }
 
 private:
@@ -170,7 +165,10 @@ private:
     ZipFunction zip_function_;
 
     //! padding for shorter DIAs
-    ZipArgs padding_;
+    const ZipArgs padding_;
+
+    //! Whether the parent stack is empty
+    const std::array<bool, kNumInputs> parent_stack_empty_;
 
     //! Files for intermediate storage
     std::vector<data::File> files_;
@@ -313,10 +311,9 @@ private:
             : *std::min_element(dia_total_size.begin(), dia_total_size.end());
 
         // warn if DIAs have unequal size
-        if (!Pad && context_.my_rank() == 0 &&
-            result_size_ != max_dia_total_size) {
-            LOG1 << "WARN: Zip(): input DIAs have unequal size: "
-                 << common::VecToStr(dia_total_size);
+        if (!Pad && UnequalCheck && result_size_ != max_dia_total_size) {
+            die("Zip(): input DIAs have unequal size: "
+                << common::VecToStr(dia_total_size));
         }
 
         if (result_size_ == 0) return;
@@ -375,12 +372,13 @@ private:
 };
 
 /*!
- * Zip is a DOp, which Zips any number of DIAs in style of functional
- * programming. The zip_function is used to zip the i-th elements of all input
- * DIAs together to form the i-th element of the output DIA. The type of the
- * output DIA can be inferred from the zip_function. The output DIA's length is
- * the *minimum* of all input DIAs, hence no padding or sentinels are needed or
- * added.
+ * Zips two DIAs of equal size in style of functional programming by applying
+ * zip_function to the i-th elements of both input DIAs to form the i-th element
+ * of the output DIA. The type of the output DIA can be inferred from the
+ * zip_function.
+ *
+ * The two input DIAs are required to be of equal size, otherwise use the
+ * CutTag variant.
  *
  * \tparam ZipFunction Type of the zip_function. This is a function with two
  * input elements, both of the local type, and one output element, which is
@@ -394,9 +392,11 @@ private:
  *
  * \ingroup dia_dops
  */
-template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
+template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
+          typename ... DIAs>
 auto Zip(const ZipFunction &zip_function,
-         const FirstDIA &first_dia, const DIAs &... dias) {
+         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
+         const DIAs &... dias) {
 
     using VarForeachExpander = int[];
 
@@ -407,7 +407,7 @@ auto Zip(const ZipFunction &zip_function,
 
     static_assert(
         std::is_convertible<
-            typename FirstDIA::ValueType,
+            FirstDIAType,
             typename common::FunctionTraits<ZipFunction>::template arg<0>
             >::value,
         "ZipFunction has the wrong input type in DIA 0");
@@ -418,8 +418,9 @@ auto Zip(const ZipFunction &zip_function,
     using ZipArgs =
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
-    using ZipNode
-              = api::ZipNode<ZipResult, ZipFunction, false, FirstDIA, DIAs ...>;
+    using ZipNode = api::ZipNode<
+              ZipResult, ZipFunction, /* Pad */ false, /* UnequalCheck */ true,
+              1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
         zip_function, ZipArgs(), first_dia, dias ...);
@@ -428,22 +429,71 @@ auto Zip(const ZipFunction &zip_function,
 }
 
 /*!
+ * Zips any number of DIAs of equal size in style of functional programming by
+ * applying zip_function to the i-th elements of both input DIAs to form the
+ * i-th element of the output DIA. The type of the output DIA can be inferred
+ * from the zip_function.
+ *
+ * If the two input DIAs are of unequal size, the result is the shorter of
+ * both. Otherwise use the PadTag variant.
+ *
+ * \tparam ZipFunction Type of the zip_function. This is a function with two
+ * input elements, both of the local type, and one output element, which is the
+ * type of the Zip node.
+ *
+ * \param zip_function Zip function, which zips two elements together
+ *
+ * \param first_dia the initial DIA.
+ *
+ * \param dias DIAs, which is zipped together with the original DIA.
+ *
  * \ingroup dia_dops
  */
-template <typename ValueType, typename Stack>
-template <typename ZipFunction, typename SecondDIA>
-auto DIA<ValueType, Stack>::Zip(
-    const SecondDIA &second_dia, const ZipFunction &zip_function) const {
-    return api::Zip(zip_function, *this, second_dia);
+template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
+          typename ... DIAs>
+auto Zip(struct CutTag,
+         const ZipFunction &zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
+         const DIAs &... dias) {
+
+    using VarForeachExpander = int[];
+
+    first_dia.AssertValid();
+    (void)VarForeachExpander {
+        (dias.AssertValid(), 0) ...
+    };
+
+    static_assert(
+        std::is_convertible<
+            FirstDIAType,
+            typename common::FunctionTraits<ZipFunction>::template arg<0>
+            >::value,
+        "ZipFunction has the wrong input type in DIA 0");
+
+    using ZipResult
+              = typename common::FunctionTraits<ZipFunction>::result_type;
+
+    using ZipArgs =
+              typename common::FunctionTraits<ZipFunction>::args_plain;
+
+    using ZipNode = api::ZipNode<
+              ZipResult, ZipFunction, /* Pad */ false, /* UnequalCheck */ false,
+              1 + sizeof ... (DIAs)>;
+
+    auto node = common::MakeCounting<ZipNode>(
+        zip_function, ZipArgs(), first_dia, dias ...);
+
+    return DIA<ZipResult>(node);
 }
 
 /*!
- * ZipPad is a DOp, which Zips any number of DIAs in style of functional
- * programming. The zip_function is used to zip the i-th elements of all input
- * DIAs together to form the i-th element of the output DIA. The type of the
- * output DIA can be inferred from the zip_function. The output DIA's length is
- * the *maximum* of all input DIAs, shorter DIAs are padded with
- * default-constructed items.
+ * Zips any number of DIAs in style of functional programming by applying
+ * zip_function to the i-th elements of both input DIAs to form the i-th element
+ * of the output DIA. The type of the output DIA can be inferred from the
+ * zip_function.
+ *
+ * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs are
+ * padded with default-constructed items.
  *
  * \tparam ZipFunction Type of the zip_function. This is a function with two
  * input elements, both of the local type, and one output element, which is
@@ -457,9 +507,12 @@ auto DIA<ValueType, Stack>::Zip(
  *
  * \ingroup dia_dops
  */
-template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
-auto ZipPad(const ZipFunction &zip_function,
-            const FirstDIA &first_dia, const DIAs &... dias) {
+template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
+          typename ... DIAs>
+auto Zip(struct PadTag,
+         const ZipFunction &zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
+         const DIAs &... dias) {
 
     using VarForeachExpander = int[];
 
@@ -470,7 +523,7 @@ auto ZipPad(const ZipFunction &zip_function,
 
     static_assert(
         std::is_convertible<
-            typename FirstDIA::ValueType,
+            FirstDIAType,
             typename common::FunctionTraits<ZipFunction>::template arg<0>
             >::value,
         "ZipFunction has the wrong input type in DIA 0");
@@ -481,8 +534,9 @@ auto ZipPad(const ZipFunction &zip_function,
     using ZipArgs =
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
-    using ZipNode
-              = api::ZipNode<ZipResult, ZipFunction, true, FirstDIA, DIAs ...>;
+    using ZipNode = api::ZipNode<
+              ZipResult, ZipFunction, /* Pad */ true, /* UnequalCheck */ false,
+              1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
         zip_function, ZipArgs(), first_dia, dias ...);
@@ -491,12 +545,13 @@ auto ZipPad(const ZipFunction &zip_function,
 }
 
 /*!
- * ZipPadding is a DOp, which Zips any number of DIAs in style of functional
- * programming. The zip_function is used to zip the i-th elements of all input
- * DIAs together to form the i-th element of the output DIA. The type of the
- * output DIA can be inferred from the zip_function. The output DIA's length is
- * the *maximum* of all input DIAs, shorter DIAs are padded with items given by
- * the padding parameter.
+ * Zips any number of DIAs in style of functional programming by applying
+ * zip_function to the i-th elements of both input DIAs to form the i-th element
+ * of the output DIA. The type of the output DIA can be inferred from the
+ * zip_function.
+ *
+ * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs are
+ * padded with items given by the padding parameter.
  *
  * \tparam ZipFunction Type of the zip_function. This is a function with two
  * input elements, both of the local type, and one output element, which is
@@ -513,11 +568,14 @@ auto ZipPad(const ZipFunction &zip_function,
  *
  * \ingroup dia_dops
  */
-template <typename ZipFunction, typename FirstDIA, typename ... DIAs>
-auto ZipPadding(
+template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
+          typename ... DIAs>
+auto Zip(
+    struct PadTag,
     const ZipFunction &zip_function,
     const typename common::FunctionTraits<ZipFunction>::args_plain & padding,
-    const FirstDIA &first_dia, const DIAs &... dias) {
+    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
+    const DIAs &... dias) {
 
     using VarForeachExpander = int[];
 
@@ -528,7 +586,7 @@ auto ZipPadding(
 
     static_assert(
         std::is_convertible<
-            typename FirstDIA::ValueType,
+            FirstDIAType,
             typename common::FunctionTraits<ZipFunction>::template arg<0>
             >::value,
         "ZipFunction has the wrong input type in DIA 0");
@@ -536,13 +594,37 @@ auto ZipPadding(
     using ZipResult =
               typename common::FunctionTraits<ZipFunction>::result_type;
 
-    using ZipNode
-              = api::ZipNode<ZipResult, ZipFunction, true, FirstDIA, DIAs ...>;
+    using ZipNode = api::ZipNode<
+              ZipResult, ZipFunction, /* Pad */ true, /* UnequalCheck */ false,
+              1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
         zip_function, padding, first_dia, dias ...);
 
     return DIA<ZipResult>(node);
+}
+
+template <typename ValueType, typename Stack>
+template <typename ZipFunction, typename SecondDIA>
+auto DIA<ValueType, Stack>::Zip(
+    const SecondDIA &second_dia, const ZipFunction &zip_function) const {
+    return api::Zip(zip_function, *this, second_dia);
+}
+
+template <typename ValueType, typename Stack>
+template <typename ZipFunction, typename SecondDIA>
+auto DIA<ValueType, Stack>::Zip(
+    struct CutTag, const SecondDIA &second_dia,
+    const ZipFunction &zip_function) const {
+    return api::Zip(CutTag, zip_function, *this, second_dia);
+}
+
+template <typename ValueType, typename Stack>
+template <typename ZipFunction, typename SecondDIA>
+auto DIA<ValueType, Stack>::Zip(
+    struct PadTag, const SecondDIA &second_dia,
+    const ZipFunction &zip_function) const {
+    return api::Zip(PadTag, zip_function, *this, second_dia);
 }
 
 //! \}
@@ -551,12 +633,6 @@ auto ZipPadding(
 
 //! imported from api namespace
 using api::Zip;
-
-//! imported from api namespace
-using api::ZipPad;
-
-//! imported from api namespace
-using api::ZipPadding;
 
 } // namespace thrill
 

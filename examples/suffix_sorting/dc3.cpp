@@ -8,27 +8,26 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/suffix_sorting/sa_checker.hpp>
+#include <examples/suffix_sorting/check_sa.hpp>
+#include <examples/suffix_sorting/suffix_sorting.hpp>
 
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/api/equal_to_dia.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
-#include <thrill/api/read_binary.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
-#include <thrill/api/write_binary.hpp>
 #include <thrill/api/zip.hpp>
-#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/radix_sort.hpp>
 #include <thrill/common/uint_types.hpp>
 
 #include <algorithm>
@@ -43,11 +42,7 @@
 
 namespace examples {
 namespace suffix_sorting {
-
-bool debug_print = false;
-
-using namespace thrill; // NOLINT
-using thrill::common::RingBuffer;
+namespace dc3_local {
 
 //! A triple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename AlphabetType>
@@ -55,12 +50,13 @@ struct Chars {
     AlphabetType ch[3];
 
     bool operator == (const Chars& b) const {
-        return std::equal(ch + 0, ch + 3, b.ch + 0);
+        return std::tie(ch[0], ch[1], ch[2])
+               == std::tie(b.ch[0], b.ch[1], b.ch[2]);
     }
 
     bool operator < (const Chars& b) const {
-        return std::lexicographical_compare(
-            ch + 0, ch + 3, b.ch + 0, b.ch + 3);
+        return std::tie(ch[0], ch[1], ch[2])
+               < std::tie(b.ch[0], b.ch[1], b.ch[2]);
     }
 
     friend std::ostream& operator << (std::ostream& os, const Chars& chars) {
@@ -85,6 +81,8 @@ struct IndexChars {
     Index               index;
     Chars<AlphabetType> chars;
 
+    const AlphabetType& at_radix(size_t depth) const { return chars.ch[depth]; }
+
     friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
     }
@@ -103,11 +101,13 @@ struct IndexRank {
 
 //! Fragments at String Positions i = 0 Mod 3.
 template <typename Index, typename AlphabetType>
-struct StringFragmentMod0
-{
+struct StringFragmentMod0 {
     Index        index;
     AlphabetType t0, t1;
     Index        r1, r2;
+
+    AlphabetType at_radix(size_t /* depth */) const { return t0; }
+    Index        sort_rank() const { return r1; }
 
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod0& sf) {
         return os << "i=" << sf.index
@@ -118,11 +118,13 @@ struct StringFragmentMod0
 
 //! Fragments at String Positions i = 1 Mod 3.
 template <typename Index, typename AlphabetType>
-struct StringFragmentMod1
-{
+struct StringFragmentMod1 {
     Index        index;
     AlphabetType t0;
     Index        r0, r1;
+
+    AlphabetType at_radix(size_t /* depth */) const { return t0; }
+    Index        sort_rank() const { return r0; }
 
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod1& sf) {
         return os << "i=" << sf.index
@@ -132,11 +134,13 @@ struct StringFragmentMod1
 
 //! Fragments at String Positions i = 2 Mod 3.
 template <typename Index, typename AlphabetType>
-struct StringFragmentMod2
-{
+struct StringFragmentMod2 {
     Index        index;
     AlphabetType t0, t1;
     Index        r0, r2;
+
+    AlphabetType at_radix(size_t /* depth */) const { return t0; }
+    Index        sort_rank() const { return r0; }
 
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod2& sf) {
         return os << "i=" << sf.index
@@ -147,8 +151,7 @@ struct StringFragmentMod2
 
 //! Union of String Fragments with Index
 template <typename Index, typename AlphabetType>
-struct StringFragment
-{
+struct StringFragment {
     union {
         Index                                   index;
         StringFragmentMod0<Index, AlphabetType> mod0;
@@ -182,6 +185,48 @@ struct StringFragment
     }
 } THRILL_ATTRIBUTE_PACKED;
 
+template <typename StringFragment>
+struct FragmentComparator {
+    THRILL_ATTRIBUTE_ALWAYS_INLINE
+    bool operator () (const StringFragment& a, const StringFragment& b) const {
+        unsigned ai = a.index % 3, bi = b.index % 3;
+
+        if (ai == 0 && bi == 0)
+            return std::tie(a.mod0.t0, a.mod0.r1)
+                   < std::tie(b.mod0.t0, b.mod0.r1);
+
+        else if (ai == 0 && bi == 1)
+            return std::tie(a.mod0.t0, a.mod0.r1)
+                   < std::tie(b.mod1.t0, b.mod1.r1);
+
+        else if (ai == 0 && bi == 2)
+            return std::tie(a.mod0.t0, a.mod0.t1, a.mod0.r2)
+                   < std::tie(b.mod2.t0, b.mod2.t1, b.mod2.r2);
+
+        else if (ai == 1 && bi == 0)
+            return std::tie(a.mod1.t0, a.mod1.r1)
+                   < std::tie(b.mod0.t0, b.mod0.r1);
+
+        else if (ai == 1 && bi == 1)
+            return a.mod1.r0 < b.mod1.r0;
+
+        else if (ai == 1 && bi == 2)
+            return a.mod1.r0 < b.mod2.r0;
+
+        else if (ai == 2 && bi == 0)
+            return std::tie(a.mod2.t0, a.mod2.t1, a.mod2.r2)
+                   < std::tie(b.mod0.t0, b.mod0.t1, b.mod0.r2);
+
+        else if (ai == 2 && bi == 1)
+            return a.mod2.r0 < b.mod1.r0;
+
+        else if (ai == 2 && bi == 2)
+            return a.mod2.r0 < b.mod2.r0;
+
+        abort();
+    }
+};
+
 template <typename Index, typename Char>
 struct CharsRanks12 {
     Chars<Char> chars;
@@ -200,13 +245,46 @@ struct IndexCR12Pair {
     CharsRanks12<Index, Char> cr1;
 } THRILL_ATTRIBUTE_PACKED;
 
+template <typename Type, size_t MaxDepth>
+class RadixSortFragment
+{
+public:
+    explicit RadixSortFragment(size_t K) : K_(K) { }
+    template <typename CompareFunction>
+    void operator () (
+        typename std::vector<Type>::iterator begin,
+        typename std::vector<Type>::iterator end,
+        const CompareFunction& cmp) const {
+        if (K_ < 4096) {
+            thrill::common::radix_sort_CI<MaxDepth>(
+                begin, end, K_, cmp, [](auto begin, auto end, auto) {
+                            // sub sorter: sort StringFragments by rank
+                    std::sort(begin, end, [](const Type& a, const Type& b) {
+                                  return a.sort_rank() < b.sort_rank();
+                              });
+                });
+        }
+        else {
+            std::sort(begin, end, cmp);
+        }
+    }
+
+private:
+    const size_t K_;
+};
+
+} // namespace dc3_local
+
+using namespace thrill; // NOLINT
+using thrill::common::RingBuffer;
+
 template <typename Index, typename InputDIA>
-DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
+DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
 
     using Char = typename InputDIA::ValueType;
-    using IndexChars = suffix_sorting::IndexChars<Index, Char>;
-    using IndexRank = suffix_sorting::IndexRank<Index>;
-    using Chars = suffix_sorting::Chars<Char>;
+    using IndexChars = dc3_local::IndexChars<Index, Char>;
+    using IndexRank = dc3_local::IndexRank<Index>;
+    using Chars = dc3_local::Chars<Char>;
 
     Context& ctx = input_dia.context();
 
@@ -220,35 +298,27 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
                                           { rb[0], rb[1], rb[2] }
                                       }
                          });
-
-                if (index == input_size - 3) {
-                    // emit last sentinel items.
-                    if ((index + 1) % 3 != 0)
-                        emit(IndexChars { Index(index + 1), {
-                                              { rb[1], rb[2], Char() }
-                                          }
-                             });
-                    if ((index + 2) % 3 != 0)
-                        emit(IndexChars { Index(index + 2), {
-                                              { rb[2], Char(), Char() }
-                                          }
-                             });
-
-                    if (input_size % 3 == 1) {
-                        // emit a sentinel tuple for inputs n % 3 == 1 to
-                        // separate mod1 and mod2 strings in recursive
-                        // subproblem. example which needs this: aaaaaaaaaa.
-                        emit(IndexChars { Index(index + 3), {
-                                              { Char(), Char(), Char() }
-                                          }
-                             });
-                    }
+            }, [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                // emit last sentinel items.
+                if (index % 3 != 0) {
+                    emit(IndexChars {
+                             Index(index), {
+                                 { rb.size() >= 1 ? rb[0] : Char(),
+                                   rb.size() >= 2 ? rb[1] : Char(), Char() }
+                             }
+                         });
+                }
+                if (index + 1 == input_size && input_size % 3 == 1) {
+                    // emit a sentinel tuple for inputs n % 3 == 1 to separate
+                    // mod1 and mod2 strings in recursive subproblem. example
+                    // which needs this: aaaaaaaaaa.
+                    emit(IndexChars { Index(input_size), Chars::EndSentinel() });
                 }
             })
         // sort triples by contained letters
         .Sort([](const IndexChars& a, const IndexChars& b) {
                   return a.chars < b.chars;
-              });
+              }, common::RadixSort<IndexChars, 3>(K));
 
     if (debug_print)
         triple_sorted.Keep().Print("triple_sorted");
@@ -280,10 +350,10 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
     Index max_lexname = triple_prerank_sums.Keep().Max();
 
     // compute the size of the 2/3 subproblem.
-    const Index size_subp = (input_size / 3) * 2 + (input_size % 3 != 0);
+    const Index size_subp = Index((input_size / 3) * 2 + (input_size % 3 != 0));
 
     // size of the mod1 part of the recursive subproblem
-    const Index size_mod1 = input_size / 3 + (input_size % 3 != 0);
+    const Index size_mod1 = Index(input_size / 3 + (input_size % 3 != 0));
 
     if (debug_print) {
         sLOG1 << "max_lexname=" << max_lexname
@@ -327,7 +397,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         if (debug_print)
             string_mod12.Keep().Print("string_mod12");
 
-        auto suffix_array_rec = DC3<Index>(string_mod12, size_subp);
+        auto suffix_array_rec = DC3<Index>(string_mod12, size_subp, max_lexname);
 
         // reverse suffix array of recursion strings to find ranks for mod 1
         // and mod 2 positions.
@@ -335,13 +405,11 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         if (debug_print)
             suffix_array_rec.Keep().Print("suffix_array_rec");
 
-        assert(suffix_array_rec.Keep().Size() == size_subp);
-
         ranks_rec =
             suffix_array_rec
             .Zip(Generate(ctx, size_subp),
-                 [](const Index& sa, const Index& i) {
-                     return IndexRank { sa, i };
+                 [](const Index& sa, const size_t& i) {
+                     return IndexRank { sa, Index(i) };
                  })
             .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
                       // DONE(tb): changed sort order for better locality
@@ -363,8 +431,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         ranks_rec =
             triple_index_sorted
             .Zip(Generate(ctx, size_subp),
-                 [](const Index& sa, const Index& i) {
-                     return IndexRank { sa, i };
+                 [](const Index& sa, const size_t& i) {
+                     return IndexRank { sa, Index(i) };
                  })
             .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
                       if (a.index % 3 == b.index % 3) {
@@ -401,18 +469,14 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
                     emit(Chars {
                              { rb[0], rb[1], rb[2] }
                          });
-
-                if (index == input_size - 3) {
-                    // emit sentinel
-                    if ((index + 1) % 3 == 0)
-                        emit(Chars {
-                                 { rb[1], rb[2], Char() }
-                             });
-                    if ((index + 2) % 3 == 0)
-                        emit(Chars {
-                                 { rb[2], Char(), Char() }
-                             });
-                }
+            }, [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                // emit sentinels
+                if (index % 3 == 0)
+                    emit(Chars {
+                             { rb.size() >= 1 ? rb[0] : Char(),
+                               rb.size() >= 2 ? rb[1] : Char(),
+                               Char() }
+                         });
             });
 
     auto ranks_mod1 =
@@ -441,22 +505,22 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         ranks_mod2.Keep().Print("ranks_mod2");
     }
 
-    assert(triple_chars.Keep().Size() == size_mod1);
-    assert(ranks_mod1.Keep().Size() == size_mod1);
-    assert(ranks_mod2.Keep().Size() == size_mod1 - (input_size % 3 ? 1 : 0));
+    assert_equal(triple_chars.Keep().Size(), size_mod1);
+    assert_equal(ranks_mod1.Keep().Size(), size_mod1);
+    assert_equal(ranks_mod2.Keep().Size(), size_mod1 - (input_size % 3 ? 1 : 0));
 
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.
 
-    using StringFragmentMod0 = suffix_sorting::StringFragmentMod0<Index, Char>;
-    using StringFragmentMod1 = suffix_sorting::StringFragmentMod1<Index, Char>;
-    using StringFragmentMod2 = suffix_sorting::StringFragmentMod2<Index, Char>;
+    using StringFragmentMod0 = dc3_local::StringFragmentMod0<Index, Char>;
+    using StringFragmentMod1 = dc3_local::StringFragmentMod1<Index, Char>;
+    using StringFragmentMod2 = dc3_local::StringFragmentMod2<Index, Char>;
 
-    using CharsRanks12 = suffix_sorting::CharsRanks12<Index, Char>;
-    using IndexCR12Pair = suffix_sorting::IndexCR12Pair<Index, Char>;
+    using CharsRanks12 = dc3_local::CharsRanks12<Index, Char>;
+    using IndexCR12Pair = dc3_local::IndexCR12Pair<Index, Char>;
 
     auto zip_triple_pairs1 =
-        ZipPadding(
+        Zip(PadTag,
             [](const Chars& ch, const Index& mod1, const Index& mod2) {
                 return CharsRanks12 { ch, mod1, mod2 };
             },
@@ -471,7 +535,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         .template FlatWindow<IndexCR12Pair>(
             2, [size_mod1](size_t index, const RingBuffer<CharsRanks12>& rb, auto emit) {
                 emit(IndexCR12Pair { Index(3 * index), rb[0], rb[1] });
-                if (index == size_mod1 - 2) {
+                if (index + 2 == size_mod1) {
                     // emit last sentinel
                     emit(IndexCR12Pair { Index(3 * (index + 1)), rb[1],
                                          CharsRanks12 { Chars::EndSentinel(), 0, 0 }
@@ -529,20 +593,20 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
     auto sorted_fragments_mod0 =
         fragments_mod0
         .Sort([](const StringFragmentMod0& a, const StringFragmentMod0& b) {
-                  return a.t0 == b.t0 ? a.r1 < b.r1 : a.t0 < b.t0;
-              });
+                  return std::tie(a.t0, a.r1) < std::tie(b.t0, b.r1);
+              }, dc3_local::RadixSortFragment<StringFragmentMod0, 1>(K));
 
     auto sorted_fragments_mod1 =
         fragments_mod1
         .Sort([](const StringFragmentMod1& a, const StringFragmentMod1& b) {
                   return a.r0 < b.r0;
-              });
+              }, dc3_local::RadixSortFragment<StringFragmentMod1, 0>(K));
 
     auto sorted_fragments_mod2 =
         fragments_mod2
         .Sort([](const StringFragmentMod2& a, const StringFragmentMod2& b) {
                   return a.r0 < b.r0;
-              });
+              }, dc3_local::RadixSortFragment<StringFragmentMod2, 0>(K));
 
     if (debug_print) {
         sorted_fragments_mod0.Keep().Print("sorted_fragments_mod0");
@@ -550,7 +614,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         sorted_fragments_mod2.Keep().Print("sorted_fragments_mod2");
     }
 
-    using StringFragment = suffix_sorting::StringFragment<Index, Char>;
+    using StringFragment = dc3_local::StringFragment<Index, Char>;
 
     auto string_fragments_mod0 =
         sorted_fragments_mod0
@@ -567,69 +631,21 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         .Map([](const StringFragmentMod2& mod2)
              { return StringFragment(mod2); });
 
-    auto fragment_comparator =
-        [](const StringFragment& a, const StringFragment& b) {
-            unsigned ai = a.index % 3, bi = b.index % 3;
-
-            if (ai == 0 && bi == 0)
-                return a.mod0.t0 == b.mod0.t0 ?
-                       a.mod0.r1 < b.mod0.r1 :
-                       a.mod0.t0 < b.mod0.t0;
-
-            else if (ai == 0 && bi == 1)
-                return a.mod0.t0 == b.mod1.t0 ?
-                       a.mod0.r1 < b.mod1.r1 :
-                       a.mod0.t0 < b.mod1.t0;
-
-            else if (ai == 0 && bi == 2)
-                return a.mod0.t0 == b.mod2.t0 ? (
-                    a.mod0.t1 == b.mod2.t1 ?
-                    a.mod0.r2 < b.mod2.r2 :
-                    a.mod0.t1 < b.mod2.t1)
-                       : a.mod0.t0 < b.mod2.t0;
-
-            else if (ai == 1 && bi == 0)
-                return a.mod1.t0 == b.mod0.t0 ?
-                       a.mod1.r1 < b.mod0.r1 :
-                       a.mod1.t0 < b.mod0.t0;
-
-            else if (ai == 1 && bi == 1)
-                return a.mod1.r0 < b.mod1.r0;
-
-            else if (ai == 1 && bi == 2)
-                return a.mod1.r0 < b.mod2.r0;
-
-            else if (ai == 2 && bi == 0)
-                return a.mod2.t0 == b.mod0.t0 ? (
-                    a.mod2.t1 == b.mod0.t1 ?
-                    a.mod2.r2 < b.mod0.r2 :
-                    a.mod2.t1 < b.mod0.t1)
-                       : a.mod2.t0 < b.mod0.t0;
-
-            else if (ai == 2 && bi == 1)
-                return a.mod2.r0 < b.mod1.r0;
-
-            else if (ai == 2 && bi == 2)
-                return a.mod2.r0 < b.mod2.r0;
-
-            abort();
-        };
-
     // merge and map to only suffix array
 
     auto suffix_array =
-        Merge(fragment_comparator,
-              string_fragments_mod0,
+        Union(string_fragments_mod0,
               string_fragments_mod1,
               string_fragments_mod2)
+        .Sort(dc3_local::FragmentComparator<StringFragment>())
         .Map([](const StringFragment& a) { return a.index; })
         .Execute();
 
     // debug output
 
     if (debug_print) {
-        std::vector<Char> input_vec = input_dia.AllGather();
-        std::vector<Index> vec = suffix_array.AllGather();
+        std::vector<Char> input_vec = input_dia.Keep().AllGather();
+        std::vector<Index> vec = suffix_array.Keep().AllGather();
 
         if (ctx.my_rank() == 0) {
             for (const Index& index : vec)
@@ -643,184 +659,19 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size) {
         }
     }
 
-    // check result: requires enable_consume(false)
-    // die_unless(CheckSA(input_dia, suffix_array.Collapse()));
+    // check intermediate result, requires an input_dia.Keep() above!
+    // die_unless(CheckSA(input_dia, suffix_array.Keep()));
 
     return suffix_array.Collapse();
 }
 
-/*!
- * Class to encapsulate all
- */
-class StartDC3
-{
-public:
-    StartDC3(
-        Context& ctx,
-        const std::string& input_path, const std::string& output_path,
-        uint64_t sizelimit,
-        bool text_output_flag,
-        bool check_flag,
-        bool input_verbatim,
-        size_t sa_index_bytes)
-        : ctx_(ctx),
-          input_path_(input_path), output_path_(output_path),
-          sizelimit_(sizelimit),
-          text_output_flag_(text_output_flag),
-          check_flag_(check_flag),
-          input_verbatim_(input_verbatim),
-          sa_index_bytes_(sa_index_bytes) { }
+template DIA<uint32_t> DC3<uint32_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
-    void Run() {
-        ctx_.enable_consume();
-        if (input_verbatim_) {
-            // take path as verbatim text
-            std::vector<uint8_t> input_vec(input_path_.begin(), input_path_.end());
-            DIA<uint8_t> input_dia = EqualToDIA<uint8_t>(ctx_, input_vec);
-            SwitchDC3IndexType(input_dia, input_vec.size());
-        }
-        else if (input_path_ == "unary") {
-            if (sizelimit_ == std::numeric_limits<size_t>::max()) {
-                LOG1 << "You must provide -s <size> for generated inputs.";
-                return;
-            }
-
-            DIA<uint8_t> input_dia = Generate(
-                ctx_, [](size_t /* i */) { return uint8_t('a'); }, sizelimit_);
-            SwitchDC3IndexType(input_dia, sizelimit_);
-        }
-        else if (input_path_ == "random") {
-            if (sizelimit_ == std::numeric_limits<size_t>::max()) {
-                LOG1 << "You must provide -s <size> for generated inputs.";
-                return;
-            }
-
-            // share prng in Generate (just random numbers anyway)
-            std::default_random_engine prng(std::random_device { } ());
-
-            DIA<uint8_t> input_dia =
-                Generate(
-                    ctx_,
-                    [&prng](size_t /* i */) {
-                        return static_cast<uint8_t>(prng());
-                    },
-                    sizelimit_)
-                // the random input _must_ be cached, otherwise it will be
-                // regenerated ... and contain new numbers.
-                .Cache().KeepForever();
-            SwitchDC3IndexType(input_dia, sizelimit_);
-        }
-        else {
-            DIA<uint8_t> input_dia = ReadBinary<uint8_t>(ctx_, input_path_);
-            size_t input_size = input_dia.Size();
-            SwitchDC3IndexType(input_dia, input_size);
-        }
-    }
-
-    template <typename Index, typename InputDIA>
-    void StartDC3Input(const InputDIA& input_dia, uint64_t input_size) {
-
-        // run DC3
-        auto suffix_array = DC3<Index>(input_dia, input_size);
-
-        if (output_path_.size()) {
-            suffix_array.WriteBinary(output_path_);
-        }
-
-        if (check_flag_) {
-            LOG1 << "checking suffix array...";
-
-            if (!CheckSA(input_dia, suffix_array)) {
-                throw std::runtime_error("Suffix array is invalid!");
-            }
-            else {
-                LOG1 << "okay.";
-            }
-        }
-    }
-
-    template <typename InputDIA>
-    void SwitchDC3IndexType(const InputDIA& input_dia, uint64_t input_size) {
-        if (sa_index_bytes_ == 4)
-            return StartDC3Input<uint32_t>(input_dia, input_size);
-#ifndef NDEBUG
-        else if (sa_index_bytes_ == 5)
-            return StartDC3Input<common::uint40>(input_dia, input_size);
-        else if (sa_index_bytes_ == 6)
-            return StartDC3Input<common::uint48>(input_dia, input_size);
-        else if (sa_index_bytes_ == 8)
-            return StartDC3Input<uint64_t>(input_dia, input_size);
-#endif
-        else
-            die("Unsupported index byte size: " << sa_index_bytes_);
-    }
-
-protected:
-    Context& ctx_;
-
-    std::string input_path_;
-    std::string output_path_;
-
-    uint64_t sizelimit_;
-    bool text_output_flag_;
-    bool check_flag_;
-    bool input_verbatim_;
-    size_t sa_index_bytes_;
-};
+template DIA<uint64_t> DC3<uint64_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
 } // namespace suffix_sorting
 } // namespace examples
-
-int main(int argc, char* argv[]) {
-
-    using namespace thrill; // NOLINT
-
-    common::CmdlineParser cp;
-
-    cp.SetDescription("DC3 aka skew3 algorithm for suffix array construction.");
-    cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
-
-    std::string input_path, output_path;
-    uint64_t sizelimit = std::numeric_limits<uint64_t>::max();
-    bool text_output_flag = false;
-    bool check_flag = false;
-    bool input_verbatim = false;
-    size_t sa_index_bytes = 4;
-
-    cp.AddParamString("input", input_path,
-                      "Path to input file (or verbatim text).\n"
-                      "  The special inputs 'random' and 'unary' generate "
-                      "such text on-the-fly.");
-    cp.AddFlag('c', "check", check_flag,
-               "Check suffix array for correctness.");
-    cp.AddFlag('t', "text", text_output_flag,
-               "Print out suffix array in readable text.");
-    cp.AddString('o', "output", output_path,
-                 "Output suffix array to given path.");
-    cp.AddFlag('v', "verbatim", input_verbatim,
-               "Consider \"input\" as verbatim text to construct "
-               "suffix array on.");
-    cp.AddBytes('s', "size", sizelimit,
-                "Cut input text to given size, e.g. 2 GiB. (TODO: not working)");
-    cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
-               "Print debug info.");
-    cp.AddSizeT('b', "bytes", sa_index_bytes,
-                "suffix array bytes per index: "
-                "4 (32-bit), 5 (40-bit), 6 (48-bit), 8 (64-bit)");
-
-    // process command line
-    if (!cp.Process(argc, argv))
-        return -1;
-
-    return Run(
-        [&](Context& ctx) {
-            return examples::suffix_sorting::StartDC3(
-                ctx, input_path, output_path,
-                sizelimit,
-                text_output_flag,
-                check_flag,
-                input_verbatim, sa_index_bytes).Run();
-        });
-}
 
 /******************************************************************************/

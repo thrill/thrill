@@ -25,7 +25,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA>
+template <typename ValueType>
 class SampleNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -34,6 +34,7 @@ class SampleNode final : public DOpNode<ValueType>
     using Super::context_;
 
 public:
+    template <typename ParentDIA>
     SampleNode(const ParentDIA& parent, size_t sample_size)
         : Super(parent.ctx(), "Sample", { parent.id() }, { parent.node() }),
           sample_size_(sample_size)
@@ -65,12 +66,14 @@ public:
     void Execute() final {
 
         size_t local_size = samples_.size();
-        size_t global_size = context_.net.AllReduce(local_size);
+
+        size_t local_rank = context_.net.ExPrefixSum(local_size);
+
+        size_t global_size = context_.net.Broadcast(
+            local_rank + local_size, context_.net.num_workers() - 1);
 
         // not enough items to discard some, done.
         if (global_size < sample_size_) return;
-
-        size_t local_rank = context_.net.ExPrefixSum(local_size);
 
         // synchronize global random generator
         size_t seed = context_.my_rank() == 0 ? rng_() : 0;
@@ -131,8 +134,7 @@ template <typename ValueType, typename Stack>
 auto DIA<ValueType, Stack>::Sample(size_t sample_size) const {
     assert(IsValid());
 
-    using SampleNode
-              = api::SampleNode<ValueType, DIA>;
+    using SampleNode = api::SampleNode<ValueType>;
 
     auto node = common::MakeCounting<SampleNode>(
         *this, sample_size);

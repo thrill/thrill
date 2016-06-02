@@ -42,8 +42,7 @@ public:
     }
 };
 
-struct MyStruct
-{
+struct MyStruct {
     size_t key, value;
 
     MyStruct() = default;
@@ -52,8 +51,7 @@ struct MyStruct
     bool operator < (const MyStruct& b) const { return key < b.key; }
 };
 
-struct MyReduceConfig : public core::DefaultReduceConfig
-{
+struct MyReduceConfig : public core::DefaultReduceConfig {
     //! only for growing ProbingHashTable: items initially in a partition.
     static constexpr size_t initial_items_per_partition_ = 160000;
 };

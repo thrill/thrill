@@ -33,7 +33,7 @@ using common::StatsTimerStart;
 using common::StatsTimerStopped;
 
 using pair_type = std::tuple<std::string, size_t>;
-using triple_type = std::tuple<std::string, size_t, std::string>;
+using triple_type = std::tuple<size_t, size_t, size_t>;
 
 //! calculate MiB/s given byte size and microsecond time.
 double CalcMiBs(size_t bytes, const std::chrono::microseconds::rep& microsec) {
@@ -56,7 +56,7 @@ void PrintMatrix(const AggMatrix& m) {
         std::ostringstream os;
         for (size_t j = 0; j < m.columns(); ++j) {
             os << common::str_sprintf(
-                "%8.1f/%8.3f", m(i, j).Avg(), m(i, j).StdDev());
+                "%8.1f/%8.3f", m(i, j).Avg(), m(i, j).StDev());
         }
         LOG1 << os.str();
     }
@@ -403,8 +403,10 @@ public:
         StatsTimerStart read_timer;
         {
             auto reader = stream->GetReader(consume_);
-            while (reader.HasNext())
-                reader.template Next<Type>();
+            while (reader.HasNext()) {
+                Type t = reader.template Next<Type>();
+                die_unless(data.Next() == t);
+            }
         }
         read_timer.Stop();
 
@@ -455,7 +457,7 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
 
         for (size_t inner_repeat = 0;
              inner_repeat < inner_repeats_; inner_repeat++) {
-            // perform 1-factor ping pongs (without barriers)
+            // perform 1-factor bandwidth stream
             for (size_t round = 0;
                  round < common::CalcOneFactorSize(ctx.num_workers()); ++round) {
 
@@ -504,7 +506,12 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
              << " total_time=" << timer;
     }
 
+    sLOG1 << "Worker" << ctx.my_rank() << "finished.";
+
     ctx.net.Barrier();
+
+    if (ctx.my_rank() == 0)
+        LOG1 << "All workers finished.";
 
     // reduce (add) matrix to root.
     bandwidth_write_ = ctx.net.AllReduce(bandwidth_write_);

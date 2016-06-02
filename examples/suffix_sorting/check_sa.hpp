@@ -1,14 +1,16 @@
 /*******************************************************************************
- * examples/suffix_sorting/sa_checker.cpp
+ * examples/suffix_sorting/check_sa.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/suffix_sorting/sa_checker.hpp>
+#pragma once
+#ifndef THRILL_EXAMPLES_SUFFIX_SORTING_CHECK_SA_HEADER
+#define THRILL_EXAMPLES_SUFFIX_SORTING_CHECK_SA_HEADER
 
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
@@ -16,60 +18,43 @@
 #include <thrill/api/sort.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
-#include <thrill/common/uint_types.hpp>
 
-#include <ostream>
 #include <utility>
 
 namespace examples {
 namespace suffix_sorting {
 
-using namespace thrill; // NOLINT
-using thrill::common::RingBuffer;
-
-//! A pair (rank, index)
-template <typename Index>
-struct IndexRank {
-    Index index;
-    Index rank;
-
-    friend std::ostream& operator << (
-        std::ostream& os, const IndexRank& ri) {
-        return os << '(' << ri.index << '|' << ri.rank << ')';
-    }
-} THRILL_ATTRIBUTE_PACKED;
-
-template <typename Index, typename Char>
-struct Index3 {
-    Index index;
-    Index next;
-    Char  ch;
-
-    friend std::ostream& operator << (
-        std::ostream& os, const Index3& i) {
-        return os << "(index=" << i.index
-                  << " next=" << i.next << " ch=" << i.ch << ")";
-    }
-} THRILL_ATTRIBUTE_PACKED;
-
 template <typename InputDIA, typename SuffixArrayDIA>
 bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
+
+    using namespace thrill; // NOLINT
+    using thrill::common::RingBuffer;
 
     Context& ctx = input.ctx();
 
     using Char = typename InputDIA::ValueType;
     using Index = typename SuffixArrayDIA::ValueType;
-    using IndexRank = suffix_sorting::IndexRank<Index>;
-    using Index3 = suffix_sorting::Index3<Index, Char>;
 
-    uint64_t input_size = input.Size();
+    //! A pair (rank, index)
+    struct IndexRank {
+        Index index;
+        Index rank;
+    } THRILL_ATTRIBUTE_PACKED;
+
+    struct Index3 {
+        Index index;
+        Index next;
+        Char  ch;
+    } THRILL_ATTRIBUTE_PACKED;
+
+    uint64_t input_size = input.Keep().Size();
 
     auto isa_pair =
         suffix_array
         // build tuples with index: (SA[i]) -> (i, SA[i]),
         .Zip(Generate(ctx, input_size),
-             [](const Index& sa, const Index& i) {
-                 return IndexRank { sa, i };
+             [](const Index& sa, const size_t& i) {
+                 return IndexRank { sa, Index(i) };
              })
         // take (i, SA[i]) and sort to (ISA[i], i)
         .Sort([](const IndexRank& a, const IndexRank& b) {
@@ -81,8 +66,8 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     Index perm_check =
         isa_pair.Keep()
         .Zip(Generate(ctx, input_size),
-             [](const IndexRank& ir, const Index& index) -> Index {
-                 return ir.index == index ? 0 : 1;
+             [](const IndexRank& ir, const size_t& index) -> Index {
+                 return ir.index == Index(index) ? 0 : 1;
              })
         // sum over all boolean values.
         .Max();
@@ -115,8 +100,6 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
         .Sort([](const Index3& a, const Index3& b) {
                   return a.index < b.index;
               });
-
-    // order_check.Print("order_check");
 
     char order_check_sum =
         order_check
@@ -156,19 +139,9 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     return (order_check_sum == 0);
 }
 
-// instantiations
-template bool CheckSA(
-    const DIA<uint8_t>& input, const DIA<uint32_t>& suffix_array);
-template bool CheckSA(
-    const DIA<uint8_t>& input, const DIA<common::uint40>& suffix_array);
-template bool CheckSA(
-    const DIA<uint8_t>& input, const DIA<common::uint48>& suffix_array);
-template bool CheckSA(
-    const DIA<uint8_t>& input, const DIA<uint64_t>& suffix_array);
-template bool CheckSA(
-    const DIA<uint64_t>& input, const DIA<uint64_t>& suffix_array);
-
 } // namespace suffix_sorting
 } // namespace examples
+
+#endif // !THRILL_EXAMPLES_SUFFIX_SORTING_CHECK_SA_HEADER
 
 /******************************************************************************/

@@ -83,7 +83,7 @@ public:
     }
 
     //! return the standard deviation of all values aggregated
-    double StdDev() const { return StandardDeviation(); }
+    double StDev() const { return StandardDeviation(); }
 
     //! operator +
     Aggregate operator + (const Aggregate& a) const noexcept {

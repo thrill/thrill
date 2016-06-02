@@ -22,6 +22,7 @@ namespace data {
 MixBlockQueue::MixBlockQueue(BlockPool& block_pool, size_t num_workers,
                              size_t local_worker_id, size_t dia_id)
     : block_pool_(block_pool),
+      local_worker_id_(local_worker_id),
       num_workers_(num_workers),
       write_closed_(num_workers) {
     queues_.reserve(num_workers);
@@ -49,7 +50,10 @@ void MixBlockQueue::AppendBlock(size_t src, Block&& block) {
 }
 
 void MixBlockQueue::Close(size_t src) {
-    LOG << "MixBlockQueue::Close" << " src=" << src;
+    LOG << "MixBlockQueue::Close()"
+        << " src=" << src
+        << " local_worker_id_=" << local_worker_id_
+        << " --write_open_count_=" << write_open_count_ - 1;
     assert(!write_closed_[src]);
     write_closed_[src] = true;
     --write_open_count_;
@@ -65,7 +69,11 @@ MixBlockQueue::SrcBlockPair MixBlockQueue::Pop() {
         };
     SrcBlockPair b;
     mix_queue_.pop(b);
-    if (!b.block.IsValid()) --read_open_;
+    if (!b.block.IsValid()) {
+        LOG << "MixBlockQueue()"
+            << " read_open_ " << read_open_ << " -> " << read_open_ - 1;
+        --read_open_;
+    }
     return b;
 }
 
@@ -73,9 +81,9 @@ MixBlockQueue::SrcBlockPair MixBlockQueue::Pop() {
 // MixBlockQueueSink
 
 MixBlockQueueSink::MixBlockQueueSink(
-    MixStream& mix_stream, size_t from_global, size_t from_local)
-    : BlockSink(mix_stream.queue_.block_pool(), from_local),
-      mix_stream_(mix_stream), mix_queue_(mix_stream.queue_),
+    MixStream& dst_mix_stream, size_t from_global, size_t from_local)
+    : BlockSink(dst_mix_stream.queue_.block_pool(), from_local),
+      dst_mix_stream_(dst_mix_stream), dst_mix_queue_(dst_mix_stream.queue_),
       from_global_(from_global)
 { }
 
@@ -85,7 +93,7 @@ void MixBlockQueueSink::AppendBlock(const Block& b) {
     item_counter_ += b.num_items();
     byte_counter_ += b.size();
     ++block_counter_;
-    mix_queue_.AppendBlock(from_global_, b);
+    dst_mix_queue_.AppendBlock(from_global_, b);
 }
 
 void MixBlockQueueSink::AppendBlock(Block&& b) {
@@ -94,7 +102,7 @@ void MixBlockQueueSink::AppendBlock(Block&& b) {
     item_counter_ += b.num_items();
     byte_counter_ += b.size();
     ++block_counter_;
-    mix_queue_.AppendBlock(from_global_, std::move(b));
+    dst_mix_queue_.AppendBlock(from_global_, std::move(b));
 }
 
 void MixBlockQueueSink::Close() {
@@ -102,17 +110,17 @@ void MixBlockQueueSink::Close() {
     LOG << "MixBlockQueueSink::Close()"
         << " from_global_=" << from_global_;
     ++block_counter_;
-    mix_queue_.Close(from_global_);
+    dst_mix_queue_.Close(from_global_);
     write_closed_ = true;
 
     logger()
         << "class" << "StreamSink"
         << "subclass" << "MixBlockQueueSink"
         << "event" << "close"
-        << "id" << mix_stream_.id_
-        << "peer_host" << mix_stream_.my_host_rank()
+        << "id" << dst_mix_stream_.id_
+        << "peer_host" << dst_mix_stream_.my_host_rank()
         << "src_worker" << from_global_
-        << "tgt_worker" << mix_stream_.my_worker_rank()
+        << "tgt_worker" << dst_mix_stream_.my_worker_rank()
         << "loopback" << true
         << "items" << item_counter_
         << "bytes" << byte_counter_
@@ -124,9 +132,9 @@ void MixBlockQueueSink::Close() {
         src_mix_stream_->tx_int_blocks_ += block_counter_;
     }
 
-    mix_stream_.rx_int_items_ += item_counter_;
-    mix_stream_.rx_int_bytes_ += byte_counter_;
-    mix_stream_.rx_int_blocks_ += block_counter_;
+    dst_mix_stream_.rx_int_items_ += item_counter_;
+    dst_mix_stream_.rx_int_bytes_ += byte_counter_;
+    dst_mix_stream_.rx_int_blocks_ += block_counter_;
 }
 
 void MixBlockQueueSink::set_src_mix_stream(MixStream* src_mix_stream) {
@@ -164,15 +172,6 @@ MixBlockQueueReader::MixBlockQueueReader(
 
 MixBlockQueueReader::~MixBlockQueueReader() {
     // TODO(tb)
-}
-
-bool MixBlockQueueReader::HasNext() {
-    if (reread_) return cat_reader_.HasNext();
-
-    if (available_) return true;
-    if (open_ == 0) return false;
-
-    return PullBlock();
 }
 
 bool MixBlockQueueReader::PullBlock() {

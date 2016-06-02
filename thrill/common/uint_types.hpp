@@ -42,6 +42,9 @@ namespace common {
  * the lower/higher part. Not all arithmetic operations are supported, patches
  * welcome if you really need the operations.
  */
+#if defined(_MSC_VER)
+#pragma pack(push, 1)
+#endif
 template <typename High_>
 class UIntPair
 {
@@ -109,13 +112,21 @@ public:
             low_ = a, high_ = (High)high_max();
     }
 
-    //! construct from an uint64 (unsigned long long)
-    UIntPair(const uint64_t& a) // NOLINT
+    //! construct from an 64-bit unsigned integer
+    UIntPair(const unsigned long long& a) // NOLINT
         : low_((Low)(a & low_max())),
           high_((High)((a >> low_bits) & high_max())) {
         // check for overflow
         assert((a >> (low_bits + high_bits)) == 0);
     }
+
+    //! construct from an 64-bit signed integer
+    UIntPair(const unsigned long& a) // NOLINT
+        : UIntPair(static_cast<unsigned long long>(a)) { }
+
+    //! construct from an 64-bit signed integer
+    UIntPair(const int64_t& a)       // NOLINT
+        : UIntPair(static_cast<unsigned long long>(a)) { }
 
     //! copy assignment operator
     UIntPair& operator = (const UIntPair&) = default;
@@ -223,6 +234,9 @@ public:
                         std::numeric_limits<High>::max());
     }
 } THRILL_ATTRIBUTE_PACKED;
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
 
 //! Construct a 40-bit unsigned integer stored in five bytes.
 using uint40 = UIntPair<uint8_t>;

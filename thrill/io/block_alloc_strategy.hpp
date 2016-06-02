@@ -32,8 +32,7 @@ namespace io {
 
 //! Example disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct BasicAllocationStrategy
-{
+struct BasicAllocationStrategy {
     BasicAllocationStrategy(int disks_begin, int disks_end);
     BasicAllocationStrategy();
     int operator () (int i) const;
@@ -42,8 +41,7 @@ struct BasicAllocationStrategy
 
 //! Striping disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct Striping
-{
+struct Striping {
     size_t            begin_, diff_;
 
 public:
@@ -65,8 +63,7 @@ public:
 
 //! Fully randomized disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct FullyRandom : public Striping
-{
+struct FullyRandom : public Striping {
 private:
     mutable std::default_random_engine rng_ { std::random_device { } () };
 
@@ -88,8 +85,7 @@ public:
 
 //! Simple randomized disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct SimpleRandom : public Striping
-{
+struct SimpleRandom : public Striping {
 private:
     size_t offset_;
 
@@ -118,8 +114,7 @@ public:
 
 //! Randomized cycling disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct RandomCyclic : public Striping
-{
+struct RandomCyclic : public Striping {
 private:
     std::vector<size_t> perm_;
 
@@ -148,8 +143,7 @@ public:
     }
 };
 
-struct RCDisk : public RandomCyclic
-{
+struct RCDisk : public RandomCyclic {
     RCDisk(size_t b, size_t e) : RandomCyclic(b, e)
     { }
 
@@ -162,8 +156,7 @@ struct RCDisk : public RandomCyclic
     }
 };
 
-struct RCFlash : public RandomCyclic
-{
+struct RCFlash : public RandomCyclic {
     RCFlash(size_t b, size_t e) : RandomCyclic(b, e)
     { }
 
@@ -178,8 +171,7 @@ struct RCFlash : public RandomCyclic
 
 //! 'Single disk' disk allocation scheme functor.
 //! \remarks model of \b allocation_strategy concept
-struct SingleDisk
-{
+struct SingleDisk {
     size_t            disk_;
     explicit SingleDisk(size_t d, size_t = 0) : disk_(d)
     { }
@@ -200,8 +192,7 @@ struct SingleDisk
 //!
 //! Gives offset to disk number sequence defined in constructor
 template <typename BaseAllocator>
-struct OffsetAllocator
-{
+struct OffsetAllocator {
     BaseAllocator base_;
     size_t        offset_;
 

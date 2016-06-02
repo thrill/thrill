@@ -21,8 +21,7 @@ using namespace thrill; // NOLINT
 static unsigned int count_deletes = 0;
 
 // derive from counted_object to include reference counter
-struct MyInteger : public common::ReferenceCount
-{
+struct MyInteger : public common::ReferenceCount {
     int i;
 
     explicit MyInteger(int _i) : i(_i) { }

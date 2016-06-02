@@ -82,7 +82,8 @@ int BenchmarkDisksBlocksizeAlloc(
         batch_size, raw_block_size);
     batch_size = num_blocks_per_batch * raw_block_size;
 
-    TypedBlock* buffer = new TypedBlock[num_blocks_per_batch];
+    TypedBlock* buffer = reinterpret_cast<TypedBlock*>(
+        mem::aligned_alloc(sizeof(TypedBlock) * num_blocks_per_batch));
     std::vector<io::RequestPtr> reqs(num_blocks_per_batch);
     std::vector<BID> bids;
     double totaltimeread = 0, totaltimewrite = 0;
@@ -195,7 +196,7 @@ int BenchmarkDisksBlocksizeAlloc(
     std::cout << std::setw(5) << std::setprecision(1) << (static_cast<double>(totalsizewrite) / MiB / totaltimewrite) << " MiB/s write, ";
     std::cout << std::setw(5) << std::setprecision(1) << (static_cast<double>(totalsizeread) / MiB / totaltimeread) << " MiB/s read" << std::endl;
 
-    delete[] buffer;
+    mem::aligned_dealloc(buffer, sizeof(TypedBlock) * num_blocks_per_batch);
 
     return 0;
 }

@@ -27,6 +27,7 @@
 #include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/manager.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <functional>
 #include <string>
@@ -71,6 +72,9 @@ public:
 
     //! remaining free-floating RAM used for user and Thrill data structures.
     size_t ram_floating_;
+
+    //! StageBuilder verbosity flag
+    bool verbose_ = true;
 };
 
 /*!
@@ -93,7 +97,7 @@ public:
 #endif
 
     //! create host log
-    static std::string MakeHostLogPath(size_t worker_rank);
+    std::string MakeHostLogPath(size_t worker_rank);
 
     //! Returns local_host_id_
     size_t local_host_id() const { return local_host_id_; }
@@ -105,6 +109,9 @@ public:
     size_t worker_mem_limit() const {
         return mem_config_.ram_workers_ / workers_per_host_;
     }
+
+    //! host-global memory config
+    MemoryConfig& mem_config() { return mem_config_; }
 
     //! host-global memory manager
     mem::Manager& mem_manager() { return mem_manager_; }
@@ -201,32 +208,12 @@ private:
 class Context
 {
 public:
-#if THIS_IS_UNUSED_UNKNOWN_WHY
-    Context(mem::Manager& mem_manager,
-            net::Manager& net_manager,
-            net::FlowControlChannelManager& flow_manager,
-            data::BlockPool& block_pool,
-            data::Multiplexer& multiplexer,
-            size_t local_host_id, size_t local_worker_id,
-            size_t workers_per_host, size_t mem_limit)
-        : local_host_id_(local_host_id),
-          local_worker_id_(local_worker_id),
-          workers_per_host_(workers_per_host),
-          mem_limit_(mem_limit),
-          mem_manager_(mem_manager),
-          net_manager_(net_manager),
-          flow_manager_(flow_manager),
-          block_pool_(block_pool),
-          multiplexer_(multiplexer),
-          base_logger_(MakeWorkerLogPath(my_rank())) {
-        assert(local_worker_id < workers_per_host);
-    }
-#endif
     Context(HostContext& host_context, size_t local_worker_id)
         : local_host_id_(host_context.local_host_id()),
           local_worker_id_(local_worker_id),
           workers_per_host_(host_context.workers_per_host()),
           mem_limit_(host_context.worker_mem_limit()),
+          mem_config_(host_context.mem_config()),
           mem_manager_(host_context.mem_manager()),
           net_manager_(host_context.net_manager()),
           flow_manager_(host_context.flow_manager()),
@@ -235,9 +222,6 @@ public:
           base_logger_(&host_context.base_logger_) {
         assert(local_worker_id < workers_per_host());
     }
-
-    //! create worker log
-    static std::string MakeWorkerLogPath(size_t worker_rank);
 
     //! method used to launch a job's main procedure. it wraps it in log output.
     void Launch(const std::function<void(Context&)>& job_startpoint);
@@ -347,6 +331,9 @@ public:
 
     //! \}
 
+    //! host-global memory config
+    const MemoryConfig& mem_config() const { return mem_config_; }
+
     //! returns the host-global memory manager
     mem::Manager& mem_manager() { return mem_manager_; }
 
@@ -356,6 +343,34 @@ public:
     common::Range CalculateLocalRange(size_t global_size) const {
         return common::CalculateLocalRange(
             global_size, num_workers(), my_rank());
+    }
+
+    //! Perform collectives and print min, max, mean, stdev, and all local
+    //! values.
+    template <typename Type>
+    void PrintCollectiveMeanStdev(const char* text, const Type& local) {
+        std::vector<Type> svec = { local };
+        svec = net.Reduce(svec, 0, common::VectorConcat<Type>());
+        if (my_rank() == 0) {
+            double sum = std::accumulate(svec.begin(), svec.end(), 0.0);
+            double mean = sum / svec.size();
+
+            double sq_sum = std::inner_product(
+                svec.begin(), svec.end(), svec.begin(), 0.0);
+            double stdev = std::sqrt(sq_sum / svec.size() - mean * mean);
+
+            double min = *std::min_element(svec.begin(), svec.end());
+            double max = *std::max_element(svec.begin(), svec.end());
+
+            LOG1 << text << " mean " << mean
+                 << " max " << max << " stdev " << stdev
+                 << " = " << (stdev / mean * 100.0) << "%"
+                 << " max-min " << max - min
+                 << " = " << ((max - min) / min * 100.0) << "%"
+                 << " max-mean " << max - mean
+                 << " = " << ((max - mean) / mean * 100.0) << "%"
+                 << " svec " << common::VecToStr(svec);
+        }
     }
 
     //! return value of consume flag.
@@ -386,6 +401,9 @@ private:
 
     //! memory limit of this worker Context for local data structures
     size_t mem_limit_;
+
+    //! memory configuration in HostContext
+    const MemoryConfig& mem_config_;
 
     //! host-global memory manager
     mem::Manager& mem_manager_;

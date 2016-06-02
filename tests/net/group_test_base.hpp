@@ -187,7 +187,7 @@ static void TestReduceString(net::Group* net) {
 static void TestAllReduceString(net::Group* net) {
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
     std::string local_value = result.substr(net->my_host_rank(), 1);
-    net::collective::AllReduce(*net, local_value);
+    net::collective::AllReduceAtRoot(*net, local_value);
     ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
 }
 

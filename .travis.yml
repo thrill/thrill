@@ -7,7 +7,7 @@ sudo: false
 matrix:
   include:
     # gcc 4.9 with AddressSanitizer, Debug & Release
-    - env: CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
+    - env: CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address"
       os: linux
       addons: &gcc49
         apt:
@@ -19,7 +19,7 @@ matrix:
             - g++-4.9
 
     # gcc 5.x without AddressSanitizer, Debug & Release, with SWIG and OpenMPI
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS="" USE_SWIG="1" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS="" USE_SWIG="1"
       os: linux
       addons: &gcc5
         apt:
@@ -32,7 +32,7 @@ matrix:
             - openmpi-bin
             - libopenmpi-dev
 
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS="" USE_SWIG="1" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS="" USE_SWIG="1"
       os: linux
       addons: *gcc5
 
@@ -102,7 +102,11 @@ before_script:
       $CMAKE_ARGS ..
 
 script:
+  # build huge objects with only one thread
+  - make -C examples/suffix_sorting dc3.o
+  - make -C examples/suffix_sorting dc7.o
+
   - ctest
       -DCTEST_SITE:STRING="travis-$TRAVIS_REPO_SLUG"
       -DCTEST_BUILD_NAME:STRING="$TRAVIS_OS_NAME-$CMAKE_CC-$BUILD_TYPE"
-      -S ../misc/script.ctest -VV
+      -S ../misc/cmake/script.ctest -VV

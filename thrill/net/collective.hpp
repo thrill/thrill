@@ -289,49 +289,82 @@ void Reduce(Group& net, T& value, size_t root = 0,
 /******************************************************************************/
 // AllReduce Algorithms
 
-//! \brief   Perform an All-Reduce on the workers.
-//! \details This is done by aggregating all values according to a summation
-//!          operator and sending them backto all workers.
-//!
-//! \param   net The current group onto which to apply the operation
-//! \param   value The value to be added to the aggregation
-//! \param   sum_op A custom summation operator
+/*!
+ * Perform an All-Reduce on the workers. This is done by aggregating all values
+ * according to a summation operator and sending them backto all workers.
+ *
+ * \param   net The current group onto which to apply the operation
+ * \param   value The value to be added to the aggregation
+ * \param   sum_op A custom summation operator
+ */
 template <typename T, typename BinarySumOp = std::plus<T> >
 static inline
-void AllReduce(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
+void AllReduceSimple(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     Reduce(net, value, 0, sum_op);
     Broadcast(net, value, 0);
 }
 
-//! \brief   Perform an All-Reduce for powers of two. This is done with the
-//!          Hypercube algorithm from the ParAlg script.
-//!
-//! \param   net The current group onto which to apply the operation
-//! \param   value The value to be added to the aggregation
-//! \param   sum_op A custom summation operator
+/*!
+ * Broadcasts the value of the peer with index 0 to all the others. This is a
+ * trivial broadcast from peer 0.
+ *
+ * \param net The current peer onto which to apply the operation
+ *
+ * \param value The value to be broadcast / receive into.
+ *
+ * \param origin The PE to broadcast value from.
+ */
+template <typename T, typename BinarySumOp = std::plus<T> >
+static inline
+void AllReduceAtRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
+
+    if (net.my_host_rank() == 0) {
+        // receive value from all peers
+        for (size_t p = 1; p < net.num_hosts(); ++p) {
+            T recv_value;
+            net.ReceiveFrom(p, &recv_value);
+            value = sum_op(value, recv_value);
+        }
+        // send reduced value back to all peers
+        for (size_t p = 1; p < net.num_hosts(); ++p) {
+            net.SendTo(p, value);
+        }
+    }
+    else {
+        // send to root host
+        net.SendTo(0, value);
+        // receive value back from root
+        net.ReceiveFrom(0, &value);
+    }
+}
+
+/*!
+ * Perform an All-Reduce for powers of two. This is done with the Hypercube
+ * algorithm from the ParAlg script.
+ *
+ * \param   net The current group onto which to apply the operation
+ * \param   value The value to be added to the aggregation
+ * \param   sum_op A custom summation operator
+ */
 template <typename T, typename BinarySumOp = std::plus<T> >
 static inline
 void AllReduceHypercube(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
-    static constexpr bool debug = false;
+    // static constexpr bool debug = false;
 
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
         // communication peer for this round (hypercube dimension)
         size_t peer = net.my_host_rank() ^ d;
 
-        // Send value to worker with id id ^ d
+        // SendReceive value to worker with id id ^ d
         if (peer < net.num_hosts()) {
-            net.connection(peer).Send(value);
-            sLOG << "ALL_REDUCE_HYPERCUBE: Host" << net.my_host_rank()
-                 << ": Sending" << value << "to worker" << peer;
-        }
+            // sLOG << "ALL_REDUCE_HYPERCUBE: Host" << net.my_host_rank()
+            //      << ": Sending" << value << "to worker" << peer;
 
-        // Receive value from worker with id id ^ d
-        T recv_data;
-        if (peer < net.num_hosts()) {
-            net.connection(peer).Receive(&recv_data);
+            T recv_data;
+            net.connection(peer).SendReceive(value, &recv_data);
 
             // The order of addition is important. The total sum of the smaller
             // hypercube always comes first.
@@ -340,13 +373,30 @@ void AllReduceHypercube(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()
             else
                 value = sum_op(value, recv_data);
 
-            sLOG << "ALL_REDUCE_HYPERCUBE: Host " << net.my_host_rank()
-                 << ": Received " << recv_data
-                 << " from worker " << peer << " value = " << value;
+            // sLOG << "ALL_REDUCE_HYPERCUBE: Host " << net.my_host_rank()
+            //      << ": Received " << recv_data
+            //      << " from worker " << peer << " value = " << value;
         }
     }
 
-    sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value;
+    // sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value;
+}
+
+/*!
+ * Perform an All-Reduce on the workers.  This is done by aggregating all values
+ * according to a summation operator and sending them backto all workers.
+ *
+ * \param   net The current group onto which to apply the operation
+ * \param   value The value to be added to the aggregation
+ * \param   sum_op A custom summation operator
+ */
+template <typename T, typename BinarySumOp = std::plus<T> >
+static inline
+void AllReduce(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
+    if (common::IsPowerOfTwo(net.num_hosts()))
+        AllReduceHypercube(net, value, sum_op);
+    else
+        AllReduceAtRoot(net, value, sum_op);
 }
 
 //! \}

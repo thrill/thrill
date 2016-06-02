@@ -15,6 +15,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dia_node.hpp>
 
+#include <algorithm>
 #include <initializer_list>
 #include <vector>
 
@@ -46,7 +47,7 @@ namespace api {
  *
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA0, typename ... ParentDIAs>
+template <typename ValueType>
 class UnionNode final : public DIANode<ValueType>
 {
     static constexpr bool debug = false;
@@ -82,6 +83,7 @@ public:
 
     //! Constructor for variant with variadic parent parameter pack, which each
     //! parent may have a different FunctionStack.
+    template <typename ParentDIA0, typename ... ParentDIAs>
     explicit UnionNode(const ParentDIA0& parent0,
                        const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Union",
@@ -95,12 +97,13 @@ public:
 
     //! Constructor for variant with a std::vector of parents all with the same
     //! (usually empty) FunctionStack.
-    explicit UnionNode(const std::vector<ParentDIA0>& parents)
+    template <typename ParentDIA>
+    explicit UnionNode(const std::vector<ParentDIA>& parents)
         : Super(parents.front().ctx(), "Union",
                 common::MapVector(
-                    parents, [](const ParentDIA0& d) { return d.id(); }),
+                    parents, [](const ParentDIA& d) { return d.id(); }),
                 common::MapVector(
-                    parents, [](const ParentDIA0& d) {
+                    parents, [](const ParentDIA& d) {
                         return DIABasePtr(d.node().get());
                     })),
           num_inputs_(parents.size())
@@ -117,6 +120,12 @@ public:
             parents[i].node()->AddChild(this, lop_chain, i);
         }
     }
+
+    //! Constructor for variant with a std::initializer_list of parents all with
+    //! the same (usually empty) FunctionStack.
+    template <typename ParentDIA>
+    explicit UnionNode(const std::initializer_list<ParentDIA>& parents)
+        : UnionNode(std::vector<ParentDIA>(parents)) { }
 
     //! Register Parent Hooks, operator() is instantiated and called for each
     //! Union parent
@@ -255,10 +264,26 @@ public:
 
     void PushData(bool /* consume */) final { abort(); }
 
+    size_t consume_counter() const final {
+        // calculate consumption of parents
+        size_t c = Super::kNeverConsume;
+        for (auto& p : Super::parents_) {
+            c = std::min(c, p->consume_counter());
+        }
+        return c;
+    }
+
     void IncConsumeCounter(size_t consume) final {
         // propagate consumption up to parents.
         for (auto& p : Super::parents_) {
             p->IncConsumeCounter(consume);
+        }
+    }
+
+    void DecConsumeCounter(size_t consume) final {
+        // propagate consumption up to parents.
+        for (auto& p : Super::parents_) {
+            p->DecConsumeCounter(consume);
         }
     }
 
@@ -301,7 +326,7 @@ auto Union(const FirstDIA &first_dia, const DIAs &... dias) {
 
     using ValueType = typename FirstDIA::ValueType;
 
-    using UnionNode = api::UnionNode<ValueType, FirstDIA, DIAs ...>;
+    using UnionNode = api::UnionNode<ValueType>;
 
     return DIA<ValueType>(common::MakeCounting<UnionNode>(first_dia, dias ...));
 }
@@ -324,7 +349,7 @@ auto Union(const std::initializer_list<DIA<ValueType> >&dias) {
     for (const DIA<ValueType>& d : dias)
         d.AssertValid();
 
-    using UnionNode = api::UnionNode<ValueType, DIA<ValueType> >;
+    using UnionNode = api::UnionNode<ValueType>;
 
     return DIA<ValueType>(common::MakeCounting<UnionNode>(dias));
 }
@@ -347,7 +372,7 @@ auto Union(const std::vector<DIA<ValueType> >&dias) {
     for (const DIA<ValueType>& d : dias)
         d.AssertValid();
 
-    using UnionNode = api::UnionNode<ValueType, DIA<ValueType> >;
+    using UnionNode = api::UnionNode<ValueType>;
 
     return DIA<ValueType>(common::MakeCounting<UnionNode>(dias));
 }

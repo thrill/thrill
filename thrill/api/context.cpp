@@ -33,6 +33,10 @@
 #include <thrill/net/mpi/group.hpp>
 #endif
 
+#if THRILL_HAVE_NET_IB
+#include <thrill/net/ib/group.hpp>
+#endif
+
 #if __linux__
 
 // linux-specific process control
@@ -128,7 +132,8 @@ RunLoopbackThreads(
     for (size_t host = 0; host < num_hosts; ++host) {
         mem::by_string log_prefix = "host " + mem::to_string(host);
         for (size_t worker = 0; worker < workers_per_host; ++worker) {
-            threads[host * workers_per_host + worker] = common::CreateThread(
+            size_t id = host * workers_per_host + worker;
+            threads[id] = common::CreateThread(
                 [&host_contexts, &job_startpoint, host, worker, log_prefix] {
                     Context ctx(*host_contexts[host], worker);
                     common::NameThisThread(
@@ -136,6 +141,7 @@ RunLoopbackThreads(
 
                     ctx.Launch(job_startpoint);
                 });
+            common::SetCpuAffinity(threads[id], id);
         }
     }
 
@@ -168,6 +174,7 @@ HostContext::ConstructLoopback(size_t num_hosts, size_t workers_per_host) {
     // set fixed amount of RAM for testing
     MemoryConfig mem_config;
     mem_config.setup(4 * 1024 * 1024 * 1024llu);
+    mem_config.verbose_ = false;
 
     return ConstructLoopbackHostContexts<TestGroup>(
         mem_config, num_hosts, workers_per_host);
@@ -202,6 +209,7 @@ void RunLocalTests(
 
     // set fixed amount of RAM for testing
     MemoryConfig mem_config;
+    mem_config.verbose_ = false;
     mem_config.setup(ram);
 
     static constexpr size_t num_hosts_list[] = { 1, 2, 5, 8 };
@@ -224,6 +232,7 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
 
     // set fixed amount of RAM for testing
     MemoryConfig mem_config;
+    mem_config.verbose_ = false;
     mem_config.setup(4 * 1024 * 1024 * 1024llu);
     mem_config.print(workers_per_host);
 
@@ -444,6 +453,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
                 ctx.Launch(job_startpoint);
             });
+        common::SetCpuAffinity(threads[worker], worker);
     }
 
     // join worker threads
@@ -525,6 +535,89 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
                 ctx.Launch(job_startpoint);
             });
+        common::SetCpuAffinity(threads[worker], worker);
+    }
+
+    // join worker threads
+    int global_result = 0;
+
+    for (size_t i = 0; i < workers_per_host; i++) {
+        threads[i].join();
+    }
+
+    return global_result;
+}
+#endif
+
+#if THRILL_HAVE_NET_IB
+static inline
+int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
+
+    char* endptr;
+
+    // determine number of local worker threads per IB/MPI process
+
+    size_t workers_per_host = 1;
+
+    const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
+
+    if (env_workers_per_host && *env_workers_per_host) {
+        workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
+        if (!endptr || *endptr != 0 || workers_per_host == 0) {
+            std::cerr << "Thrill: environment variable"
+                      << " THRILL_WORKERS_PER_HOST=" << env_workers_per_host
+                      << " is not a valid number of workers per host."
+                      << std::endl;
+            return -1;
+        }
+    }
+    else {
+        workers_per_host = std::thread::hardware_concurrency();
+    }
+
+    // detect memory config
+
+    MemoryConfig mem_config;
+    if (mem_config.setup_detect() < 0) return -1;
+    mem_config.print(workers_per_host);
+
+    // okay, configuration is good.
+
+    size_t num_hosts = net::ib::NumMpiProcesses();
+    size_t mpi_rank = net::ib::MpiRank();
+
+    std::cerr << "Thrill: running in IB/MPI network with " << num_hosts
+              << " hosts and " << workers_per_host << " workers per host"
+              << " as rank " << mpi_rank << "."
+              << std::endl;
+
+    static constexpr size_t kGroupCount = net::Manager::kGroupCount;
+
+    // construct two MPI network groups
+    std::array<std::unique_ptr<net::ib::Group>, kGroupCount> groups;
+    net::ib::Construct(num_hosts, groups.data(), kGroupCount);
+
+    std::array<net::GroupPtr, kGroupCount> host_groups = {
+        { std::move(groups[0]), std::move(groups[1]) }
+    };
+
+    // construct HostContext
+    HostContext host_context(
+        0, mem_config, std::move(host_groups), workers_per_host);
+
+    // launch worker threads
+    std::vector<std::thread> threads(workers_per_host);
+
+    for (size_t worker = 0; worker < workers_per_host; worker++) {
+        threads[worker] = common::CreateThread(
+            [&host_context, &job_startpoint, worker] {
+                Context ctx(host_context, worker);
+                common::NameThisThread("host " + mem::to_string(ctx.host_rank())
+                                       + " worker " + mem::to_string(worker));
+
+                ctx.Launch(job_startpoint);
+            });
+        common::SetCpuAffinity(threads[worker], worker);
     }
 
     // join worker threads
@@ -549,7 +642,9 @@ static inline
 const char * DetectNetBackend() {
     // detect openmpi run, add others as well.
     if (getenv("OMPI_COMM_WORLD_SIZE") != nullptr) {
-#if THRILL_HAVE_NET_MPI
+#if THRILL_HAVE_NET_IB
+        return "ib";
+#elif THRILL_HAVE_NET_MPI
         return "mpi";
 #else
         std::cerr << "Thrill: MPI environment detected, but network backend mpi"
@@ -682,6 +777,15 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
 #endif
     }
 
+    if (strcmp(env_net, "ib") == 0) {
+#if THRILL_HAVE_NET_IB
+        // ib/mpi network backend
+        return RunBackendIb(job_startpoint);
+#else
+        return RunNotSupported(env_net);
+#endif
+    }
+
     std::cerr << "Thrill: network backend " << env_net << " is unknown."
               << std::endl;
     return -1;
@@ -779,6 +883,8 @@ MemoryConfig MemoryConfig::divide(size_t hosts) const {
 }
 
 void MemoryConfig::print(size_t workers_per_host) const {
+    if (!verbose_) return;
+
     std::cerr
         << "Thrill: using "
         << common::FormatIecUnits(ram_) << "B RAM total,"
@@ -806,11 +912,37 @@ HostContext::HostContext(
       local_host_id_(local_host_id),
       workers_per_host_(workers_per_host),
       net_manager_(std::move(groups), logger_) {
+
+    // write command line parameters to json log
+    common::LogCmdlineParams(logger_);
+
     StartLinuxProcStatsProfiler(*profiler_, logger_);
 
     // run memory profiler only on local host 0 (especially for test runs)
     if (local_host_id == 0)
         mem::StartMemProfiler(*profiler_, logger_);
+}
+
+std::string HostContext::MakeHostLogPath(size_t host_rank) {
+    const char* env_log = getenv("THRILL_LOG");
+    if (!env_log) {
+        if (host_rank == 0 && mem_config().verbose_) {
+            std::cerr << "Thrill: no THRILL_LOG was found, "
+                      << "so no json log is written."
+                      << std::endl;
+        }
+        return std::string();
+    }
+
+    std::string output = env_log;
+    if (output == "" || output == "-")
+        return std::string();
+    if (output == "/dev/stdout")
+        return output;
+    if (output == "stdout")
+        return "/dev/stdout";
+
+    return output + "-host-" + std::to_string(host_rank) + ".json";
 }
 
 /******************************************************************************/
@@ -922,11 +1054,13 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     // collect overall statistics
     OverallStats stats;
     stats.runtime = overall_timer.SecondsDouble();
-    stats.max_block_bytes = block_pool().max_total_bytes();
 
-    std::tie(stats.net_traffic_tx, stats.net_traffic_rx)
-        = local_worker_id_ == 0 ? net_manager_.Traffic()
-          : std::pair<size_t, size_t>(0, 0);
+    stats.max_block_bytes =
+        local_worker_id_ == 0 ? block_pool().max_total_bytes() : 0;
+
+    std::tie(stats.net_traffic_tx, stats.net_traffic_rx) =
+        local_worker_id_ == 0 ? net_manager_.Traffic()
+        : std::pair<size_t, size_t>(0, 0);
 
     if (local_host_id_ == 0 && local_worker_id_ == 0) {
         io::StatsData io_stats(*io::Stats::GetInstance());
@@ -950,14 +1084,16 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
             LOG1 << "Manager::Traffic() tx/rx asymmetry = "
                  << common::abs_diff(stats.net_traffic_tx, stats.net_traffic_rx);
 
-        std::cerr
-            << "Thrill:"
-            << " ran " << stats.runtime << "s with max "
-            << FormatIecUnits(stats.max_block_bytes) << "B in DIA Blocks, "
-            << FormatIecUnits(stats.net_traffic_tx) << "B network traffic, "
-            << FormatIecUnits(stats.io_volume) << "B disk I/O, and "
-            << FormatIecUnits(stats.io_max_allocation) << "B max disk use."
-            << std::endl;
+        if (mem_config().verbose_) {
+            std::cerr
+                << "Thrill:"
+                << " ran " << stats.runtime << "s with max "
+                << FormatIecUnits(stats.max_block_bytes) << "B in DIA Blocks, "
+                << FormatIecUnits(stats.net_traffic_tx) << "B network traffic, "
+                << FormatIecUnits(stats.io_volume) << "B disk I/O, and "
+                << FormatIecUnits(stats.io_max_allocation) << "B max disk use."
+                << std::endl;
+        }
 
         logger_ << "class" << "Context"
                 << "event" << "summary"
@@ -966,49 +1102,6 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
                 << "io_volume" << stats.io_volume
                 << "io_max_allocation" << stats.io_max_allocation;
     }
-}
-
-/******************************************************************************/
-// Log path creator
-
-std::string HostContext::MakeHostLogPath(size_t host_rank) {
-    const char* env_log = getenv("THRILL_LOG");
-    if (!env_log) {
-        if (host_rank == 0) {
-            std::cerr << "Thrill: no THRILL_LOG was found, "
-                      << "so no json log is written."
-                      << std::endl;
-        }
-        return std::string();
-    }
-
-    std::string output = env_log;
-    if (output == "" || output == "-")
-        return std::string();
-    if (output == "/dev/stdout")
-        return output;
-    if (output == "stdout")
-        return "/dev/stdout";
-
-    return output + "-host-" + std::to_string(host_rank) + ".json";
-}
-
-std::string Context::MakeWorkerLogPath(size_t worker_rank) {
-    const char* env_log = getenv("THRILL_LOG");
-    if (!env_log) {
-        // warning was already outputted for HostContext
-        return std::string();
-    }
-
-    std::string output = env_log;
-    if (output == "" || output == "-")
-        return std::string();
-    if (output == "/dev/stdout")
-        return output;
-    if (output == "stdout")
-        return "/dev/stdout";
-
-    return output + "-worker-" + std::to_string(worker_rank) + ".json";
 }
 
 } // namespace api

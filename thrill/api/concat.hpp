@@ -29,7 +29,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA0, typename ... ParentDIAs>
+template <typename ValueType>
 class ConcatNode final : public DOpNode<ValueType>
 {
 public:
@@ -40,12 +40,15 @@ public:
 
     //! Constructor for variant with variadic parent parameter pack, which each
     //! parent may have a different FunctionStack.
+    template <typename ParentDIA0, typename ... ParentDIAs>
     explicit ConcatNode(const ParentDIA0& parent0,
                         const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Concat",
                 { parent0.id(), parents.id() ... },
                 { parent0.node(), parents.node() ... }),
-          num_inputs_(1 + sizeof ... (ParentDIAs))
+          num_inputs_(1 + sizeof ... (ParentDIAs)),
+          // parenthesis are due to a MSVC2015 parser bug
+          parent_stack_empty_({ ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... })
     {
         PrintWarning();
 
@@ -65,15 +68,17 @@ public:
 
     //! Constructor for variant with a std::vector of parents all with the same
     //! (usually empty) FunctionStack.
-    explicit ConcatNode(const std::vector<ParentDIA0>& parents)
+    template <typename ParentDIA>
+    explicit ConcatNode(const std::vector<ParentDIA>& parents)
         : Super(parents.front().ctx(), "Concat",
                 common::MapVector(
-                    parents, [](const ParentDIA0& d) { return d.id(); }),
+                    parents, [](const ParentDIA& d) { return d.id(); }),
                 common::MapVector(
-                    parents, [](const ParentDIA0& d) {
+                    parents, [](const ParentDIA& d) {
                         return DIABasePtr(d.node().get());
                     })),
-          num_inputs_(parents.size())
+          num_inputs_(parents.size()),
+          parent_stack_empty_({ ParentDIA::stack_empty })
     {
         PrintWarning();
 
@@ -101,6 +106,12 @@ public:
             parents[i].node()->AddChild(this, lop_chain, i);
         }
     }
+
+    //! Constructor for variant with a std::vector of parents all with the same
+    //! (usually empty) FunctionStack.
+    template <typename ParentDIA>
+    explicit ConcatNode(const std::initializer_list<ParentDIA>& parents)
+        : ConcatNode(std::vector<ParentDIA>(parents)) { }
 
     void PrintWarning() {
         static bool warned_once = false;
@@ -143,19 +154,13 @@ public:
     bool OnPreOpFile(const data::File& file, size_t parent_index) final {
         assert(parent_index < num_inputs_);
 
-        // construct indication whether the parent stack is empty
-        static constexpr bool parent_stack_empty[1 + sizeof ... (ParentDIAs)] {
-            // parenthesis are due to a MSVC2015 parser bug
-            ParentDIA0::stack_empty, (ParentDIAs::stack_empty)...
-        };
-        if (num_inputs_ == 1 + sizeof ... (ParentDIAs)) {
+        if (num_inputs_ == parent_stack_empty_.size()) {
             // ConcatNode was constructed from different parents
-            if (!parent_stack_empty[parent_index]) return false;
+            if (!parent_stack_empty_[parent_index]) return false;
         }
         else {
             // ConcatNode was constructor with a vector of equal parents
-            assert(sizeof ... (ParentDIAs) == 0);
-            if (!parent_stack_empty[0]) return false;
+            if (!parent_stack_empty_[0]) return false;
         }
 
         // accept file
@@ -277,10 +282,18 @@ public:
         LOG << "total = " << total;
     }
 
-    void Dispose() final { }
+    void Dispose() final {
+        files_.clear();
+        writers_.clear();
+        streams_.clear();
+    }
 
 private:
-    size_t num_inputs_;
+    //! number of input DIAs
+    const size_t num_inputs_;
+
+    //! Whether the parent stack is empty
+    const std::vector<bool> parent_stack_empty_;
 
     //! Files for intermediate storage
     std::vector<data::File> files_;
@@ -315,7 +328,7 @@ auto Concat(const FirstDIA &first_dia, const DIAs &... dias) {
 
     using ValueType = typename FirstDIA::ValueType;
 
-    using ConcatNode = api::ConcatNode<ValueType, FirstDIA, DIAs ...>;
+    using ConcatNode = api::ConcatNode<ValueType>;
 
     return DIA<ValueType>(common::MakeCounting<ConcatNode>(first_dia, dias ...));
 }
@@ -337,7 +350,7 @@ auto Concat(const std::initializer_list<DIA<ValueType> >&dias) {
     for (const DIA<ValueType>& d : dias)
         d.AssertValid();
 
-    using ConcatNode = api::ConcatNode<ValueType, DIA<ValueType> >;
+    using ConcatNode = api::ConcatNode<ValueType>;
 
     return DIA<ValueType>(common::MakeCounting<ConcatNode>(dias));
 }
@@ -359,7 +372,7 @@ auto Concat(const std::vector<DIA<ValueType> >&dias) {
     for (const DIA<ValueType>& d : dias)
         d.AssertValid();
 
-    using ConcatNode = api::ConcatNode<ValueType, DIA<ValueType> >;
+    using ConcatNode = api::ConcatNode<ValueType>;
 
     return DIA<ValueType>(common::MakeCounting<ConcatNode>(dias));
 }

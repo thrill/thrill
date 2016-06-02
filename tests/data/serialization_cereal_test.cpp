@@ -63,8 +63,7 @@ struct CerealObject2 {
     }
 };
 
-struct CerealObject
-{
+struct CerealObject {
     uint8_t                  x, y;
     float                    z;
     std::string              a;

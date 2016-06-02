@@ -191,6 +191,12 @@ public:
         return rb;
     }
 
+    void SyncSendRecv(const void* send_data, size_t send_size,
+                      void* recv_data, size_t recv_size) final {
+        SyncSend(send_data, send_size, NoFlags);
+        SyncRecv(recv_data, recv_size);
+    }
+
     //! Close this Connection
     void Close() {
         socket_.close();

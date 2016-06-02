@@ -69,7 +69,7 @@ public:
     //! boolean flag whether to check if AllocateByteBlock can fail in any
     //! subclass (if false: accelerate BlockWriter to not be able to cope with
     //! nullptr).
-    static constexpr bool allocate_can_fail_ = true;
+    static constexpr bool allocate_can_fail_ = false;
 
     //! Closes the sink. Must not be called multiple times
     virtual void Close() = 0;

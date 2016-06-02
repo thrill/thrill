@@ -37,9 +37,11 @@ namespace common {
 //! better debugging.
 #define die_unequal(X, Y)                              \
     do {                                               \
-        if ((X) != (Y))                                \
+        auto x = (X);                                  \
+        auto y = (Y);                                  \
+        if (x != y)                                    \
             die("Inequality: " #X " != " #Y " : "      \
-                "\"" << X << "\" != \"" << Y << "\""); \
+                "\"" << x << "\" != \"" << y << "\""); \
     } while (0)
 
 //! Check that code throws an Exception
@@ -52,6 +54,14 @@ namespace common {
             " @ " __FILE__ ":" << __LINE__);                      \
         abort();                                                  \
     } while (0)
+
+//! Check that X == Y or die miserably, but output the values of X and Y for
+//! better debugging. Only active if NDEBUG is not defined.
+#ifdef NDEBUG
+#define assert_equal(X, Y)
+#else
+#define assert_equal(X, Y)  die_unequal(X, Y)
+#endif
 
 } // namespace common
 } // namespace thrill

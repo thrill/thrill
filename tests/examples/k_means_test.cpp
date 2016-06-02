@@ -111,7 +111,7 @@ TEST(KMeans, RandomPoints) {
             auto input_points = EqualToDIA(ctx, points);
             DIA<Point2D> centroids_dia = EqualToDIA(ctx, orig_centroids);
 
-            auto means = KMeans(input_points, 2, num_clusters, iterations);
+            auto means = KMeans(input_points.Keep(), 2, num_clusters, iterations);
 
             double cost = means.ComputeCost(input_points);
             if (ctx.my_rank() == 0) {

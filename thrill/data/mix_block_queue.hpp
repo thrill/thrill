@@ -113,6 +113,8 @@ public:
 private:
     BlockPool& block_pool_;
 
+    size_t local_worker_id_;
+
     //! the main mix queue, containing the block in the reception order.
     common::ConcurrentBoundedQueue<SrcBlockPair> mix_queue_;
 
@@ -145,7 +147,7 @@ class MixBlockQueueSink final : public BlockSink
     static constexpr bool debug = false;
 
 public:
-    MixBlockQueueSink(MixStream& mix_stream,
+    MixBlockQueueSink(MixStream& dst_mix_stream,
                       size_t from_global, size_t from_local);
 
     void AppendBlock(const Block& b) final;
@@ -164,10 +166,10 @@ public:
 
 private:
     //! destination mix stream
-    MixStream& mix_stream_;
+    MixStream& dst_mix_stream_;
 
     //! destination mix queue
-    MixBlockQueue& mix_queue_;
+    MixBlockQueue& dst_mix_queue_;
 
     //! source mix stream instance
     MixStream* src_mix_stream_ = nullptr;
@@ -222,7 +224,14 @@ public:
     ~MixBlockQueueReader();
 
     //! HasNext() returns true if at least one more item is available.
-    bool HasNext();
+    bool HasNext() {
+        if (reread_) return cat_reader_.HasNext();
+
+        if (available_) return true;
+        if (open_ == 0) return false;
+
+        return PullBlock();
+    }
 
     //! Next() reads a complete item T
     template <typename T>

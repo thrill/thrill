@@ -23,6 +23,7 @@
 #include <thrill/mem/manager.hpp>
 #include <thrill/mem/pool.hpp>
 
+#include <algorithm>
 #include <deque>
 #include <functional>
 #include <future>
@@ -204,17 +205,40 @@ private:
     //! next unique File id
     std::atomic<size_t> next_file_id_ { 0 };
 
-    //! number of unpinned bytes
-    size_t unpinned_bytes_ = 0;
+    //! a counter pair where one value is held as the max until written to stats
+    struct Counter {
+        //! current counter value
+        size_t value = 0;
+        //! maximum counter value since last stats read
+        size_t hmax = 0;
 
-    struct PinCount
-    {
+        operator size_t () const { return value; }
+
+        Counter& operator += (size_t v) {
+            value += v;
+            hmax = std::max(hmax, value);
+            return *this;
+        }
+        Counter& operator -= (size_t v) {
+            value -= v;
+            return *this;
+        }
+
+        //! get last held max value and update to current
+        size_t hmax_update() {
+            size_t m = hmax;
+            hmax = value;
+            return m;
+        }
+    };
+
+    struct PinCount {
         //! current total number of pins, where each thread pin counts
         //! individually.
         size_t              total_pins_ = 0;
 
         //! total number of bytes pinned.
-        size_t              total_pinned_bytes_ = 0;
+        Counter             total_pinned_bytes_;
 
         //! maximum number of total pins
         size_t              max_pins = 0;
@@ -242,6 +266,9 @@ private:
         void                AssertZero() const;
     };
 
+    //! number of unpinned bytes
+    Counter unpinned_bytes_;
+
     //! pin counter class
     PinCount pin_count_;
 
@@ -255,13 +282,13 @@ private:
     size_t requested_bytes_ = 0;
 
     //! number of bytes currently being written to EM.
-    size_t writing_bytes_ = 0;
+    Counter writing_bytes_;
 
     //! total number of bytes in swapped blocks
-    size_t swapped_bytes_ = 0;
+    Counter swapped_bytes_;
 
     //! number of bytes currently being read from to EM.
-    size_t reading_bytes_ = 0;
+    Counter reading_bytes_;
 
     //! total number of ByteBlocks allocated
     size_t total_byte_blocks_ = 0;
@@ -270,14 +297,14 @@ private:
     std::condition_variable cv_total_byte_blocks_;
 
     //! total number of bytes in all ByteBlocks (in memory or swapped)
-    size_t total_bytes_ = 0;
+    Counter total_bytes_;
 
     //! maximum number of bytes in all ByteBlocks (in memory or swapped)
     size_t max_total_bytes_ = 0;
 
     //! total number of bytes used in RAM by pinned and unpinned blocks, and
     //! also additionally reserved memory via BlockPoolMemoryHolder.
-    size_t total_ram_bytes_ = 0;
+    Counter total_ram_bytes_;
 
     //! Soft limit for the block pool, blocks will be written to disk if this
     //! limit is reached. 0 for no limit.

@@ -87,15 +87,15 @@ TEST(IO_ConfigFile, Test2) {
         config->add_disk(disk2);
     }
 
-    die_unequal(config->disks_number(), 2);
-    die_unequal(config->total_size(), 300 * 1024 * 1024);
+    die_unequal(config->disks_number(), 2u);
+    die_unequal(config->total_size(), 300 * 1024 * 1024u);
 
     // construct block_manager with user-supplied config
 
     io::BlockManager* bm = io::BlockManager::GetInstance();
 
-    die_unequal(bm->get_total_bytes(), 300 * 1024 * 1024);
-    die_unequal(bm->get_free_bytes(), 300 * 1024 * 1024);
+    die_unequal(bm->get_total_bytes(), 300 * 1024 * 1024u);
+    die_unequal(bm->get_free_bytes(), 300 * 1024 * 1024u);
 }
 
 #endif

@@ -188,8 +188,7 @@ private:
     int self_pipe_buffer_;
 
     //! callback vectors per watched file descriptor
-    struct Watch
-    {
+    struct Watch {
         //! boolean check whether any callbacks are registered
         bool                 active = false;
         //! queue of callbacks for fd.

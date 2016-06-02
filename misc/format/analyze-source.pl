@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 ################################################################################
-# misc/analyze-source.pl
+# misc/format/analyze-source.pl
 #
 # Part of Project Thrill - http://project-thrill.org
 #
@@ -263,8 +263,12 @@ sub process_cpp {
     }
 
     # otherwise check license
+    my $license = "Published under the BSD-2 license in the LICENSE file.";
+    if ($path =~ m!^thrill/net/ib/!) {
+        $license = "Modifications NOT published as BSD-2.";
+    }
     expect($path, $i, @data, " *\n"); ++$i;
-    expectr($path, $i, @data, " * All rights reserved. Published under the BSD-2 license in the LICENSE file.\n", qr/^ \*/); ++$i;
+    expectr($path, $i, @data, " * All rights reserved. $license\n", qr/^ \*/); ++$i;
     expect($path, $i, @data, " ".('*'x78)."/\n"); ++$i;
 
     # check include guard name
@@ -347,7 +351,7 @@ sub process_cpp {
     if (filter_uncrustify($path))
     {
         my $data = join("", @data);
-        @data = filter_program($data, "uncrustify", "-q", "-c", "misc/uncrustify.cfg", "-l", "CPP");
+        @data = filter_program($data, "uncrustify", "-q", "-c", "misc/format/uncrustify.cfg", "-l", "CPP");
 
         # manually add blank line after "namespace xyz {" and before "} // namespace xyz"
         my @namespace;
@@ -398,12 +402,6 @@ sub process_cpp {
             print "$path\n";
             print "    NAMESPACE UNBALANCED!\n";
             #system("emacsclient -n $path");
-        }
-
-        # change misformatted [ = ] of lambdas to [=]
-        for(my $i = 0; $i < @data-1; ++$i) {
-            $data[$i] =~ s/\[ = \]/[=]/g;
-            $data[$i] =~ s/\[ ([=&]),/[$1,/g;
         }
     }
 
@@ -768,7 +766,7 @@ foreach my $file (@filelist)
     elsif ($file =~ /^doc\/images\/.*\.svg$/) {
     }
     # recognize further files
-    elsif ($file =~ m!^\.git/!) {
+    elsif ($file =~ m!(^|/)\.git/!) {
     }
     elsif ($file =~ m!^misc/!) {
     }

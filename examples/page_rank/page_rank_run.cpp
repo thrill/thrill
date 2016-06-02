@@ -132,6 +132,9 @@ static void RunPageRankGenerated(
         },
         num_pages).Cache();
 
+    auto number_edges =
+        links.Keep().Map([](const OutgoingLinks& ol) { return ol.size(); }).Sum();
+
     // perform actual page rank calculation iterations
 
     auto ranks = PageRank(links, num_pages, iterations);
@@ -152,9 +155,6 @@ static void RunPageRankGenerated(
     }
 
     timer.Stop();
-
-    auto number_edges =
-        links.Map([](const OutgoingLinks& ol) { return ol.size(); }).Sum();
 
     if (ctx.my_rank() == 0) {
         LOG1 << "FINISHED PAGERANK COMPUTATION";
