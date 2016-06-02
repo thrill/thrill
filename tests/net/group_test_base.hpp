@@ -135,14 +135,14 @@ static void TestPrefixSum(net::Group* net) {
 
     {
         std::string local_value = result.substr(net->my_host_rank(), 1);
-        net->PrefixSum(local_value, std::plus<std::string>(), true);
+        net->PrefixSum(local_value, std::plus<std::string>());
         sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
              << "value" << local_value;
         ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
     }
     {
         std::string local_value = result.substr(net->my_host_rank(), 1);
-        net->PrefixSum(local_value, std::plus<std::string>(), false);
+        net->ExPrefixSum(local_value, std::plus<std::string>());
         sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
              << "value" << local_value;
         ASSERT_EQ(result.substr(0, net->my_host_rank()), local_value);

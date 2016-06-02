@@ -187,6 +187,17 @@ private:
 
     //! vector of virtual connection objects to remote peers
     std::vector<Connection> conns_;
+
+    //! \name Virtual Synchronous Collectives to Override Implementations
+    //! \{
+
+    void PrefixSumPlusUInt32(uint32_t& value) final;
+    void PrefixSumPlusUInt64(uint64_t& value) final;
+
+    void BroadcastUInt32(uint32_t& value, size_t origin) final;
+    void BroadcastUInt64(uint64_t& value, size_t origin) final;
+
+    //! \}
 };
 
 /*!

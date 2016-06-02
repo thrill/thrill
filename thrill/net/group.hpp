@@ -124,8 +124,7 @@ public:
 
     //! Calculate inclusive prefix sum
     template <typename T, typename BinarySumOp = std::plus<T> >
-    void PrefixSum(T& value, BinarySumOp sum_op = BinarySumOp(),
-                   bool inclusive = true);
+    void PrefixSum(T& value, BinarySumOp sum_op = BinarySumOp());
 
     //! Calculate exclusive prefix sum
     template <typename T, typename BinarySumOp = std::plus<T> >
@@ -175,6 +174,17 @@ public:
 protected:
     //! our rank in the network group
     size_t my_rank_;
+
+    //! \name Virtual Synchronous Collectives to Override Implementations
+    //! \{
+
+    virtual void PrefixSumPlusUInt32(uint32_t& value);
+    virtual void PrefixSumPlusUInt64(uint64_t& value);
+
+    virtual void BroadcastUInt32(uint32_t& value, size_t origin);
+    virtual void BroadcastUInt64(uint64_t& value, size_t origin);
+
+    //! \}
 };
 
 //! unique pointer to a Group.
@@ -220,6 +230,8 @@ void RunLoopbackGroupTest(
 
 } // namespace net
 } // namespace thrill
+
+#include <thrill/net/collective.hpp>
 
 #endif // !THRILL_NET_GROUP_HEADER
 

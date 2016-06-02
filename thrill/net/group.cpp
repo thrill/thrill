@@ -129,6 +129,25 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
         << static_cast<double>(total_rx - prev_total_rx) / elapsed;
 }
 
+/******************************************************************************/
+// Group
+
+void Group::PrefixSumPlusUInt32(uint32_t& value) {
+    return PrefixSumDoubling(value, std::plus<uint32_t>(), true);
+}
+
+void Group::PrefixSumPlusUInt64(uint64_t& value) {
+    return PrefixSumDoubling(value, std::plus<uint64_t>(), true);
+}
+
+void Group::BroadcastUInt32(uint32_t& value, size_t origin) {
+    return BroadcastBinomialTree(value, origin);
+}
+
+void Group::BroadcastUInt64(uint64_t& value, size_t origin) {
+    return BroadcastBinomialTree(value, origin);
+}
+
 } // namespace net
 } // namespace thrill
 

@@ -290,7 +290,7 @@ public:
                 }
 
                 T base_sum = *(locals[thread_count_ - 1]);
-                group_.PrefixSum(base_sum, sum_op, false);
+                group_.ExPrefixSum(base_sum, sum_op);
 
                 if (host_rank_ == 0) {
                     base_sum = initial;

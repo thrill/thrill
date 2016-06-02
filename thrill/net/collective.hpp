@@ -143,13 +143,25 @@ void Group::PrefixSumHypercube(T& value, BinarySumOp sum_op) {
 }
 
 template <typename T, typename BinarySumOp>
-void Group::PrefixSum(T& value, BinarySumOp sum_op, bool inclusive) {
-    return PrefixSumDoubling(value, sum_op, inclusive);
+void Group::PrefixSum(T& value, BinarySumOp sum_op) {
+    return PrefixSumDoubling(value, sum_op, true);
+}
+
+//! specialization template for plus-prefixsum of uint32_t values.
+template <>
+inline void Group::PrefixSum(uint32_t& value, std::plus<uint32_t>) {
+    return PrefixSumPlusUInt32(value);
+}
+
+//! specialization template for plus-prefixsum of uint64_t values.
+template <>
+inline void Group::PrefixSum(uint64_t& value, std::plus<uint64_t>) {
+    return PrefixSumPlusUInt64(value);
 }
 
 template <typename T, typename BinarySumOp>
 void Group::ExPrefixSum(T& value, BinarySumOp sum_op) {
-    return PrefixSum(*this, value, sum_op, false);
+    return PrefixSumDoubling(value, sum_op, false);
 }
 
 /******************************************************************************/
@@ -237,6 +249,18 @@ void Group::BroadcastBinomialTree(T& value, size_t origin) {
 template <typename T>
 void Group::Broadcast(T& value, size_t origin) {
     return BroadcastBinomialTree(value, origin);
+}
+
+//! specialization template for broadcast of uint32_t values.
+template <>
+inline void Group::Broadcast(uint32_t& value, size_t origin) {
+    return BroadcastUInt32(value, origin);
+}
+
+//! specialization template for broadcast of uint64_t values.
+template <>
+inline void Group::Broadcast(uint64_t& value, size_t origin) {
+    return BroadcastUInt64(value, origin);
 }
 
 /******************************************************************************/
