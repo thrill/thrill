@@ -33,10 +33,10 @@ int main(int argc, char* argv[]) {
 
 
 	size_t equal = 5;
-	clp.AddParamSizeT("e", equal, "Number of equal elements reduced together");
+	clp.AddOptParamSizeT("e", equal, "Number of equal elements reduced together");
 
-	size_t elements;
-	clp.AddParamSizeT("n", elements, "Number of elements in total.");
+	size_t elements = 1000;
+	clp.AddOptParamSizeT("n", elements, "Number of elements in total.");
 		
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -84,9 +84,9 @@ int main(int argc, char* argv[]) {
 					}
 					LOG1 << "Result checking successful.";
 				}
+			} else {
+				LOG1 << "RESULT" << " benchmark=duplicates time=" << timer.Milliseconds();
 			}
-
-			LOG1 << "RESULT" << " benchmark=duplicates time=" << timer.Milliseconds();
 		});
 }
 
