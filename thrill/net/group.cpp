@@ -43,6 +43,23 @@ void RunLoopbackGroupTest(
 /******************************************************************************/
 // Manager
 
+Manager::Manager(std::array<GroupPtr, kGroupCount>&& groups,
+                 common::JsonLogger& logger) noexcept
+    : groups_(std::move(groups)), logger_(logger) { }
+
+Manager::Manager(std::vector<GroupPtr>&& groups,
+                 common::JsonLogger& logger) noexcept
+    : logger_(logger) {
+    assert(groups.size() == kGroupCount);
+    std::move(groups.begin(), groups.end(), groups_.begin());
+}
+
+void Manager::Close() {
+    for (size_t i = 0; i < kGroupCount; i++) {
+        groups_[i]->Close();
+    }
+}
+
 std::pair<size_t, size_t> Manager::Traffic() const {
     size_t total_tx = 0, total_rx = 0;
 

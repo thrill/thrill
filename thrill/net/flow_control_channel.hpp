@@ -181,17 +181,11 @@ private:
     //! \}
 
 public:
-    //! Creates a new instance of this class, wrapping a group.
-    FlowControlChannel(Group& group,
-                       size_t local_id, size_t thread_count,
-                       common::ThreadBarrier& barrier,
-                       LocalData* shmem,
-                       std::atomic<size_t>& generation)
-        : group_(group),
-          host_rank_(group_.my_host_rank()), num_hosts_(group_.num_hosts()),
-          local_id_(local_id),
-          thread_count_(thread_count),
-          barrier_(barrier), shmem_(shmem), generation_(generation) { }
+    //! Creates a new instance of this class, wrapping a net::Group.
+    FlowControlChannel(
+        Group& group, size_t local_id, size_t thread_count,
+        common::ThreadBarrier& barrier, LocalData* shmem,
+        std::atomic<size_t>& generation);
 
     //! Return the associated net::Group. USE AT YOUR OWN RISK.
     Group& group() { return group_; }
@@ -213,24 +207,7 @@ public:
     //! move-constructor: default
     FlowControlChannel(FlowControlChannel&&) = default;
 
-    ~FlowControlChannel() {
-        sLOGC(enable_stats)
-            << "FCC worker" << my_rank() << ":"
-            << "prefixsum"
-            << count_prefixsum_ << "in" << timer_prefixsum_
-            << "broadcast"
-            << count_broadcast_ << "in" << timer_broadcast_
-            << "reduce"
-            << count_reduce_ << "in" << timer_reduce_
-            << "allreduce"
-            << count_allreduce_ << "in" << timer_allreduce_
-            << "predecessor"
-            << count_predecessor_ << "in" << timer_predecessor_
-            << "barrier"
-            << count_barrier_ << "in" << timer_barrier_
-            << "communication"
-            << timer_communication_;
-    }
+    ~FlowControlChannel();
 
 #ifdef SWIG
 #define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
@@ -615,24 +592,10 @@ public:
     }
 
     //! A trivial global barrier.
-    void Barrier() {
-        RunTimer run_timer(timer_barrier_);
-        if (enable_stats) ++count_barrier_;
-
-        barrier_.Await(
-            [&]() {
-                RunTimer net_timer(timer_communication_);
-
-                    // Global all reduce
-                size_t i = 0;
-                group_.AllReduce(i);
-            });
-    }
+    void Barrier();
 
     //! A trivial local thread barrier
-    void LocalBarrier() {
-        barrier_.Await();
-    }
+    void LocalBarrier();
 };
 
 /******************************************************************************/
@@ -644,8 +607,14 @@ extern template size_t FlowControlChannel::PrefixSum(
 extern template std::array<size_t, 2> FlowControlChannel::PrefixSum(
     const std::array<size_t, 2>&, const std::array<size_t, 2>&,
     const common::ComponentSum<std::array<size_t, 2> >&, bool);
+extern template std::array<size_t, 3> FlowControlChannel::PrefixSum(
+    const std::array<size_t, 3>&, const std::array<size_t, 3>&,
+    const common::ComponentSum<std::array<size_t, 3> >&, bool);
+extern template std::array<size_t, 4> FlowControlChannel::PrefixSum(
+    const std::array<size_t, 4>&, const std::array<size_t, 4>&,
+    const common::ComponentSum<std::array<size_t, 4> >&, bool);
 
-extern template size_t FlowControlChannel::Broadcast(const size_t&, size_t);
+extern template size_t FlowControlChannel::Broadcast(const size_t &, size_t);
 
 extern template std::array<size_t, 2> FlowControlChannel::Broadcast(
     const std::array<size_t, 2>&, size_t);
