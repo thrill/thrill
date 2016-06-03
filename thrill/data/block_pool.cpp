@@ -330,7 +330,8 @@ public:
 
     //! Unpins a block. If all pins are removed, the block might be swapped.
     //! Returns immediately. Actual unpinning is async.
-    void IntUnpinBlock(ByteBlock* block_ptr, size_t local_worker_id);
+    void IntUnpinBlock(
+        BlockPool& bp, ByteBlock* block_ptr, size_t local_worker_id);
 
     //! Evict a block from the lru list into external memory
     io::RequestPtr IntEvictBlockLRU();
@@ -788,11 +789,12 @@ void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
         << " local_worker_id=" << local_worker_id;
 
     if (p == 0)
-        d_->IntUnpinBlock(block_ptr, local_worker_id);
+        d_->IntUnpinBlock(*this, block_ptr, local_worker_id);
 }
 
-void BlockPool::Data::IntUnpinBlock(ByteBlock* block_ptr, size_t local_worker_id) {
-    assert(local_worker_id < workers_per_host_);
+void BlockPool::Data::IntUnpinBlock(
+    BlockPool& bp, ByteBlock* block_ptr, size_t local_worker_id) {
+    assert(local_worker_id < bp.workers_per_host_);
 
     // decrease per-thread total pin count (memory locked by thread)
     die_unless(block_ptr->pin_count(local_worker_id) == 0);
@@ -1000,8 +1002,8 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
         block_ptr->em_bid_ = io::BID<0>();
     }
 
-    assert(total_byte_blocks_ > 0);
-    assert(total_bytes_ >= block_ptr->size());
+    assert(d_->total_byte_blocks_ > 0);
+    assert(d_->total_bytes_ >= block_ptr->size());
     --d_->total_byte_blocks_;
     d_->total_bytes_ -= block_ptr->size();
     d_->cv_total_byte_blocks_.notify_all();
