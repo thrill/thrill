@@ -1117,11 +1117,6 @@ public:
     template <typename SecondDIA>
     auto Concat(const SecondDIA &second_dia) const;
 
-    template <typename SimilarityFunction, typename SecondDIA, typename Threshhold>
-    auto TrivialSimJoin(const SecondDIA &second_dia,
-                        const SimilarityFunction &comparator,
-                        const Threshhold &threshhold) const;
-
     /*!
      * Rebalance is a DOp, which rebalances a single DIA among all workers; in
      * general, this operation is needed only if previous steps are known to
