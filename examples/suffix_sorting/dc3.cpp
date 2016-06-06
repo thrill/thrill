@@ -108,6 +108,7 @@ struct StringFragmentMod0 {
 
     AlphabetType at_radix(size_t /* depth */) const { return t0; }
     Index        sort_rank() const { return r1; }
+    const Index  * ranks() const { return &r1; }
 
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod0& sf) {
         return os << "i=" << sf.index
@@ -125,6 +126,7 @@ struct StringFragmentMod1 {
 
     AlphabetType at_radix(size_t /* depth */) const { return t0; }
     Index        sort_rank() const { return r0; }
+    const Index  * ranks() const { return &r0; }
 
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod1& sf) {
         return os << "i=" << sf.index
@@ -141,6 +143,7 @@ struct StringFragmentMod2 {
 
     AlphabetType at_radix(size_t /* depth */) const { return t0; }
     Index        sort_rank() const { return r0; }
+    const Index  * ranks() const { return &r0; }
 
     friend std::ostream& operator << (std::ostream& os, const StringFragmentMod2& sf) {
         return os << "i=" << sf.index
@@ -154,6 +157,10 @@ template <typename Index, typename AlphabetType>
 struct StringFragment {
     union {
         Index                                   index;
+        struct {
+            Index        index;
+            AlphabetType t[2];
+        } common;
         StringFragmentMod0<Index, AlphabetType> mod0;
         StringFragmentMod1<Index, AlphabetType> mod1;
         StringFragmentMod2<Index, AlphabetType> mod2;
@@ -183,47 +190,50 @@ struct StringFragment {
             return os << "2|" << tc.mod2 << ']';
         abort();
     }
+
+    const Index * ranks(size_t imod3) const {
+        switch (imod3) {
+        case 0: return mod0.ranks();
+        case 1: return mod1.ranks();
+        case 2: return mod2.ranks();
+        }
+        abort();
+    }
+
+    const Index * ranks() const {
+        return ranks(index % 3);
+    }
 } THRILL_ATTRIBUTE_PACKED;
+
+static constexpr size_t fragment_comparator_params[3][3][3] =
+{
+    {
+        { 1, 0, 0 }, { 1, 0, 1 }, { 2, 1, 1 }
+    },
+    {
+        { 1, 1, 0 }, { 0, 0, 0 }, { 0, 0, 0 }
+    },
+    {
+        { 2, 1, 1 }, { 0, 0, 0 }, { 0, 0, 0 }
+    },
+};
 
 template <typename StringFragment>
 struct FragmentComparator {
-    THRILL_ATTRIBUTE_ALWAYS_INLINE
+
     bool operator () (const StringFragment& a, const StringFragment& b) const {
+
         unsigned ai = a.index % 3, bi = b.index % 3;
 
-        if (ai == 0 && bi == 0)
-            return std::tie(a.mod0.t0, a.mod0.r1)
-                   < std::tie(b.mod0.t0, b.mod0.r1);
+        const size_t* params = fragment_comparator_params[ai][bi];
 
-        else if (ai == 0 && bi == 1)
-            return std::tie(a.mod0.t0, a.mod0.r1)
-                   < std::tie(b.mod1.t0, b.mod1.r1);
+        for (size_t d = 0; d < params[0]; ++d)
+        {
+            if (a.common.t[d] == b.common.t[d]) continue;
+            return (a.common.t[d] < b.common.t[d]);
+        }
 
-        else if (ai == 0 && bi == 2)
-            return std::tie(a.mod0.t0, a.mod0.t1, a.mod0.r2)
-                   < std::tie(b.mod2.t0, b.mod2.t1, b.mod2.r2);
-
-        else if (ai == 1 && bi == 0)
-            return std::tie(a.mod1.t0, a.mod1.r1)
-                   < std::tie(b.mod0.t0, b.mod0.r1);
-
-        else if (ai == 1 && bi == 1)
-            return a.mod1.r0 < b.mod1.r0;
-
-        else if (ai == 1 && bi == 2)
-            return a.mod1.r0 < b.mod2.r0;
-
-        else if (ai == 2 && bi == 0)
-            return std::tie(a.mod2.t0, a.mod2.t1, a.mod2.r2)
-                   < std::tie(b.mod0.t0, b.mod0.t1, b.mod0.r2);
-
-        else if (ai == 2 && bi == 1)
-            return a.mod2.r0 < b.mod1.r0;
-
-        else if (ai == 2 && bi == 2)
-            return a.mod2.r0 < b.mod2.r0;
-
-        abort();
+        return (a.ranks(ai)[params[1]] < b.ranks(bi)[params[2]]);
     }
 };
 

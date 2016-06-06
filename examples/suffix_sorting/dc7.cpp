@@ -117,6 +117,7 @@ struct StringFragmentMod0 {
 
     AlphabetType at_radix(size_t depth) const { return t[depth]; }
     Index        sort_rank() const { return r0; }
+    const Index  * ranks() const { return &r0; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod0& sf) {
@@ -135,6 +136,7 @@ struct StringFragmentMod1 {
 
     AlphabetType at_radix(size_t depth) const { return t[depth]; }
     Index        sort_rank() const { return r0; }
+    const Index  * ranks() const { return &r0; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod1& sf) {
@@ -154,6 +156,7 @@ struct StringFragmentMod2 {
 
     AlphabetType at_radix(size_t depth) const { return t[depth]; }
     Index        sort_rank() const { return r1; }
+    const Index  * ranks() const { return &r1; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod2& sf) {
@@ -174,6 +177,7 @@ struct StringFragmentMod3 {
 
     AlphabetType at_radix(size_t depth) const { return t[depth]; }
     Index        sort_rank() const { return r0; }
+    const Index  * ranks() const { return &r0; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod3& sf) {
@@ -193,6 +197,7 @@ struct StringFragmentMod4 {
 
     AlphabetType at_radix(size_t depth) const { return t[depth]; }
     Index        sort_rank() const { return r3; }
+    const Index  * ranks() const { return &r3; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod4& sf) {
@@ -212,6 +217,7 @@ struct StringFragmentMod5 {
 
     AlphabetType at_radix(size_t depth) const { return t[depth]; }
     Index        sort_rank() const { return r2; }
+    const Index  * ranks() const { return &r2; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod5& sf) {
@@ -231,6 +237,7 @@ struct StringFragmentMod6 {
 
     AlphabetType at_radix(size_t depth) const { return t[depth]; }
     Index        sort_rank() const { return r1; }
+    const Index  * ranks() const { return &r1; }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod6& sf) {
@@ -247,6 +254,10 @@ struct StringFragment {
 
     union {
         Index                                   index;
+        struct {
+            Index        index;
+            AlphabetType t[6];
+        } common;
         StringFragmentMod0<Index, AlphabetType> mod0;
         StringFragmentMod1<Index, AlphabetType> mod1;
         StringFragmentMod2<Index, AlphabetType> mod2;
@@ -305,215 +316,73 @@ struct StringFragment {
             return os << "6|" << tc.mod6 << ']';
         abort();
     }
+
+    const Index * ranks(size_t imod7) const {
+        switch (imod7) {
+        case 0: return mod0.ranks();
+        case 1: return mod1.ranks();
+        case 2: return mod2.ranks();
+        case 3: return mod3.ranks();
+        case 4: return mod4.ranks();
+        case 5: return mod5.ranks();
+        case 6: return mod6.ranks();
+        }
+        abort();
+    }
+
+    const Index * ranks() const {
+        return ranks(index % 7);
+    }
 } THRILL_ATTRIBUTE_PACKED;
+
+static constexpr size_t fragment_comparator_params[7][7][3] =
+{
+    {
+        { 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 0 }, { 0, 0, 0 },
+        { 3, 2, 0 }, { 3, 2, 1 }, { 1, 1, 0 }
+    },
+    {
+        { 0, 0, 0 }, { 0, 0, 0 }, { 6, 2, 2 }, { 0, 0, 0 },
+        { 6, 2, 2 }, { 2, 1, 0 }, { 2, 1, 1 }
+    },
+    {
+        { 1, 0, 1 }, { 6, 2, 2 }, { 1, 0, 0 }, { 5, 1, 2 },
+        { 6, 2, 2 }, { 5, 1, 2 }, { 1, 0, 0 }
+    },
+    {
+        { 0, 0, 0 }, { 0, 0, 0 }, { 5, 2, 1 }, { 0, 0, 0 },
+        { 4, 1, 1 }, { 5, 2, 2 }, { 4, 1, 2 }
+    },
+    {
+        { 3, 0, 2 }, { 6, 2, 2 }, { 6, 2, 2 }, { 4, 1, 1 },
+        { 3, 0, 0 }, { 3, 0, 1 }, { 4, 1, 2 }
+    },
+    {
+        { 3, 1, 2 }, { 2, 0, 1 }, { 5, 2, 1 }, { 5, 2, 2 },
+        { 3, 1, 0 }, { 2, 0, 0 }, { 2, 0, 1 }
+    },
+    {
+        { 1, 0, 1 }, { 2, 1, 1 }, { 1, 0, 0 }, { 4, 2, 1 },
+        { 4, 2, 1 }, { 2, 1, 0 }, { 1, 0, 0 }
+    },
+};
 
 template <typename StringFragment>
 struct FragmentComparator {
 
-    template <typename FragmentA, typename FragmentB>
-    bool cmp0(const FragmentA& a, const FragmentB& b) const {
-        return a.r0 < b.r0;
-    }
-
-    template <typename FragmentA, typename FragmentB>
-    bool cmp1(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t[0], a.r1) < std::tie(b.t[0], b.r1);
-    }
-
-    template <typename FragmentA, typename FragmentB>
-    bool cmp2(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t[0], a.t[1], a.r2) < std::tie(b.t[0], b.t[1], b.r2);
-    }
-
-    template <typename FragmentA, typename FragmentB>
-    bool cmp3(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t[0], a.t[1], a.t[2], a.r3)
-               < std::tie(b.t[0], b.t[1], b.t[2], b.r3);
-    }
-
-    template <typename FragmentA, typename FragmentB>
-    bool cmp4(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t[0], a.t[1], a.t[2], a.t[3], a.r4)
-               < std::tie(b.t[0], b.t[1], b.t[2], b.t[3], b.r4);
-    }
-
-    template <typename FragmentA, typename FragmentB>
-    bool cmp5(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t[0], a.t[1], a.t[2], a.t[3], a.t[4], a.r5)
-               < std::tie(b.t[0], b.t[1], b.t[2], b.t[3], b.t[4], b.r5);
-    }
-
-    template <typename FragmentA, typename FragmentB>
-    bool cmp6(const FragmentA& a, const FragmentB& b) const {
-        return std::tie(a.t[0], a.t[1], a.t[2], a.t[3], a.t[4], a.t[5], a.r6)
-               < std::tie(b.t[0], b.t[1], b.t[2], b.t[3], b.t[4], b.t[5], b.r6);
-    }
-
     bool operator () (const StringFragment& a, const StringFragment& b) const {
+
         unsigned ai = a.index % 7, bi = b.index % 7;
 
-        if (ai == 0 && bi == 0)
-            return cmp0(a.mod0, b.mod0);
+        const size_t* params = fragment_comparator_params[ai][bi];
 
-        if (ai == 0 && bi == 1)
-            return cmp0(a.mod0, b.mod1);
+        for (size_t d = 0; d < params[0]; ++d)
+        {
+            if (a.common.t[d] == b.common.t[d]) continue;
+            return (a.common.t[d] < b.common.t[d]);
+        }
 
-        if (ai == 0 && bi == 2)
-            return cmp1(a.mod0, b.mod2);
-
-        if (ai == 0 && bi == 3)
-            return cmp0(a.mod0, b.mod3);
-
-        if (ai == 0 && bi == 4)
-            return cmp3(a.mod0, b.mod4);
-
-        if (ai == 0 && bi == 5)
-            return cmp3(a.mod0, b.mod5);
-
-        if (ai == 0 && bi == 6)
-            return cmp1(a.mod0, b.mod6);
-
-        /**********************************************************************/
-
-        if (ai == 1 && bi == 0)
-            return cmp0(a.mod1, b.mod0);
-
-        if (ai == 1 && bi == 1)
-            return cmp0(a.mod1, b.mod1);
-
-        if (ai == 1 && bi == 2)
-            return cmp6(a.mod1, b.mod2);
-
-        if (ai == 1 && bi == 3)
-            return cmp0(a.mod1, b.mod3);
-
-        if (ai == 1 && bi == 4)
-            return cmp6(a.mod1, b.mod4);
-
-        if (ai == 1 && bi == 5)
-            return cmp2(a.mod1, b.mod5);
-
-        if (ai == 1 && bi == 6)
-            return cmp2(a.mod1, b.mod6);
-
-        /**********************************************************************/
-
-        if (ai == 2 && bi == 0)
-            return cmp1(a.mod2, b.mod0);
-
-        if (ai == 2 && bi == 1)
-            return cmp6(a.mod2, b.mod1);
-
-        if (ai == 2 && bi == 2)
-            return cmp1(a.mod2, b.mod2);
-
-        if (ai == 2 && bi == 3)
-            return cmp5(a.mod2, b.mod3);
-
-        if (ai == 2 && bi == 4)
-            return cmp6(a.mod2, b.mod4);
-
-        if (ai == 2 && bi == 5)
-            return cmp5(a.mod2, b.mod5);
-
-        if (ai == 2 && bi == 6)
-            return cmp1(a.mod2, b.mod6);
-
-        /**********************************************************************/
-
-        if (ai == 3 && bi == 0)
-            return cmp0(a.mod3, b.mod0);
-
-        if (ai == 3 && bi == 1)
-            return cmp0(a.mod3, b.mod1);
-
-        if (ai == 3 && bi == 2)
-            return cmp5(a.mod3, b.mod2);
-
-        if (ai == 3 && bi == 3)
-            return cmp0(a.mod3, b.mod3);
-
-        if (ai == 3 && bi == 4)
-            return cmp4(a.mod3, b.mod4);
-
-        if (ai == 3 && bi == 5)
-            return cmp5(a.mod3, b.mod5);
-
-        if (ai == 3 && bi == 6)
-            return cmp4(a.mod3, b.mod6);
-
-        /**********************************************************************/
-
-        if (ai == 4 && bi == 0)
-            return cmp3(a.mod4, b.mod0);
-
-        if (ai == 4 && bi == 1)
-            return cmp6(a.mod4, b.mod1);
-
-        if (ai == 4 && bi == 2)
-            return cmp6(a.mod4, b.mod2);
-
-        if (ai == 4 && bi == 3)
-            return cmp4(a.mod4, b.mod3);
-
-        if (ai == 4 && bi == 4)
-            return cmp3(a.mod4, b.mod4);
-
-        if (ai == 4 && bi == 5)
-            return cmp3(a.mod4, b.mod5);
-
-        if (ai == 4 && bi == 6)
-            return cmp4(a.mod4, b.mod6);
-
-        /**********************************************************************/
-
-        if (ai == 5 && bi == 0)
-            return cmp3(a.mod5, b.mod0);
-
-        if (ai == 5 && bi == 1)
-            return cmp2(a.mod5, b.mod1);
-
-        if (ai == 5 && bi == 2)
-            return cmp5(a.mod5, b.mod2);
-
-        if (ai == 5 && bi == 3)
-            return cmp5(a.mod5, b.mod3);
-
-        if (ai == 5 && bi == 4)
-            return cmp3(a.mod5, b.mod4);
-
-        if (ai == 5 && bi == 5)
-            return cmp2(a.mod5, b.mod5);
-
-        if (ai == 5 && bi == 6)
-            return cmp2(a.mod5, b.mod6);
-
-        /**********************************************************************/
-
-        if (ai == 6 && bi == 0)
-            return cmp1(a.mod6, b.mod0);
-
-        if (ai == 6 && bi == 1)
-            return cmp2(a.mod6, b.mod1);
-
-        if (ai == 6 && bi == 2)
-            return cmp1(a.mod6, b.mod2);
-
-        if (ai == 6 && bi == 3)
-            return cmp4(a.mod6, b.mod3);
-
-        if (ai == 6 && bi == 4)
-            return cmp4(a.mod6, b.mod4);
-
-        if (ai == 6 && bi == 5)
-            return cmp2(a.mod6, b.mod5);
-
-        if (ai == 6 && bi == 6)
-            return cmp1(a.mod6, b.mod6);
-
-        /**********************************************************************/
-
-        abort();
+        return (a.ranks(ai)[params[1]] < b.ranks(bi)[params[2]]);
     }
 };
 
