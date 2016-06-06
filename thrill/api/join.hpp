@@ -19,6 +19,9 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>
 
+//TODO: Move this outside of reduce:
+#include <thrill/core/reduce_functional.hpp>
+
 #include <algorithm>
 #include <array>
 #include <functional>
@@ -43,6 +46,8 @@ class JoinNode final : public DOpNode<ValueType>
 	using InputTypeFirst = typename FirstDIA::ValueType;
 	using InputTypeSecond = typename SecondDIA::ValueType;
 
+	using Key = typename common::FunctionTraits<KeyExtractor1>::result_type;
+
 
 public:
     /*!
@@ -52,12 +57,16 @@ public:
 			 const KeyExtractor1& key_extractor1,
 			 const KeyExtractor2& key_extractor2,
 			 const JoinFunction& join_function)
-	: Super(parent1.ctx(), "Join",
+		: Super(parent1.ctx(), "Join",
 			{parent1.id(), parent2.id()},
 			{parent1.node(), parent2.node()}),
-	key_extractor1_(key_extractor1),
-	key_extractor2_(key_extractor2),
-	join_function_(join_function)
+		key_extractor1_(key_extractor1),
+		key_extractor2_(key_extractor2),
+		join_function_(join_function),
+		hash_stream1_(parent1.ctx().GetNewCatStream(this)),
+		hash_writers1_(hash_stream1_->GetWriters()),
+		hash_stream2_(parent2.ctx().GetNewCatStream(this)),
+		hash_writers2_(hash_stream2_->GetWriters())
 	{
 
 		auto pre_op_fn1 = [this](const InputTypeFirst& input) {
@@ -74,14 +83,18 @@ public:
 		parent2.node()->AddChild(this, lop_chain2);
 	}
 
-	void PreOp1(const InputTypeFirst&/* input */) {
-		//TODO: DO
+
+	void PreOp1(const InputTypeFirst& input) {
+		hash_writers1_[
+			core::ReduceByHash<Key>()(key_extractor1_(input),
+									  context_.num_workers(), 0 , 0).partition_id].Put(input);
 	}
 
-	void PreOp2(const InputTypeSecond& /* input */) {
-		//TODO: DO
+	void PreOp2(const InputTypeSecond& input) {
+		hash_writers2_[
+			core::ReduceByHash<Key>()(key_extractor2_(input),
+									  context_.num_workers(), 0, 0).partition_id].Put(input);
 	}
-
 
 	void Execute() final {
 		MainOp();
@@ -92,18 +105,22 @@ public:
 	}
 
 	void Dispose() final {
-		files_.clear();
+
 	}
 
 	private:
-	//! Files for intermediate storage
-	std::vector<data::File> files_;
 
 	KeyExtractor1 key_extractor1_;
 	
 	KeyExtractor2 key_extractor2_;
 	
 	JoinFunction join_function_;
+
+	data::CatStreamPtr hash_stream1_;
+	std::vector<data::Stream::Writer> hash_writers1_;
+	
+	data::CatStreamPtr hash_stream2_;
+	std::vector<data::Stream::Writer> hash_writers2_;
 
 	//! Receive elements from other workers.
 	void MainOp() {
