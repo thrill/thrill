@@ -67,10 +67,8 @@ public:
 
         size_t local_size = samples_.size();
 
-        size_t local_rank = context_.net.ExPrefixSum(local_size);
-
-        size_t global_size = context_.net.Broadcast(
-            local_rank + local_size, context_.net.num_workers() - 1);
+        size_t local_rank = local_size;
+        size_t global_size = context_.net.ExPrefixSumTotal(local_rank);
 
         // not enough items to discard some, done.
         if (global_size < sample_size_) return;

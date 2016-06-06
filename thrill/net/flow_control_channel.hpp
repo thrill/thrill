@@ -234,7 +234,6 @@ public:
               const BinarySumOp& sum_op = BinarySumOp(),
               bool inclusive = true) {
 
-        static constexpr bool debug = false;
         RunTimer run_timer(timer_prefixsum_);
         if (enable_stats) ++count_prefixsum_;
 
@@ -255,25 +254,17 @@ public:
                     locals[i] = GetLocalShared<T>(step, i);
                 }
 
+                T local_sum = *(locals[0]);
                 for (size_t i = 1; i < thread_count_; i++) {
-                    *(locals[i]) = sum_op(*(locals[i - 1]), *(locals[i]));
+                    *(locals[i]) = local_sum = sum_op(local_sum, *(locals[i]));
                 }
 
-                if (debug) {
-                    for (size_t i = 0; i < thread_count_; i++) {
-                        // LOG << id_ << ", " << i << ", "
-                        //     << inclusive << ": me: " << *(locals[i]);
-                    }
-                }
-
-                T base_sum = *(locals[thread_count_ - 1]);
+                T base_sum = local_sum;
                 group_.ExPrefixSum(base_sum, sum_op);
 
                 if (host_rank_ == 0) {
                     base_sum = initial;
                 }
-
-                    // LOG << id_ << ", m, " << inclusive << ": base: " << base_sum;
 
                 if (inclusive) {
                     for (size_t i = 0; i < thread_count_; i++) {
@@ -286,13 +277,6 @@ public:
                     }
                     *(locals[0]) = base_sum;
                 }
-
-                if (debug) {
-                    for (size_t i = 0; i < thread_count_; i++) {
-                        // LOG << id_ << ", " << i << ", "
-                        //     << inclusive << ": res: " << *(locals[i]);
-                    }
-                }
             });
 
         return local_value;
@@ -302,7 +286,7 @@ public:
      * Calculates the exclusive prefix sum over all workers, given a certain sum
      * operation.
      *
-     * This method blocks until the sum is caluclated. Values are applied in
+     * This method blocks until the sum is calculated. Values are applied in
      * order, that means sum_op(sum_op(a, b), c) if a, b, c are the values of
      * workers 0, 1, 2.
      *
@@ -317,6 +301,75 @@ public:
     ExPrefixSum(const T& value, const T& initial = T(),
                 const BinarySumOp& sum_op = BinarySumOp()) {
         return PrefixSum(value, initial, sum_op, false);
+    }
+
+    /*!
+     * Calculates the exclusive prefix sum over all workers, and delivers the
+     * total sum as well. The input value parameter is set to the PE's exclusive
+     * prefix sum value and the total sum is returned.
+     *
+     * This method blocks until the sum is calculated. Values are applied in
+     * order, that means sum_op(sum_op(a, b), c) if a, b, c are the values of
+     * workers 0, 1, 2.
+     *
+     * \param value The local value of this worker.
+     * \param sum_op The operation to use for
+     * \param initial The initial element of the body defined by T and SumOp
+     * calculating the prefix sum. The default operation is a normal addition.
+     * \return The prefix sum for the position of this worker.
+     */
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    ExPrefixSumTotal(T& value, const T& initial = T(),
+                     const BinarySumOp& sum_op = BinarySumOp()) {
+
+        RunTimer run_timer(timer_prefixsum_);
+        if (enable_stats) ++count_prefixsum_;
+
+        using Result = std::pair<T*, T>;
+
+        Result result { &value, initial };
+        size_t step = GetNextStep();
+        SetLocalShared(step, &result);
+
+        barrier_.Await(
+            [&]() {
+                RunTimer net_timer(timer_communication_);
+
+                Result** locals = reinterpret_cast<Result**>(
+                    alloca(thread_count_ * sizeof(Result*)));
+
+                for (size_t i = 0; i < thread_count_; ++i) {
+                    locals[i] = GetLocalShared<Result>(step, i);
+                }
+
+                T local_sum = *(locals[0]->first);
+                for (size_t i = 1; i < thread_count_; ++i) {
+                    *(locals[i]->first) = local_sum =
+                        sum_op(local_sum, *(locals[i]->first));
+                }
+
+                T base_sum = local_sum;
+                group_.ExPrefixSum(base_sum, sum_op);
+
+                T total_sum;
+                if (host_rank_ + 1 == num_hosts_)
+                    total_sum = sum_op(base_sum, local_sum);
+                group_.Broadcast(total_sum, num_hosts_ - 1);
+
+                if (host_rank_ == 0) {
+                    base_sum = initial;
+                }
+
+                for (size_t i = thread_count_ - 1; i > 0; --i) {
+                    *(locals[i]->first) = sum_op(base_sum, *(locals[i - 1]->first));
+                    locals[i]->second = total_sum;
+                }
+                *(locals[0]->first) = base_sum;
+                locals[0]->second = total_sum;
+            });
+
+        return result.second;
     }
 
     /*!
@@ -613,6 +666,19 @@ extern template std::array<size_t, 3> FlowControlChannel::PrefixSum(
 extern template std::array<size_t, 4> FlowControlChannel::PrefixSum(
     const std::array<size_t, 4>&, const std::array<size_t, 4>&,
     const common::ComponentSum<std::array<size_t, 4> >&, bool);
+
+extern template size_t FlowControlChannel::ExPrefixSumTotal(
+     size_t&, const size_t&, const std::plus<size_t>&);
+
+extern template std::array<size_t, 2> FlowControlChannel::ExPrefixSumTotal(
+     std::array<size_t, 2>&, const std::array<size_t, 2>&,
+    const common::ComponentSum<std::array<size_t, 2> >&);
+extern template std::array<size_t, 3> FlowControlChannel::ExPrefixSumTotal(
+     std::array<size_t, 3>&, const std::array<size_t, 3>&,
+    const common::ComponentSum<std::array<size_t, 3> >&);
+extern template std::array<size_t, 4> FlowControlChannel::ExPrefixSumTotal(
+     std::array<size_t, 4>&, const std::array<size_t, 4>&,
+    const common::ComponentSum<std::array<size_t, 4> >&);
 
 extern template size_t FlowControlChannel::Broadcast(const size_t &, size_t);
 

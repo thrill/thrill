@@ -182,7 +182,7 @@ private:
     //! \name Variables for Calculating Exchange
     //! \{
 
-    //! prefix sum over the number of items in workers
+    //! exclusive prefix sum over the number of items in workers
     std::array<size_t, kNumInputs> dia_size_prefixsum_;
 
     //! shortest size of Zipped inputs
@@ -230,10 +230,10 @@ private:
     void DoScatter() {
         const size_t workers = context_.num_workers();
 
-        size_t local_begin =
-            std::min(result_size_,
-                     dia_size_prefixsum_[Index] - files_[Index].num_items());
-        size_t local_end = std::min(result_size_, dia_size_prefixsum_[Index]);
+        size_t local_begin = std::min(result_size_, dia_size_prefixsum_[Index]);
+        size_t local_end = std::min(
+            result_size_,
+            dia_size_prefixsum_[Index] + files_[Index].num_items());
         size_t local_size = local_end - local_begin;
 
         //! number of elements per worker (rounded up)
@@ -293,14 +293,12 @@ private:
         }
 
         //! inclusive prefixsum of number of elements: we have items from
-        //! [dia_size_prefixsum - local_size, dia_size_prefixsum).
-        dia_size_prefixsum_ = context_.net.PrefixSum(
-            dia_local_size, ArraySizeT(), common::ComponentSum<ArraySizeT>());
-
-        //! total number of items in DIAs, over all worker. take last worker's
-        //! prefixsum
-        ArraySizeT dia_total_size = context_.net.Broadcast(
-            dia_size_prefixsum_, context_.net.num_workers() - 1);
+        //! [dia_size_prefixsum - local_size, dia_size_prefixsum). And get the
+        //! total number of items in DIAs, over all worker.
+        dia_size_prefixsum_ = dia_local_size;
+        ArraySizeT dia_total_size = context_.net.ExPrefixSumTotal(
+            dia_size_prefixsum_,
+            ArraySizeT(), common::ComponentSum<ArraySizeT>());
 
         size_t max_dia_total_size =
             *std::max_element(dia_total_size.begin(), dia_total_size.end());
