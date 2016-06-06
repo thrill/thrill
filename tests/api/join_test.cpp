@@ -26,7 +26,7 @@ using namespace thrill; // NOLINT
 
 static constexpr bool debug = false;
 
-TEST(GroupByNode, Median) {
+TEST(Join, PairsUnique) {
 
     auto start_func =
         [](Context& ctx) {

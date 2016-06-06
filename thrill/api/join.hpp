@@ -97,6 +97,10 @@ public:
 	}
 
 	void Execute() final {
+		for (size_t i = 0; i < hash_writers1_.size(); ++i) {
+			hash_writers1_[i].Close();
+			hash_writers2_[i].Close();
+		}
 		MainOp();
 	}
 
@@ -109,6 +113,9 @@ public:
 	}
 
 	private:
+	std::deque<data::File> files1_;
+	
+	std::deque<data::File> files2_;
 
 	KeyExtractor1 key_extractor1_;
 	
@@ -124,8 +131,62 @@ public:
 
 	//! Receive elements from other workers.
 	void MainOp() {
-       
+		data::CatStream::CatReader reader1_ = 
+			hash_stream1_->GetCatReader(/* consume */true);
+		
+		data::CatStream::CatReader reader2_ =
+			hash_stream2_->GetCatReader(/* consume */true);
+
+		size_t capacity = DIABase::mem_limit_ / sizeof(InputTypeFirst) / 2;
+
+		RecieveItems<InputTypeFirst>(capacity, reader1_, files1_);
+
+		capacity = DIABase::mem_limit_ / sizeof(InputTypeSecond) / 2;
+		
+		RecieveItems<InputTypeSecond>(capacity, reader2_, files2_);
+
 	}
+
+	DIAMemUse ExecuteMemUse() final {
+        return DIAMemUse::Max();
+    }
+
+	template <typename ItemType>
+	void RecieveItems(size_t capacity, data::CatStream::CatReader& reader,
+					  std::deque<data::File>& files) {
+
+		std::vector<ItemType> vec;
+		vec.reserve(capacity);
+		
+		while (reader.HasNext()) {
+			if (!mem::memory_exceeded && vec.size() < capacity) {
+				vec.push_back(reader.template Next<InputTypeFirst>());
+			} else {
+				SortAndWriteToFile(vec, files);
+			}
+		}
+
+		if (vec.size())
+			SortAndWriteToFile(vec, files);
+	}
+
+	template <typename ItemType>
+	void SortAndWriteToFile(
+        std::vector<ItemType>& vec, std::deque<data::File>& files) {
+        // advice block pool to write out data if necessary
+        context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
+
+		std::sort(vec.begin(), vec.end());
+
+        files.emplace_back(context_.GetFile(this));
+        auto writer = files.back().GetWriter();
+        for (const ItemType& elem : vec) {
+            writer.Put(elem);
+        }
+        writer.Close();
+
+        vec.clear();
+    }
  };
 
 template <typename ValueType, typename Stack>
