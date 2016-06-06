@@ -166,6 +166,7 @@ thrill_build_test(core/multiway_merge_test)
 
 thrill_build_test(api/function_stack_test)
 thrill_build_test(api/groupby_node_test)
+thrill_build_test(api/join_test)
 thrill_build_test(api/merge_node_test)
 thrill_build_test(api/operations_test)
 thrill_build_test(api/read_write_test)
