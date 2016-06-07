@@ -74,6 +74,9 @@ class ZipNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
 
+    //! Set this variable to true to enable generation and output of stats
+    static constexpr bool stats_enabled = false;
+
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
@@ -169,7 +172,10 @@ public:
             }
         }
 
-        sLOG << "Zip: result_count" << result_count;
+        if (stats_enabled) {
+            context_.PrintCollectiveMeanStdev(
+                "Zip() result_count", result_count);
+        }
     }
 
     void Dispose() final {
@@ -318,6 +324,11 @@ private:
         for (size_t i = 0; i < kNumInputs; ++i) {
             dia_local_size[i] = files_[i].num_items();
             sLOG << "input" << i << "dia_local_size" << dia_local_size[i];
+
+            if (stats_enabled) {
+                context_.PrintCollectiveMeanStdev(
+                    "Zip() local_size", dia_local_size[i]);
+            }
         }
 
         //! inclusive prefixsum of number of elements: we have items from

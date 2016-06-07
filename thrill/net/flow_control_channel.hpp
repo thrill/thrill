@@ -25,6 +25,7 @@
 #include <functional>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -345,8 +346,8 @@ public:
 
                 T local_sum = *(locals[0]->first);
                 for (size_t i = 1; i < thread_count_; ++i) {
-                    *(locals[i]->first) = local_sum =
-                        sum_op(local_sum, *(locals[i]->first));
+                    local_sum = sum_op(local_sum, *(locals[i]->first));
+                    *(locals[i]->first) = local_sum;
                 }
 
                 T base_sum = local_sum;
@@ -668,16 +669,16 @@ extern template std::array<size_t, 4> FlowControlChannel::PrefixSum(
     const common::ComponentSum<std::array<size_t, 4> >&, bool);
 
 extern template size_t FlowControlChannel::ExPrefixSumTotal(
-     size_t&, const size_t&, const std::plus<size_t>&);
+    size_t&, const size_t&, const std::plus<size_t>&);
 
 extern template std::array<size_t, 2> FlowControlChannel::ExPrefixSumTotal(
-     std::array<size_t, 2>&, const std::array<size_t, 2>&,
+    std::array<size_t, 2>&, const std::array<size_t, 2>&,
     const common::ComponentSum<std::array<size_t, 2> >&);
 extern template std::array<size_t, 3> FlowControlChannel::ExPrefixSumTotal(
-     std::array<size_t, 3>&, const std::array<size_t, 3>&,
+    std::array<size_t, 3>&, const std::array<size_t, 3>&,
     const common::ComponentSum<std::array<size_t, 3> >&);
 extern template std::array<size_t, 4> FlowControlChannel::ExPrefixSumTotal(
-     std::array<size_t, 4>&, const std::array<size_t, 4>&,
+    std::array<size_t, 4>&, const std::array<size_t, 4>&,
     const common::ComponentSum<std::array<size_t, 4> >&);
 
 extern template size_t FlowControlChannel::Broadcast(const size_t &, size_t);
