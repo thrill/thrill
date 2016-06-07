@@ -207,7 +207,7 @@ auto DIA<ValueType, Stack>::ZipWithIndex(
     static_assert(
         std::is_convertible<
             size_t,
-            typename common::FunctionTraits<ZipFunction>::template arg<0>
+            typename common::FunctionTraits<ZipFunction>::template arg<1>
             >::value,
         "ZipWithIndexFunction must take a const unsigned long int& (aka. size_t)"
         " as second parameter");
