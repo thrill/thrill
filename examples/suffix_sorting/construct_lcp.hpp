@@ -24,6 +24,7 @@
 #include <thrill/api/sort.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/api/zip_with_index.hpp>
 
 
 namespace examples {
@@ -87,7 +88,7 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
     using IndexRank = suffix_sorting::IndexRank<Index>;
     using IndexRankFlag = suffix_sorting::IndexRankFlag<Index>;
 
-    DIA<IndexFlag> lcp =
+    auto lcp =
         Generate(
             ctx,
             [](size_t /*index*/) {
@@ -97,9 +98,8 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
 
     auto tmp_inverse_bwt =
         bwt
-        .Zip(Generate(ctx, input_size),
-            [](const Char& c, const size_t idx) {
-                return IndexChar { Index(idx), c };
+        .ZipWithIndex([](const Char& c, const size_t& i) {
+                return IndexChar { Index(i), c };
             })
         .Sort([](const IndexChar& a, const IndexChar& b) {
                 if (a.ch == b.ch)
@@ -124,12 +124,10 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
 
     size_t number_intervals = intervals.Keep().Max();
 
-
     auto inverse_bwt =
         tmp_inverse_bwt
-        .Zip(Generate(ctx, input_size),
-            [](const IndexChar& ic, const size_t idx) {
-                return IndexRank { ic.index, Index(idx) };
+        .ZipWithIndex([](const IndexChar& ic, const size_t& i) {
+                return IndexRank { ic.index, Index(i) };
             })
         .Sort([](const IndexRank& a, const IndexRank& b) {
                 return a.index < b.index;
