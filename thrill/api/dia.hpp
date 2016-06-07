@@ -966,6 +966,19 @@ public:
              const ZipFunction &zip_function) const;
 
     /*!
+     * Zips each item of a DIA with its zero-based array index. This requires a
+     * full data store/retrieve cycle because the input DIA's size is generally
+     * unknown.
+     *
+     * \param zip_function Zip function, which gets each element together with
+     * its array index.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename ZipFunction>
+    auto ZipWithIndex(const ZipFunction &zip_function) const;
+
+    /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
      *
      * \tparam CompareFunction Type of the compare_function.
