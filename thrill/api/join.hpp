@@ -243,10 +243,13 @@ public:
             else {
                 equal_keys1.clear();
                 equal_keys2.clear();
-                std::tie(ele1, puller1_done) =
-                    AddEqualKeysToVec(equal_keys1, puller1, ele1, key_extractor1_);
-                std::tie(ele2, puller2_done) =
-                    AddEqualKeysToVec(equal_keys2, puller2, ele2, key_extractor2_);
+                puller1_done =
+                    AddEqualKeysToVec(equal_keys1, puller1, ele1,
+                                      key_extractor1_);
+                
+                puller2_done =
+                    AddEqualKeysToVec(equal_keys2, puller2, ele2,
+                                      key_extractor2_);
 
                 for (auto join1 : equal_keys1) {
                     for (auto join2 : equal_keys2) {
@@ -258,10 +261,11 @@ public:
     }
 
     template <typename ItemType, typename KeyExtractor, typename MergeTree>
-    std::pair<ItemType, bool> AddEqualKeysToVec(std::vector<ItemType>& vec,
-                                                MergeTree& puller,
-                                                ItemType& first_element,
-                                                const KeyExtractor& key_extractor) {
+    bool AddEqualKeysToVec(std::vector<ItemType>& vec,
+                           MergeTree& puller,
+                           ItemType& first_element,
+                           const KeyExtractor& key_extractor) {
+        
         vec.push_back(first_element);
         ItemType next_element;
 
@@ -269,7 +273,7 @@ public:
             next_element = puller.Next();
         }
         else {
-            return std::make_pair(ItemType(), true);
+            return true;
         }
 
         while (key_extractor(next_element) == key_extractor(first_element)) {
@@ -278,11 +282,12 @@ public:
                 next_element = puller.Next();
             }
             else {
-                return std::make_pair(ItemType(), true);
+                return true;
             }
         }
-
-        return std::make_pair(next_element, false);
+        
+        first_element = next_element;
+        return false;
     }
 
     void Dispose() final { }
