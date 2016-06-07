@@ -357,7 +357,7 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
         triple_prerank_sums.Keep().Print("triple_prerank_sums");
 
     // get the last element via an associative reduce.
-    Index max_lexname = triple_prerank_sums.Keep().Max();
+    const Index max_lexname = triple_prerank_sums.Keep().Max();
 
     // compute the size of the 2/3 subproblem.
     const Index size_subp = Index((input_size / 3) * 2 + (input_size % 3 != 0));
@@ -423,12 +423,9 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
                               return IndexRank { sa, Index(i) };
                           })
             .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
-                      // DONE(tb): changed sort order for better locality
-                      // later. ... but slower?
-
-                      // return a.index < b.index;
-                      return a.index / size_mod1 < b.index / size_mod1 || (
-                          a.index / size_mod1 == b.index / size_mod1 &&
+                      // use sort order for better locality later.
+                      return a.index % size_mod1 < b.index % size_mod1 || (
+                          a.index % size_mod1 == b.index % size_mod1 &&
                           a.index < b.index);
                   });
 
@@ -436,26 +433,22 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
             ranks_rec.Keep().Print("ranks_rec");
     }
     else {
+        if (ctx.my_rank() == 0)
+            sLOG1 << "*** recursion finished ***";
+
         if (debug_print)
             triple_index_sorted.Keep().Print("triple_index_sorted");
 
         ranks_rec =
             triple_index_sorted
             .ZipWithIndex([](const Index& sa, const size_t& i) {
-                              return IndexRank { sa, Index(i) };
-                          })
-            .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
-                      if (a.index % 3 == b.index % 3) {
-                          // DONE(tb): changed sort order for better locality
-                          // later. ... but slower?
-
-                          // return a.index < b.index;
-                          return a.index / size_mod1 < b.index / size_mod1 || (
-                              a.index / size_mod1 == b.index / size_mod1 &&
-                              a.index < b.index);
-                      }
-                      else
-                          return a.index % 3 < b.index % 3;
+                     return IndexRank { sa, Index(i) };
+                 })
+            .Sort([](const IndexRank& a, const IndexRank& b) {
+                      // use sort order for better locality later.
+                      return a.index / 3 < b.index / 3 || (
+                          a.index / 3 == b.index / 3 &&
+                          a.index < b.index);
                   })
             .Map([size_mod1](const IndexRank& a) {
                      return IndexRank {
@@ -678,8 +671,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
 template DIA<uint32_t> DC3<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
-template DIA<uint64_t> DC3<uint64_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
+// template DIA<uint64_t> DC3<uint64_t>(
+//     const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
 } // namespace suffix_sorting
 } // namespace examples

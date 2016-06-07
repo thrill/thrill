@@ -525,7 +525,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         tuple_prerank_sums.Keep().Print("tuple_prerank_sums");
 
     // get the last element via an associative reduce.
-    Index max_lexname = tuple_prerank_sums.Keep().Max();
+    const Index max_lexname = tuple_prerank_sums.Keep().Max();
 
     // size of the mod0 part of the recursive subproblem
     const Index size_mod0 = Index(input_size / 7 + 1);
@@ -618,43 +618,45 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
 
         ranks_rec =
             suffix_array_rec
-            .ZipWithIndex([](const Index& sa, const size_t& i) {
-                              return IndexRank { sa, Index(i) };
-                          })
-            .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
-                      // DONE(tb): changed sort order for better locality
-                      // later. ... but slower?
+            .ZipWithIndex(                 [](const Index& sa, const size_t& i) {
+                     return IndexRank { sa, Index(i) };
+                 })
+            .Sort([size_mod0, size_mod01](
+                      const IndexRank& a, const IndexRank& b) {
 
-                      return a.index < b.index;
-                      // return a.index / size_mod1 < b.index / size_mod1 || (
-                      //     a.index / size_mod1 == b.index / size_mod1 &&
-                      //     a.index < b.index);
+                      Index ai = (a.index < size_mod0 ? a.index :
+                                  a.index < size_mod01 ? a.index - size_mod0 :
+                                  a.index - size_mod01);
+
+                      Index bi = (b.index < size_mod0 ? b.index :
+                                  b.index < size_mod01 ? b.index - size_mod0 :
+                                  b.index - size_mod01);
+
+                      // use sort order for better locality later.
+                      return ai < bi || (ai == bi && a.index < b.index);
                   });
 
         if (debug_print)
             ranks_rec.Keep().Print("ranks_rec");
     }
     else {
+        if (ctx.my_rank() == 0)
+            sLOG1 << "*** recursion finished ***";
+
         if (debug_print)
             tuple_index_sorted.Keep().Print("tuple_index_sorted");
 
         ranks_rec =
             tuple_index_sorted
-            .ZipWithIndex([](const Index& sa, const size_t& i) {
-                              return IndexRank { sa, Index(i) };
-                          })
-            .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
-                      if (a.index % 7 == b.index % 7) {
-                          // DONE(tb): changed sort order for better locality
-                          // later. ... but slower?
-
-                          return a.index < b.index;
-                          // return a.index / size_mod1 < b.index / size_mod1 || (
-                          //     a.index / size_mod1 == b.index / size_mod1 &&
-                          //     a.index < b.index);
-                      }
-                      else
-                          return a.index % 7 < b.index % 7;
+            .ZipWithIndex(
+                 [](const Index& sa, const size_t& i) {
+                     return IndexRank { sa, Index(i) };
+                 })
+            .Sort([](const IndexRank& a, const IndexRank& b) {
+                      // use sort order for better locality later.
+                      return a.index / 7 < b.index / 7 || (
+                          a.index / 7 == b.index / 7 &&
+                          a.index < b.index);
                   })
             .Map([size_mod0, size_mod01](const IndexRank& a) {
                      return IndexRank {
@@ -1018,8 +1020,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
 template DIA<uint32_t> DC7<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
-template DIA<uint64_t> DC7<uint64_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
+// template DIA<uint64_t> DC7<uint64_t>(
+//     const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
 } // namespace suffix_sorting
 } // namespace examples
