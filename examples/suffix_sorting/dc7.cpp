@@ -16,7 +16,6 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/gather.hpp>
-#include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
@@ -26,7 +25,7 @@
 #include <thrill/api/sum.hpp>
 #include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
-#include <thrill/api/zip.hpp>
+#include <thrill/api/zip_with_index.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/radix_sort.hpp>
 #include <thrill/common/uint_types.hpp>
@@ -619,10 +618,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
 
         ranks_rec =
             suffix_array_rec
-            .Zip(Generate(ctx, size_subp),
-                 [](const Index& sa, const size_t& i) {
-                     return IndexRank { sa, Index(i) };
-                 })
+            .ZipWithIndex([](const Index& sa, const size_t& i) {
+                              return IndexRank { sa, Index(i) };
+                          })
             .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
                       // DONE(tb): changed sort order for better locality
                       // later. ... but slower?
@@ -642,10 +640,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
 
         ranks_rec =
             tuple_index_sorted
-            .Zip(Generate(ctx, size_subp),
-                 [](const Index& sa, const size_t& i) {
-                     return IndexRank { sa, Index(i) };
-                 })
+            .ZipWithIndex([](const Index& sa, const size_t& i) {
+                              return IndexRank { sa, Index(i) };
+                          })
             .Sort([size_mod1](const IndexRank& a, const IndexRank& b) {
                       if (a.index % 7 == b.index % 7) {
                           // DONE(tb): changed sort order for better locality
