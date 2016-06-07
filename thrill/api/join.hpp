@@ -17,6 +17,7 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
 
 //TODO: Move this outside of reduce:
@@ -104,7 +105,184 @@ public:
 		MainOp();
 	}
 
-	void PushData(bool/* consume */) final {
+	//! calculate maximum merging degree from available memory and the number of
+    //! files. additionally calculate the prefetch size of each File.
+    std::pair<size_t, size_t> MaxMergeDegreePrefetch(std::deque<data::File>& files) {
+        size_t avail_blocks = DIABase::mem_limit_ / data::default_block_size / 2;
+        if (files.size() >= avail_blocks) {
+            // more files than blocks available -> partial merge of avail_blocks
+            // Files with prefetch = 0, which is one read Block per File.
+            return std::make_pair(avail_blocks, 0u);
+        }
+        else {
+            // less files than available Blocks -> split blocks equally among
+            // Files.
+            return std::make_pair(
+                files.size(),
+                std::min<size_t>(16u, (avail_blocks / files.size()) - 1));
+        }
+    }
+
+	template <typename ItemType, typename CompareFunction>
+	void MergeFiles(std::deque<data::File>& files, CompareFunction compare_function) {
+
+		size_t merge_degree, prefetch;
+
+		// merge batches of files if necessary
+		while (files.size() > MaxMergeDegreePrefetch(files).first)
+		{
+			std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch(files);
+
+			sLOG1 << "Partial multi-way-merge of"
+				  << merge_degree << "files with prefetch" << prefetch;
+
+			// create merger for first merge_degree_ Files
+			std::vector<data::File::ConsumeReader> seq;
+			seq.reserve(merge_degree);
+
+			for (size_t t = 0; t < merge_degree; ++t)
+				seq.emplace_back(files[t].GetConsumeReader(0));
+
+			StartPrefetch(seq, prefetch);
+
+			auto puller = core::make_multiway_merge_tree<ItemType>(
+				seq.begin(), seq.end(), compare_function);
+
+			// create new File for merged items
+			files.emplace_back(context_.GetFile(this));
+			auto writer = files.back().GetWriter();
+
+			while (puller.HasNext()) {
+				writer.Put(puller.Next());
+			}
+			writer.Close();
+
+			// this clear is important to release references to the files.
+			seq.clear();
+
+			// remove merged files
+			files.erase(files.begin(), files.begin() + merge_degree);
+		}
+	}
+
+	void PushData(bool consume) final {
+
+		auto compare_function_1 = [this](InputTypeFirst in1, InputTypeFirst in2) {
+			return key_extractor1_(in1) < key_extractor1_(in2);
+		};
+
+		auto compare_function_2 = [this](InputTypeSecond in1, InputTypeSecond in2) {
+			return key_extractor2_(in1) < key_extractor2_(in2);
+		};
+
+		//no possible join results when one data set is empty
+		if (!files1_.size() && !files2_.size()) {
+			return;
+		}
+
+		MergeFiles<InputTypeFirst>(files1_, compare_function_1);
+		MergeFiles<InputTypeSecond>(files2_, compare_function_2);
+
+		size_t merge_degree1, prefetch1, merge_degree2, prefetch2;
+		std::tie(merge_degree1, prefetch1) = MaxMergeDegreePrefetch(files1_);
+		std::tie(merge_degree2, prefetch2) = MaxMergeDegreePrefetch(files2_);
+
+		// construct output merger of remaining Files
+		std::vector<data::File::Reader> seq1;
+		seq1.reserve(files1_.size());
+		for (size_t t = 0; t < files1_.size(); ++t)
+			seq1.emplace_back(files1_[t].GetReader(consume, 0));		
+	   StartPrefetch(seq1, prefetch1);
+
+		std::vector<data::File::Reader> seq2;
+		seq2.reserve(files2_.size());
+		for (size_t t = 0; t < files2_.size(); ++t)
+			seq2.emplace_back(files2_[t].GetReader(consume, 0));
+		StartPrefetch(seq2, prefetch2);
+
+		auto puller1 = core::make_multiway_merge_tree<InputTypeFirst>(
+			seq1.begin(), seq1.end(), compare_function_1);
+
+		auto puller2 = core::make_multiway_merge_tree<InputTypeSecond>(
+			seq2.begin(), seq2.end(), compare_function_2);
+
+		InputTypeFirst ele1;
+		InputTypeSecond ele2;
+
+		bool puller1_done = false;
+		bool puller2_done = false;
+		
+
+		if (puller1.HasNext())
+			ele1 = puller1.Next();
+		else 
+			puller1_done = true;
+
+		if (puller2.HasNext())
+			ele2 = puller2.Next();
+		else
+			puller2_done = true;
+
+		std::vector<InputTypeFirst> equal_keys1;
+		std::vector<InputTypeSecond> equal_keys2;
+
+
+		while (!puller1_done && !puller2_done) {
+			if (key_extractor1_(ele1) < key_extractor2_(ele2)) {
+				if (puller1.HasNext()) {
+					ele1 = puller1.Next();
+				} else {
+					puller1_done = true;
+					break;
+				}
+			} else if (key_extractor2_(ele2) < key_extractor1_(ele1)) {
+				if (puller2.HasNext()) {
+					ele2 = puller2.Next();
+				} else {
+					puller2_done = true;
+					break;
+				}
+			} else {
+				equal_keys1.clear();
+				equal_keys2.clear();
+				std::tie(ele1, puller1_done) = 
+					AddEqualKeysToVec(equal_keys1, puller1, ele1, key_extractor1_);
+				std::tie(ele2, puller2_done) =
+					AddEqualKeysToVec(equal_keys2, puller2, ele2, key_extractor2_);
+
+				for (auto join1 : equal_keys1) {
+					for (auto join2 : equal_keys2) {
+						this->PushItem(join_function_(join1, join2));
+					}
+				}
+			}
+		}
+	}
+	
+	template <typename ItemType, typename KeyExtractor, typename MergeTree>
+	std::pair<ItemType, bool> AddEqualKeysToVec(std::vector<ItemType>& vec,
+						   MergeTree& puller,
+						   ItemType& first_element,
+						   const KeyExtractor& key_extractor) {
+	    vec.push_back(first_element);
+		ItemType next_element;
+	    
+		if (puller.HasNext()) {
+			next_element = puller.Next();
+		} else {
+			return std::make_pair(ItemType(), true);
+		}
+
+		while (key_extractor(next_element) == key_extractor(first_element)) {
+			vec.push_back(next_element);
+			if (puller.HasNext()) {
+				next_element = puller.Next();
+			} else {
+				return std::make_pair(ItemType(), true);
+			}
+		}
+		
+		return std::make_pair(next_element, false);
 
 	}
 
@@ -149,6 +327,10 @@ public:
 
 	DIAMemUse ExecuteMemUse() final {
         return DIAMemUse::Max();
+    }
+
+	DIAMemUse PushDataMemUse() final {
+		return DIAMemUse::Max();
     }
 
 	template <typename ItemType>
