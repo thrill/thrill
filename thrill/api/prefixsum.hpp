@@ -72,7 +72,7 @@ public:
         return true;
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         writer_.Close();
     }
 
@@ -111,7 +111,7 @@ private:
     //! Local sum to be used in all reduce operation.
     ValueType local_sum_;
     //! Initial element.
-    ValueType initial_element_;
+    const ValueType initial_element_;
     //! Whether the parent stack is empty
     const bool parent_stack_empty_;
 

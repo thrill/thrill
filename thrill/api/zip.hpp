@@ -298,8 +298,8 @@ private:
     //! Receive elements from other workers.
     void MainOp() {
         if (NoRebalance) {
-            // no communication: everyone just checks that local input DIAs have
-            // the same size.
+            // no communication: everyone just checks that all input DIAs have
+            // the same local size.
             result_size_ = files_[0].num_items();
             for (size_t i = 1; i < kNumInputs; ++i) {
                 if (result_size_ != files_[i].num_items()) {
