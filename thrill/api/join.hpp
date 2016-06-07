@@ -81,84 +81,12 @@ public:
         parent2.node()->AddChild(this, lop_chain2);
     }
 
-    void PreOp1(const InputTypeFirst& input) {
-        hash_writers1_[
-            core::ReduceByHash < Key > ()(key_extractor1_(input),
-                                          context_.num_workers(), 0, 0).partition_id].Put(input);
-    }
-
-    void PreOp2(const InputTypeSecond& input) {
-        hash_writers2_[
-            core::ReduceByHash < Key > ()(key_extractor2_(input),
-                                          context_.num_workers(), 0, 0).partition_id].Put(input);
-    }
-
     void Execute() final {
         for (size_t i = 0; i < hash_writers1_.size(); ++i) {
             hash_writers1_[i].Close();
             hash_writers2_[i].Close();
         }
         MainOp();
-    }
-
-    //! calculate maximum merging degree from available memory and the number of
-    //! files. additionally calculate the prefetch size of each File.
-    std::pair<size_t, size_t> MaxMergeDegreePrefetch(std::deque<data::File>& files) {
-        size_t avail_blocks = DIABase::mem_limit_ / data::default_block_size / 2;
-        if (files.size() >= avail_blocks) {
-            // more files than blocks available -> partial merge of avail_blocks
-            // Files with prefetch = 0, which is one read Block per File.
-            return std::make_pair(avail_blocks, 0u);
-        }
-        else {
-            // less files than available Blocks -> split blocks equally among
-            // Files.
-            return std::make_pair(
-                files.size(),
-                std::min<size_t>(16u, (avail_blocks / files.size()) - 1));
-        }
-    }
-
-    template <typename ItemType, typename CompareFunction>
-    void MergeFiles(std::deque<data::File>& files, CompareFunction compare_function) {
-
-        size_t merge_degree, prefetch;
-
-        // merge batches of files if necessary
-        while (files.size() > MaxMergeDegreePrefetch(files).first)
-        {
-            std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch(files);
-
-            sLOG1 << "Partial multi-way-merge of"
-                  << merge_degree << "files with prefetch" << prefetch;
-
-            // create merger for first merge_degree_ Files
-            std::vector<data::File::ConsumeReader> seq;
-            seq.reserve(merge_degree);
-
-            for (size_t t = 0; t < merge_degree; ++t)
-                seq.emplace_back(files[t].GetConsumeReader(0));
-
-            StartPrefetch(seq, prefetch);
-
-            auto puller = core::make_multiway_merge_tree<ItemType>(
-                seq.begin(), seq.end(), compare_function);
-
-            // create new File for merged items
-            files.emplace_back(context_.GetFile(this));
-            auto writer = files.back().GetWriter();
-
-            while (puller.HasNext()) {
-                writer.Put(puller.Next());
-            }
-            writer.Close();
-
-            // this clear is important to release references to the files.
-            seq.clear();
-
-            // remove merged files
-            files.erase(files.begin(), files.begin() + merge_degree);
-        }
     }
 
     void PushData(bool consume) final {
@@ -246,7 +174,7 @@ public:
                 puller1_done =
                     AddEqualKeysToVec(equal_keys1, puller1, ele1,
                                       key_extractor1_);
-                
+
                 puller2_done =
                     AddEqualKeysToVec(equal_keys2, puller2, ele2,
                                       key_extractor2_);
@@ -260,37 +188,10 @@ public:
         }
     }
 
-    template <typename ItemType, typename KeyExtractor, typename MergeTree>
-    bool AddEqualKeysToVec(std::vector<ItemType>& vec,
-                           MergeTree& puller,
-                           ItemType& first_element,
-                           const KeyExtractor& key_extractor) {
-        
-        vec.push_back(first_element);
-        ItemType next_element;
-
-        if (puller.HasNext()) {
-            next_element = puller.Next();
-        }
-        else {
-            return true;
-        }
-
-        while (key_extractor(next_element) == key_extractor(first_element)) {
-            vec.push_back(next_element);
-            if (puller.HasNext()) {
-                next_element = puller.Next();
-            }
-            else {
-                return true;
-            }
-        }
-        
-        first_element = next_element;
-        return false;
+    void Dispose() final {
+        files1_.clear();
+        files2_.clear();
     }
-
-    void Dispose() final { }
 
 private:
     std::deque<data::File> files1_;
@@ -326,6 +227,48 @@ private:
         RecieveItems<InputTypeSecond>(capacity, reader2_, files2_);
     }
 
+    void PreOp1(const InputTypeFirst& input) {
+        hash_writers1_[
+            core::ReduceByHash < Key > ()(key_extractor1_(input),
+                                          context_.num_workers(), 0, 0).partition_id].Put(input);
+    }
+
+    void PreOp2(const InputTypeSecond& input) {
+        hash_writers2_[
+            core::ReduceByHash < Key > ()(key_extractor2_(input),
+                                          context_.num_workers(), 0, 0).partition_id].Put(input);
+    }
+
+    template <typename ItemType, typename KeyExtractor, typename MergeTree>
+    bool AddEqualKeysToVec(std::vector<ItemType>& vec,
+                           MergeTree& puller,
+                           ItemType& first_element,
+                           const KeyExtractor& key_extractor) {
+
+        vec.push_back(first_element);
+        ItemType next_element;
+
+        if (puller.HasNext()) {
+            next_element = puller.Next();
+        }
+        else {
+            return true;
+        }
+
+        while (key_extractor(next_element) == key_extractor(first_element)) {
+            vec.push_back(next_element);
+            if (puller.HasNext()) {
+                next_element = puller.Next();
+            }
+            else {
+                return true;
+            }
+        }
+
+        first_element = next_element;
+        return false;
+    }
+
     DIAMemUse ExecuteMemUse() final {
         return DIAMemUse::Max();
     }
@@ -352,6 +295,67 @@ private:
 
         if (vec.size())
             SortAndWriteToFile(vec, files);
+    }
+
+    //! calculate maximum merging degree from available memory and the number of
+    //! files. additionally calculate the prefetch size of each File.
+    std::pair<size_t, size_t> MaxMergeDegreePrefetch(std::deque<data::File>& files) {
+        // Halved from api::Sort, as Join has two mergers
+        size_t avail_blocks = DIABase::mem_limit_ / data::default_block_size / 2;
+        if (files.size() >= avail_blocks) {
+            // more files than blocks available -> partial merge of avail_blocks
+            // Files with prefetch = 0, which is one read Block per File.
+            return std::make_pair(avail_blocks, 0u);
+        }
+        else {
+            // less files than available Blocks -> split blocks equally among
+            // Files.
+            return std::make_pair(
+                files.size(),
+                std::min<size_t>(16u, (avail_blocks / files.size()) - 1));
+        }
+    }
+
+    template <typename ItemType, typename CompareFunction>
+    void MergeFiles(std::deque<data::File>& files, CompareFunction compare_function) {
+
+        size_t merge_degree, prefetch;
+
+        // merge batches of files if necessary
+        while (files.size() > MaxMergeDegreePrefetch(files).first)
+        {
+            std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch(files);
+
+            sLOG1 << "Partial multi-way-merge of"
+                  << merge_degree << "files with prefetch" << prefetch;
+
+            // create merger for first merge_degree_ Files
+            std::vector<data::File::ConsumeReader> seq;
+            seq.reserve(merge_degree);
+
+            for (size_t t = 0; t < merge_degree; ++t)
+                seq.emplace_back(files[t].GetConsumeReader(0));
+
+            StartPrefetch(seq, prefetch);
+
+            auto puller = core::make_multiway_merge_tree<ItemType>(
+                seq.begin(), seq.end(), compare_function);
+
+            // create new File for merged items
+            files.emplace_back(context_.GetFile(this));
+            auto writer = files.back().GetWriter();
+
+            while (puller.HasNext()) {
+                writer.Put(puller.Next());
+            }
+            writer.Close();
+
+            // this clear is important to release references to the files.
+            seq.clear();
+
+            // remove merged files
+            files.erase(files.begin(), files.begin() + merge_degree);
+        }
     }
 
     template <typename ItemType>
