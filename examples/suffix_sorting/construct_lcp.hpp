@@ -11,25 +11,19 @@
 #pragma once
 #ifndef THRILL_EXAMPLES_SUFFIX_SORTING_CONSTRUCT_LCP_HEADER
 #define THRILL_EXAMPLES_SUFFIX_SORTING_CONSTRUCT_LCP_HEADER
+ 
+#include <examples/suffix_sorting/suffix_sorting.hpp>
 
-#include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
-#include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
-#include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
-#include <thrill/api/sum.hpp>
-#include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
-#include <thrill/common/radix_sort.hpp>
-#include <thrill/common/uint_types.hpp>
 
 
 namespace examples {
@@ -125,7 +119,8 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
             })
         .PrefixSum();
 
-    // intervals.Keep().Print("intervals");
+    if (debug_print)
+        intervals.Keep().Print("intervals");
 
     size_t number_intervals = intervals.Keep().Max();
 
@@ -144,7 +139,8 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
             })
         .Cache();
 
-    // inverse_bwt.Keep().Print("inverse_bwt");
+    if (debug_print)
+        inverse_bwt.Keep().Print("inverse_bwt");
 
     size_t lcp_value = 0;
     while (number_intervals + 1 < input_size) {
@@ -213,7 +209,8 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
                     emit(IndexFlag { rb[1].index, rb[1].flag });
             });
 
-    // lcp.Keep().Print("lcp");
+    if (debug_print)
+        lcp.Keep().Print("lcp");
     
     return lcp
               .Map([](const IndexFlag& idx_flag) {
