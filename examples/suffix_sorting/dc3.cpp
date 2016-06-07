@@ -381,7 +381,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
         // zip triples and ranks.
         auto triple_ranks =
             triple_index_sorted
-            .Zip(triple_prerank_sums,
+            .Zip(NoRebalanceTag,
+                 triple_prerank_sums,
                  [](const Index& triple_index, const Index& rank) {
                      return IndexRank { triple_index, rank };
                  });

@@ -5,7 +5,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
@@ -69,7 +69,7 @@ namespace api {
  * \ingroup api_layer
  */
 template <typename ValueType, typename ZipFunction,
-          bool Pad, bool UnequalCheck, size_t kNumInputs>
+          bool Pad, bool UnequalCheck, bool NoRebalance, size_t kNumInputs>
 class ZipNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -139,17 +139,33 @@ public:
         size_t result_count = 0;
 
         if (result_size_ != 0) {
-            // get inbound readers from all Streams
-            std::array<data::CatStream::CatReader, kNumInputs> readers;
-            for (size_t i = 0; i < kNumInputs; ++i)
-                readers[i] = streams_[i]->GetCatReader(consume);
+            if (NoRebalance) {
+                // get inbound readers from all Streams
+                std::array<data::File::Reader, kNumInputs> readers;
+                for (size_t i = 0; i < kNumInputs; ++i)
+                    readers[i] = files_[i].GetReader(consume);
 
-            ReaderNext reader_next(*this, readers);
+                ReaderNext<data::File::Reader> reader_next(*this, readers);
 
-            while (reader_next.HasNext()) {
-                auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
-                this->PushItem(common::ApplyTuple(zip_function_, v));
-                ++result_count;
+                while (reader_next.HasNext()) {
+                    auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
+                    this->PushItem(common::ApplyTuple(zip_function_, v));
+                    ++result_count;
+                }
+            }
+            else {
+                // get inbound readers from all Streams
+                std::array<data::CatStream::CatReader, kNumInputs> readers;
+                for (size_t i = 0; i < kNumInputs; ++i)
+                    readers[i] = streams_[i]->GetCatReader(consume);
+
+                ReaderNext<data::CatStream::CatReader> reader_next(*this, readers);
+
+                while (reader_next.HasNext()) {
+                    auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
+                    this->PushItem(common::ApplyTuple(zip_function_, v));
+                    ++result_count;
+                }
             }
         }
 
@@ -281,6 +297,18 @@ private:
 
     //! Receive elements from other workers.
     void MainOp() {
+        if (NoRebalance) {
+            // no communication: everyone just checks that local input DIAs have
+            // the same size.
+            result_size_ = files_[0].num_items();
+            for (size_t i = 1; i < kNumInputs; ++i) {
+                if (result_size_ != files_[i].num_items()) {
+                    die("Zip() input DIA " << i << " partition does not match.");
+                }
+            }
+            return;
+        }
+
         // first: calculate total size of the DIAs to Zip
 
         using ArraySizeT = std::array<size_t, kNumInputs>;
@@ -325,11 +353,12 @@ private:
     }
 
     //! Access CatReaders for different different parents.
+    template <typename Reader>
     class ReaderNext
     {
     public:
         ReaderNext(ZipNode& zip_node,
-                   std::array<data::CatStream::CatReader, kNumInputs>& readers)
+                   std::array<Reader, kNumInputs>& readers)
             : zip_node_(zip_node), readers_(readers) { }
 
         //! helper for PushData() which checks all inputs
@@ -365,7 +394,7 @@ private:
         ZipNode& zip_node_;
 
         //! reference to the reader array in PushData().
-        std::array<data::CatStream::CatReader, kNumInputs>& readers_;
+        std::array<Reader, kNumInputs>& readers_;
     };
 };
 
@@ -417,7 +446,8 @@ auto Zip(const ZipFunction &zip_function,
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
     using ZipNode = api::ZipNode<
-              ZipResult, ZipFunction, /* Pad */ false, /* UnequalCheck */ true,
+              ZipResult, ZipFunction,
+              /* Pad */ false, /* UnequalCheck */ true, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
@@ -475,7 +505,8 @@ auto Zip(struct CutTag,
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
     using ZipNode = api::ZipNode<
-              ZipResult, ZipFunction, /* Pad */ false, /* UnequalCheck */ false,
+              ZipResult, ZipFunction,
+              /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
@@ -533,7 +564,8 @@ auto Zip(struct PadTag,
               typename common::FunctionTraits<ZipFunction>::args_plain;
 
     using ZipNode = api::ZipNode<
-              ZipResult, ZipFunction, /* Pad */ true, /* UnequalCheck */ false,
+              ZipResult, ZipFunction,
+              /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
@@ -593,11 +625,73 @@ auto Zip(
               typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipNode = api::ZipNode<
-              ZipResult, ZipFunction, /* Pad */ true, /* UnequalCheck */ false,
+              ZipResult, ZipFunction,
+              /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
         zip_function, padding, first_dia, dias ...);
+
+    return DIA<ZipResult>(node);
+}
+
+/*!
+ * Zips any number of DIAs in style of functional programming by applying
+ * zip_function to the i-th elements of both input DIAs to form the i-th element
+ * of the output DIA. The type of the output DIA can be inferred from the
+ * zip_function.
+ *
+ * In this variant, the DIA partitions on all PEs must have matching length. No
+ * rebalancing is performed, and the program will die if any partition
+ * mismatches. This enables Zip to proceed without any communication.
+ *
+ * \tparam ZipFunction Type of the zip_function. This is a function with two
+ * input elements, both of the local type, and one output element, which is
+ * the type of the Zip node.
+ *
+ * \param zip_function Zip function, which zips two elements together
+ *
+ * \param first_dia the initial DIA.
+ *
+ * \param dias DIAs, which is zipped together with the original DIA.
+ *
+ * \ingroup dia_dops
+ */
+template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
+          typename ... DIAs>
+auto Zip(
+    struct NoRebalanceTag,
+    const ZipFunction &zip_function,
+    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
+    const DIAs &... dias) {
+
+    using VarForeachExpander = int[];
+
+    first_dia.AssertValid();
+    (void)VarForeachExpander {
+        (dias.AssertValid(), 0) ...
+    };
+
+    static_assert(
+        std::is_convertible<
+            FirstDIAType,
+            typename common::FunctionTraits<ZipFunction>::template arg<0>
+            >::value,
+        "ZipFunction has the wrong input type in DIA 0");
+
+    using ZipResult =
+              typename common::FunctionTraits<ZipFunction>::result_type;
+
+    using ZipArgs =
+              typename common::FunctionTraits<ZipFunction>::args_plain;
+
+    using ZipNode = api::ZipNode<
+              ZipResult, ZipFunction,
+              /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ true,
+              1 + sizeof ... (DIAs)>;
+
+    auto node = common::MakeCounting<ZipNode>(
+        zip_function, ZipArgs(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);
 }
@@ -623,6 +717,14 @@ auto DIA<ValueType, Stack>::Zip(
     struct PadTag, const SecondDIA &second_dia,
     const ZipFunction &zip_function) const {
     return api::Zip(PadTag, zip_function, *this, second_dia);
+}
+
+template <typename ValueType, typename Stack>
+template <typename ZipFunction, typename SecondDIA>
+auto DIA<ValueType, Stack>::Zip(
+    struct NoRebalanceTag, const SecondDIA &second_dia,
+    const ZipFunction &zip_function) const {
+    return api::Zip(NoRebalanceTag, zip_function, *this, second_dia);
 }
 
 //! \}

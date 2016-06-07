@@ -68,6 +68,14 @@ struct PadTag {
 //! global const PadTag instance
 const struct PadTag PadTag;
 
+//! tag structure for Zip()
+struct NoRebalanceTag {
+    NoRebalanceTag() { }
+};
+
+//! global const PadTag instance
+const struct NoRebalanceTag NoRebalanceTag;
+
 /*!
  * DIA is the interface between the user and the Thrill framework. A DIA can be
  * imagined as an immutable array, even though the data does not need to be
@@ -932,6 +940,32 @@ public:
              const ZipFunction &zip_function) const;
 
     /*!
+     * Zips two DIAs in style of functional programming by applying zip_function
+     * to the i-th elements of both input DIAs to form the i-th element of the
+     * output DIA. The type of the output DIA can be inferred from the
+     * zip_function.
+     *
+     * In this variant, the DIA partitions on all PEs must have matching
+     * length. No rebalancing is performed, and the program will die if any
+     * partition mismatches. This enables Zip to proceed without any
+     * communication.
+     *
+     * \tparam ZipFunction Type of the zip_function. This is a function with two
+     * input elements, both of the local type, and one output element, which is
+     * the type of the Zip node.
+     *
+     * \param zip_function Zip function, which zips two elements together
+     *
+     * \param second_dia DIA, which is zipped together with the original
+     * DIA.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename ZipFunction, typename SecondDIA>
+    auto Zip(struct NoRebalanceTag, const SecondDIA &second_dia,
+             const ZipFunction &zip_function) const;
+
+    /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
      *
      * \tparam CompareFunction Type of the compare_function.
@@ -1175,6 +1209,9 @@ using api::CutTag;
 
 //! imported from api namespace
 using api::PadTag;
+
+//! imported from api namespace
+using api::NoRebalanceTag;
 
 } // namespace thrill
 

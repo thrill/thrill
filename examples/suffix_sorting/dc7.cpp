@@ -579,7 +579,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         // zip tuples and ranks.
         auto tuple_ranks =
             tuple_index_sorted
-            .Zip(tuple_prerank_sums,
+            .Zip(NoRebalanceTag,
+                 tuple_prerank_sums,
                  [](const Index& tuple_index, const Index& rank) {
                      return IndexRank { tuple_index, rank };
                  });

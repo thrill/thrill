@@ -49,10 +49,11 @@ public:
 class DynBlockSource
 {
 public:
+    DynBlockSource() { }
+
     explicit DynBlockSource(
         common::CountingPtr<DynBlockSourceInterface>&& block_source_ptr)
-        : block_source_ptr_(std::move(block_source_ptr))
-    { }
+        : block_source_ptr_(std::move(block_source_ptr)) { }
 
     PinnedBlock NextBlock() {
         return block_source_ptr_->NextBlock();
@@ -78,8 +79,7 @@ class DynBlockSourceAdapter final : public DynBlockSourceInterface
 {
 public:
     explicit DynBlockSourceAdapter(BlockSource&& block_source)
-        : block_source_(std::move(block_source))
-    { }
+        : block_source_(std::move(block_source)) { }
 
     //! non-copyable: delete copy-constructor
     DynBlockSourceAdapter(const DynBlockSourceAdapter&) = delete;

@@ -64,6 +64,41 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
     api::RunLocalTests(start_func);
 }
 
+TEST(ZipNode, TwoBalancedIntegerArraysNoRebalance) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            // numbers 0..999 (evenly distributed to workers)
+            auto zip_input1 = Generate(
+                ctx,
+                [](size_t index) { return index; },
+                test_size);
+
+            // numbers 1000..1999
+            auto zip_input2 = zip_input1.Map(
+                [](size_t i) { return static_cast<short>(test_size + i); });
+
+            // zip
+            auto zip_result = zip_input1.Zip(
+                NoRebalanceTag,
+                zip_input2, [](size_t a, short b) -> long {
+                    return static_cast<long>(a) + b;
+                });
+
+            // check result
+            std::vector<long> res = zip_result.AllGather();
+
+            ASSERT_EQ(test_size, res.size());
+
+            for (size_t i = 0; i != res.size(); ++i) {
+                ASSERT_EQ(static_cast<long>(i + i + test_size), res[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(ZipNode, TwoDisbalancedIntegerArrays) {
 
     // first DIA is heavily balanced to the first workers, second DIA is
