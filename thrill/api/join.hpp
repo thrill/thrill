@@ -169,21 +169,21 @@ public:
                 }
             }
             else {
+                bool external1 = false;
+                bool external2 = false;
                 equal_keys1.clear();
                 equal_keys2.clear();
-                puller1_done =
+                std::tie(puller1_done, external1) =
                     AddEqualKeysToVec(equal_keys1, puller1, ele1,
                                       key_extractor1_);
 
-                puller2_done =
+                std::tie(puller2_done, external2) =
                     AddEqualKeysToVec(equal_keys2, puller2, ele2,
                                       key_extractor2_);
 
-                for (auto join1 : equal_keys1) {
-                    for (auto join2 : equal_keys2) {
-                        this->PushItem(join_function_(join1, join2));
-                    }
-                }
+                JoinAllElements(equal_keys1, external1, equal_keys2, external2);
+
+               
             }
         }
     }
@@ -209,6 +209,7 @@ private:
 
     data::CatStreamPtr hash_stream2_;
     std::vector<data::Stream::Writer> hash_writers2_;
+  
 
     //! Receive elements from other workers.
     void MainOp() {
@@ -240,10 +241,10 @@ private:
     }
 
     template <typename ItemType, typename KeyExtractor, typename MergeTree>
-    bool AddEqualKeysToVec(std::vector<ItemType>& vec,
-                           MergeTree& puller,
-                           ItemType& first_element,
-                           const KeyExtractor& key_extractor) {
+    std::pair<bool, bool> AddEqualKeysToVec(std::vector<ItemType>& vec,
+                                            MergeTree& puller,
+                                            ItemType& first_element,
+                                            const KeyExtractor& key_extractor) {
 
         vec.push_back(first_element);
         ItemType next_element;
@@ -252,7 +253,7 @@ private:
             next_element = puller.Next();
         }
         else {
-            return true;
+            return std::make_pair(true, false);
         }
 
         while (key_extractor(next_element) == key_extractor(first_element)) {
@@ -261,12 +262,12 @@ private:
                 next_element = puller.Next();
             }
             else {
-                return true;
+                return std::make_pair(true, false);
             }
         }
 
         first_element = next_element;
-        return false;
+        return std::make_pair(false, false);
     }
 
     DIAMemUse ExecuteMemUse() final {
@@ -355,6 +356,42 @@ private:
 
             // remove merged files
             files.erase(files.begin(), files.begin() + merge_degree);
+        }
+    }
+    
+    template <typename ItemType>
+    void JoinAllElements(const std::vector<ItemType>& vec1, bool external1,
+                         const std::vector<ItemType>& vec2, bool external2) {
+        if (!external1 && !external2) {
+            for (auto join1 : vec1) {
+                for (auto join2 : vec2) {
+                    this->PushItem(join_function_(join1, join2));
+                }
+            }
+            return;
+        }
+        if (external1 && !external2) {
+            LOG1 << "Thrill: Warning: Too many equal keys for main memory "
+                 << "in first DIA";
+            //TODO(an): Implement this.
+            assert(42 == 23);
+            return;
+        }
+        
+        if (!external1 && external2) {
+            LOG1 << "Thrill: Warning: Too many equal keys for main memory "
+                 << "in second DIA";
+            //TODO(an): Implement this.
+            assert(42 == 23);
+            return;
+        }
+       
+        if (external1 && external2) {
+            LOG1 << "Thrill: Warning: Too many equal keys for main memory "
+                 << "in both DIAs. This is very slow.";
+            //TODO(an): Implement this.
+            assert(42 == 23);
+            return;
         }
     }
 
