@@ -1,9 +1,10 @@
-/****************************************************************************** *
+/*******************************************************************************
  * thrill/core/dynamic_bitset.hpp
+ *
+ * Golomb encoded bitset
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * TODO: Add Copyright of Sebastian Schlag & original author.
  * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
@@ -13,12 +14,13 @@
 #ifndef THRILL_CORE_DYNAMIC_BITSET_HEADER
 #define THRILL_CORE_DYNAMIC_BITSET_HEADER
 
+#include <algorithm>
+#include <cmath>
+
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
-
-#include <algorithm>
-#include <cmath>
+// TODO: Add Copyright of Sebastian Schlag& original author.
 
 namespace thrill {
 namespace core {
@@ -81,7 +83,7 @@ public:
     }
 
     ~DynamicBitset() {
-		if (debug && num_elements) {
+        if (debug && num_elements) {
             std::sort(inserted_elements.begin(), inserted_elements.end());
             double entropy_total = 0;
             size_t last = 0;
@@ -109,7 +111,7 @@ public:
                  << "size(b):" << bit_size()
                  << "total_inform" << total_inform
                  << "size_factor" << (double)bit_size() / (double)total_inform;
-		}
+        }
         if (memory1 != nullptr) {
             delete[] memory1;
         }
@@ -303,10 +305,10 @@ public:
 
         v[pos] = buffer;
 
-		maxpos = std::max(pos, maxpos);
-		/*	if (pos > maxpos) {
-			maxpos = pos;
-			}*/
+        maxpos = std::max(pos, maxpos);
+        /*	if (pos > maxpos) {
+                maxpos = pos;
+                }*/
     }
 
     inline base stream_out(short length) {
@@ -366,7 +368,7 @@ public:
     inline void golomb_in(const base& value) {
         ++num_elements;
         if (debug) {
-			inserted_elements.push_back(value);
+            inserted_elements.push_back(value);
         }
         if (THRILL_LIKELY(in_called_already)) {
             assert(pos > 0);
@@ -468,7 +470,6 @@ public:
 };
 } //namespace core
 } //namespace thrill
-
 #endif // !THRILL_CORE_DYNAMIC_BITSET_HEADER
 
 /******************************************************************************/

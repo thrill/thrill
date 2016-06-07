@@ -206,11 +206,11 @@ public:
                 [this](const size_t& partition_id, const KeyValuePair& p) {
                     if (std::binary_search(duplicates_.begin(), duplicates_.end(),
                                            (std::hash<Key>()(p.first) % max_hash_))) {
-						dups_++;
+                        dups_++;
                         emit_.Emit(partition_id, p);
                     }
                     else {
-						non_dups_++;
+                        non_dups_++;
                         emit_.Emit(table_.ctx().my_rank(), p);
                     }
                 });
@@ -222,11 +222,11 @@ public:
                     KeyValuePair kv = reader.Next<KeyValuePair>();
                     if (std::binary_search(duplicates_.begin(), duplicates_.end(),
                                            (std::hash<Key>()(kv.first) % max_hash_))) {
-						dups_++;
+                        dups_++;
                         emit_.Emit(partition_id, kv);
                     }
                     else {
-						non_dups_++;
+                        non_dups_++;
                         emit_.Emit(table_.ctx().my_rank(), kv);
                     }
                 }
@@ -244,9 +244,9 @@ public:
 
     //! Closes all emitter
     void CloseAll() {
-		if (UseDuplicateDetection) {
-			LOG << "Duplicates: " << dups_ << " ,Non-Duplicates: " << non_dups_; 
-		}
+        if (UseDuplicateDetection) {
+            LOG << "Duplicates: " << dups_ << " ,Non-Duplicates: " << non_dups_;
+        }
         emit_.CloseAll();
         table_.Dispose();
     }
@@ -278,8 +278,8 @@ private:
 
     size_t unique_elements_ = 0;
     size_t total_elements_ = 0;
-	size_t non_dups_ = 0;
-	size_t dups_ = 0;
+    size_t non_dups_ = 0;
+    size_t dups_ = 0;
     size_t max_hash_;
 };
 

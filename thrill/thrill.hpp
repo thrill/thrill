@@ -38,6 +38,7 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/group_by_iterator.hpp>
 #include <thrill/api/group_by_key.hpp>
 #include <thrill/api/group_to_index.hpp>
+#include <thrill/api/join.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/min.hpp>
@@ -53,7 +54,6 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/sort.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/api/sum.hpp>
-#include <thrill/api/trivial_sim_join.hpp>
 #include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>

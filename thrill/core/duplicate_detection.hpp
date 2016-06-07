@@ -118,7 +118,7 @@ public:
         size_t upper_bound_uniques = context.net.AllReduce(unique_elements);
 
         double fpr_parameter = 8;
-        size_t b = (size_t) fpr_parameter; //(size_t)(std::log(2) * fpr_parameter);
+        size_t b = (size_t)fpr_parameter;  //(size_t)(std::log(2) * fpr_parameter);
         size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
         size_t max_hash = upper_bound_uniques * fpr_parameter;
 
