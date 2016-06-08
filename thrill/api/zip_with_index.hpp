@@ -18,13 +18,10 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
-#include <thrill/common/string.hpp>
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <functional>
-#include <vector>
 
 namespace thrill {
 namespace api {
@@ -85,7 +82,12 @@ public:
     }
 
     void Execute() final {
-        MainOp();
+        //! number of elements of this worker
+        size_t dia_local_size = file_.num_items();
+        sLOG << "dia_local_size" << dia_local_size;
+
+        dia_local_rank_ = context_.net.ExPrefixSum(dia_local_size);
+        sLOG << "dia_local_rank_" << dia_local_rank_;
     }
 
     void PushData(bool consume) final {
@@ -129,63 +131,6 @@ private:
     size_t dia_local_rank_;
 
     //! \}
-
-    //! Receive elements from other workers.
-    void MainOp() {
-        //! number of elements of this worker
-        size_t dia_local_size = file_.num_items();
-        sLOG << "dia_local_size" << dia_local_size;
-
-        dia_local_rank_ = context_.net.ExPrefixSum(dia_local_size);
-        sLOG << "dia_local_rank_" << dia_local_rank_;
-    }
-
-#if 0
-    //! Access CatReaders for different different parents.
-    template <typename Reader>
-    class ReaderNext
-    {
-    public:
-        ReaderNext(ZipNode& zip_node,
-                   std::array<Reader, kNumInputs>& readers)
-            : zip_node_(zip_node), readers_(readers) { }
-
-        //! helper for PushData() which checks all inputs
-        bool HasNext() {
-            if (Pad) {
-                for (size_t i = 0; i < kNumInputs; ++i) {
-                    if (readers_[i].HasNext()) return true;
-                }
-                return false;
-            }
-            else {
-                for (size_t i = 0; i < kNumInputs; ++i) {
-                    if (!readers_[i].HasNext()) return false;
-                }
-                return true;
-            }
-        }
-
-        template <typename Index>
-        auto operator () (const Index&) {
-
-            // get the ZipFunction's argument for this index
-            using ZipArg = ZipArgN<Index::index>;
-
-            if (Pad && !readers_[Index::index].HasNext()) {
-                // take padding_ if next is not available.
-                return std::get<Index::index>(zip_node_.padding_);
-            }
-            return readers_[Index::index].template Next<ZipArg>();
-        }
-
-    private:
-        ZipNode& zip_node_;
-
-        //! reference to the reader array in PushData().
-        std::array<Reader, kNumInputs>& readers_;
-    };
-#endif
 };
 
 template <typename ValueType, typename Stack>
