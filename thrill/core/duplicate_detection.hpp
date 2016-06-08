@@ -23,10 +23,34 @@
 namespace thrill {
 namespace core {
 
+/*!
+ * Duplicate detection to identify all elements occuring on multiple workers.
+ * This information can be used to locally reduce uniquely-occuring elements.
+ * Therefore this saves communication volume in operations such as api::Reduce()
+ * or api::Join().
+ *
+ * Internally, this duplicate detection uses a golomb encoded distributed single
+ * shot bloom filter to find duplicates with as low communication volume as possible.
+ * Due to the bloom filter's inherent properties, this has false positives but no 
+ * false negatives.
+ *
+ * Should only be used when a large amount of uniquely-occuring elements are expected.
+ */
 class DuplicateDetection
 {
 
 private:
+	/*!
+	 * Sends all hashes in [max_hash / num_workers * p, max_hash / num_workers * (p + 1))
+	 * to worker p. These hashes are encoded with a golomb encoder in core::DynamicBitset.
+	 *
+	 * \param stream_pointer Pointer to data stream
+	 * \param hashes Sorted vector of all hashes modulo max_hash
+	 * \param b Golomb parameter
+	 * \param space_bound Upper bound of used space for golomb codes
+	 * \param num_workers Number of workers in this Thrill process 
+	 * \param max_hash Modulo for all hashes
+	 */
     void WriteEncodedHashes(data::CatStreamPtr stream_pointer,
                             const std::vector<size_t>& hashes,
                             size_t b,
@@ -50,24 +74,25 @@ private:
             size_t delta = 0;
             size_t num_elements = 0;
 
-            if (j < hashes.size() && hashes[j] == 0) {
+			//! Local duplicates are only sent once, this is detected by checking equivalence
+			//! to previous element. Thus we need a special case for the first element being 0
+			 if (j < hashes.size() && hashes[j] == 0) {
                 golomb_code.golomb_in(0);
                 ++num_elements;
                 ++j;
-            }
-
+			 }
+			 
             for (            /*j is already set from previous workers*/
                 ; j < hashes.size() && hashes[j] < range_i.end; ++j) {
-
+				//! Send hash deltas to make the encoded bitset smaller.
                 if (hashes[j] != delta) {
                     ++num_elements;
                     golomb_code.golomb_in(hashes[j] - delta);
                     delta = hashes[j];
                 }
             }
-
-            golomb_code.seek();
-
+			
+			//! Send raw data through data stream.
             writers[i].Put(golomb_code.byte_size() + sizeof(size_t));
             writers[i].Put(num_elements);
             writers[i].Append(golomb_code.GetGolombData(),
@@ -76,13 +101,22 @@ private:
         }
     }
 
+	/*!
+	 * Reads a golomb encoded bitset from a data stream and returns it's contents
+	 * in form of a vector of hashes.
+	 * 
+	 * \param stream_pointer Pointer to data stream
+	 * \param target_vec Target vector for hashes, should be empty beforehand
+	 * \param b Golomb parameter
+	 */
     void ReadEncodedHashesToVector(data::CatStreamPtr stream_pointer,
                                    std::vector<size_t>& target_vec,
                                    size_t b) {
 
+		assert(!target_vec.size());
+
         auto reader = stream_pointer->GetCatReader(/* consume */ true);
 
-        size_t readindex = 0;
         while (reader.HasNext()) {
 
             size_t data_size = reader.template Next<size_t>();
@@ -90,6 +124,7 @@ private:
             size_t* raw_data = new size_t[data_size];
             reader.Read(raw_data, data_size);
 
+			//! Builds golomb encoded bitset from data recieved by the stream.
             core::DynamicBitset<size_t> golomb_code(raw_data,
                                                     common::IntegerDivRoundUp(data_size,
                                                                               sizeof(size_t)),
@@ -98,25 +133,42 @@ private:
 
             size_t last = 0;
             for (size_t i = 0; i < num_elements; ++i) {
-
+				//! Golomb code contains deltas, we want the actual values in target_vec
                 size_t new_elem = golomb_code.golomb_out() + last;
                 target_vec.push_back(new_elem);
                 last = new_elem;
             }
             delete[] raw_data;
-            readindex++;
         }
     }
 
 public:
+	/*!
+	 * Identifies all hashes which occur on more than a single worker.
+	 * Returns them in form of a vector of hashes.
+	 *
+	 * \param duplicates Empty vector, which contains all duplicate hashes
+	 *   after this method
+	 * \param hashes Hashes for all elements on this worker.
+	 * \param context Thrill context, used for collective communication
+	 * \param dia_id Id of the operation, which calls this method. Used
+	 *   to uniquely identify the data streams used.
+	 * 
+	 * \return Modulo used on all hashes. (Use this modulo on all hashes to
+	 *  identify possible duplicates)
+	 */
     size_t FindDuplicates(std::vector<size_t>& duplicates,
                           std::vector<size_t>& hashes,
                           Context& context,
-                          size_t unique_elements,
                           size_t dia_id) {
 
-        size_t upper_bound_uniques = context.net.AllReduce(unique_elements);
+		//! This bound could often be lowered when we have many duplicates.
+		//! This would however require a large amount of added communication.
+        size_t upper_bound_uniques = context.net.AllReduce(hashes.size());
 
+		//! Golomb Parameters taken from original paper (Sanders, Schlag, Müller)
+
+		//! Parameter for false positive rate (FPR: 1/fpr_parameter)
         double fpr_parameter = 8;
         size_t b = (size_t) fpr_parameter; //(size_t)(std::log(2) * fpr_parameter);
         size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
@@ -130,7 +182,7 @@ public:
 
         data::CatStreamPtr golomb_data_stream = context.GetNewCatStream(dia_id);
 
-        WriteEncodedHashes(golomb_data_stream,
+		WriteEncodedHashes(golomb_data_stream,
                            hashes, b,
                            upper_space_bound,
                            context.num_workers(),
@@ -159,6 +211,8 @@ public:
             }
 
             for (size_t j = 0; j < hashes_dups.size() - 1; ++j) {
+				//! finds all duplicated hashes and insert them in the golomb code for duplicates
+				//! (regardless whether they appear on 2 or multiple workers)
                 if ((hashes_dups[j] == hashes_dups[j + 1]) && (hashes_dups[j] != delta)) {
                     duplicate_code.golomb_in(hashes_dups[j] - delta);
                     delta = hashes_dups[j];
@@ -172,8 +226,8 @@ public:
         std::vector<data::CatStream::Writer> duplicate_writers =
             duplicates_stream->GetWriters();
 
+		//! Send all duplicates to all workers (golomb encoded).
         for (size_t i = 0; i < duplicate_writers.size(); ++i) {
-
             duplicate_writers[i].Put(duplicate_code.byte_size() + sizeof(size_t));
             duplicate_writers[i].Put(num_elements);
             duplicate_writers[i].Append(duplicate_code.GetGolombData(),

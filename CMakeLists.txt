@@ -30,7 +30,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(THRILL_USE_MPI
-  "Use (optional) MPI net backend." ON)
+  "Use (optional) MPI net backend." OFF)
 
 option(THRILL_USE_TBB
   "Use (optional) Intel TBB library if available." ON)

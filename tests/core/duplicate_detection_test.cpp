@@ -31,7 +31,6 @@ TEST(DuplicateDetection, AllDuplicatedList) {
                           duplicate_detection.FindDuplicates(duplicates,
                                                              hashes,
                                                              ctx,
-                                                             elements,
                                                              0);
 
                           if (ctx.num_workers() > 1) {
@@ -79,12 +78,9 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
 
                           core::DuplicateDetection duplicate_detection;
 
-                          size_t unique_per = elements / ctx.num_workers() + delta;
-
                           duplicate_detection.FindDuplicates(duplicates,
                                                              hashes,
                                                              ctx,
-                                                             unique_per,
                                                              0);
 
                           for (size_t i = 0; i < splitters.size(); ++i) {
@@ -132,12 +128,9 @@ TEST(DuplicateDetection, SomeDuplicatedElementsNonConsec) {
 
                           core::DuplicateDetection duplicate_detection;
 
-                          size_t unique_per = elements / ctx.num_workers() + delta;
-
                           duplicate_detection.FindDuplicates(duplicates,
                                                              hashes,
                                                              ctx,
-                                                             unique_per,
                                                              0);
 
                           for (size_t i = 0; i < splitters.size(); ++i) {
@@ -167,7 +160,6 @@ TEST(DuplicateDetection, AllDuplicatedHash) {
                           duplicate_detection.FindDuplicates(duplicates,
                                                              hashes,
                                                              ctx,
-                                                             elements,
                                                              0);
 
                           if (ctx.num_workers() > 1) {

@@ -162,34 +162,24 @@ public:
     }
 
     void Insert(const Value& p) {
-        total_elements_++;
-        if (table_.Insert(p)) {
-            unique_elements_++;
-            if (UseDuplicateDetection) {
-                hashes_.push_back(std::hash<Key>()(key_extractor_(p)));
-            }
-        }
+        if (table_.Insert(p) && UseDuplicateDetection) {
+			hashes_.push_back(std::hash<Key>()(key_extractor_(p)));
+		}
     }
 
     void Insert(const KeyValuePair& kv) {
-        total_elements_++;
-        if (table_.Insert(kv)) {
-            unique_elements_++;
-            if (UseDuplicateDetection) {
-                hashes_.push_back(std::hash<Key>()(kv.first));
-            }
-        }
+        if (table_.Insert(kv) && UseDuplicateDetection) {
+			hashes_.push_back(std::hash<Key>()(kv.first));
+		}
     }
 
     //! Flush all partitions
     void FlushAll() {
-
         if (UseDuplicateDetection) {
             DuplicateDetection dup_detect;
             max_hash_ = dup_detect.FindDuplicates(duplicates_,
                                                   hashes_,
                                                   table_.ctx(),
-                                                  unique_elements_,
                                                   table_.dia_id());
         }
 
@@ -206,11 +196,11 @@ public:
                 [this](const size_t& partition_id, const KeyValuePair& p) {
                     if (std::binary_search(duplicates_.begin(), duplicates_.end(),
                                            (std::hash<Key>()(p.first) % max_hash_))) {
-						dups_++;
+						duplicated_elements_++;
                         emit_.Emit(partition_id, p);
                     }
                     else {
-						non_dups_++;
+						non_duplicate_elements_++;
                         emit_.Emit(table_.ctx().my_rank(), p);
                     }
                 });
@@ -222,11 +212,11 @@ public:
                     KeyValuePair kv = reader.Next<KeyValuePair>();
                     if (std::binary_search(duplicates_.begin(), duplicates_.end(),
                                            (std::hash<Key>()(kv.first) % max_hash_))) {
-						dups_++;
+						duplicated_elements_++;
                         emit_.Emit(partition_id, kv);
                     }
                     else {
-						non_dups_++;
+						non_duplicate_elements_++;
                         emit_.Emit(table_.ctx().my_rank(), kv);
                     }
                 }
@@ -245,7 +235,9 @@ public:
     //! Closes all emitter
     void CloseAll() {
 		if (UseDuplicateDetection) {
-			LOG << "Duplicates: " << dups_ << " ,Non-Duplicates: " << non_dups_; 
+			LOG << "Reduce Pre-Stage completed." 
+				<< " #duplicates: " << duplicated_elements_
+				<< " #non-duplicates: " << non_duplicate_elements_; 
 		}
         emit_.CloseAll();
         table_.Dispose();
@@ -256,9 +248,6 @@ public:
 
     //! Returns the total num of items in the table.
     size_t num_items() const { return table_.num_items(); }
-
-    std::vector<size_t> hashes_;
-    std::vector<size_t> duplicates_;
 
     //! calculate key range for the given output partition
     common::Range key_range(size_t partition_id)
@@ -276,11 +265,23 @@ private:
     //! the first-level hash table implementation
     Table table_;
 
-    size_t unique_elements_ = 0;
-    size_t total_elements_ = 0;
-	size_t non_dups_ = 0;
-	size_t dups_ = 0;
+	//! \name Duplicate Detection 
+	//! \{
+	
+	//! Hashes of all keys.
+    std::vector<size_t> hashes_;
+	//! All elements occuring on more than one worker. (Elements not appearing here
+	//! can be reduced locally)
+    std::vector<size_t> duplicates_;
+
+	//! Number of non-duplicates sent to a worker
+	size_t non_duplicate_elements_ = 0;
+	//! Number of duplicates reduced locally.
+	size_t duplicated_elements_ = 0;
+	//! Modulo for all hashes in duplicate detection to reduce hash space.
     size_t max_hash_;
+	
+	//! \}
 };
 
 } // namespace core
