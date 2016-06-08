@@ -196,6 +196,7 @@ public:
                 [this](const size_t& partition_id, const KeyValuePair& p) {
                     if (std::binary_search(duplicates_.begin(), duplicates_.end(),
                                            (std::hash<Key>()(p.first) % max_hash_))) {
+
 						duplicated_elements_++;
                         emit_.Emit(partition_id, p);
                     }
@@ -212,11 +213,12 @@ public:
                     KeyValuePair kv = reader.Next<KeyValuePair>();
                     if (std::binary_search(duplicates_.begin(), duplicates_.end(),
                                            (std::hash<Key>()(kv.first) % max_hash_))) {
+
 						duplicated_elements_++;
                         emit_.Emit(partition_id, kv);
                     }
                     else {
-						non_duplicate_elements_++;
+			non_duplicate_elements_++;
                         emit_.Emit(table_.ctx().my_rank(), kv);
                     }
                 }

@@ -31,39 +31,38 @@ TEST(Join, PairsUnique) {
     auto start_func =
         [](Context& ctx) {
 
-		using intpair = std::pair<size_t, size_t>;
-		using intuple = std::tuple<size_t, size_t, size_t>;
+            using intpair = std::pair<size_t, size_t>;
+            using intuple = std::tuple<size_t, size_t, size_t>;
 
-		size_t n = 9999;
+            size_t n = 9999;
 
-		auto dia1 = Generate(ctx, [](const size_t& e) {
-				return std::make_pair(e, e * e);
-			}, n);
+            auto dia1 = Generate(ctx, [](const size_t& e) {
+                                     return std::make_pair(e, e * e);
+                                 }, n);
 
-		auto dia2 = Generate(ctx, [](const size_t& e) {
-				return std::make_pair(e, e * e * e);
-			}, n);
+            auto dia2 = Generate(ctx, [](const size_t& e) {
+                                     return std::make_pair(e, e * e * e);
+                                 }, n);
 
-		auto key_ex = [](intpair input) {
-			return input.first;
-		};
+            auto key_ex = [](intpair input) {
+                              return input.first;
+                          };
 
-		auto join_fn = [](intpair input1, intpair input2) {
-			return std::make_tuple(input1.first, input1.second, input2.second);
-		};
+            auto join_fn = [](intpair input1, intpair input2) {
+                               return std::make_tuple(input1.first, input1.second, input2.second);
+                           };
 
-		auto joined = dia1.InnerJoinWith(dia2, key_ex, key_ex, join_fn);
-		std::vector<intuple> out_vec = joined.AllGather();
+            auto joined = dia1.InnerJoinWith(dia2, key_ex, key_ex, join_fn);
+            std::vector<intuple> out_vec = joined.AllGather();
 
-		std::sort(out_vec.begin(), out_vec.end(), [](intuple in1, intuple in2) {
-				return std::get<0>(in1) < std::get<0>(in2);
-			});
+            std::sort(out_vec.begin(), out_vec.end(), [](intuple in1, intuple in2) {
+                          return std::get<0>(in1) < std::get<0>(in2);
+                      });
 
-		ASSERT_EQ(n, out_vec.size());
-		for (size_t i = 0; i < out_vec.size(); i++) {
-			ASSERT_EQ(std::make_tuple(i, i * i, i * i * i), out_vec[i]);
-		}
-
+            ASSERT_EQ(n, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); i++) {
+                ASSERT_EQ(std::make_tuple(i, i * i, i * i * i), out_vec[i]);
+            }
         };
 
     api::RunLocalTests(start_func);
@@ -74,46 +73,45 @@ TEST(Join, PairsSameKey) {
     auto start_func =
         [](Context& ctx) {
 
-		using intpair = std::pair<size_t, size_t>;
+            using intpair = std::pair<size_t, size_t>;
 
-		size_t n = 333;
+            size_t n = 333;
 
-		auto dia1 = Generate(ctx, [](const size_t& e) {
-				return std::make_pair(1, e);
-			}, n);
+            auto dia1 = Generate(ctx, [](const size_t& e) {
+                                     return std::make_pair(1, e);
+                                 }, n);
 
-		auto dia2 = Generate(ctx, [](const size_t& e) {
-				return std::make_pair(1, e * e);
-			}, n);
+            auto dia2 = Generate(ctx, [](const size_t& e) {
+                                     return std::make_pair(1, e * e);
+                                 }, n);
 
-		auto key_ex = [](intpair input) {
-			return input.first;
-		};
+            auto key_ex = [](intpair input) {
+                              return input.first;
+                          };
 
-		auto join_fn = [](intpair input1, intpair input2) {
-			return std::make_pair(input1.second, input2.second);
-		};
+            auto join_fn = [](intpair input1, intpair input2) {
+                               return std::make_pair(input1.second, input2.second);
+                           };
 
-		auto joined = dia1.InnerJoinWith(dia2, key_ex, key_ex, join_fn);
-		std::vector<intpair> out_vec = joined.AllGather();
+            auto joined = dia1.InnerJoinWith(dia2, key_ex, key_ex, join_fn);
+            std::vector<intpair> out_vec = joined.AllGather();
 
-		std::sort(out_vec.begin(), out_vec.end(), [](intpair in1, intpair in2) {
-				if (in1.first == in2.first) {
-					return in1.second < in2.second;
-				} else {
-					return in1.first < in2.first;
-				}
-			});
+            std::sort(out_vec.begin(), out_vec.end(), [](intpair in1, intpair in2) {
+                          if (in1.first == in2.first) {
+                              return in1.second < in2.second;
+                          }
+                          else {
+                              return in1.first < in2.first;
+                          }
+                      });
 
-		ASSERT_EQ(n * n, out_vec.size());
-		for (size_t i = 0; i < out_vec.size(); i++) {
-			ASSERT_EQ(std::make_pair(i / n, (i % n) * (i % n)), out_vec[i]);
-		}
-
+            ASSERT_EQ(n * n, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); i++) {
+                ASSERT_EQ(std::make_pair(i / n, (i % n) * (i % n)), out_vec[i]);
+            }
         };
 
     api::RunLocalTests(start_func);
 }
-
 
 /******************************************************************************/

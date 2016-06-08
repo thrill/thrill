@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# benchmarks/hashtable/bench_hashtable.py
+# benchmarks/duplicates/bench_golomb.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #
@@ -49,3 +49,5 @@ for p in param:
                 file1.close()
 
 
+
+##########################################################################

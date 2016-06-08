@@ -623,8 +623,6 @@ public:
                      const ReduceFunction &reduce_function,
                      const ReduceConfig& reduce_config = ReduceConfig()) const;
 
-
-
     /*!
      * ReduceByKey is a DOp, which groups elements of the DIA with the
      * key_extractor and reduces each key-bucket to a single element using the
@@ -909,12 +907,12 @@ public:
     auto Zip(struct CutTag, const SecondDIA &second_dia,
              const ZipFunction &zip_function) const;
 
-	template <typename KeyExtractor1, typename KeyExtractor2,
-			  typename JoinFunction, typename SecondDIA>
-	auto InnerJoinWith(const SecondDIA &second_dia,
-					   const KeyExtractor1& key_extractor1,
-					   const KeyExtractor2& key_extractor2,
-					   const JoinFunction& join_function) const;
+    template <typename KeyExtractor1, typename KeyExtractor2,
+              typename JoinFunction, typename SecondDIA>
+    auto InnerJoinWith(const SecondDIA &second_dia,
+                       const KeyExtractor1 &key_extractor1,
+                       const KeyExtractor2 &key_extractor2,
+                       const JoinFunction &join_function) const;
 
     /*!
      * Zips two DIAs in style of functional programming by applying zip_function
