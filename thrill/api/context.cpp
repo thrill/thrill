@@ -423,7 +423,8 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     std::cerr << "Thrill: running in tcp network with " << hostlist.size()
               << " hosts and " << workers_per_host << " workers per host"
-              << " as rank " << my_host_rank << " with endpoints";
+              << " with " << common::GetHostname()
+              << " as rank " << my_host_rank << " and endpoints";
     for (const std::string& ep : hostlist)
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
@@ -506,6 +507,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
     std::cerr << "Thrill: running in MPI network with " << num_hosts
               << " hosts and " << workers_per_host << " workers per host"
+              << " with " << common::GetHostname()
               << " as rank " << mpi_rank << "."
               << std::endl;
 
@@ -588,6 +590,7 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
 
     std::cerr << "Thrill: running in IB/MPI network with " << num_hosts
               << " hosts and " << workers_per_host << " workers per host"
+              << " with " << common::GetHostname()
               << " as rank " << mpi_rank << "."
               << std::endl;
 
