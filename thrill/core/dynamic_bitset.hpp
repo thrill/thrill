@@ -25,73 +25,94 @@
 namespace thrill {
 namespace core {
 
-template <typename base = uint64_t>
+/*!
+ * Dynamic bitset, which encodes values with a golomb encoder.
+ *
+ * \param BaseType integer type used in the encoder
+ */
+template <typename BaseType = uint64_t>
 class DynamicBitset
 {
 private:
-    static const int bit_length = sizeof(base) * 8, bit_length_doubled = 2 * bit_length, logbase = std::log2(bit_length);
-    static const base mask = (((base)1) << logbase) - 1, all_set = ~((base)0), msb_set = ((base)1) << (bit_length - 1);
+	//! Helper constants
+    static const int bit_length = sizeof(BaseType) * 8, bit_length_doubled = 2 * bit_length, logbase = std::log2(bit_length);
+    static const BaseType mask = (((BaseType)1) << logbase) - 1, all_set = ~((BaseType)0), msb_set = ((BaseType)1) << (bit_length - 1);
 
     static constexpr bool debug = false;
-    std::vector<size_t> inserted_elements;
+	//! Used to compute total amount of entropy encoded
+    std::vector<size_t> inserted_elements_;
 
     const int alignment = 64;
 
-    using index_type = size_t;
+    using IndexType = size_t;
     using byte = uint8_t;
 
-    index_type n, m;
+	//! Maximum size of bitset
+    IndexType bitset_size_bits_, bitset_size_base_;
 
-    base* v;
-    byte* memory1;
+    BaseType* data_;
+    byte* memory_;
 
-    bool in_called_already;
-    bool out_called_already;
+	//!true, when golomb_in was called already
+    bool in_called_already_;
+	//!true, when golomb_out was called already
+    bool out_called_already_;
 
-    const base b;
-    const int p;
-    const base max_little_value;
+	//! Golomb Parameter
+    const BaseType b_;
+	//! ceil(log2(b)) 
+    const int log2b_;
+    const BaseType max_little_value_;
 
 public:
-    DynamicBitset(index_type _n, bool init = false, base _b = 1)
-        : b(_b),                         // Golomb tuning parameter
-          p(common::IntegerLog2Ceil(b)), // helper var for golomb in
-          max_little_value((((base)1) << p) - b) {
-        n = _n;
-        m = n / (sizeof(base) * 8) + 1;
-        memory1 = new byte[sizeof(base) * m + alignment];
-        in_called_already = false;
-        out_called_already = false;
-        num_elements = 0;
+	/*!
+	 * Create a new bitset, allocate memory
+	 *
+	 * \param n bits of allocated memory
+	 * \param init true, when bits should be set
+	 * \param b golomb parameter
+	 */
+    DynamicBitset(IndexType n, bool init = false, BaseType b = 1)
+        : b_(b),                         // Golomb tuning parameter
+          log2b_(common::IntegerLog2Ceil(b_)), // helper var for golomb in
+          max_little_value_((((BaseType)1) << log2b_) - b_) {
+		bitset_size_bits_ = n;
+        bitset_size_base_ = bitset_size_bits_ / (sizeof(BaseType) * 8) + 1;
+        memory_ = new byte[sizeof(BaseType) * bitset_size_base_ + alignment];
+        in_called_already_ = false;
+        out_called_already_ = false;
+        num_elements_ = 0;
 
-        v = new ((void*)((((ptrdiff_t)memory1) & ~((ptrdiff_t)alignment - 1)) + alignment))base[m];
+        data_ = new ((void*)((((ptrdiff_t)memory_) & ~((ptrdiff_t)alignment - 1)) + alignment))BaseType[bitset_size_base_];
 
         if (init) {
-            for (index_type i = 0; i < m; i++) {
-                v[i] = all_set;                 //all bits set
+            for (IndexType i = 0; i < bitset_size_base_; i++) {
+                data_[i] = all_set;                 //all bits set
             }
         }
         else {
-            for (index_type i = 0; i < m; i++) {
-                v[i] = 0;
-            }
+			for (IndexType i = 0; i < bitset_size_base_; i++) {
+                data_[i] = 0;
+			}
         }
 
-        pos = maxpos = 0;
-        bits = 0;
-        buffer = 0;
+        pos_ = maxpos_ = 0;
+        bits_ = 0;
+        buffer_ = 0;
     }
 
-    ~DynamicBitset() {
-        if (debug && num_elements) {
-            std::sort(inserted_elements.begin(), inserted_elements.end());
+
+    ~DynamicBitset() {		
+        if (debug && num_elements_) {
+			//! Compute total entropy and compare bitset size with entropy
+            std::sort(inserted_elements_.begin(), inserted_elements_.end());
             double entropy_total = 0;
             size_t last = 0;
             double total_prob = 0;
-            for (size_t i = 1; i < inserted_elements.size(); ++i) {
-                if (inserted_elements[i] > inserted_elements[i - 1]) {
+            for (size_t i = 1; i < inserted_elements_.size(); ++i) {
+                if (inserted_elements_[i] > inserted_elements_[i - 1]) {
                     size_t equal_elements = i - last;
-                    double probability = (double)equal_elements / (double)num_elements;
+                    double probability = (double)equal_elements / (double)num_elements_;
                     total_prob += probability;
                     double entropy_i = probability * std::log2(probability);
                     assert(entropy_i < 0);
@@ -99,87 +120,114 @@ public:
                     last = i;
                 }
             }
-            double last_prob = (double)(num_elements - last) / (double)num_elements;
+            double last_prob = (double)(num_elements_ - last) / (double)num_elements_;
             entropy_total -= last_prob * std::log2(last_prob);
             total_prob += last_prob;
 
             assert(std::fabs(total_prob - 1.0) <= 0.00001);
 
-            size_t total_inform = std::ceil(entropy_total * (double)num_elements);
+            size_t total_inform = std::ceil(entropy_total * (double)num_elements_);
 
-            sLOG << "Bitset: items:" << num_elements
-                 << "size(b):" << bit_size()
-                 << "total_inform" << total_inform
-                 << "size_factor" << (double)bit_size() / (double)total_inform;
+            sLOG1 << "Bitset: items:" << num_elements_
+				  << "size(b):" << bit_size()
+				  << "total_inform" << total_inform
+				  << "size_factor" << (double)bit_size() / (double)total_inform;
         }
-        if (memory1 != nullptr) {
-            delete[] memory1;
+
+        if (memory_ != nullptr) {
+            delete[] memory_;
         }
     }
-    /* -------------------------------------------------------------------------------*/
-    DynamicBitset(base* _data, index_type _m, base _b, size_t _num_elements)
-        : n(0),
-          m(_m),
-          v(_data),
-          b(_b),
-          p(common::IntegerLog2Ceil(b)),
-          max_little_value((((base)1) << p) - b),
-          num_elements(_num_elements) {
-        memory1 = nullptr;
-        pos = 0;
-        maxpos = _m;
-        bits = 0;
-        buffer = 0;
-        in_called_already = (_m > 0);
-        out_called_already = false;
+	
+	/*!
+	 * Create bitset with pre-existing data.
+	 * 
+	 * \param data Pointer to bitset data
+	 * \param bitsize Size of data in BaseType elements
+	 * \param b Golomb parameter
+	 * \param num_elements Number of elements in bitset
+	 */
+    DynamicBitset(BaseType* data, IndexType size, BaseType b, size_t num_elements)
+        : bitset_size_bits_(0),
+          bitset_size_base_(size),
+          data_(data),
+          b_(b),
+          log2b_(common::IntegerLog2Ceil(b_)),
+          max_little_value_((((BaseType)1) << log2b_) - b_),
+          num_elements_(num_elements) {
+        memory_ = nullptr;
+        pos_ = 0;
+        maxpos_ = size;
+        bits_ = 0;
+        buffer_ = 0;
+        in_called_already_ = (size > 0);
+        out_called_already_ = false;
     }
 
-    inline index_type Getm() {
-        return m;
+	//! \name Parameter Getters
+	//! \{
+    inline IndexType Getm() {
+        return bitset_size_base_;
     }
 
-    inline index_type GetMaxPos() {
-        return maxpos;
+    inline IndexType GetMaxPos() {
+        return maxpos_;
     }
 
-    inline index_type GetPos() {
-        return pos;
+    inline IndexType GetPos() {
+        return pos_;
     }
     inline int GetBits() {
-        return bits;
+        return bits_;
     }
-    inline base * GetGolombData() const {
-        return v;
+    inline BaseType * GetGolombData() const {
+        return data_;
     }
 
-    inline index_type ByteSize() const {
+    inline IndexType ByteSize() const {
         return byte_size();
     }
 
-    inline base GetBuffer() const {
-        return buffer;
+    inline BaseType GetBuffer() const {
+        return buffer_;
     }
 
-    inline index_type size() const {
-        return common::IntegerDivRoundUp((index_type)byte_size(), (index_type)8);
+    inline IndexType size() const {
+        return common::IntegerDivRoundUp((IndexType)byte_size(), (IndexType)8);
     }
+	
+    inline size_t byte_size() const {
+        if (maxpos_ > 0) {
+            return (maxpos_ * bit_length / 8) + common::IntegerDivRoundUp(bits_, 8);
+        }
+        else {
+            return common::IntegerDivRoundUp(bits_, 8);
+        }
+    }
+
+    inline size_t bit_size() const {
+        return maxpos_ * bit_length + bits_;
+    }
+
+	//! \}
 
     inline void clear() {
-        for (index_type i = 0; i < m; i++) {
-            v[i] = 0;
+        for (IndexType i = 0; i < bitset_size_base_; i++) {
+            data_[i] = 0;
         }
-        pos = maxpos = 0;
-        bits = 0;
-        buffer = 0;
+        pos_ = maxpos_ = 0;
+        bits_ = 0;
+        buffer_ = 0;
     }
 
     /* -------------------------------------------------------------------------------*/
 
-    inline void set(index_type pos) {
-        v[pos >> logbase] |= (msb_set >> (pos & mask));
+	//! \name Setters {
+    inline void set(IndexType pos) {
+        data_[pos >> logbase] |= (msb_set >> (pos & mask));
     }
 
-    inline void set(index_type pos, bool value) {
+    inline void set(IndexType pos, bool value) {
         if (value)
             set(pos);
         else
@@ -187,10 +235,10 @@ public:
     }
 
     // PRECONDITION: length < bit_length
-    inline void set(index_type pos, int length, base value) {
+    inline void set(IndexType pos, int length, BaseType value) {
         // cout << pos << " " << length << endl;
 
-        index_type block = pos >> logbase;     // / bit_length
+        IndexType block = pos >> logbase;     // / bit_length
         int bit_start = pos & mask;            // % bit_length
         // bit_start < bit_length
 
@@ -198,53 +246,58 @@ public:
             // use two block, even more are unsupported
             int length_first = bit_length - bit_start, length_second = length - length_first;
             // length_second < bit_length
-            v[block] = (v[block] & ~(all_set >> bit_start)) | (value >> length_second);
-            v[block + 1] = (v[block + 1] & (all_set >> length_second)) | (value << (bit_length - length_second));
+            data_[block] = (data_[block] & ~(all_set >> bit_start)) | (value >> length_second);
+            data_[block + 1] = (data_[block + 1] & (all_set >> length_second)) | (value << (bit_length - length_second));
         }
         else if (bit_start + length == bit_length) {
-            v[block] = (v[block] & ~(all_set >> bit_start))
+            data_[block] = (data_[block] & ~(all_set >> bit_start))
                        | (value << (bit_length - (bit_start + length)));
         }
         else {
-            v[block] = (v[block] & (~(all_set >> bit_start) | (all_set >> (bit_start + length))))
+            data_[block] = (data_[block] & (~(all_set >> bit_start) | (all_set >> (bit_start + length))))
                        | (value << (bit_length - (bit_start + length)));
         }
     }
 
-    inline void reset(index_type pos) {
-        v[pos >> logbase] &= ~(msb_set >> (pos & mask));
+    inline void reset(IndexType pos) {
+        data_[pos >> logbase] &= ~(msb_set >> (pos & mask));
     }
 
-    inline bool operator [] (index_type pos) const {
-        return (v[pos >> logbase] & (msb_set >> (pos & mask))) != 0;
+	//! \}
+
+	//! \name Getters
+	//! \{
+
+    inline bool operator [] (IndexType pos) const {
+        return (data_[pos >> logbase] & (msb_set >> (pos & mask))) != 0;
     }
 
-    inline base get(index_type pos) const {
-        return (v[pos >> logbase] & (msb_set >> (pos & mask))) >> (~pos & mask);
+    inline BaseType get(IndexType pos) const {
+        return (data_[pos >> logbase] & (msb_set >> (pos & mask))) >> (~pos & mask);
     }
 
     // PRECONDITION: length < bit_length
-    inline base get(index_type pos, int length) const {
-        base res;
+    inline BaseType get(IndexType pos, int length) const {
+        BaseType res;
 
         // cout << pos << " " << length << endl;
 
-        index_type block = pos >> logbase;                                                          // / bit_length
+        IndexType block = pos >> logbase;                                                          // / bit_length
         int bit_start = pos & mask;                                                                 // % bit_length
 
         if (bit_start + length >= bit_length) {                                                     //equality to avoid problems with shifts of more than word-length
             // use two block, even more are unsupported
             int length_first = bit_length - bit_start, length_second = length - length_first;
-            res = ((v[block] & (all_set >> bit_start)) << length_second)
-                  | ((v[block + 1] & ~(all_set >> length_second)) >> (bit_length - length_second)); //length_second == 0 does not hurt here, since 0 anyways
+            res = ((data_[block] & (all_set >> bit_start)) << length_second)
+                  | ((data_[block + 1] & ~(all_set >> length_second)) >> (bit_length - length_second)); //length_second == 0 does not hurt here, since 0 anyways
         }
         else {
-            res = (v[block] & (all_set >> bit_start) & ~(all_set >> (bit_start + length))) >> ((~(pos + length - 1)) & mask);
+            res = (data_[block] & (all_set >> bit_start) & ~(all_set >> (bit_start + length))) >> ((~(pos + length - 1)) & mask);
         }
         return res;
     }
 
-    inline long long get_signed(index_type pos, int length) const {
+    inline long long get_signed(IndexType pos, int length) const {
         long long res = get(pos, length);
 
         // sign extension
@@ -255,126 +308,163 @@ public:
         return res;
     }
 
+	//! \}
+
     // streaming functions
 
 private:
-    base buffer;
-    index_type pos, maxpos;
-    int bits;
-    size_t num_elements;
+    BaseType buffer_;
+    IndexType pos_, maxpos_;
+    int bits_;
+    size_t num_elements_;
 
 public:
+	/*!
+	 * Sets the pointer to a specific position
+	 * 
+	 * \param bit_pos Target position
+	 */
     inline void seek(size_t bit_pos = 0) {
-        //      v[pos] = buffer;  //write back last result
-
-        pos = bit_pos >> logbase;
-        bits = bit_pos & mask;
-        buffer = v[pos] << bits;
+        pos_ = bit_pos >> logbase;
+        bits_ = bit_pos & mask;
+        buffer_ = data_[pos_] << bits_;
     }
 
-    inline base cursor() {
-        return (pos << logbase) + bits;
+	/*! 
+	 * Returns the postiion of the cursor
+	 *
+	 * \return cursor position
+	 */
+    inline BaseType cursor() {
+        return (pos_ << logbase) + bits_;
     }
 
-    inline void stream_in(short length, base value) {
-        assert(pos * 8 < n);
-        if (bits + length > bit_length) {
-            int length_first = bit_length - bits, length_second = length - length_first;
+	/*!
+	 * Inserts a new value into the data array.
+	 * 
+	 * \param length size of the new value in bits
+	 * \param value new value
+	 */
+    inline void stream_in(short length, BaseType value) {
+        assert(pos_ * 8 < bitset_size_bits_);
+        if (bits_ + length > bit_length) {
+			//! buffer overflown
+            int length_first = bit_length - bits_, length_second = length - length_first;
 
-            buffer |= value >> (length - length_first);
+            buffer_ |= value >> (length - length_first);
 
-            v[pos] = buffer;
-            pos++;
+            data_[pos_] = buffer_;
+            pos_++;
 
-            buffer = value << (bit_length - length_second);
-            bits = (bits + length) & mask;
+            buffer_ = value << (bit_length - length_second);
+            bits_ = (bits_ + length) & mask;
         }
-        else if (bits + length == bit_length) {
-            buffer |= value;
+        else if (bits_ + length == bit_length) {
+			//! buffer just filled
+            buffer_ |= value;
 
-            v[pos] = buffer;
-            pos++;
+            data_[pos_] = buffer_;
+            pos_++;
 
-            buffer = 0;
-            bits = 0;
+            buffer_ = 0;
+            bits_ = 0;
         }
         else {
-            buffer |= value << (bit_length - (length + bits));
-            bits += length;
+			//! buffer not full
+            buffer_ |= value << (bit_length - (length + bits_));
+            bits_ += length;
         }
 
-        v[pos] = buffer;
-
-        maxpos = std::max(pos, maxpos);
-        /*	if (pos > maxpos) {
-                maxpos = pos;
-                }*/
+        data_[pos_] = buffer_;
+        maxpos_ = std::max(pos_, maxpos_);
     }
 
-    inline base stream_out(short length) {
-        base res;
+	/*!
+	 * Returns bits following the cursor.
+	 * 
+	 * \param length number of bits to return
+	 *
+	 * \return {length} bits following the cursor
+	 */
+    inline BaseType stream_out(short length) {
+        BaseType res;
 
-        if ((bits + length) > bit_length) {
-            int length_first = bit_length - bits + 1, length_second = length - length_first;
+        if ((bits_ + length) > bit_length) {
+			//value continuing in next array element
+            int length_first = bit_length - bits_ + 1, length_second = length - length_first;
 
-            res = buffer >> (bits - 1) << length_second;
-            pos++;
-            buffer = v[pos];
+            res = buffer_ >> (bits_ - 1) << length_second;
+            pos_++;
+            buffer_ = data_[pos_];
 
-            res |= buffer >> (bit_length_doubled - length - bits);
+            res |= buffer_ >> (bit_length_doubled - length - bits_);
 
-            bits = (bits + length) & mask;
-            buffer <<= bits;
+            bits_ = (bits_ + length) & mask;
+            buffer_ <<= bits_;
         }
-        else if ((bits + length) == bit_length) {
-            res = buffer >> bits;
-            pos++;
-            bits = 0;
-            buffer = v[pos];
+        else if ((bits_ + length) == bit_length) {
+			//value ending at end of array element 
+            res = buffer_ >> bits_;
+            pos_++;
+            bits_ = 0;
+            buffer_ = data_[pos_];
         }
         else {
-            res = (buffer >> (bit_length - length));
-            bits += length;
-            buffer <<= length;
+			// in single array element
+            res = (buffer_ >> (bit_length - length));
+            bits_ += length;
+            buffer_ <<= length;
         }
 
         return res;
     }
 
+	/*!
+	 * Returns the number of continuous 1 bits following the cursor. Used in golomb
+	 * decoding.
+	 * 
+	 * \return Number of continuous 1 bits following the cursor
+	 */
     inline int number_of_ones() {
         int no1 = 0;
-        while (buffer & msb_set) {
-            buffer <<= 1;
-            bits++;
+        while (buffer_ & msb_set) {
+            buffer_ <<= 1;
+            bits_++;
             no1++;
-            if (bits == bit_length) {
-                bits = 0;
-                pos++;
-                buffer = v[pos];
+            if (bits_ == bit_length) {
+                bits_ = 0;
+                pos_++;
+                buffer_ = data_[pos_];
             }
         }
 
         // skip 0
-        buffer <<= 1;
-        bits++;
-        if (bits == bit_length) {
-            bits = 0;
-            pos++;
-            buffer = v[pos];
+        buffer_ <<= 1;
+        bits_++;
+        if (bits_ == bit_length) {
+            bits_ = 0;
+            pos_++;
+            buffer_ = data_[pos_];
         }
         return no1;
     }
 
-    inline void golomb_in(const base& value) {
-        ++num_elements;
+	/*!
+	 * Inserts a new value into the bitset.
+	 */
+    inline void golomb_in(const BaseType& value) {
+        ++num_elements_;
         if (debug) {
-            inserted_elements.push_back(value);
+            inserted_elements_.push_back(value);
         }
-        if (THRILL_LIKELY(in_called_already)) {
-            assert(pos > 0);
+        if (THRILL_LIKELY(in_called_already_)) {
+			assert(pos_ > 0);
 
-            base q = (value - 1) / b;
-            base r = (value - 1) - (q * b);
+			//! As we encode deltas, no value can be 0. Therefore we encode value - 1
+			//! and add 1 when decoding.
+			//! golomb_enc(value) = unary encoding of (value / b),0,binary encoding of (value % b)
+            BaseType q = (value - 1) / b_;
+            BaseType r = (value - 1) - (q * b_);
 
             // d049672: golomb_in might fail on pathological sequences
             // that push the golomb code to its maximum size.
@@ -387,85 +477,82 @@ public:
                 stream_in(bit_length, all_set);
             }
 
-            if (THRILL_UNLIKELY(q + 1 + p > bit_length)) {
+            if (THRILL_UNLIKELY(q + 1 + log2b_ > bit_length)) {
+				//! When we need more than bit_length bits to encode a value, q and r
+				//! have to be inserted separately, as stream_in can only handle up to
+				//! bit_length bits at once
                 assert(q + 1 <= bit_length);
-                base res = (all_set >> (bit_length - q - 1)) - 1;
+                BaseType res = (all_set >> (bit_length - q - 1)) - 1;
                 stream_in(q + 1, res);
-                if (r >= max_little_value) {
-                    stream_in(p, r + max_little_value);
+                if (r >= max_little_value_) {
+                    stream_in(log2b_, r + max_little_value_);
                 }
                 else {
-                    stream_in(p - 1, r);
+                    stream_in(log2b_ - 1, r);
                 }
             }
             else {
+				//! default case
+                BaseType res = (all_set >> (bit_length - q - 1)) - 1;
 
-                base res = (all_set >> (bit_length - q - 1)) - 1;
-
-                if (r >= max_little_value) {
-                    res = (res << p) | (r + max_little_value);
-                    stream_in(q + 1 + p, res);
+                if (r >= max_little_value_) {
+                    res = (res << log2b_) | (r + max_little_value_);
+                    stream_in(q + 1 + log2b_, res);
                 }
                 else {
-                    res = (res << (p - 1)) | r;
-                    stream_in(q + 1 + p - 1, res);
+                    res = (res << (log2b_ - 1)) | r;
+                    stream_in(q + 1 + log2b_ - 1, res);
                 }
             }
         }
         else {
-            assert(pos == 0);
-            assert(maxpos == 0);
-            v[0] = value;
-            pos++;
-            maxpos++;
-            bits = 0;
-            in_called_already = true;
+			//! First value can be very large. It is therefore not encoded.
+            assert(pos_ == 0);
+            assert(maxpos_ == 0);
+            data_[0] = value;
+            pos_++;
+            maxpos_++;
+            bits_ = 0;
+            in_called_already_ = true;
         }
     }
 
-    inline base golomb_out() {
-        if (THRILL_LIKELY(out_called_already)) {
-            assert(pos > 0);
-            base q = number_of_ones();
-            base r = stream_out(p - 1);
+	/*!
+	 * Decodes the next value following the cursor and returns it as a BaseType integral
+	 *
+	 * \return the value following the cursor
+	 */
+    inline BaseType golomb_out() {
+        if (THRILL_LIKELY(out_called_already_)) {
+            assert(pos_ > 0);
 
-            if (r >= max_little_value)
-                r = ((r << 1) + stream_out(1)) - max_little_value;
+            BaseType q = number_of_ones();
+            BaseType r = stream_out(log2b_ - 1);
 
-            if (debug && !n) {
-                inserted_elements.push_back(((q * b) + r) + 1);
+            if (r >= max_little_value_)
+                r = ((r << 1) + stream_out(1)) - max_little_value_;
+
+            if (debug && !bitset_size_bits_) {
+                inserted_elements_.push_back(((q * b_) + r) + 1);
             }
 
-            return ((q * b) + r) + 1;
+            return ((q * b_) + r) + 1;
         }
         else {
-            out_called_already = true;
-            assert(pos == 0);
+            out_called_already_ = true;
+            assert(pos_ == 0);
 
-            if (maxpos == 0) {
-                maxpos = 1;
+            if (maxpos_ == 0) {
+                maxpos_ = 1;
             }
-            pos = 1;
-            bits = 0;
-            buffer = v[1];
-            if (debug && !n) {
-                inserted_elements.push_back(v[0]);
+            pos_ = 1;
+            bits_ = 0;
+            buffer_ = data_[1];
+            if (debug && !bitset_size_bits_) {
+                inserted_elements_.push_back(data_[0]);
             }
-            return v[0];
+            return data_[0];
         }
-    }
-
-    inline size_t byte_size() const {
-        if (maxpos > 0) {
-            return (maxpos * bit_length / 8) + common::IntegerDivRoundUp(bits, 8);
-        }
-        else {
-            return common::IntegerDivRoundUp(bits, 8);
-        }
-    }
-
-    inline size_t bit_size() const {
-        return maxpos * bit_length + bits;
     }
 };
 } //namespace core
