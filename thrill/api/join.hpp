@@ -32,6 +32,30 @@
 namespace thrill {
 namespace api {
 
+/*!
+ * Performs an inner join between two DIAs. The key from each DIA element is
+ * hereby extracted with a key extractor function. All pairs of elements with
+ * equal keys from both  DIAs are then joined with the join function.
+ *
+ * \tparam KeyExtractor1 Type of the key_extractor1 function. This is a
+ * function ValueType to the key type.
+ *
+ * \tparam KeyExtractor2 Type of the key_extractor2 function. This is a
+ * function from SecondDIA::ValueType to the key type.
+ *
+ * \tparam JoinFunction Type of the join_function. This is a function
+ * from ValueType and SecondDIA::ValueType to the type of the output DIA.
+ *
+ * \param SecondDIA Other DIA joined with this DIA.
+ *
+ * \param key_extractor1 Key extractor for first DIA
+ *
+ * \param key_extractor2 Key extractor for second DIA
+ *
+ * \param join_function Join function applied to all equal key pairs
+ *
+ * \ingroup dia_dops
+ */
 template <typename ValueType, typename FirstDIA, typename SecondDIA,
           typename KeyExtractor1, typename KeyExtractor2,
           typename JoinFunction>
@@ -91,19 +115,24 @@ public:
 
     void PushData(bool consume) final {
 
-        auto compare_function_1 = [this](InputTypeFirst in1, InputTypeFirst in2) {
-                                      return key_extractor1_(in1) < key_extractor1_(in2);
+        auto compare_function_1 = [this](InputTypeFirst in1,
+                                         InputTypeFirst in2) {
+                                      return key_extractor1_(in1)
+                                             < key_extractor1_(in2);
                                   };
 
-        auto compare_function_2 = [this](InputTypeSecond in1, InputTypeSecond in2) {
-                                      return key_extractor2_(in1) < key_extractor2_(in2);
+        auto compare_function_2 = [this](InputTypeSecond in1,
+                                         InputTypeSecond in2) {
+                                      return key_extractor2_(in1) <
+                                             key_extractor2_(in2);
                                   };
 
-        // no possible join results when one data set is empty
+        // no possible join results when at least one data set is empty
         if (!files1_.size() && !files2_.size()) {
             return;
         }
 
+        //! Merge files when there are too many for the merge tree.
         MergeFiles<InputTypeFirst>(files1_, compare_function_1);
         MergeFiles<InputTypeSecond>(files2_, compare_function_2);
 
@@ -118,38 +147,38 @@ public:
             seq1.emplace_back(files1_[t].GetReader(consume, 0));
         StartPrefetch(seq1, prefetch1);
 
-        std::vector<data::File::Reader> seq2;
-        seq2.reserve(files2_.size());
-        for (size_t t = 0; t < files2_.size(); ++t)
-            seq2.emplace_back(files2_[t].GetReader(consume, 0));
-        StartPrefetch(seq2, prefetch2);
-
         auto puller1 = core::make_multiway_merge_tree<InputTypeFirst>(
             seq1.begin(), seq1.end(), compare_function_1);
-
-        auto puller2 = core::make_multiway_merge_tree<InputTypeSecond>(
-            seq2.begin(), seq2.end(), compare_function_2);
-
         InputTypeFirst ele1;
-        InputTypeSecond ele2;
-
         bool puller1_done = false;
-        bool puller2_done = false;
 
         if (puller1.HasNext())
             ele1 = puller1.Next();
         else
             puller1_done = true;
 
+        std::vector<data::File::Reader> seq2;
+        seq2.reserve(files2_.size());
+        for (size_t t = 0; t < files2_.size(); ++t)
+            seq2.emplace_back(files2_[t].GetReader(consume, 0));
+        StartPrefetch(seq2, prefetch2);
+
+        auto puller2 = core::make_multiway_merge_tree<InputTypeSecond>(
+            seq2.begin(), seq2.end(), compare_function_2);
+        InputTypeSecond ele2;
+        bool puller2_done = false;
         if (puller2.HasNext())
             ele2 = puller2.Next();
         else
             puller2_done = true;
 
+        //! cache for elements with equal keys, cartesian product of both caches
+        //! are joined with the join_function
         std::vector<InputTypeFirst> equal_keys1;
         std::vector<InputTypeSecond> equal_keys2;
 
         while (!puller1_done && !puller2_done) {
+            //! find elements with equal key
             if (key_extractor1_(ele1) < key_extractor2_(ele2)) {
                 if (puller1.HasNext()) {
                     ele1 = puller1.Next();
@@ -182,8 +211,6 @@ public:
                                       key_extractor2_);
 
                 JoinAllElements(equal_keys1, external1, equal_keys2, external2);
-
-               
             }
         }
     }
@@ -194,24 +221,22 @@ public:
     }
 
 private:
+    //! files for sorted datasets
     std::deque<data::File> files1_;
-
     std::deque<data::File> files2_;
 
+    //! user-defined functions
     KeyExtractor1 key_extractor1_;
-
     KeyExtractor2 key_extractor2_;
-
     JoinFunction join_function_;
 
+    //! data streams for inter-worker communication of DIA elements
     data::CatStreamPtr hash_stream1_;
     std::vector<data::Stream::Writer> hash_writers1_;
-
     data::CatStreamPtr hash_stream2_;
     std::vector<data::Stream::Writer> hash_writers2_;
-  
 
-    //! Receive elements from other workers.
+    //! Receive elements from other workers, create pre-sorted files
     void MainOp() {
         data::CatStream::CatReader reader1_ =
             hash_stream1_->GetCatReader(/* consume */ true);
@@ -231,15 +256,32 @@ private:
     void PreOp1(const InputTypeFirst& input) {
         hash_writers1_[
             core::ReduceByHash < Key > ()(key_extractor1_(input),
-                                          context_.num_workers(), 0, 0).partition_id].Put(input);
+                                          context_.num_workers(),
+                                          0, 0).partition_id].Put(input);
     }
 
     void PreOp2(const InputTypeSecond& input) {
         hash_writers2_[
             core::ReduceByHash < Key > ()(key_extractor2_(input),
-                                          context_.num_workers(), 0, 0).partition_id].Put(input);
+                                          context_.num_workers(),
+                                          0, 0).partition_id].Put(input);
     }
 
+    /*!
+     * Adds all elements from merge tree to a vector, afterwards sets first_element
+     * different element to the first element with a different key.
+     *
+     * \param vec target vector
+     *
+     * \param puller Input merge tree
+     *
+     * \param first_element First element with target key
+     *
+     * \param key_extractor Key extractor function
+     *
+     * \return Pair of bools, first bool indicates whether the merge tree is
+     * emptied, second bool indicates external memory was needed.
+     */
     template <typename ItemType, typename KeyExtractor, typename MergeTree>
     std::pair<bool, bool> AddEqualKeysToVec(std::vector<ItemType>& vec,
                                             MergeTree& puller,
@@ -248,6 +290,7 @@ private:
 
         vec.push_back(first_element);
         ItemType next_element;
+        Key key = key_extractor(first_element);
 
         if (puller.HasNext()) {
             next_element = puller.Next();
@@ -256,7 +299,7 @@ private:
             return std::make_pair(true, false);
         }
 
-        while (key_extractor(next_element) == key_extractor(first_element)) {
+        while (key_extractor(next_element) == key) {
             vec.push_back(next_element);
             if (puller.HasNext()) {
                 next_element = puller.Next();
@@ -278,6 +321,9 @@ private:
         return DIAMemUse::Max();
     }
 
+    /*!
+     * Recieve all elements from a stream and write them to sorted files.
+     */
     template <typename ItemType>
     void RecieveItems(size_t capacity, data::CatStream::CatReader& reader,
                       std::deque<data::File>& files) {
@@ -317,6 +363,9 @@ private:
         }
     }
 
+    /*!
+     * Merge files when there are too many for the merge tree to handle
+     */
     template <typename ItemType, typename CompareFunction>
     void MergeFiles(std::deque<data::File>& files, CompareFunction compare_function) {
 
@@ -358,13 +407,19 @@ private:
             files.erase(files.begin(), files.begin() + merge_degree);
         }
     }
-    
+
+    /*!
+     * Joins all elements in cartesian product of both vectors. Uses files when
+     * one of the data sets is too large to fit in memory. (indicated by
+     * 'external' bools)
+     */
     template <typename ItemType>
     void JoinAllElements(const std::vector<ItemType>& vec1, bool external1,
                          const std::vector<ItemType>& vec2, bool external2) {
         if (!external1 && !external2) {
             for (auto join1 : vec1) {
                 for (auto join2 : vec2) {
+                    assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
                 }
             }
@@ -373,28 +428,31 @@ private:
         if (external1 && !external2) {
             LOG1 << "Thrill: Warning: Too many equal keys for main memory "
                  << "in first DIA";
-            //TODO(an): Implement this.
+            // TODO(an): Implement this.
             assert(42 == 23);
             return;
         }
-        
+
         if (!external1 && external2) {
             LOG1 << "Thrill: Warning: Too many equal keys for main memory "
                  << "in second DIA";
-            //TODO(an): Implement this.
+            // TODO(an): Implement this.
             assert(42 == 23);
             return;
         }
-       
+
         if (external1 && external2) {
             LOG1 << "Thrill: Warning: Too many equal keys for main memory "
                  << "in both DIAs. This is very slow.";
-            //TODO(an): Implement this.
+            // TODO(an): Implement this.
             assert(42 == 23);
             return;
         }
     }
 
+    /*!
+     * Sorts all elements in a vector and writes them to a file.
+     */
     template <typename ItemType>
     void SortAndWriteToFile(
         std::vector<ItemType>& vec, std::deque<data::File>& files) {

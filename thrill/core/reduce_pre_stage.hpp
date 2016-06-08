@@ -163,14 +163,14 @@ public:
 
     void Insert(const Value& p) {
         if (table_.Insert(p) && UseDuplicateDetection) {
-			hashes_.push_back(std::hash<Key>()(key_extractor_(p)));
-		}
+            hashes_.push_back(std::hash<Key>()(key_extractor_(p)));
+        }
     }
 
     void Insert(const KeyValuePair& kv) {
         if (table_.Insert(kv) && UseDuplicateDetection) {
-			hashes_.push_back(std::hash<Key>()(kv.first));
-		}
+            hashes_.push_back(std::hash<Key>()(kv.first));
+        }
     }
 
     //! Flush all partitions
@@ -197,11 +197,11 @@ public:
                     if (std::binary_search(duplicates_.begin(), duplicates_.end(),
                                            (std::hash<Key>()(p.first) % max_hash_))) {
 
-						duplicated_elements_++;
+                        duplicated_elements_++;
                         emit_.Emit(partition_id, p);
                     }
                     else {
-						non_duplicate_elements_++;
+                        non_duplicate_elements_++;
                         emit_.Emit(table_.ctx().my_rank(), p);
                     }
                 });
@@ -214,11 +214,11 @@ public:
                     if (std::binary_search(duplicates_.begin(), duplicates_.end(),
                                            (std::hash<Key>()(kv.first) % max_hash_))) {
 
-						duplicated_elements_++;
+                        duplicated_elements_++;
                         emit_.Emit(partition_id, kv);
                     }
                     else {
-			non_duplicate_elements_++;
+                        non_duplicate_elements_++;
                         emit_.Emit(table_.ctx().my_rank(), kv);
                     }
                 }
@@ -236,11 +236,11 @@ public:
 
     //! Closes all emitter
     void CloseAll() {
-		if (UseDuplicateDetection) {
-			LOG << "Reduce Pre-Stage completed." 
-				<< " #duplicates: " << duplicated_elements_
-				<< " #non-duplicates: " << non_duplicate_elements_; 
-		}
+        if (UseDuplicateDetection) {
+            LOG << "Reduce Pre-Stage completed."
+                << " #duplicates: " << duplicated_elements_
+                << " #non-duplicates: " << non_duplicate_elements_;
+        }
         emit_.CloseAll();
         table_.Dispose();
     }
@@ -267,23 +267,23 @@ private:
     //! the first-level hash table implementation
     Table table_;
 
-	//! \name Duplicate Detection 
-	//! \{
-	
-	//! Hashes of all keys.
+    //! \name Duplicate Detection
+    //! \{
+
+    //! Hashes of all keys.
     std::vector<size_t> hashes_;
-	//! All elements occuring on more than one worker. (Elements not appearing here
-	//! can be reduced locally)
+    //! All elements occuring on more than one worker. (Elements not appearing here
+    //! can be reduced locally)
     std::vector<size_t> duplicates_;
 
-	//! Number of non-duplicates sent to a worker
-	size_t non_duplicate_elements_ = 0;
-	//! Number of duplicates reduced locally.
-	size_t duplicated_elements_ = 0;
-	//! Modulo for all hashes in duplicate detection to reduce hash space.
+    //! Number of non-duplicates sent to a worker
+    size_t non_duplicate_elements_ = 0;
+    //! Number of duplicates reduced locally.
+    size_t duplicated_elements_ = 0;
+    //! Modulo for all hashes in duplicate detection to reduce hash space.
     size_t max_hash_;
-	
-	//! \}
+
+    //! \}
 };
 
 } // namespace core

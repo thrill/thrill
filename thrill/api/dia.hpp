@@ -907,13 +907,6 @@ public:
     auto Zip(struct CutTag, const SecondDIA &second_dia,
              const ZipFunction &zip_function) const;
 
-    template <typename KeyExtractor1, typename KeyExtractor2,
-              typename JoinFunction, typename SecondDIA>
-    auto InnerJoinWith(const SecondDIA &second_dia,
-                       const KeyExtractor1 &key_extractor1,
-                       const KeyExtractor2 &key_extractor2,
-                       const JoinFunction &join_function) const;
-
     /*!
      * Zips two DIAs in style of functional programming by applying zip_function
      * to the i-th elements of both input DIAs to form the i-th element of the
@@ -937,6 +930,38 @@ public:
     template <typename ZipFunction, typename SecondDIA>
     auto Zip(struct PadTag, const SecondDIA &second_dia,
              const ZipFunction &zip_function) const;
+
+    /*!
+     * Performs an inner join between this DIA and the DIA given in the first
+     * parameter. The key from each DIA element is hereby extracted with a key
+     * extractor function. All pairs of elements with equal keys from both
+     * DIAs are then joined with the join function.
+     *
+     * \tparam KeyExtractor1 Type of the key_extractor1 function. This is a
+     * function from ValueType to the key type.
+     *
+     * \tparam KeyExtractor2 Type of the key_extractor2 function. This is a
+     * function from SecondDIA::ValueType to the key type.
+     *
+     * \tparam JoinFunction Type of the join_function. This is a function
+     * from ValueType and SecondDIA::ValueType to the type of the output DIA.
+     *
+     * \param SecondDIA Other DIA joined with this DIA.
+     *
+     * \param key_extractor1 Key extractor for this DIA
+     *
+     * \param key_extractor2 Key extractor for second DIA
+     *
+     * \param join_function Join function applied to all equal key pairs
+     *
+     * \ingroup dia_dops
+     */
+    template <typename KeyExtractor1, typename KeyExtractor2,
+              typename JoinFunction, typename SecondDIA>
+    auto InnerJoinWith(const SecondDIA &second_dia,
+                       const KeyExtractor1 &key_extractor1,
+                       const KeyExtractor2 &key_extractor2,
+                       const JoinFunction &join_function) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
