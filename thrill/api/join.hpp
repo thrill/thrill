@@ -406,7 +406,7 @@ private:
 
         while (reader.HasNext()) {
             if (!mem::memory_exceeded && vec.size() < capacity) {
-                vec.push_back(reader.template Next<InputTypeFirst>());
+                vec.push_back(reader.template Next<ItemType>());
             }
             else {
                 SortAndWriteToFile(vec, files);
