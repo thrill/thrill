@@ -618,9 +618,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
 
         ranks_rec =
             suffix_array_rec
-            .ZipWithIndex(                 [](const Index& sa, const size_t& i) {
-                     return IndexRank { sa, Index(i) };
-                 })
+            .ZipWithIndex([](const Index& sa, const size_t& i) {
+                              return IndexRank { sa, Index(i) };
+                          })
             .Sort([size_mod0, size_mod01](
                       const IndexRank& a, const IndexRank& b) {
 
@@ -649,9 +649,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         ranks_rec =
             tuple_index_sorted
             .ZipWithIndex(
-                 [](const Index& sa, const size_t& i) {
-                     return IndexRank { sa, Index(i) };
-                 })
+                [](const Index& sa, const size_t& i) {
+                    return IndexRank { sa, Index(i) };
+                })
             .Sort([](const IndexRank& a, const IndexRank& b) {
                       // use sort order for better locality later.
                       return a.index / 7 < b.index / 7 || (

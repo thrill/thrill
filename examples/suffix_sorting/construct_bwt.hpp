@@ -28,7 +28,7 @@ template <typename InputDIA, typename SuffixArrayDIA>
 InputDIA ConstructBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array,
                       uint64_t input_size) {
 
-    thrill::Context& ctx = input.ctx();
+    // thrill::Context& ctx = input.ctx();
 
     using Char = typename InputDIA::ValueType;
     using Index = typename SuffixArrayDIA::ValueType;
@@ -50,8 +50,8 @@ InputDIA ConstructBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array,
                     return Index(i - 1);
                 })
            .ZipWithIndex([](const Index& text_pos, const size_t& i) {
-                    return IndexRank { text_pos, Index(i) };
-                })
+                             return IndexRank { text_pos, Index(i) };
+                         })
            // .Zip(Generate(ctx, input_size),
            //      [](const Index& text_pos, const size_t& idx) {
            //          return IndexRank { text_pos, Index(idx) };

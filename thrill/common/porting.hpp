@@ -19,6 +19,7 @@
 using ssize_t = SSIZE_T;
 #endif
 
+#include <string>
 #include <system_error>
 #include <thread>
 

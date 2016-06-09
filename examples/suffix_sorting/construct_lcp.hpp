@@ -11,7 +11,7 @@
 #pragma once
 #ifndef THRILL_EXAMPLES_SUFFIX_SORTING_CONSTRUCT_LCP_HEADER
 #define THRILL_EXAMPLES_SUFFIX_SORTING_CONSTRUCT_LCP_HEADER
- 
+
 #include <examples/suffix_sorting/suffix_sorting.hpp>
 
 #include <thrill/api/cache.hpp>
@@ -25,7 +25,6 @@
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/api/zip_with_index.hpp>
-
 
 namespace examples {
 namespace suffix_sorting {
@@ -56,7 +55,7 @@ struct IndexChar {
 template <typename Index>
 struct IndexFlag {
     Index index;
-    bool flag;
+    bool  flag;
 
     friend std::ostream& operator << (std::ostream& os, const IndexFlag& idx_flag) {
         return os << '(' << idx_flag.index << '|' << (idx_flag.flag ? 't' : 'f') << ')';
@@ -67,7 +66,7 @@ template <typename Index>
 struct IndexRankFlag {
     Index index;
     Index rank;
-    bool flag;
+    bool  flag;
 
     friend std::ostream& operator << (std::ostream& os, const IndexRankFlag& irf) {
         return os << '(' << irf.index << '|' << irf.rank << '|' << (irf.flag ? 't' : 'f') << ')';
@@ -99,13 +98,13 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
     auto tmp_inverse_bwt =
         bwt
         .ZipWithIndex([](const Char& c, const size_t& i) {
-                return IndexChar { Index(i), c };
-            })
+                          return IndexChar { Index(i), c };
+                      })
         .Sort([](const IndexChar& a, const IndexChar& b) {
-                if (a.ch == b.ch)
-                    return a.index < b.index;
-                return a.ch < b.ch;
-            });
+                  if (a.ch == b.ch)
+                      return a.index < b.index;
+                  return a.ch < b.ch;
+              });
 
     auto intervals =
         tmp_inverse_bwt
@@ -114,7 +113,7 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
             2,
             [](const size_t index, const RingBuffer<IndexChar>& rb, auto emit) {
                 if (index == 0)
-                    emit (Index(0));
+                    emit(Index(0));
                 emit(rb[0].ch == rb[1].ch ? Index(0) : Index(1));
             })
         .PrefixSum();
@@ -127,14 +126,14 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
     auto inverse_bwt =
         tmp_inverse_bwt
         .ZipWithIndex([](const IndexChar& ic, const size_t& i) {
-                return IndexRank { ic.index, Index(i) };
-            })
+                          return IndexRank { ic.index, Index(i) };
+                      })
         .Sort([](const IndexRank& a, const IndexRank& b) {
-                return a.index < b.index;
-            })
+                  return a.index < b.index;
+              })
         .Map([](const IndexRank& ir) {
-                return ir.rank;
-            })
+                 return ir.rank;
+             })
         .Cache();
 
     if (debug_print)
@@ -170,16 +169,16 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
                     return IndexRank { pbwt, i };
                 })
             .Sort([](const IndexRank& a, const IndexRank& b) {
-                    return a.index < b.index;
-                })
+                      return a.index < b.index;
+                  })
             .Map([](const IndexRank& i) {
-                    return i.rank;
-                })
+                     return i.rank;
+                 })
             .template FlatWindow<Index>(
                 2,
                 [](const size_t index, const RingBuffer<Index>& rb, auto emit) {
                     if (index == 0)
-                        emit (Index(0));
+                        emit(Index(0));
                     emit(rb[0] == rb[1] ? Index(0) : Index(1));
                 })
             .PrefixSum();
@@ -209,12 +208,12 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
 
     if (debug_print)
         lcp.Keep().Print("lcp");
-    
+
     return lcp
-              .Map([](const IndexFlag& idx_flag) {
-                      return idx_flag.index;
-                  })
-              .Collapse();
+           .Map([](const IndexFlag& idx_flag) {
+                    return idx_flag.index;
+                })
+           .Collapse();
 }
 
 } // namespace suffix_sorting

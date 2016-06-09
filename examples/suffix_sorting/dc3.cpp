@@ -442,8 +442,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
         ranks_rec =
             triple_index_sorted
             .ZipWithIndex([](const Index& sa, const size_t& i) {
-                     return IndexRank { sa, Index(i) };
-                 })
+                              return IndexRank { sa, Index(i) };
+                          })
             .Sort([](const IndexRank& a, const IndexRank& b) {
                       // use sort order for better locality later.
                       return a.index / 3 < b.index / 3 || (
