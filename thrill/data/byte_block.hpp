@@ -26,8 +26,11 @@ namespace data {
 //! \addtogroup data_layer
 //! \{
 
+//! starting size of blocks in BlockWriter.
+extern size_t start_block_size;
+
 //! default size of blocks in File, Channel, BlockQueue, etc.
-static constexpr size_t default_block_size = 2 * 1024 * 1024;
+extern size_t default_block_size;
 
 //! type of underlying memory area
 using Byte = uint8_t;

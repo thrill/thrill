@@ -794,7 +794,7 @@ void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
 
 void BlockPool::Data::IntUnpinBlock(
     BlockPool& bp, ByteBlock* block_ptr, size_t local_worker_id) {
-    assert(local_worker_id < bp.workers_per_host_);
+    die_unless(local_worker_id < bp.workers_per_host_);
 
     // decrease per-thread total pin count (memory locked by thread)
     die_unless(block_ptr->pin_count(local_worker_id) == 0);

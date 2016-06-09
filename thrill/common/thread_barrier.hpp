@@ -13,11 +13,11 @@
 #ifndef THRILL_COMMON_THREAD_BARRIER_HEADER
 #define THRILL_COMMON_THREAD_BARRIER_HEADER
 
+#include <thrill/common/atomic_movable.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/functional.hpp>
-#include <thrill/common/stats_timer.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/atomic_movable.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <atomic>
 #include <condition_variable>
@@ -156,7 +156,6 @@ protected:
     std::atomic<size_t> step_ { 0 };
 
     AtomicMovable<uint64_t> wait_time_ { 0 };
-
 };
 
 // select thread barrier implementation.

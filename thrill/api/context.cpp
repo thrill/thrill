@@ -152,6 +152,34 @@ RunLoopbackThreads(
 }
 
 /******************************************************************************/
+// Other Configuration Options
+
+static bool SetupBlockSize() {
+
+    const char* env_block_size = getenv("THRILL_BLOCK_SIZE");
+    if (!env_block_size || !*env_block_size) return true;
+
+    char* endptr;
+    data::default_block_size = std::strtoul(env_block_size, &endptr, 10);
+
+    if (!endptr || *endptr != 0 || data::default_block_size == 0) {
+        std::cerr << "Thrill: environment variable"
+                  << " THRILL_BLOCK_SIZE=" << env_block_size
+                  << " is not a valid number."
+                  << std::endl;
+        return false;
+    }
+
+    data::start_block_size = data::default_block_size;
+
+    std::cerr << "Thrill: setting default_block_size = "
+              << data::default_block_size
+              << std::endl;
+
+    return true;
+}
+
+/******************************************************************************/
 // Constructions using TestGroup (either mock or tcp-loopback) for local testing
 
 #if defined(_MSC_VER)
@@ -429,6 +457,8 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
+    if (!SetupBlockSize()) return -1;
+
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three TCP network groups
@@ -510,6 +540,12 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
               << " with " << common::GetHostname()
               << " as rank " << mpi_rank << "."
               << std::endl;
+
+    // increase size of ByteBlocks for larger transfers
+    data::start_block_size = 2 * 1024 * 1024;
+    data::default_block_size = 16 * 1024 * 1024;
+
+    if (!SetupBlockSize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
@@ -593,6 +629,12 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
               << " with " << common::GetHostname()
               << " as rank " << mpi_rank << "."
               << std::endl;
+
+    // increase size of ByteBlocks for larger transfers
+    data::start_block_size = 2 * 1024 * 1024;
+    data::default_block_size = 16 * 1024 * 1024;
+
+    if (!SetupBlockSize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
