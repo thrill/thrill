@@ -68,7 +68,6 @@ public:
 
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        assert(parent_index == 0);
         if (!parent_stack_empty_) return false;
 
         // accept file

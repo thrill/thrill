@@ -256,7 +256,7 @@ struct StringFragment {
         struct {
             Index        index;
             AlphabetType t[6];
-        } common;
+        } THRILL_ATTRIBUTE_PACKED common;
         StringFragmentMod0<Index, AlphabetType> mod0;
         StringFragmentMod1<Index, AlphabetType> mod1;
         StringFragmentMod2<Index, AlphabetType> mod2;
@@ -1020,8 +1020,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
 template DIA<uint32_t> DC7<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
-// template DIA<uint64_t> DC7<uint64_t>(
-//     const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
+template DIA<common::uint40> DC7<common::uint40>(
+    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
 } // namespace suffix_sorting
 } // namespace examples

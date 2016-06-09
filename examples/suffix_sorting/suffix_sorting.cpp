@@ -174,8 +174,8 @@ public:
 
         if (sa_index_bytes_ == 4)
             return StartInput<uint32_t>(input_dia, input_size);
-        // else if (sa_index_bytes_ == 8)
-        //     return StartInput<uint64_t>(input_dia, input_size);
+        else if (sa_index_bytes_ == 5)
+            return StartInput<common::uint40>(input_dia, input_size);
         else
             die("Unsupported index byte size: " << sa_index_bytes_ <<
                 ". Byte size has to be 4,5,6 or 8");

@@ -348,7 +348,7 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
                             emit(IndexRankRankStatus { rb[2].index, rb[2].rank, Index(0), Status::UNIQUE });
                     }
                     if (rb[0].status == Status::UNDECIDED) {
-                        if (rb[0].index + (Index(1) << (iteration - 1)) == rb[1].index)
+                        if (rb[0].index + Index(1llu << (iteration - 1)) == rb[1].index)
                             emit(IndexRankRankStatus { rb[0].index, rb[0].rank, rb[1].rank, Status::UNDECIDED });
                         else
                             emit(IndexRankRankStatus { rb[0].index, rb[0].rank, Index(0), Status::UNDECIDED });
@@ -902,19 +902,19 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
 template DIA<uint32_t> PrefixDoubling<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
-template DIA<uint64_t> PrefixDoubling<uint64_t>(
+template DIA<common::uint40> PrefixDoubling<common::uint40>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 template DIA<uint32_t> PrefixDoublingDementiev<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
-template DIA<uint64_t> PrefixDoublingDementiev<uint64_t>(
+template DIA<common::uint40> PrefixDoublingDementiev<common::uint40>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 template DIA<uint32_t> PrefixDoublingDiscardingDementiev<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
-template DIA<uint64_t> PrefixDoublingDiscardingDementiev<uint64_t>(
+template DIA<common::uint40> PrefixDoublingDiscardingDementiev<common::uint40>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 } // namespace suffix_sorting

@@ -160,7 +160,7 @@ struct StringFragment {
         struct {
             Index        index;
             AlphabetType t[2];
-        } common;
+        } THRILL_ATTRIBUTE_PACKED common;
         StringFragmentMod0<Index, AlphabetType> mod0;
         StringFragmentMod1<Index, AlphabetType> mod1;
         StringFragmentMod2<Index, AlphabetType> mod2;
@@ -510,7 +510,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
 
     assert_equal(triple_chars.Keep().Size(), size_mod1);
     assert_equal(ranks_mod1.Keep().Size(), size_mod1);
-    assert_equal(ranks_mod2.Keep().Size(), size_mod1 - (input_size % 3 ? 1 : 0));
+    assert_equal(ranks_mod2.Keep().Size(),
+                 size_mod1 - Index(input_size % 3 ? 1 : 0));
 
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.
@@ -671,8 +672,8 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
 template DIA<uint32_t> DC3<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
-// template DIA<uint64_t> DC3<uint64_t>(
-//     const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
+template DIA<common::uint40> DC3<common::uint40>(
+    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
 } // namespace suffix_sorting
 } // namespace examples

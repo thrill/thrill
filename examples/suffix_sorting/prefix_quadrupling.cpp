@@ -397,8 +397,8 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
                     }
                     if (rb[0].status == Status::UNDECIDED) {
                         Index rank1 = (rb[0].index + Index(next_index) == rb[1].index) ? rb[1].rank : Index(0);
-                        Index rank2 = (rb[0].index + 2 * Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
-                        Index rank3 = (rb[0].index + 3 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
+                        Index rank2 = (rb[0].index + Index(2 * next_index) == rb[2].index) ? rb[2].rank : Index(0);
+                        Index rank3 = (rb[0].index + Index(3 * next_index) == rb[3].index) ? rb[3].rank : Index(0);
                         emit(IndexQuadRankStatus { rb[0].index, { rb[0].rank, rank1, rank2, rank3 }, Status::UNDECIDED });
                     }
                 },
@@ -463,13 +463,13 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
 
                         if (rb[0].status == Status::UNDECIDED) {
                             rank1 = (rb[0].index + Index(next_index) == rb[1].index) ? rb[1].rank : Index(0);
-                            rank2 = (rb[0].index + 2 * Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
-                            rank3 = (rb[0].index + 3 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
+                            rank2 = (rb[0].index + Index(2 * next_index) == rb[2].index) ? rb[2].rank : Index(0);
+                            rank3 = (rb[0].index + Index(3 * next_index) == rb[3].index) ? rb[3].rank : Index(0);
                             emit(IndexQuadRankStatus { rb[0].index, { rb[0].rank, rank1, rank2, rank3 }, Status::UNDECIDED });
                         }
                         if (rb[1].status == Status::UNDECIDED) {
                             rank1 = (rb[1].index + Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
-                            rank2 = (rb[1].index + 2 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
+                            rank2 = (rb[1].index + Index(2 * next_index) == rb[3].index) ? rb[3].rank : Index(0);
                             emit(IndexQuadRankStatus { rb[1].index, { rb[1].rank, rank1, rank2, Index(0) }, Status::UNDECIDED });
                         }
                         if (rb[2].status == Status::UNDECIDED) {
@@ -805,15 +805,15 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size, bool 
                 4,
                 [=](size_t /*index*/, const RingBuffer<IndexRank>& rb, auto emit) {
                     Index rank1 = (rb[0].index + Index(next_index) == rb[1].index) ? rb[1].rank : Index(0);
-                    Index rank2 = (rb[0].index + 2 * Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
-                    Index rank3 = (rb[0].index + 3 * Index(next_index) == rb[3].index) ? rb[3].rank : Index(0);
+                    Index rank2 = (rb[0].index + Index(2 * next_index) == rb[2].index) ? rb[2].rank : Index(0);
+                    Index rank3 = (rb[0].index + Index(3 * next_index) == rb[3].index) ? rb[3].rank : Index(0);
                     emit(IndexQuadRank { rb[0].index, { rb[0].rank, rank1, rank2, rank3 }
                          });
                 },
                 [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                     if (index == input_size - 3) {
                         Index rank1 = (rb[0].index + Index(next_index) == rb[1].index) ? rb[1].rank : Index(0);
-                        Index rank2 = (rb[0].index + 2 * Index(next_index) == rb[2].index) ? rb[2].rank : Index(0);
+                        Index rank2 = (rb[0].index + Index(2 * next_index) == rb[2].index) ? rb[2].rank : Index(0);
                         emit(IndexQuadRank { rb[0].index, { rb[0].rank, rank1, rank2, Index(0) }
                              });
 
@@ -875,13 +875,13 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size, bool 
 template DIA<uint32_t> PrefixQuadrupling<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
-template DIA<uint64_t> PrefixQuadrupling<uint64_t>(
+template DIA<common::uint40> PrefixQuadrupling<common::uint40>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 template DIA<uint32_t> PrefixQuadruplingDiscarding<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
-template DIA<uint64_t> PrefixQuadruplingDiscarding<uint64_t>(
+template DIA<common::uint40> PrefixQuadruplingDiscarding<common::uint40>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 } // namespace suffix_sorting
