@@ -72,7 +72,16 @@ void dotest(unsigned int nbytes) {
     ASSERT_EQ(a.ull(), 84);
 
     a += uint(0xFFFFFF00);
-    ASSERT_EQ(a.ull(), 84 + (unsigned long long)(0xFFFFFF00));
+    ASSERT_EQ(a.ull(), 0xFFFFFF54llu);
+
+    a += uint(0xFFFFFF00);
+    ASSERT_EQ(a.ull(), 0x1FFFFFE54llu);
+
+    a -= uint(0xFFFFFF00);
+    ASSERT_EQ(a.ull(), 0xFFFFFF54llu);
+
+    a -= uint(0xFFFFFF00);
+    ASSERT_EQ(a.ull(), 84);
 }
 
 TEST(UIntPair, Uint40) {

@@ -168,7 +168,7 @@ public:
 
     //! addition operator (uses 64-bit arithmetic)
     UIntPair& operator += (const UIntPair& b) {
-        uint64_t add = low_ + b.low_;
+        uint64_t add = low_ + uint64_t(b.low_);
         low_ = (Low)(add & low_max());
         high_ = (High)(high_ + b.high_ + ((add >> low_bits) & high_max()));
         return *this;
@@ -176,10 +176,26 @@ public:
 
     //! addition operator (uses 64-bit arithmetic)
     UIntPair operator + (const UIntPair& b) const {
-        uint64_t add = low_ + b.low_;
+        uint64_t add = low_ + uint64_t(b.low_);
         return UIntPair(
             (Low)(add & low_max()),
             (High)(high_ + b.high_ + ((add >> low_bits) & high_max())));
+    }
+
+    //! subtraction operator (uses 64-bit arithmetic)
+    UIntPair& operator -= (const UIntPair& b) {
+        uint64_t sub = low_ - uint64_t(b.low_);
+        low_ = (Low)(sub & low_max());
+        high_ = (High)(high_ - b.high_ + ((sub >> low_bits) & high_max()));
+        return *this;
+    }
+
+    //! subtraction operator (uses 64-bit arithmetic)
+    UIntPair operator - (const UIntPair& b) const {
+        uint64_t sub = low_ - uint64_t(b.low_);
+        return UIntPair(
+            (Low)(sub & low_max()),
+            (High)(high_ - b.high_ + ((sub >> low_bits) & high_max())));
     }
 
     //! equality checking operator
