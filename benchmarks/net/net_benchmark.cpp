@@ -22,6 +22,7 @@
 #include <thrill/common/matrix.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
+#include <thrill/net/dispatcher.hpp>
 
 #include <string>
 #include <utility>
@@ -610,6 +611,190 @@ private:
     //! inner repetitions
     unsigned int inner_repeats_ = 200;
 };
+
+/******************************************************************************/
+
+class RandomBlocks
+{
+    static constexpr bool debug = false;
+
+public:
+    int Run(int argc, char* argv[]) {
+
+        common::CmdlineParser clp;
+
+        clp.AddBytes('b', "block_size", block_size_,
+                     "Size of blocks transmitted, default: 2 MiB");
+
+        clp.AddUInt('l', "limit_active", limit_active_,
+                    "Number of simultaneous active requests, default: 16");
+
+        clp.AddUInt('r', "request", num_requests_,
+                    "Number of blocks transmitted across all hosts, default: 100");
+
+        clp.AddUInt('R', "outer_repeats", outer_repeats_,
+                    "Repeat whole experiment a number of times.");
+
+        if (!clp.Process(argc, argv)) return -1;
+
+        return api::Run(
+            [=](api::Context& ctx) {
+                // make a copy of this for local workers
+                RandomBlocks local = *this;
+                return local.Test(ctx);
+            });
+    }
+
+    void Test(api::Context& ctx) {
+
+        common::StatsTimerStopped t;
+
+        // only work with first thread on this host.
+        if (ctx.local_worker_id() == 0)
+        {
+            mem::Manager mem_manager(nullptr, "Dispatcher");
+
+            group_ = &ctx.net.group();
+            std::unique_ptr<net::Dispatcher> dispatcher =
+                group_->ConstructDispatcher(mem_manager);
+            dispatcher_ = dispatcher.get();
+
+            t.Start();
+
+            for (size_t outer = 0; outer < outer_repeats_; ++outer)
+            {
+                rnd_ = std::default_random_engine(123456);
+
+                active_ = 0;
+                remaining_requests_ = num_requests_;
+
+                while (active_ < limit_active_ && remaining_requests_ > 0)
+                {
+                    if (MaybeStartRequest()) {
+                        ++active_;
+                    }
+                }
+
+                dispatcher_->Loop();
+            }
+
+            t.Stop();
+
+            // must clean up dispatcher prior to using group for other things.
+        }
+
+        size_t time = t.Microseconds();
+        // calculate maximum time.
+        time = ctx.net.AllReduce(time, common::maximum<size_t>());
+
+        if (ctx.my_rank() == 0) {
+            LOG1 << "RESULT"
+                 << " operation=" << "rblocks"
+                 << " hosts=" << group_->num_hosts()
+                 << " requests=" << num_requests_
+                 << " limit_active=" << limit_active_
+                 << " time[us]=" << time
+                 << " time_per_op[us]="
+                 << static_cast<double>(time) / num_requests_
+                 << " total_bytes=" << block_size_ * num_requests_
+                 << " total_bandwidth[MiB/s]="
+                 << CalcMiBs(block_size_ * num_requests_, time);
+        }
+    }
+
+    void OnComplete() {
+        --active_;
+
+        LOG << "OnComplete active_=" << active_
+            << " remaining_requests_=" << remaining_requests_;
+
+        while (remaining_requests_ > 0) {
+            if (MaybeStartRequest()) {
+                ++active_;
+                break;
+            }
+        }
+
+        if (remaining_requests_ == 0 && active_ == 0) {
+            LOG << "terminate";
+            dispatcher_->Terminate();
+        }
+    }
+
+    bool MaybeStartRequest() {
+        // pick next random send/recv pairs
+        size_t s_rank = rnd_() % group_->num_hosts();
+        size_t r_rank = rnd_() % group_->num_hosts();
+        size_t my_rank = group_->my_host_rank();
+
+        if (s_rank == r_rank)
+            return false;
+
+        // some processor pairs is going to do a request.
+        --remaining_requests_;
+
+        if (my_rank == s_rank) {
+            // allocate block and fill with junk
+            net::Buffer block(block_size_);
+
+            size_t* sbuffer = reinterpret_cast<size_t*>(block.data());
+            for (size_t i = 0; i < block_size_ / sizeof(size_t); ++i)
+                sbuffer[i] = i;
+            void* p = (void*)block.data();
+
+            dispatcher_->AsyncWrite(
+                group_->connection(r_rank), std::move(block),
+                [this, p](net::Connection& /* c */) {
+                    LOG << "AsyncWrite complete " << p;
+                    OnComplete();
+                });
+
+            return true;
+        }
+        else if (my_rank == r_rank) {
+
+            dispatcher_->AsyncRead(
+                group_->connection(s_rank), block_size_,
+                [this](net::Connection& /* c */, net::Buffer&& block) {
+                    LOG << "AsyncRead complete " << (void*)block.data();
+                    OnComplete();
+                });
+
+            return true;
+        }
+
+        return false;
+    }
+
+private:
+    //! whole experiment repetitions
+    unsigned int outer_repeats_ = 1;
+
+    //! total number of blocks transmitted across all hosts
+    unsigned int num_requests_ = 100;
+
+    //! size of blocks transmitted
+    uint64_t block_size_ = 2 * 1024 * 1024;
+
+    //! limit on the number of simultaneous active requests
+    unsigned int limit_active_ = 16;
+
+    //! communication group
+    net::Group* group_;
+
+    //! async dispatcher
+    net::Dispatcher* dispatcher_;
+
+    //! currently active requests
+    size_t active_;
+
+    //! remaining requests
+    size_t remaining_requests_;
+
+    //! random generator
+    std::default_random_engine rnd_;
+};
+
 /******************************************************************************/
 
 void Usage(const char* argv0) {
@@ -621,6 +806,7 @@ void Usage(const char* argv0) {
         << "    broadcast  - FCC Broadcast operation" << std::endl
         << "    prefixsum  - FCC PrefixSum operation" << std::endl
         << "    allreduce  - FCC PrefixSum operation" << std::endl
+        << "    rblocks    - random block transmissions" << std::endl
         << std::endl;
 }
 
@@ -647,6 +833,9 @@ int main(int argc, char** argv) {
     }
     else if (benchmark == "allreduce") {
         return AllReduce().Run(argc - 1, argv + 1);
+    }
+    else if (benchmark == "rblocks") {
+        return RandomBlocks().Run(argc - 1, argv + 1);
     }
     else {
         Usage(argv[0]);

@@ -42,13 +42,14 @@ public:
         : std::atomic<T>(desired) { }
 
     //! copy-construction (same as std::atomic)
-    AtomicMovable(const AtomicMovable&) = default;
+    AtomicMovable(const AtomicMovable& rhs) noexcept
+        : std::atomic<T>(T(rhs.load())) { }
 
     //! move-construction NOT same as std::atomic: load and move.
     //! Requires T to have an ctor that takes an instance of T for
     //! initialization.
     AtomicMovable(const AtomicMovable&& rhs) noexcept
-        : std::atomic<T>(T(std::move(rhs))) { }
+        : std::atomic<T>(T(std::move(rhs.load()))) { }
 
     //! assignment operator (same as std::atomic)
     T operator = (T desired) noexcept { return std::atomic<T>::operator = (desired); }
