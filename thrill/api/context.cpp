@@ -676,7 +676,6 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
 }
 #endif
 
-static inline
 int RunNotSupported(const char* env_net) {
     std::cerr << "Thrill: network backend " << env_net
               << " is not supported by this binary." << std::endl;
@@ -950,10 +949,10 @@ HostContext::HostContext(
 
     size_t workers_per_host)
 
-    : base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
+    : mem_config_(mem_config),
+      base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
       logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
       profiler_(std::make_unique<common::ProfileThread>()),
-      mem_config_(mem_config),
       local_host_id_(local_host_id),
       workers_per_host_(workers_per_host),
       net_manager_(std::move(groups), logger_) {

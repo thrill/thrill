@@ -132,6 +132,10 @@ public:
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer& data_multiplexer() { return data_multiplexer_; }
 
+private:
+    //! memory configuration
+    MemoryConfig mem_config_;
+
 public:
     //! \name Logging System
     //! \{
@@ -150,9 +154,6 @@ public:
     //! \}
 
 private:
-    //! memory configuration
-    MemoryConfig mem_config_;
-
     //! id among all _local_ hosts (in test program runs)
     size_t local_host_id_;
 
