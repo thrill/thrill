@@ -35,7 +35,6 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
 
         assert(mpi_async_.size() == mpi_async_requests_.size());
         assert(mpi_async_.size() == mpi_async_out_.size());
-        assert(mpi_async_.size() == mpi_async_status_.size());
 
         int out_count;
 
@@ -54,7 +53,7 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
             mpi_async_out_.data(),
             // out: Array of status objects for operations that completed (array
             // of status).
-            mpi_async_status_.data());
+            MPI_STATUSES_IGNORE);
 
         lock.unlock();
 
@@ -67,10 +66,8 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
         else if (out_count > 0) {
             sLOG << "DispatchOne(): MPI_Testsome() out_count=" << out_count;
 
-            size_t len = mpi_async_.size();
-
             // run through finished requests back to front, swap last entry into
-            // finished ones.
+            // finished ones, such that preceding indexes remain valid.
             for (int k = out_count - 1; k >= 0; --k) {
                 size_t p = mpi_async_out_[k];
 
@@ -80,17 +77,16 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
                 mpi_async_[p]();
 
                 // deleted the entry (no problem is k == len)
-                --len;
-                mpi_async_[p] = std::move(mpi_async_[len]);
-                mpi_async_requests_[p] = std::move(mpi_async_requests_[len]);
-                mpi_async_out_[p] = std::move(mpi_async_out_[len]);
-                mpi_async_status_[p] = std::move(mpi_async_status_[len]);
-            }
+                size_t back = mpi_async_.size() - 1;
 
-            mpi_async_.resize(len);
-            mpi_async_requests_.resize(len);
-            mpi_async_out_.resize(len);
-            mpi_async_status_.resize(len);
+                mpi_async_[p] = std::move(mpi_async_[back]);
+                mpi_async_requests_[p] = std::move(mpi_async_requests_[back]);
+                mpi_async_out_[p] = std::move(mpi_async_out_[back]);
+
+                mpi_async_.resize(back);
+                mpi_async_requests_.resize(back);
+                mpi_async_out_.resize(back);
+            }
         }
     }
 
