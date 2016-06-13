@@ -152,6 +152,34 @@ RunLoopbackThreads(
 }
 
 /******************************************************************************/
+// Other Configuration Options
+
+static bool SetupBlockSize() {
+
+    const char* env_block_size = getenv("THRILL_BLOCK_SIZE");
+    if (!env_block_size || !*env_block_size) return true;
+
+    char* endptr;
+    data::default_block_size = std::strtoul(env_block_size, &endptr, 10);
+
+    if (!endptr || *endptr != 0 || data::default_block_size == 0) {
+        std::cerr << "Thrill: environment variable"
+                  << " THRILL_BLOCK_SIZE=" << env_block_size
+                  << " is not a valid number."
+                  << std::endl;
+        return false;
+    }
+
+    data::start_block_size = data::default_block_size;
+
+    std::cerr << "Thrill: setting default_block_size = "
+              << data::default_block_size
+              << std::endl;
+
+    return true;
+}
+
+/******************************************************************************/
 // Constructions using TestGroup (either mock or tcp-loopback) for local testing
 
 #if defined(_MSC_VER)
@@ -423,10 +451,13 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     std::cerr << "Thrill: running in tcp network with " << hostlist.size()
               << " hosts and " << workers_per_host << " workers per host"
-              << " as rank " << my_host_rank << " with endpoints";
+              << " with " << common::GetHostname()
+              << " as rank " << my_host_rank << " and endpoints";
     for (const std::string& ep : hostlist)
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
+
+    if (!SetupBlockSize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
@@ -506,8 +537,15 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
     std::cerr << "Thrill: running in MPI network with " << num_hosts
               << " hosts and " << workers_per_host << " workers per host"
+              << " with " << common::GetHostname()
               << " as rank " << mpi_rank << "."
               << std::endl;
+
+    // increase size of ByteBlocks for larger transfers
+    data::start_block_size = 2 * 1024 * 1024;
+    data::default_block_size = 16 * 1024 * 1024;
+
+    if (!SetupBlockSize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
@@ -588,8 +626,15 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
 
     std::cerr << "Thrill: running in IB/MPI network with " << num_hosts
               << " hosts and " << workers_per_host << " workers per host"
+              << " with " << common::GetHostname()
               << " as rank " << mpi_rank << "."
               << std::endl;
+
+    // increase size of ByteBlocks for larger transfers
+    data::start_block_size = 2 * 1024 * 1024;
+    data::default_block_size = 16 * 1024 * 1024;
+
+    if (!SetupBlockSize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
@@ -631,7 +676,6 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
 }
 #endif
 
-static inline
 int RunNotSupported(const char* env_net) {
     std::cerr << "Thrill: network backend " << env_net
               << " is not supported by this binary." << std::endl;
@@ -905,10 +949,10 @@ HostContext::HostContext(
 
     size_t workers_per_host)
 
-    : base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
+    : mem_config_(mem_config),
+      base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
       logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
       profiler_(std::make_unique<common::ProfileThread>()),
-      mem_config_(mem_config),
       local_host_id_(local_host_id),
       workers_per_host_(workers_per_host),
       net_manager_(std::move(groups), logger_) {

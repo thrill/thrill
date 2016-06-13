@@ -196,17 +196,57 @@ protected:
     //! \name Virtual Synchronous Collectives to Override Implementations
     //! \{
 
-    virtual void PrefixSumPlusUInt32(uint32_t& value);
-    virtual void PrefixSumPlusUInt64(uint64_t& value);
-
-    virtual void ExPrefixSumPlusUInt32(uint32_t& value);
-    virtual void ExPrefixSumPlusUInt64(uint64_t& value);
-
-    virtual void BroadcastUInt32(uint32_t& value, size_t origin);
-    virtual void BroadcastUInt64(uint64_t& value, size_t origin);
-
-    virtual void AllReducePlusUInt32(uint32_t& value);
-    virtual void AllReducePlusUInt64(uint64_t& value);
+/*[[[perl
+  for my $e (
+    ["int", "Int"], ["unsigned int", "UnsignedInt"],
+    ["long", "Long"], ["unsigned long", "UnsignedLong"],
+    ["long long", "LongLong"], ["unsigned long long", "UnsignedLongLong"])
+  {
+    print "virtual void PrefixSumPlus$$e[1]($$e[0]& value);\n";
+    print "virtual void ExPrefixSumPlus$$e[1]($$e[0]& value);\n";
+    print "virtual void Broadcast$$e[1]($$e[0]& value, size_t origin);\n";
+    print "virtual void AllReducePlus$$e[1]($$e[0]& value);\n";
+    print "virtual void AllReduceMinimum$$e[1]($$e[0]& value);\n";
+    print "virtual void AllReduceMaximum$$e[1]($$e[0]& value);\n";
+  }
+]]]*/
+    virtual void PrefixSumPlusInt(int& value);
+    virtual void ExPrefixSumPlusInt(int& value);
+    virtual void BroadcastInt(int& value, size_t origin);
+    virtual void AllReducePlusInt(int& value);
+    virtual void AllReduceMinimumInt(int& value);
+    virtual void AllReduceMaximumInt(int& value);
+    virtual void PrefixSumPlusUnsignedInt(unsigned int& value);
+    virtual void ExPrefixSumPlusUnsignedInt(unsigned int& value);
+    virtual void BroadcastUnsignedInt(unsigned int& value, size_t origin);
+    virtual void AllReducePlusUnsignedInt(unsigned int& value);
+    virtual void AllReduceMinimumUnsignedInt(unsigned int& value);
+    virtual void AllReduceMaximumUnsignedInt(unsigned int& value);
+    virtual void PrefixSumPlusLong(long& value);
+    virtual void ExPrefixSumPlusLong(long& value);
+    virtual void BroadcastLong(long& value, size_t origin);
+    virtual void AllReducePlusLong(long& value);
+    virtual void AllReduceMinimumLong(long& value);
+    virtual void AllReduceMaximumLong(long& value);
+    virtual void PrefixSumPlusUnsignedLong(unsigned long& value);
+    virtual void ExPrefixSumPlusUnsignedLong(unsigned long& value);
+    virtual void BroadcastUnsignedLong(unsigned long& value, size_t origin);
+    virtual void AllReducePlusUnsignedLong(unsigned long& value);
+    virtual void AllReduceMinimumUnsignedLong(unsigned long& value);
+    virtual void AllReduceMaximumUnsignedLong(unsigned long& value);
+    virtual void PrefixSumPlusLongLong(long long& value);
+    virtual void ExPrefixSumPlusLongLong(long long& value);
+    virtual void BroadcastLongLong(long long& value, size_t origin);
+    virtual void AllReducePlusLongLong(long long& value);
+    virtual void AllReduceMinimumLongLong(long long& value);
+    virtual void AllReduceMaximumLongLong(long long& value);
+    virtual void PrefixSumPlusUnsignedLongLong(unsigned long long& value);
+    virtual void ExPrefixSumPlusUnsignedLongLong(unsigned long long& value);
+    virtual void BroadcastUnsignedLongLong(unsigned long long& value, size_t origin);
+    virtual void AllReducePlusUnsignedLongLong(unsigned long long& value);
+    virtual void AllReduceMinimumUnsignedLongLong(unsigned long long& value);
+    virtual void AllReduceMaximumUnsignedLongLong(unsigned long long& value);
+// [[[end]]]
 
     //! \}
 };
@@ -251,440 +291,197 @@ void RunLoopbackGroupTest(
     const std::function<void(Group*)>& thread_function);
 
 /******************************************************************************/
-// Prefixsum Algorithms
+// Template Specializations to call Virtual Overrides
 
-/*!
- * Calculate for every worker his prefix sum.
- *
- * The prefix sum is the aggregation of the values of all workers with lesser
- * index, including himself, according to a summation operator. The run-time is
- * in O(log n).
- *
- * \param net The current group onto which to apply the operation
- * \param value The value to be summed up
- * \param sum_op A custom summation operator
- * \param inclusive Inclusive prefix sum if true (default)
- */
-template <typename T, typename BinarySumOp>
-void Group::PrefixSumDoubling(T& value, BinarySumOp sum_op, bool inclusive) {
-    static constexpr bool debug = false;
+/*[[[perl
+  for my $e (
+    ["int", "Int"], ["unsigned int", "UnsignedInt"],
+    ["long", "Long"], ["unsigned long", "UnsignedLong"],
+    ["long long", "LongLong"], ["unsigned long long", "UnsignedLongLong"])
+  {
+    print "template <>\n";
+    print "inline void Group::PrefixSum($$e[0]& value, std::plus<$$e[0]>) {\n";
+    print "    return PrefixSumPlus$$e[1](value);\n";
+    print "}\n";
 
-    bool first = true;
-    // Use a copy, in case of exclusive, we have to forward
-    // something that's not our result.
-    T to_forward = value;
+    print "template <>\n";
+    print "inline void Group::ExPrefixSum($$e[0]& value, std::plus<$$e[0]>) {\n";
+    print "    return ExPrefixSumPlus$$e[1](value);\n";
+    print "}\n";
 
-    // This is based on the pointer-doubling algorithm presented in the ParAlg
-    // script, which is used for list ranking.
-    for (size_t d = 1; d < num_hosts(); d <<= 1) {
+    print "template <>\n";
+    print "inline void Group::Broadcast($$e[0]& value, size_t origin) {\n";
+    print "    return Broadcast$$e[1](value, origin);\n";
+    print "}\n";
 
-        if (my_host_rank() + d < num_hosts()) {
-            sLOG << "Host" << my_host_rank()
-                 << ": sending to" << my_host_rank() + d;
-            SendTo(my_host_rank() + d, to_forward);
-        }
+    print "template <>\n";
+    print "inline void Group::AllReduce($$e[0]& value, std::plus<$$e[0]>) {\n";
+    print "    return AllReducePlus$$e[1](value);\n";
+    print "}\n";
 
-        if (my_host_rank() >= d) {
-            T recv_value;
-            ReceiveFrom(my_host_rank() - d, &recv_value);
-            sLOG << "Host" << my_host_rank()
-                 << ": receiving from" << my_host_rank() - d;
+    print "template <>\n";
+    print "inline void Group::AllReduce($$e[0]& value, common::minimum<$$e[0]>) {\n";
+    print "    return AllReduceMinimum$$e[1](value);\n";
+    print "}\n";
 
-            // Take care of order, so we don't break associativity.
-            to_forward = sum_op(recv_value, to_forward);
-
-            if (!first || inclusive) {
-                value = sum_op(recv_value, value);
-            }
-            else {
-                value = recv_value;
-                first = false;
-            }
-        }
-    }
-
-    // set worker 0's value for exclusive prefixsums
-    if (!inclusive && my_host_rank() == 0)
-        value = T();
-}
-
-/*!
- * \brief Calculate for every worker his prefix sum. Works only for worker
- * numbers which are powers of two.
- *
- * \details The prefix sum is an aggregatation of the values of all workers with
- * smaller index, including itself, according to an associative summation
- * operator. This function currently only supports worker numbers which are
- * powers of two.
- *
- * \param net The current group onto which to apply the operation
- *
- * \param value The value to be summed up
- *
- * \param sum_op A custom summation operator
- */
-template <typename T, typename BinarySumOp>
-void Group::PrefixSumHypercube(T& value, BinarySumOp sum_op) {
-    T total_sum = value;
-
-    static constexpr bool debug = false;
-
-    for (size_t d = 1; d < num_hosts(); d <<= 1)
-    {
-        // communication peer for this round (hypercube dimension)
-        size_t peer = my_host_rank() ^ d;
-
-        // Send total sum of this hypercube to worker with id = id XOR d
-        if (peer < num_hosts()) {
-            SendTo(peer, total_sum);
-            sLOG << "PREFIX_SUM: host" << my_host_rank()
-                 << ": sending to peer" << peer;
-        }
-
-        // Receive total sum of smaller hypercube from worker with id = id XOR d
-        T recv_data;
-        if (peer < num_hosts()) {
-            ReceiveFrom(peer, &recv_data);
-            // The order of addition is important. The total sum of the smaller
-            // hypercube always comes first.
-            if (my_host_rank() & d)
-                total_sum = sum_op(recv_data, total_sum);
-            else
-                total_sum = sum_op(total_sum, recv_data);
-            // Variable 'value' represents the prefix sum of this worker
-            if (my_host_rank() & d)
-                // The order of addition is respected the same way as above.
-                value = sum_op(recv_data, value);
-            sLOG << "PREFIX_SUM: host" << my_host_rank()
-                 << ": received from peer" << peer;
-        }
-    }
-
-    sLOG << "PREFIX_SUM: host" << my_host_rank() << ": done";
-}
-
-//! select prefixsum implementation (often due to total number of processors)
-template <typename T, typename BinarySumOp>
-void Group::PrefixSumSelect(T& value, BinarySumOp sum_op, bool inclusive) {
-    return PrefixSumDoubling(value, sum_op, inclusive);
-}
-
-template <typename T, typename BinarySumOp>
-void Group::PrefixSum(T& value, BinarySumOp sum_op) {
-    return PrefixSumSelect(value, sum_op, true);
-}
-
-//! specialization template for plus-prefixsum of uint32_t values.
+    print "template <>\n";
+    print "inline void Group::AllReduce($$e[0]& value, common::maximum<$$e[0]>) {\n";
+    print "    return AllReduceMaximum$$e[1](value);\n";
+    print "}\n";
+  }
+]]]*/
 template <>
-inline void Group::PrefixSum(uint32_t& value, std::plus<uint32_t>) {
-    return PrefixSumPlusUInt32(value);
+inline void Group::PrefixSum(int& value, std::plus<int>) {
+    return PrefixSumPlusInt(value);
 }
-
-//! specialization template for plus-prefixsum of uint64_t values.
 template <>
-inline void Group::PrefixSum(uint64_t& value, std::plus<uint64_t>) {
-    return PrefixSumPlusUInt64(value);
+inline void Group::ExPrefixSum(int& value, std::plus<int>) {
+    return ExPrefixSumPlusInt(value);
 }
-
-template <typename T, typename BinarySumOp>
-void Group::ExPrefixSum(T& value, BinarySumOp sum_op) {
-    return PrefixSumSelect(value, sum_op, false);
-}
-
-//! specialization template for plus-prefixsum of uint32_t values.
 template <>
-inline void Group::ExPrefixSum(uint32_t& value, std::plus<uint32_t>) {
-    return ExPrefixSumPlusUInt32(value);
+inline void Group::Broadcast(int& value, size_t origin) {
+    return BroadcastInt(value, origin);
 }
-
-//! specialization template for plus-prefixsum of uint64_t values.
 template <>
-inline void Group::ExPrefixSum(uint64_t& value, std::plus<uint64_t>) {
-    return ExPrefixSumPlusUInt64(value);
+inline void Group::AllReduce(int& value, std::plus<int>) {
+    return AllReducePlusInt(value);
 }
-
-/******************************************************************************/
-// Broadcast Algorithms
-
-/*!
- * Broadcasts the value of the peer with index 0 to all the others. This is a
- * trivial broadcast from peer 0.
- *
- * \param net The current peer onto which to apply the operation
- *
- * \param value The value to be broadcast / receive into.
- *
- * \param origin The PE to broadcast value from.
- */
-template <typename T>
-void Group::BroadcastTrivial(T& value, size_t origin) {
-
-    if (my_host_rank() == origin) {
-        // send value to all peers
-        for (size_t p = 0; p < num_hosts(); ++p) {
-            if (p != origin)
-                SendTo(p, value);
-        }
-    }
-    else {
-        // receive from origin
-        ReceiveFrom(origin, &value);
-    }
-}
-
-/*!
- * Broadcasts the value of the worker with index "origin" to all the
- * others. This is a binomial tree broadcast method.
- *
- * \param net The current group onto which to apply the operation
- *
- * \param value The value to be broadcast / receive into.
- *
- * \param origin The PE to broadcast value from.
- */
-template <typename T>
-void Group::BroadcastBinomialTree(T& value, size_t origin) {
-    static constexpr bool debug = false;
-
-    size_t num_hosts = this->num_hosts();
-    // calculate rank in cyclically shifted binomial tree
-    size_t my_rank = (my_host_rank() + num_hosts - origin) % num_hosts;
-    size_t r = 0, d = 1;
-    // receive from predecessor
-    if (my_rank > 0) {
-        // our predecessor is p with the lowest one bit flipped to zero. this
-        // also counts the number of rounds we have to send out messages later.
-        r = common::ffs(my_rank) - 1;
-        d <<= r;
-        size_t from = ((my_rank ^ d) + origin) % num_hosts;
-        sLOG << "Broadcast: rank" << my_rank << "receiving from" << from
-             << "in round" << r;
-        ReceiveFrom(from, &value);
-    }
-    else {
-        d = common::RoundUpToPowerOfTwo(num_hosts);
-    }
-    // send to successors
-    for (d >>= 1; d > 0; d >>= 1, ++r) {
-        if (my_rank + d < num_hosts) {
-            size_t to = (my_rank + d + origin) % num_hosts;
-            sLOG << "Broadcast: rank" << my_rank << "round" << r << "sending to"
-                 << to;
-            SendTo(to, value);
-        }
-    }
-}
-
-//! select broadcast implementation (often due to total number of processors)
-template <typename T>
-void Group::BroadcastSelect(T& value, size_t origin) {
-    return BroadcastBinomialTree(value, origin);
-}
-
-/*!
- * Broadcasts the value of the worker with index 0 to all the others. This is a
- * binomial tree broadcast method.
- *
- * \param net The current group onto which to apply the operation
- *
- * \param value The value to be broadcast / receive into.
- *
- * \param origin The PE to broadcast value from.
- */
-template <typename T>
-void Group::Broadcast(T& value, size_t origin) {
-    return BroadcastSelect(value, origin);
-}
-
-//! specialization template for broadcast of uint32_t values.
 template <>
-inline void Group::Broadcast(uint32_t& value, size_t origin) {
-    return BroadcastUInt32(value, origin);
+inline void Group::AllReduce(int& value, common::minimum<int>) {
+    return AllReduceMinimumInt(value);
 }
-
-//! specialization template for broadcast of uint64_t values.
 template <>
-inline void Group::Broadcast(uint64_t& value, size_t origin) {
-    return BroadcastUInt64(value, origin);
+inline void Group::AllReduce(int& value, common::maximum<int>) {
+    return AllReduceMaximumInt(value);
 }
-
-/******************************************************************************/
-// Reduce Algorithms
-
-/*!
- * \brief Perform a reduction on all workers in a group.
- *
- * \details This function aggregates the values of all workers in the group
- * according with a specified reduction operator. The result will be returned in
- * the input variable at the root node.
- *
- * \param net The current group onto which to apply the operation
- *
- * \param value The input value to be used in the reduction. Will be overwritten
- * with the result (on the root) or arbitrary data (on other ranks).
- *
- * \param root The rank of the root
- *
- * \param sum_op A custom reduction operator (optional)
- */
-template <typename T, typename BinarySumOp>
-void Group::Reduce(T& value, size_t root, BinarySumOp sum_op) {
-    static constexpr bool debug = false;
-    const size_t num_hosts = this->num_hosts();
-    const size_t my_rank = my_host_rank() + num_hosts;
-    const size_t shifted_rank = (my_rank - root) % num_hosts;
-    sLOG << my_host_rank() << "shifted_rank" << shifted_rank;
-
-    for (size_t d = 1; d < num_hosts; d <<= 1) {
-        if (shifted_rank & d) {
-            sLOG << "Reduce" << my_host_rank()
-                 << "->" << (my_rank - d) % num_hosts << "/"
-                 << shifted_rank << "->" << shifted_rank - d;
-            SendTo((my_rank - d) % num_hosts, value);
-            break;
-        }
-        else if (shifted_rank + d < num_hosts) {
-            sLOG << "Reduce" << my_host_rank()
-                 << "<-" << (my_rank + d) % num_hosts << "/"
-                 << shifted_rank << "<-" << shifted_rank + d;
-            T recv_data;
-            ReceiveFrom((my_rank + d) % num_hosts, &recv_data);
-            value = sum_op(value, recv_data);
-        }
-    }
-}
-
-/******************************************************************************/
-// AllReduce Algorithms
-
-/*!
- * Perform an All-Reduce on the workers. This is done by aggregating all values
- * according to a summation operator and sending them backto all workers.
- *
- * \param   net The current group onto which to apply the operation
- * \param   value The value to be added to the aggregation
- * \param   sum_op A custom summation operator
- */
-template <typename T, typename BinarySumOp>
-void Group::AllReduceSimple(T& value, BinarySumOp sum_op) {
-    Reduce(value, 0, sum_op);
-    Broadcast(value, 0);
-}
-
-/*!
- * Broadcasts the value of the peer with index 0 to all the others. This is a
- * trivial broadcast from peer 0.
- *
- * \param net The current peer onto which to apply the operation
- *
- * \param value The value to be broadcast / receive into.
- *
- * \param origin The PE to broadcast value from.
- */
-template <typename T, typename BinarySumOp>
-void Group::AllReduceAtRoot(T& value, BinarySumOp sum_op) {
-
-    if (my_host_rank() == 0) {
-        // receive value from all peers
-        for (size_t p = 1; p < num_hosts(); ++p) {
-            T recv_value;
-            ReceiveFrom(p, &recv_value);
-            value = sum_op(value, recv_value);
-        }
-        // send reduced value back to all peers
-        for (size_t p = 1; p < num_hosts(); ++p) {
-            SendTo(p, value);
-        }
-    }
-    else {
-        // send to root host
-        SendTo(0, value);
-        // receive value back from root
-        ReceiveFrom(0, &value);
-    }
-}
-
-/*!
- * Perform an All-Reduce for powers of two. This is done with the Hypercube
- * algorithm from the ParAlg script.
- *
- * \param   net The current group onto which to apply the operation
- * \param   value The value to be added to the aggregation
- * \param   sum_op A custom summation operator
- */
-template <typename T, typename BinarySumOp>
-void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
-    // For each dimension of the hypercube, exchange data between workers with
-    // different bits at position d
-
-    // static constexpr bool debug = false;
-
-    for (size_t d = 1; d < num_hosts(); d <<= 1) {
-        // communication peer for this round (hypercube dimension)
-        size_t peer = my_host_rank() ^ d;
-
-        // SendReceive value to worker with id id ^ d
-        if (peer < num_hosts()) {
-            // sLOG << "ALL_REDUCE_HYPERCUBE: Host" << my_host_rank()
-            //      << ": Sending" << value << "to worker" << peer;
-
-            T recv_data;
-            connection(peer).SendReceive(value, &recv_data);
-
-            // The order of addition is important. The total sum of the smaller
-            // hypercube always comes first.
-            if (my_host_rank() & d)
-                value = sum_op(recv_data, value);
-            else
-                value = sum_op(value, recv_data);
-
-            // sLOG << "ALL_REDUCE_HYPERCUBE: Host " << my_host_rank()
-            //      << ": Received " << recv_data
-            //      << " from worker " << peer << " value = " << value;
-        }
-    }
-
-    // sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value;
-}
-
-//! select allreduce implementation (often due to total number of processors)
-template <typename T, typename BinarySumOp>
-void Group::AllReduceSelect(T& value, BinarySumOp sum_op) {
-    if (common::IsPowerOfTwo(num_hosts()))
-        AllReduceHypercube(value, sum_op);
-    else
-        AllReduceAtRoot(value, sum_op);
-}
-
-/*!
- * Perform an All-Reduce on the workers.  This is done by aggregating all values
- * according to a summation operator and sending them backto all workers.
- *
- * \param   net The current group onto which to apply the operation
- * \param   value The value to be added to the aggregation
- * \param   sum_op A custom summation operator
- */
-template <typename T, typename BinarySumOp>
-void Group::AllReduce(T& value, BinarySumOp sum_op) {
-    return AllReduceSelect(value, sum_op);
-}
-
-//! specialization template for plus-allreduce of uint32_t values.
 template <>
-inline void Group::AllReduce(uint32_t& value, std::plus<uint32_t>) {
-    return AllReducePlusUInt32(value);
+inline void Group::PrefixSum(unsigned int& value, std::plus<unsigned int>) {
+    return PrefixSumPlusUnsignedInt(value);
 }
-
-//! specialization template for plus-allreduce of uint64_t values.
 template <>
-inline void Group::AllReduce(uint64_t& value, std::plus<uint64_t>) {
-    return AllReducePlusUInt64(value);
+inline void Group::ExPrefixSum(unsigned int& value, std::plus<unsigned int>) {
+    return ExPrefixSumPlusUnsignedInt(value);
 }
+template <>
+inline void Group::Broadcast(unsigned int& value, size_t origin) {
+    return BroadcastUnsignedInt(value, origin);
+}
+template <>
+inline void Group::AllReduce(unsigned int& value, std::plus<unsigned int>) {
+    return AllReducePlusUnsignedInt(value);
+}
+template <>
+inline void Group::AllReduce(unsigned int& value, common::minimum<unsigned int>) {
+    return AllReduceMinimumUnsignedInt(value);
+}
+template <>
+inline void Group::AllReduce(unsigned int& value, common::maximum<unsigned int>) {
+    return AllReduceMaximumUnsignedInt(value);
+}
+template <>
+inline void Group::PrefixSum(long& value, std::plus<long>) {
+    return PrefixSumPlusLong(value);
+}
+template <>
+inline void Group::ExPrefixSum(long& value, std::plus<long>) {
+    return ExPrefixSumPlusLong(value);
+}
+template <>
+inline void Group::Broadcast(long& value, size_t origin) {
+    return BroadcastLong(value, origin);
+}
+template <>
+inline void Group::AllReduce(long& value, std::plus<long>) {
+    return AllReducePlusLong(value);
+}
+template <>
+inline void Group::AllReduce(long& value, common::minimum<long>) {
+    return AllReduceMinimumLong(value);
+}
+template <>
+inline void Group::AllReduce(long& value, common::maximum<long>) {
+    return AllReduceMaximumLong(value);
+}
+template <>
+inline void Group::PrefixSum(unsigned long& value, std::plus<unsigned long>) {
+    return PrefixSumPlusUnsignedLong(value);
+}
+template <>
+inline void Group::ExPrefixSum(unsigned long& value, std::plus<unsigned long>) {
+    return ExPrefixSumPlusUnsignedLong(value);
+}
+template <>
+inline void Group::Broadcast(unsigned long& value, size_t origin) {
+    return BroadcastUnsignedLong(value, origin);
+}
+template <>
+inline void Group::AllReduce(unsigned long& value, std::plus<unsigned long>) {
+    return AllReducePlusUnsignedLong(value);
+}
+template <>
+inline void Group::AllReduce(unsigned long& value, common::minimum<unsigned long>) {
+    return AllReduceMinimumUnsignedLong(value);
+}
+template <>
+inline void Group::AllReduce(unsigned long& value, common::maximum<unsigned long>) {
+    return AllReduceMaximumUnsignedLong(value);
+}
+template <>
+inline void Group::PrefixSum(long long& value, std::plus<long long>) {
+    return PrefixSumPlusLongLong(value);
+}
+template <>
+inline void Group::ExPrefixSum(long long& value, std::plus<long long>) {
+    return ExPrefixSumPlusLongLong(value);
+}
+template <>
+inline void Group::Broadcast(long long& value, size_t origin) {
+    return BroadcastLongLong(value, origin);
+}
+template <>
+inline void Group::AllReduce(long long& value, std::plus<long long>) {
+    return AllReducePlusLongLong(value);
+}
+template <>
+inline void Group::AllReduce(long long& value, common::minimum<long long>) {
+    return AllReduceMinimumLongLong(value);
+}
+template <>
+inline void Group::AllReduce(long long& value, common::maximum<long long>) {
+    return AllReduceMaximumLongLong(value);
+}
+template <>
+inline void Group::PrefixSum(unsigned long long& value, std::plus<unsigned long long>) {
+    return PrefixSumPlusUnsignedLongLong(value);
+}
+template <>
+inline void Group::ExPrefixSum(unsigned long long& value, std::plus<unsigned long long>) {
+    return ExPrefixSumPlusUnsignedLongLong(value);
+}
+template <>
+inline void Group::Broadcast(unsigned long long& value, size_t origin) {
+    return BroadcastUnsignedLongLong(value, origin);
+}
+template <>
+inline void Group::AllReduce(unsigned long long& value, std::plus<unsigned long long>) {
+    return AllReducePlusUnsignedLongLong(value);
+}
+template <>
+inline void Group::AllReduce(unsigned long long& value, common::minimum<unsigned long long>) {
+    return AllReduceMinimumUnsignedLongLong(value);
+}
+template <>
+inline void Group::AllReduce(unsigned long long& value, common::maximum<unsigned long long>) {
+    return AllReduceMaximumUnsignedLongLong(value);
+}
+// [[[end]]]
 
 //! \}
 
 } // namespace net
 } // namespace thrill
+
+#include <thrill/net/collective.hpp>
 
 #endif // !THRILL_NET_GROUP_HEADER
 

@@ -62,15 +62,11 @@ public:
 
     //! Construct Manager from already initialized net::Groups.
     Manager(std::array<GroupPtr, kGroupCount>&& groups,
-            common::JsonLogger& logger) noexcept
-        : groups_(std::move(groups)), logger_(logger) { }
+            common::JsonLogger& logger) noexcept;
 
     //! Construct Manager from already initialized net::Groups.
-    Manager(std::vector<GroupPtr>&& groups, common::JsonLogger& logger) noexcept
-        : logger_(logger) {
-        assert(groups.size() == kGroupCount);
-        std::move(groups.begin(), groups.end(), groups_.begin());
-    }
+    Manager(std::vector<GroupPtr>&& groups,
+            common::JsonLogger& logger) noexcept;
 
     //! Returns the net::Group for the flow control channel.
     Group& GetFlowGroup() {
@@ -82,11 +78,7 @@ public:
         return *groups_[1];
     }
 
-    void Close() {
-        for (size_t i = 0; i < kGroupCount; i++) {
-            groups_[i]->Close();
-        }
-    }
+    void Close();
 
     //! calculate overall traffic for final stats
     std::pair<size_t, size_t> Traffic() const;

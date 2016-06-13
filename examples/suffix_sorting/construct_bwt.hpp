@@ -19,6 +19,7 @@
 #include <thrill/api/sort.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/api/zip_with_index.hpp>
 
 namespace examples {
 namespace suffix_sorting {
@@ -27,7 +28,7 @@ template <typename InputDIA, typename SuffixArrayDIA>
 InputDIA ConstructBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array,
                       uint64_t input_size) {
 
-    thrill::Context& ctx = input.ctx();
+    // thrill::Context& ctx = input.ctx();
 
     using Char = typename InputDIA::ValueType;
     using Index = typename SuffixArrayDIA::ValueType;
@@ -46,12 +47,15 @@ InputDIA ConstructBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array,
            .Map([input_size](const Index& i) {
                     if (i == Index(0))
                         return Index(input_size - 1);
-                    return Index(i - 1);
+                    return i - Index(1);
                 })
-           .Zip(Generate(ctx, input_size),
-                [](const Index& text_pos, const size_t& idx) {
-                    return IndexRank { text_pos, Index(idx) };
-                })
+           .ZipWithIndex([](const Index& text_pos, const size_t& i) {
+                             return IndexRank { text_pos, Index(i) };
+                         })
+           // .Zip(Generate(ctx, input_size),
+           //      [](const Index& text_pos, const size_t& idx) {
+           //          return IndexRank { text_pos, Index(idx) };
+           //      })
            .Sort([](const IndexRank& a, const IndexRank& b) {
                      return a.index < b.index;
                  })

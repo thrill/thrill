@@ -132,7 +132,6 @@ public:
         mpi_async_requests_.emplace_back(req);
         mpi_async_.emplace_back(c, std::move(buffer), done_cb);
         mpi_async_out_.emplace_back();
-        mpi_async_status_.emplace_back();
     }
 
     void AsyncWrite(
@@ -155,7 +154,6 @@ public:
         mpi_async_requests_.emplace_back(req);
         mpi_async_.emplace_back(c, std::move(block), done_cb);
         mpi_async_out_.emplace_back();
-        mpi_async_status_.emplace_back();
     }
 
     MPI_Request IRecv(Connection& c, void* data, size_t size) {
@@ -188,7 +186,6 @@ public:
         // allocate associated buffer (Irecv needs memory).
         mpi_async_.emplace_back(c, size, done_cb);
         mpi_async_out_.emplace_back();
-        mpi_async_status_.emplace_back();
 
         Buffer& buffer = mpi_async_.back().read_buffer_.buffer();
 
@@ -218,7 +215,6 @@ public:
         mpi_async_.emplace_back(c, size, std::move(block), done_cb);
         mpi_async_out_.emplace_back();
         mpi_async_requests_.emplace_back(req);
-        mpi_async_status_.emplace_back();
     }
 
     //! Run one iteration of dispatching using MPI_Iprobe().
@@ -398,11 +394,6 @@ private:
     //! array of output integer of finished requests for MPI_Testsome().
     mem::vector<int> mpi_async_out_ {
         mem::Allocator<int>(mem_manager_)
-    };
-
-    //! array of output status of finished requests for MPI_Testsome().
-    mem::vector<MPI_Status> mpi_async_status_ {
-        mem::Allocator<MPI_Status>(mem_manager_)
     };
 };
 

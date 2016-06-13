@@ -115,6 +115,16 @@ void SetCpuAffinity(std::thread& thread, size_t cpu_id) {
 #endif
 }
 
+std::string GetHostname() {
+#if __linux__
+    char buffer[64];
+    gethostname(buffer, 64);
+    return buffer;
+#else
+    return "<unknown host>";
+#endif
+}
+
 } // namespace common
 } // namespace thrill
 

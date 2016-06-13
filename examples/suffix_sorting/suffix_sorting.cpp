@@ -11,6 +11,7 @@
 
 #include <examples/suffix_sorting/check_sa.hpp>
 #include <examples/suffix_sorting/construct_bwt.hpp>
+#include <examples/suffix_sorting/construct_lcp.hpp>
 #include <examples/suffix_sorting/construct_wt.hpp>
 #include <examples/suffix_sorting/dc3.hpp>
 #include <examples/suffix_sorting/dc7.hpp>
@@ -65,6 +66,7 @@ public:
     bool check_flag_ = false;
     bool input_verbatim_ = false;
     bool pack_input_ = false;
+    bool lcp_computation_ = false;
 
     std::string output_bwt_;
     std::string output_wavelet_tree_;
@@ -172,8 +174,8 @@ public:
 
         if (sa_index_bytes_ == 4)
             return StartInput<uint32_t>(input_dia, input_size);
-        else if (sa_index_bytes_ == 8)
-            return StartInput<uint64_t>(input_dia, input_size);
+        else if (sa_index_bytes_ == 5)
+            return StartInput<common::uint40>(input_dia, input_size);
         else
             die("Unsupported index byte size: " << sa_index_bytes_ <<
                 ". Byte size has to be 4,5,6 or 8");
@@ -259,6 +261,11 @@ public:
                 ConstructBWT(input_dia, suffix_array, input_size),
                 output_wavelet_tree_);
         }
+
+        if (lcp_computation_) {
+            auto bwt = ConstructBWT(input_dia, suffix_array, input_size);
+            ConstructLCP(input_dia, suffix_array, bwt, input_size);
+        }
     }
 };
 
@@ -326,6 +333,10 @@ int main(int argc, char* argv[]) {
     cp.AddFlag('p', "packed", ss.pack_input_,
                "Fit as many characters of the input in the bytes used per index"
                " in the suffix array.");
+
+    cp.AddFlag('l', "lcp", ss.lcp_computation_,
+               "Compute the LCP array in addition to the SA. Currently this "
+               "requires the construction of the BWT.");
 
     if (!cp.Process(argc, argv))
         return -1;

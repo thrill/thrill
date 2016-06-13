@@ -13,8 +13,11 @@
 #ifndef THRILL_COMMON_THREAD_BARRIER_HEADER
 #define THRILL_COMMON_THREAD_BARRIER_HEADER
 
+#include <thrill/common/atomic_movable.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/functional.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <atomic>
 #include <condition_variable>
@@ -98,6 +101,14 @@ public:
     explicit ThreadBarrierSpinning(size_t thread_count)
         : thread_count_(thread_count) { }
 
+    ~ThreadBarrierSpinning() {
+        LOG1 << "ThreadBarrierSpinning() needed "
+             << wait_time_.load() << " us for " << thread_count_ << " threads "
+             << " = "
+             << wait_time_.load() / static_cast<double>(thread_count_) / 1e6
+             << " us avg";
+    }
+
     /*!
      * Waits for n threads to arrive. When they have arrive, execute lambda on
      * the one thread, which arrived last. After lambda, step the generation
@@ -120,10 +131,12 @@ public:
             step_.fetch_add(1, std::memory_order_acq_rel);
         }
         else {
+            StatsTimerStart timer;
             // spin lock awaiting the last thread to increment the step counter.
             while (step_.load(std::memory_order_relaxed) == this_step) {
-                std::this_thread::yield();
+                // std::this_thread::yield();
             }
+            wait_time_ += timer.Microseconds();
         }
     }
 
@@ -141,6 +154,8 @@ protected:
 
     //! barrier synchronization generation
     std::atomic<size_t> step_ { 0 };
+
+    AtomicMovable<uint64_t> wait_time_ { 0 };
 };
 
 // select thread barrier implementation.

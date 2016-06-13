@@ -57,12 +57,7 @@ public:
     //! Constructor from BlockPool
     BlockQueue(BlockPool& block_pool, size_t local_worker_id,
                size_t dia_id,
-               const CloseCallback& close_callback = CloseCallback())
-        : BlockSink(block_pool, local_worker_id),
-          file_(block_pool, local_worker_id, dia_id),
-          close_callback_(close_callback) {
-        assert(local_worker_id < block_pool.workers_per_host());
-    }
+               const CloseCallback& close_callback = CloseCallback());
 
     //! non-copyable: delete copy-constructor
     BlockQueue(const BlockQueue&) = delete;
@@ -89,17 +84,7 @@ public:
     }
 
     //! Close called by BlockWriter.
-    void Close() final {
-        assert(!write_closed_);
-        write_closed_ = true;
-
-        block_counter_++;
-
-        // enqueue a closing Block.
-        queue_.emplace();
-
-        if (close_callback_) close_callback_(*this);
-    }
+    void Close() final;
 
     static constexpr bool allocate_can_fail_ = false;
 
@@ -204,22 +189,13 @@ class ConsumeBlockQueueSource
 
 public:
     //! Start reading from a BlockQueue
-    explicit ConsumeBlockQueueSource(BlockQueue& queue, size_t local_worker_id)
-        : queue_(queue), local_worker_id_(local_worker_id) { }
+    explicit ConsumeBlockQueueSource(BlockQueue& queue, size_t local_worker_id);
 
-    void Prefetch(size_t /* prefetch */) {
-        // not supported yet. TODO(tb)
-    }
+    void Prefetch(size_t /* prefetch */);
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
-    PinnedBlock NextBlock() {
-        Block b = queue_.Pop();
-        LOG << "ConsumeBlockQueueSource::NextBlock() " << b;
-
-        if (!b.IsValid()) return PinnedBlock();
-        return b.PinWait(local_worker_id_);
-    }
+    PinnedBlock NextBlock();
 
 private:
     //! BlockQueue that blocks are retrieved from
@@ -241,44 +217,22 @@ class CacheBlockQueueSource
 
 public:
     //! Start reading from a BlockQueue
-    explicit CacheBlockQueueSource(BlockQueue* queue, size_t local_worker_id)
-        : queue_(queue), local_worker_id_(local_worker_id) { }
+    explicit CacheBlockQueueSource(BlockQueue* queue, size_t local_worker_id);
 
     //! non-copyable: delete copy-constructor
     CacheBlockQueueSource(const CacheBlockQueueSource&) = delete;
     //! non-copyable: delete assignment operator
     CacheBlockQueueSource& operator = (const CacheBlockQueueSource&) = delete;
     //! move-constructor: default
-    CacheBlockQueueSource(CacheBlockQueueSource&& s)
-        : queue_(s.queue_), local_worker_id_(s.local_worker_id_)
-    { s.queue_ = nullptr; }
+    CacheBlockQueueSource(CacheBlockQueueSource&& s);
 
-    void Prefetch(size_t /* prefetch */) {
-        // not supported yet. TODO(tb)
-    }
+    void Prefetch(size_t /* prefetch */);
 
     //! Return next block for BlockQueue, store into caching File and return it.
-    PinnedBlock NextBlock() {
-        LOG << "CacheBlockQueueSource[" << this << "]::NextBlock() closed " << queue_->read_closed();
-        Block b = queue_->Pop();
-        LOG << "CacheBlockQueueSource[" << this << "]::NextBlock() " << b;
-
-        // cache block in file_ (but not the termination block from the queue)
-        if (b.IsValid())
-            queue_->file_.AppendBlock(b);
-
-        if (!b.IsValid())
-            return PinnedBlock();
-
-        return b.PinWait(local_worker_id_);
-    }
+    PinnedBlock NextBlock();
 
     //! Consume remaining blocks and cache them in the File.
-    ~CacheBlockQueueSource() {
-        if (queue_ && !queue_->read_closed()) {
-            while (NextBlock().IsValid()) { }
-        }
-    }
+    ~CacheBlockQueueSource();
 
 private:
     //! Reference to BlockQueue

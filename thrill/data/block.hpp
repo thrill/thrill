@@ -19,7 +19,6 @@
 #include <thrill/mem/pool.hpp>
 
 #include <cassert>
-#include <future>
 #include <ostream>
 #include <string>
 
