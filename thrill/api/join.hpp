@@ -128,7 +128,7 @@ public:
                                   };
 
         // no possible join results when at least one data set is empty
-        if (!files1_.size() && !files2_.size()) {
+        if (!files1_.size() || !files2_.size()) {
             return;
         }
 
@@ -248,11 +248,11 @@ private:
 
         size_t capacity = DIABase::mem_limit_ / sizeof(InputTypeFirst) / 2;
 
-        RecieveItems<InputTypeFirst>(capacity, reader1_, files1_);
+        RecieveItems<InputTypeFirst>(capacity, reader1_, files1_, key_extractor1_);
 
         capacity = DIABase::mem_limit_ / sizeof(InputTypeSecond) / 2;
 
-        RecieveItems<InputTypeSecond>(capacity, reader2_, files2_);
+        RecieveItems<InputTypeSecond>(capacity, reader2_, files2_, key_extractor2_);
     }
 
     void PreOp1(const InputTypeFirst& input) {
@@ -395,11 +395,11 @@ private:
     }
 
     /*!
-     * Recieve all elements from a stream and write them to sorted files.
+     * Recieve all elements from a stream and write them to files sorted by key.
      */
-    template <typename ItemType>
+    template <typename ItemType, typename KeyExtractor>
     void RecieveItems(size_t capacity, data::CatStream::CatReader& reader,
-                      std::deque<data::File>& files) {
+                      std::deque<data::File>& files, const KeyExtractor& key_extractor) {
 
         std::vector<ItemType> vec;
         vec.reserve(capacity);
@@ -409,12 +409,12 @@ private:
                 vec.push_back(reader.template Next<ItemType>());
             }
             else {
-                SortAndWriteToFile(vec, files);
+                SortAndWriteToFile(vec, files, key_extractor);
             }
         }
 
         if (vec.size())
-            SortAndWriteToFile(vec, files);
+			SortAndWriteToFile(vec, files, key_extractor);
     }
 
     //! calculate maximum merging degree from available memory and the number of
@@ -580,13 +580,16 @@ private:
     /*!
      * Sorts all elements in a vector and writes them to a file.
      */
-    template <typename ItemType>
+    template <typename ItemType, typename KeyExtractor>
     void SortAndWriteToFile(
-        std::vector<ItemType>& vec, std::deque<data::File>& files) {
-        // advice block pool to write out data if necessary
+        std::vector<ItemType>& vec, std::deque<data::File>& files,
+		const KeyExtractor& key_extractor) {
+        // advise block pool to write out data if necessary
         context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
 
-        std::sort(vec.begin(), vec.end());
+        std::sort(vec.begin(), vec.end(), [&key_extractor](ItemType i1, ItemType i2) {
+				return key_extractor(i1) < key_extractor(i2);
+			});
 
         files.emplace_back(context_.GetFile(this));
         auto writer = files.back().GetWriter();

@@ -9,10 +9,11 @@
  ******************************************************************************/
 
 #include <examples/page_rank/zipf_graph_gen.hpp>
+#include <examples/triangles/triangles.hpp>
 
 #include <thrill/api/cache.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/join.hpp>
+#include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
@@ -22,7 +23,6 @@
 #include <functional>
 #include <utility>
 #include <vector>
-#include <bits/functional_hash.h>
 
 using namespace thrill;              // NOLINT
 using examples::page_rank::ZipfGraphGen;
@@ -31,15 +31,33 @@ static constexpr bool debug = true;
 using Node = size_t;
 using Edge = std::pair<Node, Node>;
 
-namespace std { //i am sorry.
 
-	template <> struct hash<Edge> {
-		size_t operator()(const Edge& e) const {
-			return hash<Node>()(e.first) ^ hash<Node>()(e.second);
-		}
-	};
+static size_t CountTrianglesPerLine(
+	api::Context& ctx,
+	const std::vector<std::string>& input_path) {
+	auto edges = ReadLines(ctx, input_path).template FlatMap<Edge>(
+		[](const std::string& input, auto emit) {
+			// parse "source\ttarget\n" lines
+			char* endptr;
+		    size_t src = std::strtoul(input.c_str(), &endptr, 10);
+			die_unless(endptr && *endptr == '\t' &&
+					   "Could not parse src tgt line");
+			size_t tgt = std::strtoul(endptr + 1, &endptr, 10);
+			die_unless(endptr && *endptr == 0 &&
+					   "Could not parse src tgt line");
 
-} //namespace std
+			if (src < tgt) {
+				emit(std::make_pair(src, tgt));
+			} else {
+				if (src > tgt) {
+					emit(std::make_pair(tgt, src));
+				} 
+				//self-loop: do not emit;
+			}			
+		});
+	
+	return examples::triangles::CountTriangles(edges);
+}
  
 static size_t CountTrianglesGenerated(
 	api::Context& ctx,
@@ -67,30 +85,19 @@ static size_t CountTrianglesGenerated(
 					//self-loop: do not emit
 				}
 			}
-		}).Cache();
-
-	auto edges_length_2 = edges.InnerJoinWith(edges, [](const Edge& e) {
-			return e.second;
-		}, [](const Edge& e) {
-			return e.first;
-		}, [](const Edge& e1, const Edge& e2) {
-			return std::make_pair(e1.first, e2.second);
 		});
 
-	auto triangles = edges_length_2.InnerJoinWith(edges, [](const Edge& e) {
-			return e;
-		}, [](const Edge& e) {
-			return e;
-		}, [](const Edge& /* e1 */, const Edge& /* e2 */) {
-			return (size_t)1;
-		});
-
-	return triangles.Size();
+	return examples::triangles::CountTriangles(edges);
 }
 
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
+
+
+    bool generate = false;
+    clp.AddFlag('g', "generate", generate,
+                "generate graph data, set input = #pages");
 
 	size_t num_vertices;
 
@@ -115,18 +122,33 @@ int main(int argc, char* argv[]) {
                   "generated: Zipf exponent parameter for outgoing links, "
                   "default: " + std::to_string(gg.link_zipf_exponent));
 
+	std::vector<std::string> input_path;
+    clp.AddParamStringlist("input", input_path,
+                           "input file pattern(s)");
+
     if (!clp.Process(argc, argv)) {
         return -1;
     }
+
+
+
+    die_unless(!generate || input_path.size() == 1);
 
     clp.PrintResult();
 
     return api::Run(
         [&](api::Context& ctx) {
-		    size_t triangles = CountTrianglesGenerated(
-				ctx, gg, num_vertices);
+			size_t triangles;
+			if (generate) {
+				triangles = CountTrianglesGenerated(
+					ctx, gg, num_vertices);
+			} else {
+				triangles = CountTrianglesPerLine(
+					ctx, input_path);
+			}
 
 			LOG1 << "#triangles=" << triangles;
+			return triangles;
         });
 }
 
