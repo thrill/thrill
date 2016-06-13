@@ -692,6 +692,7 @@ public:
                  << " operation=" << "rblocks"
                  << " hosts=" << group_->num_hosts()
                  << " requests=" << num_requests_
+                 << " block_size=" << block_size_
                  << " limit_active=" << limit_active_
                  << " time[us]=" << time
                  << " time_per_op[us]="
@@ -766,7 +767,7 @@ public:
         return false;
     }
 
-private:
+protected:
     //! whole experiment repetitions
     unsigned int outer_repeats_ = 1;
 
@@ -797,6 +798,73 @@ private:
 
 /******************************************************************************/
 
+class RandomBlocksSeries : public RandomBlocks
+{
+    static constexpr bool debug = false;
+
+public:
+    using Super = RandomBlocks;
+
+    int Run(int argc, char* argv[]) {
+
+        common::CmdlineParser clp;
+
+        clp.AddUInt('r', "request", Super::num_requests_,
+                    "Number of blocks transmitted across all hosts, default: 100");
+
+        clp.AddBytes('b', "min_block_size", min_block_size_,
+                     "Minimum size of blocks transmitted, default: 512 KiB");
+
+        clp.AddBytes('B', "max_block_size", max_block_size_,
+                     "Maximum size of blocks transmitted, default: 8 MiB");
+
+        clp.AddBytes('l', "min_limit_active", min_limit_active_,
+                     "Minimum number of simultaneous active requests, default: 16");
+
+        clp.AddBytes('L', "max_limit_active", max_limit_active_,
+                     "maximum number of simultaneous active requests, default: 512");
+
+        if (!clp.Process(argc, argv)) return -1;
+
+        return api::Run(
+            [=](api::Context& ctx) {
+                // make a copy of this for local workers
+                RandomBlocksSeries local = *this;
+                return local.Test(ctx);
+            });
+    }
+
+    void Test(api::Context& ctx) {
+
+        for (size_t block_size = min_block_size_;
+             block_size <= max_block_size_; block_size *= 2) {
+
+            for (size_t limit_active = min_limit_active_;
+                 limit_active <= max_limit_active_; limit_active *= 2) {
+
+                Super::block_size_ = block_size;
+                Super::limit_active_ = limit_active;
+                Super::Test(ctx);
+            }
+        }
+    }
+
+protected:
+    //! size of blocks transmitted minimum
+    uint64_t min_block_size_ = 512 * 1024;
+
+    //! size of blocks transmitted maximum
+    uint64_t max_block_size_ = 8 * 1024 * 1024;
+
+    //! min limit on the number of simultaneous active requests
+    unsigned int min_limit_active_ = 16;
+
+    //! max limit on the number of simultaneous active requests
+    unsigned int max_limit_active_ = 512;
+};
+
+/******************************************************************************/
+
 void Usage(const char* argv0) {
     std::cout
         << "Usage: " << argv0 << " <benchmark>" << std::endl
@@ -807,6 +875,7 @@ void Usage(const char* argv0) {
         << "    prefixsum  - FCC PrefixSum operation" << std::endl
         << "    allreduce  - FCC PrefixSum operation" << std::endl
         << "    rblocks    - random block transmissions" << std::endl
+        << "    rblocks_series - series of rblocks experiments" << std::endl
         << std::endl;
 }
 
@@ -836,6 +905,9 @@ int main(int argc, char** argv) {
     }
     else if (benchmark == "rblocks") {
         return RandomBlocks().Run(argc - 1, argv + 1);
+    }
+    else if (benchmark == "rblocks_series") {
+        return RandomBlocksSeries().Run(argc - 1, argv + 1);
     }
     else {
         Usage(argv[0]);
