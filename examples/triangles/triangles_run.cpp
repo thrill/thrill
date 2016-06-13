@@ -39,10 +39,10 @@ static size_t CountTrianglesPerLine(
 		[](const std::string& input, auto emit) {
 			// parse "source\ttarget\n" lines
 			char* endptr;
-		    size_t src = std::strtoul(input.c_str(), &endptr, 10);
-			die_unless(endptr && *endptr == '\t' &&
+		    unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
+			die_unless(endptr && *endptr == ' ' &&
 					   "Could not parse src tgt line");
-			size_t tgt = std::strtoul(endptr + 1, &endptr, 10);
+		    unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
 			die_unless(endptr && *endptr == 0 &&
 					   "Could not parse src tgt line");
 
@@ -54,7 +54,7 @@ static size_t CountTrianglesPerLine(
 				} 
 				//self-loop: do not emit;
 			}			
-		});
+		}).Cache();
 	
 	return examples::triangles::CountTriangles(edges);
 }
@@ -85,7 +85,7 @@ static size_t CountTrianglesGenerated(
 					//self-loop: do not emit
 				}
 			}
-		});
+		}).Cache();
 
 	return examples::triangles::CountTriangles(edges);
 }
