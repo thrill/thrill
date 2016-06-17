@@ -98,19 +98,7 @@ public:
         watch_active_--;
     }
 
-    MPI_Request ISend(Connection& c, const void* data, size_t size) {
-        MPI_Request request;
-        int r = MPI_Isend(const_cast<void*>(data), static_cast<int>(size), MPI_BYTE,
-                          c.peer(), group_tag_, MPI_COMM_WORLD, &request);
-
-        if (r != MPI_SUCCESS)
-            throw Exception("Error during ISend", r);
-
-        sLOG0 << "Isend size" << size;
-        c.tx_bytes_ += size;
-
-        return request;
-    }
+    MPI_Request ISend(Connection& c, const void* data, size_t size);
 
     void AsyncWrite(
         net::Connection& c, Buffer&& buffer,
@@ -156,19 +144,7 @@ public:
         mpi_async_out_.emplace_back();
     }
 
-    MPI_Request IRecv(Connection& c, void* data, size_t size) {
-        MPI_Request request;
-        int r = MPI_Irecv(data, static_cast<int>(size), MPI_BYTE,
-                          c.peer(), group_tag_, MPI_COMM_WORLD, &request);
-
-        if (r != MPI_SUCCESS)
-            throw Exception("Error during IRecv", r);
-
-        sLOG0 << "Irecv size" << size;
-        c.rx_bytes_ += size;
-
-        return request;
-    }
+    MPI_Request IRecv(Connection& c, void* data, size_t size);
 
     void AsyncRead(net::Connection& c, size_t size,
                    const AsyncReadBufferCallback& done_cb

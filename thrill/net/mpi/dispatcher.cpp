@@ -25,6 +25,40 @@ extern std::mutex g_mutex;
 /******************************************************************************/
 // mpi::Dispatcher
 
+MPI_Request Dispatcher::ISend(Connection& c, const void* data, size_t size) {
+    // lock the GMLIM
+    std::unique_lock<std::mutex> lock(g_mutex);
+
+    MPI_Request request;
+    int r = MPI_Isend(const_cast<void*>(data), static_cast<int>(size), MPI_BYTE,
+                      c.peer(), group_tag_, MPI_COMM_WORLD, &request);
+
+    if (r != MPI_SUCCESS)
+        throw Exception("Error during ISend", r);
+
+    sLOG0 << "Isend size" << size;
+    c.tx_bytes_ += size;
+
+    return request;
+}
+
+MPI_Request Dispatcher::IRecv(Connection& c, void* data, size_t size) {
+    // lock the GMLIM
+    std::unique_lock<std::mutex> lock(g_mutex);
+
+    MPI_Request request;
+    int r = MPI_Irecv(data, static_cast<int>(size), MPI_BYTE,
+                      c.peer(), group_tag_, MPI_COMM_WORLD, &request);
+
+    if (r != MPI_SUCCESS)
+        throw Exception("Error during IRecv", r);
+
+    sLOG0 << "Irecv size" << size;
+    c.rx_bytes_ += size;
+
+    return request;
+}
+
 void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
 
     // use MPI_Testsome() to check for finished writes
