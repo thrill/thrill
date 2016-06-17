@@ -809,8 +809,8 @@ public:
 
         common::CmdlineParser clp;
 
-        clp.AddUInt('r', "request", Super::num_requests_,
-                    "Number of blocks transmitted across all hosts, default: 100");
+        clp.AddBytes('s', "size", total_bytes_,
+                     "Total bytes transfered per experiment, default: 128 MiB");
 
         clp.AddBytes('b', "min_block_size", min_block_size_,
                      "Minimum size of blocks transmitted, default: 512 KiB");
@@ -842,6 +842,7 @@ public:
             for (size_t limit_active = min_limit_active_;
                  limit_active <= max_limit_active_; limit_active *= 2) {
 
+                Super::num_requests_ = total_bytes_ / block_size;
                 Super::block_size_ = block_size;
                 Super::limit_active_ = limit_active;
                 Super::Test(ctx);
@@ -850,6 +851,9 @@ public:
     }
 
 protected:
+    //! total bytes transfered
+    uint64_t total_bytes_ = 128 * 1024 * 1024;
+
     //! size of blocks transmitted minimum
     uint64_t min_block_size_ = 512 * 1024;
 
