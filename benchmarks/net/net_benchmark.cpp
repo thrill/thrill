@@ -24,6 +24,7 @@
 #include <thrill/common/string.hpp>
 #include <thrill/net/dispatcher.hpp>
 
+#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -211,16 +212,18 @@ void PingPongLatency::Test(api::Context& ctx) {
         group.AllReduce(time, common::maximum<size_t>());
 
         if (ctx.my_rank() == 0) {
-            LOG1 << "RESULT"
-                 << " benchmark=" << benchmark
-                 << " hosts=" << ctx.num_hosts()
-                 << " outer_repeat=" << outer_repeat
-                 << " iterations=" << iterations_
-                 << " inner_repeats=" << inner_repeats_
-                 << " ping_pongs=" << counter_
-                 << " time[us]=" << time
-                 << " time_per_ping_pong[us]="
-                 << static_cast<double>(time) / static_cast<double>(counter_);
+            std::cout
+                << "RESULT"
+                << " benchmark=" << benchmark
+                << " hosts=" << ctx.num_hosts()
+                << " outer_repeat=" << outer_repeat
+                << " iterations=" << iterations_
+                << " inner_repeats=" << inner_repeats_
+                << " ping_pongs=" << counter_
+                << " time[us]=" << time
+                << " time_per_ping_pong[us]="
+                << static_cast<double>(time) / static_cast<double>(counter_)
+                << std::endl;
         }
     }
 
@@ -391,15 +394,17 @@ void Bandwidth::Test(api::Context& ctx) {
         group.AllReduce(time, common::maximum<size_t>());
 
         if (ctx.my_rank() == 0) {
-            LOG1 << "RESULT"
-                 << " benchmark=" << benchmark
-                 << " hosts=" << ctx.num_hosts()
-                 << " outer_repeat=" << outer_repeat
-                 << " inner_repeats=" << inner_repeats_
-                 << " ping_pongs=" << counter_
-                 << " time[us]=" << time
-                 << " time_per_ping_pong[us]="
-                 << static_cast<double>(time) / static_cast<double>(counter_);
+            std::cout
+                << "RESULT"
+                << " benchmark=" << benchmark
+                << " hosts=" << ctx.num_hosts()
+                << " outer_repeat=" << outer_repeat
+                << " inner_repeats=" << inner_repeats_
+                << " ping_pongs=" << counter_
+                << " time[us]=" << time
+                << " time_per_ping_pong[us]="
+                << static_cast<double>(time) / static_cast<double>(counter_)
+                << std::endl;
         }
     }
 
@@ -456,14 +461,16 @@ public:
             time = ctx.net.AllReduce(time, common::maximum<size_t>());
 
             if (ctx.my_rank() == 0) {
-                LOG1 << "RESULT"
-                     << " datatype=" << "size_t"
-                     << " operation=" << "broadcast"
-                     << " workers=" << n
-                     << " inner_repeats=" << inner_repeats_
-                     << " time[us]=" << time
-                     << " time_per_op[us]="
-                     << static_cast<double>(time) / inner_repeats_;
+                std::cout
+                    << "RESULT"
+                    << " datatype=" << "size_t"
+                    << " operation=" << "broadcast"
+                    << " workers=" << n
+                    << " inner_repeats=" << inner_repeats_
+                    << " time[us]=" << time
+                    << " time_per_op[us]="
+                    << static_cast<double>(time) / inner_repeats_
+                    << std::endl;
             }
         }
     }
@@ -524,14 +531,16 @@ public:
             time = ctx.net.AllReduce(time, common::maximum<size_t>());
 
             if (ctx.my_rank() == 0) {
-                LOG1 << "RESULT"
-                     << " datatype=" << "size_t"
-                     << " operation=" << "prefixsum"
-                     << " workers=" << n
-                     << " inner_repeats=" << inner_repeats_
-                     << " time[us]=" << time
-                     << " time_per_op[us]="
-                     << static_cast<double>(time) / inner_repeats_;
+                std::cout
+                    << "RESULT"
+                    << " datatype=" << "size_t"
+                    << " operation=" << "prefixsum"
+                    << " workers=" << n
+                    << " inner_repeats=" << inner_repeats_
+                    << " time[us]=" << time
+                    << " time_per_op[us]="
+                    << static_cast<double>(time) / inner_repeats_
+                    << std::endl;
             }
         }
     }
@@ -592,14 +601,16 @@ public:
             time = ctx.net.AllReduce(time, common::maximum<size_t>());
 
             if (ctx.my_rank() == 0) {
-                LOG1 << "RESULT"
-                     << " datatype=" << "size_t"
-                     << " operation=" << "allreduce"
-                     << " workers=" << n
-                     << " inner_repeats=" << inner_repeats_
-                     << " time[us]=" << time
-                     << " time_per_op[us]="
-                     << static_cast<double>(time) / inner_repeats_;
+                std::cout
+                    << "RESULT"
+                    << " datatype=" << "size_t"
+                    << " operation=" << "allreduce"
+                    << " workers=" << n
+                    << " inner_repeats=" << inner_repeats_
+                    << " time[us]=" << time
+                    << " time_per_op[us]="
+                    << static_cast<double>(time) / inner_repeats_
+                    << std::endl;
             }
         }
     }
@@ -688,18 +699,20 @@ public:
         time = ctx.net.AllReduce(time, common::maximum<size_t>());
 
         if (ctx.my_rank() == 0) {
-            LOG1 << "RESULT"
-                 << " operation=" << "rblocks"
-                 << " hosts=" << group_->num_hosts()
-                 << " requests=" << num_requests_
-                 << " block_size=" << block_size_
-                 << " limit_active=" << limit_active_
-                 << " time[us]=" << time
-                 << " time_per_op[us]="
-                 << static_cast<double>(time) / num_requests_
-                 << " total_bytes=" << block_size_ * num_requests_
-                 << " total_bandwidth[MiB/s]="
-                 << CalcMiBs(block_size_ * num_requests_, time);
+            std::cout
+                << "RESULT"
+                << " operation=" << "rblocks"
+                << " hosts=" << group_->num_hosts()
+                << " requests=" << num_requests_
+                << " block_size=" << block_size_
+                << " limit_active=" << limit_active_
+                << " time[us]=" << time
+                << " time_per_op[us]="
+                << static_cast<double>(time) / num_requests_
+                << " total_bytes=" << block_size_ * num_requests_
+                << " total_bandwidth[MiB/s]="
+                << CalcMiBs(block_size_ * num_requests_, time)
+                << std::endl;
         }
     }
 
