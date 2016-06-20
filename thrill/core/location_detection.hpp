@@ -14,6 +14,7 @@
 #ifndef THRILL_CORE_LOCATION_DETECTION_HEADER
 #define THRILL_CORE_LOCATION_DETECTION_HEADER
 
+#include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_table.hpp>
@@ -26,16 +27,28 @@
 namespace thrill {
 namespace core {
 
-template <typename KeyCounterPair>
-class UnusedEmitter {
+template <typename KeyCounterPair, typename HashFunction>
+class ToVectorEmitter {
 public:
+	using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
+	using HashCounterPair = std::pair<HashResult, typename KeyCounterPair::second_type>;
+
+	ToVectorEmitter(HashFunction hash_function,
+					std::vector<HashCounterPair>& vec) 
+		: vec_(vec),
+		  hash_function_(hash_function) { }
+
     static void Put(const KeyCounterPair& p, data::DynBlockWriter& writer) {
         assert(0);
     }
 
-	void Emit(const size_t& /*partition_id*/, const KeyCounterPair& /*p*/) {
-		 assert(0);
+	void Emit(const size_t& /*partition_id*/, const KeyCounterPair& p) {
+		vec_.push_back(std::make_pair(hash_function_(p.first, 1, 0, 0), p.second));
     }
+
+	std::vector<HashCounterPair>& vec_;
+	size_t modulo_ = 1;
+	HashFunction hash_function_;
 };
 
 template <typename ValueType, typename Key, bool UseLocationDetection,
@@ -45,11 +58,13 @@ class LocationDetection
 	static constexpr bool debug = false;
 
 public:
-
+	
+	using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
+	using HashCounterPair = std::pair<HashResult, CounterType>;
 	using KeyCounterPair = std::pair<Key, CounterType>;
 
 	using ReduceConfig = DefaultReduceConfig;
-	using Emitter = UnusedEmitter<KeyCounterPair>;
+	using Emitter = ToVectorEmitter<KeyCounterPair, HashFunction>;
 
 
 	using Table = typename ReduceTableSelect<
@@ -63,13 +78,16 @@ public:
 	LocationDetection(Context& ctx, size_t dia_id, AddFunction add_function,
 					  const HashFunction& hash_function = HashFunction(),
 					  const ReduceConfig& config = ReduceConfig()) 
-		: context_(ctx),
+		: emit_(hash_function, data_),
+		  context_(ctx),
 		  dia_id_(dia_id),
+		  config_(config),
+		  hash_function_(hash_function),
 		  table_(ctx, dia_id,
 				 void_fn,
 				 add_function,
 				 emit_,
-				 ctx.num_workers(), config, false, hash_function, std::equal_to<Key>()) {
+				 1, config, false, hash_function, std::equal_to<Key>()) {
 		sLOG << "creating LocationDetection";
 	}
 
@@ -85,13 +103,12 @@ public:
 
 	}
 
+	std::vector<HashCounterPair> data_;
 	Emitter emit_;
 	Context& context_;
 	size_t dia_id_;
-	ReduceConfig config;
-	HashFunction hash_function;
-	
-			   
+	ReduceConfig config_;
+	HashFunction hash_function_;			   
 
 	Table table_;
 
