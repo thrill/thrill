@@ -17,6 +17,7 @@
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/location_detection.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
 
@@ -58,7 +59,7 @@ namespace api {
  */
 template <typename ValueType, typename FirstDIA, typename SecondDIA,
           typename KeyExtractor1, typename KeyExtractor2,
-          typename JoinFunction>
+          typename JoinFunction, bool UseLocationDetection = true>
 class JoinNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -71,6 +72,8 @@ class JoinNode final : public DOpNode<ValueType>
 
     using Key = typename common::FunctionTraits<KeyExtractor1>::result_type;
 
+	using CounterType = size_t;
+
 public:
     /*!
      * Constructor for a JoinNode.
@@ -82,14 +85,18 @@ public:
         : Super(parent1.ctx(), "Join",
                 { parent1.id(), parent2.id() },
                 { parent1.node(), parent2.node() }),
-          key_extractor1_(key_extractor1),
-          key_extractor2_(key_extractor2),
-          join_function_(join_function),
-          hash_stream1_(parent1.ctx().GetNewMixStream(this)),
-          hash_writers1_(hash_stream1_->GetWriters()),
-          hash_stream2_(parent2.ctx().GetNewMixStream(this)),
-		hash_writers2_(hash_stream2_->GetWriters())
-    {
+		key_extractor1_(key_extractor1),
+		key_extractor2_(key_extractor2),
+		join_function_(join_function),
+		hash_stream1_(parent1.ctx().GetNewMixStream(this)),
+		hash_writers1_(hash_stream1_->GetWriters()),
+		hash_stream2_(parent2.ctx().GetNewMixStream(this)),
+		hash_writers2_(hash_stream2_->GetWriters()),
+		pre_file1_(context_.GetFilePtr(this)),
+		pre_file2_(context_.GetFilePtr(this)),
+		location_detection_(parent1.ctx(), Super::id(), 
+							std::plus<CounterType>())
+		{
 
         auto pre_op_fn1 = [this](const InputTypeFirst& input) {
                               PreOp1(input);
@@ -222,7 +229,6 @@ public:
 
 	
 private:
-
     //! files for sorted datasets
     std::deque<data::File> files1_;
     std::deque<data::File> files2_;
@@ -238,17 +244,26 @@ private:
     data::MixStreamPtr hash_stream2_;
     std::vector<data::Stream::Writer> hash_writers2_;
 
+	//! location detection and associated files
+	data::FilePtr pre_file1_;
+	data::File::Writer pre_writer1_;
+	data::FilePtr pre_file2_;
+	data::File::Writer pre_writer2_;
+
+	core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
+							core::ReduceByHash<Key>, std::plus<CounterType>> location_detection_;
+	
     //! Receive elements from other workers, create pre-sorted files
     void MainOp() {
         data::MixStream::MixReader reader1_ =
             hash_stream1_->GetMixReader(/* consume */ true);
 
-        data::MixStream::MixReader reader2_ =
-            hash_stream2_->GetMixReader(/* consume */ true);
-
         size_t capacity = DIABase::mem_limit_ / sizeof(InputTypeFirst) / 2;
 
         RecieveItems<InputTypeFirst>(capacity, reader1_, files1_, key_extractor1_);
+
+		data::MixStream::MixReader reader2_ =
+            hash_stream2_->GetMixReader(/* consume */ true);
 
         capacity = DIABase::mem_limit_ / sizeof(InputTypeSecond) / 2;
 
@@ -256,17 +271,27 @@ private:
     }
 
     void PreOp1(const InputTypeFirst& input) {
-        hash_writers1_[
-            core::ReduceByHash < Key > ()(key_extractor1_(input),
-                                          context_.num_workers(),
-                                          0, 0).partition_id].Put(input);
+		if (UseLocationDetection) {
+			pre_writer1_.Put(input);
+			location_detection_.Insert(key_extractor1_(input));
+		} else {
+			hash_writers1_[
+				core::ReduceByHash < Key > ()(key_extractor1_(input),
+											  context_.num_workers(),
+											  0, 0).partition_id].Put(input);
+		}
     }
 
     void PreOp2(const InputTypeSecond& input) {
-        hash_writers2_[
-            core::ReduceByHash < Key > ()(key_extractor2_(input),
-                                          context_.num_workers(),
-                                          0, 0).partition_id].Put(input);
+		if (UseLocationDetection) {
+			pre_writer2_.Put(input);
+			location_detection_.Insert(key_extractor2_(input));
+		} else {
+			hash_writers2_[
+				core::ReduceByHash < Key > ()(key_extractor2_(input),
+											  context_.num_workers(),
+											  0, 0).partition_id].Put(input);
+		}
     }
 
 	template <typename ItemType>
@@ -385,6 +410,20 @@ private:
         first_element = next_element;
         return std::make_pair(false, false);
     }
+
+	DIAMemUse PreOpMemUse() final {
+		return DIAMemUse::Max();
+	}
+
+	
+    void StartPreOp(size_t /* id */) final {
+        LOG << *this << " running StartPreOp";
+		location_detection_.Initialize(DIABase::mem_limit_);
+
+		pre_writer1_ = pre_file1_->GetWriter();
+		pre_writer2_ = pre_file2_->GetWriter();
+		
+	}
 
     DIAMemUse ExecuteMemUse() final {
         return DIAMemUse::Max();
