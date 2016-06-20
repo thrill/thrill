@@ -138,6 +138,8 @@ int main(int argc, char* argv[]) {
 
     return api::Run(
         [&](api::Context& ctx) {
+			ctx.enable_consume();
+
 			size_t triangles;
 			if (generate) {
 				triangles = CountTrianglesGenerated(
