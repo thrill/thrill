@@ -85,9 +85,9 @@ public:
           key_extractor1_(key_extractor1),
           key_extractor2_(key_extractor2),
           join_function_(join_function),
-          hash_stream1_(parent1.ctx().GetNewCatStream(this)),
+          hash_stream1_(parent1.ctx().GetNewMixStream(this)),
           hash_writers1_(hash_stream1_->GetWriters()),
-          hash_stream2_(parent2.ctx().GetNewCatStream(this)),
+          hash_stream2_(parent2.ctx().GetNewMixStream(this)),
 		hash_writers2_(hash_stream2_->GetWriters())
     {
 
@@ -233,18 +233,18 @@ private:
     JoinFunction join_function_;
 
     //! data streams for inter-worker communication of DIA elements
-    data::CatStreamPtr hash_stream1_;
+    data::MixStreamPtr hash_stream1_;
     std::vector<data::Stream::Writer> hash_writers1_;
-    data::CatStreamPtr hash_stream2_;
+    data::MixStreamPtr hash_stream2_;
     std::vector<data::Stream::Writer> hash_writers2_;
 
     //! Receive elements from other workers, create pre-sorted files
     void MainOp() {
-        data::CatStream::CatReader reader1_ =
-            hash_stream1_->GetCatReader(/* consume */ true);
+        data::MixStream::MixReader reader1_ =
+            hash_stream1_->GetMixReader(/* consume */ true);
 
-        data::CatStream::CatReader reader2_ =
-            hash_stream2_->GetCatReader(/* consume */ true);
+        data::MixStream::MixReader reader2_ =
+            hash_stream2_->GetMixReader(/* consume */ true);
 
         size_t capacity = DIABase::mem_limit_ / sizeof(InputTypeFirst) / 2;
 
@@ -398,7 +398,7 @@ private:
      * Recieve all elements from a stream and write them to files sorted by key.
      */
     template <typename ItemType, typename KeyExtractor>
-    void RecieveItems(size_t capacity, data::CatStream::CatReader& reader,
+    void RecieveItems(size_t capacity, data::MixStream::MixReader& reader,
                       std::deque<data::File>& files, const KeyExtractor& key_extractor) {
 
         std::vector<ItemType> vec;
