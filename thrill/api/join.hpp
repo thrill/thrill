@@ -250,11 +250,16 @@ private:
 	data::FilePtr pre_file2_;
 	data::File::Writer pre_writer2_;
 
-	core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
-							core::ReduceByHash<Key>, std::plus<CounterType>> location_detection_;
+	core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType, 
+							core::ReduceByHash<Key>, std::hash<Key>,
+							std::plus<CounterType>> location_detection_;
 	
     //! Receive elements from other workers, create pre-sorted files
     void MainOp() {
+		if (UseLocationDetection) {
+			location_detection_.Flush();
+		}
+
         data::MixStream::MixReader reader1_ =
             hash_stream1_->GetMixReader(/* consume */ true);
 
@@ -276,7 +281,7 @@ private:
 			location_detection_.Insert(key_extractor1_(input));
 		} else {
 			hash_writers1_[
-				core::ReduceByHash < Key > ()(key_extractor1_(input),
+			    core::ReduceByHash < Key > ()(key_extractor1_(input),
 											  context_.num_workers(),
 											  0, 0).partition_id].Put(input);
 		}
