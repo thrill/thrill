@@ -541,10 +541,6 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
               << " as rank " << mpi_rank << "."
               << std::endl;
 
-    // increase size of ByteBlocks for larger transfers
-    data::start_block_size = 2 * 1024 * 1024;
-    data::default_block_size = 16 * 1024 * 1024;
-
     if (!SetupBlockSize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
@@ -629,10 +625,6 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
               << " with " << common::GetHostname()
               << " as rank " << mpi_rank << "."
               << std::endl;
-
-    // increase size of ByteBlocks for larger transfers
-    data::start_block_size = 2 * 1024 * 1024;
-    data::default_block_size = 16 * 1024 * 1024;
 
     if (!SetupBlockSize()) return -1;
 
