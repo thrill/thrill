@@ -114,7 +114,8 @@ static void ExecuteMultiThreads(
     for (size_t i = 0; i < count; i++) {
         threads[i] = std::thread(
             [i, function, &manager] {
-                function(manager.GetFlowControlChannel(i));
+                net::FlowControlChannel& fcc = manager.GetFlowControlChannel(i);
+                function(fcc);
             });
     }
 

@@ -28,8 +28,7 @@ namespace common {
 // Argument and Struct Hierarchy below it.
 
 //! base class of all options and parameters
-struct CmdlineParser::Argument
-{
+struct CmdlineParser::Argument {
     //! single letter short option, or 0 is none
     char        key_;
     //! long option key or name for parameters
@@ -93,8 +92,7 @@ struct CmdlineParser::Argument
 };
 
 //! specialization of argument for boolean flags (can only be set to true).
-struct CmdlineParser::ArgumentFlag final : public Argument
-{
+struct CmdlineParser::ArgumentFlag final : public Argument {
     //! reference to boolean to set to true
     bool& dest_;
 
@@ -120,8 +118,7 @@ struct CmdlineParser::ArgumentFlag final : public Argument
 };
 
 //! specialization of argument for integer options or parameters
-struct CmdlineParser::ArgumentInt final : public Argument
-{
+struct CmdlineParser::ArgumentInt final : public Argument {
     int& dest_;
 
     //! contructor filling most attributes
@@ -152,8 +149,7 @@ struct CmdlineParser::ArgumentInt final : public Argument
 };
 
 //! specialization of argument for unsigned integer options or parameters
-struct CmdlineParser::ArgumentUInt final : public Argument
-{
+struct CmdlineParser::ArgumentUInt final : public Argument {
     unsigned int& dest_;
 
     //! contructor filling most attributes
@@ -185,8 +181,7 @@ struct CmdlineParser::ArgumentUInt final : public Argument
 };
 
 //! specialization of argument for size_t options or parameters
-struct CmdlineParser::ArgumentSizeT final : public Argument
-{
+struct CmdlineParser::ArgumentSizeT final : public Argument {
     size_t& dest_;
 
     //! contructor filling most attributes
@@ -218,8 +213,7 @@ struct CmdlineParser::ArgumentSizeT final : public Argument
 };
 
 //! specialization of argument for double options or parameters
-struct CmdlineParser::ArgumentDouble final : public Argument
-{
+struct CmdlineParser::ArgumentDouble final : public Argument {
     double& dest_;
 
     //! contructor filling most attributes
@@ -252,8 +246,7 @@ struct CmdlineParser::ArgumentDouble final : public Argument
 
 //! specialization of argument for SI/IEC suffixes byte size options or
 //! parameters
-struct CmdlineParser::ArgumentBytes32 final : public Argument
-{
+struct CmdlineParser::ArgumentBytes32 final : public Argument {
     uint32_t& dest_;
 
     //! contructor filling most attributes
@@ -287,8 +280,7 @@ struct CmdlineParser::ArgumentBytes32 final : public Argument
 
 //! specialization of argument for SI/IEC suffixes byte size options or
 //! parameters
-struct CmdlineParser::ArgumentBytes64 final : public Argument
-{
+struct CmdlineParser::ArgumentBytes64 final : public Argument {
     uint64_t& dest_;
 
     //! contructor filling most attributes
@@ -319,8 +311,7 @@ struct CmdlineParser::ArgumentBytes64 final : public Argument
 };
 
 //! specialization of argument for string options or parameters
-struct CmdlineParser::ArgumentString final : public Argument
-{
+struct CmdlineParser::ArgumentString final : public Argument {
     std::string& dest_;
 
     //! contructor filling most attributes
@@ -348,8 +339,7 @@ struct CmdlineParser::ArgumentString final : public Argument
 };
 
 //! specialization of argument for multiple string options or parameters
-struct CmdlineParser::ArgumentStringlist final : public Argument
-{
+struct CmdlineParser::ArgumentStringlist final : public Argument {
     std::vector<std::string>& dest_;
 
     //! contructor filling most attributes

@@ -304,7 +304,7 @@ auto KMeans(const DIA<Point, InStack>&input_points,
     using ClosestCentroid = ClosestCentroid<Point>;
     using CentroidAccumulated = CentroidAccumulated<Point>;
 
-    DIA<Point> centroids = points.Sample(num_clusters);
+    DIA<Point> centroids = points.Keep().Sample(num_clusters);
 
     for (size_t iter = 0; iter < iterations; ++iter) {
 
@@ -314,7 +314,7 @@ auto KMeans(const DIA<Point, InStack>&input_points,
         std::vector<Point> local_centroids = centroids.AllGather();
 
         // calculate the closest centroid for each point
-        auto closest = points.Map(
+        auto closest = points.Keep().Map(
             [local_centroids = std::move(local_centroids)](const Point& p) {
                 assert(local_centroids.size());
                 double min_dist = p.DistanceSquare(local_centroids[0]);

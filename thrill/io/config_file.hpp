@@ -83,7 +83,7 @@ public:
     //! tristate variable: direct=0 -> force direct OFF, direct=1 -> try direct
     //! ON, if fails print warning and open without direct, direct=2 -> force
     //! direct ON, fail if unavailable.
-    enum direct_type { DIRECT_OFF = 0, DIRECT_TRY = 1, DIRECT_ON = 2 } direct;
+    enum { DIRECT_OFF = 0, DIRECT_TRY = 1, DIRECT_ON = 2 } direct;
 
     //! marks flash drives (configuration entries with flash= instead of disk=)
     bool flash;

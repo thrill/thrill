@@ -1,14 +1,16 @@
 /*******************************************************************************
- * examples/suffix_sorting/sa_checker.cpp
+ * examples/suffix_sorting/check_sa.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <examples/suffix_sorting/sa_checker.hpp>
+#pragma once
+#ifndef THRILL_EXAMPLES_SUFFIX_SORTING_CHECK_SA_HEADER
+#define THRILL_EXAMPLES_SUFFIX_SORTING_CHECK_SA_HEADER
 
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
@@ -17,55 +19,42 @@
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip.hpp>
 
-#include <ostream>
 #include <utility>
 
 namespace examples {
 namespace suffix_sorting {
 
-using namespace thrill; // NOLINT
-using thrill::common::RingBuffer;
-
-//! A pair (rank, index)
-struct IndexRank {
-    size_t index;
-    size_t rank;
-
-    friend std::ostream& operator << (
-        std::ostream& os, const IndexRank& ri) {
-        return os << '(' << ri.index << '|' << ri.rank << ')';
-    }
-} THRILL_ATTRIBUTE_PACKED;
-
-template <typename Char>
-struct Index3 {
-    size_t index;
-    size_t next;
-    Char   ch;
-
-    friend std::ostream& operator << (
-        std::ostream& os, const Index3& i) {
-        return os << "(index=" << i.index
-                  << " next=" << i.next << " ch=" << i.ch << ")";
-    }
-} THRILL_ATTRIBUTE_PACKED;
-
 template <typename InputDIA, typename SuffixArrayDIA>
 bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
+
+    using namespace thrill; // NOLINT
+    using thrill::common::RingBuffer;
 
     Context& ctx = input.ctx();
 
     using Char = typename InputDIA::ValueType;
-    using Index3 = suffix_sorting::Index3<Char>;
+    using Index = typename SuffixArrayDIA::ValueType;
 
-    size_t input_size = input.Size();
+    //! A pair (rank, index)
+    struct IndexRank {
+        Index index;
+        Index rank;
+    } THRILL_ATTRIBUTE_PACKED;
+
+    struct Index3 {
+        Index index;
+        Index next;
+        Char  ch;
+    } THRILL_ATTRIBUTE_PACKED;
+
+    uint64_t input_size = input.Keep().Size();
 
     auto isa_pair =
         suffix_array
         // build tuples with index: (SA[i]) -> (i, SA[i]),
         .Zip(Generate(ctx, input_size),
-             [](size_t sa, size_t i) {
-                 return IndexRank { sa, i };
+             [](const Index& sa, const size_t& i) {
+                 return IndexRank { sa, Index(i) };
              })
         // take (i, SA[i]) and sort to (ISA[i], i)
         .Sort([](const IndexRank& a, const IndexRank& b) {
@@ -74,21 +63,21 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 
     // Zip (ISA[i], i) with [0,n) and check that the second component was a
     // permutation of [0,n)
-    size_t perm_check =
+    Index perm_check =
         isa_pair.Keep()
         .Zip(Generate(ctx, input_size),
-             [](const IndexRank& ir, size_t index) -> size_t {
-                 return ir.index == index ? 0 : 1;
+             [](const IndexRank& ir, const size_t& index) -> Index {
+                 return ir.index == Index(index) ? 0 : 1;
              })
         // sum over all boolean values.
         .Max();
 
-    if (perm_check != 0) {
+    if (perm_check != Index(0)) {
         LOG1 << "Error: suffix array is not a permutation of 0..n-1.";
         return false;
     }
 
-    using IndexPair = std::pair<size_t, size_t>;
+    using IndexPair = std::pair<Index, Index>;
 
     auto order_check =
         isa_pair
@@ -96,7 +85,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
         .Map([](const IndexRank& ir) { return ir.rank; })
         // build (ISA[i], ISA[i+1], T[i])
         .template FlatWindow<IndexPair>(
-            2, [input_size](size_t index, const RingBuffer<size_t>& rb, auto emit) {
+            2, [input_size](size_t index, const RingBuffer<Index>& rb, auto emit) {
                 emit(IndexPair { rb[0], rb[1] });
                 if (index == input_size - 2) {
                     // emit sentinel at end
@@ -104,7 +93,7 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
                 }
             })
         .Zip(input,
-             [](const std::pair<size_t, size_t>& isa_pair, const Char& ch) {
+             [](const std::pair<Index, Index>& isa_pair, const Char& ch) {
                  return Index3 { isa_pair.first, isa_pair.second, ch };
              })
         // and sort to (i, ISA[SA[i]+1], T[SA[i]])
@@ -112,14 +101,12 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
                   return a.index < b.index;
               });
 
-    // order_check.Print("order_check");
-
-    size_t order_check_sum =
+    char order_check_sum =
         order_check
         // check that no pair violates the order
         .Window(
             2,
-            [input_size](size_t index, const RingBuffer<Index3>& rb) {
+            [input_size](size_t index, const RingBuffer<Index3>& rb) -> char {
 
                 if (rb[0].ch > rb[1].ch) {
                     // simple check of first character of suffix failed.
@@ -128,14 +115,14 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
                     return 1;
                 }
                 else if (rb[0].ch == rb[1].ch) {
-                    if (rb[1].next == input_size) {
+                    if (rb[1].next == Index(input_size)) {
                         // last suffix of string must be first among those with
                         // same first character
                         LOG1 << "Error: suffix array position "
                              << index << " ordered incorrectly.";
                         return 1;
                     }
-                    if (rb[0].next != input_size && rb[0].next > rb[1].next) {
+                    if (rb[0].next != Index(input_size) && rb[0].next > rb[1].next) {
                         // positions SA[i] and SA[i-1] has same first character
                         // but their suffixes are ordered incorrectly: the
                         // suffix position of SA[i] is given by ISA[SA[i]]
@@ -152,13 +139,9 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     return (order_check_sum == 0);
 }
 
-// instantiations
-template bool CheckSA(
-    const DIA<uint8_t>& input, const DIA<uint64_t>& suffix_array);
-template bool CheckSA(
-    const DIA<uint64_t>& input, const DIA<uint64_t>& suffix_array);
-
 } // namespace suffix_sorting
 } // namespace examples
+
+#endif // !THRILL_EXAMPLES_SUFFIX_SORTING_CHECK_SA_HEADER
 
 /******************************************************************************/

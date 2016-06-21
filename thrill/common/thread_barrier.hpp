@@ -13,12 +13,16 @@
 #ifndef THRILL_COMMON_THREAD_BARRIER_HEADER
 #define THRILL_COMMON_THREAD_BARRIER_HEADER
 
+#include <thrill/common/atomic_movable.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/functional.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 
 namespace thrill {
 namespace common {
@@ -46,7 +50,7 @@ public:
     void Await(Lambda lambda = Lambda()) {
         std::unique_lock<std::mutex> lock(mutex_);
 
-        size_t local_ = current_;
+        size_t local_ = step_;
         counts_[local_]++;
 
         if (counts_[local_] < thread_count_) {
@@ -55,11 +59,16 @@ public:
             }
         }
         else {
-            current_ = current_ ? 0 : 1;
-            counts_[current_] = 0;
+            step_ = step_ ? 0 : 1;
+            counts_[step_] = 0;
             lambda();
             cv_.notify_all();
         }
+    }
+
+    //! Return generation step counter
+    size_t step() const {
+        return step_;
     }
 
 protected:
@@ -69,11 +78,11 @@ protected:
     //! number of threads
     const size_t thread_count_;
 
-    //! two counters: switch between then every run.
+    //! two counters: switch between them every run.
     size_t counts_[2] = { 0, 0 };
 
     //! current counter used.
-    size_t current_ = 0;
+    size_t step_ = 0;
 };
 
 /*!
@@ -92,8 +101,18 @@ public:
     explicit ThreadBarrierSpinning(size_t thread_count)
         : thread_count_(thread_count) { }
 
+    ~ThreadBarrierSpinning() {
+        LOG1 << "ThreadBarrierSpinning() needed "
+             << wait_time_.load() << " us for " << thread_count_ << " threads "
+             << " = "
+             << wait_time_.load() / static_cast<double>(thread_count_) / 1e6
+             << " us avg";
+    }
+
     /*!
-     * Waits for n threads to arrive.
+     * Waits for n threads to arrive. When they have arrive, execute lambda on
+     * the one thread, which arrived last. After lambda, step the generation
+     * counter.
      *
      * This method blocks and returns as soon as n threads are waiting inside
      * the method.
@@ -112,9 +131,18 @@ public:
             step_.fetch_add(1, std::memory_order_acq_rel);
         }
         else {
+            StatsTimerStart timer;
             // spin lock awaiting the last thread to increment the step counter.
-            while (step_.load(std::memory_order_relaxed) == this_step) { }
+            while (step_.load(std::memory_order_relaxed) == this_step) {
+                // std::this_thread::yield();
+            }
+            wait_time_ += timer.Microseconds();
         }
+    }
+
+    //! Return generation step counter
+    size_t step() const {
+        return step_.load(std::memory_order_acquire);
     }
 
 protected:
@@ -126,6 +154,8 @@ protected:
 
     //! barrier synchronization generation
     std::atomic<size_t> step_ { 0 };
+
+    AtomicMovable<uint64_t> wait_time_ { 0 };
 };
 
 // select thread barrier implementation.

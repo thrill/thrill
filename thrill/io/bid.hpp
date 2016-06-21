@@ -39,8 +39,7 @@ template <size_t Size>
 class BID
 {
 public:
-    enum
-    {
+    enum {
         //! Block size
         size = Size,
         //! Blocks size, given by the parameter
@@ -99,8 +98,7 @@ public:
     //! size of the block in bytes
     size_t size = 0;
 
-    enum
-    {
+    enum {
         //! Blocks size, given by the parameter
         t_size = 0
     };

@@ -61,6 +61,9 @@ public:
         return --value_;
     }
 
+    //! return the current value -- should only be used for debugging.
+    size_t value() const { return value_; }
+
 private:
     //! value of the semaphore
     size_t value_;

@@ -40,7 +40,7 @@ CatStream::CatStream(Multiplexer& multiplexer, const StreamId& id,
                 multiplexer_.logger()
                     << "class" << "StreamSink"
                     << "event" << "open"
-                    << "stream" << id_
+                    << "id" << id_
                     << "peer_host" << host
                     << "src_worker" << my_worker_rank()
                     << "tgt_worker" << (host * workers_per_host() + worker)
@@ -54,22 +54,30 @@ CatStream::CatStream(Multiplexer& multiplexer, const StreamId& id,
                         multiplexer_.logger()
                         << "class" << "StreamSink"
                         << "event" << "close"
-                        << "stream" << id_
+                        << "id" << id_
                         << "peer_host" << host
                         << "src_worker" << my_worker_rank()
                         << "tgt_worker" << (host * workers_per_host() + worker)
                         << "loopback" << true
+                        << "items" << queue.item_counter()
                         << "bytes" << queue.byte_counter()
                         << "blocks" << queue.block_counter()
                         << "timespan" << queue.timespan();
 
-                        tx_bytes_ += queue.byte_counter();
-                        tx_blocks_ += queue.block_counter();
+                        CatStream* source = reinterpret_cast<CatStream*>(queue.source());
+                        if (source) {
+                            source->tx_int_items_ += queue.item_counter();
+                            source->tx_int_bytes_ += queue.byte_counter();
+                            source->tx_int_blocks_ += queue.block_counter();
+                        }
+
+                        rx_int_items_ += queue.item_counter();
+                        rx_int_bytes_ += queue.byte_counter();
+                        rx_int_blocks_ += queue.block_counter();
                     });
             }
             else {
                 // construct outbound StreamSink
-
                 sinks_.emplace_back(
                     *this,
                     multiplexer_.block_pool_,
@@ -108,8 +116,10 @@ CatStream::GetWriters(size_t block_size) {
     for (size_t host = 0; host < num_hosts(); ++host) {
         for (size_t worker = 0; worker < workers_per_host(); ++worker) {
             if (host == my_host_rank()) {
+                // construct loopback queue writer
                 auto target_queue_ptr = multiplexer_.CatLoopback(
                     id_, local_worker_id_, worker);
+                target_queue_ptr->set_source(this);
                 result.emplace_back(target_queue_ptr, block_size);
             }
             else {
@@ -192,7 +202,7 @@ void CatStream::Close() {
 
     tx_lifetime_.StopEventually();
     tx_timespan_.StopEventually();
-    OnAllClosed();
+    OnAllClosed("CatStream");
 }
 
 bool CatStream::closed() const {
@@ -207,8 +217,9 @@ void CatStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
     assert(from < queues_.size());
     rx_timespan_.StartEventually();
 
-    rx_bytes_ += b.size();
-    rx_blocks_++;
+    rx_net_items_ += b.num_items();
+    rx_net_bytes_ += b.size();
+    rx_net_blocks_++;
 
     sLOG << "OnCatStreamBlock" << b;
 
@@ -224,7 +235,7 @@ void CatStream::OnCloseStream(size_t from) {
     assert(from < queues_.size());
     queues_[from].Close();
 
-    rx_blocks_++;
+    rx_net_blocks_++;
 
     sLOG << "OnCatCloseStream from=" << from;
 

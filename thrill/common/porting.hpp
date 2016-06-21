@@ -19,6 +19,7 @@
 using ssize_t = SSIZE_T;
 #endif
 
+#include <string>
 #include <system_error>
 #include <thread>
 
@@ -30,6 +31,10 @@ void PortSetCloseOnExec(int fd);
 
 //! create a pair of pipe file descriptors
 void MakePipe(int out_pipefds[2]);
+
+//! try to figure out the command line options of the current process and log it
+//! to json logger
+void LogCmdlineParams(JsonLogger& logger);
 
 //! create a std::thread and repeat creation if it fails
 template <typename ... Args>
@@ -47,6 +52,12 @@ std::thread CreateThread(Args&& ... args) {
         }
     }
 }
+
+//! set cpu/core affinity of a thread
+void SetCpuAffinity(std::thread& thread, size_t cpu_id);
+
+//! get hostname
+std::string GetHostname();
 
 } // namespace common
 } // namespace thrill

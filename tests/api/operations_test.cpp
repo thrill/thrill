@@ -23,9 +23,12 @@
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_lines.hpp>
+#include <thrill/api/rebalance.hpp>
 #include <thrill/api/sample.hpp>
 #include <thrill/api/size.hpp>
+#include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/api/write_lines.hpp>
@@ -279,6 +282,125 @@ TEST(Operations, GenerateAndConcatThree) {
     api::RunLocalTests(start_func);
 }
 
+TEST(Operations, GenerateAndUnionTwo) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache();
+            auto dia2 = Generate(ctx, 2 * test_size);
+
+            auto udia = dia1.Union(dia2);
+
+            // check udia
+            std::vector<size_t> out_vec = udia.AllGather();
+            std::sort(out_vec.begin(), out_vec.end());
+
+            ASSERT_EQ(3 * test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i < 2 * test_size ? i / 2 : i - test_size,
+                          out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndUnionThree) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache();
+            auto dia2 = Generate(ctx, 2 * test_size).Collapse();
+            auto dia3 = Generate(ctx, 3 * test_size).Collapse();
+            auto dia4 = Generate(ctx, 7).Collapse();
+
+            auto udia = Union({ dia1, dia2, dia3, dia4 });
+
+            std::vector<size_t> out_vec = udia.AllGather();
+            std::sort(out_vec.begin(), out_vec.end());
+
+            ASSERT_EQ(6 * test_size + 7, out_vec.size());
+
+            std::vector<size_t> correct_vec;
+            for (size_t i = 0; i < test_size; ++i)
+                correct_vec.push_back(i);
+            for (size_t i = 0; i < 2 * test_size; ++i)
+                correct_vec.push_back(i);
+            for (size_t i = 0; i < 3 * test_size; ++i)
+                correct_vec.push_back(i);
+            for (size_t i = 0; i < 7; ++i)
+                correct_vec.push_back(i);
+            std::sort(correct_vec.begin(), correct_vec.end());
+            ASSERT_EQ(correct_vec, out_vec);
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateAndUnionExecuteOrder) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Collapse();
+            auto dia2 = Generate(ctx, 2 * test_size).Collapse();
+
+            // create union of two, which will be sorted
+            auto udia = Union({ dia1, dia2 });
+
+            auto sorted_udia = udia.Sort();
+
+            // now execute the first input, this will also push the data from
+            // dia1 into udia, which forwards it to the Sort().
+            ASSERT_EQ(test_size, dia1.Size());
+
+            // check udia
+            std::vector<size_t> out_vec = sorted_udia.AllGather();
+
+            ASSERT_EQ(3 * test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i < 2 * test_size ? i / 2 : i - test_size,
+                          out_vec[i]);
+            }
+
+            // check size of udia again, which requires a full recalculation.
+            ASSERT_EQ(3 * test_size, udia.Size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, GenerateFilterRebalance) {
+
+    static constexpr size_t test_size = 1024;
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto dia1 = Generate(ctx, test_size).Cache().Execute();
+            auto dia2 = dia1.Filter([](size_t index) { return index < test_size / 2; });
+
+            auto rdia = dia2.Rebalance();
+
+            std::vector<size_t> out_vec = rdia.AllGather();
+
+            ASSERT_EQ(test_size / 2, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(Operations, MapResultsCorrectChangingType) {
 
     auto start_func =
@@ -498,11 +620,9 @@ TEST(Operations, GenerateAndSumHaveEqualAmount2) {
 TEST(Operations, WindowCorrectResults) {
 
     static constexpr bool debug = false;
-    static constexpr size_t test_size = 144;
-    static constexpr size_t window_size = 10;
 
-    auto start_func =
-        [](Context& ctx) {
+    auto test_func =
+        [](Context& ctx, size_t test_size, size_t window_size) {
 
             sLOG << ctx.num_hosts();
 
@@ -512,8 +632,8 @@ TEST(Operations, WindowCorrectResults) {
                 test_size);
 
             auto window = integers.Window(
-                window_size, [](size_t rank,
-                                const common::RingBuffer<size_t>& window) {
+                window_size, [=](size_t rank,
+                                 const common::RingBuffer<size_t>& window) {
 
                     // check received window
                     die_unequal(window_size, window.size());
@@ -539,6 +659,84 @@ TEST(Operations, WindowCorrectResults) {
             }
 
             ASSERT_EQ(test_size - window_size + 1, out_vec.size());
+        };
+
+    auto start_func =
+        [&](Context& ctx) {
+            sLOG << ctx.num_hosts();
+            // window smaller than input
+            test_func(ctx, 144, 10);
+            // window matches input
+            test_func(ctx, 144, 144);
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, WindowCorrectResultsPartialWindows) {
+
+    static constexpr bool debug = false;
+
+    auto test_func =
+        [](Context& ctx, size_t test_size, size_t window_size) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& input) { return input * input; },
+                test_size);
+
+            auto window = integers.Window(
+                window_size,
+                [=](size_t rank,
+                    const common::RingBuffer<size_t>& window) {
+                    // check received window
+                    die_unequal(window_size, window.size());
+
+                    for (size_t i = 0; i < window.size(); ++i) {
+                        sLOG << rank + i << window[i];
+                        die_unequal((rank + i) * (rank + i), window[i]);
+                    }
+
+                    // return rank to check completeness
+                    return Integer(rank);
+                },
+                [=](size_t rank,
+                    const common::RingBuffer<size_t>& window) {
+                    // check received window
+                    die_unless(window.size() < window_size);
+
+                    for (size_t i = 0; i < window.size(); ++i) {
+                        sLOG << rank + i << window[i];
+                        die_unequal((rank + i) * (rank + i), window[i]);
+                    }
+
+                    // return rank to check completeness
+                    return Integer(rank);
+                });
+
+            // check rank completeness
+
+            std::vector<Integer> out_vec = window.AllGather();
+
+            if (ctx.my_rank() == 0)
+                sLOG << common::Join(" - ", out_vec);
+
+            for (size_t i = 0; i < out_vec.size(); i++) {
+                ASSERT_EQ(i, out_vec[i].value());
+            }
+
+            ASSERT_EQ(test_size, out_vec.size());
+        };
+
+    auto start_func =
+        [&](Context& ctx) {
+            sLOG << ctx.num_hosts();
+            // window smaller than input
+            test_func(ctx, 144, 10);
+            // window larger than input
+            test_func(ctx, 144, 288);
+            // window matches input
+            test_func(ctx, 144, 144);
         };
 
     api::RunLocalTests(start_func);

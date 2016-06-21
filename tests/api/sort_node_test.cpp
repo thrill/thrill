@@ -59,14 +59,14 @@ TEST(Sort, SortRandomIntegers) {
         [](Context& ctx) {
 
             std::default_random_engine generator(std::random_device { } ());
-            std::uniform_int_distribution<int> distribution(1, 10000);
+            std::uniform_int_distribution<int> distribution(0, 10000);
 
             auto integers = Generate(
                 ctx,
                 [&distribution, &generator](const size_t&) -> int {
                     return distribution(generator);
                 },
-                10000);
+                1000000);
 
             auto sorted = integers.Sort();
 
@@ -76,7 +76,7 @@ TEST(Sort, SortRandomIntegers) {
                 ASSERT_FALSE(out_vec[i + 1] < out_vec[i]);
             }
 
-            ASSERT_EQ(10000u, out_vec.size());
+            ASSERT_EQ(1000000u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);
@@ -115,39 +115,46 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
     api::RunLocalTests(start_func);
 }
 
+struct IntIntStruct {
+    int a, b;
+
+    friend std::ostream& operator << (std::ostream& os, const IntIntStruct& c) {
+        return os << '(' << c.a << ',' << c.b << ')';
+    }
+};
+
 TEST(Sort, SortRandomIntIntStructs) {
 
     auto start_func =
         [](Context& ctx) {
-
-            using Pair = std::pair<int, int>;
 
             std::default_random_engine generator(std::random_device { } ());
             std::uniform_int_distribution<int> distribution(1, 10);
 
             auto integers = Generate(
                 ctx,
-                [&distribution, &generator](const size_t&) -> Pair {
-                    return std::make_pair(distribution(generator),
-                                          distribution(generator));
+                [&distribution, &generator](const size_t&) -> IntIntStruct {
+                    return IntIntStruct {
+                        distribution(generator), distribution(generator)
+                    };
                 },
                 10000);
 
-            auto compare_fn = [](Pair in1, Pair in2) {
-                                  if (in1.first != in2.first) {
-                                      return in1.first < in2.first;
-                                  }
-                                  else {
-                                      return in1.second < in2.second;
-                                  }
-                              };
+            auto cmp_fn = [](const IntIntStruct& in1, const IntIntStruct& in2) {
+                              if (in1.a != in2.a) {
+                                  return in1.a < in2.a;
+                              }
+                              else {
+                                  return in1.b < in2.b;
+                              }
+                          };
 
-            auto sorted = integers.Sort(compare_fn);
+            auto sorted = integers.Sort(cmp_fn);
 
-            std::vector<Pair> out_vec = sorted.AllGather();
+            std::vector<IntIntStruct> out_vec = sorted.AllGather();
 
             for (size_t i = 0; i < out_vec.size() - 1; i++) {
-                ASSERT_FALSE(out_vec[i + 1].first < out_vec[i].first);
+                ASSERT_FALSE(out_vec[i + 1].a < out_vec[i].a);
             }
 
             ASSERT_EQ(10000u, out_vec.size());
@@ -160,9 +167,6 @@ TEST(Sort, SortZeros) {
 
     auto start_func =
         [](Context& ctx) {
-
-            std::default_random_engine generator(std::random_device { } ());
-            std::uniform_int_distribution<int> distribution(1, 10);
 
             auto integers = Generate(
                 ctx,
@@ -179,6 +183,32 @@ TEST(Sort, SortZeros) {
 
             for (size_t i = 0; i < out_vec.size(); i++) {
                 ASSERT_EQ(1u, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Sort, SortZeroToThree) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) -> size_t {
+                    return index % 4;
+                },
+                10000);
+
+            auto sorted = integers.Sort();
+
+            std::vector<size_t> out_vec = sorted.AllGather();
+
+            ASSERT_EQ(10000u, out_vec.size());
+
+            for (size_t i = 0; i < out_vec.size(); i++) {
+                ASSERT_EQ(i * 4 / out_vec.size(), out_vec[i]);
             }
         };
 
@@ -228,6 +258,24 @@ TEST(Sort, SortOneInteger) {
             }
 
             ASSERT_EQ(1u, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Sort, SortZeroIntegers) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(ctx, 0);
+
+            auto sorted = integers.Sort();
+
+            std::vector<size_t> out_vec;
+            sorted.AllGather(&out_vec);
+
+            ASSERT_EQ(0u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);

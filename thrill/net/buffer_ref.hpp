@@ -49,8 +49,8 @@ public:
     { }
 
     //! Constructor, assign memory area from pointer and length.
-    BufferRef(const void* data, size_t n)
-        : data_(reinterpret_cast<const Byte*>(data)), size_(n)
+    BufferRef(const void* data, size_t size)
+        : data_(reinterpret_cast<const Byte*>(data)), size_(size)
     { }
 
     //! Constructor, assign memory area from string, does NOT copy.

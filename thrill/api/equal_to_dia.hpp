@@ -33,13 +33,13 @@ public:
 
     EqualToDIANode(Context& ctx,
                    const std::vector<ValueType>& in_vector)
-        : SourceNode<ValueType>(ctx, "EqualToDIA"),
+        : Super(ctx, "EqualToDIA"),
           in_vector_(in_vector)
     { }
 
     EqualToDIANode(Context& ctx,
                    std::vector<ValueType>&& in_vector)
-        : SourceNode<ValueType>(ctx, "EqualToDIA"),
+        : Super(ctx, "EqualToDIA"),
           in_vector_(std::move(in_vector))
     { }
 
@@ -49,6 +49,10 @@ public:
         for (size_t i = local.begin; i < local.end; ++i) {
             this->PushItem(in_vector_[i]);
         }
+    }
+
+    void Dispose() final {
+        std::vector<ValueType>().swap(in_vector_);
     }
 
 private:

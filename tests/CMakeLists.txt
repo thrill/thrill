@@ -93,6 +93,8 @@ thrill_build_test_group(common/tests
   common/math_test.cpp
   common/matrix_test.cpp
   common/meta_test.cpp
+  common/qsort_test.cpp
+  common/radix_sort_test.cpp
   common/splay_tree_test.cpp
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
@@ -100,6 +102,7 @@ thrill_build_test_group(common/tests
   common/thread_barrier_test.cpp
   common/thread_pool_test.cpp
   common/timed_counter_test.cpp
+  common/uint_types_test.cpp
   common/zipf_distribution_test.cpp
   )
 

@@ -8,6 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/net/collective.hpp>
 #include <thrill/net/group.hpp>
 #include <thrill/net/manager.hpp>
 #include <thrill/net/mock/group.hpp>
@@ -16,6 +17,7 @@
 #include <thrill/net/tcp/group.hpp>
 #endif
 
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -40,6 +42,23 @@ void RunLoopbackGroupTest(
 
 /******************************************************************************/
 // Manager
+
+Manager::Manager(std::array<GroupPtr, kGroupCount>&& groups,
+                 common::JsonLogger& logger) noexcept
+    : groups_(std::move(groups)), logger_(logger) { }
+
+Manager::Manager(std::vector<GroupPtr>&& groups,
+                 common::JsonLogger& logger) noexcept
+    : logger_(logger) {
+    assert(groups.size() == kGroupCount);
+    std::move(groups.begin(), groups.end(), groups_.begin());
+}
+
+void Manager::Close() {
+    for (size_t i = 0; i < kGroupCount; i++) {
+        groups_[i]->Close();
+    }
+}
 
 std::pair<size_t, size_t> Manager::Traffic() const {
     size_t total_tx = 0, total_rx = 0;
@@ -128,6 +147,150 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
         << "rx_speed"
         << static_cast<double>(total_rx - prev_total_rx) / elapsed;
 }
+
+/******************************************************************************/
+// Group
+
+/*[[[perl
+  for my $e (
+    ["int", "Int"], ["unsigned int", "UnsignedInt"],
+    ["long", "Long"], ["unsigned long", "UnsignedLong"],
+    ["long long", "LongLong"], ["unsigned long long", "UnsignedLongLong"])
+  {
+    print "void Group::PrefixSumPlus$$e[1]($$e[0]& value) {\n";
+    print "    return PrefixSumSelect(value, std::plus<$$e[0]>(), true);\n";
+    print "}\n";
+
+    print "void Group::ExPrefixSumPlus$$e[1]($$e[0]& value) {\n";
+    print "    return PrefixSumSelect(value, std::plus<$$e[0]>(), false);\n";
+    print "}\n";
+
+    print "void Group::Broadcast$$e[1]($$e[0]& value, size_t origin) {\n";
+    print "    return BroadcastSelect(value, origin);\n";
+    print "}\n";
+
+    print "void Group::AllReducePlus$$e[1]($$e[0]& value) {\n";
+    print "    return AllReduceSelect(value, std::plus<$$e[0]>());\n";
+    print "}\n";
+
+    print "void Group::AllReduceMinimum$$e[1]($$e[0]& value) {\n";
+    print "    return AllReduceSelect(value, common::minimum<$$e[0]>());\n";
+    print "}\n";
+
+    print "void Group::AllReduceMaximum$$e[1]($$e[0]& value) {\n";
+    print "    return AllReduceSelect(value, common::maximum<$$e[0]>());\n";
+    print "}\n";
+  }
+]]]*/
+void Group::PrefixSumPlusInt(int& value) {
+    return PrefixSumSelect(value, std::plus<int>(), true);
+}
+void Group::ExPrefixSumPlusInt(int& value) {
+    return PrefixSumSelect(value, std::plus<int>(), false);
+}
+void Group::BroadcastInt(int& value, size_t origin) {
+    return BroadcastSelect(value, origin);
+}
+void Group::AllReducePlusInt(int& value) {
+    return AllReduceSelect(value, std::plus<int>());
+}
+void Group::AllReduceMinimumInt(int& value) {
+    return AllReduceSelect(value, common::minimum<int>());
+}
+void Group::AllReduceMaximumInt(int& value) {
+    return AllReduceSelect(value, common::maximum<int>());
+}
+void Group::PrefixSumPlusUnsignedInt(unsigned int& value) {
+    return PrefixSumSelect(value, std::plus<unsigned int>(), true);
+}
+void Group::ExPrefixSumPlusUnsignedInt(unsigned int& value) {
+    return PrefixSumSelect(value, std::plus<unsigned int>(), false);
+}
+void Group::BroadcastUnsignedInt(unsigned int& value, size_t origin) {
+    return BroadcastSelect(value, origin);
+}
+void Group::AllReducePlusUnsignedInt(unsigned int& value) {
+    return AllReduceSelect(value, std::plus<unsigned int>());
+}
+void Group::AllReduceMinimumUnsignedInt(unsigned int& value) {
+    return AllReduceSelect(value, common::minimum<unsigned int>());
+}
+void Group::AllReduceMaximumUnsignedInt(unsigned int& value) {
+    return AllReduceSelect(value, common::maximum<unsigned int>());
+}
+void Group::PrefixSumPlusLong(long& value) {
+    return PrefixSumSelect(value, std::plus<long>(), true);
+}
+void Group::ExPrefixSumPlusLong(long& value) {
+    return PrefixSumSelect(value, std::plus<long>(), false);
+}
+void Group::BroadcastLong(long& value, size_t origin) {
+    return BroadcastSelect(value, origin);
+}
+void Group::AllReducePlusLong(long& value) {
+    return AllReduceSelect(value, std::plus<long>());
+}
+void Group::AllReduceMinimumLong(long& value) {
+    return AllReduceSelect(value, common::minimum<long>());
+}
+void Group::AllReduceMaximumLong(long& value) {
+    return AllReduceSelect(value, common::maximum<long>());
+}
+void Group::PrefixSumPlusUnsignedLong(unsigned long& value) {
+    return PrefixSumSelect(value, std::plus<unsigned long>(), true);
+}
+void Group::ExPrefixSumPlusUnsignedLong(unsigned long& value) {
+    return PrefixSumSelect(value, std::plus<unsigned long>(), false);
+}
+void Group::BroadcastUnsignedLong(unsigned long& value, size_t origin) {
+    return BroadcastSelect(value, origin);
+}
+void Group::AllReducePlusUnsignedLong(unsigned long& value) {
+    return AllReduceSelect(value, std::plus<unsigned long>());
+}
+void Group::AllReduceMinimumUnsignedLong(unsigned long& value) {
+    return AllReduceSelect(value, common::minimum<unsigned long>());
+}
+void Group::AllReduceMaximumUnsignedLong(unsigned long& value) {
+    return AllReduceSelect(value, common::maximum<unsigned long>());
+}
+void Group::PrefixSumPlusLongLong(long long& value) {
+    return PrefixSumSelect(value, std::plus<long long>(), true);
+}
+void Group::ExPrefixSumPlusLongLong(long long& value) {
+    return PrefixSumSelect(value, std::plus<long long>(), false);
+}
+void Group::BroadcastLongLong(long long& value, size_t origin) {
+    return BroadcastSelect(value, origin);
+}
+void Group::AllReducePlusLongLong(long long& value) {
+    return AllReduceSelect(value, std::plus<long long>());
+}
+void Group::AllReduceMinimumLongLong(long long& value) {
+    return AllReduceSelect(value, common::minimum<long long>());
+}
+void Group::AllReduceMaximumLongLong(long long& value) {
+    return AllReduceSelect(value, common::maximum<long long>());
+}
+void Group::PrefixSumPlusUnsignedLongLong(unsigned long long& value) {
+    return PrefixSumSelect(value, std::plus<unsigned long long>(), true);
+}
+void Group::ExPrefixSumPlusUnsignedLongLong(unsigned long long& value) {
+    return PrefixSumSelect(value, std::plus<unsigned long long>(), false);
+}
+void Group::BroadcastUnsignedLongLong(unsigned long long& value, size_t origin) {
+    return BroadcastSelect(value, origin);
+}
+void Group::AllReducePlusUnsignedLongLong(unsigned long long& value) {
+    return AllReduceSelect(value, std::plus<unsigned long long>());
+}
+void Group::AllReduceMinimumUnsignedLongLong(unsigned long long& value) {
+    return AllReduceSelect(value, common::minimum<unsigned long long>());
+}
+void Group::AllReduceMaximumUnsignedLongLong(unsigned long long& value) {
+    return AllReduceSelect(value, common::maximum<unsigned long long>());
+}
+// [[[end]]]
 
 } // namespace net
 } // namespace thrill

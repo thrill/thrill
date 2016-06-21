@@ -69,8 +69,7 @@ public:
 
     //! Definition of acceptable file open modes.  Various open modes in a file
     //! system must be converted to this set of acceptable modes.
-    enum open_mode
-    {
+    enum OpenMode {
         //! only reading of the file is allowed
         RDONLY = 1,
         //! only writing of the file is allowed

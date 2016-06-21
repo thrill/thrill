@@ -79,8 +79,7 @@ TEST_F(Serialization, pair_int_int) {
     ASSERT_EQ(std::get<1>(foo), std::get<1>(fooserial));
 }
 
-struct MyPodStruct
-{
+struct MyPodStruct {
     int    i1;
     double d2;
 };
@@ -191,8 +190,7 @@ TEST_F(Serialization, StringArray) {
     ASSERT_EQ(42, check42);
 }
 
-struct MyMethodStruct
-{
+struct MyMethodStruct {
     int                     i1;
     double                  d2;
     std::string             s3;

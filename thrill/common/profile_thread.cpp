@@ -13,6 +13,8 @@
 
 #include <thrill/common/profile_thread.hpp>
 
+#include <thrill/common/config.hpp>
+
 namespace thrill {
 namespace common {
 
@@ -20,15 +22,18 @@ namespace common {
 // ProfileThread
 
 ProfileThread::ProfileThread() {
-    thread_ = std::thread(&ProfileThread::Worker, this);
+    if (common::g_profile_thread)
+        thread_ = std::thread(&ProfileThread::Worker, this);
 }
 
 ProfileThread::~ProfileThread() {
-    std::unique_lock<std::timed_mutex> lock(mutex_);
-    terminate_ = true;
-    cv_.notify_one();
-    lock.unlock();
-    thread_.join();
+    if (common::g_profile_thread) {
+        std::unique_lock<std::timed_mutex> lock(mutex_);
+        terminate_ = true;
+        cv_.notify_one();
+        lock.unlock();
+        thread_.join();
+    }
 
     for (Timer& t : tasks_.container()) {
         if (t.own_task)

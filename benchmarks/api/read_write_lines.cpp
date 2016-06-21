@@ -41,7 +41,7 @@ int main(int argc, const char** argv) {
                 timer.Stop();
                 std::cout << "RESULT"
                           << " input_file=" << input_file
-                          << " time=" << timer.Microseconds()
+                          << " time=" << timer
                           << std::endl;
             });
     }

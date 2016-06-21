@@ -33,7 +33,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA,
+template <typename ValueType,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode final : public DOpNode<ValueType>
 {
@@ -47,8 +47,7 @@ class GroupByNode final : public DOpNode<ValueType>
     using ValueIn =
               typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
 
-    struct ValueComparator
-    {
+    struct ValueComparator {
     public:
         explicit ValueComparator(const GroupByNode& node) : node_(node) { }
 
@@ -65,6 +64,7 @@ public:
      * Constructor for a GroupByNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      */
+    template <typename ParentDIA>
     GroupByNode(const ParentDIA& parent,
                 const KeyExtractor& key_extractor,
                 const GroupFunction& groupby_function,
@@ -146,10 +146,10 @@ public:
             }
         }
         timer.Stop();
-        LOG1 << "RESULT"
-             << " name=multiwaymerge"
-             << " time=" << timer.Milliseconds()
-             << " multiwaymerge=" << (num_runs > 1);
+        LOG << "RESULT"
+            << " name=multiwaymerge"
+            << " time=" << timer.Milliseconds()
+            << " multiwaymerge=" << (num_runs > 1);
     }
 
     void Dispose() override { }
@@ -225,10 +225,10 @@ private:
 
         timer.Stop();
 
-        LOG1 << "RESULT"
-             << " name=mainop"
-             << " time=" << timer
-             << " number_files=" << files_.size();
+        LOG << "RESULT"
+            << " name=mainop"
+            << " time=" << timer
+            << " number_files=" << files_.size();
     }
 };
 
@@ -251,7 +251,7 @@ auto DIA<ValueType, Stack>::GroupByKey(
         "KeyExtractor has the wrong input type");
 
     using GroupByNode = api::GroupByNode<
-              DOpResult, DIA, KeyExtractor, GroupFunction, HashFunction>;
+              DOpResult, KeyExtractor, GroupFunction, HashFunction>;
 
     auto node = common::MakeCounting<GroupByNode>(
         *this, key_extractor, groupby_function);

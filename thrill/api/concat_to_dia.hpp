@@ -33,13 +33,13 @@ public:
 
     ConcatToDIANode(Context& ctx,
                     const std::vector<ValueType>& in_vector)
-        : SourceNode<ValueType>(ctx, "ConcatToDIA"),
+        : Super(ctx, "ConcatToDIA"),
           in_vector_(in_vector)
     { }
 
     ConcatToDIANode(Context& ctx,
                     std::vector<ValueType>&& in_vector)
-        : SourceNode<ValueType>(ctx, "ConcatToDIA"),
+        : Super(ctx, "ConcatToDIA"),
           in_vector_(std::move(in_vector))
     { }
 
@@ -47,6 +47,10 @@ public:
         for (size_t i = 0; i < in_vector_.size(); ++i) {
             this->PushItem(in_vector_[i]);
         }
+    }
+
+    void Dispose() final {
+        std::vector<ValueType>().swap(in_vector_);
     }
 
 private:

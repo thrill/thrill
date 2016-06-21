@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/suffix_sorting/sa_checker.hpp
+ * examples/suffix_sorting/dc7.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,18 +9,20 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_EXAMPLES_SUFFIX_SORTING_SA_CHECKER_HEADER
-#define THRILL_EXAMPLES_SUFFIX_SORTING_SA_CHECKER_HEADER
+#ifndef THRILL_EXAMPLES_SUFFIX_SORTING_DC7_HEADER
+#define THRILL_EXAMPLES_SUFFIX_SORTING_DC7_HEADER
+
+#include <thrill/api/dia.hpp>
 
 namespace examples {
 namespace suffix_sorting {
 
-template <typename InputDIA, typename SuffixArrayDIA>
-bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array);
+template <typename Index, typename InputDIA>
+thrill::DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K);
 
 } // namespace suffix_sorting
 } // namespace examples
 
-#endif // !THRILL_EXAMPLES_SUFFIX_SORTING_SA_CHECKER_HEADER
+#endif // !THRILL_EXAMPLES_SUFFIX_SORTING_DC7_HEADER
 
 /******************************************************************************/

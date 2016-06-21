@@ -27,7 +27,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ParentDIA>
+template <typename ValueType>
 class WriteLinesNode final : public ActionNode
 {
     static constexpr bool debug = false;
@@ -36,9 +36,7 @@ public:
     using Super = ActionNode;
     using Super::context_;
 
-    //! input type is the parent's output value type.
-    using Input = typename ParentDIA::ValueType;
-
+    template <typename ParentDIA>
     WriteLinesNode(const ParentDIA& parent,
                    const std::string& path_out)
         : ActionNode(parent.ctx(), "WriteLines",
@@ -48,7 +46,7 @@ public:
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [this](const Input& input) {
+        auto pre_op_fn = [this](const ValueType& input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -57,7 +55,7 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
-    void PreOp(const Input& input) {
+    void PreOp(const ValueType& input) {
         writer_.Put(input);
         local_size_ += input.size() + 1;
         local_lines_++;
@@ -86,7 +84,7 @@ public:
         data::File::ConsumeReader reader = temp_file_.GetConsumeReader();
 
         for (size_t i = 0; i < temp_file_.num_items(); ++i) {
-            file_ << reader.Next<Input>() << "\n";
+            file_ << reader.Next<ValueType>() << "\n";
         }
     }
 
@@ -117,7 +115,7 @@ void DIA<ValueType, Stack>::WriteLines(
     static_assert(std::is_same<ValueType, std::string>::value,
                   "WriteLines needs an std::string as input parameter");
 
-    using WriteLinesNode = api::WriteLinesNode<DIA>;
+    using WriteLinesNode = api::WriteLinesNode<ValueType>;
 
     auto node = common::MakeCounting<WriteLinesNode>(*this, filepath);
 

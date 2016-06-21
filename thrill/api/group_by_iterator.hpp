@@ -33,11 +33,11 @@ namespace api {
 ////////////////////////////////////////////////////////////////////////////////
 
 // forward declarations for friend classes
-template <typename ValueType, typename ParentDIA,
+template <typename ValueType,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode;
 
-template <typename ValueType, typename ParentDIA,
+template <typename ValueType,
           typename KeyExtractor, typename GroupFunction>
 class GroupToIndexNode;
 
@@ -49,14 +49,12 @@ class GroupByIterator
     template <typename T1,
               typename T2,
               typename T3,
-              typename T4,
-              typename T5>
+              typename T4>
     friend class GroupByNode;
 
     template <typename T1,
               typename T2,
-              typename T3,
-              typename T4>
+              typename T3>
     friend class GroupToIndexNode;
 
 public:
@@ -133,14 +131,12 @@ class GroupByMultiwayMergeIterator
     template <typename T1,
               typename T2,
               typename T3,
-              typename T4,
-              typename T5>
+              typename T4>
     friend class GroupByNode;
 
     template <typename T1,
               typename T2,
-              typename T3,
-              typename T4>
+              typename T3>
     friend class GroupToIndexNode;
 
 public:

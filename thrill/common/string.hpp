@@ -14,6 +14,8 @@
 #ifndef THRILL_COMMON_STRING_HEADER
 #define THRILL_COMMON_STRING_HEADER
 
+#include <thrill/common/defines.hpp>
+
 #include <array>
 #include <cstdarg>
 #include <limits>
@@ -76,10 +78,7 @@ bool EndsWith(const std::string& str, const std::string& match) {
  */
 template <typename String = std::string>
 String str_snprintf(size_t max_size, const char* fmt, ...)
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__ ((format(printf, 2, 3))) // NOLINT
-#endif
-;                                      // NOLINT
+THRILL_ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
 template <typename String>
 String str_snprintf(size_t max_size, const char* fmt, ...) {
@@ -104,10 +103,7 @@ String str_snprintf(size_t max_size, const char* fmt, ...) {
  */
 template <typename String = std::string>
 String str_sprintf(const char* fmt, ...)
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__ ((format(printf, 1, 2))) // NOLINT
-#endif
-;                                      // NOLINT
+THRILL_ATTRIBUTE_FORMAT_PRINTF(1, 2);
 
 template <typename String>
 String str_sprintf(const char* fmt, ...) {
@@ -307,6 +303,9 @@ RandomString(std::string::size_type size, RandomEngine rng,
 
     return out;
 }
+
+//! Escape string using HTML entities
+std::string EscapeHtml(const std::string& str);
 
 //! Parse a string like "343KB" or "44 GiB" into the corresponding size in
 //! bytes. Returns the number of bytes and sets ok = true if the string could

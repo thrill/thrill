@@ -43,6 +43,8 @@ namespace data {
  */
 class MixStream final : public Stream
 {
+    static constexpr bool debug = false;
+
 public:
     using MixReader = MixBlockQueueReader;
 
@@ -82,8 +84,6 @@ public:
     bool closed() const final;
 
 private:
-    static constexpr bool debug = false;
-
     //! flag if Close() was completed
     bool is_closed_ = false;
 
@@ -99,6 +99,7 @@ private:
 
     //! for calling methods to deliver blocks
     friend class Multiplexer;
+    friend class MixBlockQueueSink;
 
     //! called from Multiplexer when there is a new Block for this Stream.
     void OnStreamBlock(size_t from, PinnedBlock&& b);

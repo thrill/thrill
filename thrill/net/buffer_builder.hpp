@@ -83,13 +83,13 @@ public:
     }
 
     //! Constructor, copy memory area.
-    BufferBuilder(const void* data, size_t n) {
-        Assign(data, n);
+    BufferBuilder(const void* data, size_t size) {
+        Assign(data, size);
     }
 
     //! Constructor, create object with n bytes pre-allocated.
-    explicit BufferBuilder(size_t n) {
-        Reserve(n);
+    explicit BufferBuilder(size_t size) {
+        Reserve(size);
     }
 
     //! Constructor from std::string, COPIES string content.

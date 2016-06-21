@@ -17,6 +17,7 @@
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
+#include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/meta.hpp>
 #include <thrill/common/stats_counter.hpp>
@@ -68,8 +69,7 @@ namespace api {
  *
  * \ingroup api_layer
  */
-template <typename ValueType, typename Comparator,
-          typename ParentDIA0, typename ... ParentDIAs>
+template <typename ValueType, typename Comparator, size_t kNumInputs>
 class MergeNode : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -81,18 +81,21 @@ class MergeNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
-    static constexpr size_t kNumInputs = 1 + sizeof ... (ParentDIAs);
-
     static_assert(kNumInputs >= 2, "Merge requires at least two inputs.");
 
 public:
+    template <typename ParentDIA0, typename ... ParentDIAs>
     MergeNode(const Comparator& comparator,
-              const ParentDIA0& parent0,
-              const ParentDIAs& ... parents)
+              const ParentDIA0& parent0, const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Merge",
                 { parent0.id(), parents.id() ... },
                 { parent0.node(), parents.node() ... }),
-          comparator_(comparator)
+          comparator_(comparator),
+          // this weirdness is due to a MSVC2015 parser bug
+          parent_stack_empty_(
+              std::array<bool, kNumInputs>{
+                  { ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... }
+              })
     {
         // allocate files.
         for (size_t i = 0; i < kNumInputs; ++i)
@@ -136,13 +139,7 @@ public:
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t parent_index) final {
         assert(parent_index < kNumInputs);
-
-        //! indication whether the parent stack is empty
-        static constexpr bool parent_stack_empty[kNumInputs] = {
-            // parenthesis are due to a MSVC2015 parser bug
-            ParentDIA0::stack_empty, (ParentDIAs::stack_empty)...
-        };
-        if (!parent_stack_empty[parent_index]) return false;
+        if (!parent_stack_empty_[parent_index]) return false;
 
         // accept file
         assert(files_[parent_index]->num_items() == 0);
@@ -190,6 +187,9 @@ public:
 private:
     //! Merge comparator
     Comparator comparator_;
+
+    //! Whether the parent stack is empty
+    const std::array<bool, kNumInputs> parent_stack_empty_;
 
     //! Random generator for pivot selection.
     std::default_random_engine rng_ { std::random_device { } () };
@@ -247,28 +247,6 @@ private:
         Pivot operator () (const Pivot& a, const Pivot& b) const {
             return a.segment_len > b.segment_len ? a : b;
         }
-    };
-
-    //! Helper method that adds/reduces two size_t Vector. This is used as an
-    //! operator for global reduce operations.
-    template <typename Type, typename Operator>
-    class AddSizeTVectors
-    {
-    public:
-        explicit AddSizeTVectors(const Operator& op = Operator()) : op_(op) { }
-        std::vector<Type> operator () (
-            const std::vector<Type>& a, const std::vector<Type>& b) const {
-            assert(a.size() == b.size());
-            std::vector<Type> res;
-            res.reserve(a.size());
-            for (typename std::vector<Type>::const_iterator
-                 ai = a.begin(), bi = b.begin(); ai != a.end(); ++ai, ++bi)
-                res.emplace_back(op_(*ai, *bi));
-            return res;
-        }
-
-    private:
-        Operator op_;
     };
 
     using StatsTimer = common::StatsTimerBaseStopped<stats_enabled>;
@@ -402,7 +380,7 @@ private:
         // largest ranges.
         stats_.comm_timer_.Start();
         out_pivots = context_.net.AllReduce(
-            out_pivots, AddSizeTVectors<Pivot, ReducePivots>());
+            out_pivots, common::ComponentSum<std::vector<Pivot>, ReducePivots>());
         stats_.comm_timer_.Stop();
     }
 
@@ -440,7 +418,7 @@ private:
         stats_.comm_timer_.Start();
         // Sum up ranks globally.
         global_ranks = context_.net.AllReduce(
-            global_ranks, AddSizeTVectors<size_t, std::plus<size_t> >());
+            global_ranks, common::ComponentSum<std::vector<size_t> >());
         stats_.comm_timer_.Stop();
     }
 
@@ -679,7 +657,7 @@ private:
 
         // calculate total items on each worker after Scatter
         tx_items = context_.net.AllReduce(
-            tx_items, AddSizeTVectors<size_t, std::plus<size_t> >());
+            tx_items, common::ComponentSum<std::vector<size_t> >());
         if (context_.my_rank() == 0)
             LOG1 << "Merge(): total_items: " << common::VecToStr(tx_items);
 
@@ -720,8 +698,8 @@ auto Merge(const Comparator &comparator,
     using CompareResult =
               typename common::FunctionTraits<Comparator>::result_type;
 
-    using MergeNode =
-              api::MergeNode<ValueType, Comparator, FirstDIA, DIAs ...>;
+    using MergeNode = api::MergeNode<
+              ValueType, Comparator, 1 + sizeof ... (DIAs)>;
 
     // Assert comparator types.
     static_assert(

@@ -25,6 +25,40 @@ extern std::mutex g_mutex;
 /******************************************************************************/
 // mpi::Dispatcher
 
+MPI_Request Dispatcher::ISend(Connection& c, const void* data, size_t size) {
+    // lock the GMLIM
+    std::unique_lock<std::mutex> lock(g_mutex);
+
+    MPI_Request request;
+    int r = MPI_Isend(const_cast<void*>(data), static_cast<int>(size), MPI_BYTE,
+                      c.peer(), group_tag_, MPI_COMM_WORLD, &request);
+
+    if (r != MPI_SUCCESS)
+        throw Exception("Error during ISend", r);
+
+    sLOG0 << "Isend size" << size;
+    c.tx_bytes_ += size;
+
+    return request;
+}
+
+MPI_Request Dispatcher::IRecv(Connection& c, void* data, size_t size) {
+    // lock the GMLIM
+    std::unique_lock<std::mutex> lock(g_mutex);
+
+    MPI_Request request;
+    int r = MPI_Irecv(data, static_cast<int>(size), MPI_BYTE,
+                      c.peer(), group_tag_, MPI_COMM_WORLD, &request);
+
+    if (r != MPI_SUCCESS)
+        throw Exception("Error during IRecv", r);
+
+    sLOG0 << "Irecv size" << size;
+    c.rx_bytes_ += size;
+
+    return request;
+}
+
 void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
 
     // use MPI_Testsome() to check for finished writes
@@ -35,7 +69,6 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
 
         assert(mpi_async_.size() == mpi_async_requests_.size());
         assert(mpi_async_.size() == mpi_async_out_.size());
-        assert(mpi_async_.size() == mpi_async_status_.size());
 
         int out_count;
 
@@ -54,7 +87,7 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
             mpi_async_out_.data(),
             // out: Array of status objects for operations that completed (array
             // of status).
-            mpi_async_status_.data());
+            MPI_STATUSES_IGNORE);
 
         lock.unlock();
 
@@ -67,10 +100,8 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
         else if (out_count > 0) {
             sLOG << "DispatchOne(): MPI_Testsome() out_count=" << out_count;
 
-            size_t len = mpi_async_.size();
-
             // run through finished requests back to front, swap last entry into
-            // finished ones.
+            // finished ones, such that preceding indexes remain valid.
             for (int k = out_count - 1; k >= 0; --k) {
                 size_t p = mpi_async_out_[k];
 
@@ -80,17 +111,16 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
                 mpi_async_[p]();
 
                 // deleted the entry (no problem is k == len)
-                --len;
-                mpi_async_[p] = std::move(mpi_async_[len]);
-                mpi_async_requests_[p] = std::move(mpi_async_requests_[len]);
-                mpi_async_out_[p] = std::move(mpi_async_out_[len]);
-                mpi_async_status_[p] = std::move(mpi_async_status_[len]);
-            }
+                size_t back = mpi_async_.size() - 1;
 
-            mpi_async_.resize(len);
-            mpi_async_requests_.resize(len);
-            mpi_async_out_.resize(len);
-            mpi_async_status_.resize(len);
+                mpi_async_[p] = std::move(mpi_async_[back]);
+                mpi_async_requests_[p] = std::move(mpi_async_requests_[back]);
+                mpi_async_out_[p] = std::move(mpi_async_out_[back]);
+
+                mpi_async_.resize(back);
+                mpi_async_requests_.resize(back);
+                mpi_async_out_.resize(back);
+            }
         }
     }
 

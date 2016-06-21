@@ -37,7 +37,9 @@ public:
     static constexpr bool debug = false;
 
     explicit Stage(const DIABasePtr& node)
-        : node_(node), context_(node->context()) { }
+        : node_(node), context_(node->context()),
+          verbose_(context_.mem_config().verbose_)
+    { }
 
     //! iterate over all target nodes into which this Stage pushes
     template <typename Lambda>
@@ -49,7 +51,7 @@ public:
             DIABase* child = children.back();
             children.pop_back();
 
-            if (!child->CanExecute()) {
+            if (child->ForwardDataOnly()) {
                 // push children of Collapse onto stack
                 std::vector<DIABase*> sub = child->children();
                 children.insert(children.end(), sub.begin(), sub.end());
@@ -77,7 +79,7 @@ public:
             if (child == nullptr) {
                 oss << ']';
             }
-            else if (!child->CanExecute()) {
+            else if (child->ForwardDataOnly()) {
                 // push children of Collapse onto stack
                 std::vector<DIABase*> sub = child->children();
                 children.push_back(nullptr);
@@ -119,7 +121,8 @@ public:
         sLOG << "START  (EXECUTE) stage" << *node_ << "targets" << TargetsString();
 
         if (context_.my_rank() == 0) {
-            sLOG1 << "Execute()  stage" << *node_;
+            sLOGC(verbose_)
+                << "Execute()  stage" << *node_;
         }
 
         std::vector<size_t> target_ids = TargetIds();
@@ -151,21 +154,24 @@ public:
 
         logger_ << "class" << "StageBuilder" << "event" << "execute-done"
                 << "targets" << target_ids << "elapsed" << timer;
+
+        LOG << "DIA bytes: " << node_->context().block_pool().total_bytes();
     }
 
     void PushData() {
+        sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << TargetsString();
+
+        if (context_.my_rank() == 0) {
+            sLOGC(verbose_)
+                << "PushData() stage" << *node_
+                << "with targets" << TargetsString();
+        }
+
         if (context_.consume() && node_->consume_counter() == 0) {
             sLOG1 << "StageBuilder: attempt to PushData on"
                   << "stage" << *node_
                   << "failed, it was already consumed. Add .Keep()";
             abort();
-        }
-
-        sLOG << "START  (PUSHDATA) stage" << *node_ << "targets" << TargetsString();
-
-        if (context_.my_rank() == 0) {
-            sLOG1 << "PushData() stage" << *node_
-                  << "with targets" << TargetsString();
         }
 
         std::vector<size_t> target_ids = TargetIds();
@@ -256,6 +262,8 @@ public:
 
         logger_ << "class" << "StageBuilder" << "event" << "pushdata-done"
                 << "targets" << target_ids << "elapsed" << timer;
+
+        LOG << "DIA bytes: " << node_->context().block_pool().total_bytes();
     }
 
     //! order for std::set in FindStages() - this must be deterministic such
@@ -273,6 +281,9 @@ public:
     //! reference to node's Logger.
     common::JsonLogger& logger_ { node_->logger_ };
 
+    //! StageBuilder verbosity flag from MemoryConfig
+    bool verbose_;
+
     //! temporary marker for toposort to detect cycles
     mutable bool cycle_mark_ = false;
 
@@ -285,10 +296,12 @@ using mm_set = std::set<T, std::less<T>, mem::Allocator<T> >;
 
 //! Do a BFS on parents to find all DIANodes (Stages) needed to Execute or
 //! PushData to calculate this action node.
-static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
+static void FindStages(
+    Context& ctx, const DIABasePtr& action, mm_set<Stage>& stages) {
     static constexpr bool debug = Stage::debug;
 
-    LOG << "Finding Stages:";
+    if (ctx.my_rank() == 0)
+        LOG << "Finding Stages:";
 
     mem::deque<DIABasePtr> bfs_stack(
         mem::Allocator<DIABasePtr>(action->mem_manager()));
@@ -300,14 +313,18 @@ static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
         DIABasePtr curr = bfs_stack.front();
         bfs_stack.pop_front();
 
-        for (const DIABasePtr& p : curr->parents()) {
-            // if parents where not already seen, push onto stages
+        const std::vector<DIABasePtr>& parents = curr->parents();
+
+        for (size_t i = 0; i < parents.size(); ++i) {
+            const DIABasePtr& p = parents[i];
+
+            // if parent was already seen, done.
             if (stages.count(Stage(p))) continue;
 
-            LOG << "  Stage: " << *p;
-            stages.insert(Stage(p));
-
-            if (p->CanExecute()) {
+            if (!curr->ForwardDataOnly()) {
+                if (ctx.my_rank() == 0)
+                    LOG << "  Stage: " << *p;
+                stages.insert(Stage(p));
                 // If parent was not executed push it to the BFS queue and
                 // continue upwards. if state is EXECUTED, then we only need to
                 // PushData(), which is already indicated by stages.insert().
@@ -315,8 +332,13 @@ static void FindStages(const DIABasePtr& action, mm_set<Stage>& stages) {
                     bfs_stack.push_back(p);
             }
             else {
-                // If parent cannot be executed (hold data) continue upward.
-                bfs_stack.push_back(p);
+                // If parent cannot hold data continue upward.
+                if (curr->RequireParentPushData(i)) {
+                    if (ctx.my_rank() == 0)
+                        LOG << "  Stage: " << *p;
+                    stages.insert(Stage(p));
+                    bfs_stack.push_back(p);
+                }
             }
         }
     }
@@ -359,11 +381,11 @@ void DIABase::RunScope() {
     LOG << "DIABase::Execute() this=" << *this;
 
     if (state_ == DIAState::EXECUTED) {
-        LOG1 << "DIA node " << *this << " was already executed.";
+        LOG << "DIA node " << *this << " was already executed.";
         return;
     }
 
-    if (!CanExecute()) {
+    if (ForwardDataOnly()) {
         // CollapseNodes cannot be executed: execute their parent(s)
         for (const DIABasePtr& p : parents_)
             p->RunScope();
@@ -373,16 +395,18 @@ void DIABase::RunScope() {
     mm_set<Stage> stages {
         mem::Allocator<Stage>(mem_manager())
     };
-    FindStages(DIABasePtr(this), stages);
+    FindStages(context_, DIABasePtr(this), stages);
 
     mem::vector<Stage> toporder {
         mem::Allocator<Stage>(mem_manager())
     };
     TopoSortStages(stages, toporder);
 
-    LOG << "Topological order";
-    for (auto top = toporder.rbegin(); top != toporder.rend(); ++top) {
-        LOG << "  " << *top->node_;
+    if (context_.my_rank() == 0) {
+        LOG << "Topological order";
+        for (auto top = toporder.rbegin(); top != toporder.rend(); ++top) {
+            LOG << "  " << *top->node_;
+        }
     }
 
     assert(toporder.front().node_.get() == this);
@@ -391,7 +415,7 @@ void DIABase::RunScope() {
     {
         Stage& s = toporder.back();
 
-        if (!s.node_->CanExecute()) {
+        if (s.node_->ForwardDataOnly()) {
             toporder.pop_back();
             continue;
         }

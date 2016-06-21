@@ -53,7 +53,7 @@ public:
                      GeneratorFunction generator_function,
                      const std::string& path_in,
                      size_t size)
-        : SourceNode<ValueType>(ctx, "GenerateFile"),
+        : Super(ctx, "GenerateFile"),
           generator_function_(generator_function),
           path_in_(path_in),
           size_(size)
@@ -96,6 +96,10 @@ public:
         Super::logger_
             << "class" << "GenerateFileNode"
             << "event" << "done";
+    }
+
+    void Dispose() final {
+        std::vector<ValueType>().swap(elements_);
     }
 
 private:

@@ -6,7 +6,9 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Robert Hangu <robert.hangu@gmail.com>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Lorenz Hübschle-Schneider <lorenz@4z2.de>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
@@ -16,6 +18,7 @@
 #ifndef THRILL_NET_GROUP_HEADER
 #define THRILL_NET_GROUP_HEADER
 
+#include <thrill/common/functional.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/net/connection.hpp>
 
@@ -124,8 +127,7 @@ public:
 
     //! Calculate inclusive prefix sum
     template <typename T, typename BinarySumOp = std::plus<T> >
-    void PrefixSum(T& value, BinarySumOp sum_op = BinarySumOp(),
-                   bool inclusive = true);
+    void PrefixSum(T& value, BinarySumOp sum_op = BinarySumOp());
 
     //! Calculate exclusive prefix sum
     template <typename T, typename BinarySumOp = std::plus<T> >
@@ -145,9 +147,108 @@ public:
 
     //! \}
 
+    //! \name Additional Synchronous Collective Communication Functions
+    //! Do not use these directly in user code.
+    //! \{
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void PrefixSumSelect(T& value, BinarySumOp sum_op = BinarySumOp(),
+                         bool inclusive = true);
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void PrefixSumDoubling(T& value, BinarySumOp sum_op = BinarySumOp(),
+                           bool inclusive = true);
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void PrefixSumHypercube(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    /**************************************************************************/
+
+    template <typename T>
+    void BroadcastSelect(T& value, size_t origin = 0);
+
+    template <typename T>
+    void BroadcastTrivial(T& value, size_t origin = 0);
+
+    template <typename T>
+    void BroadcastBinomialTree(T& value, size_t origin = 0);
+
+    /**************************************************************************/
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void AllReduceSelect(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void AllReduceSimple(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void AllReduceAtRoot(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void AllReduceHypercube(T& value, BinarySumOp sum_op = BinarySumOp());
+
+    //! \}
+
 protected:
     //! our rank in the network group
     size_t my_rank_;
+
+    //! \name Virtual Synchronous Collectives to Override Implementations
+    //! \{
+
+/*[[[perl
+  for my $e (
+    ["int", "Int"], ["unsigned int", "UnsignedInt"],
+    ["long", "Long"], ["unsigned long", "UnsignedLong"],
+    ["long long", "LongLong"], ["unsigned long long", "UnsignedLongLong"])
+  {
+    print "virtual void PrefixSumPlus$$e[1]($$e[0]& value);\n";
+    print "virtual void ExPrefixSumPlus$$e[1]($$e[0]& value);\n";
+    print "virtual void Broadcast$$e[1]($$e[0]& value, size_t origin);\n";
+    print "virtual void AllReducePlus$$e[1]($$e[0]& value);\n";
+    print "virtual void AllReduceMinimum$$e[1]($$e[0]& value);\n";
+    print "virtual void AllReduceMaximum$$e[1]($$e[0]& value);\n";
+  }
+]]]*/
+    virtual void PrefixSumPlusInt(int& value);
+    virtual void ExPrefixSumPlusInt(int& value);
+    virtual void BroadcastInt(int& value, size_t origin);
+    virtual void AllReducePlusInt(int& value);
+    virtual void AllReduceMinimumInt(int& value);
+    virtual void AllReduceMaximumInt(int& value);
+    virtual void PrefixSumPlusUnsignedInt(unsigned int& value);
+    virtual void ExPrefixSumPlusUnsignedInt(unsigned int& value);
+    virtual void BroadcastUnsignedInt(unsigned int& value, size_t origin);
+    virtual void AllReducePlusUnsignedInt(unsigned int& value);
+    virtual void AllReduceMinimumUnsignedInt(unsigned int& value);
+    virtual void AllReduceMaximumUnsignedInt(unsigned int& value);
+    virtual void PrefixSumPlusLong(long& value);
+    virtual void ExPrefixSumPlusLong(long& value);
+    virtual void BroadcastLong(long& value, size_t origin);
+    virtual void AllReducePlusLong(long& value);
+    virtual void AllReduceMinimumLong(long& value);
+    virtual void AllReduceMaximumLong(long& value);
+    virtual void PrefixSumPlusUnsignedLong(unsigned long& value);
+    virtual void ExPrefixSumPlusUnsignedLong(unsigned long& value);
+    virtual void BroadcastUnsignedLong(unsigned long& value, size_t origin);
+    virtual void AllReducePlusUnsignedLong(unsigned long& value);
+    virtual void AllReduceMinimumUnsignedLong(unsigned long& value);
+    virtual void AllReduceMaximumUnsignedLong(unsigned long& value);
+    virtual void PrefixSumPlusLongLong(long long& value);
+    virtual void ExPrefixSumPlusLongLong(long long& value);
+    virtual void BroadcastLongLong(long long& value, size_t origin);
+    virtual void AllReducePlusLongLong(long long& value);
+    virtual void AllReduceMinimumLongLong(long long& value);
+    virtual void AllReduceMaximumLongLong(long long& value);
+    virtual void PrefixSumPlusUnsignedLongLong(unsigned long long& value);
+    virtual void ExPrefixSumPlusUnsignedLongLong(unsigned long long& value);
+    virtual void BroadcastUnsignedLongLong(unsigned long long& value, size_t origin);
+    virtual void AllReducePlusUnsignedLongLong(unsigned long long& value);
+    virtual void AllReduceMinimumUnsignedLongLong(unsigned long long& value);
+    virtual void AllReduceMaximumUnsignedLongLong(unsigned long long& value);
+// [[[end]]]
+
+    //! \}
 };
 
 //! unique pointer to a Group.
@@ -182,17 +283,205 @@ void ExecuteGroupThreads(
     }
 }
 
-//! Construct a mock or tcp-lookback Group network and run a thread for each
+//! Construct a mock or tcp-loopback Group network and run a thread for each
 //! client. The selected network implementation is platform dependent and must
 //! run without further configuration.
 void RunLoopbackGroupTest(
     size_t num_hosts,
     const std::function<void(Group*)>& thread_function);
 
+/******************************************************************************/
+// Template Specializations to call Virtual Overrides
+
+/*[[[perl
+  for my $e (
+    ["int", "Int"], ["unsigned int", "UnsignedInt"],
+    ["long", "Long"], ["unsigned long", "UnsignedLong"],
+    ["long long", "LongLong"], ["unsigned long long", "UnsignedLongLong"])
+  {
+    print "template <>\n";
+    print "inline void Group::PrefixSum($$e[0]& value, std::plus<$$e[0]>) {\n";
+    print "    return PrefixSumPlus$$e[1](value);\n";
+    print "}\n";
+
+    print "template <>\n";
+    print "inline void Group::ExPrefixSum($$e[0]& value, std::plus<$$e[0]>) {\n";
+    print "    return ExPrefixSumPlus$$e[1](value);\n";
+    print "}\n";
+
+    print "template <>\n";
+    print "inline void Group::Broadcast($$e[0]& value, size_t origin) {\n";
+    print "    return Broadcast$$e[1](value, origin);\n";
+    print "}\n";
+
+    print "template <>\n";
+    print "inline void Group::AllReduce($$e[0]& value, std::plus<$$e[0]>) {\n";
+    print "    return AllReducePlus$$e[1](value);\n";
+    print "}\n";
+
+    print "template <>\n";
+    print "inline void Group::AllReduce($$e[0]& value, common::minimum<$$e[0]>) {\n";
+    print "    return AllReduceMinimum$$e[1](value);\n";
+    print "}\n";
+
+    print "template <>\n";
+    print "inline void Group::AllReduce($$e[0]& value, common::maximum<$$e[0]>) {\n";
+    print "    return AllReduceMaximum$$e[1](value);\n";
+    print "}\n";
+  }
+]]]*/
+template <>
+inline void Group::PrefixSum(int& value, std::plus<int>) {
+    return PrefixSumPlusInt(value);
+}
+template <>
+inline void Group::ExPrefixSum(int& value, std::plus<int>) {
+    return ExPrefixSumPlusInt(value);
+}
+template <>
+inline void Group::Broadcast(int& value, size_t origin) {
+    return BroadcastInt(value, origin);
+}
+template <>
+inline void Group::AllReduce(int& value, std::plus<int>) {
+    return AllReducePlusInt(value);
+}
+template <>
+inline void Group::AllReduce(int& value, common::minimum<int>) {
+    return AllReduceMinimumInt(value);
+}
+template <>
+inline void Group::AllReduce(int& value, common::maximum<int>) {
+    return AllReduceMaximumInt(value);
+}
+template <>
+inline void Group::PrefixSum(unsigned int& value, std::plus<unsigned int>) {
+    return PrefixSumPlusUnsignedInt(value);
+}
+template <>
+inline void Group::ExPrefixSum(unsigned int& value, std::plus<unsigned int>) {
+    return ExPrefixSumPlusUnsignedInt(value);
+}
+template <>
+inline void Group::Broadcast(unsigned int& value, size_t origin) {
+    return BroadcastUnsignedInt(value, origin);
+}
+template <>
+inline void Group::AllReduce(unsigned int& value, std::plus<unsigned int>) {
+    return AllReducePlusUnsignedInt(value);
+}
+template <>
+inline void Group::AllReduce(unsigned int& value, common::minimum<unsigned int>) {
+    return AllReduceMinimumUnsignedInt(value);
+}
+template <>
+inline void Group::AllReduce(unsigned int& value, common::maximum<unsigned int>) {
+    return AllReduceMaximumUnsignedInt(value);
+}
+template <>
+inline void Group::PrefixSum(long& value, std::plus<long>) {
+    return PrefixSumPlusLong(value);
+}
+template <>
+inline void Group::ExPrefixSum(long& value, std::plus<long>) {
+    return ExPrefixSumPlusLong(value);
+}
+template <>
+inline void Group::Broadcast(long& value, size_t origin) {
+    return BroadcastLong(value, origin);
+}
+template <>
+inline void Group::AllReduce(long& value, std::plus<long>) {
+    return AllReducePlusLong(value);
+}
+template <>
+inline void Group::AllReduce(long& value, common::minimum<long>) {
+    return AllReduceMinimumLong(value);
+}
+template <>
+inline void Group::AllReduce(long& value, common::maximum<long>) {
+    return AllReduceMaximumLong(value);
+}
+template <>
+inline void Group::PrefixSum(unsigned long& value, std::plus<unsigned long>) {
+    return PrefixSumPlusUnsignedLong(value);
+}
+template <>
+inline void Group::ExPrefixSum(unsigned long& value, std::plus<unsigned long>) {
+    return ExPrefixSumPlusUnsignedLong(value);
+}
+template <>
+inline void Group::Broadcast(unsigned long& value, size_t origin) {
+    return BroadcastUnsignedLong(value, origin);
+}
+template <>
+inline void Group::AllReduce(unsigned long& value, std::plus<unsigned long>) {
+    return AllReducePlusUnsignedLong(value);
+}
+template <>
+inline void Group::AllReduce(unsigned long& value, common::minimum<unsigned long>) {
+    return AllReduceMinimumUnsignedLong(value);
+}
+template <>
+inline void Group::AllReduce(unsigned long& value, common::maximum<unsigned long>) {
+    return AllReduceMaximumUnsignedLong(value);
+}
+template <>
+inline void Group::PrefixSum(long long& value, std::plus<long long>) {
+    return PrefixSumPlusLongLong(value);
+}
+template <>
+inline void Group::ExPrefixSum(long long& value, std::plus<long long>) {
+    return ExPrefixSumPlusLongLong(value);
+}
+template <>
+inline void Group::Broadcast(long long& value, size_t origin) {
+    return BroadcastLongLong(value, origin);
+}
+template <>
+inline void Group::AllReduce(long long& value, std::plus<long long>) {
+    return AllReducePlusLongLong(value);
+}
+template <>
+inline void Group::AllReduce(long long& value, common::minimum<long long>) {
+    return AllReduceMinimumLongLong(value);
+}
+template <>
+inline void Group::AllReduce(long long& value, common::maximum<long long>) {
+    return AllReduceMaximumLongLong(value);
+}
+template <>
+inline void Group::PrefixSum(unsigned long long& value, std::plus<unsigned long long>) {
+    return PrefixSumPlusUnsignedLongLong(value);
+}
+template <>
+inline void Group::ExPrefixSum(unsigned long long& value, std::plus<unsigned long long>) {
+    return ExPrefixSumPlusUnsignedLongLong(value);
+}
+template <>
+inline void Group::Broadcast(unsigned long long& value, size_t origin) {
+    return BroadcastUnsignedLongLong(value, origin);
+}
+template <>
+inline void Group::AllReduce(unsigned long long& value, std::plus<unsigned long long>) {
+    return AllReducePlusUnsignedLongLong(value);
+}
+template <>
+inline void Group::AllReduce(unsigned long long& value, common::minimum<unsigned long long>) {
+    return AllReduceMinimumUnsignedLongLong(value);
+}
+template <>
+inline void Group::AllReduce(unsigned long long& value, common::maximum<unsigned long long>) {
+    return AllReduceMaximumUnsignedLongLong(value);
+}
+// [[[end]]]
+
 //! \}
 
 } // namespace net
 } // namespace thrill
+
+#include <thrill/net/collective.hpp>
 
 #endif // !THRILL_NET_GROUP_HEADER
 

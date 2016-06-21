@@ -142,10 +142,16 @@ public:
             p->RemoveChild(this);
     }
 
-    //! Virtual method to determine whether a node can be Executed() = run such
-    //! that it self-contains its data. This is currently true for all Nodes
-    //! except Collapse().
-    virtual bool CanExecute() { return true; }
+    //! Virtual method to determine whether a node contains data or not, and
+    //! hence if it can be Executed() and PushData() or whether it is only a
+    //! forwarding node. This is currently true only for Collapse() and Union().
+    virtual bool ForwardDataOnly() const { return false; }
+
+    //! Virtual method used by StageBuilder to request information whether it
+    //! must call PushData on the parent of a CollapseNode or UnionNode to
+    //! correctly deliver data.
+    virtual bool RequireParentPushData(size_t /* parent_index */) const
+    { return false; }
 
     //! \name Pure Virtual Methods called by StageBuilder
     //! \{
@@ -217,12 +223,30 @@ public:
     friend std::ostream& operator << (std::ostream& os, const DIABase& d);
 
     //! Returns consume_counter_
-    size_t consume_counter() const { return consume_counter_; }
+    virtual size_t consume_counter() const { return consume_counter_; }
 
     //! Virtual SetConsume flag which is called by the user via .Keep() or
     //! .Consume() to set consumption.
     virtual void IncConsumeCounter(size_t counter) {
+        if (consume_counter_ == kNeverConsume) return;
         consume_counter_ += counter;
+    }
+
+    //! Virtual SetConsume flag which is called by the user via .Keep() or
+    //! .Consume() to set consumption.
+    virtual void DecConsumeCounter(size_t counter) {
+        assert(consume_counter_ > 0);
+        if (consume_counter_ <= counter) {
+            consume_counter_ = 0;
+            return;
+        }
+        consume_counter_ -= counter;
+    }
+
+    //! Virtual SetConsume flag which is called by the user via .Keep() or
+    //! .Consume() to set consumption.
+    virtual void SetConsumeCounter(size_t counter) {
+        consume_counter_ = counter;
     }
 
     //! Returns the parents of this DIABase.
@@ -293,12 +317,12 @@ protected:
     //! consume = true
     size_t consume_counter_ = 1;
 
-    //! Never full consume
-    static constexpr size_t never_consume_ = static_cast<size_t>(-1);
-
     //! \}
 
 public:
+    //! Never full consume
+    static constexpr size_t kNeverConsume = static_cast<size_t>(-1);
+
     /**************************************************************************/
     // JsonLogger for this DIANode
 

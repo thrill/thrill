@@ -106,7 +106,7 @@ public:
     }
 
     //! construct Buffer by acquiring ownership of a memory buffer. The memory
-    //! buffer will thee FREE()ed (not delete[]-ed).
+    //! buffer will be FREE()ed (not delete[]-ed).
     static Buffer Acquire(void* data, size_type size)
     { return Buffer(true, data, size); }
 

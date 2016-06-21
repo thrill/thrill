@@ -42,9 +42,7 @@ public:
 
     //! Construct invalid StreamSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    StreamSink(Stream& stream, BlockPool& block_pool, size_t local_worker_id)
-        : BlockSink(block_pool, local_worker_id),
-          stream_(stream), closed_(true) { }
+    StreamSink(Stream& stream, BlockPool& block_pool, size_t local_worker_id);
 
     //! StreamSink sending out to network.
     StreamSink(Stream& stream, BlockPool& block_pool,
@@ -79,6 +77,12 @@ public:
     //! nullptr).
     static constexpr bool allocate_can_fail_ = false;
 
+    //! return local worker rank
+    size_t my_worker_rank() const;
+
+    //! return remote worker rank
+    size_t peer_worker_rank() const;
+
 private:
     static constexpr bool debug = false;
 
@@ -100,6 +104,7 @@ private:
     //! layer for transmission.
     common::Semaphore sem_ { num_queue_ };
 
+    size_t item_counter_ = 0;
     size_t byte_counter_ = 0;
     size_t block_counter_ = 0;
     common::StatsTimerStart timespan_;

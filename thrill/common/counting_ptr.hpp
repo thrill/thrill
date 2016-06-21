@@ -22,6 +22,7 @@
 #include <atomic>
 #include <cassert>
 #include <cstdlib>
+#include <ostream>
 #include <type_traits>
 
 namespace thrill {

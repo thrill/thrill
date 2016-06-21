@@ -83,6 +83,7 @@ public:
 
     //! Next() reads a complete item T
     template <typename T>
+    THRILL_ATTRIBUTE_ALWAYS_INLINE
     T Next() {
         assert(HasNext());
         assert(num_items_ > 0);
@@ -104,12 +105,14 @@ public:
     //! Next() reads a complete item T, without item counter or self
     //! verification
     template <typename T>
+    THRILL_ATTRIBUTE_ALWAYS_INLINE
     T NextNoSelfVerify() {
         assert(HasNext());
         return Serialization<BlockReader, T>::Deserialize(*this);
     }
 
     //! HasNext() returns true if at least one more item is available.
+    THRILL_ATTRIBUTE_ALWAYS_INLINE
     bool HasNext() {
         while (current_ == end_) {
             if (!NextBlock()) {

@@ -33,6 +33,9 @@ public:
     virtual ~DynBlockSourceInterface() { }
 
     virtual PinnedBlock NextBlock() = 0;
+
+    //! set number of blocks to prefetch
+    virtual void Prefetch(size_t size) = 0;
 };
 
 /*!
@@ -46,13 +49,18 @@ public:
 class DynBlockSource
 {
 public:
+    DynBlockSource() { }
+
     explicit DynBlockSource(
         common::CountingPtr<DynBlockSourceInterface>&& block_source_ptr)
-        : block_source_ptr_(std::move(block_source_ptr))
-    { }
+        : block_source_ptr_(std::move(block_source_ptr)) { }
 
     PinnedBlock NextBlock() {
         return block_source_ptr_->NextBlock();
+    }
+
+    void Prefetch(size_t size) {
+        return block_source_ptr_->Prefetch(size);
     }
 
 private:
@@ -71,8 +79,7 @@ class DynBlockSourceAdapter final : public DynBlockSourceInterface
 {
 public:
     explicit DynBlockSourceAdapter(BlockSource&& block_source)
-        : block_source_(std::move(block_source))
-    { }
+        : block_source_(std::move(block_source)) { }
 
     //! non-copyable: delete copy-constructor
     DynBlockSourceAdapter(const DynBlockSourceAdapter&) = delete;
@@ -85,6 +92,10 @@ public:
 
     PinnedBlock NextBlock() final {
         return block_source_.NextBlock();
+    }
+
+    void Prefetch(size_t size) final {
+        return block_source_.Prefetch(size);
     }
 
 private:

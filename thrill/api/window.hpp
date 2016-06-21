@@ -27,7 +27,8 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA, typename WindowFunction>
+template <typename ValueType, typename Input,
+          typename WindowFunction, typename PartialWindowFunction>
 class BaseWindowNode : public DOpNode<ValueType>
 {
 protected:
@@ -36,18 +37,20 @@ protected:
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
-    using Input = typename ParentDIA::ValueType;
-
     //! RingBuffer used and passed to user-defined function.
     using RingBuffer = common::RingBuffer<Input>;
 
 public:
+    template <typename ParentDIA>
     BaseWindowNode(const ParentDIA& parent,
                    const char* label, size_t window_size,
-                   const WindowFunction& window_function)
+                   const WindowFunction& window_function,
+                   const PartialWindowFunction& partial_window_function)
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
+          parent_stack_empty_(ParentDIA::stack_empty),
           window_size_(window_size),
-          window_function_(window_function)
+          window_function_(window_function),
+          partial_window_function_(partial_window_function)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const Input& input) {
@@ -67,16 +70,18 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!ParentDIA::stack_empty) return false;
+        if (!parent_stack_empty_) return false;
         // accept file
         assert(file_.num_items() == 0);
         file_ = file.Copy();
-        // read last k - 1 items from File
-        size_t pos = file_.num_items() > window_size_ - 1 ?
-                     file_.num_items() - window_size_ + 1 : 0;
-        auto reader = file_.GetReaderAt<Input>(pos);
-        while (reader.HasNext())
-            window_.push_back(reader.template Next<Input>());
+        if (file_.num_items() != 0) {
+            // read last k - 1 items from File
+            size_t pos = file_.num_items() > window_size_ - 1 ?
+                         file_.num_items() - window_size_ + 1 : 0;
+            auto reader = file_.GetReaderAt<Input>(pos);
+            while (reader.HasNext())
+                window_.push_back(reader.template Next<Input>());
+        }
         return true;
     }
 
@@ -104,10 +109,14 @@ public:
     }
 
 protected:
-    //! Size of the window
+    //! Whether the parent stack is empty
+    const bool parent_stack_empty_;
+    //! Size k of the window
     size_t window_size_;
-    //! The window function which is applied to two elements.
+    //! The window function which is applied to k elements.
     WindowFunction window_function_;
+    //! The window function which is applied to the last < k elements.
+    PartialWindowFunction partial_window_function_;
 
     //! cache the last k - 1 items for transmission
     RingBuffer window_;
@@ -124,22 +133,27 @@ protected:
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA, typename WindowFunction>
+template <typename ValueType, typename Input,
+          typename WindowFunction, typename PartialWindowFunction>
 class OverlapWindowNode final
-    : public BaseWindowNode<ValueType, ParentDIA, WindowFunction>
+    : public BaseWindowNode<
+          ValueType, Input, WindowFunction, PartialWindowFunction>
 {
-    using Super = BaseWindowNode<ValueType, ParentDIA, WindowFunction>;
+    using Super = BaseWindowNode<
+              ValueType, Input, WindowFunction, PartialWindowFunction>;
     using Super::debug;
     using Super::context_;
 
-    using typename Super::Input;
     using typename Super::RingBuffer;
 
 public:
+    template <typename ParentDIA>
     OverlapWindowNode(const ParentDIA& parent,
                       const char* label, size_t window_size,
-                      const WindowFunction& window_function)
-        : Super(parent, label, window_size, window_function) { }
+                      const WindowFunction& window_function,
+                      const PartialWindowFunction& partial_window_function)
+        : Super(parent, label, window_size,
+                window_function, partial_window_function) { }
 
     //! Executes the window operation by receiving k - 1 items from our
     //! preceding worker.
@@ -180,6 +194,7 @@ public:
 
         sLOG << "WindowNode::PushData()"
              << "window.size()" << window.size()
+             << "first_rank_" << first_rank_
              << "rank" << rank
              << "file_.num_items" << file_.num_items();
 
@@ -191,14 +206,27 @@ public:
             if (window.size() != window_size_) continue;
 
             // call window user-defined function
-            window_function_(rank, window,
-                             [this](const ValueType& output) {
-                                 this->PushItem(output);
-                             });
+            window_function_(
+                rank, window, [this](const ValueType& output) {
+                    this->PushItem(output);
+                });
 
             // return to window size - 1
             if (window.size() >= window_size_ - 1)
                 window.pop_front();
+        }
+
+        if (context_.my_rank() == context_.num_workers() - 1) {
+            if (window.size() < window_size_ - 1)
+                rank = 0;
+            while (window.size()) {
+                partial_window_function_(
+                    rank, window, [this](const ValueType& output) {
+                        this->PushItem(output);
+                    });
+                ++rank;
+                window.pop_front();
+            }
         }
     }
 
@@ -208,7 +236,29 @@ private:
     using Super::window_;
     using Super::window_size_;
     using Super::window_function_;
+    using Super::partial_window_function_;
 };
+
+template <typename ValueType, typename Stack>
+template <typename ValueOut,
+          typename WindowFunction, typename PartialWindowFunction>
+auto DIA<ValueType, Stack>::FlatWindow(
+    size_t window_size, const WindowFunction &window_function,
+    const PartialWindowFunction &partial_window_function) const {
+    assert(IsValid());
+
+    using WindowNode = api::OverlapWindowNode<
+              ValueOut, ValueType, WindowFunction, PartialWindowFunction>;
+
+    // cannot check WindowFunction's arguments, since it is a template methods
+    // due to the auto emitter.
+
+    auto node = common::MakeCounting<WindowNode>(
+        *this, "FlatWindow", window_size,
+        window_function, partial_window_function);
+
+    return DIA<ValueOut>(node);
+}
 
 template <typename ValueType, typename Stack>
 template <typename ValueOut, typename WindowFunction>
@@ -216,15 +266,13 @@ auto DIA<ValueType, Stack>::FlatWindow(
     size_t window_size, const WindowFunction &window_function) const {
     assert(IsValid());
 
-    using WindowNode = api::OverlapWindowNode<ValueOut, DIA, WindowFunction>;
+    auto no_operation_function =
+        [](size_t /* index */,
+           const common::RingBuffer<ValueType>& /* window */,
+           auto /* emit */) { };
 
-    // cannot check WindowFunction's arguments, since it is a template methods
-    // due to the auto emitter.
-
-    auto node = common::MakeCounting<WindowNode>(
-        *this, "FlatWindow", window_size, window_function);
-
-    return DIA<ValueOut>(node);
+    return FlatWindow<ValueOut>(
+        window_size, window_function, no_operation_function);
 }
 
 template <typename ValueType, typename Stack>
@@ -258,11 +306,69 @@ auto DIA<ValueType, Stack>::Window(
             emit(window_function(index, window));
         };
 
-    using WindowNode =
-              api::OverlapWindowNode<Result, DIA, decltype(flatwindow_function)>;
+    auto no_operation_function =
+        [](size_t /* index */,
+           const common::RingBuffer<ValueType>& /* window */,
+           auto /* emit */) { };
+
+    using WindowNode = api::OverlapWindowNode<
+              Result, ValueType,
+              decltype(flatwindow_function), decltype(no_operation_function)>;
 
     auto node = common::MakeCounting<WindowNode>(
-        *this, "Window", window_size, flatwindow_function);
+        *this, "Window", window_size,
+        flatwindow_function, no_operation_function);
+
+    return DIA<Result>(node);
+}
+
+template <typename ValueType, typename Stack>
+template <typename WindowFunction, typename PartialWindowFunction>
+auto DIA<ValueType, Stack>::Window(
+    size_t window_size, const WindowFunction &window_function,
+    const PartialWindowFunction &partial_window_function) const {
+    assert(IsValid());
+
+    using Result
+              = typename FunctionTraits<WindowFunction>::result_type;
+
+    static_assert(
+        std::is_convertible<
+            size_t,
+            typename FunctionTraits<WindowFunction>::template arg<0>
+            >::value,
+        "WindowFunction's first argument must be size_t (index)");
+
+    static_assert(
+        std::is_convertible<
+            common::RingBuffer<ValueType>,
+            typename FunctionTraits<WindowFunction>::template arg<1>
+            >::value,
+        "WindowFunction's second argument must be common::RingBuffer<T>");
+
+    // transform Map-like function into FlatMap-like function
+    auto flatwindow_function =
+        [window_function](size_t index,
+                          const common::RingBuffer<ValueType>& window,
+                          auto emit) {
+            emit(window_function(index, window));
+        };
+
+    // transform Map-like function into FlatMap-like function
+    auto flatwindow_partial_function =
+        [partial_window_function](size_t index,
+                                  const common::RingBuffer<ValueType>& window,
+                                  auto emit) {
+            emit(partial_window_function(index, window));
+        };
+
+    using WindowNode = api::OverlapWindowNode<
+              Result, ValueType,
+              decltype(flatwindow_function), decltype(flatwindow_partial_function)>;
+
+    auto node = common::MakeCounting<WindowNode>(
+        *this, "Window", window_size,
+        flatwindow_function, flatwindow_partial_function);
 
     return DIA<Result>(node);
 }
@@ -272,22 +378,27 @@ auto DIA<ValueType, Stack>::Window(
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename ParentDIA, typename WindowFunction>
+template <typename ValueType, typename Input,
+          typename WindowFunction, typename PartialWindowFunction>
 class DisjointWindowNode final
-    : public BaseWindowNode<ValueType, ParentDIA, WindowFunction>
+    : public BaseWindowNode<
+          ValueType, Input, WindowFunction, PartialWindowFunction>
 {
-    using Super = BaseWindowNode<ValueType, ParentDIA, WindowFunction>;
+    using Super = BaseWindowNode<
+              ValueType, Input, WindowFunction, PartialWindowFunction>;
     using Super::debug;
     using Super::context_;
 
-    using typename Super::Input;
     using typename Super::RingBuffer;
 
 public:
+    template <typename ParentDIA>
     DisjointWindowNode(const ParentDIA& parent,
                        const char* label, size_t window_size,
-                       const WindowFunction& window_function)
-        : Super(parent, label, window_size, window_function) { }
+                       const WindowFunction& window_function,
+                       const PartialWindowFunction& partial_window_function)
+        : Super(parent, label, window_size,
+                window_function, partial_window_function) { }
 
     //! Executes the window operation by receiving k - 1 items from our
     //! preceding worker.
@@ -354,10 +465,10 @@ public:
             if (window.size() != window_size_) continue;
 
             // call window user-defined function
-            window_function_(rank, window,
-                             [this](const ValueType& output) {
-                                 this->PushItem(output);
-                             });
+            window_function_(
+                rank, window, [this](const ValueType& output) {
+                    this->PushItem(output);
+                });
 
             // clear window
             window.clear();
@@ -368,10 +479,10 @@ public:
             window.size() != 0)
         {
             rank += window_size_ - window.size() - 1;
-            window_function_(rank, window,
-                             [this](const ValueType& output) {
-                                 this->PushItem(output);
-                             });
+            partial_window_function_(
+                rank, window, [this](const ValueType& output) {
+                    this->PushItem(output);
+                });
         }
     }
 
@@ -381,6 +492,7 @@ private:
     using Super::window_;
     using Super::window_size_;
     using Super::window_function_;
+    using Super::partial_window_function_;
 };
 
 template <typename ValueType, typename Stack>
@@ -390,13 +502,14 @@ auto DIA<ValueType, Stack>::FlatWindow(
     const WindowFunction &window_function) const {
     assert(IsValid());
 
-    using WindowNode = api::DisjointWindowNode<ValueOut, DIA, WindowFunction>;
+    using WindowNode = api::DisjointWindowNode<
+              ValueOut, ValueType, WindowFunction, WindowFunction>;
 
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
 
     auto node = common::MakeCounting<WindowNode>(
-        *this, "FlatWindow", window_size, window_function);
+        *this, "FlatWindow", window_size, window_function, window_function);
 
     return DIA<ValueOut>(node);
 }
@@ -433,11 +546,12 @@ auto DIA<ValueType, Stack>::Window(
             emit(window_function(index, window));
         };
 
-    using WindowNode =
-              api::DisjointWindowNode<Result, DIA, decltype(flatwindow_function)>;
+    using WindowNode = api::DisjointWindowNode<
+              Result, ValueType,
+              decltype(flatwindow_function), decltype(flatwindow_function)>;
 
     auto node = common::MakeCounting<WindowNode>(
-        *this, "Window", window_size, flatwindow_function);
+        *this, "Window", window_size, flatwindow_function, flatwindow_function);
 
     return DIA<Result>(node);
 }

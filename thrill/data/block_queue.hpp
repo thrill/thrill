@@ -55,14 +55,9 @@ public:
     using CloseCallback = common::Delegate<void(BlockQueue&)>;
 
     //! Constructor from BlockPool
-    explicit BlockQueue(BlockPool& block_pool, size_t local_worker_id,
-                        size_t dia_id,
-                        const CloseCallback& close_callback = CloseCallback())
-        : BlockSink(block_pool, local_worker_id),
-          file_(block_pool, local_worker_id, dia_id),
-          close_callback_(close_callback) {
-        assert(local_worker_id < block_pool.workers_per_host());
-    }
+    BlockQueue(BlockPool& block_pool, size_t local_worker_id,
+               size_t dia_id,
+               const CloseCallback& close_callback = CloseCallback());
 
     //! non-copyable: delete copy-constructor
     BlockQueue(const BlockQueue&) = delete;
@@ -75,29 +70,21 @@ public:
 
     void AppendBlock(const Block& b) final {
         LOG << "BlockQueue::AppendBlock() " << b;
+        item_counter_ += b.num_items();
         byte_counter_ += b.size();
         block_counter_++;
         queue_.emplace(b);
     }
     void AppendBlock(Block&& b) final {
         LOG << "BlockQueue::AppendBlock() move " << b;
+        item_counter_ += b.num_items();
         byte_counter_ += b.size();
         block_counter_++;
         queue_.emplace(std::move(b));
     }
 
     //! Close called by BlockWriter.
-    void Close() final {
-        assert(!write_closed_);
-        write_closed_ = true;
-
-        block_counter_++;
-
-        // enqueue a closing Block.
-        queue_.emplace();
-
-        if (close_callback_) close_callback_(*this);
-    }
+    void Close() final;
 
     static constexpr bool allocate_can_fail_ = false;
 
@@ -115,6 +102,11 @@ public:
         file_.set_dia_id(dia_id);
     }
 
+    //! set the close callback
+    void set_close_callback(const CloseCallback& cb) {
+        close_callback_ = cb;
+    }
+
     //! check if writer side Close() was called.
     bool write_closed() const { return write_closed_; }
 
@@ -126,6 +118,8 @@ public:
     //! return number of block in the queue. Use this ONLY for DEBUGGING!
     size_t size() { return queue_.size() - (write_closed() ? 1 : 0); }
 
+    //! Returns item_counter_
+    size_t item_counter() const { return item_counter_; }
     //! Returns byte_counter_
     size_t byte_counter() const { return byte_counter_; }
     //! Returns block_counter_
@@ -147,6 +141,12 @@ public:
     //! return polymorphic BlockReader variant
     Reader GetReader(bool consume, size_t local_worker_id);
 
+    //! Returns source_
+    void * source() const { return source_; }
+
+    //! set opaque source pointer
+    void set_source(void* source) { source_ = source; }
+
 private:
     common::ConcurrentBoundedQueue<Block> queue_;
 
@@ -156,6 +156,8 @@ private:
     //! close message from the writer
     bool read_closed_ = false;
 
+    //! number of items transfered by the Queue
+    size_t item_counter_ = 0;
     //! number of bytes transfered by the Queue
     size_t byte_counter_ = 0;
     //! number of blocks transfered by the Queue
@@ -163,11 +165,15 @@ private:
     //! timespan of existance
     common::StatsTimerStart timespan_;
 
-    //! File to cache blocks for implementing ConstBlockQueueSource.
+    //! File to cache blocks for implementing CacheBlockQueueSource.
     File file_;
 
-    //! callback to issue when the writer closes the Queue -- for delivering stats
+    //! callback to issue when the writer closes the Queue -- for delivering
+    //! stats
     CloseCallback close_callback_;
+
+    //! opaque pointer to the source (used by close_callback_ if needed).
+    void* source_ = nullptr;
 
     //! for access to file_
     friend class CacheBlockQueueSource;
@@ -183,18 +189,13 @@ class ConsumeBlockQueueSource
 
 public:
     //! Start reading from a BlockQueue
-    explicit ConsumeBlockQueueSource(BlockQueue& queue, size_t local_worker_id)
-        : queue_(queue), local_worker_id_(local_worker_id) { }
+    explicit ConsumeBlockQueueSource(BlockQueue& queue, size_t local_worker_id);
+
+    void Prefetch(size_t /* prefetch */);
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
-    PinnedBlock NextBlock() {
-        Block b = queue_.Pop();
-        LOG << "ConsumeBlockQueueSource::NextBlock() " << b;
-
-        if (!b.IsValid()) return PinnedBlock();
-        return b.PinWait(local_worker_id_);
-    }
+    PinnedBlock NextBlock();
 
 private:
     //! BlockQueue that blocks are retrieved from
@@ -216,40 +217,22 @@ class CacheBlockQueueSource
 
 public:
     //! Start reading from a BlockQueue
-    explicit CacheBlockQueueSource(BlockQueue* queue, size_t local_worker_id)
-        : queue_(queue), local_worker_id_(local_worker_id) { }
+    explicit CacheBlockQueueSource(BlockQueue* queue, size_t local_worker_id);
 
     //! non-copyable: delete copy-constructor
     CacheBlockQueueSource(const CacheBlockQueueSource&) = delete;
     //! non-copyable: delete assignment operator
     CacheBlockQueueSource& operator = (const CacheBlockQueueSource&) = delete;
     //! move-constructor: default
-    CacheBlockQueueSource(CacheBlockQueueSource&& s)
-        : queue_(s.queue_), local_worker_id_(s.local_worker_id_)
-    { s.queue_ = nullptr; }
+    CacheBlockQueueSource(CacheBlockQueueSource&& s);
+
+    void Prefetch(size_t /* prefetch */);
 
     //! Return next block for BlockQueue, store into caching File and return it.
-    PinnedBlock NextBlock() {
-        LOG << "CacheBlockQueueSource[" << this << "]::NextBlock() closed " << queue_->read_closed();
-        Block b = queue_->Pop();
-        LOG << "CacheBlockQueueSource[" << this << "]::NextBlock() " << b;
-
-        // cache block in file_ (but not the termination block from the queue)
-        if (b.IsValid())
-            queue_->file_.AppendBlock(b);
-
-        if (!b.IsValid())
-            return PinnedBlock();
-
-        return b.PinWait(local_worker_id_);
-    }
+    PinnedBlock NextBlock();
 
     //! Consume remaining blocks and cache them in the File.
-    ~CacheBlockQueueSource() {
-        if (queue_ && !queue_->read_closed()) {
-            while (NextBlock().IsValid()) { }
-        }
-    }
+    ~CacheBlockQueueSource();
 
 private:
     //! Reference to BlockQueue

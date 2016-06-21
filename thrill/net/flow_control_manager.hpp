@@ -56,6 +56,7 @@ public:
         : barrier_(local_worker_count),
           shmem_(local_worker_count) {
         assert(shmem_.size() == local_worker_count);
+        channels_.reserve(local_worker_count);
         for (size_t i = 0; i < local_worker_count; i++) {
             channels_.emplace_back(group, i, local_worker_count,
                                    barrier_, shmem_.data(), generation_);

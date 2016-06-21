@@ -45,6 +45,7 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/read_lines.hpp>
+#include <thrill/api/rebalance.hpp>
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/sample.hpp>
@@ -52,11 +53,13 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/sort.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/api/zip_with_index.hpp>
 // [[[end]]]
 
 namespace thrill {

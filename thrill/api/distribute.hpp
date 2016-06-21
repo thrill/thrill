@@ -37,7 +37,7 @@ public:
     DistributeNode(Context& ctx,
                    const std::vector<ValueType>& in_vector,
                    size_t source_id)
-        : SourceNode<ValueType>(ctx, "Distribute"),
+        : Super(ctx, "Distribute"),
           in_vector_(in_vector),
           source_id_(source_id)
     { }
@@ -45,7 +45,7 @@ public:
     DistributeNode(Context& ctx,
                    std::vector<ValueType>&& in_vector,
                    size_t source_id)
-        : SourceNode<ValueType>(ctx, "Distribute"),
+        : Super(ctx, "Distribute"),
           in_vector_(std::move(in_vector)),
           source_id_(source_id)
     { }
@@ -79,6 +79,10 @@ public:
         }
 
         stream_->Close();
+    }
+
+    void Dispose() final {
+        std::vector<ValueType>().swap(in_vector_);
     }
 
 private:

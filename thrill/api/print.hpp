@@ -24,7 +24,7 @@ template <typename ValueType, typename Stack>
 void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) const {
     assert(IsValid());
 
-    using GatherNode = api::GatherNode<DIA>;
+    using GatherNode = api::GatherNode<ValueType>;
 
     std::vector<ValueType> output;
 

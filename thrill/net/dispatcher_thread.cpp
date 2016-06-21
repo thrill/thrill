@@ -86,20 +86,20 @@ void DispatcherThread::Cancel(Connection& c) {
 
 //! asynchronously read n bytes and deliver them to the callback
 void DispatcherThread::AsyncRead(
-    Connection& c, size_t n, AsyncReadCallback done_cb) {
+    Connection& c, size_t size, AsyncReadCallback done_cb) {
     Enqueue([=, &c]() {
-                dispatcher_->AsyncRead(c, n, done_cb);
+                dispatcher_->AsyncRead(c, size, done_cb);
             });
     WakeUpThread();
 }
 
 //! asynchronously read the full ByteBlock and deliver it to the callback
 void DispatcherThread::AsyncRead(
-    Connection& c, size_t n, data::PinnedByteBlockPtr&& block,
+    Connection& c, size_t size, data::PinnedByteBlockPtr&& block,
     AsyncReadByteBlockCallback done_cb) {
     assert(block.valid());
     Enqueue([=, &c, b = std::move(block)]() mutable {
-                dispatcher_->AsyncRead(c, n, std::move(b), done_cb);
+                dispatcher_->AsyncRead(c, size, std::move(b), done_cb);
             });
     WakeUpThread();
 }
@@ -120,14 +120,14 @@ void DispatcherThread::AsyncWrite(
 //! asynchronously write buffer and callback when delivered. The buffer is
 //! MOVED into the async writer.
 void DispatcherThread::AsyncWrite(
-    Connection& c, Buffer&& buffer, const data::PinnedBlock& block,
+    Connection& c, Buffer&& buffer, data::PinnedBlock&& block,
     AsyncWriteCallback done_cb) {
     assert(block.IsValid());
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c,
-              b1 = std::move(buffer), b2 = block]() mutable {
+             b1 = std::move(buffer), b2 = std::move(block)]() mutable {
                 dispatcher_->AsyncWrite(c, std::move(b1));
-                dispatcher_->AsyncWrite(c, b2, done_cb);
+                dispatcher_->AsyncWrite(c, std::move(b2), done_cb);
             });
     WakeUpThread();
 }

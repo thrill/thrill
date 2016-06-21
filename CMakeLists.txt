@@ -384,6 +384,12 @@ if(THRILL_USE_MPI)
   endif()
 endif()
 
+# build Infiniband/MPI net backend (optional)
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thrill/net/ib/CMakeLists.txt")
+  include("${CMAKE_CURRENT_SOURCE_DIR}/thrill/net/ib/CMakeLists.txt")
+endif()
+
 # example: use Boost libraries:
 
 #find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
@@ -438,6 +444,15 @@ macro(thrill_test_single TESTNAME ENVIRON PROG)
 
 endmacro(thrill_test_single)
 
+# macro for registering test programs: prepends environment variables
+# Usage: thrill_test_multiple(testname program args)
+macro(thrill_test_multiple TESTNAME)
+
+  thrill_test_single("${TESTNAME}3" "THRILL_LOCAL=3" ${ARGN})
+  thrill_test_single("${TESTNAME}4" "THRILL_LOCAL=4" ${ARGN})
+
+endmacro(thrill_test_multiple)
+
 ################################################################################
 ### Descend into Subdirectories
 
@@ -462,7 +477,7 @@ add_subdirectory(frontends)
 add_subdirectory(misc)
 
 ###############################################################################
-### cmake script THRILL_TRY_COMPILE_HEADERS to copmile all Thrill header files
+### cmake script THRILL_TRY_COMPILE_HEADERS to compile all Thrill header files
 
 if(THRILL_TRY_COMPILE_HEADERS)
 

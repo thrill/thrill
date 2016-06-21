@@ -30,6 +30,7 @@ namespace data {
 //! \addtogroup data_layer
 //! \{
 
+class MixStream;
 class MixBlockQueueReader;
 
 /*!
@@ -112,6 +113,8 @@ public:
 private:
     BlockPool& block_pool_;
 
+    size_t local_worker_id_;
+
     //! the main mix queue, containing the block in the reception order.
     common::ConcurrentBoundedQueue<SrcBlockPair> mix_queue_;
 
@@ -144,7 +147,7 @@ class MixBlockQueueSink final : public BlockSink
     static constexpr bool debug = false;
 
 public:
-    MixBlockQueueSink(MixBlockQueue& mix_queue,
+    MixBlockQueueSink(MixStream& dst_mix_stream,
                       size_t from_global, size_t from_local);
 
     void AppendBlock(const Block& b) final;
@@ -158,15 +161,28 @@ public:
     //! check if writer side Close() was called.
     bool write_closed() const { return write_closed_; }
 
+    //! source mix stream instance
+    void set_src_mix_stream(MixStream* src_mix_stream);
+
 private:
+    //! destination mix stream
+    MixStream& dst_mix_stream_;
+
     //! destination mix queue
-    MixBlockQueue& mix_queue_;
+    MixBlockQueue& dst_mix_queue_;
+
+    //! source mix stream instance
+    MixStream* src_mix_stream_ = nullptr;
 
     //! close flag
     common::AtomicMovable<bool> write_closed_ = { false };
 
     //! fixed global source worker id
     size_t from_global_;
+
+    size_t item_counter_ = 0;
+    size_t byte_counter_ = 0;
+    size_t block_counter_ = 0;
 };
 
 /*!
@@ -208,7 +224,14 @@ public:
     ~MixBlockQueueReader();
 
     //! HasNext() returns true if at least one more item is available.
-    bool HasNext();
+    bool HasNext() {
+        if (reread_) return cat_reader_.HasNext();
+
+        if (available_) return true;
+        if (open_ == 0) return false;
+
+        return PullBlock();
+    }
 
     //! Next() reads a complete item T
     template <typename T>

@@ -194,8 +194,7 @@ struct Serialization<Archive, T, typename std::enable_if<
                          !common::is_std_array<T>::value&&
                          !common::is_std_vector<T>::value&&
                          !common::is_std_tuple<T>::value
-                         >::type>
-{
+                         >::type>{
     static void Serialize(const T& t, Archive& ar) {
         // Create an output archive
         serialization_cereal::ThrillOutputArchive<Archive> oarchive(ar);

@@ -33,7 +33,7 @@ namespace api {
  * \tparam GenerateNode Type of the generate function.
  * \ingroup api_layer
  */
-template <typename ValueType, typename GeneratorFunction>
+template <typename ValueType, typename GenerateFunction>
 class GenerateNode final : public SourceNode<ValueType>
 {
 public:
@@ -45,10 +45,10 @@ public:
      * function and file path.
      */
     GenerateNode(Context& ctx,
-                 GeneratorFunction generator_function,
+                 GenerateFunction generate_function,
                  size_t size)
-        : SourceNode<ValueType>(ctx, "Generate"),
-          generator_function_(generator_function),
+        : Super(ctx, "Generate"),
+          generate_function_(generate_function),
           size_(size)
     { }
 
@@ -56,13 +56,13 @@ public:
         common::Range local = context_.CalculateLocalRange(size_);
 
         for (size_t i = local.begin; i < local.end; i++) {
-            this->PushItem(generator_function_(i));
+            this->PushItem(generate_function_(i));
         }
     }
 
 private:
     //! The generator function which is applied to every index.
-    GeneratorFunction generator_function_;
+    GenerateFunction generate_function_;
     //! Size of the output DIA.
     size_t size_;
 };
@@ -74,35 +74,39 @@ private:
  *
  * \param ctx Reference to the Context object
  *
- * \param generator_function Generator function, which maps `size_t` from
+ * \param generate_function Generator function, which maps `size_t` from
  * `[0,size)` to elements. Input type has to be `size_t`.
  *
  * \param size Size of the output DIA
  *
  * \ingroup dia_sources
  */
-template <typename GeneratorFunction>
+template <typename GenerateFunction>
 auto Generate(Context & ctx,
-              const GeneratorFunction &generator_function,
+              const GenerateFunction &generate_function,
               size_t size) {
 
-    using GeneratorResult =
-              typename common::FunctionTraits<GeneratorFunction>::result_type;
+    using GenerateResult =
+              typename common::FunctionTraits<GenerateFunction>::result_type;
 
     using GenerateNode =
-              api::GenerateNode<GeneratorResult, GeneratorFunction>;
+              api::GenerateNode<GenerateResult, GenerateFunction>;
+
+    static_assert(
+        common::FunctionTraits<GenerateFunction>::arity == 1,
+        "GenerateFunction must take exactly one parameter");
 
     static_assert(
         std::is_convertible<
             size_t,
-            typename common::FunctionTraits<GeneratorFunction>::template arg<0>
+            typename common::FunctionTraits<GenerateFunction>::template arg<0>
             >::value,
-        "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
+        "GenerateFunction needs a const unsigned long int& (aka. size_t) as input");
 
     auto node = common::MakeCounting<GenerateNode>(
-        ctx, generator_function, size);
+        ctx, generate_function, size);
 
-    return DIA<GeneratorResult>(node);
+    return DIA<GenerateResult>(node);
 }
 
 /*!

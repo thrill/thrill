@@ -3,7 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -14,6 +14,7 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/api/zip_with_index.hpp>
 #include <thrill/common/string.hpp>
 
 #include <algorithm>
@@ -47,6 +48,41 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
 
             // zip
             auto zip_result = zip_input1.Zip(
+                zip_input2, [](size_t a, short b) -> long {
+                    return static_cast<long>(a) + b;
+                });
+
+            // check result
+            std::vector<long> res = zip_result.AllGather();
+
+            ASSERT_EQ(test_size, res.size());
+
+            for (size_t i = 0; i != res.size(); ++i) {
+                ASSERT_EQ(static_cast<long>(i + i + test_size), res[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(ZipNode, TwoBalancedIntegerArraysNoRebalance) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            // numbers 0..999 (evenly distributed to workers)
+            auto zip_input1 = Generate(
+                ctx,
+                [](size_t index) { return index; },
+                test_size);
+
+            // numbers 1000..1999
+            auto zip_input2 = zip_input1.Map(
+                [](size_t i) { return static_cast<short>(test_size + i); });
+
+            // zip
+            auto zip_result = zip_input1.Zip(
+                NoRebalanceTag,
                 zip_input2, [](size_t a, short b) -> long {
                     return static_cast<long>(a) + b;
                 });
@@ -117,6 +153,47 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
     api::RunLocalTests(start_func);
 }
 
+TEST(ZipNode, TwoDisbalancedIntegerArraysZipWithIndex) {
+
+    // first DIA is heavily balanced to the first workers, second DIA is
+    // balanced to the last workers.
+    auto start_func =
+        [](Context& ctx) {
+
+            // numbers 0..999 (evenly distributed to workers)
+            auto input1 = Generate(
+                ctx,
+                [](size_t index) { return static_cast<unsigned>(index); },
+                test_size);
+
+            // numbers 0..99 (concentrated on first workers)
+            auto zip_input1 = input1.Filter(
+                [](unsigned i) { return i >= 8 * test_size / 10; });
+
+            // zip
+            auto zip_result = zip_input1.ZipWithIndex(
+                [](unsigned a, size_t index) -> MyStruct {
+                    return { static_cast<int>(a), static_cast<int>(index) };
+                });
+
+            // check result
+            std::vector<MyStruct> res = zip_result.Keep().AllGather();
+
+            ASSERT_EQ(2 * test_size / 10, res.size());
+
+            for (size_t i = 0; i < res.size(); ++i) {
+                // sLOG1 << i << res[i].a << res[i].b;
+                ASSERT_EQ(static_cast<int>(8 * test_size / 10 + i), res[i].a);
+                ASSERT_EQ(static_cast<int>(i), res[i].b);
+            }
+
+            // check size of zip (recalculates ZipNode)
+            ASSERT_EQ(200u, zip_result.Size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
 
     auto start_func =
@@ -140,7 +217,7 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
 
             // zip
             auto zip_result = input1.Zip(
-                input2_short, [](size_t a, short b) -> long {
+                CutTag, input2_short, [](size_t a, short b) -> long {
                     return static_cast<long>(a) + b;
                 });
 
@@ -189,6 +266,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
 
             // zip
             auto zip_result = input1.Zip(
+                CutTag,
                 input2, [](const std::string& a, const std::string& b) {
                     return a + b;
                 });
@@ -255,6 +333,7 @@ TEST(ZipNode, ThreeIntegerArrays) {
 
             // zip
             auto zip_result = Zip(
+                CutTag,
                 [](short a, size_t b, double c) {
                     return std::make_tuple(a, b, c);
                 },
@@ -304,7 +383,8 @@ TEST(ZipNode, ThreeIntegerArraysPadded) {
                 test_size);
 
             // zip
-            auto zip_result = ZipPadding(
+            auto zip_result = Zip(
+                PadTag,
                 [](short a, size_t b, double c) {
                     return std::make_tuple(a, b, c);
                 },

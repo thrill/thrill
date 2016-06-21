@@ -41,6 +41,22 @@ public:
     std::string str_;
 };
 
+//! A special class to output verbatim text
+class JsonBeginObj
+{
+public:
+    explicit JsonBeginObj(const std::string& str = std::string())
+        : str_(str) { }
+    std::string str_;
+};
+
+//! A special class to output verbatim text
+class JsonEndObj
+{
+public:
+    JsonEndObj() { }
+};
+
 //! A template to make writing temporary arrays easy: Array<int>{ 1, 2, 3 }.
 template <typename Type>
 using Array = Type[];
@@ -118,9 +134,26 @@ public:
           os_(o.os_), items_(o.items_), sub_dict_(o.sub_dict_)
     { o.logger_ = nullptr; }
 
+    struct ArrayTag { };
+    struct DictionaryTag { };
+
     //! output any type
     template <typename Type>
     JsonLine& operator << (Type const& t);
+
+    JsonLine& operator << (const JsonBeginObj& t) {
+        // write key
+        operator << (t.str_);
+        PutSeparator();
+        os_ << '{';
+        items_ = 0;
+        return *this;
+    }
+
+    JsonLine& operator << (const JsonEndObj&) {
+        os_ << '}';
+        return *this;
+    }
 
     //! destructor: deliver to output
     ~JsonLine() {
@@ -138,6 +171,10 @@ public:
             os_ << '}';
             sub_dict_ = false;
         }
+        else if (!logger_ && sub_array_) {
+            os_ << ']';
+            sub_array_ = false;
+        }
     }
 
     //! number of items already put
@@ -150,7 +187,26 @@ public:
         operator << (key);
         PutSeparator();
         os_ << '{';
-        return JsonLine(/* sentinel */ true, *this);
+        return JsonLine(DictionaryTag(), *this);
+    }
+
+    //! return JsonLine has sub-dictionary of this one
+    template <typename Key>
+    JsonLine arr(const Key& key) {
+        // write key
+        operator << (key);
+        PutSeparator();
+        os_ << '[';
+        return JsonLine(ArrayTag(), *this);
+    }
+
+    //! return JsonLine has sub-dictionary of this one
+    JsonLine obj() {
+        if (items_ > 0)
+            os_ << ',';
+        os_ << '{';
+        items_++;
+        return JsonLine(DictionaryTag(), *this);
     }
 
     //! put an items separator (either ',' or ':') and increment counter.
@@ -193,8 +249,12 @@ private:
     std::unique_lock<std::mutex> lock_;
 
     //! construct sub-dictionary
-    JsonLine(bool /* sentinel */, JsonLine& parent)
+    JsonLine(struct DictionaryTag, JsonLine& parent)
         : os_(parent.os_), sub_dict_(true) { }
+
+    //! construct sub-dictionary
+    JsonLine(struct ArrayTag, JsonLine& parent)
+        : os_(parent.os_), sub_array_(true) { }
 
 public:
     //! reference to output stream
@@ -205,6 +265,9 @@ public:
 
     //! indicator for sub-dictionaries.
     bool sub_dict_ = false;
+
+    //! indicator for sub-array.
+    bool sub_array_ = false;
 };
 
 /******************************************************************************/

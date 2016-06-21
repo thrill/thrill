@@ -66,7 +66,7 @@ public:
         return my_host_rank() * workers_per_host() + local_worker_id_;
     }
 
-    void OnAllClosed();
+    void OnAllClosed(const char* stream_type);
 
     //! shuts the stream down.
     virtual void Close() = 0;
@@ -150,11 +150,21 @@ public:
 
     //! StatsCounter for incoming data transfer.  Does not include loopback data
     //! transfer
-    size_t rx_bytes_ = 0, rx_blocks_ = 0;
+    size_t rx_net_items_ = 0, rx_net_bytes_ = 0, rx_net_blocks_ = 0;
 
     //! StatsCounters for outgoing data transfer - shared by all sinks.  Does
     //! not include loopback data transfer
-    std::atomic<size_t> tx_bytes_ { 0 }, tx_blocks_ { 0 };
+    std::atomic<size_t>
+    tx_net_items_ { 0 }, tx_net_bytes_ { 0 }, tx_net_blocks_ { 0 };
+
+    //! StatsCounter for incoming data transfer.  Exclusively contains only
+    //! loopback (internal) data transfer
+    size_t rx_int_items_ = 0, rx_int_bytes_ = 0, rx_int_blocks_ = 0;
+
+    //! StatsCounters for outgoing data transfer - shared by all sinks.
+    //! Exclusively contains only loopback (internal) data transfer
+    std::atomic<size_t>
+    tx_int_items_ { 0 }, tx_int_bytes_ { 0 }, tx_int_blocks_ { 0 };
 
     //! Timers from creation of stream until rx / tx direction is closed.
     common::StatsTimerStart tx_lifetime_, rx_lifetime_;

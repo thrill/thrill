@@ -24,7 +24,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ParentDIA, typename ReduceFunction>
+template <typename ValueType, typename ReduceFunction>
 class AllReduceNode final : public ActionNode
 {
     static constexpr bool debug = false;
@@ -32,10 +32,8 @@ class AllReduceNode final : public ActionNode
     using Super = ActionNode;
     using Super::context_;
 
-    //! input and result type is the parent's output value type.
-    using ValueType = typename ParentDIA::ValueType;
-
 public:
+    template <typename ParentDIA>
     AllReduceNode(const ParentDIA& parent,
                   const char* label,
                   const ReduceFunction& reduce_function,
@@ -91,7 +89,7 @@ auto DIA<ValueType, Stack>::AllReduce(
     const ReduceFunction &sum_function, const ValueType &initial_value) const {
     assert(IsValid());
 
-    using AllReduceNode = api::AllReduceNode<DIA, ReduceFunction>;
+    using AllReduceNode = api::AllReduceNode<ValueType, ReduceFunction>;
 
     static_assert(
         std::is_convertible<

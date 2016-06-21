@@ -26,8 +26,7 @@ static constexpr bool debug = false;
 
 using namespace thrill;
 
-struct print_completion
-{
+struct print_completion {
     void operator () (io::Request* ptr, bool /* success */) {
         LOG << "Request completed: " << ptr;
     }
