@@ -21,7 +21,7 @@ using namespace thrill;
 //! boxed struct being sorted: only possible to compare with explicit comparator
 struct MyInteger {
     size_t i;
-    explicit MyInteger(int _i) : i(_i) { }
+    explicit MyInteger(size_t _i) : i(_i) { }
 };
 
 //! comparator for MyInteger
