@@ -17,6 +17,7 @@
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/duplicate_detection.hpp>
+#include <thrill/core/multiway_merge.hpp>
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_table.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
@@ -64,6 +65,45 @@ public:
 	HashFunction hash_function_;
 };
 
+template <typename CounterType>
+class GolombReader 
+{
+public:
+	GolombReader(size_t data_size,
+				 size_t* raw_data,
+				 size_t num_elements,
+				 size_t b,
+				 size_t bitsize):
+		golomb_code(raw_data,
+					common::IntegerDivRoundUp(data_size,
+											  sizeof(size_t)),
+					b, num_elements),
+		num_elements_(num_elements),
+		returned_elements_(0),
+		delta_(0),
+		bitsize_(bitsize) { }
+
+	bool HasNext() {
+		return returned_elements_ < num_elements_;
+	}
+
+	template <typename T> 
+	T Next() {
+		size_t new_element = golomb_code.golomb_out() + delta_;
+		delta_ = new_element;
+		CounterType ctr = golomb_code.stream_out(bitsize_);
+		returned_elements_++;
+		return std::make_pair(new_element, ctr);
+	}
+
+private:
+    DynamicBitset<size_t> golomb_code;
+	size_t num_elements_;
+	size_t returned_elements_;
+	size_t delta_;
+	size_t bitsize_;
+};
+
 template <typename ValueType, typename Key, bool UseLocationDetection,
 		  typename CounterType, typename IndexFunction,
 		  typename HashFunction, typename AddFunction>
@@ -105,12 +145,21 @@ private:
 
 			for (            /*j is already set from previous workers*/
                 ; j < occurences.size() && occurences[j].first < range_i.end; ++j) {
-                //! Send hash deltas to make the encoded bitset smaller.
+				//! Send hash deltas to make the encoded bitset smaller.
 				golomb_code.golomb_in(occurences[j].first - delta);
 				delta = occurences[j].first;
 				num_elements++;
-			    
-				//! write counter in next bitsize bits
+
+				//accumulate counters hashing to same value
+				size_t acc_occurences = occurences[j].second;
+				size_t k = j + 1;
+				while (k < occurences.size() && occurences[k].first == occurences[j].first) {
+					acc_occurences += occurences[k].second;
+					k++;
+				}
+				j = k - 1;
+				//! write counter of all values hashing to occurences[j].first
+				//! in next bitsize bits
 				golomb_code.stream_in(bitsize, 
 									  std::min(((CounterType) 1 << bitsize) - 1,
 											   occurences[j].second));
@@ -201,6 +250,33 @@ public:
 							 max_hash);
 
 		std::vector<data::BlockReader<data::ConsumeBlockQueueSource>> readers = golomb_data_stream->GetReaders();
+
+		std::vector<GolombReader<CounterType>> g_readers;
+
+		for (auto& reader : readers) {			
+			assert(reader.HasNext());
+			size_t data_size = reader. template Next<size_t>();
+			size_t num_elements = reader.template Next<size_t>();
+			size_t* raw_data = new size_t[data_size];
+			reader.Read(raw_data, data_size);
+
+			g_readers.push_back(
+				GolombReader<CounterType>(data_size, raw_data, num_elements, b, 8));
+		}
+
+		auto puller = make_multiway_merge_tree<HashCounterPair>
+			(g_readers.begin(), g_readers.end(), 
+			 [](const HashCounterPair& hcp1,
+				const HashCounterPair& hcp2) {
+				return hcp1.first < hcp2.first;
+			});
+		
+		while (puller.HasNext()) {
+			auto next = puller.Next();
+			LOG1 << "(" << next.first << "," << next.second << ")";
+		}
+
+											   
 		
 	}
 
