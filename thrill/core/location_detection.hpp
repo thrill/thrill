@@ -26,6 +26,7 @@
 #include <thrill/data/cat_stream.hpp>
 
 #include <functional>
+#include <unordered_map>
 
 namespace thrill {
 namespace core {
@@ -226,7 +227,8 @@ public:
 	/*!
 	 * Flushes the table and detects the most common location for each element.
 	 */ 
-	void Flush() {
+    size_t Flush(std::unordered_map<HashResult,
+				 typename KeyCounterPair::second_type>& target_processors) {
 
 		//golomb code parameters
 		size_t upper_bound_uniques = context_.net.AllReduce(table_.num_items());
@@ -253,12 +255,15 @@ public:
 
 		std::vector<GolombReader<CounterType>> g_readers;
 
+		size_t total_elements = 0;
+
 		for (auto& reader : readers) {			
 			assert(reader.HasNext());
-			size_t data_size = reader. template Next<size_t>();
+			size_t data_size = reader.template Next<size_t>();
 			size_t num_elements = reader.template Next<size_t>();
 			size_t* raw_data = new size_t[data_size];
 			reader.Read(raw_data, data_size);
+			total_elements += num_elements;
 
 			g_readers.push_back(
 				GolombReader<CounterType>(data_size, raw_data, num_elements, b, 8));
@@ -270,14 +275,85 @@ public:
 				const HashCounterPair& hcp2) {
 				return hcp1.first < hcp2.first;
 			});
-		
+
+		size_t processor_bitsize = common::IntegerLog2Ceil(context_.num_workers());
+		size_t space_bound_with_processors = upper_space_bound +
+			total_elements * processor_bitsize; 
+		core::DynamicBitset<size_t> location_bitset(
+			space_bound_with_processors, false, b);
+
+		std::pair<HashCounterPair, unsigned int> next;
+
+		if (puller.HasNext())			
+			next = puller.NextWithSource();
+
+		HashResult delta = 0;
+		size_t num_elements = 0;
+
 		while (puller.HasNext()) {
-			auto next = puller.Next();
-			LOG1 << "(" << next.first << "," << next.second << ")";
+			size_t src_max = 0;
+			size_t max = 0;
+			HashResult next_hr = next.first.first;
+			while (next.first.first == next_hr) {
+				if (next.first.second > max) {
+					src_max = next.second;
+					max = next.first.second;
+				}
+				if (puller.HasNext()) {
+					next = puller.NextWithSource();
+				} else {
+					break;
+				}
+			}
+			num_elements++;
+			location_bitset.golomb_in(next_hr - delta);
+			location_bitset.stream_in(processor_bitsize, src_max);		
+			
 		}
 
-											   
-		
+		data::CatStreamPtr duplicates_stream = context_.GetNewCatStream(dia_id_);
+
+        std::vector<data::CatStream::Writer> duplicate_writers =
+            duplicates_stream->GetWriters();
+
+        //! Send all duplicates to all workers (golomb encoded).
+        for (size_t i = 0; i < duplicate_writers.size(); ++i) {
+            duplicate_writers[i].Put(location_bitset.byte_size() + sizeof(size_t));
+            duplicate_writers[i].Put(num_elements);
+            duplicate_writers[i].Append(location_bitset.GetGolombData(),
+                                        location_bitset.byte_size() + sizeof(size_t));
+            duplicate_writers[i].Close();
+        }
+
+		auto duplicates_reader = duplicates_stream->GetCatReader(/* consume */ true);
+
+		while (duplicates_reader.HasNext()) {
+
+            size_t data_size = duplicates_reader.template Next<size_t>();
+            size_t num_elements = duplicates_reader.template Next<size_t>();
+            size_t* raw_data = new size_t[data_size];
+            duplicates_reader.Read(raw_data, data_size);
+
+            //! Builds golomb encoded bitset from data recieved by the stream.
+            core::DynamicBitset<size_t> golomb_code(raw_data,
+                                                    common::IntegerDivRoundUp(data_size,
+                                                                              sizeof(size_t)),
+                                                    b, num_elements);
+            golomb_code.seek();
+
+            size_t last = 0;
+            for (size_t i = 0; i < num_elements; ++i) {
+                //! Golomb code contains deltas, we want the actual values in target_vec
+                size_t new_elem = golomb_code.golomb_out() + last;
+                last = new_elem;
+
+				size_t processor = golomb_code.stream_out(processor_bitsize);
+				target_processors.emplace(new_elem, processor);
+            }
+            delete[] raw_data;
+		}
+		return max_hash;
+
 	}
 
 	// Target vector for vector emitter

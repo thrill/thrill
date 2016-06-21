@@ -28,6 +28,7 @@
 #include <array>
 #include <functional>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 namespace thrill {
@@ -113,6 +114,30 @@ public:
     }
 
     void Execute() final {
+		if (UseLocationDetection) {
+			
+			size_t max_hash;
+			std::unordered_map<size_t, size_t> target_processors; 
+			max_hash = location_detection_.Flush(target_processors);
+		
+			auto file1reader = pre_file1_->GetConsumeReader();
+			while (file1reader.HasNext()) {
+				InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();
+				size_t hr = std::hash<Key>()(key_extractor1_(in1)) % max_hash;
+				size_t target_processor = target_processors.find(hr)->second;
+				hash_writers1_[target_processor].Put(in1);
+			}
+
+			auto file2reader = pre_file2_->GetConsumeReader();
+			while (file2reader.HasNext()) {
+				InputTypeSecond in2 = file2reader.template Next<InputTypeSecond>();
+				size_t hr = std::hash<Key>()(key_extractor2_(in2)) % max_hash;
+				size_t target_processor = target_processors.find(hr)->second;
+				hash_writers2_[target_processor].Put(in2);
+			}
+		}
+
+
         for (size_t i = 0; i < hash_writers1_.size(); ++i) {
             hash_writers1_[i].Close();
             hash_writers2_[i].Close();
@@ -256,11 +281,7 @@ private:
 	
     //! Receive elements from other workers, create pre-sorted files
     void MainOp() {
-		if (UseLocationDetection) {
-			location_detection_.Flush();
-		}
-
-        data::MixStream::MixReader reader1_ =
+		data::MixStream::MixReader reader1_ =
             hash_stream1_->GetMixReader(/* consume */ true);
 
         size_t capacity = DIABase::mem_limit_ / sizeof(InputTypeFirst) / 2;
