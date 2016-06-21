@@ -25,6 +25,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <limits>
 
 #if __linux__
 
@@ -258,6 +259,8 @@ void LinuxProcStats::read_stat(JsonLine& out) {
     // read the number of jiffies spent in the various modes since the
     // last tick.
 
+    const double kNaN = 0; // we use zero since NaN is not compatible with JSON
+
     std::vector<double> cores_user, cores_nice, cores_sys, cores_idle,
         cores_iowait, cores_hardirq, cores_softirq,
         cores_steal, cores_guest, cores_guest_nice;
@@ -281,7 +284,7 @@ void LinuxProcStats::read_stat(JsonLine& out) {
                 &curr.guest,
                 &curr.guest_nice);
 
-            die_unequal(10, ret);
+            if (ret < 4) die ("/proc/stat returned too few values");
 
             CpuStat& prev = cpu_prev_;
 
@@ -299,12 +302,12 @@ void LinuxProcStats::read_stat(JsonLine& out) {
                  << "user" << perc(prev.user, curr.user, base)
                  << "nice" << perc(prev.nice, curr.nice, base)
                  << "sys" << perc(prev.sys, curr.sys, base)
-                 << "iowait" << perc(prev.iowait, curr.iowait, base)
-                 << "hardirq" << perc(prev.hardirq, curr.hardirq, base)
-                 << "softirq" << perc(prev.softirq, curr.softirq, base)
-                 << "steal" << perc(prev.steal, curr.steal, base)
-                 << "guest" << perc(prev.guest, curr.guest, base)
-                 << "guest_nice" << perc(prev.guest_nice, curr.guest_nice, base)
+                 << "iowait" << (ret >= 5 ? perc(prev.iowait, curr.iowait, base) : kNaN)
+                 << "hardirq" << (ret >= 6 ? perc(prev.hardirq, curr.hardirq, base) : kNaN)
+                 << "softirq" << (ret >= 7 ? perc(prev.softirq, curr.softirq, base) : kNaN)
+                 << "steal" << (ret >= 8 ? perc(prev.steal, curr.steal, base) : kNaN)
+                 << "guest" << (ret >= 9 ? perc(prev.guest, curr.guest, base) : kNaN)
+                 << "guest_nice" << (ret >= 10 ? perc(prev.guest_nice, curr.guest_nice, base) : kNaN)
                  << "idle" << perc(prev.idle, curr.idle, base);
 
             prepare_out(out)
@@ -312,12 +315,12 @@ void LinuxProcStats::read_stat(JsonLine& out) {
                 << "cpu_nice" << perc(prev.nice, curr.nice, base)
                 << "cpu_sys" << perc(prev.sys, curr.sys, base)
                 << "cpu_idle" << perc(prev.idle, curr.idle, base)
-                << "cpu_iowait" << perc(prev.iowait, curr.iowait, base)
-                << "cpu_hardirq" << perc(prev.hardirq, curr.hardirq, base)
-                << "cpu_softirq" << perc(prev.softirq, curr.softirq, base)
-                << "cpu_steal" << perc(prev.steal, curr.steal, base)
-                << "cpu_guest" << perc(prev.guest, curr.guest, base)
-                << "cpu_guest_nice" << perc(prev.guest_nice, curr.guest_nice, base);
+                << "cpu_iowait" << (ret >= 5 ? perc(prev.iowait, curr.iowait, base) : kNaN)
+                << "cpu_hardirq" << (ret >= 6 ? perc(prev.hardirq, curr.hardirq, base) : kNaN)
+                << "cpu_softirq" << (ret >= 7 ? perc(prev.softirq, curr.softirq, base) : kNaN)
+                << "cpu_steal" << (ret >= 8 ? perc(prev.steal, curr.steal, base) : kNaN)
+                << "cpu_guest" << (ret >= 9 ? perc(prev.guest, curr.guest, base) : kNaN)
+                << "cpu_guest_nice" << (ret >= 10 ? perc(prev.guest_nice, curr.guest_nice, base) : kNaN);
 
             prev = curr;
         }
@@ -340,7 +343,7 @@ void LinuxProcStats::read_stat(JsonLine& out) {
                 &curr.guest,
                 &curr.guest_nice);
 
-            die_unequal(11, ret);
+            if (ret < 5) die ("/proc/stat returned too few values");
 
             if (cpu_core_prev_.size() < core_id + 1)
                 cpu_core_prev_.resize(core_id + 1);
@@ -361,24 +364,24 @@ void LinuxProcStats::read_stat(JsonLine& out) {
                  << "user" << perc(prev.user, curr.user, base)
                  << "nice" << perc(prev.nice, curr.nice, base)
                  << "sys" << perc(prev.sys, curr.sys, base)
-                 << "iowait" << perc(prev.iowait, curr.iowait, base)
-                 << "hardirq" << perc(prev.hardirq, curr.hardirq, base)
-                 << "softirq" << perc(prev.softirq, curr.softirq, base)
-                 << "steal" << perc(prev.steal, curr.steal, base)
-                 << "guest" << perc(prev.guest, curr.guest, base)
-                 << "guest_nice" << perc(prev.guest_nice, curr.guest_nice, base)
+                 << "iowait" << (ret >= 6 ? perc(prev.iowait, curr.iowait, base) : kNaN)
+                 << "hardirq" << (ret >= 7 ? perc(prev.hardirq, curr.hardirq, base) : kNaN)
+                 << "softirq" << (ret >= 8 ? perc(prev.softirq, curr.softirq, base) : kNaN)
+                 << "steal" << (ret >= 9 ? perc(prev.steal, curr.steal, base) : kNaN)
+                 << "guest" << (ret >= 10 ? perc(prev.guest, curr.guest, base) : kNaN)
+                 << "guest_nice" << (ret >= 11 ? perc(prev.guest_nice, curr.guest_nice, base) : kNaN)
                  << "idle" << perc(prev.idle, curr.idle, base);
 
             cores_user.emplace_back(perc(prev.user, curr.user, base));
             cores_nice.emplace_back(perc(prev.nice, curr.nice, base));
             cores_sys.emplace_back(perc(prev.sys, curr.sys, base));
             cores_idle.emplace_back(perc(prev.idle, curr.idle, base));
-            cores_iowait.emplace_back(perc(prev.iowait, curr.iowait, base));
-            cores_hardirq.emplace_back(perc(prev.hardirq, curr.hardirq, base));
-            cores_softirq.emplace_back(perc(prev.softirq, curr.softirq, base));
-            cores_steal.emplace_back(perc(prev.steal, curr.steal, base));
-            cores_guest.emplace_back(perc(prev.guest, curr.guest, base));
-            cores_guest_nice.emplace_back(perc(prev.guest_nice, curr.guest_nice, base));
+            cores_iowait.push_back(ret >= 6 ? perc(prev.iowait, curr.iowait, base) : kNaN);
+            cores_hardirq.push_back(ret >= 7 ? perc(prev.hardirq, curr.hardirq, base) : kNaN);
+            cores_softirq.push_back(ret >= 8 ? perc(prev.softirq, curr.softirq, base) : kNaN);
+            cores_steal.push_back(ret >= 9 ? perc(prev.steal, curr.steal, base) : kNaN);
+            cores_guest.push_back(ret >= 10 ? perc(prev.guest, curr.guest, base) : kNaN);
+            cores_guest_nice.push_back(ret >= 11 ? perc(prev.guest_nice, curr.guest_nice, base) : kNaN);
 
             prev = curr;
         }
