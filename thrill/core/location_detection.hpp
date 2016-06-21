@@ -16,11 +16,13 @@
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/duplicate_detection.hpp>
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_table.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
 #include <thrill/core/reduce_probing_hash_table.hpp>
 #include <thrill/core/reduce_old_probing_hash_table.hpp>
+#include <thrill/data/cat_stream.hpp>
 
 #include <functional>
 
@@ -68,13 +70,64 @@ template <typename ValueType, typename Key, bool UseLocationDetection,
 class LocationDetection 
 {
 	static constexpr bool debug = false;
-
-public:
 	
 	using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
 	using HashCounterPair = std::pair<HashResult, CounterType>;
 	using KeyCounterPair = std::pair<Key, CounterType>;
 
+private:
+
+	void WriteOccurenceCounts(data::CatStreamPtr stream_pointer,
+							  const std::vector<HashCounterPair>& occurences,
+							  size_t b,
+							  size_t space_bound,
+							  size_t num_workers,
+							  size_t max_hash) {
+		
+        std::vector<data::CatStream::Writer> writers =
+            stream_pointer->GetWriters();
+
+		//length of counter in bits 
+		size_t bitsize = 8;
+		//total space bound of golomb code
+		size_t space_bound_with_counters = space_bound + occurences.size() * bitsize; 
+		
+		size_t j = 0;
+        for (size_t i = 0; i < num_workers; ++i) {
+            common::Range range_i = common::CalculateLocalRange(max_hash, num_workers, i);
+
+            core::DynamicBitset<size_t> golomb_code(space_bound_with_counters, false, b);
+
+            golomb_code.seek();
+
+            size_t delta = 0;
+			size_t num_elements = 0;
+
+			for (            /*j is already set from previous workers*/
+                ; j < occurences.size() && occurences[j].first < range_i.end; ++j) {
+                //! Send hash deltas to make the encoded bitset smaller.
+				golomb_code.golomb_in(occurences[j].first - delta);
+				delta = occurences[j].first;
+				num_elements++;
+			    
+				//! write counter in next bitsize bits
+				golomb_code.stream_in(bitsize, 
+									  std::min(((CounterType) 1 << bitsize) - 1,
+											   occurences[j].second));
+            }
+
+            //! Send raw data through data stream.
+            writers[i].Put(golomb_code.byte_size() + sizeof(size_t));
+            writers[i].Put(num_elements);
+            writers[i].Append(golomb_code.GetGolombData(),
+                              golomb_code.byte_size() + sizeof(size_t));
+            writers[i].Close();
+        }
+	}
+
+
+public:
+	
 	using ReduceConfig = DefaultReduceConfig;
 	using Emitter = ToVectorEmitter<KeyCounterPair, HashFunction>;
 	using Table = typename ReduceTableSelect<
@@ -136,6 +189,19 @@ public:
 		emit_.SetModulo(max_hash);
 
 		table_.FlushAll();
+
+		std::sort(data_.begin(), data_.end());
+
+		data::CatStreamPtr golomb_data_stream = context_.GetNewCatStream(dia_id_);
+
+		WriteOccurenceCounts(golomb_data_stream,
+							 data_, b,
+							 upper_space_bound,
+							 context_.num_workers(),
+							 max_hash);
+
+		std::vector<data::BlockReader<data::ConsumeBlockQueueSource>> readers = golomb_data_stream->GetReaders();
+		
 	}
 
 	// Target vector for vector emitter
