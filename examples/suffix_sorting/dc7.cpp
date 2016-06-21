@@ -252,8 +252,8 @@ template <typename Index, typename AlphabetType>
 struct StringFragment {
 
     struct Common {
-            Index        index;
-            AlphabetType t[6];
+        Index        index;
+        AlphabetType t[6];
     } THRILL_ATTRIBUTE_PACKED;
 
     union {

@@ -23,9 +23,9 @@
 
 #include <cstring>
 #include <fstream>
+#include <limits>
 #include <string>
 #include <vector>
-#include <limits>
 
 #if __linux__
 
@@ -284,7 +284,7 @@ void LinuxProcStats::read_stat(JsonLine& out) {
                 &curr.guest,
                 &curr.guest_nice);
 
-            if (ret < 4) die ("/proc/stat returned too few values");
+            if (ret < 4) die("/proc/stat returned too few values");
 
             CpuStat& prev = cpu_prev_;
 
@@ -343,7 +343,7 @@ void LinuxProcStats::read_stat(JsonLine& out) {
                 &curr.guest,
                 &curr.guest_nice);
 
-            if (ret < 5) die ("/proc/stat returned too few values");
+            if (ret < 5) die("/proc/stat returned too few values");
 
             if (cpu_core_prev_.size() < core_id + 1)
                 cpu_core_prev_.resize(core_id + 1);
