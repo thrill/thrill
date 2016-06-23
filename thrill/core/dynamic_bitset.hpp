@@ -1,3 +1,4 @@
+
 /*******************************************************************************
  * thrill/core/dynamic_bitset.hpp
  *
@@ -344,7 +345,7 @@ public:
      * \param value new value
      */
     inline void stream_in(short length, BaseType value) {
-        assert(pos_ * 8 < bitset_size_bits_);
+        assert(pos_ * 8 < bitset_size_bits_ + alignment);
         if (bits_ + length > bit_length) {
             //! buffer overflown
             int length_first = bit_length - bits_, length_second = length - length_first;
