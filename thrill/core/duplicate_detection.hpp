@@ -17,6 +17,8 @@
 #include <thrill/api/context.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/core/dynamic_bitset.hpp>
+#include <thrill/core/golomb_reader.hpp>
+#include <thrill/core/multiway_merge.hpp>
 
 #include <algorithm>
 
@@ -190,15 +192,37 @@ public:
 
         std::vector<size_t> hashes_dups;
 
-        ReadEncodedHashesToVector(golomb_data_stream,
-                                  hashes_dups, b);
+		std::vector<data::BlockReader<data::ConsumeBlockQueueSource>> readers =
+			golomb_data_stream->GetReaders();
 
-        std::sort(hashes_dups.begin(), hashes_dups.end());
+		std::vector<GolombReader> g_readers;
 
-        core::DynamicBitset<size_t>
-        duplicate_code(upper_space_bound, false, b);
+		size_t total_elements = 0;
 
-        duplicate_code.seek(0);
+		for (auto& reader : readers) {			
+			assert(reader.HasNext());
+			size_t data_size = reader.template Next<size_t>();
+			size_t num_elements = reader.template Next<size_t>();
+			size_t* raw_data = new size_t[data_size];
+			reader.Read(raw_data, data_size);
+			total_elements += num_elements;
+
+			g_readers.push_back(
+				GolombReader(data_size, raw_data, num_elements, b));
+		}
+
+		auto puller = make_multiway_merge_tree<size_t>
+			(g_readers.begin(), g_readers.end(), 
+			 [](const size_t& hash1,
+				const size_t& hash2) {
+				return hash1 < hash2;
+			});
+
+		while (puller.HasNext()) {
+			hashes_dups.push_back(puller.Next());
+		}
+
+	    core::DynamicBitset<size_t> duplicate_code(upper_space_bound, false, b);
 
         size_t delta = 0;
         size_t num_elements = 0;

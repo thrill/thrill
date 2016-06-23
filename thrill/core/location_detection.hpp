@@ -16,7 +16,7 @@
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/duplicate_detection.hpp>
+#include <thrill/core/dynamic_bitset.hpp>
 #include <thrill/core/golomb_reader.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/core/reduce_functional.hpp>
@@ -216,7 +216,7 @@ public:
 		std::vector<data::BlockReader<data::ConsumeBlockQueueSource>> readers =
 			golomb_data_stream->GetReaders();
 
-		std::vector<GolombReader<CounterType>> g_readers;
+		std::vector<GolombPairReader<CounterType>> g_readers;
 
 		size_t total_elements = 0;
 
@@ -229,7 +229,7 @@ public:
 			total_elements += num_elements;
 
 			g_readers.push_back(
-				GolombReader<CounterType>(data_size, raw_data, num_elements, b, 8));
+				GolombPairReader<CounterType>(data_size, raw_data, num_elements, b, 8));
 		}
 
 		auto puller = make_multiway_merge_tree<HashCounterPair>

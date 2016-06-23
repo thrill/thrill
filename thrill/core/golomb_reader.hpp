@@ -20,10 +20,10 @@ namespace thrill {
 namespace core {
 
 template <typename CounterType>
-class GolombReader 
+class GolombPairReader 
 {
 public:
-	GolombReader(size_t data_size,
+	GolombPairReader(size_t data_size,
 				 size_t* raw_data,
 				 size_t num_elements,
 				 size_t b,
@@ -56,6 +56,40 @@ private:
 	size_t returned_elements_;
 	size_t delta_;
 	size_t bitsize_;
+};
+
+class GolombReader 
+{
+public:
+	GolombReader(size_t data_size,
+				 size_t* raw_data,
+				 size_t num_elements,
+				 size_t b):
+		golomb_code(raw_data,
+					common::IntegerDivRoundUp(data_size,
+											  sizeof(size_t)),
+					b, num_elements),
+		num_elements_(num_elements),
+		returned_elements_(0),
+		delta_(0) { }
+
+	bool HasNext() {
+		return returned_elements_ < num_elements_;
+	}
+
+	template <typename T> 
+	T Next() {
+		size_t new_element = golomb_code.golomb_out() + delta_;
+		delta_ = new_element;
+		returned_elements_++;
+		return new_element;
+	}
+
+private:
+    DynamicBitset<size_t> golomb_code;
+	size_t num_elements_;
+	size_t returned_elements_;
+	size_t delta_;
 };
 
 } // namespace core
