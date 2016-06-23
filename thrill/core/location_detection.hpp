@@ -251,7 +251,8 @@ public:
 							 context_.num_workers(),
 							 max_hash);
 
-		std::vector<data::BlockReader<data::ConsumeBlockQueueSource>> readers = golomb_data_stream->GetReaders();
+		std::vector<data::BlockReader<data::ConsumeBlockQueueSource>> readers =
+			golomb_data_stream->GetReaders();
 
 		std::vector<GolombReader<CounterType>> g_readers;
 
@@ -276,7 +277,8 @@ public:
 				return hcp1.first < hcp2.first;
 			});
 
-		size_t processor_bitsize = common::IntegerLog2Ceil(context_.num_workers());
+		size_t processor_bitsize = std::max(common::IntegerLog2Ceil(context_.num_workers()), 
+											(unsigned int) 1);
 		size_t space_bound_with_processors = upper_space_bound +
 			total_elements * processor_bitsize; 
 		core::DynamicBitset<size_t> location_bitset(
@@ -284,17 +286,20 @@ public:
 
 		std::pair<HashCounterPair, unsigned int> next;
 
-		if (puller.HasNext())			
+		
+		bool finished = !puller.HasNext();
+
+		if (!finished)			
 			next = puller.NextWithSource();
 
 		HashResult delta = 0;
 		size_t num_elements = 0;
 
-		while (puller.HasNext()) {
+		while (!finished) {
 			size_t src_max = 0;
 			size_t max = 0;
 			HashResult next_hr = next.first.first;
-			while (next.first.first == next_hr) {
+			while (next.first.first == next_hr && !finished) {
 				if (next.first.second > max) {
 					src_max = next.second;
 					max = next.first.second;
@@ -302,13 +307,13 @@ public:
 				if (puller.HasNext()) {
 					next = puller.NextWithSource();
 				} else {
-					break;
+					finished = true;
 				}
 			}
 			num_elements++;
 			location_bitset.golomb_in(next_hr - delta);
+			delta = next_hr;
 			location_bitset.stream_in(processor_bitsize, src_max);		
-			
 		}
 
 		data::CatStreamPtr duplicates_stream = context_.GetNewCatStream(dia_id_);

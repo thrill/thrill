@@ -114,12 +114,13 @@ public:
     }
 
     void Execute() final {
+
 		if (UseLocationDetection) {
 			
 			size_t max_hash;
 			std::unordered_map<size_t, size_t> target_processors; 
 			max_hash = location_detection_.Flush(target_processors);
-		
+	    
 			auto file1reader = pre_file1_->GetConsumeReader();
 			while (file1reader.HasNext()) {
 				InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();
@@ -449,6 +450,13 @@ private:
 		pre_writer1_ = pre_file1_->GetWriter();
 		pre_writer2_ = pre_file2_->GetWriter();
 		
+	}
+
+	void StopPreOp(size_t /* id */) final {
+		LOG << *this << " running StopPreOp";
+		
+		pre_writer1_.Close();
+		pre_writer2_.Close();
 	}
 
     DIAMemUse ExecuteMemUse() final {
