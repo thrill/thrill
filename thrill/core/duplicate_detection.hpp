@@ -138,6 +138,7 @@ private:
                 //! Golomb code contains deltas, we want the actual values in target_vec
                 size_t new_elem = golomb_code.golomb_out() + last;
                 target_vec.push_back(new_elem);
+				
                 last = new_elem;
             }
             delete[] raw_data;
@@ -190,7 +191,7 @@ public:
                            context.num_workers(),
                            max_hash);
 
-        std::vector<size_t> hashes_dups;
+        std::vector<std::pair<size_t, size_t>> hashes_dups;
 
 		std::vector<data::BlockReader<data::ConsumeBlockQueueSource>> readers =
 			golomb_data_stream->GetReaders();
@@ -219,44 +220,60 @@ public:
 			});
 
 		while (puller.HasNext()) {
-			hashes_dups.push_back(puller.Next());
+			hashes_dups.push_back(puller.NextWithSource());
 		}
 
-	    core::DynamicBitset<size_t> duplicate_code(upper_space_bound, false, b);
+		data::CatStreamPtr duplicates_stream = context.GetNewCatStream(dia_id);
 
-        size_t delta = 0;
-        size_t num_elements = 0;
+		std::vector<data::CatStream::Writer> duplicate_writers =
+			duplicates_stream->GetWriters();
 
-        if (hashes_dups.size()) {
-            if (hashes_dups.size() >= 2 && hashes_dups[0] == 0 && hashes_dups[1] == 0) {
-                // case for duplicated 0, needs to be a special case as delta is 0 in the beginning
-                duplicate_code.golomb_in(0);
-                ++num_elements;
-            }
+		for (size_t i = 0; i < context.num_workers(); ++i) {
+			core::DynamicBitset<size_t> bitset(upper_space_bound, false, b);
 
-            for (size_t j = 0; j < hashes_dups.size() - 1; ++j) {
-                //! finds all duplicated hashes and insert them in the golomb code for duplicates
-                //! (regardless whether they appear on 2 or multiple workers)
-                if ((hashes_dups[j] == hashes_dups[j + 1]) && (hashes_dups[j] != delta)) {
-                    duplicate_code.golomb_in(hashes_dups[j] - delta);
-                    delta = hashes_dups[j];
-                    ++num_elements;
-                }
-            }
-        }
 
-        data::CatStreamPtr duplicates_stream = context.GetNewCatStream(dia_id);
+		    size_t delta = 0;
+			size_t element_counter = 0;
 
-        std::vector<data::CatStream::Writer> duplicate_writers =
-            duplicates_stream->GetWriters();
+			if (hashes_dups.size()) {
 
-        //! Send all duplicates to all workers (golomb encoded).
-        for (size_t i = 0; i < duplicate_writers.size(); ++i) {
-            duplicate_writers[i].Put(duplicate_code.byte_size() + sizeof(size_t));
-            duplicate_writers[i].Put(num_elements);
-            duplicate_writers[i].Append(duplicate_code.GetGolombData(),
-                                        duplicate_code.byte_size() + sizeof(size_t));
-            duplicate_writers[i].Close();
+				size_t j = 0;
+				if (hashes_dups.size() >= 2 && hashes_dups[0].first == 0 
+					&& hashes_dups[1].first == 0) {
+					// case for duplicated 0, needs to be a special case as delta starts as 0
+					element_counter++;
+					bitset.golomb_in(0);
+				}
+
+				while (j < hashes_dups.size() && hashes_dups[j].first == 0) {
+					++j;
+				}
+
+				while(j < hashes_dups.size() - 1) {
+					//! finds all duplicated hashes and insert them in the golomb code for duplicates
+					//! (regardless whether they appear on 2 or multiple workers)
+					if ((hashes_dups[j].first == hashes_dups[j + 1].first)) {
+
+						size_t cmp = hashes_dups[j].first;
+						while (hashes_dups[j].first == cmp) {
+							if (hashes_dups[j].second == i) {
+								bitset.golomb_in(cmp - delta);
+								delta = cmp;
+								element_counter++;
+							}
+							++j;
+						}
+					} else {
+						++j;
+					}
+				}
+			}
+
+			duplicate_writers[i].Put(bitset.byte_size());
+            duplicate_writers[i].Put(element_counter);
+            duplicate_writers[i].Append(bitset.GetGolombData(),
+                                        bitset.byte_size());
+			duplicate_writers[i].Close();
         }
 
         ReadEncodedHashesToVector(duplicates_stream,
