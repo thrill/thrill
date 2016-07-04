@@ -77,7 +77,7 @@ public:
           log2b_(common::IntegerLog2Ceil(b_)), // helper var for golomb in
           max_little_value_((((BaseType)1) << log2b_) - b_) {
         bitset_size_bits_ = n;
-        bitset_size_base_ = bitset_size_bits_ / (sizeof(BaseType) * 8) + 2;
+        bitset_size_base_ = bitset_size_bits_ / (sizeof(BaseType) * 8) + 3;
         memory_ = new byte[sizeof(BaseType) * bitset_size_base_ + alignment];
         in_called_already_ = false;
         out_called_already_ = false;
@@ -546,7 +546,9 @@ public:
             }
             pos_ = 1;
             bits_ = 0;
-            buffer_ = data_[1];
+            if (num_elements_ > 1)
+                buffer_ = data_[1];
+
             if (debug && !bitset_size_bits_) {
                 inserted_elements_.push_back(data_[0]);
             }
@@ -554,7 +556,6 @@ public:
         }
     }
 };
-
 } //namespace core
 } //namespace thrill
 

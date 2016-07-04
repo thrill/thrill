@@ -95,10 +95,10 @@ private:
             }
 
             //! Send raw data through data stream.
-            writers[i].Put(golomb_code.byte_size());
+            writers[i].Put(golomb_code.size());
             writers[i].Put(num_elements);
             writers[i].Append(golomb_code.GetGolombData(),
-                              golomb_code.byte_size());
+                              golomb_code.size() * sizeof(size_t));
             writers[i].Close();
         }
     }
@@ -123,25 +123,27 @@ private:
 
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();
-            size_t* raw_data = new size_t[data_size];
-            reader.Read(raw_data, data_size);
+            if (num_elements) {
+                size_t* raw_data = new size_t[data_size];
+                reader.Read(raw_data, data_size * sizeof(size_t));
 
-            //! Builds golomb encoded bitset from data recieved by the stream.
-            core::DynamicBitset<size_t> golomb_code(raw_data,
-                                                    common::IntegerDivRoundUp(data_size,
-                                                                              sizeof(size_t)),
-                                                    b, num_elements);
-            golomb_code.seek();
+                //! Builds golomb encoded bitset from data recieved by the stream.
+                core::DynamicBitset<size_t> golomb_code(raw_data,
+                                                        data_size,
+                                                        b, num_elements);
+                golomb_code.seek();
 
-            size_t last = 0;
-            for (size_t i = 0; i < num_elements; ++i) {
-                //! Golomb code contains deltas, we want the actual values in target_vec
-                size_t new_elem = golomb_code.golomb_out() + last;
-                target_vec.push_back(new_elem);
-				
-                last = new_elem;
+                size_t last = 0;
+                for (size_t i = 0; i < num_elements; ++i) {
+                    //! Golomb code contains deltas, we want the actual values
+                    size_t new_elem = golomb_code.golomb_out() + last;
+                    target_vec.push_back(new_elem);
+
+                    last = new_elem;
+                }
+
+                delete[] raw_data;
             }
-            delete[] raw_data;
         }
     }
 
@@ -191,89 +193,84 @@ public:
                            context.num_workers(),
                            max_hash);
 
-        std::vector<std::pair<size_t, size_t>> hashes_dups;
+        std::vector<std::pair<size_t, size_t> > hashes_dups;
 
-		std::vector<data::BlockReader<data::ConsumeBlockQueueSource>> readers =
-			golomb_data_stream->GetReaders();
+        std::vector<data::BlockReader<data::ConsumeBlockQueueSource> > readers =
+            golomb_data_stream->GetReaders();
 
-		std::vector<GolombReader> g_readers;
+        std::vector<GolombReader> g_readers;
 
-		size_t total_elements = 0;
+        size_t total_elements = 0;
 
-		for (auto& reader : readers) {			
-			assert(reader.HasNext());
-			size_t data_size = reader.template Next<size_t>();
-			size_t num_elements = reader.template Next<size_t>();
-			size_t* raw_data = new size_t[data_size];
-			reader.Read(raw_data, data_size);
-			total_elements += num_elements;
+        for (auto & reader : readers) {
+            assert(reader.HasNext());
+            size_t data_size = reader.template Next<size_t>();
+            size_t num_elements = reader.template Next<size_t>();
+            size_t* raw_data = new size_t[data_size + 1];
 
-			g_readers.push_back(
-				GolombReader(data_size, raw_data, num_elements, b));
-		}
+            reader.Read(raw_data, data_size * sizeof(size_t));
 
-		auto puller = make_multiway_merge_tree<size_t>
-			(g_readers.begin(), g_readers.end(), 
-			 [](const size_t& hash1,
-				const size_t& hash2) {
-				return hash1 < hash2;
-			});
+            total_elements += num_elements;
 
-		while (puller.HasNext()) {
-			hashes_dups.push_back(puller.NextWithSource());
-		}
+            g_readers.push_back(
+                GolombReader(data_size, raw_data, num_elements, b));
+        }
 
-		data::CatStreamPtr duplicates_stream = context.GetNewCatStream(dia_id);
+        auto puller = make_multiway_merge_tree<size_t>
+                          (g_readers.begin(), g_readers.end(),
+                          [](const size_t& hash1,
+                             const size_t& hash2) {
+                              return hash1 < hash2;
+                          });
 
-		std::vector<data::CatStream::Writer> duplicate_writers =
-			duplicates_stream->GetWriters();
+        while (puller.HasNext()) {
+            hashes_dups.push_back(puller.NextWithSource());
+        }
 
-		for (size_t i = 0; i < context.num_workers(); ++i) {
-			core::DynamicBitset<size_t> bitset(upper_space_bound, false, b);
+        assert(total_elements == hashes_dups.size());
 
+        data::CatStreamPtr duplicates_stream = context.GetNewCatStream(dia_id);
 
-		    size_t delta = 0;
-			size_t element_counter = 0;
+        std::vector<data::CatStream::Writer> duplicate_writers =
+            duplicates_stream->GetWriters();
 
-			if (hashes_dups.size()) {
+        for (size_t i = 0; i < context.num_workers(); ++i) {
+            core::DynamicBitset<size_t> bitset(upper_space_bound, false, b);
 
-				size_t j = 0;
-				if (hashes_dups.size() >= 2 && hashes_dups[0].first == 0 
-					&& hashes_dups[1].first == 0) {
-					// case for duplicated 0, needs to be a special case as delta starts as 0
-					element_counter++;
-					bitset.golomb_in(0);
-				}
+            size_t delta = 0;
+            size_t element_counter = 0;
 
-				while (j < hashes_dups.size() && hashes_dups[j].first == 0) {
-					++j;
-				}
+            if (hashes_dups.size()) {
 
-				while(j < hashes_dups.size() - 1) {
-					//! finds all duplicated hashes and insert them in the golomb code for duplicates
-					//! (regardless whether they appear on 2 or multiple workers)
-					if ((hashes_dups[j].first == hashes_dups[j + 1].first)) {
+                size_t j = 0;
 
-						size_t cmp = hashes_dups[j].first;
-						while (hashes_dups[j].first == cmp) {
-							if (hashes_dups[j].second == i) {
-								bitset.golomb_in(cmp - delta);
-								delta = cmp;
-								element_counter++;
-							}
-							++j;
-						}
-					} else {
-						++j;
-					}
-				}
-			}
+                while (j < hashes_dups.size() - 1) {
+                    //! finds all duplicated hashes and insert them in the
+                    //! golomb code for duplicates (regardless whether they
+                    //! appear on 2 or multiple workers)
+                    if ((hashes_dups[j].first == hashes_dups[j + 1].first)) {
 
-			duplicate_writers[i].Put(bitset.byte_size());
+                        size_t cmp = hashes_dups[j].first;
+                        while (j < hashes_dups.size() &&
+                               hashes_dups[j].first == cmp) {
+                            if (hashes_dups[j++].second == i) {
+                                bitset.golomb_in(cmp - delta);
+                                delta = cmp;
+                                element_counter++;
+                            }
+                        }
+                    }
+                    else {
+                        ++j;
+                    }
+                }
+            }
+
+            duplicate_writers[i].Put(bitset.size());
             duplicate_writers[i].Put(element_counter);
             duplicate_writers[i].Append(bitset.GetGolombData(),
-                                        bitset.byte_size());
-			duplicate_writers[i].Close();
+                                        bitset.size() * sizeof(size_t));
+            duplicate_writers[i].Close();
         }
 
         ReadEncodedHashesToVector(duplicates_stream,
