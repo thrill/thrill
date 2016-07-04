@@ -83,11 +83,39 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
                                                              ctx,
                                                              0);
 
-                          for (size_t i = 0; i < splitters.size(); ++i) {
-                              for (size_t j = 0; j < delta; ++j) {
-                                  ASSERT_EQ(duplicates[i * delta + j], splitters[i] + j);
+                          if (ctx.num_workers() > 1) {
+                              if (ctx.my_rank() == 0 ||
+                                  ctx.my_rank() == ctx.num_workers() - 1) {
+                                  ASSERT_EQ(delta, duplicates.size());
+                              } else {
+                                  ASSERT_EQ(2 * delta, duplicates.size());
                               }
+                          } else {
+                              ASSERT_EQ((size_t) 0, duplicates.size());
                           }
+
+                          //check of lower duplicates are there
+                          for (size_t j = 0; j < delta; ++j) {
+                              if (ctx.my_rank() == 0)
+                                  break;
+                              ASSERT_EQ(duplicates[j],
+                                        splitters[ctx.my_rank() - 1] + j);
+                          }
+
+                          //check if upper duplicates are there
+                          for (size_t j = 0; j < delta; ++j) {
+                              size_t lower_dups = 0;
+                              if (ctx.my_rank() > 0)
+                                  lower_dups = delta;
+
+                              if (ctx.my_rank() == ctx.num_workers() - 1)
+                                  break;
+
+                              ASSERT_EQ(duplicates[lower_dups + j],
+                                        splitters[ctx.my_rank()] + j);
+                          }
+
+
                       };
 
     api::RunLocalTests(start_func);
@@ -133,10 +161,37 @@ TEST(DuplicateDetection, SomeDuplicatedElementsNonConsec) {
                                                              ctx,
                                                              0);
 
-                          for (size_t i = 0; i < splitters.size(); ++i) {
-                              for (size_t j = 0; j < delta; ++j) {
-                                  ASSERT_EQ(duplicates[i * delta + j], (splitters[i] + j) * multiplier);
+                          if (ctx.num_workers() > 1) {
+                              if (ctx.my_rank() == 0 ||
+                                  ctx.my_rank() == ctx.num_workers() - 1) {
+                                  ASSERT_EQ(delta, duplicates.size());
+                              } else {
+                                  ASSERT_EQ(2 * delta, duplicates.size());
                               }
+                          } else {
+                              ASSERT_EQ((size_t) 0, duplicates.size());
+                          }
+
+                          //check of lower duplicates are there
+                          for (size_t j = 0; j < delta; ++j) {
+                              if (ctx.my_rank() == 0)
+                                  break;
+                              ASSERT_EQ(duplicates[j],
+                                        (splitters[ctx.my_rank() - 1] + j) *
+                                         multiplier);
+                          }
+
+                          for (size_t j = 0; j < delta; ++j) {
+                              size_t lower_dups = 0;
+                              if (ctx.my_rank() > 0)
+                                  lower_dups = delta;
+
+                              if (ctx.my_rank() == ctx.num_workers() - 1)
+                                  break;
+
+                              ASSERT_EQ(duplicates[lower_dups + j],
+                                        (splitters[ctx.my_rank()] + j) *
+                                         multiplier);
                           }
                       };
 
