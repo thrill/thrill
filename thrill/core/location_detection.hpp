@@ -129,10 +129,10 @@ private:
             }
 
             //! Send raw data through data stream.
-            writers[i].Put(golomb_code.byte_size() + sizeof(size_t));
+            writers[i].Put(golomb_code.size());
             writers[i].Put(num_elements);
             writers[i].Append(golomb_code.GetGolombData(),
-                              golomb_code.byte_size() + sizeof(size_t));
+                              golomb_code.size() * sizeof(size_t));
             writers[i].Close();
         }
     }
@@ -222,7 +222,7 @@ public:
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();
             size_t* raw_data = new size_t[data_size];
-            reader.Read(raw_data, data_size);
+            reader.Read(raw_data, data_size * sizeof(size_t));
             total_elements += num_elements;
 
             g_readers.push_back(
@@ -236,7 +236,8 @@ public:
                               return hcp1.first < hcp2.first;
                           });
 
-        size_t processor_bitsize = std::max(common::IntegerLog2Ceil(context_.num_workers()),
+        size_t processor_bitsize = std::max(common::IntegerLog2Ceil(
+                                                context_.num_workers()),
                                             (unsigned int)1);
         size_t space_bound_with_processors = upper_space_bound +
                                              total_elements * processor_bitsize;
@@ -282,10 +283,11 @@ public:
 
         //! Send all duplicates to all workers (golomb encoded).
         for (size_t i = 0; i < duplicate_writers.size(); ++i) {
-            duplicate_writers[i].Put(location_bitset.byte_size() + sizeof(size_t));
+            duplicate_writers[i].Put(location_bitset.size());
             duplicate_writers[i].Put(num_elements);
             duplicate_writers[i].Append(location_bitset.GetGolombData(),
-                                        location_bitset.byte_size() + sizeof(size_t));
+                                        location_bitset.size() *
+                                        sizeof(size_t));
             duplicate_writers[i].Close();
         }
 
@@ -296,12 +298,10 @@ public:
             size_t data_size = duplicates_reader.template Next<size_t>();
             size_t num_elements = duplicates_reader.template Next<size_t>();
             size_t* raw_data = new size_t[data_size];
-            duplicates_reader.Read(raw_data, data_size);
+            duplicates_reader.Read(raw_data, data_size * sizeof(size_t));
 
             //! Builds golomb encoded bitset from data recieved by the stream.
-            core::DynamicBitset<size_t> golomb_code(raw_data,
-                                                    common::IntegerDivRoundUp(data_size,
-                                                                              sizeof(size_t)),
+            core::DynamicBitset<size_t> golomb_code(raw_data, data_size,
                                                     b, num_elements);
             golomb_code.seek();
 
