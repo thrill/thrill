@@ -67,8 +67,7 @@ public:
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    std::vector<Writer>
-    GetWriters(size_t block_size = default_block_size) final;
+    std::vector<Writer> GetWriters() final;
 
     //! Creates a BlockReader which mixes items from all workers.
     MixReader GetMixReader(bool consume);

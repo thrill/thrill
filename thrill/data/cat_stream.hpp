@@ -86,8 +86,7 @@ public:
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    std::vector<Writer>
-    GetWriters(size_t block_size = default_block_size) final;
+    std::vector<Writer> GetWriters() final;
 
     //! Creates a BlockReader for each worker. The BlockReaders are attached to
     //! the BlockQueues in the Stream and wait for further Blocks to arrive or

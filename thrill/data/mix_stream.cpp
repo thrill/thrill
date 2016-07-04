@@ -68,8 +68,7 @@ void MixStream::set_dia_id(size_t dia_id) {
     queue_.set_dia_id(dia_id);
 }
 
-std::vector<MixStream::Writer>
-MixStream::GetWriters(size_t block_size) {
+std::vector<MixStream::Writer> MixStream::GetWriters() {
     tx_timespan_.StartEventually();
 
     std::vector<Writer> result;
@@ -81,12 +80,12 @@ MixStream::GetWriters(size_t block_size) {
                 // construct loopback queue writer
                 auto target_queue_ptr =
                     multiplexer_.MixLoopback(id_, local_worker_id_, worker);
-                result.emplace_back(target_queue_ptr, block_size);
+                result.emplace_back(target_queue_ptr, default_block_size);
                 target_queue_ptr->set_src_mix_stream(this);
             }
             else {
                 size_t worker_id = host * workers_per_host() + worker;
-                result.emplace_back(&sinks_[worker_id], block_size);
+                result.emplace_back(&sinks_[worker_id], default_block_size);
             }
         }
     }

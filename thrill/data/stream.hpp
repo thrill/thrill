@@ -75,8 +75,7 @@ public:
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    virtual std::vector<Writer>
-    GetWriters(size_t block_size = default_block_size) = 0;
+    virtual std::vector<Writer> GetWriters() = 0;
 
     /*!
      * Scatters a File to many worker: elements from [offset[0],offset[1]) are

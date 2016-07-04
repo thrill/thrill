@@ -68,6 +68,8 @@ TEST_F(MultiplexerHeaderTest, HeaderIsEnd) {
 TEST(StreamSet, TestLoopbacks) {
     size_t workers_per_host = 3;
     size_t hosts = 1;
+    data::default_block_size = test_block_size;
+
     auto groups = net::mock::Group::ConstructLoopbackMesh(hosts);
     net::Group* group = groups[0].get();
     mem::Manager mem_manager(nullptr, "Benchmark");
@@ -78,7 +80,7 @@ TEST(StreamSet, TestLoopbacks) {
         [workers_per_host](common::CountingPtr<data::CatStream> stream, size_t my_id) {
             common::NameThisThread("worker " + mem::to_string(my_id));
             // send data between workers
-            auto writers = stream->GetWriters(test_block_size);
+            auto writers = stream->GetWriters();
             for (size_t j = 0; j < workers_per_host; j++) {
                 sLOG << "sending from" << my_id << "to" << j;
                 writers[j].Put(std::to_string(my_id) + "->" + std::to_string(j));
@@ -172,6 +174,8 @@ void TalkAllToAllViaCatStream(net::Group* net) {
     size_t my_local_worker_id = 0;
     size_t num_workers_per_host = 1;
 
+    data::default_block_size = test_block_size;
+
     mem::Manager mem_manager(nullptr, "Benchmark");
     mem::Manager ext_mem_manager(nullptr, "BenchmarkExt");
     std::string swap_file_suffix =
@@ -184,8 +188,7 @@ void TalkAllToAllViaCatStream(net::Group* net) {
         // open Writers and send a message to all workers
 
         auto writers = multiplexer.GetOrCreateCatStream(
-            id, my_local_worker_id, /* dia_id */ 0)
-                       ->GetWriters(test_block_size);
+            id, my_local_worker_id, /* dia_id */ 0)->GetWriters();
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
             writers[tgt].Put("hello I am " + std::to_string(net->my_host_rank())
@@ -238,11 +241,12 @@ TEST_F(Multiplexer, TalkAllToAllViaCatStreamForManyNetSizes) {
 }
 
 TEST_F(Multiplexer, ReadCompleteCatStream) {
+    data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
             auto id = multiplexer.AllocateCatStreamId(0);
             auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
-            auto writers = c->GetWriters(test_block_size);
+            auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 0";
             std::string msg2 = "I am another message from worker 0";
             writers[2].Put(msg1);
@@ -257,7 +261,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
         [](data::Multiplexer& multiplexer) {
             auto id = multiplexer.AllocateCatStreamId(0);
             auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
-            auto writers = c->GetWriters(test_block_size);
+            auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
             for (auto& w : writers) {
@@ -269,7 +273,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
         [](data::Multiplexer& multiplexer) {
             auto id = multiplexer.AllocateCatStreamId(0);
             auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
-            auto writers = c->GetWriters(test_block_size);
+            auto writers = c->GetWriters();
             for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
@@ -284,11 +288,12 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
 }
 
 TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
+    data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
             auto id = multiplexer.AllocateCatStreamId(0);
             auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
-            auto writers = c->GetWriters(test_block_size);
+            auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 0";
             std::string msg2 = "I am another message from worker 0";
             writers[2].Put(msg1);
@@ -303,7 +308,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
         [](data::Multiplexer& multiplexer) {
             auto id = multiplexer.AllocateCatStreamId(0);
             auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
-            auto writers = c->GetWriters(test_block_size);
+            auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
             for (auto& w : writers) {
@@ -315,7 +320,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
         [](data::Multiplexer& multiplexer) {
             auto id = multiplexer.AllocateCatStreamId(0);
             auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
-            auto writers = c->GetWriters(test_block_size);
+            auto writers = c->GetWriters();
             for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
@@ -358,11 +363,12 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
 // MixStream Tests
 
 TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
+    data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
             auto id = multiplexer.AllocateMixStreamId(0);
             auto c = multiplexer.GetOrCreateMixStream(id, 0, /* dia_id */ 0);
-            auto writers = c->GetWriters(test_block_size);
+            auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 0";
             std::string msg2 = "I am another message from worker 0";
             writers[2].Put(msg1);
@@ -377,7 +383,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
         [](data::Multiplexer& multiplexer) {
             auto id = multiplexer.AllocateMixStreamId(0);
             auto c = multiplexer.GetOrCreateMixStream(id, 0, /* dia_id */ 0);
-            auto writers = c->GetWriters(test_block_size);
+            auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
             for (auto& w : writers) {
@@ -389,7 +395,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
         [](data::Multiplexer& multiplexer) {
             auto id = multiplexer.AllocateMixStreamId(0);
             auto c = multiplexer.GetOrCreateMixStream(id, 0, /* dia_id */ 0);
-            auto writers = c->GetWriters(test_block_size);
+            auto writers = c->GetWriters();
             for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
@@ -466,6 +472,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
     static constexpr size_t iterations = 1000;
     size_t my_local_worker_id = 0;
     size_t num_workers_per_host = 1;
+    data::default_block_size = test_block_size;
 
     mem::Manager mem_manager(nullptr, "Benchmark");
     data::BlockPool block_pool;
@@ -476,7 +483,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
         // open Writers and send a message to all workers
 
         auto writers = multiplexer.GetOrCreateMixStream(
-            id, my_local_worker_id, /* dia_id */ 0)->GetWriters(test_block_size);
+            id, my_local_worker_id, /* dia_id */ 0)->GetWriters();
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
             std::string txt =
@@ -542,12 +549,13 @@ TEST_F(Multiplexer, TalkAllToAllViaMixStreamForManyNetSizes) {
 // Scatter Tests
 
 TEST_F(Multiplexer, Scatter_OneWorker) {
+    data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
             // produce a File containing some items
             data::File file(multiplexer.block_pool(), 0, /* dia_id */ 0);
             {
-                auto writer = file.GetWriter(test_block_size);
+                auto writer = file.GetWriter();
                 writer.Put<std::string>("foo");
                 writer.Put<std::string>("bar");
                 writer.Flush();
@@ -572,12 +580,13 @@ TEST_F(Multiplexer, Scatter_OneWorker) {
 }
 
 TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
+    data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
             // produce a File containing some items
             data::File file(multiplexer.block_pool(), 0, /* dia_id */ 0);
             {
-                auto writer = file.GetWriter(test_block_size);
+                auto writer = file.GetWriter();
                 writer.Put<std::string>("foo");
                 writer.Put<std::string>("bar");
             }
@@ -596,7 +605,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             // produce a File containing some items
             data::File file(multiplexer.block_pool(), 0, /* dia_id */ 0);
             {
-                auto writer = file.GetWriter(test_block_size);
+                auto writer = file.GetWriter();
                 writer.Put<std::string>("hello");
                 writer.Put<std::string>("world");
                 writer.Put<std::string>(".");
@@ -615,12 +624,13 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
 }
 
 TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
+    data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
             // produce a File containing some items
             data::File file(multiplexer.block_pool(), 0, /* dia_id */ 0);
             {
-                auto writer = file.GetWriter(test_block_size);
+                auto writer = file.GetWriter();
                 writer.Put<std::string>("foo");
                 writer.Put<std::string>("bar");
             }
@@ -639,7 +649,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
             // produce a File containing some items
             data::File file(multiplexer.block_pool(), 0, /* dia_id */ 0);
             {
-                auto writer = file.GetWriter(test_block_size);
+                auto writer = file.GetWriter();
                 writer.Put<std::string>("hello");
                 writer.Put<std::string>("world");
                 writer.Put<std::string>(".");
@@ -658,12 +668,13 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
 }
 
 TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
+    data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
             // produce a File containing some items
             data::File file(multiplexer.block_pool(), 0, /* dia_id */ 0);
             {
-                auto writer = file.GetWriter(test_block_size);
+                auto writer = file.GetWriter();
                 writer.Put<int>(1);
                 writer.Put<int>(2);
             }
@@ -682,7 +693,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
             // produce a File containing some items
             data::File file(multiplexer.block_pool(), 0, /* dia_id */ 0);
             {
-                auto writer = file.GetWriter(test_block_size);
+                auto writer = file.GetWriter();
                 writer.Put<int>(3);
                 writer.Put<int>(4);
                 writer.Put<int>(5);

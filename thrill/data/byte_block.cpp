@@ -18,7 +18,7 @@
 namespace thrill {
 namespace data {
 
-size_t start_block_size = 8192;
+size_t start_block_size = 2 * 1024 * 1024;
 size_t default_block_size = 2 * 1024 * 1024;
 
 ByteBlock::ByteBlock(BlockPool* block_pool, Byte* data, size_t size)

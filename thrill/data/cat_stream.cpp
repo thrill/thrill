@@ -106,8 +106,7 @@ void CatStream::set_dia_id(size_t dia_id) {
     }
 }
 
-std::vector<CatStream::Writer>
-CatStream::GetWriters(size_t block_size) {
+std::vector<CatStream::Writer> CatStream::GetWriters() {
     tx_timespan_.StartEventually();
 
     std::vector<Writer> result;
@@ -120,11 +119,11 @@ CatStream::GetWriters(size_t block_size) {
                 auto target_queue_ptr = multiplexer_.CatLoopback(
                     id_, local_worker_id_, worker);
                 target_queue_ptr->set_source(this);
-                result.emplace_back(target_queue_ptr, block_size);
+                result.emplace_back(target_queue_ptr, default_block_size);
             }
             else {
                 size_t worker_id = host * workers_per_host() + worker;
-                result.emplace_back(&sinks_[worker_id], block_size);
+                result.emplace_back(&sinks_[worker_id], default_block_size);
             }
         }
     }
